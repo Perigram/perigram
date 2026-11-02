@@ -2,7 +2,7 @@ import { test, expect } from './fixtures.js';
 
 // The profile sketch editor's authored-truth roundtrip: dimensions are
 // native CadCraft dim entities, a label opens its field in place, and the
-// binding survives save and reopen. Drives the real dialog: draw a rect and
+// binding survives save and reopen. Drives the real sketch mode: draw a rect and
 // a circle through the CAD engine, bind the circle diameter to a parameter,
 // save, reopen — the binding survives and every authored numeric stays at
 // drawing scale. Artifacts: .playwright/cassette-profile-editor-*.png on
@@ -104,7 +104,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
 
   await page.getByRole('button', { name: 'Add profile' }).click();
   await page.getByRole('button', { name: /Create new|New profile/ }).first().click();
-  const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
+  const dialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const canvas = dialog.locator(CANVAS).first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
@@ -280,7 +280,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(await canvasSignature(), 'Enter commits and rebuilds').not.toBe(before);
 
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
-  const reopenedDialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
+  const reopenedDialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });
   await expect(reopenedDialog.locator(CANVAS).first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
   const reopened = await nativeDims(reopenedDialog);

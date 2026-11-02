@@ -50,6 +50,9 @@ export default function createSketchEditor({ vue, components, locale }) {
       // `face` folds the shapes from an empty region (the sketch IS the
       // face); `profile` folds them onto the material half of the axis.
       mode: { type: String, default: 'profile' },
+      // The editor stays mounted while the cassette canvas is active; its
+      // keyboard scope only owns shortcuts while its mode is open.
+      active: { type: Boolean, default: true },
       // In face mode the drawing datum is the host edge the face mounts
       // to: a horizontal line in sketch coordinates (the shard origin
       // sits at zero on that line).
@@ -515,6 +518,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       };
 
       const handleCanvasKeydown = (event) => {
+        if (!props.active) return;
         if (event.key === 'Escape') {
           const cancelling = Boolean(host?.running) || Boolean(dimensionDraft.value);
           if (!cancelling && !selectedCorner.value && !selectedShape.value) return;
@@ -538,7 +542,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // Toolbar and field focus sits in the host page, outside the frame:
       // the same Escape/undo routing runs there for the dialog's scope.
       const handleParentKeydown = (event) => {
-        if (!ownsKeyboardTarget(event.target) || isEditableTarget(event.target)) return;
+        if (!props.active || !ownsKeyboardTarget(event.target) || isEditableTarget(event.target)) return;
         handleCanvasKeydown(event);
       };
 

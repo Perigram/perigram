@@ -493,6 +493,9 @@
                 "title": "Face shape",
                 "singleOutline": "The shape must resolve to one closed outline."
             },
+            "sketchMode": {
+                "backToCassette": "Back to cassette"
+            },
             "autosaveDraftAvailable": "A session draft is available for this cassette.",
             "recoverDraft": "Recover draft",
             "discardDraft": "Discard draft",

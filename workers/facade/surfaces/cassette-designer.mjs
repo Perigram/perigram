@@ -315,9 +315,9 @@ export default function createSurface({ vue, components, locale, queries, record
       const onboardingDismissed = ref(false);
       const inlineEditorDrag = ref(null);
       // The focused profile-parameter chip's raw text (see fieldDraft).
-      const profileDialogVisible = ref(false);
+      const profileSketchOpen = ref(false);
       const editingProfileWorkpieceId = ref('');
-      // Every dialog session drafts blank (owner decision 2026-10-17):
+      // Every profile sketch drafts blank (owner decision 2026-10-17):
       // empty canvas, empty table — geometry and parameters are authored,
       // never seeded from the template.
       const profileDraft = ref({
@@ -337,14 +337,14 @@ export default function createSurface({ vue, components, locale, queries, record
         typeId: 'profile'
       })));
       const profilePicker = ref(null);
-      const faceShapeDialogVisible = ref(false);
+      const faceSketchOpen = ref(false);
       const editingFaceNodeId = ref('');
       const faceShapeDraft = ref(createEmptyOccsProfileSketch());
       const faceShapeBasisStart = ref(null);
       const faceShapeBasisEnd = ref(null);
       const faceShapeParentFace = ref([]);
       const faceShapeEditorError = ref('');
-      const faceShapeDialogError = computed(() => faceShapeEditorError.value);
+      const faceShapeSketchError = computed(() => faceShapeEditorError.value);
       const faceShapeDraftSketch = computed(() => normalizeOccsProfileSketch(faceShapeDraft.value));
       const faceShapeInspection = computed(() => inspectOccsProfileSketch(
         faceShapeDraftSketch.value,
@@ -354,6 +354,14 @@ export default function createSurface({ vue, components, locale, queries, record
         faceShapeInspection.value.savable
         && faceShapeDraftSketch.value.shapes.some(shape => shape.op === 'add')
       ));
+      const sketchMode = computed(() => (
+        faceSketchOpen.value ? 'face' : profileSketchOpen.value ? 'profile' : ''
+      ));
+      // The assembly canvas stays mounted under the sketch mode so its
+      // viewport survives the flip; the editor mounts once per surface.
+      const sketchEditorMounted = ref(false);
+      const sketchEditorMode = ref('profile');
+      let sketchReturnState = null;
       const hardwareLibraryRecords = ref([]);
       const hardwareLibraryAvailable = ref(true);
       const hardwarePicker = ref(null);
@@ -374,8 +382,8 @@ export default function createSurface({ vue, components, locale, queries, record
       const profileDraftSketch = computed(() => normalizeOccsProfileSketch(
         profileDraft.value.sketch || createEmptyOccsProfileSketch()
       ));
-      // The dialog edits the authored profile. Placement overrides stay on
-      // the workpiece and never enter this evaluation.
+      // The sketch mode edits the authored profile. Placement overrides stay
+      // on the workpiece and never enter this evaluation.
       const profileDraftInspection = computed(() => inspectOccsProfileSketch(
         profileDraftSketch.value,
         globalParameters.value
@@ -384,10 +392,10 @@ export default function createSurface({ vue, components, locale, queries, record
       // The refused save states its reason beside the button — a greyed
       // Save with no voice loses authored sessions.
       const profileDraftError = computed(() => profileDraftInspection.value.error);
-      // The dialog carries the one error voice: the save gate's refusal,
+      // The sketch mode carries the one error voice: the save gate's refusal,
       // the editor's outline refusal, or the participation gate.
       const profileEditorError = ref('');
-      const profileDialogError = computed(() => (
+      const profileSketchError = computed(() => (
         profileDraftError.value
         || profileEditorError.value
         || (profileDraftReady.value ? '' : t('cassette.v2.profileEditor.invalidSketch'))
@@ -826,13 +834,14 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const handleDesignerEscape = (event) => {
+        if (sketchMode.value) return;
         event.preventDefault();
         event.stopPropagation();
         clearDesignerSelection();
       };
 
       const handleDesignerKeydown = (event) => {
-        if (isScopedKeyboardTarget(event.target)) return;
+        if (sketchMode.value || isScopedKeyboardTarget(event.target)) return;
         if (event.key === 'Escape') {
           handleDesignerEscape(event);
           return;
@@ -1619,7 +1628,54 @@ export default function createSurface({ vue, components, locale, queries, record
         };
       };
 
-      const openProfileDialog = (workpieceId = '') => {
+      // The assembly selection and its floating editor return untouched
+      // when the sketch mode closes.
+      const captureSketchReturn = () => ({
+        selectedNodeId: selectedNodeId.value,
+        selectedWorkpieceOverrideId: selectedWorkpieceOverrideId.value,
+        selectedRelationId: selectedRelationId.value,
+        inspectorSelection: inspectorSelection.value,
+        inlineEditor: inlineEditor.value ? { ...inlineEditor.value } : null
+      });
+
+      const restoreSketchReturn = () => {
+        const state = sketchReturnState;
+        sketchReturnState = null;
+        if (!state) return;
+        selectedNodeId.value = state.selectedNodeId;
+        selectedWorkpieceOverrideId.value = state.selectedWorkpieceOverrideId;
+        selectedRelationId.value = state.selectedRelationId;
+        inspectorSelection.value = state.inspectorSelection;
+        if (state.inlineEditor) openInlineEditor(state.inlineEditor);
+      };
+
+      const finishProfileSketch = (addedWorkpieceId = '') => {
+        profileSketchOpen.value = false;
+        if (addedWorkpieceId) {
+          sketchReturnState = null;
+          selectProfileWorkpiece(addedWorkpieceId);
+          return;
+        }
+        restoreSketchReturn();
+      };
+
+      const cancelProfileSketch = () => {
+        profileSketchOpen.value = false;
+        restoreSketchReturn();
+      };
+
+      const finishFaceSketch = () => {
+        faceSketchOpen.value = false;
+        restoreSketchReturn();
+      };
+
+      const cancelFaceSketch = () => {
+        faceSketchOpen.value = false;
+        restoreSketchReturn();
+      };
+
+      const openProfileSketch = (workpieceId = '') => {
+        sketchReturnState = captureSketchReturn();
         closeInlineEditor();
         profileEditorError.value = '';
         editingProfileWorkpieceId.value = workpieceId;
@@ -1629,17 +1685,17 @@ export default function createSurface({ vue, components, locale, queries, record
           const snapshotSketch = profile?.sketch || createEmptyOccsProfileSketch();
           // The cassette's globals are read through shape expressions;
           // their stale copies in the profile's tables drop here, so the
-          // rows the dialog edits are the profile's own.
+          // rows the editor edits are the profile's own.
           const scope = globalParameters.value;
           const normalizedProfile = normalizeCassetteV2Profile(workpiece, scope);
           profileDraft.value = {
             name: workpiece.name || t('cassette.v2.profileEditor.defaultName'),
             kind: workpiece.role || profile?.kind || 'hanger',
             process: workpiece.process || profile?.process || 'extruded',
-            // Placement overrides stay on the workpiece; the dialog never
-            // evaluates or edits them.
+            // Placement overrides stay on the workpiece; the sketch mode
+            // never evaluates or edits them.
             preservedInstance: { ...(normalizedProfile.instance || {}) },
-            // The dialog edits the authored table alone.
+            // The sketch mode edits the authored table alone.
             sketch: {
               ...snapshotSketch,
               parameters: pruneScopeBoundParameters(snapshotSketch.parameters, snapshotSketch.shapes, scope)
@@ -1647,8 +1703,8 @@ export default function createSurface({ vue, components, locale, queries, record
             libraryId: workpiece.profileTemplateId?.toString() || ''
           };
         } else {
-          // Blank draft (owner decision 2026-10-17): the dialog opens on
-          // an empty canvas and an empty table, never the seeded template.
+          // Blank draft (owner decision 2026-10-17): the sketch mode opens
+          // on an empty canvas and an empty table, never the seeded template.
           profileDraft.value = {
             name: t('cassette.v2.profileEditor.defaultName'),
             kind: 'hanger',
@@ -1658,7 +1714,9 @@ export default function createSurface({ vue, components, locale, queries, record
             libraryId: ''
           };
         }
-        profileDialogVisible.value = true;
+        sketchEditorMounted.value = true;
+        sketchEditorMode.value = 'profile';
+        profileSketchOpen.value = true;
         loadProfileLibrary();
       };
 
@@ -1674,7 +1732,8 @@ export default function createSurface({ vue, components, locale, queries, record
 
       // A face sketch is edited on the same shape canvas as a profile;
       // converting a trapezoid seeds the draft with its current outline.
-      const openFaceShapeDialog = async (nodeId) => {
+      const openFaceShapeSketch = async (nodeId) => {
+        sketchReturnState = captureSketchReturn();
         closeInlineEditor();
         faceShapeEditorError.value = '';
         editingFaceNodeId.value = nodeId;
@@ -1691,7 +1750,9 @@ export default function createSurface({ vue, components, locale, queries, record
           faceShapeBasisEnd.value = null;
           faceShapeParentFace.value = [];
         }
-        faceShapeDialogVisible.value = true;
+        sketchEditorMounted.value = true;
+        sketchEditorMode.value = 'face';
+        faceSketchOpen.value = true;
       };
 
       const saveFaceShapeDraft = async () => {
@@ -1703,17 +1764,17 @@ export default function createSurface({ vue, components, locale, queries, record
           return;
         }
         cassetteTree.value = updateCassetteV2FaceSketch(cassetteTree.value, editingFaceNodeId.value, sketch);
-        faceShapeDialogVisible.value = false;
+        finishFaceSketch();
       };
 
       const useTrapezoidFace = (nodeId = editingFaceNodeId.value) => {
         cassetteTree.value = updateCassetteV2FaceSketch(cassetteTree.value, nodeId, null);
-        faceShapeDialogVisible.value = false;
+        finishFaceSketch();
       };
 
       // The profile library: `profile` records of the plugin's own type,
-      // authored only from this dialog. Save to library writes the
-      // authored truth (kind, process, prepared sketch) through the
+      // authored only from the profile sketch mode. Save to library writes
+      // the authored truth (kind, process, prepared sketch) through the
       // records host capability; picking one copies it into the draft —
       // a snapshot copy, never a live reference, so the cassette
       // document stays self-contained.
@@ -1749,10 +1810,10 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       // The add-profile picker: library rows with evaluated-sketch
-      // thumbnails beside Create new (the blank dialog draft). Picking a
+      // thumbnails beside Create new (the blank sketch draft). Picking a
       // row places the profile as a workpiece directly — a snapshot copy
-      // of the record's authored truth; the dialog stays the authoring
-      // surface.
+      // of the record's authored truth; the sketch mode stays the
+      // authoring surface.
       const openProfilePicker = (event) => {
         loadProfileLibrary();
         profilePicker.value?.toggle?.(event);
@@ -1770,7 +1831,7 @@ export default function createSurface({ vue, components, locale, queries, record
         profileDeletePopover.value?.hide?.();
       };
 
-      watch(profileDialogVisible, visible => {
+      watch(profileSketchOpen, visible => {
         if (!visible) closeProfileDeletePopover();
       });
 
@@ -1960,6 +2021,7 @@ export default function createSurface({ vue, components, locale, queries, record
         const payload = profileDraftPayload();
         const preservedInstance = { ...(profileDraft.value.preservedInstance || {}) };
         const workpieceId = editingProfileWorkpieceId.value;
+        let addedWorkpieceId = '';
         if (workpieceId && workpieces.value.some(item => item.id === workpieceId)) {
           cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, workpieceId, {
             name: payload.name,
@@ -1996,8 +2058,9 @@ export default function createSurface({ vue, components, locale, queries, record
             return;
           }
           selectWorkpiece(added.workpieceId);
+          addedWorkpieceId = added.workpieceId;
         }
-        profileDialogVisible.value = false;
+        finishProfileSketch(addedWorkpieceId);
         notify({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.saved'), life: 2500 });
       };
 
@@ -2407,7 +2470,7 @@ export default function createSurface({ vue, components, locale, queries, record
               label: t('cassette.v2.editFaceShape'),
               severity: 'secondary',
               size: 'small',
-              onClick: () => openFaceShapeDialog(editor.nodeId)
+              onClick: () => openFaceShapeSketch(editor.nodeId)
             }),
             inlineEditorNode.value?.sketch
               ? h(Button, {
@@ -2569,7 +2632,7 @@ export default function createSurface({ vue, components, locale, queries, record
                       'aria-label': t('cassette.v2.editProfile'),
                       title: t('cassette.v2.editProfile'),
                       onMousedown: event => event.stopPropagation(),
-                      onClick: () => openProfileDialog(relation.sourceWorkpieceId)
+                      onClick: () => openProfileSketch(relation.sourceWorkpieceId)
                     })
                   : null,
                 kind === 'profile'
@@ -2919,6 +2982,210 @@ export default function createSurface({ vue, components, locale, queries, record
           : null
       ]);
 
+      const renderSketchMode = () => {
+        if (!sketchEditorMounted.value) return null;
+        const active = sketchMode.value;
+        const mode = active || sketchEditorMode.value;
+        const face = mode === 'face';
+        const open = Boolean(active);
+        const title = face
+          ? t('cassette.v2.faceShapeEditor.title')
+          : t('cassette.v2.profileEditor.title');
+        const node = face
+          ? treeNodes.value.find(item => item.id === editingFaceNodeId.value)
+          : null;
+        const workpiece = workpieces.value.find(item => (
+          item.id === (face ? node?.workpieceId : editingProfileWorkpieceId.value)
+        ));
+        const target = [
+          cassetteNameDraft.value,
+          workpiece?.name || (face ? '' : profileDraft.value.name)
+        ].filter(Boolean).join(' / ');
+        const close = () => { if (face) cancelFaceSketch(); else cancelProfileSketch(); };
+        const error = face ? faceShapeSketchError.value : profileSketchError.value;
+        const actions = face
+          ? [
+              h(Button, {
+                icon: 'pi pi-save',
+                severity: 'primary',
+                rounded: true,
+                size: 'small',
+                disabled: !faceShapeReady.value,
+                'aria-label': t('common.save'),
+                title: error || t('common.save'),
+                onClick: saveFaceShapeDraft
+              }),
+              h(Button, {
+                icon: 'pi pi-undo',
+                severity: 'secondary',
+                text: true,
+                rounded: true,
+                size: 'small',
+                'aria-label': t('cassette.v2.useTrapezoidFace'),
+                title: t('cassette.v2.useTrapezoidFace'),
+                onClick: () => useTrapezoidFace()
+              })
+            ]
+          : [
+              h(Button, {
+                icon: 'pi pi-save',
+                severity: 'primary',
+                rounded: true,
+                size: 'small',
+                disabled: !profileDraftReady.value,
+                'aria-label': t('common.save'),
+                title: error || t('common.save'),
+                onClick: saveProfileDraft
+              }),
+              ...(profileLibraryAvailable.value
+                ? [
+                    h(Button, {
+                      icon: profileDraft.value.libraryId ? 'pi pi-cloud-upload' : 'pi pi-bookmark',
+                      severity: 'secondary',
+                      text: true,
+                      rounded: true,
+                      size: 'small',
+                      disabled: !profileDraftAuthoredReady.value,
+                      'aria-label': profileDraft.value.libraryId
+                        ? t('cassette.v2.profileEditor.updateLibrary')
+                        : t('cassette.v2.profileEditor.saveToLibrary'),
+                      title: profileDraftAuthoredReady.value
+                        ? (profileDraft.value.libraryId
+                            ? t('cassette.v2.profileEditor.updateLibrary')
+                            : t('cassette.v2.profileEditor.saveToLibrary'))
+                        : t('cassette.v2.profileEditor.invalidSketch'),
+                      onClick: profileDraft.value.libraryId
+                        ? updateProfileLibraryRecord
+                        : () => saveProfileDraftToLibrary()
+                    }),
+                    profileDraft.value.libraryId
+                      ? h(Button, {
+                          icon: 'pi pi-copy',
+                          severity: 'secondary',
+                          text: true,
+                          rounded: true,
+                          size: 'small',
+                          disabled: !profileDraftAuthoredReady.value,
+                          'aria-label': t('cassette.v2.profileEditor.saveAsToLibrary'),
+                          title: profileDraftAuthoredReady.value
+                            ? t('cassette.v2.profileEditor.saveAsToLibrary')
+                            : t('cassette.v2.profileEditor.invalidSketch'),
+                          onClick: () => saveProfileDraftToLibrary({ asNew: true })
+                        })
+                      : null,
+                    profileDraft.value.libraryId
+                      ? h(Button, {
+                          icon: 'pi pi-trash',
+                          severity: 'danger',
+                          text: true,
+                          rounded: true,
+                          size: 'small',
+                          'aria-label': t('cassette.v2.profileEditor.deleteFromLibrary'),
+                          title: t('cassette.v2.profileEditor.deleteFromLibrary'),
+                          onClick: openProfileDeletePopover
+                        })
+                      : null
+                  ]
+                : [])
+            ];
+        return h('section', {
+          class: [
+            'absolute inset-3 z-[120] flex min-h-0 flex-col gap-2 overflow-hidden rounded-ui border border-content-border bg-content p-3 shadow-overlay',
+            open ? '' : 'invisible pointer-events-none'
+          ],
+          'data-sketch-mode': active || undefined,
+          'aria-hidden': open ? undefined : 'true',
+          'aria-label': title
+        }, [
+          h('div', { class: 'flex shrink-0 flex-wrap items-center gap-2' }, [
+            h(Button, {
+              icon: 'pi pi-arrow-left',
+              label: t('common.back'),
+              severity: 'secondary',
+              text: true,
+              size: 'small',
+              'aria-label': t('cassette.v2.sketchMode.backToCassette'),
+              title: t('cassette.v2.sketchMode.backToCassette'),
+              onClick: close
+            }),
+            h('div', { class: 'flex min-w-0 flex-col' }, [
+              h('strong', { class: 'truncate' }, title),
+              target ? h('span', { class: 'truncate text-xs text-muted' }, target) : null
+            ]),
+            h('div', { class: 'ml-auto flex flex-wrap items-center gap-2' }, actions)
+          ]),
+          face
+            ? null
+            : h('div', { class: 'flex shrink-0 flex-wrap items-center gap-2' }, [
+                h(InputText, {
+                  modelValue: profileDraft.value.name,
+                  'onUpdate:modelValue': value => { profileDraft.value.name = value; },
+                  placeholder: t('cassette.v2.profileEditor.name'),
+                  size: 'small',
+                  class: 'min-w-40 flex-1'
+                }),
+                h(Select, {
+                  modelValue: profileDraft.value.kind,
+                  options: profileKindOptions.value,
+                  optionLabel: 'label',
+                  optionValue: 'value',
+                  appendTo: 'self',
+                  size: 'small',
+                  class: 'w-28',
+                  'aria-label': t('cassette.v2.profileEditor.kind'),
+                  'onUpdate:modelValue': value => { profileDraft.value.kind = value; }
+                }),
+                h(Select, {
+                  modelValue: profileDraft.value.process,
+                  options: profileProcessOptions.value,
+                  optionLabel: 'label',
+                  optionValue: 'value',
+                  appendTo: 'self',
+                  size: 'small',
+                  class: 'w-36',
+                  'aria-label': t('cassette.v2.profileEditor.process'),
+                  'onUpdate:modelValue': value => { profileDraft.value.process = value; }
+                }),
+                profileLibraryAvailable.value
+                  ? h('div', { class: 'w-44' }, [h(InstanceSelect, {
+                    modelValue: null,
+                    options: profileLibraryOptions.value,
+                    optionLabel: 'label',
+                    optionValue: 'value',
+                    placeholder: t('cassette.v2.profileEditor.library'),
+                    appendTo: 'self',
+                    size: 'small',
+                    'onUpdate:modelValue': value => {
+                      applyProfileLibraryRecord(profileLibraryRecords.value.find(record => record?._id?.toString() === value));
+                    }
+                  })])
+                  : null
+              ]),
+          error
+            ? h(Message, { severity: 'warn', size: 'small', closable: false, class: 'shrink-0' }, () => error)
+            : null,
+          h(ProfileSketchEditor, {
+            modelValue: face ? faceShapeDraft.value : profileDraft.value.sketch,
+            mode: face ? 'face' : 'profile',
+            active: open,
+            basisStart: face ? faceShapeBasisStart.value : null,
+            basisEnd: face ? faceShapeBasisEnd.value : null,
+            contextFace: face ? faceShapeParentFace.value : [],
+            externalParameters: globalParameters.value,
+            'onUpdate:modelValue': value => {
+              if (!open) return;
+              if (face) faceShapeDraft.value = value;
+              else profileDraft.value.sketch = value;
+            },
+            onOutlineError: value => {
+              if (!open) return;
+              if (face) faceShapeEditorError.value = value;
+              else profileEditorError.value = value;
+            }
+          })
+        ]);
+      };
+
       const renderInspector = () => h('aside', { class: 'flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3' }, [
         h('div', { class: 'flex min-h-0 flex-1 flex-col gap-2 overflow-hidden' }, [
           h('div', { class: 'flex items-center justify-between gap-2' }, [
@@ -3118,14 +3385,17 @@ export default function createSurface({ vue, components, locale, queries, record
           if (event.key === 'Escape') handleDesignerEscape(event);
         }
       }, () => [
-        renderOnboardingRail(),
+        sketchMode.value ? null : renderOnboardingRail(),
         h(DesignerWorkspace, {
           layout: 'lanes',
           class: 'min-h-0 flex-1',
-          documentItems: documentDockItems.value,
-          canvasItems: canvasDockItems.value
+          documentItems: sketchMode.value ? [] : documentDockItems.value,
+          canvasItems: sketchMode.value ? [] : canvasDockItems.value
         }, {
-          palette: renderPalette,
+          ...(sketchMode.value ? {} : {
+            palette: renderPalette,
+            inspector: renderInspector
+          }),
           default: () => h('section', {
             ref: editorSurfaceRef,
             class: 'relative h-full min-h-0 w-full overflow-hidden'
@@ -3157,14 +3427,14 @@ export default function createSurface({ vue, components, locale, queries, record
               onDesignerSectionEdit: handleDesignerSectionEdit,
               onDesignerFoldAngleEdit: handleDesignerFoldAngleEdit
             }),
-            previewError.value
+            previewError.value && !sketchMode.value
               ? h('div', { class: 'pointer-events-none absolute bottom-3 left-1/2 z-[130] w-[min(32rem,calc(100%-1rem))] -translate-x-1/2' }, [
                   h(Message, { severity: 'warn', size: 'small', closable: false }, () => previewError.value)
                 ])
               : null,
-            renderInlineEditor()
+            sketchMode.value ? null : renderInlineEditor(),
+            renderSketchMode()
           ]),
-          inspector: renderInspector
         }),
         h(Popover, { ref: dockMenu }, () => [
           h('div', {
@@ -3235,7 +3505,7 @@ export default function createSurface({ vue, components, locale, queries, record
             class: 'w-full justify-start',
             onClick: () => {
               closeProfilePicker();
-              openProfileDialog();
+              openProfileSketch();
             }
           }),
           profileLibraryAvailable.value && profileLibraryRecords.value.length
@@ -3412,182 +3682,7 @@ export default function createSurface({ vue, components, locale, queries, record
         }, () => [
           h('div', { class: 'h-[70vh] w-full' }, [foldedPreviewMount()])
         ]),
-        h(StandardDialog, {
-          visible: faceShapeDialogVisible.value,
-          'onUpdate:visible': value => { faceShapeDialogVisible.value = value; },
-          header: t('cassette.v2.faceShapeEditor.title'),
-          size: 'xl',
-          fill: true,
-          showDefaultFooter: false,
-          class: 'h-[92dvh]'
-        }, () => h('div', { class: 'flex min-h-0 flex-1 flex-col gap-2' }, [
-          h('div', { class: 'flex shrink-0 flex-wrap items-center justify-end gap-2' }, [
-            h(Button, {
-              icon: 'pi pi-save',
-              severity: 'primary',
-              rounded: true,
-              size: 'small',
-              disabled: !faceShapeReady.value,
-              'aria-label': t('common.save'),
-              title: faceShapeDialogError.value || t('common.save'),
-              onClick: saveFaceShapeDraft
-            }),
-            h(Button, {
-              icon: 'pi pi-undo',
-              severity: 'secondary',
-              text: true,
-              rounded: true,
-              size: 'small',
-              'aria-label': t('cassette.v2.useTrapezoidFace'),
-              title: t('cassette.v2.useTrapezoidFace'),
-              onClick: () => useTrapezoidFace()
-            })
-          ]),
-          faceShapeDialogError.value
-            ? h(Message, { severity: 'warn', size: 'small', closable: false, class: 'shrink-0' }, () => faceShapeDialogError.value)
-            : null,
-          h(ProfileSketchEditor, {
-            modelValue: faceShapeDraft.value,
-            mode: 'face',
-            basisStart: faceShapeBasisStart.value,
-            basisEnd: faceShapeBasisEnd.value,
-            contextFace: faceShapeParentFace.value,
-            externalParameters: globalParameters.value,
-            'onUpdate:modelValue': value => { faceShapeDraft.value = value; },
-            onOutlineError: value => { faceShapeEditorError.value = value; }
-          })
-        ])),
-        h(StandardDialog, {
-          visible: profileDialogVisible.value,
-          'onUpdate:visible': value => { profileDialogVisible.value = value; },
-          header: t('cassette.v2.profileEditor.title'),
-          size: 'xl',
-          fill: true,
-          showDefaultFooter: false,
-          // Near-viewport height (owner decision 2026-10-17): the editor
-          // canvas takes the space; `fill` keeps the viewport caps.
-          class: 'h-[92dvh]'
-        }, {
-          // Window-level controls in one compact row (owner decision
-          // 2026-10-17): identity, kind/process, library pick, and the
-          // save actions; the dialog's header close cancels.
-          default: () => h('div', { class: 'flex min-h-0 flex-1 flex-col gap-2' }, [
-            h('div', { class: 'flex shrink-0 flex-wrap items-center gap-2' }, [
-              h(InputText, {
-                modelValue: profileDraft.value.name,
-                'onUpdate:modelValue': value => { profileDraft.value.name = value; },
-                placeholder: t('cassette.v2.profileEditor.name'),
-                size: 'small',
-                class: 'min-w-40 flex-1'
-              }),
-              h(Select, {
-                modelValue: profileDraft.value.kind,
-                options: profileKindOptions.value,
-                optionLabel: 'label',
-                optionValue: 'value',
-                appendTo: 'self',
-                size: 'small',
-                class: 'w-28',
-                'aria-label': t('cassette.v2.profileEditor.kind'),
-                'onUpdate:modelValue': value => { profileDraft.value.kind = value; }
-              }),
-              h(Select, {
-                modelValue: profileDraft.value.process,
-                options: profileProcessOptions.value,
-                optionLabel: 'label',
-                optionValue: 'value',
-                appendTo: 'self',
-                size: 'small',
-                class: 'w-36',
-                'aria-label': t('cassette.v2.profileEditor.process'),
-                'onUpdate:modelValue': value => { profileDraft.value.process = value; }
-              }),
-              profileLibraryAvailable.value
-                ? h('div', { class: 'w-44' }, [h(InstanceSelect, {
-                  modelValue: null,
-                  options: profileLibraryOptions.value,
-                  optionLabel: 'label',
-                  optionValue: 'value',
-                  placeholder: t('cassette.v2.profileEditor.library'),
-                  appendTo: 'self',
-                  size: 'small',
-                  'onUpdate:modelValue': value => {
-                    applyProfileLibraryRecord(profileLibraryRecords.value.find(record => record?._id?.toString() === value));
-                  }
-                })])
-                : null,
-              h(Button, {
-                icon: 'pi pi-save',
-                severity: 'primary',
-                rounded: true,
-                size: 'small',
-                disabled: !profileDraftReady.value,
-                'aria-label': t('common.save'),
-                title: profileDialogError.value || t('common.save'),
-                onClick: saveProfileDraft
-              }),
-              ...(profileLibraryAvailable.value
-                ? [
-                    h(Button, {
-                      icon: profileDraft.value.libraryId ? 'pi pi-cloud-upload' : 'pi pi-bookmark',
-                      severity: 'secondary',
-                      text: true,
-                      rounded: true,
-                      size: 'small',
-                      disabled: !profileDraftAuthoredReady.value,
-                      'aria-label': profileDraft.value.libraryId
-                        ? t('cassette.v2.profileEditor.updateLibrary')
-                        : t('cassette.v2.profileEditor.saveToLibrary'),
-                      title: profileDraftAuthoredReady.value
-                        ? (profileDraft.value.libraryId
-                            ? t('cassette.v2.profileEditor.updateLibrary')
-                            : t('cassette.v2.profileEditor.saveToLibrary'))
-                        : t('cassette.v2.profileEditor.invalidSketch'),
-                      onClick: profileDraft.value.libraryId
-                        ? updateProfileLibraryRecord
-                        : () => saveProfileDraftToLibrary()
-                    }),
-                    profileDraft.value.libraryId
-                      ? h(Button, {
-                          icon: 'pi pi-copy',
-                          severity: 'secondary',
-                          text: true,
-                          rounded: true,
-                          size: 'small',
-                          disabled: !profileDraftAuthoredReady.value,
-                          'aria-label': t('cassette.v2.profileEditor.saveAsToLibrary'),
-                          title: profileDraftAuthoredReady.value
-                            ? t('cassette.v2.profileEditor.saveAsToLibrary')
-                            : t('cassette.v2.profileEditor.invalidSketch'),
-                          onClick: () => saveProfileDraftToLibrary({ asNew: true })
-                        })
-                      : null,
-                    profileDraft.value.libraryId
-                      ? h(Button, {
-                          icon: 'pi pi-trash',
-                          severity: 'danger',
-                          text: true,
-                          rounded: true,
-                          size: 'small',
-                          'aria-label': t('cassette.v2.profileEditor.deleteFromLibrary'),
-                          title: t('cassette.v2.profileEditor.deleteFromLibrary'),
-                          onClick: openProfileDeletePopover
-                        })
-                      : null
-                  ]
-                : [])
-            ]),
-            profileDialogError.value
-              ? h(Message, { severity: 'warn', size: 'small', closable: false, class: 'shrink-0' }, () => profileDialogError.value)
-              : null,
-            h(ProfileSketchEditor, {
-              modelValue: profileDraft.value.sketch,
-              externalParameters: globalParameters.value,
-              'onUpdate:modelValue': value => { profileDraft.value.sketch = value; },
-              onOutlineError: value => { profileEditorError.value = value; }
-            })
-          ])
-        })
+
       ]);
     }
   });

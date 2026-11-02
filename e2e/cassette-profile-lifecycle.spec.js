@@ -2,7 +2,7 @@ import { test, expect } from './fixtures.js';
 
 // The profile canvas owns its model: authoring never adopts the cassette's
 // globals into the sketch table, Escape cancels a draw command without
-// closing the dialog, and undo/redo step the sketch history.
+// closing the sketch mode, and undo/redo step the sketch history.
 
 const CANVAS = '[role="application"]';
 
@@ -32,7 +32,7 @@ test('profile canvas keeps its own parameter rows, Escape, and history', async (
     if (await pickerEntry.isVisible({ timeout: 4000 }).catch(() => false)) break;
   }
   await pickerEntry.click();
-  const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
+  const dialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const canvas = dialog.locator(CANVAS).first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
@@ -76,7 +76,7 @@ test('profile canvas keeps its own parameter rows, Escape, and history', async (
   await widthField.press('Enter');
   await page.waitForTimeout(600);
 
-  // Escape cancels the active draw command and the dialog session stays.
+  // Escape cancels the active draw command and the sketch mode stays.
   const lineButton = dialog.locator('button[aria-label="Line"]').first();
   await lineButton.click();
   await expect(lineButton).toHaveClass(/p-button-primary/, { timeout: 15_000 });
@@ -100,5 +100,7 @@ test('profile canvas keeps its own parameter rows, Escape, and history', async (
   await page.locator('.designer-workspace__canvas').first().screenshot({
     path: '.playwright/cassette-profile-lifecycle.png'
   });
+  await dialog.getByRole('button', { name: 'Back to cassette' }).click();
+  await expect(dialog).toBeHidden({ timeout: 10_000 });
   await app.expectCleanRuntime();
 });

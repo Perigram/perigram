@@ -72,12 +72,12 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await newButton.click();
   await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
 
-  // The dialog drafts blank: no parameter rows until the author adds one.
+  // The sketch mode drafts blank: no parameter rows until the author adds one.
   await page.getByRole('button', { name: 'Add profile' }).click();
   const pickerEntry = page.getByRole('button', { name: /Create new|New profile/ }).first();
   await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
-  const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
+  const dialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   await expect(dialog.locator('[role="application"]').first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
   await expect(dialog.locator('input[aria-label^="Parameter name"]')).toHaveCount(0);
@@ -270,7 +270,7 @@ test('a dimension edit over an instance override writes the override; clearing s
   const pickerEntry = page.getByRole('button', { name: /Create new|New profile/ }).first();
   await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
-  const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
+  const dialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const canvas = dialog.locator('[role="application"]').first();
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
@@ -391,7 +391,7 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   const pickerEntry = page.getByRole('button', { name: /Create new|New profile/ }).first();
   await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
-  const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
+  const dialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const canvas = dialog.locator('div[role="application"]');
   await expect(canvas).toBeVisible({ timeout: 60_000 });
@@ -486,7 +486,7 @@ test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   const pickerEntry = page.getByRole('button', { name: /Create new|New profile/ }).first();
   await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
-  const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
+  const dialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   await expect(dialog.locator('[role="application"]').first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
 

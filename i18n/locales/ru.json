@@ -493,6 +493,9 @@
                 "title": "Форма грани",
                 "singleOutline": "Форма должна давать один замкнутый контур."
             },
+            "sketchMode": {
+                "backToCassette": "Назад к кассете"
+            },
             "autosaveDraftAvailable": "Для этой кассеты есть черновик текущей сессии.",
             "recoverDraft": "Восстановить черновик",
             "discardDraft": "Сбросить черновик",
