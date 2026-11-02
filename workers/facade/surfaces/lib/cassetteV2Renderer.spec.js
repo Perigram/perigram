@@ -2218,6 +2218,27 @@ describe('cassette v2 trapezoid renderer', () => {
     });
   });
 
+  it('skips an edge shard too narrow for the open profile chord', () => {
+    const grown = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 0, { edgeLength: 400 });
+    grown.tree.nodes[1].parameters.edgeStart = '10';
+    grown.tree.nodes[1].parameters.defaultLength = '90';
+    const open = openChainSketch([[0, 0], [20, 10], [40, 0]], createDefaultOccsProfileSketch().parameters);
+    const added = addCassetteV2ProfileWorkpiece(grown.tree, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      edgeLength: 400,
+      occsProfile: occsProfileFromSketch(open),
+      sketch: open
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)
+      .find(item => item.sourceWorkpieceId === added.workpieceId);
+
+    expect(relation.pattern).toMatchObject({
+      spanStart: '100',
+      spanWidth: '300'
+    });
+  });
+
   it('allocates child faces to free shards of the host edge', async () => {
     const first = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 2, { edgeLength: 400 });
     first.tree.nodes[1].parameters.defaultLength = '150';
