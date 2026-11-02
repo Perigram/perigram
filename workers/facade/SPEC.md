@@ -487,6 +487,14 @@ the Add profile entry. The palette lists profiles as assembly rows;
 profile authoring, parameter editing, placement, and removal live on the
 canvas.
 
+Owner direction (2026-11-02, in-place sketch mode): profile and face shape
+editing open as a full-area sketch mode over the cassette designer's canvas.
+The assembly drawing stays mounted beneath the mode, so its viewport and
+selection survive the flip; the mode bar carries back, save, and the profile identity in profile
+mode, and the existing CadCraft profile editor renders the sketch. Save
+returns to the assembly with the edited target's popup restored; Back returns
+unchanged.
+
 Owner direction (2026-11-02, compact profile popup): the popup lays its
 fields as PrimeVue `IftaLabel` controls over native inputs, with the label
 inside the field. A parameter is its name label over one input, with no
