@@ -419,13 +419,18 @@ describe('cassette v2 trapezoid renderer', () => {
     const face = drawing.designerFaces.find(item => item.nodeId === 'face_1');
     expect(face.d).toBe(cleanFace.d);
 
-    // A closed section arranged on the fold is refused the same way —
-    // no cut entity lands on the fold line.
+    // A closed section whose footprint crosses the fold is refused —
+    // no cut entity lands on the bend line.
+    const crossingCut = normalizeOccsProfileSketch({
+      parameters: {},
+      shapes: [{ id: 's0', type: 'circle', op: 'subtract', center: [0, 0], diameter: 100 }]
+    });
     const closed = addCassetteV2ProfileWorkpiece(grown, {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
-      name: 'Hanger cut',
-      sketch: createDefaultOccsProfileSketch()
+      name: 'Fold cut',
+      occsProfile: occsProfileFromSketch(crossingCut),
+      sketch: crossingCut
     });
     const closedRelation = getCassetteV2WorkpieceRelations(closed.tree)
       .find(item => item.sourceWorkpieceId === closed.workpieceId);
@@ -441,6 +446,41 @@ describe('cassette v2 trapezoid renderer', () => {
     ]);
     const cutInner = cutDrawing.layers.find(layer => layer.name === 'cut.inner');
     expect(cutInner?.paths.length || 0).toBe(0);
+  });
+
+  it('keeps a closed profile cut when a face takes another shard of the host edge', async () => {
+    const cutSketch = normalizeOccsProfileSketch({
+      parameters: {},
+      shapes: [{ id: 's0', type: 'circle', op: 'subtract', center: [80, 0], diameter: 100 }]
+    });
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Edge cut',
+      occsProfile: occsProfileFromSketch(cutSketch),
+      sketch: cutSketch
+    });
+    const clean = await renderCassetteV2TreeToDrawing(added.tree);
+    const cleanParent = clean.designerFaces.find(face => face.nodeId === 'face_1');
+    const face = addCassetteV2GraphChild(added.tree, 'face_1', 0, {
+      edgeLength: 500,
+      shardStart: 0,
+      shardEnd: 200
+    });
+    const drawing = await renderCassetteV2TreeToDrawing(face.tree);
+    const parent = drawing.designerFaces.find(item => item.nodeId === 'face_1');
+
+    expect(drawing.profileEmbeddingErrors).toEqual([]);
+    expect(parent.d).toBe(cleanParent.d);
+    expect(drawing.designerFaces.map(item => item.nodeId)).toEqual(['face_1', face.nodeId]);
+    expect(drawing.foldedPreview.faces.find(item => item.nodeId === 'face_1').holes).toHaveLength(1);
+
+    const assembly = await renderCassetteV2TreeToDrawing(face.tree, {
+      mode: 'assembly',
+      contextWorkpieceId: 'wp_1'
+    });
+    const faceLayer = assembly.layers.find(layer => layer.standardCode === 'contour.cassette_face');
+    expect(faceLayer.paths.some(path => path.fillRule === 'evenodd')).toBe(true);
   });
 
   it('applies the profile steps in authored order — the sequence is semantic', async () => {
@@ -2195,6 +2235,13 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(child.d.split('L')).toHaveLength(4);
     expect(drawing.designerFoldEdges).toEqual(clean.designerFoldEdges);
     expect(drawing.layers.find(layer => layer.standardCode === 'cut.inner')?.paths).toHaveLength(1);
+
+    const assembly = await renderCassetteV2TreeToDrawing(converted, {
+      mode: 'assembly',
+      contextWorkpieceId: 'wp_1'
+    });
+    const faceLayer = assembly.layers.find(layer => layer.standardCode === 'contour.cassette_face');
+    expect(faceLayer.paths.some(path => path.fillRule === 'evenodd')).toBe(true);
   });
 
   it('stores a face sketch on the node and emits an OCCS polygon with the authored sketch extension', async () => {

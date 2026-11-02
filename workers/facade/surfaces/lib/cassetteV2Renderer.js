@@ -778,9 +778,9 @@ export const cassetteV2FreeEdgeShards = ({ edgeLength = 0, occupied = [] } = {})
   return shards;
 };
 
-const edgeIntervalsForChildren = (tree, parentId, edgeIndex, edgeLength) => {
+const faceEdgeIntervalsForChildren = (tree, parentId, edgeIndex, edgeLength) => {
   const parameters = treeParameters(tree);
-  const intervals = (tree.nodes || [])
+  return (tree.nodes || [])
     .filter(node => node.parentId === parentId && node.parentEdgeIndex === edgeIndex)
     .map((node) => {
       const start = Math.max(0, resolveCassetteV2Expression(
@@ -794,6 +794,20 @@ const edgeIntervalsForChildren = (tree, parentId, edgeIndex, edgeLength) => {
         : Math.max(0, resolveCassetteV2Expression(rawWidth, nodeExpressionScope(node, parameters), edgeLength - start));
       return { start, end: start + width };
     });
+};
+
+const profileSpanInterval = (pattern = {}, edgeLength = 0, parameters = {}) => {
+  const start = Math.max(0, Math.min(edgeLength, resolveCassetteV2Expression(pattern.spanStart, parameters, 0)));
+  const rawWidth = pattern.spanWidth;
+  const width = rawWidth === undefined || rawWidth === ''
+    ? Math.max(0, edgeLength - start)
+    : Math.max(0, Math.min(edgeLength - start, resolveCassetteV2Expression(rawWidth, parameters, edgeLength - start)));
+  return { start, end: start + width };
+};
+
+const edgeIntervalsForChildren = (tree, parentId, edgeIndex, edgeLength) => {
+  const parameters = treeParameters(tree);
+  const intervals = faceEdgeIntervalsForChildren(tree, parentId, edgeIndex, edgeLength);
 
   // Open profiles splice into the host contour, so their copy spans
   // consume edge shards exactly like child faces. Closed profile
@@ -809,12 +823,7 @@ const edgeIntervalsForChildren = (tree, parentId, edgeIndex, edgeLength) => {
     const edgeMatch = String(pattern.edge || 'E0').match(/\d+/);
     const patternEdgeIndex = edgeMatch ? Math.max(0, Math.round(numeric(edgeMatch[0], 0))) : 0;
     if (patternEdgeIndex !== edgeIndex) continue;
-    const start = Math.max(0, Math.min(edgeLength, resolveCassetteV2Expression(pattern.spanStart, parameters, 0)));
-    const rawWidth = pattern.spanWidth;
-    const width = rawWidth === undefined || rawWidth === ''
-      ? Math.max(0, edgeLength - start)
-      : Math.max(0, Math.min(edgeLength - start, resolveCassetteV2Expression(rawWidth, parameters, edgeLength - start)));
-    intervals.push({ start, end: start + width });
+    intervals.push(profileSpanInterval(pattern, edgeLength, parameters));
   }
   return intervals;
 };
@@ -2327,7 +2336,7 @@ const pointAlong = (from, to, ratio) => [
   0
 ];
 
-const profileEdgeIntervals = (nodeId, from, to, entities = []) => {
+const edgeIntervalsForGeometry = (from, to, geometries = []) => {
   const length = Math.hypot(
     numeric(to?.[0], 0) - numeric(from?.[0], 0),
     numeric(to?.[1], 0) - numeric(from?.[1], 0)
@@ -2338,15 +2347,9 @@ const profileEdgeIntervals = (nodeId, from, to, entities = []) => {
   const pushRun = (start, end) => {
     if (end - start > 0.001) intervals.push({ start, end });
   };
-  for (const entity of entities) {
-    if (entity.target !== nodeId) continue;
-    const rings = productionEntityCutRings(entity);
-    const circle = entity.geometry?.type === 'circle'
-      ? {
-          center: entity.geometry.center || [0, 0],
-          radius: Math.max(0.05, numeric(entity.geometry.diameter, 0) / 2)
-        }
-      : null;
+  for (const geometry of geometries) {
+    const rings = geometry.rings || [];
+    const circle = geometry.circle || null;
     if (!rings.length && !circle) continue;
     let runStart = null;
     for (let index = 0; index <= steps; index += 1) {
@@ -2365,6 +2368,20 @@ const profileEdgeIntervals = (nodeId, from, to, entities = []) => {
   }
   return mergeEdgeIntervals(intervals);
 };
+
+const profileEdgeIntervals = (nodeId, from, to, entities = []) => edgeIntervalsForGeometry(
+  from,
+  to,
+  entities.filter(entity => entity.target === nodeId).map(entity => ({
+    rings: productionEntityCutRings(entity),
+    circle: entity.geometry?.type === 'circle'
+      ? {
+          center: entity.geometry.center || [0, 0],
+          radius: Math.max(0.05, numeric(entity.geometry.diameter, 0) / 2)
+        }
+      : null
+  }))
+);
 
 const designerEdgesForBoundary = (nodeId, vertices = [], tree = createCassetteV2GraphTree(), footprintEntities = []) => {
   const boundaryVertices = withoutClosingVertex(vertices);
@@ -2496,13 +2513,23 @@ const designerAssemblyLayersForCurves = async (curves = [], extraLayers = [], op
       options
     );
     const opacity = designerAssemblyLayerOpacity(workpieceId, contextWorkpieceId);
-    facePaths.push(...layout.cutOuterPaths.map(vertices => ({
-      d: occsCurveToPath(vertices),
-      fill: 'layer',
-      stroke: 'none',
-      opacity: designerAssemblyFillOpacity(workpieceId, contextWorkpieceId),
-      workpieceId
-    })));
+    const hasShapedFaces = groupCurves.some(curve => Array.isArray(curve.holes) && curve.holes.length);
+    facePaths.push(...(hasShapedFaces
+      ? groupCurves.map(curve => ({
+          d: occsShapeToPath(curve),
+          fill: 'layer',
+          stroke: 'none',
+          opacity: designerAssemblyFillOpacity(workpieceId, contextWorkpieceId),
+          workpieceId,
+          fillRule: Array.isArray(curve.holes) && curve.holes.length ? 'evenodd' : null
+        }))
+      : layout.cutOuterPaths.map(vertices => ({
+          d: occsCurveToPath(vertices),
+          fill: 'layer',
+          stroke: 'none',
+          opacity: designerAssemblyFillOpacity(workpieceId, contextWorkpieceId),
+          workpieceId
+        }))));
     cutPaths.push(...layout.cutOuterPaths.map(vertices => ({
       d: occsCurveToPath(vertices),
       fill: 'none',
@@ -2756,7 +2783,7 @@ const splitContourAtBreaks = (vertices = [], first = [0, 0], second = [0, 0]) =>
 export const profileEdgeEmbeddingsForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
-  const foldRefusals = profileFoldEdgeRefusalsForTree(sourceTree);
+  const foldRefusals = profileFoldEdgeRefusalsForTree(curves, sourceTree);
   const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
   const results = [];
   for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
@@ -2806,21 +2833,73 @@ const profileArrangementEdgeIndex = (relation, workpiece, parameters) => {
   return open ? 0 : null; // closed profiles without a pattern place by point
 };
 
-// Owner law (2026-10-16): a profile never arranges on a fold edge — the
-// edge where a face folds is the bend line. Every profile pass refuses
-// the arrangement; the designer drawing surfaces the refusal through
-// profileEmbeddingErrors. Keyed relation id -> target face id.
-export const profileFoldEdgeRefusalsForTree = (tree = createCassetteV2GraphTree()) => {
+const faceEdgeForCurve = (curve, edgeIndex) => {
+  const vertices = withoutClosingVertex(rawFaceVertices(curve));
+  if (vertices.length < 2) return null;
+  const from = vertices[edgeIndex % vertices.length];
+  const to = vertices[(edgeIndex + 1) % vertices.length];
+  if (!from || !to) return null;
+  const length = Math.hypot(
+    numeric(to[0], 0) - numeric(from[0], 0),
+    numeric(to[1], 0) - numeric(from[1], 0)
+  );
+  return length > 0.001 ? { from, to, length } : null;
+};
+
+// The interval a profile occupies on its host edge: an open profile's
+// authored span, a closed section's projected footprint.
+const profileFootprintIntervalsOnEdge = (relation, workpiece, targetCurve, parameters, edgeIndex, edgeLength) => {
+  const profile = normalizeCassetteV2Profile(workpiece, parameters);
+  const open = profile.section?.open || profile.section?.type === 'polyline';
+  if (open) return [profileSpanInterval(relation.pattern || {}, edgeLength, parameters)];
+  const sectionOperations = resolveOccsProfileSectionOperations(profile.section || {});
+  const sectionYs = (sectionOperations || [])
+    .flatMap(operation => operation.polygons)
+    .flatMap(ring => ring.map(vertex => Number(vertex?.[1])))
+    .filter(Number.isFinite);
+  const edgeExtent = sectionYs.length ? Math.max(...sectionYs) - Math.min(...sectionYs) : 0;
+  const points = hardwarePointsForRelation(targetCurve, relation, parameters, edgeExtent);
+  const rings = points.flatMap((point) => {
+    const operations = profileOperationPolygons(profile, point, relation, targetCurve, parameters) || [];
+    return operations.flatMap(operation => operation.polygons);
+  });
+  const edge = faceEdgeForCurve(targetCurve, edgeIndex);
+  if (!edge) return [];
+  return edgeIntervalsForGeometry(edge.from, edge.to, rings.map(ring => ({ rings: [ring] })));
+};
+
+// The fold owns the child face's interval on the host edge; a profile
+// footprint crossing it is refused, the rest of the edge stays
+// arrangeable. Keyed relation id -> target face id; the drawing
+// surfaces refusals through profileEmbeddingErrors.
+export const profileFoldEdgeRefusalsForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
-  const folds = getCassetteV2FoldEdges(sourceTree);
+  const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
   const refusals = new Map();
   for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
     const workpiece = relationProfileWorkpiece(sourceTree, relation);
     if (!workpiece) continue;
     const edgeIndex = profileArrangementEdgeIndex(relation, workpiece, parameters);
     if (edgeIndex === null) continue;
-    if (folds.has(`${relation.targetFaceId}:E${edgeIndex}`)) refusals.set(relation.id, relation.targetFaceId);
+    const targetCurve = curveById.get(relation.targetFaceId);
+    if (!targetCurve) continue;
+    const edge = faceEdgeForCurve(targetCurve, edgeIndex);
+    if (!edge) continue;
+    const folds = faceEdgeIntervalsForChildren(sourceTree, relation.targetFaceId, edgeIndex, edge.length);
+    if (!folds.length) continue;
+    const footprint = profileFootprintIntervalsOnEdge(
+      relation,
+      workpiece,
+      targetCurve,
+      parameters,
+      edgeIndex,
+      edge.length
+    );
+    const overlaps = footprint.some(interval => folds.some(fold => (
+      interval.start < fold.end - 0.001 && interval.end > fold.start + 0.001
+    )));
+    if (overlaps) refusals.set(relation.id, relation.targetFaceId);
   }
   return refusals;
 };
@@ -2853,7 +2932,7 @@ export const cassetteV2AttachableProfileEdgesForTree = (
 export const profileCutEntitiesForTree = async (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
-  const foldRefusals = profileFoldEdgeRefusalsForTree(sourceTree);
+  const foldRefusals = profileFoldEdgeRefusalsForTree(curves, sourceTree);
   const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
   const entities = [];
   for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
@@ -3021,7 +3100,7 @@ const placeProfileRing = (ring = [], point = [0, 0, 0], relation = {}, axisRotat
 // The placed boolean steps of a closed profile: add rings unite into
 // the host face, subtract rings cut from it — placed by the axis law at
 // the given point. Polyline sections carry no steps.
-const profileOperationPolygons = async (profile, point = [0, 0, 0], relation = {}, targetCurve = null, scope = {}) => {
+const profileOperationPolygons = (profile, point = [0, 0, 0], relation = {}, targetCurve = null, scope = {}) => {
   const section = profile?.section;
   if (!section || section.type === 'polyline') return null;
   const operations = resolveOccsProfileSectionOperations(section);
@@ -3764,7 +3843,7 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
     });
   };
   const profileEmbeddingErrors = [];
-  profileFoldEdgeRefusalsForTree(tree).forEach((faceId, relationId) => {
+  profileFoldEdgeRefusalsForTree(curves, tree).forEach((faceId, relationId) => {
     profileEmbeddingErrors.push({ relationId, reason: 'fold-edge' });
   });
   const embeddedCurves = spliceProfileEmbeddings(curves, profileEmbeddingErrors, openProfileHits);
