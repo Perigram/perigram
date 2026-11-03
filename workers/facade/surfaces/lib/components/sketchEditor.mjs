@@ -107,7 +107,6 @@ export default function createSketchEditor({ vue, components, locale }) {
       let viewRaf = 0;
       let lastViewKey = '';
       let pendingView = props.initialView ? { ...props.initialView } : null;
-      let externalParent = null;
 
       // The sketch model stays local; the canvas places it on the cassette
       // through `canvasFrame`. Every seed, extraction, annotation and pointer
@@ -1606,7 +1605,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           ]);
         });
         return h('div', {
-          class: 'profile-shapes-panel absolute right-2 top-14 z-20 flex max-h-[calc(100%-4rem)] w-[19rem] flex-col overflow-y-auto rounded-ui border border-content-border bg-content py-0.5 shadow-card',
+          class: 'profile-shapes-panel pointer-events-auto absolute top-14 z-20 flex max-h-[calc(100%-4rem)] w-[19rem] flex-col overflow-y-auto rounded-ui border border-content-border bg-content py-0.5 shadow-card',
+          style: { right: 'calc(var(--designer-inspector-width, 19rem) + 0.5rem)' },
           'aria-label': t('cassette.v2.profileEditor.shapes')
         }, rows);
       };
@@ -1615,7 +1615,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // sketch's expression table (owner direction 2026-10-18).
       const renderParameterStrip = () => {
         const sketch = normalizeOccsProfileSketch(props.modelValue || {});
-        return h('div', { class: 'flex shrink-0 flex-wrap items-center gap-1' }, [
+        return h('div', { class: 'flex shrink-0 flex-wrap items-center gap-1 bg-content py-1.5', style: { paddingLeft: 'calc(var(--designer-palette-width, 17rem) + 0.75rem)', paddingRight: 'calc(var(--designer-inspector-width, 19rem) + 0.75rem)' } }, [
           h('span', { class: 'font-mono text-xs text-muted' }, 'fx'),
           ...Object.entries(sketch.parameters).map(([key, value]) => h('div', {
             key,
@@ -1674,7 +1674,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         return h(InputText, {
           ref: dimensionInputRef,
           key: draft.label,
-          class: 'profile-dim absolute z-20 bg-content text-center font-mono text-xs shadow-sm',
+          class: 'profile-dim pointer-events-auto absolute z-20 bg-content text-center font-mono text-xs shadow-sm',
           style: { left: `${left}px`, top: `${top}px`, width: `${boxWidth}px` },
           modelValue: shown,
           ...handlers,
@@ -1704,7 +1704,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!popup) return null;
         const { shapeId, id, sketch } = popup;
         return h('div', {
-          class: 'profile-vertex-popup absolute z-20 flex items-center gap-1.5 rounded-ui border border-content-border bg-content px-2 py-1.5 shadow-md',
+          class: 'profile-vertex-popup pointer-events-auto absolute z-20 flex items-center gap-1.5 rounded-ui border border-content-border bg-content px-2 py-1.5 shadow-md',
           style: { left: `${popup.left}px`, top: `${popup.top}px` },
           onPointerdown: event => { event.stopPropagation(); }
         }, [
@@ -1807,24 +1807,9 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
-      const attachExternalFrame = () => {
-        const frame = host?.frame;
-        if (!frame || !containerRef.value) return;
-        if (!externalParent) externalParent = frame.parentElement;
-        if (frame.parentElement !== containerRef.value) containerRef.value.appendChild(frame);
-        host.cad?.view?.resize?.();
-      };
-
-      const detachExternalFrame = () => {
-        const frame = host?.frame;
-        if (!frame || !externalParent || frame.parentElement === externalParent) return;
-        externalParent.appendChild(frame);
-        host.cad?.view?.resize?.();
-      };
-
       const startEditing = () => {
         if (!host) return;
-        attachExternalFrame();
+        host.cad?.view?.resize?.();
         configureHost();
         bindHost();
         lastEmitted = '';
@@ -1847,10 +1832,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       };
 
       const releaseHost = () => {
-        if (host && host === props.externalHost) {
-          unbindHost();
-          detachExternalFrame();
-        }
+        if (host && host === props.externalHost) unbindHost();
       };
 
       const disposeHost = () => {
@@ -1861,8 +1843,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (host) {
           const external = host === props.externalHost;
           unbindHost();
-          if (external) detachExternalFrame();
-          else host.destroy();
+          if (!external) host.destroy();
         }
         host = null;
       };
@@ -1886,7 +1867,6 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!props.externalHost) return;
         try {
           host = props.externalHost;
-          externalParent = host.frame?.parentElement || null;
           if (!props.active) return;
           startEditing();
         } catch (error) {
@@ -1946,10 +1926,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           releaseHost();
           return;
         }
-        if (!host && props.externalHost) {
-          host = props.externalHost;
-          externalParent = host.frame?.parentElement || externalParent;
-        }
+        if (!host && props.externalHost) host = props.externalHost;
         if (host && containerRef.value) startEditing();
         clearEngineSelection();
         resetSketchHistory();
@@ -1972,7 +1949,7 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       return () => h('div', {
         ref: rootRef,
-        class: 'flex min-h-0 flex-1 flex-col bg-content',
+        class: 'flex min-h-0 flex-1 flex-col',
         'data-keyboard-scope': 'cad'
       }, [
         importError.value
@@ -1988,7 +1965,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         }),
         h('div', {
           ref: containerRef,
-          class: 'relative min-h-0 w-full flex-1 overflow-hidden',
+          class: 'relative min-h-0 w-full flex-1 overflow-hidden pointer-events-none',
           role: 'application',
           'aria-label': t('cassette.v2.profileEditor.preview'),
           'data-cadcraft-ready': canvasReady.value ? 'true' : undefined
@@ -1996,7 +1973,8 @@ export default function createSketchEditor({ vue, components, locale }) {
               // The tool toolbar floats inside the canvas (the
               // DesignerWorkspace overlay pattern) — no row of its own.
           h(Toolbar, {
-            class: 'absolute left-2 top-2 z-20 max-w-[calc(100%-1rem)] gap-1 overflow-x-auto p-1 shadow-card',
+            class: 'pointer-events-auto absolute top-2 z-20 max-w-[calc(100%-1rem)] gap-1 overflow-x-auto p-1 shadow-card',
+            style: { left: 'calc(var(--designer-palette-width, 17rem) + 0.5rem)' },
             'aria-label': t('cassette.v2.profileEditor.preview')
           }, {
             start: () => renderToolGroupButtons(0, 2),

@@ -3232,14 +3232,20 @@ export default function createSurface({ vue, components, locale, queries, record
             ];
         return h('section', {
           class: [
-            'absolute inset-0 z-[110] flex min-h-0 flex-col overflow-hidden',
+            'absolute inset-0 z-[10] flex min-h-0 flex-col overflow-hidden',
             open ? '' : 'invisible pointer-events-none'
           ],
           'data-sketch-mode': active || undefined,
           'aria-hidden': open ? undefined : 'true',
           'aria-label': title
         }, [
-          h('div', { class: 'flex shrink-0 flex-wrap items-center gap-2 bg-content px-3 pb-2 pt-3' }, [
+          h('div', {
+            class: 'flex shrink-0 flex-wrap items-center gap-2 bg-content pb-2 pt-14',
+            style: {
+              paddingLeft: 'calc(var(--designer-palette-width, 17rem) + 0.75rem)',
+              paddingRight: 'calc(var(--designer-inspector-width, 19rem) + 0.75rem)'
+            }
+          }, [
             h(Button, {
               icon: 'pi pi-arrow-left',
               label: t('common.back'),
@@ -3258,7 +3264,13 @@ export default function createSurface({ vue, components, locale, queries, record
           ]),
           face
             ? null
-            : h('div', { class: 'flex shrink-0 flex-wrap items-center gap-2 bg-content px-3 pb-2' }, [
+            : h('div', {
+                class: 'flex shrink-0 flex-wrap items-center gap-2 bg-content pb-2',
+                style: {
+                  paddingLeft: 'calc(var(--designer-palette-width, 17rem) + 0.75rem)',
+                  paddingRight: 'calc(var(--designer-inspector-width, 19rem) + 0.75rem)'
+                }
+              }, [
                 h(InputText, {
                   modelValue: profileDraft.value.name,
                   'onUpdate:modelValue': value => { profileDraft.value.name = value; },
@@ -3550,12 +3562,12 @@ export default function createSurface({ vue, components, locale, queries, record
           }, [
             h('div', {
               ref: assemblyHostContainer,
-              class: 'pointer-events-none absolute inset-0 z-0',
-              'aria-hidden': 'true'
+              class: ['absolute inset-0 z-0', sketchMode.value ? '' : 'pointer-events-none'],
+              'aria-hidden': sketchMode.value ? undefined : 'true'
             }),
             h(DrawingCanvas, {
               ref: drawingCanvasRef,
-              class: 'relative z-10',
+              class: sketchMode.value ? 'pointer-events-none invisible' : 'relative z-10',
               // Sticky editing viewport: live edits keep the user's
               // pan/zoom; the canvas remounts per opened document
               // (key) so a fresh cassette still fits.

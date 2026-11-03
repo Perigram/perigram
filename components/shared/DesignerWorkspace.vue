@@ -260,6 +260,8 @@ defineExpose({
    of a viewport breakpoint. */
 .designer-workspace {
   position: relative;
+  --designer-palette-width: 17rem;
+  --designer-inspector-width: 19rem;
 }
 
 .designer-workspace__lanes {

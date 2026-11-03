@@ -11,7 +11,7 @@ import { test, expect } from './fixtures.js';
 const CANVAS = '[role="application"]';
 
 const frameOf = async (dialog) => {
-  const handle = await dialog.locator('iframe').first().elementHandle();
+  const handle = await dialog.page().locator('.designer-workspace__canvas iframe').first().elementHandle();
   return handle.contentFrame();
 };
 
@@ -135,7 +135,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   // The embedded edition owns no desktop chrome: no autosave/recovery and
   // none of the native bars or panels on screen.
   const embedded = await page.evaluate(() => {
-    const frame = document.querySelector('[role="application"] iframe');
+    const frame = document.querySelector('.designer-workspace__canvas iframe');
     const win = frame?.contentWindow;
     const chrome = ['body > header', '.cc-tools', '.cc-panel', '.cc-status']
       .map(selector => win?.document.querySelector(selector))
@@ -169,7 +169,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     await page.waitForTimeout(600);
   };
 
-  await runDrawTool('Circle', [0.60, 0.30], [0.67, 0.30]);
+  await runDrawTool('Circle', [0.45, 0.55], [0.52, 0.55]);
   await runDrawTool('Rectangle', [0.30, 0.60], [0.60, 0.85]);
 
   // The primitives panel lists every shape as a row with its op state.
