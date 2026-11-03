@@ -16,8 +16,8 @@ assistant tooling.
 
 | Member | Contract |
 |---|---|
-| `mount()` | creates the `?embed=1` frame, waits for `window.cadcraft`, injects the chrome stylesheet, binds the document, selection, command hook and input listeners |
-| `seed(entities, { name, layers, fit })` | `doc.load` of CadCraft entities (`line`, `circle`, `arc`, `poly`); seeded entities carry `shapeId` so extraction keeps authored identity; `fit: false` restores the camera the load would otherwise refit |
+| `mount()` | creates the `?embed=1` frame, waits for `window.cadcraft`, injects the chrome stylesheet, binds the document, selection, command hook and input listeners, and mirrors the app theme |
+| `seed(entities, { name, layers, linetypes, fit })` | `doc.load` of CadCraft entities (`line`, `circle`, `arc`, `poly`); seeded entities carry `shapeId` so extraction keeps authored identity; `linetypes` carries dash patterns the layers name; `fit: false` restores the camera the load would otherwise refit |
 | `entities()` | `doc.all()` |
 | `openText(name, text)` | reads ASCII DXF through the edition's `dxf.js` and loads the drawing |
 | `newDrawing(name)` | empty layer-0 document |
@@ -31,6 +31,7 @@ assistant tooling.
 | `run` / `cancel` / `running` | `engine.run` / `engine.escape` / `engine.running` |
 | `setOrtho` / `setOsnap` / `setSnapKind` | the frame's drafting settings |
 | `setCommandLine` | shows the frame's command line and re-sizes the canvas |
+| `applyTheme()` | mirrors the app's surface, ink, border, primary and font tokens into the frame root, sets `data-space` to `paper`/`model`, and re-applies on the app theme's `html` class change |
 | `onChange`, `onSelection`, `onCommand`, `onPointerDown`, `onPointerUp`, `onKeyDown` | surface subscriptions; the pointer and key listeners attach to the frame document |
 
 The host owns the visible chrome: mount injects the embed stylesheet,
@@ -42,6 +43,12 @@ The frame is same-origin by construction: `contentWindow.cadcraft` and the
 frame's DOM events are the bridge. A cross-origin frame exposes neither.
 Both surfaces set `data-cadcraft-ready="true"` on their mount container
 once the frame is mounted and seeded; the E2E suite waits on it.
+
+The frame reads the app's tokens: `applyTheme` resolves the app's surface,
+ink, muted, border and primary values through a probe, writes them into the
+frame's `documentElement`, and sets `data-space` from the app's `dark-mode`
+class. Drawing text uses the mirrored `--font` (`view.colors.font`), so the
+canvas keeps the app's typography.
 
 The module proxy rewrites the surfaces' bare `cadcraft` import from the
 organization's installed declaration snapshot. An install below
@@ -56,7 +63,10 @@ moves to a new listing version.
 2. Replace `app/` with the zip's `cadcraft-browser-edition-v0.7.0/` folder.
    `host.mjs` and this README stay; reapply the embed-mode guard in
    `cadcraft.js` (skip autosave, add-ons and assistant tooling when
-   `?embed=1`) before bundling.
+   `?embed=1`) and the drawing-font override in `view.js`
+   (`this.colors.font || DRAWING_FONT` in the text draw) and `cadcraft.js`
+   (`view.colors?.font || DRAWING_FONT` in the inline text editor) before
+   bundling.
 3. Run `npx perigram-plugin validate workers/tech-drawing/listing.json` and
    the surface smoke.
 

@@ -512,6 +512,12 @@ authored sketch alone. The sketch model remains the single authored truth.
 The frame comes from the target's placement: the face's assembly transform, a
 closed profile's axis and point placement, or an open profile's edge embedding.
 
+Owner direction (2026-11-03, canvas theme and layer pens): the sketch canvas
+mirrors the app's light/dark tokens and UI font into the CadCraft frame, and
+the frame's paper/model mode follows the app theme. The cassette assembly
+layers keep the OCCS layer standards' colors, weights and dash patterns, so a
+dashed fold route reads dashed on the canvas.
+
 Owner direction (2026-11-02, selection and canvas widgets): a face click
 with a profile selected selects that face and leaves the profile relation
 untouched; the face becomes the active selection. Designer chips, handles,

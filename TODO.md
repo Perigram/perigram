@@ -3755,6 +3755,21 @@ link. E2E `cassette-profile-editor` passes (37.5s) and writes
 assembly layers are locked, and the shape panel carries only the authored
 circle.
 
+## CadCraft theme, font and layer pen sync (owner direction 2026-11-03)
+
+The sketch canvas mirrors the app's light/dark tokens and UI font into the
+CadCraft frame; the frame's paper/model mode follows the app theme. Assembly
+layers carry the OCCS layer standards' colors, weights and dash patterns.
+
+- [ ] WAITING — owner verification: the sketch canvas follows the app
+  light/dark theme, uses the app font, and shows the dashed fold route from the
+  layer standard.
+
+### Agent Notes (2026-11-03, theme, font and layer pens)
+
+Session `agent/cassette-cadcraft-theme-20261103` (worktree
+`.agent-worktrees/cassette-cadcraft-theme-20261103`). Pending implementation.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the
