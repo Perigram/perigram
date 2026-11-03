@@ -3768,7 +3768,17 @@ layers carry the OCCS layer standards' colors, weights and dash patterns.
 ### Agent Notes (2026-11-03, theme, font and layer pens)
 
 Session `agent/cassette-cadcraft-theme-20261103` (worktree
-`.agent-worktrees/cassette-cadcraft-theme-20261103`). Pending implementation.
+`.agent-worktrees/cassette-cadcraft-theme-20261103`). `CadCraftHost.applyTheme`
+resolves the app's surface, ink, muted, border, primary and UI-font tokens
+through a probe, writes them into the frame's `documentElement`, sets
+`data-space` from the app's `dark-mode` class and re-applies on the `html`
+class mutation. The vendor text draw uses `view.colors.font`
+(`view.js`/`bundle`/`cadcraft.js`). `cassetteV2AssemblyEntitiesFromDrawing`
+maps each layer's dasharray to `DASHED`/`DOT` and passes the patterns through
+`seed`'s `linetypes`. Validation: 125 facade surface specs green;
+`check-arch`, `check-plugin-deps`, and facade listing validation green; E2E
+`cassette-profile-editor` passes (43.8s) with the theme assertion (font,
+surface token, paper/model mode).
 
 ## Cassette canvas geometry on CadCraft (owner direction 2026-11-03)
 
@@ -3785,7 +3795,16 @@ font.
 ### Agent Notes (2026-11-03, canvas geometry on CadCraft)
 
 Session `agent/cassette-cadcraft-theme-20261103` (worktree
-`.agent-worktrees/cassette-cadcraft-theme-20261103`). Pending implementation.
+`.agent-worktrees/cassette-cadcraft-theme-20261103`). The designer canvas mounts
+a CadCraft host behind `DrawingCanvas` (`showGeometry: false`); the SVG keeps
+the camera, chips and hit areas, and `view-change` + `getViewportSize` map the
+viewBox to the host camera. `cassetteV2AssemblyEntitiesFromDrawing` seeds the
+host from the same drawing; every layer is locked. `handleDrawingReady` refits
+when the drawing scope changes, and `DrawingCanvas` refits when geometry first
+arrives. Validation: E2E `cassette-profile-editor` passes; 3 of 5
+`cassette-designer-parameters` tests pass. The two failures (array position
+drafts, dimension override) are the pre-existing assertions named in the
+2026-11-02 notes.
 
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
