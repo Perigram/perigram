@@ -3951,7 +3951,9 @@ face. Placed profiles open with the workpiece's instance values in the
 parameter table; saving back to the cassette drops the instance overrides the
 authored table now owns, and a library save writes evaluated parameter values.
 A selected placed profile draws measured placement dimensions along the parent
-edge; array placements chain every copy between the edge ends.
+edge; array placements chain every copy between the edge ends. Native
+dimensions draw continuous lines with the dimension layer's violet ink and
+readable labels.
 
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
