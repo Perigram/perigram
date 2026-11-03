@@ -3952,8 +3952,18 @@ parameter table; saving back to the cassette drops the instance overrides the
 authored table now owns, and a library save writes evaluated parameter values.
 A selected placed profile draws measured placement dimensions along the parent
 edge; array placements chain every copy between the edge ends. Native
-dimensions draw continuous lines with the dimension layer's violet ink and
-readable labels.
+dimensions draw continuous lines in the canvas ink with readable labels.
+
+### Agent Notes (2026-11-03, native-only dimension geometry)
+
+Session `agent/cassette-native-dims-2-20261103` (worktree
+`.agent-worktrees/cassette-native-dims-2-20261103`). The cassette drawing emits
+dimension rows as structured annotations and leaves the dimension layer's path
+list empty; the native host entities are the only dimension geometry. The
+designer's SVG dimension edit targets resolve from those annotations in
+model-space coordinates flipped into the canvas frame. Native dim entities
+carry the drawing ink, so the dimension layer's violet DOTTED pen frames the
+layer without tinting the labels.
 
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
