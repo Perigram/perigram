@@ -26,6 +26,9 @@ import { toolIcon } from './toolIcons.mjs';
 import createFieldDraft from './fieldDraft.mjs';
 
 const EXTRACT_DEBOUNCE_MS = 40;
+// A draft with no placement yet draws on the blank canvas window's face
+// stand-in, not an unbounded half plane.
+const DRAFT_PROFILE_FACE = Object.freeze([[0, -75], [150, -75], [150, 75], [0, 75]]);
 
 const SHAPE_KIND_ICON = { circle: 'circle', rect: 'rectang', chain: 'polyline' };
 const SHAPE_KIND_LABEL = {
@@ -166,8 +169,13 @@ export default function createSketchEditor({ vue, components, locale }) {
               return [point.x, point.y];
             }))
       );
+      const sketchParentFaceRings = () => {
+        if (faceMode.value) return [];
+        const rings = parentFaceRings();
+        return rings.length ? rings : [DRAFT_PROFILE_FACE.map(point => [...point])];
+      };
       const parentFaceAxis = () => {
-        const ys = parentFaceRings().flatMap(ring => ring.map(point => point[1]));
+        const ys = sketchParentFaceRings().flatMap(ring => ring.map(point => point[1]));
         return ys.length ? { start: Math.min(...ys), end: Math.max(...ys) } : { start: null, end: null };
       };
 
@@ -319,7 +327,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             syncAnnotations();
             return;
           }
-          const base = { polygons: parentFaceRings(), holes: [] };
+          const base = { polygons: sketchParentFaceRings(), holes: [] };
           const resolved = await foldCassetteV2Region(
             base,
             resolveOccsProfileSectionOperations(section)
