@@ -736,7 +736,7 @@ function init(root) {
         const top = lay.box.y + lay.box.h;
         const p0 = view.toScreen(e.x + Math.cos(e.rot || 0) * left - Math.sin(e.rot || 0) * top, e.y + Math.sin(e.rot || 0) * left + Math.cos(e.rot || 0) * top);
         const p = { x: p0.x + view.x0, y: p0.y + view.y0 };   // split screen: from the pane to the stage
-        Object.assign(ta.style, { fontFamily: DRAWING_FONT, fontSize: font.toFixed(2) + 'px', lineHeight: (st.h * LINE_SPACING * st.ls * z * k).toFixed(2) + 'px', width: Math.max(80, W * z * k).toFixed(0) + 'px' });
+        Object.assign(ta.style, { fontFamily: view.colors?.font || DRAWING_FONT, fontSize: font.toFixed(2) + 'px', lineHeight: (st.h * LINE_SPACING * st.ls * z * k).toFixed(2) + 'px', width: Math.max(80, W * z * k).toFixed(0) + 'px' });
         const sw = ui.stage.clientWidth, sh = ui.stage.clientHeight;
         box.style.left = Math.max(4, Math.min(sw - 200, p.x)).toFixed(0) + 'px';
         box.style.top = Math.max(4, Math.min(sh - 80, p.y - bar.offsetHeight - 4)).toFixed(0) + 'px';

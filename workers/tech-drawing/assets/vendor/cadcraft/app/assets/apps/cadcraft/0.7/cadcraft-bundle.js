@@ -67812,10 +67812,10 @@ var View = class {
       if (e.obl) ctx.transform(1, 0, -Math.tan(e.obl), 1, 0, 0);
       ctx.globalAlpha = alpha ?? 1;
       ctx.fillStyle = this.ink(color2);
-      ctx.font = (hpx * FONT_EM).toFixed(2) + "px " + DRAWING_FONT;
+      ctx.font = (hpx * FONT_EM).toFixed(2) + "px " + (this.colors.font || DRAWING_FONT);
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = e.ha === "center" ? "center" : e.ha === "right" ? "right" : "left";
-      if (lay.runs) lay.lines.forEach((_, i) => fillRichLine(ctx, lay, i, e, { scale: k, family: DRAWING_FONT, color: color2, paint: (c) => this.ink(c) }));
+      if (lay.runs) lay.lines.forEach((_, i) => fillRichLine(ctx, lay, i, e, { scale: k, family: this.colors.font || DRAWING_FONT, color: color2, paint: (c) => this.ink(c) }));
       else lay.lines.forEach((line, i) => ctx.fillText(line, 0, -lay.baselines[i] * k));
     }
     ctx.globalAlpha = 1;
@@ -98963,7 +98963,7 @@ function init3(root2) {
         const top = lay.box.y + lay.box.h;
         const p0 = view.toScreen(e.x + Math.cos(e.rot || 0) * left - Math.sin(e.rot || 0) * top, e.y + Math.sin(e.rot || 0) * left + Math.cos(e.rot || 0) * top);
         const p = { x: p0.x + view.x0, y: p0.y + view.y0 };
-        Object.assign(ta.style, { fontFamily: DRAWING_FONT, fontSize: font.toFixed(2) + "px", lineHeight: (st.h * LINE_SPACING * st.ls * z * k).toFixed(2) + "px", width: Math.max(80, W * z * k).toFixed(0) + "px" });
+        Object.assign(ta.style, { fontFamily: view.colors?.font || DRAWING_FONT, fontSize: font.toFixed(2) + "px", lineHeight: (st.h * LINE_SPACING * st.ls * z * k).toFixed(2) + "px", width: Math.max(80, W * z * k).toFixed(0) + "px" });
         const sw = ui.stage.clientWidth, sh = ui.stage.clientHeight;
         box3.style.left = Math.max(4, Math.min(sw - 200, p.x)).toFixed(0) + "px";
         box3.style.top = Math.max(4, Math.min(sh - 80, p.y - bar.offsetHeight - 4)).toFixed(0) + "px";

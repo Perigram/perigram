@@ -392,6 +392,14 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(placed.contextCount, 'the assembly draws around the sketch').toBeGreaterThan(0);
   expect(placed.sketchCount, 'the authored sketch seeds on its own layer').toBeGreaterThan(0);
   expect(placed.centerInContext, 'the sketch sits inside the assembly bounds').toBe(true);
+  const theme = await frameOf(reopenedDialog).then(frame => frame.evaluate(() => ({
+    font: document.documentElement.style.getPropertyValue('--font'),
+    sheet: document.documentElement.style.getPropertyValue('--sheet'),
+    space: document.documentElement.dataset.space
+  })));
+  expect(theme.font, 'the canvas takes the app font').toContain('IBM Plex Sans');
+  expect(theme.sheet, 'the canvas takes the app surface').toBeTruthy();
+  expect(['paper', 'model'], 'the canvas follows the app theme mode').toContain(theme.space);
   const reopened = await nativeDims(reopenedDialog);
   expectDrawingScale(reopened);
   const reopenedDiameter = reopened.find(dim => dim.field === 'diameter');

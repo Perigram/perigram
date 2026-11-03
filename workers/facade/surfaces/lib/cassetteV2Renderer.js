@@ -4364,12 +4364,20 @@ export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), 
 export const cassetteV2AssemblyEntities = async (tree = createCassetteV2GraphTree()) => {
   const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
   if (!drawing?.layers?.length) return null;
+  const linetypeForDash = (dasharray) => (
+    dasharray === '5,5' ? 'DASHED' : dasharray === '1,3' ? 'DOT' : 'Continuous'
+  );
   const layers = drawing.layers.map(layer => ({
     name: layer.name || layer.standardCode || 'geometry',
     color: /^#?[0-9a-f]{6}$/i.test(String(layer.color || '')) ? layer.color : 'ink',
     lineweight: Number(layer.weight) || 0.35,
+    linetype: linetypeForDash(layer.dasharray),
     locked: true
   }));
+  const linetypes = [
+    { name: 'DASHED', description: 'Dashed', pattern: [5, -5] },
+    { name: 'DOT', description: 'Dot', pattern: [0, -3] }
+  ];
   const entities = [];
   for (const entity of collectDxfEntities({ layers: drawing.layers })) {
     if (entity.type === 'line') {
@@ -4390,7 +4398,7 @@ export const cassetteV2AssemblyEntities = async (tree = createCassetteV2GraphTre
       }
     }
   }
-  return entities.length ? { layers, entities } : null;
+  return entities.length ? { layers, linetypes, entities } : null;
 };
 
 const roundSketchValue = (value) => Math.round((numeric(value, 0) + Number.EPSILON) * 1000) / 1000;

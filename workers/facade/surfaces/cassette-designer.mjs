@@ -374,6 +374,7 @@ export default function createSurface({ vue, components, locale, queries, record
       const sketchSessionKey = ref(0);
       const sketchCanvasFrame = ref(null);
       const sketchContextLayers = ref([]);
+      const sketchContextLinetypes = ref([]);
       const sketchContextEntities = ref([]);
       let sketchContextToken = 0;
       const hardwareLibraryRecords = ref([]);
@@ -1689,6 +1690,7 @@ export default function createSurface({ vue, components, locale, queries, record
         const token = ++sketchContextToken;
         sketchCanvasFrame.value = null;
         sketchContextLayers.value = [];
+        sketchContextLinetypes.value = [];
         sketchContextEntities.value = [];
         if (!id) return;
         try {
@@ -1700,11 +1702,13 @@ export default function createSurface({ vue, components, locale, queries, record
           if (!frame) return;
           sketchCanvasFrame.value = frame;
           sketchContextLayers.value = context?.layers || [];
+          sketchContextLinetypes.value = context?.linetypes || [];
           sketchContextEntities.value = context?.entities || [];
         } catch {
           if (token !== sketchContextToken) return;
           sketchCanvasFrame.value = null;
           sketchContextLayers.value = [];
+          sketchContextLinetypes.value = [];
           sketchContextEntities.value = [];
         }
       };
@@ -3223,6 +3227,7 @@ export default function createSurface({ vue, components, locale, queries, record
             viewSessionKey: sketchSessionKey.value,
             canvasFrame: sketchCanvasFrame.value,
             contextLayers: sketchContextLayers.value,
+            contextLinetypes: sketchContextLinetypes.value,
             contextEntities: sketchContextEntities.value,
             basisStart: face ? faceShapeBasisStart.value : null,
             basisEnd: face ? faceShapeBasisEnd.value : null,

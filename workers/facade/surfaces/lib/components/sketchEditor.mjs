@@ -71,6 +71,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // The cassette assembly in its own coordinates, on its own locked
       // layers, drawn under the authored sketch.
       contextLayers: { type: Array, default: () => [] },
+      contextLinetypes: { type: Array, default: () => [] },
       contextEntities: { type: Array, default: () => [] }
     },
     emits: ['update:modelValue', 'outline-error'],
@@ -1050,7 +1051,8 @@ export default function createSketchEditor({ vue, components, locale }) {
             ...entities.map(toCadEntity).filter(Boolean)
           ], {
             fit: false,
-            layers: [...(props.contextLayers || [])]
+            layers: [...(props.contextLayers || [])],
+            linetypes: [...(props.contextLinetypes || [])]
           });
         } finally {
           seeding = false;
@@ -1873,7 +1875,7 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       watch(() => props.viewSessionKey, () => applyView(props.initialView));
 
-      watch(() => [props.contextEntities, props.contextLayers, props.canvasFrame], () => {
+      watch(() => [props.contextEntities, props.contextLayers, props.contextLinetypes, props.canvasFrame], () => {
         lastAnnotationFingerprint = '';
         if (host) reseedFromModel({ force: true, fit: !props.initialView });
       }, { deep: true });

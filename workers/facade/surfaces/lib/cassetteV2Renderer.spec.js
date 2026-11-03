@@ -358,6 +358,11 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(frame).toBeTruthy();
     expect(frame.origin.every(Number.isFinite)).toBe(true);
     expect(Number.isFinite(frame.rotation)).toBe(true);
+
+    const child = addCassetteV2GraphChild(tree, tree.rootId, 0);
+    const folded = await cassetteV2AssemblyEntities(child.tree);
+    expect(folded.linetypes.length).toBeGreaterThan(0);
+    expect(folded.layers.some(layer => layer.linetype === 'DASHED' || layer.linetype === 'DOT')).toBe(true);
   });
 
   it('embeds an open profile into the face boundary and leaves the edge free', async () => {

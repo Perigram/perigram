@@ -867,10 +867,10 @@ export class View {
       if (e.obl) ctx.transform(1, 0, -Math.tan(e.obl), 1, 0, 0);   // oblique angle (P.7): the glyphs lean right for a positive angle
       ctx.globalAlpha = alpha ?? 1;
       ctx.fillStyle = this.ink(color);
-      ctx.font = (hpx * FONT_EM).toFixed(2) + 'px ' + DRAWING_FONT;
+      ctx.font = (hpx * FONT_EM).toFixed(2) + 'px ' + (this.colors.font || DRAWING_FONT);
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = e.ha === 'center' ? 'center' : e.ha === 'right' ? 'right' : 'left';
-      if (lay.runs) lay.lines.forEach((_, i) => fillRichLine(ctx, lay, i, e, { scale: k, family: DRAWING_FONT, color, paint: (c) => this.ink(c) }));   // inline format codes (mtext.js)
+      if (lay.runs) lay.lines.forEach((_, i) => fillRichLine(ctx, lay, i, e, { scale: k, family: this.colors.font || DRAWING_FONT, color, paint: (c) => this.ink(c) }));   // inline format codes (mtext.js)
       else lay.lines.forEach((line, i) => ctx.fillText(line, 0, -lay.baselines[i] * k));
     }
     ctx.globalAlpha = 1;

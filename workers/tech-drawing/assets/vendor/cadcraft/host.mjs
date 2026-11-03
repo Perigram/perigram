@@ -49,6 +49,7 @@ export class CadCraftHost {
     this.onPointerUp = null;
     this.onKeyDown = null;
     this._lastSelection = '';
+    this._themeObserver = null;
   }
 
   async mount() {
@@ -82,6 +83,12 @@ export class CadCraftHost {
     this._bindSelection();
     this._bindCommand();
     this._bindInput();
+    this.applyTheme();
+    this._themeObserver = new MutationObserver(() => this.applyTheme());
+    this._themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'style', 'data-theme']
+    });
     return this;
   }
 
@@ -120,6 +127,54 @@ export class CadCraftHost {
     });
   }
 
+  /** Mirror the app's light/dark tokens and font into the frame, so the canvas reads as one surface. */
+  applyTheme() {
+    if (!this.cad?.view || !this.win) return;
+    const hostRoot = document.documentElement;
+    const dark = hostRoot.classList.contains('dark-mode');
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;visibility:hidden;pointer-events:none';
+    document.body.appendChild(probe);
+    const color = (name, fallback) => {
+      probe.style.color = `var(${name})`;
+      const value = getComputedStyle(probe).color;
+      return value && value !== 'rgba(0, 0, 0, 0)' ? value : fallback;
+    };
+    const surface = (name, fallback) => {
+      probe.style.backgroundColor = `var(${name})`;
+      const value = getComputedStyle(probe).backgroundColor;
+      return value && value !== 'rgba(0, 0, 0, 0)' ? value : fallback;
+    };
+    const sheet = surface('--p-content-background', dark ? '#1d232b' : '#ffffff');
+    const ink = color('--p-text-color', dark ? '#e8eef4' : '#17202b');
+    const ink2 = color('--p-text-muted-color', dark ? '#c3cdd8' : '#3f4a57');
+    probe.style.borderTopColor = 'var(--p-content-border-color)';
+    const line = getComputedStyle(probe).borderTopColor || (dark ? '#6c7a8a' : '#d5dde5');
+    const action = color('--p-primary-color', '#1e48c8');
+    const onAction = color('--p-primary-contrast-color', '#ffffff');
+    probe.style.fontFamily = 'var(--ck-font-ui)';
+    const font = getComputedStyle(probe).fontFamily || 'sans-serif';
+    probe.remove();
+
+    const root = this.win.document.documentElement;
+    const vars = {
+      '--sheet': sheet,
+      '--sheet-2': sheet,
+      '--ink': ink,
+      '--ink-2': ink2,
+      '--grid': line,
+      '--line': line,
+      '--action': action,
+      '--on-action': onAction,
+      '--font': font
+    };
+    for (const [name, value] of Object.entries(vars)) root.style.setProperty(name, value);
+    root.dataset.space = dark ? 'model' : 'paper';
+    if (this.frame) this.frame.style.background = sheet;
+    this.cad.view.theme();
+    this.cad.view.invalidate(true);
+  }
+
   _bindSelection() {
     const host = this.cad.host;
     const original = host.setSelection.bind(host);
@@ -153,12 +208,12 @@ export class CadCraftHost {
     return this.cad?.doc ? this.cad.doc.all() : [];
   }
 
-  seed(entities, { name = 'Drawing', layers = [{ name: '0' }], fit = true } = {}) {
+  seed(entities, { name = 'Drawing', layers = [{ name: '0' }], linetypes = [], fit = true } = {}) {
     if (!this.cad) return;
     const previousView = fit ? null : this.snapshotView();
     this.suppress = true;
     try {
-      this.cad.doc.load({ entities, layers, meta: { name } });
+      this.cad.doc.load({ entities, layers, linetypes, meta: { name } });
     } finally {
       this.suppress = false;
     }
@@ -328,6 +383,8 @@ export class CadCraftHost {
 
   destroy() {
     this.disposed = true;
+    this._themeObserver?.disconnect?.();
+    this._themeObserver = null;
     if (this.win) {
       const doc = this.win.document;
       doc.removeEventListener('pointerdown', this._pointerDown, true);
