@@ -362,6 +362,8 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(placed.contextCount, 'the assembly draws around the sketch').toBeGreaterThan(0);
   expect(placed.sketchCount, 'the authored sketch seeds on its own layer').toBeGreaterThan(0);
   expect(placed.centerInContext, 'the sketch sits inside the assembly bounds').toBe(true);
+  await reopenedDialog.getByRole('button', { name: 'Fit to view' }).click();
+  await page.waitForTimeout(600);
   await page.screenshot({ path: '.playwright/cassette-inplace-context.png' });
   const reopened = await nativeDims(reopenedDialog);
   expectDrawingScale(reopened);
