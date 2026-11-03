@@ -162,6 +162,13 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
     edgeIndex,
     edgeStart,
     edgeEnd,
+    frame: {
+      origin: [edgeStart[0] + axis[0] * starts[0], edgeStart[1] + axis[1] * starts[0], 0],
+      anchor: start,
+      rotation,
+      mirrorX,
+      mirrorY
+    },
     copies: copies.map(copy => copy.points),
     copySpans: copies.map(copy => ({ startAlong: copy.startAlong, endAlong: copy.endAlong, points: copy.points })),
     breakPoints: [copies[0].points[0], copies[copies.length - 1].points[copies[copies.length - 1].points.length - 1]],

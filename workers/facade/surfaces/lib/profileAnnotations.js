@@ -1,11 +1,12 @@
-// The profile editor's derived canvas annotations as native CadCraft
-// entities: dimensions, the folded face hatch and outline, the zero axis
-// and the origin datum. Pure: the editor builds these from one evaluated
-// sketch and hands them to CadCraftHost.annotate.
+// The profile editor's derived canvas layers as native CadCraft entities:
+// dimensions, the folded face hatch and outline, the zero axis, the origin
+// datum, and the locked assembly context. Pure: the editor builds these from
+// one evaluated sketch and hands them to CadCraftHost.annotate.
 import { occProfileRectCornerVertices } from '../../occs/profiles.js';
 
 export const PROFILE_ANNOTATION_LAYER = 'perigram-profile-annotations';
 export const PROFILE_DIMENSION_LAYER = 'perigram-profile-dimensions';
+export const PROFILE_CONTEXT_LAYER = 'perigram-profile-context';
 
 const DIM_STYLE = Object.freeze({
   txt: 2.5,

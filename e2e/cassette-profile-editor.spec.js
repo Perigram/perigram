@@ -321,6 +321,26 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(restoredCamera.zoom, 'the target reopens at its session camera').toBeCloseTo(movedCamera.zoom, 4);
   expect(restoredCamera.cx).toBeCloseTo(movedCamera.cx, 3);
   expect(restoredCamera.cy).toBeCloseTo(movedCamera.cy, 3);
+  const contextLayer = await frameOf(reopenedDialog).then(frame => frame.evaluate(() => {
+    const layer = window.cadcraft.doc.layers.get('perigram-profile-context');
+    const entities = window.cadcraft.doc.all().filter(entity => entity.layer === 'perigram-profile-context');
+    const points = entities.flatMap(entity => (
+      entity.type === 'poly'
+        ? entity.pts
+        : entity.type === 'line'
+          ? [{ x: entity.x1, y: entity.y1 }, { x: entity.x2, y: entity.y2 }]
+          : []
+    ));
+    return {
+      locked: Boolean(layer?.locked),
+      count: entities.length,
+      nearSketch: points.some(point => Math.hypot(point.x, point.y) < 5)
+    };
+  }));
+  expect(contextLayer.locked, 'the assembly context layer is locked').toBe(true);
+  expect(contextLayer.count, 'the assembly context surrounds the sketch').toBeGreaterThan(0);
+  expect(contextLayer.nearSketch, 'the host geometry crosses the sketch origin').toBe(true);
+  await page.screenshot({ path: '.playwright/cassette-inplace-context.png' });
   const reopened = await nativeDims(reopenedDialog);
   expectDrawingScale(reopened);
   const reopenedDiameter = reopened.find(dim => dim.field === 'diameter');

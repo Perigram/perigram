@@ -21,7 +21,7 @@ import {
 } from '../../../occs/profiles.js';
 import { resolveOccsExpression } from '../../../occs/expressions.js';
 import { foldCassetteV2Region } from '../cassetteV2Clipper.js';
-import { buildProfileAnnotations, profileDimensionField, PROFILE_ANNOTATION_LAYER, PROFILE_DIMENSION_LAYER } from '../profileAnnotations.js';
+import { buildProfileAnnotations, profileDimensionField, PROFILE_ANNOTATION_LAYER, PROFILE_CONTEXT_LAYER, PROFILE_DIMENSION_LAYER } from '../profileAnnotations.js';
 import { toolIcon } from './toolIcons.mjs';
 import createFieldDraft from './fieldDraft.mjs';
 
@@ -64,7 +64,10 @@ export default function createSketchEditor({ vue, components, locale }) {
       // The canvas session's camera for this target: the editor restores it
       // when the same sketch reopens, so pan/zoom survives a mode flip.
       initialView: { type: Object, default: null },
-      viewSessionKey: { type: Number, default: 0 }
+      viewSessionKey: { type: Number, default: 0 },
+      // The cassette assembly in the sketch's local frame, drawn locked
+      // under the authored sketch so the section sits on its host.
+      contextEntities: { type: Array, default: () => [] }
     },
     emits: ['update:modelValue', 'outline-error'],
     setup(props, { emit, expose }) {
@@ -287,6 +290,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         lastAnnotationFingerprint = fingerprint;
         host.annotate(PROFILE_ANNOTATION_LAYER, decorations, { locked: true });
         host.annotate(PROFILE_DIMENSION_LAYER, dimensions);
+      };
+
+      const applyContext = () => {
+        if (!host || disposed) return;
+        host.annotate(PROFILE_CONTEXT_LAYER, props.contextEntities || [], { locked: true });
       };
 
       const selectShapeInEngine = (shapeId) => {
@@ -700,7 +708,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           { icon: 'commandLine', labelKey: 'cassette.v2.profileEditor.actions.commandLine', isOn: () => commandLine.value, onActivate: toggleCommandLine }
         ],
         [
-          { icon: 'zoomFit', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => host?.zoomFit(PROFILE_ANNOTATION_LAYER) },
+          { icon: 'zoomFit', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => host?.zoomFit([PROFILE_ANNOTATION_LAYER, PROFILE_CONTEXT_LAYER]) },
           { icon: 'importDxf', labelKey: 'cassette.v2.profileEditor.importDxf', onActivate: () => fileInputRef.value?.click() },
           { icon: 'clear', labelKey: 'cassette.v2.profileEditor.actions.clear', onActivate: () => clearDrawing() }
         ]
@@ -910,7 +918,15 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!host) return;
         seeding = true;
         try {
-          host.seed(entities.map(toCadEntity).filter(Boolean), { fit: false });
+          // The assembly context seeds first so it draws under the
+          // authored sketch; its layer stays locked.
+          host.seed([
+            ...(props.contextEntities || []),
+            ...entities.map(toCadEntity).filter(Boolean)
+          ], {
+            fit: false,
+            layers: [{ name: '0' }, { name: PROFILE_CONTEXT_LAYER, locked: true }]
+          });
         } finally {
           seeding = false;
         }
@@ -996,12 +1012,13 @@ export default function createSketchEditor({ vue, components, locale }) {
             host.newDrawing('blank');
             lastAnnotationFingerprint = '';
             entityShapeByEntityId = new Map();
+            applyContext();
           }
         } finally {
           seeding = false;
         }
         pruneSelection(normalized);
-        if (entities.length && fit) host.zoomFit(PROFILE_ANNOTATION_LAYER);
+        if (entities.length && fit) host.zoomFit([PROFILE_ANNOTATION_LAYER, PROFILE_CONTEXT_LAYER]);
         selectShapeInEngine(selectedShape.value?.shapeId || selectedCorner.value?.shapeId || '');
         syncAnnotations(normalized);
       };
@@ -1623,7 +1640,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           droppedShapes = [];
           entityShapeByEntityId = new Map();
           lastAnnotationFingerprint = '';
-          host.zoomFit(PROFILE_ANNOTATION_LAYER);
+          host.zoomFit([PROFILE_ANNOTATION_LAYER, PROFILE_CONTEXT_LAYER]);
           // An import is reference geometry: every extracted shape lands
           // with op none until the author assigns its ops.
           emitSketch({ reference: true });
@@ -1717,7 +1734,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               if (!host || containerRef.value?.clientHeight < 120) return;
               zoomObserver.disconnect();
               zoomObserver = null;
-              host.zoomFit(PROFILE_ANNOTATION_LAYER);
+              host.zoomFit([PROFILE_ANNOTATION_LAYER, PROFILE_CONTEXT_LAYER]);
             });
             zoomObserver.observe(containerRef.value);
           }
@@ -1741,6 +1758,10 @@ export default function createSketchEditor({ vue, components, locale }) {
       }, { deep: true });
 
       watch(() => props.viewSessionKey, () => applyView(props.initialView));
+
+      watch(() => props.contextEntities, () => {
+        if (host) reseedFromModel({ force: true, fit: false });
+      }, { deep: true });
 
       watch(() => props.externalParameters, () => {
         if (host) reseedFromModel({ force: true, fit: false });

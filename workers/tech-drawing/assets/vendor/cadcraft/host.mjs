@@ -223,17 +223,17 @@ export class CadCraftHost {
   zoomFit(excludeLayer = null) {
     const view = this.cad?.view;
     if (!view) return;
-    const layer = excludeLayer ? this.cad.doc.layers.get(excludeLayer) : null;
-    if (!layer) {
-      view.fit();
-      return;
-    }
-    const on = layer.on;
-    layer.on = false;
+    const names = Array.isArray(excludeLayer) ? excludeLayer : [excludeLayer];
+    const excluded = names
+      .filter(Boolean)
+      .map(name => this.cad.doc.layers.get(name))
+      .filter(Boolean);
+    const states = excluded.map(layer => ({ layer, on: layer.on }));
+    for (const item of states) item.layer.on = false;
     try {
       view.fit();
     } finally {
-      layer.on = on;
+      for (const item of states) item.layer.on = item.on;
     }
   }
 

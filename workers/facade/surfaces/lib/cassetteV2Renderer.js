@@ -47,6 +47,8 @@ import {
   normalizeHangerProductionMode
 } from '../../occs/hardware.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
+import { PROFILE_CONTEXT_LAYER } from './profileAnnotations.js';
+import { collectDxfEntities } from '../../vendor/dxf-writer.js';
 import { embedOccsProfileEdge, embedOccsProfilesIntoContour } from '../../occs/profileEmbedding.js';
 import {
   buildOccsProfileFromEvaluatedSketch,
@@ -4464,6 +4466,137 @@ export const buildCassetteV2TreeCurves = async (tree = createCassetteV2GraphTree
     origin: workpieceById.get(curve.node.workpieceId)?.previewOrigin || [0, 0, 0],
     rotation: 0
   }));
+};
+
+// The local frame a profile or face sketch is authored in, mapped to
+// assembly coordinates. `cassetteV2SketchContext` inverts it to draw the
+// cassette around the sketch. Closed profiles place by point and axis
+// rotation, open profiles by their edge embedding, faces by the
+// workpiece's assembly transform.
+export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), { mode = 'profile', id = '' } = {}) => {
+  if (!id) return null;
+  const sourceTree = cloneCassetteV2Tree(tree);
+  const parameters = treeParameters(sourceTree);
+  const localCurves = await buildCassetteV2LocalTreeCurves(sourceTree);
+
+  if (mode === 'face') {
+    const node = sourceTree.nodes.find(item => item.id === id);
+    if (!node) return null;
+    const transforms = buildCassetteV2AssemblyTransforms(sourceTree, localCurves);
+    const transform = transforms.get(node.workpieceId) || { origin: [0, 0, 0], rotation: 0 };
+    return {
+      origin: [numeric(transform.origin?.[0], 0), numeric(transform.origin?.[1], 0), 0],
+      rotation: numeric(transform.rotation, 0),
+      mirrorX: false,
+      mirrorY: false
+    };
+  }
+
+  const workpiece = sourceTree.workpieces.find(item => item.id === id);
+  if (!workpiece) return null;
+  const relation = getCassetteV2WorkpieceRelations(sourceTree)
+    .find(item => item.sourceWorkpieceId === id && item.targetFaceId);
+  if (!relation) return null;
+  const curves = await buildCassetteV2TreeCurves(sourceTree, { mode: 'assembly' });
+  const targetCurve = curves.find(item => item.node.id === relation.targetFaceId);
+  if (!targetCurve) return null;
+  const profile = normalizeCassetteV2Profile(workpiece, parameters);
+  const open = profile.section?.open || profile.section?.type === 'polyline';
+
+  if (open) {
+    const contour = targetCurve.originalBoundaryVertices
+      || targetCurve.referenceVertices
+      || targetCurve.boundaryVertices
+      || targetCurve.vertices;
+    const embedding = embedOccsProfileEdge({
+      section: profile.section,
+      vertices: contour,
+      relation,
+      resolve: (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback)
+    });
+    if (!embedding.ok || !embedding.frame) return null;
+    return {
+      ...embedding.frame,
+      rotation: embedding.frame.rotation * 180 / Math.PI
+    };
+  }
+
+  const sectionOperations = resolveOccsProfileSectionOperations(profile.section || {});
+  const sectionYs = (sectionOperations || [])
+    .flatMap(operation => operation.polygons)
+    .flatMap(ring => ring.map(vertex => Number(vertex?.[1])))
+    .filter(Number.isFinite);
+  const edgeExtent = sectionYs.length ? Math.max(...sectionYs) - Math.min(...sectionYs) : 0;
+  const point = hardwarePointsForRelation(targetCurve, relation, parameters, edgeExtent)[0];
+  if (!point) return null;
+  return {
+    origin: [numeric(point[0], 0), numeric(point[1], 0), 0],
+    rotation: profileAxisRotationDegrees(relation, targetCurve)
+      + resolveCassetteV2AngleExpression(relation.rotation || '0', parameters, 0),
+    mirrorX: Boolean(relation.mirrorX),
+    mirrorY: Boolean(relation.mirrorY)
+  };
+};
+
+// The assembly around the edited target, in the sketch's own coordinates
+// and on the locked context layer. Drawing paths carry SVG's flipped y;
+// the frame math runs in world coordinates.
+export const cassetteV2SketchContext = async (
+  tree = createCassetteV2GraphTree(),
+  { mode = 'profile', id = '' } = {}
+) => {
+  const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
+  const frame = await cassetteV2SketchFrame(tree, { mode, id });
+  if (!drawing?.layers?.length || !frame) return null;
+
+  const radians = -numeric(frame.rotation, 0) * Math.PI / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const originX = numeric(frame.origin?.[0], 0);
+  const originY = numeric(frame.origin?.[1], 0);
+  const anchorX = Array.isArray(frame.anchor) ? numeric(frame.anchor[0], 0) : 0;
+  const anchorY = Array.isArray(frame.anchor) ? numeric(frame.anchor[1], 0) : 0;
+  const place = ([x, y]) => {
+    const dx = numeric(x, 0) - originX;
+    const dy = -numeric(y, 0) - originY;
+    const mx = anchorX + dx * cos - dy * sin;
+    const my = anchorY + dx * sin + dy * cos;
+    return {
+      x: frame.mirrorX ? -mx : mx,
+      y: frame.mirrorY ? -my : my
+    };
+  };
+
+  const entities = [];
+  for (const entity of collectDxfEntities({ layers: drawing.layers })) {
+    if (entity.type === 'line') {
+      const from = place(entity.from);
+      const to = place(entity.to);
+      entities.push({
+        type: 'line',
+        x1: from.x,
+        y1: from.y,
+        x2: to.x,
+        y2: to.y,
+        layer: PROFILE_CONTEXT_LAYER,
+        color: 8
+      });
+      continue;
+    }
+    if (entity.type === 'polyline') {
+      const pts = entity.points.map(place);
+      if (pts.length >= 2) {
+        entities.push({
+          type: 'poly',
+          closed: entity.closed,
+          pts,
+          layer: PROFILE_CONTEXT_LAYER,
+          color: 8
+        });
+      }
+    }
+  }
+  return entities.length ? entities : null;
 };
 
 const roundSketchValue = (value) => Math.round((numeric(value, 0) + Number.EPSILON) * 1000) / 1000;

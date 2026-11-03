@@ -14,6 +14,7 @@ import {
   CASSETTE_V2_HARDWARE_FAMILIES,
   cassetteV2AttachableProfileEdgesForTree,
   cassetteV2FaceSketchContext,
+  cassetteV2SketchContext,
   collectCassetteV2ExpressionIdentifiers,
   renameCassetteV2TreeParameter,
   createCassetteV2GraphTree,
@@ -372,6 +373,8 @@ export default function createSurface({ vue, components, locale, queries, record
       const canvasSession = createCanvasSession();
       const sketchInitialView = ref(null);
       const sketchSessionKey = ref(0);
+      const sketchContextEntities = ref([]);
+      let sketchContextToken = 0;
       const hardwareLibraryRecords = ref([]);
       const hardwareLibraryAvailable = ref(true);
       const hardwarePicker = ref(null);
@@ -1678,6 +1681,20 @@ export default function createSurface({ vue, components, locale, queries, record
         if (restoreSelection) restoreSketchReturn(returnState);
       };
 
+      // The assembly around the edited target, transformed into the
+      // sketch's own frame and drawn locked under the authored sketch.
+      const loadSketchContext = async (mode, id) => {
+        const token = ++sketchContextToken;
+        sketchContextEntities.value = [];
+        if (!id) return;
+        try {
+          const entities = await cassetteV2SketchContext(cassetteTree.value, { mode, id });
+          if (token === sketchContextToken) sketchContextEntities.value = entities || [];
+        } catch {
+          if (token === sketchContextToken) sketchContextEntities.value = [];
+        }
+      };
+
       const finishProfileSketch = (addedWorkpieceId = '') => {
         profileSketchOpen.value = false;
         closeSketchSession({ restoreSelection: !addedWorkpieceId });
@@ -1701,6 +1718,7 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const openProfileSketch = (workpieceId = '') => {
         openSketchSession('profile', workpieceId, captureSketchReturn());
+        loadSketchContext('profile', workpieceId);
         closeInlineEditor();
         profileEditorError.value = '';
         editingProfileWorkpieceId.value = workpieceId;
@@ -1759,6 +1777,7 @@ export default function createSurface({ vue, components, locale, queries, record
       // converting a trapezoid seeds the draft with its current outline.
       const openFaceShapeSketch = async (nodeId) => {
         openSketchSession('face', nodeId, captureSketchReturn());
+        loadSketchContext('face', nodeId);
         closeInlineEditor();
         faceShapeEditorError.value = '';
         editingFaceNodeId.value = nodeId;
@@ -3205,6 +3224,7 @@ export default function createSurface({ vue, components, locale, queries, record
             active: open,
             initialView: sketchInitialView.value,
             viewSessionKey: sketchSessionKey.value,
+            contextEntities: sketchContextEntities.value,
             basisStart: face ? faceShapeBasisStart.value : null,
             basisEnd: face ? faceShapeBasisEnd.value : null,
             contextFace: face ? faceShapeParentFace.value : [],
