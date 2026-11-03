@@ -6,10 +6,12 @@ const evaluated = {
 };
 
 describe('profile annotations', () => {
-  it('draws the profile axis as the vertical zero line', () => {
-    const { decorations } = buildProfileAnnotations({ evaluated });
+  it('draws the profile axis across the placed face', () => {
+    const { decorations } = buildProfileAnnotations({ evaluated, axisStart: -40, axisEnd: 40 });
+    const axis = decorations.find(item => item.type === 'poly' && item.closed === false);
 
-    expect(decorations.some(item => item.type === 'xline' && item.dx === 0 && item.dy === 1)).toBe(true);
+    expect(axis.pts).toEqual([{ x: 0, y: -40 }, { x: 0, y: 40 }]);
+    expect(decorations.some(item => item.type === 'xline')).toBe(false);
   });
 
   it('draws the parent face as a ghost outline in face mode', () => {

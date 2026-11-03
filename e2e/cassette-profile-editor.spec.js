@@ -39,6 +39,7 @@ const nativeDims = async (dialog) => {
         field: entity.profile?.fieldKey || null,
         shapeId: entity.profile?.shapeId || null,
         kind: entity.kind,
+        dimensionKind: entity.cassette?.dimensionKind || null,
         text: entity.text,
         measured
       };
@@ -300,6 +301,10 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     window.cadcraft.doc.all().filter(entity => entity.type === 'dim').length
   )));
   expect(assemblyNativeDims, 'the assembly canvas draws native dimensions').toBeGreaterThan(0);
+  expect(
+    (await nativeDims(dialog)).some(dim => dim.dimensionKind === 'placement'),
+    'the selected profile carries its placement dimensions along the parent edge'
+  ).toBe(true);
   await expect(page.locator('.designer-workspace__palette'), 'the dimension layer is a canvas layer row')
     .toContainText('5_1_Размер_Кассета');
   await page.waitForTimeout(1200);
@@ -417,6 +422,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     const contextBounds = bounds(pointsOf(context));
     const sketchBounds = bounds(pointsOf(sketch));
     const cutBounds = bounds(pointsOf(doc.all().filter(entity => String(entity.layer).includes('CUT_INNER'))));
+    const infiniteAxis = doc.all().some(entity => entity.type === 'xline' && entity.layer === 'perigram-profile-annotations');
     const hatch = doc.all().find(entity => entity.type === 'hatch' && entity.layer === 'perigram-profile-annotations');
     const hatchPoints = hatch
       ? hatch.loops.flatMap(loop => {
@@ -441,6 +447,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
       contextCount: context.length,
       sketchCount: sketch.length,
       hatchBounds,
+      infiniteAxis,
       centerInContext: center.x >= contextBounds.minX && center.x <= contextBounds.maxX
         && center.y >= contextBounds.minY && center.y <= contextBounds.maxY,
       centerOnPlacement: Math.hypot(center.x - cutCenter.x, center.y - cutCenter.y) < 0.5
@@ -451,6 +458,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(placed.sketchCount, 'the authored sketch seeds on its own layer').toBeGreaterThan(0);
   expect(placed.centerInContext, 'the sketch sits inside the assembly bounds').toBe(true);
   expect(placed.centerOnPlacement, 'the sketch stays on its placed profile').toBe(true);
+  expect(placed.infiniteAxis, 'the profile axis spans the placed face').toBe(false);
   expect(placed.hatchBounds, 'the profile hatch is the placed parent face').toBeTruthy();
   expect(placed.hatchBounds.maxX - placed.hatchBounds.minX, 'the hatch spans the parent face, never the half-plane stand-in')
     .toBeLessThan(1000);

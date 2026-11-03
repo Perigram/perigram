@@ -1725,6 +1725,22 @@ export default function createSurface({ vue, components, locale, queries, record
         };
       };
 
+      // A library record stores concrete parameter values: the cassette's
+      // globals and expressions bake into the snapshot.
+      const libraryProfileSketch = () => {
+        const sketch = preparedProfileDraftSketch.value;
+        const evaluated = profileDraftInspection.value.evaluated?.parameters || {};
+        return {
+          ...sketch,
+          parameters: Object.fromEntries(
+            Object.entries(sketch.parameters || {}).map(([key, value]) => [
+              key,
+              Object.prototype.hasOwnProperty.call(evaluated, key) ? evaluated[key] : value
+            ])
+          )
+        };
+      };
+
       // The assembly selection and its floating editor return untouched
       // when the sketch mode closes.
       const captureSketchReturn = () => ({
@@ -1836,10 +1852,14 @@ export default function createSurface({ vue, components, locale, queries, record
             // Placement overrides stay on the workpiece; the sketch mode
             // never evaluates or edits them.
             preservedInstance: { ...(normalizedProfile.instance || {}) },
-            // The sketch mode edits the authored table alone.
+            // In-place editing shows the placed implementation: the
+            // workpiece's instance values join the authored table.
             sketch: {
               ...snapshotSketch,
-              parameters: pruneScopeBoundParameters(snapshotSketch.parameters, snapshotSketch.shapes, scope)
+              parameters: pruneScopeBoundParameters({
+                ...snapshotSketch.parameters,
+                ...(normalizedProfile.instance || {})
+              }, snapshotSketch.shapes, scope)
             },
             libraryId: workpiece.profileTemplateId?.toString() || ''
           };
@@ -2046,7 +2066,7 @@ export default function createSurface({ vue, components, locale, queries, record
             fields: {
               kind: payload.kind,
               process: payload.process,
-              sketch: payload.sketch
+              sketch: libraryProfileSketch()
             }
           });
           if (created) {
@@ -2094,7 +2114,7 @@ export default function createSurface({ vue, components, locale, queries, record
             fields: {
               kind: payload.kind,
               process: payload.process,
-              sketch: payload.sketch
+              sketch: libraryProfileSketch()
             }
           });
           if (updated) {
@@ -2156,7 +2176,12 @@ export default function createSurface({ vue, components, locale, queries, record
           return;
         }
         const payload = profileDraftPayload();
-        const preservedInstance = { ...(profileDraft.value.preservedInstance || {}) };
+        // The editor's authored table now carries the placed values; drop
+        // instance overrides the table owns.
+        const preservedInstance = Object.fromEntries(
+          Object.entries(profileDraft.value.preservedInstance || {})
+            .filter(([key]) => !Object.prototype.hasOwnProperty.call(payload.sketch.parameters || {}, key))
+        );
         const workpieceId = editingProfileWorkpieceId.value;
         let addedWorkpieceId = '';
         if (workpieceId && workpieces.value.some(item => item.id === workpieceId)) {

@@ -364,8 +364,11 @@ editor reorders it. The editor hatches the FACE: the placed parent face
 folded through the profile's ops — adds extend the hatch, subtracts
 punch it empty — while drawn primitives stay bare lines beneath it:
 hatch and strong outline are what goes to the cassette, bare lines are
-what is authored. The editor, the production entity stream, and the
-nesting evaluation ride the same region fold.
+what is authored. The zero axis spans the placed parent face's extent.
+The editor's parameter table carries the placed instance values while it
+edits in place, and a library save writes those parameters as concrete
+values. The editor, the production entity stream, and the nesting
+evaluation ride the same region fold.
 Owner direction (2026-10-19, authoring): a dragged shape keeps its
 parameter bindings — a moved field bound to an authored bare identifier
 edits that row, compound expressions and numerics carry the drawn value,
@@ -555,7 +558,10 @@ on the dimension layer from the drawing's structured annotation rows; a label
 opens its authored field in place. Every assembly layer, dimensions included,
 is a native CadCraft layer that the layer rows toggle and repaint. A filled
 face layer seeds as a native hatch whose outer and hole loops keep their
-winding and whose opacity rides entity transparency.
+winding and whose opacity rides entity transparency. A selected placed profile
+draws its snapping dimensions along the parent edge: the edge ends and the
+profile basis point chain measured distances, and array placements chain every
+copy between the same edge ends.
 
 Owner direction (2026-11-02, selection and canvas widgets): a face click
 with a profile selected selects that face and leaves the profile relation

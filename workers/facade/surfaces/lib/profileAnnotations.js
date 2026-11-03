@@ -237,6 +237,8 @@ export function buildProfileAnnotations({
   resolvedFace = null,
   basisStart = null,
   basisEnd = null,
+  axisStart = null,
+  axisEnd = null,
   contextFace = null
 } = {}) {
   const shapes = evaluated?.shapes || [];
@@ -293,8 +295,14 @@ export function buildProfileAnnotations({
       color: 7,
       layer: PROFILE_ANNOTATION_LAYER
     });
-  } else {
-    decorations.push({ type: 'xline', x: 0, y: 0, dx: 0, dy: 1, color: 7, layer: PROFILE_ANNOTATION_LAYER });
+  } else if (Number.isFinite(axisStart) && Number.isFinite(axisEnd) && axisEnd > axisStart) {
+    decorations.push({
+      type: 'poly',
+      pts: [point(0, axisStart), point(0, axisEnd)],
+      closed: false,
+      color: 7,
+      layer: PROFILE_ANNOTATION_LAYER
+    });
   }
   decorations.push({ type: 'point', x: 0, y: 0, color: 7, layer: PROFILE_ANNOTATION_LAYER });
   return { dimensions, decorations };

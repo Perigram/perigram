@@ -3946,6 +3946,13 @@ the native dims, and the preview surface renders the OCCS payload
 before baked geometry rows. E2E `cassette-preview-native` asserts the hatch
 transparency, the dimension labels and a repainting layer toggle.
 
+The profile editor's zero axis is a finite segment over the placed parent
+face. Placed profiles open with the workpiece's instance values in the
+parameter table; saving back to the cassette drops the instance overrides the
+authored table now owns, and a library save writes evaluated parameter values.
+A selected placed profile draws measured placement dimensions along the parent
+edge; array placements chain every copy between the edge ends.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the
