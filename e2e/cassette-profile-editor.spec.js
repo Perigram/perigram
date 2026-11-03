@@ -302,6 +302,8 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(await canvasSignature(), 'Enter commits and rebuilds').not.toBe(before);
 
   const assemblyBefore = await assemblyViewBox(page);
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: '.playwright/cassette-assembly-native.png' });
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
   const reopenedDialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });
