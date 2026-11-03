@@ -360,13 +360,12 @@ Owner decision (2026-10-19, profile drawing; ordered-sequence
 amendment, same day): the fold is an ordered CSG sequence — each
 shape applies to the face in authored list order, so a later add
 refills an earlier cut; the shape list's order is semantic and the
-editor reorders it. The editor hatches the FACE: the material
-half (flippable) folded through the profile's ops — adds extend the
-hatch past the axis, subtracts punch it empty — while drawn primitives
-stay bare lines beneath it: hatch and strong outline are what goes to
-the cassette, bare lines are what is authored. The editor, the
-production entity stream, and the nesting evaluation ride the same
-region fold.
+editor reorders it. The editor hatches the FACE: the placed parent face
+folded through the profile's ops — adds extend the hatch, subtracts
+punch it empty — while drawn primitives stay bare lines beneath it:
+hatch and strong outline are what goes to the cassette, bare lines are
+what is authored. The editor, the production entity stream, and the
+nesting evaluation ride the same region fold.
 Owner direction (2026-10-19, authoring): a dragged shape keeps its
 parameter bindings — a moved field bound to an authored bare identifier
 edits that row, compound expressions and numerics carry the drawn value,
@@ -508,7 +507,8 @@ weights and dash patterns, locked and unpickable; extraction reads the
 authored sketch alone. The sketch model remains the single authored truth.
 The frame comes from the target's placement: the face's shard frame composed
 with its assembly transform, a closed profile's axis and point placement, or an
-open profile's edge embedding.
+open profile's edge embedding. The profile editor hatches the placed parent
+face, so the boolean preview rides the real face.
 
 Owner direction (2026-11-03, canvas theme and layer pens): the sketch canvas
 mirrors the app's light/dark tokens and UI font into the CadCraft frame, and
@@ -538,10 +538,11 @@ shape editor. The canvas carries no per-face menu chip. The assembly canvas
 draws its dimensions as native CadCraft dims on the dimension layer in every
 view, including the assembly context. The palette lists the drawing's native
 layers, and its rows toggle those layers in the assembly and the edit; hidden
-layers stay hidden through an edit. The native host is the one canvas view: it
-paints every layer and the dimension labels; the SVG overlay keeps hit areas,
-chips and hover/selection highlights alone. The edit drawing toolbar fills the
-left palette; the canvas keeps the dimension editor and corner popup.
+layers stay hidden through an edit; an empty visible-layer set hides every
+layer. The native host is the one canvas view: it paints every layer, filled
+face layers as solid hatches, and the dimension labels; the SVG overlay keeps
+hit areas, chips and hover/selection highlights alone. The edit drawing toolbar
+fills the left palette; the canvas keeps the dimension editor and corner popup.
 
 Owner direction (2026-11-03, native cassette view): the read-only cassette
 record view mounts the native CadCraft canvas with every drawing layer,
@@ -581,8 +582,7 @@ host. The sketch is the node's authored truth
 (`sketch`), the OCCS face is the evaluated region (`polygon`), and the
 authored sketch rides `face.extensions.perigram.sketch`. The face editor
 is the profile editor in face mode: same expressions, fillets, shape
-list, dimensions, and undo stack; the hatch is the face itself and the
-material-side toggle belongs to profile mode. Its datum is the parent
+list, dimensions, and undo stack; the hatch is the face itself. Its datum is the parent
 edge the face mounts to — a horizontal line spanning the host edge in
 the face's shard coordinates (the shard start sits at zero). The parent
 face renders as a ghost outline in the same coordinates, so the author

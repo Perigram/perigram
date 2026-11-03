@@ -3925,6 +3925,20 @@ the designer's layer rows.
 Session `agent/cassette-shared-canvas-20261103` (worktree
 `.agent-worktrees/cassette-shared-canvas-20261103`). Pending implementation.
 
+### Agent Notes (2026-11-03, owner verification fixes)
+
+Session `agent/cassette-verify-fixes-20261103` (worktree
+`.agent-worktrees/cassette-verify-fixes-20261103`). The designer palette now
+hides every native layer when the last row is unchecked: `setVisibleLayers([])`
+is an empty visible set, and the sketch editor keeps layer 0 and its annotation
+layers when the drawing's rows are all off. The assembly's fill-only face layer
+seeds as a solid native hatch at its authored opacity, so the face reads as a
+fill. The profile editor hatches the placed parent face in sketch coordinates;
+the parent face is the only hatch base. The SVG dimension controls are
+transparent targets whenever `showGeometry` is false, so a host-painted canvas
+has one dimension painter. E2E `cassette-designer-native` covers the native labels and the
+hide-all toggle; `cassette-profile-editor` asserts the hatch span.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the

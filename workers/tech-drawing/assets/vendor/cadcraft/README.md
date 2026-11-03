@@ -31,7 +31,7 @@ assistant tooling.
 | `run` / `cancel` / `running` | `engine.run` / `engine.escape` / `engine.running` |
 | `setOrtho` / `setOsnap` / `setSnapKind` | the frame's drafting settings |
 | `setCommandLine` | shows the frame's command line and re-sizes the canvas |
-| `setVisibleLayers(names)` | toggles layer visibility from a host palette; `null` shows every layer |
+| `setVisibleLayers(names)` | toggles layer visibility from a host palette; `null` shows every layer, an empty list hides every layer |
 | `applyTheme()` | mirrors the app's surface, ink, border, primary and font tokens into the frame root, sets `data-space` to `paper`/`model`, and re-applies on the app theme's `html` class change |
 | `onChange`, `onSelection`, `onCommand`, `onPointerDown`, `onPointerUp`, `onKeyDown` | surface subscriptions; the pointer and key listeners attach to the frame document |
 
