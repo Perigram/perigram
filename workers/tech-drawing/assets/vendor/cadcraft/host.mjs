@@ -155,6 +155,7 @@ export class CadCraftHost {
 
   seed(entities, { name = 'Drawing', layers = [{ name: '0' }], fit = true } = {}) {
     if (!this.cad) return;
+    const previousView = fit ? null : this.snapshotView();
     this.suppress = true;
     try {
       this.cad.doc.load({ entities, layers, meta: { name } });
@@ -162,6 +163,7 @@ export class CadCraftHost {
       this.suppress = false;
     }
     if (fit) this.cad.view.fit();
+    else if (previousView) this.cad.view.restore(previousView);
   }
 
   /** Replace one derived layer's entities in place — the host's annotation channel. A locked layer stays visible and unpickable. */
