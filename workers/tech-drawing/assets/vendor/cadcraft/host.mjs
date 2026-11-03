@@ -369,7 +369,9 @@ export class CadCraftHost {
     for (const layer of this.cad.doc.layers.values()) {
       layer.on = visible ? visible.has(layer.name) : true;
     }
-    this.cad.view.invalidate(true);
+    // Layer visibility lives in the cached base render; a regen drops that
+    // cache before the next frame.
+    this.cad.view.regen();
   }
 
   setOsnap(on) {

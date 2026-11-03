@@ -65,12 +65,6 @@ export default function createSurface({ vue, components, locale }) {
         drawing.value = null;
         ready.value = false;
         error.value = '';
-        const fields = props.record?.fields || {};
-        const baked = normalizeGeometryDrawing({ data: { ...fields } });
-        if (baked) {
-          drawing.value = baked;
-          return;
-        }
         if (isOccsCassetteDocument(props.payload)) {
           loading.value = true;
           try {
@@ -86,6 +80,9 @@ export default function createSurface({ vue, components, locale }) {
             loading.value = false;
           }
         }
+        if (drawing.value) return;
+        const fields = props.record?.fields || {};
+        drawing.value = normalizeGeometryDrawing({ data: { ...fields } });
       }
 
       const toggleLayer = (name, value) => {

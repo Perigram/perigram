@@ -63,9 +63,10 @@ const closeableLayer = (layer = '') => {
 
 const pathTokens = (path = '') => String(path).match(/[MLHVZmlhvz]|-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/g) || [];
 
-export function svgPathToPolyline(path = '') {
+export function svgPathToPolylines(path = '') {
   const tokens = pathTokens(path);
-  const points = [];
+  const loops = [];
+  let points = [];
   let cursor = [0, 0];
   let command = null;
   let closed = false;
@@ -75,6 +76,15 @@ export function svgPathToPolyline(path = '') {
     const value = Number(tokens[index]);
     index += 1;
     return value;
+  };
+  const flush = () => {
+    if (!points.length) return;
+    loops.push({
+      points,
+      closed: closed || (points.length > 2 && samePoint(points[0], points[points.length - 1]))
+    });
+    points = [];
+    closed = false;
   };
 
   while (index < tokens.length) {
@@ -86,19 +96,32 @@ export function svgPathToPolyline(path = '') {
 
     if (command === 'Z' || command === 'z') {
       closed = true;
+      flush();
       command = null;
       continue;
     }
 
-    if (command === 'M' || command === 'L' || command === 'm' || command === 'l') {
+    if (command === 'M' || command === 'm') {
       if (index + 1 >= tokens.length) break;
+      flush();
       const x = readNumber();
       const y = readNumber();
-      cursor = command === 'm' || command === 'l'
+      cursor = command === 'm'
         ? [cursor[0] + x, cursor[1] + y]
         : [x, y];
       points.push(cursor);
-      command = command === 'M' ? 'L' : (command === 'm' ? 'l' : command);
+      command = command === 'M' ? 'L' : 'l';
+      continue;
+    }
+
+    if (command === 'L' || command === 'l') {
+      if (index + 1 >= tokens.length) break;
+      const x = readNumber();
+      const y = readNumber();
+      cursor = command === 'l'
+        ? [cursor[0] + x, cursor[1] + y]
+        : [x, y];
+      points.push(cursor);
       continue;
     }
 
@@ -120,8 +143,18 @@ export function svgPathToPolyline(path = '') {
 
     index += 1;
   }
+  flush();
+  return loops;
+}
 
-  return { points, closed: closed || (points.length > 2 && samePoint(points[0], points[points.length - 1])) };
+export function svgPathToPolyline(path = '') {
+  const loops = svgPathToPolylines(path);
+  if (!loops.length) return { points: [], closed: false };
+  if (loops.length === 1) return loops[0];
+  return {
+    points: loops.flatMap(loop => loop.points),
+    closed: loops.some(loop => loop.closed)
+  };
 }
 
 function pushPolyline(entities, layer, coordinates, { closed = false } = {}) {
