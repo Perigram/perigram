@@ -1925,8 +1925,9 @@ export default function createSketchEditor({ vue, components, locale }) {
           releaseHost();
           return;
         }
+        if (!containerRef.value) return;
         if (!host && props.externalHost) host = props.externalHost;
-        if (host && containerRef.value) startEditing();
+        if (host) startEditing();
         clearEngineSelection();
         resetSketchHistory();
       }, { immediate: true });
