@@ -518,6 +518,12 @@ the frame's paper/model mode follows the app theme. The cassette assembly
 layers keep the OCCS layer standards' colors, weights and dash patterns, so a
 dashed fold route reads dashed on the canvas.
 
+Owner direction (2026-11-03, canvas geometry renderer): the cassette designer's
+canvas paints its geometry through a CadCraft host behind the SVG interaction
+layer. The SVG keeps the camera, chips, hit areas and popups; the host follows
+that camera and keeps every assembly layer locked. The main canvas and the
+sketch canvas read the same assembly layers, theme and font.
+
 Owner direction (2026-11-02, selection and canvas widgets): a face click
 with a profile selected selects that face and leaves the profile relation
 untouched; the face becomes the active selection. Designer chips, handles,

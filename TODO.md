@@ -3770,6 +3770,23 @@ layers carry the OCCS layer standards' colors, weights and dash patterns.
 Session `agent/cassette-cadcraft-theme-20261103` (worktree
 `.agent-worktrees/cassette-cadcraft-theme-20261103`). Pending implementation.
 
+## Cassette canvas geometry on CadCraft (owner direction 2026-11-03)
+
+The cassette designer's canvas paints its geometry through a CadCraft host
+behind the SVG interaction layer. The SVG keeps the camera, chips, hit areas
+and popups; the host follows that camera and keeps every assembly layer locked.
+The main canvas and the sketch canvas read the same assembly layers, theme and
+font.
+
+- [ ] WAITING — owner verification: the cassette canvas geometry is drawn by
+  CadCraft, the chips and hit areas still work over it, and pan/zoom keeps the
+  host aligned.
+
+### Agent Notes (2026-11-03, canvas geometry on CadCraft)
+
+Session `agent/cassette-cadcraft-theme-20261103` (worktree
+`.agent-worktrees/cassette-cadcraft-theme-20261103`). Pending implementation.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the
