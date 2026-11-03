@@ -17,7 +17,7 @@ assistant tooling.
 | Member | Contract |
 |---|---|
 | `mount()` | creates the `?embed=1` frame, waits for `window.cadcraft`, injects the chrome stylesheet, binds the document, selection, command hook and input listeners |
-| `seed(entities, { name, layers, fit })` | `doc.load` of CadCraft entities (`line`, `circle`, `arc`, `poly`); seeded entities carry `shapeId` so extraction keeps authored identity |
+| `seed(entities, { name, layers, fit })` | `doc.load` of CadCraft entities (`line`, `circle`, `arc`, `poly`); seeded entities carry `shapeId` so extraction keeps authored identity; `fit: false` restores the camera the load would otherwise refit |
 | `entities()` | `doc.all()` |
 | `openText(name, text)` | reads ASCII DXF through the edition's `dxf.js` and loads the drawing |
 | `newDrawing(name)` | empty layer-0 document |
