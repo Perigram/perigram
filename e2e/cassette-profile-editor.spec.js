@@ -321,25 +321,47 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(restoredCamera.zoom, 'the target reopens at its session camera').toBeCloseTo(movedCamera.zoom, 4);
   expect(restoredCamera.cx).toBeCloseTo(movedCamera.cx, 3);
   expect(restoredCamera.cy).toBeCloseTo(movedCamera.cy, 3);
-  const contextLayer = await frameOf(reopenedDialog).then(frame => frame.evaluate(() => {
-    const layer = window.cadcraft.doc.layers.get('perigram-profile-context');
-    const entities = window.cadcraft.doc.all().filter(entity => entity.layer === 'perigram-profile-context');
-    const points = entities.flatMap(entity => (
+  const placed = await frameOf(reopenedDialog).then(frame => frame.evaluate(() => {
+    const doc = window.cadcraft.doc;
+    const annotationLayers = ['perigram-profile-annotations', 'perigram-profile-dimensions'];
+    const lockedLayers = [...doc.layers.values()]
+      .filter(layer => layer.locked && layer.name !== '0' && !annotationLayers.includes(layer.name))
+      .map(layer => layer.name);
+    const context = doc.all().filter(entity => lockedLayers.includes(entity.layer));
+    const sketch = doc.all().filter(entity => entity.shapeId != null);
+    const pointsOf = list => list.flatMap(entity => (
       entity.type === 'poly'
         ? entity.pts
         : entity.type === 'line'
           ? [{ x: entity.x1, y: entity.y1 }, { x: entity.x2, y: entity.y2 }]
-          : []
+          : entity.type === 'circle'
+            ? [{ x: entity.cx, y: entity.cy }]
+            : []
     ));
+    const bounds = points => points.reduce((box, point) => ({
+      minX: Math.min(box.minX, point.x),
+      minY: Math.min(box.minY, point.y),
+      maxX: Math.max(box.maxX, point.x),
+      maxY: Math.max(box.maxY, point.y)
+    }), { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+    const contextBounds = bounds(pointsOf(context));
+    const sketchBounds = bounds(pointsOf(sketch));
+    const center = {
+      x: (sketchBounds.minX + sketchBounds.maxX) / 2,
+      y: (sketchBounds.minY + sketchBounds.maxY) / 2
+    };
     return {
-      locked: Boolean(layer?.locked),
-      count: entities.length,
-      nearSketch: points.some(point => Math.hypot(point.x, point.y) < 5)
+      lockedLayers,
+      contextCount: context.length,
+      sketchCount: sketch.length,
+      centerInContext: center.x >= contextBounds.minX && center.x <= contextBounds.maxX
+        && center.y >= contextBounds.minY && center.y <= contextBounds.maxY
     };
   }));
-  expect(contextLayer.locked, 'the assembly context layer is locked').toBe(true);
-  expect(contextLayer.count, 'the assembly context surrounds the sketch').toBeGreaterThan(0);
-  expect(contextLayer.nearSketch, 'the host geometry crosses the sketch origin').toBe(true);
+  expect(placed.lockedLayers.length, 'the assembly layers are locked').toBeGreaterThan(0);
+  expect(placed.contextCount, 'the assembly draws around the sketch').toBeGreaterThan(0);
+  expect(placed.sketchCount, 'the authored sketch seeds on its own layer').toBeGreaterThan(0);
+  expect(placed.centerInContext, 'the sketch sits inside the assembly bounds').toBe(true);
   await page.screenshot({ path: '.playwright/cassette-inplace-context.png' });
   const reopened = await nativeDims(reopenedDialog);
   expectDrawingScale(reopened);

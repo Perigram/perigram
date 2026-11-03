@@ -47,7 +47,6 @@ import {
   normalizeHangerProductionMode
 } from '../../occs/hardware.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
-import { PROFILE_CONTEXT_LAYER } from './profileAnnotations.js';
 import { collectDxfEntities } from '../../vendor/dxf-writer.js';
 import { embedOccsProfileEdge, embedOccsProfilesIntoContour } from '../../occs/profileEmbedding.js';
 import {
@@ -4359,65 +4358,39 @@ export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), 
   };
 };
 
-// The assembly around the edited target, in the sketch's own coordinates
-// and on the locked context layer. Drawing paths carry SVG's flipped y;
-// the frame math runs in world coordinates.
-export const cassetteV2SketchContext = async (
-  tree = createCassetteV2GraphTree(),
-  { mode = 'profile', id = '' } = {}
-) => {
+// The assembly in its own coordinates, on its own layers. The sketch
+// editor places the authored sketch over it through `cassetteV2SketchFrame`;
+// locked layers keep extraction on the authored sketch.
+export const cassetteV2AssemblyEntities = async (tree = createCassetteV2GraphTree()) => {
   const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
-  const frame = await cassetteV2SketchFrame(tree, { mode, id });
-  if (!drawing?.layers?.length || !frame) return null;
-
-  const radians = -numeric(frame.rotation, 0) * Math.PI / 180;
-  const cos = Math.cos(radians);
-  const sin = Math.sin(radians);
-  const originX = numeric(frame.origin?.[0], 0);
-  const originY = numeric(frame.origin?.[1], 0);
-  const anchorX = Array.isArray(frame.anchor) ? numeric(frame.anchor[0], 0) : 0;
-  const anchorY = Array.isArray(frame.anchor) ? numeric(frame.anchor[1], 0) : 0;
-  const place = ([x, y]) => {
-    const dx = numeric(x, 0) - originX;
-    const dy = -numeric(y, 0) - originY;
-    const mx = anchorX + dx * cos - dy * sin;
-    const my = anchorY + dx * sin + dy * cos;
-    return {
-      x: frame.mirrorX ? -mx : mx,
-      y: frame.mirrorY ? -my : my
-    };
-  };
-
+  if (!drawing?.layers?.length) return null;
+  const layers = drawing.layers.map(layer => ({
+    name: layer.name || layer.standardCode || 'geometry',
+    color: /^#?[0-9a-f]{6}$/i.test(String(layer.color || '')) ? layer.color : 'ink',
+    lineweight: Number(layer.weight) || 0.35,
+    locked: true
+  }));
   const entities = [];
   for (const entity of collectDxfEntities({ layers: drawing.layers })) {
     if (entity.type === 'line') {
-      const from = place(entity.from);
-      const to = place(entity.to);
       entities.push({
         type: 'line',
-        x1: from.x,
-        y1: from.y,
-        x2: to.x,
-        y2: to.y,
-        layer: PROFILE_CONTEXT_LAYER,
-        color: 8
+        x1: entity.from[0],
+        y1: -entity.from[1],
+        x2: entity.to[0],
+        y2: -entity.to[1],
+        layer: entity.layer
       });
       continue;
     }
     if (entity.type === 'polyline') {
-      const pts = entity.points.map(place);
+      const pts = entity.points.map(([x, y]) => ({ x, y: -y }));
       if (pts.length >= 2) {
-        entities.push({
-          type: 'poly',
-          closed: entity.closed,
-          pts,
-          layer: PROFILE_CONTEXT_LAYER,
-          color: 8
-        });
+        entities.push({ type: 'poly', closed: entity.closed, pts, layer: entity.layer });
       }
     }
   }
-  return entities.length ? entities : null;
+  return entities.length ? { layers, entities } : null;
 };
 
 const roundSketchValue = (value) => Math.round((numeric(value, 0) + Number.EPSILON) * 1000) / 1000;

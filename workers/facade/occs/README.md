@@ -290,8 +290,8 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     between them, placing the copies that fit. The array binding
     (`start`/`center`/`end` snap) places the array; copies always run
     edge-start to edge-end. The embedding reports the copy frame (origin,
-    anchor, rotation, mirror) that the sketch canvas inverts to draw the
-    cassette around the profile. A placement that cannot fit, or a margin
+    anchor, rotation, mirror) the sketch canvas uses to place the authored
+    sketch on the assembly. A placement that cannot fit, or a margin
     that leaves no span, is an evaluation error; refusals ride
     `profileEmbeddingErrors`
     (`{relationId, reason}`). Authored array values are expressions read

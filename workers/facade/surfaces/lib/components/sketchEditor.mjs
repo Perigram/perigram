@@ -21,7 +21,7 @@ import {
 } from '../../../occs/profiles.js';
 import { resolveOccsExpression } from '../../../occs/expressions.js';
 import { foldCassetteV2Region } from '../cassetteV2Clipper.js';
-import { buildProfileAnnotations, profileDimensionField, PROFILE_ANNOTATION_LAYER, PROFILE_CONTEXT_LAYER, PROFILE_DIMENSION_LAYER } from '../profileAnnotations.js';
+import { buildProfileAnnotations, profileDimensionField, PROFILE_ANNOTATION_LAYER, PROFILE_DIMENSION_LAYER } from '../profileAnnotations.js';
 import { toolIcon } from './toolIcons.mjs';
 import createFieldDraft from './fieldDraft.mjs';
 
@@ -65,8 +65,12 @@ export default function createSketchEditor({ vue, components, locale }) {
       // when the same sketch reopens, so pan/zoom survives a mode flip.
       initialView: { type: Object, default: null },
       viewSessionKey: { type: Number, default: 0 },
-      // The cassette assembly in the sketch's local frame, drawn locked
-      // under the authored sketch so the section sits on its host.
+      // The sketch's local-to-assembly frame: the authored sketch is placed
+      // on the cassette at the target's placement.
+      canvasFrame: { type: Object, default: null },
+      // The cassette assembly in its own coordinates, on its own locked
+      // layers, drawn under the authored sketch.
+      contextLayers: { type: Array, default: () => [] },
       contextEntities: { type: Array, default: () => [] }
     },
     emits: ['update:modelValue', 'outline-error'],
@@ -100,11 +104,78 @@ export default function createSketchEditor({ vue, components, locale }) {
       let lastViewKey = '';
       let pendingView = props.initialView ? { ...props.initialView } : null;
 
+      // The sketch model stays local; the canvas places it on the cassette
+      // through `canvasFrame`. Every seed, extraction, annotation and pointer
+      // conversion crosses that frame at its own boundary.
+      const activeFrame = () => props.canvasFrame || null;
+      const framePointToWorld = (point) => {
+        const frame = activeFrame();
+        if (!frame) return { x: point.x, y: point.y };
+        const mirroredX = frame.mirrorX ? -point.x : point.x;
+        const mirroredY = frame.mirrorY ? -point.y : point.y;
+        const anchorX = Array.isArray(frame.anchor) ? Number(frame.anchor[0]) || 0 : 0;
+        const anchorY = Array.isArray(frame.anchor) ? Number(frame.anchor[1]) || 0 : 0;
+        const radians = (Number(frame.rotation) || 0) * Math.PI / 180;
+        const cos = Math.cos(radians);
+        const sin = Math.sin(radians);
+        const dx = mirroredX - anchorX;
+        const dy = mirroredY - anchorY;
+        return {
+          x: (Number(frame.origin?.[0]) || 0) + dx * cos - dy * sin,
+          y: (Number(frame.origin?.[1]) || 0) + dx * sin + dy * cos
+        };
+      };
+      const framePointToLocal = (point) => {
+        const frame = activeFrame();
+        if (!frame) return { x: point.x, y: point.y };
+        const radians = -(Number(frame.rotation) || 0) * Math.PI / 180;
+        const cos = Math.cos(radians);
+        const sin = Math.sin(radians);
+        const dx = point.x - (Number(frame.origin?.[0]) || 0);
+        const dy = point.y - (Number(frame.origin?.[1]) || 0);
+        const mirroredX = (Array.isArray(frame.anchor) ? Number(frame.anchor[0]) || 0 : 0) + dx * cos - dy * sin;
+        const mirroredY = (Array.isArray(frame.anchor) ? Number(frame.anchor[1]) || 0 : 0) + dx * sin + dy * cos;
+        return {
+          x: frame.mirrorX ? -mirroredX : mirroredX,
+          y: frame.mirrorY ? -mirroredY : mirroredY
+        };
+      };
+      const frameVectorToWorld = (vector) => {
+        const frame = activeFrame();
+        if (!frame) return { x: vector.x, y: vector.y };
+        const mirroredX = frame.mirrorX ? -vector.x : vector.x;
+        const mirroredY = frame.mirrorY ? -vector.y : vector.y;
+        const radians = (Number(frame.rotation) || 0) * Math.PI / 180;
+        const cos = Math.cos(radians);
+        const sin = Math.sin(radians);
+        return { x: mirroredX * cos - mirroredY * sin, y: mirroredX * sin + mirroredY * cos };
+      };
+      const mirrorAngles = (a0, a1) => {
+        const frame = activeFrame();
+        if (!frame) return [a0, a1];
+        if (frame.mirrorX && frame.mirrorY) return [a0 + Math.PI, a1 + Math.PI];
+        if (frame.mirrorX) return [Math.PI - a1, Math.PI - a0];
+        if (frame.mirrorY) return [-a1, -a0];
+        return [a0, a1];
+      };
+      const frameAngleToWorld = (a0, a1) => {
+        const [m0, m1] = mirrorAngles(a0, a1);
+        const radians = (Number(activeFrame()?.rotation) || 0) * Math.PI / 180;
+        return [m0 + radians, m1 + radians];
+      };
+      const frameAngleToLocal = (a0, a1) => {
+        const radians = -(Number(activeFrame()?.rotation) || 0) * Math.PI / 180;
+        return mirrorAngles(a0 + radians, a1 + radians);
+      };
+
       // The transient popups read the frame's view directly: CadCraft's
       // canvas is same-origin, so world/screen conversion is a plain call.
       const canvasView = {
-        worldToScreen: point => host?.worldToScreen(point) || { x: 0, y: 0 },
-        screenToWorld: point => host?.screenToWorld(point) || { x: 0, y: 0 }
+        worldToScreen: point => host?.worldToScreen(framePointToWorld(point)) || { x: 0, y: 0 },
+        screenToWorld: point => {
+          const world = host?.screenToWorld(point) || { x: 0, y: 0 };
+          return framePointToLocal(world);
+        }
       };
       // The sketch model owns the author's history: the frame's drawing
       // is a projection every model change reseeds, so its undo stack
@@ -273,6 +344,46 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
+      const transformAnnotationEntity = (entity) => {
+        if (!entity) return entity;
+        if (!activeFrame()) return entity;
+        if (entity.type === 'poly') return { ...entity, pts: (entity.pts || []).map(framePointToWorld) };
+        if (entity.type === 'hatch') {
+          return {
+            ...entity,
+            loops: (entity.loops || []).map(loop => {
+              const pts = [];
+              for (let index = 0; index + 1 < loop.length; index += 2) {
+                const point = framePointToWorld({ x: loop[index], y: loop[index + 1] });
+                pts.push(point.x, point.y);
+              }
+              return pts;
+            })
+          };
+        }
+        if (entity.type === 'point') {
+          const point = framePointToWorld(entity);
+          return { ...entity, x: point.x, y: point.y };
+        }
+        if (entity.type === 'xline') {
+          const point = framePointToWorld(entity);
+          const vector = frameVectorToWorld({ x: entity.dx, y: entity.dy });
+          return { ...entity, x: point.x, y: point.y, dx: vector.x, dy: vector.y };
+        }
+        if (entity.type === 'dim') {
+          const next = { ...entity };
+          if (entity.p1) next.p1 = framePointToWorld(entity.p1);
+          if (entity.p2) next.p2 = framePointToWorld(entity.p2);
+          if (entity.c) next.c = framePointToWorld(entity.c);
+          if (entity.loc) next.loc = framePointToWorld(entity.loc);
+          if (entity.kind === 'linear') {
+            next.rot = Math.atan2(next.p2.y - next.p1.y, next.p2.x - next.p1.x);
+          }
+          return next;
+        }
+        return entity;
+      };
+
       const syncAnnotations = (sketch = props.modelValue) => {
         if (!host || disposed) return;
         const { authored, evaluated } = annotationSource(sketch);
@@ -285,16 +396,13 @@ export default function createSketchEditor({ vue, components, locale }) {
           basisEnd: faceMode.value ? props.basisEnd : null,
           contextFace: faceMode.value ? props.contextFace : null
         });
-        const fingerprint = JSON.stringify({ dimensions, decorations });
+        const placedDimensions = dimensions.map(transformAnnotationEntity);
+        const placedDecorations = decorations.map(transformAnnotationEntity);
+        const fingerprint = JSON.stringify({ dimensions: placedDimensions, decorations: placedDecorations });
         if (fingerprint === lastAnnotationFingerprint) return;
         lastAnnotationFingerprint = fingerprint;
-        host.annotate(PROFILE_ANNOTATION_LAYER, decorations, { locked: true });
-        host.annotate(PROFILE_DIMENSION_LAYER, dimensions);
-      };
-
-      const applyContext = () => {
-        if (!host || disposed) return;
-        host.annotate(PROFILE_CONTEXT_LAYER, props.contextEntities || [], { locked: true });
+        host.annotate(PROFILE_ANNOTATION_LAYER, placedDecorations, { locked: true });
+        host.annotate(PROFILE_DIMENSION_LAYER, placedDimensions);
       };
 
       const selectShapeInEngine = (shapeId) => {
@@ -531,7 +639,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         const round = value => Math.round(value * 1000) / 1000;
         const move = (moveEvent) => {
           if (!gripDrag) return;
-          const world = host.screenToWorld({ x: moveEvent.clientX, y: moveEvent.clientY });
+          const world = canvasView.screenToWorld({ x: moveEvent.clientX, y: moveEvent.clientY });
           if (grip.shape.type === 'circle') {
             const radius = Math.max(0.25, Math.hypot(
               world.x - grip.shape.center[0],
@@ -708,7 +816,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           { icon: 'commandLine', labelKey: 'cassette.v2.profileEditor.actions.commandLine', isOn: () => commandLine.value, onActivate: toggleCommandLine }
         ],
         [
-          { icon: 'zoomFit', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => host?.zoomFit([PROFILE_ANNOTATION_LAYER, PROFILE_CONTEXT_LAYER]) },
+          { icon: 'zoomFit', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => host?.zoomFit(fitExcludeLayers()) },
           { icon: 'importDxf', labelKey: 'cassette.v2.profileEditor.importDxf', onActivate: () => fileInputRef.value?.click() },
           { icon: 'clear', labelKey: 'cassette.v2.profileEditor.actions.clear', onActivate: () => clearDrawing() }
         ]
@@ -726,30 +834,37 @@ export default function createSketchEditor({ vue, components, locale }) {
         const records = [];
         for (const entity of host?.entities() || []) {
           if (entity.layer === PROFILE_ANNOTATION_LAYER || entity.layer === PROFILE_DIMENSION_LAYER) continue;
+          if (host?.cad?.doc?.layers?.get(entity.layer)?.locked) continue;
           const shapeId = entityShapeByEntityId.get(entity.id);
           const tag = shapeId ? { shapeId } : {};
           if (entity.type === 'line') {
             records.push({
               type: 'LINE',
-              start: { x: entity.x1, y: entity.y1 },
-              end: { x: entity.x2, y: entity.y2 },
+              start: framePointToLocal({ x: entity.x1, y: entity.y1 }),
+              end: framePointToLocal({ x: entity.x2, y: entity.y2 }),
               ...tag
             });
           } else if (entity.type === 'circle') {
-            records.push({ type: 'CIRCLE', center: { x: entity.cx, y: entity.cy }, radius: entity.r, ...tag });
+            records.push({
+              type: 'CIRCLE',
+              center: framePointToLocal({ x: entity.cx, y: entity.cy }),
+              radius: entity.r,
+              ...tag
+            });
           } else if (entity.type === 'arc') {
+            const [startAngle, endAngle] = frameAngleToLocal(entity.a0, entity.a1);
             records.push({
               type: 'ARC',
-              center: { x: entity.cx, y: entity.cy },
+              center: framePointToLocal({ x: entity.cx, y: entity.cy }),
               radius: entity.r,
-              startAngle: entity.a0,
-              endAngle: entity.a1,
+              startAngle,
+              endAngle,
               ...tag
             });
           } else if (entity.type === 'poly' && Array.isArray(entity.pts) && entity.pts.length >= 2) {
             records.push({
               type: 'POLYLINE',
-              vertices: entity.pts.map(point => ({ x: point.x, y: point.y })),
+              vertices: entity.pts.map(point => framePointToLocal({ x: point.x, y: point.y })),
               bulges: entity.pts.map(point => Number(point.bulge) || 0),
               closed: Boolean(entity.closed),
               ...tag
@@ -903,29 +1018,39 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const toCadEntity = record => {
         if (record.type === 'LINE') {
-          return { type: 'line', x1: record.start.x, y1: record.start.y, x2: record.end.x, y2: record.end.y, layer: '0', shapeId: record.shapeId };
+          const start = framePointToWorld(record.start);
+          const end = framePointToWorld(record.end);
+          return { type: 'line', x1: start.x, y1: start.y, x2: end.x, y2: end.y, layer: '0', shapeId: record.shapeId };
         }
         if (record.type === 'ARC') {
-          return { type: 'arc', cx: record.center.x, cy: record.center.y, r: record.radius, a0: record.startAngle, a1: record.endAngle, layer: '0', shapeId: record.shapeId };
+          const center = framePointToWorld(record.center);
+          const [a0, a1] = frameAngleToWorld(record.startAngle, record.endAngle);
+          return { type: 'arc', cx: center.x, cy: center.y, r: record.radius, a0, a1, layer: '0', shapeId: record.shapeId };
         }
         if (record.type === 'CIRCLE') {
-          return { type: 'circle', cx: record.center.x, cy: record.center.y, r: record.radius, layer: '0', shapeId: record.shapeId };
+          const center = framePointToWorld(record.center);
+          return { type: 'circle', cx: center.x, cy: center.y, r: record.radius, layer: '0', shapeId: record.shapeId };
         }
         return null;
       };
+
+      const fitExcludeLayers = () => [
+        PROFILE_ANNOTATION_LAYER,
+        ...(props.contextLayers || []).map(layer => layer.name).filter(Boolean)
+      ];
 
       const seedEntities = ({ entities }) => {
         if (!host) return;
         seeding = true;
         try {
-          // The assembly context seeds first so it draws under the
-          // authored sketch; its layer stays locked.
+          // The assembly seeds first on its own locked layers so it draws
+          // under the authored sketch; the sketch stays on layer 0.
           host.seed([
             ...(props.contextEntities || []),
             ...entities.map(toCadEntity).filter(Boolean)
           ], {
             fit: false,
-            layers: [{ name: '0' }, { name: PROFILE_CONTEXT_LAYER, locked: true }]
+            layers: [...(props.contextLayers || [])]
           });
         } finally {
           seeding = false;
@@ -963,12 +1088,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         host.cancel();
         pendingCommand = null;
         activeTool.value = 'select';
-        seeding = true;
-        try {
-          host.newDrawing('blank');
-        } finally {
-          seeding = false;
-        }
+        seedEntities({ entities: [] });
         lastAnnotationFingerprint = '';
         clearDrawingEntities();
         droppedShapes = [];
@@ -1007,18 +1127,12 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
         seeding = true;
         try {
-          if (entities.length) seedEntities({ entities });
-          else {
-            host.newDrawing('blank');
-            lastAnnotationFingerprint = '';
-            entityShapeByEntityId = new Map();
-            applyContext();
-          }
+          seedEntities({ entities });
         } finally {
           seeding = false;
         }
         pruneSelection(normalized);
-        if (entities.length && fit) host.zoomFit([PROFILE_ANNOTATION_LAYER, PROFILE_CONTEXT_LAYER]);
+        if (entities.length && fit) host.zoomFit(fitExcludeLayers());
         selectShapeInEngine(selectedShape.value?.shapeId || selectedCorner.value?.shapeId || '');
         syncAnnotations(normalized);
       };
@@ -1640,7 +1754,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           droppedShapes = [];
           entityShapeByEntityId = new Map();
           lastAnnotationFingerprint = '';
-          host.zoomFit([PROFILE_ANNOTATION_LAYER, PROFILE_CONTEXT_LAYER]);
+          host.zoomFit(fitExcludeLayers());
           // An import is reference geometry: every extracted shape lands
           // with op none until the author assigns its ops.
           emitSketch({ reference: true });
@@ -1734,7 +1848,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               if (!host || containerRef.value?.clientHeight < 120) return;
               zoomObserver.disconnect();
               zoomObserver = null;
-              host.zoomFit([PROFILE_ANNOTATION_LAYER, PROFILE_CONTEXT_LAYER]);
+              host.zoomFit(fitExcludeLayers());
             });
             zoomObserver.observe(containerRef.value);
           }
@@ -1759,7 +1873,8 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       watch(() => props.viewSessionKey, () => applyView(props.initialView));
 
-      watch(() => props.contextEntities, () => {
+      watch(() => [props.contextEntities, props.contextLayers, props.canvasFrame], () => {
+        lastAnnotationFingerprint = '';
         if (host) reseedFromModel({ force: true, fit: false });
       }, { deep: true });
 
