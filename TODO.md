@@ -2574,13 +2574,13 @@ one canvas (multi-sheet retracted, owner direction 2026-10-28 evening).
 Ordered steps:
 
 - [ ] WAITING — owner verification: Parametric faces and shared edges
-  (owner direction 2026-11-02): faces author as parametric sketches in
-  the profile shape model and store the evaluated OCCS polygon with the
-  authored sketch in the face extension; faces and open profiles share
-  a host edge through free-shard allocation with expression
-  `edgeStart`/width and profile `spanStart`/`spanWidth`; folds use each
-  face's owned interval; closed profiles cut without consuming edge
-  space.
+  (owner direction 2026-11-02; profiles 2026-11-03): faces author as
+  parametric sketches in the profile shape model and store the evaluated
+  OCCS polygon with the authored sketch in the face extension; child
+  faces share a host edge through free-shard allocation with expression
+  `edgeStart`/width; open profiles place by their array settings across
+  the whole edge and reserve no interval; folds use each face's owned
+  interval; closed profiles cut without consuming edge space.
 
   ### Agent Notes (2026-11-02, face shapes and edge shards)
 
@@ -2591,14 +2591,13 @@ Ordered steps:
   shape list from empty and requires one outline. `buildCassetteV2TreeCurves`
   is async and emits sketch faces as polygons; OCCS face extensions carry
   the authored sketch. `edgeStart` is a trapezoid parameter and
-  `cassetteV2FreeEdgeShards` allocates child faces and open profiles to
-  disjoint intervals; open-profile spans merge on one host edge.
+  `cassetteV2FreeEdgeShards` allocates child faces to disjoint
+  intervals; open profiles place across the whole edge.
   `profileTerminalEdgesForTree` and the terminal edge exclusion are
   retired. The canvas draws one + per free shard and skips the face's
   own base edge; the face actions popup carries edge start plus Fill
-  edge / fixed width. Closed profile footprints subtract from the edge
-  shards, so a cut crossing the edge blocks that interval, and the
-  clicked shard is the interval the face takes. The face editor's datum
+  edge / fixed width, and the clicked shard is the interval the face
+  takes. The face editor's datum
   is the parent edge line in shard coordinates, with the parent face
   ghosted around it. Focused tests: `cassetteV2Renderer.spec.js`,
   `profileAnnotations.spec.js`, `profileEmbedding.spec.js`,
@@ -2612,18 +2611,17 @@ Ordered steps:
   shard frame and consumed by the 2D drawing, folded 3D, and OCCS
   document passes. The evaluated add ring rotates so E0 is the datum
   edge, keeping fold routes and edge indexes stable through conversion.
-  Face cuts and closed-profile footprints share the free-shard
-  allocation.
+  Face cuts ride the face's shard frame; profile footprints reserve no
+  shared edge interval.
 
   ### Agent Notes (2026-11-02, face/profile placement coordination)
 
   Session `agent/face-profile-overlap-20261102`. Fold-edge refusal is
-  interval-based: `profileFoldEdgeRefusalsForTree` projects a profile's
-  open span or closed footprint onto the host edge and refuses only when
-  it crosses a child face's fold interval. A face added on another shard
-  of the same edge leaves the profile cut intact. Assembly face fills
-  carry every face's outer ring and holes with `evenodd`, so profile and
-  face cuts stay open in assembly previews.
+  edge-based: `profileFoldEdgeRefusalsForTree` refuses an open profile on
+  an edge carrying a fold. Faces place on free shards and closed profile
+  cuts ride the host edge independently. Assembly face fills carry every
+  face's outer ring and holes with `evenodd`, so profile and face cuts
+  stay open in assembly previews.
 
   ### Agent Notes (2026-11-02, face material cuts the parent)
 
@@ -2639,13 +2637,23 @@ Ordered steps:
   and the bend line stays continuous. A subtract shape also cuts the
   parent wherever it lands; the parent cut footprint is the union of the
   adds and subtracts. Face fills stay per face, so adjacent faces keep
-  separate fills. A closed profile blocks its projected edge span and a
-  face placement over that span refuses (`edge-occupied`). Closed
-  profiles cut across a fold interval with the authored bend route
-  intact; open profile spans crossing a fold still refuse. The sketch
-  editor's rect and circle boundary grips resize the authored shape by
-  drag (axis-aligned rects; circle diameter), with one history entry per
-  drag and live reseeding; plain clicks still select on pointerup.
+  separate fills. Closed profiles cut across a fold interval with the
+  authored bend route intact. The sketch editor's rect and circle
+  boundary grips resize the authored shape by drag (axis-aligned rects;
+  circle diameter), with one history entry per drag and live reseeding;
+  plain clicks still select on pointerup.
+
+  ### Agent Notes (2026-11-03, profiles use the whole edge)
+
+  Session `agent/profile-whole-edge-20261103`. Child faces alone occupy
+  edge shards (`faceEdgeIntervalsForChildren`); `addCassetteV2ProfileWorkpiece`
+  places every open profile across the whole edge with no span
+  allocation, and the attachment popup carries array edge, rule, and
+  value without span fields. Profile footprints leave `designerEdges`
+  shards free. Open profiles arrange only on fold-free edges
+  (`profileFoldEdgeRefusalsForTree` checks `getCassetteV2FoldEdges`);
+  closed footprints still cut across a fold interval. Focused tests:
+  `cassetteV2Renderer.spec.js`, `profileEmbedding.spec.js`.
 
 - [ ] WAITING — owner verification: Face and profile sketch grips
   resize the authored shape by drag, and the shape panel fields mirror

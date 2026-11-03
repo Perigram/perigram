@@ -254,20 +254,19 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   shard start is zero); the parent face renders as a ghost outline in
   those same coordinates.
 - **Edge spans** — a host edge is an interval. Child faces carry
-  `edgeStart` plus their `defaultLength`; open profiles carry the edge
-  array's `spanStart`/`spanWidth`. Free shards exclude child faces and
-  open-profile spans, and a placement that overlaps or overflows
-  refuses. Folds and contour splices use the owned interval only. The
+  `edgeStart` plus their `defaultLength`; free shards exclude child
+  faces, and a face placement that overlaps or overflows refuses.
+  Profiles reserve no interval: an open profile places by its array
+  settings across the whole host edge and several open profiles may
+  share it, while a closed profile footprint leaves the edge intervals
+  free. Folds and contour splices use the owned interval only. The
   designer draws one + handle per free shard; a face's own base edge
   carries none, and the clicked shard is the interval the new face
   takes. A child face's popup carries Fill edge (inherit) and a
   fixed/parametric width otherwise, so the remaining edge becomes free
-  shards. A closed profile footprint blocks its projected span on the
-  arranged host edge, and a face placement overlapping that span
-  refuses. A closed profile may cross a child face's fold interval and
+  shards. A closed profile may cross a child face's fold interval and
   cut the host; the fold route keeps the authored edge. An open profile
-  span crossing that interval refuses; the rest of the host edge stays
-  arrangeable.
+  arranges only on an edge without a fold.
 - **`production-layout.js`** — wraps the Clipper-backed face
   union/fold-route pass and returns semantic `cut.outer` / `fold.route`
   layer intent.

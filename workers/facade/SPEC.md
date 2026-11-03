@@ -131,22 +131,22 @@ rips at those points, embedding the profile chain into the contour as
 the break. The Basis toggle applies to closed profiles only; on an open
 sketch it is disabled, never a silent no-op.
 
-Owner decision (2026-11-02, faces share edges): faces and open profiles
-may occupy more than one interval of the same host edge. Each interval
-is an authored span: a child face carries `edgeStart` and its width in
-`defaultLength`, an open profile carries the pattern's `spanStart` and
-`spanWidth`; both are expressions over the cassette's parameters. The
-canvas shows one + handle per free shard; a face's own base edge is its
-parent connection and carries no +. A child face's popup carries its
-edge start and width: Fill edge keeps the inherited span, unchecking it
-writes a fixed or parametric width so the remaining edge becomes a free
-shard. The clicked shard is authoritative — the new face lands on that
-interval, never the whole edge. A placement that would overlap another
-face, an open profile, or a closed profile footprint on the edge
-refuses, and the refusal reads on the canvas. A closed profile footprint
-blocks its projected span on the arranged host edge, and a face placement
-overlapping that span refuses. A fold sits on the child's owned interval,
-never on the whole host edge. Profile workpieces carry no geometry of their own: they
+Owner decision (2026-11-02, faces shard edges; owner update 2026-11-03,
+profiles use the whole edge): child faces share a host edge as intervals.
+A child face carries `edgeStart` and its width in `defaultLength`, both
+expressions over the cassette's parameters. Free shards exclude child
+faces alone; profiles reserve no edge interval. The canvas shows one +
+handle per free shard; a face's own base edge is its parent connection
+and carries no +. A child face's popup carries its edge start and width:
+Fill edge keeps the inherited span, unchecking it writes a fixed or
+parametric width so the remaining edge becomes a free shard. The clicked
+shard is authoritative — the new face lands on that interval, never the
+whole edge. A face placement that would overlap another face refuses,
+and the refusal reads on the canvas. An open profile places by its array
+settings across the whole host edge, and several open profiles may share
+that edge. A closed profile footprint leaves the edge intervals free.
+A fold sits on the child's owned interval, never on the whole host edge.
+Profile workpieces carry no geometry of their own: they
 modify face geometry, and every consumer of the face — the 2D drawing,
 the folded 3D, the evaluated production data — sees the same modified
 geometry. A closed profile section arranged on an edge places by the
@@ -160,9 +160,9 @@ none.
 Owner declaration (2026-10-16, fold intervals; 2026-11-02): a fold owns
 the child face's interval on the host edge. A closed profile footprint
 may cross that interval and cut the host; its bend route keeps the
-authored edge geometry. An open profile span crossing the interval is
-refused by evaluation with a visible refusal that preserves the bend
-line. A profile may share the rest of the host edge with faces and open
+authored edge geometry. An open profile arranges only on an edge without
+a fold; evaluation surfaces the refusal and preserves the bend line. A
+profile may share the rest of the host edge with faces and open
 profiles. The attachment edge chooser offers the face's arrangeable
 edges (folds excluded). Clearing the profile canvas starts the blank
 authoring session: the parameter table empties with the canvas, so one
