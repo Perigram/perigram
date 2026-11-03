@@ -12,10 +12,10 @@ import {
   buildCassetteV2TreeCurves,
   buildCassetteV2WorkpieceTopology,
   cassetteV2AttachableProfileEdgesForTree,
+  cassetteV2AssemblyEntities,
   cassetteV2FaceSketchContext,
   cassetteV2FaceSketchFromNode,
   cassetteV2LayerPanelRows,
-  cassetteV2SketchContext,
   cassetteV2SketchFrame,
   collectCassetteV2ExpressionIdentifiers,
   composeCassetteV2NodiGraph,
@@ -40,7 +40,6 @@ import {
   updateCassetteV2Workpiece,
   updateCassetteV2WorkpieceRelation
 } from './cassetteV2Renderer.js';
-import { PROFILE_CONTEXT_LAYER } from './profileAnnotations.js';
 import {
   createDefaultOccsProfileSketch,
   normalizeOccsProfileSketch,
@@ -327,14 +326,17 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(sectionLayer.paths.filter(path => path.relationId)).toHaveLength(0);
   });
 
-  it('frames the assembly around the edited sketch on the locked context layer', async () => {
+  it('places the sketch in assembly coordinates over the locked assembly layers', async () => {
     const tree = createCassetteV2GraphTree();
-    const faceContext = await cassetteV2SketchContext(tree, { mode: 'face', id: tree.rootId });
-    expect(faceContext?.length).toBeGreaterThan(0);
-    expect(faceContext.every(entity => entity.layer === PROFILE_CONTEXT_LAYER && entity.color === 8)).toBe(true);
+    const faceFrame = await cassetteV2SketchFrame(tree, { mode: 'face', id: tree.rootId });
+    expect(faceFrame).toMatchObject({ origin: [0, 0, 0], rotation: 0, mirrorX: false, mirrorY: false });
+    const assembly = await cassetteV2AssemblyEntities(tree);
+    expect(assembly?.entities.length).toBeGreaterThan(0);
+    expect(assembly.layers.length).toBeGreaterThan(0);
+    expect(assembly.layers.every(layer => layer.locked)).toBe(true);
     const curves = await buildCassetteV2TreeCurves(tree, { mode: 'assembly' });
     const expected = curves[0].boundaryVertices || curves[0].vertices;
-    const polys = faceContext.filter(entity => entity.type === 'poly');
+    const polys = assembly.entities.filter(entity => entity.type === 'poly');
     expect(polys.some(poly => expected.every(([x, y]) => (
       poly.pts.some(pt => Math.hypot(pt.x - x, pt.y - y) < 0.001)
     )))).toBe(true);
@@ -356,14 +358,6 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(frame).toBeTruthy();
     expect(frame.origin.every(Number.isFinite)).toBe(true);
     expect(Number.isFinite(frame.rotation)).toBe(true);
-    const profileContext = await cassetteV2SketchContext(added.tree, { mode: 'profile', id: added.workpieceId });
-    expect(profileContext?.length).toBeGreaterThan(0);
-    const contextPoints = profileContext.flatMap(entity => (
-      entity.type === 'poly'
-        ? entity.pts
-        : [{ x: entity.x1, y: entity.y1 }, { x: entity.x2, y: entity.y2 }]
-    ));
-    expect(contextPoints.some(pt => Math.hypot(pt.x, pt.y) < 1), 'the host edge crosses the sketch origin').toBe(true);
   });
 
   it('embeds an open profile into the face boundary and consumes its edge shard', async () => {
@@ -389,8 +383,8 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const openFrame = await cassetteV2SketchFrame(arranged, { mode: 'profile', id: result.workpieceId });
     expect(openFrame).toBeTruthy();
-    const openContext = await cassetteV2SketchContext(arranged, { mode: 'profile', id: result.workpieceId });
-    expect(openContext?.length).toBeGreaterThan(0);
+    const openAssembly = await cassetteV2AssemblyEntities(arranged);
+    expect(openAssembly?.entities.length).toBeGreaterThan(0);
 
     const cleanDrawing = await renderCassetteV2TreeToDrawing(initialTree, { mode: 'assembly' });
     const drawing = await renderCassetteV2TreeToDrawing(arranged, { mode: 'assembly' });

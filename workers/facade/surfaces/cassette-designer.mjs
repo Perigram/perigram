@@ -13,8 +13,9 @@ import {
   CASSETTE_V2_HANGER_PRODUCTION_MODES,
   CASSETTE_V2_HARDWARE_FAMILIES,
   cassetteV2AttachableProfileEdgesForTree,
+  cassetteV2AssemblyEntities,
   cassetteV2FaceSketchContext,
-  cassetteV2SketchContext,
+  cassetteV2SketchFrame,
   collectCassetteV2ExpressionIdentifiers,
   renameCassetteV2TreeParameter,
   createCassetteV2GraphTree,
@@ -373,6 +374,8 @@ export default function createSurface({ vue, components, locale, queries, record
       const canvasSession = createCanvasSession();
       const sketchInitialView = ref(null);
       const sketchSessionKey = ref(0);
+      const sketchCanvasFrame = ref(null);
+      const sketchContextLayers = ref([]);
       const sketchContextEntities = ref([]);
       let sketchContextToken = 0;
       const hardwareLibraryRecords = ref([]);
@@ -1681,17 +1684,30 @@ export default function createSurface({ vue, components, locale, queries, record
         if (restoreSelection) restoreSketchReturn(returnState);
       };
 
-      // The assembly around the edited target, transformed into the
-      // sketch's own frame and drawn locked under the authored sketch.
+      // The target's local-to-assembly frame and the assembly on its own
+      // locked layers: the sketch editor places the authored sketch on the
+      // cassette through the frame.
       const loadSketchContext = async (mode, id) => {
         const token = ++sketchContextToken;
+        sketchCanvasFrame.value = null;
+        sketchContextLayers.value = [];
         sketchContextEntities.value = [];
         if (!id) return;
         try {
-          const entities = await cassetteV2SketchContext(cassetteTree.value, { mode, id });
-          if (token === sketchContextToken) sketchContextEntities.value = entities || [];
+          const [frame, context] = await Promise.all([
+            cassetteV2SketchFrame(cassetteTree.value, { mode, id }),
+            cassetteV2AssemblyEntities(cassetteTree.value)
+          ]);
+          if (token !== sketchContextToken) return;
+          if (!frame) return;
+          sketchCanvasFrame.value = frame;
+          sketchContextLayers.value = context?.layers || [];
+          sketchContextEntities.value = context?.entities || [];
         } catch {
-          if (token === sketchContextToken) sketchContextEntities.value = [];
+          if (token !== sketchContextToken) return;
+          sketchCanvasFrame.value = null;
+          sketchContextLayers.value = [];
+          sketchContextEntities.value = [];
         }
       };
 
@@ -3224,6 +3240,8 @@ export default function createSurface({ vue, components, locale, queries, record
             active: open,
             initialView: sketchInitialView.value,
             viewSessionKey: sketchSessionKey.value,
+            canvasFrame: sketchCanvasFrame.value,
+            contextLayers: sketchContextLayers.value,
             contextEntities: sketchContextEntities.value,
             basisStart: face ? faceShapeBasisStart.value : null,
             basisEnd: face ? faceShapeBasisEnd.value : null,
