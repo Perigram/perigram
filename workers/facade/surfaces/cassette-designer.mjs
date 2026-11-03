@@ -363,6 +363,7 @@ export default function createSurface({ vue, components, locale, queries, record
       const sketchContextLayers = ref([]);
       const sketchContextLinetypes = ref([]);
       const sketchContextEntities = ref([]);
+      const sketchContextParentFace = ref([]);
       let sketchContextToken = 0;
       const hardwareLibraryRecords = ref([]);
       const hardwareLibraryAvailable = ref(true);
@@ -1768,6 +1769,7 @@ export default function createSurface({ vue, components, locale, queries, record
         sketchContextLayers.value = [];
         sketchContextLinetypes.value = [];
         sketchContextEntities.value = [];
+        sketchContextParentFace.value = [];
         if (!id) return;
         try {
           const [frame, context] = await Promise.all([
@@ -1780,12 +1782,14 @@ export default function createSurface({ vue, components, locale, queries, record
           sketchContextLayers.value = context?.layers || [];
           sketchContextLinetypes.value = context?.linetypes || [];
           sketchContextEntities.value = context?.entities || [];
+          sketchContextParentFace.value = frame.parentFace || [];
         } catch {
           if (token !== sketchContextToken) return;
           sketchCanvasFrame.value = null;
           sketchContextLayers.value = [];
           sketchContextLinetypes.value = [];
           sketchContextEntities.value = [];
+          sketchContextParentFace.value = [];
         }
       };
 
@@ -3422,6 +3426,7 @@ export default function createSurface({ vue, components, locale, queries, record
             basisStart: face ? faceShapeBasisStart.value : null,
             basisEnd: face ? faceShapeBasisEnd.value : null,
             contextFace: face ? faceShapeParentFace.value : [],
+            parentFace: face ? [] : sketchContextParentFace.value,
             externalParameters: globalParameters.value,
             'onUpdate:modelValue': value => {
               if (!sketchMode.value) return;
@@ -3607,7 +3612,6 @@ export default function createSurface({ vue, components, locale, queries, record
               mode: 'designer',
               preserveViewport: true,
               showGeometry: false,
-              nativeDimensions: true,
               visibleLayerNames: visibleLayerNames.value,
               selectedDesignerFaceId: selectedDesignerFaceId.value,
               selectedDesignerProfileId: selectedWorkpieceId.value,

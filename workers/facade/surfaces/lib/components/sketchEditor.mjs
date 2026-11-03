@@ -48,7 +48,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // the scope, adopt-on-bind never mints it (occs/README.md).
       externalParameters: { type: Object, default: () => ({}) },
       // `face` folds the shapes from an empty region (the sketch IS the
-      // face); `profile` folds them onto the material half of the axis.
+      // face); `profile` folds them onto the placed parent face.
       mode: { type: String, default: 'profile' },
       // The editor stays mounted while the cassette canvas is active; its
       // keyboard scope only owns shortcuts while its mode is open.
@@ -61,6 +61,9 @@ export default function createSketchEditor({ vue, components, locale }) {
       // The parent face outline in sketch coordinates, drawn as a ghost
       // so the author mounts the new face to real parent geometry.
       contextFace: { type: Array, default: () => [] },
+      // The face the profile is placed on, in assembly coordinates; the
+      // editor folds the profile into it to preview the resulting face.
+      parentFace: { type: Array, default: () => [] },
       // The canvas session's camera for this target: the editor restores it
       // when the same sketch reopens, so pan/zoom survives a mode flip.
       initialView: { type: Object, default: null },
@@ -242,17 +245,10 @@ export default function createSketchEditor({ vue, components, locale }) {
         host.restoreView(pendingView);
         pendingView = null;
       };
-      // The material half of the zero axis is the boolean body — the
-      // toggle flips which side of the axis hatches and clips.
-      const toggleMaterialSide = () => {
-        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
-        commitSketch({ ...normalized, material: normalized.material === 'positive' ? 'negative' : 'positive' });
-      };
-
       // The resolved face after the profile's operations (outer rings
       // and holes, world coordinates) — recomputed debounced from the
-      // authored model. The hatch IS the face: the material half united
-      // with the adds, minus the subtracts. The authored primitives
+      // authored model. The hatch IS the face: the placed parent face
+      // united with the adds, minus the subtracts. The authored primitives
       // stay plain engine lines beneath it — hatch and strong outline
       // are what goes to the cassette, bare lines are what is drawn.
       const resolvedFace = shallowRef(null);
@@ -307,11 +303,15 @@ export default function createSketchEditor({ vue, components, locale }) {
             syncAnnotations();
             return;
           }
-          const span = 1e5;
-          const half = normalized.material === 'negative'
-            ? [[0, -span], [-span, -span], [-span, span], [0, span]]
-            : [[0, -span], [span, -span], [span, span], [0, span]];
-          const base = faceMode.value ? { polygons: [], holes: [] } : { polygons: [half], holes: [] };
+          const parentRings = faceMode.value
+            ? []
+            : (Array.isArray(props.parentFace) ? props.parentFace : [])
+              .filter(ring => Array.isArray(ring) && ring.length >= 3)
+              .map(ring => ring.map(([x, y]) => {
+                const point = framePointToLocal({ x: Number(x), y: Number(y) });
+                return [point.x, point.y];
+              }));
+          const base = { polygons: parentRings, holes: [] };
           const resolved = await foldCassetteV2Region(
             base,
             resolveOccsProfileSectionOperations(section)
@@ -821,7 +821,6 @@ export default function createSketchEditor({ vue, components, locale }) {
           { icon: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo', onActivate: () => redoSketch(), isDisabled: () => !canRedoSketch() }
         ],
         [
-          { icon: 'materialSide', labelKey: 'cassette.v2.profileEditor.actions.material', isOn: () => normalizeOccsProfileSketch(props.modelValue || {}).material === 'negative', onActivate: toggleMaterialSide, profileOnly: true },
           { icon: 'ortho', labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
           { icon: 'tangentSnap', labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
           { icon: 'commandLine', labelKey: 'cassette.v2.profileEditor.actions.commandLine', isOn: () => commandLine.value, onActivate: toggleCommandLine }
@@ -1075,10 +1074,12 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const applyVisibleLayers = () => {
         if (!host) return;
-        const names = props.visibleLayers.length
-          ? [...props.visibleLayers, '0', PROFILE_ANNOTATION_LAYER, PROFILE_DIMENSION_LAYER]
-          : null;
-        host.setVisibleLayers(names);
+        host.setVisibleLayers([
+          ...(props.visibleLayers || []),
+          '0',
+          PROFILE_ANNOTATION_LAYER,
+          PROFILE_DIMENSION_LAYER
+        ]);
       };
 
       const clearEngineSelection = () => {
@@ -1742,7 +1743,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // primary; tooltips and aria-labels carry the localized names.
       const renderToolGroupButtons = (fromGroup, toGroup) => TOOL_GROUPS.slice(fromGroup, toGroup).flatMap((group, groupIndex) => [
         ...(groupIndex > 0 ? [h('span', { class: 'mx-0.5 h-4 w-px shrink-0 bg-content-border' })] : []),
-        ...group.filter(tool => !(faceMode.value && tool.profileOnly)).map(tool => h(Button, {
+        ...group.map(tool => h(Button, {
           key: tool.labelKey,
           severity: (tool.command && activeTool.value === tool.command) || tool.isOn?.() ? 'primary' : 'secondary',
           text: true,
@@ -1918,6 +1919,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!props.active) return;
         lastAnnotationFingerprint = '';
         if (host) reseedFromModel({ force: true });
+        scheduleOutlineResolve();
       }, { deep: true });
 
       watch(() => props.externalParameters, () => {
@@ -1931,9 +1933,10 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (props.active) applyVisibleLayers();
       }, { deep: true });
 
-      watch(() => [props.basisStart, props.basisEnd, props.contextFace], () => {
+      watch(() => [props.basisStart, props.basisEnd, props.contextFace, props.parentFace], () => {
         if (!props.active) return;
         lastAnnotationFingerprint = '';
+        scheduleOutlineResolve();
         syncAnnotations();
       }, { deep: true });
 

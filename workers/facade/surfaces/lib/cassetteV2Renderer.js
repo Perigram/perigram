@@ -49,7 +49,7 @@ import {
 } from '../../occs/hardware.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
 import { OCCS_DIM_STYLE } from './profileAnnotations.js';
-import { collectDxfEntities } from '../../vendor/dxf-writer.js';
+import { collectDxfEntities, svgPathToPolyline } from '../../vendor/dxf-writer.js';
 import { embedOccsProfileEdge, embedOccsProfilesIntoContour } from '../../occs/profileEmbedding.js';
 import {
   buildOccsProfileFromEvaluatedSketch,
@@ -4363,7 +4363,8 @@ export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), 
     if (!embedding.ok || !embedding.frame) return null;
     return {
       ...embedding.frame,
-      rotation: embedding.frame.rotation * 180 / Math.PI
+      rotation: embedding.frame.rotation * 180 / Math.PI,
+      parentFace: contour
     };
   }
 
@@ -4380,7 +4381,11 @@ export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), 
     rotation: profileAxisRotationDegrees(relation, targetCurve)
       + resolveCassetteV2AngleExpression(relation.rotation || '0', parameters, 0),
     mirrorX: Boolean(relation.mirrorX),
-    mirrorY: Boolean(relation.mirrorY)
+    mirrorY: Boolean(relation.mirrorY),
+    parentFace: targetCurve.originalBoundaryVertices
+      || targetCurve.referenceVertices
+      || targetCurve.boundaryVertices
+      || targetCurve.vertices
   };
 };
 
@@ -4409,22 +4414,44 @@ export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
   ];
   const entities = [];
   const geometryLayers = drawing.layers.filter(layer => !isDimensionLayer(layer));
-  for (const entity of collectDxfEntities({ layers: geometryLayers })) {
-    if (entity.type === 'line') {
+  const isFilledPath = (path) => (
+    typeof path === 'object' && path?.d && path.fill && path.fill !== 'none'
+    && (!path.stroke || path.stroke === 'none')
+  );
+  for (const layer of geometryLayers) {
+    const layerName = layer.name || layer.standardCode || 'geometry';
+    const paths = Array.isArray(layer.paths) ? layer.paths : [];
+    for (const path of paths.filter(isFilledPath)) {
+      const { points } = svgPathToPolyline(path.d);
+      if (points.length < 3) continue;
       entities.push({
-        type: 'line',
-        x1: entity.from[0],
-        y1: -entity.from[1],
-        x2: entity.to[0],
-        y2: -entity.to[1],
-        layer: entity.layer
+        type: 'hatch',
+        solid: true,
+        loops: [points.flatMap(([x, y]) => [x, -y])],
+        color: path.fill === 'layer' ? layer.color : path.fill,
+        alpha: Number.isFinite(Number(path.opacity)) ? Number(path.opacity) : 0.1,
+        layer: layerName
       });
-      continue;
     }
-    if (entity.type === 'polyline') {
-      const pts = entity.points.map(([x, y]) => ({ x, y: -y }));
-      if (pts.length >= 2) {
-        entities.push({ type: 'poly', closed: entity.closed, pts, layer: entity.layer });
+    const outlinePaths = paths.filter(path => !isFilledPath(path));
+    if (!outlinePaths.length) continue;
+    for (const entity of collectDxfEntities({ layers: [{ ...layer, paths: outlinePaths }] })) {
+      if (entity.type === 'line') {
+        entities.push({
+          type: 'line',
+          x1: entity.from[0],
+          y1: -entity.from[1],
+          x2: entity.to[0],
+          y2: -entity.to[1],
+          layer: entity.layer
+        });
+        continue;
+      }
+      if (entity.type === 'polyline') {
+        const pts = entity.points.map(([x, y]) => ({ x, y: -y }));
+        if (pts.length >= 2) {
+          entities.push({ type: 'poly', closed: entity.closed, pts, layer: entity.layer });
+        }
       }
     }
   }

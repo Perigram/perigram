@@ -30,9 +30,9 @@ const normalizeOp = (op, fallback = 'add') => (
   OCCS_PROFILE_SHAPE_OPS.includes(op) ? op : fallback
 );
 
-// The material half of the zero axis (X=0) is the face stand-in the
-// editor hatches: 'positive' means X>0. The axis placement maps +X onto
-// the host edge's inward normal, so the hatched side faces the host.
+// Each authored sketch carries its material side; 'positive' means X>0.
+// The axis placement maps +X onto the host edge's inward normal, toward
+// the host face.
 export const normalizeOccsProfileMaterial = (material) => (
   material === 'negative' ? 'negative' : 'positive'
 );
