@@ -30,14 +30,14 @@ test('cassette view renders native layers and dimensions with layer control', as
   const host = await frame.evaluate(() => {
     const entities = window.cadcraft.doc.all();
     return {
-      layers: [...window.cadcraft.doc.layers.values()].map(layer => ({ name: layer.name, on: layer.on })),
+      layers: [...window.cadcraft.doc.layers.values()].map(layer => ({ name: layer.name, on: layer.on, linetype: layer.linetype })),
       dims: entities.filter(entity => entity.type === 'dim').map(entity => entity.text),
       hatches: entities.filter(entity => entity.type === 'hatch').map(entity => ({ tr: entity.tr, loops: entity.loops.length }))
     };
   });
   expect(host.dims, 'the cassette view draws native dimension labels').toEqual(expect.arrayContaining(['A', 'B']));
-  expect(host.layers.some(layer => layer.name === '5_1_Размер_Кассета'), 'the dimension layer is native')
-    .toBe(true);
+  expect(host.layers.find(layer => layer.name === '5_1_Размер_Кассета'), 'the dimension layer is native')
+    .toMatchObject({ linetype: 'Continuous' });
   expect(host.hatches[0], 'the face layer is a native hatch').toMatchObject({ tr: 90, loops: 1 });
   const root = page.locator('[data-cassette-preview-root="true"]').first();
   const painted = await root.screenshot({ path: '.playwright/cassette-preview-layers-on.png' });
