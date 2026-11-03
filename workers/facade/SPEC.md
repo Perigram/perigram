@@ -551,9 +551,11 @@ is inert; card and record clicks stay with the host layout.
 
 Owner direction (2026-11-03, native cassette dimensions and layers): the
 cassette canvas draws its dimension annotations as native CadCraft dim entities
-on the dimension layer; a label opens its authored field in place. Every
-assembly layer, dimensions included, is a native CadCraft layer that the
-designer's layer rows toggle.
+on the dimension layer from the drawing's structured annotation rows; a label
+opens its authored field in place. Every assembly layer, dimensions included,
+is a native CadCraft layer that the layer rows toggle and repaint. A filled
+face layer seeds as a native hatch whose outer and hole loops keep their
+winding and whose opacity rides entity transparency.
 
 Owner direction (2026-11-02, selection and canvas widgets): a face click
 with a profile selected selects that face and leaves the profile relation
