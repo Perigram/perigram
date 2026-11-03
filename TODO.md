@@ -3736,21 +3736,24 @@ profile's axis and point placement, or an open profile's edge embedding.
 
 ### Agent Notes (2026-11-03, in-place assembly context)
 
-Session `agent/cassette-inplace-context-20261103` (worktree
-`.agent-worktrees/cassette-inplace-context-20261103`).
+Session `agent/cassette-inplace-frame-20261103` (worktree
+`.agent-worktrees/cassette-inplace-frame-20261103`).
 `cassetteV2SketchFrame` resolves the target's local-to-assembly frame (face
 workpiece transform, closed-profile axis and point placement, open-profile
-edge embedding); `cassetteV2SketchContext` inverts it, parses the assembly
-drawing into line/polyline entities, and returns them on the locked
-`perigram-profile-context` layer. `sketchEditor.mjs` seeds that layer first so
-the sketch draws over it, and `CadCraftHost.seed({ fit: false })` restores the
-camera the document load would otherwise refit. The main designer canvas stays
-on `DrawingCanvas`; the sketch canvas carries the assembly. Validation: 125
-facade surface specs green; `check-arch`, `check-plugin-deps`, and facade
-listing validation green; `check-docs` keeps the pre-existing
-`workers/nesting/README.md` broken link. E2E `cassette-profile-editor` passes
-(40.6s) and writes `.playwright/cassette-inplace-context.png`: the context
-layer is locked, non-empty, and crosses the sketch origin.
+edge embedding). `sketchEditor.mjs` places the seeded sketch, annotations and
+native dimensions through that frame, converts pointer coordinates both ways,
+and inverse-maps extraction so the model stays local. `cassetteV2AssemblyEntities`
+returns the assembly on its source layers with their colors and weights, all
+locked; `entityRecords` skips locked layers so the shape list and dimensions
+read the authored sketch alone. The assembly keeps its own coordinates; the
+sketch sits at its placement. `CadCraftHost.seed({ fit: false })` restores the
+camera the document load would otherwise refit. Validation: 125 facade surface
+specs green; `check-arch`, `check-plugin-deps`, and facade listing validation
+green; `check-docs` keeps the pre-existing `workers/nesting/README.md` broken
+link. E2E `cassette-profile-editor` passes (37.5s) and writes
+`.playwright/cassette-inplace-context.png`: the place is at its host face, the
+assembly layers are locked, and the shape panel carries only the authored
+circle.
 
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
