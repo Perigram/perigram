@@ -173,7 +173,19 @@ const dimensionPath = ({ points = [], from, to, centroid, offset = 34, label, id
         dominantBaseline: 'middle'
       }
     ],
-    extentPoints: [from, to, dimFrom, dimTo, textPoint]
+    extentPoints: [from, to, dimFrom, dimTo, textPoint],
+    annotation: control
+      ? {
+        nodeId: control.nodeId,
+        key: control.key,
+        dimensionKind: control.dimensionKind,
+        from,
+        to,
+        loc: textPoint,
+        rot: Math.atan2(to[1] - from[1], to[0] - from[0]),
+        text: label
+      }
+      : null
   };
 };
 
@@ -220,6 +232,7 @@ const resolvedDimensionLabel = (curve, kind, fallback, options = {}) => {
 export const buildOccsDimensionLayerFromFaceCurves = (curves = [], options = {}) => {
   const paths = [];
   const extentPoints = [];
+  const annotations = [];
 
   for (const curve of curves) {
     const points = withoutClosingVertex(curve.boundaryVertices || curve.vertices || []).map(point2d);
@@ -270,11 +283,13 @@ export const buildOccsDimensionLayerFromFaceCurves = (curves = [], options = {})
       });
       paths.push(...rendered.paths);
       extentPoints.push(...rendered.extentPoints);
+      if (rendered.annotation) annotations.push(rendered.annotation);
     }
   }
 
   if (!paths.length) return null;
   return {
+    annotations,
     layer: {
       name: occsLayerExportName(OCCS_LAYER_DIMENSION_CASSETTE),
       standardCode: OCCS_LAYER_DIMENSION_CASSETTE,

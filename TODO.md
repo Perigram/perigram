@@ -3939,6 +3939,13 @@ transparent targets whenever `showGeometry` is false, so a host-painted canvas
 has one dimension painter. E2E `cassette-designer-native` covers the native labels and the
 hide-all toggle; `cassette-profile-editor` asserts the hatch span.
 
+`CadCraftHost.setVisibleLayers` regens the cached base render, so a layer row
+repaints the canvas. The face hatch carries entity transparency and one loop
+per subpath with opposite hole winding. `drawing.dimensionAnnotations` feeds
+the native dims, and the preview surface renders the OCCS payload
+before baked geometry rows. E2E `cassette-preview-native` asserts the hatch
+transparency, the dimension labels and a repainting layer toggle.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the

@@ -49,7 +49,7 @@ import {
 } from '../../occs/hardware.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
 import { OCCS_DIM_STYLE } from './profileAnnotations.js';
-import { collectDxfEntities, svgPathToPolyline } from '../../vendor/dxf-writer.js';
+import { collectDxfEntities, svgPathToPolylines } from '../../vendor/dxf-writer.js';
 import { embedOccsProfileEdge, embedOccsProfilesIntoContour } from '../../occs/profileEmbedding.js';
 import {
   buildOccsProfileFromEvaluatedSketch,
@@ -4422,14 +4422,25 @@ export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
     const layerName = layer.name || layer.standardCode || 'geometry';
     const paths = Array.isArray(layer.paths) ? layer.paths : [];
     for (const path of paths.filter(isFilledPath)) {
-      const { points } = svgPathToPolyline(path.d);
-      if (points.length < 3) continue;
+      const loops = svgPathToPolylines(path.d)
+        .filter(loop => loop.points.length >= 3)
+        .map((loop, index) => {
+          const points = loop.points.map(([x, y]) => [x, -y]);
+          const area = points.reduce((sum, [x, y], pointIndex) => {
+            const [nextX, nextY] = points[(pointIndex + 1) % points.length];
+            return sum + x * nextY - nextX * y;
+          }, 0);
+          const reversed = (area > 0) !== (index === 0);
+          return (reversed ? [...points].reverse() : points).flat();
+        });
+      if (!loops.length) continue;
+      const opacity = Number.isFinite(Number(path.opacity)) ? Number(path.opacity) : 0.1;
       entities.push({
         type: 'hatch',
         solid: true,
-        loops: [points.flatMap(([x, y]) => [x, -y])],
+        loops,
         color: path.fill === 'layer' ? layer.color : path.fill,
-        alpha: Number.isFinite(Number(path.opacity)) ? Number(path.opacity) : 0.1,
+        tr: Math.max(0, Math.min(100, Math.round((1 - opacity) * 100))),
         layer: layerName
       });
     }
@@ -4455,9 +4466,30 @@ export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
       }
     }
   }
-  for (const layer of drawing.layers.filter(isDimensionLayer)) {
-    const layerName = layer.name || layer.standardCode || 'dimension.cassette';
-    const paths = Array.isArray(layer.paths) ? layer.paths : [];
+  const dimensionLayer = drawing.layers.find(isDimensionLayer);
+  const dimensionLayerName = dimensionLayer?.name || dimensionLayer?.standardCode || 'dimension.cassette';
+  const dimensionAnnotations = Array.isArray(drawing.dimensionAnnotations) ? drawing.dimensionAnnotations : [];
+  if (dimensionAnnotations.length) {
+    for (const annotation of dimensionAnnotations) {
+      entities.push({
+        type: 'dim',
+        kind: 'linear',
+        p1: { x: Number(annotation.from?.[0]) || 0, y: Number(annotation.from?.[1]) || 0 },
+        p2: { x: Number(annotation.to?.[0]) || 0, y: Number(annotation.to?.[1]) || 0 },
+        loc: { x: Number(annotation.loc?.[0]) || 0, y: Number(annotation.loc?.[1]) || 0 },
+        rot: Number(annotation.rot) || 0,
+        text: String(annotation.text ?? ''),
+        st: cassetteDimStyle,
+        layer: dimensionLayerName,
+        cassette: {
+          nodeId: annotation.nodeId,
+          fieldKey: annotation.key,
+          dimensionKind: annotation.dimensionKind
+        }
+      });
+    }
+  } else if (dimensionLayer) {
+    const paths = Array.isArray(dimensionLayer.paths) ? dimensionLayer.paths : [];
     for (const path of paths) {
       if (path?.kind !== 'text' || !path.designerControl) continue;
       const line = paths.find(candidate => (
@@ -4476,7 +4508,7 @@ export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
         rot: Math.atan2(to.y - from.y, to.x - from.x),
         text: String(path.text ?? path.designerControl.value ?? ''),
         st: cassetteDimStyle,
-        layer: layerName,
+        layer: dimensionLayerName,
         cassette: {
           nodeId: path.designerControl.nodeId,
           fieldKey: path.designerControl.key,

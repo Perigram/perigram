@@ -156,6 +156,7 @@ export const buildOccsDrawingFromFaceCurves = async (curves = [], overlays = {})
     designerSections: overlays.designerSections || { handles: [], segments: [] },
     foldedPreview: overlays.foldedPreview || { faces: [], folds: [] },
     designerEdges: overlays.designerEdges || [],
+    dimensionAnnotations: dimensionDrawing?.annotations || [],
     layers
   };
 };

@@ -27,19 +27,27 @@ test('cassette view renders native layers and dimensions with layer control', as
   const preview = page.locator('[data-cassette-preview="true"]').first();
   await expect(preview).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
   const frame = await (await preview.locator('iframe').first().elementHandle()).contentFrame();
-  const host = await frame.evaluate(() => ({
-    layers: [...window.cadcraft.doc.layers.values()].map(layer => ({ name: layer.name, on: layer.on })),
-    dims: window.cadcraft.doc.all().filter(entity => entity.type === 'dim').length
-  }));
-  expect(host.dims, 'the cassette view draws native dimensions').toBeGreaterThan(0);
+  const host = await frame.evaluate(() => {
+    const entities = window.cadcraft.doc.all();
+    return {
+      layers: [...window.cadcraft.doc.layers.values()].map(layer => ({ name: layer.name, on: layer.on })),
+      dims: entities.filter(entity => entity.type === 'dim').map(entity => entity.text),
+      hatches: entities.filter(entity => entity.type === 'hatch').map(entity => ({ tr: entity.tr, loops: entity.loops.length }))
+    };
+  });
+  expect(host.dims, 'the cassette view draws native dimension labels').toEqual(expect.arrayContaining(['A', 'B']));
   expect(host.layers.some(layer => layer.name === '5_1_Размер_Кассета'), 'the dimension layer is native')
     .toBe(true);
+  expect(host.hatches[0], 'the face layer is a native hatch').toMatchObject({ tr: 90, loops: 1 });
   const root = page.locator('[data-cassette-preview-root="true"]').first();
+  const painted = await root.screenshot();
   await root.getByRole('button', { name: 'Layers' }).click();
   const faceLayer = root.locator('label').filter({ hasText: '1_1_Лицо_Кассеты' }).first();
   await faceLayer.click();
+  await page.waitForTimeout(600);
   const hidden = await frame.evaluate(() => window.cadcraft.doc.layers.get('1_1_Лицо_Кассеты')?.on);
   expect(hidden, 'the layer control toggles the native layer').toBe(false);
+  expect(Buffer.compare(await root.screenshot(), painted), 'the toggle repaints the canvas').not.toBe(0);
   await page.screenshot({ path: '.playwright/cassette-preview-native.png' });
   await app.expectCleanRuntime();
 });
