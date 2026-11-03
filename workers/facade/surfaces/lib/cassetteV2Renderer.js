@@ -4600,6 +4600,15 @@ export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
   const dimensionLayerName = dimensionLayer?.name || dimensionLayer?.standardCode || 'dimension.cassette';
   const dimensionAnnotations = Array.isArray(drawing.dimensionAnnotations) ? drawing.dimensionAnnotations : [];
   if (dimensionAnnotations.length) {
+    if (!dimensionLayer) {
+      layers.push({
+        name: dimensionLayerName,
+        color: 'ink',
+        lineweight: 0.25,
+        linetype: 'Continuous',
+        locked: true
+      });
+    }
     for (const annotation of dimensionAnnotations) {
       entities.push({
         type: 'dim',
@@ -4610,39 +4619,12 @@ export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
         rot: Number(annotation.rot) || 0,
         text: String(annotation.text ?? ''),
         st: cassetteDimStyle,
+        color: 7,
         layer: dimensionLayerName,
         cassette: {
           nodeId: annotation.nodeId,
           fieldKey: annotation.key,
           dimensionKind: annotation.dimensionKind
-        }
-      });
-    }
-  } else if (dimensionLayer) {
-    const paths = Array.isArray(dimensionLayer.paths) ? dimensionLayer.paths : [];
-    for (const path of paths) {
-      if (path?.kind !== 'text' || !path.designerControl) continue;
-      const line = paths.find(candidate => (
-        candidate?.id === `${String(path.id).replace(/_text$/, '')}_line`
-      ));
-      const numbers = String(line?.d || '').match(/-?\d+(?:\.\d+)?/g)?.map(Number) || [];
-      if (numbers.length < 6) continue;
-      const from = { x: numbers[0], y: -numbers[1] };
-      const to = { x: numbers[4], y: -numbers[5] };
-      entities.push({
-        type: 'dim',
-        kind: 'linear',
-        p1: from,
-        p2: to,
-        loc: { x: Number(path.x) || 0, y: -(Number(path.y) || 0) },
-        rot: Math.atan2(to.y - from.y, to.x - from.x),
-        text: String(path.text ?? path.designerControl.value ?? ''),
-        st: cassetteDimStyle,
-        layer: dimensionLayerName,
-        cassette: {
-          nodeId: path.designerControl.nodeId,
-          fieldKey: path.designerControl.key,
-          dimensionKind: path.designerControl.dimensionKind
         }
       });
     }

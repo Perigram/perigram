@@ -29,7 +29,7 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   ([spec/layers.json](./spec/layers.json)) is the vocabulary of record,
   pinned in sync by `shared/facade-layer-standards.spec.js`.
 - **`dimensions.js`** — canonical `dimension.cassette` annotation
-  entities and drawing primitives. Template dimensions keep expression
+  entities. Template dimensions keep expression
   text (`A`, `B`, `R`); evaluated design annotations store measured
   numeric values.
 - **`parameters.js`** — template parameter extraction from both legacy

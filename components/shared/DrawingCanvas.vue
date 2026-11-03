@@ -419,7 +419,7 @@ const textFontSize = (path, layer) => {
 const designerControlForPath = (path) => (
   typeof path === 'object' && path?.designerControl ? path.designerControl : null
 );
-const designerDimensionControls = computed(() => visibleDrawingLayers.value.flatMap(layer => (
+const pathDimensionControls = computed(() => visibleDrawingLayers.value.flatMap(layer => (
   (layer.paths || []).flatMap((path) => {
     const control = pathKind(path) === 'text' ? designerControlForPath(path) : null;
     const label = String(path?.text ?? control?.value ?? '');
@@ -432,6 +432,31 @@ const designerDimensionControls = computed(() => visibleDrawingLayers.value.flat
     }];
   })
 )));
+// Native dimension annotations are model-space rows; the SVG edit
+// target sits where the host paints the label.
+const annotationDimensionControls = computed(() => (
+  props.showGeometry
+    ? []
+    : (drawing.value?.dimensionAnnotations || []).flatMap((annotation) => {
+      const loc = annotation?.loc;
+      const control = annotation?.nodeId
+        ? { nodeId: annotation.nodeId, key: annotation.key, dimensionKind: annotation.dimensionKind }
+        : null;
+      const label = String(annotation?.text ?? '');
+      if (!control || !label.trim() || !Array.isArray(loc) || loc.length < 2) return [];
+      return [{
+        ...control,
+        value: label,
+        label,
+        x: Number(loc[0]) || 0,
+        y: -(Number(loc[1]) || 0)
+      }];
+    })
+));
+const designerDimensionControls = computed(() => {
+  const annotated = annotationDimensionControls.value;
+  return annotated.length ? annotated : pathDimensionControls.value;
+});
 
 const getPointFromEvent = (event) => {
   if (!svgElement.value) return null;

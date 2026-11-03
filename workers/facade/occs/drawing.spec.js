@@ -36,7 +36,18 @@ describe('OCCS drawing helpers', () => {
       fill: 'none',
       stroke: 'layer'
     }]);
-    expect(drawing.layers[3].paths.some(path => path.kind === 'text')).toBe(true);
+    expect(drawing.layers[3].paths).toEqual([]);
+    expect(drawing.dimensionAnnotations.map(annotation => ({
+      nodeId: annotation.nodeId,
+      key: annotation.key,
+      dimensionKind: annotation.dimensionKind,
+      text: annotation.text
+    }))).toEqual([
+      { nodeId: 'face_1', key: 'defaultLength', dimensionKind: 'base', text: '100' },
+      { nodeId: 'face_1', key: 'height', dimensionKind: 'height', text: '40' },
+      { nodeId: 'face_2', key: 'defaultLength', dimensionKind: 'base', text: '100' },
+      { nodeId: 'face_2', key: 'height', dimensionKind: 'height', text: '30' }
+    ]);
   });
 
   it('keeps wide-face dimension labels editable and offsets them inside the face', async () => {
@@ -50,16 +61,19 @@ describe('OCCS drawing helpers', () => {
       }
     ]);
     const dimensionLayer = drawing.layers.find(layer => layer.standardCode === 'dimension.cassette');
-    const textPaths = dimensionLayer.paths.filter(path => path.kind === 'text');
-    const baseLine = dimensionLayer.paths.find(path => path.id === 'dim_face_1_base_line');
-    const heightLine = dimensionLayer.paths.find(path => path.id === 'dim_face_1_height_line');
+    const annotations = drawing.dimensionAnnotations;
 
-    expect(textPaths.map(path => path.text)).toEqual(['A', 'B']);
-    expect(textPaths.map(path => path.designerControl)).toEqual([
-      { nodeId: 'face_1', key: 'defaultLength', value: 'A', dimensionKind: 'base' },
-      { nodeId: 'face_1', key: 'height', value: 'B', dimensionKind: 'height' }
+    expect(dimensionLayer.paths).toEqual([]);
+    expect(annotations.map(annotation => annotation.text)).toEqual(['A', 'B']);
+    expect(annotations.map(annotation => ({
+      nodeId: annotation.nodeId,
+      key: annotation.key,
+      dimensionKind: annotation.dimensionKind
+    }))).toEqual([
+      { nodeId: 'face_1', key: 'defaultLength', dimensionKind: 'base' },
+      { nodeId: 'face_1', key: 'height', dimensionKind: 'height' }
     ]);
-    expect(baseLine.d).toContain('M 0 0 L 0 -30');
-    expect(heightLine.d).toContain('M 0 0 L 30 0');
+    expect(annotations[0].loc[1]).toBeGreaterThan(0);
+    expect(annotations[1].loc[0]).toBeGreaterThan(0);
   });
 });

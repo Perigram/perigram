@@ -2102,9 +2102,8 @@ describe('cassette v2 trapezoid renderer', () => {
       fill: 'none',
       stroke: 'layer'
     }]);
-    expect(drawing.layers.find(layer => layer.standardCode === 'dimension.cassette').paths
-      .filter(path => path.kind === 'text')
-      .map(path => path.text)).toEqual(['A', 'B', 'R']);
+    expect(drawing.layers.find(layer => layer.standardCode === 'dimension.cassette').paths).toEqual([]);
+    expect(drawing.dimensionAnnotations.map(annotation => annotation.text)).toEqual(['A', 'B', 'R']);
     expect(drawing.designerFaces.map(face => face.nodeId)).toEqual(['face_1', 'face_2']);
     expect(drawing.designerFoldEdges).toEqual(expect.arrayContaining([expect.objectContaining({
       nodeId: 'face_1',
@@ -2143,9 +2142,8 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(drawing.layers[0].paths).toHaveLength(2);
     expect(drawing.layers[1].paths).toHaveLength(1);
     expect(drawing.layers[2].paths).toHaveLength(1);
-    expect(drawing.layers.find(layer => layer.standardCode === 'dimension.cassette').paths
-      .filter(path => path.kind === 'text')
-      .map(path => path.text)).toEqual(['A', 'B', 'R']);
+    expect(drawing.layers.find(layer => layer.standardCode === 'dimension.cassette').paths).toEqual([]);
+    expect(drawing.dimensionAnnotations.map(annotation => annotation.text)).toEqual(['A', 'B', 'R']);
     expect(occs.definitions.workpieces[0].folds[0].angle).toBe('135');
     expect(occs.definitions.workpieces[0].entities.map(entity => entity.layer)).toContain('dimension.cassette');
     expect(drawing.designerFaces.map(face => face.nodeId)).toEqual(['face_1', 'face_2']);
@@ -2266,7 +2264,8 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const dimensionLayer = drawing.layers.find(layer => layer.standardCode === 'dimension.cassette');
 
-    expect(dimensionLayer.paths.filter(path => path.kind === 'text').map(path => path.text)).toEqual(['A', 'B']);
+    expect(dimensionLayer.paths).toEqual([]);
+    expect(drawing.dimensionAnnotations.map(annotation => annotation.text)).toEqual(['A', 'B']);
   });
 
   it('keeps the dimension layer in the assembly context', async () => {
