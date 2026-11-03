@@ -3806,6 +3806,38 @@ arrives. Validation: E2E `cassette-profile-editor` passes; 3 of 5
 drafts, dimension override) are the pre-existing assertions named in the
 2026-11-02 notes.
 
+## Shared cassette edit canvas (owner direction 2026-11-03)
+
+Profile and face editing drive the designer's CadCraft host in place: the same
+frame moves into the edit surface, the sketch seeds over the assembly context,
+and the camera zooms to the target. Leaving restores the assembly document and
+camera. The designer's palette, inspector and toolbar stay mounted.
+
+- [ ] WAITING — owner verification: entering a profile or face edit zooms into
+  the target on the same canvas; the palette, inspector and toolbar stay; leaving
+  restores the assembly drawing and camera.
+
+### Agent Notes (2026-11-03, shared edit canvas)
+
+Session `agent/cassette-shared-canvas-20261103` (worktree
+`.agent-worktrees/cassette-shared-canvas-20261103`). Pending implementation.
+
+## Native cassette dimensions and layers (owner direction 2026-11-03)
+
+The cassette canvas draws its dimension annotations as native CadCraft dim
+entities on the dimension layer; a label opens its authored field in place.
+Every assembly layer, dimensions included, is a native CadCraft layer toggled by
+the designer's layer rows.
+
+- [ ] WAITING — owner verification: the cassette dimension labels are drawn by
+  CadCraft, clicking one edits the authored field, and the layer rows hide and
+  show the native layers.
+
+### Agent Notes (2026-11-03, native cassette dimensions and layers)
+
+Session `agent/cassette-shared-canvas-20261103` (worktree
+`.agent-worktrees/cassette-shared-canvas-20261103`). Pending implementation.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the

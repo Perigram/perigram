@@ -524,6 +524,19 @@ layer. The SVG keeps the camera, chips, hit areas and popups; the host follows
 that camera and keeps every assembly layer locked. The main canvas and the
 sketch canvas read the same assembly layers, theme and font.
 
+Owner direction (2026-11-03, shared edit canvas): profile and face editing drive
+the designer's CadCraft host in place. Entering an edit reparents that same
+frame into the edit surface, seeds the sketch over the assembly context, and
+zooms to the target; leaving restores the assembly document and camera. The
+designer's palette, inspector and toolbar stay mounted, and the edit UI uses
+that layout.
+
+Owner direction (2026-11-03, native cassette dimensions and layers): the
+cassette canvas draws its dimension annotations as native CadCraft dim entities
+on the dimension layer; a label opens its authored field in place. Every
+assembly layer, dimensions included, is a native CadCraft layer that the
+designer's layer rows toggle.
+
 Owner direction (2026-11-02, selection and canvas widgets): a face click
 with a profile selected selects that face and leaves the profile relation
 untouched; the face becomes the active selection. Designer chips, handles,
