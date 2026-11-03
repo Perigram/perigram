@@ -527,17 +527,21 @@ the designer's CadCraft host in place. Entering an edit seeds the sketch over
 the assembly context at the existing camera; leaving restores the assembly
 document. The edit controls live in the designer's right inspector panel: back
 and save, the profile identity, the parameter table and the shape list. The
-canvas keeps the drawing toolbar, the dimension editor and the corner popup;
-the assembly stays visible around the edited target.
+drawing toolbar fills the left palette; the canvas keeps the dimension editor
+and the corner popup; the assembly stays visible around the edited target.
 
 Owner direction (2026-11-03, inspector assembly tree and native canvas): the
-right inspector lists the assembly as workpiece → face → placed
-profile/hardware. Selecting a face or placed profile opens its editor in the
-inspector; the canvas carries no per-face menu chip. The assembly canvas draws
-its dimensions as native CadCraft dims on the dimension layer in every view,
-including the assembly context. The palette's layer rows drive the native
-CadCraft layers in the assembly and the edit; hidden layers stay hidden
-through an edit.
+right inspector lists the assembly as workpiece → face. The selected face's
+details list its placed profiles in one compact row each, with edit and delete
+icons and the Add profile action; fill edge and edge start live in the face
+shape editor. The canvas carries no per-face menu chip. The assembly canvas
+draws its dimensions as native CadCraft dims on the dimension layer in every
+view, including the assembly context. The palette lists the drawing's native
+layers, and its rows toggle those layers in the assembly and the edit; hidden
+layers stay hidden through an edit. The native host is the one canvas view:
+the SVG overlay keeps hit areas, chips and selection strokes alone. The edit
+drawing toolbar fills the left palette; the canvas keeps the dimension editor
+and corner popup.
 
 Owner direction (2026-11-03, native cassette dimensions and layers): the
 cassette canvas draws its dimension annotations as native CadCraft dim entities

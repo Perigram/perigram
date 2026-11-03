@@ -3831,18 +3831,24 @@ host placement.
 
 ## Inspector assembly tree and native canvas layers (owner direction 2026-11-03)
 
-The right inspector lists the assembly as workpiece → face → placed
-profile/hardware. Selecting a face or placed profile opens its editor in the
-inspector; the canvas carries no per-face menu chip. The assembly canvas draws
-its dimensions as native CadCraft dims on the dimension layer in every view,
-including the assembly context. The palette's layer rows drive the native
-CadCraft layers in the assembly and the edit; hidden layers stay hidden
-through an edit.
+The right inspector lists the assembly as workpiece → face. The selected
+face's details list its placed profiles in one compact row each, with edit and
+delete icons and the Add profile action; fill edge and edge start live in the
+face shape editor. The canvas carries no per-face menu chip. The assembly
+canvas draws its dimensions as native CadCraft dims on the dimension layer in
+every view, including the assembly context. The palette lists the drawing's
+native layers, and its rows toggle those layers in the assembly and the edit;
+hidden layers stay hidden through an edit. The native host is the one canvas
+view: the SVG overlay keeps hit areas, chips and selection strokes alone. The
+edit drawing toolbar fills the left palette; the canvas keeps the dimension
+editor and corner popup.
 
-- [ ] WAITING — owner verification: the inspector tree shows the workpiece,
-  its faces and their placed profiles; a face or profile click opens its editor
-  in the inspector; the assembly canvas shows native dimension labels; layer
-  rows hide and show the same native layers before and during an edit.
+- [ ] WAITING — owner verification: the inspector lists the workpiece and its
+  faces; the selected face details list its profiles with edit/delete icons and
+  Add profile; fill edge and edge start open in the face shape editor; the
+  assembly canvas shows native dimension labels; the palette lists only the
+  drawing's native layers; the edit toolbar sits in the left palette over the
+  hidden layer list; geometry is painted once by the native host.
 
 ### Agent Notes (2026-11-03, inspector tree and native canvas)
 
@@ -3856,6 +3862,21 @@ native dims. `sketchEditor` applies the palette's visible layer set to the
 native host on seed and on change. E2E `cassette-profile-editor` asserts the
 tree, the inspector editor, the native assembly dimensions, the dimension
 layer row, the stationary camera and the in-place profile.
+
+### Agent Notes (2026-11-03, compact face details and single native view)
+
+Session `agent/cassette-native-inspector-20261103` (worktree
+`.agent-worktrees/cassette-native-inspector-20261103`). The inspector tree
+stops at faces; the selected face details render one compact row per placed
+profile with edit/delete icons, Add profile, and face edit/delete icons. Fill
+edge, face width and edge start moved to the face shape editor. The palette
+lists the drawing's native layers only, and the edit mode swaps the layer list
+for the sketch drawing toolbar; the sketch editor accepts the palette element
+as its tool target and owns keyboard shortcuts while a palette tool is focused.
+The SVG canvas suppresses face and profile fills once the native host owns the
+drawing, keeping hit areas and selection strokes. E2E `cassette-profile-editor`
+and `cassette-profile-lifecycle` pass; the parameter spec still reaches its
+known array-draft failure.
 
 ## Native cassette dimensions and layers (owner direction 2026-11-03)
 
