@@ -49,6 +49,11 @@ test('designer canvas paints native dimensions and the palette drives every laye
   expect(dims.map(dim => dim.text), 'the host paints the cassette dimensions').toEqual(expect.arrayContaining(['A', 'B']));
   expect(dims.every(dim => dim.color === 7), 'native dimensions draw in the canvas ink').toBe(true);
   expect((await host.hatches())[0], 'the face layer is a native hatch').toMatchObject({ tr: 90, loops: 1 });
+  const dimensionTarget = canvas.locator('svg g:has(rect[fill="transparent"])').first();
+  await expect(dimensionTarget, 'the SVG carries a native dimension edit target').toBeVisible({ timeout: 10_000 });
+  await dimensionTarget.click();
+  await expect(canvas.locator('[contenteditable="true"]'), 'a native dimension label opens its authored field').toBeVisible({ timeout: 10_000 });
+  await page.keyboard.press('Escape');
   const painted = await canvas.screenshot();
 
   const layers = await host.layers();
