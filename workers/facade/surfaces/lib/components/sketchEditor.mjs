@@ -158,12 +158,25 @@ export default function createSketchEditor({ vue, components, locale }) {
           y: frame.mirrorY ? -mirroredY : mirroredY
         };
       };
+      const parentFaceInputRings = () => {
+        const input = Array.isArray(props.parentFace) ? props.parentFace : [];
+        if (!input.length) return [];
+        if (typeof input[0] === 'number') {
+          const points = [];
+          for (let index = 0; index + 1 < input.length; index += 2) {
+            points.push([input[index], input[index + 1]]);
+          }
+          return [points];
+        }
+        if (Array.isArray(input[0]) && typeof input[0][0] === 'number') return [input];
+        return input.filter(Array.isArray);
+      };
       // The placed face in sketch coordinates: the hatch and axis base.
       const parentFaceRings = () => (
         faceMode.value
           ? []
-          : (Array.isArray(props.parentFace) ? props.parentFace : [])
-            .filter(ring => Array.isArray(ring) && ring.length >= 3)
+          : parentFaceInputRings()
+            .filter(ring => ring.length >= 3)
             .map(ring => ring.map(([x, y]) => {
               const point = framePointToLocal({ x: Number(x), y: Number(y) });
               return [point.x, point.y];
