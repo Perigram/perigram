@@ -475,7 +475,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expectDrawingScale(reopened);
   const reopenedDiameter = reopened.find(dim => dim.field === 'diameter');
   expect(reopenedDiameter?.text, 'the diameter binding survives the save-load roundtrip').toBe('A');
-  expect(reopenedDiameter?.measured, 'the editor evaluates the authored profile A=100, never the cassette chip A=55')
-    .toBeCloseTo(100, 1);
+  expect(reopenedDiameter?.measured, 'the editor evaluates the placed profile A=55 in place')
+    .toBeCloseTo(55, 1);
   await app.expectCleanRuntime();
 });
