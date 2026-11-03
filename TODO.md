@@ -3714,15 +3714,17 @@ full-bleed box and the assembly/sketch camera roundtrip.
 
 ## In-place assembly context in the sketch canvas (owner direction 2026-11-03)
 
-The sketch canvas draws the cassette assembly as a locked context layer in the
-sketch's own coordinates at the target's placement, so profile and face editing
-happens on the assembly. The context is unpickable and the sketch model remains
-the authored truth. The frame comes from the face's assembly transform, a closed
+The sketch canvas places the authored sketch into the cassette assembly at the
+target's placement, so the host face and surrounding cassette stay in their own
+coordinates. The assembly rides its own layers, locked and unpickable, and
+extraction reads the authored sketch alone. The sketch model remains the
+authored truth. The frame comes from the face's assembly transform, a closed
 profile's axis and point placement, or an open profile's edge embedding.
 
 - [ ] WAITING — owner verification: editing a placed profile or face shows the
-  host face and surrounding cassette around the sketch; the context is not
-  selectable; Save returns to the assembly unchanged.
+  sketch at its real place on the host face; the assembly layers keep their
+  colors and are not selectable; the shape list carries only the profile's own
+  shapes; Save returns to the assembly unchanged.
 
 ### Agent Notes (2026-11-03, in-place assembly context)
 
