@@ -7,7 +7,7 @@ import { occProfileRectCornerVertices } from '../../occs/profiles.js';
 export const PROFILE_ANNOTATION_LAYER = 'perigram-profile-annotations';
 export const PROFILE_DIMENSION_LAYER = 'perigram-profile-dimensions';
 
-const DIM_STYLE = Object.freeze({
+export const OCCS_DIM_STYLE = Object.freeze({
   txt: 2.5,
   asz: 2.5,
   exe: 1.25,
@@ -17,6 +17,7 @@ const DIM_STYLE = Object.freeze({
   dec: 1,
   scale: 1
 });
+const DIM_STYLE = OCCS_DIM_STYLE;
 const DIM_BASE_OFFSET = 7;
 const DIM_STACK_STEP = 8;
 const DIM_STACK_GAP = 2;

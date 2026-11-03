@@ -178,7 +178,7 @@ export function parametersOf(text = '') {
 }
 
 export default function createSurface({ vue, components, locale, queries, records, notify, access }) {
-  const { h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent } = vue;
+  const { h, ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, defineComponent } = vue;
   const t = locale.t;
 
   if (!queries || !records || !notify || !access) {
@@ -211,6 +211,7 @@ export default function createSurface({ vue, components, locale, queries, record
       const drawingCanvasRef = ref(null);
       const assemblyHostContainer = ref(null);
       const assemblyCadCraftReady = ref(false);
+      const assemblyHostRef = shallowRef(null);
       let assemblyHost = null;
       const inlineEditor = ref(null);
       const attachmentPicker = ref(null);
@@ -1205,6 +1206,7 @@ export default function createSurface({ vue, components, locale, queries, record
         if (autosaveTimer && isClient()) window.clearTimeout(autosaveTimer);
         assemblyHost?.destroy();
         assemblyHost = null;
+        assemblyHostRef.value = null;
         if (!isClient()) return;
         window.removeEventListener('keydown', handleDesignerKeydown, true);
         window.document.removeEventListener('mousemove', handleInlineEditorDragMove);
@@ -1425,6 +1427,7 @@ export default function createSurface({ vue, components, locale, queries, record
       const assemblyViewBox = () => drawingCanvasRef.value?.getViewBox?.() || null;
 
       const syncAssemblyView = (box) => {
+        if (sketchMode.value) return;
         if (!assemblyHost?.cad || !box) return;
         const size = drawingCanvasRef.value?.getViewportSize?.() || { width: 0, height: 0 };
         const width = Number(size.width) || 0;
@@ -1440,7 +1443,7 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const seedAssemblyCadCraft = (drawing) => {
-        if (!assemblyHost || !drawing) return false;
+        if (!assemblyHost || !drawing || sketchMode.value) return false;
         const context = cassetteV2AssemblyEntitiesFromDrawing(drawing);
         if (!context) return false;
         assemblyHost.seed(context.entities, {
@@ -1465,6 +1468,7 @@ export default function createSurface({ vue, components, locale, queries, record
             return;
           }
           assemblyHost = host;
+          assemblyHostRef.value = host;
           host.setGrid(false);
           assemblyCadCraftReady.value = seedAssemblyCadCraft(previewSource.value);
           syncAssemblyView(assemblyViewBox());
@@ -1475,10 +1479,13 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       watch(previewSource, source => {
-        if (!assemblyHost) return;
+        if (!assemblyHost || sketchMode.value) return;
         assemblyCadCraftReady.value = seedAssemblyCadCraft(source);
       }, { deep: false });
-      watch(visibleLayerNames, names => assemblyHost?.setVisibleLayers(names), { deep: true });
+      watch(visibleLayerNames, names => {
+        if (sketchMode.value) return;
+        assemblyHost?.setVisibleLayers(names);
+      }, { deep: true });
 
       const resetTree = () => {
         suppressAutosave = true;
@@ -1754,7 +1761,13 @@ export default function createSurface({ vue, components, locale, queries, record
       const closeSketchSession = ({ restoreSelection = true } = {}) => {
         rememberCanvasSketchView(canvasSession, sketchEditorRef.value?.snapshotView());
         const { returnState, assemblyView } = endCanvasSession(canvasSession);
-        if (assemblyView) drawingCanvasRef.value?.setViewBox(assemblyView);
+        // Hand the shared host back to the assembly before restoring its
+        // camera, so the sketch document never outlives the edit.
+        sketchEditorRef.value?.releaseHost?.();
+        const view = assemblyView || drawingCanvasRef.value?.getViewBox?.() || null;
+        if (view) drawingCanvasRef.value?.setViewBox(view);
+        seedAssemblyCadCraft(previewSource.value);
+        if (view) syncAssemblyView(view);
         if (restoreSelection) restoreSketchReturn(returnState);
       };
 
@@ -1809,9 +1822,9 @@ export default function createSurface({ vue, components, locale, queries, record
         closeSketchSession();
       };
 
-      const openProfileSketch = (workpieceId = '') => {
+      const openProfileSketch = async (workpieceId = '') => {
         openSketchSession('profile', workpieceId, captureSketchReturn());
-        loadSketchContext('profile', workpieceId);
+        await loadSketchContext('profile', workpieceId);
         closeInlineEditor();
         profileEditorError.value = '';
         editingProfileWorkpieceId.value = workpieceId;
@@ -1870,7 +1883,6 @@ export default function createSurface({ vue, components, locale, queries, record
       // converting a trapezoid seeds the draft with its current outline.
       const openFaceShapeSketch = async (nodeId) => {
         openSketchSession('face', nodeId, captureSketchReturn());
-        loadSketchContext('face', nodeId);
         closeInlineEditor();
         faceShapeEditorError.value = '';
         editingFaceNodeId.value = nodeId;
@@ -1887,6 +1899,7 @@ export default function createSurface({ vue, components, locale, queries, record
           faceShapeBasisEnd.value = null;
           faceShapeParentFace.value = [];
         }
+        await loadSketchContext('face', nodeId);
         sketchEditorMounted.value = true;
         sketchEditorMode.value = 'face';
         faceSketchOpen.value = true;
@@ -3219,14 +3232,14 @@ export default function createSurface({ vue, components, locale, queries, record
             ];
         return h('section', {
           class: [
-            'absolute inset-0 z-[110] flex min-h-0 flex-col gap-2 overflow-hidden bg-content p-3',
+            'absolute inset-0 z-[110] flex min-h-0 flex-col overflow-hidden',
             open ? '' : 'invisible pointer-events-none'
           ],
           'data-sketch-mode': active || undefined,
           'aria-hidden': open ? undefined : 'true',
           'aria-label': title
         }, [
-          h('div', { class: 'flex shrink-0 flex-wrap items-center gap-2' }, [
+          h('div', { class: 'flex shrink-0 flex-wrap items-center gap-2 bg-content px-3 pb-2 pt-3' }, [
             h(Button, {
               icon: 'pi pi-arrow-left',
               label: t('common.back'),
@@ -3245,7 +3258,7 @@ export default function createSurface({ vue, components, locale, queries, record
           ]),
           face
             ? null
-            : h('div', { class: 'flex shrink-0 flex-wrap items-center gap-2' }, [
+            : h('div', { class: 'flex shrink-0 flex-wrap items-center gap-2 bg-content px-3 pb-2' }, [
                 h(InputText, {
                   modelValue: profileDraft.value.name,
                   'onUpdate:modelValue': value => { profileDraft.value.name = value; },
@@ -3291,7 +3304,7 @@ export default function createSurface({ vue, components, locale, queries, record
                   : null
               ]),
           error
-            ? h(Message, { severity: 'warn', size: 'small', closable: false, class: 'shrink-0' }, () => error)
+            ? h(Message, { severity: 'warn', size: 'small', closable: false, class: 'mx-3 mb-2 shrink-0' }, () => error)
             : null,
           h(ProfileSketchEditor, {
             ref: sketchEditorRef,
@@ -3304,6 +3317,7 @@ export default function createSurface({ vue, components, locale, queries, record
             contextLayers: sketchContextLayers.value,
             contextLinetypes: sketchContextLinetypes.value,
             contextEntities: sketchContextEntities.value,
+            externalHost: assemblyHostRef.value,
             basisStart: face ? faceShapeBasisStart.value : null,
             basisEnd: face ? faceShapeBasisEnd.value : null,
             contextFace: face ? faceShapeParentFace.value : [],
@@ -3528,10 +3542,8 @@ export default function createSurface({ vue, components, locale, queries, record
           documentItems: sketchMode.value ? [] : documentDockItems.value,
           canvasItems: sketchMode.value ? [] : canvasDockItems.value
         }, {
-          ...(sketchMode.value ? {} : {
-            palette: renderPalette,
-            inspector: renderInspector
-          }),
+          palette: renderPalette,
+          inspector: renderInspector,
           default: () => h('section', {
             ref: editorSurfaceRef,
             class: 'relative h-full min-h-0 w-full overflow-hidden'
@@ -3553,6 +3565,7 @@ export default function createSurface({ vue, components, locale, queries, record
               mode: 'designer',
               preserveViewport: true,
               showGeometry: !assemblyCadCraftReady.value,
+              nativeDimensions: assemblyCadCraftReady.value,
               visibleLayerNames: visibleLayerNames.value,
               selectedDesignerFaceId: selectedDesignerFaceId.value,
               selectedDesignerProfileId: selectedWorkpieceId.value,

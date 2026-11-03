@@ -365,7 +365,7 @@ export class CadCraftHost {
   /** Layer visibility from a host palette; `null` shows every layer. */
   setVisibleLayers(names = null) {
     if (!this.cad) return;
-    const visible = Array.isArray(names) ? new Set(names) : null;
+    const visible = Array.isArray(names) && names.length ? new Set(names) : null;
     for (const layer of this.cad.doc.layers.values()) {
       layer.on = visible ? visible.has(layer.name) : true;
     }

@@ -11,6 +11,7 @@ import {
   OCCS_LAYER_CUT_HOLE,
   OCCS_LAYER_CUT_INNER,
   OCCS_LAYER_CUT_OUTER,
+  OCCS_LAYER_DIMENSION_CASSETTE,
   OCCS_LAYER_FOLD_ROUTE
 } from '../../occs/layers.js';
 import {
@@ -47,6 +48,7 @@ import {
   normalizeHangerProductionMode
 } from '../../occs/hardware.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
+import { OCCS_DIM_STYLE } from './profileAnnotations.js';
 import { collectDxfEntities } from '../../vendor/dxf-writer.js';
 import { embedOccsProfileEdge, embedOccsProfilesIntoContour } from '../../occs/profileEmbedding.js';
 import {
@@ -4363,6 +4365,9 @@ export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), 
 // locked layers keep extraction on the authored sketch.
 export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
   if (!drawing?.layers?.length) return null;
+  const isDimensionLayer = (layer) => (
+    layer.role === 'dimension' || layer.standardCode === OCCS_LAYER_DIMENSION_CASSETTE
+  );
   const linetypeForDash = (dasharray) => (
     dasharray === '5,5' ? 'DASHED' : dasharray === '1,3' ? 'DOT' : 'Continuous'
   );
@@ -4378,7 +4383,8 @@ export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
     { name: 'DOT', description: 'Dot', pattern: [0, -3] }
   ];
   const entities = [];
-  for (const entity of collectDxfEntities({ layers: drawing.layers })) {
+  const geometryLayers = drawing.layers.filter(layer => !isDimensionLayer(layer));
+  for (const entity of collectDxfEntities({ layers: geometryLayers })) {
     if (entity.type === 'line') {
       entities.push({
         type: 'line',
@@ -4395,6 +4401,36 @@ export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
       if (pts.length >= 2) {
         entities.push({ type: 'poly', closed: entity.closed, pts, layer: entity.layer });
       }
+    }
+  }
+  for (const layer of drawing.layers.filter(isDimensionLayer)) {
+    const layerName = layer.name || layer.standardCode || 'dimension.cassette';
+    const paths = Array.isArray(layer.paths) ? layer.paths : [];
+    for (const path of paths) {
+      if (path?.kind !== 'text' || !path.designerControl) continue;
+      const line = paths.find(candidate => (
+        candidate?.id === `${String(path.id).replace(/_text$/, '')}_line`
+      ));
+      const numbers = String(line?.d || '').match(/-?\d+(?:\.\d+)?/g)?.map(Number) || [];
+      if (numbers.length < 6) continue;
+      const from = { x: numbers[0], y: -numbers[1] };
+      const to = { x: numbers[4], y: -numbers[5] };
+      entities.push({
+        type: 'dim',
+        kind: 'linear',
+        p1: from,
+        p2: to,
+        loc: { x: Number(path.x) || 0, y: -(Number(path.y) || 0) },
+        rot: Math.atan2(to.y - from.y, to.x - from.x),
+        text: String(path.text ?? path.designerControl.value ?? ''),
+        st: OCCS_DIM_STYLE,
+        layer: layerName,
+        cassette: {
+          nodeId: path.designerControl.nodeId,
+          fieldKey: path.designerControl.key,
+          dimensionKind: path.designerControl.dimensionKind
+        }
+      });
     }
   }
   return entities.length ? { layers, linetypes, entities } : null;

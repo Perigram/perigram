@@ -1,9 +1,9 @@
-// The profile sketch editor as a plugin surface component: a CadCraft
-// canvas (the browser edition homed in tech-drawing, loaded through the
-// declared cadcraft dependency) over the OCCS profile shape model.
+// The profile sketch editor as a plugin surface component: the cassette
+// designer supplies the shared CadCraft canvas (the browser edition homed
+// in tech-drawing, loaded through the declared cadcraft dependency); the
+// editor drives it in place over the OCCS profile shape model.
 // Drawing and snapping run in CadCraft; entity records and the sketch
 // model normalize through occs/profiles.js.
-import { CadCraftHost } from 'cadcraft';
 import {
   OCCS_PROFILE_SHAPE_OPS,
   adoptOccsProfileBindingParameter,
@@ -72,7 +72,10 @@ export default function createSketchEditor({ vue, components, locale }) {
       // layers, drawn under the authored sketch.
       contextLayers: { type: Array, default: () => [] },
       contextLinetypes: { type: Array, default: () => [] },
-      contextEntities: { type: Array, default: () => [] }
+      contextEntities: { type: Array, default: () => [] },
+      // The cassette designer's canvas host; the editor drives it in place
+      // and reparents its frame into this surface for the edit.
+      externalHost: { type: Object, default: null }
     },
     emits: ['update:modelValue', 'outline-error'],
     setup(props, { emit, expose }) {
@@ -104,6 +107,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       let viewRaf = 0;
       let lastViewKey = '';
       let pendingView = props.initialView ? { ...props.initialView } : null;
+      let externalParent = null;
 
       // The sketch model stays local; the canvas places it on the cassette
       // through `canvasFrame`. Every seed, extraction, annotation and pointer
@@ -974,11 +978,6 @@ export default function createSketchEditor({ vue, components, locale }) {
         }, EXTRACT_DEBOUNCE_MS);
       };
 
-      const openBlankDocument = () => {
-        if (!host || disposed) return;
-        host.newDrawing('blank');
-      };
-
       // Primitives are atomic: an erase that takes part of a rect or
       // circle deletes the whole shape (the model commit reseeds the
       // canvas, clearing the leftover entities) — a half-erased
@@ -1769,12 +1768,102 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
+      const configureHost = () => {
+        host.setCommandLine(false);
+        host.setGrid(false);
+        for (const kind of OSNAP_KINDS) host.setSnapKind(kind, true);
+        host.setOsnap(true);
+        orthoMode.value = Boolean(host.cad?.host?.settings?.ortho);
+        tangentSnap.value = Boolean(host.cad?.host?.settings?.kinds?.has('tan'));
+        host.setOrtho(orthoMode.value);
+      };
+
+      const bindHost = () => {
+        bindDocument();
+        bindCommandEvents();
+        host.onSelection = ids => {
+          syncShapeSelection(ids);
+          if (!seeding && !programmaticSelection) scheduleExtraction();
+        };
+        host.onPointerDown = handleVertexSelectPointerDown;
+        host.onPointerUp = handleCanvasPointerUp;
+        host.onKeyDown = handleCanvasKeydown;
+        window.addEventListener('keydown', handleParentKeydown, true);
+        startViewWatcher();
+      };
+
+      const unbindHost = () => {
+        if (!host) return;
+        host.onSelection = null;
+        host.onPointerDown = null;
+        host.onPointerUp = null;
+        host.onKeyDown = null;
+        host.onChange = null;
+        host.onCommand = null;
+        window.removeEventListener('keydown', handleParentKeydown, true);
+        if (viewRaf) {
+          cancelAnimationFrame(viewRaf);
+          viewRaf = 0;
+        }
+      };
+
+      const attachExternalFrame = () => {
+        const frame = host?.frame;
+        if (!frame || !containerRef.value) return;
+        if (!externalParent) externalParent = frame.parentElement;
+        if (frame.parentElement !== containerRef.value) containerRef.value.appendChild(frame);
+        host.cad?.view?.resize?.();
+      };
+
+      const detachExternalFrame = () => {
+        const frame = host?.frame;
+        if (!frame || !externalParent || frame.parentElement === externalParent) return;
+        externalParent.appendChild(frame);
+        host.cad?.view?.resize?.();
+      };
+
+      const startEditing = () => {
+        if (!host) return;
+        attachExternalFrame();
+        configureHost();
+        bindHost();
+        lastEmitted = '';
+        reseedFromModel({ force: true, fit: !props.initialView });
+        if (!host) return;
+        const queued = pendingCommand ? [pendingCommand] : [];
+        pendingCommand = null;
+        if (!props.initialView && !normalizeOccsProfileSketch(props.modelValue || {}).shapes.length) {
+          zoomToBlankWindow(queued);
+        } else if (queued.length) {
+          host.run(queued[0]);
+        }
+        emitSketch();
+        resetSketchHistory();
+        if (pendingView) {
+          host.restoreView(pendingView);
+          pendingView = null;
+        }
+        canvasReady.value = true;
+      };
+
+      const releaseHost = () => {
+        if (host && host === props.externalHost) {
+          unbindHost();
+          detachExternalFrame();
+        }
+      };
+
       const disposeHost = () => {
         if (viewRaf) {
           cancelAnimationFrame(viewRaf);
           viewRaf = 0;
         }
-        host?.destroy();
+        if (host) {
+          const external = host === props.externalHost;
+          unbindHost();
+          if (external) detachExternalFrame();
+          else host.destroy();
+        }
         host = null;
       };
 
@@ -1794,69 +1883,14 @@ export default function createSketchEditor({ vue, components, locale }) {
       const mountEngine = async () => {
         if (typeof window === 'undefined' || host) return;
         engineError.value = '';
+        if (!props.externalHost) return;
         try {
-          host = new CadCraftHost({
-            container: containerRef.value,
-            title: t('cassette.v2.profileEditor.preview')
-          });
-          await host.mount();
-          if (disposed) {
-            host.destroy();
-            host = null;
-            return;
-          }
-          host.setCommandLine(false);
-          host.setGrid(false);
-          for (const kind of OSNAP_KINDS) host.setSnapKind(kind, true);
-          host.setOsnap(true);
-          orthoMode.value = Boolean(host.cad?.host?.settings?.ortho);
-          tangentSnap.value = Boolean(host.cad?.host?.settings?.kinds?.has('tan'));
-          host.setOrtho(orthoMode.value);
-          bindDocument();
-          bindCommandEvents();
-          host.onSelection = ids => {
-            syncShapeSelection(ids);
-            if (!seeding && !programmaticSelection) scheduleExtraction();
-          };
-          host.onPointerDown = handleVertexSelectPointerDown;
-          host.onPointerUp = handleCanvasPointerUp;
-          host.onKeyDown = handleCanvasKeydown;
-          window.addEventListener('keydown', handleParentKeydown, true);
-          startViewWatcher();
-          openBlankDocument();
-          lastEmitted = '';
-          reseedFromModel();
-          if (!host) return;
-          emitSketch();
-          resetSketchHistory();
-          const queued = pendingCommand ? [pendingCommand] : [];
-          pendingCommand = null;
-          const restored = Boolean(pendingView);
-          if (restored) {
-            host.restoreView(pendingView);
-            pendingView = null;
-          }
-          if (!restored && !normalizeOccsProfileSketch(props.modelValue || {}).shapes.length) {
-            zoomToBlankWindow(queued);
-          } else if (queued.length) {
-            host.run(queued[0]);
-          }
-          canvasReady.value = true;
-          // A dialog mount can race the container's real size (open
-          // animation, late flex layout); the first time the canvas
-          // reaches working size, re-fit the view so the seed is framed.
-          if (containerRef.value && (containerRef.value.clientHeight < 120)) {
-            zoomObserver = new ResizeObserver(() => {
-              if (!host || containerRef.value?.clientHeight < 120) return;
-              zoomObserver.disconnect();
-              zoomObserver = null;
-              host.zoomFit(fitExcludeLayers());
-            });
-            zoomObserver.observe(containerRef.value);
-          }
+          host = props.externalHost;
+          externalParent = host.frame?.parentElement || null;
+          if (!props.active) return;
+          startEditing();
         } catch (error) {
           canvasReady.value = false;
-          disposeHost();
           engineError.value = error?.message || String(error);
         }
       };
@@ -1867,26 +1901,36 @@ export default function createSketchEditor({ vue, components, locale }) {
         scheduleOutlineResolve();
       });
 
+      watch(() => props.externalHost, value => {
+        if (value && !host && containerRef.value) mountEngine();
+      }, { immediate: true });
+
       watch(() => props.modelValue, () => {
+        if (!props.active) return;
         dimensionDraft.value = null;
         if (host) reseedFromModel();
         scheduleOutlineResolve();
       }, { deep: true });
 
-      watch(() => props.viewSessionKey, () => applyView(props.initialView));
+      watch(() => props.viewSessionKey, () => {
+        if (props.active) applyView(props.initialView);
+      });
 
       watch(() => [props.contextEntities, props.contextLayers, props.contextLinetypes, props.canvasFrame], () => {
+        if (!props.active) return;
         lastAnnotationFingerprint = '';
         if (host) reseedFromModel({ force: true, fit: !props.initialView });
       }, { deep: true });
 
       watch(() => props.externalParameters, () => {
+        if (!props.active) return;
         if (host) reseedFromModel({ force: true, fit: false });
         scheduleOutlineResolve();
         syncAnnotations();
       }, { deep: true });
 
       watch(() => [props.basisStart, props.basisEnd, props.contextFace], () => {
+        if (!props.active) return;
         lastAnnotationFingerprint = '';
         syncAnnotations();
       }, { deep: true });
@@ -1899,8 +1943,14 @@ export default function createSketchEditor({ vue, components, locale }) {
           pendingDimensionPick = null;
           activeTool.value = 'select';
           host?.cancel();
+          releaseHost();
           return;
         }
+        if (!host && props.externalHost) {
+          host = props.externalHost;
+          externalParent = host.frame?.parentElement || externalParent;
+        }
+        if (host && containerRef.value) startEditing();
         clearEngineSelection();
         resetSketchHistory();
       }, { immediate: true });
@@ -1918,11 +1968,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         disposeHost();
       });
 
-      expose({ snapshotView });
+      expose({ snapshotView, releaseHost });
 
       return () => h('div', {
         ref: rootRef,
-        class: 'flex min-h-0 flex-1 flex-col gap-2',
+        class: 'flex min-h-0 flex-1 flex-col bg-content',
         'data-keyboard-scope': 'cad'
       }, [
         importError.value
@@ -1938,7 +1988,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         }),
         h('div', {
           ref: containerRef,
-          class: 'relative min-h-[18rem] w-full flex-1 overflow-hidden rounded-ui border border-content-border bg-subtle',
+          class: 'relative min-h-0 w-full flex-1 overflow-hidden',
           role: 'application',
           'aria-label': t('cassette.v2.profileEditor.preview'),
           'data-cadcraft-ready': canvasReady.value ? 'true' : undefined

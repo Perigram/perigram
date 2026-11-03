@@ -54,7 +54,10 @@ const props = defineProps({
   preserveViewport: { type: Boolean, default: false },
   // A host-owned renderer paints the geometry behind this canvas; the SVG
   // keeps the interaction overlays and the camera.
-  showGeometry: { type: Boolean, default: true }
+  showGeometry: { type: Boolean, default: true },
+  // The host paints the dimension labels natively; the SVG keeps their
+  // transparent edit targets.
+  nativeDimensions: { type: Boolean, default: false }
 });
 
 const emit = defineEmits([
@@ -770,7 +773,9 @@ const isDesignerDimensionActive = (control) => (
 );
 
 const visibleDesignerDimensionControls = computed(() => (
-  designerDimensionControls.value.filter(isDesignerDimensionActive)
+  props.nativeDimensions
+    ? designerDimensionControls.value
+    : designerDimensionControls.value.filter(isDesignerDimensionActive)
 ));
 
 const selectableDesignerWorkpieceIds = computed(() => (
@@ -1202,22 +1207,34 @@ onBeforeUnmount(() => {
               @click.stop.prevent="requestDesignerPointEdit(control, $event)"
             >
               <rect
+                v-if="nativeDimensions"
                 :x="dimensionControlRect(control).x"
                 :y="dimensionControlRect(control).y"
                 :width="dimensionControlRect(control).width"
                 :height="dimensionControlRect(control).height"
                 :rx="dimensionControlRect(control).rx"
-                fill="currentColor"
-                class="opacity-90"
+                fill="transparent"
+                pointer-events="all"
               />
-              <text
-                text-anchor="middle"
-                dominant-baseline="middle"
-                :font-size="designerSize(12)"
-                class="fill-[var(--p-content-background)]"
-              >
-                {{ control.label || control.value }}
-              </text>
+              <template v-else>
+                <rect
+                  :x="dimensionControlRect(control).x"
+                  :y="dimensionControlRect(control).y"
+                  :width="dimensionControlRect(control).width"
+                  :height="dimensionControlRect(control).height"
+                  :rx="dimensionControlRect(control).rx"
+                  fill="currentColor"
+                  class="opacity-90"
+                />
+                <text
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                  :font-size="designerSize(12)"
+                  class="fill-[var(--p-content-background)]"
+                >
+                  {{ control.label || control.value }}
+                </text>
+              </template>
             </g>
 
             <template v-for="face in drawing.designerFaces || []" :key="`face-controls-${face.nodeId}`">
