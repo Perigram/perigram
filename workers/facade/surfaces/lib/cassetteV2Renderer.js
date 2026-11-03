@@ -4361,8 +4361,7 @@ export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), 
 // The assembly in its own coordinates, on its own layers. The sketch
 // editor places the authored sketch over it through `cassetteV2SketchFrame`;
 // locked layers keep extraction on the authored sketch.
-export const cassetteV2AssemblyEntities = async (tree = createCassetteV2GraphTree()) => {
-  const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
+export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
   if (!drawing?.layers?.length) return null;
   const linetypeForDash = (dasharray) => (
     dasharray === '5,5' ? 'DASHED' : dasharray === '1,3' ? 'DOT' : 'Continuous'
@@ -4399,6 +4398,11 @@ export const cassetteV2AssemblyEntities = async (tree = createCassetteV2GraphTre
     }
   }
   return entities.length ? { layers, linetypes, entities } : null;
+};
+
+export const cassetteV2AssemblyEntities = async (tree = createCassetteV2GraphTree()) => {
+  const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
+  return cassetteV2AssemblyEntitiesFromDrawing(drawing);
 };
 
 const roundSketchValue = (value) => Math.round((numeric(value, 0) + Number.EPSILON) * 1000) / 1000;

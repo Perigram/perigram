@@ -51,7 +51,10 @@ const props = defineProps({
   // keep the user's pan/zoom instead of refitting — the toolbar's reset
   // view is the explicit refit. Default refits whenever the drawing's
   // viewBox changes (previews, read-only panes).
-  preserveViewport: { type: Boolean, default: false }
+  preserveViewport: { type: Boolean, default: false },
+  // A host-owned renderer paints the geometry behind this canvas; the SVG
+  // keeps the interaction overlays and the camera.
+  showGeometry: { type: Boolean, default: true }
 });
 
 const emit = defineEmits([
@@ -65,7 +68,8 @@ const emit = defineEmits([
   'designer-face-command',
   'designer-point-edit',
   'designer-section-edit',
-  'designer-fold-angle-edit'
+  'designer-fold-angle-edit',
+  'view-change'
 ]);
 
 const standardsStore = useLayerStandardsStore();
@@ -468,8 +472,13 @@ const getViewBox = () => ({ ...viewBox.value });
 const setViewBox = (box) => {
   viewBox.value = parseViewBox(box);
 };
+const getViewportSize = () => ({ ...svgViewport.value });
 
-defineExpose({ zoomIn, zoomOut, resetView, getViewBox, setViewBox });
+watch(viewBox, (box) => {
+  emit('view-change', { ...box });
+}, { deep: true });
+
+defineExpose({ zoomIn, zoomOut, resetView, getViewBox, setViewBox, getViewportSize });
 const showAllLayers = () => {
   visibleLayerSelection.value = [...layerNames.value];
 };
@@ -918,13 +927,14 @@ onBeforeUnmount(() => {
           @touchend="handleTouchEnd"
           @touchcancel="handleTouchEnd"
         >
-          <defs v-if="showGrid">
+          <defs v-if="showGrid && showGeometry">
             <pattern id="drawing-canvas-grid" width="100" height="100" patternUnits="userSpaceOnUse">
               <path d="M 100 0 L 0 0 0 100" fill="none" stroke="currentColor" class="opacity-10" />
             </pattern>
           </defs>
-          <rect v-if="showGrid" :x="viewBox.x" :y="viewBox.y" :width="viewBox.width" :height="viewBox.height" fill="url(#drawing-canvas-grid)" />
+          <rect v-if="showGrid && showGeometry" :x="viewBox.x" :y="viewBox.y" :width="viewBox.width" :height="viewBox.height" fill="url(#drawing-canvas-grid)" />
 
+          <template v-if="showGeometry">
           <g
             v-for="layer in visibleDrawingLayers"
             :key="layer.name"
@@ -974,6 +984,7 @@ onBeforeUnmount(() => {
               />
             </template>
           </g>
+          </template>
 
           <g v-if="isDesigner">
             <path

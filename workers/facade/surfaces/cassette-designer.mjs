@@ -14,6 +14,7 @@ import {
   CASSETTE_V2_HARDWARE_FAMILIES,
   cassetteV2AttachableProfileEdgesForTree,
   cassetteV2AssemblyEntities,
+  cassetteV2AssemblyEntitiesFromDrawing,
   cassetteV2FaceSketchContext,
   cassetteV2SketchFrame,
   collectCassetteV2ExpressionIdentifiers,
@@ -55,6 +56,7 @@ import createExpressionEditor from './lib/components/expressionEditor.mjs';
 import createFieldDraft from './lib/components/fieldDraft.mjs';
 import createFoldedPreview from './lib/components/foldedPreview.mjs';
 import createSketchEditor from './lib/components/sketchEditor.mjs';
+import { CadCraftHost } from 'cadcraft';
 import {
   beginCanvasSession,
   canvasSketchView,
@@ -207,6 +209,9 @@ export default function createSurface({ vue, components, locale, queries, record
       const inspectorSelection = ref('face');
       const editorSurfaceRef = ref(null);
       const drawingCanvasRef = ref(null);
+      const assemblyHostContainer = ref(null);
+      const assemblyCadCraftReady = ref(false);
+      let assemblyHost = null;
       const inlineEditor = ref(null);
       const attachmentPicker = ref(null);
       const attachmentPickerSourceId = ref('');
@@ -1190,12 +1195,15 @@ export default function createSurface({ vue, components, locale, queries, record
         refreshSessionDraftState();
         resetDesignerHistory();
         loadTemplateRecords();
+        mountAssemblyCadCraft();
       });
 
       onBeforeUnmount(() => {
         previewToken += 1;
         if (previewTimer && isClient()) window.clearTimeout(previewTimer);
         if (autosaveTimer && isClient()) window.clearTimeout(autosaveTimer);
+        assemblyHost?.destroy();
+        assemblyHost = null;
         if (!isClient()) return;
         window.removeEventListener('keydown', handleDesignerKeydown, true);
         window.document.removeEventListener('mousemove', handleInlineEditorDragMove);
@@ -1404,6 +1412,67 @@ export default function createSurface({ vue, components, locale, queries, record
           await loadLayerStores();
         }
       };
+
+      // The main canvas keeps the SVG interaction overlays and draws its
+      // geometry in a CadCraft host behind them; the SVG camera is the one
+      // authority the host follows.
+      const assemblyViewBox = () => drawingCanvasRef.value?.getViewBox?.() || null;
+
+      const syncAssemblyView = (box) => {
+        if (!assemblyHost?.cad || !box) return;
+        const size = drawingCanvasRef.value?.getViewportSize?.() || { width: 0, height: 0 };
+        const width = Number(size.width) || 0;
+        const height = Number(size.height) || 0;
+        if (!width || !height) return;
+        const zoom = Math.min(width / box.width, height / box.height);
+        assemblyHost.restoreView({
+          cx: box.x + box.width / 2,
+          cy: -(box.y + box.height / 2),
+          zoom,
+          tw: 0
+        });
+      };
+
+      const seedAssemblyCadCraft = (drawing) => {
+        if (!assemblyHost || !drawing) return false;
+        const context = cassetteV2AssemblyEntitiesFromDrawing(drawing);
+        if (!context) return false;
+        assemblyHost.seed(context.entities, {
+          layers: context.layers,
+          linetypes: context.linetypes,
+          fit: false
+        });
+        assemblyHost.lockLayers(true);
+        assemblyHost.setVisibleLayers(visibleLayerNames.value);
+        const view = assemblyViewBox();
+        if (view) syncAssemblyView(view);
+        return true;
+      };
+
+      const mountAssemblyCadCraft = async () => {
+        if (!isClient() || !assemblyHostContainer.value) return;
+        const host = new CadCraftHost({ container: assemblyHostContainer.value, title: t('cassette.name') });
+        try {
+          await host.mount();
+          if (!assemblyHostContainer.value) {
+            host.destroy();
+            return;
+          }
+          assemblyHost = host;
+          host.setGrid(false);
+          assemblyCadCraftReady.value = seedAssemblyCadCraft(previewSource.value);
+          syncAssemblyView(assemblyViewBox());
+        } catch {
+          host.destroy();
+          assemblyCadCraftReady.value = false;
+        }
+      };
+
+      watch(previewSource, source => {
+        if (!assemblyHost) return;
+        assemblyCadCraftReady.value = seedAssemblyCadCraft(source);
+      }, { deep: false });
+      watch(visibleLayerNames, names => assemblyHost?.setVisibleLayers(names), { deep: true });
 
       const resetTree = () => {
         suppressAutosave = true;
@@ -3461,8 +3530,14 @@ export default function createSurface({ vue, components, locale, queries, record
             ref: editorSurfaceRef,
             class: 'relative h-full min-h-0 w-full overflow-hidden'
           }, [
+            h('div', {
+              ref: assemblyHostContainer,
+              class: 'pointer-events-none absolute inset-0 z-0',
+              'aria-hidden': 'true'
+            }),
             h(DrawingCanvas, {
               ref: drawingCanvasRef,
+              class: 'relative z-10',
               // Sticky editing viewport: live edits keep the user's
               // pan/zoom; the canvas remounts per opened document
               // (key) so a fresh cassette still fits.
@@ -3471,6 +3546,7 @@ export default function createSurface({ vue, components, locale, queries, record
               sourceType: 'geometry-preview',
               mode: 'designer',
               preserveViewport: true,
+              showGeometry: !assemblyCadCraftReady.value,
               visibleLayerNames: visibleLayerNames.value,
               selectedDesignerFaceId: selectedDesignerFaceId.value,
               selectedDesignerProfileId: selectedWorkpieceId.value,
@@ -3478,6 +3554,7 @@ export default function createSurface({ vue, components, locale, queries, record
               designerSelectableWorkpieceIds: designerSelectableWorkpieceIds.value,
               showDesignerWorkpieceContext: showDesignerWorkpieceContext.value,
               onReady: handleDrawingReady,
+              onViewChange: syncAssemblyView,
               onLayerToggle: updateVisibleLayerNames,
               onDesignerAction: handleDesignerAction,
               onDesignerFaceSelect: handleDesignerFaceSelect,
