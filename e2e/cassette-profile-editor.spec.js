@@ -417,6 +417,17 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     const contextBounds = bounds(pointsOf(context));
     const sketchBounds = bounds(pointsOf(sketch));
     const cutBounds = bounds(pointsOf(doc.all().filter(entity => String(entity.layer).includes('CUT_INNER'))));
+    const hatch = doc.all().find(entity => entity.type === 'hatch' && entity.layer === 'perigram-profile-annotations');
+    const hatchPoints = hatch
+      ? hatch.loops.flatMap(loop => {
+        const points = [];
+        for (let index = 0; index + 1 < loop.length; index += 2) {
+          points.push({ x: loop[index], y: loop[index + 1] });
+        }
+        return points;
+      })
+      : [];
+    const hatchBounds = hatchPoints.length ? bounds(hatchPoints) : null;
     const center = {
       x: (sketchBounds.minX + sketchBounds.maxX) / 2,
       y: (sketchBounds.minY + sketchBounds.maxY) / 2
@@ -429,6 +440,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
       lockedLayers,
       contextCount: context.length,
       sketchCount: sketch.length,
+      hatchBounds,
       centerInContext: center.x >= contextBounds.minX && center.x <= contextBounds.maxX
         && center.y >= contextBounds.minY && center.y <= contextBounds.maxY,
       centerOnPlacement: Math.hypot(center.x - cutCenter.x, center.y - cutCenter.y) < 0.5
@@ -439,6 +451,10 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(placed.sketchCount, 'the authored sketch seeds on its own layer').toBeGreaterThan(0);
   expect(placed.centerInContext, 'the sketch sits inside the assembly bounds').toBe(true);
   expect(placed.centerOnPlacement, 'the sketch stays on its placed profile').toBe(true);
+  expect(placed.hatchBounds, 'the profile hatch is the placed parent face').toBeTruthy();
+  expect(placed.hatchBounds.maxX - placed.hatchBounds.minX, 'the hatch spans the parent face, never the half-plane stand-in')
+    .toBeLessThan(1000);
+  expect(placed.hatchBounds.maxY - placed.hatchBounds.minY).toBeLessThan(1000);
   const theme = await frameOf(reopenedDialog).then(frame => frame.evaluate(() => ({
     font: document.documentElement.style.getPropertyValue('--font'),
     sheet: document.documentElement.style.getPropertyValue('--sheet'),

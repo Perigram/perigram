@@ -53,11 +53,9 @@ const props = defineProps({
   // viewBox changes (previews, read-only panes).
   preserveViewport: { type: Boolean, default: false },
   // A host-owned renderer paints the geometry behind this canvas; the SVG
-  // keeps the interaction overlays and the camera.
-  showGeometry: { type: Boolean, default: true },
-  // The host paints the dimension labels natively; the SVG keeps their
-  // transparent edit targets.
-  nativeDimensions: { type: Boolean, default: false }
+  // keeps the interaction overlays and the camera, including the host's
+  // dimension labels and their transparent edit targets.
+  showGeometry: { type: Boolean, default: true }
 });
 
 const emit = defineEmits([
@@ -763,9 +761,9 @@ const isDesignerDimensionActive = (control) => (
 );
 
 const visibleDesignerDimensionControls = computed(() => (
-  props.nativeDimensions
-    ? designerDimensionControls.value
-    : designerDimensionControls.value.filter(isDesignerDimensionActive)
+  props.showGeometry
+    ? designerDimensionControls.value.filter(isDesignerDimensionActive)
+    : designerDimensionControls.value
 ));
 
 const selectableDesignerWorkpieceIds = computed(() => (
@@ -1197,7 +1195,7 @@ onBeforeUnmount(() => {
               @click.stop.prevent="requestDesignerPointEdit(control, $event)"
             >
               <rect
-                v-if="nativeDimensions"
+                v-if="!showGeometry"
                 :x="dimensionControlRect(control).x"
                 :y="dimensionControlRect(control).y"
                 :width="dimensionControlRect(control).width"

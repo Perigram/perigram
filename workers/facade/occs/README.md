@@ -334,8 +334,11 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   `cut.inner`, and the section layer carries section views only.
   Face fills stay per face so adjacent faces keep their own fill and the
   fold route separates them; `cut.outer` carries the production union.
-  Hollow faces fill their outer ring and holes with `evenodd`, so a cut
-  stays open in every preview mode. The load-picker thumbnail layer set —
+  The native assembly renders fill-only paths as solid hatches at the
+  path's authored opacity and outline paths as polylines, so a face layer
+  reads as a face fill instead of a contour line. Hollow faces fill their
+  outer ring and holes with `evenodd`, so a cut stays open in every
+  preview mode. The load-picker thumbnail layer set —
   outline (`cut.outer`) and folds (`fold.route`) matched by `standardCode`
   (layer names are localized export names); all layers for a drawing outside
   the set — resolves through `cassettePreviewLayerSelection`
