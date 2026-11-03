@@ -89,14 +89,8 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
   // copies, so a zero spacing butts them together. The perpendicular
   // component of the origin is dropped on purpose — open profiles keep
   // their feet on the edge.
-  const spanStart = Math.max(0, Math.min(edgeLength, resolve(pattern.spanStart, 0)));
-  const rawSpanWidth = pattern.spanWidth;
-  const spanWidth = rawSpanWidth === undefined || rawSpanWidth === ''
-    ? edgeLength - spanStart
-    : Math.max(0, resolve(rawSpanWidth, edgeLength - spanStart));
-  const spanLength = Math.max(0, Math.min(edgeLength - spanStart, spanWidth));
   const margin = Math.max(0, resolve(relation.offsetX, 0));
-  const rowSpan = spanLength - 2 * margin - chordLength;
+  const rowSpan = edgeLength - 2 * margin - chordLength;
   if (rowSpan < -1e-6) {
     return { ok: false, reason: 'edge too short for the profile at this margin' };
   }
@@ -107,7 +101,7 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
     binding: relation.targetSnap || 'start',
     copyLength: chordLength,
     resolve
-  }).map(distance => spanStart + margin + distance);
+  }).map(distance => margin + distance);
   if (!starts.length) {
     return { ok: false, reason: 'array settings place no copy on the edge' };
   }

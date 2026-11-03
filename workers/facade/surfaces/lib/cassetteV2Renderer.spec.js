@@ -366,7 +366,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(contextPoints.some(pt => Math.hypot(pt.x, pt.y) < 1), 'the host edge crosses the sketch origin').toBe(true);
   });
 
-  it('embeds an open profile into the face boundary and consumes its edge shard', async () => {
+  it('embeds an open profile into the face boundary and leaves the edge free', async () => {
     const initialTree = createCassetteV2GraphTree();
     const square = openChainSketch([[0, 0], [42, 0], [42, 28], [0, 28]], createDefaultOccsProfileSketch().parameters);
     const result = addCassetteV2ProfileWorkpiece(initialTree, {
@@ -405,12 +405,12 @@ describe('cassette v2 trapezoid renderer', () => {
     const edgeIndexes = drawing.designerEdges
       .filter(edge => edge.nodeId === 'face_1')
       .map(edge => edge.edgeIndex);
-    expect(edgeIndexes).toEqual([0, 1, 3]);
+    expect(edgeIndexes).toEqual([0, 1, 2, 3]);
   });
 
   it('offers only arrangeable edges: folds are excluded, profiles may share an edge', () => {
     // A face grown on E0 folds there; profiles may share every other
-    // edge and receive their own shard.
+    // edge across its whole length.
     const initialTree = createCassetteV2GraphTree();
     const grown = addCassetteV2GraphChild(initialTree, 'face_1', 0).tree;
     expect(cassetteV2AttachableProfileEdgesForTree(grown, 'face_1')).toEqual(['E1', 'E2', 'E3']);
@@ -2297,7 +2297,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(faceLayer.paths.some(path => path.fillRule === 'evenodd')).toBe(true);
   });
 
-  it('refuses a face placement over a profile edge span', async () => {
+  it('places a face over a closed profile footprint', () => {
     const cutSketch = normalizeOccsProfileSketch({
       parameters: {},
       shapes: [{ id: 's0', type: 'circle', op: 'subtract', center: [0, 0], diameter: 100 }]
@@ -2309,18 +2309,18 @@ describe('cassette v2 trapezoid renderer', () => {
       occsProfile: occsProfileFromSketch(cutSketch),
       sketch: cutSketch
     });
-    const drawing = await renderCassetteV2TreeToDrawing(added.tree);
-    const handle = drawing.designerEdges
-      .find(edge => edge.nodeId === 'face_1' && edge.edgeIndex === 0);
-    const refused = addCassetteV2GraphChild(added.tree, 'face_1', 0, {
+    const placed = addCassetteV2GraphChild(added.tree, 'face_1', 0, {
       edgeLength: 500,
       shardStart: 200,
-      shardEnd: 300,
-      occupied: handle.occupied
+      shardEnd: 300
     });
 
-    expect(refused.refused).toBe('edge-occupied');
-    expect(refused.nodeId).toBe('');
+    expect(placed.refused).toBeUndefined();
+    expect(placed.nodeId).not.toBe('');
+    expect(placed.tree.nodes.find(node => node.id === placed.nodeId).parameters).toMatchObject({
+      edgeStart: '200',
+      defaultLength: '100'
+    });
   });
 
   it('cuts the parent with a face subtract shape outside the child material', async () => {
@@ -2376,60 +2376,48 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(updateCassetteV2FaceSketch(updated, 'face_1', null).nodes[0].sketch).toBeUndefined();
   });
 
-  it('allocates an open profile to the free shard beside an earlier profile', () => {
+  it('places every open profile across the whole edge beside an earlier profile', () => {
     const open = openChainSketch([[0, 0], [42, 0], [42, 28], [0, 28]], createDefaultOccsProfileSketch().parameters);
     const first = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
-      edgeLength: 400,
       occsProfile: occsProfileFromSketch(open),
       sketch: open
     });
-    const firstRelation = getCassetteV2WorkpieceRelations(first.tree)[0];
-    const narrowed = updateCassetteV2WorkpieceRelation(first.tree, firstRelation.id, {
-      placementMode: 'edgeArray',
-      arrayEdge: 'E0',
-      arraySpanStart: '0',
-      arraySpanWidth: '200'
-    });
-    const second = addCassetteV2ProfileWorkpiece(narrowed, {
+    const second = addCassetteV2ProfileWorkpiece(first.tree, {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
-      edgeLength: 400,
       occsProfile: occsProfileFromSketch(open),
       sketch: open
     });
     const secondRelation = getCassetteV2WorkpieceRelations(second.tree)
       .find(relation => relation.sourceWorkpieceId === second.workpieceId);
 
-    expect(secondRelation.pattern).toMatchObject({
-      spanStart: '200',
-      spanWidth: '200'
-    });
+    expect(second.workpieceId).not.toBe('');
+    expect(secondRelation.pattern).not.toHaveProperty('spanStart');
+    expect(secondRelation.pattern).not.toHaveProperty('spanWidth');
   });
 
-  it('skips an edge shard too narrow for the open profile chord', () => {
+  it('places an open profile across the whole edge beside a face shard', () => {
     const grown = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 0, { edgeLength: 400 });
     grown.tree.nodes[1].parameters.edgeStart = '10';
     grown.tree.nodes[1].parameters.defaultLength = '90';
-    const open = openChainSketch([[0, 0], [20, 10], [40, 0]], createDefaultOccsProfileSketch().parameters);
+    const open = openChainSketch([[0, 0], [10, 10], [20, 0]], createDefaultOccsProfileSketch().parameters);
     const added = addCassetteV2ProfileWorkpiece(grown.tree, {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
-      edgeLength: 400,
       occsProfile: occsProfileFromSketch(open),
       sketch: open
     });
     const relation = getCassetteV2WorkpieceRelations(added.tree)
       .find(item => item.sourceWorkpieceId === added.workpieceId);
 
-    expect(relation.pattern).toMatchObject({
-      spanStart: '100',
-      spanWidth: '300'
-    });
+    expect(added.refused).toBeUndefined();
+    expect(relation.pattern).not.toHaveProperty('spanStart');
+    expect(relation.pattern).not.toHaveProperty('spanWidth');
   });
 
-  it('removes a closed profile footprint from the edge shards', async () => {
+  it('leaves the edge shards free of a closed profile footprint', async () => {
     const sketch = normalizeOccsProfileSketch({
       parameters: {},
       shapes: [{ id: 's0', type: 'circle', op: 'subtract', center: [0, 0], diameter: 100 }]
@@ -2445,7 +2433,7 @@ describe('cassette v2 trapezoid renderer', () => {
       .filter(edge => edge.nodeId === 'face_1' && edge.edgeIndex === 0)
       .map(edge => [edge.shardStart, edge.shardEnd]);
 
-    expect(shards).toEqual([[0, 200], [300, 500]]);
+    expect(shards).toEqual([[0, 500]]);
   });
 
   it('draws a + handle on each free edge shard', async () => {

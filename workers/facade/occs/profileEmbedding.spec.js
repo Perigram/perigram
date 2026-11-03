@@ -132,20 +132,6 @@ describe('embedOccsProfileEdge', () => {
     expect(impossible.reason).toMatch(/overlaps copy 2/);
   });
 
-  it('places copies inside the authored edge span', () => {
-    const embedding = embedOccsProfileEdge({
-      section: BUMP,
-      vertices: FACE,
-      relation: {
-        offsetX: 5,
-        pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1', spanStart: '50', spanWidth: '50' }
-      }
-    });
-    expect(embedding.ok).toBe(true);
-    expect(embedding.copies[0][0]).toEqual([55, 0]);
-    expect(embedding.copies[0][embedding.copies[0].length - 1]).toEqual([95, 0]);
-  });
-
   it('forbids overflowing and overlapping copies', () => {
     const longBump = { vertices: [[0, 0], [30, 15], [60, 0]], open: true };
     const overflow = embedOccsProfileEdge({
@@ -195,7 +181,8 @@ describe('embedOccsProfilesIntoContour', () => {
       vertices: FACE,
       relation: {
         offsetX: 0,
-        pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1', spanStart: '0', spanWidth: '50' }
+        targetSnap: 'start',
+        pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1' }
       }
     });
     const right = embedOccsProfileEdge({
@@ -203,7 +190,8 @@ describe('embedOccsProfilesIntoContour', () => {
       vertices: FACE,
       relation: {
         offsetX: 0,
-        pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1', spanStart: '50', spanWidth: '50' }
+        targetSnap: 'end',
+        pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1' }
       }
     });
     const result = embedOccsProfilesIntoContour(FACE, [left, right]);
@@ -211,8 +199,8 @@ describe('embedOccsProfilesIntoContour', () => {
     expect(result.applied).toHaveLength(2);
     expect(result.contour).toEqual([
       [0, 0], [20, 10], [40, 0],
-      [50, 0], [70, 10], [90, 0],
-      [100, 0], [100, 50], [0, 50]
+      [60, 0], [80, 10], [100, 0],
+      [100, 50], [0, 50]
     ]);
   });
 });

@@ -77,8 +77,6 @@ const ATTACHMENT_SHORT_LABELS = Object.freeze({
   'cassette.v2.attachmentFields.placementMode': 'cassette.v2.attachmentFields.short.placementMode',
   'cassette.v2.attachmentFields.arrayEdge': 'cassette.v2.attachmentFields.short.arrayEdge',
   'cassette.v2.attachmentFields.arrayMode': 'cassette.v2.attachmentFields.short.arrayMode',
-  'cassette.v2.attachmentFields.spanStart': 'cassette.v2.attachmentFields.short.spanStart',
-  'cassette.v2.attachmentFields.spanWidth': 'cassette.v2.attachmentFields.short.spanWidth',
   'cassette.v2.attachmentFields.side': 'cassette.v2.attachmentFields.short.side',
   'cassette.v2.attachmentFields.sourceFace': 'cassette.v2.attachmentFields.short.sourceFace',
   'cassette.v2.attachmentFields.sourceSnap': 'cassette.v2.attachmentFields.short.sourceSnap'
@@ -1921,7 +1919,6 @@ export default function createSurface({ vue, components, locale, queries, record
         const added = addCassetteV2ProfileWorkpiece(cassetteTree.value, {
           referenceWorkpieceId: selectedWorkpieceId.value,
           referenceNodeId: targetFaceId,
-          edgeLength: edgeLengthFor(targetFaceId, 'E0'),
           name: record.name || t('cassette.v2.profileEditor.defaultName'),
           kind: record?.fields?.kind || 'hanger',
           process: record?.fields?.process || 'extruded',
@@ -1934,10 +1931,6 @@ export default function createSurface({ vue, components, locale, queries, record
         });
         cassetteTree.value = added.tree;
         closeProfilePicker();
-        if (added.refused) {
-          notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.edgeFull'), life: 3000 });
-          return;
-        }
         selectWorkpiece(added.workpieceId);
       };
 
@@ -2087,7 +2080,6 @@ export default function createSurface({ vue, components, locale, queries, record
           const added = addCassetteV2ProfileWorkpiece(cassetteTree.value, {
             referenceWorkpieceId: selectedWorkpieceId.value,
             referenceNodeId: targetFaceId,
-            edgeLength: edgeLengthFor(targetFaceId, 'E0'),
             name: payload.name,
             kind: payload.kind,
             process: payload.process,
@@ -2097,10 +2089,6 @@ export default function createSurface({ vue, components, locale, queries, record
             profileTemplateId: profileDraft.value.libraryId || ''
           });
           cassetteTree.value = added.tree;
-          if (added.refused) {
-            notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.edgeFull'), life: 3000 });
-            return;
-          }
           selectWorkpiece(added.workpieceId);
           addedWorkpieceId = added.workpieceId;
         }
@@ -2221,8 +2209,7 @@ export default function createSurface({ vue, components, locale, queries, record
         addFaceAtEdge(edge.nodeId, edge.edgeIndex ?? edgeIndex, {
           edgeLength: edge.edgeLength ?? edge.length,
           shardStart: edge.shardStart,
-          shardEnd: edge.shardEnd,
-          occupied: edge.occupied
+          shardEnd: edge.shardEnd
         });
       };
 
@@ -2719,12 +2706,6 @@ export default function createSurface({ vue, components, locale, queries, record
                   : null,
                 relation.placementMode === 'edgeArray'
                   ? arrayValueField(relation)
-                  : null,
-                kind === 'profile' && relation.placementMode === 'edgeArray'
-                  ? expressionField('cassette.v2.attachmentFields.spanStart', relation.arraySpanStart, 'arraySpanStart', { allowEmpty: true })
-                  : null,
-                kind === 'profile' && relation.placementMode === 'edgeArray'
-                  ? expressionField('cassette.v2.attachmentFields.spanWidth', relation.arraySpanWidth, 'arraySpanWidth', { allowEmpty: true })
                   : null,
                 kind === 'profile'
                   ? h('div', { class: 'col-span-2 flex min-w-0 gap-1' }, [
