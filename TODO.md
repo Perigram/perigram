@@ -3660,11 +3660,10 @@ values ride PrimeVue's native invalid state with the reason in the title.
 
 ## In-place profile and face sketch mode (owner direction 2026-11-02)
 
-Profile and face shape editing open as a full-area sketch mode over the
-cassette designer's canvas. The assembly drawing stays mounted beneath the
-mode, so its viewport and selection survive the flip; the mode bar carries
-back, save, and the profile identity in profile mode. Save returns to the assembly with the
-edited target's popup restored; Back returns unchanged.
+Profile and face shape editing happen on the cassette designer's canvas at
+the target's placement. The assembly drawing and its camera stay in place, so
+the selection survives the edit. Save returns with the edited target's popup
+restored; Back returns unchanged.
 
 - [ ] WAITING — owner verification: editing a face or a placed profile
   opens the existing CadCraft sketch editor in the cassette canvas area;
@@ -3692,16 +3691,14 @@ cross-plugin `cadcraft` import in this checkout.
 ## Shared cassette canvas session (owner direction 2026-11-02)
 
 The cassette designer runs one canvas session over the assembly canvas and the
-CadCraft sketch editor: the session owns the assembly camera and selection a
-mode flip preserves, and one sketch camera per edited target. The assembly
-canvas stays the SVG surface; profile and face editing take the canvas area as
-a full-bleed mode. Back and Save return the assembly to the session camera and
-selection; reopening a target restores its sketch camera.
+CadCraft sketch editor. The session carries the assembly selection through the
+edit, and the assembly camera is the camera both modes use. Back and Save
+return the assembly to the session's selection and restore the assembly
+document.
 
-- [ ] WAITING — owner verification: opening a sketch, panning and zooming,
-  then Back restores the assembly camera and selection; reopening the same
-  target returns to the sketch camera used last time; the sketch mode fills
-  the canvas with no dialog frame.
+- [ ] WAITING — owner verification: opening a sketch does not move the
+  camera or the target; Back restores the assembly selection; reopening the
+  same target opens at the assembly camera.
 
 ### Agent Notes (2026-11-02, shared canvas session)
 
@@ -3808,19 +3805,57 @@ drafts, dimension override) are the pre-existing assertions named in the
 
 ## Shared cassette edit canvas (owner direction 2026-11-03)
 
-Profile and face editing drive the designer's CadCraft host in place: the same
-frame moves into the edit surface, the sketch seeds over the assembly context,
-and the camera zooms to the target. Leaving restores the assembly document and
-camera. The designer's palette, inspector and toolbar stay mounted.
+Profile and face editing drive the designer's CadCraft host in place: the
+sketch seeds over the assembly context at the assembly camera. The edit
+controls fill the right inspector panel — back and save, the profile identity,
+the parameter table and the shape list. The canvas keeps the drawing toolbar,
+the dimension editor and the corner popup. Leaving restores the assembly
+document and selection.
 
-- [ ] WAITING — owner verification: entering a profile or face edit zooms into
-  the target on the same canvas; the palette, inspector and toolbar stay; leaving
-  restores the assembly drawing and camera.
+- [ ] WAITING — owner verification: entering a profile or face edit keeps the
+  camera and the target in place; the inspector carries the edit controls; the
+  canvas keeps the drawing toolbar; leaving restores the assembly drawing and
+  selection.
 
-### Agent Notes (2026-11-03, shared edit canvas)
+### Agent Notes (2026-11-03, in-place edit panel)
 
-Session `agent/cassette-shared-canvas-20261103` (worktree
-`.agent-worktrees/cassette-shared-canvas-20261103`). Pending implementation.
+Session `agent/inplace-edit-panel-20261103` (worktree
+`.agent-worktrees/inplace-edit-panel-20261103`). The sketch editor teleports
+its parameter table and shape list into the designer inspector through the
+surface runtime's `Teleport`; the profile identity and save/back actions render
+in the same panel. The assembly camera seeds the sketch camera, so entering,
+leaving and reopening keep the target at its position. A face sketch's frame
+composes the node's shard attachment frame with its workpiece assembly
+transform, so a child face on an offset or reversed host edge opens at its
+host placement.
+
+## Inspector assembly tree and native canvas layers (owner direction 2026-11-03)
+
+The right inspector lists the assembly as workpiece → face → placed
+profile/hardware. Selecting a face or placed profile opens its editor in the
+inspector; the canvas carries no per-face menu chip. The assembly canvas draws
+its dimensions as native CadCraft dims on the dimension layer in every view,
+including the assembly context. The palette's layer rows drive the native
+CadCraft layers in the assembly and the edit; hidden layers stay hidden
+through an edit.
+
+- [ ] WAITING — owner verification: the inspector tree shows the workpiece,
+  its faces and their placed profiles; a face or profile click opens its editor
+  in the inspector; the assembly canvas shows native dimension labels; layer
+  rows hide and show the same native layers before and during an edit.
+
+### Agent Notes (2026-11-03, inspector tree and native canvas)
+
+Session `agent/inplace-edit-panel-20261103` (worktree
+`.agent-worktrees/inplace-edit-panel-20261103`). The inspector renders
+`workpiece → face → placed workpiece` rows; faces open the face editor in the
+inspector and profiles open the placement editor there. The canvas face menu
+chip is removed. `cassetteV2Renderer` keeps the dimension layer when the
+assembly context replaces the drawing layers, so the assembly host seeds its
+native dims. `sketchEditor` applies the palette's visible layer set to the
+native host on seed and on change. E2E `cassette-profile-editor` asserts the
+tree, the inspector editor, the native assembly dimensions, the dimension
+layer row, the stationary camera and the in-place profile.
 
 ## Native cassette dimensions and layers (owner direction 2026-11-03)
 

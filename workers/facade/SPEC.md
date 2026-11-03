@@ -487,21 +487,18 @@ profile authoring, parameter editing, placement, and removal live on the
 canvas.
 
 Owner direction (2026-11-02, in-place sketch mode): profile and face shape
-editing open as a full-area sketch mode over the cassette designer's canvas.
-The assembly drawing stays mounted beneath the mode, so its viewport and
-selection survive the flip; the mode bar carries back, save, and the profile identity in profile
-mode, and the existing CadCraft profile editor renders the sketch. Save
-returns to the assembly with the edited target's popup restored; Back returns
-unchanged.
+editing happen on the cassette designer's canvas at the target's placement.
+The assembly drawing and its camera stay in place, so the edited target keeps
+its screen position and the selection survives the edit. The existing CadCraft
+profile editor renders the sketch. Save returns with the edited target's popup
+restored; Back returns unchanged.
 
 Owner direction (2026-11-02, shared canvas session): the cassette designer
 runs one canvas session over the assembly canvas and the sketch editor. The
-session owns the assembly camera and selection a mode flip preserves, and one
-sketch camera per edited target. The assembly canvas stays the SVG drawing
-surface; the sketch editor is the CadCraft surface. Profile and face editing
-take the canvas area as a full-bleed mode, and Back and Save return the
-assembly to the session's camera and selection. Reopening the same target
-restores that target's sketch camera.
+session carries the assembly selection through the edit, and the assembly
+camera is the camera both modes use. Entering and leaving an edit preserve that
+camera. Back and Save return the assembly to the session's selection and
+restore the assembly document.
 
 Owner direction (2026-11-03, in-place assembly context): the sketch canvas
 places the authored sketch into the cassette assembly at the target's
@@ -509,8 +506,9 @@ placement, so the host face, sibling faces, folds and cuts stay around it in
 their own coordinates. The assembly rides its own layers with their colors,
 weights and dash patterns, locked and unpickable; extraction reads the
 authored sketch alone. The sketch model remains the single authored truth.
-The frame comes from the target's placement: the face's assembly transform, a
-closed profile's axis and point placement, or an open profile's edge embedding.
+The frame comes from the target's placement: the face's shard frame composed
+with its assembly transform, a closed profile's axis and point placement, or an
+open profile's edge embedding.
 
 Owner direction (2026-11-03, canvas theme and layer pens): the sketch canvas
 mirrors the app's light/dark tokens and UI font into the CadCraft frame, and
@@ -525,11 +523,21 @@ that camera and keeps every assembly layer locked. The main canvas and the
 sketch canvas read the same assembly layers, theme and font.
 
 Owner direction (2026-11-03, shared edit canvas): profile and face editing drive
-the designer's CadCraft host in place. Entering an edit reparents that same
-frame into the edit surface, seeds the sketch over the assembly context, and
-zooms to the target; leaving restores the assembly document and camera. The
-designer's palette, inspector and toolbar stay mounted, and the edit UI uses
-that layout.
+the designer's CadCraft host in place. Entering an edit seeds the sketch over
+the assembly context at the existing camera; leaving restores the assembly
+document. The edit controls live in the designer's right inspector panel: back
+and save, the profile identity, the parameter table and the shape list. The
+canvas keeps the drawing toolbar, the dimension editor and the corner popup;
+the assembly stays visible around the edited target.
+
+Owner direction (2026-11-03, inspector assembly tree and native canvas): the
+right inspector lists the assembly as workpiece → face → placed
+profile/hardware. Selecting a face or placed profile opens its editor in the
+inspector; the canvas carries no per-face menu chip. The assembly canvas draws
+its dimensions as native CadCraft dims on the dimension layer in every view,
+including the assembly context. The palette's layer rows drive the native
+CadCraft layers in the assembly and the edit; hidden layers stay hidden
+through an edit.
 
 Owner direction (2026-11-03, native cassette dimensions and layers): the
 cassette canvas draws its dimension annotations as native CadCraft dim entities
