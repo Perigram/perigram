@@ -4597,7 +4597,7 @@ export const renderCassetteV2TreeToDrawing = async (tree = createCassetteV2Graph
     includeFoldedPreviewJoints: options.mode === 'assembly',
     contextWorkpieceId: options.mode === 'assembly' ? options.contextWorkpieceId : '',
     selectedRelationId: options.selectedRelationId,
-    includeDimensions: options.mode === 'assembly' ? false : undefined,
+    includeDimensions: options.includeDimensions,
     cassetteMarkContext: options.cassetteMarkContext || {}
   });
 };
