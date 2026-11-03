@@ -306,6 +306,36 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   const reopenedDialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });
   await expect(reopenedDialog.locator(CANVAS).first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
+  await page.waitForTimeout(1200);
+  const initialView = await frameOf(reopenedDialog).then(frame => frame.evaluate(() => {
+    const sketch = window.cadcraft.doc.all().filter(entity => entity.shapeId != null);
+    const points = sketch.flatMap(entity => (
+      entity.type === 'poly'
+        ? entity.pts
+        : entity.type === 'line'
+          ? [{ x: entity.x1, y: entity.y1 }, { x: entity.x2, y: entity.y2 }]
+          : entity.type === 'circle'
+            ? [{ x: entity.cx, y: entity.cy }]
+            : []
+    ));
+    const bounds = points.reduce((box, point) => ({
+      minX: Math.min(box.minX, point.x),
+      minY: Math.min(box.minY, point.y),
+      maxX: Math.max(box.maxX, point.x),
+      maxY: Math.max(box.maxY, point.y)
+    }), { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+    const center = { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 };
+    return {
+      screen: window.cadcraft.view.toScreen(center.x, center.y),
+      width: window.cadcraft.view.w,
+      height: window.cadcraft.view.h
+    };
+  }));
+  expect(initialView.screen.x, 'the placed sketch is in view horizontally').toBeGreaterThan(0);
+  expect(initialView.screen.x).toBeLessThan(initialView.width);
+  expect(initialView.screen.y, 'the placed sketch is in view vertically').toBeGreaterThan(0);
+  expect(initialView.screen.y).toBeLessThan(initialView.height);
+  await page.screenshot({ path: '.playwright/cassette-inplace-context.png' });
   const reopenedModeBox = await reopenedDialog.boundingBox();
   expect(Math.abs(reopenedModeBox.width - workspaceBox.width), 'the reopened sketch fills the canvas').toBeLessThan(2);
   const movedCamera = await moveSketchCamera(reopenedDialog);
@@ -362,9 +392,6 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(placed.contextCount, 'the assembly draws around the sketch').toBeGreaterThan(0);
   expect(placed.sketchCount, 'the authored sketch seeds on its own layer').toBeGreaterThan(0);
   expect(placed.centerInContext, 'the sketch sits inside the assembly bounds').toBe(true);
-  await reopenedDialog.getByRole('button', { name: 'Fit to view' }).click();
-  await page.waitForTimeout(600);
-  await page.screenshot({ path: '.playwright/cassette-inplace-context.png' });
   const reopened = await nativeDims(reopenedDialog);
   expectDrawingScale(reopened);
   const reopenedDiameter = reopened.find(dim => dim.field === 'diameter');

@@ -1875,7 +1875,7 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       watch(() => [props.contextEntities, props.contextLayers, props.canvasFrame], () => {
         lastAnnotationFingerprint = '';
-        if (host) reseedFromModel({ force: true, fit: false });
+        if (host) reseedFromModel({ force: true, fit: !props.initialView });
       }, { deep: true });
 
       watch(() => props.externalParameters, () => {
