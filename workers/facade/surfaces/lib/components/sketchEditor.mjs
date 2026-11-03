@@ -1615,7 +1615,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // sketch's expression table (owner direction 2026-10-18).
       const renderParameterStrip = () => {
         const sketch = normalizeOccsProfileSketch(props.modelValue || {});
-        return h('div', { class: 'flex shrink-0 flex-wrap items-center gap-1 bg-content py-1.5', style: { paddingLeft: 'calc(var(--designer-palette-width, 17rem) + 0.75rem)', paddingRight: 'calc(var(--designer-inspector-width, 19rem) + 0.75rem)' } }, [
+        return h('div', { class: 'pointer-events-auto flex shrink-0 flex-wrap items-center gap-1 bg-content py-1.5', style: { paddingLeft: 'calc(var(--designer-palette-width, 17rem) + 0.75rem)', paddingRight: 'calc(var(--designer-inspector-width, 19rem) + 0.75rem)' } }, [
           h('span', { class: 'font-mono text-xs text-muted' }, 'fx'),
           ...Object.entries(sketch.parameters).map(([key, value]) => h('div', {
             key,
@@ -1949,7 +1949,7 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       return () => h('div', {
         ref: rootRef,
-        class: 'flex min-h-0 flex-1 flex-col',
+        class: 'pointer-events-none flex min-h-0 flex-1 flex-col',
         'data-keyboard-scope': 'cad'
       }, [
         importError.value

@@ -3232,7 +3232,7 @@ export default function createSurface({ vue, components, locale, queries, record
             ];
         return h('section', {
           class: [
-            'absolute inset-0 z-[10] flex min-h-0 flex-col overflow-hidden',
+            'absolute inset-0 z-[10] flex min-h-0 flex-col overflow-hidden pointer-events-none',
             open ? '' : 'invisible pointer-events-none'
           ],
           'data-sketch-mode': active || undefined,
@@ -3240,7 +3240,7 @@ export default function createSurface({ vue, components, locale, queries, record
           'aria-label': title
         }, [
           h('div', {
-            class: 'flex shrink-0 flex-wrap items-center gap-2 bg-content pb-2 pt-14',
+            class: 'pointer-events-auto flex shrink-0 flex-wrap items-center gap-2 bg-content pb-2 pt-14',
             style: {
               paddingLeft: 'calc(var(--designer-palette-width, 17rem) + 0.75rem)',
               paddingRight: 'calc(var(--designer-inspector-width, 19rem) + 0.75rem)'
@@ -3265,7 +3265,7 @@ export default function createSurface({ vue, components, locale, queries, record
           face
             ? null
             : h('div', {
-                class: 'flex shrink-0 flex-wrap items-center gap-2 bg-content pb-2',
+                class: 'pointer-events-auto flex shrink-0 flex-wrap items-center gap-2 bg-content pb-2',
                 style: {
                   paddingLeft: 'calc(var(--designer-palette-width, 17rem) + 0.75rem)',
                   paddingRight: 'calc(var(--designer-inspector-width, 19rem) + 0.75rem)'
