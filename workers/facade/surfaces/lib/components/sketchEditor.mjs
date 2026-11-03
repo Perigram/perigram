@@ -1817,17 +1817,16 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!host) return;
         const queued = pendingCommand ? [pendingCommand] : [];
         pendingCommand = null;
-        if (!props.initialView && !normalizeOccsProfileSketch(props.modelValue || {}).shapes.length) {
+        if (props.initialView) {
+          host.restoreView(props.initialView);
+          pendingView = null;
+        } else if (!normalizeOccsProfileSketch(props.modelValue || {}).shapes.length) {
           zoomToBlankWindow(queued);
         } else if (queued.length) {
           host.run(queued[0]);
         }
         emitSketch();
         resetSketchHistory();
-        if (pendingView) {
-          host.restoreView(pendingView);
-          pendingView = null;
-        }
         canvasReady.value = true;
       };
 

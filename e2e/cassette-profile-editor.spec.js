@@ -67,7 +67,7 @@ const clickDim = async (page, dialog, fieldKey) => {
     return window.cadcraft.view.toScreen(text.x, text.y);
   }, fieldKey);
   expect(point, `${fieldKey} dimension exists`).toBeTruthy();
-  const box = await dialog.locator(CANVAS).first().boundingBox();
+  const box = await page.locator('.designer-workspace__canvas iframe').first().boundingBox();
   await page.mouse.click(box.x + point.x, box.y + point.y);
   const input = dialog.locator('input.profile-dim');
   await expect(input).toBeVisible({ timeout: 10_000 });
