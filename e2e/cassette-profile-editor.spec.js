@@ -282,6 +282,8 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await page.waitForTimeout(2000);
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: '.playwright/cassette-assembly-native.png' });
 
   // Parameter fields rebuild on commit only: typing into the placed
   // workpiece's instance chip changes nothing until Enter.
@@ -302,8 +304,6 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(await canvasSignature(), 'Enter commits and rebuilds').not.toBe(before);
 
   const assemblyBefore = await assemblyViewBox(page);
-  await page.waitForTimeout(1200);
-  await page.screenshot({ path: '.playwright/cassette-assembly-native.png' });
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
   const reopenedDialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });

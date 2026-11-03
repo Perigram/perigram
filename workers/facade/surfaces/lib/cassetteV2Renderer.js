@@ -4365,6 +4365,7 @@ export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), 
 // locked layers keep extraction on the authored sketch.
 export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
   if (!drawing?.layers?.length) return null;
+  const cassetteDimStyle = { ...OCCS_DIM_STYLE, txt: 12, asz: 12, exe: 6, exo: 3, gap: 3, dli: 18 };
   const isDimensionLayer = (layer) => (
     layer.role === 'dimension' || layer.standardCode === OCCS_LAYER_DIMENSION_CASSETTE
   );
@@ -4423,7 +4424,7 @@ export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
         loc: { x: Number(path.x) || 0, y: -(Number(path.y) || 0) },
         rot: Math.atan2(to.y - from.y, to.x - from.x),
         text: String(path.text ?? path.designerControl.value ?? ''),
-        st: OCCS_DIM_STYLE,
+        st: cassetteDimStyle,
         layer: layerName,
         cassette: {
           nodeId: path.designerControl.nodeId,
