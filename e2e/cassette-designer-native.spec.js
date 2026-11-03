@@ -9,7 +9,9 @@ const hostState = async (canvas) => {
   const frame = await handle.contentFrame();
   return {
     layers: () => frame.evaluate(() => [...window.cadcraft.doc.layers.values()].map(layer => ({ name: layer.name, on: layer.on }))),
-    dimensions: () => frame.evaluate(() => window.cadcraft.doc.all().filter(entity => entity.type === 'dim').length),
+    dimensions: () => frame.evaluate(() => window.cadcraft.doc.all()
+      .filter(entity => entity.type === 'dim')
+      .map(entity => ({ text: entity.text, color: entity.color }))),
     hatches: () => frame.evaluate(() => window.cadcraft.doc.all()
       .filter(entity => entity.type === 'hatch')
       .map(entity => ({ tr: entity.tr, loops: entity.loops.length })))
@@ -43,7 +45,9 @@ test('designer canvas paints native dimensions and the palette drives every laye
   ));
   expect(svgText, 'the SVG paints no dimension labels').toEqual([]);
   const host = await hostState(canvas);
-  expect(await host.dimensions(), 'the host paints the cassette dimensions').toBeGreaterThan(0);
+  const dims = await host.dimensions();
+  expect(dims.map(dim => dim.text), 'the host paints the cassette dimensions').toEqual(expect.arrayContaining(['A', 'B']));
+  expect(dims.every(dim => dim.color === 7), 'native dimensions draw in the canvas ink').toBe(true);
   expect((await host.hatches())[0], 'the face layer is a native hatch').toMatchObject({ tr: 90, loops: 1 });
   const painted = await canvas.screenshot();
 

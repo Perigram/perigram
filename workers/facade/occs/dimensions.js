@@ -95,7 +95,6 @@ const mul = (point, scalar) => [point[0] * scalar, point[1] * scalar];
 const dot = (left, right) => left[0] * right[0] + left[1] * right[1];
 const length = (point) => Math.hypot(point[0], point[1]);
 const midpoint = (left, right) => [(left[0] + right[0]) / 2, (left[1] + right[1]) / 2];
-const svgPoint = (point) => [numeric(point[0]), -numeric(point[1])];
 
 const polygonCentroid = (points = []) => {
   if (!points.length) return [0, 0];
@@ -135,7 +134,7 @@ const dimensionOffset = ({ points = [], from, to, centroid, outsideOffset = 34 }
     : { normal: outward, offset: outsideOffset };
 };
 
-const dimensionPath = ({ points = [], from, to, centroid, offset = 34, label, id, control = null }) => {
+const dimensionAnnotation = ({ points = [], from, to, centroid, offset = 34, label, control = null }) => {
   const { normal, offset: resolvedOffset } = dimensionOffset({
     points,
     from,
@@ -146,33 +145,8 @@ const dimensionPath = ({ points = [], from, to, centroid, offset = 34, label, id
   const dimFrom = add(from, mul(normal, resolvedOffset));
   const dimTo = add(to, mul(normal, resolvedOffset));
   const textPoint = add(midpoint(dimFrom, dimTo), mul(normal, 11));
-  const [fromX, fromY] = svgPoint(from);
-  const [toX, toY] = svgPoint(to);
-  const [dimFromX, dimFromY] = svgPoint(dimFrom);
-  const [dimToX, dimToY] = svgPoint(dimTo);
-  const [textX, textY] = svgPoint(textPoint);
 
   return {
-    paths: [
-      {
-        id: `${id}_line`,
-        d: `M ${fromX} ${fromY} L ${dimFromX} ${dimFromY} M ${toX} ${toY} L ${dimToX} ${dimToY} M ${dimFromX} ${dimFromY} L ${dimToX} ${dimToY}`,
-        fill: 'none',
-        stroke: 'layer'
-      },
-      {
-        id: `${id}_text`,
-        kind: 'text',
-        x: textX,
-        y: textY,
-        text: label,
-        designerControl: control,
-        fill: 'layer',
-        fontSize: 12,
-        textAnchor: 'middle',
-        dominantBaseline: 'middle'
-      }
-    ],
     extentPoints: [from, to, dimFrom, dimTo, textPoint],
     annotation: control
       ? {
@@ -230,9 +204,9 @@ const resolvedDimensionLabel = (curve, kind, fallback, options = {}) => {
 };
 
 export const buildOccsDimensionLayerFromFaceCurves = (curves = [], options = {}) => {
-  const paths = [];
   const extentPoints = [];
   const annotations = [];
+  let dimensionCount = 0;
 
   for (const curve of curves) {
     const points = withoutClosingVertex(curve.boundaryVertices || curve.vertices || []).map(point2d);
@@ -263,15 +237,13 @@ export const buildOccsDimensionLayerFromFaceCurves = (curves = [], options = {})
       if (!dimension.segment || !dimension.label) continue;
       const [from, to] = dimension.segment;
       if (length(sub(to, from)) <= 0.001) continue;
-      const id = `dim_${curve.node?.id || curve.id || 'face'}_${dimension.kind}`;
-      const rendered = dimensionPath({
+      const rendered = dimensionAnnotation({
         points,
         from,
         to,
         centroid,
         offset: dimension.kind === 'height' ? 44 : 34,
         label: dimension.label,
-        id,
         control: curve.node?.id
           ? {
               nodeId: curve.node.id,
@@ -281,13 +253,13 @@ export const buildOccsDimensionLayerFromFaceCurves = (curves = [], options = {})
             }
           : null
       });
-      paths.push(...rendered.paths);
+      dimensionCount += 1;
       extentPoints.push(...rendered.extentPoints);
       if (rendered.annotation) annotations.push(rendered.annotation);
     }
   }
 
-  if (!paths.length) return null;
+  if (!dimensionCount) return null;
   return {
     annotations,
     layer: {
@@ -297,7 +269,7 @@ export const buildOccsDimensionLayerFromFaceCurves = (curves = [], options = {})
       color: 'currentColor',
       weight: 1,
       dasharray: 'none',
-      paths
+      paths: []
     },
     extentPoints
   };

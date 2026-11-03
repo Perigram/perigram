@@ -425,6 +425,7 @@ export const normalizeGeometryDrawing = (source, options = {}) => {
       designerSections: preview.designerSections || { handles: [], segments: [] },
       designerEdges: preview.designerEdges || [],
       designerAttachmentMarkers: preview.designerAttachmentMarkers || [],
+      dimensionAnnotations: preview.dimensionAnnotations || [],
       foldedPreview: preview.foldedPreview || { faces: [], folds: [] },
       layers: layers.map(layer => ({
         name: layer.name || 'geometry',
