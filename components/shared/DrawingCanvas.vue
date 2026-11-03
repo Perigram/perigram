@@ -332,11 +332,15 @@ const refresh = async () => {
     const nextDrawing = await resolveDrawing();
     if (token !== resolveToken) return;
     const previousViewBox = drawing.value?.viewBox;
+    const previousHadGeometry = Boolean(drawing.value?.layers?.length);
     drawing.value = nextDrawing;
     if (!isLayerVisibilityControlled.value) {
       visibleLayers.value = nextDrawing?.layers?.map(layer => layer.name) || [];
     }
-    if (!previousViewBox || (previousViewBox !== nextDrawing?.viewBox && !props.preserveViewport)) {
+    const nextHasGeometry = Boolean(nextDrawing?.layers?.length);
+    if (!previousViewBox
+      || (previousViewBox !== nextDrawing?.viewBox && !props.preserveViewport)
+      || (!previousHadGeometry && nextHasGeometry)) {
       viewBox.value = applyPreviewInset(parseViewBox(nextDrawing?.viewBox));
     }
     emit('ready', nextDrawing);

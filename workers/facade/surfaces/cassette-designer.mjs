@@ -1069,6 +1069,7 @@ export default function createSurface({ vue, components, locale, queries, record
 
       let previewToken = 0;
       let previewTimer = null;
+      let drawingReadyScope = '';
       const PREVIEW_RENDER_DELAY_MS = 120;
 
       const renderPreview = async (treeSnapshot, optionsSnapshot = {}) => {
@@ -1406,6 +1407,11 @@ export default function createSurface({ vue, components, locale, queries, record
       const layerInputId = (row) => `cassette-v2-layer-${String(row.key).replace(/[^A-Za-z0-9_-]/g, '-')}`;
 
       const handleDrawingReady = async (drawing) => {
+        const scope = `${selectedTemplateId.value || 'draft'}:${previewMode.value}:${previewWorkpieceId.value || ''}`;
+        if (drawing?.layers?.length && scope !== drawingReadyScope) {
+          drawingReadyScope = scope;
+          drawingCanvasRef.value?.resetView?.();
+        }
         const layers = Array.isArray(drawing?.layers) ? drawing.layers : [];
         syncVisibleLayersForDrawing(layers);
         if (layers.some(layer => layer.standardCode || layer.standardId || layer.penId)) {
