@@ -35,6 +35,7 @@ test('profile canvas keeps its own parameter rows, Escape, and history', async (
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const inspector = page.locator('.designer-workspace__inspector').first();
+  const tools = page.locator('.designer-workspace__palette');
   const canvas = dialog.locator(CANVAS).first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
@@ -42,7 +43,7 @@ test('profile canvas keeps its own parameter rows, Escape, and history', async (
   const box = await canvas.boundingBox();
   const click = async (fx, fy) => page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
   const drawRect = async (from, to) => {
-    const button = dialog.locator('button[aria-label="Rectangle"]').first();
+    const button = tools.locator('button[aria-label="Rectangle"]').first();
     await button.click();
     await expect(button).toHaveClass(/p-button-primary/, { timeout: 15_000 });
     await page.waitForTimeout(200);
@@ -78,7 +79,7 @@ test('profile canvas keeps its own parameter rows, Escape, and history', async (
   await page.waitForTimeout(600);
 
   // Escape cancels the active draw command and the sketch mode stays.
-  const lineButton = dialog.locator('button[aria-label="Line"]').first();
+  const lineButton = tools.locator('button[aria-label="Line"]').first();
   await lineButton.click();
   await expect(lineButton).toHaveClass(/p-button-primary/, { timeout: 15_000 });
   await page.keyboard.press('Escape');

@@ -79,12 +79,13 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
   const inspector = page.locator('.designer-workspace__inspector').first();
+  const tools = page.locator('.designer-workspace__palette');
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   await expect(dialog.locator('[role="application"]').first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
   await expect(inspector.locator('input[aria-label^="Parameter name"]')).toHaveCount(0);
 
   // Author one rectangle through the CAD engine's command lifecycle.
-  const drawButton = dialog.locator('button[aria-label="Rectangle"]').first();
+  const drawButton = tools.locator('button[aria-label="Rectangle"]').first();
   await drawButton.click();
   await expect(drawButton, 'Rectangle command started').toHaveClass(/p-button-primary/, { timeout: 15_000 });
   await page.waitForTimeout(150);
@@ -140,7 +141,6 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   // parameter, and the pane with it selected shows the assembly it is
   // placed in.
   await openProfilePopup(page);
-  await expect(page.locator('aside').getByRole('button', { name: 'Add profile' })).toHaveCount(0);
   await expect(page.locator('aside').getByRole('button', { name: 'Positioning' })).toHaveCount(0);
   const chipW = chipField(page, 'W');
   await expect(chipW).toBeVisible({ timeout: 20_000 });
@@ -273,12 +273,13 @@ test('a dimension edit over an instance override writes the override; clearing s
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
   const inspector = page.locator('.designer-workspace__inspector').first();
+  const tools = page.locator('.designer-workspace__palette');
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const canvas = dialog.locator('[role="application"]').first();
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
 
   const drawRectangle = async () => {
-    const drawButton = dialog.locator('button[aria-label="Rectangle"]').first();
+    const drawButton = tools.locator('button[aria-label="Rectangle"]').first();
     await drawButton.click();
     await expect(drawButton).toHaveClass(/p-button-primary/, { timeout: 15_000 });
     await page.waitForTimeout(150);
@@ -362,7 +363,7 @@ test('a dimension edit over an instance override writes the override; clearing s
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
   await dialog.getByRole('button', { name: 'Clear canvas' }).click();
   await expect(inspector.locator('button[aria-label^="Rectangle s"]')).toHaveCount(0);
-  await expect(dialog.locator('button[aria-label="Undo"]').first()).toBeDisabled();
+  await expect(tools.locator('button[aria-label="Undo"]').first()).toBeDisabled();
 
   // A sketch bound to a cassette global has no authored row to store in
   // the library: the workpiece saves, the library record refuses.
@@ -395,6 +396,7 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
   const inspector = page.locator('.designer-workspace__inspector').first();
+  const tools = page.locator('.designer-workspace__palette');
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const canvas = dialog.locator('div[role="application"]');
   await expect(canvas).toBeVisible({ timeout: 60_000 });
@@ -404,7 +406,7 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await expect(inspector.locator('input[aria-label^="Parameter name"]')).toHaveCount(0);
 
   // Author one rectangle through the engine's command lifecycle.
-  const drawButton = dialog.locator('button[aria-label="Rectangle"]').first();
+  const drawButton = tools.locator('button[aria-label="Rectangle"]').first();
   await drawButton.click();
   await expect(drawButton, 'Rectangle command started').toHaveClass(/p-button-primary/, { timeout: 15_000 });
   await page.waitForTimeout(150);
@@ -491,12 +493,13 @@ test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
   const inspector = page.locator('.designer-workspace__inspector').first();
+  const tools = page.locator('.designer-workspace__palette');
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   await expect(dialog.locator('[role="application"]').first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
 
   // Author one shape with an operation (the save gate): a rectangle
   // through the CAD engine's command lifecycle.
-  const drawButton = dialog.locator('button[aria-label="Rectangle"]').first();
+  const drawButton = tools.locator('button[aria-label="Rectangle"]').first();
   await drawButton.click();
   await expect(drawButton, 'Rectangle command started').toHaveClass(/p-button-primary/, { timeout: 15_000 });
   await page.waitForTimeout(150);

@@ -125,12 +125,15 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await app.gotoClient(list.route);
   await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
   await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
+  const inspector = page.locator('.designer-workspace__inspector').first();
+  await expect(inspector.getByRole('button', { name: 'Add profile' })).toBeVisible();
+  expect(await page.locator('[data-designer-toolbar]').getByRole('button', { name: 'Add profile' }).count()).toBe(0);
 
-  await page.getByRole('button', { name: 'Add profile' }).click();
+  await inspector.getByRole('button', { name: 'Add profile' }).click();
   await page.getByRole('button', { name: /Create new|New profile/ }).first().click();
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
-  const inspector = page.locator('.designer-workspace__inspector').first();
+  const tools = page.locator('.designer-workspace__palette');
   await expect(inspector.getByRole('button', { name: 'Back to cassette' })).toBeVisible({ timeout: 10_000 });
   await expect(inspector.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
   await expect(page.locator('.designer-workspace__canvas [data-sketch-mode="profile"]')).toHaveCount(1);
@@ -164,7 +167,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
 
   // The circle first; the rect follows in the far quadrant.
   const runDrawTool = async (tool, from, to) => {
-    const button = dialog.locator(`button[aria-label="${tool}"]`).first();
+    const button = tools.locator(`button[aria-label="${tool}"]`).first();
     await button.click();
     await expect(button, `${tool} command started`).toHaveClass(/p-button-primary/, { timeout: 15_000 });
     await page.waitForTimeout(150);
@@ -291,7 +294,8 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   const treeText = await inspector.innerText();
   expect(treeText, 'the inspector tree starts at the workpiece').toContain('Workpiece 1');
   expect(treeText, 'the face row separates the workpiece from its profiles').toContain('main');
-  expect(treeText, 'the placed profile nests under the face').toContain('Hanger profile');
+  await inspector.getByRole('button', { name: 'main' }).first().click();
+  await expect(inspector, 'the selected face details list its placed profiles').toContainText('Hanger profile');
   const assemblyNativeDims = await frameOf(dialog).then(frame => frame.evaluate(() => (
     window.cadcraft.doc.all().filter(entity => entity.type === 'dim').length
   )));
@@ -323,6 +327,12 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
 
   const assemblyBefore = await assemblyViewBox(page);
   const cameraBefore = await cadCameraOf(page);
+  const faceLayer = page.locator('.designer-workspace__palette').getByLabel('1_1_Лицо_Кассеты').first();
+  await faceLayer.click();
+  const hiddenInAssembly = await frameOf(dialog).then(frame => frame.evaluate(() => (
+    window.cadcraft.doc.layers.get('1_1_Лицо_Кассеты')?.on
+  )));
+  expect(hiddenInAssembly, 'the layer row hides the native layer').toBe(false);
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
   const reopenedDialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });
@@ -360,13 +370,10 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(entryCamera.zoom, 'the edit keeps the assembly camera').toBeCloseTo(cameraBefore.zoom, 4);
   expect(entryCamera.cx).toBeCloseTo(cameraBefore.cx, 3);
   expect(entryCamera.cy).toBeCloseTo(cameraBefore.cy, 3);
-  const faceLayer = page.locator('.designer-workspace__palette').getByLabel('1_1_Лицо_Кассеты').first();
-  await faceLayer.click();
   const hiddenInEdit = await frameOf(reopenedDialog).then(frame => frame.evaluate(() => (
     window.cadcraft.doc.layers.get('1_1_Лицо_Кассеты')?.on
   )));
-  expect(hiddenInEdit, 'the layer row hides the native layer during an edit').toBe(false);
-  await faceLayer.click();
+  expect(hiddenInEdit, 'the hidden assembly layer stays hidden during the edit').toBe(false);
   await expect(inspector.locator('.profile-shapes-panel'), 'the shape list lives in the inspector').toBeVisible();
   expect(await inspector.locator('[data-sketch-mode]').count(), 'the inspector is the edit panel').toBe(0);
   await page.screenshot({ path: '.playwright/cassette-inplace-context.png' });
@@ -374,6 +381,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await inspector.getByRole('button', { name: 'Back to cassette' }).click();
   await expect(reopenedDialog).toBeHidden({ timeout: 30_000 });
   expect(await assemblyViewBox(page), 'the assembly camera survives the flip').toBe(assemblyBefore);
+  await faceLayer.click();
 
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
   await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });

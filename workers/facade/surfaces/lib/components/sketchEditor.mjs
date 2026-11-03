@@ -80,7 +80,10 @@ export default function createSketchEditor({ vue, components, locale }) {
       externalHost: { type: Object, default: null },
       // The designer inspector's element: the parameter table and shape
       // list render there while the canvas keeps the sketch.
-      panelTarget: { type: Object, default: null }
+      panelTarget: { type: Object, default: null },
+      // The designer palette's element: the drawing tools render there
+      // while the edit is open.
+      toolsTarget: { type: Object, default: null }
     },
     emits: ['update:modelValue', 'outline-error'],
     setup(props, { emit, expose }) {
@@ -766,7 +769,9 @@ export default function createSketchEditor({ vue, components, locale }) {
       const ownsKeyboardTarget = (target) => {
         const root = rootRef.value;
         if (!root || typeof document === 'undefined') return false;
-        return target === document.body || root.contains(target);
+        return target === document.body
+          || root.contains(target)
+          || Boolean(props.toolsTarget?.contains?.(target));
       };
 
       const handleCanvasKeydown = (event) => {
@@ -1749,6 +1754,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         }, () => [toolIcon(h, tool.icon)]))
       ]);
 
+      const renderToolPanel = () => h('div', {
+        class: 'flex flex-wrap items-center gap-1',
+        'aria-label': t('cassette.v2.profileEditor.preview')
+      }, renderToolGroupButtons(0, 4));
+
       const handleDxfUpload = async (event) => {
         const [file] = Array.from(event.target.files || []);
         event.target.value = '';
@@ -1971,6 +1981,9 @@ export default function createSketchEditor({ vue, components, locale }) {
         props.active && props.panelTarget
           ? h(Teleport, { to: props.panelTarget }, [renderParameterStrip(), renderShapesPanel()])
           : null,
+        props.active && props.toolsTarget
+          ? h(Teleport, { to: props.toolsTarget }, [renderToolPanel()])
+          : null,
         h('input', {
           ref: fileInputRef,
           type: 'file',
@@ -1985,16 +1998,16 @@ export default function createSketchEditor({ vue, components, locale }) {
           'aria-label': t('cassette.v2.profileEditor.preview'),
           'data-cadcraft-ready': canvasReady.value ? 'true' : undefined
         }, [
-              // The tool toolbar floats inside the canvas (the
-              // DesignerWorkspace overlay pattern) — no row of its own.
-          h(Toolbar, {
-            class: 'pointer-events-auto absolute top-14 z-20 max-w-[calc(100%-1rem)] gap-1 overflow-x-auto p-1 shadow-card',
-            style: { left: 'calc(var(--designer-palette-width, 17rem) + 1rem)' },
-            'aria-label': t('cassette.v2.profileEditor.preview')
-          }, {
-            start: () => renderToolGroupButtons(0, 2),
-            end: () => renderToolGroupButtons(2, 4)
-          }),
+          props.active && props.toolsTarget
+            ? null
+            : h(Toolbar, {
+                class: 'pointer-events-auto absolute top-14 z-20 max-w-[calc(100%-1rem)] gap-1 overflow-x-auto p-1 shadow-card',
+                style: { left: 'calc(var(--designer-palette-width, 17rem) + 1rem)' },
+                'aria-label': t('cassette.v2.profileEditor.preview')
+              }, {
+                start: () => renderToolGroupButtons(0, 2),
+                end: () => renderToolGroupButtons(2, 4)
+              }),
           renderDimensionEditor(),
           renderVertexPopup(),
           engineError.value
