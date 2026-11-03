@@ -3630,6 +3630,121 @@ const foldedPreviewForTree = async (curves = [], tree = createCassetteV2GraphTre
   return buildOccsFoldedPreviewPayload({ faces, folds, joints, bodies, cutouts });
 };
 
+const dimensionLabelValue = (value) => {
+  const rounded = Math.round(Number(value) * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+};
+
+const nearestEdgeProjection = (vertices = [], point = [0, 0]) => {
+  let best = null;
+  for (let index = 0; index < vertices.length; index += 1) {
+    const [ax, ay] = vertices[index];
+    const [bx, by] = vertices[(index + 1) % vertices.length];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const lengthSquared = dx * dx + dy * dy;
+    const t = lengthSquared > 0
+      ? Math.max(0, Math.min(1, ((point[0] - ax) * dx + (point[1] - ay) * dy) / lengthSquared))
+      : 0;
+    const x = ax + dx * t;
+    const y = ay + dy * t;
+    const distance = Math.hypot(x - point[0], y - point[1]);
+    if (!best || distance < best.distance) {
+      best = { index, along: t * Math.sqrt(lengthSquared), distance };
+    }
+  }
+  return best;
+};
+
+// A selected profile's placement dimensions run along its parent edge:
+// the edge ends and the profile basis point chain the measured offsets.
+const placementDimensionAnnotations = (curves = [], tree = createCassetteV2GraphTree(), relationId = '') => {
+  if (!relationId) return [];
+  const relation = getCassetteV2WorkpieceRelations(tree)
+    .find(item => item.id === relationId && item.targetFaceId);
+  if (!relation) return [];
+  const targetCurve = curves.find(curve => curve.node.id === relation.targetFaceId);
+  const workpiece = tree.workpieces.find(item => item.id === relation.sourceWorkpieceId);
+  if (!targetCurve || !workpiece) return [];
+  const parameters = treeParameters(tree);
+  const profile = normalizeCassetteV2Profile(workpiece, parameters);
+  const open = profile.section?.open || profile.section?.type === 'polyline';
+  const vertices = withoutClosingVertex(rawFaceVertices(targetCurve))
+    .map(vertex => [numeric(vertex?.[0], 0), numeric(vertex?.[1], 0)]);
+  if (vertices.length < 2) return [];
+  const sectionOperations = resolveOccsProfileSectionOperations(profile.section || {});
+  const sectionYs = (sectionOperations || [])
+    .flatMap(operation => operation.polygons)
+    .flatMap(ring => ring.map(vertex => Number(vertex?.[1])))
+    .filter(Number.isFinite);
+  const edgeExtent = sectionYs.length ? Math.max(...sectionYs) - Math.min(...sectionYs) : 0;
+  let edgeIndex = 0;
+  let alongs = [];
+  if (relation.pattern?.type === 'edgeArray') {
+    edgeIndex = edgeIndexFromLabel(relation.pattern.edge, 0);
+    alongs = expandOccsEdgeArray2d({
+      vertices: rawFaceVertices(targetCurve),
+      pattern: relation.pattern,
+      origin: [relation.offsetX, relation.offsetY],
+      binding: relation.targetSnap,
+      copyLength: edgeExtent,
+      resolve: (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback)
+    }).map(point => point.along);
+  } else {
+    let basis = null;
+    if (open) {
+      const embedding = profileEdgeEmbeddingsForTree(curves, tree)
+        .find(item => item.relationId === relation.id && item.embedding?.ok);
+      basis = embedding?.embedding?.frame?.origin || null;
+    } else {
+      basis = hardwarePointsForRelation(targetCurve, relation, parameters, edgeExtent)[0] || null;
+    }
+    if (!basis) return [];
+    const projection = nearestEdgeProjection(vertices, [numeric(basis[0], 0), numeric(basis[1], 0)]);
+    if (!projection) return [];
+    edgeIndex = projection.index;
+    alongs = [projection.along];
+  }
+  const start = vertices[edgeIndex];
+  const end = vertices[(edgeIndex + 1) % vertices.length];
+  const dx = end[0] - start[0];
+  const dy = end[1] - start[1];
+  const edgeLength = Math.hypot(dx, dy);
+  if (!(edgeLength > 0.001)) return [];
+  const axisX = dx / edgeLength;
+  const axisY = dy / edgeLength;
+  const centroid = centroidForVertices(vertices);
+  const edgeMid = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
+  const normal = ((edgeMid[0] - centroid[0]) * -axisY + (edgeMid[1] - centroid[1]) * axisX) > 0
+    ? [-axisY, axisX]
+    : [axisY, -axisX];
+  const pointsAlong = [0, ...alongs.map(value => Math.max(0, Math.min(edgeLength, value))), edgeLength]
+    .sort((left, right) => left - right)
+    .filter((value, index, list) => index === 0 || value - list[index - 1] > 0.5);
+  const annotations = [];
+  for (let index = 0; index + 1 < pointsAlong.length; index += 1) {
+    const from = pointsAlong[index];
+    const to = pointsAlong[index + 1];
+    if (to - from < 0.5) continue;
+    const p1 = [start[0] + axisX * from, start[1] + axisY * from];
+    const p2 = [start[0] + axisX * to, start[1] + axisY * to];
+    annotations.push({
+      nodeId: null,
+      key: null,
+      dimensionKind: 'placement',
+      from: p1,
+      to: p2,
+      loc: [
+        (p1[0] + p2[0]) / 2 + normal[0] * 34,
+        (p1[1] + p2[1]) / 2 + normal[1] * 34
+      ],
+      rot: Math.atan2(dy, dx),
+      text: dimensionLabelValue(to - from)
+    });
+  }
+  return annotations;
+};
+
 const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   // Profiles modify face geometry (owner law 2026-10-15): the open
   // profile chain splices into the boundary, closed sections and
@@ -3807,6 +3922,21 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
       ) * 1000) / 1000;
     })];
   }));
+  const placementDimensions = placementDimensionAnnotations(drawingCurves, tree, options.selectedRelationId);
+  if (placementDimensions.length) {
+    drawing.dimensionAnnotations = [...(drawing.dimensionAnnotations || []), ...placementDimensions];
+    if (!drawing.layers.some(layer => layer.role === 'dimension' || layer.standardCode === OCCS_LAYER_DIMENSION_CASSETTE)) {
+      drawing.layers.push({
+        name: occsLayerExportName(OCCS_LAYER_DIMENSION_CASSETTE),
+        standardCode: OCCS_LAYER_DIMENSION_CASSETTE,
+        role: 'dimension',
+        color: 'currentColor',
+        weight: 1,
+        dasharray: 'none',
+        paths: []
+      });
+    }
+  }
   // The plugin's layer standards bake the base pens here — every drawing
   // this renderer emits is styled; org-authored standards still override
   // host-side (shadow-by-code over the host transport).

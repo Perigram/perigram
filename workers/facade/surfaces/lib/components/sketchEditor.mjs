@@ -155,6 +155,22 @@ export default function createSketchEditor({ vue, components, locale }) {
           y: frame.mirrorY ? -mirroredY : mirroredY
         };
       };
+      // The placed face in sketch coordinates: the hatch and axis base.
+      const parentFaceRings = () => (
+        faceMode.value
+          ? []
+          : (Array.isArray(props.parentFace) ? props.parentFace : [])
+            .filter(ring => Array.isArray(ring) && ring.length >= 3)
+            .map(ring => ring.map(([x, y]) => {
+              const point = framePointToLocal({ x: Number(x), y: Number(y) });
+              return [point.x, point.y];
+            }))
+      );
+      const parentFaceAxis = () => {
+        const ys = parentFaceRings().flatMap(ring => ring.map(point => point[1]));
+        return ys.length ? { start: Math.min(...ys), end: Math.max(...ys) } : { start: null, end: null };
+      };
+
       const frameVectorToWorld = (vector) => {
         const frame = activeFrame();
         if (!frame) return { x: vector.x, y: vector.y };
@@ -303,15 +319,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             syncAnnotations();
             return;
           }
-          const parentRings = faceMode.value
-            ? []
-            : (Array.isArray(props.parentFace) ? props.parentFace : [])
-              .filter(ring => Array.isArray(ring) && ring.length >= 3)
-              .map(ring => ring.map(([x, y]) => {
-                const point = framePointToLocal({ x: Number(x), y: Number(y) });
-                return [point.x, point.y];
-              }));
-          const base = { polygons: parentRings, holes: [] };
+          const base = { polygons: parentFaceRings(), holes: [] };
           const resolved = await foldCassetteV2Region(
             base,
             resolveOccsProfileSectionOperations(section)
@@ -397,12 +405,15 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!host || disposed) return;
         const { authored, evaluated } = annotationSource(sketch);
         if (!evaluated) return;
+        const axis = faceMode.value ? null : parentFaceAxis();
         const { dimensions, decorations } = buildProfileAnnotations({
           evaluated,
           authored,
           resolvedFace: resolvedFace.value,
           basisStart: faceMode.value ? props.basisStart : null,
           basisEnd: faceMode.value ? props.basisEnd : null,
+          axisStart: axis?.start,
+          axisEnd: axis?.end,
           contextFace: faceMode.value ? props.contextFace : null
         });
         const placedDimensions = dimensions.map(transformAnnotationEntity);

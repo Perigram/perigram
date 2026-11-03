@@ -40,7 +40,7 @@ test('cassette view renders native layers and dimensions with layer control', as
     .toBe(true);
   expect(host.hatches[0], 'the face layer is a native hatch').toMatchObject({ tr: 90, loops: 1 });
   const root = page.locator('[data-cassette-preview-root="true"]').first();
-  const painted = await root.screenshot();
+  const painted = await root.screenshot({ path: '.playwright/cassette-preview-layers-on.png' });
   await root.getByRole('button', { name: 'Layers' }).click();
   const faceLayer = root.locator('label').filter({ hasText: '1_1_Лицо_Кассеты' }).first();
   await faceLayer.click();
