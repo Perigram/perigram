@@ -3712,6 +3712,23 @@ The surface checker cannot resolve the cross-plugin `cadcraft` import in this
 checkout. E2E `cassette-profile-editor` passes (51.2s), including the
 full-bleed box and the assembly/sketch camera roundtrip.
 
+## In-place assembly context in the sketch canvas (owner direction 2026-11-03)
+
+The sketch canvas draws the cassette assembly as a locked context layer in the
+sketch's own coordinates at the target's placement, so profile and face editing
+happens on the assembly. The context is unpickable and the sketch model remains
+the authored truth. The frame comes from the face's assembly transform, a closed
+profile's axis and point placement, or an open profile's edge embedding.
+
+- [ ] WAITING — owner verification: editing a placed profile or face shows the
+  host face and surrounding cassette around the sketch; the context is not
+  selectable; Save returns to the assembly unchanged.
+
+### Agent Notes (2026-11-03, in-place assembly context)
+
+Session `agent/cassette-inplace-context-20261103` (worktree
+`.agent-worktrees/cassette-inplace-context-20261103`). Pending implementation.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the

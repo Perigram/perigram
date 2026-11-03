@@ -503,6 +503,15 @@ take the canvas area as a full-bleed mode, and Back and Save return the
 assembly to the session's camera and selection. Reopening the same target
 restores that target's sketch camera.
 
+Owner direction (2026-11-03, in-place assembly context): the sketch canvas
+draws the cassette assembly as a locked context layer under the authored sketch,
+transformed into the sketch's own coordinates at the target's placement. The
+host face, sibling faces, folds and cuts stay visible around the edited profile
+or face, so the section is authored on the assembly it belongs to. The context
+layer is unpickable; the sketch model remains the single authored truth. The
+frame comes from the target's placement: the face's assembly transform, a
+closed profile's axis and point placement, or an open profile's edge embedding.
+
 Owner direction (2026-11-02, selection and canvas widgets): a face click
 with a profile selected selects that face and leaves the profile relation
 untouched; the face becomes the active selection. Designer chips, handles,
