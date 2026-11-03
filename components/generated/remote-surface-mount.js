@@ -1,4 +1,4 @@
-import { h, ref, shallowRef, computed, reactive, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } from 'vue';
+import { h, ref, shallowRef, computed, reactive, watch, onMounted, onBeforeUnmount, nextTick, defineComponent, Teleport } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
@@ -68,7 +68,7 @@ function surfaceComponentPack() {
   return surfacePack;
 }
 
-const SURFACE_VUE = Object.freeze({ h, ref, shallowRef, computed, reactive, watch, onMounted, onBeforeUnmount, nextTick, defineComponent });
+const SURFACE_VUE = Object.freeze({ h, ref, shallowRef, computed, reactive, watch, onMounted, onBeforeUnmount, nextTick, defineComponent, Teleport });
 
 // Contract 1 mounts the base context; contract 2 (the editor-grade
 // mount) adds queries, notify, and access beside it; contract 3 (the

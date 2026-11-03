@@ -15,6 +15,12 @@ const frameOf = async (dialog) => {
   return handle.contentFrame();
 };
 
+const cadCameraOf = async (page) => {
+  const handle = await page.locator('.designer-workspace__canvas iframe').first().elementHandle();
+  const frame = await handle.contentFrame();
+  return frame.evaluate(() => ({ ...window.cadcraft.view.snapshot() }));
+};
+
 const nativeDims = async (dialog) => {
   const frame = await frameOf(dialog);
   return frame.evaluate(() => (window.cadcraft?.doc.all() || [])
@@ -124,10 +130,10 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await page.getByRole('button', { name: /Create new|New profile/ }).first().click();
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
-  const workspaceBox = await page.locator('.designer-workspace__canvas').first().boundingBox();
-  const modeBox = await dialog.boundingBox();
-  expect(Math.abs(modeBox.width - workspaceBox.width), 'the sketch mode fills the canvas').toBeLessThan(2);
-  expect(Math.abs(modeBox.height - workspaceBox.height), 'the sketch mode fills the canvas').toBeLessThan(2);
+  const inspector = page.locator('.designer-workspace__inspector').first();
+  await expect(inspector.getByRole('button', { name: 'Back to cassette' })).toBeVisible({ timeout: 10_000 });
+  await expect(inspector.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+  await expect(page.locator('.designer-workspace__canvas [data-sketch-mode="profile"]')).toHaveCount(1);
   const canvas = dialog.locator(CANVAS).first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
@@ -173,8 +179,8 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await runDrawTool('Rectangle', [0.30, 0.60], [0.60, 0.85]);
 
   // The primitives panel lists every shape as a row with its op state.
-  const circleRow = dialog.locator('button[aria-label^="Circle s"]').first();
-  const rectRow = dialog.locator('button[aria-label^="Rectangle s"]').first();
+  const circleRow = inspector.locator('button[aria-label^="Circle s"]').first();
+  const rectRow = inspector.locator('button[aria-label^="Rectangle s"]').first();
   await expect(circleRow, 'the drawn circle lists in the panel').toBeVisible({ timeout: 10_000 });
   await expect(rectRow, 'the drawn rect lists in the panel').toBeVisible({ timeout: 10_000 });
   await expect(circleRow.locator('.p-tag')).toHaveText('Subtract');
@@ -187,7 +193,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(drawnDims.some(dim => dim.field === 'diameter'), 'the circle carries a diameter dimension').toBe(true);
 
   // The op control rides the selected row; switching it regroups the list.
-  const rowBlock = (kind) => dialog.locator(`button[aria-label^="${kind} s"]`)
+  const rowBlock = (kind) => inspector.locator(`button[aria-label^="${kind} s"]`)
     .locator('xpath=ancestor::div[contains(@class,"border-b")]');
   const circleOps = () => rowBlock('Circle').locator('.p-selectbutton').getByRole('button');
   await circleRow.click();
@@ -198,14 +204,14 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await expect(circleOps().filter({ hasText: 'Subtract' })).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 });
 
   // Rows follow the authored CSG sequence (drawing order).
-  const panelOrder = await dialog.locator('.profile-shapes-panel').evaluate(panel => (
+  const panelOrder = await inspector.locator('.profile-shapes-panel').evaluate(panel => (
     Array.from(panel.querySelectorAll('button[aria-label]'))
       .map(button => button.getAttribute('aria-label'))
       .filter(label => /^((Rectangle)|(Circle)) s/.test(label || ''))
   ));
   expect(panelOrder[0]?.startsWith('Circle'), `sequence follows drawing order: ${panelOrder.join(', ')}`).toBe(true);
   expect(panelOrder[1]?.startsWith('Rectangle'), `sequence follows drawing order: ${panelOrder.join(', ')}`).toBe(true);
-  const metrics = await dialog.locator('.profile-shapes-panel').evaluate(panel => {
+  const metrics = await inspector.locator('.profile-shapes-panel').evaluate(panel => {
     const rows = Array.from(panel.children);
     const rect = panel.getBoundingClientRect();
     return {
@@ -220,7 +226,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
 
   // The shape's property fields edit in place. The row stays selected
   // from the op switch.
-  const circleDiameterField = dialog.locator('input[aria-label^="d s"]').first();
+  const circleDiameterField = inspector.locator('input[aria-label^="d s"]').first();
   await expect(circleDiameterField).toBeVisible({ timeout: 10_000 });
   await circleDiameterField.click();
   await page.keyboard.press('ControlOrMeta+a');
@@ -236,7 +242,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await rectRow.click();
   await rowBlock('Rectangle').getByRole('button', { name: /^Move earlier/ }).click();
   await page.waitForTimeout(400);
-  const reordered = await dialog.locator('.profile-shapes-panel').evaluate(panel => (
+  const reordered = await inspector.locator('.profile-shapes-panel').evaluate(panel => (
     Array.from(panel.querySelectorAll('button[aria-label]'))
       .map(button => button.getAttribute('aria-label'))
       .filter(label => /^((Rectangle)|(Circle)) s/.test(label || ''))
@@ -254,9 +260,9 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   // Bind the circle's diameter to a parameter: add one, then type its
   // name into the diameter dimension — the native label becomes the
   // parameter's editor.
-  await dialog.getByRole('button', { name: 'Add parameter' }).click();
+  await inspector.getByRole('button', { name: 'Add parameter' }).click();
   await page.waitForTimeout(400);
-  const valueInput = dialog.locator('input[aria-label="A"], input[aria-label="P1"]').last();
+  const valueInput = inspector.locator('input[aria-label="A"], input[aria-label="P1"]').last();
   await expect(valueInput).toBeVisible({ timeout: 5000 });
   await valueInput.click();
   await page.keyboard.press('ControlOrMeta+a');
@@ -273,15 +279,25 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   // live evaluation.
   await typeDim(page, dialog, 'diameter', '=');
   await expect(circleRow, 'the panel survives an invalid expression').toBeVisible();
-  await expect(dialog.locator('.profile-shapes-panel')).toContainText('Circle');
+  await expect(inspector.locator('.profile-shapes-panel')).toContainText('Circle');
   expect((await nativeDims(dialog)).length, 'native dimensions survive an invalid expression').toBeGreaterThan(0);
   await typeDim(page, dialog, 'diameter', 'A');
   expect((await nativeDims(dialog)).find(dim => dim.field === 'diameter')?.text).toBe('A');
 
   // Save places the profile; reopening it shows the same authored state.
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await page.waitForTimeout(2000);
+  const treeText = await inspector.innerText();
+  expect(treeText, 'the inspector tree starts at the workpiece').toContain('Workpiece 1');
+  expect(treeText, 'the face row separates the workpiece from its profiles').toContain('main');
+  expect(treeText, 'the placed profile nests under the face').toContain('Hanger profile');
+  const assemblyNativeDims = await frameOf(dialog).then(frame => frame.evaluate(() => (
+    window.cadcraft.doc.all().filter(entity => entity.type === 'dim').length
+  )));
+  expect(assemblyNativeDims, 'the assembly canvas draws native dimensions').toBeGreaterThan(0);
+  await expect(page.locator('.designer-workspace__palette'), 'the dimension layer is a canvas layer row')
+    .toContainText('5_1_Размер_Кассета');
   await page.waitForTimeout(1200);
   await page.screenshot({ path: '.playwright/cassette-assembly-native.png' });
 
@@ -291,6 +307,8 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     .evaluate(root => Array.from(root.querySelectorAll('path'))
       .map(path => path.getAttribute('d')).filter(Boolean).sort().join('|').length);
   await page.locator('[data-designer-profile-id]').first().dispatchEvent('click');
+  await expect(inspector.getByText('Snap', { exact: true }), 'the profile editor lives in the inspector').toBeVisible();
+  await expect(page.locator('.designer-workspace__canvas').getByText('Snap', { exact: true })).toHaveCount(0);
   const chip = page.locator('input[aria-label^="Parameters A"]').first();
   await expect(chip).toBeVisible({ timeout: 20_000 });
   const before = await canvasSignature();
@@ -304,6 +322,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(await canvasSignature(), 'Enter commits and rebuilds').not.toBe(before);
 
   const assemblyBefore = await assemblyViewBox(page);
+  const cameraBefore = await cadCameraOf(page);
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
   const reopenedDialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });
@@ -337,11 +356,22 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(initialView.screen.x).toBeLessThan(initialView.width);
   expect(initialView.screen.y, 'the placed sketch is in view vertically').toBeGreaterThan(0);
   expect(initialView.screen.y).toBeLessThan(initialView.height);
+  const entryCamera = await sketchCamera(reopenedDialog);
+  expect(entryCamera.zoom, 'the edit keeps the assembly camera').toBeCloseTo(cameraBefore.zoom, 4);
+  expect(entryCamera.cx).toBeCloseTo(cameraBefore.cx, 3);
+  expect(entryCamera.cy).toBeCloseTo(cameraBefore.cy, 3);
+  const faceLayer = page.locator('.designer-workspace__palette').getByLabel('1_1_Лицо_Кассеты').first();
+  await faceLayer.click();
+  const hiddenInEdit = await frameOf(reopenedDialog).then(frame => frame.evaluate(() => (
+    window.cadcraft.doc.layers.get('1_1_Лицо_Кассеты')?.on
+  )));
+  expect(hiddenInEdit, 'the layer row hides the native layer during an edit').toBe(false);
+  await faceLayer.click();
+  await expect(inspector.locator('.profile-shapes-panel'), 'the shape list lives in the inspector').toBeVisible();
+  expect(await inspector.locator('[data-sketch-mode]').count(), 'the inspector is the edit panel').toBe(0);
   await page.screenshot({ path: '.playwright/cassette-inplace-context.png' });
-  const reopenedModeBox = await reopenedDialog.boundingBox();
-  expect(Math.abs(reopenedModeBox.width - workspaceBox.width), 'the reopened sketch fills the canvas').toBeLessThan(2);
-  const movedCamera = await moveSketchCamera(reopenedDialog);
-  await reopenedDialog.getByRole('button', { name: 'Back to cassette' }).click();
+  await moveSketchCamera(reopenedDialog);
+  await inspector.getByRole('button', { name: 'Back to cassette' }).click();
   await expect(reopenedDialog).toBeHidden({ timeout: 30_000 });
   expect(await assemblyViewBox(page), 'the assembly camera survives the flip').toBe(assemblyBefore);
 
@@ -350,9 +380,9 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await expect(reopenedDialog.locator(CANVAS).first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
   await page.waitForTimeout(600);
   const restoredCamera = await sketchCamera(reopenedDialog);
-  expect(restoredCamera.zoom, 'the target reopens at its session camera').toBeCloseTo(movedCamera.zoom, 4);
-  expect(restoredCamera.cx).toBeCloseTo(movedCamera.cx, 3);
-  expect(restoredCamera.cy).toBeCloseTo(movedCamera.cy, 3);
+  expect(restoredCamera.zoom, 'the target reopens at the assembly camera').toBeCloseTo(cameraBefore.zoom, 4);
+  expect(restoredCamera.cx).toBeCloseTo(cameraBefore.cx, 3);
+  expect(restoredCamera.cy).toBeCloseTo(cameraBefore.cy, 3);
   const placed = await frameOf(reopenedDialog).then(frame => frame.evaluate(() => {
     const doc = window.cadcraft.doc;
     const annotationLayers = ['perigram-profile-annotations', 'perigram-profile-dimensions'];
@@ -378,22 +408,29 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     }), { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
     const contextBounds = bounds(pointsOf(context));
     const sketchBounds = bounds(pointsOf(sketch));
+    const cutBounds = bounds(pointsOf(doc.all().filter(entity => String(entity.layer).includes('CUT_INNER'))));
     const center = {
       x: (sketchBounds.minX + sketchBounds.maxX) / 2,
       y: (sketchBounds.minY + sketchBounds.maxY) / 2
+    };
+    const cutCenter = {
+      x: (cutBounds.minX + cutBounds.maxX) / 2,
+      y: (cutBounds.minY + cutBounds.maxY) / 2
     };
     return {
       lockedLayers,
       contextCount: context.length,
       sketchCount: sketch.length,
       centerInContext: center.x >= contextBounds.minX && center.x <= contextBounds.maxX
-        && center.y >= contextBounds.minY && center.y <= contextBounds.maxY
+        && center.y >= contextBounds.minY && center.y <= contextBounds.maxY,
+      centerOnPlacement: Math.hypot(center.x - cutCenter.x, center.y - cutCenter.y) < 0.5
     };
   }));
   expect(placed.lockedLayers.length, 'the assembly layers are locked').toBeGreaterThan(0);
   expect(placed.contextCount, 'the assembly draws around the sketch').toBeGreaterThan(0);
   expect(placed.sketchCount, 'the authored sketch seeds on its own layer').toBeGreaterThan(0);
   expect(placed.centerInContext, 'the sketch sits inside the assembly bounds').toBe(true);
+  expect(placed.centerOnPlacement, 'the sketch stays on its placed profile').toBe(true);
   const theme = await frameOf(reopenedDialog).then(frame => frame.evaluate(() => ({
     font: document.documentElement.style.getPropertyValue('--font'),
     sheet: document.documentElement.style.getPropertyValue('--sheet'),

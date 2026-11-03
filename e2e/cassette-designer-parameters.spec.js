@@ -32,7 +32,7 @@ const assemblyGeometry = (page) => page.locator('.designer-workspace__canvas').f
       `${node.getAttribute('cx')},${node.getAttribute('cy')},${node.getAttribute('r')}`)
     .join(';'));
 
-const arrayValueText = (page) => page.locator('div.z-\\[120\\]').first()
+const arrayValueText = (page) => page.locator('[data-designer-panel-editor]').first()
   .evaluate(root => root.querySelector('[aria-label="Array spacing"], [aria-label="Array count"]')?.value ?? null);
 
 const chipField = (page, key, label = 'Hanger profile') => page
@@ -46,7 +46,7 @@ const openProfilePopup = async (page) => {
   } else {
     await page.locator('aside').getByRole('button', { name: /^Hanger profile/ }).first().click();
   }
-  await expect(page.locator('div.z-\\[120\\]').first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator('[data-designer-panel-editor]').first()).toBeVisible({ timeout: 20_000 });
 };
 
 test('profile parameter chips re-evaluate the placed profile; array position fields hold drafts', async ({ app }) => {
@@ -78,9 +78,10 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
+  const inspector = page.locator('.designer-workspace__inspector').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   await expect(dialog.locator('[role="application"]').first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
-  await expect(dialog.locator('input[aria-label^="Parameter name"]')).toHaveCount(0);
+  await expect(inspector.locator('input[aria-label^="Parameter name"]')).toHaveCount(0);
 
   // Author one rectangle through the CAD engine's command lifecycle.
   const drawButton = dialog.locator('button[aria-label="Rectangle"]').first();
@@ -97,15 +98,15 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   // The authored parameter renames to W; while focused, its value field is
   // the draft: partial numbers keep their shape instead of being
   // normalized under the caret.
-  await dialog.getByRole('button', { name: 'Add parameter' }).click();
+  await inspector.getByRole('button', { name: 'Add parameter' }).click();
   await page.waitForTimeout(400);
-  const paramName = dialog.locator('input[aria-label^="Parameter name"]').last();
+  const paramName = inspector.locator('input[aria-label^="Parameter name"]').last();
   await paramName.click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('W', { delay: 40 });
   await paramName.press('Enter');
   await page.waitForTimeout(400);
-  const fxW = dialog.locator('input[aria-label="W"]').last();
+  const fxW = inspector.locator('input[aria-label="W"]').last();
   await expect(fxW).toBeVisible({ timeout: 5000 });
   await fxW.click();
   await page.keyboard.press('ControlOrMeta+a');
@@ -120,10 +121,10 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await fxW.press('Enter');
 
   // The rect's width binds to W by name — the field keeps the expression.
-  const rectRow = dialog.locator('button[aria-label^="Rectangle s"]').first();
+  const rectRow = inspector.locator('button[aria-label^="Rectangle s"]').first();
   await rectRow.click();
   await page.waitForTimeout(400);
-  const widthField = dialog.locator('input[aria-label^="w s"]').first();
+  const widthField = inspector.locator('input[aria-label^="w s"]').first();
   await expect(widthField).toBeVisible({ timeout: 10_000 });
   await widthField.click();
   await page.keyboard.press('ControlOrMeta+a');
@@ -132,7 +133,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await page.waitForTimeout(600);
   await expect(widthField).toHaveValue('W');
 
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
   // The saved profile row carries a live expression chip per bound
@@ -149,7 +150,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
 
 
   // Array position settings: the fields are the author's text.
-  const popup = page.locator('div.z-\\[120\\]').first();
+  const popup = page.locator('[data-designer-panel-editor]').first();
   await expect(popup).toBeVisible({ timeout: 15_000 });
   await popup.locator('[aria-label="Placement"]').click();
   await page.getByRole('option', { name: 'Edge array', exact: true }).click();
@@ -224,21 +225,21 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   // expression, exactly as the rename rewrote it.
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
-  await dialog.locator('button[aria-label^="Rectangle s"]').first().click();
-  const reopenedWidth = dialog.locator('input[aria-label^="w s"]').first();
+  await inspector.locator('button[aria-label^="Rectangle s"]').first().click();
+  const reopenedWidth = inspector.locator('input[aria-label^="w s"]').first();
   await expect(reopenedWidth).toBeVisible({ timeout: 10_000 });
   await expect(reopenedWidth).toHaveValue('W');
 
   // Renaming a profile parameter in place moves the key and its
   // bindings: the row's field follows the new name.
-  const nameW = dialog.locator('input[aria-label="Parameter name W"]').first();
+  const nameW = inspector.locator('input[aria-label="Parameter name W"]').first();
   await nameW.click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('WIDTH', { delay: 40 });
   await nameW.press('Enter');
   await page.waitForTimeout(600);
   await expect(reopenedWidth).toHaveValue('WIDTH');
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await openProfilePopup(page);
   await expect.poll(() => chipText(chipField(page, 'WIDTH'))).toBe('LENGTH');
@@ -271,6 +272,7 @@ test('a dimension edit over an instance override writes the override; clearing s
   await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
+  const inspector = page.locator('.designer-workspace__inspector').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const canvas = dialog.locator('[role="application"]').first();
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
@@ -288,8 +290,8 @@ test('a dimension edit over an instance override writes the override; clearing s
     await page.waitForTimeout(600);
   };
   const bindWidth = async (value) => {
-    await dialog.locator('button[aria-label^="Rectangle s"]').first().click();
-    const width = dialog.locator('input[aria-label^="w s"]').first();
+    await inspector.locator('button[aria-label^="Rectangle s"]').first().click();
+    const width = inspector.locator('input[aria-label^="w s"]').first();
     await width.click();
     await page.keyboard.press('ControlOrMeta+a');
     await width.pressSequentially(value, { delay: 60 });
@@ -299,19 +301,19 @@ test('a dimension edit over an instance override writes the override; clearing s
   };
 
   await drawRectangle();
-  await dialog.getByRole('button', { name: 'Add parameter' }).click();
-  const paramName = dialog.locator('input[aria-label^="Parameter name"]').last();
+  await inspector.getByRole('button', { name: 'Add parameter' }).click();
+  const paramName = inspector.locator('input[aria-label^="Parameter name"]').last();
   await paramName.click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('W', { delay: 40 });
   await paramName.press('Enter');
-  const fxW = dialog.locator('input[aria-label="W"]').last();
+  const fxW = inspector.locator('input[aria-label="W"]').last();
   await fxW.click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('42', { delay: 40 });
   await fxW.press('Enter');
   await bindWidth('W');
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
   await openProfilePopup(page);
@@ -329,26 +331,26 @@ test('a dimension edit over an instance override writes the override; clearing s
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
-  await dialog.locator('button[aria-label^="Rectangle s"]').first().click();
-  const widthField = dialog.locator('input[aria-label^="w s"]').first();
+  await inspector.locator('button[aria-label^="Rectangle s"]').first().click();
+  const widthField = inspector.locator('input[aria-label^="w s"]').first();
   await expect(widthField).toHaveValue('W');
   await widthField.click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('20', { delay: 60 });
   await widthField.press('Enter');
   await page.waitForTimeout(800);
-  await expect(dialog.locator('input[aria-label="W"]').last()).toHaveValue('42');
+  await expect(inspector.locator('input[aria-label="W"]').last()).toHaveValue('42');
   await expect(widthField).toHaveValue('W');
 
   // Renaming the authored row moves the override with it.
-  const nameW = dialog.locator('input[aria-label="Parameter name W"]').first();
+  const nameW = inspector.locator('input[aria-label="Parameter name W"]').first();
   await nameW.click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('WIDTH', { delay: 40 });
   await nameW.press('Enter');
   await page.waitForTimeout(600);
   await expect(widthField).toHaveValue('WIDTH');
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await openProfilePopup(page);
   await expect.poll(() => chipText(chipField(page, 'WIDTH'))).toBe('20');
@@ -359,7 +361,7 @@ test('a dimension edit over an instance override writes the override; clearing s
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
   await dialog.getByRole('button', { name: 'Clear canvas' }).click();
-  await expect(dialog.locator('button[aria-label^="Rectangle s"]')).toHaveCount(0);
+  await expect(inspector.locator('button[aria-label^="Rectangle s"]')).toHaveCount(0);
   await expect(dialog.locator('button[aria-label="Undo"]').first()).toBeDisabled();
 
   // A sketch bound to a cassette global has no authored row to store in
@@ -367,8 +369,8 @@ test('a dimension edit over an instance override writes the override; clearing s
   await drawRectangle();
   const width = await bindWidth('A');
   await expect(width).toHaveValue('A');
-  await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
-  await expect(dialog.getByRole('button', { name: 'Save to library', exact: true })).toBeDisabled();
+  await expect(inspector.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+  await expect(inspector.getByRole('button', { name: 'Save to library', exact: true })).toBeDisabled();
 
   await app.expectCleanRuntime();
 });
@@ -392,13 +394,14 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
+  const inspector = page.locator('.designer-workspace__inspector').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const canvas = dialog.locator('div[role="application"]');
   await expect(canvas).toBeVisible({ timeout: 60_000 });
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
   // The blank session carries no parameter rows — nothing pre-seeds a
   // drawn profile.
-  await expect(dialog.locator('input[aria-label^="Parameter name"]')).toHaveCount(0);
+  await expect(inspector.locator('input[aria-label^="Parameter name"]')).toHaveCount(0);
 
   // Author one rectangle through the engine's command lifecycle.
   const drawButton = dialog.locator('button[aria-label="Rectangle"]').first();
@@ -414,8 +417,8 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
 
   // Bind the first corner's fillet radius to a fresh parameter: typing a
   // free identifier into the row's field adopts it (adopt-on-bind).
-  await dialog.locator('button[aria-label^="Rectangle s"]').first().click();
-  const fillet = dialog.locator('input[aria-label^="r0 s"]').first();
+  await inspector.locator('button[aria-label^="Rectangle s"]').first().click();
+  const fillet = inspector.locator('input[aria-label^="r0 s"]').first();
   await expect(fillet).toBeVisible({ timeout: 10_000 });
   await fillet.click();
   await page.keyboard.press('ControlOrMeta+a');
@@ -423,14 +426,14 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await fillet.press('Enter');
   await page.waitForTimeout(600);
 
-  const paramK = dialog.locator('input[aria-label="K"]').first();
+  const paramK = inspector.locator('input[aria-label="K"]').first();
   await paramK.click();
   await page.keyboard.press('ControlOrMeta+a');
   await paramK.pressSequentially('1', { delay: 80 });
   await paramK.press('Enter');
   await page.waitForTimeout(600);
 
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
   await openProfilePopup(page);
@@ -487,6 +490,7 @@ test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
+  const inspector = page.locator('.designer-workspace__inspector').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   await expect(dialog.locator('[role="application"]').first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
 
@@ -503,14 +507,14 @@ test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   await expect(drawButton, 'Rectangle command ended').not.toHaveClass(/p-button-primary/, { timeout: 15_000 });
   await page.waitForTimeout(600);
 
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await page.waitForTimeout(1200);
 
   // The refused default (face_1 › E0 is the fold) leaves the profile
   // row as the entry to the placement popup.
   await openProfilePopup(page);
-  const popup = page.locator('div.z-\\[120\\]').first();
+  const popup = page.locator('[data-designer-panel-editor]').first();
   await expect(popup).toBeVisible({ timeout: 15_000 });
   await popup.locator('[aria-label="Placement"]').click();
   await page.getByRole('option', { name: 'Edge array', exact: true }).click();

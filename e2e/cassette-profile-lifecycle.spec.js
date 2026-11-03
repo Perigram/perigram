@@ -34,6 +34,7 @@ test('profile canvas keeps its own parameter rows, Escape, and history', async (
   await pickerEntry.click();
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
+  const inspector = page.locator('.designer-workspace__inspector').first();
   const canvas = dialog.locator(CANVAS).first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
@@ -51,19 +52,19 @@ test('profile canvas keeps its own parameter rows, Escape, and history', async (
     await expect(button).not.toHaveClass(/p-button-primary/, { timeout: 15_000 });
     await page.waitForTimeout(900);
   };
-  const stripNames = () => dialog.locator('input[aria-label^="Parameter name"]').evaluateAll(
+  const stripNames = () => inspector.locator('input[aria-label^="Parameter name"]').evaluateAll(
     nodes => nodes.map(node => node.value)
   );
-  const rectRows = () => dialog.locator('button[aria-label^="Rectangle s"]').count();
+  const rectRows = () => inspector.locator('button[aria-label^="Rectangle s"]').count();
 
-  await drawRect([0.25, 0.25], [0.5, 0.5]);
+  await drawRect([0.35, 0.3], [0.6, 0.6]);
   expect(await rectRows(), 'the drawn rect lists').toBeGreaterThan(0);
 
   // A mid-edit invalid expression (the merge refusal path) leaves the
   // sketch table alone: the cassette's globals never become profile rows.
-  await dialog.locator('button[aria-label^="Rectangle s"]').first().click();
+  await inspector.locator('button[aria-label^="Rectangle s"]').first().click();
   await page.waitForTimeout(400);
-  const widthField = dialog.locator('input[aria-label^="w s"]').first();
+  const widthField = inspector.locator('input[aria-label^="w s"]').first();
   await widthField.click();
   await page.keyboard.press('ControlOrMeta+a');
   await widthField.pressSequentially('R/', { delay: 60 });
@@ -85,10 +86,10 @@ test('profile canvas keeps its own parameter rows, Escape, and history', async (
   await expect(dialog, 'Escape keeps the profile session').toBeVisible();
 
   // Undo/redo step the sketch history: the second rect goes and returns.
-  await drawRect([0.70, 0.72], [0.58, 0.60]);
+  await drawRect([0.55, 0.72], [0.62, 0.62]);
   const before = await rectRows();
   expect(before).toBe(2);
-  await page.mouse.click(box.x + box.width * 0.9, box.y + box.height * 0.9);
+  await page.mouse.click(box.x + box.width * 0.62, box.y + box.height * 0.62);
   await page.keyboard.press('Control+z');
   await page.waitForTimeout(1200);
   await expect.poll(rectRows, { timeout: 10_000 }).toBe(1);
@@ -100,7 +101,7 @@ test('profile canvas keeps its own parameter rows, Escape, and history', async (
   await page.locator('.designer-workspace__canvas').first().screenshot({
     path: '.playwright/cassette-profile-lifecycle.png'
   });
-  await dialog.getByRole('button', { name: 'Back to cassette' }).click();
+  await inspector.getByRole('button', { name: 'Back to cassette' }).click();
   await expect(dialog).toBeHidden({ timeout: 10_000 });
   await app.expectCleanRuntime();
 });

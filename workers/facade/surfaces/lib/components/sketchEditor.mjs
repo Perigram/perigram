@@ -35,7 +35,7 @@ const SHAPE_KIND_LABEL = {
 };
 
 export default function createSketchEditor({ vue, components, locale }) {
-  const { h, ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
+  const { h, ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent, Teleport } = vue;
   const t = locale.t;
   const { Button, InputText, Message, Toolbar, SelectButton, Tag } = components;
 
@@ -73,9 +73,14 @@ export default function createSketchEditor({ vue, components, locale }) {
       contextLayers: { type: Array, default: () => [] },
       contextLinetypes: { type: Array, default: () => [] },
       contextEntities: { type: Array, default: () => [] },
-      // The cassette designer's canvas host; the editor drives it in place
-      // and reparents its frame into this surface for the edit.
-      externalHost: { type: Object, default: null }
+      // The assembly layers the designer's layer rows show, plus the
+      // sketch and annotation layers the edit keeps on.
+      visibleLayers: { type: Array, default: () => [] },
+      // The cassette designer's canvas host; the editor drives it in place.
+      externalHost: { type: Object, default: null },
+      // The designer inspector's element: the parameter table and shape
+      // list render there while the canvas keeps the sketch.
+      panelTarget: { type: Object, default: null }
     },
     emits: ['update:modelValue', 'outline-error'],
     setup(props, { emit, expose }) {
@@ -225,9 +230,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         for (const command of extra) host?.run(command);
       };
 
-      // The canvas session owns the editor camera across flips: applyView
-      // restores the view stored for a reopened target, snapshotView hands
-      // the current view back to the session before the flip.
+      // The assembly camera carries into the edit: the target and the
+      // cassette stay at the same place on the canvas.
       const applyView = (view) => {
         if (!view) return;
         pendingView = { ...view };
@@ -235,8 +239,6 @@ export default function createSketchEditor({ vue, components, locale }) {
         host.restoreView(pendingView);
         pendingView = null;
       };
-      const snapshotView = () => host?.snapshotView() || null;
-
       // The material half of the zero axis is the boolean body — the
       // toggle flips which side of the axis hatches and clips.
       const toggleMaterialSide = () => {
@@ -1056,6 +1058,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           seeding = false;
         }
         lastAnnotationFingerprint = '';
+        applyVisibleLayers();
         // Seeded entities carry their shape's id — the frame's
         // selection maps back onto the authored shape for the popup.
         entityShapeByEntityId = new Map(
@@ -1063,6 +1066,14 @@ export default function createSketchEditor({ vue, components, locale }) {
             .filter(entity => entity.shapeId != null)
             .map(entity => [entity.id, entity.shapeId])
         );
+      };
+
+      const applyVisibleLayers = () => {
+        if (!host) return;
+        const names = props.visibleLayers.length
+          ? [...props.visibleLayers, '0', PROFILE_ANNOTATION_LAYER, PROFILE_DIMENSION_LAYER]
+          : null;
+        host.setVisibleLayers(names);
       };
 
       const clearEngineSelection = () => {
@@ -1108,7 +1119,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         syncAnnotations(sketch);
       };
 
-      const reseedFromModel = ({ force = false, fit = true } = {}) => {
+      const reseedFromModel = ({ force = false } = {}) => {
         if (!host || disposed) return;
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
         if (!force && JSON.stringify(normalized) === lastEmitted) return;
@@ -1132,7 +1143,6 @@ export default function createSketchEditor({ vue, components, locale }) {
           seeding = false;
         }
         pruneSelection(normalized);
-        if (entities.length && fit) host.zoomFit(fitExcludeLayers());
         selectShapeInEngine(selectedShape.value?.shapeId || selectedCorner.value?.shapeId || '');
         syncAnnotations(normalized);
       };
@@ -1605,17 +1615,16 @@ export default function createSketchEditor({ vue, components, locale }) {
           ]);
         });
         return h('div', {
-          class: 'profile-shapes-panel pointer-events-auto absolute top-14 z-20 flex max-h-[calc(100%-4rem)] w-[19rem] flex-col overflow-y-auto rounded-ui border border-content-border bg-content py-0.5 shadow-card',
-          style: { right: 'calc(var(--designer-inspector-width, 19rem) + 0.5rem)' },
+          class: 'profile-shapes-panel flex w-full flex-col rounded-ui border border-content-border bg-content py-0.5',
           'aria-label': t('cassette.v2.profileEditor.shapes')
         }, rows);
       };
 
-      // The parameter strip above the canvas — the one home of the
-      // sketch's expression table (owner direction 2026-10-18).
+      // The one home of the sketch's expression table (owner direction
+      // 2026-10-18).
       const renderParameterStrip = () => {
         const sketch = normalizeOccsProfileSketch(props.modelValue || {});
-        return h('div', { class: 'pointer-events-auto flex shrink-0 flex-wrap items-center gap-1 bg-content py-1.5', style: { paddingLeft: 'calc(var(--designer-palette-width, 17rem) + 0.75rem)', paddingRight: 'calc(var(--designer-inspector-width, 19rem) + 0.75rem)' } }, [
+        return h('div', { class: 'flex shrink-0 flex-wrap items-center gap-1 bg-content py-1.5' }, [
           h('span', { class: 'font-mono text-xs text-muted' }, 'fx'),
           ...Object.entries(sketch.parameters).map(([key, value]) => h('div', {
             key,
@@ -1813,7 +1822,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         configureHost();
         bindHost();
         lastEmitted = '';
-        reseedFromModel({ force: true, fit: !props.initialView });
+        reseedFromModel({ force: true });
         if (!host) return;
         const queued = pendingCommand ? [pendingCommand] : [];
         pendingCommand = null;
@@ -1898,14 +1907,18 @@ export default function createSketchEditor({ vue, components, locale }) {
       watch(() => [props.contextEntities, props.contextLayers, props.contextLinetypes, props.canvasFrame], () => {
         if (!props.active) return;
         lastAnnotationFingerprint = '';
-        if (host) reseedFromModel({ force: true, fit: !props.initialView });
+        if (host) reseedFromModel({ force: true });
       }, { deep: true });
 
       watch(() => props.externalParameters, () => {
         if (!props.active) return;
-        if (host) reseedFromModel({ force: true, fit: false });
+        if (host) reseedFromModel({ force: true });
         scheduleOutlineResolve();
         syncAnnotations();
+      }, { deep: true });
+
+      watch(() => props.visibleLayers, () => {
+        if (props.active) applyVisibleLayers();
       }, { deep: true });
 
       watch(() => [props.basisStart, props.basisEnd, props.contextFace], () => {
@@ -1945,7 +1958,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         disposeHost();
       });
 
-      expose({ snapshotView, releaseHost });
+      expose({ releaseHost });
 
       return () => h('div', {
         ref: rootRef,
@@ -1955,7 +1968,9 @@ export default function createSketchEditor({ vue, components, locale }) {
         importError.value
           ? h(Message, { severity: 'error', size: 'small', closable: false }, () => importError.value)
           : null,
-        renderParameterStrip(),
+        props.active && props.panelTarget
+          ? h(Teleport, { to: props.panelTarget }, [renderParameterStrip(), renderShapesPanel()])
+          : null,
         h('input', {
           ref: fileInputRef,
           type: 'file',
@@ -1973,14 +1988,13 @@ export default function createSketchEditor({ vue, components, locale }) {
               // The tool toolbar floats inside the canvas (the
               // DesignerWorkspace overlay pattern) — no row of its own.
           h(Toolbar, {
-            class: 'pointer-events-auto absolute top-2 z-20 max-w-[calc(100%-1rem)] gap-1 overflow-x-auto p-1 shadow-card',
-            style: { left: 'calc(var(--designer-palette-width, 17rem) + 0.5rem)' },
+            class: 'pointer-events-auto absolute top-14 z-20 max-w-[calc(100%-1rem)] gap-1 overflow-x-auto p-1 shadow-card',
+            style: { left: 'calc(var(--designer-palette-width, 17rem) + 1rem)' },
             'aria-label': t('cassette.v2.profileEditor.preview')
           }, {
             start: () => renderToolGroupButtons(0, 2),
             end: () => renderToolGroupButtons(2, 4)
           }),
-          renderShapesPanel(),
           renderDimensionEditor(),
           renderVertexPopup(),
           engineError.value

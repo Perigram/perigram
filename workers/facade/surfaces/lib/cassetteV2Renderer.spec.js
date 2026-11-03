@@ -13,6 +13,7 @@ import {
   buildCassetteV2WorkpieceTopology,
   cassetteV2AttachableProfileEdgesForTree,
   cassetteV2AssemblyEntities,
+  cassetteV2AssemblyEntitiesFromDrawing,
   cassetteV2FaceSketchContext,
   cassetteV2FaceSketchFromNode,
   cassetteV2LayerPanelRows,
@@ -363,6 +364,30 @@ describe('cassette v2 trapezoid renderer', () => {
     const folded = await cassetteV2AssemblyEntities(child.tree);
     expect(folded.linetypes.length).toBeGreaterThan(0);
     expect(folded.layers.some(layer => layer.linetype === 'DASHED' || layer.linetype === 'DOT')).toBe(true);
+  });
+
+  it('places a child face sketch at its shard on the host edge', async () => {
+    const tree = createCassetteV2GraphTree();
+    const child = addCassetteV2GraphChild(tree, tree.rootId, 0, {
+      edgeLength: 500,
+      shardStart: 100,
+      shardEnd: 250
+    });
+    const grandchild = addCassetteV2GraphChild(child.tree, child.nodeId, 1);
+    const frame = await cassetteV2SketchFrame(grandchild.tree, { mode: 'face', id: grandchild.nodeId });
+    const curves = await buildCassetteV2TreeCurves(grandchild.tree, { mode: 'assembly' });
+    const curve = curves.find(item => item.node.id === grandchild.nodeId);
+    const radians = frame.rotation * Math.PI / 180;
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    const mapped = curve.localVertices.slice(0, curve.boundaryVertices.length).map(([x, y]) => [
+      frame.origin[0] + x * cos - y * sin,
+      frame.origin[1] + x * sin + y * cos
+    ]);
+    mapped.forEach((point, index) => {
+      expect(point[0]).toBeCloseTo(curve.boundaryVertices[index][0], 6);
+      expect(point[1]).toBeCloseTo(curve.boundaryVertices[index][1], 6);
+    });
   });
 
   it('embeds an open profile into the face boundary and leaves the edge free', async () => {
@@ -2242,6 +2267,17 @@ describe('cassette v2 trapezoid renderer', () => {
     const dimensionLayer = drawing.layers.find(layer => layer.standardCode === 'dimension.cassette');
 
     expect(dimensionLayer.paths.filter(path => path.kind === 'text').map(path => path.text)).toEqual(['A', 'B']);
+  });
+
+  it('keeps the dimension layer in the assembly context', async () => {
+    const tree = createCassetteV2GraphTree();
+    const drawing = await renderCassetteV2TreeToDrawing(tree, {
+      mode: 'assembly',
+      contextWorkpieceId: tree.rootId
+    });
+    expect(drawing.layers.find(layer => layer.standardCode === 'dimension.cassette')).toBeTruthy();
+    const assembly = cassetteV2AssemblyEntitiesFromDrawing(drawing);
+    expect(assembly.entities.filter(entity => entity.type === 'dim')).not.toHaveLength(0);
   });
 
   it('resolves a face sketch through the ordered boolean fold', async () => {

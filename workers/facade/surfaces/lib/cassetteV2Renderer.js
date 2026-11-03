@@ -3783,11 +3783,12 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
     includeDimensions: options.includeDimensions
   });
   if (options.contextWorkpieceId) {
+    const dimensionLayers = drawing.layers.filter(layer => layer.role === 'dimension');
     const assemblyLayers = await designerAssemblyLayersForCurves(shapedCurves, [designerSections.layer, markLayer], {
       contextWorkpieceId: options.contextWorkpieceId,
       foldEdges: designerFoldEdges
     });
-    drawing.layers = assemblyLayers.concat(hardwareLayers);
+    drawing.layers = assemblyLayers.concat(hardwareLayers, dimensionLayers);
   }
   drawing.designerAttachmentMarkers = designerAttachmentMarkers;
   drawing.designerProfiles = [...closedProfileHits, ...openProfileHits];
@@ -4306,9 +4307,32 @@ export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), 
     if (!node) return null;
     const transforms = buildCassetteV2AssemblyTransforms(sourceTree, localCurves);
     const transform = transforms.get(node.workpieceId) || { origin: [0, 0, 0], rotation: 0 };
+    const parentCurve = node.parentId
+      ? localCurves.find(item => item.node.id === node.parentId)
+      : null;
+    const attachment = cassetteV2FaceAttachmentFrame(
+      parentCurve?.boundaryVertices || null,
+      node.parentId ? node.parentEdgeIndex : 0
+    );
+    if (!attachment) return null;
+    const edgeStart = node.parentId
+      ? Math.max(0, resolveCassetteV2Expression(node.parameters?.edgeStart, parameters, 0))
+      : 0;
+    const start = [
+      numeric(attachment.start?.[0], 0) + numeric(attachment.direction?.[0], 0) * edgeStart,
+      numeric(attachment.start?.[1], 0) + numeric(attachment.direction?.[1], 0) * edgeStart
+    ];
+    const radians = numeric(transform.rotation, 0) * Math.PI / 180;
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
     return {
-      origin: [numeric(transform.origin?.[0], 0), numeric(transform.origin?.[1], 0), 0],
-      rotation: numeric(transform.rotation, 0),
+      origin: [
+        numeric(transform.origin?.[0], 0) + start[0] * cos - start[1] * sin,
+        numeric(transform.origin?.[1], 0) + start[0] * sin + start[1] * cos,
+        0
+      ],
+      rotation: numeric(transform.rotation, 0)
+        + Math.atan2(numeric(attachment.direction?.[1], 0), numeric(attachment.direction?.[0], 1)) * 180 / Math.PI,
       mirrorX: false,
       mirrorY: false
     };

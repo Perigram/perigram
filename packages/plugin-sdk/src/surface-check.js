@@ -119,7 +119,8 @@ function stubContext() {
       reactive: value => value,
       watch: () => () => {},
       onMounted: () => {},
-      defineComponent: value => value
+      defineComponent: value => value,
+      Teleport: () => null
     },
     components: component,
     locale: { t: key => key, te: () => true, locale: () => 'en' },

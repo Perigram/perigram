@@ -68,7 +68,6 @@ const emit = defineEmits([
   'designer-face-select',
   'designer-profile-select',
   'designer-fold-select',
-  'designer-face-command',
   'designer-point-edit',
   'designer-section-edit',
   'designer-fold-angle-edit',
@@ -674,15 +673,6 @@ const screenPointForCanvasPoint = (x, y, event = null) => {
   return clampMenuPoint(x, y);
 };
 
-const requestDesignerFaceCommand = (face, command, event = null) => {
-  emit('designer-face-command', {
-    type: 'face-command',
-    command,
-    face,
-    ...screenPointForCanvasPoint(face.center?.x || 0, face.center?.y || 0, event)
-  });
-};
-
 const requestDesignerPointEdit = (control, event = null) => {
   emit('designer-point-edit', {
     type: 'point-edit',
@@ -1237,37 +1227,6 @@ onBeforeUnmount(() => {
               </template>
             </g>
 
-            <template v-for="face in drawing.designerFaces || []" :key="`face-controls-${face.nodeId}`">
-              <g
-                v-if="face.nodeId === selectedDesignerFaceId"
-                :transform="`translate(${face.center?.x || 0}, ${face.center?.y || 0})`"
-                class="select-none"
-              >
-                <g
-                  class="cursor-pointer"
-                  @click.stop.prevent="requestDesignerFaceCommand(face, 'menu', $event)"
-                >
-                  <rect
-                    :x="-designerSize(14)"
-                    :y="-designerSize(14)"
-                    :width="designerSize(28)"
-                    :height="designerSize(28)"
-                    :rx="designerSize(14)"
-                    fill="currentColor"
-                    class="opacity-90"
-                  />
-                  <text
-                    :y="-designerSize(3)"
-                    text-anchor="middle"
-                    dominant-baseline="middle"
-                    :font-size="designerSize(14)"
-                    class="fill-[var(--p-content-background)]"
-                  >
-                    ...
-                  </text>
-                </g>
-              </g>
-            </template>
           </g>
         </svg>
 
