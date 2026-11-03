@@ -207,7 +207,6 @@ export default function createSurface({ vue, components, locale, queries, record
       const editorSurfaceRef = ref(null);
       const drawingCanvasRef = ref(null);
       const assemblyHostContainer = ref(null);
-      const assemblyCadCraftReady = ref(false);
       const assemblyHostRef = shallowRef(null);
       let assemblyHost = null;
       const inlineEditor = ref(null);
@@ -1463,17 +1462,16 @@ export default function createSurface({ vue, components, locale, queries, record
           assemblyHost = host;
           assemblyHostRef.value = host;
           host.setGrid(false);
-          assemblyCadCraftReady.value = seedAssemblyCadCraft(previewSource.value);
+          seedAssemblyCadCraft(previewSource.value);
           syncAssemblyView(assemblyViewBox());
         } catch {
           host.destroy();
-          assemblyCadCraftReady.value = false;
         }
       };
 
       watch(previewSource, source => {
         if (!assemblyHost || sketchMode.value) return;
-        assemblyCadCraftReady.value = seedAssemblyCadCraft(source);
+        seedAssemblyCadCraft(source);
       }, { deep: false });
       watch(visibleLayerNames, names => {
         if (sketchMode.value) return;
@@ -3608,8 +3606,8 @@ export default function createSurface({ vue, components, locale, queries, record
               sourceType: 'geometry-preview',
               mode: 'designer',
               preserveViewport: true,
-              showGeometry: !assemblyCadCraftReady.value,
-              nativeDimensions: assemblyCadCraftReady.value,
+              showGeometry: false,
+              nativeDimensions: true,
               visibleLayerNames: visibleLayerNames.value,
               selectedDesignerFaceId: selectedDesignerFaceId.value,
               selectedDesignerProfileId: selectedWorkpieceId.value,
