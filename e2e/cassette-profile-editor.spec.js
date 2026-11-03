@@ -295,16 +295,16 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   const treeText = await inspector.innerText();
   expect(treeText, 'the inspector tree starts at the workpiece').toContain('Workpiece 1');
   expect(treeText, 'the face row separates the workpiece from its profiles').toContain('main');
+  expect(
+    (await nativeDims(dialog)).some(dim => dim.dimensionKind === 'placement'),
+    'the selected profile carries its placement dimensions along the parent edge'
+  ).toBe(true);
   await inspector.getByRole('button', { name: 'main' }).first().click();
   await expect(inspector, 'the selected face details list its placed profiles').toContainText('Hanger profile');
   const assemblyNativeDims = await frameOf(dialog).then(frame => frame.evaluate(() => (
     window.cadcraft.doc.all().filter(entity => entity.type === 'dim').length
   )));
   expect(assemblyNativeDims, 'the assembly canvas draws native dimensions').toBeGreaterThan(0);
-  expect(
-    (await nativeDims(dialog)).some(dim => dim.dimensionKind === 'placement'),
-    'the selected profile carries its placement dimensions along the parent edge'
-  ).toBe(true);
   await expect(page.locator('.designer-workspace__palette'), 'the dimension layer is a canvas layer row')
     .toContainText('5_1_Размер_Кассета');
   await page.waitForTimeout(1200);
