@@ -335,12 +335,13 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   Face fills stay per face so adjacent faces keep their own fill and the
   fold route separates them; `cut.outer` carries the production union.
   Hollow faces fill their outer ring and holes with `evenodd`, so a cut
-  stays open in every preview mode. The
-  preview layer set — outline (`cut.outer`) and folds (`fold.route`)
-  matched by `standardCode` (layer names are localized export names);
-  all layers for a drawing outside the set — resolves through
-  `cassettePreviewLayerSelection` (`surfaces/lib/drawingPreview.js`),
-  the single home the designer's load-picker thumbnails reuse.
+  stays open in every preview mode. The load-picker thumbnail layer set —
+  outline (`cut.outer`) and folds (`fold.route`) matched by `standardCode`
+  (layer names are localized export names); all layers for a drawing outside
+  the set — resolves through `cassettePreviewLayerSelection`
+  (`surfaces/lib/drawingPreview.js`), the single home the designer's
+  load-picker thumbnails reuse. The cassette-preview surface mounts the
+  native host with every drawing layer and its own layer control.
 - Cassette Designer v2 emits a `code.cassette_mark` text entity at the
   bottom-left of each sheet workpiece's main/root face: the cassette
   template name, template id, and one-based workpiece number; the same

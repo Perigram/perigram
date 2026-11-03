@@ -543,6 +543,11 @@ the SVG overlay keeps hit areas, chips and selection strokes alone. The edit
 drawing toolbar fills the left palette; the canvas keeps the dimension editor
 and corner popup.
 
+Owner direction (2026-11-03, native cassette view): the read-only cassette
+record view mounts the native CadCraft canvas with every drawing layer,
+dimensions included. Its layer control toggles those native layers. The view
+is inert; card and record clicks stay with the host layout.
+
 Owner direction (2026-11-03, native cassette dimensions and layers): the
 cassette canvas draws its dimension annotations as native CadCraft dim entities
 on the dimension layer; a label opens its authored field in place. Every

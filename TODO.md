@@ -3878,6 +3878,26 @@ drawing, keeping hit areas and selection strokes. E2E `cassette-profile-editor`
 and `cassette-profile-lifecycle` pass; the parameter spec still reaches its
 known array-draft failure.
 
+## Native cassette view (owner direction 2026-11-03)
+
+The read-only cassette record view mounts the native CadCraft canvas with
+every drawing layer, dimensions included. Its layer control toggles those
+native layers. The view is inert; card and record clicks stay with the host
+layout.
+
+- [ ] WAITING — owner verification: opening a cassette record shows the
+  native dimensions and every drawing layer; the layer button toggles the
+  native layers; clicking the preview still opens the record from a card.
+
+### Agent Notes (2026-11-03, native cassette preview)
+
+Session `agent/cassette-preview-native-20261103` (worktree
+`.agent-worktrees/cassette-preview-native-20261103`). `cassette-preview.mjs`
+mounts `CadCraftHost`, seeds `cassetteV2AssemblyEntitiesFromDrawing`, lists the
+host layers in its layer panel, and keeps the iframe pointer-inert so the
+host card/record click survives. E2E `cassette-preview-native` asserts native
+dimension entities, the dimension layer, and a layer toggle driving the host.
+
 ## Native cassette dimensions and layers (owner direction 2026-11-03)
 
 The cassette canvas draws its dimension annotations as native CadCraft dim
