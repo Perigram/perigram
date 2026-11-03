@@ -3962,8 +3962,8 @@ dimension rows as structured annotations and leaves the dimension layer's path
 list empty; the native host entities are the only dimension geometry. The
 designer's SVG dimension edit targets resolve from those annotations in
 model-space coordinates flipped into the canvas frame. Native dim entities
-carry the drawing ink, so the dimension layer's violet DOTTED pen frames the
-layer without tinting the labels.
+carry the drawing ink; the dimension layer keeps its violet DOTTED pen for
+layer identity.
 
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
