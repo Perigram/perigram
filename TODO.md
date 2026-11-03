@@ -3878,6 +3878,17 @@ drawing, keeping hit areas and selection strokes. E2E `cassette-profile-editor`
 and `cassette-profile-lifecycle` pass; the parameter spec still reaches its
 known array-draft failure.
 
+### Agent Notes (2026-11-03, native-only assembly canvas)
+
+Session `agent/cassette-native-only-20261103` (worktree
+`.agent-worktrees/cassette-native-only-20261103`). The designer canvas passes
+`showGeometry: false` and `nativeDimensions: true`; the native host is the only
+layer and dimension painter, and the SVG keeps the face/profile hit paths and
+chips. Face and profile fills use `fill-opacity` as a hover/selection
+highlight, so hover feedback survives the native render. A loaded-record probe
+finds no SVG text and one face hit path; the host carries the dimension layer
+and responds to the palette layer toggle.
+
 ## Native cassette view (owner direction 2026-11-03)
 
 The read-only cassette record view mounts the native CadCraft canvas with

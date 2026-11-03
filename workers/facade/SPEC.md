@@ -538,10 +538,10 @@ shape editor. The canvas carries no per-face menu chip. The assembly canvas
 draws its dimensions as native CadCraft dims on the dimension layer in every
 view, including the assembly context. The palette lists the drawing's native
 layers, and its rows toggle those layers in the assembly and the edit; hidden
-layers stay hidden through an edit. The native host is the one canvas view:
-the SVG overlay keeps hit areas, chips and selection strokes alone. The edit
-drawing toolbar fills the left palette; the canvas keeps the dimension editor
-and corner popup.
+layers stay hidden through an edit. The native host is the one canvas view: it
+paints every layer and the dimension labels; the SVG overlay keeps hit areas,
+chips and hover/selection highlights alone. The edit drawing toolbar fills the
+left palette; the canvas keeps the dimension editor and corner popup.
 
 Owner direction (2026-11-03, native cassette view): the read-only cassette
 record view mounts the native CadCraft canvas with every drawing layer,
