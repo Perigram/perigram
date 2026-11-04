@@ -31,7 +31,8 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
 - **`dimensions.js`** — canonical `dimension.cassette` annotation
   entities. Template dimensions keep expression
   text (`A`, `B`, `R`); evaluated design annotations store measured
-  numeric values.
+  numeric values. A sketch face's dimensions are its sketch dimensions;
+  the cassette dimension layer carries no rows for it.
 - **`parameters.js`** — template parameter extraction from both legacy
   cassette definitions and OCCS documents, one parameter path for queues
   and fixture scenarios.

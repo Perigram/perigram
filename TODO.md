@@ -2629,7 +2629,9 @@ Ordered steps:
   Profile sketch reads resolve through `cassetteV2ProfileSketch`, so a
   workpiece-level `sketch` opens in the editor and its dimensions edit;
   the first write stores the sketch in `profileSnapshot.sketch` and drops
-  the workpiece-level copies. Validation: facade surface specs,
+  the workpiece-level copies. A sketch face carries its dimensions on the
+  sketch layer; the cassette dimension layer holds the trapezoid faces'
+  rows only. Validation: facade surface specs,
   `cassette-profile-editor` e2e.
 
 - [ ] WAITING — owner verification: Parametric faces and shared edges
