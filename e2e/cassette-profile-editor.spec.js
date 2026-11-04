@@ -332,8 +332,11 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     const text = dimTextPoint(dim);
     return window.cadcraft.view.toScreen(text.x, text.y);
   }, fieldKey));
-  const widthPoint = await innerDimPoint('width');
-  expect(widthPoint, 'the selected profile carries an inner width dimension').toBeTruthy();
+  let widthPoint = null;
+  await expect.poll(async () => {
+    widthPoint = await innerDimPoint('width');
+    return Boolean(widthPoint);
+  }, { timeout: 10_000 }).toBe(true);
   const canvasBox = await page.locator('.designer-workspace__canvas iframe').first().boundingBox();
   await page.mouse.click(canvasBox.x + widthPoint.x, canvasBox.y + widthPoint.y);
   const dimensionInput = page.locator('.designer-workspace__canvas [contenteditable="true"][role="textbox"]').first();
