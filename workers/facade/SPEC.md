@@ -123,8 +123,8 @@ plugin emits (DXF export, nesting redraw, baked layerData) names its
 layers through that table, never through bare layer codes. Profile
 workpieces must produce their full production effect in the cassette:
 their arrangement (edge arrays — edge binding, margins from the edge
-ends, count/spacing) places them, and their cut geometry lands on the
-correct layers. An open profile positions by array settings only: its
+ends, count/step/gap/span rules) places them, and their cut geometry
+lands on the correct layers. An open profile positions by array settings only: its
 two anchors snap directly onto the host face's dashed edge points —
 there is no perpendicular offset for open shapes — and the host contour
 rips at those points, embedding the profile chain into the contour as
@@ -252,38 +252,50 @@ workpiece's row shows drive its geometry — editing one re-evaluates the
 profile; a profile added with no template and no authored sketch is the
 parametric default hanger, its row carries that template's own W/H/R/D/L
 table from the first render, and the profile dialog drafts a new profile
-on the same template. Array spacing is the gap between adjacent copy
-footprints: zero butts them together, and a spacing rule places the copies
-that fit rather than stretching them across the edge. A count distributes
-whole copies between the margins; a single count keeps its anchor on the
-edge binding, so an authored tab may straddle the edge; a count the span
-cannot hold refuses. Authoring fields — the vertex popup's coordinates and
+on the same template. A gap rule is the clearance between adjacent copy
+footprints: zero butts them together, and the rule places the copies that
+fit rather than stretching them across the edge. A count distributes whole
+copies between the margins; a single count keeps its anchor on the edge
+binding, so an authored tab may straddle the edge; a count the span cannot
+hold refuses. Authoring fields — the vertex popup's coordinates and
 fillet radius, the parameter and hole rows, and the workpiece row's
 instance-parameter chips — commit the text on blur or Enter, never per
 keystroke: a keystroke-committed value normalizes under the caret (`''`
 becomes 0, `42.` becomes 42) and adopt-on-bind mints a parameter from a
 half-typed identifier.
 
-Owner declaration (2026-11-04, face arrays and array handles): placement
-has three modes — point, edge array, and face array. An edge array places
-copies along one host edge by the binding and margin rules above. A face
-array places copies in two dimensions on the host face and is available to
-closed profiles and hardware; open profiles keep edge placement alone.
-Face-array layouts are rectangular, hex, and polar. Rectangular and hex
-carry a column count and step, a row count and step, and side and
-top/bottom padding; hex staggers every other row by half a column step.
-Polar carries a count, radius, start angle, sweep, and a copy-rotation
-toggle. A zero step fills the padded span with the requested count; a
-positive step starts at the chosen start/center/end anchor and refuses
-when the grid does not fit. Padding is the clearance from the face outline
-to each copy's footprint. Generated anchors outside the authored contour
-are dropped. A face array that places no copy, or whose grid cannot fit,
-refuses and reports through the attachment diagnostics; the production
-document refuses the same placements. Polar copy rotation applies to
-closed-profile rings and hardware body/cut geometry.
-Edge-array bindings are start, center, and end; the point anchors (origin
-and corners) belong to point placement alone. An open profile's editor
-carries edge-array controls.
+Owner declaration (2026-11-04, attachment array definition): placement
+has three modes — point, edge array, and face array. Every array is one
+versioned definition on the relation: `space` (`edge` or `face`), `kind`
+(`linear`, `grid`, or `radial`), binding, frame rotation and mirrors, two
+axes, stagger, polar, item transform, suppression, and clipping.
+Each axis carries a rule — `count`, `step`, `gap`, or `span` — plus its
+count, pitch, clearance, authored span, and start/end offsets. `count`
+distributes whole copies across the available span; `step` packs copies at
+a fixed anchor pitch; `gap` packs copies at a fixed edge-to-edge clearance;
+`span` places the requested count across an authored span. A rule that
+cannot fit refuses.
+An edge array is `space: edge`, `kind: linear`: its X axis runs along the
+host edge, its start/end offsets are the two edge margins, its normal
+offset moves the copies off the edge, and the copy footprint participates
+in the span. A single count anchors on the binding so an authored tab may
+straddle the edge. A face array is `space: face`, `kind: grid` or
+`radial`: grid axes carry the same four rules, offsets are clearance from
+the face outline to each copy footprint, stagger shifts alternating
+rows/columns, and frame rotation/mirror transform the grid. Radial arrays
+carry center offsets, rings, copies per ring, base radius, ring spacing,
+start angle, and sweep. Item orientation is fixed, grid-aligned, radial,
+or tangent; item rotation and mirrors apply to every copy.
+Copy keys are stable across edits (`row:column`, `ring:index`, or the
+linear index), so suppression names a copy directly. Anchors outside the
+authored contour are clipped or dropped. An array that places no copy, or
+whose rule cannot fit, refuses and reports through the attachment
+diagnostics; the production document refuses the same placements.
+Open profiles keep edge placement; point and face arrays refuse for them.
+Edge bindings are start, center, and end; point anchors (origin and
+corners) belong to point placement alone. The editor derives its array
+fields from the definition; open profiles carry edge-array controls.
+Stored flat pattern shapes normalize into the definition on read.
 
 Owner decision (2026-10-15, engine integration law): the profile editor
 integrates the CAD engine under a one-way truth rule — the sketch model

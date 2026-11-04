@@ -51,25 +51,31 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   - The plugin's `hardware` library type (listing) holds reusable tuned
     presets (family, mode, parameters) authored from the designer's
     hardware dialog.
-- **`patterns.js`** — attachment placement patterns shared by the
-  renderer, the folded preview, and the profile embedding.
-  - Edge arrays: attachment X is the margin from both edge ends,
-    attachment Y the face-normal offset, the target snap
-    (`start`/`end`/`center`) the binding, then either a `count` or a
-    `spacing` rule. `spacing` is the gap between adjacent copy
-    footprints (zero butts them together) and places the copies that
-    fit; point-like hardware copies carry no length, so there spacing is
-    the pitch between placements. The copy footprint is part of the
-    span: a count distributes whole copies between the margins, and a
-    count the span cannot hold refuses. A single count anchors on the
-    binding so an authored tab may straddle the edge.
-  - Face arrays: rectangular, hex, and polar placement over the host
-    face with column/row counts and steps, side and top/bottom padding,
-    and start/center/end grid anchoring. Polar adds count, radius, start
-    angle, sweep, and per-copy rotation. A zero step fills the padded
-    span; a positive step refuses when the grid does not fit. Padding
-    measures from the face outline to each copy's footprint; anchors
-    outside the authored contour drop.
+- **`patterns.js`** — the attachment array definition and geometry
+  shared by the renderer, the folded preview, and the profile embedding.
+  - One definition (`version`, `space`, `kind`, binding, frame, axes,
+    stagger, polar, item, suppression, clip) drives every array. Edge
+    arrays are `space: edge`, `kind: linear`; face arrays are
+    `space: face`, `kind: grid` or `radial`.
+  - Each axis carries a rule — `count`, `step`, `gap`, or `span` — plus
+    count, pitch, clearance, authored span, and start/end offsets.
+    `count` distributes whole copies across the available span; `step`
+    packs at an anchor pitch; `gap` packs at an edge-to-edge clearance;
+    `span` places the count across an authored span. An unfitting rule
+    refuses.
+  - Edge arrays use the X axis along the edge, two end margins, a normal
+    offset, and the copy footprint in the span. A single count anchors on
+    the binding so an authored tab may straddle the edge. Point-like
+    hardware carries no extent, so a gap is its pitch.
+  - Face arrays use X/Y rules with padding from the face outline to each
+    copy footprint, an optional stagger on alternating rows or columns,
+    frame rotation and mirrors, and `clip: face` or `none`. Radial arrays
+    carry center offsets, ring count, copies per ring, base radius, ring
+    spacing, start angle, and sweep. Item orientation is `fixed`,
+    `grid`, `radial`, or `tangent`.
+  - Copy keys are stable (`row:column`, `ring:index`, or linear index);
+    `suppress` names copies directly. Flat stored patterns normalize into
+    the definition on read.
 - **`profiles.js`** — the OCCS profile shape model used by Cassette
   Designer v2.
   - A sketch is a list of parametric shapes evaluated on the zero axis.
@@ -305,12 +311,12 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     perpendicular offset), the whole edge is replaced by the composite
     chain — host start, straight runs, copy chains, host end — riding
     `contour.cassette_face`, and the production cut/nesting contour
-    follows the stitched boundary. The margin holds from both edge ends
-    for the whole copy; count mode spreads the requested copies over the
-    span the chord leaves (a count the span cannot hold refuses);
-    spacing mode packs copies from the binding at the requested gap
-    between them, placing the copies that fit. A single count anchors on
-    the binding, so an authored tab may straddle the edge. The array binding
+    follows the stitched boundary. The margins hold from both edge ends
+    for the whole copy; a count spreads whole copies over the span the
+    chord leaves (a count the span cannot hold refuses); step packs at a
+    fixed pitch and gap packs at a fixed clearance from the binding. A
+    single count anchors on the binding, so an authored tab may straddle
+    the edge. The array binding
     (`start`/`center`/`end` snap) places the array; copies always run
     edge-start to edge-end. The embedding reports the copy frame (origin,
     anchor, rotation, mirror) the sketch canvas uses to place the authored
@@ -320,8 +326,8 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     (`{relationId, reason}`). Authored array values are expressions read
     nullishly (`??`): an empty string or a zero is the author's text
     mid-edit, and a default substituted there rewrites the field under
-    the caret. A relation patch carrying any array field updates the
-    pattern.
+    the caret. An array patch merges into the definition; a flat array key
+    maps to the same field.
   - Closed profiles produce their production effect through the same
     pass. They do not consume edge space: several may share an edge with
     faces and open profiles, and their overlapping operands merge through
