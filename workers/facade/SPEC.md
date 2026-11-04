@@ -293,9 +293,11 @@ whose rule cannot fit, refuses and reports through the attachment
 diagnostics; the production document refuses the same placements.
 Open profiles keep edge placement; point and face arrays refuse for them.
 Edge bindings are start, center, and end; point anchors (origin and
-corners) belong to point placement alone. The editor derives its array
-fields from the definition; open profiles carry edge-array controls.
-Stored flat pattern shapes normalize into the definition on read.
+corners) belong to point placement alone. The editor shows the array
+anchor when at least one axis uses an anchored rule; a count that fills the
+span has no anchor. The editor derives its array fields from the
+definition; open profiles carry edge-array controls. Stored flat pattern
+shapes normalize into the definition on read.
 
 Owner decision (2026-10-15, engine integration law): the profile editor
 integrates the CAD engine under a one-way truth rule — the sketch model
