@@ -325,7 +325,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     const dim = window.cadcraft.doc.all().find(entity => (
       entity.type === 'dim'
         && entity.cassette?.dimensionKind === 'inner'
-        && entity.cassette?.fieldKey === field
+        && String(entity.cassette?.fieldKey || '').endsWith(`:${field}`)
     ));
     if (!dim) return null;
     const { dimTextPoint } = await import('./assets/apps/cadcraft/0.7/dims.js');
@@ -348,7 +348,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
       .find(entity => (
         entity.type === 'dim'
           && entity.cassette?.dimensionKind === 'inner'
-          && entity.cassette?.fieldKey === 'width'
+          && String(entity.cassette?.fieldKey || '').endsWith(':width')
       ))?.text
   )));
   expect(innerWidthText, 'typing in the dimension commits the authored field').toBe('60.0');
