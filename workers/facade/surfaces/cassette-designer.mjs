@@ -1889,7 +1889,10 @@ export default function createSurface({ vue, components, locale, queries, record
           sketchCanvasFrame.value = frame;
           sketchContextLayers.value = context?.layers || [];
           sketchContextLinetypes.value = context?.linetypes || [];
-          sketchContextEntities.value = context?.entities || [];
+          // The sketch's own dimensions are the editable rows; the
+          // cassette dimension entities stay out of the edit context.
+          sketchContextEntities.value = (context?.entities || [])
+            .filter(entity => entity.type !== 'dim');
           sketchContextParentFace.value = frame.parentFace || [];
         } catch {
           if (token !== sketchContextToken) return;
