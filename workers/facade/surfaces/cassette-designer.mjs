@@ -66,6 +66,7 @@ import {
 } from './lib/canvasSession.js';
 import { buildCassetteV2FoldedPreview } from './lib/cassetteV2FoldedPreview.js';
 import { cassettePreviewLayerSelection, normalizeGeometryDrawing } from './lib/drawingPreview.js';
+import { profileDimensionField } from './lib/profileAnnotations.js';
 import { evaluateOccsCassetteTemplate } from '../occs/evaluate.js';
 import { hardwareDefaultParameters, hardwareLabel } from '../occs/hardware.js';
 
@@ -477,14 +478,16 @@ export default function createSurface({ vue, components, locale, queries, record
         : null);
       const workpieceRelations = computed(() => getCassetteV2WorkpieceRelations(cassetteTree.value));
       const previewMode = computed(() => (
-        inspectorSelection.value === 'workpiece' || inspectorSelection.value === 'attachment'
-          ? 'assembly'
+        inspectorSelection.value === 'workpiece'
+          || inspectorSelection.value === 'attachment'
+          || inspectorSelection.value === 'face'
+          || inspectorSelection.value === 'fold'
           // A profile owns no face: its solo view is empty geometry, so a
           // selected profile previews the assembly it is placed in — the
           // geometry its instance parameters actually drive.
-          : isCassetteV2ProfileWorkpiece(selectedWorkpiece.value || {})
-            ? 'assembly'
-            : 'workpiece'
+          || isCassetteV2ProfileWorkpiece(selectedWorkpiece.value || {})
+          ? 'assembly'
+          : 'workpiece'
       ));
       const previewWorkpieceId = computed(() => previewMode.value === 'workpiece' ? selectedWorkpieceId.value : '');
       const selectedWorkpieceRelations = computed(() => workpieceRelations.value
@@ -738,10 +741,26 @@ export default function createSurface({ vue, components, locale, queries, record
           }
         ];
       });
+      const inlineEditorSketch = computed(() => {
+        const editor = inlineEditor.value;
+        if (editor?.type !== 'profileShapeParameter' && editor?.type !== 'faceShapeParameter') return null;
+        if (editor.type === 'profileShapeParameter') {
+          const workpiece = workpieces.value.find(item => item.id === editor.targetId);
+          const snapshot = workpiece?.profileSnapshot || workpiece?.profile || {};
+          return snapshot.sketch ? normalizeOccsProfileSketch(snapshot.sketch) : null;
+        }
+        const node = treeNodes.value.find(item => item.id === editor.targetId);
+        return node?.sketch ? normalizeOccsProfileSketch(node.sketch) : null;
+      });
       const inlineEditorParameters = computed(() => {
         if (inlineEditor.value?.type === 'foldAngle') return globalParameters.value;
+        if (inlineEditorSketch.value) {
+          return { ...globalParameters.value, ...(inlineEditorSketch.value.parameters || {}) };
+        }
         return selectedExpressionParameters.value;
       });
+      const inlineEditorParameterNames = computed(() => Object.keys(inlineEditorParameters.value)
+        .sort((left, right) => left.localeCompare(right, undefined, { numeric: true })));
       const inlineEditorContextTokens = computed(() => (
         inlineEditor.value?.type === 'faceParameter' ? selectedExpressionContextTokens.value : []
       ));
@@ -1145,6 +1164,7 @@ export default function createSurface({ vue, components, locale, queries, record
               mode: 'assembly',
               contextWorkpieceId: selectedWorkpieceId.value,
               selectedRelationId: selectedRelationId.value,
+              selectedFaceId: selectedDesignerFaceId.value || '',
               cassetteMarkContext: cassetteMarkContext.value
             }
           : {
@@ -1158,7 +1178,7 @@ export default function createSurface({ vue, components, locale, queries, record
         }, delay);
       };
 
-      watch([cassetteTree, previewMode, previewWorkpieceId, selectedWorkpieceId, selectedRelationId, cassetteNameDraft, selectedTemplateId], () => schedulePreviewRender(), { immediate: true });
+      watch([cassetteTree, previewMode, previewWorkpieceId, selectedWorkpieceId, selectedRelationId, selectedDesignerFaceId, cassetteNameDraft, selectedTemplateId], () => schedulePreviewRender(), { immediate: true });
       watch([cassetteTree, cassetteNameDraft], () => {
         if (suppressHistory) {
           suppressHistory = false;
@@ -1443,6 +1463,12 @@ export default function createSurface({ vue, components, locale, queries, record
           const nextValue = sanitizeAngleInput(value);
           inlineEditor.value = { ...inlineEditor.value, value: nextValue };
           updateFoldAngle(inlineEditor.value.nodeId, nextValue);
+          return;
+        }
+        if (inlineEditor.value.type === 'profileShapeParameter'
+          || inlineEditor.value.type === 'faceShapeParameter') {
+          inlineEditor.value = { ...inlineEditor.value, value };
+          applySketchDimensionField(inlineEditor.value, value);
           return;
         }
         inlineEditor.value = { ...inlineEditor.value, value };
@@ -2493,6 +2519,7 @@ export default function createSurface({ vue, components, locale, queries, record
         closeInlineEditor();
         selectedNodeId.value = face.nodeId;
         selectedWorkpieceOverrideId.value = '';
+        selectedRelationId.value = '';
         inspectorSelection.value = 'face';
         openInlineEditor({ type: 'faceActions', nodeId: face.nodeId });
       };
@@ -2518,8 +2545,77 @@ export default function createSurface({ vue, components, locale, queries, record
         inspectorSelection.value = 'fold';
       };
 
+      const sketchForTarget = (selectionType, targetId) => {
+        if (selectionType === 'profileShape') {
+          const workpiece = workpieces.value.find(item => item.id === targetId);
+          const snapshot = workpiece?.profileSnapshot || workpiece?.profile || {};
+          return snapshot.sketch ? normalizeOccsProfileSketch(snapshot.sketch) : null;
+        }
+        const node = treeNodes.value.find(item => item.id === targetId);
+        return node?.sketch ? normalizeOccsProfileSketch(node.sketch) : null;
+      };
+
+      const commitSketchForTarget = (selectionType, targetId, sketch) => {
+        if (selectionType === 'profileShape') {
+          const workpiece = workpieces.value.find(item => item.id === targetId);
+          const snapshot = workpiece?.profileSnapshot || workpiece?.profile || {};
+          cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, targetId, {
+            profileSnapshot: { ...snapshot, sketch }
+          });
+          return;
+        }
+        cassetteTree.value = updateCassetteV2FaceSketch(cassetteTree.value, targetId, sketch);
+      };
+
+      // A selected face/profile dimension label edits its authored shape
+      // field in place, the same field the sketch editor dimensions carry.
+      const applySketchDimensionField = (editor, value) => {
+        const sketch = sketchForTarget(editor.selectionType, editor.targetId);
+        if (!sketch) return;
+        const targets = new Set(editor.shapeIds?.length ? editor.shapeIds : [editor.shapeId]);
+        const shape = sketch.shapes.find(item => item.id === editor.shapeId);
+        const field = profileDimensionField(shape, editor.fieldKey);
+        if (!field) return;
+        const numeric = typeof value === 'string' && value.trim() !== '' ? Number(value) : null;
+        const binding = typeof field.value === 'string' ? field.value.trim() : '';
+        const bound = /^[A-Za-z_][A-Za-z0-9_]*$/.test(binding)
+          && Object.prototype.hasOwnProperty.call(sketch.parameters || {}, binding);
+        const next = Number.isFinite(numeric) && bound
+          ? { ...sketch, parameters: { ...sketch.parameters, [binding]: numeric } }
+          : {
+              ...sketch,
+              shapes: sketch.shapes.map(item => (
+                targets.has(item.id) ? field.apply(item, value) : item
+              ))
+            };
+        commitSketchForTarget(editor.selectionType, editor.targetId, normalizeOccsProfileSketch(next));
+      };
+
+      const openSketchDimensionEditor = (control, x, y) => {
+        const sketch = sketchForTarget(control.selectionType, control.targetId);
+        const shape = sketch?.shapes.find(item => item.id === control.shapeId);
+        const field = profileDimensionField(shape, control.fieldKey);
+        if (!field) return;
+        openInlineEditor({
+          type: control.selectionType === 'profileShape' ? 'profileShapeParameter' : 'faceShapeParameter',
+          selectionType: control.selectionType,
+          targetId: control.targetId,
+          shapeId: control.shapeId,
+          shapeIds: control.shapeIds || [control.shapeId],
+          fieldKey: control.fieldKey,
+          label: control.label || control.fieldKey,
+          value: field.value,
+          x,
+          y
+        });
+      };
+
       const handleDesignerPointEdit = ({ control, x, y }) => {
         if (!control?.nodeId || !control.key) return;
+        if (control.selectionType) {
+          openSketchDimensionEditor(control, x, y);
+          return;
+        }
         const node = treeNodes.value.find(item => item.id === control.nodeId);
         selectedNodeId.value = control.nodeId;
         selectedWorkpieceOverrideId.value = '';
@@ -3353,7 +3449,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 class: 'min-w-0 flex-1',
                 modelValue: editor.value,
                 parameters: inlineEditorParameters.value,
-                parameterNames: globalParameterNames.value,
+                parameterNames: inlineEditorParameterNames.value,
                 contextTokens: inlineEditorContextTokens.value,
                 onMousedown: event => event.stopPropagation(),
                 'onUpdate:modelValue': updateInlineEditorValue
@@ -3387,7 +3483,7 @@ export default function createSurface({ vue, components, locale, queries, record
               class: 'min-w-0 flex-1',
               modelValue: editor.value,
               parameters: inlineEditorParameters.value,
-              parameterNames: globalParameterNames.value,
+              parameterNames: inlineEditorParameterNames.value,
               contextTokens: inlineEditorContextTokens.value,
               onMousedown: event => event.stopPropagation(),
               'onUpdate:modelValue': updateInlineEditorValue
@@ -3409,7 +3505,7 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const renderInlineEditor = () => {
         const editor = inlineEditor.value;
-        if (!editor || !['faceParameter', 'foldAngle'].includes(editor.type)) return null;
+        if (!editor || !['faceParameter', 'foldAngle', 'profileShapeParameter', 'faceShapeParameter'].includes(editor.type)) return null;
         return h('div', {
           class: 'absolute z-[120] min-w-64 rounded-ui border border-content-border bg-content p-2 shadow-overlay',
           style: { left: `${editor.x}px`, top: `${editor.y}px` },
