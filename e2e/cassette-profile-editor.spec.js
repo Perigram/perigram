@@ -319,6 +319,18 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await expect(inspector.getByText('Anchor', { exact: true }), 'the profile editor lives in the inspector').toBeVisible();
   await expect(page.locator('.designer-workspace__canvas').getByText('Anchor', { exact: true })).toHaveCount(0);
 
+  const chip = page.locator('input[aria-label^="Parameters A"]').first();
+  await expect(chip).toBeVisible({ timeout: 20_000 });
+  const before = await canvasSignature();
+  await chip.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await chip.pressSequentially('55', { delay: 60 });
+  await page.waitForTimeout(700);
+  expect(await canvasSignature(), 'typing alone rebuilds nothing').toBe(before);
+  await chip.press('Enter');
+  await page.waitForTimeout(1200);
+  expect(await canvasSignature(), 'Enter commits and rebuilds').not.toBe(before);
+
   // The selected profile draws its inner shape dimensions on the assembly
   // canvas; a label opens the authored field in place.
   const innerDimPoint = async (fieldKey) => frameOf(dialog).then(frame => frame.evaluate(async (field) => {
@@ -355,18 +367,6 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
       ))?.text
   )));
   expect(innerCenterText, 'typing in the dimension commits the authored field').toBe('50.0');
-
-  const chip = page.locator('input[aria-label^="Parameters A"]').first();
-  await expect(chip).toBeVisible({ timeout: 20_000 });
-  const before = await canvasSignature();
-  await chip.click();
-  await page.keyboard.press('ControlOrMeta+a');
-  await chip.pressSequentially('55', { delay: 60 });
-  await page.waitForTimeout(700);
-  expect(await canvasSignature(), 'typing alone rebuilds nothing').toBe(before);
-  await chip.press('Enter');
-  await page.waitForTimeout(1200);
-  expect(await canvasSignature(), 'Enter commits and rebuilds').not.toBe(before);
 
   const assemblyBefore = await assemblyViewBox(page);
   const cameraBefore = await cadCameraOf(page);
