@@ -69,7 +69,9 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     hardware carries no extent, so a gap is its pitch.
   - Face arrays use X/Y rules with padding from the face outline to each
     copy footprint, an optional stagger on alternating rows or columns,
-    frame rotation and mirrors, and `clip: face` or `none`. Radial arrays
+    frame rotation and mirrors, and `clip: face` or `none`. A copy
+    resting flush on the outline is inside it, so a count or span fills
+    the padded bounds without dropping its last row or column. Radial arrays
     carry center offsets, ring count, copies per ring, base radius, ring
     spacing, start angle, and sweep. Item orientation is `fixed`,
     `grid`, `radial`, or `tangent`.
