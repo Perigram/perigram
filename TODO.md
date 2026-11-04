@@ -2611,6 +2611,23 @@ Ordered steps:
   `docs:validate` still reports the pre-existing broken
   `workers/nesting/README.md` link.
 
+- [ ] WAITING — owner verification: Smart dimensions on the cassette
+  assembly canvas (owner direction 2026-11-04): a selected face or profile
+  draws its inner shape dimensions on the dimension layer in the sketch's
+  CAD dimension style; a dimension label edits its authored shape field in
+  place, the same editing the profile and face sketch editors carry.
+
+  ### Agent Notes (2026-11-04, assembly smart dimensions)
+
+  Session `agent/smart-dimensions-20261104`. `selectionDimensionAnnotations`
+  maps the selected target's `buildProfileAnnotations` rows into the
+  assembly drawing's `dimensionAnnotations`;
+  `cassetteV2AssemblyEntitiesFromDrawing` carries each row's kind, diameter
+  center and dimension style; the designer opens the shape field through
+  `profileDimensionField` and commits it to the cassette. Face selection
+  renders the assembly so the face's frame matches its inner dimensions.
+  Validation: facade surface specs, `cassette-profile-editor` e2e.
+
 - [ ] WAITING — owner verification: Parametric faces and shared edges
   (owner direction 2026-11-02; profiles 2026-11-03): faces author as
   parametric sketches in the profile shape model and store the evaluated
