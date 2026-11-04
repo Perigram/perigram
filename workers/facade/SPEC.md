@@ -182,8 +182,8 @@ inner shadows outer): every parameter name — a cassette global or a
 profile parameter — renames in place, and the rename refactors every
 reference (whole identifiers, never substrings; a fold angle's deg
 suffix survives). A profile-local parameter shadows a same-named
-cassette variable: the local binding wins, the global is only the
-outer scope.
+cassette variable inside the sketch's authored expressions; a placement
+override resolves in the cassette scope first (2026-11-04).
 
 Owner decision (2026-10-17, profile library): profiles are reusable
 across cassettes through a plugin-declared `profile` library type
@@ -500,6 +500,14 @@ shadow a same-named global and keeps its override; an unreferenced
 authored scope-named row prunes. A saved
 sketch keeps the authored table; a saved workpiece keeps its instance
 table; neither table is folded into the other.
+
+Owner direction (2026-11-04, instance expressions read the cassette): a
+placement override is a cassette-level expression. A name the cassette
+defines resolves to the cassette's value even when the sketch authors a
+same-named row; the sketch's rows are the fallback for names the
+cassette does not define, and a field naming its own key reads that
+outer value. Authored shape expressions keep the sketch's inner rows
+over the cassette scope.
 
 Owner direction (2026-11-04, one parameter law for sketches): a face
 sketch carries the same two tables as a profile workpiece. The authored

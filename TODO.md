@@ -2595,7 +2595,10 @@ Ordered steps:
   face's base host. Multi-shape sets no longer require one closed add
   outline.
   `normalizeCassetteV2Face` keeps a trapezoid face's sketch empty instead
-  of injecting the profile template. Global renames rewrite face instance
+  of injecting the profile template. Placement override expressions now
+  resolve in the cassette scope first, so a chip naming cassette R reads
+  the cassette's R even when the sketch authors R; authored shape
+  expressions keep their inner rows. Global renames rewrite face instance
   rows and sketch bindings. `DrawingCanvas` gained `cadcraftNavigation`
   (exponential wheel zoom at the cursor, middle/right drag pan, middle
   double-click refit) and the designer passes it, so the assembly and

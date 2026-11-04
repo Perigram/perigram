@@ -224,11 +224,13 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     becomes a profile or override row. An override row whose name the
     sketch does not author is pruned from the instance table; an authored
     row may shadow a same-named global and keeps its override.
-  - Instance values may be cassette expressions resolved in the joined
-    scope — the profile's own table shadows the cassette's globals
-    (inner over outer) — while the raw expression stays stored. The
-    stored section is a last-good cache held through a transient invalid
-    parameter. Parameter names rename in place
+  - An instance value may be a cassette expression. It resolves in the
+    cassette scope first: a cassette name wins over a same-named authored
+    row, a field naming its own key reads that outer value, and the raw
+    expression stays stored. Authored shape expressions keep the inner
+    rows over the cassette scope. The stored section is a last-good cache
+    held through a transient invalid parameter. Parameter names rename in
+    place
     (`renameOccsProfileSketchParameter` moves the authored key and
     rewrites every reference as whole identifiers;
     `renameOccsProfileTableParameter` moves the instance row with it).
