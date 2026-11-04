@@ -1,3 +1,5 @@
+import { edgeArrayStarts, expandOccsFaceArray2d } from '../../occs/patterns.js';
+
 const numeric = (value, fallback = 0) => {
   const next = Number(value);
   return Number.isFinite(next) ? next : fallback;
@@ -288,40 +290,22 @@ const edgeArrayBodyPoints = (targetPlacement, body) => {
   const basis = faceBasis(targetPlacement);
   const normal2d = normalize2([-edge2d[1], edge2d[0]], [0, 1]);
   const inPlaneNormal = normalize3(add3(scale3(basis.xAxis, normal2d[0]), scale3(basis.yAxis, normal2d[1])), basis.yAxis);
-  const mode = pattern.mode === 'spacing' ? 'spacing' : 'count';
   const margin = Math.max(0, numeric(body.offsetX, 0));
   const normalOffset = numeric(body.offsetY, 0);
-  const requestedCount = Math.max(1, Math.round(numeric(pattern.count, 1)));
-  const requestedSpacing = Math.max(0, numeric(pattern.spacing, 0));
-  const usableStart = margin;
-  const usableEnd = edgeLength - margin;
-  if (usableEnd < usableStart) return [];
-
   const binding = body.targetSnap === 'end'
     ? 'end'
     : body.targetSnap === 'center' ? 'center' : 'start';
-  let distances = [];
-  if (mode === 'spacing' && requestedSpacing > 0) {
-    if (binding === 'end') {
-      for (let distance = usableEnd; distance >= usableStart - 0.001; distance -= requestedSpacing) {
-        distances.push(Math.max(usableStart, distance));
-      }
-    } else {
-      const span = Math.max(0, usableEnd - usableStart);
-      const count = Math.max(1, Math.floor(span / requestedSpacing) + 1);
-      const total = (count - 1) * requestedSpacing;
-      const first = binding === 'center' ? usableStart + (span - total) / 2 : usableStart;
-      distances = Array.from({ length: count }, (_, index) => Math.min(usableEnd, first + requestedSpacing * index));
-    }
-  } else if (requestedCount === 1) {
-    distances = [binding === 'end' ? usableEnd : binding === 'center' ? (usableStart + usableEnd) / 2 : usableStart];
-  } else {
-    const spacing = Math.max(0, (usableEnd - usableStart) / (requestedCount - 1));
-    distances = Array.from({ length: requestedCount }, (_, index) => usableStart + spacing * index);
-    if (binding === 'end') distances.reverse();
-  }
+  const layout = edgeArrayStarts({
+    edgeLength,
+    pattern,
+    startOffset: margin,
+    binding,
+    copyLength: numeric(body.copyLength, 0),
+    resolve: numeric
+  });
+  if (!layout.ok) return [];
 
-  return distances.map((distance, index) => ({
+  return layout.starts.map((distance, index) => ({
     index,
     point: add3(
       add3(start3d, scale3(edge3d, distance)),
@@ -332,6 +316,32 @@ const edgeArrayBodyPoints = (targetPlacement, body) => {
   }));
 };
 
+const faceArrayBodyPoints = (targetPlacement, body) => {
+  const points2d = targetPlacement?.sourceVertices || [];
+  if (points2d.length < 3) return [];
+  const layout = expandOccsFaceArray2d({
+    vertices: points2d,
+    pattern: body.pattern || {},
+    binding: body.targetSnap,
+    copyBounds: body.copyBounds,
+    resolve: numeric
+  });
+  if (!layout.ok) return [];
+  const basis = faceBasis(targetPlacement);
+  return layout.points.map((point2d, index) => {
+    const rotation = numeric(point2d.rotation, 0);
+    const axis = rotation
+      ? multiplyMatrixVector(rotationMatrixAroundAxis(basis.normal, rotation), basis.xAxis)
+      : basis.xAxis;
+    return {
+      index,
+      point: pointOnFace(targetPlacement, [point2d.x, point2d.y]),
+      axis,
+      normal: basis.normal
+    };
+  });
+};
+
 const bodyInstances = (placed, bodies = []) => bodies.flatMap((body) => {
   if (body.family === 'hanger_clip' && (body.productionMode || 'integralCut') === 'integralCut') {
     return [];
@@ -339,14 +349,16 @@ const bodyInstances = (placed, bodies = []) => bodies.flatMap((body) => {
   const targetPlacement = placed.get(body.targetFaceId);
   if (!targetPlacement) return [];
   const basis = faceBasis(targetPlacement);
-  const points = body.pattern?.type === 'edgeArray'
-    ? edgeArrayBodyPoints(targetPlacement, body)
-    : [{
-        index: 0,
-        point: jointTargetAnchor(targetPlacement, body),
-        axis: basis.xAxis,
-        normal: basis.normal
-      }];
+  const points = body.pattern?.type === 'faceArray'
+    ? faceArrayBodyPoints(targetPlacement, body)
+    : body.pattern?.type === 'edgeArray'
+      ? edgeArrayBodyPoints(targetPlacement, body)
+      : [{
+          index: 0,
+          point: jointTargetAnchor(targetPlacement, body),
+          axis: basis.xAxis,
+          normal: basis.normal
+        }];
 
   return points.map(entry => ({
     id: `${body.id}:${entry.index}`,
