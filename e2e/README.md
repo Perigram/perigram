@@ -150,9 +150,10 @@ that drive executor-backed surfaces or services wire them through
   partially typed numbers and cleared values.
 - `cassette-profile-editor.spec.js`: the profile sketch editor's
   authored-truth round-trip through the real CAD dialog — draw shapes,
-  bind a dimension to a parameter, save, reopen: the binding survives
-  and authored numerics stay at drawing scale. The editor asserts the
-  embed mode: no autosave wiring, no recovery dialog, and no native
+  bind a dimension to a parameter, save, reopen: the binding survives,
+  authored numerics stay at drawing scale, and the selected profile's
+  inner shape dimension edits on the assembly canvas. The editor asserts
+  the embed mode: no autosave wiring, no recovery dialog, and no native
   CadCraft chrome. Specs that embed the CAD engine connect both
   executors (`facade` and `tech-drawing`) — the runtime is facade's
   declared cross-plugin dependency.
