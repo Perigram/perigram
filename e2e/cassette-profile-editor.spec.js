@@ -367,6 +367,10 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
       ))?.text
   )));
   expect(innerCenterText, 'typing in the dimension commits the authored field').toBe('50.0');
+  await page.keyboard.press('Escape');
+  await page.locator('[data-designer-profile-id]').first().dispatchEvent('click');
+  await expect(page.getByRole('button', { name: 'Edit profile' }).first())
+    .toBeVisible({ timeout: 10_000 });
 
   const assemblyBefore = await assemblyViewBox(page);
   const cameraBefore = await cadCameraOf(page);
