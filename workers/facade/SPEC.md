@@ -597,13 +597,15 @@ heading or secondary label. Mirror controls are icon buttons labelled X
 and Y. An invalid expression marks its field with the PrimeVue invalid
 state and carries the reason in the field title.
 
-Owner decision (2026-11-02, faces are parametric shapes): a face may be
-authored as a parametric sketch in the profile shape model; the
-trapezoid remains the quick path. The sketch folds through the profile's
-ordered boolean sequence: add shapes form the face, subtract shapes cut
-it, construction is excluded, and the result must resolve to one closed
-outline. The child face keeps the material on its side of the datum; the
-parent-side part belongs to the parent cut. Every participating shape
+Owner decision (2026-11-02, faces are parametric shapes; amended
+2026-11-04): a face may be authored as a parametric sketch in the profile
+shape model; the trapezoid remains the quick path. The shape set applies
+to the face's base trapezoid host exactly as a profile applies to its
+target face: add shapes extend the base, subtract shapes cut it, and
+construction is excluded. A subtract-only set cuts the base and needs no
+closed add outline; the result is the face region on the child's side of
+the datum. The child face keeps the material on its side of the datum;
+the parent-side part belongs to the parent cut. Every participating shape
 cuts the parent where it lands — the cut footprint is the union of the
 adds and subtracts, the boolean pass a closed profile applies to its
 host. The sketch is the node's authored truth
