@@ -134,7 +134,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await page.waitForTimeout(600);
   await expect(widthField).toHaveValue('W');
 
-  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Back to cassette' }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
   // The saved profile row carries a live expression chip per bound
@@ -239,7 +239,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await nameW.press('Enter');
   await page.waitForTimeout(600);
   await expect(reopenedWidth).toHaveValue('WIDTH');
-  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Back to cassette' }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await openProfilePopup(page);
   await expect.poll(() => chipText(chipField(page, 'WIDTH'))).toBe('LENGTH');
@@ -314,7 +314,7 @@ test('a dimension edit over an instance override writes the override; clearing s
   await page.keyboard.type('42', { delay: 40 });
   await fxW.press('Enter');
   await bindWidth('W');
-  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Back to cassette' }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
   await openProfilePopup(page);
@@ -351,7 +351,7 @@ test('a dimension edit over an instance override writes the override; clearing s
   await nameW.press('Enter');
   await page.waitForTimeout(600);
   await expect(widthField).toHaveValue('WIDTH');
-  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Back to cassette' }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await openProfilePopup(page);
   await expect.poll(() => chipText(chipField(page, 'WIDTH'))).toBe('20');
@@ -370,7 +370,7 @@ test('a dimension edit over an instance override writes the override; clearing s
   await drawRectangle();
   const width = await bindWidth('A');
   await expect(width).toHaveValue('A');
-  await expect(inspector.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+  await expect(inspector.getByRole('button', { name: 'Back to cassette' })).toBeVisible();
   await expect(inspector.getByRole('button', { name: 'Save to library', exact: true })).toBeDisabled();
 
   await app.expectCleanRuntime();
@@ -435,7 +435,7 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await paramK.press('Enter');
   await page.waitForTimeout(600);
 
-  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Back to cassette' }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
   await openProfilePopup(page);
@@ -510,7 +510,7 @@ test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   await expect(drawButton, 'Rectangle command ended').not.toHaveClass(/p-button-primary/, { timeout: 15_000 });
   await page.waitForTimeout(600);
 
-  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Back to cassette' }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await page.waitForTimeout(1200);
 

@@ -323,6 +323,7 @@ export default function createSurface({ vue, components, locale, queries, record
       // The focused profile-parameter chip's raw text (see fieldDraft).
       const profileSketchOpen = ref(false);
       const editingProfileWorkpieceId = ref('');
+      const profileDraftCreated = ref(false);
       // Every profile sketch drafts blank (owner decision 2026-10-17):
       // empty canvas, empty table — geometry and parameters are authored,
       // never seeded from the template.
@@ -358,7 +359,6 @@ export default function createSurface({ vue, components, locale, queries, record
         faceShapeDraftSketch.value,
         globalParameters.value
       ));
-      const faceShapeReady = computed(() => !faceShapeInspection.value.error);
       const sketchMode = computed(() => (
         faceSketchOpen.value ? 'face' : profileSketchOpen.value ? 'profile' : ''
       ));
@@ -444,14 +444,16 @@ export default function createSurface({ vue, components, locale, queries, record
         : null);
       const workpieceRelations = computed(() => getCassetteV2WorkpieceRelations(cassetteTree.value));
       const previewMode = computed(() => (
-        inspectorSelection.value === 'workpiece' || inspectorSelection.value === 'attachment'
-          ? 'assembly'
+        inspectorSelection.value === 'workpiece'
+          || inspectorSelection.value === 'attachment'
+          || inspectorSelection.value === 'face'
+          || inspectorSelection.value === 'fold'
           // A profile owns no face: its solo view is empty geometry, so a
           // selected profile previews the assembly it is placed in — the
           // geometry its instance parameters actually drive.
-          : isCassetteV2ProfileWorkpiece(selectedWorkpiece.value || {})
-            ? 'assembly'
-            : 'workpiece'
+          || isCassetteV2ProfileWorkpiece(selectedWorkpiece.value || {})
+          ? 'assembly'
+          : 'workpiece'
       ));
       const previewWorkpieceId = computed(() => previewMode.value === 'workpiece' ? selectedWorkpieceId.value : '');
       const selectedWorkpieceRelations = computed(() => workpieceRelations.value
@@ -1116,6 +1118,7 @@ export default function createSurface({ vue, components, locale, queries, record
               mode: 'assembly',
               contextWorkpieceId: selectedWorkpieceId.value,
               selectedRelationId: selectedRelationId.value,
+              selectedFaceId: selectedDesignerFaceId.value || '',
               cassetteMarkContext: cassetteMarkContext.value
             }
           : {
@@ -1129,7 +1132,7 @@ export default function createSurface({ vue, components, locale, queries, record
         }, delay);
       };
 
-      watch([cassetteTree, previewMode, previewWorkpieceId, selectedWorkpieceId, selectedRelationId, cassetteNameDraft, selectedTemplateId], () => schedulePreviewRender(), { immediate: true });
+      watch([cassetteTree, previewMode, previewWorkpieceId, selectedWorkpieceId, selectedRelationId, selectedDesignerFaceId, cassetteNameDraft, selectedTemplateId], () => schedulePreviewRender(), { immediate: true });
       watch([cassetteTree, cassetteNameDraft], () => {
         if (suppressHistory) {
           suppressHistory = false;
@@ -1540,6 +1543,7 @@ export default function createSurface({ vue, components, locale, queries, record
         closeInlineEditor();
         selectedNodeId.value = node.id;
         selectedWorkpieceOverrideId.value = '';
+        selectedRelationId.value = '';
         inspectorSelection.value = 'face';
         openInlineEditor({ type: 'faceActions', nodeId: node.id });
       };
@@ -1835,16 +1839,15 @@ export default function createSurface({ vue, components, locale, queries, record
         }
       };
 
-      const finishProfileSketch = (addedWorkpieceId = '') => {
+      const finishProfileSketch = () => {
+        const createdWorkpieceId = profileDraftCreated.value ? editingProfileWorkpieceId.value : '';
         profileSketchOpen.value = false;
-        closeSketchSession({ restoreSelection: !addedWorkpieceId });
-        if (addedWorkpieceId) selectProfileWorkpiece(addedWorkpieceId);
+        profileDraftCreated.value = false;
+        closeSketchSession({ restoreSelection: !createdWorkpieceId });
+        if (createdWorkpieceId) selectProfileWorkpiece(createdWorkpieceId);
       };
 
-      const cancelProfileSketch = () => {
-        profileSketchOpen.value = false;
-        closeSketchSession();
-      };
+      const cancelProfileSketch = finishProfileSketch;
 
       const finishFaceSketch = () => {
         faceSketchOpen.value = false;
@@ -1862,6 +1865,7 @@ export default function createSurface({ vue, components, locale, queries, record
         closeInlineEditor();
         profileEditorError.value = '';
         editingProfileWorkpieceId.value = workpieceId;
+        profileDraftCreated.value = false;
         const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;
         if (workpiece) {
           const profile = workpiece.profileSnapshot || workpiece.profile || null;
@@ -1878,17 +1882,15 @@ export default function createSurface({ vue, components, locale, queries, record
             // Placement overrides stay on the workpiece; the sketch mode
             // never evaluates or edits them.
             preservedInstance: { ...(normalizedProfile.instance || {}) },
-            // In-place editing shows the placed implementation: the
-            // workpiece's resolved instance values join the authored table.
+            // The editor edits the authored sketch alone; placement
+            // overrides stay on the workpiece.
             sketch: {
               ...snapshotSketch,
-              parameters: pruneScopeBoundParameters({
-                ...snapshotSketch.parameters,
-                ...Object.fromEntries(Object.keys(normalizedProfile.instance || {}).map(key => [
-                  key,
-                  normalizedProfile.parameters?.[key] ?? normalizedProfile.instance[key]
-                ]))
-              }, snapshotSketch.shapes, scope)
+              parameters: pruneScopeBoundParameters(
+                snapshotSketch.parameters,
+                snapshotSketch.shapes,
+                scope
+              )
             },
             libraryId: workpiece.profileTemplateId?.toString() || ''
           };
@@ -1933,17 +1935,15 @@ export default function createSurface({ vue, components, locale, queries, record
           const face = normalizeCassetteV2Face(node, globalParameters.value);
           faceShapePreservedInstance.value = { ...(face.instance || {}) };
           faceShapeBaseFace.value = context.baseFace || [];
-          // In-place editing shows the placed implementation: the face's
-          // instance values join the authored table.
+          // The editor edits the authored sketch alone; placement
+          // overrides stay on the node.
           faceShapeDraft.value = {
             ...context.sketch,
-            parameters: pruneScopeBoundParameters({
-              ...context.sketch.parameters,
-              ...Object.fromEntries(Object.keys(face.instance || {}).map(key => [
-                key,
-                face.parameters?.[key] ?? face.instance[key]
-              ]))
-            }, context.sketch.shapes, globalParameters.value)
+            parameters: pruneScopeBoundParameters(
+              context.sketch.parameters,
+              context.sketch.shapes,
+              globalParameters.value
+            )
           };
           faceShapeBasisStart.value = context.basisStart;
           faceShapeBasisEnd.value = context.basisEnd;
@@ -1963,28 +1963,18 @@ export default function createSurface({ vue, components, locale, queries, record
         faceSketchOpen.value = true;
       };
 
-      const saveFaceShapeDraft = async () => {
+      const commitFaceShapeDraft = () => {
+        if (!faceSketchOpen.value || faceShapeInspection.value.error) return;
         const sketch = closeOccsProfileSketchBoundary(faceShapeDraftSketch.value);
-        try {
-          await resolveCassetteV2FaceSketchRegion(
-            sketch,
-            globalParameters.value,
-            faceShapeBaseFace.value?.length ? [faceShapeBaseFace.value] : []
-          );
-        } catch (error) {
-          faceShapeEditorError.value = error?.message || String(error);
-          return;
-        }
         const preservedInstance = Object.fromEntries(
           Object.entries(faceShapePreservedInstance.value || {})
-            .filter(([key]) => !Object.prototype.hasOwnProperty.call(sketch.parameters || {}, key))
+            .filter(([key]) => Object.prototype.hasOwnProperty.call(sketch.parameters || {}, key))
         );
         cassetteTree.value = updateCassetteV2FaceInstance(
           updateCassetteV2FaceSketch(cassetteTree.value, editingFaceNodeId.value, sketch),
           editingFaceNodeId.value,
           preservedInstance
         );
-        finishFaceSketch();
       };
 
       const useTrapezoidFace = (nodeId = editingFaceNodeId.value) => {
@@ -2225,23 +2215,20 @@ export default function createSurface({ vue, components, locale, queries, record
         }
       };
 
-      // Profiles persist as tree workpieces (the workpiece's
-      // profileSnapshot is the renderer's geometry source) and ride the
-      // cassette template's own save.
-      const saveProfileDraft = () => {
-        if (!profileDraftReady.value) {
-          notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
-          return;
-        }
+      // Profiles persist as live tree workpieces while the sketch mode is
+      // open; the mode's explicit save actions write library records only.
+      const commitProfileDraft = () => {
+        if (!profileSketchOpen.value) return '';
+        const inspection = profileDraftInspection.value;
+        if (!inspection.evaluated) return '';
+        if (!editingProfileWorkpieceId.value && !inspection.savable) return '';
         const payload = profileDraftPayload();
-        // The editor's authored table now carries the placed values; drop
-        // instance overrides the table owns.
+        // The instance table keeps the overrides whose authored rows remain.
         const preservedInstance = Object.fromEntries(
           Object.entries(profileDraft.value.preservedInstance || {})
-            .filter(([key]) => !Object.prototype.hasOwnProperty.call(payload.sketch.parameters || {}, key))
+            .filter(([key]) => Object.prototype.hasOwnProperty.call(payload.sketch.parameters || {}, key))
         );
         const workpieceId = editingProfileWorkpieceId.value;
-        let addedWorkpieceId = '';
         if (workpieceId && workpieces.value.some(item => item.id === workpieceId)) {
           cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, workpieceId, {
             name: payload.name,
@@ -2258,26 +2245,33 @@ export default function createSurface({ vue, components, locale, queries, record
               sweep: payload.occsProfile.sweep
             }
           });
-        } else {
-          const targetFaceId = profileTargetFaceId();
-          const added = addCassetteV2ProfileWorkpiece(cassetteTree.value, {
-            referenceWorkpieceId: selectedWorkpieceId.value,
-            referenceNodeId: targetFaceId,
-            name: payload.name,
-            kind: payload.kind,
-            process: payload.process,
-            instance: {},
-            occsProfile: payload.occsProfile,
-            sketch: payload.sketch,
-            profileTemplateId: profileDraft.value.libraryId || ''
-          });
-          cassetteTree.value = added.tree;
-          selectWorkpiece(added.workpieceId);
-          addedWorkpieceId = added.workpieceId;
+          return workpieceId;
         }
-        finishProfileSketch(addedWorkpieceId);
-        notify({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.saved'), life: 2500 });
+        const added = addCassetteV2ProfileWorkpiece(cassetteTree.value, {
+          referenceWorkpieceId: selectedWorkpieceId.value,
+          referenceNodeId: profileTargetFaceId(),
+          name: payload.name,
+          kind: payload.kind,
+          process: payload.process,
+          instance: {},
+          occsProfile: payload.occsProfile,
+          sketch: payload.sketch,
+          profileTemplateId: profileDraft.value.libraryId || ''
+        });
+        cassetteTree.value = added.tree;
+        editingProfileWorkpieceId.value = added.workpieceId;
+        profileDraftCreated.value = true;
+        return added.workpieceId;
       };
+
+      // Sketch edits are the cassette edit: the tree follows the draft in
+      // real time, and the mode's save actions only write library records.
+      watch(profileDraft, () => {
+        if (profileSketchOpen.value) commitProfileDraft();
+      }, { deep: true });
+      watch(faceShapeDraft, () => {
+        if (faceSketchOpen.value) commitFaceShapeDraft();
+      }, { deep: true });
 
       const updateSelectedHardware = (patch) => {
         if (!selectedWorkpiece.value) return;
@@ -3447,16 +3441,6 @@ export default function createSurface({ vue, components, locale, queries, record
         const actions = face
           ? [
               h(Button, {
-                icon: 'pi pi-save',
-                severity: 'primary',
-                rounded: true,
-                size: 'small',
-                disabled: !faceShapeReady.value,
-                'aria-label': t('common.save'),
-                title: error || t('common.save'),
-                onClick: saveFaceShapeDraft
-              }),
-              h(Button, {
                 icon: 'pi pi-undo',
                 severity: 'secondary',
                 text: true,
@@ -3468,16 +3452,6 @@ export default function createSurface({ vue, components, locale, queries, record
               })
             ]
           : [
-              h(Button, {
-                icon: 'pi pi-save',
-                severity: 'primary',
-                rounded: true,
-                size: 'small',
-                disabled: !profileDraftReady.value,
-                'aria-label': t('common.save'),
-                title: error || t('common.save'),
-                onClick: saveProfileDraft
-              }),
               ...(profileLibraryAvailable.value
                 ? [
                     h(Button, {

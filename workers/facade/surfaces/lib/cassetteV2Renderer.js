@@ -56,7 +56,7 @@ import {
   pointInPolygon
 } from '../../occs/patterns.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
-import { OCCS_DIM_STYLE } from './profileAnnotations.js';
+import { buildProfileAnnotations, OCCS_DIM_STYLE } from './profileAnnotations.js';
 import { collectDxfEntities, svgPathToPolylines } from '../../vendor/dxf-writer.js';
 import { embedOccsProfileEdge, embedOccsProfilesIntoContour } from '../../occs/profileEmbedding.js';
 import {
@@ -3907,6 +3907,88 @@ const nearestEdgeProjection = (vertices = [], point = [0, 0]) => {
   return best;
 };
 
+const appendCassetteDimensionAnnotations = (drawing, annotations = []) => {
+  if (!annotations.length) return;
+  drawing.dimensionAnnotations = [...(drawing.dimensionAnnotations || []), ...annotations];
+  if (!drawing.layers.some(layer => layer.role === 'dimension' || layer.standardCode === OCCS_LAYER_DIMENSION_CASSETTE)) {
+    drawing.layers.push({
+      name: occsLayerExportName(OCCS_LAYER_DIMENSION_CASSETTE),
+      standardCode: OCCS_LAYER_DIMENSION_CASSETTE,
+      role: 'dimension',
+      color: 'currentColor',
+      weight: 1,
+      dasharray: 'none',
+      paths: []
+    });
+  }
+};
+
+// The selected face/profile inner dimensions in assembly coordinates:
+// the same shape dimensions its editor draws, placed at the target.
+const selectionDimensionAnnotations = async (tree = createCassetteV2GraphTree(), options = {}) => {
+  const parameters = treeParameters(tree);
+  let sketch = null;
+  let evaluated = null;
+  let frame = null;
+  if (options.selectedRelationId) {
+    const relation = getCassetteV2WorkpieceRelations(tree)
+      .find(item => item.id === options.selectedRelationId);
+    const workpiece = tree.workpieces.find(item => item.id === relation?.sourceWorkpieceId);
+    if (!relation || !workpiece) return [];
+    const profile = normalizeCassetteV2Profile(workpiece, parameters);
+    const derived = deriveOccsProfileSketch(
+      profile.sketch,
+      resolveInstanceParameters(profile.sketch, profile.instance, parameters)
+    );
+    evaluated = evaluateOccsProfileSketch(derived, parameters);
+    sketch = profile.sketch;
+    frame = await cassetteV2SketchFrame(tree, { mode: 'profile', id: workpiece.id });
+  } else if (options.selectedFaceId) {
+    const node = tree.nodes.find(item => item.id === options.selectedFaceId);
+    if (!node || !isCassetteV2SketchFace(node)) return [];
+    const face = normalizeCassetteV2Face(node, parameters);
+    evaluated = evaluateOccsProfileSketch(face.derivedSketch, parameters);
+    sketch = face.sketch;
+    frame = await cassetteV2SketchFrame(tree, { mode: 'face', id: node.id });
+  }
+  if (!evaluated || !frame) return [];
+  const { dimensions } = buildProfileAnnotations({ evaluated, authored: sketch });
+  const toWorld = (point) => {
+    const mirroredX = frame.mirrorX ? -numeric(point?.x, 0) : numeric(point?.x, 0);
+    const mirroredY = frame.mirrorY ? -numeric(point?.y, 0) : numeric(point?.y, 0);
+    const anchorX = Array.isArray(frame.anchor) ? numeric(frame.anchor[0], 0) : 0;
+    const anchorY = Array.isArray(frame.anchor) ? numeric(frame.anchor[1], 0) : 0;
+    const radians = numeric(frame.rotation, 0) * Math.PI / 180;
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    const dx = mirroredX - anchorX;
+    const dy = mirroredY - anchorY;
+    return {
+      x: numeric(frame.origin?.[0], 0) + dx * cos - dy * sin,
+      y: numeric(frame.origin?.[1], 0) + dx * sin + dy * cos
+    };
+  };
+  return dimensions.map((dimension) => {
+    const p1 = dimension.p1 ? toWorld(dimension.p1) : null;
+    const p2 = dimension.p2 ? toWorld(dimension.p2) : null;
+    const loc = dimension.loc ? toWorld(dimension.loc) : null;
+    const center = dimension.c ? toWorld(dimension.c) : null;
+    return {
+      kind: dimension.kind,
+      from: p1 ? [p1.x, p1.y] : null,
+      to: p2 ? [p2.x, p2.y] : null,
+      loc: loc ? [loc.x, loc.y] : null,
+      ...(center ? { center: [center.x, center.y] } : {}),
+      rot: p1 && p2 && dimension.kind === 'linear'
+        ? Math.atan2(p2.y - p1.y, p2.x - p1.x)
+        : dimension.rot,
+      text: dimension.text,
+      key: dimension.annotationKey,
+      dimensionKind: 'inner'
+    };
+  });
+};
+
 // A selected profile's placement dimensions run along its parent edge:
 // the edge ends and the profile basis point chain the measured offsets.
 const placementDimensionAnnotations = (curves = [], tree = createCassetteV2GraphTree(), relationId = '') => {
@@ -4174,21 +4256,14 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
       ) * 1000) / 1000;
     })];
   }));
-  const placementDimensions = placementDimensionAnnotations(drawingCurves, tree, options.selectedRelationId);
-  if (placementDimensions.length) {
-    drawing.dimensionAnnotations = [...(drawing.dimensionAnnotations || []), ...placementDimensions];
-    if (!drawing.layers.some(layer => layer.role === 'dimension' || layer.standardCode === OCCS_LAYER_DIMENSION_CASSETTE)) {
-      drawing.layers.push({
-        name: occsLayerExportName(OCCS_LAYER_DIMENSION_CASSETTE),
-        standardCode: OCCS_LAYER_DIMENSION_CASSETTE,
-        role: 'dimension',
-        color: 'currentColor',
-        weight: 1,
-        dasharray: 'none',
-        paths: []
-      });
-    }
-  }
+  appendCassetteDimensionAnnotations(
+    drawing,
+    placementDimensionAnnotations(drawingCurves, tree, options.selectedRelationId)
+  );
+  appendCassetteDimensionAnnotations(
+    drawing,
+    await selectionDimensionAnnotations(tree, options)
+  );
   // The plugin's layer standards bake the base pens here — every drawing
   // this renderer emits is styled; org-authored standards still override
   // host-side (shadow-by-code over the host transport).
@@ -4894,11 +4969,15 @@ export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
       });
     }
     for (const annotation of dimensionAnnotations) {
+      const kind = annotation.kind || 'linear';
       entities.push({
         type: 'dim',
-        kind: 'linear',
+        kind,
         p1: { x: Number(annotation.from?.[0]) || 0, y: Number(annotation.from?.[1]) || 0 },
         p2: { x: Number(annotation.to?.[0]) || 0, y: Number(annotation.to?.[1]) || 0 },
+        ...(kind === 'diameter' && Array.isArray(annotation.center)
+          ? { c: { x: Number(annotation.center[0]) || 0, y: Number(annotation.center[1]) || 0 } }
+          : {}),
         loc: { x: Number(annotation.loc?.[0]) || 0, y: Number(annotation.loc?.[1]) || 0 },
         rot: Number(annotation.rot) || 0,
         text: String(annotation.text ?? ''),
@@ -5081,6 +5160,7 @@ export const renderCassetteV2TreeToDrawing = async (tree = createCassetteV2Graph
     includeFoldedPreviewJoints: options.mode === 'assembly',
     contextWorkpieceId: options.mode === 'assembly' ? options.contextWorkpieceId : '',
     selectedRelationId: options.selectedRelationId,
+    selectedFaceId: options.selectedFaceId,
     includeDimensions: options.includeDimensions,
     cassetteMarkContext: options.cassetteMarkContext || {}
   });

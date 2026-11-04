@@ -136,7 +136,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const tools = page.locator('.designer-workspace__palette');
   await expect(inspector.getByRole('button', { name: 'Back to cassette' })).toBeVisible({ timeout: 10_000 });
-  await expect(inspector.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+  await expect(inspector.getByRole('button', { name: 'Save to library', exact: true })).toBeVisible();
   await expect(page.locator('.designer-workspace__canvas [data-sketch-mode="profile"]')).toHaveCount(1);
   const canvas = dialog.locator(CANVAS).first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
@@ -289,7 +289,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect((await nativeDims(dialog)).find(dim => dim.field === 'diameter')?.text).toBe('A');
 
   // Save places the profile; reopening it shows the same authored state.
-  await inspector.getByRole('button', { name: 'Save', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Back to cassette' }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await page.waitForTimeout(2000);
   const treeText = await inspector.innerText();

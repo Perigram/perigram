@@ -879,6 +879,42 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(radius(edited)).toBeGreaterThan(radius(added.tree));
   });
 
+  it('draws the selected profile and face inner dimensions in the assembly', async () => {
+    const sketch = normalizeOccsProfileSketch({
+      parameters: { W: 40, H: 20 },
+      shapes: [{
+        id: 'outline',
+        type: 'rect',
+        op: 'add',
+        center: ['W/2', 'H/2'],
+        width: 'W',
+        height: 'H'
+      }]
+    });
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      sketch
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    const profileDrawing = await renderCassetteV2TreeToDrawing(added.tree, {
+      mode: 'assembly',
+      selectedRelationId: relation.id
+    });
+    expect(profileDrawing.dimensionAnnotations.some(annotation => (
+      annotation.dimensionKind === 'inner'
+    ))).toBe(true);
+
+    const faceTree = updateCassetteV2FaceSketch(createCassetteV2GraphTree(), 'face_1', sketch);
+    const faceDrawing = await renderCassetteV2TreeToDrawing(faceTree, {
+      mode: 'assembly',
+      selectedFaceId: 'face_1'
+    });
+    expect(faceDrawing.dimensionAnnotations.some(annotation => (
+      annotation.dimensionKind === 'inner'
+    ))).toBe(true);
+  });
+
   it('resolves placed profile and face instance expressions with the cassette scope first', () => {
     const sketch = normalizeOccsProfileSketch({
       parameters: { R: 5, W: 40 },
