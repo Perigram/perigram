@@ -261,7 +261,12 @@ export const isCassetteV2SketchFace = (node = {}) => Array.isArray(node?.sketch?
 // overrides beside it. The derived table is the evaluation scope.
 export const normalizeCassetteV2Face = (source = {}, scope = {}) => {
   const rawSketch = source?.sketch || source;
-  const sketch = normalizeOccsProfileSketch(rawSketch || {});
+  const sketchSource = rawSketch && (
+    Array.isArray(rawSketch.shapes) || Array.isArray(rawSketch.points) || Array.isArray(rawSketch.holes)
+  )
+    ? rawSketch
+    : createEmptyOccsProfileSketch();
+  const sketch = normalizeOccsProfileSketch(sketchSource);
   const authoredKeys = new Set(Object.keys(sketch.parameters || {}));
   const instance = Object.fromEntries(
     Object.entries(source?.sketch ? (source.instance || {}) : {}).filter(([key]) => (
@@ -4218,18 +4223,34 @@ const rotateSketchRingToAttachment = (ring = []) => {
 // profile section uses: adds form the face, subtracts cut it. The face's
 // material region (outer rings minus holes) also cuts the parent where
 // the face overlaps it.
-const resolveCassetteV2FaceSketchGeometry = async (face = {}, parameters = {}) => {
+// A face's base host in the sketch frame: the trapezoid the node carries
+// before its shape set applies. A face sketch is a boolean modifier set
+// over this host, exactly as a profile modifies the face it attaches to.
+const faceBaseLocalRing = (node, parameters, parentBoundaryVertices, frame) => {
+  const trapezoid = resolvedNodeTrapezoidForGeometry(node, parameters, parentBoundaryVertices || null);
+  const vertices = buildCassetteV2TrapezoidVertices({
+    ...trapezoid,
+    edgeStart: node.parentId ? trapezoid.edgeStart : 0
+  }, {
+    parentVertices: parentBoundaryVertices || null,
+    parentEdgeIndex: node.parentId ? node.parentEdgeIndex : trapezoid.parentEdgeIndex
+  });
+  return sketchRingInFrame(vertices, frame).map(([x, y]) => [
+    x - (node.parentId ? numeric(trapezoid.edgeStart, 0) : 0),
+    y
+  ]);
+};
+
+const resolveCassetteV2FaceSketchGeometry = async (face = {}, parameters = {}, basePolygons = []) => {
   const evaluated = evaluateOccsProfileSketch(
     face.derivedSketch || normalizeOccsProfileSketch(face.sketch || face),
     parameters
   );
   const { section } = buildOccsProfileFromEvaluatedSketch(evaluated);
   const operations = resolveOccsProfileSectionOperations(section) || [];
-  if (!operations.length) throw new Error('Face shape has no closed outline');
-  const region = await foldCassetteV2Region({ polygons: [], holes: [] }, operations);
-  if (region.polygons.length !== 1) {
-    throw new Error('Face shape must resolve to one closed outline');
-  }
+  const base = (Array.isArray(basePolygons) ? basePolygons : [basePolygons])
+    .filter(ring => Array.isArray(ring) && ring.length >= 3);
+  const region = await foldCassetteV2Region({ polygons: base, holes: [] }, operations);
   // Every participating shape cuts the parent where it lands: the cut
   // footprint is the union of the adds and subtracts. The child face
   // keeps the ordered fold result on its side of the datum.
@@ -4242,20 +4263,18 @@ const resolveCassetteV2FaceSketchGeometry = async (face = {}, parameters = {}) =
     { polygons: region.polygons, holes: region.holes },
     [{ op: 'subtract', polygons: [[[-span, -span], [span, -span], [span, 0], [-span, 0]]] }]
   );
-  if (clipped.polygons.length !== 1) {
-    throw new Error('Face shape must resolve to one closed outline');
-  }
   return {
-    outer: rotateSketchRingToAttachment(clipped.polygons[0]),
+    outer: clipped.polygons[0] ? rotateSketchRingToAttachment(clipped.polygons[0]) : null,
     holes: clipped.holes,
+    polygons: clipped.polygons,
     cuts: cutRegion.polygons.filter(ring => ring.length >= 3)
   };
 };
 
-export const resolveCassetteV2FaceSketchRegion = async (source = {}, parameters = {}) => {
+export const resolveCassetteV2FaceSketchRegion = async (source = {}, parameters = {}, basePolygons = []) => {
   const face = normalizeCassetteV2Face(source, parameters);
-  const { outer, holes } = await resolveCassetteV2FaceSketchGeometry(face, parameters);
-  return { outer, holes };
+  const { outer, holes, polygons } = await resolveCassetteV2FaceSketchGeometry(face, parameters, basePolygons);
+  return { outer, holes, polygons };
 };
 
 const placeSketchRing = (ring = [], frame) => ring.map(point => [
@@ -4299,11 +4318,18 @@ const buildCassetteV2LocalTreeCurves = async (sourceTree) => {
           0
         ]
       };
+      const baseLocalVertices = faceBaseLocalRing(
+        node,
+        parameters,
+        parentEntry?.boundaryVertices || null,
+        frame
+      );
       const region = await resolveCassetteV2FaceSketchGeometry(
         normalizeCassetteV2Face(node, parameters),
-        parameters
+        parameters,
+        [baseLocalVertices]
       );
-      const localVertices = region.outer;
+      const localVertices = region.outer || [];
       const localHoles = region.holes;
       const vertices = placeSketchRing(localVertices, shiftedFrame);
       const boundaryVertices = withoutClosingVertex(vertices);
@@ -4314,6 +4340,7 @@ const buildCassetteV2LocalTreeCurves = async (sourceTree) => {
         holes: localHoles.map(ring => placeSketchRing(ring, shiftedFrame)),
         localVertices,
         localHoles,
+        baseLocalVertices,
         faceCutPolygons: region.cuts.map(ring => placeSketchRing(ring, shiftedFrame)),
         frame: shiftedFrame,
         referenceVertices: boundaryVertices,
@@ -4804,6 +4831,9 @@ export const cassetteV2FaceSketchContext = async (tree = createCassetteV2GraphTr
   if (!node) return { sketch, basisStart: null, basisEnd: null, parentFace: null };
   const curves = await buildCassetteV2LocalTreeCurves(sourceTree);
   const ownCurve = curves.find(item => item.node.id === nodeId);
+  const baseFace = withoutClosingVertex(
+    ownCurve?.baseLocalVertices || ownCurve?.localVertices || []
+  );
   if (!node.parentId) {
     const boundary = withoutClosingVertex(ownCurve?.boundaryVertices || []);
     const length = boundary.length >= 2
@@ -4811,6 +4841,7 @@ export const cassetteV2FaceSketchContext = async (tree = createCassetteV2GraphTr
       : NaN;
     return {
       sketch,
+      baseFace,
       basisStart: Number.isFinite(length) ? 0 : null,
       basisEnd: Number.isFinite(length) ? length : null,
       parentFace: null
@@ -4840,6 +4871,7 @@ export const cassetteV2FaceSketchContext = async (tree = createCassetteV2GraphTr
   });
   return {
     sketch,
+    baseFace,
     basisStart: -edgeStart,
     basisEnd: edgeLength - edgeStart,
     parentFace

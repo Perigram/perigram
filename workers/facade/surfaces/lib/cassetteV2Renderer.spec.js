@@ -2528,6 +2528,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(context.basisStart).toBeCloseTo(-100);
     expect(context.basisEnd).toBeCloseTo(400);
     expect(context.parentFace).toHaveLength(4);
+    expect(context.baseFace.length).toBeGreaterThanOrEqual(3);
     expect(context.sketch.shapes).toHaveLength(1);
   });
 
@@ -2543,25 +2544,50 @@ describe('cassette v2 trapezoid renderer', () => {
     });
   });
 
-  it('keeps a face sketch authored and instance parameter tables apart', async () => {
+  it('applies a subtract-only face shape set to its base host and keeps the instance table apart', async () => {
     const sketch = {
-      parameters: { W: 40, H: 20 },
-      shapes: [{ id: 'outline', type: 'rect', op: 'add', center: ['W/2', 'H/2'], width: 'W', height: 'H' }]
+      parameters: { W: 40 },
+      shapes: [{
+        id: 'hole',
+        type: 'circle',
+        op: 'subtract',
+        center: [250, 200],
+        diameter: 'W'
+      }]
     };
     const authored = updateCassetteV2FaceSketch(createCassetteV2GraphTree(), 'face_1', sketch);
     const placed = updateCassetteV2FaceInstance(authored, 'face_1', { W: 80 });
     const face = normalizeCassetteV2Face(placed.nodes[0], {});
     const curve = (await buildCassetteV2TreeCurves(placed)).find(item => item.node.id === 'face_1');
-    const xs = curve.localVertices.map(point => Number(point[0]));
+    const holeXs = curve.holes[0].map(point => Number(point[0]));
 
-    expect(face.sketch.parameters).toMatchObject({ W: 40, H: 20 });
+    expect(face.sketch.parameters).toMatchObject({ W: 40 });
     expect(face.instance).toEqual({ W: 80 });
     expect(face.parameters.W).toBe(80);
-    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(80);
+    expect(curve.localVertices).toHaveLength(5);
+    expect(Math.max(...holeXs) - Math.min(...holeXs)).toBeCloseTo(80);
 
     const cleared = updateCassetteV2FaceSketch(placed, 'face_1', null).nodes[0];
     expect(cleared.sketch).toBeUndefined();
     expect(cleared.instance).toBeUndefined();
+  });
+
+  it('normalizes a trapezoid face without the profile template fallback', () => {
+    const face = normalizeCassetteV2Face(createCassetteV2GraphTree().nodes[0], {});
+
+    expect(face.sketch.shapes).toEqual([]);
+    expect(face.sketch.parameters).toEqual({});
+  });
+
+  it('resolves a subtract-only face shape set against its base host', async () => {
+    const base = [[0, 0], [500, 0], [500, 400], [0, 400], [0, 0]];
+    const region = await resolveCassetteV2FaceSketchRegion({
+      parameters: { W: 40 },
+      shapes: [{ id: 'hole', type: 'circle', op: 'subtract', center: [250, 200], diameter: 'W' }]
+    }, {}, [base]);
+
+    expect(region.outer).toHaveLength(5);
+    expect(region.holes).toHaveLength(1);
   });
 
   it('keeps scope-named rows in the cassette table and rebinds face instance rows on rename', () => {

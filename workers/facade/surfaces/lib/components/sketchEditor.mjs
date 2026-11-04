@@ -64,6 +64,10 @@ export default function createSketchEditor({ vue, components, locale }) {
       // The parent face outline in sketch coordinates, drawn as a ghost
       // so the author mounts the new face to real parent geometry.
       contextFace: { type: Array, default: () => [] },
+      // The face's own base host in sketch coordinates: the trapezoid
+      // panel the shape set modifies. Add shapes extend it, subtract
+      // shapes cut it.
+      baseFace: { type: Array, default: () => [] },
       // The face the profile is placed on, in assembly coordinates; the
       // editor folds the profile into it to preview the resulting face.
       parentFace: { type: Array, default: () => [] },
@@ -158,8 +162,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           y: frame.mirrorY ? -mirroredY : mirroredY
         };
       };
-      const parentFaceInputRings = () => {
-        const input = Array.isArray(props.parentFace) ? props.parentFace : [];
+      const inputRings = (value) => {
+        const input = Array.isArray(value) ? value : [];
         if (!input.length) return [];
         if (typeof input[0] === 'number') {
           const points = [];
@@ -171,6 +175,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (Array.isArray(input[0]) && typeof input[0][0] === 'number') return [input];
         return input.filter(Array.isArray);
       };
+      const parentFaceInputRings = () => inputRings(props.parentFace);
+      const faceBaseRings = () => inputRings(props.baseFace);
       // The placed face in sketch coordinates: the hatch and axis base.
       const parentFaceRings = () => (
         faceMode.value
@@ -340,7 +346,10 @@ export default function createSketchEditor({ vue, components, locale }) {
             syncAnnotations();
             return;
           }
-          const base = { polygons: sketchParentFaceRings(), holes: [] };
+          const base = {
+            polygons: faceMode.value ? faceBaseRings() : sketchParentFaceRings(),
+            holes: []
+          };
           const resolved = await foldCassetteV2Region(
             base,
             resolveOccsProfileSectionOperations(section)
@@ -349,9 +358,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           resolvedFace.value = resolved;
           syncAnnotations();
           const participates = section.shapes.some(shape => shape.op !== 'construction');
-          if (faceMode.value && participates && resolved.polygons.length !== 1) {
-            setOutlineError(t('cassette.v2.faceShapeEditor.singleOutline'));
-          } else if (!faceMode.value && participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
+          if (!faceMode.value && participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
             setOutlineError(t('cassette.v2.profileEditor.resultClipped'));
           }
         } catch (error) {
@@ -1965,7 +1972,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (props.active) applyVisibleLayers();
       }, { deep: true });
 
-      watch(() => [props.basisStart, props.basisEnd, props.contextFace, props.parentFace], () => {
+      watch(() => [props.baseFace, props.basisStart, props.basisEnd, props.contextFace, props.parentFace], () => {
         if (!props.active) return;
         lastAnnotationFingerprint = '';
         scheduleOutlineResolve();

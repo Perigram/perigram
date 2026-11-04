@@ -335,6 +335,7 @@ export default function createSurface({ vue, components, locale, queries, record
       const editingFaceNodeId = ref('');
       const faceShapeDraft = ref(createEmptyOccsProfileSketch());
       const faceShapePreservedInstance = ref({});
+      const faceShapeBaseFace = ref([]);
       const faceShapeBasisStart = ref(null);
       const faceShapeBasisEnd = ref(null);
       const faceShapeParentFace = ref([]);
@@ -345,10 +346,7 @@ export default function createSurface({ vue, components, locale, queries, record
         faceShapeDraftSketch.value,
         globalParameters.value
       ));
-      const faceShapeReady = computed(() => (
-        faceShapeInspection.value.savable
-        && faceShapeDraftSketch.value.shapes.some(shape => shape.op === 'add')
-      ));
+      const faceShapeReady = computed(() => !faceShapeInspection.value.error);
       const sketchMode = computed(() => (
         faceSketchOpen.value ? 'face' : profileSketchOpen.value ? 'profile' : ''
       ));
@@ -1906,6 +1904,7 @@ export default function createSurface({ vue, components, locale, queries, record
           const node = treeNodes.value.find(item => item.id === nodeId);
           const face = normalizeCassetteV2Face(node, globalParameters.value);
           faceShapePreservedInstance.value = { ...(face.instance || {}) };
+          faceShapeBaseFace.value = context.baseFace || [];
           // In-place editing shows the placed implementation: the face's
           // instance values join the authored table.
           faceShapeDraft.value = {
@@ -1921,6 +1920,7 @@ export default function createSurface({ vue, components, locale, queries, record
         } catch (error) {
           faceShapeEditorError.value = error?.message || String(error);
           faceShapePreservedInstance.value = {};
+          faceShapeBaseFace.value = [];
           faceShapeDraft.value = createEmptyOccsProfileSketch();
           faceShapeBasisStart.value = null;
           faceShapeBasisEnd.value = null;
@@ -1935,7 +1935,11 @@ export default function createSurface({ vue, components, locale, queries, record
       const saveFaceShapeDraft = async () => {
         const sketch = closeOccsProfileSketchBoundary(faceShapeDraftSketch.value);
         try {
-          await resolveCassetteV2FaceSketchRegion(sketch, globalParameters.value);
+          await resolveCassetteV2FaceSketchRegion(
+            sketch,
+            globalParameters.value,
+            faceShapeBaseFace.value?.length ? [faceShapeBaseFace.value] : []
+          );
         } catch (error) {
           faceShapeEditorError.value = error?.message || String(error);
           return;
@@ -3513,6 +3517,7 @@ export default function createSurface({ vue, components, locale, queries, record
             externalHost: assemblyHostRef.value,
             panelTarget: sketchPanelHost.value,
             toolsTarget: sketchToolsHost.value,
+            baseFace: face ? faceShapeBaseFace.value : [],
             basisStart: face ? faceShapeBasisStart.value : null,
             basisEnd: face ? faceShapeBasisEnd.value : null,
             contextFace: face ? faceShapeParentFace.value : [],
