@@ -332,29 +332,29 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     const text = dimTextPoint(dim);
     return window.cadcraft.view.toScreen(text.x, text.y);
   }, fieldKey));
-  let widthPoint = null;
+  let centerPoint = null;
   await expect.poll(async () => {
-    widthPoint = await innerDimPoint('width');
-    return Boolean(widthPoint);
+    centerPoint = await innerDimPoint('center-x');
+    return Boolean(centerPoint);
   }, { timeout: 10_000 }).toBe(true);
   const canvasBox = await page.locator('.designer-workspace__canvas iframe').first().boundingBox();
-  await page.mouse.click(canvasBox.x + widthPoint.x, canvasBox.y + widthPoint.y);
+  await page.mouse.click(canvasBox.x + centerPoint.x, canvasBox.y + centerPoint.y);
   const dimensionInput = page.locator('.designer-workspace__canvas [contenteditable="true"][role="textbox"]').first();
   await expect(dimensionInput, 'an inner dimension label opens its authored field').toBeVisible({ timeout: 10_000 });
   await dimensionInput.click();
   await page.keyboard.press('ControlOrMeta+a');
-  await page.keyboard.type('60', { delay: 50 });
+  await page.keyboard.type('50', { delay: 50 });
   await page.keyboard.press('Enter');
   await page.waitForTimeout(800);
-  const innerWidthText = await frameOf(dialog).then(frame => frame.evaluate(() => (
+  const innerCenterText = await frameOf(dialog).then(frame => frame.evaluate(() => (
     window.cadcraft.doc.all()
       .find(entity => (
         entity.type === 'dim'
           && entity.cassette?.dimensionKind === 'inner'
-          && String(entity.cassette?.fieldKey || '').endsWith(':width')
+          && String(entity.cassette?.fieldKey || '').endsWith(':center-x')
       ))?.text
   )));
-  expect(innerWidthText, 'typing in the dimension commits the authored field').toBe('60.0');
+  expect(innerCenterText, 'typing in the dimension commits the authored field').toBe('50.0');
 
   const chip = page.locator('input[aria-label^="Parameters A"]').first();
   await expect(chip).toBeVisible({ timeout: 20_000 });
