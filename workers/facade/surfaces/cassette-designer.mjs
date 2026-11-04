@@ -2893,7 +2893,7 @@ export default function createSurface({ vue, components, locale, queries, record
               t(labelKey)
             );
           };
-          const arrayText = (labelKey, value, draftKey, patch, allowEmpty = false) => {
+          const arrayText = (labelKey, value, draftKey, patch, allowEmpty = false, className = '') => {
             const id = fieldId(draftKey);
             return labeledField(
               shortLabel(labelKey),
@@ -2907,7 +2907,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 allowEmpty
               ),
               id,
-              '',
+              className,
               t(labelKey)
             );
           };
@@ -3039,7 +3039,9 @@ export default function createSurface({ vue, components, locale, queries, record
                     'cassette.v2.attachmentFields.arrayItemRotation',
                     array?.item?.rotation ?? '0',
                     'arrayItemRotation',
-                    value => ({ item: { rotation: value } })
+                    value => ({ item: { rotation: value } }),
+                    false,
+                    orientations.length === 1 ? 'col-span-2' : ''
                   )
                 : null,
               allowTransform && orientations.length > 1
@@ -3157,7 +3159,9 @@ export default function createSurface({ vue, components, locale, queries, record
                       'cassette.v2.attachmentFields.arrayNormal',
                       array?.normal ?? '0',
                       'arrayNormal',
-                      value => ({ normal: value })
+                      value => ({ normal: value }),
+                      false,
+                      'col-span-2'
                     )
                   : null,
                 showEdgeFields && !profileOpen
