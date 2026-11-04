@@ -2599,7 +2599,11 @@ Ordered steps:
   resolve in the cassette scope first, so a chip naming cassette R reads
   the cassette's R even when the sketch authors R; authored shape
   expressions keep their inner rows. Global renames rewrite face instance
-  rows and sketch bindings. `DrawingCanvas` gained `cadcraftNavigation`
+  rows and sketch bindings. Sketch edits now commit to the cassette live;
+  Back keeps them and the explicit save actions write library records
+  only. A selected face or profile draws its inner shape dimensions on
+  the dimension layer beside any placement dimensions.
+  `DrawingCanvas` gained `cadcraftNavigation`
   (exponential wheel zoom at the cursor, middle/right drag pan, middle
   double-click refit) and the designer passes it, so the assembly and
   sketch canvases use one navigation contract. Focused tests:

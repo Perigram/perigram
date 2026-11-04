@@ -542,15 +542,16 @@ Owner direction (2026-11-02, in-place sketch mode): profile and face shape
 editing happen on the cassette designer's canvas at the target's placement.
 The assembly drawing and its camera stay in place, so the edited target keeps
 its screen position and the selection survives the edit. The existing CadCraft
-profile editor renders the sketch. Save returns with the edited target's popup
-restored; Back returns unchanged.
+profile editor renders the sketch. Sketch edits commit to the cassette live;
+Back returns with the edited target's popup restored, and the mode's save
+action writes the library record alone.
 
 Owner direction (2026-11-02, shared canvas session): the cassette designer
 runs one canvas session over the assembly canvas and the sketch editor. The
 session carries the assembly selection through the edit, and the assembly
 camera is the camera both modes use. Entering and leaving an edit preserve that
-camera. Back and Save return the assembly to the session's selection and
-restore the assembly document.
+camera. Back returns the assembly to the session's selection; the assembly
+document carries the live sketch edits out.
 
 Owner direction (2026-11-03, in-place assembly context): the sketch canvas
 places the authored sketch into the cassette assembly at the target's
