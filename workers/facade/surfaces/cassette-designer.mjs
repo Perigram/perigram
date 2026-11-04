@@ -2972,8 +2972,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 ),
                 axis.step ?? '0',
                 `arrayStep${suffix}`,
-                value => ({ [axisKey]: { step: value } }),
-                true
+                value => ({ [axisKey]: { step: value } })
               ));
             }
             if (mode === 'gap') {
@@ -2984,8 +2983,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 ),
                 axis.gap ?? '0',
                 `arrayGap${suffix}`,
-                value => ({ [axisKey]: { gap: value } }),
-                true
+                value => ({ [axisKey]: { gap: value } })
               ));
             }
             if (mode === 'span') {
@@ -2996,8 +2994,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 ),
                 axis.span ?? '0',
                 `arraySpan${suffix}`,
-                value => ({ [axisKey]: { span: value } }),
-                true
+                value => ({ [axisKey]: { span: value } })
               ));
             }
             fields.push(
@@ -3008,8 +3005,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 ),
                 axis.start ?? '0',
                 `arrayOffsetStart${suffix}`,
-                value => ({ [axisKey]: { start: value } }),
-                true
+                value => ({ [axisKey]: { start: value } })
               ),
               arrayText(
                 labelKey(
@@ -3018,8 +3014,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 ),
                 axis.end ?? '0',
                 `arrayOffsetEnd${suffix}`,
-                value => ({ [axisKey]: { end: value } }),
-                true
+                value => ({ [axisKey]: { end: value } })
               )
             );
             return fields;
@@ -3154,8 +3149,7 @@ export default function createSurface({ vue, components, locale, queries, record
                       'cassette.v2.attachmentFields.arrayNormal',
                       array?.normal ?? '0',
                       'arrayNormal',
-                      value => ({ normal: value }),
-                      true
+                      value => ({ normal: value })
                     )
                   : null,
                 showEdgeFields && !profileOpen
@@ -3201,8 +3195,7 @@ export default function createSurface({ vue, components, locale, queries, record
                       'cassette.v2.attachmentFields.arrayStaggerAmount',
                       array?.stagger?.amount ?? '0',
                       'arrayStaggerAmount',
-                      value => ({ stagger: { amount: value } }),
-                      true
+                      value => ({ stagger: { amount: value } })
                     )
                   : null,
                 showFaceFields && faceLayout === 'hex'
@@ -3264,29 +3257,25 @@ export default function createSurface({ vue, components, locale, queries, record
                         'cassette.v2.attachmentFields.arrayRadius',
                         array?.polar?.radius ?? '0',
                         'arrayRadius',
-                        value => ({ polar: { radius: value } }),
-                        true
+                        value => ({ polar: { radius: value } })
                       ),
                       arrayText(
                         'cassette.v2.attachmentFields.arrayRingSpacing',
                         array?.polar?.ringSpacing ?? '0',
                         'arrayRingSpacing',
-                        value => ({ polar: { ringSpacing: value } }),
-                        true
+                        value => ({ polar: { ringSpacing: value } })
                       ),
                       arrayText(
                         'cassette.v2.attachmentFields.arrayCenterX',
                         array?.polar?.centerX ?? '0',
                         'arrayCenterX',
-                        value => ({ polar: { centerX: value } }),
-                        true
+                        value => ({ polar: { centerX: value } })
                       ),
                       arrayText(
                         'cassette.v2.attachmentFields.arrayCenterY',
                         array?.polar?.centerY ?? '0',
                         'arrayCenterY',
-                        value => ({ polar: { centerY: value } }),
-                        true
+                        value => ({ polar: { centerY: value } })
                       ),
                       arrayText(
                         'cassette.v2.attachmentFields.arrayStartAngle',
