@@ -318,6 +318,17 @@ export const normalizeCassetteV2Face = (source = {}, scope = {}) => {
   };
 };
 
+// The authored sketch sits in `profileSnapshot.sketch`; a workpiece-level
+// `sketch` is the fallback. A cached `occsProfile.sketch` holds evaluated
+// numbers, so it comes last.
+export const cassetteV2ProfileSketch = (workpiece = {}) => (
+  workpiece.profileSnapshot?.sketch
+  || workpiece.sketch
+  || workpiece.profile?.sketch
+  || workpiece.data?.occsProfile?.sketch
+  || null
+);
+
 // A profile workpiece stores two parameter tables (workers/facade/SPEC.md
 // — two parameter tables): the authored table inside its sketch and the
 // instance table beside it. The derived table — authored rows with the
@@ -325,10 +336,7 @@ export const normalizeCassetteV2Face = (source = {}, scope = {}) => {
 // stays the stored truth.
 export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
   const source = workpiece.profileSnapshot || workpiece.profile || workpiece.data?.occsProfile || {};
-  // The authored sketch wins over any evaluated copy riding a cached
-  // profile (`occsProfile.sketch` is evaluated numbers; the authored one
-  // keeps the expressions parametric instantiation re-evaluates).
-  const rawSketch = workpiece.sketch || source.sketch || null;
+  const rawSketch = cassetteV2ProfileSketch(workpiece);
   const data = createDefaultOccsProfileTemplateData({
     kind: workpiece.profileKind || workpiece.kind || source.kind,
     process: workpiece.process || workpiece.manufacturing?.process || source.process,
@@ -1154,6 +1162,8 @@ export const updateCassetteV2Workpiece = (tree, workpieceId, patch = {}) => {
     delete nextTree.workpieces[index].family;
     delete nextTree.workpieces[index].productionMode;
     delete nextTree.workpieces[index].hardware;
+    delete nextTree.workpieces[index].sketch;
+    delete nextTree.workpieces[index].profile;
     return nextTree;
   }
   const family = normalizeHardwareFamily(patch.family || current.family || current.hardware?.family || 'bolt');

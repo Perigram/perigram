@@ -17,6 +17,7 @@ import {
   cassetteV2FaceSketchContext,
   cassetteV2FaceSketchFromNode,
   cassetteV2LayerPanelRows,
+  cassetteV2ProfileSketch,
   cassetteV2SketchFrame,
   collectCassetteV2ExpressionIdentifiers,
   composeCassetteV2NodiGraph,
@@ -904,6 +905,44 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const radius = (tree) => sectionShapeVertices(workpieceOf(tree).profileSnapshot.section).length;
     expect(radius(edited)).toBeGreaterThan(radius(added.tree));
+  });
+
+  it('reads a workpiece-level profile sketch and migrates it into profileSnapshot on write', () => {
+    const sketch = normalizeOccsProfileSketch({
+      parameters: { W: 42, H: 28 },
+      shapes: [{
+        id: 's0',
+        type: 'rect',
+        op: 'add',
+        center: ['W/2', 'H/2'],
+        width: 'W',
+        height: 'H'
+      }]
+    });
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      sketch
+    });
+    const legacyTree = JSON.parse(JSON.stringify(added.tree));
+    const legacy = legacyTree.workpieces.find(item => item.id === added.workpieceId);
+    legacy.sketch = legacy.profileSnapshot.sketch;
+    delete legacy.profileSnapshot.sketch;
+
+    expect(cassetteV2ProfileSketch(legacy).shapes[0].width).toBe('W');
+    expect(normalizeCassetteV2Profile(legacy).sketch.shapes[0].width).toBe('W');
+
+    const nextSketch = normalizeOccsProfileSketch({
+      ...legacy.sketch,
+      shapes: legacy.sketch.shapes.map(shape => ({ ...shape, width: 60 }))
+    });
+    const migrated = updateCassetteV2Workpiece(legacyTree, added.workpieceId, {
+      profileSnapshot: { sketch: nextSketch }
+    });
+    const next = getCassetteV2Workpieces(migrated).find(item => item.id === added.workpieceId);
+    expect(next.sketch).toBeUndefined();
+    expect(next.profileSnapshot.sketch.shapes[0].width).toBe(60);
+    expect(normalizeCassetteV2Profile(next).sketch.shapes[0].width).toBe(60);
   });
 
   it('resolves placed profile and face instance expressions with the cassette scope first', () => {

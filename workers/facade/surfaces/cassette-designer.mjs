@@ -25,6 +25,7 @@ import {
   deleteCassetteV2WorkpieceRelation,
   getCassetteV2WorkpieceRelations,
   getCassetteV2Workpieces,
+  cassetteV2ProfileSketch,
   isCassetteV2ProfileWorkpiece,
   normalizeCassetteV2Face,
   normalizeCassetteV2Profile,
@@ -470,6 +471,14 @@ export default function createSurface({ vue, components, locale, queries, record
       const treeNodes = computed(() => cassetteTree.value.nodes || []);
       const selectedNode = computed(() => treeNodes.value.find(node => node.id === selectedNodeId.value) || treeNodes.value[0] || null);
       const workpieces = computed(() => getCassetteV2Workpieces(cassetteTree.value));
+      const authoredProfileSketch = (workpiece) => {
+        const sketch = cassetteV2ProfileSketch(workpiece);
+        return sketch && (
+          Array.isArray(sketch.shapes)
+          || Array.isArray(sketch.points)
+          || Array.isArray(sketch.holes)
+        ) ? sketch : null;
+      };
       const selectedWorkpieceId = computed(() => inspectorSelection.value
         ? selectedWorkpieceOverrideId.value || selectedNode.value?.workpieceId || workpieces.value[0]?.id || ''
         : '');
@@ -746,8 +755,8 @@ export default function createSurface({ vue, components, locale, queries, record
         if (editor?.type !== 'profileShapeParameter' && editor?.type !== 'faceShapeParameter') return null;
         if (editor.type === 'profileShapeParameter') {
           const workpiece = workpieces.value.find(item => item.id === editor.targetId);
-          const snapshot = workpiece?.profileSnapshot || workpiece?.profile || {};
-          return snapshot.sketch ? normalizeOccsProfileSketch(snapshot.sketch) : null;
+          const sketch = authoredProfileSketch(workpiece);
+          return sketch ? normalizeOccsProfileSketch(sketch) : null;
         }
         const node = treeNodes.value.find(item => item.id === editor.targetId);
         return node?.sketch ? normalizeOccsProfileSketch(node.sketch) : null;
@@ -1922,7 +1931,10 @@ export default function createSurface({ vue, components, locale, queries, record
         const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;
         if (workpiece) {
           const profile = workpiece.profileSnapshot || workpiece.profile || null;
-          const snapshotSketch = profile?.sketch || createEmptyOccsProfileSketch();
+          const storedSketch = authoredProfileSketch(workpiece);
+          const snapshotSketch = storedSketch
+            ? normalizeOccsProfileSketch(storedSketch)
+            : createEmptyOccsProfileSketch();
           // The cassette's globals are read through shape expressions;
           // their stale copies in the profile's tables drop here, so the
           // rows the editor edits are the profile's own.
@@ -2286,7 +2298,7 @@ export default function createSurface({ vue, components, locale, queries, record
         const workpieceId = editingProfileWorkpieceId.value;
         const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;
         let preservedInstance = { ...(profileDraft.value.preservedInstance || {}) };
-        const previousKeys = Object.keys(workpiece?.profileSnapshot?.sketch?.parameters || {});
+        const previousKeys = Object.keys(cassetteV2ProfileSketch(workpiece)?.parameters || {});
         const nextKeys = Object.keys(payload.sketch.parameters || {});
         const removedKeys = previousKeys.filter(key => !nextKeys.includes(key));
         const addedKeys = nextKeys.filter(key => !previousKeys.includes(key));
@@ -2548,8 +2560,8 @@ export default function createSurface({ vue, components, locale, queries, record
       const sketchForTarget = (selectionType, targetId) => {
         if (selectionType === 'profileShape') {
           const workpiece = workpieces.value.find(item => item.id === targetId);
-          const snapshot = workpiece?.profileSnapshot || workpiece?.profile || {};
-          return snapshot.sketch ? normalizeOccsProfileSketch(snapshot.sketch) : null;
+          const sketch = authoredProfileSketch(workpiece);
+          return sketch ? normalizeOccsProfileSketch(sketch) : null;
         }
         const node = treeNodes.value.find(item => item.id === targetId);
         return node?.sketch ? normalizeOccsProfileSketch(node.sketch) : null;
