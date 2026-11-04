@@ -643,7 +643,8 @@
                 "arraySingleAnchor": "Anchor single copy",
                 "arrayFrameMirrorX": "Mirror grid X",
                 "arrayFrameMirrorY": "Mirror grid Y",
-                "arraySuppressHint": "row:column, ring:index, or index"
+                "arraySuppressHint": "0:1, 1:0",
+                "arraySuppressTitle": "row:column, ring:index, or index"
             },
             "hardwareFields": {
                 "family": "Hardware family",
