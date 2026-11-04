@@ -252,15 +252,38 @@ workpiece's row shows drive its geometry — editing one re-evaluates the
 profile; a profile added with no template and no authored sketch is the
 parametric default hanger, its row carries that template's own W/H/R/D/L
 table from the first render, and the profile dialog drafts a new profile
-on the same template. Array spacing is the gap between adjacent copies:
-zero butts them together, and a spacing rule places the copies that fit
-rather than stretching them across the edge; a count the span cannot hold
-is the refusal. Authoring fields — the vertex popup's coordinates and
+on the same template. Array spacing is the gap between adjacent copy
+footprints: zero butts them together, and a spacing rule places the copies
+that fit rather than stretching them across the edge. A count distributes
+whole copies between the margins; a single count keeps its anchor on the
+edge binding, so an authored tab may straddle the edge; a count the span
+cannot hold refuses. Authoring fields — the vertex popup's coordinates and
 fillet radius, the parameter and hole rows, and the workpiece row's
 instance-parameter chips — commit the text on blur or Enter, never per
 keystroke: a keystroke-committed value normalizes under the caret (`''`
 becomes 0, `42.` becomes 42) and adopt-on-bind mints a parameter from a
 half-typed identifier.
+
+Owner declaration (2026-11-04, face arrays and array handles): placement
+has three modes — point, edge array, and face array. An edge array places
+copies along one host edge by the binding and margin rules above. A face
+array places copies in two dimensions on the host face and is available to
+closed profiles and hardware; open profiles keep edge placement alone.
+Face-array layouts are rectangular, hex, and polar. Rectangular and hex
+carry a column count and step, a row count and step, and side and
+top/bottom padding; hex staggers every other row by half a column step.
+Polar carries a count, radius, start angle, sweep, and a copy-rotation
+toggle. A zero step fills the padded span with the requested count; a
+positive step starts at the chosen start/center/end anchor and refuses
+when the grid does not fit. Padding is the clearance from the face outline
+to each copy's footprint. Generated anchors outside the authored contour
+are dropped. A face array that places no copy, or whose grid cannot fit,
+refuses and reports through the attachment diagnostics; the production
+document refuses the same placements. Polar copy rotation applies to
+closed-profile rings and hardware body/cut geometry.
+Edge-array bindings are start, center, and end; the point anchors (origin
+and corners) belong to point placement alone. An open profile's editor
+carries edge-array controls.
 
 Owner decision (2026-10-15, engine integration law): the profile editor
 integrates the CAD engine under a one-way truth rule — the sketch model
@@ -448,10 +471,10 @@ control opens a workpiece→face picker — the target workpiece and the
 binding face are chosen explicitly, no click-armed connect mode.
 Attachment settings are per source kind, with no delete in the editor
 (the panel relation row owns removal): profiles attach on the
-edge-array pattern by default and carry placement, array, and mirror
-controls (no face side); hardware carries face-side placement with
-snap or array (no mirror) and may bind edges a profile already
-occupies; workpiece attachments edit symmetric host and self sections
+edge-array pattern by default and carry point, edge-array, and
+face-array placement plus mirror controls (no face side); hardware
+carries face-side placement with point, edge array, or face array (no
+mirror) and may bind edges a profile already occupies; workpiece attachments edit symmetric host and self sections
 — face, side, basis snap, and both offsets per section (rotation in
 self) — with no mirror, driver, or joint type; the self side flips the
 sheet against the host side and both offset pairs place in their own
