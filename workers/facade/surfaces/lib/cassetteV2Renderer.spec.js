@@ -2590,6 +2590,17 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(region.holes).toHaveLength(1);
   });
 
+  it('lets add shapes author the face instead of keeping the base host', async () => {
+    const base = [[0, 0], [500, 0], [500, 400], [0, 400], [0, 0]];
+    const region = await resolveCassetteV2FaceSketchRegion({
+      parameters: {},
+      shapes: [{ id: 'outline', type: 'rect', op: 'add', center: [50, 50], width: 100, height: 100 }]
+    }, {}, [base]);
+    const xs = region.outer.map(point => Number(point[0]));
+
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(100);
+  });
+
   it('keeps scope-named rows in the cassette table and rebinds face instance rows on rename', () => {
     const sketch = {
       parameters: { W: 'A' },

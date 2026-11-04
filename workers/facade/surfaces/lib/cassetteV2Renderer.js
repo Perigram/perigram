@@ -4248,8 +4248,13 @@ const resolveCassetteV2FaceSketchGeometry = async (face = {}, parameters = {}, b
   );
   const { section } = buildOccsProfileFromEvaluatedSketch(evaluated);
   const operations = resolveOccsProfileSectionOperations(section) || [];
-  const base = (Array.isArray(basePolygons) ? basePolygons : [basePolygons])
-    .filter(ring => Array.isArray(ring) && ring.length >= 3);
+  // Add shapes author the face: they replace the base host. A set with
+  // no add is a modifier set, so it cuts the face's base host instead.
+  const hasAdd = operations.some(operation => operation.op === 'add');
+  const base = hasAdd
+    ? []
+    : (Array.isArray(basePolygons) ? basePolygons : [basePolygons])
+      .filter(ring => Array.isArray(ring) && ring.length >= 3);
   const region = await foldCassetteV2Region({ polygons: base, holes: [] }, operations);
   // Every participating shape cuts the parent where it lands: the cut
   // footprint is the union of the adds and subtracts. The child face

@@ -346,8 +346,11 @@ export default function createSketchEditor({ vue, components, locale }) {
             syncAnnotations();
             return;
           }
+          const hasAdd = section.shapes.some(shape => shape.op === 'add');
           const base = {
-            polygons: faceMode.value ? faceBaseRings() : sketchParentFaceRings(),
+            polygons: faceMode.value
+              ? (hasAdd ? [] : faceBaseRings())
+              : sketchParentFaceRings(),
             holes: []
           };
           const resolved = await foldCassetteV2Region(
