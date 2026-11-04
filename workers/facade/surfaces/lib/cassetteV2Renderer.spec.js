@@ -2509,6 +2509,14 @@ describe('cassette v2 trapezoid renderer', () => {
     const parent = drawing.designerFaces.find(face => face.nodeId === 'face_1');
     const child = drawing.designerFaces.find(face => face.nodeId === grown.nodeId);
 
+    expect((drawing.dimensionAnnotations || []).some(annotation => annotation.nodeId === grown.nodeId)).toBe(false);
+    const selected = await renderCassetteV2TreeToDrawing(converted, {
+      mode: 'assembly',
+      selectedFaceId: grown.nodeId
+    });
+    expect(selected.dimensionAnnotations
+      .filter(annotation => annotation.nodeId === grown.nodeId && annotation.dimensionKind === 'inner')
+      .map(annotation => annotation.fieldKey)).toEqual(expect.arrayContaining(['width', 'height']));
     expect(parent.d).not.toBe(clean.designerFaces.find(face => face.nodeId === 'face_1').d);
     expect(child.d).not.toBe(clean.designerFaces.find(face => face.nodeId === grown.nodeId).d);
     expect(drawing.foldedPreview.faces.find(face => face.nodeId === grown.nodeId).holes).toHaveLength(1);

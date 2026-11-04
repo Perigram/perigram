@@ -209,6 +209,8 @@ export const buildOccsDimensionLayerFromFaceCurves = (curves = [], options = {})
   let dimensionCount = 0;
 
   for (const curve of curves) {
+    // Sketch faces carry their dimensions on the sketch layer.
+    if (Array.isArray(curve.node?.sketch?.shapes)) continue;
     const points = withoutClosingVertex(curve.boundaryVertices || curve.vertices || []).map(point2d);
     if (points.length < 3) continue;
 
