@@ -262,6 +262,15 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await openProfilePopup(page);
   await expect.poll(() => chipText(chipField(page, 'WIDTH'))).toBe('LENGTH');
 
+  // A profile as wide as its face cannot hold a second column; shrink it
+  // so the face grid has room to place its copies.
+  const widthChip = chipField(page, 'WIDTH');
+  await widthChip.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('42', { delay: 60 });
+  await page.keyboard.press('Enter');
+  await expect.poll(() => chipText(widthChip)).toBe('42');
+
   await page.locator('.designer-workspace__canvas').first().screenshot({
     path: '.playwright/cassette-designer-parameters.png'
   });
@@ -277,6 +286,29 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await expect(popup.locator('input[aria-label="Columns"]')).toBeVisible();
   await expect(popup.locator('input[aria-label="Rows"]')).toBeVisible();
   await expect(popup.locator('input[aria-label="Left padding"]')).toBeVisible();
+  // The grid fills the face: a 2x2 count places four copies flush on the
+  // boundaries, and the column field drives the placed geometry live.
+  const placedCopies = () => page.locator('.designer-workspace__canvas [data-designer-profile-id]').count();
+  await expect.poll(placedCopies).toBe(4);
+  const columns = popup.locator('input[aria-label="Columns"]');
+  await columns.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('3', { delay: 60 });
+  await page.keyboard.press('Enter');
+  await expect.poll(placedCopies).toBe(6);
+  // An impossible rule reports in the editor instead of silently
+  // dropping the placement.
+  await columns.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('20', { delay: 60 });
+  await page.keyboard.press('Enter');
+  await expect(popup.getByRole('alert')).toContainText(/overlaps|fit|no copy/i);
+  await expect.poll(placedCopies).toBe(0);
+  await columns.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('3', { delay: 60 });
+  await page.keyboard.press('Enter');
+  await expect.poll(placedCopies).toBe(6);
   await layout.click();
   await page.getByRole('option', { name: 'Hex', exact: true }).click();
   await page.waitForTimeout(300);

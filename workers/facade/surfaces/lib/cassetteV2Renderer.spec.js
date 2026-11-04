@@ -823,6 +823,31 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(inner.paths.filter(path => path.relationId === relation.id)).toHaveLength(4);
   });
 
+  it('places every flush face-array copy on the face boundary', async () => {
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      sketch: {
+        version: '0.2', units: 'mm', parameters: {}, material: 'positive',
+        shapes: [{ id: 's0', type: 'circle', op: 'subtract', center: [5, 0], diameter: 10 }]
+      }
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    const tree = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      placementMode: 'faceArray',
+      pattern: {
+        space: 'face',
+        kind: 'grid',
+        x: { mode: 'count', count: '3' },
+        y: { mode: 'count', count: '2' }
+      },
+      targetSnap: 'center'
+    });
+    const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
+    expect(drawing.attachmentErrors).toEqual([]);
+    expect(drawing.designerProfiles.filter(profile => profile.relationId === relation.id)).toHaveLength(6);
+  });
+
   it('rides a refused edge embedding on the drawing instead of vanishing silently', async () => {
     const initialTree = createCassetteV2GraphTree();
     const square = openChainSketch([[0, 0], [42, 0], [42, 28], [0, 28]], createDefaultOccsProfileSketch().parameters);

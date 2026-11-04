@@ -73,6 +73,21 @@ describe('placement patterns', () => {
     ]);
   });
 
+  it('keeps copies that rest flush on the face boundary', () => {
+    const layout = expandOccsFaceArray2d({
+      vertices: FACE,
+      pattern: gridArray(
+        { count: '3' },
+        { count: '2' }
+      ),
+      copyBounds: COPY
+    });
+    expect(layout.ok).toBe(true);
+    expect(layout.points.map(point => [point.x, point.y])).toEqual([
+      [0, 0], [229, 0], [458, 0], [0, 372], [229, 372], [458, 372]
+    ]);
+  });
+
   it('staggers hex rows by half a column step', () => {
     const layout = expandOccsFaceArray2d({
       vertices: FACE,

@@ -16,6 +16,17 @@ const withoutClosingVertex = (vertices = []) => {
   return points;
 };
 
+const POINT_ON_EDGE_EPSILON = 1e-6;
+
+const pointOnSegment = (x, y, x1, y1, x2, y2) => {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lengthSquared = dx * dx + dy * dy;
+  const t = lengthSquared > 0 ? ((x - x1) * dx + (y - y1) * dy) / lengthSquared : 0;
+  if (t < -POINT_ON_EDGE_EPSILON || t > 1 + POINT_ON_EDGE_EPSILON) return false;
+  return Math.hypot(x - (x1 + t * dx), y - (y1 + t * dy)) <= POINT_ON_EDGE_EPSILON;
+};
+
 export const pointInPolygon = (point = [0, 0], polygon = []) => {
   const vertices = withoutClosingVertex(polygon);
   if (vertices.length < 3) return false;
@@ -29,6 +40,9 @@ export const pointInPolygon = (point = [0, 0], polygon = []) => {
     const yi = numeric(current?.[1], 0);
     const xj = numeric(previous?.[0], 0);
     const yj = numeric(previous?.[1], 0);
+    // A copy resting flush on the contour is inside the face; the ray
+    // cast alone reads that boundary as outside.
+    if (pointOnSegment(x, y, xj, yj, xi, yi)) return true;
     const crosses = ((yi > y) !== (yj > y)) &&
       (x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1) + xi);
     if (crosses) inside = !inside;

@@ -2962,24 +2962,29 @@ export default function createSurface({ vue, components, locale, queries, record
           const placementModes = profileOpen
             ? placementModeOptions.value.filter(option => option.value === 'edgeArray')
             : placementModeOptions.value;
-          const snapFieldOptions = effectiveMode === 'point' ? snapOptions.value : edgeBindingOptions.value;
           const showEdgeFields = effectiveMode === 'edgeArray';
           const showFaceFields = effectiveMode === 'faceArray';
           const showPointFields = effectiveMode === 'point';
           const array = relation.pattern;
-          const axisUsesBinding = (axis = {}) => {
-            if ((axis.mode || 'count') !== 'count') return true;
+          const axisCount = (axis = {}) => {
             try {
-              return Math.round(resolveCassetteV2Expression(axis.count ?? '1', globalParameters.value, 1)) <= 1;
+              return Math.round(resolveCassetteV2Expression(axis.count ?? '1', globalParameters.value, 1));
             } catch {
-              return false;
+              return null;
             }
           };
+          const axisUsesBinding = (axis = {}) => {
+            if ((axis.mode || 'count') !== 'count') return true;
+            const count = axisCount(axis);
+            return count === null ? false : count <= 1;
+          };
+          const singleEdgeCopy = (array?.x?.mode || 'count') === 'count' && axisCount(array?.x) === 1;
           const showBinding = showEdgeFields
             ? axisUsesBinding(array?.x)
-            : showFaceFields && effectiveMode === 'faceArray' && array?.kind !== 'radial'
+            : showFaceFields && array?.kind !== 'radial'
               ? axisUsesBinding(array?.x) || axisUsesBinding(array?.y)
               : false;
+          const placementError = profileEmbeddingErrorById.value.get(relation.id) || '';
           const faceLayout = array?.kind === 'radial'
             ? 'polar'
             : array?.stagger?.enabled ? 'hex' : 'rectangular';
@@ -3238,6 +3243,12 @@ export default function createSurface({ vue, components, locale, queries, record
                     })
                   : null
               ]),
+              placementError
+                ? h('div', {
+                    class: 'text-xs text-red-500',
+                    role: 'alert'
+                  }, placementError)
+                : null,
               h('div', { class: 'grid min-w-0 grid-cols-2 gap-1.5' }, [
                 !profileOpen && placementModes.length > 1
                   ? selectField('cassette.v2.attachmentFields.placementMode', effectiveMode, placementModes, 'placementMode', 'col-span-2')
@@ -3285,7 +3296,7 @@ export default function createSurface({ vue, components, locale, queries, record
                       'col-span-2'
                     )
                   : null,
-                showEdgeFields && !profileOpen
+                showEdgeFields && !profileOpen && singleEdgeCopy
                   ? arrayCheckbox(
                       'cassette.v2.attachmentFields.arraySingleAnchor',
                       array?.singleAnchor !== false,
