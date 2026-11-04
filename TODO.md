@@ -2602,7 +2602,8 @@ Ordered steps:
   rows and sketch bindings. Sketch edits now commit to the cassette live;
   Back keeps them and the explicit save actions write library records
   only. A selected face or profile draws its inner shape dimensions on
-  the dimension layer beside any placement dimensions.
+  the dimension layer beside any placement dimensions, in the sketch's
+  own CAD dimension style.
   `DrawingCanvas` gained `cadcraftNavigation`
   (exponential wheel zoom at the cursor, middle/right drag pan, middle
   double-click refit) and the designer passes it, so the assembly and
