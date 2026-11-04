@@ -378,6 +378,7 @@ export default function createSurface({ vue, components, locale, queries, record
       const sketchContextEntities = ref([]);
       const sketchContextParentFace = ref([]);
       let sketchContextToken = 0;
+      let sketchContextRefreshTimer = null;
       const hardwareLibraryRecords = ref([]);
       const hardwareLibraryAvailable = ref(true);
       const hardwarePicker = ref(null);
@@ -1212,6 +1213,7 @@ export default function createSurface({ vue, components, locale, queries, record
       onBeforeUnmount(() => {
         previewToken += 1;
         if (previewTimer && isClient()) window.clearTimeout(previewTimer);
+        if (sketchContextRefreshTimer && isClient()) window.clearTimeout(sketchContextRefreshTimer);
         if (autosaveTimer && isClient()) window.clearTimeout(autosaveTimer);
         assemblyHost?.destroy();
         assemblyHost = null;
@@ -1809,6 +1811,15 @@ export default function createSurface({ vue, components, locale, queries, record
       // The target's local-to-assembly frame and the assembly on its own
       // locked layers: the sketch editor places the authored sketch on the
       // cassette through the frame.
+      const refreshSketchContext = (mode, id) => {
+        if (!isClient()) return;
+        if (sketchContextRefreshTimer) window.clearTimeout(sketchContextRefreshTimer);
+        sketchContextRefreshTimer = window.setTimeout(() => {
+          sketchContextRefreshTimer = null;
+          if (sketchMode.value) loadSketchContext(mode, id);
+        }, 120);
+      };
+
       const loadSketchContext = async (mode, id) => {
         const token = ++sketchContextToken;
         sketchCanvasFrame.value = null;
@@ -1975,6 +1986,7 @@ export default function createSurface({ vue, components, locale, queries, record
           editingFaceNodeId.value,
           preservedInstance
         );
+        refreshSketchContext('face', editingFaceNodeId.value);
       };
 
       const useTrapezoidFace = (nodeId = editingFaceNodeId.value) => {
@@ -2245,6 +2257,7 @@ export default function createSurface({ vue, components, locale, queries, record
               sweep: payload.occsProfile.sweep
             }
           });
+          refreshSketchContext('profile', workpieceId);
           return workpieceId;
         }
         const added = addCassetteV2ProfileWorkpiece(cassetteTree.value, {
@@ -2261,6 +2274,7 @@ export default function createSurface({ vue, components, locale, queries, record
         cassetteTree.value = added.tree;
         editingProfileWorkpieceId.value = added.workpieceId;
         profileDraftCreated.value = true;
+        refreshSketchContext('profile', added.workpieceId);
         return added.workpieceId;
       };
 

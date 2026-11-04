@@ -904,6 +904,11 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(profileDrawing.dimensionAnnotations.some(annotation => (
       annotation.dimensionKind === 'inner'
     ))).toBe(true);
+    const profileEntities = cassetteV2AssemblyEntitiesFromDrawing(profileDrawing);
+    const innerDimension = profileEntities.entities.find(entity => (
+      entity.type === 'dim' && entity.cassette?.dimensionKind === 'inner'
+    ));
+    expect(innerDimension.st.txt).toBe(2.5);
 
     const faceTree = updateCassetteV2FaceSketch(createCassetteV2GraphTree(), 'face_1', sketch);
     const faceDrawing = await renderCassetteV2TreeToDrawing(faceTree, {

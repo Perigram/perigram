@@ -3984,7 +3984,8 @@ const selectionDimensionAnnotations = async (tree = createCassetteV2GraphTree(),
         : dimension.rot,
       text: dimension.text,
       key: dimension.annotationKey,
-      dimensionKind: 'inner'
+      dimensionKind: 'inner',
+      style: dimension.st
     };
   });
 };
@@ -4981,7 +4982,7 @@ export const cassetteV2AssemblyEntitiesFromDrawing = (drawing) => {
         loc: { x: Number(annotation.loc?.[0]) || 0, y: Number(annotation.loc?.[1]) || 0 },
         rot: Number(annotation.rot) || 0,
         text: String(annotation.text ?? ''),
-        st: cassetteDimStyle,
+        st: annotation.style ? { ...cassetteDimStyle, ...annotation.style } : cassetteDimStyle,
         color: 7,
         layer: dimensionLayerName,
         cassette: {
