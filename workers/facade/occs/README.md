@@ -242,7 +242,10 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     `renameOccsProfileTableParameter` moves the instance row with it).
   - Profiles ride the cassette template's own document as profile
     workpieces; their `profileSnapshot` is the renderer's geometry
-    source. The plugin's `profile` library type (listing, class `item`)
+    source. A workpiece-level `sketch` resolves through
+    `cassetteV2ProfileSketch`; a write stores the sketch in
+    `profileSnapshot.sketch` and drops the workpiece-level copies. The
+    plugin's `profile` library type (listing, class `item`)
     holds reusable profiles as org records: saving writes the authored
     truth (kind, process, prepared sketch) through the records host
     capability, and picking a record copies it into the draft as a

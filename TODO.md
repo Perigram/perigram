@@ -2626,7 +2626,11 @@ Ordered steps:
   center and dimension style; the designer opens the shape field through
   `profileDimensionField` and commits it to the cassette. Face selection
   renders the assembly so the face's frame matches its inner dimensions.
-  Validation: facade surface specs, `cassette-profile-editor` e2e.
+  Profile sketch reads resolve through `cassetteV2ProfileSketch`, so a
+  workpiece-level `sketch` opens in the editor and its dimensions edit;
+  the first write stores the sketch in `profileSnapshot.sketch` and drops
+  the workpiece-level copies. Validation: facade surface specs,
+  `cassette-profile-editor` e2e.
 
 - [ ] WAITING — owner verification: Parametric faces and shared edges
   (owner direction 2026-11-02; profiles 2026-11-03): faces author as
