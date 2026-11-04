@@ -8,7 +8,7 @@
 // host edge end. Overlaps — a copy's end past the next copy's start, or
 // past the edge end — are detected and reported, never silently
 // clamped. Pure module: no renderer, no platform imports.
-import { edgeArrayStarts } from './patterns.js';
+import { linearArrayStarts, normalizeArrayDefinition } from './patterns.js';
 import { occProfileSectionChainedVertices } from './profiles.js';
 
 const numeric = (value, fallback = 0) => {
@@ -50,9 +50,13 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
   if (contour.length < 2) {
     return { ok: false, reason: 'host face has no contour' };
   }
-  const pattern = relation.pattern?.type === 'edgeArray'
-    ? relation.pattern
-    : { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1' };
+  const pattern = normalizeArrayDefinition(relation.pattern, {
+    edgeMargin: relation.offsetX,
+    binding: relation.targetSnap,
+    rotation: relation.rotation,
+    mirrorX: relation.mirrorX,
+    mirrorY: relation.mirrorY
+  }) || normalizeArrayDefinition({ type: 'edgeArray', edge: 'E0', mode: 'count', count: '1' });
 
   const match = String(pattern.edge || 'E0').match(/\d+/);
   const edgeIndex = match ? Math.max(0, Math.round(numeric(match[0], 0))) % contour.length : 0;
@@ -66,9 +70,9 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
   const axis = [edgeVector[0] / edgeLength, edgeVector[1] / edgeLength];
 
   // Orient the authored chain so its anchor-to-anchor chord runs along
-  // the edge; mirror first when the relation asks for it.
-  const mirrorX = Boolean(relation.mirrorX);
-  const mirrorY = Boolean(relation.mirrorY);
+  // the edge; mirror first when the array asks for it.
+  const mirrorX = Boolean(pattern.item?.mirrorX);
+  const mirrorY = Boolean(pattern.item?.mirrorY);
   const mirrored = chain.map(([x, y]) => [mirrorX ? -x : x, mirrorY ? -y : y]);
   const start = mirrored[0];
   const end = mirrored[mirrored.length - 1];
@@ -82,18 +86,13 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
     start[1] + (x - start[0]) * sin + (y - start[1]) * cos
   ]);
 
-  // Array starts are extent-aware: the margin holds from both edge ends
+  // Array starts are extent-aware: the margins hold from both edge ends
   // for the WHOLE copy, so the last copy ends at edgeLength − margin.
-  // The perpendicular component of the origin is dropped on purpose —
-  // open profiles keep their feet on the edge.
-  const margin = Math.max(0, resolve(relation.offsetX, 0));
-  const layout = edgeArrayStarts({
+  // Open profiles keep their feet on the edge.
+  const layout = linearArrayStarts({
     edgeLength,
-    pattern,
-    startOffset: margin,
-    binding: relation.targetSnap || 'start',
+    pattern: { ...pattern, singleAnchor: false },
     copyLength: chordLength,
-    singleAnchor: false,
     resolve
   });
   if (!layout.ok) {

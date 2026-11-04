@@ -47,13 +47,14 @@ import {
 } from '../../occs/hardware.js';
 import {
   OCCS_EDGE_ARRAY_DEFAULTS,
-  OCCS_FACE_ARRAY_DEFAULTS,
   arrayDefaults,
-  edgeArrayDefaults,
+  expandFeatureArray,
   expandOccsEdgeArray2d,
-  expandOccsFaceArray2d,
-  faceArrayDefaults,
-  pointInPolygon
+  mergeArrayDefinition,
+  normalizeArrayDefinition,
+  pointInPolygon,
+  resolveArrayDefinition,
+  rewriteArrayExpressions
 } from '../../occs/patterns.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
 import { buildProfileAnnotations, OCCS_DIM_STYLE } from './profileAnnotations.js';
@@ -634,9 +635,14 @@ const normalizedCassetteV2WorkpieceRelation = (tree, joint, index = 0) => {
   const sourceSnap = placement.anchor ||
     placement.sourceSnap ||
     DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.sourceSnap;
-  const pattern = placement.pattern?.type === 'edgeArray' || placement.pattern?.type === 'faceArray'
-    ? arrayDefaults(placement.pattern)
-    : null;
+  const pattern = normalizeArrayDefinition(placement.pattern, {
+    edgeMargin: origin[0] ?? placement.offsetX,
+    normalOffset: origin[1] ?? placement.offsetY,
+    binding: targetSnap,
+    rotation: placement.rotation,
+    mirrorX: placement.mirrorX ?? placement.mirror?.x,
+    mirrorY: placement.mirrorY ?? placement.mirror?.y
+  });
 
   return {
     id: joint.id || `joint_${index + 1}`,
@@ -659,26 +665,7 @@ const normalizedCassetteV2WorkpieceRelation = (tree, joint, index = 0) => {
     mirrorX: Boolean(placement.mirrorX ?? placement.mirror?.x),
     mirrorY: Boolean(placement.mirrorY ?? placement.mirror?.y),
     pattern,
-    placementMode: pattern?.type === 'faceArray' ? 'faceArray' : pattern ? 'edgeArray' : 'point',
-    arrayEdge: pattern?.edge ?? DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.edge,
-    arrayMode: pattern?.mode ?? DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.mode,
-    // Authored array values are expressions: an empty string or a zero
-    // while typing is the author's text, never a missing value — a
-    // falsy read here rewrote the field under the caret with the default.
-    arrayCount: pattern?.count ?? DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.count,
-    arraySpacing: pattern?.spacing ?? DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.spacing,
-    arrayLayout: pattern?.layout ?? OCCS_FACE_ARRAY_DEFAULTS.layout,
-    arrayCountX: pattern?.countX ?? OCCS_FACE_ARRAY_DEFAULTS.countX,
-    arrayStepX: pattern?.stepX ?? OCCS_FACE_ARRAY_DEFAULTS.stepX,
-    arrayCountY: pattern?.countY ?? OCCS_FACE_ARRAY_DEFAULTS.countY,
-    arrayStepY: pattern?.stepY ?? OCCS_FACE_ARRAY_DEFAULTS.stepY,
-    arrayPaddingX: pattern?.paddingX ?? OCCS_FACE_ARRAY_DEFAULTS.paddingX,
-    arrayPaddingY: pattern?.paddingY ?? OCCS_FACE_ARRAY_DEFAULTS.paddingY,
-    arrayPolarCount: pattern?.count ?? OCCS_FACE_ARRAY_DEFAULTS.count,
-    arrayRadius: pattern?.radius ?? OCCS_FACE_ARRAY_DEFAULTS.radius,
-    arrayStartAngle: pattern?.startAngle ?? OCCS_FACE_ARRAY_DEFAULTS.startAngle,
-    arraySweep: pattern?.sweep ?? OCCS_FACE_ARRAY_DEFAULTS.sweep,
-    arrayRotate: pattern?.rotate ?? OCCS_FACE_ARRAY_DEFAULTS.rotate,
+    placementMode: pattern ? (pattern.space === 'face' ? 'faceArray' : 'edgeArray') : 'point',
     source: {
       ...(joint.source || {}),
       occurrence: sourceWorkpiece ? occurrenceIdForWorkpiece(sourceWorkpiece) : joint.source?.occurrence,
@@ -1022,7 +1009,7 @@ export const addCassetteV2HardwareWorkpiece = (tree, reference = {}) => {
         origin: ['0', '0', '0'],
         rotation: ['0', '0', '0']
       };
-  placement.pattern = arrayDefaults(reference.pattern || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY);
+  placement.pattern = normalizeArrayDefinition(reference.pattern) || arrayDefaults(DEFAULT_CASSETTE_V2_HARDWARE_ARRAY);
 
   nextTree.workpieces.push({
     ...sourceWorkpiece,
@@ -1048,7 +1035,7 @@ export const addCassetteV2HardwareWorkpiece = (tree, reference = {}) => {
       driver: true
     });
     joint.source.face = nodeId || '';
-    joint.placement.pattern = arrayDefaults(reference.pattern || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY);
+    joint.placement.pattern = normalizeArrayDefinition(reference.pattern) || arrayDefaults(DEFAULT_CASSETTE_V2_HARDWARE_ARRAY);
     nextTree.joints.push(joint);
   }
 
@@ -1102,7 +1089,7 @@ export const addCassetteV2ProfileWorkpiece = (tree, reference = {}) => {
         origin: ['0', '0', '0'],
         rotation: ['0', '0', '0']
       };
-  const pattern = arrayDefaults(reference.pattern || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY);
+  const pattern = normalizeArrayDefinition(reference.pattern) || arrayDefaults(DEFAULT_CASSETTE_V2_HARDWARE_ARRAY);
 
   nextTree.workpieces.push({
     ...sourceWorkpiece,
@@ -1396,49 +1383,83 @@ export const updateCassetteV2WorkpieceRelation = (tree, relationId, patch = {}) 
     anchor: sourceSnap,
     targetAnchor: targetSnap
   };
-  // Any array field in the patch updates the pattern — an array value
-  // alone must not be dropped for lacking a repeated placementMode.
-  const arrayPatchKeys = [
-    'arrayEdge', 'arrayMode', 'arrayCount', 'arraySpacing',
-    'arrayLayout', 'arrayCountX', 'arrayStepX', 'arrayCountY', 'arrayStepY',
-    'arrayPaddingX', 'arrayPaddingY', 'arrayPolarCount', 'arrayRadius',
-    'arrayStartAngle', 'arraySweep', 'arrayRotate'
-  ];
-  const patchesArray = patch.placementMode === 'edgeArray' || patch.placementMode === 'faceArray' ||
-    patch.pattern || arrayPatchKeys.some(key => patch[key] !== undefined);
-  if (patchesArray) {
-    const currentType = relation.pattern?.type;
-    const type = patch.pattern?.type ||
-      (patch.placementMode === 'faceArray' ? 'faceArray'
-        : patch.placementMode === 'edgeArray' ? 'edgeArray'
-          : currentType || 'edgeArray');
-    if (patch.pattern) {
-      placement.pattern = arrayDefaults(patch.pattern);
-    } else if (type === 'faceArray') {
-      const faceSource = currentType === 'faceArray' ? relation : {};
-      placement.pattern = faceArrayDefaults({
-        layout: patch.arrayLayout ?? faceSource.arrayLayout,
-        countX: patch.arrayCountX ?? faceSource.arrayCountX,
-        stepX: patch.arrayStepX ?? faceSource.arrayStepX,
-        countY: patch.arrayCountY ?? faceSource.arrayCountY,
-        stepY: patch.arrayStepY ?? faceSource.arrayStepY,
-        paddingX: patch.arrayPaddingX ?? faceSource.arrayPaddingX,
-        paddingY: patch.arrayPaddingY ?? faceSource.arrayPaddingY,
-        count: patch.arrayPolarCount ?? faceSource.arrayPolarCount,
-        radius: patch.arrayRadius ?? faceSource.arrayRadius,
-        startAngle: patch.arrayStartAngle ?? faceSource.arrayStartAngle,
-        sweep: patch.arraySweep ?? faceSource.arraySweep,
-        rotate: patch.arrayRotate ?? faceSource.arrayRotate
-      });
-    } else {
-      const edgeSource = currentType === 'edgeArray' ? relation : {};
-      placement.pattern = edgeArrayDefaults({
-        edge: patch.arrayEdge ?? edgeSource.arrayEdge,
-        mode: patch.arrayMode ?? edgeSource.arrayMode,
-        count: patch.arrayCount ?? edgeSource.arrayCount,
-        spacing: patch.arraySpacing ?? edgeSource.arraySpacing
-      });
+  // Flat array keys are the previous authoring surface; they normalize
+  // into the same canonical definition the nested pattern patch writes.
+  const legacyArrayPatch = {};
+  if (patch.arrayEdge !== undefined) legacyArrayPatch.edge = patch.arrayEdge;
+  if (patch.arrayMode !== undefined) legacyArrayPatch.x = { mode: patch.arrayMode === 'spacing' ? 'gap' : 'count' };
+  if (patch.arrayCount !== undefined) legacyArrayPatch.x = { ...(legacyArrayPatch.x || {}), count: patch.arrayCount };
+  if (patch.arraySpacing !== undefined) legacyArrayPatch.x = { ...(legacyArrayPatch.x || {}), gap: patch.arraySpacing };
+  if (patch.arrayLayout !== undefined) {
+    legacyArrayPatch.space = 'face';
+    legacyArrayPatch.kind = patch.arrayLayout === 'polar' ? 'radial' : 'grid';
+    legacyArrayPatch.stagger = { enabled: patch.arrayLayout === 'hex' };
+  }
+  if (patch.arrayCountX !== undefined) legacyArrayPatch.x = { ...(legacyArrayPatch.x || {}), count: patch.arrayCountX };
+  if (patch.arrayStepX !== undefined) legacyArrayPatch.x = { ...(legacyArrayPatch.x || {}), step: patch.arrayStepX };
+  if (patch.arrayCountY !== undefined) legacyArrayPatch.y = { count: patch.arrayCountY };
+  if (patch.arrayStepY !== undefined) legacyArrayPatch.y = { ...(legacyArrayPatch.y || {}), step: patch.arrayStepY };
+  if (patch.arrayPaddingX !== undefined) legacyArrayPatch.x = { ...(legacyArrayPatch.x || {}), start: patch.arrayPaddingX, end: patch.arrayPaddingX };
+  if (patch.arrayPaddingY !== undefined) legacyArrayPatch.y = { ...(legacyArrayPatch.y || {}), start: patch.arrayPaddingY, end: patch.arrayPaddingY };
+  if (patch.arrayPolarCount !== undefined) legacyArrayPatch.polar = { count: patch.arrayPolarCount };
+  if (patch.arrayRadius !== undefined) legacyArrayPatch.polar = { ...(legacyArrayPatch.polar || {}), radius: patch.arrayRadius };
+  if (patch.arrayStartAngle !== undefined) legacyArrayPatch.polar = { ...(legacyArrayPatch.polar || {}), startAngle: patch.arrayStartAngle };
+  if (patch.arraySweep !== undefined) legacyArrayPatch.polar = { ...(legacyArrayPatch.polar || {}), sweep: patch.arraySweep };
+  if (patch.arrayRotate !== undefined) {
+    legacyArrayPatch.item = { orientation: patch.arrayRotate ? 'radial' : 'fixed' };
+  }
+  const edgePlacement = patch.placementMode !== 'point' && (
+    patch.placementMode === 'edgeArray' ||
+    (!patch.placementMode && relation.pattern?.space === 'edge')
+  );
+  if (edgePlacement) {
+    if (patch.offsetX !== undefined) {
+      legacyArrayPatch.x = { ...(legacyArrayPatch.x || {}), start: patch.offsetX, end: patch.offsetX };
     }
+    if (patch.offsetY !== undefined) legacyArrayPatch.normal = patch.offsetY;
+    if (patch.targetSnap !== undefined) legacyArrayPatch.binding = patch.targetSnap;
+    if (patch.rotation !== undefined) {
+      legacyArrayPatch.item = { ...(legacyArrayPatch.item || {}), rotation: patch.rotation };
+    }
+    if (patch.mirrorX !== undefined || patch.mirrorY !== undefined) {
+      legacyArrayPatch.item = {
+        ...(legacyArrayPatch.item || {}),
+        ...(patch.mirrorX !== undefined ? { mirrorX: patch.mirrorX } : {}),
+        ...(patch.mirrorY !== undefined ? { mirrorY: patch.mirrorY } : {})
+      };
+    }
+  }
+  const arrayPatchKeys = Object.keys(legacyArrayPatch);
+  const incomingPattern = patch.pattern?.type
+    ? normalizeArrayDefinition(patch.pattern, {
+        edgeMargin: patch.offsetX ?? relation.offsetX,
+        normalOffset: patch.offsetY ?? relation.offsetY,
+        binding: patch.targetSnap ?? relation.targetSnap,
+        rotation: patch.rotation ?? relation.rotation,
+        mirrorX: patch.mirrorX ?? relation.mirrorX,
+        mirrorY: patch.mirrorY ?? relation.mirrorY
+      })
+    : patch.pattern;
+  const patchesArray = patch.placementMode === 'edgeArray' || patch.placementMode === 'faceArray' ||
+    incomingPattern || arrayPatchKeys.length > 0;
+  if (patchesArray) {
+    const targetSpace = incomingPattern?.space || legacyArrayPatch.space ||
+      (patch.placementMode === 'faceArray' ? 'face'
+        : patch.placementMode === 'edgeArray' ? 'edge'
+          : relation.pattern?.space || 'edge');
+    const targetKind = targetSpace === 'edge'
+      ? 'linear'
+      : incomingPattern?.kind || legacyArrayPatch.kind ||
+        (relation.pattern?.space === 'face' ? relation.pattern.kind : 'grid');
+    const base = relation.pattern && relation.pattern.space === targetSpace && relation.pattern.kind === targetKind
+      ? relation.pattern
+      : arrayDefaults({ space: targetSpace, kind: targetKind });
+    placement.pattern = mergeArrayDefinition(base, {
+      ...legacyArrayPatch,
+      ...(incomingPattern || {}),
+      space: targetSpace,
+      kind: targetKind
+    });
   } else if (patch.placementMode === 'point') {
     delete placement.pattern;
   }
@@ -1599,13 +1620,7 @@ export const renameCassetteV2TreeParameter = (tree = createCassetteV2GraphTree()
         ...placement,
         ...(Array.isArray(placement.origin) ? { origin: placement.origin.map(rewrite) } : {}),
         ...(placement.rotation !== undefined ? { rotation: rewriteAngle(placement.rotation) } : {}),
-        ...(pattern ? {
-          pattern: {
-            ...pattern,
-            ...(pattern.count !== undefined ? { count: rewrite(pattern.count) } : {}),
-            ...(pattern.spacing !== undefined ? { spacing: rewrite(pattern.spacing) } : {})
-          }
-        } : {})
+        ...(pattern ? { pattern: rewriteArrayExpressions(pattern, rewrite) } : {})
       }
     };
   });
@@ -2679,9 +2694,11 @@ const relationProfileWorkpiece = (tree, relation) => (
   tree.workpieces.find(workpiece => workpiece.id === relation.sourceWorkpieceId && isCassetteV2ProfileWorkpiece(workpiece)) || null
 );
 
-const placedPoint = (point, rotation = 0) => {
+const placedPoint = (point, rotation = 0, key = '') => {
   const placed = [point.x, point.y, 0];
   placed.rotation = rotation;
+  placed.key = key;
+  placed.along = point.along;
   return placed;
 };
 
@@ -2695,27 +2712,12 @@ const hardwarePointsForRelation = (
 ) => {
   const vertices = rawFaceVertices(curve);
   const resolve = (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback);
-  if (relation.pattern?.type === 'edgeArray') {
-    const result = expandOccsEdgeArray2d({
+  if (relation.pattern) {
+    const result = expandFeatureArray({
       vertices,
       pattern: relation.pattern,
-      origin: [relation.offsetX, relation.offsetY],
-      binding: relation.targetSnap,
       copyLength,
-      copyMin: copyLength > 0 && copyBounds ? -copyBounds.maxY : 0,
-      resolve
-    });
-    if (!result.ok) {
-      if (errors) errors.push(result.reason);
-      return [];
-    }
-    return result.points.map(point => placedPoint(point, point.rotation));
-  }
-  if (relation.pattern?.type === 'faceArray') {
-    const result = expandOccsFaceArray2d({
-      vertices,
-      pattern: relation.pattern,
-      binding: relation.targetSnap,
+      copyMin: relation.pattern.space === 'edge' && copyLength > 0 && copyBounds ? -copyBounds.maxY : 0,
       copyBounds,
       resolve
     });
@@ -2723,7 +2725,7 @@ const hardwarePointsForRelation = (
       if (errors) errors.push(result.reason);
       return [];
     }
-    return result.points.map(point => placedPoint(point, point.rotation));
+    return result.copies.map(copy => placedPoint(copy, copy.rotation, copy.key));
   }
   const snap = faceSnapPoint(vertices, relation.targetSnap);
   return [[
@@ -2863,7 +2865,7 @@ export const profileEdgeEmbeddingsForTree = (curves = [], tree = createCassetteV
     const profile = normalizeCassetteV2Profile(workpiece, parameters);
     const open = profile.section?.open || profile.section?.type === 'polyline';
     if (!open) continue;
-    if (relation.pattern?.type === 'faceArray') {
+    if (relation.pattern?.space === 'face') {
       results.push({
         relationId: relation.id,
         profileWorkpieceId: relation.sourceWorkpieceId,
@@ -2917,8 +2919,8 @@ export const profileEdgeEmbeddingsForTree = (curves = [], tree = createCassetteV
 };
 
 const profileArrangementEdgeIndex = (relation, workpiece, parameters) => {
-  if (relation.pattern?.type === 'edgeArray') return edgeIndexFromLabel(relation.pattern.edge, 0);
-  if (relation.pattern?.type === 'faceArray') return null;
+  if (relation.pattern?.space === 'edge') return edgeIndexFromLabel(relation.pattern.edge, 0);
+  if (relation.pattern?.space === 'face') return null;
   const profile = normalizeCassetteV2Profile(workpiece, parameters);
   const open = profile.section?.open || profile.section?.type === 'polyline';
   return open ? 0 : null; // closed profiles without a pattern place by point
@@ -2965,6 +2967,18 @@ export const cassetteV2AttachableProfileEdgesForTree = (
   return Array.from({ length: edgeCount }, (_, edgeIndex) => edgeIndex)
     .filter(edgeIndex => !folds.has(`${faceId}:E${edgeIndex}`))
     .map(edgeIndex => `E${edgeIndex}`);
+};
+
+const mirroredCopyBounds = (bounds, item = {}) => {
+  if (!bounds) return null;
+  const xs = item.mirrorX ? [-bounds.maxX, -bounds.minX] : [bounds.minX, bounds.maxX];
+  const ys = item.mirrorY ? [-bounds.maxY, -bounds.minY] : [bounds.minY, bounds.maxY];
+  return {
+    minX: Math.min(...xs),
+    maxX: Math.max(...xs),
+    minY: Math.min(...ys),
+    maxY: Math.max(...ys)
+  };
 };
 
 const profileSectionBounds = (operations = []) => {
@@ -3017,7 +3031,10 @@ export const profileCutEntitiesForTree = async (curves = [], tree = createCasset
     // (the section's local Y span — the axis law maps +Y onto the
     // edge) plus the authored spacing, so zero butts copies together.
     const sectionOperations = resolveOccsProfileSectionOperations(profile.section || {});
-    const sectionBounds = profileSectionBounds(sectionOperations || []);
+    const sectionBounds = mirroredCopyBounds(
+      profileSectionBounds(sectionOperations || []),
+      relation.pattern?.item
+    );
     const edgeExtent = sectionBounds ? sectionBounds.maxY - sectionBounds.minY : 0;
     const patternEdgeIndex = profileArrangementEdgeIndex(relation, workpiece, parameters);
     const arrayErrors = [];
@@ -3030,15 +3047,21 @@ export const profileCutEntitiesForTree = async (curves = [], tree = createCasset
     }
     for (let index = 0; index < points.length; index += 1) {
       const pointRotation = Number(points[index]?.rotation) || 0;
-      const baseRotation = resolveCassetteV2AngleExpression(relation.rotation || '0', parameters, 0);
-      const copyRelation = pointRotation ? { ...relation, rotation: baseRotation + pointRotation } : relation;
+      const copyRelation = relation.pattern
+        ? {
+            ...relation,
+            rotation: pointRotation,
+            mirrorX: Boolean(relation.pattern.item?.mirrorX),
+            mirrorY: Boolean(relation.pattern.item?.mirrorY)
+          }
+        : relation;
       const operations = await profileOperationPolygons(profile, points[index], copyRelation, targetCurve, parameters);
       if (!operations) continue;
       // Add steps reshape the face contour only; a subtract step
       // renders as an inner cut while it sits fully inside the face.
       operations.forEach((operation, operationIndex) => {
         entities.push({
-          id: `${relation.id}:profile_${operation.op}:${index}:${operationIndex}`,
+          id: `${relation.id}:profile_${operation.op}:${points[index]?.key ?? index}:${operationIndex}`,
           layer: OCCS_LAYER_CUT_INNER,
           target: relation.targetFaceId,
           workpieceId: relation.targetWorkpieceId,
@@ -3110,7 +3133,7 @@ const mirroredProfileVertex = (vertex = [], relation = {}) => [
 // (no edge array) rotates by the relation's rotation alone in the face
 // frame.
 const profileAxisRotationDegrees = (relation = {}, targetCurve = null) => {
-  if (relation.pattern?.type !== 'edgeArray' || !targetCurve) return 0;
+  if (relation.pattern?.space !== 'edge' || !targetCurve) return 0;
   const edgeIndex = edgeIndexFromLabel(relation.pattern.edge, 0);
   const contour = withoutClosingVertex(rawFaceVertices(targetCurve))
     .map(vertex => [numeric(vertex?.[0], 0), numeric(vertex?.[1], 0)]);
@@ -3207,15 +3230,21 @@ const hardwareProductionEntitiesForTree = async (curves = [], tree = createCasse
         : null;
       for (let index = 0; index < points.length; index += 1) {
         const pointRotation = Number(points[index]?.rotation) || 0;
-        const baseRotation = resolveCassetteV2AngleExpression(relation.rotation || '0', parameters, 0);
-        const copyRelation = pointRotation ? { ...relation, rotation: baseRotation + pointRotation } : relation;
+        const copyRelation = relation.pattern
+          ? {
+              ...relation,
+              rotation: pointRotation,
+              mirrorX: Boolean(relation.pattern.item?.mirrorX),
+              mirrorY: Boolean(relation.pattern.item?.mirrorY)
+            }
+          : relation;
         const profileOperations = profile
           ? await profileOperationPolygons(profile, points[index], copyRelation, targetCurve, parameters)
           : null;
         if (profileOperations) {
           profileOperations.forEach((operation, operationIndex) => {
             entities.push({
-              id: `${relation.id}:hook_${operation.op}:${index}:${operationIndex}`,
+              id: `${relation.id}:hook_${operation.op}:${points[index]?.key ?? index}:${operationIndex}`,
               layer: OCCS_LAYER_CUT_INNER,
               target: relation.targetFaceId,
               workpieceId: relation.targetWorkpieceId,
@@ -3236,7 +3265,7 @@ const hardwareProductionEntitiesForTree = async (curves = [], tree = createCasse
           )
         };
         entities.push({
-          id: `${relation.id}:hook_cut:${index}`,
+          id: `${relation.id}:hook_cut:${points[index]?.key ?? index}`,
           layer: OCCS_LAYER_CUT_INNER,
           target: relation.targetFaceId,
           workpieceId: relation.targetWorkpieceId,
@@ -3250,7 +3279,7 @@ const hardwareProductionEntitiesForTree = async (curves = [], tree = createCasse
     if (OCCS_HOLE_HARDWARE_FAMILIES.includes(hardware.family)) {
       points.forEach((point, index) => {
         entities.push({
-          id: `${relation.id}:hole:${index}`,
+          id: `${relation.id}:hole:${points[index]?.key ?? index}`,
           layer: OCCS_LAYER_CUT_HOLE,
           target: relation.targetFaceId,
           workpieceId: relation.targetWorkpieceId,
@@ -3772,22 +3801,11 @@ const foldedPreviewBodiesForTree = (tree = createCassetteV2GraphTree(), paramete
         rotation: resolveCassetteV2AngleExpression(relation.rotation, parameters, 0),
         mirrorX: Boolean(relation.mirrorX),
         mirrorY: Boolean(relation.mirrorY),
-        pattern: relation.pattern ? {
-          ...relation.pattern,
-          mode: relation.pattern.mode || 'count',
-          count: resolveCassetteV2Expression(relation.pattern.count, parameters, 1),
-          spacing: resolveCassetteV2Expression(relation.pattern.spacing, parameters, 0),
-          countX: resolveCassetteV2Expression(relation.pattern.countX, parameters, 2),
-          stepX: resolveCassetteV2Expression(relation.pattern.stepX, parameters, 0),
-          countY: resolveCassetteV2Expression(relation.pattern.countY, parameters, 2),
-          stepY: resolveCassetteV2Expression(relation.pattern.stepY, parameters, 0),
-          paddingX: resolveCassetteV2Expression(relation.pattern.paddingX, parameters, 0),
-          paddingY: resolveCassetteV2Expression(relation.pattern.paddingY, parameters, 0),
-          radius: resolveCassetteV2Expression(relation.pattern.radius, parameters, 0),
-          startAngle: resolveCassetteV2Expression(relation.pattern.startAngle, parameters, 0),
-          sweep: resolveCassetteV2Expression(relation.pattern.sweep, parameters, 360),
-          rotate: relation.pattern.rotate !== false
-        } : null,
+        pattern: relation.pattern ? resolveArrayDefinition(
+          relation.pattern,
+          (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback),
+          (value, fallback = 0) => resolveCassetteV2AngleExpression(value, parameters, fallback)
+        ) : null,
         copyBounds: hardwareCopyBounds(hardware),
         family: hardware.family,
         productionMode: hardware.productionMode || '',
@@ -4007,17 +4025,16 @@ const placementDimensionAnnotations = (curves = [], tree = createCassetteV2Graph
     .map(vertex => [numeric(vertex?.[0], 0), numeric(vertex?.[1], 0)]);
   if (vertices.length < 2) return [];
   const sectionOperations = resolveOccsProfileSectionOperations(profile.section || {});
-  const sectionBounds = profileSectionBounds(sectionOperations || []);
+  const sectionBounds = mirroredCopyBounds(profileSectionBounds(sectionOperations || []), relation.pattern?.item);
   const edgeExtent = sectionBounds ? sectionBounds.maxY - sectionBounds.minY : 0;
   let edgeIndex = 0;
   let alongs = [];
-  if (relation.pattern?.type === 'edgeArray') {
+  if (relation.pattern?.space === 'edge') {
     edgeIndex = edgeIndexFromLabel(relation.pattern.edge, 0);
     const layout = expandOccsEdgeArray2d({
       vertices: rawFaceVertices(targetCurve),
       pattern: relation.pattern,
-      origin: [relation.offsetX, relation.offsetY],
-      binding: relation.targetSnap,
+      binding: relation.pattern.binding,
       copyLength: edgeExtent,
       copyMin: sectionBounds ? -sectionBounds.maxY : 0,
       resolve: (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback)
@@ -4861,17 +4878,18 @@ export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), 
   }
 
   const sectionOperations = resolveOccsProfileSectionOperations(profile.section || {});
-  const sectionBounds = profileSectionBounds(sectionOperations || []);
+  const sectionBounds = mirroredCopyBounds(profileSectionBounds(sectionOperations || []), relation.pattern?.item);
   const edgeExtent = sectionBounds ? sectionBounds.maxY - sectionBounds.minY : 0;
   const point = hardwarePointsForRelation(targetCurve, relation, parameters, edgeExtent, sectionBounds)[0];
   if (!point) return null;
   return {
     origin: [numeric(point[0], 0), numeric(point[1], 0), 0],
     rotation: profileAxisRotationDegrees(relation, targetCurve)
-      + resolveCassetteV2AngleExpression(relation.rotation || '0', parameters, 0)
-      + (Number(point.rotation) || 0),
-    mirrorX: Boolean(relation.mirrorX),
-    mirrorY: Boolean(relation.mirrorY),
+      + (relation.pattern
+        ? Number(point.rotation) || 0
+        : resolveCassetteV2AngleExpression(relation.rotation || '0', parameters, 0)),
+    mirrorX: Boolean(relation.pattern ? relation.pattern.item?.mirrorX : relation.mirrorX),
+    mirrorY: Boolean(relation.pattern ? relation.pattern.item?.mirrorY : relation.mirrorY),
     parentFace: targetCurve.originalBoundaryVertices
       || targetCurve.referenceVertices
       || targetCurve.boundaryVertices

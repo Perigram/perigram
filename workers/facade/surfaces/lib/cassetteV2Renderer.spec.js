@@ -630,11 +630,11 @@ describe('cassette v2 trapezoid renderer', () => {
       arrayEdge: 'E1'
     });
     const cleared = getCassetteV2WorkpieceRelations(edited)[0];
-    expect(cleared.arraySpacing).toBe('');
-    expect(cleared.arrayEdge).toBe('E1');
+    expect(cleared.pattern.x.gap).toBe('');
+    expect(cleared.pattern.edge).toBe('E1');
     const zeroed = updateCassetteV2WorkpieceRelation(edited, relation.id, { arraySpacing: '0' });
-    expect(getCassetteV2WorkpieceRelations(zeroed)[0].arraySpacing).toBe('0');
-    expect(getCassetteV2WorkpieceRelations(zeroed)[0].arrayCount).toBe('1');
+    expect(getCassetteV2WorkpieceRelations(zeroed)[0].pattern.x.gap).toBe('0');
+    expect(getCassetteV2WorkpieceRelations(zeroed)[0].pattern.x.count).toBe('1');
   });
 
   it('rounds authored fillet corners in the cassette cut and the embedded boundary', async () => {
@@ -766,6 +766,33 @@ describe('cassette v2 trapezoid renderer', () => {
       arrayCount: '20'
     });
     await expect(createCassetteV2OccsDocument(impossible)).rejects.toThrow(/Array placement is invalid/);
+  });
+
+  it('merges nested array definition patches', () => {
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      sketch: createDefaultOccsProfileSketch()
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    const tree = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      placementMode: 'faceArray',
+      pattern: {
+        kind: 'grid',
+        x: { mode: 'span', count: '3', span: '120', start: '10' },
+        y: { mode: 'gap', gap: '8' },
+        stagger: { enabled: true, axis: 'x' },
+        suppress: ['0:1']
+      }
+    });
+    expect(getCassetteV2WorkpieceRelations(tree)[0].pattern).toMatchObject({
+      space: 'face',
+      kind: 'grid',
+      x: expect.objectContaining({ mode: 'span', count: '3', span: '120', start: '10' }),
+      y: expect.objectContaining({ mode: 'gap', gap: '8' }),
+      stagger: expect.objectContaining({ enabled: true, axis: 'x' }),
+      suppress: ['0:1']
+    });
   });
 
   it('places a closed profile in a rectangular face array', async () => {
@@ -1062,7 +1089,7 @@ describe('cassette v2 trapezoid renderer', () => {
     // The instance value and the array count rebind.
     const workpiece = getCassetteV2Workpieces(renamed).find(item => item.id === placed.workpieceId);
     expect(workpiece.profileSnapshot.instance.W).toBe('LENGTH/2');
-    expect(getCassetteV2WorkpieceRelations(renamed)[0].pattern.count).toBe('LENGTH/100');
+    expect(getCassetteV2WorkpieceRelations(renamed)[0].pattern.x.count).toBe('LENGTH/100');
     // Colliding and invalid names refuse.
     expect(renameCassetteV2TreeParameter(renamed, 'LENGTH', 'B').parameters.LENGTH).toBe('500');
     expect(renameCassetteV2TreeParameter(renamed, 'LENGTH', '1X')).toBe(renamed);
@@ -1423,14 +1450,18 @@ describe('cassette v2 trapezoid renderer', () => {
       sourceFaceId: '',
       targetFaceId: 'face_1',
       placementMode: 'edgeArray',
-      arrayEdge: 'E0',
-      arrayMode: 'count',
-      arrayCount: '3'
+      pattern: expect.objectContaining({
+        space: 'edge',
+        kind: 'linear',
+        edge: 'E0',
+        x: expect.objectContaining({ mode: 'count', count: '3' })
+      })
     });
     expect(occs.cassette.joints[0].placement.pattern).toMatchObject({
-      type: 'edgeArray',
+      space: 'edge',
+      kind: 'linear',
       edge: 'E0',
-      count: '3'
+      x: expect.objectContaining({ count: '3' })
     });
     expect(drawing.layers.find(layer => layer.standardCode === 'code.cassette_mark').paths
       .filter(path => path.markKind === 'hardware')
@@ -1445,7 +1476,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(drawing.foldedPreview.bodies[0]).toMatchObject({
       family: 'bolt',
       targetFaceId: 'face_1',
-      pattern: expect.objectContaining({ edge: 'E0', count: 3 })
+      pattern: expect.objectContaining({ space: 'edge', edge: 'E0', x: expect.objectContaining({ count: 3 }) })
     });
     expect(folded.bodies).toHaveLength(3);
     expect(folded.cutouts).toHaveLength(3);
