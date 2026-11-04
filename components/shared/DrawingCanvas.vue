@@ -450,11 +450,6 @@ const annotationDimensionControls = computed(() => (
       if (!control || !label.trim() || !Array.isArray(loc) || loc.length < 2) return [];
       return [{
         ...control,
-        selectionType: annotation.selectionType,
-        targetId: annotation.targetId,
-        shapeId: annotation.shapeId,
-        shapeIds: annotation.shapeIds,
-        fieldKey: annotation.fieldKey,
         value: label,
         label,
         x: Number(loc[0]) || 0,
