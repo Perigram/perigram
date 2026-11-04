@@ -267,6 +267,24 @@ export const isCassetteV2SketchFace = (node = {}) => Array.isArray(node?.sketch?
 // A face sketch stores the same two parameter tables as a profile
 // workpiece: the authored rows inside its sketch and the placement's
 // overrides beside it. The derived table is the evaluation scope.
+// A placement override is a cassette-level expression: names the cassette
+// defines win over same-named sketch rows, and a field naming its own key
+// reads that outer value instead of recursing into the authored row.
+const resolveInstanceParameters = (sketch = {}, instance = {}, scope = {}) => {
+  const entries = Object.entries(instance || {});
+  if (!entries.length) return {};
+  const fallback = { ...(sketch.parameters || {}), ...(scope || {}) };
+  const resolved = {};
+  for (const [key, value] of entries) {
+    try {
+      resolved[key] = resolveOccsExpression(value, { ...fallback, ...resolved });
+    } catch {
+      resolved[key] = value;
+    }
+  }
+  return resolved;
+};
+
 export const normalizeCassetteV2Face = (source = {}, scope = {}) => {
   const rawSketch = source?.sketch || source;
   const sketchSource = rawSketch && (
@@ -281,7 +299,10 @@ export const normalizeCassetteV2Face = (source = {}, scope = {}) => {
       authoredKeys.has(key) || !Object.prototype.hasOwnProperty.call(scope || {}, key)
     ))
   );
-  const derivedSketch = deriveOccsProfileSketch(sketch, instance);
+  const derivedSketch = deriveOccsProfileSketch(
+    sketch,
+    resolveInstanceParameters(sketch, instance, scope)
+  );
   let parameters = { ...derivedSketch.parameters };
   try {
     parameters = evaluateOccsProfileSketch(derivedSketch, scope).parameters;
@@ -322,10 +343,13 @@ export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
       authoredKeys.has(key) || !Object.prototype.hasOwnProperty.call(scope || {}, key)
     ))
   );
-  // The derived sketch resolves through the one expression pass:
-  // instance values over authored rows over the cassette's globals (inner
-  // over outer). The stored tables keep their raw expressions.
-  const derivedSketch = deriveOccsProfileSketch(sketch, instance);
+  // Instance expressions resolve in the cassette scope first; the derived
+  // table then carries those values over the authored rows for geometry.
+  // The stored tables keep their raw expressions.
+  const derivedSketch = deriveOccsProfileSketch(
+    sketch,
+    resolveInstanceParameters(sketch, instance, scope)
+  );
   const derivedKeys = Object.keys(derivedSketch.parameters);
   const deriveFromSketch = sketch.shapes.length > 0;
   let derivedTable = derivedSketch.parameters;

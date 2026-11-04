@@ -879,6 +879,45 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(radius(edited)).toBeGreaterThan(radius(added.tree));
   });
 
+  it('resolves placed profile and face instance expressions with the cassette scope first', () => {
+    const sketch = normalizeOccsProfileSketch({
+      parameters: { R: 5, W: 40 },
+      shapes: [{
+        id: 'outline',
+        type: 'rect',
+        op: 'add',
+        center: ['W/2', 'R'],
+        width: 'W',
+        height: 'R'
+      }]
+    });
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      sketch
+    });
+    const profileTree = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
+      instance: { R: 'R', W: 'R*2' }
+    });
+    const profile = normalizeCassetteV2Profile(
+      getCassetteV2Workpieces(profileTree).find(item => item.id === added.workpieceId),
+      { R: 35 }
+    );
+
+    expect(profile.instance).toEqual({ R: 'R', W: 'R*2' });
+    expect(profile.parameters.R).toBe(35);
+    expect(profile.parameters.W).toBe(70);
+
+    const faceTree = updateCassetteV2FaceInstance(
+      updateCassetteV2FaceSketch(createCassetteV2GraphTree(), 'face_1', sketch),
+      'face_1',
+      { R: 'R', W: 'R*2' }
+    );
+    const face = normalizeCassetteV2Face(faceTree.nodes[0], { R: 35 });
+    expect(face.parameters.R).toBe(35);
+    expect(face.parameters.W).toBe(70);
+  });
+
   it('re-evaluates a profile workpiece from its sketch when instance parameters change', async () => {
     const initialTree = createCassetteV2GraphTree();
     const sketch = {
@@ -929,10 +968,10 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(rectVerticesOf(held)).toEqual([['0', '0'], ['84', '0'], ['84', '28'], ['0', '28']]);
   });
 
-  it('shadows a profile-local parameter over a same-named global', () => {
+  it('resolves a placed profile instance expression in the cassette scope over a same-named local row', () => {
     // The tree carries R=35; the hanger template's own table carries R=3.
-    // A chip expression reading R gets the LOCAL one — inner shadows
-    // outer, never the other way around.
+    // A cassette-level chip expression reading R gets the CASSETTE one;
+    // sketch shape expressions keep reading the profile's own rows.
     const sketch = createDefaultOccsProfileSketch();
     const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
@@ -945,10 +984,8 @@ describe('cassette v2 trapezoid renderer', () => {
       instance: { W: 'R*2' }
     });
     const workpiece = getCassetteV2Workpieces(driven).find(item => item.id === added.workpieceId);
-    // The corner fillets resolve to arc points; bounds carry the law —
-    // the local R (3) drove W, never the tree's global R (35).
     const vertices = sectionShapeVertices(workpiece.profileSnapshot.section).map(vertex => vertex.map(Number));
-    expect(Math.max(...vertices.map(vertex => vertex[0]))).toBeCloseTo(6, 5);
+    expect(Math.max(...vertices.map(vertex => vertex[0]))).toBeCloseTo(70, 5);
     expect(Math.max(...vertices.map(vertex => vertex[1]))).toBeCloseTo(28, 5);
   });
 

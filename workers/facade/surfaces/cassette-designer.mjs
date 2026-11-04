@@ -1879,12 +1879,15 @@ export default function createSurface({ vue, components, locale, queries, record
             // never evaluates or edits them.
             preservedInstance: { ...(normalizedProfile.instance || {}) },
             // In-place editing shows the placed implementation: the
-            // workpiece's instance values join the authored table.
+            // workpiece's resolved instance values join the authored table.
             sketch: {
               ...snapshotSketch,
               parameters: pruneScopeBoundParameters({
                 ...snapshotSketch.parameters,
-                ...(normalizedProfile.instance || {})
+                ...Object.fromEntries(Object.keys(normalizedProfile.instance || {}).map(key => [
+                  key,
+                  normalizedProfile.parameters?.[key] ?? normalizedProfile.instance[key]
+                ]))
               }, snapshotSketch.shapes, scope)
             },
             libraryId: workpiece.profileTemplateId?.toString() || ''
@@ -1936,7 +1939,10 @@ export default function createSurface({ vue, components, locale, queries, record
             ...context.sketch,
             parameters: pruneScopeBoundParameters({
               ...context.sketch.parameters,
-              ...(face.instance || {})
+              ...Object.fromEntries(Object.keys(face.instance || {}).map(key => [
+                key,
+                face.parameters?.[key] ?? face.instance[key]
+              ]))
             }, context.sketch.shapes, globalParameters.value)
           };
           faceShapeBasisStart.value = context.basisStart;
@@ -2305,7 +2311,9 @@ export default function createSurface({ vue, components, locale, queries, record
       // either and reads it live.
       const parameterField = (row, key, value, inputId = '', onChange = () => {}) => {
         const localTable = { ...(row.authoredParameters || {}), ...(row.instanceParameters || {}) };
-        const parameters = { ...globalParameters.value, ...localTable };
+        // A placement override speaks the cassette's scope: a cassette
+        // variable wins over the sketch row of the same name.
+        const parameters = { ...localTable, ...globalParameters.value };
         const error = expressionErrorOf(value, parameters, t('cassette.v2.expression.empty'));
         const derived = row.parameters?.[key];
         const draftKey = `param:${row.id}:${key}`;
