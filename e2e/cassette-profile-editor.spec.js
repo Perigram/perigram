@@ -316,8 +316,8 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     .evaluate(root => Array.from(root.querySelectorAll('path'))
       .map(path => path.getAttribute('d')).filter(Boolean).sort().join('|').length);
   await page.locator('[data-designer-profile-id]').first().dispatchEvent('click');
-  await expect(inspector.getByText('Snap', { exact: true }), 'the profile editor lives in the inspector').toBeVisible();
-  await expect(page.locator('.designer-workspace__canvas').getByText('Snap', { exact: true })).toHaveCount(0);
+  await expect(inspector.getByText('Anchor', { exact: true }), 'the profile editor lives in the inspector').toBeVisible();
+  await expect(page.locator('.designer-workspace__canvas').getByText('Anchor', { exact: true })).toHaveCount(0);
   const chip = page.locator('input[aria-label^="Parameters A"]').first();
   await expect(chip).toBeVisible({ timeout: 20_000 });
   const before = await canvasSignature();
