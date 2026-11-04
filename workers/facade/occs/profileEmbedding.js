@@ -8,7 +8,7 @@
 // host edge end. Overlaps — a copy's end past the next copy's start, or
 // past the edge end — are detected and reported, never silently
 // clamped. Pure module: no renderer, no platform imports.
-import { edgeArrayDistances } from './hardware.js';
+import { edgeArrayStarts } from './patterns.js';
 import { occProfileSectionChainedVertices } from './profiles.js';
 
 const numeric = (value, fallback = 0) => {
@@ -82,26 +82,24 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
     start[1] + (x - start[0]) * sin + (y - start[1]) * cos
   ]);
 
-  // Array starts are chord-aware: the margin holds from both edge ends
-  // for the WHOLE copy (not just its start anchor), so the last copy
-  // ends at edgeLength − margin and count/spacing distribute copy starts
-  // over the span that is left. Spacing is the gap between adjacent
-  // copies, so a zero spacing butts them together. The perpendicular
-  // component of the origin is dropped on purpose — open profiles keep
-  // their feet on the edge.
+  // Array starts are extent-aware: the margin holds from both edge ends
+  // for the WHOLE copy, so the last copy ends at edgeLength − margin.
+  // The perpendicular component of the origin is dropped on purpose —
+  // open profiles keep their feet on the edge.
   const margin = Math.max(0, resolve(relation.offsetX, 0));
-  const rowSpan = edgeLength - 2 * margin - chordLength;
-  if (rowSpan < -1e-6) {
-    return { ok: false, reason: 'edge too short for the profile at this margin' };
-  }
-  const starts = edgeArrayDistances({
-    edgeLength: rowSpan,
+  const layout = edgeArrayStarts({
+    edgeLength,
     pattern,
-    startOffset: 0,
+    startOffset: margin,
     binding: relation.targetSnap || 'start',
     copyLength: chordLength,
+    singleAnchor: false,
     resolve
-  }).map(distance => margin + distance);
+  });
+  if (!layout.ok) {
+    return { ok: false, reason: layout.reason };
+  }
+  const starts = layout.starts;
   if (!starts.length) {
     return { ok: false, reason: 'array settings place no copy on the edge' };
   }

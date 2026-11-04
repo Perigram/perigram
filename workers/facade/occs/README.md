@@ -41,23 +41,35 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   bolts, nuts, washers, rivets, screws, spacers, standoffs, and hanger
   clips, kept declarative with parameters, interfaces, preview metadata,
   hanger production modes (`sheetPart`, `integralCut`, `castSolid`), and
-  edge-array expansion helpers. Resolution rules:
+  copy bounds for face-array padding. Resolution rules:
   - Integral-cut hanger clips resolve through curve boolean difference:
     the parent face becomes the resulting polygon. Cutouts landing as
     holes ride `cut.inner`; operands breaking the region boundary
     dispatch through the modified `cut.outer` contour.
     Bolt/rivet/screw/spacer/standoff placements resolve to exact
     `cut.hole` circles.
-  - Edge arrays: attachment X is the margin from both edge ends,
-    attachment Y the face-normal offset, the target snap
-    (`start`/`end`/`center`) the array binding, then either a `count`
-    or a `spacing` rule. `spacing` is the gap between adjacent copies
-    (zero butts them together) and places the copies that fit;
-    point-like hardware copies carry no length of their own, so there
-    spacing is the pitch between placements.
   - The plugin's `hardware` library type (listing) holds reusable tuned
     presets (family, mode, parameters) authored from the designer's
     hardware dialog.
+- **`patterns.js`** — attachment placement patterns shared by the
+  renderer, the folded preview, and the profile embedding.
+  - Edge arrays: attachment X is the margin from both edge ends,
+    attachment Y the face-normal offset, the target snap
+    (`start`/`end`/`center`) the binding, then either a `count` or a
+    `spacing` rule. `spacing` is the gap between adjacent copy
+    footprints (zero butts them together) and places the copies that
+    fit; point-like hardware copies carry no length, so there spacing is
+    the pitch between placements. The copy footprint is part of the
+    span: a count distributes whole copies between the margins, and a
+    count the span cannot hold refuses. A single count anchors on the
+    binding so an authored tab may straddle the edge.
+  - Face arrays: rectangular, hex, and polar placement over the host
+    face with column/row counts and steps, side and top/bottom padding,
+    and start/center/end grid anchoring. Polar adds count, radius, start
+    angle, sweep, and per-copy rotation. A zero step fills the padded
+    span; a positive step refuses when the grid does not fit. Padding
+    measures from the face outline to each copy's footprint; anchors
+    outside the authored contour drop.
 - **`profiles.js`** — the OCCS profile shape model used by Cassette
   Designer v2.
   - A sketch is a list of parametric shapes evaluated on the zero axis.
@@ -295,7 +307,8 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     for the whole copy; count mode spreads the requested copies over the
     span the chord leaves (a count the span cannot hold refuses);
     spacing mode packs copies from the binding at the requested gap
-    between them, placing the copies that fit. The array binding
+    between them, placing the copies that fit. A single count anchors on
+    the binding, so an authored tab may straddle the edge. The array binding
     (`start`/`center`/`end` snap) places the array; copies always run
     edge-start to edge-end. The embedding reports the copy frame (origin,
     anchor, rotation, mirror) the sketch canvas uses to place the authored
@@ -318,14 +331,16 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     intersects, every ring a cut operand (the boolean difference the
     integral-cut hanger clips ride), with the cut paths named on
     `cut.inner` in the evaluated layerData (a dedicated registry row
-    awaits an owner-named production name).
-  - A fold edge carries no profile: both profile passes refuse the
+    awaits an owner-named production name). A closed profile places by
+    point, edge array, or face array; the face array grid carries each
+    copy's boolean steps to its own anchor. Hardware uses the same three
+    placement modes. An invalid array refuses the evaluation; the
+    designer reports it through `attachmentErrors`.
+  - A fold edge carries no open profile: both profile passes refuse the
     arrangement, and the designer's edge chooser offers the arrangeable
-    edges only — authored edges less folds and the edges consumed by
-    other profiles (the asking relation's own edge stays listed;
-    hardware arrays may bind an edge a profile already occupies),
-    snapping a stale illegal default to the first arrangeable edge on
-    the write path.
+    edges only — authored edges less folds. Profiles and hardware may
+    share an edge; the write path snaps a stale illegal default to the
+    first arrangeable edge.
   - Snap points and array bindings compute from the raw authored face
     (`originalBoundaryVertices`/`referenceVertices`, ahead of any
     profile cut merging into the boundary), so placement anchors hold

@@ -733,6 +733,68 @@ describe('cassette v2 trapezoid renderer', () => {
       .map(edge => edge.edgeIndex))]).toEqual([0, 1, 2, 3]);
   });
 
+  it('keeps closed-profile edge array copies inside the margins and refuses an impossible count', async () => {
+    const square = createDefaultOccsProfileSketch();
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Hanger',
+      occsProfile: occsProfileFromSketch(square),
+      sketch: square
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    const packed = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      placementMode: 'edgeArray',
+      arrayEdge: 'E2',
+      arrayMode: 'count',
+      arrayCount: '3',
+      offsetX: '0',
+      offsetY: '30'
+    });
+    const doc = await createCassetteV2OccsDocument(packed);
+    const xs = doc.definitions.workpieces[0].entities
+      .filter(entity => entity.layer === 'cut.inner')
+      .flatMap(entity => entity.geometry.vertices || [])
+      .map(vertex => Number(vertex[0]));
+    expect(Math.min(...xs)).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...xs)).toBeLessThanOrEqual(500);
+
+    const impossible = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      placementMode: 'edgeArray',
+      arrayEdge: 'E2',
+      arrayMode: 'count',
+      arrayCount: '20'
+    });
+    await expect(createCassetteV2OccsDocument(impossible)).rejects.toThrow(/Array placement is invalid/);
+  });
+
+  it('places a closed profile in a rectangular face array', async () => {
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      sketch: {
+        version: '0.2', units: 'mm', parameters: {}, material: 'positive',
+        shapes: [{ id: 's0', type: 'circle', op: 'subtract', center: [5, 0], diameter: 10 }]
+      }
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    const tree = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      placementMode: 'faceArray',
+      arrayLayout: 'rectangular',
+      arrayCountX: '2',
+      arrayStepX: '0',
+      arrayCountY: '2',
+      arrayStepY: '0',
+      arrayPaddingX: '20',
+      arrayPaddingY: '20',
+      targetSnap: 'center'
+    });
+    const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
+    expect(drawing.attachmentErrors).toEqual([]);
+    const inner = drawing.layers.find(layer => layer.standardCode === 'cut.inner');
+    expect(inner.paths.filter(path => path.relationId === relation.id)).toHaveLength(4);
+  });
+
   it('rides a refused edge embedding on the drawing instead of vanishing silently', async () => {
     const initialTree = createCassetteV2GraphTree();
     const square = openChainSketch([[0, 0], [42, 0], [42, 28], [0, 28]], createDefaultOccsProfileSketch().parameters);

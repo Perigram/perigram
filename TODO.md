@@ -2688,6 +2688,28 @@ Ordered steps:
   closed footprints still cut across a fold interval. Focused tests:
   `cassetteV2Renderer.spec.js`, `profileEmbedding.spec.js`.
 
+- [ ] WAITING — owner verification: Attachment face arrays (owner
+  direction 2026-11-04): placement modes are point, edge array, and face
+  array. Face arrays place closed profiles and hardware in rectangular,
+  hex, or polar layouts with counts and steps, face padding, start/
+  center/end anchoring, and polar radius, sweep, and copy rotation; open
+  profiles stay edge-only. Edge arrays include the copy footprint in the
+  span and refuse an impossible count; the editor filters edge bindings
+  and hides inapplicable open-profile placement fields.
+
+  ### Agent Notes (2026-11-04, face arrays and edge-array corrections)
+
+  Session `agent/face-arrays-20261104`. `patterns.js` owns edge and face
+  array geometry; `hardware.js` keeps hardware copy bounds. Closed-profile
+  edge arrays are extent-aware and refuse overlap; open profiles use the
+  same start helper with chord-aware placement. `faceArray` patterns
+  route through closed-profile cuts and hardware cuts/bodies;
+  `attachmentErrors` carries refusals, and evaluation refuses invalid
+  arrays. The editor adds layout/count/step/padding/polar fields and
+  filters edge bindings. Focused tests: `patterns.spec.js`,
+  `profileEmbedding.spec.js`, `cassetteV2Renderer.spec.js`,
+  `cassetteV2FoldedPreview.spec.js`.
+
 - [ ] WAITING — owner verification: Face and profile sketch grips
   resize the authored shape by drag, and the shape panel fields mirror
   the dragged values.

@@ -116,7 +116,7 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
     // into the face, subtracts cut from it — the same grouped fold the
     // designer applies.
     const cutEntities = [
-      ...(await profileCutEntitiesForTree(workpieceCurves, tree)),
+      ...(await profileCutEntitiesForTree(workpieceCurves, tree, { strict: true })),
       ...faceSketchCutEntitiesForTree(workpieceCurves)
     ].filter(entity => faceCurves.has(entity.target));
     const cutEmbeddedCurves = [];

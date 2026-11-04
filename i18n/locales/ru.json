@@ -40,6 +40,7 @@
         "revoke": "Отозвать",
         "copied": "Скопировано",
         "copy": "Копировать",
+        "unknownUser": "Неизвестный пользователь",
         "active": "Активно",
         "recorded": "Зафиксировано",
         "pending": "Ожидает",
@@ -533,6 +534,18 @@
                 "arrayMode": "Правило массива",
                 "arrayCount": "Количество",
                 "arraySpacing": "Шаг массива",
+                "arrayLayout": "Схема массива",
+                "arrayCountX": "Столбцы",
+                "arrayStepX": "Шаг столбцов",
+                "arrayCountY": "Ряды",
+                "arrayStepY": "Шаг рядов",
+                "arrayPaddingX": "Отступ по бокам",
+                "arrayPaddingY": "Отступ сверху/снизу",
+                "arrayPolarCount": "Количество по кругу",
+                "arrayRadius": "Радиус",
+                "arrayStartAngle": "Начальный угол",
+                "arraySweep": "Развёртка",
+                "arrayRotate": "Поворачивать копии",
                 "mirrorX": "Зеркало X",
                 "mirrorY": "Зеркало Y",
                 "driver": "Ведущая привязка",
@@ -550,7 +563,19 @@
                     "arrayEdge": "Кромка",
                     "arrayMode": "Правило",
                     "arrayCount": "Кол-во",
-                    "arraySpacing": "Шаг"
+                    "arraySpacing": "Шаг",
+                    "arrayLayout": "Схема",
+                    "arrayCountX": "Столбцы",
+                    "arrayStepX": "Шаг столбцов",
+                    "arrayCountY": "Ряды",
+                    "arrayStepY": "Шаг рядов",
+                    "arrayPaddingX": "Бок. отступ",
+                    "arrayPaddingY": "Верх/низ",
+                    "arrayPolarCount": "Кол-во",
+                    "arrayRadius": "Радиус",
+                    "arrayStartAngle": "Начало",
+                    "arraySweep": "Развёртка",
+                    "arrayRotate": "Поворот"
                 }
             },
             "hardwareFields": {
@@ -652,7 +677,13 @@
             },
             "placementModes": {
                 "point": "Точка",
-                "edgeArray": "Массив по ребру"
+                "edgeArray": "Массив по ребру",
+                "faceArray": "Массив по грани"
+            },
+            "arrayLayouts": {
+                "rectangular": "Прямоугольный",
+                "hex": "Сотовый",
+                "polar": "Круговой"
             },
             "arrayModes": {
                 "count": "По количеству",

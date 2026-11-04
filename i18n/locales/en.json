@@ -40,6 +40,7 @@
         "revoke": "Revoke",
         "copied": "Copied",
         "copy": "Copy",
+        "unknownUser": "Unknown user",
         "active": "Active",
         "recorded": "Recorded",
         "pending": "Pending",
@@ -533,6 +534,18 @@
                 "arrayMode": "Array rule",
                 "arrayCount": "Array count",
                 "arraySpacing": "Array spacing",
+                "arrayLayout": "Array layout",
+                "arrayCountX": "Columns",
+                "arrayStepX": "Column step",
+                "arrayCountY": "Rows",
+                "arrayStepY": "Row step",
+                "arrayPaddingX": "Side padding",
+                "arrayPaddingY": "Top/bottom padding",
+                "arrayPolarCount": "Polar count",
+                "arrayRadius": "Polar radius",
+                "arrayStartAngle": "Start angle",
+                "arraySweep": "Sweep",
+                "arrayRotate": "Rotate copies",
                 "mirrorX": "Mirror X",
                 "mirrorY": "Mirror Y",
                 "driver": "Placement driver",
@@ -550,7 +563,19 @@
                     "arrayEdge": "Edge",
                     "arrayMode": "Rule",
                     "arrayCount": "Count",
-                    "arraySpacing": "Spacing"
+                    "arraySpacing": "Spacing",
+                    "arrayLayout": "Layout",
+                    "arrayCountX": "Cols",
+                    "arrayStepX": "Col step",
+                    "arrayCountY": "Rows",
+                    "arrayStepY": "Row step",
+                    "arrayPaddingX": "Side pad",
+                    "arrayPaddingY": "Top/bottom pad",
+                    "arrayPolarCount": "Count",
+                    "arrayRadius": "Radius",
+                    "arrayStartAngle": "Start",
+                    "arraySweep": "Sweep",
+                    "arrayRotate": "Rotate"
                 }
             },
             "hardwareFields": {
@@ -652,7 +677,13 @@
             },
             "placementModes": {
                 "point": "Point",
-                "edgeArray": "Edge array"
+                "edgeArray": "Edge array",
+                "faceArray": "Face array"
+            },
+            "arrayLayouts": {
+                "rectangular": "Rectangular",
+                "hex": "Hex",
+                "polar": "Polar"
             },
             "arrayModes": {
                 "count": "By count",
