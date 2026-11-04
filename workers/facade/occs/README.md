@@ -252,7 +252,14 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   quick path; converting seeds the sketch from the current outline. The
   face editor's datum is the parent edge line in shard coordinates (the
   shard start is zero); the parent face renders as a ghost outline in
-  those same coordinates.
+  those same coordinates. A face sketch carries the profile workpiece's
+  two parameter tables: `node.sketch.parameters` is the authored table
+  and `node.instance` the placement's overrides. `normalizeCassetteV2Face`
+  returns the authored sketch, the instance table and the derived table;
+  the renderer evaluates the derived table in the cassette's scope.
+  Scope-named rows stay in the cassette's table. The face editor folds
+  the placed values into its view, saving keeps overrides whose rows the
+  sketch does not author, and a global rename rewrites both tables.
 - **Edge spans** — a host edge is an interval. Child faces carry
   `edgeStart` plus their `defaultLength`; free shards exclude child
   faces, and a face placement that overlaps or overflows refuses.

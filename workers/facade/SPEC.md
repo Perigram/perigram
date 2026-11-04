@@ -478,6 +478,25 @@ authored scope-named row prunes. A saved
 sketch keeps the authored table; a saved workpiece keeps its instance
 table; neither table is folded into the other.
 
+Owner direction (2026-11-04, one parameter law for sketches): a face
+sketch carries the same two tables as a profile workpiece. The authored
+table is the sketch's own (`node.sketch.parameters`, edited in the face
+editor); the instance table (`node.instance`) holds the values a placed
+face overrides. The derived table — authored rows with the instance
+values on top — is the render evaluation scope; the face editor edits
+and evaluates the authored sketch with the placed values folded into its
+view, and saving preserves overrides whose rows the sketch does not
+author. The selected face's details carry its parameter fields beside
+the placement controls, so a placed face's inner parameters are edited
+on the cassette like a placed profile's. Scope-named rows stay in the
+cassette's table. Renaming a global rewrites face instance rows and
+sketch bindings.
+
+Owner direction (2026-11-04, shared canvas navigation): the cassette
+assembly canvas follows CadCraft's mouse law — wheel zooms at the cursor,
+middle or right drag pans, and a middle double-click refits — so
+assembly, profile, and face editing share one navigation contract.
+
 Owner direction (2026-11-02, profile management on the canvas): a placed
 profile is a canvas object. Its placed section geometry carries the
 profile hit area, so a click selects the profile and opens one popup

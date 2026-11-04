@@ -2573,6 +2573,33 @@ generic machinery; the sheet-design editor edits the opened record on
 one canvas (multi-sheet retracted, owner direction 2026-10-28 evening).
 Ordered steps:
 
+- [ ] WAITING — owner verification: Face parameter tables and shared
+  canvas navigation (owner direction 2026-11-04): a face sketch carries
+  its authored table and its placement instance table apart, like a
+  profile workpiece; the selected face's details carry the parameter
+  fields, and the face editor folds the placed values into its view.
+  The cassette assembly canvas uses CadCraft's wheel zoom and
+  middle/right drag pan, the same navigation as the profile and face
+  editors.
+
+  ### Agent Notes (2026-11-04, face parameter tables and shared navigation)
+
+  Session `agent/cassette-editor-unification-20261104`. Face sketches now
+  carry `node.sketch.parameters` (authored) and `node.instance`
+  (placement overrides); `normalizeCassetteV2Face` returns both tables and
+  the derived table, the renderer evaluates the derived table in the
+  cassette scope, the selected face details render the same parameter
+  fields as a placed profile, and the face editor folds placed values
+  into its view. Global renames rewrite face instance rows and sketch
+  bindings. `DrawingCanvas` gained `cadcraftNavigation` (exponential wheel
+  zoom at the cursor, middle/right drag pan, middle double-click refit) and the designer passes it,
+  so the assembly and sketch canvases use one navigation contract.
+  Focused tests: `cassetteV2Renderer.spec.js`. Guards:
+  `check-arch.js`, `framework:validate`, `plugin-deps:check`,
+  `perigram-plugin validate workers/facade/listing.json`.
+  `docs:validate` still reports the pre-existing broken
+  `workers/nesting/README.md` link.
+
 - [ ] WAITING — owner verification: Parametric faces and shared edges
   (owner direction 2026-11-02; profiles 2026-11-03): faces author as
   parametric sketches in the profile shape model and store the evaluated
