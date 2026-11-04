@@ -2780,12 +2780,13 @@ export default function createSurface({ vue, components, locale, queries, record
             h('label', { for: id, title: title || label }, label)
           ]);
           const textField = (id, label, value, draftKey, commit, parameters, allowEmpty = false) => {
-            const error = expressionError(value, parameters, allowEmpty);
+            const displayed = attachmentDraft.text(draftKey, value);
+            const error = expressionError(displayed, parameters, allowEmpty);
             return h(InputText, {
               id,
               fluid: true,
               class: 'min-w-0 w-full',
-              modelValue: attachmentDraft.text(draftKey, value),
+              modelValue: displayed,
               ...attachmentDraft.handlers(draftKey, value, commit),
               invalid: Boolean(error),
               title: error || label,
