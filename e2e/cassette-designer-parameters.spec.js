@@ -33,7 +33,7 @@ const assemblyGeometry = (page) => page.locator('.designer-workspace__canvas').f
     .join(';'));
 
 const arrayValueText = (page) => page.locator('[data-designer-panel-editor]').first()
-  .evaluate(root => root.querySelector('[aria-label="Array spacing"], [aria-label="Array count"]')?.value ?? null);
+  .evaluate(root => root.querySelector('[aria-label="Gap"], [aria-label="Step"], [aria-label="Span"], [aria-label="Count"]')?.value ?? null);
 
 const chipField = (page, key, label = 'Hanger profile') => page
   .locator(`input[aria-label="Parameters ${key} ${label}"]`);
@@ -155,12 +155,12 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await popup.locator('[aria-label="Placement"]').click();
   await page.getByRole('option', { name: 'Edge array', exact: true }).click();
   await page.waitForTimeout(400);
-  await popup.locator('[aria-label="Array rule"]').click();
-  await page.getByRole('option', { name: 'By spacing', exact: true }).click();
+  await popup.locator('[aria-label="Rule"]').click();
+  await page.getByRole('option', { name: 'By gap', exact: true }).click();
   await page.waitForTimeout(600);
 
   // Focusing a position field must not insert a token (label forwarding).
-  const spacingField = popup.locator('input[aria-label="Array spacing"]');
+  const spacingField = popup.locator('input[aria-label="Gap"]');
   await spacingField.click();
   await page.waitForTimeout(400);
   expect(await arrayValueText(page), 'Expected the spacing field to keep its value on focus').toBe('120');

@@ -473,8 +473,8 @@ const suppressed = (pattern, key) => (
   (pattern.suppress || []).some(value => String(value) === String(key))
 );
 
-const itemRotation = (pattern, angle = 0, frameRotation = 0) => {
-  const base = numeric(pattern.item?.rotation, 0);
+const itemRotation = (pattern, angle = 0, frameRotation = 0, resolve = numeric) => {
+  const base = resolve(pattern.item?.rotation, 0);
   const orientation = pattern.item?.orientation || 'fixed';
   if (orientation === 'radial') return angle + base;
   if (orientation === 'tangent') return angle + 90 + base;
@@ -545,13 +545,13 @@ const expandGrid = ({ pattern, contour, bounds, copyBounds, resolve }) => {
   if (!rows.ok) return { ok: false, copies: [], skipped: [], reason: rows.reason };
 
   const center = [(anchorMinX + anchorMaxX) / 2, (anchorMinY + anchorMaxY) / 2];
-  const frameRotation = numeric(pattern.frame?.rotation, 0);
+  const frameRotation = resolve(pattern.frame?.rotation, 0);
   const staggerEnabled = Boolean(pattern.stagger?.enabled);
   const staggerAxis = pattern.stagger?.axis === 'y' ? 'y' : 'x';
-  const staggerAmount = numeric(pattern.stagger?.amount, 0);
+  const staggerAmount = resolve(pattern.stagger?.amount, 0);
   const copies = [];
   const skipped = [];
-  const rotation = itemRotation(pattern, 0, frameRotation);
+  const rotation = itemRotation(pattern, 0, frameRotation, resolve);
 
   rows.positions.forEach((y, row) => {
     columns.positions.forEach((x, column) => {
@@ -620,7 +620,7 @@ const expandRadial = ({ pattern, contour, bounds, copyBounds, resolve }) => {
         center[0] + Math.cos(radians) * radius,
         center[1] + Math.sin(radians) * radius
       ];
-      const rotation = itemRotation(pattern, angle, angle);
+      const rotation = itemRotation(pattern, angle, angle, resolve);
       if (suppressed(pattern, key)) {
         skipped.push({ key, reason: 'suppressed' });
         continue;
@@ -671,7 +671,7 @@ export const expandFeatureArray = ({
     const layout = linearArrayStarts({ edgeLength, pattern: array, copyLength, copyMin, resolve });
     if (!layout.ok) return { ok: false, copies: [], skipped: [], reason: layout.reason };
     const normalOffset = resolve(array.normal, 0);
-    const rotation = itemRotation(array, 0, 0);
+    const rotation = itemRotation(array, 0, 0, resolve);
     const copies = layout.starts.map((along, index) => {
       const key = String(index);
       if (suppressed(array, key)) return null;

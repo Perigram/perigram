@@ -109,6 +109,18 @@ const ATTACHMENT_SHORT_LABELS = Object.freeze({
   'cassette.v2.attachmentFields.arrayItemRotation': 'cassette.v2.attachmentFields.short.arrayItemRotation',
   'cassette.v2.attachmentFields.arrayOrientation': 'cassette.v2.attachmentFields.short.arrayOrientation',
   'cassette.v2.attachmentFields.arraySuppress': 'cassette.v2.attachmentFields.short.arraySuppress',
+  'cassette.v2.attachmentFields.arrayBinding': 'cassette.v2.attachmentFields.short.arrayBinding',
+  'cassette.v2.attachmentFields.arrayModeX': 'cassette.v2.attachmentFields.short.arrayModeX',
+  'cassette.v2.attachmentFields.arrayModeY': 'cassette.v2.attachmentFields.short.arrayModeY',
+  'cassette.v2.attachmentFields.arrayCountValue': 'cassette.v2.attachmentFields.short.arrayCountValue',
+  'cassette.v2.attachmentFields.arrayStepValue': 'cassette.v2.attachmentFields.short.arrayStepValue',
+  'cassette.v2.attachmentFields.arrayGapValue': 'cassette.v2.attachmentFields.short.arrayGapValue',
+  'cassette.v2.attachmentFields.arraySpanValue': 'cassette.v2.attachmentFields.short.arraySpanValue',
+  'cassette.v2.attachmentFields.arrayOffsetStartValue': 'cassette.v2.attachmentFields.short.arrayOffsetStartValue',
+  'cassette.v2.attachmentFields.arrayOffsetEndValue': 'cassette.v2.attachmentFields.short.arrayOffsetEndValue',
+  'cassette.v2.attachmentFields.arraySingleAnchor': 'cassette.v2.attachmentFields.short.arraySingleAnchor',
+  'cassette.v2.attachmentFields.arrayFrameMirrorX': 'cassette.v2.attachmentFields.short.arrayFrameMirrorX',
+  'cassette.v2.attachmentFields.arrayFrameMirrorY': 'cassette.v2.attachmentFields.short.arrayFrameMirrorY',
   'cassette.v2.attachmentFields.side': 'cassette.v2.attachmentFields.short.side',
   'cassette.v2.attachmentFields.sourceFace': 'cassette.v2.attachmentFields.short.sourceFace',
   'cassette.v2.attachmentFields.sourceSnap': 'cassette.v2.attachmentFields.short.sourceSnap'
@@ -2893,6 +2905,8 @@ export default function createSurface({ vue, components, locale, queries, record
                 fluid: true,
                 modelValue: attachmentDraft.text(key, value),
                 ...attachmentDraft.handlers(key, value, next => patchArray(patch(next))),
+                placeholder: t('cassette.v2.attachmentFields.arraySuppressHint'),
+                title: t('cassette.v2.attachmentFields.arraySuppressHint'),
                 'aria-label': t(labelKey)
               }),
               id,
@@ -2918,44 +2932,62 @@ export default function createSurface({ vue, components, locale, queries, record
           };
           const axisFields = (axisKey, axis = {}) => {
             const suffix = axisKey === 'y' ? 'Y' : 'X';
+            const edgeAxis = array?.space === 'edge';
+            const labelKey = (edge, face) => (edgeAxis ? edge : face);
+            const mode = axis.mode || 'count';
             const fields = [
               arraySelect(
-                'cassette.v2.attachmentFields.arrayMode',
-                axis.mode || 'count',
+                labelKey(
+                  'cassette.v2.attachmentFields.arrayMode',
+                  `cassette.v2.attachmentFields.arrayMode${suffix}`
+                ),
+                mode,
                 arrayModeOptions.value,
-                mode => ({ [axisKey]: { mode } }),
+                next => ({ [axisKey]: { mode: next } }),
                 `arrayMode${axisKey}`
               )
             ];
-            if ((axis.mode || 'count') !== 'step') {
+            if (mode === 'count' || mode === 'span') {
               fields.push(arrayText(
-                `cassette.v2.attachmentFields.arrayCount${suffix}`,
+                labelKey(
+                  'cassette.v2.attachmentFields.arrayCountValue',
+                  `cassette.v2.attachmentFields.arrayCount${suffix}`
+                ),
                 axis.count ?? '1',
                 `arrayCount${suffix}`,
                 value => ({ [axisKey]: { count: value } })
               ));
             }
-            if ((axis.mode || 'count') === 'step') {
+            if (mode === 'step') {
               fields.push(arrayText(
-                `cassette.v2.attachmentFields.arrayStep${suffix}`,
+                labelKey(
+                  'cassette.v2.attachmentFields.arrayStepValue',
+                  `cassette.v2.attachmentFields.arrayStep${suffix}`
+                ),
                 axis.step ?? '0',
                 `arrayStep${suffix}`,
                 value => ({ [axisKey]: { step: value } }),
                 true
               ));
             }
-            if ((axis.mode || 'count') === 'gap') {
+            if (mode === 'gap') {
               fields.push(arrayText(
-                `cassette.v2.attachmentFields.arrayGap${suffix}`,
+                labelKey(
+                  'cassette.v2.attachmentFields.arrayGapValue',
+                  `cassette.v2.attachmentFields.arrayGap${suffix}`
+                ),
                 axis.gap ?? '0',
                 `arrayGap${suffix}`,
                 value => ({ [axisKey]: { gap: value } }),
                 true
               ));
             }
-            if ((axis.mode || 'count') === 'span') {
+            if (mode === 'span') {
               fields.push(arrayText(
-                `cassette.v2.attachmentFields.arraySpan${suffix}`,
+                labelKey(
+                  'cassette.v2.attachmentFields.arraySpanValue',
+                  `cassette.v2.attachmentFields.arraySpan${suffix}`
+                ),
                 axis.span ?? '0',
                 `arraySpan${suffix}`,
                 value => ({ [axisKey]: { span: value } }),
@@ -2964,14 +2996,20 @@ export default function createSurface({ vue, components, locale, queries, record
             }
             fields.push(
               arrayText(
-                `cassette.v2.attachmentFields.arrayOffsetStart${suffix}`,
+                labelKey(
+                  'cassette.v2.attachmentFields.arrayOffsetStartValue',
+                  `cassette.v2.attachmentFields.arrayOffsetStart${suffix}`
+                ),
                 axis.start ?? '0',
                 `arrayOffsetStart${suffix}`,
                 value => ({ [axisKey]: { start: value } }),
                 true
               ),
               arrayText(
-                `cassette.v2.attachmentFields.arrayOffsetEnd${suffix}`,
+                labelKey(
+                  'cassette.v2.attachmentFields.arrayOffsetEndValue',
+                  `cassette.v2.attachmentFields.arrayOffsetEnd${suffix}`
+                ),
                 axis.end ?? '0',
                 `arrayOffsetEnd${suffix}`,
                 value => ({ [axisKey]: { end: value } }),
@@ -3098,7 +3136,7 @@ export default function createSurface({ vue, components, locale, queries, record
                   : null,
                 showEdgeFields
                   ? arraySelect(
-                      'cassette.v2.attachmentFields.targetSnap',
+                      'cassette.v2.attachmentFields.arrayBinding',
                       array?.binding ?? 'start',
                       edgeBindingOptions,
                       binding => ({ binding }),
@@ -3114,6 +3152,14 @@ export default function createSurface({ vue, components, locale, queries, record
                       true
                     )
                   : null,
+                showEdgeFields && !profileOpen
+                  ? arrayCheckbox(
+                      'cassette.v2.attachmentFields.arraySingleAnchor',
+                      array?.singleAnchor !== false,
+                      anchored => ({ singleAnchor: anchored }),
+                      'arraySingleAnchor'
+                    )
+                  : null,
                 ...(showEdgeFields ? axisFields('x', array?.x) : []),
                 ...(showEdgeFields ? arrayItemFields(!profileOpen) : []),
                 showFaceFields
@@ -3127,7 +3173,7 @@ export default function createSurface({ vue, components, locale, queries, record
                   : null,
                 showFaceFields && faceLayout !== 'polar'
                   ? arraySelect(
-                      'cassette.v2.attachmentFields.targetSnap',
+                      'cassette.v2.attachmentFields.arrayBinding',
                       array?.binding ?? 'center',
                       edgeBindingOptions,
                       binding => ({ binding }),
@@ -3168,6 +3214,22 @@ export default function createSurface({ vue, components, locale, queries, record
                       array?.frame?.rotation ?? '0',
                       'arrayFrameRotation',
                       value => ({ frame: { rotation: value } })
+                    )
+                  : null,
+                showFaceFields && faceLayout !== 'polar'
+                  ? arrayCheckbox(
+                      'cassette.v2.attachmentFields.arrayFrameMirrorX',
+                      array?.frame?.mirrorX,
+                      mirrored => ({ frame: { mirrorX: mirrored } }),
+                      'arrayFrameMirrorX'
+                    )
+                  : null,
+                showFaceFields && faceLayout !== 'polar'
+                  ? arrayCheckbox(
+                      'cassette.v2.attachmentFields.arrayFrameMirrorY',
+                      array?.frame?.mirrorY,
+                      mirrored => ({ frame: { mirrorY: mirrored } }),
+                      'arrayFrameMirrorY'
                     )
                   : null,
                 showFaceFields
