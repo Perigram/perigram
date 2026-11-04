@@ -83,15 +83,33 @@ const ATTACHMENT_SHORT_LABELS = Object.freeze({
   'cassette.v2.attachmentFields.arrayLayout': 'cassette.v2.attachmentFields.short.arrayLayout',
   'cassette.v2.attachmentFields.arrayCountX': 'cassette.v2.attachmentFields.short.arrayCountX',
   'cassette.v2.attachmentFields.arrayStepX': 'cassette.v2.attachmentFields.short.arrayStepX',
+  'cassette.v2.attachmentFields.arrayGapX': 'cassette.v2.attachmentFields.short.arrayGapX',
   'cassette.v2.attachmentFields.arrayCountY': 'cassette.v2.attachmentFields.short.arrayCountY',
   'cassette.v2.attachmentFields.arrayStepY': 'cassette.v2.attachmentFields.short.arrayStepY',
-  'cassette.v2.attachmentFields.arrayPaddingX': 'cassette.v2.attachmentFields.short.arrayPaddingX',
-  'cassette.v2.attachmentFields.arrayPaddingY': 'cassette.v2.attachmentFields.short.arrayPaddingY',
+  'cassette.v2.attachmentFields.arrayGapY': 'cassette.v2.attachmentFields.short.arrayGapY',
   'cassette.v2.attachmentFields.arrayPolarCount': 'cassette.v2.attachmentFields.short.arrayPolarCount',
   'cassette.v2.attachmentFields.arrayRadius': 'cassette.v2.attachmentFields.short.arrayRadius',
   'cassette.v2.attachmentFields.arrayStartAngle': 'cassette.v2.attachmentFields.short.arrayStartAngle',
   'cassette.v2.attachmentFields.arraySweep': 'cassette.v2.attachmentFields.short.arraySweep',
-  'cassette.v2.attachmentFields.arrayRotate': 'cassette.v2.attachmentFields.short.arrayRotate',
+  'cassette.v2.attachmentFields.arrayNormal': 'cassette.v2.attachmentFields.short.arrayNormal',
+  'cassette.v2.attachmentFields.arraySpanX': 'cassette.v2.attachmentFields.short.arraySpanX',
+  'cassette.v2.attachmentFields.arraySpanY': 'cassette.v2.attachmentFields.short.arraySpanY',
+  'cassette.v2.attachmentFields.arrayOffsetStartX': 'cassette.v2.attachmentFields.short.arrayOffsetStartX',
+  'cassette.v2.attachmentFields.arrayOffsetEndX': 'cassette.v2.attachmentFields.short.arrayOffsetEndX',
+  'cassette.v2.attachmentFields.arrayOffsetStartY': 'cassette.v2.attachmentFields.short.arrayOffsetStartY',
+  'cassette.v2.attachmentFields.arrayOffsetEndY': 'cassette.v2.attachmentFields.short.arrayOffsetEndY',
+  'cassette.v2.attachmentFields.arrayStagger': 'cassette.v2.attachmentFields.short.arrayStagger',
+  'cassette.v2.attachmentFields.arrayStaggerAmount': 'cassette.v2.attachmentFields.short.arrayStaggerAmount',
+  'cassette.v2.attachmentFields.arrayStaggerAxis': 'cassette.v2.attachmentFields.short.arrayStaggerAxis',
+  'cassette.v2.attachmentFields.arrayFrameRotation': 'cassette.v2.attachmentFields.short.arrayFrameRotation',
+  'cassette.v2.attachmentFields.arrayClip': 'cassette.v2.attachmentFields.short.arrayClip',
+  'cassette.v2.attachmentFields.arrayPolarRings': 'cassette.v2.attachmentFields.short.arrayPolarRings',
+  'cassette.v2.attachmentFields.arrayRingSpacing': 'cassette.v2.attachmentFields.short.arrayRingSpacing',
+  'cassette.v2.attachmentFields.arrayCenterX': 'cassette.v2.attachmentFields.short.arrayCenterX',
+  'cassette.v2.attachmentFields.arrayCenterY': 'cassette.v2.attachmentFields.short.arrayCenterY',
+  'cassette.v2.attachmentFields.arrayItemRotation': 'cassette.v2.attachmentFields.short.arrayItemRotation',
+  'cassette.v2.attachmentFields.arrayOrientation': 'cassette.v2.attachmentFields.short.arrayOrientation',
+  'cassette.v2.attachmentFields.arraySuppress': 'cassette.v2.attachmentFields.short.arraySuppress',
   'cassette.v2.attachmentFields.side': 'cassette.v2.attachmentFields.short.side',
   'cassette.v2.attachmentFields.sourceFace': 'cassette.v2.attachmentFields.short.sourceFace',
   'cassette.v2.attachmentFields.sourceSnap': 'cassette.v2.attachmentFields.short.sourceSnap'
@@ -486,7 +504,7 @@ export default function createSurface({ vue, components, locale, queries, record
         // binding face, plus the arranged edge for edge-array placements.
         const relationCrumbs = (relation) => [
           relation.targetFaceId || null,
-          relation.placementMode === 'edgeArray' && relation.arrayEdge ? relation.arrayEdge : null
+          relation.placementMode === 'edgeArray' && relation.pattern?.edge ? relation.pattern.edge : null
         ].filter(Boolean);
         const rows = new Map(workpieces.value.map(workpiece => [workpiece.id, []]));
         for (const relation of workpieceRelations.value) {
@@ -631,22 +649,18 @@ export default function createSurface({ vue, components, locale, queries, record
         label: t(`cassette.v2.snapPoints.${anchor}`),
         value: anchor
       })));
-      const arrayModeOptions = computed(() => ['count', 'spacing'].map(mode => ({
+      const itemOrientationOptions = computed(() => ['fixed', 'grid', 'radial', 'tangent'].map(orientation => ({
+        label: t(`cassette.v2.arrayOrientations.${orientation}`),
+        value: orientation
+      })));
+      const arrayAxisOptions = computed(() => ['x', 'y'].map(axis => ({
+        label: t(`cassette.v2.arrayAxes.${axis}`),
+        value: axis
+      })));
+      const arrayModeOptions = computed(() => ['count', 'step', 'span'].map(mode => ({
         label: t(`cassette.v2.arrayModes.${mode}`),
         value: mode
       })));
-      const arrayValueLabel = (relation = {}) => (
-        relation.arrayMode === 'spacing'
-          ? t('cassette.v2.attachmentFields.arraySpacing')
-          : t('cassette.v2.attachmentFields.arrayCount')
-      );
-      const arrayValue = (relation = {}) => (
-        relation.arrayMode === 'spacing' ? relation.arraySpacing : relation.arrayCount
-      );
-      const arrayValuePatch = (relation = {}, value) => ({
-        placementMode: 'edgeArray',
-        [relation.arrayMode === 'spacing' ? 'arraySpacing' : 'arrayCount']: value
-      });
       // A profile never arranges on a fold edge; faces and open profiles
       // may share every other edge through shard placement.
       const faceEdgeCounts = computed(() => previewSource.value?.faceEdgeCounts || {});
@@ -1617,8 +1631,10 @@ export default function createSurface({ vue, components, locale, queries, record
             nextPatch.targetFaceId || relation.targetFaceId,
             { edgeCountByFaceId: faceEdgeCounts.value }
           );
-          const edge = nextPatch.arrayEdge ?? relation.arrayEdge;
-          if (attachable.length && !attachable.includes(edge)) nextPatch.arrayEdge = attachable[0];
+          const edge = nextPatch.pattern?.edge ?? relation.pattern?.edge;
+          if (attachable.length && !attachable.includes(edge)) {
+            nextPatch.pattern = { ...(nextPatch.pattern || {}), edge: attachable[0] };
+          }
         }
         cassetteTree.value = updateCassetteV2WorkpieceRelation(cassetteTree.value, relationId, nextPatch);
       };
@@ -2832,11 +2848,6 @@ export default function createSurface({ vue, components, locale, queries, record
             : null;
           // PrimeVue IftaLabel fields with native InputText/Select controls.
           const shortLabel = key => t(ATTACHMENT_SHORT_LABELS[key] || key);
-          const arrayValueShortLabel = relation => t(
-            relation.arrayMode === 'spacing'
-              ? 'cassette.v2.attachmentFields.short.arraySpacing'
-              : 'cassette.v2.attachmentFields.short.arrayCount'
-          );
           const fieldId = key => `cassette-profile-${relation.id}-${key}`;
           const expressionError = (value, parameters, allowEmpty = false) => (
             expressionErrorOf(value, parameters, t('cassette.v2.expression.empty'), allowEmpty)
@@ -2890,24 +2901,6 @@ export default function createSurface({ vue, components, locale, queries, record
               t(labelKey)
             );
           };
-          const arrayValueField = (relation) => {
-            const id = fieldId('arrayValue');
-            const draftKey = `attachment:${relation.id}:arrayValue`;
-            return labeledField(
-              arrayValueShortLabel(relation),
-              textField(
-                id,
-                arrayValueLabel(relation),
-                arrayValue(relation),
-                draftKey,
-                value => updateInlineAttachmentRelation(arrayValuePatch(relation, value)),
-                globalParameters.value
-              ),
-              id,
-              '',
-              arrayValueLabel(relation)
-            );
-          };
           const dragHandle = fields => h('div', {
             class: panel ? 'flex items-center gap-1' : 'flex cursor-move items-center gap-1',
             onMousedown: panel ? undefined : event => { event.preventDefault(); startInlineEditorDrag(event); }
@@ -2934,12 +2927,76 @@ export default function createSurface({ vue, components, locale, queries, record
           const showEdgeFields = effectiveMode === 'edgeArray';
           const showFaceFields = effectiveMode === 'faceArray';
           const showPointFields = effectiveMode === 'point';
-          const faceLayout = relation.arrayLayout || 'rectangular';
-          const arrayEdgeOptions = attachableEdgeOptions(relation.targetFaceId);
-          const arrayEdgeValue = arrayEdgeOptions.some(option => option.value === relation.arrayEdge)
-            ? relation.arrayEdge
-            : arrayEdgeOptions[0]?.value || relation.arrayEdge;
-          const checkboxField = (labelKey, checked, key) => {
+          const array = relation.pattern;
+          const faceLayout = array?.kind === 'radial'
+            ? 'polar'
+            : array?.stagger?.enabled ? 'hex' : 'rectangular';
+          const patchArray = patch => updateInlineAttachmentRelation({ pattern: patch });
+          const layoutPatch = (layout) => {
+            if (layout === 'polar') return { space: 'face', kind: 'radial', item: { orientation: 'radial' } };
+            return {
+              space: 'face',
+              kind: 'grid',
+              stagger: { enabled: layout === 'hex' },
+              item: { orientation: 'fixed' }
+            };
+          };
+          const arraySelect = (labelKey, value, options, patch, key) => {
+            const id = fieldId(key);
+            return labeledField(
+              shortLabel(labelKey),
+              h(Select, {
+                inputId: id,
+                modelValue: value,
+                options: Array.isArray(options) ? options : options?.value || [],
+                optionLabel: 'label',
+                optionValue: 'value',
+                fluid: true,
+                'aria-label': t(labelKey),
+                title: t(labelKey),
+                'onUpdate:modelValue': next => patchArray(patch(next))
+              }),
+              id,
+              '',
+              t(labelKey)
+            );
+          };
+          const arrayText = (labelKey, value, draftKey, patch, allowEmpty = false) => {
+            const id = fieldId(draftKey);
+            return labeledField(
+              shortLabel(labelKey),
+              textField(
+                id,
+                t(labelKey),
+                value,
+                `attachment:${relation.id}:${draftKey}`,
+                next => patchArray(patch(next)),
+                globalParameters.value,
+                allowEmpty
+              ),
+              id,
+              '',
+              t(labelKey)
+            );
+          };
+          const arrayPlainText = (labelKey, value, draftKey, patch) => {
+            const id = fieldId(draftKey);
+            const key = `attachment:${relation.id}:${draftKey}`;
+            return labeledField(
+              shortLabel(labelKey),
+              h(InputText, {
+                id,
+                fluid: true,
+                modelValue: attachmentDraft.text(key, value),
+                ...attachmentDraft.handlers(key, value, next => patchArray(patch(next))),
+                'aria-label': t(labelKey)
+              }),
+              id,
+              '',
+              t(labelKey)
+            );
+          };
+          const arrayCheckbox = (labelKey, checked, patch, key) => {
             const id = fieldId(key);
             return labeledField(
               shortLabel(labelKey),
@@ -2948,12 +3005,110 @@ export default function createSurface({ vue, components, locale, queries, record
                 inputId: id,
                 modelValue: Boolean(checked),
                 'aria-label': t(labelKey),
-                'onUpdate:modelValue': value => updateInlineAttachmentRelation({ [key]: value })
+                'onUpdate:modelValue': next => patchArray(patch(next))
               }),
               id,
               '',
               t(labelKey)
             );
+          };
+          const axisFields = (axisKey, axis = {}) => {
+            const suffix = axisKey === 'y' ? 'Y' : 'X';
+            const fields = [
+              arraySelect(
+                'cassette.v2.attachmentFields.arrayMode',
+                axis.mode || 'count',
+                arrayModeOptions.value,
+                mode => ({ [axisKey]: { mode } }),
+                `arrayMode${axisKey}`
+              )
+            ];
+            if ((axis.mode || 'count') !== 'step') {
+              fields.push(arrayText(
+                `cassette.v2.attachmentFields.arrayCount${suffix}`,
+                axis.count ?? '1',
+                `arrayCount${suffix}`,
+                value => ({ [axisKey]: { count: value } })
+              ));
+            }
+            if ((axis.mode || 'count') === 'step') {
+              fields.push(arrayText(
+                `cassette.v2.attachmentFields.arrayStep${suffix}`,
+                axis.step ?? '0',
+                `arrayStep${suffix}`,
+                value => ({ [axisKey]: { step: value } }),
+                true
+              ));
+            }
+            if ((axis.mode || 'count') === 'gap') {
+              fields.push(arrayText(
+                `cassette.v2.attachmentFields.arrayGap${suffix}`,
+                axis.gap ?? '0',
+                `arrayGap${suffix}`,
+                value => ({ [axisKey]: { gap: value } }),
+                true
+              ));
+            }
+            if ((axis.mode || 'count') === 'span') {
+              fields.push(arrayText(
+                `cassette.v2.attachmentFields.arraySpan${suffix}`,
+                axis.span ?? '0',
+                `arraySpan${suffix}`,
+                value => ({ [axisKey]: { span: value } }),
+                true
+              ));
+            }
+            fields.push(
+              arrayText(
+                `cassette.v2.attachmentFields.arrayOffsetStart${suffix}`,
+                axis.start ?? '0',
+                `arrayOffsetStart${suffix}`,
+                value => ({ [axisKey]: { start: value } }),
+                true
+              ),
+              arrayText(
+                `cassette.v2.attachmentFields.arrayOffsetEnd${suffix}`,
+                axis.end ?? '0',
+                `arrayOffsetEnd${suffix}`,
+                value => ({ [axisKey]: { end: value } }),
+                true
+              )
+            );
+            return fields;
+          };
+          const arrayItemFields = (allowTransform = true) => {
+            const orientations = array?.space === 'edge'
+              ? ['fixed']
+              : array?.kind === 'radial'
+                ? ['fixed', 'radial', 'tangent']
+                : ['fixed', 'grid'];
+            return [
+              allowTransform
+                ? arrayText(
+                    'cassette.v2.attachmentFields.arrayItemRotation',
+                    array?.item?.rotation ?? '0',
+                    'arrayItemRotation',
+                    value => ({ item: { rotation: value } })
+                  )
+                : null,
+              allowTransform && orientations.length > 1
+                ? arraySelect(
+                    'cassette.v2.attachmentFields.arrayOrientation',
+                    array?.item?.orientation || 'fixed',
+                    itemOrientationOptions.value.filter(option => orientations.includes(option.value)),
+                    orientation => ({ item: { orientation } }),
+                    'arrayOrientation'
+                  )
+                : null,
+              arrayPlainText(
+                'cassette.v2.attachmentFields.arraySuppress',
+                (array?.suppress || []).join(', '),
+                'arraySuppress',
+                value => ({
+                  suppress: String(value || '').split(/[,\s]+/).map(item => item.trim()).filter(Boolean)
+                })
+              )
+            ].filter(Boolean);
           };
           if (kind === 'workpiece') {
             const section = (labelKey, fields) => h('div', { class: 'flex flex-col gap-1' }, [
@@ -3010,74 +3165,177 @@ export default function createSurface({ vue, components, locale, queries, record
                   : null
               ]),
               h('div', { class: 'grid grid-cols-2 gap-1.5' }, [
-                effectiveMode !== 'faceArray' || faceLayout !== 'polar'
-                  ? selectField('cassette.v2.attachmentFields.targetSnap', relation.targetSnap, snapFieldOptions, 'targetSnap')
-                  : null,
-                showPointFields || showEdgeFields
-                  ? expressionField('cassette.v2.attachmentFields.edgeMargin', relation.offsetX, 'offsetX')
-                  : null,
-                showPointFields || (showEdgeFields && !profileOpen)
-                  ? expressionField('cassette.v2.attachmentFields.normalOffset', relation.offsetY, 'offsetY')
-                  : null,
-                !profileOpen
-                  ? expressionField('cassette.v2.attachmentFields.rotation', relation.rotation, 'rotation')
+                !profileOpen && placementModes.length > 1
+                  ? selectField('cassette.v2.attachmentFields.placementMode', effectiveMode, placementModes, 'placementMode')
                   : null,
                 kind === 'hardware'
                   ? selectField('cassette.v2.attachmentFields.side', relation.targetSide, sideOptions, 'targetSide')
                   : null,
-                !profileOpen && placementModes.length > 1
-                  ? selectField('cassette.v2.attachmentFields.placementMode', effectiveMode, placementModes, 'placementMode')
+                showPointFields
+                  ? selectField('cassette.v2.attachmentFields.targetSnap', relation.targetSnap, snapOptions, 'targetSnap')
+                  : null,
+                showPointFields
+                  ? expressionField('cassette.v2.attachmentFields.edgeMargin', relation.offsetX, 'offsetX')
+                  : null,
+                showPointFields
+                  ? expressionField('cassette.v2.attachmentFields.normalOffset', relation.offsetY, 'offsetY')
+                  : null,
+                showPointFields
+                  ? expressionField('cassette.v2.attachmentFields.rotation', relation.rotation, 'rotation')
                   : null,
                 showEdgeFields
-                  ? selectField('cassette.v2.attachmentFields.arrayEdge', arrayEdgeValue, arrayEdgeOptions, 'arrayEdge')
+                  ? arraySelect(
+                      'cassette.v2.attachmentFields.arrayEdge',
+                      array?.edge ?? 'E0',
+                      attachableEdgeOptions(relation.targetFaceId),
+                      edge => ({ edge }),
+                      'arrayEdge'
+                    )
                   : null,
                 showEdgeFields
-                  ? selectField('cassette.v2.attachmentFields.arrayMode', relation.arrayMode, arrayModeOptions, 'arrayMode')
+                  ? arraySelect(
+                      'cassette.v2.attachmentFields.targetSnap',
+                      array?.binding ?? 'start',
+                      edgeBindingOptions,
+                      binding => ({ binding }),
+                      'arrayBinding'
+                    )
                   : null,
-                showEdgeFields
-                  ? arrayValueField(relation)
+                showEdgeFields && !profileOpen
+                  ? arrayText(
+                      'cassette.v2.attachmentFields.arrayNormal',
+                      array?.normal ?? '0',
+                      'arrayNormal',
+                      value => ({ normal: value }),
+                      true
+                    )
+                  : null,
+                ...(showEdgeFields ? axisFields('x', array?.x) : []),
+                ...(showEdgeFields ? arrayItemFields(!profileOpen) : []),
+                showFaceFields
+                  ? arraySelect(
+                      'cassette.v2.attachmentFields.arrayLayout',
+                      faceLayout,
+                      faceArrayLayoutOptions,
+                      layoutPatch,
+                      'arrayLayout'
+                    )
+                  : null,
+                showFaceFields && faceLayout !== 'polar'
+                  ? arraySelect(
+                      'cassette.v2.attachmentFields.targetSnap',
+                      array?.binding ?? 'center',
+                      edgeBindingOptions,
+                      binding => ({ binding }),
+                      'arrayBinding'
+                    )
+                  : null,
+                ...(showFaceFields && faceLayout !== 'polar' ? axisFields('x', array?.x) : []),
+                ...(showFaceFields && faceLayout !== 'polar' ? axisFields('y', array?.y) : []),
+                showFaceFields && faceLayout === 'hex'
+                  ? arrayCheckbox(
+                      'cassette.v2.attachmentFields.arrayStagger',
+                      array?.stagger?.enabled,
+                      enabled => ({ stagger: { enabled } }),
+                      'arrayStagger'
+                    )
+                  : null,
+                showFaceFields && faceLayout === 'hex'
+                  ? arrayText(
+                      'cassette.v2.attachmentFields.arrayStaggerAmount',
+                      array?.stagger?.amount ?? '0',
+                      'arrayStaggerAmount',
+                      value => ({ stagger: { amount: value } }),
+                      true
+                    )
+                  : null,
+                showFaceFields && faceLayout === 'hex'
+                  ? arraySelect(
+                      'cassette.v2.attachmentFields.arrayStaggerAxis',
+                      array?.stagger?.axis ?? 'x',
+                      arrayAxisOptions,
+                      axis => ({ stagger: { axis } }),
+                      'arrayStaggerAxis'
+                    )
+                  : null,
+                showFaceFields && faceLayout !== 'polar'
+                  ? arrayText(
+                      'cassette.v2.attachmentFields.arrayFrameRotation',
+                      array?.frame?.rotation ?? '0',
+                      'arrayFrameRotation',
+                      value => ({ frame: { rotation: value } })
+                    )
                   : null,
                 showFaceFields
-                  ? selectField('cassette.v2.attachmentFields.arrayLayout', faceLayout, faceArrayLayoutOptions, 'arrayLayout')
+                  ? arrayCheckbox(
+                      'cassette.v2.attachmentFields.arrayClip',
+                      array?.clip !== 'none',
+                      clipped => ({ clip: clipped ? 'face' : 'none' }),
+                      'arrayClip'
+                    )
                   : null,
-                showFaceFields && faceLayout !== 'polar'
-                  ? expressionField('cassette.v2.attachmentFields.arrayCountX', relation.arrayCountX, 'arrayCountX')
-                  : null,
-                showFaceFields && faceLayout !== 'polar'
-                  ? expressionField('cassette.v2.attachmentFields.arrayStepX', relation.arrayStepX, 'arrayStepX', { allowEmpty: true })
-                  : null,
-                showFaceFields && faceLayout !== 'polar'
-                  ? expressionField('cassette.v2.attachmentFields.arrayCountY', relation.arrayCountY, 'arrayCountY')
-                  : null,
-                showFaceFields && faceLayout !== 'polar'
-                  ? expressionField('cassette.v2.attachmentFields.arrayStepY', relation.arrayStepY, 'arrayStepY', { allowEmpty: true })
-                  : null,
-                showFaceFields && faceLayout !== 'polar'
-                  ? expressionField('cassette.v2.attachmentFields.arrayPaddingX', relation.arrayPaddingX, 'arrayPaddingX', { allowEmpty: true })
-                  : null,
-                showFaceFields && faceLayout !== 'polar'
-                  ? expressionField('cassette.v2.attachmentFields.arrayPaddingY', relation.arrayPaddingY, 'arrayPaddingY', { allowEmpty: true })
-                  : null,
-                showFaceFields && faceLayout === 'polar'
-                  ? expressionField('cassette.v2.attachmentFields.arrayPolarCount', relation.arrayPolarCount, 'arrayPolarCount')
-                  : null,
-                showFaceFields && faceLayout === 'polar'
-                  ? expressionField('cassette.v2.attachmentFields.arrayRadius', relation.arrayRadius, 'arrayRadius', { allowEmpty: true })
-                  : null,
-                showFaceFields && faceLayout === 'polar'
-                  ? expressionField('cassette.v2.attachmentFields.arrayStartAngle', relation.arrayStartAngle, 'arrayStartAngle')
-                  : null,
-                showFaceFields && faceLayout === 'polar'
-                  ? expressionField('cassette.v2.attachmentFields.arraySweep', relation.arraySweep, 'arraySweep')
-                  : null,
-                showFaceFields && faceLayout === 'polar'
-                  ? checkboxField('cassette.v2.attachmentFields.arrayRotate', relation.arrayRotate, 'arrayRotate')
-                  : null,
+                ...(showFaceFields && faceLayout === 'polar'
+                  ? [
+                      arrayText(
+                        'cassette.v2.attachmentFields.arrayPolarRings',
+                        array?.polar?.rings ?? '1',
+                        'arrayPolarRings',
+                        value => ({ polar: { rings: value } })
+                      ),
+                      arrayText(
+                        'cassette.v2.attachmentFields.arrayPolarCount',
+                        array?.polar?.count ?? '6',
+                        'arrayPolarCount',
+                        value => ({ polar: { count: value } })
+                      ),
+                      arrayText(
+                        'cassette.v2.attachmentFields.arrayRadius',
+                        array?.polar?.radius ?? '0',
+                        'arrayRadius',
+                        value => ({ polar: { radius: value } }),
+                        true
+                      ),
+                      arrayText(
+                        'cassette.v2.attachmentFields.arrayRingSpacing',
+                        array?.polar?.ringSpacing ?? '0',
+                        'arrayRingSpacing',
+                        value => ({ polar: { ringSpacing: value } }),
+                        true
+                      ),
+                      arrayText(
+                        'cassette.v2.attachmentFields.arrayCenterX',
+                        array?.polar?.centerX ?? '0',
+                        'arrayCenterX',
+                        value => ({ polar: { centerX: value } }),
+                        true
+                      ),
+                      arrayText(
+                        'cassette.v2.attachmentFields.arrayCenterY',
+                        array?.polar?.centerY ?? '0',
+                        'arrayCenterY',
+                        value => ({ polar: { centerY: value } }),
+                        true
+                      ),
+                      arrayText(
+                        'cassette.v2.attachmentFields.arrayStartAngle',
+                        array?.polar?.startAngle ?? '0',
+                        'arrayStartAngle',
+                        value => ({ polar: { startAngle: value } })
+                      ),
+                      arrayText(
+                        'cassette.v2.attachmentFields.arraySweep',
+                        array?.polar?.sweep ?? '360',
+                        'arraySweep',
+                        value => ({ polar: { sweep: value } })
+                      )
+                    ]
+                  : []),
+                ...(showFaceFields ? arrayItemFields(true) : []),
                 kind === 'profile'
                   ? h('div', { class: 'col-span-2 flex min-w-0 gap-1' }, [
                       h(Button, {
                         icon: 'pi pi-arrows-h',
-                        severity: relation.mirrorX ? 'primary' : 'secondary',
+                        severity: (array ? array.item?.mirrorX : relation.mirrorX) ? 'primary' : 'secondary',
                         text: true,
                         rounded: true,
                         size: 'small',
@@ -3085,11 +3343,13 @@ export default function createSurface({ vue, components, locale, queries, record
                         label: 'X',
                         'aria-label': t('cassette.v2.attachmentFields.mirrorX'),
                         title: t('cassette.v2.attachmentFields.mirrorX'),
-                        onClick: () => updateInlineAttachmentRelation({ mirrorX: !relation.mirrorX })
+                        onClick: () => (array
+                          ? patchArray({ item: { mirrorX: !array.item?.mirrorX } })
+                          : updateInlineAttachmentRelation({ mirrorX: !relation.mirrorX }))
                       }),
                       h(Button, {
                         icon: 'pi pi-arrows-v',
-                        severity: relation.mirrorY ? 'primary' : 'secondary',
+                        severity: (array ? array.item?.mirrorY : relation.mirrorY) ? 'primary' : 'secondary',
                         text: true,
                         rounded: true,
                         size: 'small',
@@ -3097,7 +3357,9 @@ export default function createSurface({ vue, components, locale, queries, record
                         label: 'Y',
                         'aria-label': t('cassette.v2.attachmentFields.mirrorY'),
                         title: t('cassette.v2.attachmentFields.mirrorY'),
-                        onClick: () => updateInlineAttachmentRelation({ mirrorY: !relation.mirrorY })
+                        onClick: () => (array
+                          ? patchArray({ item: { mirrorY: !array.item?.mirrorY } })
+                          : updateInlineAttachmentRelation({ mirrorY: !relation.mirrorY }))
                       })
                     ])
                   : null

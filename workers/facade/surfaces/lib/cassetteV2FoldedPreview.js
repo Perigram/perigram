@@ -1,4 +1,4 @@
-import { edgeArrayStarts, expandOccsFaceArray2d } from '../../occs/patterns.js';
+import { expandFeatureArray, linearArrayStarts } from '../../occs/patterns.js';
 
 const numeric = (value, fallback = 0) => {
   const next = Number(value);
@@ -290,16 +290,10 @@ const edgeArrayBodyPoints = (targetPlacement, body) => {
   const basis = faceBasis(targetPlacement);
   const normal2d = normalize2([-edge2d[1], edge2d[0]], [0, 1]);
   const inPlaneNormal = normalize3(add3(scale3(basis.xAxis, normal2d[0]), scale3(basis.yAxis, normal2d[1])), basis.yAxis);
-  const margin = Math.max(0, numeric(body.offsetX, 0));
-  const normalOffset = numeric(body.offsetY, 0);
-  const binding = body.targetSnap === 'end'
-    ? 'end'
-    : body.targetSnap === 'center' ? 'center' : 'start';
-  const layout = edgeArrayStarts({
+  const normalOffset = numeric(pattern.normal, 0);
+  const layout = linearArrayStarts({
     edgeLength,
     pattern,
-    startOffset: margin,
-    binding,
     copyLength: numeric(body.copyLength, 0),
     resolve: numeric
   });
@@ -319,23 +313,23 @@ const edgeArrayBodyPoints = (targetPlacement, body) => {
 const faceArrayBodyPoints = (targetPlacement, body) => {
   const points2d = targetPlacement?.sourceVertices || [];
   if (points2d.length < 3) return [];
-  const layout = expandOccsFaceArray2d({
+  const layout = expandFeatureArray({
     vertices: points2d,
     pattern: body.pattern || {},
-    binding: body.targetSnap,
     copyBounds: body.copyBounds,
     resolve: numeric
   });
   if (!layout.ok) return [];
   const basis = faceBasis(targetPlacement);
-  return layout.points.map((point2d, index) => {
-    const rotation = numeric(point2d.rotation, 0);
+  return layout.copies.map((copy) => {
+    const rotation = numeric(copy.rotation, 0);
     const axis = rotation
       ? multiplyMatrixVector(rotationMatrixAroundAxis(basis.normal, rotation), basis.xAxis)
       : basis.xAxis;
     return {
-      index,
-      point: pointOnFace(targetPlacement, [point2d.x, point2d.y]),
+      index: copy.index,
+      key: copy.key,
+      point: pointOnFace(targetPlacement, [copy.x, copy.y]),
       axis,
       normal: basis.normal
     };
@@ -349,9 +343,9 @@ const bodyInstances = (placed, bodies = []) => bodies.flatMap((body) => {
   const targetPlacement = placed.get(body.targetFaceId);
   if (!targetPlacement) return [];
   const basis = faceBasis(targetPlacement);
-  const points = body.pattern?.type === 'faceArray'
+  const points = body.pattern?.space === 'face'
     ? faceArrayBodyPoints(targetPlacement, body)
-    : body.pattern?.type === 'edgeArray'
+    : body.pattern?.space === 'edge'
       ? edgeArrayBodyPoints(targetPlacement, body)
       : [{
           index: 0,
@@ -361,7 +355,7 @@ const bodyInstances = (placed, bodies = []) => bodies.flatMap((body) => {
         }];
 
   return points.map(entry => ({
-    id: `${body.id}:${entry.index}`,
+    id: `${body.id}:${entry.key ?? entry.index}`,
     workpieceId: body.workpieceId,
     relationId: body.relationId,
     family: body.family,
