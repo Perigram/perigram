@@ -3930,6 +3930,8 @@ const selectionDimensionAnnotations = async (tree = createCassetteV2GraphTree(),
   let sketch = null;
   let evaluated = null;
   let frame = null;
+  let selectionType = '';
+  let targetId = '';
   if (options.selectedRelationId) {
     const relation = getCassetteV2WorkpieceRelations(tree)
       .find(item => item.id === options.selectedRelationId);
@@ -3942,6 +3944,8 @@ const selectionDimensionAnnotations = async (tree = createCassetteV2GraphTree(),
     );
     evaluated = evaluateOccsProfileSketch(derived, parameters);
     sketch = profile.sketch;
+    selectionType = 'profileShape';
+    targetId = workpiece.id;
     frame = await cassetteV2SketchFrame(tree, { mode: 'profile', id: workpiece.id });
   } else if (options.selectedFaceId) {
     const node = tree.nodes.find(item => item.id === options.selectedFaceId);
@@ -3949,6 +3953,8 @@ const selectionDimensionAnnotations = async (tree = createCassetteV2GraphTree(),
     const face = normalizeCassetteV2Face(node, parameters);
     evaluated = evaluateOccsProfileSketch(face.derivedSketch, parameters);
     sketch = face.sketch;
+    selectionType = 'faceShape';
+    targetId = node.id;
     frame = await cassetteV2SketchFrame(tree, { mode: 'face', id: node.id });
   }
   if (!evaluated || !frame) return [];
@@ -3984,6 +3990,12 @@ const selectionDimensionAnnotations = async (tree = createCassetteV2GraphTree(),
         : dimension.rot,
       text: dimension.text,
       key: dimension.annotationKey,
+      nodeId: targetId,
+      selectionType,
+      targetId,
+      shapeId: dimension.profile?.shapeId,
+      shapeIds: dimension.profile?.shapeIds || (dimension.profile?.shapeId ? [dimension.profile.shapeId] : []),
+      fieldKey: dimension.profile?.fieldKey,
       dimensionKind: 'inner',
       style: dimension.st
     };
