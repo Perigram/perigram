@@ -156,6 +156,9 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await page.getByRole('option', { name: 'Edge array', exact: true }).click();
   await page.waitForTimeout(400);
   await popup.locator('[aria-label="Array rule"]').click();
+  for (const rule of ['Count', 'Step', 'Gap', 'Span']) {
+    await expect(page.getByRole('option', { name: rule, exact: true })).toBeVisible();
+  }
   await page.getByRole('option', { name: 'Gap', exact: true }).click();
   await page.waitForTimeout(600);
 
@@ -246,6 +249,28 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
 
   await page.locator('.designer-workspace__canvas').first().screenshot({
     path: '.playwright/cassette-designer-parameters.png'
+  });
+
+  // Face-array fields exist in the same placement editor and expose the
+  // canonical layout, axis rules, stagger, and radial handles.
+  await popup.locator('[aria-label="Placement"]').click();
+  await page.getByRole('option', { name: 'Face array', exact: true }).click();
+  await page.waitForTimeout(400);
+  const layout = popup.locator('[aria-label="Array layout"]');
+  await expect(layout).toBeVisible();
+  await layout.click();
+  await page.getByRole('option', { name: 'Hex', exact: true }).click();
+  await page.waitForTimeout(300);
+  await expect(popup.locator('[aria-label="Stagger"]')).toBeVisible();
+  await layout.click();
+  await page.getByRole('option', { name: 'Polar', exact: true }).click();
+  await page.waitForTimeout(300);
+  await expect(popup.locator('input[aria-label="Rings"]')).toBeVisible();
+  await expect(popup.locator('input[aria-label="Polar radius"]')).toBeVisible();
+  await expect(popup.locator('input[aria-label="Start angle"]')).toBeVisible();
+  await expect(popup.locator('input[aria-label="Sweep"]')).toBeVisible();
+  await page.locator('.designer-workspace__canvas').first().screenshot({
+    path: '.playwright/cassette-designer-face-array.png'
   });
   await app.expectCleanRuntime();
 });
