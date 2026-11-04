@@ -2859,6 +2859,19 @@ export default function createSurface({ vue, components, locale, queries, record
           const showFaceFields = effectiveMode === 'faceArray';
           const showPointFields = effectiveMode === 'point';
           const array = relation.pattern;
+          const axisUsesBinding = (axis = {}) => {
+            if ((axis.mode || 'count') !== 'count') return true;
+            try {
+              return Math.round(resolveCassetteV2Expression(axis.count ?? '1', globalParameters.value, 1)) <= 1;
+            } catch {
+              return false;
+            }
+          };
+          const showBinding = showEdgeFields
+            ? axisUsesBinding(array?.x)
+            : showFaceFields && effectiveMode === 'faceArray' && array?.kind !== 'radial'
+              ? axisUsesBinding(array?.x) || axisUsesBinding(array?.y)
+              : false;
           const faceLayout = array?.kind === 'radial'
             ? 'polar'
             : array?.stagger?.enabled ? 'hex' : 'rectangular';
@@ -3145,7 +3158,7 @@ export default function createSurface({ vue, components, locale, queries, record
                       'arrayEdge'
                     )
                   : null,
-                showEdgeFields
+                showEdgeFields && showBinding
                   ? arraySelect(
                       'cassette.v2.attachmentFields.arrayBinding',
                       array?.binding ?? 'start',
@@ -3184,7 +3197,7 @@ export default function createSurface({ vue, components, locale, queries, record
                       'col-span-2'
                     )
                   : null,
-                showFaceFields && faceLayout !== 'polar'
+                showFaceFields && faceLayout !== 'polar' && showBinding
                   ? arraySelect(
                       'cassette.v2.attachmentFields.arrayBinding',
                       array?.binding ?? 'center',

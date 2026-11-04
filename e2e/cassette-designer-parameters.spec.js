@@ -162,6 +162,21 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await page.getByRole('option', { name: 'Gap', exact: true }).click();
   await page.waitForTimeout(600);
 
+  // The anchor moves the array: start and end must place different geometry.
+  const anchor = popup.locator('[aria-label="Anchor"]');
+  await anchor.click();
+  await page.getByRole('option', { name: 'Start', exact: true }).click();
+  await page.waitForTimeout(1200);
+  const startBound = await assemblyGeometry(page);
+  await anchor.click();
+  await page.getByRole('option', { name: 'End', exact: true }).click();
+  await page.waitForTimeout(1200);
+  const endBound = await assemblyGeometry(page);
+  expect(endBound, 'Expected the array anchor to move the placed copies').not.toBe(startBound);
+  await anchor.click();
+  await page.getByRole('option', { name: 'Center', exact: true }).click();
+  await page.waitForTimeout(600);
+
   // Focusing a position field must not insert a token (label forwarding).
   const spacingField = popup.locator('input[aria-label="Gap"]');
   await spacingField.click();
@@ -258,6 +273,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await page.waitForTimeout(400);
   const layout = popup.locator('[aria-label="Array layout"]');
   await expect(layout).toBeVisible();
+  await expect(popup.locator('[aria-label="Anchor"]')).toHaveCount(0);
   await expect(popup.locator('input[aria-label="Columns"]')).toBeVisible();
   await expect(popup.locator('input[aria-label="Rows"]')).toBeVisible();
   await expect(popup.locator('input[aria-label="Left padding"]')).toBeVisible();
