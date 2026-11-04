@@ -2601,11 +2601,7 @@ Ordered steps:
   expressions keep their inner rows. Global renames rewrite face instance
   rows and sketch bindings. Sketch edits now commit to the cassette live;
   Back keeps them and the explicit save actions write library records
-  only. A selected face or profile draws its inner shape dimensions on
-  the dimension layer beside any placement dimensions, in the sketch's
-  own CAD dimension style; a label edits its authored shape field in
-  place.
-  `DrawingCanvas` gained `cadcraftNavigation`
+  only. `DrawingCanvas` gained `cadcraftNavigation`
   (exponential wheel zoom at the cursor, middle/right drag pan, middle
   double-click refit) and the designer passes it, so the assembly and
   sketch canvases use one navigation contract. Focused tests:

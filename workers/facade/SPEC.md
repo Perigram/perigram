@@ -556,10 +556,7 @@ The assembly drawing and its camera stay in place, so the edited target keeps
 its screen position and the selection survives the edit. The existing CadCraft
 profile editor renders the sketch. Sketch edits commit to the cassette live;
 Back returns with the edited target's popup restored, and the mode's save
-action writes the library record alone. A selected face or profile draws
-its inner shape dimensions in the sketch's CAD dimension style, apart
-from the cassette-wide dimension style; an inner dimension label edits
-its authored shape field in place.
+action writes the library record alone.
 
 Owner direction (2026-11-02, shared canvas session): the cassette designer
 runs one canvas session over the assembly canvas and the sketch editor. The
