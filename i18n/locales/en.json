@@ -753,10 +753,10 @@
                 "polar": "Polar"
             },
             "arrayModes": {
-                "count": "By count",
-                "step": "By step",
-                "gap": "By gap",
-                "span": "By span"
+                "count": "Count",
+                "step": "Step",
+                "gap": "Gap",
+                "span": "Span"
             },
             "arrayOrientations": {
                 "fixed": "Fixed",

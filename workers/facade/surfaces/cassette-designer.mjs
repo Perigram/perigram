@@ -666,7 +666,7 @@ export default function createSurface({ vue, components, locale, queries, record
         label: t(`cassette.v2.arrayAxes.${axis}`),
         value: axis
       })));
-      const arrayModeOptions = computed(() => ['count', 'step', 'span'].map(mode => ({
+      const arrayModeOptions = computed(() => ['count', 'step', 'gap', 'span'].map(mode => ({
         label: t(`cassette.v2.arrayModes.${mode}`),
         value: mode
       })));
@@ -2914,7 +2914,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 'aria-label': t(labelKey)
               }),
               id,
-              '',
+              'col-span-2',
               t(labelKey)
             );
           };
@@ -2928,7 +2928,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 'aria-label': t(labelKey),
                 'onUpdate:modelValue': next => patchArray(patch(next))
               }),
-              h('label', { for: id, class: 'min-w-0 flex-1 truncate text-label', title: t(labelKey) }, shortLabel(labelKey))
+              h('label', { for: id, class: 'min-w-0 flex-1 truncate text-label', title: t(labelKey) }, t(labelKey))
             ]);
           };
           const axisFields = (axisKey, axis = {}) => {
