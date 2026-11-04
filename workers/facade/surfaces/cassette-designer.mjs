@@ -3117,7 +3117,7 @@ export default function createSurface({ vue, components, locale, queries, record
               ]),
               h('div', { class: 'grid min-w-0 grid-cols-2 gap-1.5' }, [
                 !profileOpen && placementModes.length > 1
-                  ? selectField('cassette.v2.attachmentFields.placementMode', effectiveMode, placementModes, 'placementMode')
+                  ? selectField('cassette.v2.attachmentFields.placementMode', effectiveMode, placementModes, 'placementMode', 'col-span-2')
                   : null,
                 kind === 'hardware'
                   ? selectField('cassette.v2.attachmentFields.side', relation.targetSide, sideOptions, 'targetSide')
