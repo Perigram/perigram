@@ -643,7 +643,8 @@
                 "arraySingleAnchor": "Привязывать одиночную копию",
                 "arrayFrameMirrorX": "Зеркало сетки X",
                 "arrayFrameMirrorY": "Зеркало сетки Y",
-                "arraySuppressHint": "ряд:столбец, кольцо:индекс или индекс"
+                "arraySuppressHint": "0:1, 1:0",
+                "arraySuppressTitle": "ряд:столбец, кольцо:индекс или индекс"
             },
             "hardwareFields": {
                 "family": "Семейство метиза",

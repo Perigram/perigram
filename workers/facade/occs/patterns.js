@@ -102,7 +102,7 @@ export const arrayDefaults = (source = {}) => {
     ? 'linear'
     : pickEnum(source.kind, ['grid', 'radial'], 'grid');
   const axisFallback = space === 'edge'
-    ? { ...AXIS_DEFAULTS, count: '1' }
+    ? { ...AXIS_DEFAULTS, count: '1', gap: '120' }
     : AXIS_DEFAULTS;
   return {
     version: OCCS_ARRAY_VERSION,

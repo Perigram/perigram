@@ -2910,7 +2910,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 modelValue: attachmentDraft.text(key, value),
                 ...attachmentDraft.handlers(key, value, next => patchArray(patch(next))),
                 placeholder: t('cassette.v2.attachmentFields.arraySuppressHint'),
-                title: t('cassette.v2.attachmentFields.arraySuppressHint'),
+                title: t('cassette.v2.attachmentFields.arraySuppressTitle'),
                 'aria-label': t(labelKey)
               }),
               id,
