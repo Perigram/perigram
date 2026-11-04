@@ -155,7 +155,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await popup.locator('[aria-label="Placement"]').click();
   await page.getByRole('option', { name: 'Edge array', exact: true }).click();
   await page.waitForTimeout(400);
-  await popup.locator('[aria-label="Rule"]').click();
+  await popup.locator('[aria-label="Array rule"]').click();
   await page.getByRole('option', { name: 'By gap', exact: true }).click();
   await page.waitForTimeout(600);
 

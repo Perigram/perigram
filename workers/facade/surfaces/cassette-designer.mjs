@@ -2769,7 +2769,7 @@ export default function createSurface({ vue, components, locale, queries, record
             expressionErrorOf(value, parameters, t('cassette.v2.expression.empty'), allowEmpty)
           );
           const labeledField = (label, control, id, className = '', title = '') => h(IftaLabel, {
-            class: className || 'w-full'
+            class: `min-w-0 ${className || 'w-full'}`
           }, [
             control,
             h('label', { for: id, title: title || label }, label)
@@ -2779,6 +2779,7 @@ export default function createSurface({ vue, components, locale, queries, record
             return h(InputText, {
               id,
               fluid: true,
+              class: 'min-w-0 w-full',
               modelValue: attachmentDraft.text(draftKey, value),
               ...attachmentDraft.handlers(draftKey, value, commit),
               invalid: Boolean(error),
@@ -2803,6 +2804,7 @@ export default function createSurface({ vue, components, locale, queries, record
               shortLabel(labelKey),
               h(Select, {
                 inputId: id,
+                class: 'min-w-0 w-full',
                 modelValue,
                 options: Array.isArray(options) ? options : options?.value || [],
                 optionLabel: 'label',
@@ -2863,6 +2865,7 @@ export default function createSurface({ vue, components, locale, queries, record
               shortLabel(labelKey),
               h(Select, {
                 inputId: id,
+                class: 'min-w-0 w-full',
                 modelValue: value,
                 options: Array.isArray(options) ? options : options?.value || [],
                 optionLabel: 'label',
@@ -2903,6 +2906,7 @@ export default function createSurface({ vue, components, locale, queries, record
               h(InputText, {
                 id,
                 fluid: true,
+                class: 'min-w-0 w-full',
                 modelValue: attachmentDraft.text(key, value),
                 ...attachmentDraft.handlers(key, value, next => patchArray(patch(next))),
                 placeholder: t('cassette.v2.attachmentFields.arraySuppressHint'),
@@ -2916,8 +2920,7 @@ export default function createSurface({ vue, components, locale, queries, record
           };
           const arrayCheckbox = (labelKey, checked, patch, key) => {
             const id = fieldId(key);
-            return labeledField(
-              shortLabel(labelKey),
+            return h('div', { class: 'col-span-2 flex min-w-0 items-center gap-2' }, [
               h(Checkbox, {
                 binary: true,
                 inputId: id,
@@ -2925,10 +2928,8 @@ export default function createSurface({ vue, components, locale, queries, record
                 'aria-label': t(labelKey),
                 'onUpdate:modelValue': next => patchArray(patch(next))
               }),
-              id,
-              '',
-              t(labelKey)
-            );
+              h('label', { for: id, class: 'min-w-0 flex-1 truncate text-label', title: t(labelKey) }, shortLabel(labelKey))
+            ]);
           };
           const axisFields = (axisKey, axis = {}) => {
             const suffix = axisKey === 'y' ? 'Y' : 'X';
@@ -3076,7 +3077,7 @@ export default function createSurface({ vue, components, locale, queries, record
               ])
             ]);
           } else {
-            body = h('div', { class: panel ? 'flex flex-col gap-1.5' : 'flex w-96 flex-col gap-1.5' }, [
+            body = h('div', { class: panel ? 'flex min-w-0 flex-col gap-1.5' : 'flex w-96 min-w-0 flex-col gap-1.5' }, [
               dragHandle([
                 selectField('cassette.v2.attachmentFields.targetFace', relation.targetFaceId, targetFaceOptions, 'targetFaceId', 'min-w-0 flex-1'),
                 kind === 'profile'
@@ -3106,7 +3107,7 @@ export default function createSurface({ vue, components, locale, queries, record
                     })
                   : null
               ]),
-              h('div', { class: 'grid grid-cols-2 gap-1.5' }, [
+              h('div', { class: 'grid min-w-0 grid-cols-2 gap-1.5' }, [
                 !profileOpen && placementModes.length > 1
                   ? selectField('cassette.v2.attachmentFields.placementMode', effectiveMode, placementModes, 'placementMode')
                   : null,
@@ -3419,7 +3420,7 @@ export default function createSurface({ vue, components, locale, queries, record
         const editor = inlineEditor.value;
         if (!editor || !['faceActions', 'attachment'].includes(editor.type)) return null;
         return h('div', {
-          class: 'shrink-0 overflow-y-auto rounded-ui border border-content-border bg-content p-2',
+          class: 'min-w-0 shrink-0 overflow-y-auto rounded-ui border border-content-border bg-content p-2',
           'data-designer-panel-editor': editor.type
         }, [renderInlineEditorBody(editor, { panel: true })]);
       };
