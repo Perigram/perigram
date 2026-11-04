@@ -2872,7 +2872,7 @@ export default function createSurface({ vue, components, locale, queries, record
               item: { orientation: 'fixed' }
             };
           };
-          const arraySelect = (labelKey, value, options, patch, key) => {
+          const arraySelect = (labelKey, value, options, patch, key, className = '') => {
             const id = fieldId(key);
             return labeledField(
               shortLabel(labelKey),
@@ -2889,7 +2889,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 'onUpdate:modelValue': next => patchArray(patch(next))
               }),
               id,
-              '',
+              className,
               t(labelKey)
             );
           };
@@ -3176,7 +3176,8 @@ export default function createSurface({ vue, components, locale, queries, record
                       faceLayout,
                       faceArrayLayoutOptions,
                       layoutPatch,
-                      'arrayLayout'
+                      'arrayLayout',
+                      'col-span-2'
                     )
                   : null,
                 showFaceFields && faceLayout !== 'polar'
