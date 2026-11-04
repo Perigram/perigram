@@ -322,10 +322,10 @@ export const normalizeCassetteV2Face = (source = {}, scope = {}) => {
 // `sketch` is the fallback. A cached `occsProfile.sketch` holds evaluated
 // numbers, so it comes last.
 export const cassetteV2ProfileSketch = (workpiece = {}) => (
-  workpiece.profileSnapshot?.sketch
-  || workpiece.sketch
-  || workpiece.profile?.sketch
-  || workpiece.data?.occsProfile?.sketch
+  workpiece?.profileSnapshot?.sketch
+  || workpiece?.sketch
+  || workpiece?.profile?.sketch
+  || workpiece?.data?.occsProfile?.sketch
   || null
 );
 

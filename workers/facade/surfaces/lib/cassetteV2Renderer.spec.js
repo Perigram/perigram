@@ -908,6 +908,7 @@ describe('cassette v2 trapezoid renderer', () => {
   });
 
   it('reads a workpiece-level profile sketch and migrates it into profileSnapshot on write', () => {
+    expect(cassetteV2ProfileSketch(null)).toBe(null);
     const sketch = normalizeOccsProfileSketch({
       parameters: { W: 42, H: 28 },
       shapes: [{
