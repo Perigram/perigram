@@ -258,6 +258,9 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await page.waitForTimeout(400);
   const layout = popup.locator('[aria-label="Array layout"]');
   await expect(layout).toBeVisible();
+  await expect(popup.locator('input[aria-label="Columns"]')).toBeVisible();
+  await expect(popup.locator('input[aria-label="Rows"]')).toBeVisible();
+  await expect(popup.locator('input[aria-label="Left padding"]')).toBeVisible();
   await layout.click();
   await page.getByRole('option', { name: 'Hex', exact: true }).click();
   await page.waitForTimeout(300);
