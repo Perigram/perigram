@@ -2576,9 +2576,9 @@ Ordered steps:
 - [ ] WAITING — owner verification: Face parameter tables and shared
   canvas navigation (owner direction 2026-11-04): a face sketch carries
   its authored table and its placement instance table apart, like a
-  profile workpiece; its boolean shape set applies to the face's base
-  trapezoid host, so subtract-only and multi-shape sets need no closed
-  add outline. The selected face's details carry the parameter fields,
+  profile workpiece; its add shapes author the face, while a subtract-only
+  set cuts the face's base host, so it needs no closed add outline. The
+  selected face's details carry the parameter fields,
   and the face editor folds the placed values into its view. The
   cassette assembly canvas uses CadCraft's wheel zoom and middle/right
   drag pan, the same navigation as the profile and face editors.
@@ -2591,9 +2591,9 @@ Ordered steps:
   the derived table, the renderer evaluates the derived table in the
   cassette scope, the selected face details render the same parameter
   fields as a placed profile, and the face editor folds placed values
-  into its view. The face shape set is evaluated over the face's base
-  trapezoid host, like a profile over its target face; subtract-only and
-  multi-shape sets no longer require one closed add outline.
+  into its view. Add shapes author the face; a subtract-only set cuts the
+  face's base host. Multi-shape sets no longer require one closed add
+  outline.
   `normalizeCassetteV2Face` keeps a trapezoid face's sketch empty instead
   of injecting the profile template. Global renames rewrite face instance
   rows and sketch bindings. `DrawingCanvas` gained `cadcraftNavigation`
