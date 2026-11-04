@@ -26,12 +26,14 @@ import {
   getCassetteV2WorkpieceRelations,
   getCassetteV2Workpieces,
   isCassetteV2ProfileWorkpiece,
+  normalizeCassetteV2Face,
   normalizeCassetteV2Profile,
   OCCS_CASSETTE_FACE_ROLES,
   renderCassetteV2TreeToDrawing,
   resolveCassetteV2AngleExpression,
   resolveCassetteV2Expression,
   resolveCassetteV2FaceSketchRegion,
+  updateCassetteV2FaceInstance,
   updateCassetteV2FaceSketch,
   updateCassetteV2GraphNode,
   updateCassetteV2Workpiece,
@@ -332,6 +334,7 @@ export default function createSurface({ vue, components, locale, queries, record
       const faceSketchOpen = ref(false);
       const editingFaceNodeId = ref('');
       const faceShapeDraft = ref(createEmptyOccsProfileSketch());
+      const faceShapePreservedInstance = ref({});
       const faceShapeBasisStart = ref(null);
       const faceShapeBasisEnd = ref(null);
       const faceShapeParentFace = ref([]);
@@ -1900,12 +1903,24 @@ export default function createSurface({ vue, components, locale, queries, record
         editingFaceNodeId.value = nodeId;
         try {
           const context = await cassetteV2FaceSketchContext(cassetteTree.value, nodeId);
-          faceShapeDraft.value = context.sketch;
+          const node = treeNodes.value.find(item => item.id === nodeId);
+          const face = normalizeCassetteV2Face(node, globalParameters.value);
+          faceShapePreservedInstance.value = { ...(face.instance || {}) };
+          // In-place editing shows the placed implementation: the face's
+          // instance values join the authored table.
+          faceShapeDraft.value = {
+            ...context.sketch,
+            parameters: pruneScopeBoundParameters({
+              ...context.sketch.parameters,
+              ...(face.instance || {})
+            }, context.sketch.shapes, globalParameters.value)
+          };
           faceShapeBasisStart.value = context.basisStart;
           faceShapeBasisEnd.value = context.basisEnd;
           faceShapeParentFace.value = context.parentFace || [];
         } catch (error) {
           faceShapeEditorError.value = error?.message || String(error);
+          faceShapePreservedInstance.value = {};
           faceShapeDraft.value = createEmptyOccsProfileSketch();
           faceShapeBasisStart.value = null;
           faceShapeBasisEnd.value = null;
@@ -1925,7 +1940,15 @@ export default function createSurface({ vue, components, locale, queries, record
           faceShapeEditorError.value = error?.message || String(error);
           return;
         }
-        cassetteTree.value = updateCassetteV2FaceSketch(cassetteTree.value, editingFaceNodeId.value, sketch);
+        const preservedInstance = Object.fromEntries(
+          Object.entries(faceShapePreservedInstance.value || {})
+            .filter(([key]) => !Object.prototype.hasOwnProperty.call(sketch.parameters || {}, key))
+        );
+        cassetteTree.value = updateCassetteV2FaceInstance(
+          updateCassetteV2FaceSketch(cassetteTree.value, editingFaceNodeId.value, sketch),
+          editingFaceNodeId.value,
+          preservedInstance
+        );
         finishFaceSketch();
       };
 
@@ -2237,28 +2260,56 @@ export default function createSurface({ vue, components, locale, queries, record
         });
       };
 
+      const updateFaceInstanceParameter = (nodeId, key, value) => {
+        const node = treeNodes.value.find(item => item.id === nodeId);
+        if (!node) return;
+        const face = normalizeCassetteV2Face(node, globalParameters.value);
+        cassetteTree.value = updateCassetteV2FaceInstance(cassetteTree.value, nodeId, {
+          ...(face.instance || {}),
+          [key]: value
+        });
+      };
+
       // A parameter field is the shared expression editor over the
       // cassette's variables and the profile's own rows (the same
       // component every expression field rides): its value may name
       // either and reads it live.
-      const profileParameterField = (row, key, value, inputId = '') => {
-        const profileTable = { ...(row.authoredParameters || {}), ...(row.instanceParameters || {}) };
-        const parameters = { ...globalParameters.value, ...profileTable };
+      const parameterField = (row, key, value, inputId = '', onChange = () => {}) => {
+        const localTable = { ...(row.authoredParameters || {}), ...(row.instanceParameters || {}) };
+        const parameters = { ...globalParameters.value, ...localTable };
         const error = expressionErrorOf(value, parameters, t('cassette.v2.expression.empty'));
         const derived = row.parameters?.[key];
-        const draftKey = `profile-param:${row.id}:${key}`;
+        const draftKey = `param:${row.id}:${key}`;
         return h(InputText, {
           id: inputId,
           fluid: true,
           modelValue: attachmentDraft.text(draftKey, value),
-          ...attachmentDraft.handlers(draftKey, value, next => {
-            updateProfileWorkpieceParameter(row.id, key, next);
-          }),
+          ...attachmentDraft.handlers(draftKey, value, onChange),
           invalid: Boolean(error),
           title: error || (derived === undefined ? key : `${key} = ${derived}`),
           'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`
         });
       };
+
+      const parameterFields = (row, onChange) => [...(row?.boundParameterKeys || [])].map((key) => {
+        const instance = row.instanceParameters || {};
+        const authored = row.authoredParameters || {};
+        const value = Object.prototype.hasOwnProperty.call(instance, key)
+          ? instance[key]
+          : authored[key];
+        const derived = row.parameters?.[key];
+        const id = `cassette-param-${row.id}-${key}`;
+        return h(IftaLabel, {
+          key: `${row.id}-${key}`,
+          class: 'min-w-0'
+        }, [
+          parameterField(row, key, value, id, next => onChange(key, next)),
+          h('label', {
+            for: id,
+            title: derived === undefined ? key : `${key} = ${derived}`
+          }, key)
+        ]);
+      });
 
       const addAttachmentToWorkpiece = (workpieceId, targetWorkpieceId = '', targetFaceId = '') => {
         closeInlineEditor();
@@ -2623,7 +2674,15 @@ export default function createSurface({ vue, components, locale, queries, record
                 onClick: event => openProfilePicker(event)
               })
             ]),
-            ...profiles.map(relationRow => renderFaceProfileRow(relationRow))
+            h(Divider),
+            renderFaceSketchControls(editor.nodeId),
+            ...profiles.map(relationRow => renderFaceProfileRow(relationRow)),
+            node?.sketch && faceParameterRow(node).boundParameterKeys.size
+              ? h('div', null, [
+                  h(Divider),
+                  h('div', { class: 'grid grid-cols-2 gap-x-2 gap-y-1' }, faceParameterFields(node))
+                ])
+              : null
           ]);
         } else if (editor.type === 'attachment' && relation) {
           // Per-kind field sets (attachmentSourceKind owns the mapping):
@@ -2937,26 +2996,31 @@ export default function createSurface({ vue, components, locale, queries, record
 
       // Each bound parameter is a PrimeVue IftaLabel field: the name is
       // the infield label, the expression value sits in the input; the
-      // derived value rides the label's title.
-      const profileParameterFields = (row) => [...(row?.boundParameterKeys || [])].map((key) => {
-        const instance = row.instanceParameters || {};
-        const authored = row.authoredParameters || {};
-        const value = Object.prototype.hasOwnProperty.call(instance, key)
-          ? instance[key]
-          : authored[key];
-        const derived = row.parameters?.[key];
-        const id = `cassette-profile-param-${row.id}-${key}`;
-        return h(IftaLabel, {
-          key: `${row.id}-${key}`,
-          class: 'min-w-0'
-        }, [
-          profileParameterField(row, key, value, id),
-          h('label', {
-            for: id,
-            title: derived === undefined ? key : `${key} = ${derived}`
-          }, key)
-        ]);
-      });
+      // derived value rides the label's title. Profiles and faces share
+      // the field set; only the table an edit writes differs.
+      const profileParameterFields = (row) => parameterFields(
+        row,
+        (key, value) => updateProfileWorkpieceParameter(row.id, key, value)
+      );
+
+      const faceParameterRow = (node) => {
+        const face = normalizeCassetteV2Face(node, globalParameters.value);
+        const authored = face.sketch.parameters || {};
+        const instance = face.instance || {};
+        return {
+          id: `face-${node.id}`,
+          label: defaultFaceRole(node).replace(/_/g, ' '),
+          parameters: face.parameters,
+          authoredParameters: authored,
+          instanceParameters: instance,
+          boundParameterKeys: new Set([...Object.keys(authored), ...Object.keys(instance)])
+        };
+      };
+
+      const faceParameterFields = (node) => parameterFields(
+        faceParameterRow(node),
+        (key, value) => updateFaceInstanceParameter(node.id, key, value)
+      );
 
       const workpieceDetailBlocks = (row) => [
         row.id === selectedWorkpieceId.value && row.isHardware
@@ -3199,13 +3263,13 @@ export default function createSurface({ vue, components, locale, queries, record
         ]);
       };
 
-      const updateFaceSketchParameter = (key, value) => {
-        updateFaceParameter(editingFaceNodeId.value, key, value);
-        loadSketchContext('face', editingFaceNodeId.value);
+      const updateFaceSketchParameter = (nodeId, key, value) => {
+        updateFaceParameter(nodeId, key, value);
+        if (nodeId === editingFaceNodeId.value) loadSketchContext('face', nodeId);
       };
 
-      const renderFaceSketchControls = () => {
-        const node = treeNodes.value.find(item => item.id === editingFaceNodeId.value);
+      const renderFaceSketchControls = (nodeId = editingFaceNodeId.value) => {
+        const node = treeNodes.value.find(item => item.id === nodeId);
         if (!node) return null;
         const fillId = `face-fill-sketch-${node.id}`;
         return h('div', { class: 'flex flex-col gap-2' }, [
@@ -3216,6 +3280,7 @@ export default function createSurface({ vue, components, locale, queries, record
               inputId: fillId,
               size: 'small',
               'onUpdate:modelValue': value => updateFaceSketchParameter(
+                node.id,
                 'defaultLength',
                 value ? 'inherit' : resolvedFaceWidth(node)
               )
@@ -3229,7 +3294,7 @@ export default function createSurface({ vue, components, locale, queries, record
                   modelValue: node.parameters?.defaultLength ?? '0',
                   parameters: globalParameters.value,
                   parameterNames: globalParameterNames.value,
-                  'onUpdate:modelValue': value => updateFaceSketchParameter('defaultLength', value)
+                  'onUpdate:modelValue': value => updateFaceSketchParameter(node.id, 'defaultLength', value)
                 })
               ])
             : null,
@@ -3240,7 +3305,7 @@ export default function createSurface({ vue, components, locale, queries, record
                   modelValue: node.parameters?.edgeStart ?? '0',
                   parameters: globalParameters.value,
                   parameterNames: globalParameterNames.value,
-                  'onUpdate:modelValue': value => updateFaceSketchParameter('edgeStart', value)
+                  'onUpdate:modelValue': value => updateFaceSketchParameter(node.id, 'edgeStart', value)
                 })
               ])
             : null
@@ -3637,6 +3702,7 @@ export default function createSurface({ vue, components, locale, queries, record
               mode: 'designer',
               preserveViewport: true,
               showGeometry: false,
+              cadcraftNavigation: true,
               visibleLayerNames: visibleLayerNames.value,
               selectedDesignerFaceId: selectedDesignerFaceId.value,
               selectedDesignerProfileId: selectedWorkpieceId.value,

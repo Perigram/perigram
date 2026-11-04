@@ -256,6 +256,33 @@ export const isCassetteV2ProfileWorkpiece = (workpiece = {}) => workpiece.type =
 // path.
 export const isCassetteV2SketchFace = (node = {}) => Array.isArray(node?.sketch?.shapes);
 
+// A face sketch stores the same two parameter tables as a profile
+// workpiece: the authored rows inside its sketch and the placement's
+// overrides beside it. The derived table is the evaluation scope.
+export const normalizeCassetteV2Face = (source = {}, scope = {}) => {
+  const rawSketch = source?.sketch || source;
+  const sketch = normalizeOccsProfileSketch(rawSketch || {});
+  const authoredKeys = new Set(Object.keys(sketch.parameters || {}));
+  const instance = Object.fromEntries(
+    Object.entries(source?.sketch ? (source.instance || {}) : {}).filter(([key]) => (
+      authoredKeys.has(key) || !Object.prototype.hasOwnProperty.call(scope || {}, key)
+    ))
+  );
+  const derivedSketch = deriveOccsProfileSketch(sketch, instance);
+  let parameters = { ...derivedSketch.parameters };
+  try {
+    parameters = evaluateOccsProfileSketch(derivedSketch, scope).parameters;
+  } catch {
+    // A transient invalid value keeps the stored derived table for field hints.
+  }
+  return {
+    sketch,
+    instance,
+    parameters,
+    derivedSketch
+  };
+};
+
 // A profile workpiece stores two parameter tables (workers/facade/SPEC.md
 // — two parameter tables): the authored table inside its sketch and the
 // instance table beside it. The derived table — authored rows with the
@@ -1373,13 +1400,36 @@ export const updateCassetteV2GraphNode = (tree, nodeId, patch = {}) => {
 };
 
 // The face sketch is authored truth on the node; clearing it returns the
-// face to its trapezoid parameters.
+// face to its trapezoid parameters and drops the placement overrides with
+// the table they shadow.
 export const updateCassetteV2FaceSketch = (tree, nodeId, sketch = null) => {
   const nextTree = cloneCassetteV2Tree(tree);
   const node = nextTree.nodes.find(item => item.id === nodeId);
   if (!node) return nextTree;
   if (sketch) node.sketch = normalizeOccsProfileSketch(sketch);
-  else delete node.sketch;
+  else {
+    delete node.sketch;
+    delete node.instance;
+  }
+  return nextTree;
+};
+
+// A placed face's instance table holds the overrides its authored rows
+// accept; scope-named rows stay in the cassette's table.
+export const updateCassetteV2FaceInstance = (tree, nodeId, instance = {}) => {
+  const nextTree = cloneCassetteV2Tree(tree);
+  const node = nextTree.nodes.find(item => item.id === nodeId);
+  if (!node) return nextTree;
+  const scope = treeParameters(nextTree);
+  const authoredKeys = new Set(Object.keys(node.sketch?.parameters || {}));
+  const next = Object.fromEntries(
+    Object.entries(instance || {}).filter(([key, value]) => (
+      value !== undefined &&
+      (authoredKeys.has(key) || !Object.prototype.hasOwnProperty.call(scope, key))
+    ))
+  );
+  if (Object.keys(next).length) node.instance = next;
+  else delete node.instance;
   return nextTree;
 };
 
@@ -1415,13 +1465,25 @@ export const renameCassetteV2TreeParameter = (tree = createCassetteV2GraphTree()
   nextTree.parameters = Object.fromEntries(
     Object.entries(nextTree.parameters || {}).map(([key, value]) => [key === source ? next : key, rewrite(value)])
   );
-  nextTree.nodes = nextTree.nodes.map(node => ({
-    ...node,
-    ...(node.foldAngle !== undefined ? { foldAngle: rewriteAngle(node.foldAngle) } : {}),
-    parameters: Object.fromEntries(
-      Object.entries(node.parameters || {}).map(([key, value]) => [key, rewriteAngle(value)])
-    )
-  }));
+  nextTree.nodes = nextTree.nodes.map(node => {
+    const localSource = Object.prototype.hasOwnProperty.call(node.sketch?.parameters || {}, source);
+    return {
+      ...node,
+      ...(node.foldAngle !== undefined ? { foldAngle: rewriteAngle(node.foldAngle) } : {}),
+      ...(node.sketch ? { sketch: rewriteSketch(node.sketch) } : {}),
+      ...(node.instance ? {
+        instance: Object.fromEntries(
+          Object.entries(node.instance).map(([key, value]) => [
+            key === source && !localSource ? next : key,
+            rewrite(value)
+          ])
+        )
+      } : {}),
+      parameters: Object.fromEntries(
+        Object.entries(node.parameters || {}).map(([key, value]) => [key, rewriteAngle(value)])
+      )
+    };
+  });
   nextTree.workpieces = nextTree.workpieces.map(workpiece => {
     const snapshotSketch = workpiece.profileSnapshot?.sketch || workpiece.sketch;
     // A profile-local row shadows the global and keeps its name.
@@ -4156,8 +4218,11 @@ const rotateSketchRingToAttachment = (ring = []) => {
 // profile section uses: adds form the face, subtracts cut it. The face's
 // material region (outer rings minus holes) also cuts the parent where
 // the face overlaps it.
-const resolveCassetteV2FaceSketchGeometry = async (sketch = {}, parameters = {}) => {
-  const evaluated = evaluateOccsProfileSketch(sketch, parameters);
+const resolveCassetteV2FaceSketchGeometry = async (face = {}, parameters = {}) => {
+  const evaluated = evaluateOccsProfileSketch(
+    face.derivedSketch || normalizeOccsProfileSketch(face.sketch || face),
+    parameters
+  );
   const { section } = buildOccsProfileFromEvaluatedSketch(evaluated);
   const operations = resolveOccsProfileSectionOperations(section) || [];
   if (!operations.length) throw new Error('Face shape has no closed outline');
@@ -4187,8 +4252,9 @@ const resolveCassetteV2FaceSketchGeometry = async (sketch = {}, parameters = {})
   };
 };
 
-export const resolveCassetteV2FaceSketchRegion = async (sketch = {}, parameters = {}) => {
-  const { outer, holes } = await resolveCassetteV2FaceSketchGeometry(sketch, parameters);
+export const resolveCassetteV2FaceSketchRegion = async (source = {}, parameters = {}) => {
+  const face = normalizeCassetteV2Face(source, parameters);
+  const { outer, holes } = await resolveCassetteV2FaceSketchGeometry(face, parameters);
   return { outer, holes };
 };
 
@@ -4233,7 +4299,10 @@ const buildCassetteV2LocalTreeCurves = async (sourceTree) => {
           0
         ]
       };
-      const region = await resolveCassetteV2FaceSketchGeometry(node.sketch, parameters);
+      const region = await resolveCassetteV2FaceSketchGeometry(
+        normalizeCassetteV2Face(node, parameters),
+        parameters
+      );
       const localVertices = region.outer;
       const localHoles = region.holes;
       const vertices = placeSketchRing(localVertices, shiftedFrame);

@@ -55,7 +55,11 @@ const props = defineProps({
   // A host-owned renderer paints the geometry behind this canvas; the SVG
   // keeps the interaction overlays and the camera, including the host's
   // dimension labels and their transparent edit targets.
-  showGeometry: { type: Boolean, default: true }
+  showGeometry: { type: Boolean, default: true },
+  // CadCraft navigation: wheel zooms at the cursor with the engine's
+  // exponential step, middle or right drag pans. Editing surfaces that
+  // share a CadCraft host use the same gestures in both modes.
+  cadcraftNavigation: { type: Boolean, default: false }
 });
 
 const emit = defineEmits([
@@ -486,7 +490,11 @@ const zoomAt = (point, zoomFactor) => {
 const handleWheel = (event) => {
   if (!isViewer.value) return;
   event.preventDefault();
-  zoomAt(getPointFromEvent(event), event.deltaY > 0 ? 1.1 : 0.9);
+  const step = event.deltaMode === 1 ? event.deltaY * 33 : event.deltaY;
+  const factor = props.cadcraftNavigation
+    ? Math.pow(1.0018, -step)
+    : (event.deltaY > 0 ? 1.1 : 0.9);
+  zoomAt(getPointFromEvent(event), factor);
 };
 
 const zoomIn = () => zoomAt(null, 0.8);
@@ -517,10 +525,24 @@ const hideAllLayers = () => {
 const layerInputId = (layer) => `drawing-layer-${String(layer.name).replace(/[^A-Za-z0-9_-]/g, '-')}`;
 
 const handleMouseDown = (event) => {
-  if (!isViewer.value || event.button !== 0 || (isDesigner.value && !event.shiftKey)) return;
+  if (!isViewer.value) return;
+  const cadcraftPan = props.cadcraftNavigation && (event.button === 1 || event.button === 2);
+  const viewerPan = !props.cadcraftNavigation
+    && event.button === 0
+    && (!isDesigner.value || event.shiftKey);
+  if (!cadcraftPan && !viewerPan) return;
   isPanning.value = true;
   panStart.value = { x: event.clientX, y: event.clientY };
   event.preventDefault();
+};
+
+const handleContextMenu = (event) => {
+  if (props.cadcraftNavigation) event.preventDefault();
+};
+
+const handleAuxClick = (event) => {
+  if (!props.cadcraftNavigation || event.button !== 1 || event.detail !== 2) return;
+  resetView();
 };
 
 // --- Touch gestures: viewer canvases pan with one finger; two fingers
@@ -943,6 +965,8 @@ onBeforeUnmount(() => {
           @mousemove="handleMouseMove"
           @mouseup="handleMouseUp"
           @mouseleave="handleCanvasMouseLeave"
+          @contextmenu="handleContextMenu"
+          @auxclick="handleAuxClick"
           @wheel="handleWheel"
           @touchstart="handleTouchStart"
           @touchmove="handleTouchMove"

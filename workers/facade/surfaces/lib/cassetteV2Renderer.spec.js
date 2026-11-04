@@ -28,6 +28,7 @@ import {
   getCassetteV2FoldEdges,
   getCassetteV2WorkpieceRelations,
   getCassetteV2Workpieces,
+  normalizeCassetteV2Face,
   normalizeCassetteV2Profile,
   renameCassetteV2TreeParameter,
   normalizeCassetteV2Trapezoid,
@@ -37,6 +38,7 @@ import {
   resolveCassetteV2Expression,
   resolveCassetteV2FaceSketchRegion,
   setGraphNumberInput,
+  updateCassetteV2FaceInstance,
   updateCassetteV2FaceSketch,
   updateCassetteV2Workpiece,
   updateCassetteV2WorkpieceRelation
@@ -2539,5 +2541,48 @@ describe('cassette v2 trapezoid renderer', () => {
       width: 'A',
       height: 'B'
     });
+  });
+
+  it('keeps a face sketch authored and instance parameter tables apart', async () => {
+    const sketch = {
+      parameters: { W: 40, H: 20 },
+      shapes: [{ id: 'outline', type: 'rect', op: 'add', center: ['W/2', 'H/2'], width: 'W', height: 'H' }]
+    };
+    const authored = updateCassetteV2FaceSketch(createCassetteV2GraphTree(), 'face_1', sketch);
+    const placed = updateCassetteV2FaceInstance(authored, 'face_1', { W: 80 });
+    const face = normalizeCassetteV2Face(placed.nodes[0], {});
+    const curve = (await buildCassetteV2TreeCurves(placed)).find(item => item.node.id === 'face_1');
+    const xs = curve.localVertices.map(point => Number(point[0]));
+
+    expect(face.sketch.parameters).toMatchObject({ W: 40, H: 20 });
+    expect(face.instance).toEqual({ W: 80 });
+    expect(face.parameters.W).toBe(80);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(80);
+
+    const cleared = updateCassetteV2FaceSketch(placed, 'face_1', null).nodes[0];
+    expect(cleared.sketch).toBeUndefined();
+    expect(cleared.instance).toBeUndefined();
+  });
+
+  it('keeps scope-named rows in the cassette table and rebinds face instance rows on rename', () => {
+    const sketch = {
+      parameters: { W: 'A' },
+      shapes: [{ id: 'outline', type: 'rect', op: 'add', center: ['W/2', 0], width: 'W', height: 20 }]
+    };
+    const grown = updateCassetteV2FaceSketch(createCassetteV2GraphTree(), 'face_1', sketch);
+    const scoped = {
+      ...grown,
+      parameters: { ...grown.parameters, A: 500 }
+    };
+    const placed = updateCassetteV2FaceInstance(scoped, 'face_1', { W: 'A/2', A: 999 });
+    const face = normalizeCassetteV2Face(placed.nodes[0], scoped.parameters);
+
+    expect(face.instance).toEqual({ W: 'A/2' });
+
+    const renamed = renameCassetteV2TreeParameter(placed, 'A', 'LENGTH');
+    const node = renamed.nodes.find(item => item.id === 'face_1');
+    expect(node.sketch.parameters.W).toBe('LENGTH');
+    expect(node.sketch.shapes[0].width).toBe('W');
+    expect(node.instance).toEqual({ W: 'LENGTH/2' });
   });
 });
