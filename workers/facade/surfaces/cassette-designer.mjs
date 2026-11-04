@@ -51,6 +51,7 @@ import {
   normalizeOccsProfileSketch,
   occsProfileFromSketch,
   pruneScopeBoundParameters,
+  renameOccsProfileTableParameter,
   resolveOccsProfileSketchLayerData
 } from '../occs/profiles.js';
 import createExpressionEditor from './lib/components/expressionEditor.mjs';
@@ -2256,13 +2257,19 @@ export default function createSurface({ vue, components, locale, queries, record
         if (!inspection.evaluated) return '';
         if (!editingProfileWorkpieceId.value && !inspection.savable) return '';
         const payload = profileDraftPayload();
-        // The placed values are folded into the authored table.
-        const preservedInstance = Object.fromEntries(
-          Object.entries(profileDraft.value.preservedInstance || {})
-            .filter(([key]) => !Object.prototype.hasOwnProperty.call(payload.sketch.parameters || {}, key))
-        );
         const workpieceId = editingProfileWorkpieceId.value;
-        if (workpieceId && workpieces.value.some(item => item.id === workpieceId)) {
+        const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;
+        let preservedInstance = { ...(profileDraft.value.preservedInstance || {}) };
+        const previousKeys = Object.keys(workpiece?.profileSnapshot?.sketch?.parameters || {});
+        const nextKeys = Object.keys(payload.sketch.parameters || {});
+        const removedKeys = previousKeys.filter(key => !nextKeys.includes(key));
+        const addedKeys = nextKeys.filter(key => !previousKeys.includes(key));
+        if (removedKeys.length && removedKeys.length === addedKeys.length) {
+          removedKeys.forEach((from, index) => {
+            preservedInstance = renameOccsProfileTableParameter(preservedInstance, from, addedKeys[index]);
+          });
+        }
+        if (workpieceId && workpiece) {
           cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, workpieceId, {
             name: payload.name,
             role: payload.kind,
