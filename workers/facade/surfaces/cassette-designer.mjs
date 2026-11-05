@@ -3617,8 +3617,8 @@ export default function createSurface({ vue, components, locale, queries, record
       );
 
       const workpieceDetailBlocks = (row) => [
-        inspectorSelection.value === 'workpiece' && row.id === selectedWorkpieceId.value && row.isHardware
-          ? h('div', { class: 'mt-1 flex flex-col gap-2' }, [
+        row.isHardware
+          ? h('div', { class: 'flex flex-col gap-2' }, [
               h('div', { class: SETTINGS_GRID }, [
                 h(Select, {
                   modelValue: row.family,
@@ -3818,27 +3818,13 @@ export default function createSurface({ vue, components, locale, queries, record
                 ])
               : null
           ]),
-          ...workpieceDetailBlocks(row)
         ]);
       };
 
-      const faceTreeLabel = (node) => {
-        const selected = inspectorSelection.value === 'face' && selectedNodeId.value === node.id;
-        const details = selected && inlineEditor.value?.type === 'faceActions' && inlineEditor.value.nodeId === node.id
-          ? h('div', {
-              class: 'mt-1.5 border-t border-content-border pt-1.5',
-              'data-designer-panel-editor': 'faceActions',
-              onClick: stopNodeClick
-            }, [renderInlineEditorBody(inlineEditor.value, { panel: true })])
-          : null;
-        return h('div', { class: 'flex min-w-0 flex-1 flex-col gap-1' }, [
-          h('div', { class: 'flex min-w-0 items-center gap-2' }, [
-            h('i', { class: 'pi pi-stop shrink-0 text-xs text-muted', 'aria-hidden': 'true' }),
-            h('span', { class: 'min-w-0 flex-1 truncate' }, defaultFaceRole(node).replace(/_/g, ' '))
-          ]),
-          details
-        ]);
-      };
+      const faceTreeLabel = (node) => h('div', { class: 'flex min-w-0 flex-1 items-center gap-2' }, [
+        h('i', { class: 'pi pi-stop shrink-0 text-xs text-muted', 'aria-hidden': 'true' }),
+        h('span', { class: 'min-w-0 flex-1 truncate' }, defaultFaceRole(node).replace(/_/g, ' '))
+      ]);
 
       const relationTreeLabel = (relationRow) => {
         const relationId = relationRow.relation.id;
@@ -3875,17 +3861,33 @@ export default function createSurface({ vue, components, locale, queries, record
       // A relation's settings are wide (placement grid, parameter table):
       // they render in one full-width panel under the tree, so the tree's
       // indentation never squeezes them.
-      const renderRelationPanel = () => {
+      // The one settings home under the tree: face details, relation
+      // placement fields, and a selected hardware workpiece's fields all
+      // render in this full-width panel — tree rows carry identity alone.
+      const renderSelectionPanel = () => {
         const editor = inlineEditor.value;
-        if (!editor || editor.type !== 'attachment' || !inlineEditorRelation.value) return null;
-        return h('div', {
+        const panel = (kind, children) => h('div', {
           class: 'min-w-0 shrink-0 rounded-ui border border-content-border bg-content p-2',
-          'data-designer-panel-editor': 'attachment'
-        }, [renderInlineEditorBody(editor, { panel: true })]);
+          'data-designer-panel-editor': kind
+        }, children);
+        if (editor?.type === 'attachment' && inlineEditorRelation.value) {
+          return panel('attachment', [renderInlineEditorBody(editor, { panel: true })]);
+        }
+        if (editor?.type === 'faceActions' && inlineEditorNode.value) {
+          return panel('faceActions', [renderInlineEditorBody(editor, { panel: true })]);
+        }
+        if (inspectorSelection.value === 'workpiece') {
+          const row = workpieceRowById.value.get(selectedWorkpieceId.value);
+          const blocks = row ? workpieceDetailBlocks(row) : [];
+          if (blocks.length) return panel('workpiece', blocks);
+        }
+        return null;
       };
 
-      const handleCassetteTreeClick = ({ node }) => {
-        const data = node.data || {};
+      // Tree routes selection through `node-select`: PrimeVue's Tree
+      // consumes `node-click` internally and never re-emits it.
+      const handleCassetteTreeSelect = (node) => {
+        const data = node?.data || {};
         if (data.kind === 'workpiece') {
           if (data.row.isProfile) selectProfileWorkpiece(data.row.id);
           else selectWorkpieceForInspector(data.row.id);
@@ -3917,7 +3919,7 @@ export default function createSurface({ vue, components, locale, queries, record
           nodeIcon: { class: 'hidden' },
           nodeLabel: { class: 'min-w-0 flex-1' }
         },
-        onNodeClick: handleCassetteTreeClick
+        onNodeSelect: handleCassetteTreeSelect
       }, {
         default: ({ node }) => renderCassetteTreeNode(node)
       });
@@ -4161,7 +4163,7 @@ export default function createSurface({ vue, components, locale, queries, record
           ]),
           renderCassetteTree()
         ]),
-        sketchMode.value ? null : renderRelationPanel(),
+        sketchMode.value ? null : renderSelectionPanel(),
         sketchMode.value ? null : h('div', { class: 'h-48 shrink-0 overflow-hidden' }, [
           foldedPreviewMount({ expandable: true })
         ])
