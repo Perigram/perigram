@@ -1967,10 +1967,15 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (props.active) applyView(props.initialView);
       });
 
-      watch(() => [props.contextEntities, props.contextLayers, props.contextLinetypes, props.canvasFrame], () => {
+      watch(() => [props.contextEntities, props.contextLayers, props.contextLinetypes, props.canvasFrame], (context, previous) => {
         if (!props.active) return;
+        // A draft that gains its placement mid-session (the workpiece's
+        // first commit) mounts here: the frame arrives with the assembly
+        // context, and the camera refits onto the mounted sketch.
+        const mountedNow = !previous?.[3] && Boolean(props.canvasFrame);
         lastAnnotationFingerprint = '';
         if (host) reseedFromModel({ force: true });
+        if (mountedNow) nextTick(() => host?.zoomFit(fitExcludeLayers()));
         scheduleOutlineResolve();
       }, { deep: true });
 

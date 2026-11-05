@@ -1686,32 +1686,50 @@ export default function createSurface({ vue, components, locale, queries, record
         cassetteTree.value = updateCassetteV2WorkpieceRelation(cassetteTree.value, selectedWorkpieceRelation.value.id, patch);
       };
 
+      // An edge-array placement must sit on an arrangeable edge: a stale
+      // default ('E0') on a face whose E0 is a fold snaps to the first
+      // arrangeable edge — folds and profile-arranged edges are
+      // prohibited (owner law 2026-10-16). One home for patches and for
+      // freshly created relations alike.
+      const snapEdgeArrayEdge = (tree, relation, patch = {}) => {
+        if ((patch.placementMode || relation.placementMode) !== 'edgeArray') return patch;
+        const attachable = cassetteV2AttachableProfileEdgesForTree(
+          tree,
+          patch.targetFaceId || relation.targetFaceId,
+          { edgeCountByFaceId: faceEdgeCounts.value }
+        );
+        const edge = patch.pattern?.edge ?? relation.pattern?.edge;
+        if (attachable.length && !attachable.includes(edge)) {
+          return { ...patch, pattern: { ...(patch.pattern || {}), edge: attachable[0] } };
+        }
+        return patch;
+      };
+
       const updateInlineAttachmentRelation = (patch) => {
         const relationId = inlineEditorRelation.value?.id || selectedWorkpieceRelation.value?.id;
         if (!relationId) return;
         const relation = getCassetteV2WorkpieceRelations(cassetteTree.value)
           .find(item => item.id === relationId);
         if (!relation) return;
-        const nextPatch = { ...patch };
+        const staged = { ...patch };
         const sourceRow = workpieceRowById.value.get(relation.sourceWorkpieceId);
         const openProfile = attachmentSourceKind(relation) === 'profile' && sourceRow?.profileOpen;
-        if (openProfile) nextPatch.placementMode = 'edgeArray';
-        // A patch that lands in edge-array placement must sit on an
-        // arrangeable edge: a stale default ('E0') on a face whose E0 is
-        // a fold snaps to the first arrangeable edge — folds and
-        // profile-arranged edges are prohibited (owner law 2026-10-16).
-        if ((nextPatch.placementMode || relation.placementMode) === 'edgeArray') {
-          const attachable = cassetteV2AttachableProfileEdgesForTree(
-            cassetteTree.value,
-            nextPatch.targetFaceId || relation.targetFaceId,
-            { edgeCountByFaceId: faceEdgeCounts.value }
-          );
-          const edge = nextPatch.pattern?.edge ?? relation.pattern?.edge;
-          if (attachable.length && !attachable.includes(edge)) {
-            nextPatch.pattern = { ...(nextPatch.pattern || {}), edge: attachable[0] };
-          }
-        }
+        if (openProfile) staged.placementMode = 'edgeArray';
+        const nextPatch = snapEdgeArrayEdge(cassetteTree.value, relation, staged);
         cassetteTree.value = updateCassetteV2WorkpieceRelation(cassetteTree.value, relationId, nextPatch);
+      };
+
+      // A profile created from a face mounts on that face's first
+      // arrangeable edge at creation — the fold-prone 'E0' default never
+      // ships.
+      const placeCreatedProfileRelation = (tree, workpieceId) => {
+        const relation = getCassetteV2WorkpieceRelations(tree)
+          .find(item => item.sourceWorkpieceId === workpieceId && item.targetFaceId);
+        if (!relation) return tree;
+        const patch = snapEdgeArrayEdge(tree, relation);
+        return patch.pattern
+          ? updateCassetteV2WorkpieceRelation(tree, relation.id, patch)
+          : tree;
       };
 
       const deleteWorkpieceRelation = (relationId) => {
@@ -1957,6 +1975,25 @@ export default function createSurface({ vue, components, locale, queries, record
           sketchContextParentFace.value = [];
         }
       };
+
+      // The sketch canvas tracks the edited profile's placement: a blank
+      // draft starts on the stand-in window, and the first commit — the
+      // workpiece and its relation landing — brings the assembly context
+      // and the mount frame into the canvas live; a placement change
+      // re-places the sketch in place.
+      const editingProfilePlacementKey = computed(() => {
+        if (!profileSketchOpen.value || !editingProfileWorkpieceId.value) return '';
+        const relation = workpieceRelations.value.find(item => (
+          item.sourceWorkpieceId === editingProfileWorkpieceId.value && item.targetFaceId
+        ));
+        return relation
+          ? JSON.stringify([relation.targetFaceId, relation.placementMode, relation.pattern])
+          : '';
+      });
+      watch(editingProfilePlacementKey, (key) => {
+        if (!key) return;
+        loadSketchContext('profile', editingProfileWorkpieceId.value);
+      });
 
       const finishProfileSketch = () => {
         const createdWorkpieceId = profileDraftCreated.value ? editingProfileWorkpieceId.value : '';
@@ -2216,9 +2253,9 @@ export default function createSurface({ vue, components, locale, queries, record
           // Update library targets this record.
           profileTemplateId: record?._id?.toString() || ''
         });
-        cassetteTree.value = added.tree;
+        cassetteTree.value = placeCreatedProfileRelation(added.tree, added.workpieceId);
         closeProfilePicker();
-        const relation = getCassetteV2WorkpieceRelations(added.tree)
+        const relation = getCassetteV2WorkpieceRelations(cassetteTree.value)
           .find(item => item.sourceWorkpieceId === added.workpieceId);
         if (relation) selectWorkpieceRelation(relation.id);
         else selectWorkpiece(added.workpieceId);
@@ -2386,7 +2423,7 @@ export default function createSurface({ vue, components, locale, queries, record
           sketch: payload.sketch,
           profileTemplateId: profileDraft.value.libraryId || ''
         });
-        cassetteTree.value = added.tree;
+        cassetteTree.value = placeCreatedProfileRelation(added.tree, added.workpieceId);
         editingProfileWorkpieceId.value = added.workpieceId;
         profileDraftCreated.value = true;
         return added.workpieceId;
