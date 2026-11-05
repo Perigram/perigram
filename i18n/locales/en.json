@@ -474,6 +474,7 @@
                 "saveFailed": "Failed to save the hardware to the library."
             },
             "addProfile": "Add profile",
+            "addFace": "Add face",
             "editProfile": "Edit profile",
             "deleteWorkpiece": "Delete workpiece",
             "removeAttachment": "Remove attachment",

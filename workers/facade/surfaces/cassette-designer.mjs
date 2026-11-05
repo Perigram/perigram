@@ -971,6 +971,10 @@ export default function createSurface({ vue, components, locale, queries, record
         if (sketchMode.value) return;
         event.preventDefault();
         event.stopPropagation();
+        if (edgeDial.value) {
+          closeEdgeDial();
+          return;
+        }
         clearDesignerSelection();
       };
 
@@ -2576,13 +2580,66 @@ export default function createSurface({ vue, components, locale, queries, record
         selectFaceById(result.nodeId);
       };
 
-      const handleDesignerAction = ({ edge, edgeIndex }) => {
+      // The free-shard + opens a two-choice dial on the edge: grow a face
+      // on that shard, or start a profile already mounted on it.
+      const edgeDial = ref(null);
+
+      const closeEdgeDial = () => {
+        edgeDial.value = null;
+      };
+
+      const handleDesignerAction = ({ edge, edgeIndex, screenX, screenY }) => {
         if (!edge?.nodeId && edge?.nodeId !== '') return;
-        addFaceAtEdge(edge.nodeId, edge.edgeIndex ?? edgeIndex, {
+        if (!Number.isFinite(screenX) || !Number.isFinite(screenY)) {
+          addFaceAtEdge(edge.nodeId, edge.edgeIndex ?? edgeIndex, {
+            edgeLength: edge.edgeLength ?? edge.length,
+            shardStart: edge.shardStart,
+            shardEnd: edge.shardEnd
+          });
+          return;
+        }
+        closeInlineEditor();
+        edgeDial.value = {
+          ...editorPointFromScreen({ x: screenX, y: screenY }),
+          nodeId: edge.nodeId,
+          edgeIndex: Math.max(0, Math.round(Number(edge.edgeIndex ?? edgeIndex) || 0)),
           edgeLength: edge.edgeLength ?? edge.length,
           shardStart: edge.shardStart,
           shardEnd: edge.shardEnd
+        };
+      };
+
+      const addFaceFromDial = () => {
+        const dial = edgeDial.value;
+        closeEdgeDial();
+        if (!dial?.nodeId && dial?.nodeId !== '') return;
+        addFaceAtEdge(dial.nodeId, dial.edgeIndex, {
+          edgeLength: dial.edgeLength,
+          shardStart: dial.shardStart,
+          shardEnd: dial.shardEnd
         });
+      };
+
+      // The profile workpiece is created blank with its edge-array
+      // relation already bound to the face and edge, so the sketch opens
+      // with the cassette context live around the mount.
+      const addProfileOnEdgeFromDial = async () => {
+        const dial = edgeDial.value;
+        closeEdgeDial();
+        const face = dial ? treeNodes.value.find(node => node.id === dial.nodeId) : null;
+        if (!face) return;
+        const added = addCassetteV2ProfileWorkpiece(cassetteTree.value, {
+          referenceWorkpieceId: face.workpieceId,
+          referenceNodeId: face.id,
+          name: t('cassette.v2.profileEditor.defaultName'),
+          kind: 'hanger',
+          process: 'extruded',
+          sketch: createEmptyOccsProfileSketch(),
+          pattern: { space: 'edge', kind: 'linear', edge: `E${dial.edgeIndex}` }
+        });
+        cassetteTree.value = placeCreatedProfileRelation(added.tree, added.workpieceId);
+        await openProfileSketch(added.workpieceId);
+        profileDraftCreated.value = true;
       };
 
       const handleDesignerFaceSelect = ({ face }) => {
@@ -4168,6 +4225,36 @@ export default function createSurface({ vue, components, locale, queries, record
         ]);
       };
 
+      const renderEdgeDial = () => {
+        const dial = edgeDial.value;
+        if (!dial) return null;
+        const dialItem = (icon, labelKey, onClick) => h(Button, {
+          icon,
+          label: t(labelKey),
+          severity: 'secondary',
+          text: true,
+          size: 'small',
+          class: 'w-full justify-start',
+          onClick: event => {
+            event.stopPropagation();
+            onClick();
+          }
+        });
+        return h('div', {
+          class: 'absolute inset-0 z-[110]',
+          onClick: closeEdgeDial
+        }, [
+          h('div', {
+            class: 'absolute flex w-44 flex-col gap-1 rounded-ui border border-content-border bg-content p-1 shadow-overlay',
+            style: { left: `${dial.x}px`, top: `${dial.y}px` },
+            onClick: event => event.stopPropagation()
+          }, [
+            dialItem('pi pi-plus', 'cassette.v2.addFace', addFaceFromDial),
+            dialItem('pi pi-wave-pulse', 'cassette.v2.addProfile', addProfileOnEdgeFromDial)
+          ])
+        ]);
+      };
+
       const renderInspector = () => h('aside', {
         class: [
           'flex h-full min-h-0 min-w-0 flex-col gap-3 p-3',
@@ -4360,6 +4447,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 ])
               : null,
             sketchMode.value ? null : renderInlineEditor(),
+            sketchMode.value ? null : renderEdgeDial(),
             renderSketchMode()
           ]),
         }),

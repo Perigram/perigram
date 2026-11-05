@@ -658,6 +658,16 @@ relation landing) brings the assembly context and the mount frame into the
 canvas live and refits the camera onto the mounted sketch, and a placement
 change re-places the sketch in place.
 
+Owner direction (2026-11-05, the edge + dial and honest bindings): the
+free-shard + opens a two-choice dial on that edge — grow a face on the
+shard, or start a profile mounted on it. The dial's profile workpiece is
+created blank with its edge-array relation already bound to that face and
+edge, and the sketch editor opens with the cassette context live around the
+mount. A placement's binding is the joint: source occurrence, target
+occurrence and face, and the pattern's edge; an unresolved target keeps the
+relation unplaced under its source workpiece — it never silently rebinds to
+another workpiece's face.
+
 Owner direction (2026-11-03, native cassette view): the read-only cassette
 record view mounts the native CadCraft canvas with every drawing layer,
 dimensions included. Its layer control toggles those native layers. The view

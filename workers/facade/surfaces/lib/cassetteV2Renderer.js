@@ -408,7 +408,7 @@ const cassetteV2ProfileSnapshot = (profile = {}) => ({
 const faceIdForWorkpiece = (tree, workpiece, preferredFaceId) => (
   tree.nodes.find(node => node.id === preferredFaceId && node.workpieceId === workpiece?.id)?.id ||
   workpiece?.rootId ||
-  tree.rootId
+  ''
 );
 
 const defaultCassetteV2AttachmentPlacement = (targetWorkpiece = {}, targetNode = null) => ({
@@ -628,9 +628,11 @@ const normalizedCassetteV2WorkpieceRelation = (tree, joint, index = 0) => {
   const workpieceByOccurrenceId = new Map(tree.workpieces.map(workpiece => [occurrenceIdForWorkpiece(workpiece), workpiece]));
   const target = joint.target || joint.placement?.relativeTo || {};
   const sourceWorkpiece = workpieceByOccurrenceId.get(joint.source?.occurrence) || null;
-  const targetWorkpiece = workpieceByOccurrenceId.get(target.occurrence) || tree.workpieces[0] || null;
+  // A stale occurrence keeps the binding honest: the relation lists
+  // unplaced instead of silently hopping to another workpiece's face.
+  const targetWorkpiece = workpieceByOccurrenceId.get(target.occurrence) || null;
   const placement = clonePlacement(joint.placement || {});
-  const targetFaceId = target.face || placement.relativeTo?.face || targetWorkpiece?.rootId || tree.rootId;
+  const targetFaceId = target.face || placement.relativeTo?.face || targetWorkpiece?.rootId || '';
   const sourceFaceId = joint.source?.face || placement.sourceFace || sourceWorkpiece?.rootId || '';
   const targetSide = target.side || placement.relativeTo?.side || DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.side;
   const sourceSide = joint.source?.side || placement.sourceSide || DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.side;
@@ -1353,7 +1355,7 @@ export const updateCassetteV2WorkpieceRelation = (tree, relationId, patch = {}) 
   const sourceWorkpiece = nextTree.workpieces.find(workpiece => workpiece.id === relation.sourceWorkpieceId);
   const targetWorkpiece = nextTree.workpieces.find(workpiece => (
     workpiece.id === (patch.targetWorkpieceId || relation.targetWorkpieceId)
-  )) || nextTree.workpieces[0];
+  )) || null;
   const sourceFaceId = isCassetteV2SheetWorkpiece(sourceWorkpiece)
     ? faceIdForWorkpiece(nextTree, sourceWorkpiece, patch.sourceFaceId || relation.sourceFaceId)
     : '';

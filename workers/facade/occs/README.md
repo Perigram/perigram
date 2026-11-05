@@ -354,6 +354,12 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     edges only — authored edges less folds. Profiles and hardware may
     share an edge; the write path snaps a stale illegal default to the
     first arrangeable edge.
+  - A placement's binding is one chain: the joint's source occurrence,
+    target occurrence and face, and the array pattern's edge; the driver
+    joint's placement mirrors onto the source workpiece's `placement`
+    for production. An unresolved target or face keeps the relation
+    unplaced — it lists under its source workpiece until rebound, and
+    the read path never substitutes another workpiece's face.
   - Snap points and array bindings compute from the raw authored face
     (`originalBoundaryVertices`/`referenceVertices`, ahead of any
     profile cut merging into the boundary), so placement anchors hold
