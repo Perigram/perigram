@@ -103,8 +103,11 @@ state and edge semantics match between preview and APPLY.
 
 A class node's transient `data.migrate` carries SPEC §11 migration steps
 until the declaration post consumes and clears them. Authored field names
-are labels; `camelCaseId` derives the row key (letters and digits in any
-script — a Cyrillic label derives a Cyrillic key). The class inspector
+are labels; the row key derives at the CTS seam (`rowFieldId`: latin
+letters and digits, lowerCamelCase). A name with no latin segment derives
+no row key — the field stays off the posted declaration and
+`declarationDiagnostics` names it; the display text belongs on the
+descriptor `label`. The class inspector
 authors the record-naming field as a dropdown over the class's field nodes
 — the single-holder `identifier` move, with the empty pick leaving it
 unowned and the declaration carrying the identifier compile error
