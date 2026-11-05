@@ -41,7 +41,8 @@ export {
   isCtsGraphDefinition, operationKindOf, resolveCtsRecord,
   typeIdOf, setTypeBinding, declarationsFromCtsRecords, transitionNodeStateTargets,
   rewriteRetiredWirePaths, orientChildrenEdgesChildFirst, retireStateScopeAuthoring,
-  rowRelativeFieldId, normalizeRowRelativeGuard, normalizeRowRelativeFieldRefs
+  rowRelativeFieldId, normalizeRowRelativeGuard, normalizeRowRelativeFieldRefs,
+  rowFieldId
 } from './compat/graph-protocol.js';
 export {
   cncTypePack, partyTypes, nestingOperators, packFixtures
