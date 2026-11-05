@@ -156,6 +156,18 @@ test('assembly canvas wheel follows CadCraft and dimension editors stay in view'
   expect(editorBox.y, 'the editor stays inside the canvas').toBeGreaterThanOrEqual(canvasBox.y);
   expect(editorBox.x + editorBox.width, 'the editor stays inside the canvas').toBeLessThanOrEqual(canvasBox.x + canvasBox.width + 1);
   expect(editorBox.y + editorBox.height, 'the editor stays inside the canvas').toBeLessThanOrEqual(canvasBox.y + canvasBox.height + 1);
+
+  // A cleared selection keeps every face clickable: the next face click
+  // selects it again whatever workpiece owns it.
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(400);
+  const faceHit = canvas.locator('svg path[data-designer-face-id]').first();
+  await expect(faceHit, 'faces stay clickable with nothing selected').toBeVisible({ timeout: 10_000 });
+  await faceHit.click();
+  await expect(
+    canvas.locator('[contenteditable="true"], [data-designer-panel-editor]').first(),
+    'a face click after deselect selects the face'
+  ).toBeVisible({ timeout: 10_000 });
   await canvas.screenshot({ path: '.playwright/cassette-designer-native-nav.png' });
 
   await app.expectCleanRuntime();

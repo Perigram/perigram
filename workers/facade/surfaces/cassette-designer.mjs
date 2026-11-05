@@ -765,7 +765,7 @@ export default function createSurface({ vue, components, locale, queries, record
             selectedWorkpieceRelation.value.targetWorkpieceId
           ].filter(Boolean);
         }
-        return selectedWorkpieceId.value ? [selectedWorkpieceId.value] : [];
+        return null;
       });
       const drawingCanvasSource = computed(() => previewSource.value);
       const selectedExpressionParameters = computed(() => {
@@ -2554,7 +2554,6 @@ export default function createSurface({ vue, components, locale, queries, record
           }
           return;
         }
-        if (face.workpieceId && face.workpieceId !== selectedWorkpieceId.value) return;
         selectFaceById(face.nodeId);
       };
 
@@ -2569,7 +2568,6 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const handleDesignerFoldSelect = ({ fold }) => {
         if (!fold?.foldNodeId && fold?.foldNodeId !== '') return;
-        if (fold.workpieceId && fold.workpieceId !== selectedWorkpieceId.value) return;
         closeInlineEditor();
         selectedNodeId.value = fold.foldNodeId;
         selectedWorkpieceOverrideId.value = '';
@@ -4113,6 +4111,11 @@ export default function createSurface({ vue, components, locale, queries, record
               if (!sketchMode.value) return;
               if (face) faceShapeEditorError.value = value;
               else profileEditorError.value = value;
+            },
+            onExitRequested: () => {
+              if (!sketchMode.value) return;
+              if (face) cancelFaceSketch();
+              else cancelProfileSketch();
             }
           })
         ]);

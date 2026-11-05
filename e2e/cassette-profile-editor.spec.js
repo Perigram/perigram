@@ -521,3 +521,60 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     .toBeCloseTo(55, 1);
   await app.expectCleanRuntime();
 });
+
+test('escape sheds the sketch selection and a bare escape returns to the cassette', async ({ app }) => {
+  test.setTimeout(240_000);
+  await app.installPlugins(['tech-drawing', 'documents', 'facade']);
+  await app.connectPlugin('facade', 'http://facade-executor:8790');
+  await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
+  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'], via: { 'cassette-template': 'editor' } });
+  const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette-template');
+  const page = app.page;
+  await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
+  await page.addInitScript(() => window.localStorage.setItem(
+    'perigram:onboarding:cassette-designer-v2',
+    JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
+  ));
+  await app.gotoClient(list.route);
+  await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+  const inspector = page.locator('.designer-workspace__inspector').first();
+  await expect(inspector.getByRole('button', { name: 'Add profile' })).toBeVisible({ timeout: 60_000 });
+
+  await inspector.getByRole('button', { name: 'Add profile' }).click();
+  await page.getByRole('button', { name: /Create new|New profile/ }).first().click();
+  const dialog = page.locator('[data-sketch-mode="profile"]').first();
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  const canvas = dialog.locator(CANVAS).first();
+  await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
+
+  const tools = page.locator('.designer-workspace__palette');
+  const drawButton = tools.locator('button[aria-label="Rectangle"]').first();
+  await drawButton.click();
+  const box = await canvas.boundingBox();
+  await page.mouse.click(box.x + box.width * 0.3, box.y + box.height * 0.3);
+  await page.waitForTimeout(250);
+  await page.mouse.click(box.x + box.width * 0.6, box.y + box.height * 0.6);
+  await expect(drawButton).not.toHaveClass(/p-button-primary/, { timeout: 15_000 });
+  await page.waitForTimeout(600);
+
+  // Selecting the drawn rectangle opens its property row.
+  const shapeRow = inspector.locator('button[aria-label^="Rectangle s"]').first();
+  await shapeRow.click();
+  const widthField = inspector.locator('input[aria-label^="w s"]').first();
+  await expect(widthField, 'the selected shape opens its fields').toBeVisible({ timeout: 10_000 });
+
+  // The first escape sheds the selection; the second returns to the cassette.
+  await page.keyboard.press('Escape');
+  await expect(inspector.locator('input[aria-label^="w s"]'), 'escape sheds the shape selection').toHaveCount(0);
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog, 'a bare escape returns to the cassette').toBeHidden({ timeout: 15_000 });
+  await expect(
+    page.locator('.designer-workspace__canvas').first(),
+    'the assembly canvas returns'
+  ).toBeVisible();
+  await page.locator('.designer-workspace__canvas').first()
+    .screenshot({ path: '.playwright/cassette-profile-escape.png' });
+
+  await app.expectCleanRuntime();
+});

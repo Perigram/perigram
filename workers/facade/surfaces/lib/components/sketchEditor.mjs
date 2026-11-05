@@ -95,7 +95,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // while the edit is open.
       toolsTarget: { type: Object, default: null }
     },
-    emits: ['update:modelValue', 'outline-error'],
+    emits: ['update:modelValue', 'outline-error', 'exit-requested'],
     setup(props, { emit, expose }) {
       const faceMode = computed(() => props.mode === 'face');
       const containerRef = ref(null);
@@ -812,14 +812,20 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!root || typeof document === 'undefined') return false;
         return target === document.body
           || root.contains(target)
-          || Boolean(props.toolsTarget?.contains?.(target));
+          || Boolean(props.toolsTarget?.contains?.(target))
+          || Boolean(props.panelTarget?.contains?.(target));
       };
 
       const handleCanvasKeydown = (event) => {
         if (!props.active) return;
         if (event.key === 'Escape') {
           const cancelling = Boolean(host?.running) || Boolean(dimensionDraft.value);
-          if (!cancelling && !selectedCorner.value && !selectedShape.value) return;
+          if (!cancelling && !selectedCorner.value && !selectedShape.value) {
+            event.preventDefault();
+            event.stopPropagation();
+            emit('exit-requested');
+            return;
+          }
           event.preventDefault();
           event.stopPropagation();
           pendingDimensionPick = null;
