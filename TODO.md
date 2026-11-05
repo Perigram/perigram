@@ -4116,6 +4116,21 @@ selected hardware workpiece's fields left the tree nodes: every selection
 opens its settings in the one full-width panel under the tree (face details,
 relation placement, hardware fields), and tree rows carry identity alone.
 
+### Agent Notes (2026-11-05, a new profile mounts on creation)
+
+Session `agent/cassette-profile-mount-20261105` (worktree
+`.agent-worktrees/cassette-profile-mount-20261105`). A blank draft opened on
+the stand-in window and the context loaded once at edit-open, so the first
+commit created the workpiece and its relation without the cassette ever
+appearing — worse, the created relation kept the 'E0' default, a fold on a
+grown face, leaving the placement refused until an edge was picked by hand.
+The edge-array edge snap (owner law 2026-10-16) now has one home shared by
+patches and creation: `snapEdgeArrayEdge`; `commitProfileDraft` and
+`addProfileFromLibrary` place the new relation on the face's first
+arrangeable edge. The designer watches the edited profile's placement key and
+reloads the sketch context live; the sketch editor refits onto the mounted
+sketch when the frame arrives mid-session.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the

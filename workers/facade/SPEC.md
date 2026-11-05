@@ -649,6 +649,15 @@ collapsed. The face details carry the role and the shape actions alone; child
 face spans stay authored node parameters (`edgeStart`, `defaultLength`). The
 profile sketch identity packs name, kind and process into one compact block.
 
+Owner direction (2026-11-05, a new profile mounts on creation): a profile
+created from a face lands its edge-array relation on that face's first
+arrangeable edge — the fold-prone 'E0' default never ships, for drawn drafts
+and library picks alike. While a profile edit is open, the sketch canvas
+tracks the draft's placement: the first commit (the workpiece and its
+relation landing) brings the assembly context and the mount frame into the
+canvas live and refits the camera onto the mounted sketch, and a placement
+change re-places the sketch in place.
+
 Owner direction (2026-11-03, native cassette view): the read-only cassette
 record view mounts the native CadCraft canvas with every drawing layer,
 dimensions included. Its layer control toggles those native layers. The view
