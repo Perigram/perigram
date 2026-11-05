@@ -1,21 +1,12 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { PRODUCER_ORIGIN_SPECIES_KINDS, TYPE_BOUND_SPECIES, carriesTypePin } from './node-catalog.js';
-import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords } from '../../cts/src/index.js';
+import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords, rowFieldId } from '../../cts/src/index.js';
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
 export { operationKindOf };
 import { resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition, classMayDeclareChildren, rowRelativeFieldId } from '../../cts/src/index.js';
 import { processType } from './types.js';
 
-// Field-id derivation for authored names: the label is user-plane, the
-// row key is plumbing. Splits on any non-alphanumeric run (letters and
-// digits in any script — a Cyrillic label derives a Cyrillic key, not a
-// rejected declaration), lowercases the first segment, capitalizes the
-// rest ("Field name 2" -> "fieldName2"). Returns '' when nothing
-// alphanumeric survives (unfinished input).
-// Exported as the one derivation home: designer surfaces mapping a field
-// id back to its authored label (the type-migration step dialog) derive
-// ids exactly the way the compiled declaration does.
 // The one trigger-mode derivation: the wire wins; an unwired entry with an
 // authored schedule starts at its time, one with an authored eventId
 // starts on that event.
@@ -28,6 +19,9 @@ export function effectTriggerFor(wired, record = {}) {
   return { mode: 'manual' };
 }
 
+// Label-plane id derivation for authored names (any script), consumed by
+// vocabulary maps; row keys derive at the CTS seam (`rowFieldId`, latin
+// letters and digits).
 export function camelCaseId(value = '') {
   const segments = String(value).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
   if (!segments.length) return '';
@@ -349,6 +343,9 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
       } catch (error) {
         diagnostics.push(`class ${node.data?.typeId || '(unbound)'}: field ${name || '(unnamed)'}: ${error.message}`);
       }
+      if (name && !rowFieldId(name)) {
+        diagnostics.push(`class ${node.data?.typeId || '(unbound)'}: field ${name}: name must carry latin letters or digits to derive a row id — the display text belongs on the label`);
+      }
     }
     if (node.type === 'ctsClass' && Array.isArray(node.data?.operators)) {
       for (const operator of node.data.operators) {
@@ -662,9 +659,9 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
   for (const [fieldNode, targetNode] of fieldEntryEdges) {
     const record = records[targetNode.data?.refId];
     if (record?.kind !== 'cts.field') continue;
-    const name = String(fieldNode.data?.name || '').trim();
-    if (!name) continue;
-    const path = `fields.${camelCaseId(name)}`;
+    const fieldId = rowFieldId(String(fieldNode.data?.name || '').trim());
+    if (!fieldId) continue;
+    const path = `fields.${fieldId}`;
     if (record.path !== path) {
       mutations.push({ scope: 'record', recordId: targetNode.data.refId, key: 'path', value: path });
     }

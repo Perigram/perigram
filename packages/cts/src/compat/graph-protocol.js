@@ -59,7 +59,9 @@ export function resolveCtsRecord(node = {}, domain = {}) {
   return resolveNativeNode(node, domain, typeIdResolver(domain), [], '');
 }
 
-function camelId(value = '') {
+// Row-key minting (SPEC §4 row law): an authored name's latin/digit
+// segments become the lowerCamelCase row key; '' when none survive.
+export function rowFieldId(value = '') {
   const segments = String(value).split(/[^a-zA-Z0-9]+/).filter(Boolean);
   if (!segments.length) return '';
   const [first, ...rest] = segments;
@@ -667,7 +669,7 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
     };
     for (const field of byKind('field')) {
       if (field.typeId !== cls.typeId || !field.name) continue;
-      const fieldId = camelId(field.name);
+      const fieldId = rowFieldId(field.name);
       if (!fieldId) continue;
       declaration.fields[fieldId] = {
         ...(field.descriptor || { base: 'string' }),

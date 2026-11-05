@@ -132,6 +132,13 @@
           :type-options="typeOptions"
           @update:model-value="value => { node.data.descriptor = value; $emit('sync'); }"
         />
+        <Message
+          v-for="diagnostic in diagnostics"
+          :key="diagnostic"
+          severity="error"
+          size="small"
+          :closable="false"
+        >{{ diagnostic }}</Message>
       </div>
     </template>
 

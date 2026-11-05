@@ -577,6 +577,29 @@ describe('tree declaration compilation', () => {
     });
   });
 
+  it('names a field whose name derives no row key and keeps it off the declaration', () => {
+    const widget = classNode('widget');
+    const nodes = [widget,
+      fieldNode('widget', 'Наименование', { base: 'string', identifier: true }),
+      fieldNode('widget', 'Serial', { base: 'string' })
+    ];
+    const edges = [declares(nodes[1], widget, 'field'), declares(nodes[2], widget, 'field')];
+    const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges);
+    expect(diagnostics).toEqual([
+      'class widget: field Наименование: name must carry latin letters or digits to derive a row id — the display text belongs on the label'
+    ]);
+    expect(declarations[0].fields).toEqual({ serial: { base: 'string', label: 'Serial' } });
+  });
+
+  it('derives the row key from the latin segments of a mixed-script name', () => {
+    const widget = classNode('widget');
+    const nodes = [widget, fieldNode('widget', 'Ширина sheet', { base: 'string' })];
+    const edges = [declares(nodes[1], widget, 'field')];
+    const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges);
+    expect(diagnostics).toEqual([]);
+    expect(declarations[0].fields).toEqual({ sheet: { base: 'string', label: 'Ширина sheet' } });
+  });
+
   it('descriptor display tokens compile verbatim onto the declaration (SPEC §4)', () => {
     const widget = classNode('widget');
     const nodes = [widget,
@@ -908,6 +931,18 @@ describe('live declaration wire interpretation', () => {
     // a settled graph interprets to nothing — evaluation is idempotent
     const second = interpretDeclarationEdges(state.nodes, state.edges, state.records, first.bindings);
     expect(second.mutations).toEqual([]);
+  });
+
+  it('authors a wired field path from the seam row key', () => {
+    const state = graph();
+    state.nodes.push({ id: 'f2', type: 'ctsField', data: { typeId: null, name: 'Ширина sheet' } });
+    state.nodes.push({ id: 'get1', type: 'processNode', data: { refId: 'get1' } });
+    state.edges.push({ id: 'd2', source: 'f2', target: 'cls', role: 'type', label: 'field' });
+    state.edges.push({ id: 'fe1', source: 'f2', target: 'get1', role: 'type', label: 'entry' });
+    state.records.get1 = { id: 'get1', kind: 'cts.field', path: '' };
+    const pass = interpretDeclarationEdges(state.nodes, state.edges, state.records, {});
+    const pathMutation = pass.mutations.find(mutation => mutation.scope === 'record' && mutation.key === 'path');
+    expect(pathMutation?.value).toBe('fields.sheet');
   });
 
   it('re-binds descendants live when the class is renamed', () => {
