@@ -279,8 +279,11 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   quick path; converting seeds the sketch from the current outline. The
   face editor's datum is the parent edge line in shard coordinates (the
   shard start is zero); the parent face renders as a ghost outline in
-  those same coordinates. A face sketch carries the profile workpiece's
-  two parameter tables: `node.sketch.parameters` is the authored table
+  those same coordinates, and the editor's hatch evaluates through
+  `resolveCassetteV2FaceSketchGeometry` — the one fold and datum clip
+  behind both the editor's preview and the rendered face. A face sketch
+  carries the profile workpiece's two parameter tables:
+  `node.sketch.parameters` is the authored table
   and `node.instance` the placement's overrides. `normalizeCassetteV2Face`
   returns the authored sketch, the instance table and the derived table;
   the renderer evaluates the derived table in the cassette's scope.

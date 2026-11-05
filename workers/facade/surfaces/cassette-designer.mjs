@@ -73,6 +73,10 @@ import { hardwareDefaultParameters, hardwareLabel } from '../occs/hardware.js';
 
 const OCCS_MIME = 'application/perigram+occs';
 
+// The sketch editor deep-watches its ring props: the mode-off values keep
+// one identity so a designer re-render never re-fires that watch.
+const NO_RINGS = Object.freeze([]);
+
 // Settings grids inside the designer rails adapt to their host: tracks
 // never drop below a readable field width, so a narrow rail renders one
 // column and a wider host fills two or more. Full-row items use
@@ -1946,38 +1950,58 @@ export default function createSurface({ vue, components, locale, queries, record
 
       // The target's local-to-assembly frame and the assembly on its own
       // locked layers: the sketch editor places the authored sketch on the
-      // cassette through the frame.
-      const loadSketchContext = async (mode, id) => {
-        const token = ++sketchContextToken;
+      // cassette through the frame. A refresh (`swap`) keeps the last
+      // context until the new one resolves.
+      let sketchContextReloadTimer = null;
+      const applySketchContext = (frame, context) => {
+        sketchCanvasFrame.value = frame;
+        sketchContextLayers.value = context?.layers || [];
+        sketchContextLinetypes.value = context?.linetypes || [];
+        // The sketch's own dimensions are the editable rows; the
+        // cassette dimension entities stay out of the edit context.
+        sketchContextEntities.value = (context?.entities || [])
+          .filter(entity => entity.type !== 'dim');
+        sketchContextParentFace.value = frame.parentFace || [];
+      };
+      const clearSketchContext = () => {
         sketchCanvasFrame.value = null;
         sketchContextLayers.value = [];
         sketchContextLinetypes.value = [];
         sketchContextEntities.value = [];
         sketchContextParentFace.value = [];
+      };
+      const loadSketchContext = async (mode, id, { swap = false } = {}) => {
+        const token = ++sketchContextToken;
+        if (sketchContextReloadTimer) {
+          clearTimeout(sketchContextReloadTimer);
+          sketchContextReloadTimer = null;
+        }
+        if (!swap) clearSketchContext();
         if (!id) return;
         try {
           const [frame, context] = await Promise.all([
             cassetteV2SketchFrame(cassetteTree.value, { mode, id }),
             cassetteV2AssemblyEntities(cassetteTree.value)
           ]);
-          if (token !== sketchContextToken) return;
-          if (!frame) return;
-          sketchCanvasFrame.value = frame;
-          sketchContextLayers.value = context?.layers || [];
-          sketchContextLinetypes.value = context?.linetypes || [];
-          // The sketch's own dimensions are the editable rows; the
-          // cassette dimension entities stay out of the edit context.
-          sketchContextEntities.value = (context?.entities || [])
-            .filter(entity => entity.type !== 'dim');
-          sketchContextParentFace.value = frame.parentFace || [];
+          if (token !== sketchContextToken || !frame) return;
+          applySketchContext(frame, context);
         } catch {
           if (token !== sketchContextToken) return;
-          sketchCanvasFrame.value = null;
-          sketchContextLayers.value = [];
-          sketchContextLinetypes.value = [];
-          sketchContextEntities.value = [];
-          sketchContextParentFace.value = [];
+          if (!swap) clearSketchContext();
         }
+      };
+
+      // The cassette follows the sketch live: every committed edit refreshes
+      // the assembly context and the mount frame around the canvas.
+      const scheduleSketchContextReload = (mode, id) => {
+        if (!id) return;
+        if (sketchContextReloadTimer) clearTimeout(sketchContextReloadTimer);
+        sketchContextReloadTimer = setTimeout(() => {
+          sketchContextReloadTimer = null;
+          const open = mode === 'face' ? faceSketchOpen.value : profileSketchOpen.value;
+          if (!open) return;
+          loadSketchContext(mode, id, { swap: true });
+        }, 250);
       };
 
       // The sketch canvas tracks the edited profile's placement: a blank
@@ -1996,7 +2020,7 @@ export default function createSurface({ vue, components, locale, queries, record
       });
       watch(editingProfilePlacementKey, (key) => {
         if (!key) return;
-        loadSketchContext('profile', editingProfileWorkpieceId.value);
+        scheduleSketchContextReload('profile', editingProfileWorkpieceId.value);
       });
 
       const finishProfileSketch = () => {
@@ -2135,6 +2159,7 @@ export default function createSurface({ vue, components, locale, queries, record
           editingFaceNodeId.value,
           preservedInstance
         );
+        scheduleSketchContextReload('face', editingFaceNodeId.value);
       };
 
       const useTrapezoidFace = (nodeId = editingFaceNodeId.value) => {
@@ -2414,6 +2439,7 @@ export default function createSurface({ vue, components, locale, queries, record
               sweep: payload.occsProfile.sweep
             }
           });
+          scheduleSketchContextReload('profile', workpieceId);
           return workpieceId;
         }
         const added = addCassetteV2ProfileWorkpiece(cassetteTree.value, {
@@ -4200,11 +4226,11 @@ export default function createSurface({ vue, components, locale, queries, record
             externalHost: assemblyHostRef.value,
             panelTarget: sketchPanelHost.value,
             toolsTarget: sketchToolsHost.value,
-            baseFace: face ? faceShapeBaseFace.value : [],
+            baseFace: face ? faceShapeBaseFace.value : NO_RINGS,
             basisStart: face ? faceShapeBasisStart.value : null,
             basisEnd: face ? faceShapeBasisEnd.value : null,
-            contextFace: face ? faceShapeParentFace.value : [],
-            parentFace: face ? [] : sketchContextParentFace.value,
+            contextFace: face ? faceShapeParentFace.value : NO_RINGS,
+            parentFace: face ? NO_RINGS : sketchContextParentFace.value,
             externalParameters: globalParameters.value,
             'onUpdate:modelValue': value => {
               if (!sketchMode.value) return;

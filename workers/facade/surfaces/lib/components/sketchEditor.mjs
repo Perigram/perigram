@@ -21,6 +21,7 @@ import {
 } from '../../../occs/profiles.js';
 import { resolveOccsExpression } from '../../../occs/expressions.js';
 import { foldCassetteV2Region } from '../cassetteV2Clipper.js';
+import { resolveCassetteV2FaceSketchGeometry } from '../cassetteV2Renderer.js';
 import { buildProfileAnnotations, profileDimensionField, PROFILE_ANNOTATION_LAYER, PROFILE_DIMENSION_LAYER } from '../profileAnnotations.js';
 import { toolIcon } from './toolIcons.mjs';
 import createFieldDraft from './fieldDraft.mjs';
@@ -339,28 +340,39 @@ export default function createSketchEditor({ vue, components, locale }) {
         setOutlineError('');
         try {
           const normalized = authoredSketch(props.modelValue || {});
+          if (faceMode.value) {
+            // Face mode evaluates through the renderer's resolver: base
+            // selection and the datum clip are its law (occs/README.md,
+            // face sketches).
+            const resolved = await resolveCassetteV2FaceSketchGeometry(
+              { sketch: normalized },
+              externalScope(),
+              faceBaseRings()
+            );
+            if (disposed || generation !== outlineGeneration) return;
+            resolvedFace.value = { polygons: resolved.polygons, holes: resolved.holes };
+            syncAnnotations();
+            const participates = normalized.shapes.some(shape => shape.op === 'add' || shape.op === 'subtract');
+            if (participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
+              setOutlineError(t('cassette.v2.profileEditor.resultClipped'));
+            }
+            return;
+          }
           const { section } = occsProfileFromSketch(normalized, { parameters: externalScope() });
           if (section?.type !== 'shapes') {
             resolvedFace.value = null;
             syncAnnotations();
             return;
           }
-          const hasAdd = section.shapes.some(shape => shape.op === 'add');
-          const base = {
-            polygons: faceMode.value
-              ? (hasAdd ? [] : faceBaseRings())
-              : sketchParentFaceRings(),
-            holes: []
-          };
           const resolved = await foldCassetteV2Region(
-            base,
+            { polygons: sketchParentFaceRings(), holes: [] },
             resolveOccsProfileSectionOperations(section)
           );
           if (disposed || generation !== outlineGeneration) return;
           resolvedFace.value = resolved;
           syncAnnotations();
           const participates = section.shapes.some(shape => shape.op !== 'construction');
-          if (!faceMode.value && participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
+          if (participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
             setOutlineError(t('cassette.v2.profileEditor.resultClipped'));
           }
         } catch (error) {

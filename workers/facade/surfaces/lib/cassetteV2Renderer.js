@@ -4524,7 +4524,9 @@ const rotateSketchRingToAttachment = (ring = []) => {
 // A face sketch resolves through the same ordered boolean fold the
 // profile section uses: adds form the face, subtracts cut it. The face's
 // material region (outer rings minus holes) also cuts the parent where
-// the face overlaps it.
+// the face overlaps it. The result is the region on the child's side of
+// the datum (y >= 0 in shard coordinates), and the editor's hatch
+// evaluates through this same fold.
 // A face's base host in the sketch frame: the trapezoid the node carries
 // before its shape set applies. A face sketch is a boolean modifier set
 // over this host, exactly as a profile modifies the face it attaches to.
@@ -4543,7 +4545,7 @@ const faceBaseLocalRing = (node, parameters, parentBoundaryVertices, frame) => {
   ]);
 };
 
-const resolveCassetteV2FaceSketchGeometry = async (face = {}, parameters = {}, basePolygons = []) => {
+export const resolveCassetteV2FaceSketchGeometry = async (face = {}, parameters = {}, basePolygons = []) => {
   const evaluated = evaluateOccsProfileSketch(
     face.derivedSketch || normalizeOccsProfileSketch(face.sketch || face),
     parameters
