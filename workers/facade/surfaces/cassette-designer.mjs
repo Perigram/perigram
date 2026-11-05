@@ -73,6 +73,14 @@ import { hardwareDefaultParameters, hardwareLabel } from '../occs/hardware.js';
 
 const OCCS_MIME = 'application/perigram+occs';
 
+// Settings grids inside the designer rails adapt to their host: tracks
+// never drop below a readable field width, so a narrow rail renders one
+// column and a wider host fills two or more. Full-row items use
+// col-span-full, which holds at any track count.
+const SETTINGS_GRID = 'grid min-w-0 grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-1.5';
+const PARAMS_GRID = 'grid grid-cols-[repeat(auto-fit,minmax(8rem,1fr))] gap-x-2 gap-y-1';
+const NUMBER_GRID = 'grid grid-cols-[repeat(auto-fit,minmax(6rem,1fr))] gap-2';
+
 const ATTACHMENT_SHORT_LABELS = Object.freeze({
   'cassette.v2.attachmentFields.targetFace': 'cassette.v2.attachmentFields.short.targetFace',
   'cassette.v2.attachmentFields.targetSnap': 'cassette.v2.attachmentFields.short.targetSnap',
@@ -2884,7 +2892,7 @@ export default function createSurface({ vue, components, locale, queries, record
             node?.sketch && faceParameterRow(node).boundParameterKeys.size
               ? h('div', null, [
                   h(Divider),
-                  h('div', { class: 'grid grid-cols-2 gap-x-2 gap-y-1' }, faceParameterFields(node))
+                  h('div', { class: PARAMS_GRID }, faceParameterFields(node))
                 ])
               : null
           ]);
@@ -3068,13 +3076,13 @@ export default function createSurface({ vue, components, locale, queries, record
                 'aria-label': t(labelKey)
               }),
               id,
-              'col-span-2',
+              'col-span-full',
               t(labelKey)
             );
           };
           const arrayCheckbox = (labelKey, checked, patch, key) => {
             const id = fieldId(key);
-            return h('div', { class: 'col-span-2 flex min-w-0 items-center gap-2' }, [
+            return h('div', { class: 'col-span-full flex min-w-0 items-center gap-2' }, [
               h(Checkbox, {
                 binary: true,
                 inputId: id,
@@ -3182,7 +3190,7 @@ export default function createSurface({ vue, components, locale, queries, record
                     'arrayItemRotation',
                     value => ({ item: { rotation: value } }),
                     false,
-                    orientations.length === 1 ? 'col-span-2' : ''
+                    orientations.length === 1 ? 'col-span-full' : ''
                   )
                 : null,
               allowTransform && orientations.length > 1
@@ -3207,7 +3215,7 @@ export default function createSurface({ vue, components, locale, queries, record
           if (kind === 'workpiece') {
             const section = (labelKey, fields) => h('div', { class: 'flex flex-col gap-1' }, [
               h('div', { class: 'text-muted text-label' }, t(labelKey)),
-              h('div', { class: 'grid grid-cols-2 gap-2' }, fields)
+              h('div', { class: SETTINGS_GRID }, fields)
             ]);
             body = h('div', { class: panel ? 'flex flex-col gap-2' : 'flex w-96 flex-col gap-2' }, [
               dragHandle([]),
@@ -3264,9 +3272,9 @@ export default function createSurface({ vue, components, locale, queries, record
                     role: 'alert'
                   }, placementError)
                 : null,
-              h('div', { class: 'grid min-w-0 grid-cols-2 gap-1.5' }, [
+              h('div', { class: SETTINGS_GRID }, [
                 !profileOpen && placementModes.length > 1
-                  ? selectField('cassette.v2.attachmentFields.placementMode', effectiveMode, placementModes, 'placementMode', 'col-span-2')
+                  ? selectField('cassette.v2.attachmentFields.placementMode', effectiveMode, placementModes, 'placementMode', 'col-span-full')
                   : null,
                 kind === 'hardware'
                   ? selectField('cassette.v2.attachmentFields.side', relation.targetSide, sideOptions, 'targetSide')
@@ -3308,7 +3316,7 @@ export default function createSurface({ vue, components, locale, queries, record
                       'arrayNormal',
                       value => ({ normal: value }),
                       false,
-                      'col-span-2'
+                      'col-span-full'
                     )
                   : null,
                 showEdgeFields && !profileOpen && singleEdgeCopy
@@ -3328,7 +3336,7 @@ export default function createSurface({ vue, components, locale, queries, record
                       faceArrayLayoutOptions,
                       layoutPatch,
                       'arrayLayout',
-                      'col-span-2'
+                      'col-span-full'
                     )
                   : null,
                 showFaceFields && faceLayout !== 'polar' && showBinding
@@ -3453,7 +3461,7 @@ export default function createSurface({ vue, components, locale, queries, record
                   : []),
                 ...(showFaceFields ? arrayItemFields(true) : []),
                 kind === 'profile'
-                  ? h('div', { class: 'col-span-2 flex min-w-0 gap-1' }, [
+                  ? h('div', { class: 'col-span-full flex min-w-0 gap-1' }, [
                       h(Button, {
                         icon: 'pi pi-arrows-h',
                         severity: (array ? array.item?.mirrorX : relation.mirrorX) ? 'primary' : 'secondary',
@@ -3488,7 +3496,7 @@ export default function createSurface({ vue, components, locale, queries, record
               kind === 'profile' && profileRow
                 ? h('div', null, [
                     h(Divider),
-                    h('div', { class: 'grid grid-cols-2 gap-x-2 gap-y-1' }, profileParameterFields(profileRow))
+                    h('div', { class: PARAMS_GRID }, profileParameterFields(profileRow))
                   ])
                 : null
             ]);
@@ -3611,7 +3619,7 @@ export default function createSurface({ vue, components, locale, queries, record
       const workpieceDetailBlocks = (row) => [
         inspectorSelection.value === 'workpiece' && row.id === selectedWorkpieceId.value && row.isHardware
           ? h('div', { class: 'mt-1 flex flex-col gap-2' }, [
-              h('div', { class: 'grid grid-cols-2 gap-2' }, [
+              h('div', { class: SETTINGS_GRID }, [
                 h(Select, {
                   modelValue: row.family,
                   options: hardwareFamilyOptions.value,
@@ -3635,7 +3643,7 @@ export default function createSurface({ vue, components, locale, queries, record
                     })
                   : null
               ]),
-              h('div', { class: 'grid grid-cols-3 gap-2' },
+              h('div', { class: NUMBER_GRID },
                 Object.keys(hardwareDefaultParameters(row.family)).map(key => h('div', {
                   key: `${row.id}-${key}`,
                   class: 'flex min-w-0 flex-col gap-1 text-muted text-label'
