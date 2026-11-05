@@ -137,9 +137,9 @@ A child face carries `edgeStart` and its width in `defaultLength`, both
 expressions over the cassette's parameters. Free shards exclude child
 faces alone; profiles reserve no edge interval. The canvas shows one +
 handle per free shard; a face's own base edge is its parent connection
-and carries no +. A child face's popup carries its edge start and width:
-Fill edge keeps the inherited span, unchecking it writes a fixed or
-parametric width so the remaining edge becomes a free shard. The clicked
+and carries no +. A child face's span stays authored node parameters
+(`edgeStart`, `defaultLength`); the face details carry the role and the shape
+actions. The clicked
 shard is authoritative — the new face lands on that interval, never the
 whole edge. A face placement that would overlap another face refuses,
 and the refusal reads on the canvas. An open profile places by its array
@@ -305,7 +305,7 @@ is the single truth, the canvas its render and input surface. Extraction
 merges back instead of replacing: a corner whose extracted position
 matches its authored evaluation keeps the authored id, expressions, and
 fillet radius, so drawing, importing, or undoing never destroys
-parametric authoring. The toolbar reflects the engine's command
+parametric authoring. The tool buttons reflect the engine's command
 lifecycle (commandWillStart/commandEnded) — buttons stick only while
 their command runs; starting another tool cancels the running one. The
 surface owns Escape routing (the engine's own handling needs focus
@@ -314,7 +314,7 @@ active command, and clears the selection, regardless of focus.
 
 Owner decision (2026-10-17, command input toggle): the profile editor's
 chrome stays the dialog's — the engine's command line stays hidden by
-default — but the toolbar carries a toggle that reveals it on demand:
+default — but the tools palette carries a toggle that reveals it on demand:
 the engine CLI is the one complete desktop surface for typed prompt
 entry (a bare length as direct distance toward the cursor, `dist<angle`
 polar, `@x,y` relative), and the editor asserts it off on mount so every
@@ -326,12 +326,12 @@ table, no seeded geometry (the parametric hanger template stays the
 renderer's fallback for sketch-less workpieces, never the dialog's
 starting draft); the dialog's window-level controls (name, kind,
 process, library pick, save actions) collapse into one compact row
-instead of stacked bands; and the editor's own operations render as an
-icon toolbar (open-source CAD glyphs, PrimeVue Toolbar) instead of
-wrapped text buttons. The editor's layout is space-first: the
-parameter/holes strip sits above the canvas, the tool toolbar floats
-inside the canvas over the drawing, and the dialog stands near-viewport
-height so the canvas takes everything left.
+instead of stacked bands; and the editor's drawing operations render as
+icon buttons (open-source CAD glyphs) in the designer's left palette, with
+the canvas commands (undo, redo, zoom, fit, DXF import, clear) in the
+designer dock. The editor's layout is space-first: the
+parameter/holes strip sits above the canvas and the canvas takes everything
+left.
 
 Owner decision (2026-10-18, profile shape model; pathfinder-ops
 amendment 2026-10-19): a profile sketch is a list of parametric shapes evaluated
@@ -501,7 +501,7 @@ carries its authored table and its instance table apart. The authored
 table is the sketch's own rows (`profileSnapshot.sketch.parameters`), the
 table the profile dialog edits and the library record stores. The instance
 table (`profileSnapshot.instance`) holds the values a placed workpiece
-overrides, edited through the canvas popup's parameter fields — each
+overrides, edited through the placement fields — each
 field shows the stored expression and its derived value. The profile
 editor never receives this table: it edits and evaluates the authored
 sketch alone, and saving a profile preserves the workpiece's instance
@@ -544,11 +544,12 @@ assembly, profile, and face editing share one navigation contract.
 
 Owner direction (2026-11-02, profile management on the canvas): a placed
 profile is a canvas object. Its placed section geometry carries the
-profile hit area, so a click selects the profile and opens one popup
+profile hit area, so a click selects the profile and its tree row expands
 carrying the placement fields, the parameter table, and the edit and
 delete actions. Typing a cassette global into a parameter field resolves
-it through the same scope as every other chip. The canvas toolbar carries
-the Add profile entry. The palette lists profiles as assembly rows;
+it through the same scope as every other chip. The selected face's details
+carry the Add profile entry with the profile pulse glyph. The palette lists
+profiles as assembly rows;
 profile authoring, parameter editing, placement, and removal live on the
 canvas.
 
@@ -557,8 +558,8 @@ editing happen on the cassette designer's canvas at the target's placement.
 The assembly drawing and its camera stay in place, so the edited target keeps
 its screen position and the selection survives the edit. The existing CadCraft
 profile editor renders the sketch. Sketch edits commit to the cassette live;
-Back returns with the edited target's popup restored, and the mode's save
-action writes the library record alone. A selected face or profile draws
+Back returns with the edited target's tree details restored, and the mode's
+save action writes the library record alone. A selected face or profile draws
 its inner shape dimensions in the sketch's CAD dimension style, apart from
 the cassette-wide dimension style; an inner dimension label edits its
 authored shape field in place. A sketch face carries only its sketch
@@ -606,16 +607,35 @@ and the corner popup; the assembly stays visible around the edited target.
 Owner direction (2026-11-03, inspector assembly tree and native canvas): the
 right inspector lists the assembly as workpiece → face. The selected face's
 details list its placed profiles in one compact row each, with edit and delete
-icons and the Add profile action; fill edge and edge start live in the face
-shape editor. The canvas carries no per-face menu chip. The assembly canvas
-draws its dimensions as native CadCraft dims on the dimension layer in every
-view, including the assembly context. The palette lists the drawing's native
-layers, and its rows toggle those layers in the assembly and the edit; hidden
-layers stay hidden through an edit; an empty visible-layer set hides every
-layer. The native host is the one canvas view: it paints every layer, filled
-face layers as solid hatches, and the dimension labels; the SVG overlay keeps
-hit areas, chips and hover/selection highlights alone. The edit drawing toolbar
-fills the left palette; the canvas keeps the dimension editor and corner popup.
+icons and the Add profile action. The canvas carries no per-face menu chip. The
+assembly canvas draws its dimensions as native CadCraft dims on the dimension
+layer in every view, including the assembly context. The palette lists the
+drawing's native layers, and its rows toggle those layers in the assembly and
+the edit; hidden layers stay hidden through an edit; an empty visible-layer set
+hides every layer. The native host is the one canvas view: it paints every
+layer, filled face layers as solid hatches, and the dimension labels; the SVG
+overlay keeps hit areas, chips and hover/selection highlights alone. The edit
+drawing toolbar fills the left palette; the canvas keeps the dimension editor
+and corner popup.
+
+Owner direction (2026-11-05, unified designer dock): the designer dock owns
+the canvas commands in every mode. The assembly view carries undo, redo and
+zoom; the sketch view carries the sketch's undo, redo, zoom, fit, DXF import
+and clear. The tools palette holds the drawing tools, erase and the drafting
+toggles while a sketch is open; the cassette's globals and layer rows return
+when the assembly view does.
+
+Owner direction (2026-11-05, expanding assembly tree): the inspector's
+assembly tree is a PrimeVue `Tree`. Workpieces stay top-level, faces nest
+under their workpiece, a placed profile nests once under the face its relation
+targets, and every other relation nests under its source workpiece. Selecting
+a face expands its details under the face row — the role, the shape actions,
+Add profile with the profile pulse glyph, and the authored parameter fields;
+selecting a profile or relation expands its placement fields under that row.
+New nodes open expanded and keep their state; a collapsed node stays
+collapsed. The face details carry the role and the shape actions alone; child
+face spans stay authored node parameters (`edgeStart`, `defaultLength`). The
+profile sketch identity packs name, kind and process into one compact block.
 
 Owner direction (2026-11-03, native cassette view): the read-only cassette
 record view mounts the native CadCraft canvas with every drawing layer,
@@ -641,10 +661,10 @@ and hit areas keep their screen size across zoom. Trapezoid faces expose
 width and height dimensions; authored corner geometry lives in the face
 shape editor.
 
-Owner direction (2026-11-02, compact profile popup): the popup lays its
-fields as PrimeVue `IftaLabel` controls over native inputs, with the label
-inside the field. A parameter is its name label over one input, with no
-heading or secondary label. Mirror controls are icon buttons labelled X
+Owner direction (2026-11-02, compact profile placement fields): the
+placement fields lay as PrimeVue `IftaLabel` controls over native inputs, with
+the label inside the field. A parameter is its name label over one input, with
+no heading or secondary label. Mirror controls are icon buttons labelled X
 and Y. An invalid expression marks its field with the PrimeVue invalid
 state and carries the reason in the field title.
 

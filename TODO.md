@@ -4047,6 +4047,38 @@ model-space coordinates flipped into the canvas frame. Native dim entities
 carry the drawing ink; the dimension layer keeps its violet DOTTED pen for
 layer identity.
 
+## Unified cassette dock and expanding assembly tree (owner direction 2026-11-05)
+
+The designer dock owns the canvas commands in every mode: assembly undo/redo
+and zoom in the assembly view; sketch undo/redo, zoom, fit, DXF import and
+clear in a sketch. The tools palette holds the drawing tools, erase and the
+drafting toggles alone while a sketch is open. The inspector's assembly tree is
+a PrimeVue `Tree`: workpieces top-level, faces under their workpiece, a placed
+profile once under its target face, every other relation under its source
+workpiece; the selected face's details expand under the face row (role, shape
+actions, pulse-glyph Add profile, parameter fields) and a selected profile or
+relation expands its placement fields under its row. Fill edge, face width and
+edge start controls are gone; a child face's span stays its authored node
+parameters. The profile sketch identity packs name, kind and process into one
+compact block.
+
+- [ ] WAITING — owner verification: the dock carries undo/redo and zoom in
+  both modes; the tree expands with faces and placed profiles; face and
+  profile details open inside their nodes; Add profile shows the pulse glyph;
+  the sketch palette shows only the drawing tools.
+
+### Agent Notes (2026-11-05, unified dock and tree)
+
+Session `agent/cassette-ui-unify-20261105` (worktree
+`.agent-worktrees/cassette-ui-unify-20261105`). The dock's canvas group switches
+by mode: the sketch editor exposes `undo`, `redo`, `canUndo`, `canRedo`,
+`zoomIn`, `zoomOut`, `zoomFit`, `importDxf` and `clear`, and its palette keeps
+select/line/polyline/circle/arc/rect, erase and the ortho/tangent/command-line
+toggles. `Tree` joins the remote surface pack. The floating face/attachment
+panel editor is gone — `renderInlineEditorBody` renders inline under the
+selected tree node, keeping the `[data-designer-panel-editor]` hook. E2E
+selectors updated for the dock's Clear/Undo and the tree's face row.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the
