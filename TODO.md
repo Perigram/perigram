@@ -4106,6 +4106,16 @@ a narrow rail renders one readable column and a wider host fills more; the
 fixed two-column layout overflowed and cramped the placement fields. The
 hardware dialog keeps its fixed columns — its host is a wide dialog.
 
+### Agent Notes (2026-11-05, tree selection wired, settings in one panel)
+
+Session `agent/cassette-tree-select-20261105` (worktree
+`.agent-worktrees/cassette-tree-select-20261105`). PrimeVue's Tree consumes
+`node-click` internally and never re-emits it — the tree routed nothing; the
+rows now route through `node-select` (payload: the node). Face settings and a
+selected hardware workpiece's fields left the tree nodes: every selection
+opens its settings in the one full-width panel under the tree (face details,
+relation placement, hardware fields), and tree rows carry identity alone.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the

@@ -636,10 +636,11 @@ Owner direction (2026-11-05, expanding assembly tree): the inspector's
 assembly tree is a PrimeVue `Tree`. Workpieces stay top-level, faces nest
 under their workpiece, a placed profile nests once under the face its relation
 targets, and every other relation nests under its source workpiece. Selecting
-a face expands its details under the face row — the role, the shape actions,
-Add profile with the profile pulse glyph, and the authored parameter fields;
-selecting a profile or relation opens its placement fields in one full-width
-panel under the tree, so the tree's indentation never squeezes them. Settings
+the tree's rows carry identity alone. Selecting a face, a placed profile, a
+relation, or a hardware workpiece opens that selection's settings in one
+full-width panel under the tree: the face's role, shape actions, Add profile
+with the profile pulse glyph and authored parameter fields; a relation's
+placement fields; a hardware workpiece's family and parameter fields. Settings
 grids auto-fit their host: tracks keep a readable field width, so a narrow
 rail renders one column and a wider host fills more; full-row controls span
 the track count.
