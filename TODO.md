@@ -4079,6 +4079,21 @@ panel editor is gone — `renderInlineEditorBody` renders inline under the
 selected tree node, keeping the `[data-designer-panel-editor]` hook. E2E
 selectors updated for the dock's Clear/Undo and the tree's face row.
 
+### Agent Notes (2026-11-05, tree styling homed in the token module)
+
+Session `agent/cassette-tree-style-20261105` (worktree
+`.agent-worktrees/cassette-tree-style-20261105`). The first pass wrapped every
+tree node in a hand-rolled bordered chip and left Aura's loose root padding on
+top — invented composition over the design system. `primeComponentTokens.tree`
+now delivers the explorer density the token README already promised (root
+padding 0, transparent background); the designer's nodes drop the chip chrome
+and read selection and hover from the theme's own node states
+(`selectionMode: single` with selection keys derived from the designer
+selection), keeping only the `pt` lines tokens cannot express (slot-owned
+icons, label fill). A relation's settings render in one full-width panel under
+the tree — placement grids and parameter tables are wide, and the tree's
+indentation squeezed them inside the node.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the
