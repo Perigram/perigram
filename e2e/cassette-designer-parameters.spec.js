@@ -558,6 +558,7 @@ test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   await canvas.locator('g line.cursor-pointer').first().dispatchEvent('mouseenter');
   await page.waitForTimeout(600);
   await canvas.locator('g.cursor-pointer', { hasText: '+' }).first().click();
+  await page.getByRole('button', { name: 'Add face', exact: true }).click();
   await page.waitForTimeout(1200);
 
   // Place the default hanger and open its attachment popup. Profiles
