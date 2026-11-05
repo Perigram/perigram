@@ -4131,6 +4131,20 @@ arrangeable edge. The designer watches the edited profile's placement key and
 reloads the sketch context live; the sketch editor refits onto the mounted
 sketch when the frame arrives mid-session.
 
+### Agent Notes (2026-11-05, edge + dial and honest bindings)
+
+Session `agent/cassette-edge-dial-20261105` (worktree
+`.agent-worktrees/cassette-edge-dial-20261105`). The free-shard + now opens a
+two-choice dial on the edge: add a face on the shard, or start a profile
+mounted there — the profile workpiece is created blank with its edge-array
+relation bound to that face and edge, so the sketch opens with the cassette
+context live (`DrawingCanvas` already emitted the clamped screen point with
+the edge payload). The binding read path dropped its silent fallbacks: a
+stale target occurrence or face keeps the relation unplaced under its source
+workpiece instead of rebinding to `workpieces[0]` or the tree root face
+(`normalizedCassetteV2WorkpieceRelation`, `updateCassetteV2WorkpieceRelation`,
+`faceIdForWorkpiece`). The binding chain is stated once in the occs README.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the
