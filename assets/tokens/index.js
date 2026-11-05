@@ -651,7 +651,8 @@ export const primeComponentTokens = {
     },
     tree: {
         root: {
-            background: 'transparent'
+            background: 'transparent',
+            padding: '0'
         }
     }
 };

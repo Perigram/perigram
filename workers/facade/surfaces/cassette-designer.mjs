@@ -3710,6 +3710,18 @@ export default function createSurface({ vue, components, locale, queries, record
       });
 
       const cassetteTreeNodes = computed(() => topLevelWorkpieceRows.value.map(workpieceTreeNode));
+      const cassetteTreeSelectionKeys = computed(() => {
+        if (inspectorSelection.value === 'face' && selectedNodeId.value) {
+          return { [`face:${selectedNodeId.value}`]: true };
+        }
+        if (inspectorSelection.value === 'attachment' && selectedRelationId.value) {
+          return { [`relation:${selectedRelationId.value}`]: true };
+        }
+        if (inspectorSelection.value === 'workpiece' && selectedWorkpieceId.value) {
+          return { [`workpiece:${selectedWorkpieceId.value}`]: true };
+        }
+        return {};
+      });
 
       // New nodes open expanded; a collapsed node keeps its state across
       // re-renders, and removed nodes drop their key.
@@ -3758,10 +3770,7 @@ export default function createSurface({ vue, components, locale, queries, record
       const workpieceTreeLabel = (row) => {
         const selected = inspectorSelection.value === 'workpiece' && row.id === selectedWorkpieceId.value;
         return h('div', { class: 'flex min-w-0 flex-1 flex-col gap-1' }, [
-          h('div', {
-            class: ['flex min-w-0 items-center gap-2 rounded-ui border px-1.5 py-1',
-              selected ? 'border-primary bg-subtle' : 'border-transparent']
-          }, [
+          h('div', { class: 'flex min-w-0 items-center gap-2' }, [
             workpieceTypeIcon(row),
             h('span', { class: 'min-w-0 flex-1 truncate' }, row.label),
             row.parentCount > 1 ? h(Tag, { value: `×${row.parentCount}`, severity: 'secondary', size: 'small' }) : null,
@@ -3817,10 +3826,7 @@ export default function createSurface({ vue, components, locale, queries, record
             }, [renderInlineEditorBody(inlineEditor.value, { panel: true })])
           : null;
         return h('div', { class: 'flex min-w-0 flex-1 flex-col gap-1' }, [
-          h('div', {
-            class: ['flex min-w-0 items-center gap-2 rounded-ui border px-1.5 py-1',
-              selected ? 'border-primary bg-subtle' : 'border-transparent']
-          }, [
+          h('div', { class: 'flex min-w-0 items-center gap-2' }, [
             h('i', { class: 'pi pi-stop shrink-0 text-xs text-muted', 'aria-hidden': 'true' }),
             h('span', { class: 'min-w-0 flex-1 truncate' }, defaultFaceRole(node).replace(/_/g, ' '))
           ]),
@@ -3832,18 +3838,8 @@ export default function createSurface({ vue, components, locale, queries, record
         const relationId = relationRow.relation.id;
         const sourceRow = workpieceRowById.value.get(relationRow.relation.sourceWorkpieceId);
         const selected = inspectorSelection.value === 'attachment' && selectedRelationId.value === relationId;
-        const details = selected && inlineEditor.value?.type === 'attachment' && inlineEditor.value.relationId === relationId
-          ? h('div', {
-              class: 'mt-1.5',
-              'data-designer-panel-editor': 'attachment',
-              onClick: stopNodeClick
-            }, [renderInlineEditorBody(inlineEditor.value, { panel: true })])
-          : null;
         return h('div', { class: 'flex min-w-0 flex-1 flex-col gap-1' }, [
-          h('div', {
-            class: ['flex min-w-0 items-center gap-2 rounded-ui border px-1.5 py-1',
-              selected ? 'border-primary bg-subtle' : 'border-transparent']
-          }, [
+          h('div', { class: 'flex min-w-0 items-center gap-2' }, [
             sourceRow?.isProfile ? workpieceTypeIcon(sourceRow) : h('i', { class: 'pi pi-link shrink-0 text-xs text-muted', 'aria-hidden': 'true' }),
             h('span', { class: 'min-w-0 flex-1 truncate' }, sourceRow?.isProfile ? sourceRow.label : relationRow.otherLabel),
             attachmentStatusIcon(relationId, relationRow.status),
@@ -3866,9 +3862,20 @@ export default function createSurface({ vue, components, locale, queries, record
           ]),
           !sourceRow?.isProfile && relationRow.crumbs.length
             ? h('small', { class: 'truncate text-muted' }, relationRow.crumbs.join('  ›  '))
-            : null,
-          details
+            : null
         ]);
+      };
+
+      // A relation's settings are wide (placement grid, parameter table):
+      // they render in one full-width panel under the tree, so the tree's
+      // indentation never squeezes them.
+      const renderRelationPanel = () => {
+        const editor = inlineEditor.value;
+        if (!editor || editor.type !== 'attachment' || !inlineEditorRelation.value) return null;
+        return h('div', {
+          class: 'min-w-0 shrink-0 rounded-ui border border-content-border bg-content p-2',
+          'data-designer-panel-editor': 'attachment'
+        }, [renderInlineEditorBody(editor, { panel: true })]);
       };
 
       const handleCassetteTreeClick = ({ node }) => {
@@ -3895,10 +3902,13 @@ export default function createSurface({ vue, components, locale, queries, record
         value: cassetteTreeNodes.value,
         expandedKeys: expandedTreeKeys.value,
         'onUpdate:expandedKeys': keys => { expandedTreeKeys.value = keys; },
-        class: 'w-full p-0',
+        selectionMode: 'single',
+        selectionKeys: cassetteTreeSelectionKeys.value,
+        class: 'w-full',
         'aria-label': t('cassette.v2.workpieces'),
+        // Icons live in the node slot; the label row fills the node.
         pt: {
-          nodeContent: { class: 'min-w-0' },
+          nodeIcon: { class: 'hidden' },
           nodeLabel: { class: 'min-w-0 flex-1' }
         },
         onNodeClick: handleCassetteTreeClick
@@ -4140,6 +4150,7 @@ export default function createSurface({ vue, components, locale, queries, record
           ]),
           renderCassetteTree()
         ]),
+        sketchMode.value ? null : renderRelationPanel(),
         sketchMode.value ? null : h('div', { class: 'h-48 shrink-0 overflow-hidden' }, [
           foldedPreviewMount({ expandable: true })
         ])
