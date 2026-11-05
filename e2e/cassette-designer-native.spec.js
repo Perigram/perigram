@@ -166,7 +166,7 @@ test('assembly canvas wheel follows CadCraft and dimension editors stay in view'
   await expect(faceHit, 'faces stay clickable with nothing selected').toBeVisible({ timeout: 10_000 });
   await faceHit.click({ position: { x: 40, y: 40 } });
   await expect(
-    canvas.locator('[contenteditable="true"], [data-designer-panel-editor]').first(),
+    page.locator('[data-designer-panel-editor="faceActions"]'),
     'a face click after deselect selects the face'
   ).toBeVisible({ timeout: 10_000 });
   await canvas.screenshot({ path: '.playwright/cassette-designer-native-nav.png' });
