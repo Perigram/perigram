@@ -544,9 +544,9 @@ assembly, profile, and face editing share one navigation contract.
 
 Owner direction (2026-11-02, profile management on the canvas): a placed
 profile is a canvas object. Its placed section geometry carries the
-profile hit area, so a click selects the profile and its tree row expands
-carrying the placement fields, the parameter table, and the edit and
-delete actions. Typing a cassette global into a parameter field resolves
+profile hit area, so a click selects the profile and the panel under the
+assembly tree carries the placement fields, the parameter table, and the
+edit and delete actions. Typing a cassette global into a parameter field resolves
 it through the same scope as every other chip. The selected face's details
 carry the Add profile entry with the profile pulse glyph. The palette lists
 profiles as assembly rows;
@@ -631,7 +631,8 @@ under their workpiece, a placed profile nests once under the face its relation
 targets, and every other relation nests under its source workpiece. Selecting
 a face expands its details under the face row — the role, the shape actions,
 Add profile with the profile pulse glyph, and the authored parameter fields;
-selecting a profile or relation expands its placement fields under that row.
+selecting a profile or relation opens its placement fields in one full-width
+panel under the tree, so the tree's indentation never squeezes them.
 New nodes open expanded and keep their state; a collapsed node stays
 collapsed. The face details carry the role and the shape actions alone; child
 face spans stay authored node parameters (`edgeStart`, `defaultLength`). The
