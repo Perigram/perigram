@@ -16,6 +16,7 @@ import SpeedDial from 'primevue/speeddial';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import Toolbar from 'primevue/toolbar';
+import Tree from 'primevue/tree';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
@@ -62,7 +63,7 @@ import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 let surfacePack = null;
 function surfaceComponentPack() {
   surfacePack ||= Object.freeze({
-    Button, Checkbox, ColorPicker, Column, DataTable, Dialog, Divider, InputText, InputNumber, IftaLabel, Message, Popover, ScrollPanel, Select, SelectButton, SpeedDial, Tag, Textarea, Toolbar,
+    Button, Checkbox, ColorPicker, Column, DataTable, Dialog, Divider, InputText, InputNumber, IftaLabel, Message, Popover, ScrollPanel, Select, SelectButton, SpeedDial, Tag, Textarea, Toolbar, Tree,
     DesignerSurface, DesignerWorkspace, DrawingCanvas, TraceChain, InstanceInlineRef, InstanceSelect, StandardDialog
   });
   return surfacePack;

@@ -234,7 +234,7 @@ export default function createSurface({ vue, components, locale, queries, record
   const attachmentDraft = createFieldDraft({ vue });
   const CassetteFoldedPreview = createFoldedPreview({ vue, components, locale });
   const ProfileSketchEditor = createSketchEditor({ vue, components, locale });
-  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, InputNumber, IftaLabel, Divider, Message, Select, Tag, InstanceSelect } = components;
+  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, InputNumber, IftaLabel, Divider, Message, Select, Tag, Tree, InstanceSelect } = components;
 
   return defineComponent({
     name: 'CassetteDesignerV2',
@@ -310,7 +310,7 @@ export default function createSurface({ vue, components, locale, queries, record
         }
       ]);
 
-      const canvasDockItems = computed(() => [
+      const assemblyCanvasDockItems = computed(() => [
         {
           icon: 'pi pi-undo',
           label: t('common.undo'),
@@ -340,6 +340,52 @@ export default function createSurface({ vue, components, locale, queries, record
           onClick: () => drawingCanvasRef.value?.resetView()
         }
       ]);
+
+      const sketchCanvasDockItems = computed(() => [
+        {
+          icon: 'pi pi-undo',
+          label: t('common.undo'),
+          disabled: !sketchEditorRef.value?.canUndo,
+          onClick: () => sketchEditorRef.value?.undo()
+        },
+        {
+          icon: 'pi pi-replay',
+          label: t('common.redo'),
+          disabled: !sketchEditorRef.value?.canRedo,
+          onClick: () => sketchEditorRef.value?.redo()
+        },
+        { separator: true },
+        {
+          icon: 'pi pi-search-minus',
+          label: t('drawing.zoomOut'),
+          onClick: () => sketchEditorRef.value?.zoomOut()
+        },
+        {
+          icon: 'pi pi-search-plus',
+          label: t('drawing.zoomIn'),
+          onClick: () => sketchEditorRef.value?.zoomIn()
+        },
+        {
+          icon: 'pi pi-refresh',
+          label: t('cassette.v2.profileEditor.actions.zoomFit'),
+          onClick: () => sketchEditorRef.value?.zoomFit()
+        },
+        { separator: true },
+        {
+          icon: 'pi pi-upload',
+          label: t('cassette.v2.profileEditor.importDxf'),
+          onClick: () => sketchEditorRef.value?.importDxf()
+        },
+        {
+          icon: 'pi pi-trash',
+          label: t('cassette.v2.profileEditor.actions.clear'),
+          onClick: () => sketchEditorRef.value?.clear()
+        }
+      ]);
+
+      const canvasDockItems = computed(() => (
+        sketchMode.value ? sketchCanvasDockItems.value : assemblyCanvasDockItems.value
+      ));
 
       const drawingLayers = ref([]);
       const visibleLayerNames = ref([]);
@@ -601,8 +647,10 @@ export default function createSurface({ vue, components, locale, queries, record
         }
         return rows;
       });
+      const workpieceRowById = computed(() => new Map(workpieceRows.value.map(row => [row.id, row])));
       const topLevelWorkpieceRows = computed(() => workpieceRows.value.filter(row => (
-        !row.relations.some(relationRow => (
+        !row.isProfile
+        || !row.relations.some(relationRow => (
           relationRow.direction === 'out' && relationRow.relation.targetFaceId
         ))
       )));
@@ -687,11 +735,6 @@ export default function createSurface({ vue, components, locale, queries, record
       // A profile never arranges on a fold edge; faces and open profiles
       // may share every other edge through shard placement.
       const faceEdgeCounts = computed(() => previewSource.value?.faceEdgeCounts || {});
-      const edgeLengthFor = (faceId, edgeLabel = 'E0') => {
-        const match = String(edgeLabel || 'E0').match(/\d+/);
-        const edgeIndex = match ? Math.max(0, Math.round(Number(match[0]))) : 0;
-        return previewSource.value?.faceEdgeLengths?.[faceId]?.[edgeIndex] ?? NaN;
-      };
       const attachableEdgeOptions = (faceId) => cassetteV2AttachableProfileEdgesForTree(
         cassetteTree.value,
         faceId,
@@ -1420,7 +1463,7 @@ export default function createSurface({ vue, components, locale, queries, record
         if (!selectedNode.value) return;
         selectedRelationId.value = '';
         inspectorSelection.value = 'face';
-        openInlineEditor({ type: 'faceActions', nodeId: selectedNode.value.id });
+        inlineEditor.value = { type: 'faceActions', nodeId: selectedNode.value.id };
       };
 
       const openInlineEditor = (editor) => {
@@ -1600,31 +1643,26 @@ export default function createSurface({ vue, components, locale, queries, record
         selectWorkpieceForInspector(workpieceId);
       };
 
-      const selectFaceFromTree = (node) => {
+      const selectFaceById = (nodeId) => {
         closeInlineEditor();
-        selectedNodeId.value = node.id;
+        selectedNodeId.value = nodeId;
         selectedWorkpieceOverrideId.value = '';
+        selectedRelationId.value = '';
         inspectorSelection.value = 'face';
-        openInlineEditor({ type: 'faceActions', nodeId: node.id });
+        inlineEditor.value = { type: 'faceActions', nodeId };
+        expandTreePath(`face:${nodeId}`);
       };
 
-      const selectWorkpieceRelation = (relationId, event = null) => {
+      const selectFaceFromTree = node => selectFaceById(node.id);
+
+      const selectWorkpieceRelation = (relationId) => {
         closeInlineEditor();
         const relation = workpieceRelations.value.find(item => item.id === relationId);
         selectedRelationId.value = relationId;
         if (relation?.sourceWorkpieceId) selectWorkpiece(relation.sourceWorkpieceId);
         inspectorSelection.value = 'attachment';
-        // The inline editor positions relative to the canvas container:
-        // screen coords from panel clicks convert (and clamp) through
-        // the same mapper the canvas path uses.
-        const point = event
-          ? editorPointFromScreen({ x: event.clientX, y: event.clientY, type: 'attachment' })
-          : { x: 120, y: 120 };
-        openInlineEditor({
-          type: 'attachment',
-          relationId,
-          ...point
-        });
+        inlineEditor.value = { type: 'attachment', relationId };
+        expandTreePath(`relation:${relationId}`);
       };
 
       const updateSelectedWorkpieceRelation = (patch) => {
@@ -1713,10 +1751,10 @@ export default function createSurface({ vue, components, locale, queries, record
           parameters
         });
         cassetteTree.value = result.tree;
-        selectedWorkpieceOverrideId.value = result.workpieceId;
-        selectedRelationId.value = getCassetteV2WorkpieceRelations(result.tree)
-          .find(relation => relation.sourceWorkpieceId === result.workpieceId)?.id || '';
-        inspectorSelection.value = 'attachment';
+        const relation = getCassetteV2WorkpieceRelations(result.tree)
+          .find(item => item.sourceWorkpieceId === result.workpieceId);
+        if (relation) selectWorkpieceRelation(relation.id);
+        else selectWorkpieceForInspector(result.workpieceId);
       };
 
       // The hardware library: `hardware` records of the plugin's own
@@ -1983,16 +2021,6 @@ export default function createSurface({ vue, components, locale, queries, record
         loadProfileLibrary();
       };
 
-      const resolvedFaceWidth = (node) => {
-        if (!node) return '';
-        if (node.parameters?.defaultLength !== 'inherit') return node.parameters?.defaultLength ?? '';
-        if (!node.parentId) return '';
-        const length = edgeLengthFor(node.parentId, `E${Math.max(0, Math.round(Number(node.parentEdgeIndex) || 0))}`);
-        if (!Number.isFinite(length)) return '';
-        const start = resolveCassetteV2Expression(node.parameters?.edgeStart, globalParameters.value, 0);
-        return String(Math.round(Math.max(0, length - start) * 1000) / 1000);
-      };
-
       // A face sketch is edited on the same shape canvas as a profile;
       // converting a trapezoid seeds the draft with its current outline.
       const openFaceShapeSketch = async (nodeId) => {
@@ -2174,7 +2202,10 @@ export default function createSurface({ vue, components, locale, queries, record
         });
         cassetteTree.value = added.tree;
         closeProfilePicker();
-        selectWorkpiece(added.workpieceId);
+        const relation = getCassetteV2WorkpieceRelations(added.tree)
+          .find(item => item.sourceWorkpieceId === added.workpieceId);
+        if (relation) selectWorkpieceRelation(relation.id);
+        else selectWorkpiece(added.workpieceId);
       };
 
       const saveProfileDraftToLibrary = async ({ asNew = false } = {}) => {
@@ -2451,15 +2482,7 @@ export default function createSurface({ vue, components, locale, queries, record
         });
         if (!result.relationId) return;
         cassetteTree.value = result.tree;
-        selectedRelationId.value = result.relationId;
-        selectWorkpiece(workpieceId);
-        inspectorSelection.value = 'attachment';
-        openInlineEditor({
-          type: 'attachment',
-          relationId: result.relationId,
-          x: 120,
-          y: 120
-        });
+        selectWorkpieceRelation(result.relationId);
       };
 
       // The add-attachment control opens a workpiece→face picker (owner
@@ -2497,9 +2520,7 @@ export default function createSurface({ vue, components, locale, queries, record
           notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.edgeFull'), life: 3000 });
           return;
         }
-        selectedNodeId.value = result.nodeId;
-        selectedWorkpieceOverrideId.value = '';
-        inspectorSelection.value = 'face';
+        selectFaceById(result.nodeId);
       };
 
       const handleDesignerAction = ({ edge, edgeIndex }) => {
@@ -2515,12 +2536,7 @@ export default function createSurface({ vue, components, locale, queries, record
         if (!face?.nodeId && face?.nodeId !== '') return;
         if (inspectorSelection.value === 'attachment' && selectedWorkpieceRelation.value) {
           if (attachmentSourceKind(selectedWorkpieceRelation.value) === 'profile') {
-            closeInlineEditor();
-            selectedRelationId.value = '';
-            selectedNodeId.value = face.nodeId;
-            selectedWorkpieceOverrideId.value = '';
-            inspectorSelection.value = 'face';
-            openInlineEditor({ type: 'faceActions', nodeId: face.nodeId });
+            selectFaceById(face.nodeId);
             return;
           }
           if (face.workpieceId === selectedWorkpieceRelation.value.sourceWorkpieceId) {
@@ -2531,21 +2547,13 @@ export default function createSurface({ vue, components, locale, queries, record
           return;
         }
         if (face.workpieceId && face.workpieceId !== selectedWorkpieceId.value) return;
-        closeInlineEditor();
-        selectedNodeId.value = face.nodeId;
-        selectedWorkpieceOverrideId.value = '';
-        selectedRelationId.value = '';
-        inspectorSelection.value = 'face';
-        openInlineEditor({ type: 'faceActions', nodeId: face.nodeId });
+        selectFaceById(face.nodeId);
       };
 
-      const handleDesignerProfileSelect = ({ profile, clientX, clientY } = {}) => {
+      const handleDesignerProfileSelect = ({ profile } = {}) => {
         if (!profile?.workpieceId) return;
         if (profile.relationId) {
-          const point = Number.isFinite(clientX) && Number.isFinite(clientY)
-            ? { clientX, clientY }
-            : null;
-          selectWorkpieceRelation(profile.relationId, point);
+          selectWorkpieceRelation(profile.relationId);
           return;
         }
         selectWorkpieceForInspector(profile.workpieceId);
@@ -2790,10 +2798,12 @@ export default function createSurface({ vue, components, locale, queries, record
             ])
           : null,
         h('div', { class: 'flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto' }, [
-          renderGlobalParameters(),
-          sketchMode.value
-            ? h('div', { ref: sketchToolsHost, class: 'flex flex-col gap-1' })
-            : renderLayerRows()
+          sketchMode.value ? null : renderGlobalParameters(),
+          h('div', {
+            ref: sketchToolsHost,
+            class: sketchMode.value ? 'flex flex-col gap-1' : 'hidden'
+          }),
+          sketchMode.value ? null : renderLayerRows()
         ])
       ]);
 
@@ -2803,7 +2813,6 @@ export default function createSurface({ vue, components, locale, queries, record
         let body;
         if (editor.type === 'faceActions') {
           const node = inlineEditorNode.value;
-          const profiles = faceRelationRows(editor.nodeId);
           body = h('div', { class: 'flex flex-col gap-1' }, [
             h('div', {
               class: panel ? 'flex items-center gap-1' : 'flex cursor-move items-center gap-1',
@@ -2855,7 +2864,7 @@ export default function createSurface({ vue, components, locale, queries, record
                   })
                 : null,
               h(Button, {
-                icon: 'pi pi-plus',
+                icon: 'pi pi-wave-pulse',
                 severity: 'secondary',
                 text: true,
                 rounded: true,
@@ -2866,9 +2875,6 @@ export default function createSurface({ vue, components, locale, queries, record
                 onClick: event => openProfilePicker(event)
               })
             ]),
-            h(Divider),
-            renderFaceSketchControls(editor.nodeId),
-            ...profiles.map(relationRow => renderFaceProfileRow(relationRow)),
             node?.sketch && faceParameterRow(node).boundParameterKeys.size
               ? h('div', null, [
                   h(Divider),
@@ -2880,7 +2886,7 @@ export default function createSurface({ vue, components, locale, queries, record
           // Per-kind field sets (attachmentSourceKind owns the mapping):
           // workpiece attachments edit symmetric host/self sections —
           // face, side, basis snap, and both offsets per section — with
-          // no mirror, driver, or delete (the panel row owns removal).
+          // no mirror, driver, or delete (the relation row owns removal).
           const kind = attachmentSourceKind(relation);
           const profileRow = kind === 'profile'
             ? workpieceRowById.value.get(relation.sourceWorkpieceId)
@@ -3558,17 +3564,6 @@ export default function createSurface({ vue, components, locale, queries, record
         }, [renderInlineEditorBody(editor)]);
       };
 
-      const renderPanelEditor = () => {
-        const editor = inlineEditor.value;
-        if (!editor || !['faceActions', 'attachment'].includes(editor.type)) return null;
-        return h('div', {
-          class: 'min-w-0 shrink-0 overflow-y-auto rounded-ui border border-content-border bg-content p-2',
-          'data-designer-panel-editor': editor.type
-        }, [renderInlineEditorBody(editor, { panel: true })]);
-      };
-
-      const workpieceRowById = computed(() => new Map(workpieceRows.value.map(row => [row.id, row])));
-
       const workpieceTypeIcon = (row) => h('i', {
         class: ['shrink-0 text-sm', row.isProfile
           ? 'pi pi-wave-pulse'
@@ -3608,8 +3603,8 @@ export default function createSurface({ vue, components, locale, queries, record
       );
 
       const workpieceDetailBlocks = (row) => [
-        row.id === selectedWorkpieceId.value && row.isHardware
-          ? h('div', { class: 'mt-2 flex flex-col gap-2 pl-4' }, [
+        inspectorSelection.value === 'workpiece' && row.id === selectedWorkpieceId.value && row.isHardware
+          ? h('div', { class: 'mt-1 flex flex-col gap-2' }, [
               h('div', { class: 'grid grid-cols-2 gap-2' }, [
                 h(Select, {
                   modelValue: row.family,
@@ -3667,145 +3662,103 @@ export default function createSurface({ vue, components, locale, queries, record
           })
         : null;
 
-      const plainRelationRow = (row, relationRow) => h('div', {
-        key: `${row.id}-${relationRow.relation.id}-${relationRow.direction}`,
-        class: 'flex min-w-0 items-start gap-1'
-      }, [
-        h('button', {
-          type: 'button',
-          class: ['flex min-w-0 flex-1 flex-col gap-0.5 rounded-ui border px-2 py-1 text-left', relationRow.relation.id === selectedRelationId.value ? 'border-primary bg-subtle' : 'border-content-border'],
-          onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
-        }, [
-          h('div', { class: 'flex min-w-0 items-center gap-2' }, [
-            h('i', { class: 'pi pi-link shrink-0 text-xs text-muted', 'aria-hidden': 'true' }),
-            h('span', { class: 'truncate text-body' }, relationRow.otherLabel),
-            attachmentStatusIcon(relationRow.relation.id, relationRow.status)
-          ]),
-          relationRow.crumbs.length
-            ? h('small', { class: 'truncate text-muted' }, relationRow.crumbs.join('  ›  '))
-            : null
-        ]),
-        !workpieceRowById.value.get(relationRow.relation.sourceWorkpieceId)?.isProfile
-          ? h('div', { class: 'flex shrink-0 items-start gap-0' }, [
-              h(Button, {
-                icon: 'pi pi-sliders-h',
-                severity: 'secondary',
-                text: true,
-                rounded: true,
-                size: 'small',
-                class: 'mt-0.5 shrink-0',
-                'aria-label': t('cassette.v2.attachmentPosition'),
-                title: t('cassette.v2.attachmentPosition'),
-                onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
-              }),
-              h(Button, {
-                icon: 'pi pi-trash',
-                severity: 'danger',
-                text: true,
-                rounded: true,
-                size: 'small',
-                class: 'mt-0.5 shrink-0',
-                'aria-label': t('cassette.v2.removeAttachment'),
-                title: t('cassette.v2.removeAttachment'),
-                onClick: () => deleteWorkpieceRelation(relationRow.relation.id)
-              })
-            ])
-          : null
-      ]);
-
+      // The assembly tree's node model: a placed profile renders once under
+      // the face its relation targets; every other relation renders under
+      // its source workpiece (owner decision 2026-10-17).
       const faceRelationRows = (faceId) => workpieceRelations.value
         .filter(relation => relation.targetFaceId === faceId)
         .map(relation => relationRowById.value.get(relation.id))
-        .filter(Boolean);
+        .filter(Boolean)
+        .filter(relationRow => workpieceRowById.value.get(relationRow.relation.sourceWorkpieceId)?.isProfile);
 
-      const renderFaceProfileRow = (relationRow) => {
-        const dependent = workpieceRowById.value.get(relationRow.relation.sourceWorkpieceId);
-        if (!dependent) return null;
-        const selected = dependent.id === selectedWorkpieceId.value;
-        return h('div', {
-          key: `face-profile-${relationRow.relation.id}`,
-          class: [
-            'flex min-w-0 items-center gap-1 rounded-ui border px-1.5 py-1',
-            selected ? 'border-primary bg-subtle' : 'border-content-border'
-          ]
-        }, [
-          h('button', {
-            type: 'button',
-            class: 'flex min-w-0 flex-1 items-center gap-1 text-left',
-            onClick: () => selectWorkpieceRelation(relationRow.relation.id)
-          }, [
-            workpieceTypeIcon(dependent),
-            h('span', { class: 'truncate' }, dependent.label),
-            attachmentStatusIcon(relationRow.relation.id, relationRow.status)
-          ]),
-          dependent.isProfile
-            ? h(Button, {
-                icon: 'pi pi-pencil',
-                severity: 'secondary',
-                text: true,
-                rounded: true,
-                size: 'small',
-                'aria-label': t('cassette.v2.editProfile'),
-                title: t('cassette.v2.editProfile'),
-                onClick: () => openProfileSketch(dependent.id)
-              })
-            : null,
-          h(Button, {
-            icon: 'pi pi-trash',
-            severity: 'danger',
-            text: true,
-            rounded: true,
-            size: 'small',
-            'aria-label': t('cassette.v2.deleteWorkpiece'),
-            title: t('cassette.v2.deleteWorkpiece'),
-            onClick: () => deleteWorkpiece(dependent.id)
-          })
-        ]);
+      const relationTreeNode = (relationRow) => {
+        const sourceRow = workpieceRowById.value.get(relationRow.relation.sourceWorkpieceId);
+        return {
+          key: `relation:${relationRow.relation.id}`,
+          label: sourceRow?.isProfile ? sourceRow.label : relationRow.otherLabel,
+          data: { kind: 'relation', relationRow },
+          leaf: true
+        };
       };
 
-      const renderFaceTreeNode = (node, depth = 1) => {
-        const selected = inspectorSelection.value === 'face' && selectedNodeId.value === node.id;
-        const children = treeNodes.value.filter(item => item.parentId === node.id);
-        return [
+      const faceTreeNode = (node) => ({
+        key: `face:${node.id}`,
+        label: defaultFaceRole(node).replace(/_/g, ' '),
+        data: { kind: 'face', node },
+        children: [
+          ...treeNodes.value.filter(item => item.parentId === node.id).map(faceTreeNode),
+          ...faceRelationRows(node.id).map(relationTreeNode)
+        ]
+      });
+
+      const workpieceTreeNode = (row) => ({
+        key: `workpiece:${row.id}`,
+        label: row.label,
+        data: { kind: 'workpiece', row },
+        children: [
+          ...treeNodes.value.filter(node => node.workpieceId === row.id && !node.parentId).map(faceTreeNode),
+          ...row.relations.filter(relationRow => relationRow.direction === 'out').map(relationTreeNode)
+        ]
+      });
+
+      const cassetteTreeNodes = computed(() => topLevelWorkpieceRows.value.map(workpieceTreeNode));
+
+      // New nodes open expanded; a collapsed node keeps its state across
+      // re-renders, and removed nodes drop their key.
+      const expandedTreeKeys = ref({});
+      const knownTreeKeys = new Set();
+      const flattenTreeKeys = (nodes, into = []) => {
+        for (const node of nodes) {
+          into.push(node.key);
+          if (node.children?.length) flattenTreeKeys(node.children, into);
+        }
+        return into;
+      };
+      watch(cassetteTreeNodes, (nodes) => {
+        const keys = new Set(flattenTreeKeys(nodes));
+        const previous = expandedTreeKeys.value;
+        const next = {};
+        for (const key of keys) {
+          if (knownTreeKeys.has(key)) {
+            if (previous[key]) next[key] = true;
+          } else {
+            knownTreeKeys.add(key);
+            next[key] = true;
+          }
+        }
+        expandedTreeKeys.value = next;
+      }, { immediate: true });
+
+      const expandTreePath = (key) => {
+        const next = { ...expandedTreeKeys.value };
+        const walk = (nodes, trail) => {
+          for (const node of nodes) {
+            if (node.key === key) {
+              for (const ancestor of trail) next[ancestor.key] = true;
+              next[key] = true;
+              return true;
+            }
+            if (node.children?.length && walk(node.children, [...trail, node])) return true;
+          }
+          return false;
+        };
+        if (walk(cassetteTreeNodes.value, [])) expandedTreeKeys.value = next;
+      };
+
+      const stopNodeClick = event => event.stopPropagation();
+
+      const workpieceTreeLabel = (row) => {
+        const selected = inspectorSelection.value === 'workpiece' && row.id === selectedWorkpieceId.value;
+        return h('div', { class: 'flex min-w-0 flex-1 flex-col gap-1' }, [
           h('div', {
-            key: `face-${node.id}`,
-            style: { paddingLeft: `${depth * 0.75}rem` },
-            class: 'flex min-w-0 flex-col gap-1'
+            class: ['flex min-w-0 items-center gap-2 rounded-ui border px-1.5 py-1',
+              selected ? 'border-primary bg-subtle' : 'border-transparent']
           }, [
-            h('button', {
-              type: 'button',
-              class: ['flex min-w-0 items-center gap-2 rounded-ui border px-2 py-1 text-left', selected ? 'border-primary bg-subtle' : 'border-transparent'],
-              onClick: () => selectFaceFromTree(node)
-            }, [
-              h('i', { class: 'pi pi-stop shrink-0 text-xs text-muted', 'aria-hidden': 'true' }),
-              h('span', { class: 'min-w-0 flex-1 truncate text-body' }, defaultFaceRole(node).replace(/_/g, ' '))
-            ])
-          ]),
-          ...children.flatMap(child => renderFaceTreeNode(child, depth + 1))
-        ];
-      };
-
-      const renderWorkpieceTreeNode = (row) => {
-        const rootFaces = treeNodes.value.filter(node => node.workpieceId === row.id && !node.parentId);
-        const unplacedRelations = row.relations.filter(relationRow => !relationRow.relation.targetFaceId);
-        return h('div', {
-          key: row.id,
-          class: 'border-b border-content-border p-2 last:border-b-0'
-        }, [
-          h('div', { class: 'flex min-w-0 items-center gap-2' }, [
-            h('button', {
-              type: 'button',
-              class: ['flex min-w-0 flex-1 items-center gap-2 rounded-ui border border-transparent px-2 py-1 text-left', row.id === selectedWorkpieceId.value ? 'border-primary bg-subtle' : ''].filter(Boolean).join(' '),
-              onClick: () => (row.isProfile
-                ? selectProfileWorkpiece(row.id)
-                : selectWorkpieceForInspector(row.id))
-            }, [
-              workpieceTypeIcon(row),
-              h('span', { class: 'truncate' }, row.label),
-              row.parentCount > 1 ? h(Tag, { value: `×${row.parentCount}`, severity: 'secondary', size: 'small' }) : null
-            ]),
-            row.id === selectedWorkpieceId.value
-              ? h('div', { class: 'flex shrink-0 items-center' }, [
+            workpieceTypeIcon(row),
+            h('span', { class: 'min-w-0 flex-1 truncate' }, row.label),
+            row.parentCount > 1 ? h(Tag, { value: `×${row.parentCount}`, severity: 'secondary', size: 'small' }) : null,
+            selected
+              ? h('div', { class: 'flex shrink-0 items-center', onClick: stopNodeClick }, [
                   h(Button, {
                     icon: 'pi pi-plus',
                     severity: 'secondary',
@@ -3842,60 +3795,108 @@ export default function createSurface({ vue, components, locale, queries, record
                 ])
               : null
           ]),
-          ...workpieceDetailBlocks(row),
-          ...rootFaces.flatMap(node => renderFaceTreeNode(node, 1)),
-          ...unplacedRelations.map(relationRow => plainRelationRow(row, relationRow))
+          ...workpieceDetailBlocks(row)
         ]);
       };
 
-      const updateFaceSketchParameter = (nodeId, key, value) => {
-        updateFaceParameter(nodeId, key, value);
-        if (nodeId === editingFaceNodeId.value) loadSketchContext('face', nodeId);
-      };
-
-      const renderFaceSketchControls = (nodeId = editingFaceNodeId.value) => {
-        const node = treeNodes.value.find(item => item.id === nodeId);
-        if (!node) return null;
-        const fillId = `face-fill-sketch-${node.id}`;
-        return h('div', { class: 'flex flex-col gap-2' }, [
-          h('div', { class: 'flex items-center gap-2' }, [
-            h(Checkbox, {
-              modelValue: node.parameters?.defaultLength === 'inherit',
-              binary: true,
-              inputId: fillId,
-              size: 'small',
-              'onUpdate:modelValue': value => updateFaceSketchParameter(
-                node.id,
-                'defaultLength',
-                value ? 'inherit' : resolvedFaceWidth(node)
-              )
-            }),
-            h('label', { for: fillId, class: 'min-w-0 flex-1 truncate text-label' }, t('cassette.v2.fields.fillEdge'))
+      const faceTreeLabel = (node) => {
+        const selected = inspectorSelection.value === 'face' && selectedNodeId.value === node.id;
+        const details = selected && inlineEditor.value?.type === 'faceActions' && inlineEditor.value.nodeId === node.id
+          ? h('div', {
+              class: 'mt-1.5 border-t border-content-border pt-1.5',
+              'data-designer-panel-editor': 'faceActions',
+              onClick: stopNodeClick
+            }, [renderInlineEditorBody(inlineEditor.value, { panel: true })])
+          : null;
+        return h('div', { class: 'flex min-w-0 flex-1 flex-col gap-1' }, [
+          h('div', {
+            class: ['flex min-w-0 items-center gap-2 rounded-ui border px-1.5 py-1',
+              selected ? 'border-primary bg-subtle' : 'border-transparent']
+          }, [
+            h('i', { class: 'pi pi-stop shrink-0 text-xs text-muted', 'aria-hidden': 'true' }),
+            h('span', { class: 'min-w-0 flex-1 truncate' }, defaultFaceRole(node).replace(/_/g, ' '))
           ]),
-          node.parameters?.defaultLength !== 'inherit'
-            ? h('div', { class: 'flex flex-col gap-1 text-muted text-label' }, [
-                h('span', { class: 'truncate' }, t('cassette.v2.fields.faceWidth')),
-                h(CassetteExpressionEditor, {
-                  modelValue: node.parameters?.defaultLength ?? '0',
-                  parameters: globalParameters.value,
-                  parameterNames: globalParameterNames.value,
-                  'onUpdate:modelValue': value => updateFaceSketchParameter(node.id, 'defaultLength', value)
-                })
-              ])
-            : null,
-          node.parentId
-            ? h('div', { class: 'flex flex-col gap-1 text-muted text-label' }, [
-                h('span', { class: 'truncate' }, t('cassette.v2.fields.edgeStart')),
-                h(CassetteExpressionEditor, {
-                  modelValue: node.parameters?.edgeStart ?? '0',
-                  parameters: globalParameters.value,
-                  parameterNames: globalParameterNames.value,
-                  'onUpdate:modelValue': value => updateFaceSketchParameter(node.id, 'edgeStart', value)
-                })
-              ])
-            : null
+          details
         ]);
       };
+
+      const relationTreeLabel = (relationRow) => {
+        const relationId = relationRow.relation.id;
+        const sourceRow = workpieceRowById.value.get(relationRow.relation.sourceWorkpieceId);
+        const selected = inspectorSelection.value === 'attachment' && selectedRelationId.value === relationId;
+        const details = selected && inlineEditor.value?.type === 'attachment' && inlineEditor.value.relationId === relationId
+          ? h('div', {
+              class: 'mt-1.5',
+              'data-designer-panel-editor': 'attachment',
+              onClick: stopNodeClick
+            }, [renderInlineEditorBody(inlineEditor.value, { panel: true })])
+          : null;
+        return h('div', { class: 'flex min-w-0 flex-1 flex-col gap-1' }, [
+          h('div', {
+            class: ['flex min-w-0 items-center gap-2 rounded-ui border px-1.5 py-1',
+              selected ? 'border-primary bg-subtle' : 'border-transparent']
+          }, [
+            sourceRow?.isProfile ? workpieceTypeIcon(sourceRow) : h('i', { class: 'pi pi-link shrink-0 text-xs text-muted', 'aria-hidden': 'true' }),
+            h('span', { class: 'min-w-0 flex-1 truncate' }, sourceRow?.isProfile ? sourceRow.label : relationRow.otherLabel),
+            attachmentStatusIcon(relationId, relationRow.status),
+            selected && !sourceRow?.isProfile
+              ? h(Button, {
+                  icon: 'pi pi-trash',
+                  severity: 'danger',
+                  text: true,
+                  rounded: true,
+                  size: 'small',
+                  class: 'shrink-0',
+                  'aria-label': t('cassette.v2.removeAttachment'),
+                  title: t('cassette.v2.removeAttachment'),
+                  onClick: event => {
+                    event.stopPropagation();
+                    deleteWorkpieceRelation(relationId);
+                  }
+                })
+              : null
+          ]),
+          !sourceRow?.isProfile && relationRow.crumbs.length
+            ? h('small', { class: 'truncate text-muted' }, relationRow.crumbs.join('  ›  '))
+            : null,
+          details
+        ]);
+      };
+
+      const handleCassetteTreeClick = ({ node }) => {
+        const data = node.data || {};
+        if (data.kind === 'workpiece') {
+          if (data.row.isProfile) selectProfileWorkpiece(data.row.id);
+          else selectWorkpieceForInspector(data.row.id);
+        } else if (data.kind === 'face') {
+          selectFaceById(data.node.id);
+        } else if (data.kind === 'relation') {
+          selectWorkpieceRelation(data.relationRow.relation.id);
+        }
+      };
+
+      const renderCassetteTreeNode = (node) => {
+        const data = node.data || {};
+        if (data.kind === 'workpiece') return workpieceTreeLabel(data.row);
+        if (data.kind === 'face') return faceTreeLabel(data.node);
+        if (data.kind === 'relation') return relationTreeLabel(data.relationRow);
+        return h('span', { class: 'truncate' }, node.label);
+      };
+
+      const renderCassetteTree = () => h(Tree, {
+        value: cassetteTreeNodes.value,
+        expandedKeys: expandedTreeKeys.value,
+        'onUpdate:expandedKeys': keys => { expandedTreeKeys.value = keys; },
+        class: 'w-full p-0',
+        'aria-label': t('cassette.v2.workpieces'),
+        pt: {
+          nodeContent: { class: 'min-w-0' },
+          nodeLabel: { class: 'min-w-0 flex-1' }
+        },
+        onNodeClick: handleCassetteTreeClick
+      }, {
+        default: ({ node }) => renderCassetteTreeNode(node)
+      });
 
       const renderSketchInspector = () => {
         if (!sketchMode.value || !sketchEditorMounted.value) return null;
@@ -4008,28 +4009,30 @@ export default function createSurface({ vue, components, locale, queries, record
                   size: 'small',
                   class: 'w-full'
                 }),
-                h(Select, {
-                  modelValue: profileDraft.value.kind,
-                  options: profileKindOptions.value,
-                  optionLabel: 'label',
-                  optionValue: 'value',
-                  appendTo: 'self',
-                  size: 'small',
-                  class: 'w-full',
-                  'aria-label': t('cassette.v2.profileEditor.kind'),
-                  'onUpdate:modelValue': value => { profileDraft.value.kind = value; }
-                }),
-                h(Select, {
-                  modelValue: profileDraft.value.process,
-                  options: profileProcessOptions.value,
-                  optionLabel: 'label',
-                  optionValue: 'value',
-                  appendTo: 'self',
-                  size: 'small',
-                  class: 'w-full',
-                  'aria-label': t('cassette.v2.profileEditor.process'),
-                  'onUpdate:modelValue': value => { profileDraft.value.process = value; }
-                }),
+                h('div', { class: 'grid grid-cols-2 gap-2' }, [
+                  h(Select, {
+                    modelValue: profileDraft.value.kind,
+                    options: profileKindOptions.value,
+                    optionLabel: 'label',
+                    optionValue: 'value',
+                    appendTo: 'self',
+                    size: 'small',
+                    class: 'w-full',
+                    'aria-label': t('cassette.v2.profileEditor.kind'),
+                    'onUpdate:modelValue': value => { profileDraft.value.kind = value; }
+                  }),
+                  h(Select, {
+                    modelValue: profileDraft.value.process,
+                    options: profileProcessOptions.value,
+                    optionLabel: 'label',
+                    optionValue: 'value',
+                    appendTo: 'self',
+                    size: 'small',
+                    class: 'w-full',
+                    'aria-label': t('cassette.v2.profileEditor.process'),
+                    'onUpdate:modelValue': value => { profileDraft.value.process = value; }
+                  })
+                ]),
                 profileLibraryAvailable.value
                   ? h(InstanceSelect, {
                     modelValue: null,
@@ -4045,7 +4048,6 @@ export default function createSurface({ vue, components, locale, queries, record
                   })
                   : null
               ]),
-          face ? renderFaceSketchControls() : null,
           error
             ? h(Message, { severity: 'warn', size: 'small', closable: false }, () => error)
             : null
@@ -4111,7 +4113,6 @@ export default function createSurface({ vue, components, locale, queries, record
             ? 'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto'
             : 'hidden'
         }),
-        sketchMode.value ? null : renderPanelEditor(),
         sketchMode.value ? null : h('div', { class: 'flex flex-col gap-2' }, [
           h('div', { class: 'flex items-center justify-between gap-2' }, [
             h('strong', { class: 'truncate' }, t('cassette.v2.workpieces')),
@@ -4129,9 +4130,7 @@ export default function createSurface({ vue, components, locale, queries, record
               })
             ])
           ]),
-          h('div', { class: 'flex flex-col rounded-ui border border-content-border' },
-            topLevelWorkpieceRows.value.map(row => renderWorkpieceTreeNode(row))
-          )
+          renderCassetteTree()
         ]),
         sketchMode.value ? null : h('div', { class: 'h-48 shrink-0 overflow-hidden' }, [
           foldedPreviewMount({ expandable: true })
@@ -4243,7 +4242,7 @@ export default function createSurface({ vue, components, locale, queries, record
           layout: 'lanes',
           class: 'min-h-0 flex-1',
           documentItems: sketchMode.value ? [] : documentDockItems.value,
-          canvasItems: sketchMode.value ? [] : canvasDockItems.value
+          canvasItems: canvasDockItems.value
         }, {
           palette: renderPalette,
           inspector: renderInspector,

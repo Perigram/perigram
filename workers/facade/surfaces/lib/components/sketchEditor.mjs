@@ -40,7 +40,7 @@ const SHAPE_KIND_LABEL = {
 export default function createSketchEditor({ vue, components, locale }) {
   const { h, ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent, Teleport } = vue;
   const t = locale.t;
-  const { Button, InputText, Message, Toolbar, SelectButton, Tag } = components;
+  const { Button, InputText, Message, SelectButton, Tag } = components;
 
   return defineComponent({
     name: 'ProfileSketchEditor',
@@ -118,7 +118,6 @@ export default function createSketchEditor({ vue, components, locale }) {
       let lastEmitted = '';
       let lastAnnotationFingerprint = '';
       let disposed = false;
-      let zoomObserver = null;
       let seeding = false;
       let programmaticSelection = false;
       let pendingDimensionPick = null;
@@ -838,7 +837,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         else undoSketch();
       };
 
-      // Toolbar and field focus sits in the host page, outside the frame:
+      // Panel and field focus sits in the host page, outside the frame:
       // the same Escape/undo routing runs there for the dialog's scope.
       const handleParentKeydown = (event) => {
         if (!props.active || !ownsKeyboardTarget(event.target) || isEditableTarget(event.target)) return;
@@ -858,19 +857,12 @@ export default function createSketchEditor({ vue, components, locale }) {
           { command: 'rectang', icon: 'rectang', labelKey: 'cassette.v2.profileEditor.tools.rectangle' }
         ],
         [
-          { command: 'erase', icon: 'erase', labelKey: 'cassette.v2.profileEditor.actions.erase' },
-          { icon: 'undo', labelKey: 'cassette.v2.profileEditor.actions.undo', onActivate: () => undoSketch(), isDisabled: () => !canUndoSketch() },
-          { icon: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo', onActivate: () => redoSketch(), isDisabled: () => !canRedoSketch() }
+          { command: 'erase', icon: 'erase', labelKey: 'cassette.v2.profileEditor.actions.erase' }
         ],
         [
           { icon: 'ortho', labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
           { icon: 'tangentSnap', labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
           { icon: 'commandLine', labelKey: 'cassette.v2.profileEditor.actions.commandLine', isOn: () => commandLine.value, onActivate: toggleCommandLine }
-        ],
-        [
-          { icon: 'zoomFit', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => host?.zoomFit(fitExcludeLayers()) },
-          { icon: 'importDxf', labelKey: 'cassette.v2.profileEditor.importDxf', onActivate: () => fileInputRef.value?.click() },
-          { icon: 'clear', labelKey: 'cassette.v2.profileEditor.actions.clear', onActivate: () => clearDrawing() }
         ]
       ];
 
@@ -1167,6 +1159,17 @@ export default function createSketchEditor({ vue, components, locale }) {
         syncAnnotations(sketch);
       };
 
+      const zoomBy = (factor) => {
+        const view = host?.cad?.view;
+        if (!view) return;
+        view.zoomAt(view.w / 2, view.h / 2, factor);
+      };
+      const zoomIn = () => zoomBy(0.8);
+      const zoomOut = () => zoomBy(1.25);
+      const zoomFit = () => host?.zoomFit(fitExcludeLayers());
+      const importDxf = () => fileInputRef.value?.click();
+      const clear = () => clearDrawing();
+
       const reseedFromModel = ({ force = false } = {}) => {
         if (!host || disposed) return;
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
@@ -1196,8 +1199,8 @@ export default function createSketchEditor({ vue, components, locale }) {
       };
 
       // The frame owns the active-tool state: commands started from the
-      // toolbar, the queue, or the canvas announce themselves through
-      // its command hook, and the toolbar only reflects them.
+      // tools palette, the queue, or the canvas announce themselves
+      // through its command hook, and the palette only reflects them.
       const DRAW_COMMANDS = new Set(['line', 'pline', 'circle', 'arc', 'rectang']);
       const bindCommandEvents = () => {
         if (!host) return;
@@ -1781,26 +1784,27 @@ export default function createSketchEditor({ vue, components, locale }) {
         ]);
       };
 
-      // Icon-only toolbar buttons: the active tool or an armed toggle reads
-      // primary; tooltips and aria-labels carry the localized names.
-      const renderToolGroupButtons = (fromGroup, toGroup) => TOOL_GROUPS.slice(fromGroup, toGroup).flatMap((group, groupIndex) => [
-        ...(groupIndex > 0 ? [h('span', { class: 'mx-0.5 h-4 w-px shrink-0 bg-content-border' })] : []),
-        ...group.map(tool => h(Button, {
+      // Icon-only tool buttons: the active tool or an armed toggle reads
+      // primary; tooltips and aria-labels carry the localized names. Each
+      // tool group is its own palette row.
+      const renderToolGroupRow = (group) => h('div', { class: 'flex flex-wrap items-center gap-1' },
+        group.map(tool => h(Button, {
           key: tool.labelKey,
           severity: (tool.command && activeTool.value === tool.command) || tool.isOn?.() ? 'primary' : 'secondary',
           text: true,
           rounded: true,
-          disabled: tool.isDisabled?.() || false,
           'aria-label': t(tool.labelKey),
           title: t(tool.labelKey),
           onClick: () => runCommand(tool)
-        }, () => [toolIcon(h, tool.icon)]))
-      ]);
+        }, () => [toolIcon(h, tool.icon)])));
 
       const renderToolPanel = () => h('div', {
-        class: 'flex flex-wrap items-center gap-1',
-        'aria-label': t('cassette.v2.profileEditor.preview')
-      }, renderToolGroupButtons(0, 4));
+        class: 'flex flex-col items-start gap-1.5',
+        'aria-label': t('cassette.v2.profileEditor.title')
+      }, TOOL_GROUPS.flatMap((group, groupIndex) => [
+        ...(groupIndex > 0 ? [h('span', { class: 'h-px w-full bg-content-border' })] : []),
+        renderToolGroupRow(group)
+      ]));
 
       const handleDxfUpload = async (event) => {
         const [file] = Array.from(event.target.files || []);
@@ -2008,12 +2012,21 @@ export default function createSketchEditor({ vue, components, locale }) {
         extractTimer = null;
         if (outlineTimer) clearTimeout(outlineTimer);
         outlineTimer = null;
-        zoomObserver?.disconnect?.();
-        zoomObserver = null;
         disposeHost();
       });
 
-      expose({ releaseHost });
+      expose({
+        releaseHost,
+        undo: undoSketch,
+        redo: redoSketch,
+        canUndo: computed(() => canUndoSketch()),
+        canRedo: computed(() => canRedoSketch()),
+        zoomIn,
+        zoomOut,
+        zoomFit,
+        importDxf,
+        clear
+      });
 
       return () => h('div', {
         ref: rootRef,
@@ -2043,16 +2056,6 @@ export default function createSketchEditor({ vue, components, locale }) {
           'aria-label': t('cassette.v2.profileEditor.preview'),
           'data-cadcraft-ready': canvasReady.value ? 'true' : undefined
         }, [
-          props.active && props.toolsTarget
-            ? null
-            : h(Toolbar, {
-                class: 'pointer-events-auto absolute top-14 z-20 max-w-[calc(100%-1rem)] gap-1 overflow-x-auto p-1 shadow-card',
-                style: { left: 'calc(var(--designer-palette-width, 17rem) + 1rem)' },
-                'aria-label': t('cassette.v2.profileEditor.preview')
-              }, {
-                start: () => renderToolGroupButtons(0, 2),
-                end: () => renderToolGroupButtons(2, 4)
-              }),
           renderDimensionEditor(),
           renderVertexPopup(),
           engineError.value
