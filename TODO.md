@@ -4094,6 +4094,18 @@ icons, label fill). A relation's settings render in one full-width panel under
 the tree — placement grids and parameter tables are wide, and the tree's
 indentation squeezed them inside the node.
 
+### Agent Notes (2026-11-05, tree density and adaptive settings grids)
+
+Session `agent/cassette-settings-fit-20261105` (worktree
+`.agent-worktrees/cassette-settings-fit-20261105`). The tree token block now
+carries the full explorer density: `0.75rem` indent, `0.125rem 0.25rem` node
+padding, `1.5rem` toggle. The attachment body (both kinds), the hardware
+detail grids and the parameter grids ride auto-fitting tracks
+(`repeat(auto-fit,minmax(...))` with `col-span-full` for full-row controls), so
+a narrow rail renders one readable column and a wider host fills more; the
+fixed two-column layout overflowed and cramped the placement fields. The
+hardware dialog keeps its fixed columns — its host is a wide dialog.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the

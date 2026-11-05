@@ -639,7 +639,10 @@ targets, and every other relation nests under its source workpiece. Selecting
 a face expands its details under the face row — the role, the shape actions,
 Add profile with the profile pulse glyph, and the authored parameter fields;
 selecting a profile or relation opens its placement fields in one full-width
-panel under the tree, so the tree's indentation never squeezes them.
+panel under the tree, so the tree's indentation never squeezes them. Settings
+grids auto-fit their host: tracks keep a readable field width, so a narrow
+rail renders one column and a wider host fills more; full-row controls span
+the track count.
 New nodes open expanded and keep their state; a collapsed node stays
 collapsed. The face details carry the role and the shape actions alone; child
 face spans stay authored node parameters (`edgeStart`, `defaultLength`). The

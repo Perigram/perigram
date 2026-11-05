@@ -63,7 +63,7 @@ Parent: [assets](../README.md).
   | Embedded paginators (table, tree-table, view — top and bottom) | separator borders dropped |
   | Cards | shadow dropped |
   | Tab strips | transparent |
-  | Tree rows | explorer density |
+  | Tree rows | explorer density — transparent, zero root padding, `0.75rem` indent, tight node padding, `1.5rem` toggle |
   | Panels and PanelMenu panels | no background; Panels drop the border too (PanelMenu keeps Aura's hairline; the workspace node's pane Panels restore it locally) |
   | Splitter gutters | invisible — draggable |
 
