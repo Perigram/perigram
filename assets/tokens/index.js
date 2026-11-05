@@ -652,7 +652,14 @@ export const primeComponentTokens = {
     tree: {
         root: {
             background: 'transparent',
-            padding: '0'
+            padding: '0',
+            indent: '0.75rem'
+        },
+        node: {
+            padding: '0.125rem 0.25rem'
+        },
+        nodeToggleButton: {
+            size: '1.5rem'
         }
     }
 };
