@@ -158,12 +158,13 @@ test('assembly canvas wheel follows CadCraft and dimension editors stay in view'
   expect(editorBox.y + editorBox.height, 'the editor stays inside the canvas').toBeLessThanOrEqual(canvasBox.y + canvasBox.height + 1);
 
   // A cleared selection keeps every face clickable: the next face click
-  // selects it again whatever workpiece owns it.
+  // selects it again whatever workpiece owns it. The click lands clear
+  // of the section drag handles that own the face's midlines.
   await page.keyboard.press('Escape');
   await page.waitForTimeout(400);
   const faceHit = canvas.locator('svg path[data-designer-face-id]').first();
   await expect(faceHit, 'faces stay clickable with nothing selected').toBeVisible({ timeout: 10_000 });
-  await faceHit.click();
+  await faceHit.click({ position: { x: 40, y: 40 } });
   await expect(
     canvas.locator('[contenteditable="true"], [data-designer-panel-editor]').first(),
     'a face click after deselect selects the face'
