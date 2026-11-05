@@ -15,7 +15,7 @@ describe('surface pack module cycle', () => {
     const ctx = surfaceHostContext({ t: key => key, te: () => true, locale: { value: 'en' } }, 1);
     for (const member of [
       'Button', 'Checkbox', 'Dialog', 'InputText', 'InputNumber', 'Message',
-      'Popover', 'ScrollPanel', 'Select', 'Tag', 'Textarea',
+      'Popover', 'ScrollPanel', 'Select', 'Tag', 'Textarea', 'Tree',
       'DesignerSurface', 'DesignerWorkspace', 'DrawingCanvas', 'InstanceSelect', 'StandardDialog'
     ]) {
       expect(ctx.components[member], member).toBeTruthy();

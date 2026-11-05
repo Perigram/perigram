@@ -44,7 +44,7 @@ const openProfilePopup = async (page) => {
   if (await hit.count()) {
     await hit.dispatchEvent('click');
   } else {
-    await page.locator('aside').getByRole('button', { name: /^Hanger profile/ }).first().click();
+    await page.locator('aside').getByRole('treeitem', { name: /^Hanger profile/ }).first().click();
   }
   await expect(page.locator('[data-designer-panel-editor]').first()).toBeVisible({ timeout: 20_000 });
 };
@@ -437,9 +437,9 @@ test('a dimension edit over an instance override writes the override; clearing s
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
-  await dialog.getByRole('button', { name: 'Clear canvas' }).click();
+  await page.locator('[data-designer-toolbar]').getByRole('button', { name: 'Clear canvas' }).click();
   await expect(inspector.locator('button[aria-label^="Rectangle s"]')).toHaveCount(0);
-  await expect(tools.locator('button[aria-label="Undo"]').first()).toBeDisabled();
+  await expect(page.locator('[data-designer-toolbar]').getByRole('button', { name: 'Undo' })).toBeDisabled();
 
   // A sketch bound to a cassette global has no authored row to store in
   // the library: the workpiece saves, the library record refuses.

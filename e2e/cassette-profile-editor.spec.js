@@ -299,7 +299,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     (await nativeDims(dialog)).some(dim => dim.dimensionKind === 'placement'),
     'the selected profile carries its placement dimensions along the parent edge'
   ).toBe(true);
-  await inspector.getByRole('button', { name: 'main' }).first().click();
+  await inspector.getByRole('treeitem', { name: 'main' }).first().click();
   await expect(inspector, 'the selected face details list its placed profiles').toContainText('Hanger profile');
   const assemblyNativeDims = await frameOf(dialog).then(frame => frame.evaluate(() => (
     window.cadcraft.doc.all().filter(entity => entity.type === 'dim').length

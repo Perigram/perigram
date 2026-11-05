@@ -709,8 +709,6 @@
                 },
                 "actions": {
                     "erase": "Erase",
-                    "undo": "Undo",
-                    "redo": "Redo",
                     "zoomFit": "Fit to view",
                     "clear": "Clear canvas",
                     "ortho": "Ortho",
@@ -808,8 +806,6 @@
                 "defaultLength": "Base length",
                 "height": "Height",
                 "edgeStart": "Edge start",
-                "fillEdge": "Fill edge",
-                "faceWidth": "Face width",
                 "parentEdgeIndex": "Parent edge index",
                 "baseStartOffset": "Base start offset",
                 "baseEndOffset": "Base end offset",

@@ -296,9 +296,8 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   free. Folds and contour splices use the owned interval only. The
   designer draws one + handle per free shard; a face's own base edge
   carries none, and the clicked shard is the interval the new face
-  takes. A child face's popup carries Fill edge (inherit) and a
-  fixed/parametric width otherwise, so the remaining edge becomes free
-  shards. A closed profile may cross a child face's fold interval and
+  takes. A child face's span stays its authored `edgeStart` and
+  `defaultLength` parameters. A closed profile may cross a child face's fold interval and
   cut the host; the fold route keeps the authored edge. An open profile
   arranges only on an edge without a fold.
 - **`production-layout.js`** — wraps the Clipper-backed face
