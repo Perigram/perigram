@@ -1378,17 +1378,23 @@ export default function createSurface({ vue, components, locale, queries, record
         };
       };
 
-      const editorPointFromScreen = ({ x = 0, y = 0, type = '' } = {}) => {
+      const clampEditorPoint = (point, type = '') => {
         const bounds = editorSurfaceRef.value?.getBoundingClientRect?.();
-        if (!bounds) return { x: 12, y: 12 };
+        if (!bounds) return point;
         const width = type === 'attachment' ? 400 : 272;
         const height = type === 'attachment'
           ? 360
           : type === 'faceActions' ? 160 : 116;
         return {
-          x: Math.min(Math.max(x - bounds.left + 8, 8), Math.max(bounds.width - width - 8, 8)),
-          y: Math.min(Math.max(y - bounds.top + 8, 8), Math.max(bounds.height - height - 8, 8))
+          x: Math.min(Math.max(point.x, 8), Math.max(bounds.width - width - 8, 8)),
+          y: Math.min(Math.max(point.y, 8), Math.max(bounds.height - height - 8, 8))
         };
+      };
+
+      const editorPointFromScreen = ({ x = 0, y = 0, type = '' } = {}) => {
+        const bounds = editorSurfaceRef.value?.getBoundingClientRect?.();
+        if (!bounds) return { x: 12, y: 12 };
+        return clampEditorPoint({ x: x - bounds.left + 8, y: y - bounds.top + 8 }, type);
       };
 
       const storedInlineEditorPoint = () => {
@@ -1427,7 +1433,9 @@ export default function createSurface({ vue, components, locale, queries, record
         const storedPoint = storedInlineEditorPoint();
         inlineEditor.value = {
           ...editor,
-          ...(storedPoint || editorPointFromScreen(editor))
+          ...(storedPoint
+            ? clampEditorPoint(storedPoint, editor.type)
+            : editorPointFromScreen(editor))
         };
       };
 

@@ -492,12 +492,40 @@ const zoomAt = (point, zoomFactor) => {
   };
 };
 
+// CadCraft's wheel-pad law: touchpad-style scrolls (fractional or small
+// deltas, sideways movement) pan; notched mouse wheels zoom.
+const isCadcraftSwipe = (event) => {
+  if (event.ctrlKey || event.deltaMode !== 0) return false;
+  const dx = event.deltaX || 0;
+  const dy = event.deltaY || 0;
+  const notched = dx === 0 && (
+    (Number.isFinite(event.wheelDeltaY) && event.wheelDeltaY !== 0 && event.wheelDeltaY % 120 === 0)
+    || (Number.isInteger(dy) && Math.abs(dy) >= 50)
+  );
+  if (notched) return false;
+  return dx !== 0 || !Number.isInteger(dy) || Math.abs(dy) < 50;
+};
+
+// Screen-pixel pan (the scroll metaphor: content follows the fingers).
+const panByScreenDelta = (dx, dy) => {
+  if (!svgElement.value) return;
+  viewBox.value = {
+    ...viewBox.value,
+    x: viewBox.value.x + dx * (viewBox.value.width / svgElement.value.clientWidth),
+    y: viewBox.value.y + dy * (viewBox.value.height / svgElement.value.clientHeight)
+  };
+};
+
 const handleWheel = (event) => {
   if (!isViewer.value) return;
   event.preventDefault();
+  if (props.cadcraftNavigation && isCadcraftSwipe(event)) {
+    panByScreenDelta(event.deltaX, event.deltaY);
+    return;
+  }
   const step = event.deltaMode === 1 ? event.deltaY * 33 : event.deltaY;
   const factor = props.cadcraftNavigation
-    ? Math.pow(1.0018, -step)
+    ? Math.pow(1.0018, step)
     : (event.deltaY > 0 ? 1.1 : 0.9);
   zoomAt(getPointFromEvent(event), factor);
 };
