@@ -14,7 +14,7 @@ import {
   localizedLabel
 } from '#shared/ui-mapping/index.js';
 import { decorateDataValue } from './data-display.js';
-import { filterEntityFields } from '../shared/instance-field-access.js';
+import { filterEntityFields } from '#shared/instance-field-access.js';
 
 /**
  * Scalar fact rows for a record. `translator` is any `{ t, te }` pair;
