@@ -542,6 +542,13 @@ assembly canvas follows CadCraft's mouse law — wheel zooms at the cursor,
 middle or right drag pans, and a middle double-click refits — so
 assembly, profile, and face editing share one navigation contract.
 
+Owner direction (2026-11-05, natural selection and exit): the cassette
+canvas selects whatever is clicked — a face, fold, or profile of any
+workpiece — and the selection follows the click into that workpiece. In
+the sketch editors Escape sheds one layer at a time — the open field,
+the selected corner, the selected shape — and a bare Escape leaves the
+edit back on the cassette.
+
 Owner direction (2026-11-02, profile management on the canvas): a placed
 profile is a canvas object. Its placed section geometry carries the
 profile hit area, so a click selects the profile and the panel under the
