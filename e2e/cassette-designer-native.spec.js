@@ -2,7 +2,11 @@ import { test, expect } from './fixtures.js';
 
 // The designer's assembly canvas is host-painted: no SVG dimension text,
 // native dimensions, and the palette's layer rows drive the host layers,
-// including hiding every layer. Artifact: .playwright/cassette-designer-native.png
+// including hiding every layer; the canvas follows CadCraft's navigation
+// law (notched wheel zooms in at the cursor, trackpad scrolls pan) and a
+// dimension label opens its editor inside the canvas whatever sticky
+// position an earlier drag left behind.
+// Artifacts: .playwright/cassette-designer-native.png, -nav.png
 
 const hostState = async (canvas) => {
   const handle = await canvas.locator('iframe').first().elementHandle();
@@ -79,5 +83,80 @@ test('designer canvas paints native dimensions and the palette drives every laye
   expect(Buffer.compare(await canvas.screenshot(), painted), 'the palette repaints the canvas').not.toBe(0);
 
   await canvas.screenshot({ path: '.playwright/cassette-designer-native.png' });
+  await app.expectCleanRuntime();
+});
+
+test('assembly canvas wheel follows CadCraft and dimension editors stay in view', async ({ app }) => {
+  test.setTimeout(300_000);
+  await app.installPlugins(['tech-drawing', 'facade']);
+  await app.connectPlugin('facade', 'http://facade-executor:8790');
+  await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
+  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'], via: { 'cassette-template': 'editor' } });
+  const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette-template');
+  const page = app.page;
+  await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
+  await page.addInitScript(() => window.localStorage.setItem(
+    'perigram:onboarding:cassette-designer-v2',
+    JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
+  ));
+  await app.gotoClient(list.route);
+  await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+
+  const canvas = page.locator('.designer-workspace__canvas').first();
+  await expect(canvas).toBeVisible({ timeout: 60_000 });
+  await expect(canvas.locator('iframe').first()).toBeVisible({ timeout: 60_000 });
+  await page.waitForTimeout(5000);
+
+  const svg = canvas.locator('svg').first();
+  const viewBoxOf = async () => {
+    const value = await svg.getAttribute('viewBox');
+    const [x, y, w, h] = value.split(/\s+/).map(Number);
+    return { x, y, w, h };
+  };
+
+  // A notched wheel up zooms in at the cursor, like CadCraft.
+  const box = await svg.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const before = await viewBoxOf();
+  await page.mouse.wheel(0, -120);
+  await page.waitForTimeout(300);
+  const zoomed = await viewBoxOf();
+  expect(zoomed.w, 'wheel up zooms in').toBeLessThan(before.w);
+
+  // A touchpad-style scroll pans with the fingers instead of zooming.
+  await svg.evaluate((el, deltaY) => {
+    const rect = el.getBoundingClientRect();
+    el.dispatchEvent(new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaMode: 0,
+      deltaX: 0,
+      deltaY,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height / 2
+    }));
+  }, -3.5);
+  await page.waitForTimeout(300);
+  const panned = await viewBoxOf();
+  expect(panned.w, 'trackpad scroll keeps the zoom').toBeCloseTo(zoomed.w, 6);
+  expect(panned.x + panned.y, 'trackpad scroll pans').not.toBeCloseTo(zoomed.x + zoomed.y, 6);
+
+  // A dimension editor opens inside the canvas even when an earlier drag
+  // left a sticky position beyond the current canvas bounds.
+  await page.evaluate(() => window.sessionStorage.setItem(
+    'perigram:cassette-designer-v2:inline-editor-position',
+    JSON.stringify({ x: 4000, y: 2400 })
+  ));
+  await canvas.locator('svg g.cursor-pointer.select-none').first().click();
+  const editor = canvas.locator('[contenteditable="true"]').first();
+  await expect(editor, 'a dimension label opens its authored field').toBeVisible({ timeout: 10_000 });
+  const editorBox = await editor.boundingBox();
+  const canvasBox = await canvas.boundingBox();
+  expect(editorBox.x, 'the editor stays inside the canvas').toBeGreaterThanOrEqual(canvasBox.x);
+  expect(editorBox.y, 'the editor stays inside the canvas').toBeGreaterThanOrEqual(canvasBox.y);
+  expect(editorBox.x + editorBox.width, 'the editor stays inside the canvas').toBeLessThanOrEqual(canvasBox.x + canvasBox.width + 1);
+  expect(editorBox.y + editorBox.height, 'the editor stays inside the canvas').toBeLessThanOrEqual(canvasBox.y + canvasBox.height + 1);
+  await canvas.screenshot({ path: '.playwright/cassette-designer-native-nav.png' });
+
   await app.expectCleanRuntime();
 });
