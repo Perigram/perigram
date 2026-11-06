@@ -4599,3 +4599,9 @@ Session `agent/svg-preview-spinner-20261106` (worktree
 the surface component pack, and the cassette preview's pending state
 renders the app's standard ring beside the quiet box — the same loader
 `StateBlock` and `DrawingCanvas` show.
+
+Finding (2026-11-06, first-save title race): the designer's first save
+intermittently lands the record under the platform default title
+("Unnamed") — observed in a preview-spec run; `saveTemplate`'s
+create/rename path is the suspect. The preview spec opens its record by
+route as a result.
