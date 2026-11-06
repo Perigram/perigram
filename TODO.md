@@ -4607,7 +4607,8 @@ are deleted.
   opens its editor as the record body with the version trigger on the
   corner; the record popup hosts the bounded editor; the peek keeps its
   preview; a read-grant opener sees the rendered markdown document while
-  the sheet editor degrades to view-only; no edit affordance remains on
+  the sheet, csv, sketch, DXF, and cassette surfaces degrade to their
+  read-only presentations; no edit affordance remains on
   any surface of an editor-bound type; the fill dialog's reference-row
   affordance opens the record popup.
 
@@ -4665,11 +4666,13 @@ Session `agent/editor-surface-20261106` (worktree
   SSR harness stubs (grew `useRequestHeaders`).
   `instance-select.spec.js`'s enum-select allowance also missed
   `LayerMappingRow.vue` at base (pre-existing red).
-- FINDING (open): the csv editor, sketch editor, DXF editor, and cassette
-  designer carry no read-only degradation — a read-grant opener sees the
-  editing surface (writes stay server-fail-closed; the sheet editor
-  degrades internally, the text editor renders the document). Plugin-side
-  read-only presentations for those surfaces are follow-up surface work.
+- FINDING (closed 2026-11-06): the csv editor, sketch editor, DXF
+  editor, and cassette designer carried no read-only degradation — a
+  read-grant opener saw the editing surface (writes stayed
+  server-fail-closed; the sheet editor degrades internally, the text
+  editor renders the document). Plugin-side read-only presentations
+  landed (Agent Notes below): every editor surface now degrades under
+  mount `mode: 'read'`.
 - FINDING (open): plugin-surface e2e's preview leg was dropped — the
   fixture type binds an editor, so its detail body is the editor and the
   plugin preview has no remaining UI slot in that org (table projection,
@@ -4684,6 +4687,43 @@ Session `agent/editor-surface-20261106` (worktree
   drift, fact-display, agent-bots, app-registry, support snapshot —
   untouched server-side suites). E2E re-pins edited blind (no stack in
   session); the next stack pass owns them.
+
+#### Agent Notes (2026-11-06, read-only degradation)
+
+Session `agent/ro-degrade-20261106` (worktree
+`.agent-worktrees/ro-degrade-20261106`). The mount already passes the
+grant-keyed `mode` prop to every served module (`RemoteEditorSurface`,
+the record-body mount, the pane-tab props adapter), so the degradation
+consumed the existing contract; versions bumped per the surface-change
+precedent (documents v7, tech-drawing v10, facade v41). Per surface:
+
+- csv editor renders the table and the document name (the cell-edit
+  table, rename field, and save die with the read render branch).
+- sketch editor renders the scene svg inert (the read render attaches
+  no pointer handlers and drops the toolbar, background controls, and
+  save).
+- DXF editor keeps the canvas (fit control, layer-normalized open) and
+  renders the anchor rows as plain text; the marker form, rename
+  inputs, delete, save, and canvas point-picking die.
+- cassette designer keeps the canvas with selection (face/profile/fold
+  select, tree, layer toggles, folded preview) and gates every
+  authoring entry: document dock, undo/redo dock items and shortcuts,
+  parameter palette, add-hardware/tree-row actions, inline editors and
+  the selection panels, sketch sessions, edge-dial/point/section/fold
+  authoring events, onboarding rail. DrawingCanvas gained the
+  `designerEditable` prop (default true) hiding the authoring overlays
+  — free-shard `+` chips, fold-angle chip, section drag handles,
+  dimension edit targets — so a read mount carries zero dead controls.
+- Specs: each surface gained a mount spec (SSR render-tree pattern of
+  `sheet-design-editor.spec.js`) pinning the degradation case and the
+  edit-mode contrast; `cadcraft` is factory-mocked in the DXF and
+  cassette specs (the bare specifier resolves only through the
+  executor's vendor rewrite).
+- Validation: the three plugins' surface suites 146/146; all three
+  listings `perigram-plugin validate` OK; components/generated +
+  shared plugin-surfaces suites, `check-arch`, `docs:validate` green
+  beside the known findings.
+
 
 ### C. Create palette and the action inbox (SPEC §4)
 

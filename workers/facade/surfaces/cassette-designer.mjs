@@ -252,10 +252,14 @@ export default function createSurface({ vue, components, locale, queries, record
     name: 'CassetteDesignerV2',
     props: {
       record: { type: Object, default: null },
-      persistence: { type: Object, default: null }
+      persistence: { type: Object, default: null },
+      // 'read' (the opener holds no write grant) renders the cassette
+      // view-only: selection stays, authoring gestures die.
+      mode: { type: String, default: 'edit' }
     },
     setup(props) {
       const isClient = () => typeof window !== 'undefined';
+      const readOnly = computed(() => props.mode === 'read');
 
       const cassetteTree = ref(createCassetteV2GraphTree());
       const cassetteNameDraft = ref(t('cassette.newCassette'));
@@ -290,52 +294,57 @@ export default function createSurface({ vue, components, locale, queries, record
         dockMenu.value?.hide?.();
       }
 
-      const documentDockItems = computed(() => [
-        {
-          icon: 'pi pi-folder-open',
-          label: t('cassette.v2.loadTemplate'),
-          onClick: event => openDockPopover('open', event),
-          hasPopup: true
-        },
-        {
-          icon: 'pi pi-pencil',
-          label: t('common.rename'),
-          onClick: event => openDockPopover('rename', event),
-          hasPopup: true
-        },
-        { separator: true },
-        {
-          icon: 'pi pi-copy',
-          label: t('common.saveAs'),
-          onClick: () => saveTemplate({ saveAs: true })
-        },
-        {
-          icon: 'pi pi-save',
-          label: t('common.save'),
-          onClick: () => saveTemplate()
-        },
-        { separator: true },
-        {
-          icon: 'pi pi-refresh',
-          label: t('common.reset'),
-          onClick: resetTree
-        }
-      ]);
+      const documentDockItems = computed(() => {
+        if (readOnly.value) return [];
+        return [
+          {
+            icon: 'pi pi-folder-open',
+            label: t('cassette.v2.loadTemplate'),
+            onClick: event => openDockPopover('open', event),
+            hasPopup: true
+          },
+          {
+            icon: 'pi pi-pencil',
+            label: t('common.rename'),
+            onClick: event => openDockPopover('rename', event),
+            hasPopup: true
+          },
+          { separator: true },
+          {
+            icon: 'pi pi-copy',
+            label: t('common.saveAs'),
+            onClick: () => saveTemplate({ saveAs: true })
+          },
+          {
+            icon: 'pi pi-save',
+            label: t('common.save'),
+            onClick: () => saveTemplate()
+          },
+          { separator: true },
+          {
+            icon: 'pi pi-refresh',
+            label: t('common.reset'),
+            onClick: resetTree
+          }
+        ];
+      });
 
       const assemblyCanvasDockItems = computed(() => [
-        {
-          icon: 'pi pi-undo',
-          label: t('common.undo'),
-          disabled: !canUndo.value,
-          onClick: undoDesignerChange
-        },
-        {
-          icon: 'pi pi-replay',
-          label: t('common.redo'),
-          disabled: !canRedo.value,
-          onClick: redoDesignerChange
-        },
-        { separator: true },
+        ...(readOnly.value ? [] : [
+          {
+            icon: 'pi pi-undo',
+            label: t('common.undo'),
+            disabled: !canUndo.value,
+            onClick: undoDesignerChange
+          },
+          {
+            icon: 'pi pi-replay',
+            label: t('common.redo'),
+            disabled: !canRedo.value,
+            onClick: redoDesignerChange
+          },
+          { separator: true }
+        ]),
         {
           icon: 'pi pi-search-minus',
           label: t('drawing.zoomOut'),
@@ -995,6 +1004,7 @@ export default function createSurface({ vue, components, locale, queries, record
           (event.key.toLowerCase() === 'z' && event.shiftKey)
         );
         if (!isUndo && !isRedo) return;
+        if (readOnly.value) return;
         event.preventDefault();
         if (isUndo) undoDesignerChange();
         else redoDesignerChange();
@@ -1673,7 +1683,7 @@ export default function createSurface({ vue, components, locale, queries, record
         selectedWorkpieceOverrideId.value = '';
         selectedRelationId.value = '';
         inspectorSelection.value = 'face';
-        inlineEditor.value = { type: 'faceActions', nodeId };
+        if (!readOnly.value) inlineEditor.value = { type: 'faceActions', nodeId };
         expandTreePath(`face:${nodeId}`);
       };
 
@@ -1685,7 +1695,7 @@ export default function createSurface({ vue, components, locale, queries, record
         selectedRelationId.value = relationId;
         if (relation?.sourceWorkpieceId) selectWorkpiece(relation.sourceWorkpieceId);
         inspectorSelection.value = 'attachment';
-        inlineEditor.value = { type: 'attachment', relationId };
+        if (!readOnly.value) inlineEditor.value = { type: 'attachment', relationId };
         expandTreePath(`relation:${relationId}`);
       };
 
@@ -2615,6 +2625,7 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const handleDesignerAction = ({ edge, edgeIndex, screenX, screenY }) => {
+        if (readOnly.value) return;
         if (!edge?.nodeId && edge?.nodeId !== '') return;
         if (!Number.isFinite(screenX) || !Number.isFinite(screenY)) {
           addFaceAtEdge(edge.nodeId, edge.edgeIndex ?? edgeIndex, {
@@ -2670,6 +2681,10 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const handleDesignerFaceSelect = ({ face }) => {
         if (!face?.nodeId && face?.nodeId !== '') return;
+        if (readOnly.value) {
+          selectFaceById(face.nodeId);
+          return;
+        }
         if (inspectorSelection.value === 'attachment' && selectedWorkpieceRelation.value) {
           if (attachmentSourceKind(selectedWorkpieceRelation.value) === 'profile') {
             selectFaceById(face.nodeId);
@@ -2768,6 +2783,7 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const handleDesignerPointEdit = ({ control, x, y }) => {
+        if (readOnly.value) return;
         if (!control?.nodeId || !control.key) return;
         if (control.selectionType) {
           openSketchDimensionEditor(control, x, y);
@@ -2789,6 +2805,7 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const handleDesignerSectionEdit = ({ section, value }) => {
+        if (readOnly.value) return;
         const orientation = section?.orientation;
         if (!['vertical', 'horizontal'].includes(orientation)) return;
         const minValue = Number(section.minValue);
@@ -2808,6 +2825,7 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const handleDesignerFoldAngleEdit = ({ fold, x, y }) => {
+        if (readOnly.value) return;
         if (!fold?.foldNodeId) return;
         const node = treeNodes.value.find(item => item.id === fold.foldNodeId);
         selectedNodeId.value = fold.foldNodeId;
@@ -2920,7 +2938,7 @@ export default function createSurface({ vue, components, locale, queries, record
       ]);
 
       const renderPalette = () => h('aside', { class: 'flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3' }, [
-        sessionDraftAvailable.value
+        sessionDraftAvailable.value && !readOnly.value
           ? h(Message, { severity: 'info', size: 'small', closable: false }, () => [
               h('div', { class: 'flex flex-col gap-2' }, [
                 h('span', null, t('cassette.v2.autosaveDraftAvailable')),
@@ -2932,7 +2950,7 @@ export default function createSurface({ vue, components, locale, queries, record
             ])
           : null,
         h('div', { class: 'flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto' }, [
-          sketchMode.value ? null : renderGlobalParameters(),
+          sketchMode.value || readOnly.value ? null : renderGlobalParameters(),
           h('div', {
             ref: sketchToolsHost,
             class: sketchMode.value ? 'flex flex-col gap-1' : 'hidden'
@@ -3900,7 +3918,7 @@ export default function createSurface({ vue, components, locale, queries, record
             workpieceTypeIcon(row),
             h('span', { class: 'min-w-0 flex-1 truncate' }, row.label),
             row.parentCount > 1 ? h(Tag, { value: `×${row.parentCount}`, severity: 'secondary', size: 'small' }) : null,
-            selected
+            selected && !readOnly.value
               ? h('div', { class: 'flex shrink-0 items-center', onClick: stopNodeClick }, [
                   h(Button, {
                     icon: 'pi pi-plus',
@@ -3955,7 +3973,7 @@ export default function createSurface({ vue, components, locale, queries, record
             sourceRow?.isProfile ? workpieceTypeIcon(sourceRow) : h('i', { class: 'pi pi-link shrink-0 text-xs text-muted', 'aria-hidden': 'true' }),
             h('span', { class: 'min-w-0 flex-1 truncate' }, sourceRow?.isProfile ? sourceRow.label : relationRow.otherLabel),
             attachmentStatusIcon(relationId, relationRow.status),
-            selected && !sourceRow?.isProfile
+            selected && !sourceRow?.isProfile && !readOnly.value
               ? h(Button, {
                   icon: 'pi pi-trash',
                   severity: 'danger',
@@ -3985,6 +4003,7 @@ export default function createSurface({ vue, components, locale, queries, record
       // placement fields, and a selected hardware workpiece's fields all
       // render in this full-width panel — tree rows carry identity alone.
       const renderSelectionPanel = () => {
+        if (readOnly.value) return null;
         const editor = inlineEditor.value;
         const panel = (kind, children) => h('div', {
           class: 'min-w-0 shrink-0 rounded-ui border border-content-border bg-content p-2',
@@ -4299,16 +4318,18 @@ export default function createSurface({ vue, components, locale, queries, record
             h('strong', { class: 'truncate' }, t('cassette.v2.workpieces')),
             h('div', { class: 'flex items-center gap-1' }, [
               h(Tag, { value: assemblySummary.value, severity: 'secondary', size: 'small' }),
-              h(Button, {
-                icon: 'ck-entity-icon ck-entity-icon-bolt',
-                severity: 'secondary',
-                text: true,
-                rounded: true,
-                size: 'small',
-                'aria-label': t('cassette.v2.addHardware'),
-                title: t('cassette.v2.addHardware'),
-                onClick: event => openHardwarePicker(event)
-              })
+              readOnly.value
+                ? null
+                : h(Button, {
+                  icon: 'ck-entity-icon ck-entity-icon-bolt',
+                  severity: 'secondary',
+                  text: true,
+                  rounded: true,
+                  size: 'small',
+                  'aria-label': t('cassette.v2.addHardware'),
+                  title: t('cassette.v2.addHardware'),
+                  onClick: event => openHardwarePicker(event)
+                })
             ])
           ]),
           renderCassetteTree()
@@ -4332,7 +4353,7 @@ export default function createSurface({ vue, components, locale, queries, record
       });
 
       const renderOnboardingRail = () => {
-        if (!showOnboardingRail.value) return null;
+        if (!showOnboardingRail.value || readOnly.value) return null;
         const step = activeOnboardingStep.value;
         return h('div', {
           class: ['absolute z-[140] w-80 rounded-ui border border-content-border bg-content p-3 shadow-overlay', onboardingCalloutClass.value]
@@ -4453,6 +4474,7 @@ export default function createSurface({ vue, components, locale, queries, record
               visibleLayerNames: visibleLayerNames.value,
               selectedDesignerFaceId: selectedDesignerFaceId.value,
               selectedDesignerProfileId: selectedWorkpieceId.value,
+              designerEditable: !readOnly.value,
               designerProfileSelectable: inlineEditor.value?.type !== 'attachment',
               designerSelectableWorkpieceIds: designerSelectableWorkpieceIds.value,
               showDesignerWorkpieceContext: showDesignerWorkpieceContext.value,

@@ -20,7 +20,10 @@ export default function createSurface({ vue, components, locale, sync }) {
     name: 'CsvTableEditor',
     props: {
       record: { type: Object, default: null },
-      persistence: { type: Object, default: null }
+      persistence: { type: Object, default: null },
+      // 'read' (the opener holds no write grant) renders the table and
+      // the document name — no editing controls.
+      mode: { type: String, default: 'edit' }
     },
     setup(props) {
       const columns = ref([]);
@@ -101,6 +104,25 @@ export default function createSurface({ vue, components, locale, sync }) {
         } finally {
           saving.value = false;
         }
+      }
+
+      if (props.mode === 'read') {
+        return () => h('div', { class: 'flex h-full min-h-0 flex-1 flex-col p-4' }, [
+          h('div', { class: 'flex min-w-0 items-center gap-2 border-b border-chrome-border py-1' }, [
+            h('span', { class: 'truncate text-supporting' }, displayName() || t('common.unnamed'))
+          ]),
+          h(DataTable, {
+            value: rows.value,
+            scrollable: true,
+            scrollHeight: 'flex',
+            size: 'small',
+            class: 'mt-2 min-h-80 flex-1'
+          }, () => columns.value.map(column => h(Column, {
+            key: column,
+            field: column,
+            header: column
+          })))
+        ]);
       }
 
       return () => h('div', { class: 'flex h-full min-h-0 flex-1 flex-col p-4' }, [

@@ -16,7 +16,10 @@ export default function createSurface({ vue, components, locale, notify }) {
     name: 'DxfEditor',
     props: {
       record: { type: Object, default: null },
-      persistence: { type: Object, default: null }
+      persistence: { type: Object, default: null },
+      // 'read' (the opener holds no write grant) leaves the canvas and
+      // the anchor list view-only — no marker authoring, no save.
+      mode: { type: String, default: 'edit' }
     },
     setup(props) {
       const loading = ref(true);
@@ -128,7 +131,7 @@ export default function createSurface({ vue, components, locale, notify }) {
         await host.mount();
         host.setCommandLine(false);
         host.setGrid(false);
-        host.onPointerDown = pickPoint;
+        if (props.mode !== 'read') host.onPointerDown = pickPoint;
         await reopen();
         canvasReady.value = true;
       }
@@ -158,7 +161,12 @@ export default function createSurface({ vue, components, locale, notify }) {
         host = null;
       });
 
-      const markerRow = marker => h('div', { class: 'flex min-w-0 items-center gap-2' }, [
+      const markerRow = marker => props.mode === 'read'
+        ? h('div', { class: 'flex min-w-0 items-center gap-2' }, [
+            h('span', { class: 'min-w-0 flex-1 truncate text-supporting' }, marker.name),
+            h('span', { class: 'shrink-0 text-supporting text-muted tabular-nums' }, `${Math.round(marker.x)}, ${Math.round(marker.y)}`)
+          ])
+        : h('div', { class: 'flex min-w-0 items-center gap-2' }, [
         h(InputText, {
           modelValue: marker.name,
           size: 'small',
@@ -193,14 +201,16 @@ export default function createSurface({ vue, components, locale, notify }) {
             'aria-label': t('drawing.resetView'),
             onClick: () => host?.zoomFit()
           }),
-          h(Button, {
-            label: t('common.save'),
-            icon: 'pi pi-check',
-            size: 'small',
-            loading: saving.value,
-            disabled: !canSave.value,
-            onClick: save
-          })
+          props.mode === 'read'
+            ? null
+            : h(Button, {
+              label: t('common.save'),
+              icon: 'pi pi-check',
+              size: 'small',
+              loading: saving.value,
+              disabled: !canSave.value,
+              onClick: save
+            })
         ]),
         engineError.value
           ? h(Message, { severity: 'error', closable: false }, { default: () => engineError.value })
@@ -220,7 +230,9 @@ export default function createSurface({ vue, components, locale, notify }) {
               ? h('span', { class: 'text-supporting text-muted' }, t('dxfEditor.noMarkers'))
               : null,
             ...markers.value.map(marker => h('div', { key: marker.name }, [markerRow(marker)])),
-            h('div', { class: 'mt-auto flex flex-col gap-2 rounded-panel border border-content-border p-2' }, [
+            props.mode === 'read'
+              ? null
+              : h('div', { class: 'mt-auto flex flex-col gap-2 rounded-panel border border-content-border p-2' }, [
               h(InputText, {
                 ref: nameRef,
                 modelValue: addName.value,
