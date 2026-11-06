@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { applyFieldDisplayRole, compileTreeDeclarations, createProcessDesignerContract, declarationNodePorts, declarationWireLegality, childrenWireLegality, interpretDeclarationEdges, syncProcessNodeProducerOutputs } from './designer.js';
+import { normalizeType } from '../../cts/src/index.js';
 import { getProcessNodeDefinition } from './node-catalog.js';
 
 describe('process designer domain contract', () => {
@@ -577,7 +578,7 @@ describe('tree declaration compilation', () => {
     });
   });
 
-  it('names a field whose name derives no row key and keeps it off the declaration', () => {
+  it('a field name in any script carries its identifier flag onto the posted declaration', () => {
     const widget = classNode('widget');
     const nodes = [widget,
       fieldNode('widget', 'Наименование', { base: 'string', identifier: true }),
@@ -585,10 +586,14 @@ describe('tree declaration compilation', () => {
     ];
     const edges = [declares(nodes[1], widget, 'field'), declares(nodes[2], widget, 'field')];
     const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges);
-    expect(diagnostics).toEqual([
-      'class widget: field Наименование: name must carry latin letters or digits to derive a row id — the display text belongs on the label'
-    ]);
-    expect(declarations[0].fields).toEqual({ serial: { base: 'string', label: 'Serial' } });
+    expect(diagnostics).toEqual([]);
+    const fields = declarations[0].fields;
+    const digested = Object.keys(fields).find(key => key !== 'serial');
+    expect(fields[digested]).toEqual({ base: 'string', identifier: true, label: 'Наименование' });
+    expect(() => normalizeType({ ...declarations[0], scope: 'org', organizationId: 'o1' })).not.toThrow();
+    // Stable mint: the same name derives the same key on every compile.
+    const again = compileTreeDeclarations(nodes, edges).declarations[0].fields;
+    expect(again[digested]).toEqual(fields[digested]);
   });
 
   it('derives the row key from the latin segments of a mixed-script name', () => {

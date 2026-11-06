@@ -3,10 +3,14 @@
 // checking here is a total walker — no dependency required.
 import { describeType, checkValue } from './values.js';
 
+export function isRowKeyId(name = '') {
+  return /^[a-z][a-zA-Z0-9]*$/.test(name);
+}
+
 export function normalizeRow(row = {}) {
   const normalized = {};
   for (const [name, descriptor] of Object.entries(row)) {
-    if (!/^[a-z][a-zA-Z0-9]*$/.test(name)) throw new Error(`Field name ${name} must be lowerCamelCase`);
+    if (!isRowKeyId(name)) throw new Error(`Field name ${name} must be lowerCamelCase`);
     normalized[name] = describeType(descriptor);
   }
   return Object.freeze(normalized);

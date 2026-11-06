@@ -51,7 +51,6 @@ export {
   validateProcessEdges
 } from './ports.js';
 export {
-  camelCaseId,
   PROCESS_DESIGNER_PALETTE_GROUPS,
   DECLARATION_NODE_TYPES,
   applyFieldDisplayRole,

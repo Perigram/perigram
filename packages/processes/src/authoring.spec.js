@@ -13,8 +13,8 @@ import {
 } from './authoring.js';
 import { validateProcessDefinition } from './compiler-core.js';
 import { validateRoundTrip } from './transpiler.js';
-import { camelCaseId, compileTreeDeclarations } from './designer.js';
-import { createTypeRegistry, projectDomainFromView, frameworkTypes, resolveCtsDefinition, checkCtsGraphBindings } from '../../cts/src/index.js';
+import { compileTreeDeclarations } from './designer.js';
+import { createTypeRegistry, projectDomainFromView, frameworkTypes, resolveCtsDefinition, checkCtsGraphBindings, rowFieldId } from '../../cts/src/index.js';
 import { cncTypePack } from '../../cts/src/pack/cnc.js';
 import { facadeDomain, facadeServices } from '../../../test-tools/facade-plugin.js';
 
@@ -82,10 +82,14 @@ describe('seeding the authoring seam from a stored document', () => {
     expect(edge.targetHandle.startsWith('data:')).toBe(true);
   });
 
-  it('derives row keys from labels in any script', () => {
-    expect(camelCaseId('Название задачи')).toBe('названиеЗадачи');
-    expect(camelCaseId('Field name 2')).toBe('fieldName2');
-    expect(camelCaseId('Ширина sheet 2')).toBe('ширинаSheet2');
+  it('derives row keys from names in any script (SPEC §4)', () => {
+    expect(rowFieldId('Название задачи')).toMatch(/^[a-z][a-zA-Z0-9]*$/);
+    expect(rowFieldId('Field name 2')).toBe('fieldName2');
+    expect(rowFieldId('Ширина sheet 2')).toBe('sheet2');
+    // Stable digest: the same name mints the same key.
+    expect(rowFieldId('Название задачи')).toBe(rowFieldId('Название задачи'));
+    expect(rowFieldId('2 номера')).toMatch(/^f[0-9a-z]+$/);
+    expect(rowFieldId('')).toBe('');
   });
 });
 

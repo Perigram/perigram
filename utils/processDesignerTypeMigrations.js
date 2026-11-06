@@ -1,4 +1,4 @@
-import { camelCaseId } from '~/packages/processes/src/index.js';
+import { rowFieldId } from '~/packages/cts/src/index.js';
 
 // The type-migration authoring seam (CTS SPEC §11/§14): the apply flow's
 // structured refusal (`data.plan` from the cts-types gate) becomes
@@ -57,7 +57,7 @@ export function declarationVocabulary(nodes = [], edges = [], storedTypes = []) 
     if (!source || !target || target.type !== 'ctsClass' || !target.data?.typeId) continue;
     if (source.type === 'ctsField') {
       const name = String(source.data.name || '').trim();
-      const fieldId = camelCaseId(name);
+      const fieldId = rowFieldId(name);
       if (fieldId) at(target.data.typeId).fields[fieldId] = source.data.descriptor?.label || name;
     }
     if (source.type === 'ctsState') {
@@ -167,7 +167,7 @@ export function stepsFromTypeMigrationRows(rows = [], answers = {}) {
     if (row.kind === 'rename-field') {
       const authored = String(answers[row.key] ?? row.toLabel ?? '').trim();
       if (!authored) continue;
-      const to = authored === row.toLabel ? row.to : camelCaseId(authored);
+      const to = authored === row.toLabel ? row.to : rowFieldId(authored);
       if (to) steps.push({ kind: 'rename-field', from: row.field, to });
       continue;
     }

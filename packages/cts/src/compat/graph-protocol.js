@@ -11,6 +11,7 @@
 // - checkCtsGraphBindings: declaration-level binding validation (type
 //   exists, state declared, field in row) beside R1-R6.
 import { classMayDeclareChildren } from '../classes.js';
+import { isRowKeyId } from '../rows.js';
 const CTS_KIND = Object.freeze({
   construct: 'cts.construct',
   mutate: 'cts.mutate',
@@ -59,14 +60,23 @@ export function resolveCtsRecord(node = {}, domain = {}) {
   return resolveNativeNode(node, domain, typeIdResolver(domain), [], '');
 }
 
-// Row-key minting (SPEC §4 row law): an authored name's latin/digit
-// segments become the lowerCamelCase row key; '' when none survive.
+// Row-key minting (SPEC §4): an authored name's latin letter/digit
+// segments become the lowerCamelCase row key; any other name digests to
+// a stable opaque key. '' only for empty input.
 export function rowFieldId(value = '') {
-  const segments = String(value).split(/[^a-zA-Z0-9]+/).filter(Boolean);
-  if (!segments.length) return '';
-  const [first, ...rest] = segments;
-  return first.charAt(0).toLowerCase() + first.slice(1)
-    + rest.map(segment => segment.charAt(0).toUpperCase() + segment.slice(1)).join('');
+  const text = String(value);
+  const segments = text.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+  const derived = segments.length
+    ? segments[0].charAt(0).toLowerCase() + segments[0].slice(1)
+      + segments.slice(1).map(segment => segment.charAt(0).toUpperCase() + segment.slice(1)).join('')
+    : '';
+  if (derived && isRowKeyId(derived)) return derived;
+  if (!text.trim()) return '';
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) {
+    hash = Math.imul(hash ^ text.charCodeAt(index), 0x01000193) >>> 0;
+  }
+  return 'f' + hash.toString(36);
 }
 
 function snake(value = '') {
