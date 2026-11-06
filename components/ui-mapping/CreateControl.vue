@@ -31,8 +31,9 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputGroup from 'primevue/inputgroup';
 import Select from 'primevue/select';
-import { resolveActionButton, actionLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
+import { resolveActionButton } from '#shared/ui-mapping/index.js';
 import { creationModeLabel } from '~/packages/processes/src/ui-contract-projection.js';
+import { generatedCreateLabel } from '~/utils/generated-labels.js';
 import ActionButton from './ActionButton.vue';
 
 const props = defineProps({
@@ -55,13 +56,11 @@ const modeOptions = computed(() => (props.group || []).map(action => ({
   label: creationModeLabel(action.construction?.mode) || action.label || action.id,
   value: action.id
 })));
-// The caption names the created type through the compiled label; the
-// grouped button renders it beside the creation-mode selection.
+// The caption names the created type through the localized create-label
+// chain; the grouped button renders it beside the creation-mode selection.
 const resolved = computed(() => resolveActionButton(selectedAction.value, { statePolicy: props.statePolicy }));
-const buttonLabel = computed(() => localizedLabel(
-  { te, t },
-  actionLabelKey(selectedAction.value.id),
-  resolved.value.label || selectedAction.value.label
-));
+const buttonLabel = computed(() => generatedCreateLabel(selectedAction.value, { t, te })
+  || resolved.value.label
+  || selectedAction.value.label);
 const run = action => emit('run', action);
 </script>

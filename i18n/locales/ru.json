@@ -2023,6 +2023,8 @@
         "today": "Сегодня",
         "projectionBoard": "Показать как доску",
         "projectionTable": "Показать как таблицу",
+        "createCaption": "Создать {type}",
+        "createCaptionFromMode": "Создать {type} из {mode}",
         "creationMode": "Способ создания",
         "stateHistory": "История состояний",
         "rederive": "Пересобрать",

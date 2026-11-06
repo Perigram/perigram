@@ -190,7 +190,9 @@ list: an identifier row reaches the dialog only as a contract input (a
 non-constructible identity row authors nothing and stays out of every
 contract). Declared fields match by flat-wire `fields.<name>` path
 (the §3 stored shape compiled construction inputs speak) or bare name
-(authored compose inputs) and render through their descriptor; string
+(authored compose inputs) and render through their descriptor — the
+block-composed policy's `field:`-prefixed ids map onto their wire path,
+which is the row id and draft key; string
 protocol inputs (the `content` body) render as full-width scalar rows
 carrying their control pin; `lineage.<key>` inputs render
 instance pickers over the parent types whose children edges declare that
@@ -201,10 +203,11 @@ chain derives at the construct seam
 parents' edges are the declaration home, the child carries no parent list;
 an edge matches by its declared `lineageKey`, the entry's map key is
 authoring identity). A lineage axis stays a row even when the compiled
-policy marks it graph-supplied: its wire source is the launch context,
-so a contextless launch prompts it (the row carries the compiled
-`required` flag) and a scoped launch seeds and hides it through the
-component layer's launch-context channel. Construct operator reference inputs render as
+policy marks it graph-supplied, unless the field carries an authored
+default (a pinned parent stays supplied): its wire source is the launch
+context, so a contextless launch prompts it (the row carries the
+compiled `required` flag) and a scoped launch seeds and hides it through
+the component layer's launch-context channel. Construct operator reference inputs render as
 instance pickers over the operator's `accepts` — an `entity` single, a
 `typeList` list; every other operator data input renders by its own
 base (a free-form map as key-value rows, quantities their unit field).
@@ -461,22 +464,20 @@ the policy authors none, so a transition button is never anonymous); a
 transition whose policy authors no icon falls back to the swap glyph so
 every state-changing button is iconned.
 
-`planActionLaunch(action, { scopedInstance })` is the launch contract the
-screen engine consumes: `'link'` for relation link (its picker dialog),
-`'dialog'` when the action carries construction inputs (the generated
-create dialog — regardless of grant level) or when a run action carries
-prompted exposure inputs (`resolveRunDialogInputs` builds one row per
-input from its declared parameter type, prefilled with the authored
-default), `'confirm'` when the resolved action button declares
+`planActionLaunch(action)` is the launch contract the screen engine
+consumes: `'link'` for relation link (its picker dialog), `'dialog'` when
+the action carries construction inputs (the generated create dialog —
+regardless of grant level) or when a run action carries prompted
+exposure inputs (`resolveRunDialogInputs` builds one row per input from
+its declared parameter type, prefilled with the authored default), `'confirm'` when the resolved action button declares
 confirmation (the destructive kinds), else `'run'`. Grant level is an
 access signal, never a presentation one: an admin-level create still
 opens its construction dialog, so no create executes with an empty draft
-merely because it was granted at admin. Lineage axes are the one
-context-dependent input: a lineage field the policy marks graph-supplied
-(its wire source is the launch context) counts as a dialog row exactly
-when the launch carries no `scopedInstance`; the screen engine passes
-its scoped detail instance so a create launched inside its parent keeps
-running with no form.
+merely because it was granted at admin. A lineage axis the graph
+supplies without an authored default always counts as a dialog row —
+its wire source is the launch context, and the dialog's launch-context
+channel seeds and hides it inside the parent's surface (auto-running
+when the context supplied every row).
 
 `resolveInstanceActions(actions, typeId)` selects the per-instance quick
 actions a collection surface may offer without a form context: manual

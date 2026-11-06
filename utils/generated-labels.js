@@ -2,6 +2,7 @@ import { labelKeyForType } from '~/utils/design-system-contract.js';
 import { typeLabelFor } from '#shared/ui-mapping/index.js';
 import { useRegistryStore } from '~/stores/registry';
 import { isCreateAction, isRelationLinkAction, isRelationUnlinkAction, isUpdateAction } from '~/utils/action-visibility.js';
+import { creationModeLabel } from '~/packages/processes/src/ui-contract-projection.js';
 
 // The app binding of the one type-label chain (`typeLabelFor`,
 // shared/ui-mapping; canonical contract in its README). The registry
@@ -49,13 +50,32 @@ function actionTypeOf(action = {}) {
   return action.typeId || '';
 }
 
+// The procedural create caption (SPEC §4) composed from localized parts:
+// an authored label wins; the generic `New <Type>` / `New <Type> from
+// <Mode>` shape translates through `uiMapping.createCaption*` over the
+// one type-label chain and the mode name.
+export function generatedCreateLabel(action = {}, { t, te } = {}) {
+  if (!isCreateAction(action)) return null;
+  const authored = String(action.label || '').trim();
+  const mode = creationModeLabel(action.construction?.mode);
+  const baseName = registryTypeRecord(actionTypeOf(action))?.name || '';
+  const generic = !authored
+    || authored === `New ${baseName}`
+    || authored === `New ${baseName} from ${mode}`;
+  if (!generic) return authored;
+  const typeLabel = generatedEntityLabel(actionTypeOf(action), { t, te });
+  return mode
+    ? t('uiMapping.createCaptionFromMode', { type: typeLabel, mode })
+    : t('uiMapping.createCaption', { type: typeLabel });
+}
+
 function relationLinkTarget(action = {}) {
   if (!isRelationLinkAction(action)) return '';
   return [].concat(action.relationMutation?.targetTypes || action.relation?.targetTypes || [])[0] || '';
 }
 
 export function generatedActionLabel(action = {}, fallback = '', { t, te } = {}) {
-  if (isCreateAction(action)) return generatedEntityLabel(actionTypeOf(action), { t, te }) || fallback;
+  if (isCreateAction(action)) return generatedCreateLabel(action, { t, te }) || fallback;
   const relationTarget = relationLinkTarget(action);
   if (relationTarget) return generatedEntityLabel(relationTarget, { t, te }) || fallback;
 

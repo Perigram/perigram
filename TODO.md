@@ -5133,3 +5133,27 @@ Law written from owner words this session; owner confirmed declared
 prose fields, trailing comments, and record-pages-only scope. The e2e
 stack verification for the review-era re-pins is deferred to this
 program's stack pass.
+
+  ### Agent Notes (2026-11-06, repair session)
+
+  Session `agent/create-context2-20261106` (worktree
+  `.agent-worktrees/create-context2-20261106`). Owner review found two
+  defects in the first cut. (1) The lineage predicate read the policy
+  field `id`, but the block-composed compiled shape carries
+  `field:`-prefixed ids with the wire path on `path` — the resurrection
+  never fired there (and `field:`-prefixed field rows never mapped onto
+  declared fields); row ids now normalize onto the wire path for both
+  shapes. (2) `planActionLaunch` grew a context parameter; the context
+  decision moved where it belongs — every lineage axis without an
+  authored default counts as a dialog row on every launch, and the
+  dialog's launch-context channel seeds/hides/auto-runs inside the
+  parent (explicit dialog data overrides wires server-side, so the
+  scoped path no longer leans on runtime entity binding through a wired
+  socket). Authored socket defaults (pinned parents) stay supplied.
+  Create captions translate: `generatedCreateLabel` (utils) composes
+  `uiMapping.createCaption{,FromMode}` over the localized type label and
+  mode name; ActionButton, CreateControl, the palette, and the menu
+  label chain render it (authored labels win). Validation: ui-mapping
+  spec 119, design-system + framework-packages + components/ui-mapping
+  44, localization, SSR suite 24/24, check-arch, check-docs green;
+  e2e still pending a live stack.

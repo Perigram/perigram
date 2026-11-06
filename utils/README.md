@@ -86,7 +86,10 @@ Parent: [root README](../README.md).
   table and the registry-resolved type record (guarded for contexts
   without an active Pinia), and the generated screen/region/action
   label resolvers on top translate compiled manifest labels through the
-  same chain.
+  same chain. `generatedCreateLabel` owns the localized create caption
+  (SPEC §4): an authored label wins; the generic `New <Type>` /
+  `New <Type> from <Mode>` shape composes from the `uiMapping.createCaption*`
+  keys over the localized type label and mode name.
 - `data-display.js`: Shared path resolution and value formatting for fact rows (`decorateDataValue`), plus the byte-size and payload-fact labels (`formatFileSize`, `payloadFactLine`). It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`. Declared `unit`s render as value suffixes through the closed unit-symbol table (`mm`, `m`, `m2`→`m²`, `percent`, `min`, `deg`); `display: 'dimensions'` renders the width × length span of a resolved specs object.
 - `chat-file-targets.js`: Pure resolver for the chat composer's instance-chat
   upload window: over the served CTS type view it collects a composer
