@@ -825,6 +825,15 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const handleCanvasKeydown = (event) => {
         if (!props.active) return;
+        if (event.key === 'Delete' || event.key === 'Backspace') {
+          if (isEditableTarget(event.target)) return;
+          const target = selectedShape.value?.shapeId || selectedCorner.value?.shapeId;
+          if (!target) return;
+          event.preventDefault();
+          event.stopPropagation();
+          deleteShape(target);
+          return;
+        }
         if (event.key === 'Escape') {
           const cancelling = Boolean(host?.running) || Boolean(dimensionDraft.value);
           if (!cancelling && !selectedCorner.value && !selectedShape.value) {
@@ -1121,6 +1130,27 @@ export default function createSketchEditor({ vue, components, locale }) {
           PROFILE_ANNOTATION_LAYER,
           PROFILE_DIMENSION_LAYER
         ]);
+      };
+
+      // A context refresh rides the host's annotate channel layer by layer;
+      // the sketch entities, the selection, and any running command keep
+      // their identity through the refresh.
+      let annotatedContextLayers = new Set();
+      const refreshContextLayers = () => {
+        if (!host) return;
+        const byLayer = new Map();
+        for (const layer of props.contextLayers || []) byLayer.set(layer.name, []);
+        for (const entity of props.contextEntities || []) {
+          if (!byLayer.has(entity.layer)) byLayer.set(entity.layer, []);
+          byLayer.get(entity.layer).push(entity);
+        }
+        for (const name of annotatedContextLayers) {
+          if (!byLayer.has(name)) byLayer.set(name, []);
+        }
+        for (const [name, entities] of byLayer) {
+          host.annotate(name, entities, { locked: true });
+        }
+        annotatedContextLayers = new Set(byLayer.keys());
       };
 
       const clearEngineSelection = () => {
@@ -1967,14 +1997,22 @@ export default function createSketchEditor({ vue, components, locale }) {
       });
 
       watch(() => [props.contextEntities, props.contextLayers, props.contextLinetypes, props.canvasFrame], (context, previous) => {
-        if (!props.active) return;
+        if (!props.active || !host) return;
         // A draft that gains its placement mid-session (the workpiece's
         // first commit) mounts here: the frame arrives with the assembly
         // context, and the camera refits onto the mounted sketch.
         const mountedNow = !previous?.[3] && Boolean(props.canvasFrame);
+        const frameMoved = Boolean(previous?.[3]) && props.canvasFrame
+          && JSON.stringify(props.canvasFrame) !== JSON.stringify(previous[3]);
         lastAnnotationFingerprint = '';
-        if (host) reseedFromModel({ force: true });
-        if (mountedNow) nextTick(() => host?.zoomFit(fitExcludeLayers()));
+        if (mountedNow) {
+          reseedFromModel({ force: true });
+          nextTick(() => host?.zoomFit(fitExcludeLayers()));
+        } else if (frameMoved) {
+          reseedFromModel({ force: true });
+        } else {
+          refreshContextLayers();
+        }
         scheduleOutlineResolve();
       }, { deep: true });
 

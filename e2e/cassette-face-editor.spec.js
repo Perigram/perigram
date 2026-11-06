@@ -319,3 +319,104 @@ test('a field error never drops committed face edits', async ({ app }) => {
   await page.screenshot({ path: '.playwright/cassette-face-editor-06-reopened-after-error.png' });
   await app.expectCleanRuntime();
 });
+
+test('the Delete key removes the canvas-selected shape', async ({ app }) => {
+  test.setTimeout(420_000);
+  await app.installPlugins(['tech-drawing', 'facade']);
+  await app.connectPlugin('facade', process.env.E2E_FACADE_URL || 'http://facade-executor:8790');
+  await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
+  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'], via: { 'cassette-template': 'editor' } });
+  const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette-template');
+  const page = app.page;
+  await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
+  await page.addInitScript(() => window.localStorage.setItem(
+    'perigram:onboarding:cassette-designer-v2',
+    JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
+  ));
+  await app.gotoClient(list.route);
+  const newButton = page.locator('main').getByRole('button', { name: /^New/ });
+  await newButton.waitFor({ timeout: 60_000 });
+  await newButton.click();
+  await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
+  const inspector = page.locator('.designer-workspace__inspector').first();
+
+  const edgePoint = async () => page.evaluate(() => {
+    const svgs = Array.from(document.querySelectorAll('svg'));
+    const svg = svgs.find(node => node.querySelectorAll('line[stroke-width="20"]').length);
+    if (!svg) return null;
+    const lines = Array.from(svg.querySelectorAll('line[stroke-width="20"]'));
+    const pts = lines.map(line => {
+      const point = svg.createSVGPoint();
+      point.x = (Number(line.getAttribute('x1')) + Number(line.getAttribute('x2'))) / 2;
+      point.y = (Number(line.getAttribute('y1')) + Number(line.getAttribute('y2'))) / 2;
+      const screen = point.matrixTransform(svg.getScreenCTM());
+      return { x: screen.x, y: screen.y };
+    }).filter(item => Number.isFinite(item.x));
+    pts.sort((a, b) => a.y - b.y);
+    return pts[0] || null;
+  });
+  let edge = await edgePoint();
+  for (let attempt = 0; attempt < 20 && !edge; attempt += 1) {
+    await page.waitForTimeout(1500);
+    edge = await edgePoint();
+  }
+  expect(edge).toBeTruthy();
+  await page.mouse.move(edge.x, edge.y);
+  await page.waitForTimeout(600);
+  await page.mouse.click(edge.x, edge.y);
+  await page.getByRole('button', { name: 'Add face' }).click();
+  await page.waitForTimeout(1500);
+  await page.mouse.click(edge.x, edge.y - 30);
+  await page.waitForTimeout(1200);
+  await inspector.getByRole('button', { name: 'Edit shape' }).click();
+  const dialog = page.locator('[data-sketch-mode="face"]').first();
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  const canvas = dialog.locator('[role="application"]').first();
+  await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
+  await page.waitForTimeout(1500);
+
+  // Click the default rectangle on the canvas (its bottom edge midpoint).
+  const rectEdge = await page.evaluate(() => {
+    const frameWin = Array.from(document.querySelectorAll('iframe'))
+      .map(node => node.contentWindow)
+      .find(win => win?.location?.search?.includes('embed=1'));
+    const view = frameWin.cadcraft.view;
+    const host = frameWin.frameElement.getBoundingClientRect();
+    const line = frameWin.cadcraft.doc.all().find(entity => entity.layer === '0' && entity.type === 'line');
+    const a = view.toScreen((line.x1 + line.x2) / 2, (line.y1 + line.y2) / 2);
+    const point = { x: host.left + a.x, y: host.top + a.y };
+    point.covered = document.elementFromPoint(point.x, point.y)?.tagName;
+    return point;
+  });
+  expect(rectEdge.covered, 'the rect edge is clickable').toBe('IFRAME');
+  await page.mouse.click(rectEdge.x, rectEdge.y);
+  await page.waitForTimeout(700);
+  const selectedTag = await shapeRows(page);
+  expect(selectedTag.length, 'the shape is selected').toBe(1);
+
+  // Delete through the keyboard.
+  await page.keyboard.press('Delete');
+  await page.waitForTimeout(1000);
+  await expect.poll(async () => await shapeRows(page), { timeout: 10_000 }).toEqual([]);
+  await page.screenshot({ path: '.playwright/cassette-face-editor-07-delete-key.png' });
+
+  // Close and reopen: the default rectangle stays deleted.
+  for (let attempt = 0; attempt < 3 && await dialog.isVisible().catch(() => false); attempt += 1) {
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+  }
+  await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await page.waitForTimeout(1800);
+  for (const dy of [30, 20, 45, 15, 60]) {
+    await page.mouse.click(edge.x, edge.y - dy);
+    await page.waitForTimeout(1000);
+    if (await inspector.getByRole('button', { name: 'Edit shape' }).isVisible().catch(() => false)) break;
+  }
+  await inspector.getByRole('button', { name: 'Edit shape' }).click();
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
+  await page.waitForTimeout(1500);
+  await expect.poll(async () => await shapeRows(page), { timeout: 10_000 }).toEqual([]);
+  await page.screenshot({ path: '.playwright/cassette-face-editor-08-delete-key-reopened.png' });
+  await app.expectCleanRuntime();
+});
