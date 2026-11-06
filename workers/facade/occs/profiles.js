@@ -1721,27 +1721,18 @@ const mergeChainShape = (extractedShape, authoredShape, evaluatedShape, mergeFie
   };
 };
 
-// `adoptShapes` (editor session state) offers already-dropped authored
-// shapes as extra match candidates: an engine undo/redo restores canvas
-// geometry the model dropped, and the restored shape re-adopts its
-// authored expressions instead of landing numeric.
-export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, externalParameters = {}, adoptShapes = []) => {
+export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, externalParameters = {}) => {
   let source = null;
-  let adoptSource = null;
   try {
     // The external scope joins the evaluation: a sketch whose fields
     // read the cassette's globals keeps its bindings through the merge.
     // The scope never stores.
     source = evaluateOccsProfileSketch(authored, externalParameters);
-    adoptSource = adoptShapes.length
-      ? evaluateOccsProfileSketch({ ...authored, shapes: adoptShapes }, externalParameters).shapes
-      : [];
   } catch {
     // A refused merge returns the authored table (occs/README.md).
     return normalizeOccsProfileSketch(authored);
   }
   const usedAuthored = new Set();
-  const keptShapeIds = new Set();
   // A moved field keeps its authored expression when it names a
   // parameter — the drag edits that parameter (the dimension is that
   // parameter's editor); compound expressions and numerics carry the
@@ -1773,16 +1764,16 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
   };
   // A tagged extraction names its authored shape outright: identity is
   // the tag, so geometry never decides the kind.
-  const authoredById = new Map([...authored.shapes, ...adoptShapes].map(shape => [shape.id, shape]));
+  const authoredById = new Map(authored.shapes.map(shape => [shape.id, shape]));
   const shapes = extracted.shapes.map((shape) => {
     const tagged = authoredById.get(shape.id) || null;
     // The tagged shape's evaluated counterpart carries the numbers; the
     // authored one carries the expressions.
     let best = tagged
-      ? [...source.shapes, ...adoptSource].find(candidate => candidate.id === tagged.id) || null
+      ? source.shapes.find(candidate => candidate.id === tagged.id) || null
       : null;
     let bestMatches = 0;
-    for (const candidate of tagged ? [] : [...source.shapes, ...adoptSource]) {
+    for (const candidate of tagged ? [] : source.shapes) {
       if (usedAuthored.has(candidate.id) || !sameShapeFamily(shape, candidate)) continue;
       if (shape.type === 'chain' && candidate.type === 'chain') {
         const matches = candidate.points.filter((candidatePoint, index) => (
@@ -1803,10 +1794,8 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     if (!best) return { ...shape, __fresh: true };
     usedAuthored.add(best.id);
     const pool = tagged
-      || authored.shapes.find(authoredShape => authoredShape.id === best.id)
-      || adoptShapes.find(adoptShape => adoptShape.id === best.id);
+      || authored.shapes.find(authoredShape => authoredShape.id === best.id);
     const original = pool || best;
-    keptShapeIds.add(original.id);
     if (shape.type === 'chain' && original.type === 'chain') {
       // Point ids are per-shape identity: the authored ids ride the kept
       // shape so its fillet modifiers stay referenced.
@@ -1828,8 +1817,8 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
   // authored shape of the same kind and keeps the authored expression on
   // every field whose evaluated value still matches the extracted
   // geometry.
-  const authoredPool = [...(authored.shapes || []), ...adoptShapes];
-  const evaluatedById = new Map([...source.shapes, ...adoptSource].map(shape => [shape.id, shape]));
+  const authoredPool = [...(authored.shapes || [])];
+  const evaluatedById = new Map(source.shapes.map(shape => [shape.id, shape]));
   const paired = new Set();
   for (const shape of shapes) {
     if (!shape.__fresh || (shape.type !== 'rect' && shape.type !== 'circle')) continue;
@@ -1842,7 +1831,6 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     delete shape.__fresh;
     shape.id = authoredShape.id;
     shape.op = authoredShape.op;
-    keptShapeIds.add(authoredShape.id);
     shape.center = [
       mergeField(authoredShape.center[0], evaluatedShape.center[0], shape.center[0]),
       mergeField(authoredShape.center[1], evaluatedShape.center[1], shape.center[1])
