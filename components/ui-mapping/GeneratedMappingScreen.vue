@@ -59,6 +59,7 @@
       :entry="linkNestedCreate"
       :bundle="bundle"
       :pool="pool"
+      :scoped-instance="scopedInstance"
       @applied="applyLinkNestedCreate"
       @close="linkNestedCreate = null"
     />
@@ -124,8 +125,8 @@ const props = defineProps({
   // `async (instance) => [{ to, intent, region }]` over the host's state
   // service — the same machine the transition buttons dispatch through.
   onFetchTransitions: { type: Function, default: null },
-  // Lazy type loader for the containment cross-cut (parent-context
-  // rows): `async (typeId) => screenInstance[]` over the host's instance
+  // Lazy type loader for the children-type overlay and the relation
+  // target pool: `async (typeId) => screenInstance[]` over the host's instance
   // store.
   onLoadType: { type: Function, default: null },
   // Host-injected contextual back affordance for the detail record
@@ -258,7 +259,7 @@ const dialogFailures = ref(null);
 const dialogContext = ref({});
 
 // The opened record on a scoped detail surface — the launch context's
-// parent binding for creates (SPEC §UI): lineage rows accepting that type
+// parent binding for creates (SPEC §4): lineage rows accepting that type
 // submit its reference and never render.
 const scopedInstance = computed(() => {
   const scopeTypeId = props.screen?.typeId;
@@ -371,7 +372,7 @@ function applyLinkNestedCreate({ apply, typeId, id }) {
 // and confirmation comes from the resolved action button (destructive
 // kinds), never from the grant level.
 const openAction = (action, context = {}) => {
-  const launch = planActionLaunch(action);
+  const launch = planActionLaunch(action, { scopedInstance: scopedInstance.value });
   if (launch === 'link') {
     linkAction.value = action;
     linkContext.value = context || {};

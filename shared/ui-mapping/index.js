@@ -921,19 +921,22 @@ export function createActionControls(actions = []) {
   return controls;
 }
 
-// planActionLaunch(action): how a screen launches one manual action —
-// 'link' (the relation picker dialog), 'dialog' (the generated create
-// dialog for any action carrying construction inputs, the run dialog for
-// a run action carrying prompted inputs), 'confirm' (the
-// resolved action button's confirmation, i.e. the destructive kinds),
-// else 'run'. The construction dialog wins over confirmation, and grant
-// level is never a presentation signal: an admin-level create still opens
-// its form instead of executing an empty draft behind a bare confirm.
-export function planActionLaunch(action = {}) {
+// planActionLaunch(action, { scopedInstance }): how a screen launches one
+// manual action — 'link' (the relation picker dialog), 'dialog' (the
+// generated create dialog for any action carrying construction inputs, the
+// run dialog for a run action carrying prompted inputs), 'confirm' (the
+// resolved action button's confirmation, i.e. the destructive kinds), else
+// 'run'. The construction dialog wins over confirmation, and grant level is
+// never a presentation signal. Lineage axes are launch-context rows: a
+// lineage field the graph supplies counts as a dialog row whenever no
+// scoped instance rides the launch (the wire source is the launch context
+// itself), and stops counting once one does.
+export function planActionLaunch(action = {}, { scopedInstance = null } = {}) {
   if (action.actionKind === 'link') return 'link';
+  const isLineage = field => String(field?.id || field?.path || '').startsWith('lineage.');
   const policyFields = action.inputPolicy?.fields;
   const dialogRows = policyFields != null
-    ? policyFields.filter(field => field?.prompt !== false).length
+    ? policyFields.filter(field => (field?.prompt !== false) || (isLineage(field) && !scopedInstance)).length
     : (action.construction?.inputs || []).length;
   if (dialogRows) return 'dialog';
   if (action.actionKind === 'runCommand' && resolveRunDialogInputs(action).length) return 'dialog';
@@ -1266,9 +1269,13 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
   // The compiled input policy owns the row list: the compiler keeps it to
   // the fields the graph leaves unsupplied (wired producers and authored
   // socket defaults drop out), so a supplied field stays out of the
-  // dialog. Construction inputs serve actions compiled without a policy.
+  // dialog — lineage axes excepted: their wire source is the launch
+  // context, so they stay rows and the dialog's launch context decides
+  // (a scoped launch seeds and hides them). Construction inputs serve
+  // actions compiled without a policy.
+  const isLineageId = id => String(id || '').startsWith('lineage.');
   const source = policyFields.length
-    ? policyFields.filter(field => field?.prompt !== false)
+    ? policyFields.filter(field => field?.prompt !== false || isLineageId(field?.id || field?.path))
     : [...(action.construction?.inputs || [])];
   const policyById = new Map(policyFields.map(field => [field?.id || field?.path, field]));
   const rows = [];
@@ -1301,19 +1308,22 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
     }
     // A lineage input is a containment-declared parent picker: the row
     // carries its binding (key, accepted parent types) so the launch
-    // context seeds and hides it inside the parent's surface. Compiled
-    // policies type lineage inputs `entity` — this branch owns them
-    // before the operator-reference branch.
+    // context seeds and hides it inside the parent's surface. Accepted
+    // parents resolve over the bundle's children edges, the declared
+    // input type serving as the fallback when no edge carries the key.
     if (id.startsWith('lineage.')) {
       const key = id.slice('lineage.'.length);
+      const declared = [policy?.typeId, policy?.accepts?.[0], policy?.type?.typeId].find(Boolean);
       const accepts = parentTypesForChildrenKey(bundle, type?.id, key);
-      if (accepts.length) {
-        const parentLabel = (bundle?.types || []).find(candidate => candidate.id === accepts[0])?.name;
+      const accepted = accepts.length ? accepts : (declared ? [declared] : []);
+      if (accepted.length) {
+        const parentLabel = (bundle?.types || []).find(candidate => candidate.id === accepted[0])?.name;
         rows.push({
           id,
-          label: parentLabel || fieldLabel(key.replace(/Id$/, '')),
-          lineage: { key, accepts },
-          span: 'half'
+          label: parentLabel || policy?.label || fieldLabel(key.replace(/Id$/, '')),
+          lineage: { key, accepts: accepted },
+          span: 'half',
+          required: policy?.required === true
         });
         continue;
       }

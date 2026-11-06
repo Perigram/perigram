@@ -19,7 +19,7 @@
       </template>
     <Column sortable :sort-field="sortByIdentity" :header="identityColumnLabel">
       <template #body="{ data }">
-        <div class="flex min-w-0 items-center gap-2">
+        <div class="flex min-w-0 flex-col gap-1">
           <InstanceIdentity
             :instance="data"
             :type="type"
@@ -27,7 +27,12 @@
             size="small"
             @open="target => $emit('open', target)"
           />
-          <ParentRef v-if="parented" :instance="data" :bundle="bundle" :pool="pool" class="min-w-0 shrink-0" />
+          <BreadcrumbTrail
+            v-if="parented"
+            :instance="data"
+            :bundle="bundle"
+            @open="target => $emit('open', target)"
+          />
         </div>
       </template>
     </Column>
@@ -157,7 +162,7 @@ import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import { useEntityPopup } from '~/composables/useEntityPopup';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
-import ParentRef from './ParentRef.vue';
+import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
 import InlineField from './InlineField.vue';
 import FieldControl from './FieldControl.vue';
@@ -173,7 +178,7 @@ const props = defineProps({
   // Identity cells render as links when an open handler exists upstream.
   openable: { type: Boolean, default: false },
   // The containment cross-cut composes on this collection (unscoped class
-  // list): identity cells carry the parent context token.
+  // list): identity cells carry the lineage breadcrumb trail.
   parented: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },

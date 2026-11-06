@@ -24,12 +24,20 @@
       data-testid="gantt-row"
     >
       <div :class="LAYOUT.ganttIdentity">
-        <InstanceIdentity
-          :instance="row.instance"
-          :type="type"
-          :openable="openable"
-          @open="target => $emit('open', target)"
-        />
+        <div class="flex min-w-0 flex-col gap-1">
+          <InstanceIdentity
+            :instance="row.instance"
+            :type="type"
+            :openable="openable"
+            @open="target => $emit('open', target)"
+          />
+          <BreadcrumbTrail
+            v-if="parented"
+            :instance="row.instance"
+            :bundle="bundle"
+            @open="target => $emit('open', target)"
+          />
+        </div>
       </div>
       <div :class="LAYOUT.ganttTrack">
         <span
@@ -61,12 +69,18 @@ import { computed, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { LAYOUT, titleFor, temporalFieldsFor, stateDisplayFor } from '#shared/ui-mapping/index.js';
 import InstanceIdentity from './InstanceIdentity.vue';
+import BreadcrumbTrail from './BreadcrumbTrail.vue';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
   type: { type: Object, default: null },
   // Collection identities render as links when an open handler exists.
   openable: { type: Boolean, default: false },
+  // The containment cross-cut composes on this collection (unscoped class
+  // list): rows carry their lineage breadcrumb trail.
+  parented: { type: Boolean, default: false },
+  pool: { type: Object, default: () => ({}) },
+  bundle: { type: Object, default: null },
   // Per-type state policy map: bar tone follows the state severity.
   statePolicy: { type: Object, default: null }
 });

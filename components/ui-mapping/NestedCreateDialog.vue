@@ -14,7 +14,7 @@
   >
     <div :class="LAYOUT.formGrid">
       <div
-        v-for="row in rows"
+        v-for="row in visibleRows"
         :key="row.id"
         class="flex min-w-0 flex-col gap-1"
         :class="row.span === 'full' ? 'ck-span-full' : ''"
@@ -56,11 +56,14 @@ import StandardDialog from '../shared/StandardDialog.vue';
 // opens inside its host dialog; the created record selects into the row
 // (or becomes the link target) without leaving the host. `entry` is
 // `{ rowId, typeId, action, apply }`; `applied` carries the created ref
-// back for the host to place.
+// back for the host to place. The host's launch context
+// (`scopedInstance`) seeds and hides lineage rows accepting its type —
+// the same law the action form dialog follows.
 const props = defineProps({
   entry: { type: Object, default: null },
   bundle: { type: Object, required: true },
-  pool: { type: Object, default: () => ({}) }
+  pool: { type: Object, default: () => ({}) },
+  scopedInstance: { type: Object, default: null }
 });
 
 const emit = defineEmits(['applied', 'close']);
@@ -76,11 +79,33 @@ const type = computed(() => (
 const rows = computed(() => (
   props.entry?.action ? resolveCreateDialogInputs(props.entry.action, type.value, props.bundle) : []
 ));
-const incomplete = computed(() => rows.value.some(row => createDialogRowUnfilled(row, draft[row.id])));
+const visibleRows = computed(() => {
+  const scoped = props.scopedInstance;
+  if (!scoped) return rows.value;
+  return rows.value.filter(row => !row.lineage?.accepts?.includes(scoped.type));
+});
+const incomplete = computed(() => visibleRows.value.some(row => createDialogRowUnfilled(row, draft[row.id])));
 
 watch(() => props.entry, () => {
-  for (const key of Object.keys(draft)) delete draft[key];
+  seedDraft();
 }, { immediate: true });
+
+// Prefill the draft: authored defaults, then the launch context's parent
+// reference on lineage rows accepting its type.
+function seedDraft() {
+  for (const key of Object.keys(draft)) delete draft[key];
+  for (const row of rows.value) {
+    if (row.default !== undefined && row.default !== null) draft[row.id] = row.default;
+  }
+  const scoped = props.scopedInstance;
+  if (scoped) {
+    for (const row of rows.value) {
+      if (row.lineage?.accepts?.includes(scoped.type)) {
+        draft[row.id] = { type: scoped.type, id: scoped.id };
+      }
+    }
+  }
+}
 
 async function submit() {
   const entry = props.entry;
