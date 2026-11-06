@@ -1088,11 +1088,11 @@ record's name or type. The record header carries the record's declared
 containment ancestors as a compact, background-free breadcrumb trail
 above the identity line; each ancestor opens its record through the
 surface's instance-open channel. An instance rendered outside its
-parent's surface carries the same trail beside its identity (owner
-direction 2026-11-06): every projection of an unscoped class list —
-table rows, card-grid cards, board cards, timeline entries, gantt rows,
-stat cards — renders it, and the calendar's day cells stay summaries
-(the record surface states the ancestry).
+parent's surface carries the same trail beneath its identity (owner
+direction 2026-11-06): the one identifier surface renders it for every
+collection projection of an unscoped class list, the media tile and the
+action-inbox rows carry it at their hosts, and the calendar's day cells
+stay summary chips (the record surface states the ancestry).
 
 ### 22.13 Instance pickers render procedural list items (owner direction 2026-10-28; closed-control amendment 2026-10-29; create amendment 2026-10-31)
 
