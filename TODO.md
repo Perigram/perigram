@@ -4580,3 +4580,14 @@ Session reads: SPEC §1 (in-place law), §7 (CTS state law);
 components/process-designer/README.md; components/type-designer;
 server/features/process-definitions/README.md (definition draft
 lifecycle); packages/processes/README.md (declaration compiler).
+
+### Agent Notes (2026-11-06, preview pending loader)
+
+Session `agent/svg-preview-loader-20261106` (worktree
+`.agent-worktrees/svg-preview-loader-20261106`). The cassette preview
+surface spins while the host's payload fetch is outstanding: a record
+whose payload reference carries the OCCS mime shows the loader until the
+parsed document lands, closing the quiet-box window between mount and
+the payload render; DXF-payload records keep the instant baked-field
+path. Validation: surface graph check, facade surface specs, and E2E
+`cassette-preview` green.
