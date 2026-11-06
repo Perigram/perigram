@@ -1,155 +1,140 @@
 <template>
-  <span class="inline-flex">
-    <Button
-      icon="pi pi-filter"
-      text
-      rounded
-      size="small"
-      :severity="conditionCount ? undefined : 'secondary'"
-      :badge="conditionCount ? String(conditionCount) : null"
-      :aria-label="$t('common.filter')"
-      @click="toggle"
-    />
+  <div class="flex min-w-72 max-w-96 flex-col gap-2">
+    <div v-if="rows.length > 1" class="flex flex-wrap items-center justify-between gap-2">
+      <SelectButton
+        :model-value="combinator"
+        :options="combinatorOptions"
+        option-label="label"
+        option-value="value"
+        size="small"
+        :allow-empty="false"
+        :aria-label="$t('uiMapping.matchAll')"
+        @update:model-value="value => setCombinator(value)"
+      />
+      <Button
+        icon="pi pi-times"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        :aria-label="$t('uiMapping.clearConditions')"
+        @click="clearAll"
+      />
+    </div>
 
-    <Popover ref="popover">
-      <div class="flex min-w-72 max-w-96 flex-col gap-2">
-        <div v-if="rows.length > 1" class="flex flex-wrap items-center justify-between gap-2">
-          <SelectButton
-            :model-value="combinator"
-            :options="combinatorOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
-            :allow-empty="false"
-            :aria-label="$t('uiMapping.matchAll')"
-            @update:model-value="value => setCombinator(value)"
-          />
-          <Button
-            icon="pi pi-times"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="$t('uiMapping.clearConditions')"
-            @click="clearAll"
-          />
-        </div>
-
-        <div
-          v-for="(row, index) in rows"
-          :key="index"
-          class="flex min-w-0 flex-col gap-1"
-        >
-          <div class="flex min-w-0 items-center gap-2">
-            <Button
-              :label="fieldLabelFor(row.field)"
-              text
-              size="small"
-              class="min-w-0 flex-1 justify-start [&_.p-button-label]:truncate"
-              :title="fieldLabelFor(row.field)"
-              :aria-label="fieldLabelFor(row.field)"
-              @click="openFieldPicker({ mode: 'row', index })"
-            />
-            <SelectButton
-              :model-value="rowKey(row)"
-              :options="opOptionsFor(row.field)"
-              option-label="label"
-              option-value="value"
-              size="small"
-              class="shrink-0"
-              :allow-empty="false"
-              :aria-label="$t('common.filter')"
-              @update:model-value="value => setRowOp(index, value)"
-            />
-            <Button
-              icon="pi pi-times"
-              text
-              rounded
-              size="small"
-              class="shrink-0"
-              severity="secondary"
-              :aria-label="$t('common.delete')"
-              @click="removeRow(index)"
-            />
-          </div>
-          <div class="min-w-0">
-            <InputText
-              v-if="fieldKind(row.field) === 'text'"
-              :model-value="row.value"
-              size="small"
-              class="w-full"
-              :placeholder="fieldLabelFor(row.field)"
-              @update:model-value="value => setRowValue(index, value)"
-            />
-            <InputNumber
-              v-else-if="fieldKind(row.field) === 'number'"
-              :model-value="typeof row.value === 'number' ? row.value : null"
-              size="small"
-              class="w-full"
-              :aria-label="fieldLabelFor(row.field)"
-              @update:model-value="value => setRowValue(index, typeof value === 'number' ? value : '')"
-            />
-            <InputText
-              v-else-if="fieldKind(row.field) === 'instant'"
-              :model-value="row.value"
-              type="date"
-              size="small"
-              class="w-full"
-              :aria-label="fieldLabelFor(row.field)"
-              @update:model-value="value => setRowValue(index, value || '')"
-            />
-            <SelectButton
-              v-else-if="fieldKind(row.field) === 'boolean'"
-              :model-value="row.value"
-              :options="booleanOptions"
-              option-label="label"
-              option-value="value"
-              size="small"
-              :allow-empty="false"
-              :aria-label="fieldLabelFor(row.field)"
-              @update:model-value="value => setRowValue(index, value)"
-            />
-            <div
-              v-else
-              class="flex min-w-0 flex-wrap items-center gap-1"
-            >
-              <Button
-                v-for="value in valueOptionsFor(row.field)"
-                :key="value.value"
-                :label="value.label"
-                size="small"
-                :outlined="!isValueSelected(row, value.value)"
-                :severity="isValueSelected(row, value.value) ? undefined : 'secondary'"
-                @click="toggleValue(index, value.value)"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div v-if="picker" class="flex max-h-56 flex-col gap-0.5 overflow-y-auto pt-1">
-          <Button
-            v-for="field in fields"
-            :key="field.name"
-            :label="field.label"
-            text
-            size="small"
-            class="justify-start"
-            @click="pickField(field.name)"
-          />
-        </div>
+    <div
+      v-for="(row, index) in rows"
+      :key="index"
+      class="flex min-w-0 flex-col gap-1"
+    >
+      <div class="flex min-w-0 items-center gap-2">
         <Button
-          v-else
-          icon="pi pi-plus"
-          :label="$t('uiMapping.addCondition')"
+          :label="fieldLabelFor(row.field)"
           text
           size="small"
-          class="self-start"
-          :aria-label="$t('uiMapping.addCondition')"
-          @click="openFieldPicker({ mode: 'add' })"
+          class="min-w-0 flex-1 justify-start [&_.p-button-label]:truncate"
+          :title="fieldLabelFor(row.field)"
+          :aria-label="fieldLabelFor(row.field)"
+          @click="openFieldPicker({ mode: 'row', index })"
+        />
+        <SelectButton
+          :model-value="rowKey(row)"
+          :options="opOptionsFor(row.field)"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="shrink-0"
+          :allow-empty="false"
+          :aria-label="$t('common.filter')"
+          @update:model-value="value => setRowOp(index, value)"
+        />
+        <Button
+          icon="pi pi-times"
+          text
+          rounded
+          size="small"
+          class="shrink-0"
+          severity="secondary"
+          :aria-label="$t('common.delete')"
+          @click="removeRow(index)"
         />
       </div>
-    </Popover>
-  </span>
+      <div class="min-w-0">
+        <InputText
+          v-if="fieldKind(row.field) === 'text'"
+          :model-value="row.value"
+          size="small"
+          class="w-full"
+          :placeholder="fieldLabelFor(row.field)"
+          @update:model-value="value => setRowValue(index, value)"
+        />
+        <InputNumber
+          v-else-if="fieldKind(row.field) === 'number'"
+          :model-value="typeof row.value === 'number' ? row.value : null"
+          size="small"
+          class="w-full"
+          :aria-label="fieldLabelFor(row.field)"
+          @update:model-value="value => setRowValue(index, typeof value === 'number' ? value : '')"
+        />
+        <InputText
+          v-else-if="fieldKind(row.field) === 'instant'"
+          :model-value="row.value"
+          type="date"
+          size="small"
+          class="w-full"
+          :aria-label="fieldLabelFor(row.field)"
+          @update:model-value="value => setRowValue(index, value || '')"
+        />
+        <SelectButton
+          v-else-if="fieldKind(row.field) === 'boolean'"
+          :model-value="row.value"
+          :options="booleanOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          :allow-empty="false"
+          :aria-label="fieldLabelFor(row.field)"
+          @update:model-value="value => setRowValue(index, value)"
+        />
+        <div
+          v-else
+          class="flex min-w-0 flex-wrap items-center gap-1"
+        >
+          <Button
+            v-for="value in valueOptionsFor(row.field)"
+            :key="value.value"
+            :label="value.label"
+            size="small"
+            :outlined="!isValueSelected(row, value.value)"
+            :severity="isValueSelected(row, value.value) ? undefined : 'secondary'"
+            @click="toggleValue(index, value.value)"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div v-if="picker" class="flex max-h-56 flex-col gap-0.5 overflow-y-auto pt-1">
+      <Button
+        v-for="field in fields"
+        :key="field.name"
+        :label="field.label"
+        text
+        size="small"
+        class="justify-start"
+        @click="pickField(field.name)"
+      />
+    </div>
+    <Button
+      v-else
+      icon="pi pi-plus"
+      :label="$t('uiMapping.addCondition')"
+      text
+      size="small"
+      class="self-start"
+      :aria-label="$t('uiMapping.addCondition')"
+      @click="openFieldPicker({ mode: 'add' })"
+    />
+  </div>
 </template>
 
 <script setup>
@@ -158,29 +143,26 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
-import Popover from 'primevue/popover';
 import SelectButton from 'primevue/selectbutton';
 import { filterFromBuilderRows, builderRowsFromFilter } from '#shared/instance-filters/builder.js';
 
-// The filter builder: a popover for boolean composition over the canonical
-// instance-filter tree, triggered by its own funnel button (badge carries
-// the active condition count). A condition is two content-driven zones: a
-// header line where the field takes the leftover width and truncates (full
-// label on hover) while the segmented operator and remove keep their
-// intrinsic size, and a full-width value line. Nothing is a guessed fixed
-// width and no row re-wraps mid-content: enum chips wrap inside the value
-// line.
+// The filter builder panel: boolean composition over the canonical
+// instance-filter tree, hosted inside a popover its trigger owns. A
+// condition is two content-driven zones: a header line where the field
+// takes the leftover width and truncates (full label on hover) while the
+// segmented operator and remove keep their intrinsic size, and a
+// full-width value line. Nothing is a guessed fixed width and no row
+// re-wraps mid-content: enum chips wrap inside the value line.
 //
-// Every control inside the popover is INLINE by construction — segmented
-// buttons, text/number/native-date inputs, enum value chips, and an
-// inline field list. This is load-bearing, not stylistic: a popover
-// dismisses on document clicks outside its own subtree, so any child
-// overlay appended to `body` (Select, MultiSelect, DatePicker) closed the
-// builder on every pick; appending those overlays INTO the panel instead
-// fixed closing but displaced them far from their trigger (PrimeVue
-// positions overlays document-absolute, so a positioned append target
-// double-offsets the coordinates). With no child overlays, neither
-// failure mode exists.
+// Every control is INLINE by construction — segmented buttons,
+// text/number/native-date inputs, enum value chips, and an inline field
+// list. This is load-bearing, not stylistic: a popover dismisses on
+// document clicks outside its own subtree, so any child overlay appended
+// to `body` (Select, MultiSelect, DatePicker) closed the builder on every
+// pick; appending those overlays INTO the panel instead fixed closing but
+// displaced them far from their trigger (PrimeVue positions overlays
+// document-absolute, so a positioned append target double-offsets the
+// coordinates). With no child overlays, neither failure mode exists.
 //
 // One combinator (match all / match any) applies once more than one row
 // exists; negated operator twins compose `not`. The builder owns no
@@ -201,7 +183,6 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
-const popover = ref();
 const picker = ref(null);
 const combinator = ref('and');
 const rows = ref([]);
@@ -216,7 +197,6 @@ const booleanOptions = computed(() => [
   { label: t('common.yes'), value: true },
   { label: t('common.no'), value: false }
 ]);
-const conditionCount = computed(() => countPredicates(props.modelValue));
 
 function fieldKind(name) {
   return fieldByName.value.get(name)?.kind || 'text';
@@ -226,11 +206,6 @@ function fieldLabelFor(name) {
 }
 function valueOptionsFor(name) {
   return (fieldByName.value.get(name)?.values || []).map(value => ({ label: String(value), value }));
-}
-function toggle(event) {
-  syncFromModel();
-  picker.value = null;
-  popover.value?.toggle(event);
 }
 
 // Per-kind operators. Numbers and dates use language-neutral symbols (a
@@ -344,18 +319,11 @@ function clearAll() {
   rows.value = [];
   publish();
 }
-function countPredicates(node) {
-  if (!node || typeof node !== 'object') return 0;
-  if (node.and) return node.and.reduce((sum, child) => sum + countPredicates(child), 0);
-  if (node.or) return node.or.reduce((sum, child) => sum + countPredicates(child), 0);
-  if (node.not) return countPredicates(node.not);
-  return 1;
-}
 watch(() => props.modelValue, value => {
   if (value === lastPublished) return;
-  // External swaps (scope changes) drop local state; the popover
-  // re-syncs from the model on open.
-  rows.value = [];
-  lastPublished = null;
+  // A model swap the builder did not publish (a scope change) re-syncs
+  // the rows and closes the field picker.
+  picker.value = null;
+  syncFromModel();
 }, { immediate: true });
 </script>

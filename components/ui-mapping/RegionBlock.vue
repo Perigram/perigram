@@ -15,7 +15,7 @@
          the label yields first (ellipsis), the controls cluster never
          wraps internally, and wrapping happens only when the label is at
          its floor and the controls still overflow the row. -->
-    <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
+    <div class="group/region-header flex min-w-0 flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
         <span :class="['min-w-0 truncate', embedded ? 'text-label' : 'text-section-heading']">{{ regionLabel }}</span>
         <!-- SPEC §22.8: the count renders only for loaded, accessible,
@@ -23,56 +23,69 @@
              count, and an empty one states itself through its message. -->
         <Tag v-if="showSurfaces && hasInstances" class="shrink-0" :value="String(node.instances.length)" severity="secondary" />
       </div>
-      <div v-if="createControls.length || searchToggleAvailable || facetsToggleAvailable" class="flex shrink-0 flex-wrap items-center justify-end gap-2">
-        <!-- Search expands IN PLACE: the icon button becomes an icon field
-             at the same position; the icon or Esc collapses it back (an
-             empty blur collapses too). -->
-        <IconField v-if="searchOpen">
-          <InputIcon class="pi pi-search cursor-pointer" @click="searchOpen = false" />
-          <InputText
-            v-model="search"
-            size="small"
-            class="min-w-0 max-w-48 flex-1"
-            :placeholder="$t('uiMapping.searchPlaceholder')"
-            :aria-label="$t('uiMapping.searchPlaceholder')"
-            @keydown.esc="searchOpen = false"
-            @blur="search || (searchOpen = false)"
-          />
-        </IconField>
+      <!-- SPEC §22.15: the cluster is quiet until the header row is
+           hovered or focused; coarse pointers keep it at full presence
+           (the quiet state lives inside the hover-capability media
+           query). -->
+      <div
+        v-if="createControls.length || linkControls.length || viewToggleAvailable"
+        class="flex shrink-0 flex-wrap items-center justify-end gap-2 transition-opacity duration-150 group-hover/region-header:opacity-100 group-focus-within/region-header:opacity-100 motion-reduce:transition-none"
+        :class="viewOpen ? 'opacity-100' : '[@media(hover:hover)]:opacity-60'"
+      >
         <Button
-          v-else-if="searchToggleAvailable"
-          icon="pi pi-search"
+          v-if="viewToggleAvailable"
+          icon="pi pi-sliders-h"
           text
           rounded
           size="small"
           severity="secondary"
-          :aria-label="$t('uiMapping.searchPlaceholder')"
-          @click="searchOpen = true"
+          :badge="conditionCount ? String(conditionCount) : null"
+          :aria-label="$t('uiMapping.view')"
+          v-tooltip.bottom="$t('uiMapping.view')"
+          @click="toggleView"
         />
-        <FilterBuilder
-          v-if="facetsToggleAvailable"
-          :model-value="builderFilter"
-          :fields="builderFields"
-          @update:model-value="value => (builderFilter = value)"
-        />
-        <Button
-          v-if="projectionSwitchable"
-          :icon="listLayout === 'board' ? 'pi pi-list' : 'pi pi-objects-column'"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="listLayout === 'board' ? $t('uiMapping.projectionTable') : $t('uiMapping.projectionBoard')"
-          @click="toggleProjection"
-        />
-        <SortControl
-          v-if="sortToggleAvailable"
-          :options="sortOptions"
-          :model-value="sortName"
-          :order="sortOrder"
-          @update:model-value="value => (sortName = value)"
-          @update:order="value => (sortOrder = value)"
-        />
+        <Popover ref="viewPopover" @show="viewOpen = true" @hide="viewOpen = false">
+          <!-- A menu of live controls: every hosted model applies as it
+               changes. -->
+          <div class="flex w-72 flex-col gap-3">
+            <IconField v-if="searchToggleAvailable">
+              <InputIcon class="pi pi-search" />
+              <InputText
+                v-model="search"
+                size="small"
+                class="w-full"
+                :placeholder="$t('uiMapping.searchPlaceholder')"
+                :aria-label="$t('uiMapping.searchPlaceholder')"
+              />
+            </IconField>
+            <FilterBuilder
+              v-if="facetsToggleAvailable"
+              :model-value="builderFilter"
+              :fields="builderFields"
+              @update:model-value="value => (builderFilter = value)"
+            />
+            <Button
+              v-if="projectionSwitchable"
+              :icon="listLayout === 'board' ? 'pi pi-list' : 'pi pi-objects-column'"
+              text
+              rounded
+              size="small"
+              severity="secondary"
+              class="self-start"
+              :aria-label="listLayout === 'board' ? $t('uiMapping.projectionTable') : $t('uiMapping.projectionBoard')"
+              @click="toggleProjection"
+            />
+            <SortControl
+              v-if="sortToggleAvailable"
+              inline
+              :options="sortOptions"
+              :model-value="sortName"
+              :order="sortOrder"
+              @update:model-value="value => (sortName = value)"
+              @update:order="value => (sortOrder = value)"
+            />
+          </div>
+        </Popover>
         <CreateControl
           v-for="control in createControls"
           :key="control.action.id"
@@ -221,13 +234,14 @@ import Tag from 'primevue/tag';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
+import Popover from 'primevue/popover';
 import {
   LAYOUT, GAP_BY_LEVEL, toolbarVisibleFor, sortControlRows,
   hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar, incomingChildrenEdges,
   listLayoutOf,
   createActionControls
 } from '#shared/ui-mapping/index.js';
-import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
+import { instanceMatchesFilter, countPredicates } from '#shared/instance-filters/index.js';
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference, loadProjectionPreference, storeProjectionPreference, loadFilterViewState, storeFilterViewState } from '~/utils/ui-view-state.js';
 import SurfaceBody from './SurfaceBody.vue';
@@ -500,15 +514,14 @@ const coveredRelationKeys = computed(() => [...props.node.childRegions, ...(prop
   .map(child => child.relationKey)
   .filter(Boolean));
 
-// Region-local search/facet state over the composed list-controls
-// contract; filters apply client-side over the loaded instances. Facet
-// selections are value sets — an empty set is no selection at all. The
-// controls stay closed until their header toggle opens them, so the
-// header reads as one line (wrapping only when the opened controls or
-// the action cluster demand it); selections persist while toggled and
-// the filter toggle carries the active-selection count.
+// Region-local search state over the composed list-controls contract;
+// the query applies client-side over the loaded instances. The filter
+// tree is persisted view state per type and is evaluated with the one
+// matcher (`instanceMatchesFilter`) against the region's pool. Search,
+// filters, the projection switch, and the sort keys live behind the one
+// view control (SPEC §22.15); its badge carries the active filter
+// condition count.
 const search = ref('');
-const searchOpen = ref(false);
 const searchToggleAvailable = computed(() => toolbarVisibleFor(props.node));
 // Filterable fields: the type's scalar fields plus relation, parent, and
 // children traversal axes, with the primary status over the values
@@ -532,11 +545,11 @@ watch(builderScope, scope => {
   builderFilter.value = loadFilterViewState(scope);
 });
 watch(builderFilter, filter => storeFilterViewState(builderScope.value, filter));
-// Card ordering: the sort bar moved into the header cluster — the same
-// sortKeys contract, shared comparator, and persisted preference (scope
-// kept) the DataView header owned. The sort control serves the card-grid
-// projection (tables sort natively by column; the board sorts per column
-// inside BoardCollection, on its own scoped preference).
+// Card ordering rides the view popover's sort keys — the same sortKeys
+// contract, shared comparator, and persisted preference (scope kept).
+// The sort control serves the card-grid projection (tables sort natively
+// by column; the board sorts per column inside BoardCollection, on its
+// own scoped preference).
 const sortScope = computed(() => `card-grid:${props.node.typeId || ''}`);
 const preferredSort = loadSortPreference(sortScope.value);
 const sortName = ref(preferredSort?.name || props.node.listControls?.defaultSort || null);
@@ -546,8 +559,6 @@ const sortOptions = computed(() => (props.node.listControls?.sortKeys || [])
 const sortKeyResolved = computed(() => (props.node.listControls?.sortKeys || [])
   .find(key => key.name === sortName.value) || null);
 const sortToggleAvailable = computed(() => listLayout.value === 'card-grid' && sortOptions.value.length > 0);
-const sortActive = computed(() => Boolean(sortName.value)
-  && sortName.value !== props.node.listControls?.defaultSort);
 watch([sortName, sortOrder], () => {
   if (sortName.value) storeSortPreference(sortScope.value, { name: sortName.value, order: sortOrder.value });
 });
@@ -561,8 +572,19 @@ const sortedInstances = computed(() => (sortKeyResolved.value
   : filteredInstances.value));
 watch(() => props.node.id, () => {
   search.value = '';
-  searchOpen.value = false;
 });
+// The one view control (SPEC §22.15): it renders when any hosted control
+// exists, and its popover hosts the live models above in order — search,
+// the filter builder, the projection switch, the sort keys. While the
+// popover is open the cluster stays lit.
+const viewPopover = ref();
+const viewOpen = ref(false);
+const viewToggleAvailable = computed(() => searchToggleAvailable.value
+  || facetsToggleAvailable.value
+  || projectionSwitchable.value
+  || sortToggleAvailable.value);
+const conditionCount = computed(() => countPredicates(builderFilter.value));
+const toggleView = event => viewPopover.value?.toggle(event);
 const filteredInstances = computed(() => {
   if (props.node.surfaceKind !== 'list') return props.node.instances;
   const controls = props.node.listControls;

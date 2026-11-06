@@ -54,6 +54,16 @@ export function normalizeFilter(node) {
   return null;
 }
 
+// countPredicates(node): the predicate count of a tree — the condition
+// count a collection surface badges its filter trigger with.
+export function countPredicates(node) {
+  if (!node || typeof node !== 'object') return 0;
+  if (node.and) return node.and.reduce((sum, child) => sum + countPredicates(child), 0);
+  if (node.or) return node.or.reduce((sum, child) => sum + countPredicates(child), 0);
+  if (node.not) return countPredicates(node.not);
+  return 1;
+}
+
 // filterFromFlatFilters(flat, { lineageKeys }): the transport projection.
 // The flat scalar map compiled screen sources carry expands into one
 // conjunction: `_id`, `primaryState`, CSV `primaryStates`, and declared

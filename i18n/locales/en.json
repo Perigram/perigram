@@ -2010,6 +2010,7 @@
         "stateMatrixHint": "Injected loading/denied/error source states",
         "sortLabel": "Sort by",
         "sortOrderLabel": "Toggle sort order",
+        "view": "View",
         "moreActions": "More actions",
         "calendarPrev": "Previous month",
         "calendarNext": "Next month",
