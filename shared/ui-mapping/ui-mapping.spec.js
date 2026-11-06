@@ -1465,6 +1465,62 @@ describe('create dialog input resolution', () => {
     expect(rows[0]).toMatchObject({ lineage: { key: 'binId', accepts: ['t-bin-1'] } });
   });
 
+  it('binds the parent through the served exposure inputs when the bundle declares no children edge', () => {
+    // Graph-wired containment: the policy field carries no per-input
+    // typeId and the bundle's children edges never name the pair — the
+    // exposure inputs (and a parent-bound create's parentTypeId) carry
+    // the parent type, keeping the row a context-seedable lineage picker
+    // instead of a context-free entity picker.
+    const graphWiredBundle = {
+      types: [
+        { id: 'queue', name: 'Queue' },
+        { id: 'queue-entry', class: 'item', fields: { name: { base: 'string' } } }
+      ]
+    };
+    const action = {
+      actionKind: 'createInstance',
+      typeId: 'queue-entry',
+      parentTypeId: 'queue',
+      inputs: [{ id: 'parent', label: 'queue', typeId: 'queue', required: false }],
+      construction: { inputs: ['lineage.queueId'] },
+      inputPolicy: { fields: [{ id: 'lineage.queueId', path: 'lineage.queueId', type: 'entity', prompt: true }] }
+    };
+    const rows = resolveCreateDialogInputs(action, graphWiredBundle.types[1], graphWiredBundle);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      id: 'lineage.queueId',
+      label: 'Queue',
+      lineage: { key: 'queueId', accepts: ['queue'] }
+    });
+  });
+
+  it('resolves each lineage axis through its own exposure input alone', () => {
+    const twoAxisBundle = {
+      types: [
+        { id: 'queue', name: 'Queue' },
+        { id: 'project', name: 'Project' },
+        { id: 'queue-entry', class: 'item', fields: { name: { base: 'string' } } }
+      ]
+    };
+    const action = {
+      actionKind: 'createInstance',
+      typeId: 'queue-entry',
+      inputs: [
+        { id: 'lineage.queueId', path: 'lineage.queueId', type: 'entity', typeId: 'queue' },
+        { id: 'lineage.projectId', path: 'lineage.projectId', type: 'entity', typeId: 'project' }
+      ],
+      construction: { inputs: ['lineage.queueId', 'lineage.projectId'] },
+      inputPolicy: { fields: [
+        { id: 'lineage.queueId', path: 'lineage.queueId', type: 'entity', prompt: true },
+        { id: 'lineage.projectId', path: 'lineage.projectId', type: 'entity', prompt: true }
+      ] }
+    };
+    const rows = resolveCreateDialogInputs(action, twoAxisBundle.types[2], twoAxisBundle);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({ lineage: { key: 'queueId', accepts: ['queue'] } });
+    expect(rows[1]).toMatchObject({ lineage: { key: 'projectId', accepts: ['project'] } });
+  });
+
   it('requires the identifier row and carries the compiled required flag', () => {
     // The naming law: the identifier row's value is the record's title,
     // so the create dialog never submits it empty — required regardless

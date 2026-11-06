@@ -1321,12 +1321,16 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
     // A lineage input is a containment-declared parent picker: the row
     // carries its binding (key, accepted parent types) so the launch
     // context seeds and hides it inside the parent's surface. Accepted
-    // parents resolve over the bundle's children edges, the declared
-    // input type serving as the fallback when no edge carries the key.
+    // parents resolve over the bundle's children edges, the served
+    // per-input parent type serving as the fallback (the policy field's
+    // own typeId, the exposure input's typeId, or a parent-bound
+    // create's `parentTypeId`) — without the binding the row degrades to
+    // a context-free entity picker the launch context can never fill.
     if (id.startsWith('lineage.')) {
       const key = id.slice('lineage.'.length);
-      const declared = [policy?.typeId, policy?.accepts?.[0], policy?.type?.typeId].find(Boolean);
       const accepts = parentTypesForChildrenKey(bundle, type?.id, key);
+      const declared = [policy?.typeId, policy?.accepts?.[0], policy?.type?.typeId].find(Boolean)
+        || declaredParentTypeId(action, source, id);
       const accepted = accepts.length ? accepts : (declared ? [declared] : []);
       if (accepted.length) {
         const parentLabel = (bundle?.types || []).find(candidate => candidate.id === accepted[0])?.name;
@@ -1460,6 +1464,26 @@ function parentTypesForChildrenKey(bundle = null, typeId = '', key = '') {
     }
   }
   return parents;
+}
+
+// The served per-input parent type of one lineage axis when the bundle
+// declares no children edge for it: the exposure inputs carry each
+// input's declared `typeId` verbatim (`action.inputs`), and a
+// parent-bound create names its context parent (`parentTypeId` — only a
+// single-axis fallback, several axes cannot share it).
+function declaredParentTypeId(action = {}, source = [], rowId = '') {
+  const exposureInput = (action.inputs || []).find(input => (
+    typeof input === 'object' && policyFieldPath(input) === rowId
+  ));
+  if (exposureInput) return exposureInput.typeId || exposureInput.type?.typeId || '';
+  const lineageAxes = source.filter(entry => isLineagePath(
+    typeof entry === 'string' ? entry : policyFieldPath(entry)
+  ));
+  if (lineageAxes.length !== 1) return '';
+  const parentInput = (action.inputs || []).find(input => (
+    typeof input === 'object' && String(input.id || '') === 'parent'
+  ));
+  return parentInput?.typeId || parentInput?.type?.typeId || action.parentTypeId || '';
 }
 
 // The incoming containment edges of one type: every children edge, on any
