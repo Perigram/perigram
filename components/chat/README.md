@@ -1,9 +1,13 @@
 # COMPONENT: Chat Surfaces
 The chat column's component family. `components/ChatSupport.vue` is the
-one public host — same props (`embedded`, `fullPage`, `conversationKey`,
+full-column host — same props (`embedded`, `fullPage`, `conversationKey`,
 `openCallInPane`, `threadOnly`, `instanceName`) and the `open-call` emit
-for every host (the popup dialog, `/chats`, entity panels, the home tab,
-the call workspace) — composing the files below. Message semantics,
+for every column-shaped mount (the popup dialog, `/chats`, the home tab,
+the call workspace) — composing the files below.
+`ChatThreadStage.vue` is the shared thread surface (messages, composer,
+attachment flow, the create-and-attach and forward dialogs) every host
+mounts: `ChatSupport` beside its inbox rail and thread header,
+`RecordComments` in the record page's comments band. Message semantics,
 storage, and the API contract are owned by
 [server/features/support](../../server/features/support/README.md).
 Parent: [components README](../README.md). Target law: [SPEC](./SPEC.md).
@@ -12,10 +16,12 @@ Parent: [components README](../README.md). Target law: [SPEC](./SPEC.md).
 |---|---|
 | `ChatInboxRail.vue` | archive toggle, conversation filter field, folder chips, new-chat menu, conversation rows with swipe actions and the row menu, the drag handle resizing the two-pane rail (16–34 rem, persisted per browser) |
 | `ChatThreadHeader.vue` | title, presence, participants popover, call banners and actions, model pin trigger, bot panel trigger, search toggle |
+| `ChatThreadStage.vue` | the bounded thread surface every host mounts: drop-zone staging, the message list, the scroll-to-end control, the composer, the attachment picker, and the create-and-attach and forward dialogs |
 | `ChatMessageList.vue` | the scroll container: lazy paging, anchor scroll, day dividers, unread divider, message rows with swipe-to-reply, the live agent run block, the message context menu |
 | `ChatMessageBubble.vue` | one message's content: the sender avatar gutter, reply quote, forwarded provenance, body, attachments, instance refs, caption row with the run's seen marks |
 | `ChatComposer.vue` | typing indicator, model select, reply bar, instance target strip, staged files and refs, agent question, voice row, text composer |
 | `ChatSearchPanel.vue` | in-thread search: text, sender, attachment-kind filters over `GET /api/support/search`; result rows jump to the message |
+| `RecordComments.vue` | the record page's trailing comments section (SPEC §22.17): the "Comments" title over a bounded band that mounts the pinned thread on visibility — `instanceThreadKey` (`utils/instance-chat.js`) derives the thread kind (a `user` record rides the direct thread) |
 | `useChatThread.js` | the thread state core: history paging, realtime reconcile, read cursors and seen derivation, send pipeline, staging, strip, dialogs state; returns the reactive bag every child destructures |
 | `useVoiceRecorder.js` | MediaRecorder lifecycle for voice messages; the send tail stays in the thread core |
 State law: children are presentational over the thread bag; template

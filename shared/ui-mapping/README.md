@@ -531,7 +531,7 @@ materialization reads the same numbers:
 | `CHILDREN_TABS_AT`, `HEADER_ACTIONS_INLINE` | child regions per tab, inline header actions before the overflow menu |
 | `ROW_FIELD_BUDGET`, `SCALAR_BASES` | dense-row field count, scalar base set |
 | `BOARD_MIN_COLUMNS` | board column floor |
-| `CONTAINER_WIDTH_STEPS`, `HOST_PROFILES` | container width steps (`medium` 40rem, `wide` 60rem — the form grid and record split materialize them), host fallback traits (page, pane, dialog, popup, mobile tab) incl. the density tier per host |
+| `CONTAINER_WIDTH_STEPS`, `HOST_PROFILES` | container width steps (`medium` 40rem, `wide` 60rem — the form grid and record split materialize them, and the record document's `LAYOUT.measure` bounds the depth-0 record page at the wide step, SPEC §22.17), host fallback traits (page, pane, dialog, popup, mobile tab) incl. the density tier per host |
 | `SPACING_WEIGHT_AT` | composed screen weight that tightens the rhythm one step |
 | `FULL_BREADTH_LAYOUTS`, `BOUNDED_GROWTH_LAYOUTS`, `PAGINATED_GROWTH_LAYOUTS` | data-trait derivations: full-row layouts, scroll-owning layouts, layouts that page past `TABLE_PAGINATE_AT` |
 
@@ -589,6 +589,12 @@ screen's spacing coefficient resolves from the record's density and the
 screen's composed weight (`spacingCoefficientFor` + `screenWeight`).
 
 Sibling arrangement is weight-driven, compose-time, and step-carried.
+The record page is a document (SPEC §22.17, superseding §22.1–§22.2's
+arrangement outcomes for record pages): in the `record` presentation a
+depth-0 detail region's children resolve the stack at every width step —
+no side rail, peer columns, or tabs on record pages — while the ladder
+below keeps governing list screens, nested surfaces, and the whole tree
+under the `peek` presentation.
 `estimateRegionWeight` estimates each region's full rendered height from
 its own data — facts, structural fields, and relation refs for detail
 regions; per-layout row factors (`ROW_WEIGHT_BY_LAYOUT`: a preview card ≈ 4
@@ -609,7 +615,7 @@ at that step (root SPEC §22.1):
 |---|---|---|
 | Full-row claim | `FULL_BREADTH_LAYOUTS` | breadth-`full` siblings claim whole rows in flow order (`fullRow` ids on the columns outcome) and stay out of the peer columns and the record side rail |
 | Dominant child | `DOMINANT_CHILD_SHARE` | a sibling holding at least the share of total weight keeps the vertical flow; its remainder carries its own stepped arrangement within `SURFACE_ROW_BUDGET`, and a heavier remainder tabs the set |
-| Side rail | `SIDE_MAX_WEIGHT` | the record page's wide-step outcome: a light child set (combined weight at or under the budget, no full-breadth child) rides beside the record body while the body carries at least the rail's weight — a lighter body keeps the children below at full width; the side column's span earned by weight (`REGION_SIDE_SPANS`) |
+| Side rail | `SIDE_MAX_WEIGHT` | the record page's wide-step ladder outcome (the `peek` presentation's record split; record pages resolve the document stack, SPEC §22.17): a light child set (combined weight at or under the budget, no full-breadth child) rides beside the record body while the body carries at least the rail's weight — a lighter body keeps the children below at full width; the side column's span earned by weight (`REGION_SIDE_SPANS`) |
 | Peer columns | `COLUMN_MAX_WEIGHT` | columnable peers each at or under the cap share proportional columns (track fr from each child's estimated rows) at every step past narrow, any peer count |
 | Tabs | `SURFACE_ROW_BUDGET` | a set over the budget with a sibling past the column cap tabs in descending weight order at any tree level; a sibling set inside a tab arrangement stacks (root SPEC §22.1) |
 | Stack | — | the terminal arrangement: content-height blocks in flow order |
@@ -730,7 +736,9 @@ region's data traits (see Arrangement), resolved action records, the
 per-region `dataState` (see Data states), the
 `listControls` contract for list regions (see Instance shape and list
 controls), the per-type `statePolicy` map off the contract (see State
-display), and nested child regions. Relation link and unlink actions are
+display), and nested child regions. `options.presentation` (`record`
+default, `peek`) selects the depth-0 record arrangement: `record`
+resolves the document stack (SPEC §22.17), `peek` the ladder. Relation link and unlink actions are
 section-scoped (SPEC §22.12): a detail region's records for those kinds
 inject into each relation-scoped child region whose `relationKey` and
 type match the action's targets, landing on the child node as actions

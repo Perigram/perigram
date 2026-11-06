@@ -23,7 +23,13 @@ back affordance for the record header (SurfaceHeader's navigation
 channel): the routed screens page feeds it so a detail deep link can
 return to where the user came from. Its `presentation` prop selects the
 depth-0 record treatment — `record` (the default) or `peek` — owned by
-the [ui-mapping materialization](../ui-mapping/README.md). Its
+the [ui-mapping materialization](../ui-mapping/README.md): the record
+presentation renders the depth-0 record as one document (SPEC §22.17)
+— a 60rem measure, the property block under the header, inline
+sections — with the instance thread as its trailing comments section
+([chat](../chat/README.md) `RecordComments` over the same
+`utils/instance-chat.js` thread contract every chat surface uses); the
+peek keeps its compact presentation and the header's chat entry. Its
 `expandable` prop adds the depth-0 header's step-up button; the host
 receives `expand` and pages the record. Instance opens emit
 `{ typeId, instanceId }` to the host consumer — the routed page

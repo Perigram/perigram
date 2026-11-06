@@ -715,11 +715,13 @@ thread header's title opens the entity popup (`EntityPopup.vue` +
 carry member chips inline through [`UserChip.vue`](#userchipvue).
 
 ### Detail-surface conversation entry
-The record header owns the conversation affordance — there is no embedded
-comments section. `InstanceChatEntry.vue` is the one component:
+The record page's comments section owns the record's conversation
+(SPEC §22.17 — [chat](../chat/README.md) `RecordComments`, the trailing
+document section). `InstanceChatEntry.vue` is the compact-surface entry:
 an icon-only chat button routing through `utils/instance-chat.js`
 (a user-typed record opens the direct thread; every other type the
-composed instance thread), mounted by `SurfaceHeader` and `InstanceCard`
+composed instance thread), mounted by the compact record header (the
+peek presentation) and `InstanceCard`
 footers. Bounded/flush editor hosts
 expose the same entry from their own chrome. Directory-shaped surfaces
 (organization overview, directory detail) call the seam directly with
