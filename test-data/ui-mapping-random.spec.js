@@ -54,11 +54,25 @@ describe('random worlds', () => {
         walk(region.stubRegions || [], visit);
       }
     };
+    // SPEC §22.17: the record page is a document — its depth-0 record
+    // never engages the rail, columns, or tabs at any step, while list
+    // screens keep the whole ladder.
+    const listLadderOutcomes = new Set();
     for (const seed of SEEDS) {
       const world = generateUiMappingWorld(seed);
       const pool = buildInstancePool(world.instances);
       for (const screen of Object.values(world.contract.screens)) {
         const composed = composeScreen(screen, world.contract, world.bundle, pool);
+        for (const step of STEPS) {
+          listLadderOutcomes.add(composed.regionsArrangement[step].mode);
+        }
+        if (screen.template === 'instanceDetail') {
+          const main = composed.regions.find(region => region.surfaceKind === 'detail');
+          for (const step of STEPS) {
+            expect(main.childArrangement[step], `seed ${seed} ${screen.screenKey} document@${step}`).toEqual({ mode: 'stack' });
+          }
+          expect(main.sideRail, `seed ${seed} ${screen.screenKey} sideRail`).toBe(null);
+        }
         walk(composed.regions, region => {
           const traits = region.dataTraits;
           expect(traits, `seed ${seed} ${screen.screenKey} ${region.id} dataTraits`).toBeTruthy();
@@ -83,6 +97,9 @@ describe('random worlds', () => {
         }
       }
     }
+    // List screens still reach the arranging outcomes: the ladder keeps
+    // governing them (columns and tabs across the seeds' section sets).
+    expect(listLadderOutcomes.has('columns') || listLadderOutcomes.has('tabs')).toBe(true);
   });
 
   it('resolve every generated field descriptor in every variant', () => {

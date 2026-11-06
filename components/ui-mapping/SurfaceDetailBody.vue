@@ -1,5 +1,40 @@
 <template>
   <div v-if="d" :class="d.stack">
+    <!-- The property block (SPEC §22.17): the record body leads with the
+         declared scalar facts as compact property rows — small muted
+         label, ink value — collapsed to filled values behind the
+         per-group show-more control; single-group bodies carry no group
+         titles. -->
+    <template v-if="documentBody">
+      <section v-for="group in propertyGroups" :key="`props:${group.id}`" :class="d.stackTight">
+        <span v-if="showGroupTitles && group.label" :class="d.sectionTitle">{{ group.label }}</span>
+        <div :class="LAYOUT.specList">
+          <div v-for="field in shownFacts(group)" :key="field.name" :class="d.specRow">
+            <span :class="LAYOUT.labelCell">{{ field.label }}</span>
+            <div :class="LAYOUT.factCell">
+              <InlineField
+                :field="field"
+                :editable="editable"
+                :quantitative="quantitative"
+                :pool="pool"
+                :bundle="bundle"
+                @inline-change="change => emit('inline-change', change)"
+              />
+            </div>
+          </div>
+          <div v-if="hiddenFactCount(group) > 0" class="py-1">
+            <Button
+              :label="factGroupExpanded(group)
+                ? $t('uiMapping.showLess')
+                : $t('uiMapping.showMore', { count: hiddenFactCount(group) })"
+              size="small"
+              text
+              @click="toggleFacts(group)"
+            />
+          </div>
+        </div>
+      </section>
+    </template>
     <!-- The editor is the record body (SPEC §4): an editor-bound type's
          full variant mounts the editor surface as the dominant content
          and the version trigger rides its corner; every other shape (and
@@ -31,15 +66,17 @@
          2026-10-22): content blocks — field groups, relation chip rows —
          share a container-derived column grid; rich structural blocks
          span the full row. Fact rows flow into their own finer grid
-         inside each group. -->
-    <div :class="LAYOUT.bodyGrid">
+         inside each group. The record document (SPEC §22.17) stacks the
+         open sections full width — its scalar facts lead in the property
+         block above. -->
+    <div :class="documentBody ? d.stack : LAYOUT.bodyGrid">
       <section
         v-for="group in groups"
         :key="group.id"
         :class="d.stackTight"
       >
-        <span v-if="showGroupTitles && group.label" :class="d.sectionTitle">{{ group.label }}</span>
-        <div v-if="shownFacts(group).length" :class="variant === 'full' ? LAYOUT.factsGrid : LAYOUT.specList">
+        <span v-if="showGroupTitles && group.label && (!documentBody || openSectionCount(group) > 0)" :class="d.sectionTitle">{{ group.label }}</span>
+        <div v-if="!documentBody && shownFacts(group).length" :class="variant === 'full' ? LAYOUT.factsGrid : LAYOUT.specList">
           <div v-for="field in shownFacts(group)" :key="field.name" :class="d.specRow">
             <span :class="LAYOUT.labelCell">{{ field.label }}</span>
             <div :class="LAYOUT.factCell">
@@ -172,6 +209,10 @@ const emit = defineEmits(['toggle', 'inline-change', 'run', 'open-instance']);
 const d = inject('uiMappingSpacing');
 const hostTraits = useHostContainerTraits();
 const embedded = inject('uiMappingEmbedded', false);
+// The record document body (SPEC §22.17): the full variant in the record
+// presentation leads with the property block and stacks its open sections
+// full width. The peek and nested Card variants keep the fill grammar.
+const documentBody = computed(() => props.variant === 'full' && props.presentation === 'record');
 
 // One structural panel edits at a time (SPEC UI): the parent owns the
 // editing field name, StructuralFieldPanel owns its draft.
@@ -260,6 +301,8 @@ const hasValue = field => field.value !== null
 // The identifier field drops at the group projection (the title owns
 // that value); every body grammar below inherits the cut.
 const scalarsOf = group => group.fields.filter(field => isScalarFact(field) && hasValue(field));
+const propertyGroups = computed(() => groups.value.filter(group => scalarsOf(group).length > 0));
+const openSectionCount = group => structuralOf(group).length + inlineMapsOf(group).length;
 const structuralOf = group => group.fields.filter(field => !isScalarFact(field) && !isQuantityMap(field) && editableNow(field));
 const shownFacts = group => {
   const scalars = scalarsOf(group);

@@ -5170,18 +5170,21 @@ Owner decisions 2026-11-06: free prose lives in declared long-text
 fields; comments render as the trailing section; record pages only
 (list screens keep the ladder).
 
-- [ ] Document flow: depth-0 record pages render one inline stack at the
+- [x] Document flow: depth-0 record pages render one inline stack at the
   60rem measure — record header, property block, payload/editor, prose
   sections, collections inline; the side rail, peer columns, and tabs
   retire on record pages (§22.1–22.2 superseded there); list screens
   unchanged; peek/popup keep compact presentations.
-- [ ] Property block: declared scalar facts as compact property rows
+  Landed 2026-11-06 (b1b44c496).
+- [x] Property block: declared scalar facts as compact property rows
   under the title (inline pencils stay; fact groups/fact columns die on
   record bodies).
-- [ ] Comments section: the instance thread (today's entity chat)
+  Landed 2026-11-06 (b1b44c496).
+- [x] Comments section: the instance thread (today's entity chat)
   renders as the record page's trailing section through the
   `utils/instance-chat.js` seam; the header's chat entry retires;
   comments naming lands in the locales.
+  Landed 2026-11-06 (b1b44c496).
 - [ ] Filed follow-up (separate program, not this one): record links in
   prose — authoring grammar in the markdown editor plus InstanceInlineRef
   chip rendering through the readable-reference seam.
@@ -5199,6 +5202,71 @@ prose fields, trailing comments, and record-pages-only scope. The e2e
 stack verification for the review-era re-pins is deferred to this
 program's stack pass.
 
+Session `agent/md-record-20261106` (worktree
+`.agent-worktrees/md-record-20261106`). All three steps landed in
+`b1b44c496`:
+
+Session `agent/md-record-20261106` (worktree
+`.agent-worktrees/md-record-20261106`). All three steps landed in
+`b1b44c496`:
+
+- Document flow lives in the pure contract: `composeScreen` takes
+  `options.presentation` (`record` default) and resolves every step of a
+  depth-0 detail region's child arrangement to the stack — the ladder
+  code stays untouched for list screens, nested surfaces, and the whole
+  tree under `peek`. The measure is the wide step by construction:
+  `designTokens.layout.recordMeasure` (60rem) is pinned against
+  `CONTAINER_WIDTH_STEPS.wideRem` in the design-system spec and consumed
+  through `LAYOUT.measure` (`max-w-[var(--ck-record-measure)]`, chrome
+  recipe) on RegionBlock's depth-0 record root — routed page, pane tab,
+  and popup all center the document inside their own column. Tables
+  inside the document compress through the existing container-seam
+  channel (the compact column scale engages in narrow/medium hosts; a
+  60rem box resolves the wide step, so the measure itself is the
+  compression on wide pages) — judgment call, owner to verify visually
+  on the stack pass. The record popup keeps its compact presentation
+  (measured popup box, compact density) and now stacks its sections as
+  the document law; the peek keeps the ladder compose and the fill-grid
+  body byte-identically.
+- Property block: `SurfaceDetailBody`'s `full`+`record` body leads with
+  the scalar facts as compact property rows (the specList grammar —
+  muted label cell, value, per-group show-more, no group titles on
+  single-group bodies, identifier excluded as before), then the
+  editor/preview band, then structural fields and relations stacked
+  full width — the `factsGrid`/`bodyGrid` fill grammar survives only on
+  the peek and nested cards.
+- Comments mount shape: the honest fallback, stated — the full
+  ChatSupport column is host-shaped (h-full chains, inbox rail, thread
+  header chrome), so the trailing section is a bounded thread surface
+  reusing the thread components directly. To avoid duplicating the
+  stage, `ChatThreadStage.vue` (drop zone, message list, scroll-to-end,
+  composer, attachment picker, create-and-attach + forward dialogs) was
+  extracted from ChatSupport — both hosts now mount the same stage; the
+  record band adds only the "Comments" title and the pinned key.
+  `RecordComments` gates the thread on viewport visibility (the chat
+  chunk and the conversation fetch stay off records opened above the
+  fold); `instanceThreadKey` in `utils/instance-chat.js` homes the
+  thread-kind law for pinned mounts (a `user` record rides the direct
+  1:1 thread, same as the popup entry). One thread-core repair en
+  route: a pinned thread (`conversationKey` prop) no longer consumes
+  the ambient chat target at mount — a lingering popup target would
+  have overridden the pin.
+- List-screen parity evidence: the random-world spec now pins every
+  `instanceDetail` record to `{ mode: 'stack' }` with `sideRail: null`
+  at all three steps across all seeds while asserting the home screen's
+  section ladder still reaches columns/tabs; the screen spec re-pinned
+  the record tabs cases to stack and proves the same heavy child set
+  tabs under `presentation: 'peek'`; the screen-section ladder pins
+  (`regionsArrangement` tabs/mixed) are untouched. SSR smoke re-pins:
+  the showcase carries `ck-record-measure` and no `ck-body-grid`/
+  `ck-facts-grid`; the routed detail renders the measure and the
+  Comments section with the header chat entry retired.
+- Validation: shared/ui-mapping (130), design-system (34),
+  localization (4), components/ui-mapping + components/generated +
+  components/chat (78), random-world (8) — green; SSR smoke 25/25;
+  check-arch green; docs:validate OK with the known 13-entry homing
+  baseline unchanged. e2e not run (deferred to this program's stack
+  pass per the task; no e2e asserts the retired surfaces — checked).
   ### Agent Notes (2026-11-06, repair session)
 
   Session `agent/create-context2-20261106` (worktree

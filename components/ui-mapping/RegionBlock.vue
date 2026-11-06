@@ -137,7 +137,7 @@
     />
   </div>
 
-  <div v-else :class="[stackFor, 'w-full', 'relative']">
+  <div v-else :class="[stackFor, 'w-full', 'relative', recordDocument ? LAYOUT.measure : '']">
     <RegionDataState v-if="showState" :node="node" />
     <template v-if="depth === 0 && showSurfaces">
       <div class="relative">
@@ -217,6 +217,12 @@
       :arrangement="{ mode: 'stack' }"
       pack
     />
+    <RecordComments
+      v-if="recordDocument && showSurfaces && node.type?.id && node.instances[0]"
+      :type-id="node.type.id"
+      :instance-id="instanceId"
+      :name="recordTitle"
+    />
   </div>
 </template>
 
@@ -233,7 +239,7 @@ import Popover from 'primevue/popover';
 import {
   LAYOUT, GAP_BY_LEVEL, toolbarVisibleFor, sortControlRows,
   hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar,
-  listLayoutOf,
+  listLayoutOf, titleFor,
   createActionControls
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter, countPredicates } from '#shared/instance-filters/index.js';
@@ -243,6 +249,7 @@ import SurfaceBody from './SurfaceBody.vue';
 import SortControl from './SortControl.vue';
 import CreateControl from './CreateControl.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
+import RecordComments from '../chat/RecordComments.vue';
 import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
 import RegionCollections from './RegionCollections.vue';
@@ -321,6 +328,18 @@ const splitTracks = computed(() => ({
 }));
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
+// The record page is a document (SPEC §22.17): the depth-0 record in the
+// `record` presentation renders one inline stack at the measure — the
+// composed arrangement already resolves the stack, the measure centers
+// and bounds it, and the comments section closes it.
+const recordDocument = computed(() => props.depth === 0
+  && props.presentation === 'record'
+  && props.node.surfaceKind === 'detail');
+const instanceId = computed(() => {
+  const id = props.node.instances[0]?._id ?? props.node.instances[0]?.id;
+  return id ? String(id) : '';
+});
+const recordTitle = computed(() => titleFor(props.node.instances[0], props.node.type, { unnamedLabel: t('common.unnamed') }));
 
 // The standalone list region sits on the section rhythm; embedded ones
 // (side columns, tabs) stack tight.

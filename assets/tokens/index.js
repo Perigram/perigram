@@ -67,6 +67,7 @@ export const designTokens = {
     },
     layout: {
         pageMaxWidth: '1600px',
+        recordMeasure: '60rem',
         gridGap: '1.25rem',
         boundedGridItemMinWidth: '24rem',
         boundedGridItemMaxWidth: '32rem',
@@ -204,6 +205,7 @@ export const cssVariableTokens = {
     '--ck-signal-effect': 'var(--ck-entity-tone-fabrication)',
     '--ck-signal-temporal': 'var(--ck-entity-tone-output)',
     '--ck-page-max-width': designTokens.layout.pageMaxWidth,
+    '--ck-record-measure': designTokens.layout.recordMeasure,
     '--ck-grid-gap': designTokens.layout.gridGap,
     '--ck-bounded-grid-item-min-width': designTokens.layout.boundedGridItemMinWidth,
     '--ck-bounded-grid-item-max-width': designTokens.layout.boundedGridItemMaxWidth,

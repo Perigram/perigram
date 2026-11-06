@@ -735,9 +735,13 @@ describe('value formatting and layout vocabulary', () => {
   });
 
   it('exposes the layout vocabulary as the single styling home', () => {
-    for (const key of ['stack', 'stackTight', 'row', 'rowBetween', 'formGrid', 'factsGrid', 'bodyGrid', 'packRow', 'scrollX', 'dialog']) {
+    for (const key of ['stack', 'stackTight', 'row', 'rowBetween', 'formGrid', 'factsGrid', 'bodyGrid', 'measure', 'packRow', 'scrollX', 'dialog']) {
       expect(LAYOUT[key], key).toBeTruthy();
     }
+    // The record document's measure rides the design token, never a raw
+    // width literal (SPEC §22.17): the recipe centers the column and caps
+    // it at the token width.
+    expect(LAYOUT.measure).toBe('mx-auto w-full max-w-[var(--ck-record-measure)]');
     // Card grids render through ResponsiveGrid.
     expect(LAYOUT.cardGrid).toBeUndefined();
   });

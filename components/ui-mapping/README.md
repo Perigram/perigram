@@ -19,11 +19,13 @@ tree and materializes it with `RegionBlock` → `SurfaceBody` →
 `FieldControl` / `InstanceInlineRef` / `PreviewBox` / `ActionButton`. The
 screen root measures itself and provides the page container record when no
 host declared one (panes and popups provide their own), so every surface
-below resolves the real box it renders in. A
-routed detail surface's record header (`SurfaceHeader`) carries the
-composed instance-chat entry — the same `utils/instance-chat.js` seam
-every instance surface uses — with the thread opening through the shared
-chat popup. The screen accepts a `sourceStates` prop (per-source
+below resolves the real box it renders in. The `presentation` prop
+(`record`, the default, or `peek`) threads into `composeScreen`: the
+record presentation composes the depth-0 record as one document stack
+(SPEC §22.17), and the record page's trailing comments section (the chat
+family's `RecordComments`, mounted by `RegionBlock` at the document's
+foot) owns the conversation — the record header carries no chat entry.
+The screen accepts a `sourceStates` prop (per-source
 loading/ready/empty/denied/error from the data layer) that `composeScreen`
 folds into the region tree.
 
@@ -147,10 +149,13 @@ beside the transition history in `StateHistory`.
   stepped ladder as record children — columns, tabs, full-row claim), with
   the screen-level RegionBlock props and event channels passed through the
   `regionProps`/`regionEvents` passthrough. `presentation` selects the
-  depth-0 record treatment: `record` (the default) renders the full
-  `SurfaceHeader` page chrome — lineage trail, type byline, action
-  cluster, lifecycle history; `peek` keeps the identity line, state
-  surface, and action cluster over the record body. A host passing
+  depth-0 record treatment and threads into `composeScreen`:
+  `record` (the default) composes the document flow — the depth-0 record
+  renders one inline stack at the `LAYOUT.measure` (the wide step, 60rem)
+  with `SurfaceHeader` page chrome (lineage trail, type byline, action
+  cluster, lifecycle history) and the trailing comments section;
+  `peek` keeps the ladder arrangement and the compact identity line,
+  state surface, and action cluster over the record body. A host passing
   `expandable` gets the header's step-up button, whose `expand` event the
   host turns into the record's own page. The root measures itself and
   provides the page container record when no host declared one, so step
@@ -200,11 +205,17 @@ beside the transition history in `StateHistory`.
   actions in their ellipsis menus, running against the parent record
   with the row's relation ref as payload. A class list region renders
   no link — the action addresses a concrete parent instance.
-  Top-level detail regions compose a record page: a full-width
-  `SurfaceHeader`, then the record body with the filled child regions
-  arranged around it — the wide step's side outcome lays the body beside
-  the weight-earned side column, narrower hosts take the children's own
-  step outcome below the body. Nested detail regions keep the Card
+  Top-level detail regions compose a record page (SPEC §22.17): in the
+  `record` presentation the region renders one inline document — the
+  root carries `LAYOUT.measure` (content centered and bounded at the
+  wide step), a full-width `SurfaceHeader`, then the record body with
+  the child and linked collections as inline sections below it in
+  composed order, the inert stubs, and the trailing comments section
+  (`RecordComments`, [chat](../chat/README.md) family); in the `peek`
+  presentation the record keeps the ladder arrangement — the wide step's
+  side outcome lays the body beside the weight-earned side column,
+  narrower hosts take the children's own step outcome below the body.
+  Nested detail regions keep the Card
   surface; empty regions render the stub line or a Message by placement.
 - `RegionChildren.vue` / `PlacementBox.vue` — the arrangement
   materialization: the composed tree carries one outcome per width step,
@@ -459,10 +470,12 @@ beside the transition history in `StateHistory`.
   cluster sits right (the identity's flex-1 is the push) and groups by
   control kind with hairline dividers between non-empty groups
   (`LAYOUT.actionGroup`/`actionDivider`): record utilities — the
-  composed instance-chat entry, the construct re-derive —
-  then at most `HEADER_ACTIONS_INLINE` generated
+  construct re-derive — then at most `HEADER_ACTIONS_INLINE` generated
   buttons inline — a third and every further action join one popup
-  ellipsis menu with the same localized labels. An editor-bound type's
+  ellipsis menu with the same localized labels. The conversation
+  affordance (`InstanceChatEntry`) renders only on the compact header:
+  the record page's comments section owns the thread (SPEC §22.17), and
+  the peek has no room for one. An editor-bound type's
   editing surface is its record body (SPEC §4), so the header carries no
   editor action. Runtime transitions
   arrive as `{ __runtime, state: { to }, intent, region }` from the
@@ -497,29 +510,39 @@ beside the transition history in `StateHistory`.
 - `SurfaceDetailBody.vue` — shared detail/full body. The `full` variant
   in the `record` presentation of an editor-bound type mounts the editor
   surface as the body's dominant content (SPEC §4 — the editor is the
-  record surface): `RecordEditorBody`
+  record surface):
+  `RecordEditorBody`
   ([generated](../generated/README.md)) fills the framed
   `LAYOUT.editorBand` (the bounded `LAYOUT.editorBandBounded` in popup
   hosts), the version trigger overlays its corner, and the body grammar
-  below follows the type's content — the fact strip renders only when
+  follows the type's content — the fact strip renders only when
   the type carries filled non-identifier scalar facts, so a
   payload-only document type shows the editor alone while a canvas type
   keeps its parameter facts; relation sections and the record ladder's
   child collections stack after the editor per the existing arrangement.
-  The `peek` presentation, nested Card variants, and editor-less types
-  keep the preview band: preview (the Card variant and narrow hosts
+  The record document body (SPEC §22.17, `full` + `record`) leads with
+  the property block: the declared scalar facts as compact property rows
+  (muted label cell + value) directly under the header, collapsed to
+  filled values behind the per-group show-more control, single-group
+  bodies carrying no group titles; structural fields and relations
+  follow below the editor/preview as labeled open sections stacked full
+  width. The `peek` presentation, nested Card variants, and editor-less
+  types keep the preview band and the fill grammar: preview (the Card
+  variant and narrow hosts
   rendering in the bounded
   `LAYOUT.previewEmbedBand`), a bounded
   scalar facts strip (`DETAIL_FACT_BUDGET`, identifier-excluded — the
   title owns that value; collapsed behind one show-more control per
-  group), structural fields as labeled open sections, labeled relation
+  group; `LAYOUT.factsGrid` columns on full variants, the hairline
+  `LAYOUT.specList` on cards), structural fields as labeled open
+  sections, labeled relation
   sections (the field label override channel over the relation key,
   start-cased fallback) with budgeted chips and show-more toggles —
   relations a child region covers render no duplicate section — and
   each chip carries the
   relation's inline-resolved operations (unlink) as `contextActionEntries`
   bound to the opened record. The
-  `full` variant fills its surface through the
+  non-document `full` variant fills its surface through the
   `LAYOUT.bodyGrid`/`LAYOUT.factsGrid` utilities: content width is the
   floor and the host grants growth — fact groups fill in tracking
   columns, body blocks grow into spare row width; nested card
