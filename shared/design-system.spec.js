@@ -20,6 +20,7 @@ import {
   tailwindThemeExtension
 } from '../assets/tokens/index.js';
 import { facadeFileTypes } from '../test-tools/facade-plugin.js';
+import { CONTAINER_WIDTH_STEPS } from './ui-mapping/tables.js';
 // Declaration-owned lifecycles replace the deleted legacy workflow table:
 // one registry view projection derives entities and workflows.
 import { createTypeRegistry, frameworkTypes as ctsFrameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
@@ -189,6 +190,10 @@ describe('Design system manifest', () => {
   it('exports token projections for PrimeVue, Tailwind, and CSS variables', () => {
     expect(designTokens.layout.pageMaxWidth).toBe('1600px');
     expect(cssVariableTokens['--ck-page-max-width']).toBe(designTokens.layout.pageMaxWidth);
+    // The record document's measure is the arrangement wide step
+    // (SPEC §22.17): the LAYOUT measure recipe consumes the token.
+    expect(designTokens.layout.recordMeasure).toBe(`${CONTAINER_WIDTH_STEPS.wideRem}rem`);
+    expect(cssVariableTokens['--ck-record-measure']).toBe(designTokens.layout.recordMeasure);
     expect(tailwindThemeExtension.maxWidth.app).toBe('var(--ck-page-max-width)');
     expect(tailwindThemeExtension.height['support-chat']).toBe('var(--ck-support-chat-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');

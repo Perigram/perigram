@@ -14,7 +14,7 @@ import { usePayloadUpload } from '~/composables/usePayloadUpload.js'
 import { useInstancesStore } from '~/stores/instances'
 import { useRegistryStore } from '~/stores/registry'
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js'
-import { openInstanceChat } from '~/utils/instance-chat.js'
+import { directConversationKey, openInstanceChat } from '~/utils/instance-chat.js'
 import { useEntityPopup } from '~/composables/useEntityPopup'
 import { openChatInWorkspaceTab } from '~/utils/chat-workspace-open.js'
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js'
@@ -2088,6 +2088,10 @@ onMounted(() => {
         agentBots.fetchContacts()
     }
     fetchTranscriptionAvailability()
+    // A pinned thread (the conversationKey prop) is committed to its own
+    // conversation: consuming the ambient chat target here would override
+    // the pin with whatever popup launch was pending.
+    if (props.conversationKey) return
     if (chatTarget.value?.userId || chatTarget.value?.instanceKey) openDirectTarget()
     else if (chatTarget.value?.conversationKey) openConversationByKey(chatTarget.value.conversationKey)
 })
@@ -2891,10 +2895,6 @@ const participantUserId = (conversation) => {
         || ''
 }
 
-const directConversationKey = (left, right) => {
-    if (!left || !right) return `direct:${right}`
-    return `direct:${[left, right].map(String).sort().join(':')}`
-}
     return {
         t,
         te,

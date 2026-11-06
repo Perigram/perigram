@@ -16,10 +16,9 @@
       :region-events="regionBlockEvents"
     />
 
-    <!-- The routed detail surface keeps the same conversation contract as
-         every other instance surface: the record header (SurfaceHeader)
-         carries the composed chat entry; there is no embedded comments
-         section beside the body. -->
+    <!-- The record page is a document (SPEC §22.17): the comments
+         section at its foot owns the conversation; the header carries no
+         chat entry. -->
 
     <StandardDialog
       v-model:visible="linkDialogVisible"
@@ -147,7 +146,8 @@ const props = defineProps({
 
 const pool = computed(() => buildInstancePool(props.instances));
 const composed = computed(() => composeScreen(props.screen, props.contract, props.bundle, pool.value, {
-  sourceStates: props.sourceStates || null
+  sourceStates: props.sourceStates || null,
+  presentation: props.presentation
 }));
 // Context- and data-aware rhythm (SPEC → Container traits, density): the
 // host record's density tier tightened for heavy screens; an explicit

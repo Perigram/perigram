@@ -189,8 +189,8 @@ describe('generated screens page with projected vocabulary', () => {
     // The record page's first render (SSR and hydration alike) must paint
     // the per-source loading skeletons: a data-state divergence between
     // the server render and the client's first render hydration-mismatches
-    // the page, and the arrangement (peer columns/tabs) that composes
-    // after the pool loads would never mount.
+    // the page, and the document flow that composes after the pool loads
+    // would never mount.
     await router.push('/screens/auto_t-k3x9fj2mqa_detail?instanceId=i-404');
     setActivePinia(createPinia());
     const authStore = useAuthStore();
@@ -214,5 +214,40 @@ describe('generated screens page with projected vocabulary', () => {
     expect(html).toContain('p-skeleton');
     expect(html).not.toContain('uiMapping.missingRegion');
     expect(html).not.toContain('uiMapping.emptyRegion');
+  });
+
+  it('renders a resolved detail screen as the record document with its comments section', async () => {
+    await router.push('/screens/auto_t-k3x9fj2mqa_detail?instanceId=i-1');
+    setActivePinia(createPinia());
+    const authStore = useAuthStore();
+    await authStore.setUser();
+    useInstancesStore().upsertRecord('t-k3x9fj2mqa', {
+      _id: 'i-1', type: 't-k3x9fj2mqa', name: 'Ticket one',
+      state: 'new', lineage: {}, relations: {}, fields: { note: 'First note' }
+    });
+
+    const i18n = createI18n({
+      legacy: false,
+      missingWarn: false,
+      fallbackWarn: false,
+      messages: { en: { uiMapping: { comments: 'Comments' } } }
+    });
+    const app = createSSRApp({ render: () => h(ScreensPage) });
+    app.use(i18n);
+    app.use(router);
+    app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
+    app.use(ToastService);
+    app.use(ConfirmService);
+    app.directive('tooltip', { getSSRProps: () => ({}) });
+
+    const html = await renderToString(app);
+    // The document at the measure (SPEC §22.17): the record header, the
+    // property rows under it, and the comments section as the trailing
+    // block — the header's chat entry retired.
+    expect(html).toContain('Ticket one');
+    expect(html).toContain('ck-record-measure');
+    expect(html).toContain('Comments');
+    expect(html).not.toContain('pi pi-comments');
+    expect(html).not.toContain('support.instanceChat');
   });
 });

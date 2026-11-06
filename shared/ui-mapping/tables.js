@@ -303,6 +303,10 @@ export const LAYOUT = Object.freeze({
   reloadLane: 'h-1 shrink-0',
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
+  // The record document's measure (SPEC §22.17): the depth-0 record page
+  // renders one inline stack centered and bounded at the wide step's rem
+  // width (the token), inside whatever host column the page grants.
+  measure: 'mx-auto w-full max-w-[var(--ck-record-measure)]',
   // Row-surface recipe (the table row IS the card): a row's own
   // background is not clipped by its border-radius, so rows round by
   // clipping. The one constant every table rowClass channel returns.
@@ -416,7 +420,7 @@ export const LAYOUT_ATOMS = Object.freeze({
 export const LAYOUT_AMBIENT = Object.freeze({
   cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText']),
   clamps: Object.freeze(['nameClamp', 'chipClamp', 'linkClamp']),
-  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'header', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar', 'reloadLane', 'actionGroup', 'actionDivider', 'mediaTileBadge', 'mediaTileControls']),
+  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'measure', 'scrollX', 'dialog', 'header', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar', 'reloadLane', 'actionGroup', 'actionDivider', 'mediaTileBadge', 'mediaTileControls']),
   geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
 });
 

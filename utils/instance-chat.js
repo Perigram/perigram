@@ -1,5 +1,21 @@
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState';
 
+export const directConversationKey = (left, right) => {
+  if (!left || !right) return `direct:${right}`;
+  return `direct:${[left, right].map(String).sort().join(':')}`;
+};
+
+/**
+ * The pinned-thread key for a record's comments section: the same thread
+ * kind the popup entry resolves (`user` records ride the direct 1:1
+ * conversation with the viewing user; every other type the composed
+ * instance thread).
+ */
+export function instanceThreadKey({ type = '', id = '', currentUserId = '' } = {}) {
+  if (String(type).toLowerCase() === 'user') return directConversationKey(currentUserId, String(id));
+  return `instance:${type}:${id}`;
+}
+
 /**
  * Opens the chat thread for an entity surface (cards, inline refs,
  * popovers, directory surfaces) as the single chat popup: full-bleed

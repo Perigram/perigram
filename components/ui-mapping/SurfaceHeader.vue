@@ -59,11 +59,13 @@
       </div>
       <div :class="LAYOUT.row" class="header-actions">
         <!-- The cluster groups by control kind — record utilities (the
-             conversation affordance, construct re-derive), generated
-             actions, machine transitions — one tight group per kind with
-             hairline dividers between non-empty groups. -->
+             construct re-derive), generated actions, machine transitions
+             — one tight group per kind with hairline dividers between
+             non-empty groups. The conversation affordance renders only on
+             the compact header (the peek): the record page's comments
+             section owns the thread (SPEC §22.17). -->
         <div :class="LAYOUT.actionGroup">
-          <InstanceChatEntry :type-id="type?.id" :instance="instance" :name="identity" />
+          <InstanceChatEntry v-if="compact" :type-id="type?.id" :instance="instance" :name="identity" />
           <ActionButton
             v-for="action in rerunActions"
             :key="action.id"

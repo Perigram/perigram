@@ -429,8 +429,28 @@ describe('screen composition', () => {
         ] },
       contract, cardBundle, heavyPool
     );
-    expect(heavy.regions[0].childArrangement.wide.mode).toBe('tabs');
-    expect(heavy.regions[0].childArrangement.narrow.mode).toBe('tabs');
+    expect(heavy.regions[0].childArrangement.wide.mode).toBe('stack');
+    expect(heavy.regions[0].childArrangement.narrow.mode).toBe('stack');
+    expect(heavy.regions[0].sideRail).toBe(null);
+    // The peek presentation keeps the ladder: the same heavy child set
+    // tabs in weight order when the record renders as a peek.
+    const peek = composeScreen(
+      { screenKey: 'rr2', template: 'instanceDetail', label: 'RR', typeId: 'widget', scope: { instanceId: 'host' },
+        sources: [
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'widget_reviews_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'reviews' } },
+          { id: 'widget_audits_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'audits' } }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
+          { id: 'reviews', slot: 'children', sourceId: 'widget_reviews_related', surface: 'card' },
+          { id: 'audits', slot: 'children', sourceId: 'widget_audits_related', surface: 'card' }
+        ] },
+      contract, cardBundle, heavyPool,
+      { presentation: 'peek' }
+    );
+    expect(peek.regions[0].childArrangement.wide.mode).toBe('tabs');
+    expect(peek.regions[0].childArrangement.narrow.mode).toBe('tabs');
   });
 
   it('excludes tabs inside a tabbed sections arrangement', () => {
@@ -487,13 +507,60 @@ describe('screen composition', () => {
     expect(heavy.regions[0].childArrangement.narrow.mode).toBe('stack');
     expect(heavy.regions[2].childArrangement.wide.mode).toBe('stack');
     // The same record with an empty feedB stubs that section (inert
-    // partition) and arranges the rest; its heavy child set tabs at every
-    // step.
+    // partition) and arranges the rest; the section ladder keeps its
+    // mixed outcome while the record page's own children resolve the
+    // document stack at every step (SPEC §22.17).
     const light = screen(poolFor([]));
     expect(light.stubRegions.map(region => region.id)).toEqual(['feedB']);
     expect(light.regionsArrangement.wide.mode).toBe('mixed');
-    expect(light.regions[0].childArrangement.wide.mode).toBe('tabs');
-    expect(light.regions[0].childArrangement.narrow.mode).toBe('tabs');
+    expect(light.regions[0].childArrangement.wide.mode).toBe('stack');
+    expect(light.regions[0].childArrangement.narrow.mode).toBe('stack');
+  });
+
+  it('renders the record page as one document stack while list screens keep the ladder', () => {
+    // SPEC §22.17: the record presentation resolves the inline stack
+    // alone — the side rail, peer columns, and tabs are record-page
+    // outcomes no more, at every width step. The peek keeps the ladder,
+    // and list screens (screen sections, nested surfaces) still resolve
+    // every outcome.
+    const cardBundle = { types: bundle.types.map(type => (
+      type.id === 'widget' ? { ...type, class: 'file', payload: { mime: ['image/png'], preview: 'image' } } : type
+    )) };
+    const related = Array.from({ length: 6 }, (_, index) => (
+      { id: `rw${index}`, type: 'widget', fields: { name: `RW${index}` }, relations: {}, lineage: {}, state: 'draft' }
+    ));
+    const pool = buildInstancePool({
+      widgets: [
+        { id: 'host', type: 'widget', fields: { name: 'Host' }, relations: {
+          reviews: related.map(instance => ({ type: 'widget', id: instance.id })),
+          audits: related.map(instance => ({ type: 'widget', id: instance.id }))
+        }, lineage: {}, state: 'draft' },
+        ...related
+      ]
+    });
+    const screen = presentation => composeScreen(
+      { screenKey: 'doc', template: 'instanceDetail', label: 'D', typeId: 'widget', scope: { instanceId: 'host' },
+        sources: [
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'reviews_src', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'reviews' } },
+          { id: 'audits_src', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'audits' } }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
+          { id: 'reviews', slot: 'children', sourceId: 'reviews_src', surface: 'card' },
+          { id: 'audits', slot: 'children', sourceId: 'audits_src', surface: 'card' }
+        ] },
+      contract, cardBundle, pool,
+      presentation ? { presentation } : undefined
+    );
+    const record = screen();
+    for (const step of ['narrow', 'medium', 'wide']) {
+      expect(record.regions[0].childArrangement[step]).toEqual({ mode: 'stack' });
+    }
+    expect(record.regions[0].sideRail).toBe(null);
+    const peek = screen('peek');
+    expect(peek.regions[0].childArrangement.wide.mode).toBe('tabs');
+    expect(peek.regions[0].childArrangement.narrow.mode).toBe('tabs');
   });
 
   it('keeps empty child collections layout-inert as stubs', () => {

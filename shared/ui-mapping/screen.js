@@ -219,32 +219,41 @@ function tabAncestorOf(insideTabs, arrangement) {
   });
 }
 
-// The record page's side rail is the wide outcome (SPEC rule 4): a light
-// child set — no full-breadth child, combined weight at or under
-// SIDE_MAX_WEIGHT — rides beside the record body, the side column's span
-// earned by weight. Narrower hosts take the step's own outcome below the
-// body.
-function withArrangement(node, insideTabs) {
+// The record page is a document (SPEC §22.17): in the `record`
+// presentation the depth-0 record's children resolve the inline stack at
+// every width step. The ladder keeps deriving every other set (list
+// screens, nested surfaces, and the whole tree under the `peek`
+// presentation).
+const STACK_ARRANGEMENT = Object.freeze({
+  narrow: Object.freeze({ mode: 'stack' }),
+  medium: Object.freeze({ mode: 'stack' }),
+  wide: Object.freeze({ mode: 'stack' })
+});
+
+function withArrangement(node, insideTabs, presentation) {
   const childRegions = node.childRegions;
+  const documentPage = presentation === 'record' && node.surfaceKind === 'detail' && node.level === 0;
   const childWeight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
   const stepped = arrangeChildren(childRegions, insideTabs);
   // The rail rides BESIDE the body: the body must carry at least the
   // rail's weight, else the children flow below and the record keeps its
   // page (a thin record never hosts a hanging side column).
-  const sideRail = node.surfaceKind === 'detail' && node.level === 0 && childRegions.length > 0
+  const sideRail = !documentPage && node.surfaceKind === 'detail' && node.level === 0 && childRegions.length > 0
     && childWeight <= SIDE_MAX_WEIGHT
     && node.dataTraits.weight >= childWeight
     && childRegions.every(child => (child.dataTraits || regionDataTraits(child)).breadth !== 'full')
     ? Object.freeze({ mode: 'side', span: regionSideSpanFor(childWeight) })
     : null;
-  const childArrangement = sideRail
-    ? Object.freeze({ ...stepped, wide: sideRail })
-    : stepped;
+  const childArrangement = documentPage
+    ? STACK_ARRANGEMENT
+    : sideRail
+      ? Object.freeze({ ...stepped, wide: sideRail })
+      : stepped;
   const childInsideTabs = tabAncestorOf(insideTabs, childArrangement);
   return Object.freeze({
     ...node,
-    childRegions: Object.freeze(childRegions.map(child => withArrangement(child, childInsideTabs))),
-    stubRegions: Object.freeze(node.stubRegions.map(child => withArrangement(child, childInsideTabs))),
+    childRegions: Object.freeze(childRegions.map(child => withArrangement(child, childInsideTabs, presentation))),
+    stubRegions: Object.freeze(node.stubRegions.map(child => withArrangement(child, childInsideTabs, presentation))),
     childArrangement,
     sideRail
   });
@@ -268,9 +277,13 @@ export function screenWeight(screen = {}) {
 // sourceId, key }`. `options.sourceStates` optionally maps source ids to
 // runtime data states ('loading' | 'ready' | 'empty' | 'denied' |
 // 'error'); unreported sources derive their state from the pool.
+// `options.presentation` selects the depth-0 record treatment's
+// arrangement ('record', the default, resolves the document stack of
+// SPEC §22.17; 'peek' keeps the ladder).
 export function composeScreen(screen = {}, contract = { actions: {} }, bundle = { types: [] }, pool = {}, options = {}) {
   const typesById = Object.fromEntries((bundle.types || []).map(type => [type.id, type]));
   const providedStates = options.sourceStates || null;
+  const presentation = options.presentation || 'record';
   // Every top-level region sits at depth 0 — the tree position decides
   // chrome and variant, never the region's index in the contract. Screen
   // sections arrange through the same ordered rules record children do.
@@ -289,7 +302,7 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
   // that step, so their own child sets exclude tabs there.
   const regionsArrangement = arrangeChildren(activeRegions, TAB_ANCESTOR_NONE);
   const insideTabs = tabAncestorOf(TAB_ANCESTOR_NONE, regionsArrangement);
-  const regions = activeRegions.map(region => withArrangement(region, insideTabs));
+  const regions = activeRegions.map(region => withArrangement(region, insideTabs, presentation));
   return Object.freeze({
     key: screen.screenKey || screen.id,
     template: screen.template,
@@ -297,7 +310,7 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
     typeId: screen.typeId || null,
     type: typesById[screen.typeId] || null,
     regions: Object.freeze(regions),
-    stubRegions: Object.freeze(stubRegions.map(region => withArrangement(region, insideTabs))),
+    stubRegions: Object.freeze(stubRegions.map(region => withArrangement(region, insideTabs, presentation))),
     regionsArrangement
   });
 }
