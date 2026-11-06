@@ -5305,3 +5305,19 @@ Session `agent/md-record-20261106` (worktree
   single-axis fallback) — the row stays a context-seedable lineage
   picker everywhere. Validation: ui-mapping spec 117 green; e2e still
   pending a live stack.
+
+  ### Agent Notes (2026-11-06, live-stack reproduction)
+
+  Reproduced on the dev stack (Org1 data, diagnostic session, browser
+  automation): the create dialog's template iterated `rows`, so the
+  context-hidden lineage row rendered anyway — every resolver-layer fix
+  was correct and invisible. `ActionFormDialog` now renders
+  `visibleRows` (6f02e2413). Verified live: creating a queue entry
+  inside Cutting queue prompts Design + Count only and the created
+  record carries `lineage.queueId` plus the derived `projectId`; the
+  unscoped queue-entry list renders the interactive trail (Demo project
+  › Cutting queue) under each row identity; the same list's create
+  prompts a Queue picker over real queues. Button captions render
+  ("New Queue entry"). The two earlier repair sessions fixed real
+  defects in the same path (field: id shapes, accepts fallback) that
+  this render-line fix finally exercises.
