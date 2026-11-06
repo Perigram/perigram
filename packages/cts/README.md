@@ -122,9 +122,10 @@ modules onto its sections.
   acceptance and activation); `declarationsFromCtsRecords` receives
   the declaration graph beside records, so nested state and edge
   acceptance match what APPLY posts (children wires land child-first);
-  `rowFieldId` mints an authored name's row key (latin letters and
-  digits, lowerCamelCase) — the one row-key derivation home, shared by
-  the designer's field diagnostics and field wires;
+  `rowFieldId` mints an authored name's row key — latin letter/digit
+  segments in lowerCamelCase, else a stable digest of the name — the one
+  row-key derivation home, shared by the designer's field wires and
+  migration vocabulary;
   `operationKindOf` answers the record's own kind;
   `rewriteRetiredWirePaths`, `orientChildrenEdgesChildFirst`, and
   `retireStateScopeAuthoring` (the state-scope strip: state→class

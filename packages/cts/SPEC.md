@@ -203,6 +203,11 @@ class's declared fields accumulates the picks as fields are declared,
 the class holds exactly one, and the empty pick leaves it unowned
 (owner direction 2026-10-29).
 
+Authored field names are free text in any script; the row key is derived
+plumbing: the name's latin letter/digit segments in lowerCamelCase, else
+a stable digest of the name. The authored name lands as the field's
+`label` when none is declared (owner direction 2026-11-06).
+
 There is no `render` facet on types. Identity, grouping, list layout, and
 default sort are not declaration concerns: display grouping derives from
 the row at compile time — total section assignment by base (`quantity` →
