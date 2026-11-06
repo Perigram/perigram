@@ -2666,10 +2666,10 @@
         "addState": "Добавить состояние",
         "addTransition": "Добавить переход",
         "intent": "Назначение",
-        "targetState": "Целевое состояние",
+        "from": "Из",
+        "to": "В",
         "fromAny": "любое",
         "identifier": "Идентификатор",
-        "required": "обязательное",
         "notStationed": "У этого типа нет авторской декларации в активном процессе.",
         "unsavedLeave": "Уйти без сохранения изменений декларации?"
     },
@@ -3300,6 +3300,13 @@
         "endState": "финиш",
         "entryState": "вход",
         "stateSeverity": "Важность",
+        "stateSeverities": {
+            "info": "Информация",
+            "success": "Успех",
+            "warn": "Предупреждение",
+            "danger": "Опасность",
+            "secondary": "Нейтрально"
+        },
         "stateIcon": "Иконка",
         "transitionStatusValue": "Значение статуса",
         "transitionGuard": "Условие",

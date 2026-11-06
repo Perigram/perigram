@@ -10,18 +10,16 @@
         size="small"
         @update:model-value="value => setBase(value)"
       />
-      <Checkbox
-        :model-value="modelValue.nullable === true"
-        :binary="true"
-        @update:model-value="value => patch({ nullable: value === true ? true : undefined })"
-      />
-      <span class="text-supporting text-muted">{{ $t('typesPane.nullable') }}</span>
+      <label class="flex items-center gap-2">
+        <Checkbox
+          :model-value="modelValue.nullable === true"
+          :binary="true"
+          @update:model-value="value => patch({ nullable: value === true ? true : undefined })"
+        />
+        <span class="text-supporting text-muted">{{ $t('typesPane.nullable') }}</span>
+      </label>
     </div>
 
-    <!-- Field policy: mutability is declared on the descriptor. Writable
-         governs mutate leaf sockets and update paths; constructible governs
-         construct sockets and creation forms. Visibility (read/write/admin
-         per role) lives on the producer output's field policy. -->
     <div class="flex flex-wrap items-center gap-4">
       <label class="flex items-center gap-2">
         <Checkbox
@@ -42,12 +40,12 @@
     </div>
 
     <div v-if="modelValue.base === 'quantity'" class="flex flex-col gap-1">
-      <label>{{ $t('typeCanvas.unit') }}</label>
+      <label class="text-label text-muted">{{ $t('typeCanvas.unit') }}</label>
       <SelectButton :model-value="modelValue.unit" :options="units" size="small" @update:model-value="value => patch({ unit: value })" />
     </div>
 
     <div v-else-if="modelValue.base === 'ref'" class="flex flex-col gap-1">
-      <label>{{ $t('typeCanvas.accepts') }}</label>
+      <label class="text-label text-muted">{{ $t('typeCanvas.accepts') }}</label>
       <SelectButton
         :model-value="modelValue.accepts || []"
         :options="typeOptions"
@@ -57,7 +55,7 @@
         size="small"
         @update:model-value="value => patch({ accepts: value })"
       />
-      <label>{{ $t('typeCanvas.unlink') }}</label>
+      <label class="text-label text-muted">{{ $t('typeCanvas.unlink') }}</label>
       <SelectButton
         :model-value="modelValue.unlink || 'detach'"
         :options="unlinkOptions"
@@ -67,17 +65,17 @@
     </div>
 
     <div v-else-if="modelValue.base === 'enum'" class="flex flex-col gap-1">
-      <label>{{ $t('typesPane.values') }}</label>
+      <label class="text-label text-muted">{{ $t('typesPane.values') }}</label>
       <InputChips :model-value="modelValue.values || []" size="small" @update:model-value="value => patch({ values: value })" />
     </div>
 
     <div v-else-if="modelValue.base === 'variant'" class="flex flex-col gap-1">
-      <label>{{ $t('typesPane.tags') }}</label>
+      <label class="text-label text-muted">{{ $t('typesPane.tags') }}</label>
       <InputChips :model-value="modelValue.tags || []" size="small" @update:model-value="value => patch({ tags: value })" />
     </div>
 
     <div v-else-if="modelValue.base === 'list' || modelValue.base === 'map'" class="flex flex-col gap-1">
-      <label>{{ $t('typeCanvas.itemType') }}</label>
+      <label class="text-label text-muted">{{ $t('typeCanvas.itemType') }}</label>
       <DescriptorEditor
         :model-value="modelValue.itemType || { base: 'string' }"
         :type-options="typeOptions"
@@ -87,7 +85,7 @@
     </div>
 
     <div v-else-if="modelValue.base === 'record'" class="flex flex-col gap-1">
-      <label>{{ $t('typesPane.recordFields') }}</label>
+      <label class="text-label text-muted">{{ $t('typesPane.recordFields') }}</label>
       <div v-for="(field, index) of recordEntries" :key="index" class="flex items-start gap-1">
         <InputText
           :model-value="field.name"
@@ -113,11 +111,7 @@
 </template>
 
 <script setup>
-// One editor for the whole V row grammar (SPEC §2/§4): every qualifier the
-// declaration layer can carry — unit, ref targets, enum values, variant
-// tags, list/map item types, nested record fields, nullable — validated
-// through the registry's own describeType, so an invalid descriptor is
-// visible in the authoring surface, not at save time.
+// Grammar contract: components/type-designer/README.md → DescriptorEditor.
 import { computed } from 'vue';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
@@ -139,10 +133,8 @@ const units = [...UNITS];
 const unlinkOptions = [...UNLINK_POLICIES];
 
 const error = computed(() => {
-  // An unset ref (no accepted targets yet) is authored-in-progress, not a
-  // validation failure: the multiselect's own empty state communicates it,
-  // and the field simply stays out of the declaration until targets are
-  // picked. Everything else describeType rejects surfaces live.
+  // An unset ref is authored-in-progress, staying out of the declaration
+  // until targets are picked (components/type-designer/README.md).
   if (props.modelValue.base === 'ref'
     && (!Array.isArray(props.modelValue.accepts) || !props.modelValue.accepts.length)) {
     return '';
@@ -163,9 +155,7 @@ function patch(changes) {
 
 function setBase(base) {
   const next = { base };
-  // The SPEC §4 naming facet (label / display / control / the closed
-  // identifier / depiction flags) describes the field, not its base:
-  // switching the base must not drop authored display tokens.
+  // SPEC §4 naming facets describe the field and survive a base switch.
   for (const key of ['label', 'display', 'control', 'identifier', 'depiction']) {
     if (props.modelValue[key] !== undefined) next[key] = props.modelValue[key];
   }

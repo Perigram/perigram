@@ -446,6 +446,11 @@ describe('fieldDescriptorSummary', () => {
     expect(fieldDescriptorSummary({ base: 'quantity', unit: 'mm' })).toBe('mm');
     expect(fieldDescriptorSummary({ base: 'ref', accepts: ['a', 'b'] })).toBe('Ref(a|b)');
   });
+
+  it('renders a ref accepts set through the label resolver it is given', () => {
+    expect(fieldDescriptorSummary({ base: 'ref', accepts: ['t-a', 't-b'] }, id => ({ 't-a': 'Cassette', 't-b': 'Sheet' })[id]))
+      .toBe('Ref(Cassette|Sheet)');
+  });
 });
 
 describe('id minting parity', () => {
