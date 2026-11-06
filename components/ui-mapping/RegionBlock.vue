@@ -45,8 +45,6 @@
           @click="toggleView"
         />
         <Popover ref="viewPopover" @show="viewOpen = true" @hide="viewOpen = false">
-          <!-- A menu of live controls: every hosted model applies as it
-               changes. -->
           <div class="flex w-72 flex-col gap-3">
             <IconField v-if="searchToggleAvailable">
               <InputIcon class="pi pi-search" />
@@ -570,10 +568,6 @@ const sortedInstances = computed(() => (sortKeyResolved.value
 watch(() => props.node.id, () => {
   search.value = '';
 });
-// The one view control (SPEC §22.15): it renders when any hosted control
-// exists, and its popover hosts the live models above in order — search,
-// the filter builder, the projection switch, the sort keys. While the
-// popover is open the cluster stays lit.
 const viewPopover = ref();
 const viewOpen = ref(false);
 const viewToggleAvailable = computed(() => searchToggleAvailable.value

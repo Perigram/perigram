@@ -55,7 +55,7 @@ export function normalizeFilter(node) {
 }
 
 // countPredicates(node): the predicate count of a tree — the condition
-// count a collection surface badges its filter trigger with.
+// count a collection surface badges its view control with.
 export function countPredicates(node) {
   if (!node || typeof node !== 'object') return 0;
   if (node.and) return node.and.reduce((sum, child) => sum + countPredicates(child), 0);
