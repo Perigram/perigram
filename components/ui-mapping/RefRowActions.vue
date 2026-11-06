@@ -48,6 +48,7 @@ import Button from 'primevue/button';
 import Menu from 'primevue/menu';
 import { creationModeLabel } from '~/packages/processes/src/ui-contract-projection.js';
 import { createdEntity } from '~/utils/instance-run-results.js';
+import { uploadCreateAccept, uploadCreatePayloadReference } from '~/components/ui-mapping/upload-create.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useEntityPopup } from '~/composables/useEntityPopup';
@@ -120,10 +121,7 @@ const menuModel = computed(() => entries.value.map((entry, index) => ({
   command: () => runCreate(entry)
 })));
 
-const fileAccept = computed(() => {
-  const type = typeRecordOf(pendingUpload.value?.typeId);
-  return (type?.payload?.accept || type?.payload?.mime || []).join(',') || undefined;
-});
+const fileAccept = computed(() => uploadCreateAccept(typeRecordOf(pendingUpload.value?.typeId)));
 
 function runCreate(entry) {
   if (entry.protocol === 'editor') {
@@ -145,14 +143,12 @@ async function onFilePicked(event = {}) {
   if (!file || !entry) return;
   creating.value = true;
   try {
-    const form = new FormData();
-    form.append('file', file);
-    const stored = await $fetch('/api/files/upload?bucket=files', { method: 'POST', body: form });
+    const payload = await uploadCreatePayloadReference(file);
     const result = await instances.runAction({
       action: entry.action,
       actionId: entry.action.id,
       entities: {},
-      data: { payload: { fileId: stored.id, mime: file.type || null, size: file.size, name: file.name } },
+      data: { payload },
       parameters: {}
     });
     const entity = createdEntity(entry.action, result);

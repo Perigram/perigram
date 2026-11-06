@@ -69,6 +69,7 @@ import { useInstancesStore } from '~/stores/instances';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
+import { uploadCreateAccept, uploadCreatePayloadReference } from '~/components/ui-mapping/upload-create.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { createPaletteGroups } from '~/components/generated/create-palette.js';
 import ActionFormDialog from '~/components/ui-mapping/ActionFormDialog.vue';
@@ -175,10 +176,7 @@ function landCreated(action, result) {
   toast.add({ severity: 'success', summary: action.label || action.id, detail: t('generatedScreen.actionCompleted'), life: 2000 });
 }
 
-const uploadAccept = computed(() => {
-  const type = view.typeById(pendingUpload.value?.typeId);
-  return (type?.payload?.accept || type?.payload?.mime || []).join(',') || undefined;
-});
+const uploadAccept = computed(() => uploadCreateAccept(view.typeById(pendingUpload.value?.typeId)));
 
 async function onFilePicked(event = {}) {
   const picked = event.target?.files?.[0];
@@ -187,10 +185,8 @@ async function onFilePicked(event = {}) {
   if (!picked || !action) return;
   creating.value = true;
   try {
-    const form = new FormData();
-    form.append('file', picked);
-    const stored = await $fetch('/api/files/upload?bucket=files', { method: 'POST', body: form });
-    await runCreate(action, { payload: { fileId: stored.id, mime: picked.type || null, size: picked.size, name: picked.name } });
+    const payload = await uploadCreatePayloadReference(picked);
+    await runCreate(action, { payload });
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
   } finally {

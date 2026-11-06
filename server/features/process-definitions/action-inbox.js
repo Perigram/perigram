@@ -10,8 +10,8 @@ import { toFlexibleId } from '~/server/utils/objectid.js';
 // grants.
 export const INBOX_ROW_CAP_PER_ACTION = 25;
 
-// Stored primary-state paths in every persisted shape; the wire twin of
-// this vocabulary is `entityPrimaryStatus` (utils/action-visibility.js).
+// Stored primary-state paths in every persisted shape; the client's read
+// of them is `entityPrimaryStatus` (utils/action-visibility.js).
 const STATE_PATHS = Object.freeze([
   'state',
   'states.main',
@@ -71,7 +71,10 @@ export async function getActiveActionInbox(auth = {}, { query = mongoInboxQuery,
 
 async function declarationCollectionOf(typeId = '', organizationId = null) {
   const declaration = await declarationForType(typeId, organizationId);
-  return declaration ? collectionForClass(declaration.class) : null;
+  // Party classes and framework-flagged machinery keep their own feature
+  // services and storage, apart from the per-class collections.
+  if (!declaration || declaration.class === 'party' || declaration.framework) return null;
+  return collectionForClass(declaration.class);
 }
 
 async function mongoInboxQuery(collection, filter, { limit } = {}) {

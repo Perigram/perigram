@@ -7,8 +7,9 @@
       >
         <!-- Brand panel owns the wrap control: the wordmark shrinks to the
              mark and the toggle flips with it; the create control sits
-             beside the toggle (SPEC §4: the home shell's one create
-             control). -->
+             beside the toggle in the expanded shape (SPEC §4: the home
+             shell's one create control), and the wrapped rail below
+             carries it when collapsed. -->
         <header
           :class="['flex shrink-0 items-center', sidebarCollapsed ? 'flex-col gap-1 px-1.5 py-2' : 'h-12 justify-between px-3']"
         >
@@ -32,7 +33,6 @@
             />
           </div>
           <template v-else>
-            <CreatePalette />
             <Button
               icon="pi pi-chevron-right"
               text
@@ -46,9 +46,9 @@
         </header>
 
         <!-- Wrapped rail: the create control, then communication first
-             (chats, calls — the same order the expanded menu leads with),
-             then one icon per top-level panel; the brand mark, profile
-             avatar, and this rail are the whole sidebar. -->
+             (chats, inbox, calls — the same order the expanded menu leads
+             with), then one icon per top-level panel; the brand mark,
+             profile avatar, and this rail are the whole sidebar. -->
         <nav
           v-if="sidebarCollapsed"
           class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto p-1.5"
@@ -75,6 +75,16 @@
             />
           </span>
           <Button
+            icon="pi pi-inbox"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('nav.inbox')"
+            :title="$t('nav.inbox')"
+            @click="openWorkspacePage({ pageId: 'inbox' })"
+          />
+          <Button
             icon="pi pi-phone"
             text
             rounded
@@ -98,13 +108,14 @@
           />
         </nav>
 
-        <!-- Expanded navigation is one raw PanelMenu: two communication
-             entries first — Chats opens the chats page; Calls toggles its
-             suggestions flyout and carries active call rooms as rows only
-             while calls run — then one panel per top-level explorer
-             type. Default rows carry the registry icons and
-             title-resolver labels. The capture click handler splits header
-             and row clicks from collapse toggling (chevron-only). -->
+        <!-- Expanded navigation is one raw PanelMenu: three communication
+             entries first — Chats opens the chats page; Inbox opens the
+             action inbox; Calls toggles its suggestions flyout and
+             carries active call rooms as rows only while calls run —
+             then one panel per top-level explorer type. Default rows
+             carry the registry icons and title-resolver labels. The
+             capture click handler splits header and row clicks from
+             collapse toggling (chevron-only). -->
         <div v-else class="min-h-0 flex-1 overflow-y-auto p-1.5">
           <PanelMenu
             v-model:expanded-keys="expandedKeys"
