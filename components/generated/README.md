@@ -151,9 +151,10 @@ The home shell's two first-class action surfaces (SPEC §4):
   Dispatch follows the target type's declared creation protocol:
   the `editor` protocol opens the blank editor surface
   (`openBlankFileEditor`), an `upload`-mode create runs inline over the
-  files channel (`POST /api/files/upload`, then the action run with the
-  payload reference — the RefRowActions law), and every other create
-  opens the shared action form dialog
+  files channel (`upload-create.js` in
+  [components/ui-mapping](../ui-mapping/README.md), shared with the
+  reference-row create), and every other create opens the shared action
+  form dialog
   ([components/ui-mapping](../ui-mapping/README.md)) or runs directly
   when it prompts nothing (`planActionLaunch`). Runs execute through
   the instances store's action-run channel and land through the
@@ -450,10 +451,10 @@ from the compiled manifest.
 - The sidebar owns navigation for the whole shell as a PrimeVue
   `PanelMenu` whose header and row labels crop with an ellipsis. The
   brand header is its own panel and carries the create control (below)
-  beside the wrap control: wrapped, the sidebar becomes an icon rail
-  (brand mark, the create control, chats and calls first — the same
-  order the expanded menu leads with — then one icon per top-level
-  panel, avatar) and the wordmark returns on expand; the
+  beside the wrap control when expanded; wrapped, the sidebar becomes an
+  icon rail (brand mark, the create control, chats, inbox, and calls
+  first — the same order the expanded menu leads with — then one icon
+  per top-level panel, avatar) and the wordmark returns on expand; the
   wrapped state persists with the workspace layout (`sidebarCollapsed`).
   Communication is three entries in the menu: Chats is a plain entry
   opening the general chats pane tab in the active pane and carrying

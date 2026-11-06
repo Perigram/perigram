@@ -4779,6 +4779,49 @@ Session `agent/create-inbox-20261106` (worktree
   PanelMenu model fixture provides no Toast service; the palette needs
   the app-level Toast host the real layout mounts).
 
+#### Agent Notes (2026-11-06, review fixes)
+
+Session `agent/c-review-fix-20261106` (worktree
+`.agent-worktrees/c-review-fix-20261106`). Review findings, fixed:
+
+- F1: the collapsed sidebar rendered two create controls at once (the
+  brand header's and the wrapped rail's top). The collapsed brand
+  header now carries the wrap toggle alone; the rail top carries the
+  one create control when collapsed and the expanded header keeps it
+  beside the wrap toggle, so each desktop shape mounts exactly one
+  (mobile keeps its own header mount).
+- F2: the wrapped rail carried chats, calls, and type icons only. It
+  now carries the inbox icon between Chats and Calls (plain state like
+  Calls, `nav.inbox` label, `openWorkspacePage({ pageId: 'inbox' })`),
+  matching the expanded menu's order — the inbox is reachable in both
+  sidebar shapes. The rail enumeration in components/generated/README
+  follows.
+- M1: the action-inbox README called the server state admission "the
+  stored twin" of `actionAppliesToEntity`. It now states the actual
+  contract: a conservative over-fetch whose excess rows the client
+  drops by re-evaluating `actionAppliesToEntity` per row (two safe
+  divergences motivated the fix: a stateless instance with a to-only
+  action is server-excluded while the client predicate admits it, and
+  multi-shape docs match any state path server-side while the client
+  read is precedence-first).
+- M2: framework feature types (party classes, `framework`-flagged
+  machinery) resolved through `declarationForType` and a granted
+  action over them queried the `files` collection fallback, matching
+  nothing. `declarationCollectionOf` now returns them no collection
+  (the domain projection's authorable-instance predicate), so the
+  README's "framework feature types do not contribute" holds.
+- M5: CreatePalette and RefRowActions duplicated the upload-create
+  sequence (accept derivation, `/api/files/upload?bucket=files`,
+  payload-reference draft). It lives once in
+  `components/ui-mapping/upload-create.js`
+  (`uploadCreateAccept`, `uploadCreatePayloadReference`), consumed by
+  both; zero behavior change.
+- Validation: components/generated + shared/localization 58/58;
+  create-palette 3/3, action-inbox 10/10, action-inbox-rows 4/4;
+  SSR smoke 24/24; `node scripts/check-arch.js` green;
+  `npm run docs:validate` clean beside the known findings (the
+  contract-homing backlog, none of it in the touched files).
+
 ### D. Declaration authoring in place (SPEC §1)
 
 - [x] Author affordance: a control on a stationed type's list surface

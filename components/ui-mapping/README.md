@@ -706,6 +706,13 @@ beside the transition history in `StateHistory`.
   typeId, id }`) and the host places it — a form row's value or the link
   dialog's target. Runs execute through the instances store's
   action-run channel; refusals toast.
+- `upload-create.js` — the upload-mode create dispatch (SPEC §4) shared
+  by `RefRowActions` and the home shell's create palette
+  ([components/generated](../generated/README.md)): the file input's
+  accept list derives from the target type's declared MIME vocabulary,
+  and the picked file uploads to the `files` bucket
+  (`POST /api/files/upload?bucket=files`) returning the payload
+  reference (`{ fileId, mime, size, name }`) the action run submits.
 
 Entity Select/MultiSelect come through the shared wrappers
 (`components/shared/InstanceSelect.vue`, `InstanceMultiSelect.vue`), which

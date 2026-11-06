@@ -461,10 +461,11 @@ an action the user's roles grant.
   window is non-empty (`from`, `to`, or both).
 - State window: a `from` admits instances whose primary state equals it;
   a `to` without `from` admits every non-empty state except the no-op
-  target. The stored-shape predicate matches every persisted primary
-  state path (`state`, `states.main`, `status.state`,
-  `status.state.primary`, `status.state.active.main`) — the stored twin
-  of the client's `entityPrimaryStatus` read (utils/action-visibility).
+  target, matched over every persisted primary-state path (`state`,
+  `states.main`, `status.state`, `status.state.primary`,
+  `status.state.active.main`). The predicate is a conservative
+  over-fetch: the client re-evaluates `actionAppliesToEntity`
+  (utils/action-visibility.js) per row and drops the excess.
 - Scoping and bounding: one query per action over the type's per-class
   collection (types the registry view declares —
   `declarationForType` + `collectionForClass` — contribute; framework
