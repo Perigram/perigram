@@ -67,16 +67,8 @@ const createEntity = ({
 
 export const MOCK_IDS = {
   organizationId: 'org-demo-acme',
-  manufacturerId: 'org-demo-maker',
-  warehouseId: 'wh-demo-main',
   projectId: 'project-demo-downtown',
-  queueId: 'queue-demo-morning',
-  runId: 'run-demo-001',
-  libraryId: 'library-demo-acm',
-  catalogId: 'catalog-demo-acm',
-  sheetDesignId: 'sheet-design-demo-001',
   cassetteTemplateId: 'cassette-template-demo-001',
-  cassetteDesignId: 'cassette-design-demo-001',
   entityRevisionId: 'entity-revision-demo-001'
 };
 
@@ -208,11 +200,4 @@ export function createMockHistory(statuses = ['DRAFT', 'ACTIVE', 'CLOSED']) {
   }));
 }
 
-export function createMockStatistics() {
-  return {
-    sheetsUsed: 12,
-    totalAreaUsed: 45.5,
-    utilizationRate: 87.4,
-    totalCost: 15678.9
-  };
-}
+
