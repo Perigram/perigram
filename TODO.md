@@ -4468,3 +4468,115 @@ color index hides off layers; the dead `extractDxfLayers`,
 `utils/dxfParser.spec.js` 5/5; facade surface specs 224/224; `check-arch`,
 `check-plugin-deps`, and facade listing validation green; docs guard keeps
 the pre-existing `workers/nesting` link finding.
+
+## Interaction unification programs (owner direction 2026-11-06)
+
+Law: SPEC §4 (the editor is the record surface; the create palette and
+the action inbox), SPEC §1 (declaration authoring in place), SPEC §22.15
+amendment (the quiet header cluster). Written from owner words
+2026-11-06: generated UI converges on Notion/Obsidian-grade interaction
+ease and uniformness — record surfaces quiet and uniform, documents open
+into their editors, creation and next-action are first-class surfaces,
+and process declarations author in place. Ordered programs A–D; each
+lands with its own WAITING boxes and Agent Notes.
+
+### A. Quiet collection chrome (SPEC §22.15 amendment)
+
+- [ ] One view control: search, the FilterBuilder, the projection
+  switch, and SortControl collapse behind a single header popover
+  carrying the active condition count as its badge; the header renders
+  label, count chip, create (+ link where a relation section owns it),
+  and the view control alone. The popover hosts the existing contracts
+  (`listControls`, `builderFieldsForType`, the ui-view-state
+  persistence) — no new per-type vocabulary.
+- [ ] Pointer-aware disclosure: hover-capable pointers reveal the
+  cluster on header hover; coarse pointers keep every control pinned
+  (the container-trait seam distinguishes hosts).
+- [ ] Validation: ui-mapping focused specs, design-system guard,
+  localization keys en+ru, SSR smoke; docs — components/ui-mapping and
+  shared/ui-mapping READMEs.
+
+Session reads: SPEC §22.15/§22.9; shared/ui-mapping/README.md;
+components/ui-mapping/README.md (region header controls section).
+
+### B. The editor is the record surface (SPEC §4)
+
+- [ ] Editor-bound types open editor-first: the record detail mounts the
+  registered editor surface (local registry or the remote loader) as the
+  record body under the standard header; the standalone editor action
+  dies from headers, action strips, and menus.
+- [ ] Grant-keyed mode: a write grant edits in place; a read grant
+  renders the same surface read-only (per-surface degradation — the
+  sheet editor's existing law generalized; the text editor's read-only
+  presentation is the rendered document).
+- [ ] Hosts: the record popup of an editor-bound type renders the
+  bounded editor (compact rhythm); the peek keeps its preview; routed
+  pages and panes render the editor at full surface.
+- [ ] Version trigger and blank creates: the version surface trigger
+  rides the editor surface's corner in every host shape;
+  `created-instance-open` lands editor-protocol creates on the record
+  surface; blank editor creates keep the first-save-creates law.
+- [ ] Validation: focused component specs + SSR smoke; e2e re-pins
+  (md-editor-repair and the editor surfaces); docs —
+  components/generated (file surfaces contract), components/ui-mapping
+  (record anatomy), stores/README where open seams change.
+
+Session reads: SPEC §4 (editor law, create protocols), §24 (version
+surface); components/generated/README.md (file surfaces),
+components/ui-mapping/README.md (SurfaceHeader/GeneratedMappingScreen),
+pages/README.md (screens route).
+
+### C. Create palette and the action inbox (SPEC §4)
+
+- [ ] Create palette: one create control in the home shell opening a
+  searchable palette of the compiled create actions the current user may
+  run (auth-hydrated manifest + bundle), grouped by type label, named by
+  the create-label law, dispatching by creation protocol (upload inline,
+  editor blank surface, construct dialog) and landing through
+  `created-instance-open`.
+- [ ] Inbox query: one framework endpoint serving, for the current user
+  and organization, instances whose current state admits an action the
+  user's roles grant — derived over the compiled active contract
+  (per-action `state.from` × action grants × live instances), bounded
+  per action, carrying `{typeId, instanceId, actionIds}` rows through
+  the ordinary instances read paths.
+- [ ] Inbox surface: a home pane tab (registered workspace page) listing
+  the tiles with their admissible actions, running them through the
+  instances store's action-run channel.
+- [ ] Validation: the query service's focused spec; SSR/component specs
+  for the surfaces; localization en+ru; docs — the endpoint's README
+  home, components/generated home-workspace section.
+
+Session reads: SPEC §4 (create palette/inbox law, action contract);
+components/generated/README.md; stores/README.md (instances store);
+server/api + server/features layout for the endpoint home.
+
+### D. Declaration authoring in place (SPEC §1)
+
+- [ ] Author affordance: a control on a stationed type's list surface
+  header (and the type's record surface), gated by the process-design
+  capability, opening the type declaration editor as a workspace page
+  pane tab.
+- [ ] Declaration editor: fields as a property list — one row per field
+  with kind, qualifier, identifier/required flags, glyph — and the
+  lifecycle as the states-and-transitions editor (state value, label,
+  severity/icon; transitions from/to/intent), composing the existing
+  `DescriptorEditor` and declaration authoring components; writes target
+  the definition draft that stations the type through the same
+  declaration records the canvas authors (compile/validate through
+  `compileTreeDeclarations` diagnostics); save persists the draft.
+- [ ] Lifecycle machine view: one dedicated popup diagramming the type's
+  states and legal edges from the draft data (the shared mermaid
+  pipeline or an equivalent diagram surface).
+- [ ] Canvas reconciliation: the designer reloads draft state on open;
+  an open canvas reconciles out-of-band draft saves (minimum: reload on
+  focus/reopen; live signature re-run where the seam makes it cheap).
+- [ ] Validation: declaration-plane focused specs; e2e for the
+  authoring round-trip (edit field in place, open canvas, see the same
+  declaration); docs — components/type-designer + process-designer
+  READMEs, components/generated README.
+
+Session reads: SPEC §1 (in-place law), §7 (CTS state law);
+components/process-designer/README.md; components/type-designer;
+server/features/process-definitions/README.md (definition draft
+lifecycle); packages/processes/README.md (declaration compiler).

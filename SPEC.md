@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-09-26
-updated: 2026-11-02
+updated: 2026-11-06
 ```
 
 This spec is human-write only. 
@@ -26,6 +26,21 @@ palette beside the curated set: a glyph the fonts carry is authoring
 vocabulary for any declared class and never needs a pack type of its
 own — concepts that stay node-composable (like sheets) keep their
 glyphs without appearing as pack types.
+
+Declaration authoring is in place beside the canvas (owner direction
+2026-11-06): a stationed type's surfaces carry an author affordance,
+gated by the process-design capability, opening the type's declaration
+editor — fields as a property list (kind, qualifiers, the identifier
+and required flags, glyph, payload traits) and the lifecycle as the
+states-and-transitions editor. In-place authoring writes the same
+declaration records of the same definition draft the canvas authors:
+one authoring model, two projections, with the canvas remaining the
+dataflow, effects, and grants surface. The lifecycle carries a
+dedicated machine view one popup away — the type's states and legal
+edges as a diagram. In-place edits target the definition draft that
+stations the type and save as draft; the Apply ceremony stays the only
+activation path, and an edit landing beside an open canvas reconciles
+through the shared definition draft.
 
 
 ## 2. Parties in processes (owner direction 2026-10-13)
@@ -313,6 +328,23 @@ names actions. A collection offering several creates for one type renders
 one grouped control — the creation-mode selection beside the create
 button; the create button opens the selected mode's form.
 
+The home shell carries one create control (owner direction 2026-11-06):
+it opens a searchable palette of every compiled create action the
+current user may run, grouped by type, each entry named by the
+procedural create-label law and dispatching by the target type's
+declared creation protocol — an upload create runs inline, the editor
+protocol opens the blank editor surface, every other create opens the
+construct dialog. The palette composes the compiled action contract.
+
+The workspace carries an action inbox (owner direction 2026-11-06): one
+surface listing the instances whose current state admits an action the
+user's roles grant — one instance tile per row with its admissible
+actions beside it, grouped by type. The listing is served by one
+framework query over the compiled active contract: per-action state
+edges crossed with per-action grants over live instances, bounded per
+action, org- and user-scoped. Inbox rows run their actions through the
+ordinary action-run contract.
+
 Documents carry their content both ways (owner direction 2026-10-13): text
 documents and CSV tables are creatable from procedural content — a `content`
 creation protocol beside upload/editor whose wired or prompted text becomes
@@ -368,6 +400,21 @@ initial process stations the pack-declared starter constructs — a
 manually triggered, editor-mode text-document construct — at creation;
 organizations created before the starter set are repaired by
 `server/scripts/station-documents-types.js`.
+
+The editor is the record surface (owner direction 2026-11-06): every
+editor-bound file type opens into its editor — the standard record
+header (identity, state surface, version trigger, action cluster) rides
+above the editor mounted as the record body. The opener's grant decides
+the mode: a write grant edits in place, a read grant renders the same
+surface read-only — an editor surface degrades to its read-only
+presentation when the opener holds no write grant. Opening the record
+is entering it: the standalone editor action dies, and the detail
+surface of an editor-bound type is the editor itself. The editor
+renders in every host the record surface renders — the routed page, the
+workspace pane, the record popup in its bounded compact rhythm; the
+peek keeps its preview presentation. The version trigger rides the
+surface's corner in every shape, and a blank editor create keeps its
+law: the first save creates the record through the compiled construct.
 
 Documents co-edit collaboratively (owner direction 2026-10-14): file
 editors converge on a CRDT (Yjs) — simultaneous editing of the same
@@ -1099,6 +1146,13 @@ label; a type that declares no identifier field heads the column with
 the type label. The table is the floor of the layout derivation: a
 collection whose loaded pool fills no data column beside identity keeps
 the table — the stacked identifier-only list projection is retired.
+
+A collection's header cluster is quiet by default (owner direction
+2026-11-06): the header renders the label, the count chip, the create
+affordance, and one view control; search, filters, sort, and the
+projection switch live behind the view control's popover, which carries
+the active condition count as its badge. Hover-capable pointers reveal
+the cluster on header hover; coarse pointers keep every control pinned.
 
 ### 22.16 The state surface is one control (owner direction 2026-10-31)
 
