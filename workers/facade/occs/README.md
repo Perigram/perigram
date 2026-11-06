@@ -286,7 +286,10 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   the renderer evaluates the derived table in the cassette's scope.
   Scope-named rows stay in the cassette's table. The face editor folds
   the placed values into its view, saving keeps overrides whose rows the
-  sketch does not author, and a global rename rewrites both tables.
+  sketch does not author, and a global rename rewrites both tables. The
+  sketch commits to the node live whatever its table resolves to; a face
+  whose sketch does not evaluate renders its base host until the table
+  resolves, and the evaluation error rides the editor's message.
 - **Edge spans** — a host edge is an interval. Child faces carry
   `edgeStart` plus their `defaultLength`; free shards exclude child
   faces, and a face placement that overlaps or overflows refuses.
