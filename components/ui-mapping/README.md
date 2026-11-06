@@ -104,28 +104,36 @@ beside the transition history in `StateHistory`.
   header the strip appears inside (SPEC §22.9) — and
   plain content for ready — the only loading/empty states any component
   renders.
-- The region header's in-place controls: search expands in place — the
-  icon button becomes an icon field at its position (icon/Esc/empty-blur
-  collapses) — and the shared `FilterBuilder` popover (own funnel trigger,
-  condition-count badge) renders in the header cluster. Set conditions are
-  the one filtering state; the panel's fields derive through
-  `builderFieldsForType` (see
-  [shared/ui-mapping](../../shared/ui-mapping/README.md)). Search stays a
-  region-owned model; the composed tree is persisted view state per type
-  (`utils/ui-view-state.js`) and is evaluated with the one matcher
-  (`instanceMatchesFilter`) against the region's pool. The region header
-  stays one line while the row has room (SPEC §22.15): the label yields
-  first through ellipsis, the controls cluster never wraps internally, and
-  the controls wrap below only when the label is at its floor and the
-  cluster still overflows the row. The projection switch
-  is the one layout-shaped user view state, persisted per type beside sort
-  and filters: a collection whose type serves a state vocabulary and whose
+- The region header renders the label, the count chip, the create set
+  (+ link where a relation section owns it, SPEC §22.12), and one view
+  control (SPEC §22.15): an icon button whose popover hosts, in order,
+  the search field, the shared `FilterBuilder` panel
+  ([shared](../shared/README.md)), the projection switch (where the
+  collection is switchable), and the sort keys (the card-grid
+  projection). The view button badges the active filter condition count
+  (`countPredicates`). Every hosted control is a live model: typing
+  filters at once, toggling the projection and picking a sort key apply
+  at once. Search stays a region-owned model; the filter tree and the
+  projection and sort choices are persisted view state per type
+  (`utils/ui-view-state.js`), evaluated with the one matcher
+  (`instanceMatchesFilter`) against the region's pool; the panel's
+  fields derive through `builderFieldsForType` (see
+  [shared/ui-mapping](../../shared/ui-mapping/README.md)). The region
+  header stays one line while the row has room (SPEC §22.15): the label
+  yields first through ellipsis, the controls cluster never wraps
+  internally, and the controls wrap below only when the label is at its
+  floor and the cluster still overflows the row. On hover-capable
+  pointers the cluster renders quiet until the header row is hovered or
+  focused — a `(hover: hover)` media query carries the quiet state and
+  `prefers-reduced-motion` drops the transition; coarse pointers keep
+  every control at full presence. The projection switch is the one
+  layout-shaped user view state, persisted per type beside sort and
+  filters: a collection whose type serves a state vocabulary and whose
   derived layout is a structural collection (table) may switch to the
-  board, and a derived board may switch back — one icon toggle in the
-  header cluster; a stored preference for a non-switchable collection is
-  ignored. A stored preference is the user's explicit view — the table
-  floor governs the derivation alone. The switch stays clear of
-  shape-specialized projections (timeline, stats).
+  board, and a derived board may switch back; a stored preference for a
+  non-switchable collection is ignored. A stored preference is the user's
+  explicit view — the table floor governs the derivation alone. The
+  switch stays clear of shape-specialized projections (timeline, stats).
 
 ## Components
 
@@ -163,8 +171,8 @@ beside the transition history in `StateHistory`.
   `card-grid` | `timeline` | `stats` | `board` | `gantt` | `calendar`;
   the
   matcher is [shared/ui-mapping](../../shared/ui-mapping/README.md)'s).
-  The list header stays one line while the row has room — label, count,
-  in-place controls, actions (SPEC §22.15, see above). List regions stack the header row and the
+  The list header stays one line while the row has room — label, count
+  chip, the view control, actions (SPEC §22.15, see above). List regions stack the header row and the
   collection surface (`RegionCollections.vue`, the one materialization of
   the layout switch embedded and standalone lists share) on the section
   rhythm; nested child regions arrange through `RegionChildren.vue` over
@@ -203,15 +211,15 @@ beside the transition history in `StateHistory`.
   measures its own box and provides the container record everything inside
   renders against, so a table or card grid inside a rail or track sheds
   columns and facts for the width it actually has.
-- `SortControl.vue` — the collection sort control for the card-grid and
-  board projections (tables sort natively by column; board lanes carry one
-  per column — see `BoardCollection`): a self-contained popover over the
-  composed `listControls.sortKeys` contract. Keys render inline as buttons
-  and the order toggle flips asc/desc beneath them; the host owns the
-  value, the order, and their persistence (`utils/ui-view-state.js`). The
-  key list renders inline because a select overlay would sit outside the
-  popover's DOM subtree, where the popover's outside-click handling closes
-  the control on every pick.
+- `SortControl.vue` — the collection sort control over the shared
+  `listControls.sortKeys` contract (tables sort natively by column).
+  Board lanes render its trigger with its own popover; the region
+  header's view popover renders its `inline` key list. Keys render
+  inline as buttons and the order toggle flips asc/desc beneath them; the
+  host owns the value, the order, and their persistence
+  (`utils/ui-view-state.js`). The key list renders inline because a
+  select overlay would sit outside the popover's DOM subtree, where the
+  popover's outside-click handling closes the control on every pick.
 - `BoardCollection.vue` — the state board: the projection whose columns
   are the type's served state vocabulary (authored order, `StateTag`
   headers with per-column counts) and whose cards are the loaded instances
@@ -374,7 +382,7 @@ beside the transition history in `StateHistory`.
   `#title` (opening the payload download — the escape hatch for modes
   the viewer cannot render), the `ParentRef` context in `#subtitle`,
   and the facts in `#content`. Card ordering
-  lives in the region header's sort control (RegionBlock applies the
+  lives in the region header's view popover (RegionBlock applies the
   `sortKeys` contract through the shared comparator before the grid
   mounts; the DataView itself renders no header). The card identity is a
   link button when the screen has an `onOpen` handler, and the type's

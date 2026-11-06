@@ -4482,22 +4482,69 @@ lands with its own WAITING boxes and Agent Notes.
 
 ### A. Quiet collection chrome (SPEC §22.15 amendment)
 
-- [ ] One view control: search, the FilterBuilder, the projection
+- [x] One view control: search, the FilterBuilder, the projection
   switch, and SortControl collapse behind a single header popover
   carrying the active condition count as its badge; the header renders
   label, count chip, create (+ link where a relation section owns it),
   and the view control alone. The popover hosts the existing contracts
   (`listControls`, `builderFieldsForType`, the ui-view-state
   persistence) — no new per-type vocabulary.
-- [ ] Pointer-aware disclosure: hover-capable pointers reveal the
-  cluster on header hover; coarse pointers keep every control pinned
-  (the container-trait seam distinguishes hosts).
-- [ ] Validation: ui-mapping focused specs, design-system guard,
+  Landed 2026-11-06 (c09f38c47).
+- [x] Pointer-aware disclosure: hover-capable pointers reveal the
+  cluster on header hover; coarse pointers keep every control pinned.
+  Landed 2026-11-06 (c09f38c47).
+- [x] Validation: ui-mapping focused specs, design-system guard,
   localization keys en+ru, SSR smoke; docs — components/ui-mapping and
   shared/ui-mapping READMEs.
+  Landed 2026-11-06 (c09f38c47).
+- [ ] WAITING — owner verification: visual pass over a generated
+  collection header (view popover contents and order, condition-count
+  badge, quiet-until-hover on a mouse host, pinned full presence on a
+  touch host, live-apply of search/projection/sort inside the popover).
 
 Session reads: SPEC §22.15/§22.9; shared/ui-mapping/README.md;
 components/ui-mapping/README.md (region header controls section).
+
+### Agent Notes (2026-11-06)
+
+- Landed in c09f38c47: RegionBlock's header cluster renders label,
+  count chip, view control, create (+ link on relation sections). The
+  view popover hosts, in order, the search field, the FilterBuilder
+  panel, the projection toggle, and the card-grid sort keys — all live
+  models applying on change. The view button badges the filter condition
+  count through `countPredicates`, a new export canonically homed in
+  shared/instance-filters. FilterBuilder is now a host-owned panel (its
+  one consumer is the view popover); SortControl gained an `inline` mode
+  for the view popover while board lanes keep the popover mode.
+- Pointer disclosure is pure CSS on the header row: the quiet state
+  rides Tailwind's `[@media(hover:hover)]:opacity-60` arbitrary variant
+  with `group-hover/region-header` and `group-focus-within/region-header`
+  reveal, `motion-reduce:transition-none` for reduced motion, and the
+  cluster stays lit while its popover is open (Popover show/hide state).
+  The TODO's container-trait hint was dropped: the hover-capability
+  media query is itself the pointer distinction, so a JS/seam read adds
+  state the CSS already decides. Scoped styles stayed out of the design:
+  the design-system guard pins scoped styles to a layout-only property
+  vocabulary (opacity and transition sit outside it), and the arbitrary
+  variant compiles to the plain media query (verified against the
+  installed Tailwind 3.4).
+- Locale key `uiMapping.view` added to en+ru ("View" / "Вид").
+- Validation: `npx vitest run shared/ui-mapping
+  components/ui-mapping/module-imports.spec.js shared/localization.spec.js`
+  134/134 green; `shared/instance-filters` green; SSR smoke
+  (`vitest.ssr.config.js`) 23/23 green; `node scripts/check-arch.js`
+  green; `npm run docs:validate` reports only the two known findings
+  (workers/nesting jagua-rs broken link, the 13-entry contract-homing
+  backlog).
+- Finding: `shared/design-system.spec.js` carries 4 failures that exist
+  on the base commit (reproduced with this branch's changes stashed) —
+  `components/generated/GeneratedScreenHost.vue` typography, raw
+  Card/Dialog ownership, and a dead color utility, plus one token
+  projection diff. They predate this program and belong to the
+  GeneratedScreenHost owner.
+- shared/ui-mapping/README.md needed no edit: it states the projection
+  switch's persisted-seam contract and links to the components README
+  for placement.
 
 ### B. The editor is the record surface (SPEC §4)
 
