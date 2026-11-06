@@ -938,6 +938,13 @@ Documentation is the README.md / SPEC.md / TODO.md tree only; the docs/
 folder does not exist. Schema and spec data live beside the code that
 owns them.
 
+Agents assemble task context from the tree through the derived map:
+`npm run docs:map` prints every README's outline and link graph, and
+`npm run docs:map -- --near <path>` prints one README's contract
+neighborhood (outline, outbound links, inbound links). The map derives
+from the tree at read time; documentation facts stay single-homed in
+READMEs.
+
 ### 22.6 Field use at creation
 The CTS `required` and `identifier` flags say how a field is used: the
 identifier field's value is the instance's title; a required field gates

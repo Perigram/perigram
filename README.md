@@ -6,7 +6,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2018-06-10
-updated: 2026-09-30
+updated: 2026-11-06
 ```
 
 
@@ -253,6 +253,10 @@ builds only).
   without the mirror every static asset request 500s.
 
 ## Documentation Map
+
+`npm run docs:map` prints the whole README tree as an outline with links
+(`--near <path>` narrows to one README's contract neighborhood) — see
+[scripts/README.md](./scripts/README.md).
 
 | Area | Doc |
 |---|---|

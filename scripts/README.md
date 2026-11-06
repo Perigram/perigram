@@ -76,7 +76,9 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   fails on broken internal markdown links (relative targets that do not resolve
   to an existing file) and on duplicated canonical-contract passages — both
   verbatim paragraphs and fenced code blocks of meaningful length repeated
-  across more than one README. Canonical contracts and examples must live in a
+  across more than one README. Vendored and submodule trees leave the scan;
+  a link into a submodule resolves by its pinned commit. Canonical contracts
+  and examples must live in a
   single canonical README and be linked, not restated. It also reports an
   advisory contract-homing backlog: long, normative code comments that state
   authoring/compilation semantics without citing a canonical home (a README or
@@ -84,6 +86,12 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   by moving the contract into its owning README (leaving the comment as a
   pointer) or consciously keeping it as tracked debt. Run as
   `npm run docs:validate`.
+- `docs-map.js`: README tree map printer (`npm run docs:map`). Whole-tree
+  mode prints every README's H1, H2s, and outbound markdown links;
+  `--near <path>` prints one README's outline plus its outbound and inbound
+  links (the contract neighborhood for task scoping). Walking and link
+  parsing import from `check-docs.js`, so the map and the guard share one
+  tree definition.
 - `framework-inspect.js`: builds `framework.manifest.json` from the live
   framework declarations. `npm run framework:write-manifest` writes the
   committed copy, `npm run framework:manifest` checks it, `npm run

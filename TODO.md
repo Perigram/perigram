@@ -4652,3 +4652,18 @@ intermittently lands the record under the platform default title
 ("Unnamed") — observed in a preview-spec run; `saveTemplate`'s
 create/rename path is the suspect. The preview spec opens its record by
 route as a result.
+
+## README tree map (owner direction 2026-11-06)
+
+SPEC §22.5. Context assembly for agent sessions rides one derived
+command over the README tree.
+
+- [x] `scripts/docs-map.js` + `npm run docs:map`: whole-tree outline
+  (H1, H2s, outbound links) and `--near <path>` (outline, outbound,
+  inbound). check-docs.js exports its walker and link parsing, so the
+  map and the docs guard scan one tree definition. Landed 2026-11-06
+  (`agent/docs-map-20261106`).
+- [x] check-docs.js submodule scope: `.gitmodules` paths leave the scan
+  under the vendored-upstream principle, and links into submodules
+  resolve by pin — the docs guard passes in fresh worktrees with the
+  submodule unpopulated. Landed 2026-11-06 (`agent/docs-map-20261106`).
