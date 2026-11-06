@@ -156,9 +156,27 @@ archived only on the owner's word.
   production environment: which folder owns that contract canonically?
   decided 2026-10-25: English rewrite; deploy owns deployables, k8s owns
   cluster state.
-- [ ] `test-data/factories.js` has 3 live consumers (ui-lab,
-  design-system spec + util); confirm nothing expects the deleted CNC
-  factory set before its README rewrite names the real nine factories.
+- [ ] WAITING — owner verification: `test-data/factories.js` CNC-set
+  confirmation: zero references to any deleted `createMock*` name
+  repo-wide (31 deleted names across the file's git history vs the
+  surviving set); the three live consumers use surviving exports only —
+  ui-lab (`createMockHistory`, `MOCK_IDS.organizationId`), the
+  design-system spec and util (`factories[entry.factoryName]` over the
+  5-name manifest in `utils/design-system-contract.js`). The audit-era
+  nine became seven at the artifact-family cutover; the README table
+  matches the file. Dead residue deleted in the same cut:
+  `createMockStatistics` (zero consumers) and 8 `MOCK_IDS` keys naming
+  deleted factories.
+
+  ### Agent Notes (2026-11-06)
+
+  Session `agent/factories-cnc-confirm-20261106` (worktree
+  `.agent-worktrees/factories-cnc-confirm-20261106`). Search surface:
+  every `export function createMock*` that ever existed in
+  `test-data/factories.js` (`git log --all -p`) minus the survivors,
+  grepped repo-wide including docs and `.codex` — 0 hits. Dynamic
+  dispatch checked at its one seam: the `factoryName` strings in
+  `DESIGN_SYSTEM_ENTITY_CONTRACTS` (5 names, all resolve).
 - [x] Registry naming: `getAppRegistry` vs `getPerigramRegistry` — ten
   core files import the legacy name
   ([server/core/TODO.md](./server/core/TODO.md)).
