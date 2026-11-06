@@ -89,7 +89,7 @@ the screen instance shape. `eq` compares stringified values; `in` tests
 membership; `contains` lowercases both sides. Lineage addresses compare the
 ref id (`{ id }` objects and raw scalars both occur in pools).
 `countPredicates(node)` counts the predicates in a tree — the condition
-count a collection surface badges its filter trigger with.
+count a collection surface badges its view control with.
 
 ## Builder edit model
 
