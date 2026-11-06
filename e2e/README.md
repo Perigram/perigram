@@ -139,6 +139,10 @@ that drive executor-backed surfaces or services wire them through
 - `cassette-designer-3d.spec.js`: the cassette designer's folded 3D
   viewport — the debounced assembly preview lifts the viewport's hidden
   state and mounts a non-zero WebGL canvas.
+- `cassette-preview.spec.js`: the cassette record view's preview band —
+  the plugin's preview surface renders the OCCS payload as in-place SVG
+  on the shared drawing canvas, and the band carries no engine iframe.
+  Screenshot artifact `.playwright/cassette-preview-svg.png`.
 - `cassette-designer-parameters.spec.js`: cassette profile parameter
   round-trip — a profile authored through the dialog carries live
   W/H/R/D chips on its workpiece row, each chip shows the stored

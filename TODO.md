@@ -4433,3 +4433,38 @@ Session `agent/process-proposition-mermaid-20261102` (worktree
 prompt and MCP instructions carry it; the loop keeps a proposition
 round's answer text live beside `ask_user`; the tooling spec pins the
 guide text and the chat spec pins the preserved diagram.
+
+## Lightweight in-place previews (owner direction 2026-11-06)
+
+Instance previews render in-place as lightweight SVG. The cassette
+preview surface draws through the plugin's tree renderer on the shared
+SVG canvas — the same render the designer's template-picker thumbnails
+use — and the DXF preview parser covers the full entity set real files
+carry (blocks, splines, ellipses, text, bulges), with off layers hidden.
+The CAD engine mounts in editors; preview slots stay engine-free. Baked
+preview storage stays out.
+
+- [ ] WAITING — owner verification: cassette cards and record bands
+  preview instantly as SVG with outline and folds; DXF files whose
+  geometry lives in blocks or curves preview whole; the preview bands
+  mount no engine iframe.
+
+### Agent Notes (2026-11-06, in-place SVG previews)
+
+Session `agent/svg-previews-20261106` (worktree
+`.agent-worktrees/svg-previews-20261106`). This supersedes the 2026-11-03
+native cassette view for the preview surface: `cassette-preview.mjs`
+renders the payload graph tree through `renderCassetteV2TreeToDrawing`
+onto the contract-1 `DrawingCanvas` (payload first, baked geometry rows
+behind it, `CASSETTE_PREVIEW_LAYERS` gating the visible layers);
+`cassette-preview-native.spec.js` is replaced by `cassette-preview.spec.js`
+asserting the SVG band. `utils/dxfParser.js` `generateSvgData` flattens
+INSERT block references recursively (placement transform, layer-0
+inheritance, depth cap), samples SPLINE via de Boor (fit points pass
+through), ELLIPSE by parametrization, polyline bulges as arcs, and emits
+TEXT/MTEXT text primitives with rotation; the LAYER table's negative
+color index hides off layers; the dead `extractDxfLayers`,
+`generateSvgDataFromText`, `generateSvgPreview`, `extractPolygons`, and `validateDxfFile` exports are deleted. Validation:
+`utils/dxfParser.spec.js` 5/5; facade surface specs 224/224; `check-arch`,
+`check-plugin-deps`, and facade listing validation green; docs guard keeps
+the pre-existing `workers/nesting` link finding.
