@@ -72,7 +72,7 @@ test('face editor keeps the datum side live through the cassette', async ({ app 
     JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
   ));
   await app.gotoClient(list.route);
-  await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+  await page.locator('main').getByRole('button', { name: /^New/ }).click();
   await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
   const inspector = page.locator('.designer-workspace__inspector').first();
 
@@ -181,5 +181,141 @@ test('face editor keeps the datum side live through the cassette', async ({ app 
   const escaped = await canvasVerdict(page);
   expect(escaped.cutInner.length, 'the parent keeps the rectangle cut').toBeGreaterThan(0);
   await page.screenshot({ path: '.playwright/cassette-face-editor-04-escaped.png' });
+  await app.expectCleanRuntime();
+});
+
+test('a field error never drops committed face edits', async ({ app }) => {
+  test.setTimeout(420_000);
+  await app.installPlugins(['tech-drawing', 'facade']);
+  await app.connectPlugin('facade', process.env.E2E_FACADE_URL || 'http://facade-executor:8790');
+  await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
+  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'], via: { 'cassette-template': 'editor' } });
+  const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette-template');
+  const page = app.page;
+  await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
+  await page.addInitScript(() => window.localStorage.setItem(
+    'perigram:onboarding:cassette-designer-v2',
+    JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
+  ));
+  await app.gotoClient(list.route);
+  const newButton = page.locator('main').getByRole('button', { name: /^New/ });
+  await expect(newButton).toBeVisible({ timeout: 60_000 });
+  await newButton.click();
+  await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
+  const inspector = page.locator('.designer-workspace__inspector').first();
+
+  // Grow a child face from the root face's top edge shard and open its editor.
+  const edgePoint = async () => page.evaluate(() => {
+    const svgs = Array.from(document.querySelectorAll('svg'));
+    const svg = svgs.find(node => node.querySelectorAll('line[stroke-width="20"]').length);
+    if (!svg) return null;
+    const lines = Array.from(svg.querySelectorAll('line[stroke-width="20"]'));
+    const pts = lines.map(line => {
+      const point = svg.createSVGPoint();
+      point.x = (Number(line.getAttribute('x1')) + Number(line.getAttribute('x2'))) / 2;
+      point.y = (Number(line.getAttribute('y1')) + Number(line.getAttribute('y2'))) / 2;
+      const screen = point.matrixTransform(svg.getScreenCTM());
+      return { x: screen.x, y: screen.y };
+    }).filter(item => Number.isFinite(item.x));
+    pts.sort((a, b) => a.y - b.y);
+    return pts[0] || null;
+  });
+  let edge = await edgePoint();
+  for (let attempt = 0; attempt < 20 && !edge; attempt += 1) {
+    await page.waitForTimeout(1500);
+    edge = await edgePoint();
+  }
+  expect(edge).toBeTruthy();
+  await page.mouse.move(edge.x, edge.y);
+  await page.waitForTimeout(600);
+  await page.mouse.click(edge.x, edge.y);
+  await page.getByRole('button', { name: 'Add face' }).click();
+  await page.waitForTimeout(1500);
+  await page.mouse.click(edge.x, edge.y - 30);
+  await page.waitForTimeout(1200);
+  await inspector.getByRole('button', { name: 'Edit shape' }).click();
+  const dialog = page.locator('[data-sketch-mode="face"]').first();
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  const canvas = dialog.locator('[role="application"]').first();
+  await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
+  await page.waitForTimeout(1500);
+
+  // Draw two replacement rectangles.
+  // Delete the default seeded rectangle first, then draw two replacements.
+  const defaultRow = inspector.locator('.profile-shapes-panel button[aria-label^="Rectangle s"]').first();
+  await defaultRow.click();
+  await page.waitForTimeout(400);
+  await defaultRow.locator('xpath=ancestor::div[contains(@class,"border-b")]')
+    .first()
+    .getByRole('button', { name: /^Delete/ }).click();
+  await page.waitForTimeout(900);
+
+  const tools = page.locator('.designer-workspace__palette');
+  const rectButton = tools.locator('button[aria-label="Rectangle"]').first();
+  const box = await canvas.boundingBox();
+  const iframeAt = async (fx, fy) => ({
+    x: box.x + box.width * fx,
+    y: box.y + box.height * fy,
+    covered: await page.evaluate(([px, py]) => document.elementFromPoint(px, py)?.tagName,
+      [box.x + box.width * fx, box.y + box.height * fy])
+  });
+  const drawAt = async (a, b) => {
+    await rectButton.click();
+    await expect(rectButton).toHaveClass(/p-button-primary/, { timeout: 15_000 });
+    await page.waitForTimeout(250);
+    await page.mouse.click(a.x, a.y);
+    await page.waitForTimeout(400);
+    await page.mouse.click(b.x, b.y);
+    await expect(rectButton).not.toHaveClass(/p-button-primary/, { timeout: 20_000 });
+    await page.waitForTimeout(900);
+  };
+  const first = await iframeAt(0.40, 0.55);
+  const second = await iframeAt(0.55, 0.65);
+  const third = await iframeAt(0.30, 0.35);
+  const fourth = await iframeAt(0.45, 0.45);
+  if (first.covered === 'IFRAME' && second.covered === 'IFRAME') await drawAt(first, second);
+  if (third.covered === 'IFRAME' && fourth.covered === 'IFRAME') await drawAt(third, fourth);
+  const rows = inspector.locator('.profile-shapes-panel button[aria-label^="Rectangle s"]');
+  await expect(rows).toHaveCount(2, { timeout: 10_000 });
+
+  // Break a field on the first shape, then delete the second with the error live.
+  await rows.nth(0).click();
+  await page.waitForTimeout(500);
+  const widthField = inspector.locator('input[aria-label^="w s"]').first();
+  await widthField.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await widthField.pressSequentially('A/', { delay: 40 });
+  await widthField.press('Enter');
+  await page.waitForTimeout(900);
+  await rows.nth(1).click();
+  await page.waitForTimeout(500);
+  await rows.nth(1).locator('xpath=ancestor::div[contains(@class,"border-b")]')
+    .first()
+    .getByRole('button', { name: /^Delete/ }).click();
+  await page.waitForTimeout(900);
+  await expect(rows).toHaveCount(1, { timeout: 10_000 });
+  await page.screenshot({ path: '.playwright/cassette-face-editor-05-error-live-delete.png' });
+
+  // Close and reopen: the deleted shape stays gone.
+  for (let attempt = 0; attempt < 3 && await dialog.isVisible().catch(() => false); attempt += 1) {
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+  }
+  await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await page.waitForTimeout(1800);
+  for (const dy of [30, 20, 45, 15, 60]) {
+    await page.mouse.click(edge.x, edge.y - dy);
+    await page.waitForTimeout(1000);
+    if (await inspector.getByRole('button', { name: 'Edit shape' }).isVisible().catch(() => false)) break;
+  }
+  await inspector.getByRole('button', { name: 'Edit shape' }).click();
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
+  await page.waitForTimeout(1500);
+  await expect(rows.first(), 'the deleted shape stays deleted through the error').toBeVisible({ timeout: 10_000 });
+  await expect.poll(async () => await shapeRows(page), { timeout: 10_000 }).toEqual([
+    { label: 'Rectangle s0', tag: 'Add' }
+  ]);
+  await page.screenshot({ path: '.playwright/cassette-face-editor-06-reopened-after-error.png' });
   await app.expectCleanRuntime();
 });

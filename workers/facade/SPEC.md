@@ -725,6 +725,10 @@ uses its own base edge as that line. Converting a trapezoid seeds the
 sketch from its current outline, keeping authored width and height
 expressions for a rectangle and a closed chain for any other outline;
 clearing the sketch returns the face to its trapezoid parameters. The
+sketch commits to the node live whatever its table resolves to: structural
+edits land while a field error persists, a face whose sketch does not
+evaluate renders its trapezoid base until the table resolves, and the
+evaluation error rides the editor's message. The
 face's attachment edge is its first ring edge; the evaluated ring
 rotates to start on the datum line so edge indexes hold across the
 trapezoid and sketch authoring paths. Fold routes read the authored

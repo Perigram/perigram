@@ -455,7 +455,9 @@ export default function createSurface({ vue, components, locale, queries, record
       const faceShapeBasisEnd = ref(null);
       const faceShapeParentFace = ref([]);
       const faceShapeEditorError = ref('');
-      const faceShapeSketchError = computed(() => faceShapeEditorError.value);
+      const faceShapeSketchError = computed(() => (
+        faceShapeInspection.value.error || faceShapeEditorError.value
+      ));
       const faceShapeDraftSketch = computed(() => normalizeOccsProfileSketch(faceShapeDraft.value));
       const faceShapeInspection = computed(() => inspectOccsProfileSketch(
         faceShapeDraftSketch.value,
@@ -2158,7 +2160,7 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const commitFaceShapeDraft = () => {
-        if (!faceSketchOpen.value || faceShapeInspection.value.error) return;
+        if (!faceSketchOpen.value) return;
         const sketch = closeOccsProfileSketchBoundary(faceShapeDraftSketch.value);
         const preservedInstance = Object.fromEntries(
           Object.entries(faceShapePreservedInstance.value || {})

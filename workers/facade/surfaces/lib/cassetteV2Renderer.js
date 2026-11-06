@@ -4633,11 +4633,18 @@ const buildCassetteV2LocalTreeCurves = async (sourceTree) => {
         parentEntry?.boundaryVertices || null,
         frame
       );
-      const region = await resolveCassetteV2FaceSketchGeometry(
-        normalizeCassetteV2Face(node, parameters),
-        parameters,
-        [baseLocalVertices]
-      );
+      let region;
+      try {
+        region = await resolveCassetteV2FaceSketchGeometry(
+          normalizeCassetteV2Face(node, parameters),
+          parameters,
+          [baseLocalVertices]
+        );
+      } catch {
+        // A sketch whose table does not resolve keeps the face on its base
+        // host (the drawing-is-sacred law, occs/README.md).
+        region = { outer: baseLocalVertices, holes: [], polygons: [baseLocalVertices], cuts: [] };
+      }
       const localVertices = region.outer || [];
       const localHoles = region.holes;
       const vertices = placeSketchRing(localVertices, shiftedFrame);
