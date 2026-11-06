@@ -20,13 +20,17 @@ same-origin. Orgs connect the executor through the install's
   `{ failures: [{ name, message }] }` on refusal.
 - Editor surface: `surfaces/sketch-editor.mjs` (surface contract 3 — the
   capability mount; background images upload through the host file
-  channel, undo/redo over scene snapshots inline).
+  channel, undo/redo over scene snapshots inline). Its read-only
+  presentation (mount `mode: 'read'`, SPEC §4) is the scene svg alone,
+  inert.
 - DXF template editor: `surfaces/dxf-editor.mjs` (surface contract 2,
   bound to `dxf-source` edit). Marker-first: the template opens in the
   CadCraft canvas (the declared `cadcraft` dependency), the
   `{spot:<name>}` anchors list beside it — add (a canvas click picks the
   insertion point into the X/Y form), rename, delete — and every edit
-  re-opens the spliced DXF so the canvas shows the saved truth. The
+  re-opens the spliced DXF so the canvas shows the saved truth. Under
+  mount `mode: 'read'` (SPEC §4) the canvas and the anchor rows render
+  view-only. The
   canvas reads the layer-normalized copy (`withLayerTable`: every
   entity-referenced layer plus layer 0 gains a LAYER record and the
   CONTINUOUS linetype, so strict viewers draw the whole template);
