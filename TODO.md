@@ -4564,6 +4564,17 @@ components/ui-mapping/README.md (region header controls section).
   switch's persisted-seam contract and links to the components README
   for placement.
 
+#### Agent Notes (2026-11-06, review cleanup)
+
+Session `agent/review-slop-20261106` (worktree
+`.agent-worktrees/review-slop-20261106`). Review-pass hygiene over the
+landed programs: `countPredicates` gained direct spec coverage
+(nested-combinator, malformed-tree, bare-predicate counts); its contract
+sentence in shared/instance-filters names the view control (the badged
+trigger); SortControl's redundant inline guard, RegionBlock's two
+narrating comments, and PayloadRevisionPicker's two dead store imports
+are deleted.
+
 ### B. The editor is the record surface (SPEC §4)
 
 - [x] Editor-bound types open editor-first: the record detail mounts the

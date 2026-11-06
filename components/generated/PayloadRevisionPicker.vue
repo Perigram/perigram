@@ -105,8 +105,6 @@ import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
 import { instancePayloadFileUrl } from './file-preview-contract.js';
 import { editorWriteGranted } from './file-surfaces.js';
 import { useInstancesStore } from '~/stores/instances';
-import { useAuthStore } from '~/stores/auth';
-import { useRegistryStore } from '~/stores/registry';
 
 // The record's version surface (SPEC §24): lists the payload revisions
 // of a revision-scoped file type, opens any revision read-only through

@@ -85,7 +85,7 @@ function toggle(event) {
 }
 function select(value) {
   emit('update:modelValue', value);
-  if (!props.inline) popover.value?.hide();
+  popover.value?.hide();
 }
 function flip() {
   emit('update:order', props.order < 0 ? 1 : -1);

@@ -3,7 +3,8 @@ import {
   FILTER_OPS,
   normalizeFilter,
   filterFromFlatFilters,
-  instanceMatchesFilter
+  instanceMatchesFilter,
+  countPredicates
 } from './index.js';
 
 // The pinned legacy semantics every consumer relied on before the tree
@@ -181,5 +182,33 @@ describe('instanceMatchesFilter', () => {
     expect(instanceMatchesFilter({}, { field: 'grade', op: 'eq', value: 'a' })).toBe(false);
     expect(instanceMatchesFilter(null, null)).toBe(true);
     expect(instanceMatchesFilter(undefined, { field: 'name', op: 'contains', value: 'x' })).toBe(false);
+  });
+});
+
+describe('countPredicates', () => {
+  it('counts every predicate across combinators', () => {
+    expect(countPredicates({
+      and: [
+        { field: 'state', op: 'eq', value: 'draft' },
+        { or: [
+          { field: 'grade', op: 'eq', value: 'a' },
+          { field: 'grade', op: 'eq', value: 'b' }
+        ] }
+      ]
+    })).toBe(3);
+  });
+
+  it('zero on empty and malformed trees', () => {
+    expect(countPredicates(null)).toBe(0);
+    expect(countPredicates(undefined)).toBe(0);
+    expect(countPredicates('draft')).toBe(0);
+    expect(countPredicates({ and: [] })).toBe(0);
+    expect(countPredicates({ or: [] })).toBe(0);
+  });
+
+  it('a non-combinator object is one leaf predicate', () => {
+    expect(countPredicates({ field: 'state', op: 'eq', value: 'draft' })).toBe(1);
+    expect(countPredicates({})).toBe(1);
+    expect(countPredicates({ and: [{}] })).toBe(1);
   });
 });
