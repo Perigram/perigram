@@ -5157,3 +5157,18 @@ program's stack pass.
   spec 119, design-system + framework-packages + components/ui-mapping
   44, localization, SSR suite 24/24, check-arch, check-docs green;
   e2e still pending a live stack.
+
+  ### Agent Notes (2026-11-06, queue-picker repair)
+
+  Owner report: creating a queue entry inside its queue still prompted a
+  queue picker. Root cause: the served input-policy field carries no
+  per-input `typeId` (only the `entity` base), and when the bundle's
+  children edges do not name the pair (graph-wired containment, lineage
+  key drift), the lineage input degraded to a context-free entity picker
+  row — `row.lineage` undefined, so the launch context could neither
+  seed nor hide it. `declaredParentTypeId` (shared/ui-mapping) now
+  resolves the fallback parent type from the served exposure inputs
+  (per-axis by id/path; the `parent` input / `parentTypeId` only as a
+  single-axis fallback) — the row stays a context-seedable lineage
+  picker everywhere. Validation: ui-mapping spec 117 green; e2e still
+  pending a live stack.

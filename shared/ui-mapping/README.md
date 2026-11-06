@@ -196,8 +196,10 @@ which is the row id and draft key; string
 protocol inputs (the `content` body) render as full-width scalar rows
 carrying their control pin; `lineage.<key>` inputs render
 instance pickers over the parent types whose children edges declare that
-lineage key for the target type, the input's declared type serving as
-the accepted-parent fallback — immediate axes alone, the ancestor
+lineage key for the target type — the served per-input parent type is
+the fallback (the policy field's `typeId`, the exposure input's
+`typeId`, or a parent-bound create's `parentTypeId`) — immediate axes
+alone, the ancestor
 chain derives at the construct seam
 (reverse containment over the bundle —
 parents' edges are the declaration home, the child carries no parent list;
