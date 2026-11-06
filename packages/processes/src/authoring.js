@@ -8,7 +8,6 @@
 import { operationKindOf, typeIdOf, setTypeBinding, normalizeRowRelativeGuard } from '../../cts/src/index.js';
 import { PROCESS_OPERATION_REGISTRY } from './operations.js';
 import {
-  camelCaseId,
   createProcessDesignerContract,
   declarationWireLegality,
   effectTriggerFor,
@@ -588,8 +587,7 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
   function declareField({ id, ownerClassId, name, descriptor }) {
     const owner = declarationNodeOf(ownerClassId);
     if (!owner || owner.type !== 'ctsClass') throw new Error(`Field ${id} declares on unknown class ${ownerClassId}`);
-    const fieldId = camelCaseId(name || '');
-    if (!fieldId) throw new Error(`Field ${id} has no name`);
+    if (!String(name || '').trim()) throw new Error(`Field ${id} has no name`);
     const node = declare({
       id, nodeType: 'ctsField',
       data: { typeId: owner.data.typeId, name, descriptor: descriptor || { base: 'string' } }

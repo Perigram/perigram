@@ -19,17 +19,6 @@ export function effectTriggerFor(wired, record = {}) {
   return { mode: 'manual' };
 }
 
-// Label-plane id derivation for authored names (any script), consumed by
-// vocabulary maps; row keys derive at the CTS seam (`rowFieldId`, latin
-// letters and digits).
-export function camelCaseId(value = '') {
-  const segments = String(value).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-  if (!segments.length) return '';
-  const [first, ...rest] = segments;
-  return first.charAt(0).toLowerCase() + first.slice(1)
-    + rest.map(segment => segment.charAt(0).toUpperCase() + segment.slice(1)).join('');
-}
-
 // Per-state field policy (SPEC §7 `fieldPolicy`, §10): whitelists over the
 // bound type's row. An absent facet or list leaves that axis unrestricted;
 // an authored empty list allows nothing. List ids adopt the row-relative
@@ -342,9 +331,6 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
         describeType(node.data?.descriptor || { base: 'string' });
       } catch (error) {
         diagnostics.push(`class ${node.data?.typeId || '(unbound)'}: field ${name || '(unnamed)'}: ${error.message}`);
-      }
-      if (name && !rowFieldId(name)) {
-        diagnostics.push(`class ${node.data?.typeId || '(unbound)'}: field ${name}: name must carry latin letters or digits to derive a row id — the display text belongs on the label`);
       }
     }
     if (node.type === 'ctsClass' && Array.isArray(node.data?.operators)) {
