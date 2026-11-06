@@ -303,7 +303,8 @@
         "organization": "Организация",
         "settings": "Настройки",
         "collapseSidebar": "Свернуть панель",
-        "expandSidebar": "Развернуть панель"
+        "expandSidebar": "Развернуть панель",
+        "inbox": "Входящие"
     },
     "status": {
         "status": "Статус",

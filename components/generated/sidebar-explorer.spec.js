@@ -132,6 +132,7 @@ vi.mock('~/components/generated/workspace-pages.js', () => ({
 vi.mock('~/components/shared/UserAccountMenu.vue', () => ({ default: { name: 'StubbedUserAccountMenu', render: () => null } }));
 vi.mock('~/components/shared/WorkspaceSplitNode.vue', () => ({ default: { name: 'StubbedWorkspaceSplitNode', render: () => null } }));
 vi.mock('~/components/shared/CommunicationMenu.vue', () => ({ default: { name: 'StubbedCommunicationMenu', render: () => null } }));
+vi.mock('~/components/generated/CreatePalette.vue', () => ({ default: { name: 'StubbedCreatePalette', render: () => null } }));
 vi.mock('~/components/generated/GeneratedScreenHost.vue', () => ({ default: { name: 'StubbedScreenHost', render: () => null } }));
 vi.mock('~/components/generated/GeneratedWorkspacePane.vue', () => ({ default: { name: 'StubbedWorkspacePane', render: () => null } }));
 

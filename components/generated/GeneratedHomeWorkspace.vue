@@ -6,7 +6,9 @@
         :aria-label="$t('nav.home')"
       >
         <!-- Brand panel owns the wrap control: the wordmark shrinks to the
-             mark and the toggle flips with it. -->
+             mark and the toggle flips with it; the create control sits
+             beside the toggle (SPEC §4: the home shell's one create
+             control). -->
         <header
           :class="['flex shrink-0 items-center', sidebarCollapsed ? 'flex-col gap-1 px-1.5 py-2' : 'h-12 justify-between px-3']"
         >
@@ -17,26 +19,42 @@
             </template>
             <img v-else src="/icon.svg" alt="Perigram" class="h-7 w-7" />
           </NuxtLink>
-          <Button
-            :icon="sidebarCollapsed ? 'pi pi-chevron-right' : 'pi pi-chevron-left'"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="sidebarCollapsed ? $t('nav.expandSidebar') : $t('nav.collapseSidebar')"
-            @click="toggleSidebarCollapsed"
-          />
+          <div v-if="!sidebarCollapsed" class="flex items-center gap-1">
+            <CreatePalette />
+            <Button
+              icon="pi pi-chevron-left"
+              text
+              rounded
+              size="small"
+              severity="secondary"
+              :aria-label="$t('nav.collapseSidebar')"
+              @click="toggleSidebarCollapsed"
+            />
+          </div>
+          <template v-else>
+            <CreatePalette />
+            <Button
+              icon="pi pi-chevron-right"
+              text
+              rounded
+              size="small"
+              severity="secondary"
+              :aria-label="$t('nav.expandSidebar')"
+              @click="toggleSidebarCollapsed"
+            />
+          </template>
         </header>
 
-        <!-- Wrapped rail: communication first (chats, calls — the same
-             order the expanded menu leads with), then one icon per
-             top-level panel; the brand mark, profile avatar, and this rail
-             are the whole sidebar. -->
+        <!-- Wrapped rail: the create control, then communication first
+             (chats, calls — the same order the expanded menu leads with),
+             then one icon per top-level panel; the brand mark, profile
+             avatar, and this rail are the whole sidebar. -->
         <nav
           v-if="sidebarCollapsed"
           class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto p-1.5"
           :aria-label="$t('nav.home')"
         >
+          <CreatePalette />
           <span class="relative inline-flex">
             <Button
               icon="pi pi-comments"
@@ -187,6 +205,9 @@
          desktop panes; instance opens mount the ITEM POPUP below —
          nothing routes away from the shell on mobile. -->
     <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden" data-home-workspace-mobile>
+      <header class="flex h-12 shrink-0 items-center justify-end px-4">
+        <CreatePalette />
+      </header>
       <div class="min-h-0 flex-1 overflow-y-auto p-4">
         <GeneratedScreenHost
           v-if="mobileTypeScreen"
@@ -224,6 +245,7 @@ import { useEntityPopup } from '~/composables/useEntityPopup';
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import { consumePendingWorkspacePage, workspacePageOpenEvent } from '~/utils/workspace-page-open.js';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
+import CreatePalette from '~/components/generated/CreatePalette.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import { titleFor, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
@@ -518,7 +540,7 @@ const visibleTypes = computed(() => new Set(screenfulTypes.value));
 
 // The PanelMenu model: type nodes become panels (their registry icon is
 // PanelMenu's item icon), entity nodes become rows carrying the workspace
-// item for the #item slot, and the two communication entries lead.
+// item for the #item slot, and the communication entries lead.
 const sidebarMenuModel = computed(() => [
   ...communicationPanelModels(),
   ...explorerNodes.value.map(node => typePanelItem(node))
@@ -539,6 +561,8 @@ const selectedMenuKeys = computed(() => {
     keys.add(typeMenuKey(typeId));
   } else if (item.kind === 'page' && item.pageId === 'chats') {
     keys.add('communication:chats');
+  } else if (item.kind === 'page' && item.pageId === 'inbox') {
+    keys.add('communication:inbox');
   } else if (typeId) {
     const instanceIdValue = item.instanceId || instanceId(item.entity);
     if (instanceIdValue) keys.add(`${typeId}:${instanceIdValue}`);
@@ -671,12 +695,14 @@ function entityPanelItem(node) {
   };
 }
 
-// Two communication entries in the PanelMenu: Chats opens the chats
-// workspace page; Calls toggles the CommunicationMenu flyout and carries
-// active call rooms as its rows only while rooms exist.
+// The communication entries in the PanelMenu: Chats opens the chats
+// workspace page, Inbox opens the action inbox page, and Calls toggles
+// the CommunicationMenu flyout and carries active call rooms as its rows
+// only while rooms exist.
 function communicationPanelModels() {
   const rooms = activeRoomItems();
   const chatsSelected = selectedMenuKeys.value.has('communication:chats');
+  const inboxSelected = selectedMenuKeys.value.has('communication:inbox');
   return [
     {
       key: 'communication:chats',
@@ -684,6 +710,13 @@ function communicationPanelModels() {
       icon: 'pi pi-comments',
       headerClass: chatsSelected ? 'rounded-ui bg-[var(--ck-chrome-subtle)]' : undefined,
       command: menuCommand('communication:chats', () => openChatsPage())
+    },
+    {
+      key: 'communication:inbox',
+      label: t('nav.inbox'),
+      icon: 'pi pi-inbox',
+      headerClass: inboxSelected ? 'rounded-ui bg-[var(--ck-chrome-subtle)]' : undefined,
+      command: menuCommand('communication:inbox', () => openWorkspacePage({ pageId: 'inbox' }))
     },
     {
       key: 'communication:calls',

@@ -303,7 +303,8 @@
         "organization": "Organization",
         "settings": "Settings",
         "collapseSidebar": "Collapse sidebar",
-        "expandSidebar": "Expand sidebar"
+        "expandSidebar": "Expand sidebar",
+        "inbox": "Inbox"
     },
     "status": {
         "status": "Status",

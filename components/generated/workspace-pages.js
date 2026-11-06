@@ -11,6 +11,7 @@ import { fileWorkspacePages } from '~/components/generated/file-surfaces.js';
 // Registry rows (ids, labels, icons, route maps) stay synchronous.
 const ChatSupport = defineAsyncComponent(() => import('~/components/ChatSupport.vue'));
 const CallWorkspacePage = defineAsyncComponent(() => import('~/components/calls/CallWorkspacePage.vue'));
+const ActionInboxPage = defineAsyncComponent(() => import('~/components/generated/ActionInboxPage.vue'));
 const DirectoryDetailSurface = defineAsyncComponent(() => import('~/components/directory/DirectoryDetailSurface.vue'));
 const OrganizationTeamPage = defineAsyncComponent(() => import('~/pages/organization/users.vue'));
 const OrganizationModelsPage = defineAsyncComponent(() => import('~/pages/organization/models.vue'));
@@ -116,6 +117,16 @@ export const fixedWorkspacePages = [
       openCallInPane: true,
       conversationKey: page.conversationKey || ''
     })
+  },
+  {
+    // The action inbox (SPEC §4): instances awaiting the user's admissible
+    // actions. The route serves mobile and deep links, exactly like the
+    // organization management pages.
+    id: 'inbox',
+    labelKey: 'nav.inbox',
+    icon: 'pi pi-inbox',
+    component: ActionInboxPage,
+    route: '/inbox'
   },
   {
     id: 'call',

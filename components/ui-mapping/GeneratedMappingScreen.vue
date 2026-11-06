@@ -39,160 +39,29 @@
           :accepts="linkAction?.relation?.targetTypes || []"
           :pool="linkPool"
           :bundle="bundle"
-          :create-actions="createActionsByType"
-          @construct-create="action => openNestedCreate(null, action, 'link')"
+          :create-actions="createActions"
+          @construct-create="openLinkNestedCreate"
         />
       </div>
     </StandardDialog>
-    <StandardDialog
-      v-model:visible="dialogVisible"
-      :size="fillDialogActive ? 'lg' : 'md'"
-      :fill="fillDialogActive"
-      :header="dialogAction?.label || ''"
-      show-default-footer
-      :cancel-label="$t('uiMapping.dialogCancel')"
-      :save-label="$t('uiMapping.dialogSubmit')"
-      :loading="submitting"
-      :save-disabled="dialogIncomplete"
-      @cancel="closeDialog"
-      @save="submitDialog"
-    >
-      <FillDialogBody
-        :active="fillDialogActive"
-        :type-id="dialogAction?.typeId || ''"
-        :mode="dialogAction?.construction?.mode || ''"
-        :type="dialogType"
-        :draft="draftPayload()"
-        :ready="!dialogIncomplete"
-        @meta="value => (previewMeta = value)"
-      >
-        <div :class="LAYOUT.formGrid">
-        <div
-          v-for="row in visibleDialogRows"
-          :key="row.id"
-          class="flex min-w-0 flex-col gap-1"
-          :class="row.span === 'full' ? 'ck-span-full' : ''"
-        >
-          <span class="text-label">{{ row.label }}</span>
-          <InstancePicker
-            v-if="row.lineage"
-            v-model="dialogDraft[row.id]"
-            :accepts="row.lineage.accepts"
-            :pool="pool"
-            :bundle="bundle"
-            :create-actions="createActionsByType"
-            @construct-create="action => openNestedCreate(row.id, action)"
-          />
-          <SpotPartsRow
-            v-else-if="row.control === 'spot-parts'"
-            :model-value="dialogDraft[row.id] || []"
-            :template-ref="templateDraftRef"
-            :accepts="row.descriptor?.accepts || []"
-            :pool="pool"
-            :bundle="bundle"
-            :create-actions="createActionsByType"
-            @construct-create="openNestedCreate(null, $event)"
-            @update:model-value="value => (dialogDraft[row.id] = value)"
-          />
-          <LayerMappingRow
-            v-else-if="row.control === 'layer-mapping'"
-            :model-value="dialogDraft[row.id] || {}"
-            :file-ref="dialogFileRef"
-            :targets="row.controlOptions?.targets || []"
-            @update:model-value="value => (dialogDraft[row.id] = value)"
-          />
-          <CassetteParametersRow
-            v-else-if="row.control === 'cassette-parameters'"
-            :model-value="dialogDraft[row.id] || {}"
-            :template-ref="templateDraftRef"
-            @update:model-value="value => (dialogDraft[row.id] = value)"
-          />
-          <div v-else-if="row.descriptor?.base === 'ref'" class="flex items-center gap-2">
-            <FieldControl
-              v-model="dialogDraft[row.id]"
-              class="min-w-0 flex-1"
-              :descriptor="row.descriptor"
-              variant="detail"
-              :pool="pool"
-              :bundle="bundle"
-              :payload="dialogType?.payload"
-            />
-            <RefRowActions
-              :type-ids="row.descriptor.accepts || []"
-              :value="dialogDraft[row.id]"
-              :create-actions="createActionsByType"
-              @select="value => (dialogDraft[row.id] = value)"
-              @construct-create="action => openNestedCreate(row.id, action)"
-            />
-          </div>
-          <FieldControl
-            v-else-if="row.control !== 'template-values'"
-            v-model="dialogDraft[row.id]"
-            :descriptor="row.descriptor"
-            variant="detail"
-            :pool="pool"
-            :bundle="bundle"
-            :payload="dialogType?.payload"
-          />
-          <TemplateValuesRow
-            v-else
-            :model-value="dialogDraft[row.id] || {}"
-            :tokens="previewTokens"
-            @update:model-value="value => (dialogDraft[row.id] = value)"
-          />
-        </div>
-      </div>
-      <ul v-if="dialogFailures" class="m-0 flex list-none flex-col gap-1 p-0">
-        <li
-          v-for="(failure, index) in dialogFailures"
-          :key="index"
-          class="flex items-center gap-2 text-supporting text-status-danger"
-        >
-          <i class="pi pi-exclamation-circle" />
-          <span>{{ [failure.name, failure.message].filter(Boolean).join(' — ') }}</span>
-        </li>
-      </ul>
-      </FillDialogBody>
-    </StandardDialog>
-    <StandardDialog
-      v-model:visible="nestedVisible"
-      size="sm"
-      :header="nestedCreate?.action?.label || ''"
-      show-default-footer
-      :cancel-label="$t('uiMapping.dialogCancel')"
-      :save-label="$t('uiMapping.dialogSubmit')"
-      :loading="submitting"
-      :save-disabled="nestedIncomplete"
-      @cancel="nestedCreate = null"
-      @save="submitNestedCreate"
-    >
-      <div :class="LAYOUT.formGrid">
-        <div
-          v-for="row in nestedRows"
-          :key="row.id"
-          class="flex min-w-0 flex-col gap-1"
-          :class="row.span === 'full' ? 'ck-span-full' : ''"
-        >
-          <span class="text-label">{{ row.label }}</span>
-          <InstancePicker
-            v-if="row.lineage"
-            v-model="nestedDraft[row.id]"
-            :accepts="row.lineage.accepts"
-            :pool="pool"
-            :bundle="bundle"
-          />
-          <FieldControl
-            v-else
-            v-model="nestedDraft[row.id]"
-            :descriptor="row.descriptor"
-            variant="detail"
-            :pool="pool"
-            :bundle="bundle"
-            :payload="nestedType?.payload"
-          />
-        </div>
-      </div>
-    </StandardDialog>
+    <ActionFormDialog
+      :action="dialogAction"
+      :bundle="bundle"
+      :pool="pool"
+      :create-actions="createActions"
+      :submitting="submitting"
+      :failures="dialogFailures"
+      :scoped-instance="scopedInstance"
+      @run="submitActionDialog"
+      @close="closeActionDialog"
+    />
+    <NestedCreateDialog
+      :entry="linkNestedCreate"
+      :bundle="bundle"
+      :pool="pool"
+      @applied="applyLinkNestedCreate"
+      @close="linkNestedCreate = null"
+    />
     <!-- Toast host: the toast service fires into the nearest host in the tree. -->
     <Toast />
   </div>
@@ -204,23 +73,16 @@ import { useI18n } from 'vue-i18n';
 import Toast from 'primevue/toast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
-import { LAYOUT, spacingClasses, spacingCoefficientFor, screenWeight, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, resolveInstanceActions, constructRerunAction, planActionLaunch } from '#shared/ui-mapping/index.js';
+import { LAYOUT, spacingClasses, spacingCoefficientFor, screenWeight, composeScreen, buildInstancePool, resolveInstanceActions, constructRerunAction, planActionLaunch } from '#shared/ui-mapping/index.js';
 import { withinRelationDomain } from '#shared/relation-domain.js';
 import { provideDefaultContainerTraits, useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import { refusalFailuresOf } from '~/utils/action-failures.js';
+import { createActionsByType } from '~/utils/action-visibility.js';
 import RegionChildren from './RegionChildren.vue';
 import InstancePicker from './InstancePicker.vue';
-import SpotPartsRow from './SpotPartsRow.vue';
-import LayerMappingRow from './LayerMappingRow.vue';
-import CassetteParametersRow from './CassetteParametersRow.vue';
-import RefRowActions from './RefRowActions.vue';
-import FillDialogBody from './FillDialogBody.vue';
-import TemplateValuesRow from './TemplateValuesRow.vue';
-import FieldControl from './FieldControl.vue';
+import ActionFormDialog from './ActionFormDialog.vue';
+import NestedCreateDialog from './NestedCreateDialog.vue';
 import StandardDialog from '../shared/StandardDialog.vue';
-import { isCreateAction } from '~/utils/action-visibility.js';
-import { createdEntity } from '~/utils/instance-run-results.js';
-import { useInstancesStore } from '~/stores/instances';
 
 const props = defineProps({
   screen: { type: Object, required: true },
@@ -391,37 +253,9 @@ const submitPatch = async ({ instance, patch } = {}) => {
 
 const confirm = useConfirm();
 const toast = useToast();
-const dialogVisible = ref(false);
 const dialogAction = ref(null);
 const dialogFailures = ref(null);
 const dialogContext = ref({});
-const dialogDraft = reactive({});
-const dialogType = computed(() => (props.bundle.types || []).find(type => type.id === dialogAction.value?.typeId) || null);
-// Dialog rows come from the shared resolver: authored fields (matched by
-// bare name or slot-qualified path), protocol inputs, and lineage parent
-// pickers over reverse containment. The draft is keyed by the compiled input
-// id, so the submitted payload lands exactly on the construction paths.
-const dialogRows = computed(() => (
-  dialogAction.value?.actionKind === 'runCommand'
-    ? resolveRunDialogInputs(dialogAction.value)
-    : resolveCreateDialogInputs(dialogAction.value || {}, dialogType.value, props.bundle)
-));
-// The create's uploaded file feeds the mapping control beside it.
-const dialogFileRef = computed(() => {
-  const row = dialogRows.value.find(candidate => candidate.descriptor?.base === 'blob');
-  const value = row ? dialogDraft[row.id] : null;
-  return value && typeof value === 'object' && value.fileId ? value : null;
-});
-// The fill-dialog shell composes a live preview beside the form when the
-// create targets a payload-bearing type through a construction mode.
-const fillDialogActive = computed(() => Boolean(dialogType.value?.payload && dialogAction.value?.construction?.mode));
-// The composition's meta channel: the template's token keys for the
-// per-token values form (the executor names them, records never store them).
-const previewMeta = ref(null);
-const previewTokens = computed(() => {
-  const tokens = previewMeta.value?.tokens;
-  return Array.isArray(tokens) ? tokens.map(String) : [];
-});
 
 // The opened record on a scoped detail surface — the launch context's
 // parent binding for creates (SPEC §UI): lineage rows accepting that type
@@ -431,38 +265,8 @@ const scopedInstance = computed(() => {
   const scopeInstanceId = props.screen?.scope?.instanceId;
   return scopeTypeId && scopeInstanceId ? { type: scopeTypeId, id: String(scopeInstanceId) } : null;
 });
-const visibleDialogRows = computed(() => {
-  const scoped = scopedInstance.value;
-  if (!scoped) return dialogRows.value;
-  return dialogRows.value.filter(row => !row.lineage?.accepts?.includes(scoped.type));
-});
-
-// The spot-parts row reads the picked single-ref input as its template
-// source — the action's one `entity` row names the spot vocabulary.
-const templateDraftRef = computed(() => {
-  const row = dialogRows.value.find(candidate => candidate.descriptor?.base === 'ref' && !candidate.lineage);
-  const value = row ? dialogDraft[row.id] : null;
-  return value && typeof value === 'object' && value.id ? value : null;
-});
 
 const submitting = ref(false);
-// Required rows gate the submit (the create never runs with its record
-// unnamed or its required construction inputs empty): a row counts as
-// unfilled when its draft value is nullish, an empty string, an empty
-// list, or a quantity control whose value was cleared — picker/file
-// models are objects and count as filled.
-const rowUnfilled = (row, draft = dialogDraft) => {
-  if (!row.required) return false;
-  const value = draft[row.id];
-  if (row.control === 'layer-mapping' && row.controlOptions?.requiredTarget) {
-    const mapping = value && typeof value === 'object' && !Array.isArray(value) ? Object.values(value) : [];
-    return !mapping.includes(row.controlOptions.requiredTarget);
-  }
-  return value == null || value === '' || (Array.isArray(value) && !value.length)
-    || (value && typeof value === 'object' && value.unit !== undefined && (value.value == null || value.value === ''));
-};
-const dialogIncomplete = computed(() => visibleDialogRows.value.some(row => rowUnfilled(row)));
-const nestedIncomplete = computed(() => nestedRows.value.some(row => rowUnfilled(row, nestedDraft)));
 const runAction = async (action, draft = {}, context = {}) => {
   if (props.onRun) {
     submitting.value = true;
@@ -473,7 +277,7 @@ const runAction = async (action, draft = {}, context = {}) => {
       // inline in the open dialog, or as the offender list in a toast.
       const failures = refusalFailuresOf(error);
       if (!failures) throw error;
-      if (dialogVisible.value && dialogAction.value === action) {
+      if (dialogAction.value === action) {
         dialogFailures.value = failures;
       } else {
         toast.add({
@@ -496,101 +300,15 @@ const runAction = async (action, draft = {}, context = {}) => {
     life: 2400
   });
 };
-const submitDialog = async () => {
+const submitActionDialog = async (payload) => {
   const action = dialogAction.value;
-  const payload = draftPayload();
   if (!action) return;
   await runAction(action, payload, dialogContext.value);
-  if (!dialogFailures.value) closeDialog();
+  if (!dialogFailures.value) closeActionDialog();
 };
 
-// Lineage and entity pickers model `{ type, id }`; the construction path
-// wants the bare instance id, and a picker list carries one ref per entry.
-// A spot assignment keeps its spot beside the id — the explicit pairing
-// travels to the construction seam. Quantity controls model the SPEC §2
-// `{ value, unit }` shape; the run parameter channel wants the scalar.
-// File references (`{ fileId, ... }`) already are the payload the
-// construct path validates.
-const scalarDraftValue = value => {
-  if (Array.isArray(value)) return value.map(scalarDraftValue);
-  if (!value || typeof value !== 'object' || value.fileId) return value;
-  if (value.id !== undefined) {
-    return value.spot !== undefined ? { id: value.id, spot: value.spot } : value.id;
-  }
-  if (value.unit !== undefined && value.value !== undefined) return value.value;
-  return value;
-};
-
-const draftPayload = () => {
-  const payload = {};
-  for (const [key, value] of Object.entries(dialogDraft)) {
-    payload[key] = scalarDraftValue(value);
-  }
-  return payload;
-};
-
-// Nested part-create (SPEC §24 rails): a construct-protocol create opens
-// inside the fill dialog; the created record selects into its row without
-// leaving the dialog.
-const instancesStore = useInstancesStore();
-const createActionsByType = computed(() => {
-  const grouped = {};
-  for (const action of Object.values(props.contract?.actions || {})) {
-    if (!isCreateAction(action) || action.__command || !action.typeId) continue;
-    (grouped[action.typeId] ||= []).push(action);
-  }
-  return grouped;
-});
-const nestedCreate = ref(null);
-const nestedDraft = reactive({});
-const nestedVisible = computed({
-  get: () => Boolean(nestedCreate.value),
-  set: value => { if (!value) nestedCreate.value = null; }
-});
-const nestedType = computed(() => (
-  nestedCreate.value ? (props.bundle.types || []).find(candidate => candidate.id === nestedCreate.value.typeId) || null : null
-));
-const nestedRows = computed(() => (
-  nestedCreate.value?.action ? resolveCreateDialogInputs(nestedCreate.value.action, nestedType.value, props.bundle) : []
-));
-
-function openNestedCreate(rowId, action, apply = 'row') {
-  if (!action) return;
-  for (const key of Object.keys(nestedDraft)) delete nestedDraft[key];
-  nestedCreate.value = { rowId, typeId: action.typeId, action, apply };
-}
-
-async function submitNestedCreate() {
-  const state = nestedCreate.value;
-  if (!state) return;
-  submitting.value = true;
-  try {
-    const data = Object.fromEntries(Object.entries(nestedDraft).map(([key, value]) => [key, scalarDraftValue(value)]));
-    const result = await instancesStore.runAction({ action: state.action, actionId: state.action.id, entities: {}, data, parameters: {} });
-    const entity = createdEntity(state.action, result);
-    const id = entity?._id ?? entity?.id;
-    if (state.apply === 'link') {
-      if (id) linkTarget.value = { type: state.typeId, id: String(id) };
-    } else if (state.rowId && id) {
-      dialogDraft[state.rowId] = { type: state.typeId, id: String(id) };
-    }
-    nestedCreate.value = null;
-  } catch (error) {
-    const failures = refusalFailuresOf(error);
-    if (failures) {
-      toast.add({
-        severity: 'error',
-        summary: state.action.label || state.action.id,
-        detail: failures.map(failure => [failure.name, failure.message].filter(Boolean).join(' — ')).join('\n'),
-        life: 6000
-      });
-      return;
-    }
-    throw error;
-  } finally {
-    submitting.value = false;
-  }
-}
+// Compiled create actions by type feed every picker's create affordance.
+const createActions = computed(() => createActionsByType(props.contract?.actions || {}));
 
 const linkDialogVisible = ref(false);
 const linkAction = ref(null);
@@ -633,6 +351,17 @@ const submitLink = () => {
   }, linkContext.value);
 };
 
+// The link picker's create affordance nests its part-create; the created
+// record lands as the link target.
+const linkNestedCreate = ref(null);
+function openLinkNestedCreate(action) {
+  if (!action) return;
+  linkNestedCreate.value = { rowId: null, typeId: action.typeId, action, apply: 'link' };
+}
+function applyLinkNestedCreate({ apply, typeId, id }) {
+  if (apply === 'link') linkTarget.value = { type: typeId, id };
+}
+
 // `context` carries the instance an instance-scoped quick action was
 // launched from (cards, rows); it travels beside the action through
 // confirmation and dialogs so the executor receives it either way.
@@ -655,14 +384,6 @@ const openAction = (action, context = {}) => {
     dialogAction.value = action;
     dialogContext.value = context || {};
     dialogFailures.value = null;
-    seedDialogDraft();
-    if (!visibleDialogRows.value.length) {
-      const payload = draftPayload();
-      closeDialog();
-      runAction(action, payload, context);
-      return;
-    }
-    dialogVisible.value = true;
     return;
   }
   if (launch === 'confirm') {
@@ -677,29 +398,10 @@ const openAction = (action, context = {}) => {
   runAction(action, context.data || {}, context);
 };
 
-function closeDialog() {
-  dialogVisible.value = false;
+function closeActionDialog() {
   dialogAction.value = null;
   dialogFailures.value = null;
-  previewMeta.value = null;
   dialogContext.value = {};
-}
-
-// Prefill the draft: authored defaults, then the scoped detail instance's
-// reference on lineage rows accepting its type.
-function seedDialogDraft() {
-  for (const key of Object.keys(dialogDraft)) delete dialogDraft[key];
-  for (const row of dialogRows.value) {
-    if (row.default !== undefined && row.default !== null) dialogDraft[row.id] = row.default;
-  }
-  const scoped = scopedInstance.value;
-  if (scoped) {
-    for (const row of dialogRows.value) {
-      if (row.lineage?.accepts?.includes(scoped.type)) {
-        dialogDraft[row.id] = { type: scoped.type, id: scoped.id };
-      }
-    }
-  }
 }
 
 const regionBlockEvents = {

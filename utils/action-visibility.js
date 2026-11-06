@@ -78,6 +78,17 @@ export function resolveScopedGeneratedActions({ actionIds = [], actionManifest =
     .filter(Boolean);
 }
 
+// Compiled create actions by target type id, contract order kept: the
+// grouped map every create-dialog host (and its nested pickers) feeds on.
+export function createActionsByType(actions = {}) {
+  const grouped = {};
+  for (const action of Object.values(actions || {})) {
+    if (!isCreateAction(action) || action.__command || !action.typeId) continue;
+    (grouped[action.typeId] ||= []).push(action);
+  }
+  return grouped;
+}
+
 export function isGeneratedSurfaceAction(action = {}) {
   if (isRelationUnlinkAction(action)) return false;
   if (isDeleteAction(action) && (action.trigger?.mode || 'manual') !== 'manual') return false;

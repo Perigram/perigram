@@ -1377,6 +1377,42 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
   return Object.freeze(rows.map(row => Object.freeze(row)));
 }
 
+// A required create-dialog row counts as unfilled when its draft value is
+// nullish, an empty string or list, or a cleared quantity; picker and file
+// models are objects and count as filled. The create never runs with its
+// record unnamed or a required construction input empty.
+export function createDialogRowUnfilled(row = {}, value = undefined) {
+  if (!row.required) return false;
+  if (row.control === 'layer-mapping' && row.controlOptions?.requiredTarget) {
+    const mapping = value && typeof value === 'object' && !Array.isArray(value) ? Object.values(value) : [];
+    return !mapping.includes(row.controlOptions.requiredTarget);
+  }
+  return value == null || value === '' || (Array.isArray(value) && !value.length)
+    || (value && typeof value === 'object' && value.unit !== undefined && (value.value == null || value.value === ''));
+}
+
+// The create-dialog draft as the run parameter channel wants it: picker
+// refs (`{ type, id }`) scalarize to bare ids (a spot assignment keeps its
+// spot beside the id), quantity controls (`{ value, unit }`) to their
+// scalar, file references stay the payload object the construct path
+// validates.
+export function createDialogPayload(draft = {}) {
+  const scalarize = value => {
+    if (Array.isArray(value)) return value.map(scalarize);
+    if (!value || typeof value !== 'object' || value.fileId) return value;
+    if (value.id !== undefined) {
+      return value.spot !== undefined ? { id: value.id, spot: value.spot } : value.id;
+    }
+    if (value.unit !== undefined && value.value !== undefined) return value.value;
+    return value;
+  };
+  const payload = {};
+  for (const [key, value] of Object.entries(draft || {})) {
+    payload[key] = scalarize(value);
+  }
+  return payload;
+}
+
 // The declared storage key of one children edge: the `lineageKey` the
 // declaration carries (stamped at CTS edge normalize, SPEC §6), with the
 // entry's map key as the raw-declaration fallback. Children instances
