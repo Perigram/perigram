@@ -436,6 +436,20 @@ window depends on it).
 
 ---
 
+## useDeclarationStation
+
+Resolves the active definition whose draft declares a stationed type —
+the document the in-place declaration editor targets (SPEC §1).
+`declaringDefinitionFor(typeId)` checks the most recently activated
+definition first (`GET /api/process-definitions/active`), then the rest of
+the additive active set; drafts and archived definitions station nothing.
+In-flight requests dedupe per type. Consumers: the declaration author
+affordance ([components/generated](../components/generated/README.md))
+and the declaration editor page
+([components/type-designer](../components/type-designer/README.md)).
+
+---
+
 ## usePayloadUpload
 
 Payload upload contract (CTS SPEC §4): the `file` prompt control uploads

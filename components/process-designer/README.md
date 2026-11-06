@@ -22,6 +22,19 @@ transition facts are authored on declarations — the process view selects
 them through typed references, and status fallback choices and transition
 availability derive from the bound type's projected recursive lifecycle.
 
+Declaration authoring is in place beside the canvas (SPEC §1): the
+in-place declaration editor
+([type-designer](../type-designer/README.md)) is a second projection of
+these same declaration records — a stationed type's surfaces carry the
+author affordance ([generated](../generated/README.md)), and its edits
+write the same class/field/state nodes, declaration wires, and transition
+records this canvas authors, saving the same definition draft. The canvas
+reconciles an out-of-band draft save by re-fetching its document on
+window focus and on a 30s poll, comparing the draft data signature
+against the settled load baseline; a dirty canvas reconciles nothing
+(its own save is the next write, last-writer-wins like the canvas
+itself).
+
 ## Contracts owned here
 
 ### Canvas channel vocabulary
