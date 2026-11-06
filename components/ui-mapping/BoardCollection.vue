@@ -55,13 +55,6 @@
               />
             </div>
           </template>
-          <template v-if="parented" #subtitle>
-            <BreadcrumbTrail
-              :instance="instance"
-              :bundle="bundle"
-              @open="target => $emit('open', target)"
-            />
-          </template>
           <template #content>
             <div v-if="scalarFields.length" :class="spacing ? spacing.stackTight : LAYOUT.stackTight">
               <div v-for="field in visibleFieldsFor(instance)" :key="field.name" :class="LAYOUT.rowBetween">
@@ -115,7 +108,6 @@ import PreviewBox from './PreviewBox.vue';
 import StateTag from './StateTag.vue';
 import SortControl from './SortControl.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
-import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 
 const props = defineProps({
@@ -132,9 +124,6 @@ const props = defineProps({
   actions: { type: Array, default: () => [] },
   // Collection identities render as links when an open handler exists.
   openable: { type: Boolean, default: false },
-  // The containment cross-cut composes on this collection (unscoped class
-  // list): cards carry their lineage breadcrumb trail.
-  parented: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   // Per-type state policy map from the compiled process contract: the

@@ -1,28 +1,39 @@
 <template>
-  <span class="inline-flex min-w-0 items-center gap-2">
-    <i :class="glyph" class="shrink-0" aria-hidden="true" />
-    <Button
-      v-if="openable"
-      link
-      :size="size"
-      :label="identity"
-      :class="[LAYOUT.linkClamp, 'px-0']"
-      @click="$emit('open', instance)"
+  <span :class="crossCut ? 'inline-flex min-w-0 flex-col items-start gap-1' : 'inline-flex min-w-0 items-center gap-2'">
+    <span class="inline-flex min-w-0 items-center gap-2">
+      <i :class="glyph" class="shrink-0" aria-hidden="true" />
+      <Button
+        v-if="openable"
+        link
+        :size="size"
+        :label="identity"
+        :class="[LAYOUT.linkClamp, 'px-0']"
+        @click="$emit('open', instance)"
+      />
+      <span v-else :class="['truncate', textClass]">{{ identity }}</span>
+    </span>
+    <BreadcrumbTrail
+      v-if="crossCut"
+      :instance="instance"
+      @open="target => $emit('open', target)"
     />
-    <span v-else :class="['truncate', textClass]">{{ identity }}</span>
   </span>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, inject, unref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import { LAYOUT, titleFor, iconFor } from '#shared/ui-mapping/index.js';
+import BreadcrumbTrail from './BreadcrumbTrail.vue';
 
 // The instance identifier (SPEC §22.8): a record's identity line carries
 // its icon — the authored glyph, a record's declared thumb winning — and
 // opens the record under the screen's onOpen contract. Every projection
-// renders collection identities through this one surface. The link's
+// renders collection identities through this one surface, and an
+// identity rendered outside its parent's surface (the containment
+// cross-cut's injected flag) carries the lineage trail beneath it —
+// crumbs open their ancestors through the same open channel. The link's
 // horizontal padding dies here: the identifier owns its spacing (the
 // wrapper gap), and the preset's padding is a standalone-target
 // affordance.
@@ -37,6 +48,8 @@ const props = defineProps({
 
 defineEmits(['open']);
 
+const collectionCrossCut = inject('instanceCollectionCrossCut', null);
+const crossCut = computed(() => unref(collectionCrossCut) === true);
 const { t } = useI18n();
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
 const glyph = computed(() => iconFor(props.type, props.instance));

@@ -12,13 +12,6 @@
           <Tag v-if="statusOf(instance)" :value="statusOf(instance).label" :severity="statusOf(instance).severity" />
         </div>
       </template>
-      <template v-if="parented" #subtitle>
-        <BreadcrumbTrail
-          :instance="instance"
-          :bundle="bundle"
-          @open="target => $emit('open', target)"
-        />
-      </template>
       <template #content>
         <div :class="LAYOUT.factCell">
           <span class="text-metric">{{ metricOf(instance) }}</span>
@@ -37,16 +30,12 @@ import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { useI18n } from 'vue-i18n';
 import { LAYOUT, analyzeTypeShape, formatQuantity, stateDisplayFor } from '#shared/ui-mapping/index.js';
 import InstanceIdentity from './InstanceIdentity.vue';
-import BreadcrumbTrail from './BreadcrumbTrail.vue';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
   type: { type: Object, default: null },
   // Collection identities render as links when an open handler exists.
   openable: { type: Boolean, default: false },
-  // The containment cross-cut composes on this collection (unscoped class
-  // list): cards carry their lineage breadcrumb trail.
-  parented: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   // Per-type state policy map from the compiled process contract.

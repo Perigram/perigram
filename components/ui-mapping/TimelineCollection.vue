@@ -24,12 +24,6 @@
             </div>
           </div>
         </div>
-        <BreadcrumbTrail
-          v-if="parented"
-          :instance="item"
-          :bundle="bundle"
-          @open="target => $emit('open', target)"
-        />
         <span v-if="bodyValue(item)" class="text-body line-clamp-3 break-words">{{ bodyValue(item) }}</span>
       </div>
     </template>
@@ -53,7 +47,6 @@ import {
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import InstanceIdentity from './InstanceIdentity.vue';
 import FieldControl from './FieldControl.vue';
-import BreadcrumbTrail from './BreadcrumbTrail.vue';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
@@ -65,9 +58,6 @@ const props = defineProps({
   controls: { type: Object, default: null },
   // Entry identities render as links when an open handler exists upstream.
   openable: { type: Boolean, default: false },
-  // The containment cross-cut composes on this collection (unscoped class
-  // list): entries carry their lineage breadcrumb trail.
-  parented: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });

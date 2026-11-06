@@ -19,21 +19,13 @@
       </template>
     <Column sortable :sort-field="sortByIdentity" :header="identityColumnLabel">
       <template #body="{ data }">
-        <div class="flex min-w-0 flex-col gap-1">
-          <InstanceIdentity
-            :instance="data"
-            :type="type"
-            :openable="openable"
-            size="small"
-            @open="target => $emit('open', target)"
-          />
-          <BreadcrumbTrail
-            v-if="parented"
-            :instance="data"
-            :bundle="bundle"
-            @open="target => $emit('open', target)"
-          />
-        </div>
+        <InstanceIdentity
+          :instance="data"
+          :type="type"
+          :openable="openable"
+          size="small"
+          @open="target => $emit('open', target)"
+        />
       </template>
     </Column>
     <Column v-if="hasStatus" sortable :sort-field="sortByStatus" :header="$t('uiMapping.statusColumn')">
@@ -162,7 +154,6 @@ import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import { useEntityPopup } from '~/composables/useEntityPopup';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
-import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
 import InlineField from './InlineField.vue';
 import FieldControl from './FieldControl.vue';
@@ -177,9 +168,6 @@ const props = defineProps({
   controls: { type: Object, default: null },
   // Identity cells render as links when an open handler exists upstream.
   openable: { type: Boolean, default: false },
-  // The containment cross-cut composes on this collection (unscoped class
-  // list): identity cells carry the lineage breadcrumb trail.
-  parented: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   // Per-type state policy map: the status column exists exactly when the

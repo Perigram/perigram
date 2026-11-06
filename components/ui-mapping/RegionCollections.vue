@@ -6,7 +6,6 @@
     :type="node.type"
     :controls="node.listControls"
     :openable="openable"
-    :parented="parented"
     :pool="effectivePool"
     :bundle="bundle"
     :state-policy="node.statePolicy"
@@ -39,7 +38,6 @@
     :controls="node.listControls"
     :actions="instanceActions"
     :openable="openable"
-    :parented="parented"
     :pool="effectivePool"
     :bundle="bundle"
     :state-policy="node.statePolicy"
@@ -55,7 +53,6 @@
     :type="node.type"
     :controls="node.listControls"
     :openable="openable"
-    :parented="parented"
     :pool="effectivePool"
     :bundle="bundle"
     @open="instance => emit('open', instance)"
@@ -65,7 +62,6 @@
     :instances="filteredInstances"
     :type="node.type"
     :openable="openable"
-    :parented="parented"
     :pool="effectivePool"
     :bundle="bundle"
     :state-policy="node.statePolicy"
@@ -83,7 +79,6 @@
     :instances="filteredInstances"
     :type="node.type"
     :openable="openable"
-    :parented="parented"
     :pool="effectivePool"
     :bundle="bundle"
     :state-policy="node.statePolicy"
@@ -95,8 +90,12 @@
 // The collection materialization: the derived (or user-switched) list
 // layout picks the one projection this region renders. Extracted from
 // RegionBlock so the embedded and standalone list surfaces share the
-// exact same switch.
+// exact same switch. The containment cross-cut rides one provide: an
+// unscoped class list flags every identity beneath it as rendered
+// outside its parent, and the identifier surface renders the lineage
+// trail — projections stay trail-agnostic.
 import ProgressBar from 'primevue/progressbar';
+import { computed, provide } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { LAYOUT } from '#shared/ui-mapping/index.js';
 import CollectionTable from './CollectionTable.vue';
@@ -107,7 +106,7 @@ import CalendarCollection from './CalendarCollection.vue';
 import TimelineCollection from './TimelineCollection.vue';
 import StatGrid from './StatGrid.vue';
 
-defineProps({
+const props = defineProps({
   node: { type: Object, required: true },
   listLayout: { type: String, default: 'table' },
   filteredInstances: { type: Array, default: () => [] },
@@ -116,7 +115,7 @@ defineProps({
   bundle: { type: Object, default: null },
   openable: { type: Boolean, default: false },
   // The containment cross-cut composes on this collection (unscoped class
-  // list): rows carry their lineage breadcrumb trail.
+  // list): identities beneath render the lineage trail.
   parented: { type: Boolean, default: false },
   instanceActions: { type: Array, default: () => [] },
   // SPEC §22.12: `{ parent, actions }` — the relation-scoped section's
@@ -127,6 +126,8 @@ defineProps({
   resolveTransitions: { type: Function, default: null },
   isReloading: { type: Boolean, default: false }
 });
+
+provide('instanceCollectionCrossCut', computed(() => props.parented));
 
 const emit = defineEmits(['open', 'run', 'transition', 'inline-change']);
 const { t } = useI18n();

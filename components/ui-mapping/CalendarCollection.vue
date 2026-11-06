@@ -39,15 +39,18 @@
 // instant (temporalFieldsFor start). Day cells are subtle wells; today's
 // cell steps up to the content surface; instances render as capped
 // identity chips with a plain overflow count (the day cell is a summary,
-// not a list — the detail surface carries the record). Month navigation
+// not a list — the detail surface carries the record, and the summary
+// chip carries no lineage trail). Month navigation
 // is local view state; labels and weekday headers format through the
 // active locale, and the month opens on the first loaded instance's
 // month (or the current month for empty pools).
-import { computed, ref } from 'vue';
+import { computed, provide, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import { LAYOUT, temporalFieldsFor } from '#shared/ui-mapping/index.js';
 import InstanceIdentity from './InstanceIdentity.vue';
+
+provide('instanceCollectionCrossCut', false);
 
 const CHIP_BUDGET = 3;
 

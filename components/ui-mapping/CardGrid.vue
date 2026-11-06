@@ -78,12 +78,6 @@
                 <PreviewBox variant="stamp" :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
               </div>
               <div class="flex min-w-0 flex-1 flex-col gap-2">
-                <BreadcrumbTrail
-                  v-if="parented"
-                  :instance="instance"
-                  :bundle="bundle"
-                  @open="target => $emit('open', target)"
-                />
                 <div :class="LAYOUT.rowBetween">
                   <InstanceIdentity
                     :instance="instance"
@@ -162,16 +156,9 @@
             </div>
           </template>
           <!-- SPEC §22.8: a homogeneous collection never repeats the
-               type name per card — the collection's own header names it.
-               Only containment context (the lineage trail) earns the
-               line. -->
-          <template v-if="anatomy === 'plain' && parented" #subtitle>
-            <BreadcrumbTrail
-              :instance="instance"
-              :bundle="bundle"
-              @open="target => $emit('open', target)"
-            />
-          </template>
+               type name per card — the collection's own header names it;
+               the identity surface carries the lineage trail on
+               cross-cut lists. -->
           <template v-if="anatomy === 'plain'" #content>
             <div :class="spacing ? spacing.stackTight : 'flex flex-col gap-3'">
               <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
@@ -246,8 +233,9 @@ const props = defineProps({
   relationUnlink: { type: Object, default: null },
   // Collection identities render as links when an open handler exists.
   openable: { type: Boolean, default: false },
-  // The containment cross-cut composes on this collection (unscoped class
-  // list): cards carry their lineage breadcrumb trail.
+  // The containment cross-cut composes on this collection (unscoped
+  // class list): the tile's media anatomy grounds the lineage trail
+  // beside its identifier chip.
   parented: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },

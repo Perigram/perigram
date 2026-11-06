@@ -6,25 +6,26 @@
     <section v-for="group in groups" :key="group.typeId" class="flex min-w-0 flex-col gap-2">
       <span class="text-label text-muted">{{ group.label }}</span>
       <div class="flex flex-col gap-2">
-        <InstanceInlineRef
-          v-for="row in group.rows"
-          :key="row.instanceId"
-          variant="tile"
-          :type="row.typeId"
-          :id="row.instanceId"
-          :entity="row.dto"
-          :fetch="false"
-        >
-          <template #trailing>
-            <ActionButton
-              v-for="action in row.actions"
-              :key="action.id"
-              :action="action"
-              :state-policy="statePolicy[row.typeId] || null"
-              @run="action => runRowAction(action, row)"
-            />
-          </template>
-        </InstanceInlineRef>
+        <div v-for="row in group.rows" :key="row.instanceId" class="flex min-w-0 flex-col gap-1">
+          <InstanceInlineRef
+            variant="tile"
+            :type="row.typeId"
+            :id="row.instanceId"
+            :entity="row.dto"
+            :fetch="false"
+          >
+            <template #trailing>
+              <ActionButton
+                v-for="action in row.actions"
+                :key="action.id"
+                :action="action"
+                :state-policy="statePolicy[row.typeId] || null"
+                @run="action => runRowAction(action, row)"
+              />
+            </template>
+          </InstanceInlineRef>
+          <BreadcrumbTrail :instance="row.dto" @open="openAncestor" />
+        </div>
       </div>
     </section>
   </div>
@@ -42,12 +43,16 @@ import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import ActionButton from '~/components/ui-mapping/ActionButton.vue';
+import BreadcrumbTrail from '~/components/ui-mapping/BreadcrumbTrail.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { deriveInboxRows } from '~/components/generated/action-inbox-rows.js';
+import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 
 // The action inbox (SPEC §4): one row per instance whose current state
 // admits an action the user's roles grant — the §22.13 tile with its
-// admissible actions beside it, grouped by type. Rows run actions
+// admissible actions beside it, grouped by type. Every row sits outside
+// its parent's surface, so the lineage trail rides beneath the tile and
+// crumbs open ancestors through the workspace seam. Rows run actions
 // through the instances store's action-run channel and reconcile away
 // through the shared entity-event invalidation as states move.
 const { t, te } = useI18n();
@@ -106,6 +111,12 @@ async function load() {
 onMounted(() => {
   if (!import.meta.server) load();
 });
+
+function openAncestor(instance) {
+  if (instance?.type && instance?.id) {
+    openInstanceInWorkspace({ typeId: instance.type, instanceId: String(instance.id) });
+  }
+}
 
 async function runRowAction(action, row) {
   try {
