@@ -4591,3 +4591,11 @@ parsed document lands, closing the quiet-box window between mount and
 the payload render; DXF-payload records keep the instant baked-field
 path. Validation: surface graph check, facade surface specs, and E2E
 `cassette-preview` green.
+
+### Agent Notes (2026-11-06, app-standard preview spinner)
+
+Session `agent/svg-preview-spinner-20261106` (worktree
+`.agent-worktrees/svg-preview-spinner-20261106`). `ProgressSpinner` joins
+the surface component pack, and the cassette preview's pending state
+renders the app's standard ring beside the quiet box — the same loader
+`StateBlock` and `DrawingCanvas` show.
