@@ -247,10 +247,12 @@ import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Badge from 'primevue/badge';
 import PanelMenu from 'primevue/panelmenu';
+import { useConfirm } from 'primevue/useconfirm';
 import { useI18n } from 'vue-i18n';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
+import { isWorkspacePageDirty, setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
 import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
 import { useEntityPopup } from '~/composables/useEntityPopup';
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
@@ -310,6 +312,7 @@ const supportChatStore = useSupportChatStore();
 const callsStore = useCallsStore();
 const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
+const confirm = useConfirm();
 const activePaneId = ref('pane-1');
 const paneSequence = ref(1);
 
@@ -1391,6 +1394,21 @@ function openEmptyPaneTab(paneId) {
 }
 
 function closePaneTab(paneId, key) {
+  if (isWorkspacePageDirty(key)) {
+    confirm.require({
+      header: t('common.unsavedChanges'),
+      message: t('common.unsavedChangesMessage'),
+      icon: 'pi pi-exclamation-triangle',
+      rejectLabel: t('common.stay'),
+      acceptLabel: t('common.discard'),
+      accept: () => closePaneTabConfirmed(paneId, key)
+    });
+    return;
+  }
+  closePaneTabConfirmed(paneId, key);
+}
+
+function closePaneTabConfirmed(paneId, key) {
   const pane = panes.value.find(item => item.id === paneId);
   if (!pane) return;
   const currentKeys = pane.tabKeys || [];
@@ -1426,6 +1444,7 @@ function closePaneTab(paneId, key) {
 function forgetClosedTabRefs(key) {
   const remainingTabKeys = new Set(workspaceLeaves(paneTree.value).flatMap(leaf => leaf.tabKeys || []));
   if (!remainingTabKeys.has(key)) {
+    setWorkspacePageDirty(key, false);
     openedPageRefs.value = openedPageRefs.value.filter(reference => reference.key !== key);
     openedScreenRefs.value = openedScreenRefs.value.filter(reference => reference.key !== key);
     if (callPageRefs.value.some(call => call.key === key)) callsStore.tabClosed(key);
@@ -1447,6 +1466,23 @@ function resizePaneSplit(splitId, sizes) {
 
 function closePane(paneId) {
   if (paneCount.value <= 1) return;
+  const pane = panes.value.find(item => item.id === paneId);
+  const dirtyKeys = (pane?.tabKeys || []).filter(isWorkspacePageDirty);
+  if (dirtyKeys.length) {
+    confirm.require({
+      header: t('common.unsavedChanges'),
+      message: t('common.unsavedChangesMessage'),
+      icon: 'pi pi-exclamation-triangle',
+      rejectLabel: t('common.stay'),
+      acceptLabel: t('common.discard'),
+      accept: () => closePaneConfirmed(paneId)
+    });
+    return;
+  }
+  closePaneConfirmed(paneId);
+}
+
+function closePaneConfirmed(paneId) {
   paneTree.value = closeWorkspaceLeaf(paneTree.value, paneId);
   paneHistories.value = new Map([...paneHistories.value].filter(([id]) => id !== paneId));
   activePaneId.value = workspaceLeaves(paneTree.value)[0]?.id || 'pane-1';

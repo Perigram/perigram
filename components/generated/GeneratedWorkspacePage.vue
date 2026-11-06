@@ -38,7 +38,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, provide } from 'vue';
 import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 
@@ -49,6 +49,8 @@ const props = defineProps({
   splittable: { type: Boolean, default: true },
   back: { type: Boolean, default: false }
 });
+
+provide('workspacePageKey', props.page?.key);
 
 defineEmits(['open-page', 'open-call', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'back']);
 

@@ -243,7 +243,7 @@
 // One authoring model, two projections (SPEC §1): this page edits the
 // canvas declaration arrays of the stationing definition's draft; the
 // contract table lives in components/type-designer/README.md.
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
@@ -285,6 +285,7 @@ import {
   setTransitionTarget,
   tryRemoveDeclarationNode
 } from '~/utils/processDesignerDeclarationEditor.js';
+import { setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
 
 const props = defineProps({
   typeId: { type: String, default: '' },
@@ -346,6 +347,8 @@ const declarationSignature = computed(() => JSON.stringify({
 }));
 const diagnostics = ref([]);
 const dirty = computed(() => Boolean(definition.value) && declarationSignature.value !== savedSignature.value);
+const workspacePageKey = inject('workspacePageKey', null);
+watch(dirty, value => setWorkspacePageDirty(workspacePageKey, value));
 
 function runDiagnostics() {
   diagnostics.value = declarationDiagnostics(nodes.value, edges.value, records(), activeOrganizationId());
@@ -370,6 +373,7 @@ onMounted(() => {
   window.addEventListener('beforeunload', handleBeforeUnload);
 });
 onBeforeUnmount(() => {
+  setWorkspacePageDirty(workspacePageKey, false);
   window.removeEventListener('beforeunload', handleBeforeUnload);
 });
 

@@ -4,6 +4,12 @@ Shared frontend utility modules used by Vue pages/components.
 
 Parent: [root README](../README.md).
 
+- `workspace-page-dirty.js`: Dirty registry for workspace page tabs —
+  pages register unsaved-edit state under their tab key (`provide`d as
+  `workspacePageKey` by the page mount), and the workspace's pane/tab
+  close paths confirm through the shared dialog before closing a dirty
+  tab.
+
 ## Design System Contract
 
 - `design-system-contract.js`: The design-system vocabulary source — entity contracts, field-group and surface-chrome tables; binding to Vue components happens in `design-system-cards.js`.

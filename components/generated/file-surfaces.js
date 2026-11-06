@@ -270,8 +270,8 @@ export function resolveFileSurface(editors, typeId = '', surfaces = null) {
  */
 export function openBlankFileEditor(typeId = '') {
   // Desktop only: mobile has no panes, and a silent no-op would swallow
-  // the create — mobile falls back to the direct construct and the
-  // routed detail surface (the editor opens through its header action).
+  // the create — mobile falls back to the direct construct; the routed
+  // detail surface's body is the editor.
   if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)')?.matches) return false;
   const surface = resolveFileSurface(undefined, typeId);
   if (!surface?.workspacePage) return false;
