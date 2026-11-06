@@ -33,6 +33,7 @@
     "design:scope-check": "node scripts/check-agent-scope.js --allow .agents/design-layer.allowlist",
     "icons:build": "node scripts/build-icon-fonts.js",
     "docs:validate": "node scripts/check-docs.js",
+    "docs:map": "node scripts/docs-map.js",
     "plugin-deps:check": "node scripts/check-plugin-deps.js"
   },
   "dependencies": {

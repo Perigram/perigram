@@ -31,9 +31,9 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+export const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 const SKIP_DIRS = new Set([
   'node_modules',
@@ -58,6 +58,22 @@ const SKIP_PATHS = [
   path.join(REPO_ROOT, 'workers/tech-drawing/assets/vendor/cadcraft/app')
 ];
 
+// Submodule content is pinned by commit; fresh worktrees leave it unpopulated.
+const SUBMODULE_PATHS = (() => {
+  try {
+    const gitmodules = readFileSync(path.join(REPO_ROOT, '.gitmodules'), 'utf8');
+    return [...gitmodules.matchAll(/path\s*=\s*(.+)/g)].map(m => path.join(REPO_ROOT, m[1].trim()));
+  } catch {
+    return [];
+  }
+})();
+
+const EXCLUDED_PATHS = SKIP_PATHS.concat(SUBMODULE_PATHS);
+
+function insideSubmodule(file) {
+  return SUBMODULE_PATHS.some(prefix => file === prefix || file.startsWith(prefix + path.sep));
+}
+
 const FENCE_RE = /^```/;
 
 const MIN_DUPLICATE_LENGTH = 180;
@@ -65,10 +81,10 @@ const MIN_DUPLICATE_LENGTH = 180;
 const MIN_CODE_DUPLICATE_LENGTH = 60;
 
 function skipped(dir) {
-  return SKIP_PATHS.some(prefix => dir === prefix || dir.startsWith(prefix + path.sep));
+  return EXCLUDED_PATHS.some(prefix => dir === prefix || dir.startsWith(prefix + path.sep));
 }
 
-function walk(dir) {
+export function walk(dir) {
   const out = [];
   if (skipped(dir)) return out;
   let entries;
@@ -95,7 +111,7 @@ function walk(dir) {
   return out;
 }
 
-function collectLinks(content, file) {
+export function collectLinks(content, file) {
   const links = [];
   const re = /!?\[[^\]]*\]\(([^)\s]+)\)/g;
   let m;
@@ -112,7 +128,7 @@ function collectLinks(content, file) {
   return links;
 }
 
-function resolveTarget(link) {
+export function resolveTarget(link) {
   const fileDir = path.dirname(link.file);
   const targetNoAnchor = decodeURIComponent(link.raw.split('#')[0]);
   if (targetNoAnchor === '') return null;
@@ -141,7 +157,8 @@ function main() {
           );
           continue;
         }
-        if (!existsSync(path.join(REPO_ROOT, rel))) {
+        const abs = path.join(REPO_ROOT, rel);
+        if (!existsSync(abs) && !insideSubmodule(abs)) {
           failures.push(
             `Broken link in ${path.relative(REPO_ROOT, file)}: "${link.raw}"`
           );
@@ -328,7 +345,7 @@ function findContractShapedComments() {
   return findings;
 }
 
-function splitOutsideFences(content) {
+export function splitOutsideFences(content) {
   const chunks = [];
   let inCode = false;
   let current = '';
@@ -352,4 +369,4 @@ function splitOutsideFences(content) {
   return chunks;
 }
 
-main();
+if (import.meta.url === pathToFileURL(process.argv[1] || '').href) main();
