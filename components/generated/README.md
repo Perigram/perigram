@@ -46,7 +46,8 @@ routes: the overview at `/organization`
 screens route replaces a system-screen key with the screen's own route.
 
 Every organization management surface — team, bots, partners, billing, the
-plugin marketplace, and the process designer canvas — is a registered
+plugin marketplace, the process designer canvas, and a stationed type's
+declaration editor (SPEC §1) — is a registered
 workspace page in `workspace-pages.js` carrying its `route`; the generated
 overview's system-screen buttons open them as home pane tabs through the
 page-open seam (`utils/workspace-page-open.js` — the page twin of the
@@ -172,6 +173,20 @@ The home shell's two first-class action surfaces (SPEC §4):
   (`ActionButton`), grouped under the type label; a create never
   appears — the query admits instance-addressed actions only. Empty
   state is a bare `StateBlock`.
+
+## Declaration author affordance (SPEC §1)
+
+`TypeDeclareEntry.vue` is the icon-only control that opens a stationed
+type's declaration editor (the registered `typeDeclaration` workspace
+page, owned by [type-designer](../type-designer/README.md)). It renders
+only while the caller's grant admits the process designer
+(`organizations:admin` — the organization system screen's `required`) and
+the active definition's draft declares the type
+(`useDeclarationStation`,
+[composables](../../composables/README.md)); pack and plugin types render
+nothing. The app host owns the chrome: the workspace pane header row of a
+typeList screen (`GeneratedScreenPane`) and the routed screens page's
+action space render it — generated region content never selects it.
 
 ## Overload Registry
 

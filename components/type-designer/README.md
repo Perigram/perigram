@@ -1,7 +1,8 @@
 # COMPONENT: Type Designer
 
-Declaration editor nodes for the process designer: the class/field/state
-Vue Flow node cards and the recursive field-descriptor editor.
+Declaration authoring surfaces for the process designer: the class/field/
+state Vue Flow node cards, the recursive field-descriptor editor, and the
+in-place declaration editor page. 
 [pages/organization/process.vue](../../pages/organization/process.vue)
 mounts the cards as its `ctsClass`/`ctsField`/`ctsState` node templates,
 and the process designer's
@@ -43,6 +44,36 @@ live through the registry's `describeType`, its message rendering
 inline; an unset `ref` (no accepted targets) is authored-in-progress
 and stays out of the declaration until targets are picked.
 
+## The in-place declaration editor (SPEC §1)
+
+`TypeDeclarationEditor.vue` is the registered `typeDeclaration` workspace
+page (`/types/declaration` as its mobile/deep-link route), opened by the
+author affordance on a stationed type's surfaces
+([generated](../generated/README.md)). It receives the `typeId` (and the
+resolved stationing definition id) through the page-open params channel
+and is a **second projection of the same declaration records the canvas
+authors** — one authoring model, two projections:
+
+| Concern | Contract |
+|---|---|
+| Load | The stationing definition document through the designer's read API (`GET /api/process-definitions/:id`); the page subtitle names the definition, the title the type — both through their label chains. |
+| Projection | `definitionToCanvas`/`canvasToDefinition` (packages/processes transpiler) between the document and the edited node/edge arrays — the same seam the canvas round-trips through. |
+| Fields | One property row per declared field: name, kind + qualifier summary (`fieldDescriptorSummary`), the required/nullable state, the identifier mark; row affordances rename, host the shared `DescriptorEditor`, move the single identifier holder (`applyFieldDisplayRole`), add, and remove. |
+| Lifecycle | The states of the type's vocabulary (value, severity, icon — the state authoring pieces the inspector hosts) and the bound transition records (intent label, target). A state enters the vocabulary through an operation (SPEC §7): add-state carries it into the first construct without an initial state, else mints the targeting transition. |
+| Writes | The same declaration records: class node data, field nodes and their `declares` wires, state nodes and their `entry` wires into `cts.construct`/`cts.transition` records. `interpretDeclarationEdges` runs after each structural edit — the same live interpretation the canvas runs. |
+| Validation | `compileTreeDeclarations` + `normalizeType` diagnostics on every change (the class-inspector chain, pinned in `utils/processDesignerDeclarationEditor.js`); a removal that would orphan consumers is refused and its fresh diagnostics surfaced inline. |
+| Save | `PATCH /api/process-definitions/:id` with the `canvasToDefinition` snapshot — draft persistence only; the Apply ceremony stays the only activation path. Dirty state gates the save button; leaving the routed page with unsaved changes prompts through the standard confirm host, and a dirty mount guards the browser unload. |
+| Machine view | One dialog from the lifecycle header: `machineModelOf` + `mermaidFlowchartOf` render through the shared markdown pipeline (mermaid fences as diagrams app-wide); the initial state derives from the construct's entry target, a transition with no authored `from` renders from the initial state, else from every other state. |
+
+The transition guard editor, actor assignment, field policy, grants, and
+the dataflow wiring stay on the canvas inspector (v1 boundary).
+
+The pure projection and gesture layer lives in
+[utils](../../utils/README.md) → `processDesignerDeclarationEditor.js`
+(spec-pinned: the in-place round-trip must serialize to the document the
+canvas gestures save); the stationing-definition resolution in
+[composables](../../composables/README.md) → `useDeclarationStation`.
+
 ## Conventions
 
 - The card face stays quiet — identity, tag, sockets; meta detail rides
@@ -56,5 +87,6 @@ and stays out of the declaration until targets are picked.
 
 - Parent: [components](../README.md)
 - [process-designer](../process-designer/README.md) — canvas contract, inspector, wire grammar
+- [generated](../generated/README.md) — the author affordance and the workspace-page registry
 - [shared](../shared/README.md) — `DesignerNodeCard`, `DesignerSocketHandle`
 - [packages/cts](../../packages/cts/SPEC.md) — declaration and descriptor grammar

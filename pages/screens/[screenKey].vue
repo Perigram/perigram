@@ -2,6 +2,11 @@
   <StateBlock v-if="refreshingAuth" state="loading" :message="$t('common.loading')" />
   <StandardPage v-else-if="screen && pageTitle" workspace :title="pageTitle" :back="back">
     <template #actions>
+      <TypeDeclareEntry
+        v-if="listDeclareTypeId"
+        chrome="bare"
+        :type-id="listDeclareTypeId"
+      />
       <Button icon="pi pi-refresh" :label="$t('common.refresh')" severity="secondary" outlined size="small" :loading="poolLoading" @click="reload" />
     </template>
     <GeneratedScreenHost
@@ -29,6 +34,7 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import { useAuthStore } from '~/stores/auth';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
+import TypeDeclareEntry from '~/components/generated/TypeDeclareEntry.vue';
 import { synthesizeDetailScreen } from '~/components/generated/detail-screen-actions.js';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -72,6 +78,13 @@ const pageTitle = computed(() => (
   ['instanceDetail', 'formAction', 'home'].includes(screen.value?.template)
     ? null
     : screen.value?.label || screen.value?.screenKey
+));
+
+// The declaration affordance for routed typeList surfaces (SPEC §1): the
+// page's action space hosts it beside refresh, exactly like the pane
+// header does for the workspace twin.
+const listDeclareTypeId = computed(() => (
+  screen.value?.template === 'typeList' ? String(screen.value.typeId || '') : ''
 ));
 
 const screen = computed(() => {

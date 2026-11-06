@@ -4781,11 +4781,12 @@ Session `agent/create-inbox-20261106` (worktree
 
 ### D. Declaration authoring in place (SPEC §1)
 
-- [ ] Author affordance: a control on a stationed type's list surface
+- [x] Author affordance: a control on a stationed type's list surface
   header (and the type's record surface), gated by the process-design
   capability, opening the type declaration editor as a workspace page
   pane tab.
-- [ ] Declaration editor: fields as a property list — one row per field
+  Landed 2026-11-06 (declaration editor session, see Agent Notes).
+- [x] Declaration editor: fields as a property list — one row per field
   with kind, qualifier, identifier/required flags, glyph — and the
   lifecycle as the states-and-transitions editor (state value, label,
   severity/icon; transitions from/to/intent), composing the existing
@@ -4793,21 +4794,98 @@ Session `agent/create-inbox-20261106` (worktree
   the definition draft that stations the type through the same
   declaration records the canvas authors (compile/validate through
   `compileTreeDeclarations` diagnostics); save persists the draft.
-- [ ] Lifecycle machine view: one dedicated popup diagramming the type's
+  Landed 2026-11-06 (declaration editor session, see Agent Notes).
+- [x] Lifecycle machine view: one dedicated popup diagramming the type's
   states and legal edges from the draft data (the shared mermaid
   pipeline or an equivalent diagram surface).
-- [ ] Canvas reconciliation: the designer reloads draft state on open;
+  Landed 2026-11-06 (declaration editor session, see Agent Notes).
+- [x] Canvas reconciliation: the designer reloads draft state on open;
   an open canvas reconciles out-of-band draft saves (minimum: reload on
   focus/reopen; live signature re-run where the seam makes it cheap).
+  Landed 2026-11-06 (declaration editor session, see Agent Notes).
 - [ ] Validation: declaration-plane focused specs; e2e for the
   authoring round-trip (edit field in place, open canvas, see the same
   declaration); docs — components/type-designer + process-designer
   READMEs, components/generated README.
+  Unit side landed 2026-11-06 (see Agent Notes); the e2e round-trip
+  awaits the next stack run (no Playwright this session).
+- [ ] WAITING — owner verification: a stationed type's typeList pane
+  header and the routed typeList page carry the declaration affordance
+  (pack types render nothing); the editor's fields rows rename, edit
+  descriptors through the shared DescriptorEditor, move the identifier
+  holder, and refuse orphaning removals with the compile diagnostic; the
+  lifecycle edits states and transitions and the machine view renders
+  the mermaid diagram; save persists the draft and Apply stays on the
+  canvas; an open designer picks an in-place save up on focus/poll.
 
 Session reads: SPEC §1 (in-place law), §7 (CTS state law);
 components/process-designer/README.md; components/type-designer;
 server/features/process-definitions/README.md (definition draft
 lifecycle); packages/processes/README.md (declaration compiler).
+
+### Agent Notes (2026-11-06, declaration authoring in place)
+
+Session `agent/declare-inplace-20261106` (worktree
+`.agent-worktrees/declare-inplace-20261106`).
+
+- Landed: the author affordance (`components/generated/TypeDeclareEntry.vue`)
+  renders on the typeList workspace pane header (`GeneratedScreenPane`,
+  host chrome) and the routed screens page's action space, gated by
+  `organizations:admin` (the process-designer system screen's `required`
+  seam) and by `useDeclarationStation` — the active definition whose
+  draft graph declares the type (`/active` first, then the additive
+  active set; drafts station nothing). Icon-only, `uiMapping.declareType`
+  (en+ru).
+- Landed: the `typeDeclaration` workspace page
+  (`components/type-designer/TypeDeclarationEditor.vue`,
+  `/types/declaration?type=&definition=` as the route twin) receives the
+  type through the params channel, loads the stationing definition via
+  the designer's read API, projects with `definitionToCanvas`, and saves
+  the `canvasToDefinition` snapshot through `PATCH /api/process-definitions/:id`
+  — draft only. Fields rows (rename, shared `DescriptorEditor`,
+  identifier holder via `applyFieldDisplayRole`, required/nullable marks,
+  gated removal), lifecycle states (value/severity/icon) and transitions
+  (intent label, entry-wire target), the shared live interpretation
+  (`interpretDeclarationEdges`) after each structural edit, and the
+  compile-diagnostics surface on every change. The machine view derives
+  `machineModelOf` → mermaid through the shared markdown pipeline.
+  Pure layer: `utils/processDesignerDeclarationEditor.js` (spec-pinned
+  round-trip: an in-place field add serializes to the exact document the
+  canvas gesture saves).
+- Reconciliation: the designer re-fetches its document on window focus
+  and a 30s poll, comparing the draft data signature against the settled
+  load baseline (the read API carries no version stamp); a dirty canvas
+  reconciles nothing — last-writer-wins, like the canvas itself.
+- Design decisions forced by the canvas draft shape (owner review):
+  a state's vocabulary membership is operation-carried (SPEC §7), so
+  add-state wires the new state into the first construct without an
+  initial state, else mints the targeting transition — a "move to X"
+  action appears at the next Apply; transition `from` is wiring-derived
+  (dataflow stays canvas), so the transitions list renders an authored
+  `from` where present and edits intent + target only; the pane tab
+  close carries no veto seam, so unsaved-change guards cover the routed
+  leave (standard confirm host) and the browser unload, and closing a
+  dirty editor pane tab drops its edits.
+- Findings: the removal gate is the compile diagnostics chain
+  (`compileTreeDeclarations` + `normalizeType`) — the identifier-holder
+  law surfaces at Apply through the registry compile (canvas parity; the
+  class inspector shows the same chain), and no client diagnostic today
+  covers a construct referencing a removed field (Apply validation owns
+  it, as on the canvas); `composables/useProcessDesignerCanvasModel.spec.js`
+  "keeps every node and record through declaration authoring…" fails at
+  base (reproduced with this branch's changes stashed — a state→class
+  declare connect expectation, presumably broken by the state-scope
+  retirement on an earlier base).
+- Validation: `utils/processDesignerDeclarationEditor.spec.js` 16/16;
+  components 79/79 (generated 85 incl. the new spec run);
+  shared/localization 4/4; shared/process-designer-ui +
+  process-designer-localization green; SSR smoke 24/24 (a new
+  `declaration-page.ssr-smoke.js` mounts the routed twin and caught a
+  real first-paint bug — the pre-load render fell into the
+  not-stationed branch); `node scripts/check-arch.js` green;
+  `npm run docs:validate` clean beside the known 13-entry homing
+  backlog (unchanged). No Playwright per session law; the e2e
+  authoring round-trip awaits the next stack run.
 
 ### Agent Notes (2026-11-06, preview pending loader)
 
