@@ -45,7 +45,11 @@ the opened instance (`screen.scope.instanceId` + `screen.typeId`), every
 lineage row whose accepted parent types include that type submits the
 opened instance's reference without rendering, and a dialog whose every
 row the context supplies runs with no form at all
-([SPEC §4](../../SPEC.md)). `link` actions prompt for the relation
+([SPEC §4](../../SPEC.md)); a launch carrying no context prompts the
+lineage rows — graph-wired axes included, because their wire source is
+the launch context (`planActionLaunch` counts them only on a contextless
+launch). The same context reaches nested part-creates through
+`NestedCreateDialog`'s `scopedInstance` prop. `link` actions prompt for the relation
 target through `InstancePicker` over the pool before dispatch (`onRun`
 receives `{ relations: { key: ref } }`; the picker accepts the relation's
 declared `targetTypes` and models the instance ref `{ type, id }` it
@@ -182,11 +186,11 @@ beside the transition history in `StateHistory`.
   [shared/ui-mapping](../../shared/ui-mapping/README.md). A region
   rendering in the stub slot (`stub` prop, the pack strip under a record
   body) renders its create affordance alone — while
-  loading/denied/error states keep the shared `RegionDataState` surface. A create action for the region's own type
-  collapses its caption to the bare localized `uiMapping.new` ("New")
-  through ActionButton's context label: the header already names the class
-  (creates for other types and every other action keep the full label).
-  The toolbar and stub line render their create set through
+  loading/denied/error states keep the shared `RegionDataState` surface.
+  A create action renders its compiled caption (the procedural
+  create-label law names the created type and mode). The toolbar and
+  stub line render their create set
+  through
   `createActionControls`: same-type creates collapse to one
   `CreateControl` (see below) whose mode selection names the siblings.
   A relation-scoped section's toolbar also renders the injected link
@@ -226,7 +230,8 @@ beside the transition history in `StateHistory`.
   are the type's served state vocabulary (authored order, `StateTag`
   headers with per-column counts) and whose cards are the loaded instances
   grouped by their flat state — the card-grid anatomy (preview band
-  through `PreviewBox`, identity link, budgeted facts) with two deliberate
+  through `PreviewBox`, identity link, the lineage trail on cross-cut
+  lists, budgeted facts) with two deliberate
   omissions: the status badge (the lane already is the state) and the type
   subtitle (a lane is single-type). Facts follow the card-grid budget
   (`cardFactCount` over `CARD_FACT_SCALE`, compact in a `narrow` host
@@ -279,12 +284,15 @@ beside the transition history in `StateHistory`.
   by the state severity token classes (`bg-status-*`), a start without an
   end renders a point — a duration is never fabricated — and the axis
   carries month ticks (dense scales drop labels, keeping structure) plus
-  the today marker when the scale spans now. Identity links follow the
+  the today marker when the scale spans now. The identity column carries
+  the lineage trail under the identity link on cross-cut lists; identity
+  links follow the
   shared `onOpen` contract.
 - `CalendarCollection.vue` — the scheduled projection: a month grid over
   the type's lone declared instant. Day cells are subtle wells, today's
   cell steps up to the content surface, instances render as capped
-  identity chips with a plain overflow count (the day cell is a summary),
+  identity chips with a plain overflow count (the day cell is a summary
+  carrying no lineage trail — the record surface states the ancestry),
   and month navigation is local view state — the month opens on the first
   loaded instance's month. Labels and weekday headers format through the
   active locale.
@@ -293,8 +301,10 @@ beside the transition history in `StateHistory`.
   containment ancestry (`containmentAncestors` over the effective
   containment contract) and resolved through the instances store's
   readable-reference seam. Ancestors are navigation: each crumb opens its
-  resolved instance through the screen's identity-open channel; the
-  opened record's title is the header identity line below the trail.
+  resolved instance through the surface's identity-open channel. The
+  record header carries the trail above the identity line; every
+  cross-cut collection projection carries it beside the identity
+  (table, card grid, board, timeline, gantt, stats).
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identifier (`InstanceIdentity`) under the identifier field's label (a
   type without an identifier field heads the column with the type label;
@@ -350,11 +360,11 @@ beside the transition history in `StateHistory`.
   someone's child (a declared children edge names it) composes the
   containment cross-cut (`crossCut` on the composed node — scoped sources
   render inside the surface that already states their parent): every
-  instance lists with its parent beside the
-  identity (`ParentRef.vue` — the parent type's icon plus the parent's
-  resolved label, non-interactive; the region host lazily overlays
-  loaded parent types onto the pool through the same `loadType` seam
-  the tree uses). Containment navigation belongs to the workspace
+  instance lists with its lineage breadcrumb trail under the identity
+  (`BreadcrumbTrail.vue`, the record header's trail; each ancestor opens
+  through the screen's open channel, and the trail resolves ancestors
+  itself over the instances store's readable-reference seam).
+  Containment navigation belongs to the workspace
   explorer.
 - `CardGrid.vue` — the media and membership collection projection
   (DataView, paginated): cards lay out in the shared `ResponsiveGrid`
@@ -372,18 +382,20 @@ beside the transition history in `StateHistory`.
   an open handler, riding the media's corner
   (`LAYOUT.mediaTileBadge` positioning) and status plus the row menu
   floating on the media — the body slot stays hidden so no padded box
-  trails it, and the tile carries no parent-context line. The tile's
+  trails it, and the grounded trail chip rides under the identifier
+  chip when the cross-cut composes. The tile's
   identifier chip is a record-peek trigger (SPEC §22.14 —
   `HoverPeek` + [`InstancePeek`](../shared/README.md#instancepeekvue),
   the compiled record surface in the peek rhythm); the `side`
   anatomy (visual
   preview with facts) lays the preview in one bounded framed
-  column (`LAYOUT.previewSide`) beside identity, status, the `ParentRef`
-  parent context, and the labeled budgeted facts; the `plain` stack
+  column (`LAYOUT.previewSide`) beside the lineage trail, identity,
+  status, and the labeled budgeted facts; the `plain` stack
   (every other type) renders the payload chip beside identity in
   `#title` (opening the payload download — the escape hatch for modes
-  the viewer cannot render), the `ParentRef` context in `#subtitle`,
-  and the facts in `#content`. Card ordering
+  the viewer cannot render), the lineage trail in `#subtitle`,
+  and the facts in `#content`. Every anatomy carries the trail under the
+  same cross-cut gate as the table. Card ordering
   lives in the region header's view popover (RegionBlock applies the
   `sortKeys` contract through the shared comparator before the grid
   mounts; the DataView itself renders no header). The card identity is a
@@ -399,7 +411,8 @@ beside the transition history in `StateHistory`.
 - `StatGrid.vue` — the stats projection for percent/quantity-dominant
   types (the shape matcher is
   [shared/ui-mapping](../../shared/ui-mapping/README.md)'s): a dense
-  `ResponsiveGrid` of cards — identifier (`InstanceIdentity`), state
+  `ResponsiveGrid` of cards — identifier (`InstanceIdentity`), the
+  lineage trail under the identity on cross-cut lists, state
   tag, and the type's derived
   metric field rendered in the `text-metric` face, quantities formatted
   through `formatQuantity`.
@@ -407,7 +420,8 @@ beside the transition history in `StateHistory`.
   marker-per-entry with identifier (`InstanceIdentity`, trimmed at the
   timeline column's edge — the bounded
   identity-link recipe the tables use: `min-w-0 max-w-full` with a
-  truncating label), inline scalar facts, and the type's primary long-text
+  truncating label), the lineage trail under the identity on cross-cut
+  lists, inline scalar facts, and the type's primary long-text
   (or first structural) field as the entry body, selected by type matcher
   (log entries). The timeline is left-anchored: the `#opposite` column
   PrimeVue always renders is display:none'd through pt, keeping wide
@@ -654,12 +668,10 @@ beside the transition history in `StateHistory`.
   glyph, a record's declared thumb winning) and opens the record under
   the screen's `onOpen` contract; every projection's collection
   identities render through it.
-- `ActionButton.vue`, `ParentRef.vue` — action-button presentation from
-  the compiled action record, and the containment cross-cut's parent
-  context token (a muted parent-type icon + the parent's resolved label
-  through `incomingChildrenEdges`/`parentRefOf`; a parent missing from
-  the pool still names its type through the one type-label chain;
-  non-interactive by contract — context).
+- `ActionButton.vue` — action-button presentation from
+  the compiled action record; creates render captioned (the compiled
+  label names the created type), delete and the construct re-run render
+  icon-only (the caption stays the tooltip and accessible name).
   Instance references (relation chips, table relation columns, `ref`
   field values) render through the shared
   [InstanceInlineRef](../shared/README.md) — the app's one interactive
@@ -671,21 +683,16 @@ beside the transition history in `StateHistory`.
   locale files may override any generated label; ActionButton carries the
   label as its accessible name. A host surface may pass a context-supplied
   label prop (still under locale-override precedence) to shorten a
-  caption its own chrome already describes — RegionBlock's "New" beside
-  the region header is the one current use. Obvious actions render
-  icon-only when the resolver says so (create `+`, delete trash): the
-  label stays the tooltip and accessible name, and the context label never
-  widens the button back.
+  caption its own chrome already describes — a relation section's "Link"
+  is the one current use.
 - `CreateControl.vue` — one `createActionControls` entry: a sole create
   renders its ActionButton; a sibling group (several creation modes, one
   type) renders one PrimeVue `InputGroup` composing the creation-mode
   `Select` (options from `creationModeLabel`, lead action selected) with
-  an attached create `Button` — icon/severity from `resolveActionButton`,
-  accessible name from the caption chain (`actionLabelKey`/`localizedLabel`
-  under the context label) — that dispatches the selected action through
-  the ordinary run channel. A grouped button renders attached: the
-  standalone icon-button look (ActionButton's icon-only channel) floats
-  inside a group.
+  an attached create `Button` — icon/severity/caption from
+  `resolveActionButton` and the caption chain
+  (`actionLabelKey`/`localizedLabel`) — that dispatches the selected
+  action through the ordinary run channel.
 - `ActionFormDialog.vue` — the one generated action form dialog
   (`StandardDialog` + `FillDialogBody` shell): rows from
   `resolveCreateDialogInputs` (or `resolveRunDialogInputs` for
@@ -704,8 +711,9 @@ beside the transition history in `StateHistory`.
   its own dialog: a construct-protocol create opens inside its host; the
   created record reports back through `applied` (`{ rowId, apply,
   typeId, id }`) and the host places it — a form row's value or the link
-  dialog's target. Runs execute through the instances store's
-  action-run channel; refusals toast.
+  dialog's target. The host's `scopedInstance` seeds and hides lineage
+  rows the same way the action form dialog does. Runs execute through
+  the instances store's action-run channel; refusals toast.
 - `upload-create.js` — the upload-mode create dispatch (SPEC §4) shared
   by `RefRowActions` and the home shell's create palette
   ([components/generated](../generated/README.md)): the file input's

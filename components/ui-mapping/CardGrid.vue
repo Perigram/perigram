@@ -42,18 +42,27 @@
                 @open="$emit('open', instance)"
               >
                 <template #default="{ peekEvents }">
-                  <Chip
-                    v-on="peekEvents"
-                    :label="identityOf(instance)"
-                    :icon="iconFor(type, instance) || undefined"
-                    :pt="CHIP_LABEL_PT"
-                    :class="[LAYOUT.mediaTileBadge, FILE_CHIP_CLASS, { 'cursor-pointer': openable }]"
-                    :title="identityOf(instance)"
-                    :role="openable ? 'button' : undefined"
-                    :tabindex="openable ? 0 : undefined"
-                    @click="openable && $emit('open', instance)"
-                    @keydown.enter.prevent="openable && $emit('open', instance)"
-                  />
+                  <div :class="[LAYOUT.mediaTileBadge, 'flex flex-col items-start gap-1']">
+                    <Chip
+                      v-on="peekEvents"
+                      :label="identityOf(instance)"
+                      :icon="iconFor(type, instance) || undefined"
+                      :pt="CHIP_LABEL_PT"
+                      :class="[FILE_CHIP_CLASS, { 'cursor-pointer': openable }]"
+                      :title="identityOf(instance)"
+                      :role="openable ? 'button' : undefined"
+                      :tabindex="openable ? 0 : undefined"
+                      @click="openable && $emit('open', instance)"
+                      @keydown.enter.prevent="openable && $emit('open', instance)"
+                    />
+                    <BreadcrumbTrail
+                      v-if="parented"
+                      :instance="instance"
+                      :bundle="bundle"
+                      :class="FILE_CHIP_CLASS"
+                      @open="target => $emit('open', target)"
+                    />
+                  </div>
                 </template>
                 <template #preview>
                   <InstancePeek :type-id="String(type?.id || '')" :instance-id="instanceIdOf(instance)" />
@@ -69,14 +78,12 @@
                 <PreviewBox variant="stamp" :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
               </div>
               <div class="flex min-w-0 flex-1 flex-col gap-2">
-                <span v-if="parented" class="inline-flex min-w-0 items-center gap-2">
-                  <ParentRef
-                    :instance="instance"
-                    :bundle="bundle"
-                    :pool="pool"
-                    class="min-w-0"
-                  />
-                </span>
+                <BreadcrumbTrail
+                  v-if="parented"
+                  :instance="instance"
+                  :bundle="bundle"
+                  @open="target => $emit('open', target)"
+                />
                 <div :class="LAYOUT.rowBetween">
                   <InstanceIdentity
                     :instance="instance"
@@ -156,16 +163,14 @@
           </template>
           <!-- SPEC §22.8: a homogeneous collection never repeats the
                type name per card — the collection's own header names it.
-               Only containment context (ParentRef) earns the line. -->
+               Only containment context (the lineage trail) earns the
+               line. -->
           <template v-if="anatomy === 'plain' && parented" #subtitle>
-            <span class="inline-flex min-w-0 items-center gap-2">
-              <ParentRef
-                :instance="instance"
-                :bundle="bundle"
-                :pool="pool"
-                class="min-w-0"
-              />
-            </span>
+            <BreadcrumbTrail
+              :instance="instance"
+              :bundle="bundle"
+              @open="target => $emit('open', target)"
+            />
           </template>
           <template v-if="anatomy === 'plain'" #content>
             <div :class="spacing ? spacing.stackTight : 'flex flex-col gap-3'">
@@ -214,7 +219,7 @@ import {
 import { instancePayloadFileUrl } from '~/components/generated/file-preview-contract.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
-import ParentRef from './ParentRef.vue';
+import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
 import FileChip from '~/components/shared/FileChip.vue';
 import { CHIP_LABEL_PT, FILE_CHIP_CLASS } from '~/components/shared/chip-surface.js';
@@ -242,7 +247,7 @@ const props = defineProps({
   // Collection identities render as links when an open handler exists.
   openable: { type: Boolean, default: false },
   // The containment cross-cut composes on this collection (unscoped class
-  // list): cards carry the parent context token beside the type label.
+  // list): cards carry their lineage breadcrumb trail.
   parented: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },

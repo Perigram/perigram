@@ -156,7 +156,9 @@ The home shell's two first-class action surfaces (SPEC §4):
   reference-row create), and every other create opens the shared action
   form dialog
   ([components/ui-mapping](../ui-mapping/README.md)) or runs directly
-  when it prompts nothing (`planActionLaunch`). Runs execute through
+  when it prompts nothing (`planActionLaunch` — the palette launches
+  contextlessly, so a create's lineage axes count as prompted rows and
+  the dialog collects the parent). Runs execute through
   the instances store's action-run channel and land through the
   created-open contract above.
 - **The action inbox** (`ActionInboxPage.vue`, the registered `inbox`

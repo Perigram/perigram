@@ -39,6 +39,7 @@
     :controls="node.listControls"
     :actions="instanceActions"
     :openable="openable"
+    :parented="parented"
     :pool="effectivePool"
     :bundle="bundle"
     :state-policy="node.statePolicy"
@@ -54,6 +55,7 @@
     :type="node.type"
     :controls="node.listControls"
     :openable="openable"
+    :parented="parented"
     :pool="effectivePool"
     :bundle="bundle"
     @open="instance => emit('open', instance)"
@@ -63,6 +65,9 @@
     :instances="filteredInstances"
     :type="node.type"
     :openable="openable"
+    :parented="parented"
+    :pool="effectivePool"
+    :bundle="bundle"
     :state-policy="node.statePolicy"
     @open="instance => emit('open', instance)"
   />
@@ -78,6 +83,7 @@
     :instances="filteredInstances"
     :type="node.type"
     :openable="openable"
+    :parented="parented"
     :pool="effectivePool"
     :bundle="bundle"
     :state-policy="node.statePolicy"
@@ -110,7 +116,7 @@ defineProps({
   bundle: { type: Object, default: null },
   openable: { type: Boolean, default: false },
   // The containment cross-cut composes on this collection (unscoped class
-  // list): rows carry their parent context token.
+  // list): rows carry their lineage breadcrumb trail.
   parented: { type: Boolean, default: false },
   instanceActions: { type: Array, default: () => [] },
   // SPEC §22.12: `{ parent, actions }` — the relation-scoped section's

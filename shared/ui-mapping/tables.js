@@ -529,7 +529,7 @@ export const ASPECT_PREVIEW_MODES = Object.freeze(['pdf']);
 // checked before kind entries (specificity handles ordering).
 export const ACTION_ENTRIES = Object.freeze([
   { match: { trigger: 'event' }, component: null, hidden: true },
-  { match: { actionKind: 'createInstance' }, component: 'Button', tone: 'primary', icon: 'pi pi-plus', iconOnly: true },
+  { match: { actionKind: 'createInstance' }, component: 'Button', tone: 'primary', icon: 'pi pi-plus' },
   { match: { actionKind: 'deleteInstance' }, component: 'Button', tone: 'danger', icon: 'pi pi-trash', confirm: true, iconOnly: true },
   { match: { actionKind: 'rerunInstance' }, component: 'Button', tone: 'secondary', icon: 'pi pi-refresh', iconOnly: true },
   { match: { actionKind: 'runCommand' }, component: 'Button', tone: 'secondary', icon: 'pi pi-bolt' },

@@ -3,7 +3,6 @@
     v-if="!grouped"
     :action="action"
     :state-policy="statePolicy"
-    :label="label"
     @run="run"
   />
   <InputGroup v-else>
@@ -18,9 +17,8 @@
     />
     <Button
       :icon="resolved.icon || undefined"
+      :label="buttonLabel"
       :severity="resolved.severity || undefined"
-      :aria-label="buttonLabel"
-      :title="buttonLabel"
       size="small"
       @click="run(selectedAction)"
     />
@@ -42,8 +40,6 @@ const props = defineProps({
   // same-type creates renders the creation-mode selection beside it.
   action: { type: Object, required: true },
   group: { type: Array, default: null },
-  // Context-supplied caption (ActionButton's label channel).
-  label: { type: String, default: null },
   statePolicy: { type: Object, default: null }
 });
 
@@ -59,13 +55,13 @@ const modeOptions = computed(() => (props.group || []).map(action => ({
   label: creationModeLabel(action.construction?.mode) || action.label || action.id,
   value: action.id
 })));
-// The grouped button renders attached inside the InputGroup: the resolver
-// still owns its icon/severity, and the caption chain its accessible name.
+// The caption names the created type through the compiled label; the
+// grouped button renders it beside the creation-mode selection.
 const resolved = computed(() => resolveActionButton(selectedAction.value, { statePolicy: props.statePolicy }));
 const buttonLabel = computed(() => localizedLabel(
   { te, t },
   actionLabelKey(selectedAction.value.id),
-  props.label ?? (resolved.value.label || selectedAction.value.label)
+  resolved.value.label || selectedAction.value.label
 ));
 const run = action => emit('run', action);
 </script>

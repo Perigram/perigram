@@ -550,6 +550,16 @@ describe('action launch plan', () => {
     })).toBe('dialog');
   });
 
+  it('counts lineage axes as dialog rows exactly when the launch carries no context', () => {
+    const action = {
+      actionKind: 'createInstance',
+      construction: { inputs: [{ id: 'lineage.binId' }] },
+      inputPolicy: { fields: [{ id: 'lineage.binId', path: 'lineage.binId', type: 'entity', typeId: 't-bin-1', prompt: false }] }
+    };
+    expect(planActionLaunch(action)).toBe('dialog');
+    expect(planActionLaunch(action, { scopedInstance: { type: 't-bin-1', id: 'b-1' } })).toBe('run');
+  });
+
   it('never replaces a create form with a bare confirm because of the grant level', () => {
     // The reported defect: admin-granted creates ran behind a
     // confirmation with an empty draft — grant level is an access signal,
@@ -1381,6 +1391,39 @@ describe('create dialog input resolution', () => {
       bundle
     );
     expect(rows.map(row => row.id)).toEqual(['fields.note']);
+  });
+
+  it('keeps graph-wired lineage axes as rows the launch context owns', () => {
+    // A lineage socket wired to the launch context is unsupplied on a
+    // contextless launch: the row stays and the compiled required flag
+    // rides, so the created record always lands under a parent.
+    const rows = resolveCreateDialogInputs(
+      {
+        construction: { inputs: [{ id: 'lineage.tPart1Id' }] },
+        inputPolicy: {
+          fields: [{ id: 'lineage.tPart1Id', path: 'lineage.tPart1Id', type: 'entity', typeId: 't-bin-1', required: true, prompt: false }]
+        }
+      },
+      type,
+      bundle
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: 'lineage.tPart1Id', lineage: { key: 'tPart1Id', accepts: ['t-bin-1'] }, required: true });
+  });
+
+  it('falls back to the declared input type when no bundle edge carries the lineage key', () => {
+    const rows = resolveCreateDialogInputs(
+      {
+        construction: { inputs: [{ id: 'lineage.binId' }] },
+        inputPolicy: {
+          fields: [{ id: 'lineage.binId', path: 'lineage.binId', type: 'entity', typeId: 't-bin-1', prompt: true }]
+        }
+      },
+      type,
+      bundle
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ lineage: { key: 'binId', accepts: ['t-bin-1'] } });
   });
 
   it('requires the identifier row and carries the compiled required flag', () => {

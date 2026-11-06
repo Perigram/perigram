@@ -113,6 +113,7 @@
     :entry="nested"
     :bundle="bundle"
     :pool="pool"
+    :scoped-instance="scopedInstance"
     @applied="applyNested"
     @close="nested = null"
   />

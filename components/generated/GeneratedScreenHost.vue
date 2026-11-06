@@ -448,7 +448,8 @@ async function runGeneratedPatch({ instance, patch } = {}) {
   await instances.updateInstance(instance.type, instance.id, patch);
 }
 
-// Lazy type loader for the containment cross-cut.
+// Lazy type loader for the children-type overlay and the relation
+// target pool.
 async function loadTypeIntoPool(typeId = '') {
   const key = instances.canonicalTypeKey(typeId);
   if (!key) return [];

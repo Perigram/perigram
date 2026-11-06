@@ -6,7 +6,6 @@
       :action="control.action"
       :group="control.group"
       :state-policy="node.statePolicy"
-      :label="headerActionLabel(control.action)"
       @run="emitRun"
     />
   </div>
@@ -90,7 +89,6 @@
           :action="control.action"
           :group="control.group"
           :state-policy="node.statePolicy"
-          :label="headerActionLabel(control.action)"
           @run="emitRun"
         />
         <ActionButton
@@ -234,7 +232,7 @@ import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
 import {
   LAYOUT, GAP_BY_LEVEL, toolbarVisibleFor, sortControlRows,
-  hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar, incomingChildrenEdges,
+  hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar,
   listLayoutOf,
   createActionControls
 } from '#shared/ui-mapping/index.js';
@@ -258,9 +256,9 @@ const props = defineProps({
   node: { type: Object, required: true },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
-  // Lazy type loader for the containment cross-cut (the parent-context
-  // overlay below): `async (typeId) => screenInstance[]`, owned by the
-  // app host that owns the instance store.
+  // Lazy type loader for the children-type overlay (the children columns
+  // resolve their chips from the pool): `async (typeId) => screenInstance[]`,
+  // owned by the app host that owns the instance store.
   loadType: { type: Function, default: null },
   depth: { type: Number, default: 0 },
   embedded: { type: Boolean, default: false },
@@ -337,22 +335,19 @@ const listStack = computed(() => (props.embedded
   : (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[Math.min(props.node.level, 2)] || 'stack'])));
 const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[Math.min(props.node.level, 2)] || 'stack']));
 
-// The containment cross-cut's data (SPEC → Surface context laws): an
-// unscoped list of a type someone's children edge names renders every
-// row WITH its parent — and the parent records are not in this surface's
-// pool (it loads the child type). A list whose own type declares
-// children overlays the child types the same way: the children column
-// resolves its chips from the pool. Overlaid types never gate
-// correctness — an unloaded type just renders without its context.
+// The containment cross-cut flag: an unscoped list of a type someone's
+// children edge names renders every row WITH its ancestry — the lineage
+// breadcrumb trail resolves ancestors itself through the instances
+// store's readable-reference seam. A list whose own type declares
+// children overlays the child types onto the pool so the children
+// columns resolve their chips; overlaid types never gate correctness —
+// an unloaded type just renders without its context.
 const parented = computed(() => props.node.crossCut === true);
-const overlayTypeIds = computed(() => [...new Set([
-  ...(parented.value
-    ? incomingChildrenEdges(props.bundle, props.node.typeId).map(edge => edge.parentTypeId)
-    : []),
-  ...(props.node.surfaceKind === 'list'
+const overlayTypeIds = computed(() => [...new Set(
+  props.node.surfaceKind === 'list'
     ? Object.values(props.node.type?.edges?.children || {}).flatMap(edge => edge?.types || [])
-    : [])
-])]);
+    : []
+)]);
 const loadedTypes = ref({});
 const effectivePool = computed(() => {
   if (!Object.keys(loadedTypes.value).length) return props.pool;
@@ -407,15 +402,6 @@ const bodyEvents = {
   'open-instance': emitOpen
 };
 const childrenEvents = { run: emitRun, open: emitOpen };
-// A region header already names its class, so a create action for that same
-// type collapses to the bare localized "New" — the caption never repeats the
-// header's class name or the initial state. Creates for other types (and
-// every other action kind) keep their full resolved label.
-const headerActionLabel = action => (
-  action.actionKind === 'createInstance' && action.typeId === props.node.typeId
-    ? t('uiMapping.new')
-    : null
-);
 // The section already names its class: a link targeting exactly this
 // section's type collapses to the bare "Link".
 const sectionLinkLabel = action => {

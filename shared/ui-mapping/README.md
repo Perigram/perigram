@@ -194,12 +194,17 @@ contract). Declared fields match by flat-wire `fields.<name>` path
 protocol inputs (the `content` body) render as full-width scalar rows
 carrying their control pin; `lineage.<key>` inputs render
 instance pickers over the parent types whose children edges declare that
-lineage key for the target type — immediate axes alone, the ancestor
+lineage key for the target type, the input's declared type serving as
+the accepted-parent fallback — immediate axes alone, the ancestor
 chain derives at the construct seam
 (reverse containment over the bundle —
 parents' edges are the declaration home, the child carries no parent list;
 an edge matches by its declared `lineageKey`, the entry's map key is
-authoring identity). Construct operator reference inputs render as
+authoring identity). A lineage axis stays a row even when the compiled
+policy marks it graph-supplied: its wire source is the launch context,
+so a contextless launch prompts it (the row carries the compiled
+`required` flag) and a scoped launch seeds and hides it through the
+component layer's launch-context channel. Construct operator reference inputs render as
 instance pickers over the operator's `accepts` — an `entity` single, a
 `typeList` list; every other operator data input renders by its own
 base (a free-form map as key-value rows, quantities their unit field).
@@ -435,12 +440,14 @@ bundle only direct fields derive. Pure over the type record and bundle.
 
 `resolveActionButton(action, { statePolicy })` → `{ component, tone, icon,
 iconOnly, confirm, hidden, inline }` from a fixed table: `createInstance` →
-primary + icon-only (`+`), `deleteInstance` → danger + confirmation +
+primary + captioned (the compiled label names the created type),
+`deleteInstance` → danger + confirmation +
 icon-only (trash), stateless `updateInstance` → hidden (fields edit
 inline on detail surfaces), relation link/unlink → text/icon
 presentations, `runCommand` and `emitEvent` → secondary + bolt,
 event-triggered actions → hidden. Icon-only is the obvious-action
-channel: the caption stays the tooltip and accessible name, and menus
+channel (delete, the construct re-run): the caption stays the tooltip
+and accessible name, and menus
 keep full labels. An entry with `inline: true` declares reference-bound
 placement: the action renders on the rendered relation reference it
 addresses (the unlink chip menu, a relation-scoped section row's menu)
@@ -454,19 +461,22 @@ the policy authors none, so a transition button is never anonymous); a
 transition whose policy authors no icon falls back to the swap glyph so
 every state-changing button is iconned.
 
-`planActionLaunch(action)` is the launch contract the screen engine
-consumes: `'link'` for relation link (its picker dialog), `'dialog'` when
-the action carries construction inputs (the generated create dialog —
-regardless of grant level) or when a run action carries prompted
-exposure inputs (`resolveRunDialogInputs` builds one row per input from
-its declared parameter type, prefilled with the authored default), `'confirm'` when the resolved action button
-declares confirmation (the destructive kinds), else `'run'`. Grant level is
-an access signal, never a presentation one: an admin-level create still
+`planActionLaunch(action, { scopedInstance })` is the launch contract the
+screen engine consumes: `'link'` for relation link (its picker dialog),
+`'dialog'` when the action carries construction inputs (the generated
+create dialog — regardless of grant level) or when a run action carries
+prompted exposure inputs (`resolveRunDialogInputs` builds one row per
+input from its declared parameter type, prefilled with the authored
+default), `'confirm'` when the resolved action button declares
+confirmation (the destructive kinds), else `'run'`. Grant level is an
+access signal, never a presentation one: an admin-level create still
 opens its construction dialog, so no create executes with an empty draft
-merely because it was granted at admin. The launch decision is
-context-free; the screen engine adds the launch context (a dialog whose
-every row the context supplies runs with no form — see the component
-README's create-dialog contract).
+merely because it was granted at admin. Lineage axes are the one
+context-dependent input: a lineage field the policy marks graph-supplied
+(its wire source is the launch context) counts as a dialog row exactly
+when the launch carries no `scopedInstance`; the screen engine passes
+its scoped detail instance so a create launched inside its parent keeps
+running with no form.
 
 `resolveInstanceActions(actions, typeId)` selects the per-instance quick
 actions a collection surface may offer without a form context: manual
@@ -708,8 +718,9 @@ an unresolved `$screen` placeholder means the pinned scope is unknown, so
 the source resolves no instances instead of the whole type); an unscoped
 list of a type that can be someone's child (a declared children edge
 names it) composes the containment cross-cut: every instance of the type
-lists WITH its declared parent context visible (`incomingChildrenEdges`
-resolves the parent ref; materializations render the parent chip), never
+lists WITH its declared ancestry visible (`containmentAncestors` over
+the effective containment contract; materializations render the lineage
+breadcrumb trail beside the identity), never
 a bare flat pile — class surfaces never nest at all, and containment
 navigation is the workspace explorer's (the sidebar nests instances
 under their parents through the same `childrenOfParent` matcher); maps
