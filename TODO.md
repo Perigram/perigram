@@ -4904,8 +4904,9 @@ Session `agent/c-review-fix-20261106` (worktree
   Unit side landed 2026-11-06 (see Agent Notes); the e2e round-trip
   awaits the next stack run (no Playwright this session).
 - [ ] WAITING — owner verification: a stationed type's typeList pane
-  header and the routed typeList page carry the declaration affordance
-  (pack types render nothing); the editor's fields rows rename, edit
+  header, the routed typeList page, and the type's record surfaces (the
+  pane detail header row, the routed detail branch) carry the declaration
+  affordance (pack types render nothing); the editor's fields rows rename, edit
   descriptors through the shared DescriptorEditor, move the identifier
   holder, and refuse orphaning removals with the compile diagnostic; the
   lifecycle edits states and transitions and the machine view renders
@@ -4980,6 +4981,38 @@ Session `agent/declare-inplace-20261106` (worktree
   `npm run docs:validate` clean beside the known 13-entry homing
   backlog (unchanged). No Playwright per session law; the e2e
   authoring round-trip awaits the next stack run.
+
+### Agent Notes (2026-11-06, review fixes)
+
+Session `agent/d-review-fix-20261106` (worktree
+`.agent-worktrees/d-review-fix-20261106`). Review pass fixes:
+
+- Transition sources are wiring-derived: `transitionSourcesOf`
+  (utils/processDesignerDeclarationEditor.js) derives a transition's
+  source states from the entity wires into it — the upstream operation's
+  authored target — appending an authored `state.from` as legacy data,
+  the draft-side twin of the compiled `declaredTransitionSources`
+  (packages/processes README → Workflow synthesis; the compiled function
+  reads compiler-internal graph windows, so consuming it over canvas
+  arrays would mean synthesizing its inputs). The transition rows'
+  from column and the machine view (one edge per source state) consume
+  it; `setTransitionTarget` now keeps the authored `state.from` on
+  retarget. Spec 20/20.
+- The affordance mounts on the type's record surfaces too (TODO item D1's
+  parenthetical): the pane's instanceDetail header row beside the
+  typeList mount, and the routed screens page's detail branch header row
+  — gated identically (capability + station over the detail screen's
+  typeId).
+- Docs: the pane-tab close trap (unsaved edits drop; routed leave and
+  browser unload guard) and the v1 boundary (glyph and payload-traits
+  authoring stay on the canvas inspector) stated in
+  components/type-designer/README.md.
+- The state-severity options are single-homed in
+  components/type-designer/state-severities.js (editor + canvas
+  inspector consumed duplicate derivations). The round-trip fixture
+  carries the palette's drop-time ctsTypes record (`kind: 'field'` lives
+  on that record — process.vue enrichNodeData mints it; node data
+  carries no kind).
 
 ### Agent Notes (2026-11-06, preview pending loader)
 

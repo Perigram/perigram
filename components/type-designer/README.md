@@ -59,14 +59,15 @@ authors** — one authoring model, two projections:
 | Load | The stationing definition document through the designer's read API (`GET /api/process-definitions/:id`); the page subtitle names the definition, the title the type — both through their label chains. |
 | Projection | `definitionToCanvas`/`canvasToDefinition` (packages/processes transpiler) between the document and the edited node/edge arrays — the same seam the canvas round-trips through. |
 | Fields | One property row per declared field: name, kind + qualifier summary (`fieldDescriptorSummary`), the required/nullable state, the identifier mark; row affordances rename, host the shared `DescriptorEditor`, move the single identifier holder (`applyFieldDisplayRole`), add, and remove. |
-| Lifecycle | The states of the type's vocabulary (value, severity, icon — the state authoring pieces the inspector hosts) and the bound transition records (intent label, target). A state enters the vocabulary through an operation (SPEC §7): add-state carries it into the first construct without an initial state, else mints the targeting transition. |
+| Lifecycle | The states of the type's vocabulary (value, severity, icon — the state authoring pieces the inspector hosts) and the bound transition records (intent label, target; the row's from column shows the wiring-derived source states, an authored `state.from` appended as legacy data, else "any"). A state enters the vocabulary through an operation (SPEC §7): add-state carries it into the first construct without an initial state, else mints the targeting transition. |
 | Writes | The same declaration records: class node data, field nodes and their `declares` wires, state nodes and their `entry` wires into `cts.construct`/`cts.transition` records. `interpretDeclarationEdges` runs after each structural edit — the same live interpretation the canvas runs. |
 | Validation | `compileTreeDeclarations` + `normalizeType` diagnostics on every change (the class-inspector chain, pinned in `utils/processDesignerDeclarationEditor.js`); a removal that would orphan consumers is refused and its fresh diagnostics surfaced inline. |
-| Save | `PATCH /api/process-definitions/:id` with the `canvasToDefinition` snapshot — draft persistence only; the Apply ceremony stays the only activation path. Dirty state gates the save button; leaving the routed page with unsaved changes prompts through the standard confirm host, and a dirty mount guards the browser unload. |
-| Machine view | One dialog from the lifecycle header: `machineModelOf` + `mermaidFlowchartOf` render through the shared markdown pipeline (mermaid fences as diagrams app-wide); the initial state derives from the construct's entry target, a transition with no authored `from` renders from the initial state, else from every other state. |
+| Save | `PATCH /api/process-definitions/:id` with the `canvasToDefinition` snapshot — draft persistence only; the Apply ceremony stays the only activation path. Dirty state gates the save button; leaving the routed page with unsaved changes prompts through the standard confirm host, and a dirty mount guards the browser unload. Closing the editor's pane tab drops unsaved edits. |
+| Machine view | One dialog from the lifecycle header: `machineModelOf` + `mermaidFlowchartOf` render through the shared markdown pipeline (mermaid fences as diagrams app-wide); the initial state derives from the construct's entry target, each transition renders one edge per wiring-derived source state (`transitionSourcesOf`, the draft-side twin of the compiled `declaredTransitionSources` — [packages/processes](../../packages/processes/README.md) → Workflow synthesis), and a transition with no derived sources renders from the initial state, else from every other state. |
 
-The transition guard editor, actor assignment, field policy, grants, and
-the dataflow wiring stay on the canvas inspector (v1 boundary).
+Glyph authoring, payload-traits authoring, the transition guard
+editor, actor assignment, field policy, grants, and the dataflow wiring
+stay on the canvas inspector (v1 boundary).
 
 The pure projection and gesture layer lives in
 [utils](../../utils/README.md) → `processDesignerDeclarationEditor.js`
@@ -79,6 +80,8 @@ canvas gestures save); the stationing-definition resolution in
 - The card face stays quiet — identity, tag, sockets; meta detail rides
   the tooltip ([process-designer](../process-designer/README.md) card
   anatomy).
+- `state-severities.js` homes the state-severity options shared with the
+  [process-designer](../process-designer/README.md) inspector.
 - The descriptor vocabulary (bases, units, naming facets, mutability
   semantics) is owned by [packages/cts](../../packages/cts/SPEC.md);
   this folder renders and edits it, adding none.

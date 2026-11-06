@@ -186,8 +186,10 @@ the active definition's draft declares the type
 (`useDeclarationStation`,
 [composables](../../composables/README.md)); pack and plugin types render
 nothing. The app host owns the chrome: the workspace pane header row of a
-typeList screen (`GeneratedScreenPane`) and the routed screens page's
-action space render it — generated region content never selects it.
+type's list and record screens (`GeneratedScreenPane`) and the routed
+screens page's action space — the typeList header beside refresh, a
+page-owned header row on the detail branch — render it; generated region
+content never selects it.
 
 ## Overload Registry
 

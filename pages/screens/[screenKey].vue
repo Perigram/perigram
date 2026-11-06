@@ -17,14 +17,22 @@
       @open-instance="openInstance"
     />
   </StandardPage>
-  <GeneratedScreenHost
-    v-else-if="screen"
-    ref="host"
-    :screen="screen"
-    :screen-key="screenKey"
-    :navigation="detailNavigation"
-    @open-instance="openInstance"
-  />
+  <template v-else-if="screen">
+    <!-- Host chrome, never generated content (SPEC §1): the record
+         surface's declaration affordance rides a page-owned header row
+         above the detail surface, which owns its own record header. -->
+    <TypeDeclareEntry
+      v-if="detailDeclareTypeId"
+      :type-id="detailDeclareTypeId"
+    />
+    <GeneratedScreenHost
+      ref="host"
+      :screen="screen"
+      :screen-key="screenKey"
+      :navigation="detailNavigation"
+      @open-instance="openInstance"
+    />
+  </template>
 </template>
 
 <script setup>
@@ -85,6 +93,12 @@ const pageTitle = computed(() => (
 // header does for the workspace twin.
 const listDeclareTypeId = computed(() => (
   screen.value?.template === 'typeList' ? String(screen.value.typeId || '') : ''
+));
+
+// The record surface's twin: the detail branch owns no page title, so the
+// affordance rides a page-owned header row above the detail surface.
+const detailDeclareTypeId = computed(() => (
+  screen.value?.template === 'instanceDetail' ? String(screen.value.typeId || '') : ''
 ));
 
 const screen = computed(() => {

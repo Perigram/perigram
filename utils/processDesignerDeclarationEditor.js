@@ -36,6 +36,39 @@ export function operationTargetState(record = {}) {
   return typeof value === 'string' ? value : '';
 }
 
+// The entity-target-handle vocabulary the compiled graph matches
+// (packages/processes compiler-core `isEntityTargetHandle`).
+function isEntityTargetHandle(targetHandle = '') {
+  const handle = String(targetHandle || '');
+  return !handle || handle === 'input' || handle === 'entity' || handle === 'input:entity' || handle.endsWith(':entity');
+}
+
+// A transition's source states over the draft arrays — the same fact the
+// compiled contract derives (`declaredTransitionSources`, packages/
+// processes README → Workflow synthesis): every entity wire into the
+// transition declares an edge from the upstream operation's authored
+// target (the arrival state the compiled output window carries), and an
+// authored `state.from` is appended legacy reference data beside the
+// wiring.
+export function transitionSourcesOf(nodes = [], edges = [], records = {}, transitionNode = null, transitionRecord = {}) {
+  const targetId = String(transitionNode?.id ?? transitionRecord.id ?? '');
+  const typeId = transitionRecord.typeId || '';
+  const sources = [];
+  for (const edge of edges) {
+    if (String(edge.target) !== targetId || !isEntityTargetHandle(edge.targetHandle)) continue;
+    const sourceNode = nodes.find(node => String(node.id) === String(edge.source));
+    const sourceRecord = sourceNode?.type === 'processNode' ? records[sourceNode.data?.refId] : null;
+    if (!['cts.construct', 'cts.transition'].includes(sourceRecord?.kind)) continue;
+    const arrival = operationTargetState(sourceRecord);
+    if (!arrival) continue;
+    if (typeId && sourceRecord.typeId && sourceRecord.typeId !== typeId) continue;
+    sources.push(arrival);
+  }
+  const authored = typeof transitionRecord.state?.from === 'string' ? transitionRecord.state.from : '';
+  if (authored) sources.push(authored);
+  return [...new Set(sources)];
+}
+
 // The per-type declaration subtree: the class node, its declared fields
 // (matched by binding, exactly like `compileTreeDeclarations` matches
 // field records), the state nodes of the type's vocabulary (entry-wired
@@ -83,13 +116,20 @@ export function declarationSubtreeOf(nodes = [], edges = [], records = {}, typeI
       && (entryEdgesByState.has(node.id) || targetedValues.has(String(node.data.value))))
     .map(node => ({ node, entryEdgeIds: entryEdgesByState.get(node.id) || [] }));
 
-  return {
-    classNode,
-    fields,
-    states,
-    transitions: operations.filter(operation => operation.record.kind === 'cts.transition'),
-    constructs: operations.filter(operation => operation.record.kind === 'cts.construct')
-  };
+  const transitions = [];
+  const constructs = [];
+  for (const operation of operations) {
+    if (operation.record.kind === 'cts.transition') {
+      transitions.push({
+        ...operation,
+        sources: transitionSourcesOf(nodes, edges, records, operation.node, operation.record)
+      });
+    } else {
+      constructs.push(operation);
+    }
+  }
+
+  return { classNode, fields, states, transitions, constructs };
 }
 
 // The field-card tag derivation (components/type-designer FieldNode): the
@@ -178,11 +218,16 @@ export function setIdentifierHolder(nodes, fieldNodeId, enabled) {
 
 // Retarget keeps one target source per transition (SPEC §7): the entry
 // wire is the value, so retargeting rewires it (or mints it) and drops
-// any stored target so the two can never disagree — interpretation
-// re-writes the socket default from the wire.
+// the stored target so the two can never disagree — interpretation
+// re-writes the socket default from the wire. The authored `state.from`
+// stays as legacy reference data.
 export function setTransitionTarget(edges = [], record = {}, stateNodeId = '') {
   const nextRecord = { ...record };
-  delete nextRecord.state;
+  if (typeof record.state?.from === 'string' && record.state.from) {
+    nextRecord.state = { from: record.state.from };
+  } else {
+    delete nextRecord.state;
+  }
   nextRecord.inputDefaults = { ...(record.inputDefaults || {}) };
   delete nextRecord.inputDefaults.state;
   const entryIndex = edges.findIndex(edge => (
@@ -265,7 +310,8 @@ export function tryRemoveDeclarationNode(nodes, edges, records, nodeId, organiza
 
 // The lifecycle machine view (SPEC §1): states of the type's vocabulary,
 // legal edges from the transition records, and the initial state from the
-// construct's entry target where derivable.
+// construct's entry target where derivable. One edge per wiring-derived
+// source state (the compiled machine's per-source transition law).
 export function machineModelOf(subtree) {
   if (!subtree) return { initial: null, states: [], edges: [] };
   const initial = subtree.constructs
@@ -278,20 +324,29 @@ export function machineModelOf(subtree) {
     icon: node.data?.icon || null
   }));
   const edges = subtree.transitions
-    .map(({ record }) => ({
-      from: typeof record.state?.from === 'string' && record.state.from ? record.state.from : null,
-      to: operationTargetState(record),
-      intent: String(record.label || '')
-    }))
-    .filter(edge => edge.to);
+    .flatMap((entry) => {
+      const to = operationTargetState(entry.record);
+      if (!to) return [];
+      const sources = transitionSourcesOfEntry(entry);
+      const intent = String(entry.record.label || '');
+      return sources.length
+        ? sources.map(from => ({ from, to, intent }))
+        : [{ from: null, to, intent }];
+    });
   return { initial, states, edges };
+}
+
+function transitionSourcesOfEntry(entry = {}) {
+  if (Array.isArray(entry.sources)) return entry.sources;
+  const authored = typeof entry.record?.state?.from === 'string' ? entry.record.state.from : '';
+  return authored ? [authored] : [];
 }
 
 // A mermaid flowchart over the machine model: the initial state renders
 // as the stadium node, intents ride the edges, and an unscoped transition
-// (no authored from) renders from the initial state when derivable, else
-// from every other state — the availability law the compiled window
-// applies.
+// (no derived source states) renders from the initial state when
+// derivable, else from every other state — the availability law the
+// compiled window applies.
 export function mermaidFlowchartOf(model = { states: [], edges: [] }) {
   const safe = value => String(value).replace(/["'`\n\r<>&]/g, '').trim() || '?';
   const idOf = value => `s${model.states.findIndex(state => state.value === value)}`;

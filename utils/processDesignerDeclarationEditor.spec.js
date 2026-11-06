@@ -18,6 +18,7 @@ import {
   newTransitionDeclaration,
   removeDeclarationNode,
   setTransitionTarget,
+  transitionSourcesOf,
   tryRemoveDeclarationNode
 } from './processDesignerDeclarationEditor.js';
 
@@ -122,6 +123,10 @@ function canvasAuthoredFieldFixture(base, id, position) {
   };
   const nodes = [...base.nodes, typeNode];
   const edges = [...base.edges, edge];
+  // The drop gesture mints the ctsTypes record beside the node (process.vue
+  // enrichNodeData → ensureRecord): the page's factory shape with
+  // `kind: 'field'`.
+  const ctsTypes = { [id]: { id, kind: 'field', typeId: null, name: '', descriptor: { base: 'string' } } };
   // The live interpretation assigns the declaring class's type id.
   const { mutations } = interpretDeclarationEdges(nodes, edges, base.records, {});
   for (const mutation of mutations) {
@@ -130,7 +135,7 @@ function canvasAuthoredFieldFixture(base, id, position) {
       node.data.typeId = mutation.value;
     }
   }
-  return { nodes, edges };
+  return { nodes, edges, ctsTypes };
 }
 
 function baseDefinitionData(fixture) {
@@ -139,7 +144,7 @@ function baseDefinitionData(fixture) {
     graphProtocol: 5,
     graph: { nodes: fixture.nodes, edges: fixture.edges, viewport: { x: 0, y: 0, zoom: 1 } },
     processNodes: fixture.records,
-    ctsTypes: {},
+    ctsTypes: fixture.ctsTypes || {},
     roleGrants: {},
     producerOutputs: {},
     actions: {},
@@ -190,7 +195,7 @@ describe('in-place field authoring round-trips the canvas shape', () => {
     const canvasAuthored = canvasAuthoredFieldFixture(base, 'fld_new', position);
     const canvasSaved = canvasToDefinition(
       { nodes: canvasAuthored.nodes, edges: canvasAuthored.edges, viewport: { x: 0, y: 0, zoom: 1 } },
-      baseDefinitionData(base)
+      baseDefinitionData({ ...base, ctsTypes: canvasAuthored.ctsTypes })
     );
 
     const gesture = newFieldDeclaration({ id: 'fld_new', classNode: base.nodes[0], position });
@@ -278,6 +283,78 @@ describe('transition authoring', () => {
     expect(edge.targetHandle).toBe('data:state');
     expect(next.record.state).toBeUndefined();
     expect(next.record.inputDefaults.state).toBeUndefined();
+  });
+
+  it('retarget preserves the authored legacy state.from', () => {
+    const base = canvasFixture();
+    const authored = { ...base.records.tr_publish, state: { from: 'draft', to: 'published' } };
+    const next = setTransitionTarget(base.edges, authored, 'st_draft');
+    expect(next.record.state).toEqual({ from: 'draft' });
+    expect(next.record.inputDefaults.state).toBeUndefined();
+  });
+});
+
+// The wiring fact the compiled contract derives (packages/processes
+// index.spec "stamps the wiring arrival state"): an entity wire from a
+// construct into a transition declares the edge from the construct's
+// authored target state.
+function wiredTransitionFixture() {
+  const base = canvasFixture();
+  const constructNode = {
+    id: 'ctor_widget',
+    type: 'processNode',
+    position: { x: 420, y: 0 },
+    data: { refId: 'ctor_widget', label: 'ctor_widget' }
+  };
+  const construct = {
+    id: 'ctor_widget',
+    kind: 'cts.construct',
+    typeId: TYPE_ID,
+    construction: { mode: 'genericCreate', inputs: [] },
+    inputDefaults: { state: 'draft' }
+  };
+  const entityEdge = {
+    id: 'ent_publish',
+    source: 'ctor_widget',
+    sourceHandle: 'data:result',
+    target: 'tr_publish',
+    targetHandle: 'data:entity',
+    type: 'default',
+    role: 'data'
+  };
+  return {
+    base,
+    nodes: [...base.nodes, constructNode],
+    edges: [...base.edges, entityEdge],
+    records: { ctor_widget: construct, tr_publish: base.records.tr_publish }
+  };
+}
+
+describe('transition source derivation', () => {
+  it("derives a wired transition's sources from the entity wiring, entry wires aside", () => {
+    const { nodes, edges, records } = wiredTransitionFixture();
+    const subtree = declarationSubtreeOf(nodes, edges, records, TYPE_ID);
+    expect(subtree.transitions[0].sources).toEqual(['draft']);
+    const model = machineModelOf(subtree);
+    expect(model.edges).toEqual([{ from: 'draft', to: 'published', intent: 'Publish' }]);
+  });
+
+  it('appends an authored from as legacy data beside the wiring', () => {
+    const { nodes, edges, records } = wiredTransitionFixture();
+    const authored = { ...records.tr_publish, state: { from: 'legacy' } };
+    const nextRecords = { ...records, tr_publish: authored };
+    expect(transitionSourcesOf(nodes, edges, nextRecords, nodes.find(node => node.id === 'tr_publish'), authored))
+      .toEqual(['draft', 'legacy']);
+  });
+
+  it('skips an entity wire from an operation of another type', () => {
+    const { nodes, edges, records } = wiredTransitionFixture();
+    const foreign = { ...records.ctor_widget, typeId: 'other-type' };
+    const nextRecords = { ...records, ctor_widget: foreign };
+    const subtree = declarationSubtreeOf(nodes, edges, nextRecords, TYPE_ID);
+    expect(subtree.transitions[0].sources).toEqual([]);
+    const model = machineModelOf(subtree);
+    expect(model.edges).toEqual([{ from: null, to: 'published', intent: 'Publish' }]);
   });
 });
 

@@ -116,7 +116,7 @@
             />
             <Select
               :model-value="state.node.data.severity || 'info'"
-              :options="severityOptions"
+              :options="STATE_SEVERITY_OPTIONS"
               option-label="label"
               option-value="value"
               size="small"
@@ -256,6 +256,7 @@ import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import { STATE_SEVERITY_OPTIONS } from '~/components/type-designer/state-severities.js';
 import { MARKDOWN_ELEMENT_CLASSES, renderMarkdown } from '#shared/markdown.js';
 import {
   canvasToDefinition,
@@ -310,8 +311,6 @@ const machineVisible = ref(false);
 const addingState = ref(false);
 const newStateValue = ref('');
 const newStateInput = ref(null);
-
-const severityOptions = ['info', 'success', 'warn', 'danger', 'secondary'].map(value => ({ label: value, value }));
 
 function activeOrganizationId() {
   return definition.value?.lineage?.organizationId
@@ -564,10 +563,14 @@ function transitionTarget(record) {
   return operationTargetState(record);
 }
 
-function fromLabel(record) {
-  return typeof record.state?.from === 'string' && record.state.from
-    ? record.state.from
-    : t('typeDeclaration.fromAny');
+function fromLabel(entry) {
+  const sources = Array.isArray(entry.sources) ? entry.sources : [];
+  if (!sources.length) return t('typeDeclaration.fromAny');
+  const labelOf = (value) => {
+    const state = (subtree.value?.states || []).find(({ node }) => node.data?.value === value);
+    return String(state?.node.data?.label || value);
+  };
+  return sources.map(labelOf).join(', ');
 }
 
 function retargetTransition(entry, value) {
