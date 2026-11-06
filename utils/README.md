@@ -99,7 +99,8 @@ Parent: [root README](../README.md).
 - `action-visibility.js`: The one home for action-kind questions over the
   projected manifest vocabulary (`createInstance`/`updateInstance`/
   `deleteInstance`/`link`/`unlink`/`runCommand`): kind predicates,
-  entity-state applicability, and surface-action resolution. Pure (no Vue,
+  entity-state applicability, compiled-create grouping by target type
+  (`createActionsByType`), and surface-action resolution. Pure (no Vue,
   no stores) — components, utils, and stores consume it alike, and all
   action-kind questions route through this module.
 - `instance-run-results.js`: The one extractor for the created entity a

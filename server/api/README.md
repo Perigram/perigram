@@ -56,10 +56,12 @@ Routes are grouped into sub-directories corresponding to features:
   preview, and socket projection. The `active/` subtree serves the
   active contract's runtime surface: `POST active/actions/:id/execute`
   runs one compiled manual action, `GET active/actions/:id/options`
-  resolves Link-picker candidates, and `POST active/exports/run`
+  resolves Link-picker candidates, `POST active/exports/run`
   executes a declaration-derived export action (SPEC §21) with
-  action-scoped grants. Route handlers delegate authorization,
-  persistence, and effects to the process-definitions feature
+  action-scoped grants, and `GET active/inbox` serves the action-inbox
+  query (instances admitting the caller's granted actions). Route
+  handlers delegate authorization, persistence, and effects to the
+  process-definitions feature
   service. `POST /preview` evaluates pure/read nodes from an unsaved
   definition, bounds returned tree samples, and suppresses effects and
   control flow.

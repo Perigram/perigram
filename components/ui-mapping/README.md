@@ -155,9 +155,11 @@ beside the transition history in `StateHistory`.
   rhythm set: the spacing coefficient derives from the host record's
   density tier and the screen's composed weight
   (`spacingCoefficientFor`/`screenWeight`), and an explicit
-  `spacingScale` prop (the showcase slider) overrides the derivation. It owns the generated create
-  and link dialogs (`StandardDialog`),
-  ConfirmDialog for destructive actions, and Toast feedback on runs.
+  `spacingScale` prop (the showcase slider) overrides the derivation. It hosts the generated action
+  form dialog and nested part-creates through
+  `ActionFormDialog`/`NestedCreateDialog` (below), the link dialog
+  (`StandardDialog`), ConfirmDialog for destructive actions, and Toast
+  feedback on runs.
   Launch behavior follows `planActionLaunch` (see the shared README's
   Actions section): a create with construction inputs always opens its
   dialog regardless of grant level. The screen hosts its own `<Toast />`
@@ -684,6 +686,26 @@ beside the transition history in `StateHistory`.
   the ordinary run channel. A grouped button renders attached: the
   standalone icon-button look (ActionButton's icon-only channel) floats
   inside a group.
+- `ActionFormDialog.vue` — the one generated action form dialog
+  (`StandardDialog` + `FillDialogBody` shell): rows from
+  `resolveCreateDialogInputs` (or `resolveRunDialogInputs` for
+  `runCommand`), submit gated by `createDialogRowUnfilled`, payload
+  shaped by `createDialogPayload`, and the nested part-create
+  (`NestedCreateDialog`) for its pickers' create affordances. The host
+  owns the run: `run` emits the scalarized draft, `close` clears the
+  action, and structured refusals return through the `failures` prop to
+  render inline. The `scopedInstance` binding submits the launch
+  context's parent reference on lineage rows accepting its type and
+  hides those rows; a dialog whose every row the context supplies runs
+  with no form at all. Hosts: `GeneratedMappingScreen` and the home
+  shell's create palette
+  ([components/generated](../generated/README.md)).
+- `NestedCreateDialog.vue` — the nested part-create (SPEC §24 rails) as
+  its own dialog: a construct-protocol create opens inside its host; the
+  created record reports back through `applied` (`{ rowId, apply,
+  typeId, id }`) and the host places it — a form row's value or the link
+  dialog's target. Runs execute through the instances store's
+  action-run channel; refusals toast.
 
 Entity Select/MultiSelect come through the shared wrappers
 (`components/shared/InstanceSelect.vue`, `InstanceMultiSelect.vue`), which

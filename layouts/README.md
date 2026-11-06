@@ -69,13 +69,16 @@ PrimeVue tabs: one tab per stationed type screen (the home sidebar tree's top
 level through `useMobileHomeTabs`, selection shared with the home workspace's
 mobile branch), a home fallback tab when the process stations no type screens,
 the chats tab (which opens the bounded `/chats` route and carries the total
-unread badge), and the profile-menu button.
+unread badge), the inbox tab (the action inbox's bounded `/inbox` route), and
+the profile-menu button.
 The profile button opens the same account menu used on desktop; theme
 switching lives in that account menu on both desktop and mobile.
 `/chats` and account routes (`/organization` and
 its children) use
 a flush mobile surface with only bottom safe-area spacing for the fixed nav;
-desktop keeps the normal constrained page padding.
+desktop keeps the normal constrained page padding. `/inbox` rides the
+bounded workspace route class (page padding with bottom clearance for the
+fixed bar on mobile).
 Mobile bottom-panel navigation dispatches the shared transient close event
 before route changes so popovers, menus, and chat do not overlap the
 destination. A routed generated screen keeps its owning type tab selected

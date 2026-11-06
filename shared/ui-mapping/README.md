@@ -206,13 +206,18 @@ base (a free-form map as key-value rows, quantities their unit field).
 Rows carry the compiled input's `required` flag; an
 identifier row the contract prompts is required unconditionally (its
 value is the record's title), and the dialog's submit stays disabled
-while a required row is empty. Upload/capture dialogs prompt the file
+while a required row is empty (`createDialogRowUnfilled` is the
+predicate: nullish, empty string or list, a cleared quantity, or a
+layer-mapping row missing its required target; picker and file models
+count as filled). Upload/capture dialogs prompt the file
 alone; the construct seam fills the record's name from the uploaded
 file's name. Quantity rows draft the SPEC §2
 `{ value, unit }` shape their control models (a unit-carrying default
 prefills in that shape), and the dialog's payload scalarizes drafts at the
-boundary: instance refs by `id` (picker lists entrywise), quantities by
-`value`. Inputs resolving to
+boundary (`createDialogPayload`: instance refs by `id` — picker lists
+entrywise, a spot assignment keeping its `spot` beside the id —,
+quantities by `value`, file references passing as the payload object).
+Inputs resolving to
 nothing stay hidden, so typed constructor inputs keep their editor
 surfaces. Construction-input labels are authored vocabulary resolved at the
 domain projection (parent type name, start-cased row name).

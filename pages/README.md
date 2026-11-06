@@ -17,6 +17,7 @@ Target law: [SPEC.md](./SPEC.md).
 | `/home` | screens-route alias (`pages:extend` in `nuxt.config.js`) | app | home workspace shell route (`HOME_SCREEN_ROUTE`); the screens renderer's fallback resolves the key to the home screen |
 | `/screens` · `/screens/:screenKey` | `screens/` | app | generated operational screens from the compiled manifest |
 | `/chats` | `chats.vue` | app | full-page conversation inbox |
+| `/inbox` | `inbox.vue` | app | the action inbox surface (SPEC §4): mobile/deep-link route of the home workspace's registered `inbox` page |
 | `/organization` | `organization/index.vue` | app | generated organization overview screen; orgless and pending-only states |
 | `/organization/billing` · `/organization/models` · `/organization/partners` · `/organization/plugins` · `/organization/process` · `/organization/users` | `organization/*.vue` | app | organization screens: billing, models, partners, plugin marketplace, process designer, team |
 | `/test/ui-lab` · `/test/ui-mapping` | `test/` | `ui-lab-layout` | internal demo surfaces ([test/README.md](./test/README.md)) |

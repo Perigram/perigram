@@ -4658,28 +4658,108 @@ Session `agent/editor-surface-20261106` (worktree
 
 ### C. Create palette and the action inbox (SPEC §4)
 
-- [ ] Create palette: one create control in the home shell opening a
+- [x] Create palette: one create control in the home shell opening a
   searchable palette of the compiled create actions the current user may
   run (auth-hydrated manifest + bundle), grouped by type label, named by
   the create-label law, dispatching by creation protocol (upload inline,
   editor blank surface, construct dialog) and landing through
   `created-instance-open`.
-- [ ] Inbox query: one framework endpoint serving, for the current user
+  Landed 2026-11-06 (057ac1e21).
+- [x] Inbox query: one framework endpoint serving, for the current user
   and organization, instances whose current state admits an action the
   user's roles grant — derived over the compiled active contract
   (per-action `state.from` × action grants × live instances), bounded
   per action, carrying `{typeId, instanceId, actionIds}` rows through
   the ordinary instances read paths.
-- [ ] Inbox surface: a home pane tab (registered workspace page) listing
+  Landed 2026-11-06 (057ac1e21).
+- [x] Inbox surface: a home pane tab (registered workspace page) listing
   the tiles with their admissible actions, running them through the
   instances store's action-run channel.
-- [ ] Validation: the query service's focused spec; SSR/component specs
+  Landed 2026-11-06 (057ac1e21).
+- [x] Validation: the query service's focused spec; SSR/component specs
   for the surfaces; localization en+ru; docs — the endpoint's README
   home, components/generated home-workspace section.
+  Landed 2026-11-06 (057ac1e21).
+- [ ] WAITING — owner verification: the create control beside the wrap
+  control in both sidebar shapes and in the mobile home header opens a
+  searchable palette grouped by type with procedural labels; an upload
+  create runs inline, an editor create opens the blank editor, other
+  creates open the construct dialog and land through created-open; the
+  Inbox entry beside Chats/Calls (and the mobile inbox tab) lists tiles
+  with admissible actions grouped by type, running an action reconciles
+  the row away, and a grantless user sees no palette entries.
 
 Session reads: SPEC §4 (create palette/inbox law, action contract);
 components/generated/README.md; stores/README.md (instances store);
 server/api + server/features layout for the endpoint home.
+
+### Agent Notes (2026-11-06, create palette and action inbox)
+
+Session `agent/create-inbox-20261106` (worktree
+`.agent-worktrees/create-inbox-20261106`). Landed in 057ac1e21:
+
+- Landed: the create control (`CreatePalette.vue`) sits in the brand
+  header beside the wrap control in the expanded sidebar, at the top of
+  the wrapped icon rail, and in a new mobile home surface header row;
+  it renders only while the manifest carries a runnable create. The
+  palette is a Popover with one `common.search` field and a grouped
+  PrimeVue Listbox (`createPaletteGroups` pure helper, spec-pinned);
+  entries keep the manifest projection's procedural create labels (the
+  projection applies the create-label law — authored label wins, else
+  `New <Type> from <Mode>`), grouped by type label through the served
+  type view with the bundle as fallback. Dispatch reuses the RefRowActions
+  law: `editor` mode opens `openBlankFileEditor`, `upload` mode runs the
+  files channel then the action run, everything else opens the shared
+  action form dialog or runs directly (`planActionLaunch`); runs go
+  through `instances.runAction` and land through
+  `resolveCreatedInstanceOpen` + `openInstanceInWorkspace`.
+- Create-dialog factoring: the form dialog left
+  GeneratedMappingScreen as `ActionFormDialog.vue` (create + runCommand
+  rows, the empty-rows immediate-run law, scoped-parent binding) with
+  `NestedCreateDialog.vue` for part-creates (row apply inside the form,
+  link apply in the screen's link dialog). The row-unfilled predicate
+  and the draft payload scalarization moved to shared/ui-mapping
+  (`createDialogRowUnfilled`, `createDialogPayload`); compiled creates
+  group through `createActionsByType` in utils/action-visibility.
+  GeneratedMappingScreen keeps only the run dispatch and the link
+  dialog.
+- Inbox query: `GET /api/process-definitions/active/inbox`
+  (`action-inbox.js`, neighbor of the active contract's runtime routes).
+  Grants consume `auth.roleAssignments.actions` — the hydration seam's
+  grant-filtered projected manifest, no second evaluator. Selection:
+  manual instance-addressed actions with a non-empty `state` window
+  (creates excluded). `from` admits instances in that state; a `to`
+  without `from` admits every non-empty state except the no-op target —
+  the stored twin of `actionAppliesToEntity`. One bounded query per
+  action (`INBOX_ROW_CAP_PER_ACTION` = 25, createdAt-desc) over the
+  type's per-class collection, org-filtered like the list transport;
+  rows are `{typeId, instanceId, actionIds}` alone. Spec written first
+  (failure modes), 10/10 green.
+- Inbox surface: `ActionInboxPage.vue` is the registered `inbox`
+  workspace page (`/inbox` as the mobile/deep-link route, a bottom-bar
+  tab beside Chats); the sidebar carries the Inbox entry between Chats
+  and Calls in both shapes. Rows (`deriveInboxRows`, spec-pinned)
+  cross the query with live pool state: each type hydrates through the
+  ordinary list transport, a row renders while its instance stays
+  pooled and `actionAppliesToEntity` still admits one of its actions —
+  runs reconcile rows away through the shared entity-event
+  invalidation; the row is the `InstanceInlineRef` tile with
+  `ActionButton`s, grouped under the type label; empty state is a bare
+  StateBlock.
+- Locale key `nav.inbox` added to en+ru ("Inbox" / "Входящие").
+- Validation: focused suites green — action-inbox 10/10,
+  create-palette 3/3, action-inbox-rows 3/3, components/generated 48,
+  ui-mapping module-imports + shared/ui-mapping 133, localization; SSR
+  smoke (`vitest.ssr.config.js`) 23/23; `node scripts/check-arch.js`
+  green; `npm run docs:validate` clean beside the known findings
+  (13-entry contract-homing backlog, unchanged; the jagua-rs link
+  reported OK this run). No Playwright per session law.
+- Open: while the inbox tab stays mounted, rows reconcile away through
+  entity events but new admissions appear on the next open/reload — a
+  live-query subscription would be new machinery beyond this program.
+- Open: the sidebar-explorer spec stubs `CreatePalette.vue` (its
+  PanelMenu model fixture provides no Toast service; the palette needs
+  the app-level Toast host the real layout mounts).
 
 ### D. Declaration authoring in place (SPEC §1)
 
