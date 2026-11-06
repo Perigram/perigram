@@ -2012,6 +2012,7 @@
         "sortLabel": "Сортировка",
         "sortOrderLabel": "Изменить порядок сортировки",
         "view": "Вид",
+        "declareType": "Редактировать декларацию",
         "moreActions": "Ещё действия",
         "calendarPrev": "Предыдущий месяц",
         "calendarNext": "Следующий месяц",
@@ -2651,6 +2652,21 @@
         "tags": "теги варианта",
         "values": "значения",
         "writable": "Редактируемое"
+    },
+    "typeDeclaration": {
+        "title": "Декларация",
+        "fields": "Поля",
+        "lifecycle": "Жизненный цикл",
+        "machineView": "Автомат состояний",
+        "addState": "Добавить состояние",
+        "addTransition": "Добавить переход",
+        "intent": "Назначение",
+        "targetState": "Целевое состояние",
+        "fromAny": "любое",
+        "identifier": "Идентификатор",
+        "required": "обязательное",
+        "notStationed": "У этого типа нет авторской декларации в активном процессе.",
+        "unsavedLeave": "Уйти без сохранения изменений декларации?"
     },
     "processDesigner": {
         "classNamePlaceholder": "Название типа",

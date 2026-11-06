@@ -2012,6 +2012,7 @@
         "sortLabel": "Sort by",
         "sortOrderLabel": "Toggle sort order",
         "view": "View",
+        "declareType": "Edit declaration",
         "moreActions": "More actions",
         "calendarPrev": "Previous month",
         "calendarNext": "Next month",
@@ -2651,6 +2652,21 @@
         "tags": "variant tags",
         "values": "values",
         "writable": "Writable"
+    },
+    "typeDeclaration": {
+        "title": "Declaration",
+        "fields": "Fields",
+        "lifecycle": "Lifecycle",
+        "machineView": "State machine",
+        "addState": "Add state",
+        "addTransition": "Add transition",
+        "intent": "Intent",
+        "targetState": "Target state",
+        "fromAny": "any",
+        "identifier": "Identifier",
+        "required": "required",
+        "notStationed": "This type has no authored declaration in the active process.",
+        "unsavedLeave": "Leave with unsaved declaration changes?"
     },
     "processDesigner": {
         "classNamePlaceholder": "Widget name",

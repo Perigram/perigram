@@ -1903,9 +1903,13 @@ onMounted(() => {
   loadActiveOrCreateLocal();
   loadProcessCapabilities();
   loadOrgTypes();
+  window.addEventListener('focus', reconcileOutOfBandDraft);
+  reconcilePollTimer = setInterval(reconcileOutOfBandDraft, RECONCILE_POLL_MS);
 });
 onBeforeUnmount(() => {
   if (previewRecomputeTimer) clearTimeout(previewRecomputeTimer);
+  window.removeEventListener('focus', reconcileOutOfBandDraft);
+  if (reconcilePollTimer) clearInterval(reconcilePollTimer);
 });
 
 async function loadActiveOrCreateLocal() {
@@ -2216,6 +2220,29 @@ function dropRemovedDefinition(id) {
 // onCanvasNodesChange) is a correction, not authoring.
 const laneProjectionBaselined = ref(true);
 
+// Out-of-band draft reconciliation (SPEC §1: an edit landing beside an
+// open canvas reconciles through the shared definition draft): the read
+// API carries no version stamp, so the designer re-fetches its document
+// on window focus and on a slow poll, comparing the draft data signature
+// against the settled baseline. A dirty canvas reconciles nothing — its
+// own save is the next write (last-writer-wins, like the canvas itself).
+const RECONCILE_POLL_MS = 30000;
+let reconciledDataSignature = '';
+let reconcilePollTimer = null;
+
+function reconcileOutOfBandDraft() {
+  if (!draft.value?._id) return;
+  if (isDirty.value || applyBusy.value || creatingDraft.value || loadingProcess.value) return;
+  persistence.loadById(String(draft.value._id))
+    .then(fresh => {
+      if (!fresh?._id || String(fresh._id) !== String(draft.value?._id)) return;
+      if (JSON.stringify(fresh.data ?? null) === reconciledDataSignature) return;
+      upsertProcessDefinition(fresh);
+      setDraft(fresh);
+    })
+    .catch(() => {});
+}
+
 function setDraft(value) {
   value = clonePlainData(value || {});
   draft.value = value;
@@ -2246,6 +2273,7 @@ function setDraft(value) {
   laneProjectionBaselined.value = false;
   projectLanes();
   savedDraftSignature.value = designerSignature();
+  reconciledDataSignature = draftDataSignature.value;
   nextTick(fitInitialCanvas);
   recomputeProcessPreview();
 }

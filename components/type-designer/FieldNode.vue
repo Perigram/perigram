@@ -27,6 +27,7 @@ import InputText from 'primevue/inputtext';
 import Tag from 'primevue/tag';
 import DesignerNodeCard from '~/components/shared/DesignerNodeCard.vue';
 import DesignerSocketHandle from '~/components/shared/DesignerSocketHandle.vue';
+import { fieldDescriptorSummary } from '~/utils/processDesignerDeclarationEditor.js';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -39,11 +40,5 @@ const name = computed(() => props.data.name || '');
 const isRef = computed(() => props.data.descriptor?.base === 'ref');
 const inputSpec = computed(() => props.data.inputSpecs?.[0] || {});
 const outputSpec = computed(() => props.data.outputSpecs?.[0] || {});
-const typeLabel = computed(() => {
-  const descriptor = props.data.descriptor || {};
-  if (descriptor.base === 'quantity') return `${descriptor.unit || '?'}`;
-  if (descriptor.base === 'ref') return `Ref(${(descriptor.accepts || []).join('|')})`;
-  if (descriptor.nullable) return `${descriptor.base}?`;
-  return descriptor.base || 'field';
-});
+const typeLabel = computed(() => fieldDescriptorSummary(props.data.descriptor || {}));
 </script>
