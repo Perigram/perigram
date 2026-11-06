@@ -5014,6 +5014,71 @@ Session `agent/d-review-fix-20261106` (worktree
   on that record — process.vue enrichNodeData mints it; node data
   carries no kind).
 
+#### Agent Notes (2026-11-06, deslop round)
+
+Session `agent/typedeslag-20261106` (worktree
+`.agent-worktrees/typedeslag-20261106`), owner verdict "absolutely awful
+now". Audit findings, all fixed in this round unless marked deferred:
+
+- Field rows rendered as always-on InputText boxes with a required or
+  nullable Tag on every row (one of the two always present), a duplicate
+  identifier pair (Tag plus toggle), no fact-row anatomy, and no quiet
+  affordances.
+- The transition from-column rendered wiring-derived source states as a
+  12px muted text run — a data value below the ladder's small tier — with
+  unlabeled columns and no chip vocabulary.
+- The severity select rendered the raw PrimeVue enum names
+  (info/success/warn/danger/secondary) in both the editor and the shared
+  inspector options; the ref field summary rendered raw opaque type ids
+  (`Ref(t-…)`), both against SPEC §4 (ids never render).
+- The machine-view dialog had unbounded content; wide flowcharts stretched
+  it past the viewport with no scroll containment.
+- Section titles sat at the 15px label tier, the page column stretched to
+  max-w-app (1600px), state icon authoring showed a floating icon preview
+  beside a bare input, and the DescriptorEditor carried bare unstyled
+  labels, a nullable checkbox with no label association, and four
+  contract-shaped comments restating README law.
+- The whole surface lived in one file (state + gestures + presentation),
+  leaving the loaded presentation unpinnable by the SSR-mount spec style.
+
+Rebuilt: fields as fact rows (small muted name label click-editing in
+place through PrimeVue Inplace with confirm/discard, ink kind summary
+with ref accepts resolved through the type-label chain, Identifier mark
+on the holder, quiet-until-hover affordance cluster pinned on touch per
+the RegionBlock header-cluster convention, descriptor editor in a
+bordered inset under its row); lifecycle rows render the
+severity-and-icon chip records wear with in-place rename, localized
+severity labels (`stateSeverityOptions`, one home shared with the canvas
+inspector), and the icon input previewing its glyph in the leading slot;
+transitions as a machine table (per-source severity chips, the any chip
+for unscoped transitions, labeled From/To/Intent columns, inline intent);
+machine view in a StandardDialog lg with a 60dvh bounded scroll region;
+page rhythm at the 60rem measure with 24px section separation and 16px
+content stacks, ActionToolbar section headers in natural case; title from
+the draft class node's authored name. Rows extracted into
+pure-presentation `DeclarationFieldRow`/`DeclarationStateRow`/
+`DeclarationTransitionRow` (the inspector law — every mutation an event
+up), mounted by the new
+`components/type-designer/type-declaration-editor.spec.js` pinning the
+anatomy; `fieldDescriptorSummary` gained an optional type-label resolver
+(presentation-facing only).
+
+Deferred: the canvas FieldNode card still renders ref accepts raw — the
+fix threads type labels into the canvas enrichment pass
+(pages/organization/process.vue, the canvas projection); the pane tab
+label stays the static "Declaration" (workspace-page labels are owned by
+components/generated, the concurrent md-record session's surface);
+first-diagnostic focus stayed out (cheap versions were noise). The pure
+layer's draft-mutation semantics are untouched — round-trip spec 21/21.
+
+Validation: `components/type-designer` 8/8,
+`utils/processDesignerDeclarationEditor.spec.js` 21/21,
+`components/shared` 16/16, `shared/localization`, `shared/design-system`
+34/34, `shared/process-designer-localization` + `process-designer-ui`
+15/15, SSR smoke 24/24; `check-arch` green; `docs:validate` clean beside
+the known 13-entry homing backlog (unchanged, none of it in touched
+files).
+
 ### Agent Notes (2026-11-06, preview pending loader)
 
 Session `agent/svg-preview-loader-20261106` (worktree
