@@ -4548,30 +4548,113 @@ components/ui-mapping/README.md (region header controls section).
 
 ### B. The editor is the record surface (SPEC §4)
 
-- [ ] Editor-bound types open editor-first: the record detail mounts the
+- [x] Editor-bound types open editor-first: the record detail mounts the
   registered editor surface (local registry or the remote loader) as the
   record body under the standard header; the standalone editor action
   dies from headers, action strips, and menus.
-- [ ] Grant-keyed mode: a write grant edits in place; a read grant
+  Landed 2026-11-06 (20694b7d1).
+- [x] Grant-keyed mode: a write grant edits in place; a read grant
   renders the same surface read-only (per-surface degradation — the
   sheet editor's existing law generalized; the text editor's read-only
   presentation is the rendered document).
-- [ ] Hosts: the record popup of an editor-bound type renders the
+  Landed 2026-11-06 (20694b7d1).
+- [x] Hosts: the record popup of an editor-bound type renders the
   bounded editor (compact rhythm); the peek keeps its preview; routed
   pages and panes render the editor at full surface.
-- [ ] Version trigger and blank creates: the version surface trigger
+  Landed 2026-11-06 (20694b7d1).
+- [x] Version trigger and blank creates: the version surface trigger
   rides the editor surface's corner in every host shape;
   `created-instance-open` lands editor-protocol creates on the record
   surface; blank editor creates keep the first-save-creates law.
-- [ ] Validation: focused component specs + SSR smoke; e2e re-pins
+  Landed 2026-11-06 (20694b7d1).
+- [x] Validation: focused component specs + SSR smoke; e2e re-pins
   (md-editor-repair and the editor surfaces); docs —
   components/generated (file surfaces contract), components/ui-mapping
   (record anatomy), stores/README where open seams change.
+  Landed 2026-11-06 (20694b7d1) — unit-side green; the e2e re-pins
+  (md-editor-repair, plugin-surface, sheet-editor-panel,
+  tech-drawing-fill-dialog) await the next stack run.
+- [ ] WAITING — owner verification: a generated document detail (md/csv)
+  opens its editor as the record body with the version trigger on the
+  corner; the record popup hosts the bounded editor; the peek keeps its
+  preview; a read-grant opener sees the rendered markdown document while
+  the sheet editor degrades to view-only; no edit affordance remains on
+  any surface of an editor-bound type; the fill dialog's reference-row
+  affordance opens the record popup.
 
 Session reads: SPEC §4 (editor law, create protocols), §24 (version
 surface); components/generated/README.md (file surfaces),
 components/ui-mapping/README.md (SurfaceHeader/GeneratedMappingScreen),
 pages/README.md (screens route).
+
+### Agent Notes (2026-11-06, editor-as-record-surface)
+
+Session `agent/editor-surface-20261106` (worktree
+`.agent-worktrees/editor-surface-20261106`). Landed in 20694b7d1:
+
+- The record body mounts the editor: `RecordEditorBody` (components/
+  generated) resolves the type's file surface through the registry
+  (served view, pack fallback), feeds the mount the wire record from the
+  instances pool, and renders the workspace-page presentation inside the
+  framed `LAYOUT.editorBand` (`editorBandBounded` in popup hosts — new
+  band-atom recipes, real CSS in main.css). `SurfaceDetailBody` mounts it
+  for the full variant in the record presentation; the peek and nested
+  card bodies keep the preview band; the fact strip keeps its
+  filled-scalars derivation, so payload-only document types render the
+  editor alone and canvas types keep parameter facts; relations and the
+  record ladder stack after the editor unchanged. The
+  `PayloadRevisionPicker` overlay re-homes to the editor band's corner in
+  that shape.
+- Grant-keyed mode: `editorWriteGranted`/`editorMountMode` single-homed
+  in file-surfaces.js over `resolveTypeFeature` + the shared evaluator;
+  consumed by the record-body mount, the remote workspace-page props
+  adapter, the remote access channel (deduped), `ReplacePayloadAction`,
+  and `PayloadRevisionPicker` (deduped — four inline copies collapsed).
+  `RemoteEditorSurface` passes `mode` to the mounted module; the
+  documents text editor renders the markdown document (host
+  `renderMarkdown`, `ck-markdown-body`) under 'read'.
+- The editor action died whole: `GeneratedEditorPageAction.vue`,
+  `instance-editor-action.js`, the `editorActions` channel
+  (GeneratedScreenHost → GeneratedMappingScreen → RegionBlock →
+  SurfaceHeader, RefRowActions, SpotPartsRow), and the `editor` flag on
+  `created-instance-open`/`openInstanceInWorkspace`/the home workspace's
+  open chain are deleted; editor creates land on the record surface
+  (compiled detail tab, else the editor page bound to the record). The
+  workspace-page registry entries for editors stay; blank creates keep
+  `openBlankFileEditor`. The fill dialog's reference-row pencil became
+  the record-popup opener (common.open, en+ru already present).
+- Design-system guard failures on `GeneratedScreenHost.vue` closed
+  (StandardDialog for the two raw Dialogs, semantic typography roles);
+  the stale `primeComponentTokens.tree` pin (explorer-density tokens
+  landed without the spec) and the DesignerWorkspace custom-property
+  scoped-style false positive closed at their homes.
+- FINDING (pre-existing, fixed): `components/generated/file-surfaces.spec.js`
+  was red at base — its import graph reaches `#app`
+  (RemoteEditorSurface → remote-surface-mount → InstanceInlineRef →
+  InstancePeek → GeneratedScreenHost → useGeneratedScreen) and the unit
+  vitest config carried no `#app` resolution; the config now aliases the
+  SSR harness stubs (grew `useRequestHeaders`).
+  `instance-select.spec.js`'s enum-select allowance also missed
+  `LayerMappingRow.vue` at base (pre-existing red).
+- FINDING (open): the csv editor, sketch editor, DXF editor, and cassette
+  designer carry no read-only degradation — a read-grant opener sees the
+  editing surface (writes stay server-fail-closed; the sheet editor
+  degrades internally, the text editor renders the document). Plugin-side
+  read-only presentations for those surfaces are follow-up surface work.
+- FINDING (open): plugin-surface e2e's preview leg was dropped — the
+  fixture type binds an editor, so its detail body is the editor and the
+  plugin preview has no remaining UI slot in that org (table projection,
+  no chips); the served-binding assertions stay, the cassette preview
+  specs pin the preview mount against real payloads.
+- Validation: components/generated 47, shared/ui-mapping + ui-mapping
+  131, design-system 34, localization, module-imports, instance-select,
+  surface-pack-cycle green; SSR smoke 23/23; `check-arch`,
+  `check-plugin-deps` green; `docs:validate` reports only the two known
+  findings (jagua-rs link, 13-entry homing backlog). Full unit sweep: 12
+  failures reproduced identical at base (process-definitions fixture
+  drift, fact-display, agent-bots, app-registry, support snapshot —
+  untouched server-side suites). E2E re-pins edited blind (no stack in
+  session); the next stack pass owns them.
 
 ### C. Create palette and the action inbox (SPEC §4)
 

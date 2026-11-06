@@ -43,8 +43,12 @@ and the uninstall drain gate all refuse loudly.
 ## Surface mount contracts
 
 A surface module default-exports the factory `createSurface(ctx) ->
-component`; the component declares props `{ record, persistence }` (the
-preview `kind`: `{ record, payload }`). A surface module may carry named
+component`; the component declares props `{ record, persistence, mode }`
+(the preview `kind`: `{ record, payload }`). `mode` is the grant-keyed
+mount mode — `'edit'` when the opener holds the type's write grant,
+`'read'` otherwise; an editor module that declares the prop degrades to
+its read-only presentation under `'read'` (SPEC §4). A surface module may
+carry named
 exports of its own domain law; host renderers consume them through the
 served surface URL (the DXF editor exports `spotNamesOf`, the anchor
 read the fill dialog's spot-parts row uses). The ctx ladder by
@@ -62,8 +66,9 @@ read the fill dialog's spot-parts row uses). The ctx ladder by
   record-change bridge; own publications are skipped host-side) and
   `upload.file(blob, { fileName })` (host file channel, returns the
   stored ref).
-- **4 (navigation)** — adds `open.instance({ typeId, instanceId, editor })`:
-  the workspace owns tabs, surfaces ask through it.
+- **4 (navigation)** — adds `open.instance({ typeId, instanceId })`: the
+  workspace owns tabs, surfaces ask through it (the record surface of an
+  editor-bound type is its editor, SPEC §4).
 
 `persistence` carries `createBlank()`, `loadDocument(record)`,
 `saveDocument(record, document, { fileName, mimeType })`, `patch(record,
