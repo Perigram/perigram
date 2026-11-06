@@ -31,7 +31,10 @@ creation-protocol law in §4). The read-side preview channel
 (thumbnail, card preview, geometry preview) is a plugin-delivered module
 under the surface contract: the platform mounts it in its preview slots
 over a read-only data-only mount (`{ record, payload }`), and the card
-chrome stays the platform's InstanceCard.
+chrome stays the platform's InstanceCard. Owner direction (2026-11-06,
+preview rendering): previews render in-place as lightweight SVG — the
+plugin's tree renderer owns the cassette drawing and the platform's DXF
+parser owns DXF payloads; the CAD engine mounts in editors.
 
 ## Profiles and the cassette designer
 

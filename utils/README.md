@@ -118,10 +118,12 @@ Parent: [root README](../README.md).
   ([components/generated](../components/generated/README.md)); a DTO
   without one projects `null`. `previewSourceValue` reads the type's
   declared preview path (plus fallbacks) off the wire.
-- `dxfParser.js`: the DXF preview parser — entities into the drawing
-  layer contract, each layer styled from the file's own LAYER table
-  (truecolor, linetype, lineweight); a supplied org pen mapping wins
-  where it names the layer.
+- `dxfParser.js`: the DXF preview parser — LINE, LWPOLYLINE/POLYLINE (bulge
+  arcs included), CIRCLE, ARC, SPLINE, ELLIPSE, TEXT/MTEXT, and INSERT block
+  references (nested, placed, layer 0 inheriting the insert's layer) flatten
+  into the drawing layer contract, each layer styled from the file's own
+  LAYER table (truecolor, linetype, lineweight, on/off — off layers stay
+  out); a supplied org pen mapping wins where it names the layer.
 
 ## Utility Protocol
 
