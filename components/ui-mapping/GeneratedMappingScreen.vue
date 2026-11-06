@@ -372,7 +372,7 @@ function applyLinkNestedCreate({ apply, typeId, id }) {
 // and confirmation comes from the resolved action button (destructive
 // kinds), never from the grant level.
 const openAction = (action, context = {}) => {
-  const launch = planActionLaunch(action, { scopedInstance: scopedInstance.value });
+  const launch = planActionLaunch(action);
   if (launch === 'link') {
     linkAction.value = action;
     linkContext.value = context || {};

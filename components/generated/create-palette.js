@@ -2,11 +2,11 @@ import { isCreateAction } from '~/utils/action-visibility.js';
 
 // The create palette's groups (SPEC §4): every compiled create action the
 // user may run, grouped by type label through the caller's one
-// type-label chain; entries keep the manifest's procedural create label
-// (the projection applies the create-label law). One search string
+// type-label chain; entries label through the caller's create-caption
+// chain (the projection applies the create-label law). One search string
 // filters by type label and action label — a type-label match keeps the
 // whole group.
-export function createPaletteGroups(actions = [], { query = '', typeLabelOf = () => '' } = {}) {
+export function createPaletteGroups(actions = [], { query = '', typeLabelOf = () => '', actionLabelOf = action => action.label || action.id } = {}) {
   const needle = String(query || '').trim().toLowerCase();
   const byType = new Map();
   for (const action of actions || []) {
@@ -18,7 +18,7 @@ export function createPaletteGroups(actions = [], { query = '', typeLabelOf = ()
   const groups = [...byType.entries()].map(([typeId, entries]) => ({
     label: typeLabelOf(typeId),
     typeId,
-    items: entries.map(action => ({ typeId, label: action.label || action.id, action }))
+    items: entries.map(action => ({ typeId, label: actionLabelOf(action), action }))
   }));
   const filtered = needle
     ? groups

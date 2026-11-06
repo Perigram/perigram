@@ -921,22 +921,31 @@ export function createActionControls(actions = []) {
   return controls;
 }
 
-// planActionLaunch(action, { scopedInstance }): how a screen launches one
-// manual action — 'link' (the relation picker dialog), 'dialog' (the
-// generated create dialog for any action carrying construction inputs, the
-// run dialog for a run action carrying prompted inputs), 'confirm' (the
-// resolved action button's confirmation, i.e. the destructive kinds), else
-// 'run'. The construction dialog wins over confirmation, and grant level is
-// never a presentation signal. Lineage axes are launch-context rows: a
-// lineage field the graph supplies counts as a dialog row whenever no
-// scoped instance rides the launch (the wire source is the launch context
-// itself), and stops counting once one does.
-export function planActionLaunch(action = {}, { scopedInstance = null } = {}) {
+// Input-policy fields arrive under two compiled shapes: the native one
+// (id = wire path) and the block-composed one (id = `field:`-prefixed
+// path, the wire path on `path`). The wire path is the row id and the
+// draft key the run's data channel reads.
+const policyFieldPath = field => String(field?.path || field?.id || '').replace(/^field:/, '');
+const isLineagePath = path => String(path || '').startsWith('lineage.');
+const hasAuthoredDefault = field => field?.default !== undefined && field?.default !== null;
+
+// planActionLaunch(action): how a screen launches one manual action —
+// 'link' (the relation picker dialog), 'dialog' (the generated create
+// dialog for any action carrying construction inputs, the run dialog for
+// a run action carrying prompted inputs), 'confirm' (the resolved action
+// button's confirmation, i.e. the destructive kinds), else 'run'. The
+// construction dialog wins over confirmation, and grant level is never a
+// presentation signal. A lineage axis the graph supplies without an
+// authored default counts as a dialog row: its wire source is the launch
+// context, and the dialog's launch-context channel seeds and hides it
+// inside the parent's surface (auto-running when the context supplied
+// every row).
+export function planActionLaunch(action = {}) {
   if (action.actionKind === 'link') return 'link';
-  const isLineage = field => String(field?.id || field?.path || '').startsWith('lineage.');
   const policyFields = action.inputPolicy?.fields;
   const dialogRows = policyFields != null
-    ? policyFields.filter(field => (field?.prompt !== false) || (isLineage(field) && !scopedInstance)).length
+    ? policyFields.filter(field => (field?.prompt !== false)
+      || (isLineagePath(policyFieldPath(field)) && !hasAuthoredDefault(field))).length
     : (action.construction?.inputs || []).length;
   if (dialogRows) return 'dialog';
   if (action.actionKind === 'runCommand' && resolveRunDialogInputs(action).length) return 'dialog';
@@ -1269,18 +1278,21 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
   // The compiled input policy owns the row list: the compiler keeps it to
   // the fields the graph leaves unsupplied (wired producers and authored
   // socket defaults drop out), so a supplied field stays out of the
-  // dialog — lineage axes excepted: their wire source is the launch
-  // context, so they stay rows and the dialog's launch context decides
-  // (a scoped launch seeds and hides them). Construction inputs serve
-  // actions compiled without a policy.
-  const isLineageId = id => String(id || '').startsWith('lineage.');
+  // dialog. Lineage axes are the exception: their wire source is the
+  // launch context, so an axis without an authored default stays a row
+  // and the dialog's launch-context channel decides (a scoped launch
+  // seeds and hides it, a contextless launch prompts it). Construction
+  // inputs serve actions compiled without a policy. Row ids are wire
+  // paths (the `field:`-prefixed ids of the block-composed shape map
+  // onto their path).
   const source = policyFields.length
-    ? policyFields.filter(field => field?.prompt !== false || isLineageId(field?.id || field?.path))
+    ? policyFields.filter(field => field?.prompt !== false
+      || (isLineagePath(policyFieldPath(field)) && !hasAuthoredDefault(field)))
     : [...(action.construction?.inputs || [])];
-  const policyById = new Map(policyFields.map(field => [field?.id || field?.path, field]));
+  const policyById = new Map(policyFields.map(field => [policyFieldPath(field), field]));
   const rows = [];
   for (const inputId of source) {
-    const id = typeof inputId === 'string' ? inputId : String(inputId?.id || inputId?.path || '');
+    const id = typeof inputId === 'string' ? inputId : policyFieldPath(inputId);
     if (!id) continue;
     const policy = policyById.get(id) || (typeof inputId === 'object' && inputId ? inputId : null);
     // SPEC §4 payload path: file inputs are protocol inputs, not row

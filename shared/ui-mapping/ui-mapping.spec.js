@@ -550,14 +550,22 @@ describe('action launch plan', () => {
     })).toBe('dialog');
   });
 
-  it('counts lineage axes as dialog rows exactly when the launch carries no context', () => {
-    const action = {
+  it('counts graph-wired lineage axes as dialog rows; an authored default keeps one supplied', () => {
+    // The wire source of a context-wired lineage socket is the launch
+    // context, so the dialog collects the parent on every launch; an
+    // authored socket default is a pinned parent and stays supplied.
+    const wired = {
       actionKind: 'createInstance',
       construction: { inputs: [{ id: 'lineage.binId' }] },
-      inputPolicy: { fields: [{ id: 'lineage.binId', path: 'lineage.binId', type: 'entity', typeId: 't-bin-1', prompt: false }] }
+      inputPolicy: { fields: [{ id: 'field:lineage.binId', path: 'lineage.binId', type: 'entity', typeId: 't-bin-1', prompt: false }] }
     };
-    expect(planActionLaunch(action)).toBe('dialog');
-    expect(planActionLaunch(action, { scopedInstance: { type: 't-bin-1', id: 'b-1' } })).toBe('run');
+    expect(planActionLaunch(wired)).toBe('dialog');
+    const pinned = {
+      actionKind: 'createInstance',
+      construction: { inputs: [{ id: 'lineage.binId' }] },
+      inputPolicy: { fields: [{ id: 'lineage.binId', path: 'lineage.binId', type: 'entity', typeId: 't-bin-1', prompt: false, default: 'b-1' }] }
+    };
+    expect(planActionLaunch(pinned)).toBe('run');
   });
 
   it('never replaces a create form with a bare confirm because of the grant level', () => {
@@ -1332,6 +1340,21 @@ describe('create dialog input resolution', () => {
     expect(rows[1]).toMatchObject({ descriptor: { base: 'quantity', unit: 'mm' } });
   });
 
+  it('maps the block-composed field: id shape onto declared fields', () => {
+    // The block-composed policy carries `field:`-prefixed ids with the
+    // wire path on `path`; the row id and draft key are the wire path.
+    const rows = resolveCreateDialogInputs(
+      {
+        construction: { inputs: ['fields.note'] },
+        inputPolicy: { fields: [{ id: 'field:fields.note', path: 'fields.note', type: 'string', prompt: true, required: false }] }
+      },
+      type,
+      bundle
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: 'fields.note', label: 'Note', descriptor: { base: 'string' } });
+  });
+
   it('renders operator reference prompts as instance pickers', () => {
     const rows = resolveCreateDialogInputs(
       {
@@ -1396,12 +1419,14 @@ describe('create dialog input resolution', () => {
   it('keeps graph-wired lineage axes as rows the launch context owns', () => {
     // A lineage socket wired to the launch context is unsupplied on a
     // contextless launch: the row stays and the compiled required flag
-    // rides, so the created record always lands under a parent.
+    // rides, so the created record always lands under a parent. The
+    // block-composed id shape (`field:`-prefixed) maps onto its wire
+    // path — the row id and draft key.
     const rows = resolveCreateDialogInputs(
       {
         construction: { inputs: [{ id: 'lineage.tPart1Id' }] },
         inputPolicy: {
-          fields: [{ id: 'lineage.tPart1Id', path: 'lineage.tPart1Id', type: 'entity', typeId: 't-bin-1', required: true, prompt: false }]
+          fields: [{ id: 'field:lineage.tPart1Id', path: 'lineage.tPart1Id', type: 'entity', typeId: 't-bin-1', required: true, prompt: false }]
         }
       },
       type,
@@ -1409,6 +1434,20 @@ describe('create dialog input resolution', () => {
     );
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ id: 'lineage.tPart1Id', lineage: { key: 'tPart1Id', accepts: ['t-bin-1'] }, required: true });
+  });
+
+  it('keeps an authored-default lineage axis supplied and out of the dialog', () => {
+    const rows = resolveCreateDialogInputs(
+      {
+        construction: { inputs: [{ id: 'lineage.tPart1Id' }] },
+        inputPolicy: {
+          fields: [{ id: 'lineage.tPart1Id', path: 'lineage.tPart1Id', type: 'entity', typeId: 't-bin-1', prompt: false, default: 'bin-1' }]
+        }
+      },
+      type,
+      bundle
+    );
+    expect(rows).toEqual([]);
   });
 
   it('falls back to the declared input type when no bundle edge carries the lineage key', () => {

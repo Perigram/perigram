@@ -72,6 +72,7 @@ import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { uploadCreateAccept, uploadCreatePayloadReference } from '~/components/ui-mapping/upload-create.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { createPaletteGroups } from '~/components/generated/create-palette.js';
+import { generatedCreateLabel } from '~/utils/generated-labels.js';
 import ActionFormDialog from '~/components/ui-mapping/ActionFormDialog.vue';
 
 // The home shell's one create control (SPEC §4): a searchable palette of
@@ -80,7 +81,7 @@ import ActionFormDialog from '~/components/ui-mapping/ActionFormDialog.vue';
 // blank editor surface, an upload create runs inline over the files
 // channel, every other create opens the construct dialog (the shared
 // ActionFormDialog) or runs directly when it prompts nothing.
-const { t } = useI18n();
+const { t, te } = useI18n();
 const toast = useToast();
 const authStore = useAuthStore();
 const instances = useInstancesStore();
@@ -103,7 +104,8 @@ const groups = computed(() => createPaletteGroups(authStore.actionManifest || []
   query: query.value,
   typeLabelOf: typeId => view.typeById(typeId)?.name
     || (bundle.value.types || []).find(candidate => candidate.id === typeId)?.name
-    || typeId
+    || typeId,
+  actionLabelOf: action => generatedCreateLabel(action, { t, te }) || action.label || action.id
 }));
 
 function focusSearch() {
