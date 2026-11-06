@@ -2666,10 +2666,10 @@
         "addState": "Add state",
         "addTransition": "Add transition",
         "intent": "Intent",
-        "targetState": "Target state",
+        "from": "From",
+        "to": "To",
         "fromAny": "any",
         "identifier": "Identifier",
-        "required": "required",
         "notStationed": "This type has no authored declaration in the active process.",
         "unsavedLeave": "Leave with unsaved declaration changes?"
     },
@@ -3300,6 +3300,13 @@
         "endState": "end state",
         "entryState": "entry",
         "stateSeverity": "Severity",
+        "stateSeverities": {
+            "info": "Info",
+            "success": "Success",
+            "warn": "Warning",
+            "danger": "Danger",
+            "secondary": "Neutral"
+        },
         "stateIcon": "Icon",
         "transitionStatusValue": "Status value",
         "transitionGuard": "Guard",

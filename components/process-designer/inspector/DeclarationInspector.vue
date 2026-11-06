@@ -148,7 +148,7 @@
         <div class="flex items-center gap-2">
           <Select
             :model-value="node.data.severity || 'info'"
-            :options="STATE_SEVERITY_OPTIONS"
+            :options="severityOptions"
             option-label="label"
             option-value="value"
             size="small"
@@ -199,6 +199,7 @@
 // live-graph pass re-derives records, ports, and the tree overlay
 // from it.
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import AutoComplete from 'primevue/autocomplete';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
@@ -206,7 +207,7 @@ import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Message from 'primevue/message';
 import Select from '~/components/shared/InstanceSelect.vue';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
-import { STATE_SEVERITY_OPTIONS } from '~/components/type-designer/state-severities.js';
+import { stateSeverityOptions } from '~/components/type-designer/state-severities.js';
 import { DECLARABLE_CLASSES, CREATION_PROTOCOLS } from '~/packages/cts/src/index.js';
 import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
 import { iconFontGlyphs } from '#shared/icon-fonts.js';
@@ -224,6 +225,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['sync', 'update-name', 'update-identifier-field']);
+
+const { t } = useI18n();
+const severityOptions = stateSeverityOptions(t);
 
 const classOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
 

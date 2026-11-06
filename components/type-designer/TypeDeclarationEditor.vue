@@ -15,137 +15,65 @@
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <StateBlock v-else-if="loadError" state="error" :message="loadError" />
     <StateBlock v-else-if="!subtree" state="error" :message="$t('typeDeclaration.notStationed')" />
-    <div v-else class="flex max-w-app flex-col gap-6 self-center">
-      <div v-if="refusalDiagnostics.length" class="flex flex-col gap-2">
-        <Message v-for="item in refusalDiagnostics" :key="item" severity="warn" :closable="false">{{ item }}</Message>
-      </div>
-      <div v-if="diagnostics.length" class="flex flex-col gap-2">
-        <Message v-for="item in diagnostics" :key="item" severity="error" :closable="false">{{ item }}</Message>
-      </div>
+    <div v-else class="flex w-full max-w-[60rem] flex-col gap-6 self-center">
+      <Message v-for="item in refusalDiagnostics" :key="item" severity="warn" :closable="false">{{ item }}</Message>
+      <Message v-for="item in diagnostics" :key="item" severity="error" :closable="false">{{ item }}</Message>
 
-      <section class="flex flex-col gap-2">
-        <div class="flex items-center justify-between gap-2">
-          <h2 class="text-label">{{ $t('typeDeclaration.fields') }}</h2>
-          <Button icon="pi pi-plus" :label="$t('typesPane.addField')" size="small" text @click="addField" />
-        </div>
+      <section class="flex flex-col gap-4">
+        <ActionToolbar :title="$t('typeDeclaration.fields')" :level="2">
+          <template #actions>
+            <Button
+              icon="pi pi-plus"
+              :label="$t('typesPane.addField')"
+              size="small"
+              text
+              severity="secondary"
+              @click="addField"
+            />
+          </template>
+        </ActionToolbar>
         <div class="flex flex-col">
-          <div
+          <DeclarationFieldRow
             v-for="field in subtree.fields"
             :key="field.node.id"
-            class="flex flex-col gap-2 border-b border-chrome-border py-1.5"
-          >
-            <div class="flex min-w-0 items-center gap-2">
-              <InputText
-                v-model="field.node.data.name"
-                size="small"
-                class="w-44 shrink-0"
-                :aria-label="$t('typeCanvas.fieldName')"
-              />
-              <Tag :value="fieldSummary(field.node)" severity="secondary" />
-              <Tag
-                v-if="field.node.data.descriptor?.nullable === true"
-                :value="$t('typesPane.nullable')"
-                severity="secondary"
-              />
-              <Tag v-else :value="$t('typeDeclaration.required')" severity="secondary" />
-              <Tag v-if="field.node.data.descriptor?.identifier === true" :value="$t('typeDeclaration.identifier')" />
-              <div class="ml-auto flex shrink-0 items-center gap-1">
-                <Button
-                  icon="pi pi-id-card"
-                  size="small"
-                  text
-                  :severity="field.node.data.descriptor?.identifier === true ? 'success' : 'secondary'"
-                  :aria-label="$t('typeDeclaration.identifier')"
-                  :title="$t('typeDeclaration.identifier')"
-                  @click="toggleIdentifier(field.node)"
-                />
-                <Button
-                  icon="pi pi-pencil"
-                  size="small"
-                  text
-                  :aria-label="$t('common.edit')"
-                  :title="$t('common.edit')"
-                  @click="expandedFieldId = expandedFieldId === field.node.id ? null : field.node.id"
-                />
-                <Button
-                  icon="pi pi-trash"
-                  size="small"
-                  text
-                  severity="danger"
-                  :aria-label="$t('common.delete')"
-                  :title="$t('common.delete')"
-                  @click="removeField(field)"
-                />
-              </div>
-            </div>
-            <div v-if="expandedFieldId === field.node.id">
-              <DescriptorEditor
-                :model-value="field.node.data.descriptor || { base: 'string' }"
-                :type-options="typeOptions"
-                @update:model-value="value => setDescriptor(field.node, value)"
-              />
-            </div>
-          </div>
+            :field="field"
+            :summary="summaryOf(field.node)"
+            :type-options="typeOptions"
+            :expanded="expandedFieldId === field.node.id"
+            @rename="name => renameField(field.node, name)"
+            @descriptor="value => setDescriptor(field.node, value)"
+            @toggle-identifier="() => toggleIdentifier(field.node)"
+            @toggle-expand="() => toggleExpand(field.node.id)"
+            @remove="() => removeField(field)"
+          />
         </div>
       </section>
 
-      <section class="flex flex-col gap-3">
-        <div class="flex items-center justify-between gap-2">
-          <h2 class="text-label">{{ $t('typeDeclaration.lifecycle') }}</h2>
-          <Button
-            icon="pi pi-share-alt"
-            :label="$t('typeDeclaration.machineView')"
-            size="small"
-            text
-            @click="machineVisible = true"
-          />
-        </div>
+      <section class="flex flex-col gap-4">
+        <ActionToolbar :title="$t('typeDeclaration.lifecycle')" :level="2">
+          <template #actions>
+            <Button
+              icon="pi pi-share-alt"
+              :label="$t('typeDeclaration.machineView')"
+              size="small"
+              text
+              severity="secondary"
+              @click="machineVisible = true"
+            />
+          </template>
+        </ActionToolbar>
 
         <div class="flex flex-col">
-          <div
+          <DeclarationStateRow
             v-for="state in subtree.states"
             :key="state.node.id"
-            class="flex items-center gap-2 border-b border-chrome-border py-1.5"
-          >
-            <InputText
-              :model-value="state.node.data.value || ''"
-              size="small"
-              class="w-40 shrink-0"
-              :aria-label="$t('typeCanvas.stateName')"
-              @update:model-value="value => setStateValue(state.node, value)"
-            />
-            <Select
-              :model-value="state.node.data.severity || 'info'"
-              :options="STATE_SEVERITY_OPTIONS"
-              option-label="label"
-              option-value="value"
-              size="small"
-              class="w-36"
-              :aria-label="$t('processDesigner.stateSeverity')"
-              @update:model-value="value => setStatePolicy(state.node, 'severity', value)"
-            />
-            <InputText
-              :model-value="state.node.data.icon || ''"
-              size="small"
-              class="w-32"
-              :placeholder="$t('processDesigner.stateIcon')"
-              :aria-label="$t('processDesigner.stateIcon')"
-              @update:model-value="value => setStatePolicy(state.node, 'icon', value)"
-            />
-            <i v-if="state.node.data.icon" :class="state.node.data.icon" aria-hidden="true" />
-            <div class="ml-auto">
-              <Button
-                icon="pi pi-trash"
-                size="small"
-                text
-                severity="danger"
-                :aria-label="$t('common.delete')"
-                :title="$t('common.delete')"
-                @click="removeState(state)"
-              />
-            </div>
-          </div>
-          <div v-if="addingState" class="flex items-center gap-2 py-1.5">
+            :state="state"
+            @rename="value => setStateValue(state.node, value)"
+            @severity="value => state.node.data.severity = value"
+            @icon="value => state.node.data.icon = value"
+            @remove="() => removeState(state)"
+          />
+          <div v-if="addingState" class="flex items-center gap-3 py-2">
             <InputText
               ref="newStateInput"
               v-model="newStateValue"
@@ -177,53 +105,37 @@
             :label="$t('typeDeclaration.addState')"
             size="small"
             text
+            severity="secondary"
             class="self-start"
             @click="startAddState"
           />
         </div>
 
         <div class="flex flex-col">
-          <div
+          <div v-if="subtree.transitions.length" class="flex min-w-0 items-center gap-3 pb-1">
+            <span class="min-w-0 flex-1 truncate text-label text-muted">{{ $t('typeDeclaration.from') }}</span>
+            <span class="w-4 shrink-0" aria-hidden="true" />
+            <span class="w-40 shrink-0 truncate text-label text-muted">{{ $t('typeDeclaration.to') }}</span>
+            <span class="min-w-0 flex-1 truncate text-label text-muted">{{ $t('typeDeclaration.intent') }}</span>
+            <span class="w-8 shrink-0" aria-hidden="true" />
+          </div>
+          <DeclarationTransitionRow
             v-for="entry in subtree.transitions"
             :key="entry.record.id"
-            class="flex min-w-0 items-center gap-2 border-b border-chrome-border py-1.5"
-          >
-            <span class="w-24 shrink-0 truncate text-muted text-supporting">{{ fromLabel(entry.record) }}</span>
-            <i class="pi pi-arrow-right text-muted" aria-hidden="true" />
-            <Select
-              :model-value="transitionTarget(entry.record)"
-              :options="stateValueOptions"
-              option-label="label"
-              option-value="value"
-              size="small"
-              class="w-40 shrink-0"
-              :aria-label="$t('typeDeclaration.targetState')"
-              @update:model-value="value => retargetTransition(entry, value)"
-            />
-            <InputText
-              :model-value="entry.record.label || ''"
-              size="small"
-              class="min-w-0 flex-1"
-              :placeholder="$t('typeDeclaration.intent')"
-              :aria-label="$t('typeDeclaration.intent')"
-              @update:model-value="value => entry.record.label = String(value)"
-            />
-            <Button
-              icon="pi pi-trash"
-              size="small"
-              text
-              severity="danger"
-              :aria-label="$t('common.delete')"
-              :title="$t('common.delete')"
-              @click="removeTransition(entry)"
-            />
-          </div>
+            :entry="entry"
+            :states="subtree.states"
+            :state-options="stateValueOptions"
+            @retarget="value => retargetTransition(entry, value)"
+            @intent="value => entry.record.label = value"
+            @remove="() => removeTransition(entry)"
+          />
           <Button
             v-if="subtree.states.length"
             icon="pi pi-plus"
             :label="$t('typeDeclaration.addTransition')"
             size="small"
             text
+            severity="secondary"
             class="self-start"
             @click="addTransition"
           />
@@ -231,32 +143,29 @@
       </section>
     </div>
 
-    <StandardDialog v-model:visible="machineVisible" :header="$t('typeDeclaration.machineView')">
-      <!-- The shared markdown pipeline renders the derived mermaid fence;
-           SSR paints nothing and hydration swaps the diagram in. -->
-      <div :class="MARKDOWN_ELEMENT_CLASSES" v-html="machineHtml" />
+    <StandardDialog v-model:visible="machineVisible" :header="$t('typeDeclaration.machineView')" size="lg">
+      <div :class="MARKDOWN_ELEMENT_CLASSES" class="max-h-[60dvh] overflow-auto" v-html="machineHtml" />
     </StandardDialog>
   </StandardPage>
 </template>
 
 <script setup>
-// One authoring model, two projections (SPEC §1): this page edits the
-// canvas declaration arrays of the stationing definition's draft; the
-// contract table lives in components/type-designer/README.md.
+// Contract table: components/type-designer/README.md (SPEC §1 — one
+// authoring model, two projections).
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
-import Select from '~/components/shared/InstanceSelect.vue';
-import Tag from 'primevue/tag';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
-import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import DeclarationFieldRow from '~/components/type-designer/DeclarationFieldRow.vue';
+import DeclarationStateRow from '~/components/type-designer/DeclarationStateRow.vue';
+import DeclarationTransitionRow from '~/components/type-designer/DeclarationTransitionRow.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { STATE_SEVERITY_OPTIONS } from '~/components/type-designer/state-severities.js';
 import { MARKDOWN_ELEMENT_CLASSES, renderMarkdown } from '#shared/markdown.js';
 import {
   canvasToDefinition,
@@ -334,7 +243,9 @@ const { ctsTypeView, loadOrgTypes, loadProcessCapabilities } = useProcessDesigne
 });
 
 const typeOptions = computed(() => ctsTypeView().map(entry => ({ label: entry.label, value: entry.id })));
-const title = computed(() => generatedEntityLabel(props.typeId, { t, te }));
+const typeLabelById = computed(() => Object.fromEntries(typeOptions.value.map(option => [option.value, option.label])));
+const title = computed(() => subtree.value?.classNode?.data?.name
+  || generatedEntityLabel(props.typeId, { t, te }));
 const definitionName = computed(() => normalizeProcessDisplayName(
   definition.value?.identity?.name || definition.value?.identity?.uid || ''
 ));
@@ -359,9 +270,8 @@ watch(declarationSignature, () => {
   runDiagnostics();
 });
 
-// The workspace tab is a singleton (`page:typeDeclaration`): opening a
-// second type reuses it with fresh params, so the projection follows the
-// type id.
+// The workspace tab is a singleton: opening a second type reuses it with
+// fresh params, so the projection follows the type id.
 watch(() => [props.typeId, props.definitionId], () => {
   if (props.typeId) load();
 });
@@ -418,9 +328,6 @@ function seatDefinition(documentRecord) {
   runDiagnostics();
 }
 
-// The same live interpretation the canvas runs: declaration wires carry
-// the binding and the entry value (field type ids, operation state
-// defaults), so structural edits land through the same pass.
 function interpretNow() {
   const { mutations } = interpretDeclarationEdges(nodes.value, edges.value, records(), {});
   for (const mutation of mutations) {
@@ -466,8 +373,12 @@ async function save() {
   }
 }
 
-function fieldSummary(fieldNode) {
-  return fieldDescriptorSummary(fieldNode.data?.descriptor || {});
+function summaryOf(fieldNode) {
+  return fieldDescriptorSummary(fieldNode.data?.descriptor || {}, value => typeLabelById.value[value] || value);
+}
+
+function renameField(fieldNode, name) {
+  fieldNode.data.name = String(name ?? '');
 }
 
 function setDescriptor(fieldNode, value) {
@@ -476,6 +387,10 @@ function setDescriptor(fieldNode, value) {
 
 function toggleIdentifier(fieldNode) {
   setIdentifierHolder(nodes.value, fieldNode.id, fieldNode.data?.descriptor?.identifier !== true);
+}
+
+function toggleExpand(fieldNodeId) {
+  expandedFieldId.value = expandedFieldId.value === fieldNodeId ? null : fieldNodeId;
 }
 
 function addField() {
@@ -496,14 +411,6 @@ function setStateValue(stateNode, value) {
   interpretNow();
 }
 
-function setStatePolicy(stateNode, key, value) {
-  if (key === 'severity') {
-    stateNode.data.severity = value || 'info';
-    return;
-  }
-  stateNode.data.icon = String(value || '').trim() || null;
-}
-
 function startAddState() {
   addingState.value = true;
   newStateValue.value = '';
@@ -520,9 +427,9 @@ function commitAddState() {
   if (!value || !subtree.value) return;
   const state = newStateDeclaration({ id: mintId('ctsState'), value });
   nodes.value = [...nodes.value, state.node];
-  // A state enters the vocabulary through an operation (SPEC §7): carry
-  // it into the first construct without an initial state, else mint the
-  // transition that targets it.
+  // SPEC §7: a state enters the vocabulary through an operation — carry it
+  // into the first construct without an initial state, else mint the
+  // targeting transition.
   const construct = subtree.value.constructs.find(({ record }) => !operationTargetState(record));
   if (construct) {
     edges.value = [...edges.value, entryEdge(state.node.id, construct.node.id)];
@@ -562,20 +469,6 @@ function removeState(state) {
 const stateValueOptions = computed(() => (subtree.value?.states || [])
   .map(({ node }) => ({ label: node.data?.value || '', value: node.data?.value || '' }))
   .filter(option => option.value));
-
-function transitionTarget(record) {
-  return operationTargetState(record);
-}
-
-function fromLabel(entry) {
-  const sources = Array.isArray(entry.sources) ? entry.sources : [];
-  if (!sources.length) return t('typeDeclaration.fromAny');
-  const labelOf = (value) => {
-    const state = (subtree.value?.states || []).find(({ node }) => node.data?.value === value);
-    return String(state?.node.data?.label || value);
-  };
-  return sources.map(labelOf).join(', ');
-}
 
 function retargetTransition(entry, value) {
   const stateNode = (subtree.value?.states || []).find(({ node }) => node.data?.value === value)?.node;
@@ -641,9 +534,6 @@ function handleBeforeUnload(event) {
   event.preventDefault();
 }
 
-// The routed twin calls this from its own leave guard; pane-hosted mounts
-// keep the browser unload guard above (the pane tab close carries no
-// veto seam today).
 function confirmLeave() {
   if (!dirty.value) return Promise.resolve(true);
   return new Promise(resolve => {

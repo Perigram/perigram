@@ -133,10 +133,14 @@ export function declarationSubtreeOf(nodes = [], edges = [], records = {}, typeI
 }
 
 // The field-card tag derivation (components/type-designer FieldNode): the
-// one summary of a descriptor's base and qualifier.
-export function fieldDescriptorSummary(descriptor = {}) {
+// one summary of a descriptor's base and qualifier. `typeLabelFor` maps a
+// ref's accepted type ids onto display labels where a surface holds them.
+export function fieldDescriptorSummary(descriptor = {}, typeLabelFor = null) {
   if (descriptor.base === 'quantity') return `${descriptor.unit || '?'}`;
-  if (descriptor.base === 'ref') return `Ref(${(descriptor.accepts || []).join('|')})`;
+  if (descriptor.base === 'ref') {
+    const labelOf = value => (typeLabelFor ? typeLabelFor(value) : value);
+    return `Ref(${(descriptor.accepts || []).map(labelOf).join('|')})`;
+  }
   if (descriptor.nullable) return `${descriptor.base}?`;
   return descriptor.base || 'field';
 }
