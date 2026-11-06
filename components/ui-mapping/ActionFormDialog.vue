@@ -24,7 +24,7 @@
     >
       <div :class="LAYOUT.formGrid">
         <div
-          v-for="row in rows"
+          v-for="row in visibleRows"
           :key="row.id"
           class="flex min-w-0 flex-col gap-1"
           :class="row.span === 'full' ? 'ck-span-full' : ''"
