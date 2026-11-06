@@ -245,11 +245,6 @@ export default function createSketchEditor({ vue, components, locale }) {
       // waits for the mount instead of dropping — the toolbar renders
       // with the dialog, the engine arrives asynchronously.
       let pendingCommand = null;
-      // Authored shapes dropped by a merge (an erase): offered back as
-      // adoption candidates so an engine undo/redo that restores canvas
-      // geometry revives their expressions. Session state — never
-      // stored, cleared with the canvas.
-      let droppedShapes = [];
       // The canvas owns its snapping set; the tangent toggle rides on top.
       const OSNAP_KINDS = ['end', 'mid', 'cen', 'quad', 'int', 'near'];
 
@@ -985,12 +980,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         commitSketch(historyEntries[historyAt], { fromHistory: true });
       };
 
-      const mergeAuthoredSketch = (extracted, authored, adoptShapes) => (
+      const mergeAuthoredSketch = (extracted, authored) => (
         mergeOccsProfileSketchGeometry(
           extracted,
           normalizeOccsProfileSketch(authored || {}),
-          externalScope(),
-          adoptShapes
+          externalScope()
         )
       );
 
@@ -1009,12 +1003,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         // only moved or new geometry goes numeric. The external scope
         // joins the merge's evaluation so global-bound fields resolve;
         // the stored sketch keeps the clean table.
-        const merged = mergeAuthoredSketch(extracted, props.modelValue || {}, droppedShapes);
-        const keptIds = new Set(merged.shapes.map(shape => shape.id));
-        droppedShapes = [
-          ...(props.modelValue?.shapes || []),
-          ...droppedShapes
-        ].filter(shape => !keptIds.has(shape.id)).slice(-20);
+        const merged = mergeAuthoredSketch(extracted, props.modelValue || {});
         const sketch = normalizeOccsProfileSketch(merged, context.parameters);
         const fingerprint = JSON.stringify(sketch);
         if (fingerprint === lastEmitted) {
@@ -1160,7 +1149,6 @@ export default function createSketchEditor({ vue, components, locale }) {
         seedEntities({ entities: [] });
         lastAnnotationFingerprint = '';
         clearDrawingEntities();
-        droppedShapes = [];
         pendingDimensionPick = null;
         dimensionDraft.value = null;
         selectedShape.value = null;
@@ -1836,7 +1824,6 @@ export default function createSketchEditor({ vue, components, locale }) {
           } finally {
             seeding = false;
           }
-          droppedShapes = [];
           entityShapeByEntityId = new Map();
           lastAnnotationFingerprint = '';
           host.zoomFit(fitExcludeLayers());
