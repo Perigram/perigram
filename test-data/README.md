@@ -25,7 +25,6 @@ non-spec files here.
 | `createMockUser()` | user with role, permission-template permissions, and an active membership |
 | `createMockOrganization()` | fabricator organization |
 | `createMockHistory(statuses)` | status-event timeline; takes a states array (default `DRAFT → ACTIVE → CLOSED`) |
-| `createMockStatistics()` | dashboard utilization/cost totals |
 
 - `persisted-acceptance.js` — the privacy-safe persisted-graph fixture:
   a synthetic organization with roles and a role assignment, a saved
@@ -72,8 +71,7 @@ const admin = createMockUser({ identity: { name: 'Site Admin' } });
 ```
 
 Every factory except `createMockHistory` (a states
-array) and `createMockStatistics` (fixed totals) takes an overrides
-object spread onto the defaults.
+array) takes an overrides object spread onto the defaults.
 
 ## Design-System Alignment
 
