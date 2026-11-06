@@ -5321,3 +5321,14 @@ Session `agent/md-record-20261106` (worktree
   ("New Queue entry"). The two earlier repair sessions fixed real
   defects in the same path (field: id shapes, accepts fallback) that
   this render-line fix finally exercises.
+
+  ### Agent Notes (2026-11-06, trail single-homing)
+
+  Owner review: the trail was hand-wired per projection and the action
+  inbox — a mixed-type pile of instance tiles — carried none. The trail
+  moved into the one identifier surface (`InstanceIdentity`) behind a
+  collection-context provide (`instanceCollectionCrossCut`,
+  `RegionCollections`); the six per-projection copies died, the media
+  tile keeps its grounded chip at its host, the calendar re-provides
+  false (summary chips), and the inbox rows carry the trail beneath the
+  tile with crumbs opening ancestors through the workspace seam.
