@@ -1,7 +1,7 @@
 <template>
   <StateBlock v-if="status === 'loading'" state="loading" :message="$t('common.loading')" />
   <Message v-else-if="status === 'error'" :severity="errorSeverity" :closable="false">{{ errorMessage }}</Message>
-  <component :is="mounted" v-else-if="mounted" :record="record" :persistence="persistence" />
+  <component :is="mounted" v-else-if="mounted" :record="record" :persistence="persistence" :mode="mode" />
 </template>
 
 <script setup>
@@ -26,7 +26,11 @@ const props = defineProps({
   record: { type: Object, default: null },
   typeId: { type: String, required: true },
   // The served surface declaration: { id, url, surfaceContract }.
-  surface: { type: Object, required: true }
+  surface: { type: Object, required: true },
+  // The opener's grant decides (SPEC §4): 'edit' edits in place, 'read'
+  // renders the same surface read-only — a surface that declares the
+  // prop degrades to its read-only presentation.
+  mode: { type: String, default: 'edit' }
 });
 
 const { t, te, locale } = useI18n();

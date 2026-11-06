@@ -25,7 +25,6 @@
         />
         <RefRowActions
           :value="pickedInstanceFor(spot)"
-          :editor-actions="editorActions"
         />
       </div>
     </template>
@@ -61,7 +60,6 @@ const props = defineProps({
   accepts: { type: Array, default: () => [] },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
-  editorActions: { type: Object, default: null },
   createActions: { type: Object, default: () => ({}) }
 });
 const emit = defineEmits(['update:modelValue', 'construct-create']);

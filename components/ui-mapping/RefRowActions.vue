@@ -26,12 +26,16 @@
     />
     <Menu ref="menuRef" :model="menuModel" :append-to="rootEl" popup />
     <input ref="fileRef" type="file" class="hidden" :accept="fileAccept" @change="onFilePicked" />
-    <component
-      :is="editorAction"
-      v-if="editorAction && value?.id"
-      :entity="value"
-      :type-id="String(value.type)"
-      prefer-dialog
+    <Button
+      v-if="pickedOpenable"
+      icon="pi pi-external-link"
+      size="small"
+      severity="secondary"
+      text
+      rounded
+      :aria-label="t('common.open')"
+      :title="t('common.open')"
+      @click="entityPopup.open({ typeId: String(value.type), instanceId: String(value.id) })"
     />
   </div>
 </template>
@@ -46,19 +50,20 @@ import { creationModeLabel } from '~/packages/processes/src/ui-contract-projecti
 import { createdEntity } from '~/utils/instance-run-results.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { useEntityPopup } from '~/composables/useEntityPopup';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 
 // The fill dialog's reference-slot affordances (SPEC §24 rails): create
 // through the accepted type's declared creation mode — the editor
 // protocol opens the blank page, an upload-mode create runs inline over
 // the files channel, every other create opens the host's nested dialog —
-// and open the picked instance's editor when its type binds one. Pickers
+// and open the picked record (its surface is the editor of an
+// editor-bound type, SPEC §4) as the bounded record popup. Pickers
 // compose the same component picker-local (SPEC §22.13); type records
 // resolve through the served type view, so no bundle travels.
 const props = defineProps({
   typeIds: { type: Array, default: () => [] },
   value: { type: Object, default: null },
-  editorActions: { type: Object, default: null },
   // Compiled create actions by accepted type id: `{ [typeId]: action[] }`.
   createActions: { type: Object, default: () => ({}) }
 });
@@ -68,6 +73,7 @@ const { t } = useI18n();
 const toast = useToast();
 const instances = useInstancesStore();
 const view = useFileTypeView();
+const entityPopup = useEntityPopup();
 // The protocol menu mounts inside the component root: a popover-hosted
 // create (the pickers') keeps its subtree alive through the async run,
 // so the created record's select still lands.
@@ -97,8 +103,8 @@ const entries = computed(() => props.typeIds.flatMap(typeId => {
   return list.map(entry => ({ ...entry, label: list.length > 1 ? `${label} · ${entry.modeLabel}` : label }));
 }));
 
-const hasAffordances = computed(() => entries.value.length > 0 || Boolean(props.value?.id && props.editorActions?.[String(props.value.type)]));
-const editorAction = computed(() => (props.value?.id ? props.editorActions?.[String(props.value.type)] || null : null));
+const pickedOpenable = computed(() => Boolean(props.value?.id && entityPopup.openable(String(props.value.type))));
+const hasAffordances = computed(() => entries.value.length > 0 || pickedOpenable.value);
 
 // The dialog's submit shares the word "Create": the reference-slot create
 // names the thing it creates when its accepted set is a single type.

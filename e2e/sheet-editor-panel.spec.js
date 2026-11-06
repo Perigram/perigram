@@ -62,10 +62,9 @@ async function openSheetEditor(app, name) {
   const page = app.page;
   const list = (app.seedManifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'sheet-design');
   await app.gotoClient(list.route);
+  // Opening the record is entering it: the detail surface hosts the sheet
+  // editor as the record body (SPEC §4).
   await page.getByText(name, { exact: true }).first().click();
-  const editorAction = page.locator('.surface-header button .pi-file-edit').first();
-  await editorAction.waitFor({ timeout: 20000 });
-  await editorAction.click();
   await page.locator('.designer-workspace').first().waitFor({ timeout: 30000 });
   await page.waitForTimeout(1500);
 }

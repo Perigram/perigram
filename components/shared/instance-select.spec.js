@@ -107,7 +107,7 @@ vi.mock('~/components/ui-mapping/RefRowActions.vue', async () => {
   const { defineComponent, h: render } = await import('vue');
   return {
     default: defineComponent({
-      props: ['typeIds', 'createActions', 'value', 'editorActions'],
+      props: ['typeIds', 'createActions', 'value'],
       setup(props) {
         return () => Object.values(props.createActions || {}).flat().length
           ? render('div', { 'data-create-affordance': String(props.typeIds || []) })
@@ -148,6 +148,7 @@ describe('entity Select wrappers', () => {
       'components/chat/ChatSearchPanel.vue',
       'components/shared/ChatBotPanel.vue',
       'components/ui-mapping/CreateControl.vue',
+      'components/ui-mapping/LayerMappingRow.vue',
       'pages/organization/models.vue'
     ]);
     const violations = vueFiles(['components', 'pages', 'layouts'])

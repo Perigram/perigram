@@ -90,7 +90,6 @@
             :accepts="row.descriptor?.accepts || []"
             :pool="pool"
             :bundle="bundle"
-            :editor-actions="editorActions"
             :create-actions="createActionsByType"
             @construct-create="openNestedCreate(null, $event)"
             @update:model-value="value => (dialogDraft[row.id] = value)"
@@ -121,7 +120,6 @@
             <RefRowActions
               :type-ids="row.descriptor.accepts || []"
               :value="dialogDraft[row.id]"
-              :editor-actions="editorActions"
               :create-actions="createActionsByType"
               @select="value => (dialogDraft[row.id] = value)"
               @construct-create="action => openNestedCreate(row.id, action)"
@@ -260,9 +258,6 @@ const props = defineProps({
   // `{ [typeId]: [{ __command, commandId, kind, actionKind: 'runCommand', ... }] }`
   // — one manual command action per the org's export bindings.
   exportActions: { type: Object, default: null },
-  // Editor action components by type (the host resolves the file-surface
-  // registry; the engine renders what it is given): `{ [typeId]: Component }`.
-  editorActions: { type: Object, default: null },
   // Machine-authority transition resolver for board drags:
   // `async (instance) => [{ to, intent, region }]` over the host's state
   // service — the same machine the transition buttons dispatch through.
@@ -378,7 +373,6 @@ const regionBlockProps = computed(() => ({
   resolveTransitions: props.onFetchTransitions,
   loadType: props.onLoadType,
   navigation: props.navigation,
-  editorActions: props.editorActions,
   presentation: props.presentation,
   expandable: props.expandable
 }));

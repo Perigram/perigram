@@ -1,8 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 
 import {
-  fileEditorActions,
+  editorMountMode,
   fileSurfaceRegistry,
   fileWorkspacePages,
   instancePayloadFileUrl,
@@ -32,6 +32,10 @@ const servedEditors = [
 ];
 
 describe('file surface registry', () => {
+  // The remote props adapter resolves the mount mode through the auth
+  // store, so every test runs against a fresh pinia.
+  beforeEach(() => setActivePinia(createPinia()));
+
   it('carries no local pack registrations — every editor is plugin-delivered', () => {
     expect(fileSurfaceRegistry).toEqual({});
     expect(packEditorBindings).toEqual([]);
@@ -49,8 +53,8 @@ describe('file surface registry', () => {
 
   it('binds the cassette type to the plugin-delivered designer module', () => {
     const surface = resolveFileSurface(servedEditors, 'cassette', servedSurfaces);
-    expect(surface.action).toBe('generic');
     expect(surface.remote).toBe(true);
+    expect(surface.action).toBeUndefined();
     expect(surface.workspacePage.props({ entity: { id: 'c-1' }, typeId: 'cassette' }, 'cassette'))
       .toMatchObject({ typeId: 'cassette', surface: servedSurfaces[3] });
   });
@@ -62,13 +66,6 @@ describe('file surface registry', () => {
       expect(surface.workspacePage.component, typeId).toBeTruthy();
       expect(surface.workspacePage.props({ entity: { id: 'd-1' }, typeId }, typeId))
         .toMatchObject({ typeId, surface: servedSurfaces.find(entry => entry.id === surfaceId) });
-    }
-  });
-
-  it('derives editor action rows from the served bindings', () => {
-    const actions = new Map(fileEditorActions(servedEditors, servedSurfaces));
-    for (const typeId of ['text-document', 'csv-table', 'sheet-design', 'sketch', 'cassette']) {
-      expect(actions.get(typeId)?.action, typeId).toBe('generic');
     }
   });
 
@@ -138,10 +135,18 @@ describe('file surface registry', () => {
     const surfaces = [{ id: 'coating-designer', url: 'http://127.0.0.1:8793/s.mjs', surfaceContract: 1 }];
     const surface = resolveFileSurface(editors, 'coating-sheet', surfaces);
     expect(surface.remote).toBe(true);
-    const actions = new Map(fileEditorActions(editors, surfaces));
-    expect(actions.get('coating-sheet')?.action).toBe('generic');
     const pages = fileWorkspacePages(editors, surfaces);
     expect(pages.map(page => page.id)).toContain('coating-designer');
+  });
+
+  it('keys the mount mode on the opener write grant', async () => {
+    setActivePinia(createPinia());
+    const { useAuthStore } = await import('~/stores/auth');
+    const authStore = useAuthStore();
+    authStore.user = { permissions: { 'text-document': 'write' } };
+    expect(editorMountMode('text-document', { id: 't-1' })).toBe('edit');
+    authStore.user = { permissions: { 'text-document': 'read' } };
+    expect(editorMountMode('text-document', { id: 't-1' })).toBe('read');
   });
 
   it('answers unknown types and unfetched views with null', () => {

@@ -29,13 +29,9 @@ import InputNumber from 'primevue/inputnumber';
 import IftaLabel from 'primevue/iftalabel';
 import Divider from 'primevue/divider';
 import { useInstancesStore } from '~/stores/instances';
-import { useAuthStore } from '~/stores/auth';
-import { useRegistryStore } from '~/stores/registry';
-import { hasPermissionGrant } from '#shared/access-control.js';
-import { resolveTypeFeature } from '#shared/field-access-policies.js';
 import { onInstanceChanged } from '#utils/instance-events.js';
 import { openInstanceInWorkspace } from '#utils/instance-workspace-open.js';
-import { instancePayloadPersistence, instancePayloadFileUrl, runBlankFileConstruct } from './file-surfaces.js';
+import { instancePayloadPersistence, instancePayloadFileUrl, runBlankFileConstruct, editorWriteGranted } from './file-surfaces.js';
 import { renderMarkdown } from '#shared/markdown.js';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
@@ -56,7 +52,7 @@ import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 // system commitment to plugin authors.
 //
 // The pack resolves lazily: pack members' graphs cycle back through this
-// module (DrawingCanvas → entity cards → instance-editor-action →
+// module (DrawingCanvas → entity cards → InstanceSelect → RefRowActions →
 // file-surfaces → RemoteEditorSurface → here), and an eager object
 // literal would read an unfinished module binding at eval time — the
 // vite-node TDZ 500 (or an undefined frozen into the pack under the SSR
@@ -150,16 +146,8 @@ export function surfaceNotify() {
 // surface asks instead of resolving grants itself. Without a grant the
 // surface degrades to view-only.
 export function editorSurfaceAccess(typeId) {
-  const authStore = useAuthStore();
-  const registry = useRegistryStore();
   return Object.freeze({
-    canWrite: record => hasPermissionGrant({
-      permissions: authStore.activePermissions,
-      feature: resolveTypeFeature(typeId, registry.typeRecord(typeId)),
-      level: 'write',
-      entity: record,
-      typeId
-    })
+    canWrite: record => editorWriteGranted(typeId, record)
   });
 }
 
@@ -170,8 +158,8 @@ export function editorSurfaceAccess(typeId) {
 // otherwise the app navigates home and the request lands on mount.
 export function editorSurfaceOpen() {
   return Object.freeze({
-    instance: ({ typeId = '', instanceId = '', editor = false } = {}) =>
-      openInstanceInWorkspace({ typeId, instanceId, editor })
+    instance: ({ typeId = '', instanceId = '' } = {}) =>
+      openInstanceInWorkspace({ typeId, instanceId })
   });
 }
 
@@ -223,7 +211,6 @@ export function editorSurfaceUpload() {
 // touch the API.
 export function editorSurfacePersistence(typeId) {
   const instances = useInstancesStore();
-  const authStore = useAuthStore();
 
   function basePersistence(record, mimeType = 'application/json') {
     return instancePayloadPersistence(record, typeId, mimeType);

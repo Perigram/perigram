@@ -137,7 +137,7 @@ export const fixedWorkspacePages = [
 // so consumer computeds that call this track the view and event-handler
 // calls resolve whatever is served at that moment — a module-scope
 // array would freeze the pre-auth fallback and drop plugin editor pages
-// (the cassette designer) exactly like the editor-action snapshot did.
+// (the cassette designer).
 export function generatedWorkspacePages() {
   return [...fileWorkspacePages(), ...fixedWorkspacePages];
 }

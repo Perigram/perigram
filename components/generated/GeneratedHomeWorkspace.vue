@@ -165,7 +165,7 @@
               :closeable="paneCount > 1"
               :back="paneHasHistory(pane.id)"
               @back="goBackFromPane(pane.id)"
-              @open-entity="request => openWorkspaceEntity(request.typeId, { _id: request.instanceId }, { editor: request.editor === true })"
+              @open-entity="request => openWorkspaceEntity(request.typeId, { _id: request.instanceId })"
               @open-page="openWorkspacePage"
               @open-call="request => openCallTab(request.room, request)"
               @refresh="$emit('refresh')"
@@ -819,24 +819,15 @@ function instanceLabelOf(typeId = '', id = '') {
 // An instance opens as a compiled detail-screen tab in the active pane —
 // never a separate route and never an entity renderer: the manifest's
 // instanceDetail screen first, the synthesized fallback (from the type's
-// list screen) second. Editor-bound types route to their registered
-// editor page instead; types with no compiled detail screen and no editor
-// but a registered entity-bound workspace page (the directory surface for
-// `user`/`organization`) open that page as the pane tab; a type with none
-// of the three stays silent, exactly like
-// the routed surface contract.
-function openInstanceTab(typeId = '', instanceIdValue = '', { editor = false } = {}) {
+// list screen) second. Types with no compiled detail screen but a bound
+// editor surface open that editor page as the pane tab — the record
+// surface of a type without a compiled screen (SPEC §4: the editor is
+// the record surface); types with no compiled screen, no editor, but a
+// registered entity-bound workspace page (the directory surface for
+// `user`/`organization`) open that page; a type with none of the three
+// stays silent, exactly like the routed surface contract.
+function openInstanceTab(typeId = '', instanceIdValue = '') {
   if (!typeId || !instanceIdValue || !activePane.value) return;
-  // Editor-protocol creates open the editor page first (SPEC §UI): the
-  // blank instance exists to be edited. No editor surface resolves: the
-  // ordinary chain below takes over.
-  if (editor) {
-    const editorSurface = resolveFileSurface(undefined, typeId);
-    if (editorSurface?.workspacePage) {
-      openWorkspacePage({ pageId: editorSurface.surface, typeId, entity: { _id: instanceIdValue } });
-      return;
-    }
-  }
   const detail = resolveDetailScreen({ screens: authStore.screenManifest, typeId });
   const screenKey = detail ? (detail.screenKey || detail.id) : null;
   const key = screenKey ? `screen:${screenKey}:${instanceIdValue}` : '';
@@ -1010,7 +1001,7 @@ watch(() => callsStore.pendingTabRoom, room => {
 // with a compiled detail screen keep the routed mobile contract).
 function openRequestedWorkspaceEntity(event) {
   event?.preventDefault?.();
-  const { typeId, instanceId, editor } = event?.detail || {};
+  const { typeId, instanceId } = event?.detail || {};
   if (!typeId || !instanceId) return;
   if (isMobileViewport.value) {
     if (routeInstanceToScreen(typeId, instanceId)) return;
@@ -1023,7 +1014,7 @@ function openRequestedWorkspaceEntity(event) {
     entityPopup.open({ typeId, instanceId: String(instanceId) });
     return;
   }
-  openInstanceTab(typeId, instanceId, { editor: editor === true });
+  openInstanceTab(typeId, instanceId);
 }
 
 function isActiveOrganization(instanceId = '') {
@@ -1417,12 +1408,12 @@ function closePane(paneId) {
   activePaneId.value = workspaceLeaves(paneTree.value)[0]?.id || 'pane-1';
 }
 
-function openWorkspaceEntity(typeId, entity, { editor = false } = {}) {
+function openWorkspaceEntity(typeId, entity) {
   // Explorer hydration entry: remembers the record for the tree (nesting,
-  // editor-page entities) and opens its compiled detail screen tab.
+  // editor-page entities) and opens its record surface tab.
   const item = rememberWorkspaceEntity(typeId, entity);
   if (!item) return null;
-  openInstanceTab(typeId, instanceId(item.entity), { editor });
+  openInstanceTab(typeId, instanceId(item.entity));
   return item;
 }
 

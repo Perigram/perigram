@@ -1,23 +1,19 @@
 import { detailRouteForInstance, instanceIdentifier } from '~/components/generated/instance-detail-routing.js';
 import { createdEntity } from '~/utils/instance-run-results.js';
 
-// Where a successfully created entity opens (SPEC §4 editor protocol):
+// Where a successfully created entity opens (SPEC §4): the record
+// surface, whatever shape it takes for the type.
 // 1. the home workspace pane tab — the "everything lives inside home"
 //    rule: while the manifest carries a compiled home screen, a create
 //    opens (or reuses) the created entity's tab in the same workspace
-//    instead of routing out of it; an editor-protocol create opens the
-//    type's editor page directly (SPEC §UI file-creation law — the blank
-//    instance whose first editor save fills the payload);
+//    instead of routing out of it; an editor-bound record opens its
+//    detail surface, whose body IS the editor (editor-protocol creates
+//    included — opening the record is entering it);
 // 2. its compiled detail route when no home workspace exists (orgs
-//    without a compiled home still get the routed detail surface — the
-//    pane/route body mounts the type's editor surface through the
-//    file-surface overload);
-// 3. the home workspace pane when the create ran with the `editor`
-//    protocol and no compiled route exists — the editor contract
-//    guarantees the editor is reachable, not a silent close;
-// 4. a toast fallback so a create without any destination is never
+//    without a compiled home still get the routed detail surface);
+// 3. a toast fallback so a create without any destination is never
 //    silent.
-// The editor-protocol predicate (SPEC §UI): unscoped editor creates open
+// The editor-protocol predicate (SPEC §4): unscoped editor creates open
 // the blank editor and the first save creates; context-scoped ones run
 // the construct directly with their binding.
 export function isEditorProtocolCreate(action = {}) {
@@ -30,17 +26,12 @@ export function resolveCreatedInstanceOpen({ action = {}, result = null, screenK
   if (!entity || !typeId) return null;
   const identifier = instanceIdentifier(entity);
   if (!identifier) return null;
-  const mode = action.construction?.mode ?? action.via;
-  const editorCreate = mode === 'editor';
   const hasHomeWorkspace = manifest.some(screen => screen?.template === 'home');
   if (hasHomeWorkspace) {
-    return { kind: 'workspace', typeId, instanceId: identifier, name: displayName(entity), ...(editorCreate ? { editor: true } : {}) };
+    return { kind: 'workspace', typeId, instanceId: identifier, name: displayName(entity) };
   }
   const route = detailRouteForInstance({ entity, typeId, screenKey, manifest });
   if (route) return { kind: 'route', route, typeId, instanceId: identifier };
-  if (editorCreate) {
-    return { kind: 'workspace', typeId, instanceId: identifier, name: displayName(entity), editor: true };
-  }
   return { kind: 'toast', typeId, instanceId: identifier, name: displayName(entity) };
 }
 

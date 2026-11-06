@@ -12,7 +12,10 @@ const portableAliases = {
   '#shared': path.resolve(__dirname, './shared'),
   '#packages': path.resolve(__dirname, './packages'),
   '#utils': path.resolve(__dirname, './utils'),
-  '#services': path.resolve(__dirname, './server')
+  '#services': path.resolve(__dirname, './server'),
+  // Deep app graphs (an editor mount reaching the screen host) cross
+  // Nuxt's #app; the SSR smoke harness stubs the same specifier.
+  '#app': path.resolve(__dirname, './test-tools/nuxt-app-stubs.mjs')
 };
 
 export default defineConfig({

@@ -283,6 +283,11 @@ export const LAYOUT = Object.freeze({
   // documents, plugin modules) fill the framed stepped band (real CSS
   // in main.css).
   previewHeroBandContent: 'ck-preview-hero-band-content',
+  // The editor band (SPEC §4): the record body's editor region — the
+  // framed band an editor surface fills as the record body (real CSS in
+  // main.css; the bounded variant serves popup hosts).
+  editorBand: 'ck-editor-band',
+  editorBandBounded: 'ck-editor-band-bounded',
   // The page-scale band: the page fills the column's width at its own
   // aspect (real CSS in main.css).
   previewHeroBandAspect: 'ck-preview-hero-band-aspect',
@@ -400,7 +405,7 @@ export const LAYOUT_ATOMS = Object.freeze({
   stack: Object.freeze(['stack', 'stackSection', 'stackTight', 'labeledBlock', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
-  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewHeroBandFlow', 'previewBand', 'mediaTile', 'previewSide', 'previewSideRow']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewHeroBandFlow', 'previewBand', 'mediaTile', 'previewSide', 'previewSideRow', 'editorBand', 'editorBandBounded']),
   well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack', 'well']),
   tabs: Object.freeze([]),
   placement: Object.freeze([]),
