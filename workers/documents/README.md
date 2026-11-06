@@ -26,7 +26,9 @@ types ride the generic instance machinery from the install snapshot.
   editor (`surfaces/text-editor.mjs`, milkdown/crepe with every engine
   chrome disabled — remote saves reconcile through the host's
   record-change bridge) and the csv editor (`surfaces/csv-editor.mjs`,
-  cell-edit DataTable). Mermaid fences preview as diagrams in the
+  cell-edit DataTable). The markdown editor's read-only presentation
+  (mount `mode: 'read'`, SPEC §4) is the rendered markdown document
+  itself. Mermaid fences preview as diagrams in the
   markdown editor through the host-provided `renderMarkdown` (the
   single pele home): blocks open diagram-only, crepe's Edit toggle or a
   click on the diagram flips to the CodeMirror source with the diagram

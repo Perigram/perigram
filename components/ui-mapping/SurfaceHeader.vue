@@ -59,18 +59,11 @@
       </div>
       <div :class="LAYOUT.row" class="header-actions">
         <!-- The cluster groups by control kind — record utilities (the
-             conversation affordance, the editor, construct re-derive),
-             generated actions, machine transitions — one tight group per
-             kind with hairline dividers between non-empty groups. -->
+             conversation affordance, construct re-derive), generated
+             actions, machine transitions — one tight group per kind with
+             hairline dividers between non-empty groups. -->
         <div :class="LAYOUT.actionGroup">
           <InstanceChatEntry :type-id="type?.id" :instance="instance" :name="identity" />
-          <component
-            :is="editorAction"
-            v-if="editorAction"
-            :entity="instance"
-            :type-id="type?.id"
-            @refresh="$emit('refresh')"
-          />
           <ActionButton
             v-for="action in rerunActions"
             :key="action.id"
@@ -162,9 +155,6 @@ const props = defineProps({
   // `#navigation` slot is the same channel for direct hosts):
   // `{ icon, label, command }`.
   navigation: { type: Object, default: null },
-  // Editor action component for this record's type, resolved by the host
-  // over the file-surface registry (null when the type has no editor).
-  editorAction: { type: [Object, Function], default: null },
   // The compact treatment: the identity line alone, with every action
   // control and the state surface, over the body (the peek presentation).
   compact: { type: Boolean, default: false },
@@ -192,8 +182,8 @@ const glyph = computed(() => iconFor(props.type, props.instance));
 // Status transitions render only through the machine-scoped runtime set
 // (their target depends on the opened instance's current state).
 // updateInstance never joins the generic run menu: stateless ones are
-// field edits (fields edit inline; editor-bound types open the editor),
-// state-carrying ones are the machine buttons.
+// field edits (fields edit inline), state-carrying ones are the machine
+// buttons.
 const transitionActions = computed(() => props.actions
   .filter(action => action?.__runtime && action?.state?.to));
 // The construct re-derive is a revision utility: it re-runs the record's

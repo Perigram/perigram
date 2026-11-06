@@ -15,19 +15,17 @@ function homeWorkspaceRoute() {
  * lives inside the home framework" rule. Fast path: a mounted home workspace
  * (the chats drawer/popups float above it) consumes the event and opens the
  * pane tab immediately. Otherwise the request is stashed as pending state
- * and the app navigates home; the workspace consumes it on mount. An
- * `editor` flag (editor-protocol creates, SPEC §UI) asks the workspace to
- * open the type's editor page instead of the compiled detail tab.
+ * and the app navigates home; the workspace consumes it on mount.
  */
-export function openInstanceInWorkspace({ typeId = '', instanceId = '', editor = false } = {}) {
+export function openInstanceInWorkspace({ typeId = '', instanceId = '' } = {}) {
   if (!typeId || !instanceId || typeof window === 'undefined') return false;
   const handled = !window.dispatchEvent(new CustomEvent(WORKSPACE_OPEN_EVENT, {
-    detail: { typeId, instanceId, ...(editor ? { editor: true } : {}) },
+    detail: { typeId, instanceId },
     cancelable: true
   }));
   if (handled) return true;
   const pending = usePendingWorkspaceEntity();
-  pending.value = { typeId, instanceId, ...(editor ? { editor: true } : {}) };
+  pending.value = { typeId, instanceId };
   navigateTo(homeWorkspaceRoute() || '/');
   return true;
 }

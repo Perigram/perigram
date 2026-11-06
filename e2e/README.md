@@ -72,9 +72,9 @@ that drive executor-backed surfaces or services wire them through
   and csv cell edits commit and serialize on save.
 - `plugin-surface.spec.js`: plugin-delivered surfaces end to end — the
   fixture plugin publishes through the real catalog API and installs
-  through the real gate, its editor surface mounts over the host
-  context and saves through the generic persistence callbacks, and its
-  preview surface mounts read-only; the run retracts the fixture's
+  through the real gate, and its editor surface mounts as the record
+  body of the editor-bound type over the host context and saves through
+  the generic persistence callbacks; the run retracts the fixture's
   catalog listing.
 - `order-process.spec.js`: the composed order process LIVE — the org
   vocabulary authored over the shared seam fixture

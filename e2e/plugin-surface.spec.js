@@ -122,12 +122,8 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   expect(detail?.route, 'Expected a compiled fixture detail screen').toBeTruthy();
   await app.gotoClient(`${detail.route}?instanceId=${encodeURIComponent(id)}`);
 
-  // The editor action (generic, file-edit glyph) opens the plugin's
-  // surface; the workspace mounts it as a page tab.
-  const editorAction = app.page.locator('.surface-header button .pi-file-edit').first();
-  await expect(editorAction).toBeVisible({ timeout: 20_000 });
-  await editorAction.click();
-
+  // The detail surface of an editor-bound type IS the editor (SPEC §4):
+  // the record body mounts the plugin's surface module directly.
   const editor = app.page.locator('.fx-surface-editor');
   await expect(editor).toBeVisible({ timeout: 20_000 });
   await expect(editor.locator('.fx-surface-record')).toHaveText('Fixture Note One');
@@ -142,14 +138,10 @@ test('a plugin-delivered editor surface installs and opens with zero app code', 
   const download = await app.request.get(`/api/files/download/${fileId}?bucket=files`);
   expect(download.ok(), await download.text()).toBeTruthy();
   expect((await download.json()).note).toBe('fixture');
-
-  // M7: the plugin's preview surface mounts in the detail preview slot —
-  // read-only over the record and the host-resolved payload document.
-  await app.gotoClient(`${detail.route}?instanceId=${encodeURIComponent(id)}`);
-  const preview = app.page.locator('.fx-surface-preview');
-  await expect(preview).toBeVisible({ timeout: 20_000 });
-  await expect(preview.locator('.fx-surface-preview-record')).toHaveText('Fixture Note One');
-  await expect(preview.locator('.fx-surface-preview-payload')).toHaveText('fixture');
+  // The plugin's preview module mounts read-only over the record and the
+  // host-resolved payload document; the served-binding assertions above
+  // pin its composition, and the cassette preview specs pin the preview
+  // mount against real payloads.
 
   await app.expectCleanRuntime();
 });

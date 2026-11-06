@@ -443,13 +443,12 @@ beside the transition history in `StateHistory`.
   cluster sits right (the identity's flex-1 is the push) and groups by
   control kind with hairline dividers between non-empty groups
   (`LAYOUT.actionGroup`/`actionDivider`): record utilities — the
-  composed instance-chat entry,
-  the host-resolved editor action component (`editorActions` channel: the
-  app host resolves the file-surface registry per type and the engine
-  renders what it receives), the construct re-derive —
+  composed instance-chat entry, the construct re-derive —
   then at most `HEADER_ACTIONS_INLINE` generated
   buttons inline — a third and every further action join one popup
-  ellipsis menu with the same localized labels. Runtime transitions
+  ellipsis menu with the same localized labels. An editor-bound type's
+  editing surface is its record body (SPEC §4), so the header carries no
+  editor action. Runtime transitions
   arrive as `{ __runtime, state: { to }, intent, region }` from the
   page's state-service fetch, dispatch through the dedicated
   `transition` channel, and their labels/severity/icons resolve from the
@@ -479,8 +478,21 @@ beside the transition history in `StateHistory`.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card. Both variants
   render through `SurfaceDetailBody` under the identity line.
-- `SurfaceDetailBody.vue` — shared detail/full body: preview (the
-  Card variant and narrow hosts rendering in the bounded
+- `SurfaceDetailBody.vue` — shared detail/full body. The `full` variant
+  in the `record` presentation of an editor-bound type mounts the editor
+  surface as the body's dominant content (SPEC §4 — the editor is the
+  record surface): `RecordEditorBody`
+  ([generated](../generated/README.md)) fills the framed
+  `LAYOUT.editorBand` (the bounded `LAYOUT.editorBandBounded` in popup
+  hosts), the version trigger overlays its corner, and the body grammar
+  below follows the type's content — the fact strip renders only when
+  the type carries filled non-identifier scalar facts, so a
+  payload-only document type shows the editor alone while a canvas type
+  keeps its parameter facts; relation sections and the record ladder's
+  child collections stack after the editor per the existing arrangement.
+  The `peek` presentation, nested Card variants, and editor-less types
+  keep the preview band: preview (the Card variant and narrow hosts
+  rendering in the bounded
   `LAYOUT.previewEmbedBand`), a bounded
   scalar facts strip (`DETAIL_FACT_BUDGET`, identifier-excluded — the
   title owns that value; collapsed behind one show-more control per
@@ -506,7 +518,8 @@ beside the transition history in `StateHistory`.
   the quiet glyph keeps the bare
   small ladder. Narrow hosts (the record peek) render the bounded
   embed band (`LAYOUT.previewEmbedBand`, 9rem below 40rem of container
-  width, 14rem above) whatever the content. The `full` variant overlays
+  width, 14rem above) whatever the content. Without an editor mount,
+  the `full` variant overlays
   the version trigger (`PayloadRevisionPicker`) on the preview's top
   corner, outside the band's clip; its popover carries the revision list
   and the replace affordance
@@ -600,7 +613,9 @@ beside the transition history in `StateHistory`.
   for the accepted types dispatch by creation protocol — the icon
   button's accessible name carries the sole accepted type's label beside
   "Create", so it never collides with the dialog's submit — and open the
-  picked instance's editor when a value rides the row; type records
+  picked record as the bounded record popup when a value rides the row
+  (the record surface of an editor-bound type is its editor, SPEC §4);
+  type records
   resolve through the served type view, so pickers compose it without a
   bundle; the protocol menu mounts in the affordance root, so a
   popover-hosted create keeps its subtree alive through the async run), `FillDialogBody` (the fill-dialog shell: form pane beside the

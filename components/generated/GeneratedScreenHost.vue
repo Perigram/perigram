@@ -26,31 +26,27 @@
     :navigation="navigation"
     :expandable="expandable"
     :export-actions="exportActionsByType"
-    :editor-actions="editorActionsByType"
     @instance-mounted="loadRuntimeTransitions"
     @expand="emit('expand')"
   />
-  <Dialog
+  <StandardDialog
     :visible="actionResult !== null"
-    modal
-    :draggable="false"
-    :header="actionResultLabel"
-    :style="{ width: 'min(92vw, 28rem)' }"
+    size="sm"
+    :title="actionResultLabel"
     @update:visible="closeActionResult"
   >
     <div class="flex flex-col gap-2">
       <div v-for="row in actionResultRows" :key="row.label" class="flex items-baseline justify-between gap-4">
-        <span class="min-w-0 truncate text-sm text-color-secondary">{{ row.label }}</span>
-        <span class="shrink-0 text-sm font-semibold">{{ row.value }}</span>
+        <span class="min-w-0 truncate text-label text-muted">{{ row.label }}</span>
+        <span class="shrink-0 text-body">{{ row.value }}</span>
       </div>
     </div>
-  </Dialog>
-  <Dialog
+  </StandardDialog>
+  <StandardDialog
     :visible="exportedFile !== null"
-    modal
-    :draggable="false"
-    :header="exportedFile?.attachment?.name || ''"
-    :style="{ width: 'min(94vw, 68rem)' }"
+    size="xl"
+    fill
+    :title="exportedFile?.attachment?.name || ''"
     @update:visible="visible => { if (!visible) exportedFile = null; }"
   >
     <div class="h-[70vh] min-h-0">
@@ -65,7 +61,7 @@
         @click="downloadExportedFile"
       />
     </template>
-  </Dialog>
+  </StandardDialog>
 </template>
 
 <script setup>
@@ -78,12 +74,12 @@
 // created instances resolve through the shared created-open contract
 // (utils/created-instance-open).
 import { computed, ref, watch } from 'vue';
-import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
 import { resolveAttachmentPeek } from '~/components/generated/file-preview-contract.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
@@ -97,7 +93,6 @@ import { resolveSourceIdentifier } from '~/utils/generated-screen-source.js';
 import { isCreateAction } from '~/utils/action-visibility.js';
 import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
-import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { refusalFailuresOf } from '~/utils/action-failures.js';
@@ -177,14 +172,6 @@ const exportActionsByType = computed(() => {
 });
 const statePolicy = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}));
 const stateTransitions = computed(() => stateTransitionsByType(authStore.processPayload?.producerOutputs || {}));
-// Editor availability for record headers: the host resolves the
-// file-surface registry's action component per bundle type (app-side
-// per-type logic stays out of the mapping engine).
-const editorActionsByType = computed(() => Object.fromEntries(
-  (processBundle.value.types || [])
-    .map(type => [type.id, instanceEditorActionFor(type.id)])
-    .filter(([, component]) => component)
-));
 
 // The store exposes the keyed pool ({ type -> { id -> instance }}); the
 // generator's instances prop is the grouped-array shape.
@@ -395,7 +382,7 @@ async function runGeneratedAction(action, data = {}, context = {}) {
       });
       if (target?.kind === 'workspace') {
         toast.add({ severity: 'success', summary: t('common.created'), detail: target.name || target.typeId, life: 4000 });
-        openInstanceInWorkspace({ typeId: target.typeId, instanceId: target.instanceId, editor: target.editor === true });
+        openInstanceInWorkspace({ typeId: target.typeId, instanceId: target.instanceId });
         return;
       }
       if (target?.kind === 'route') {

@@ -745,8 +745,8 @@ still lands in the pane.
 The dialog header carries only the icon-only expand action beside the
 dialog's own close — the record header inside the dialog is the record's
 one identity surface (SPEC §22.8). An action the hosted surface runs
-that opens another surface — an editor workspace page, a workspace tab,
-the chat drawer — closes the popup: the popup never floats over a
+that opens another surface — a workspace tab, the chat drawer — closes
+the popup: the popup never floats over a
 surface it opened. The
 composable's `openable(typeId)` is the guard: a type with a
 directory profile, a compiled/synthesizable detail screen, or a served

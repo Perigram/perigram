@@ -226,8 +226,8 @@ test.describe('markdown editor repair', () => {
     await dialog.locator('textarea').first().fill(CSV_SOURCE);
     await dialog.getByRole('button', { name: 'Create', exact: true }).click();
 
-    // The created record opens in the home workspace; return to its
-    // detail and open the bound csv editor through its editor action.
+    // The created record opens in the home workspace; its detail surface
+    // hosts the bound csv editor as the record body (SPEC §4).
     let id = '';
     for (let attempt = 0; attempt < 10 && !id; attempt += 1) {
       const list = await app.request.get('/api/instances/csv-table');
@@ -238,8 +238,6 @@ test.describe('markdown editor repair', () => {
     }
     expect(id, 'content construct created the csv instance').toBeTruthy();
     await app.gotoClient(`/screens/auto_csv-table_detail?instanceId=${id}`);
-    await expect(app.page.locator('main').getByRole('columnheader', { name: 'a' })).toBeVisible({ timeout: 20000 });
-    await app.page.locator('main').getByRole('button', { name: 'Edit', exact: true }).click();
     const grid = app.page.getByRole('table').first();
     await expect(grid).toBeVisible({ timeout: 20000 });
 

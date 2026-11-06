@@ -119,11 +119,11 @@ receives the manifest action and lands the created entity itself
 record opens — no host can forget the landing. Successful creates open the
 created entity through the shared created-open contract
 (`created-instance-open.js`: while the manifest carries a compiled home
-screen the created entity opens — or reuses — a home-workspace tab; an
-editor-protocol create that ran as a direct construct (context-scoped
-creates) opens the type's editor workspace page bound to the created
-record, while every other create opens its compiled detail tab, and a type
-with no detail screen opens its editor page instead; orgs without a home
+screen the created entity opens — or reuses — a home-workspace tab; every
+create opens its compiled detail tab — an editor-bound record's detail
+body is the editor, editor-protocol creates included; a type with no
+detail screen opens the editor page bound to the record, and one with
+neither opens its registered entity-bound page; orgs without a home
 workspace keep the compiled detail route; a create is never silent — the
 fallback is a success toast with the created name). Unscoped editor creates
 never reach this path — the create button opens the blank editor page and
@@ -131,8 +131,7 @@ the first save creates the record (`openBlankFileEditor`, SPEC §4). The
 created entity resolves as the run's created item **of the action's own
 type**: a process chaining further constructs returns their entities too,
 and the last step must never bind a foreign record to the action's
-destination. Mobile keeps the routed detail contract: the editor stays
-reachable through the detail header's editor action.
+destination.
 
 ## Overload Registry
 
@@ -168,15 +167,14 @@ contract. It combines two halves:
   without a fetched view — module-scope evaluation, unit specs, and
   pre-auth shells.
 - **The fixed surface registry** — surface id → app presentations. Every
-  editor surface is a WORKSPACE PAGE: the record carries the pane
-  workspace-page presentation (label key, icon, component, props — the
-  props adapter receives the page record and the bound type id, because
-  one surface may serve several types) and the card/detail editor-action
-  component that opens the page (`GeneratedEditorPageAction` for every
-  registered surface). Editors never embed in
-  generated instance detail chrome — the instance detail of an editor
-  bound type is the ordinary read surface, and the editor opens as a pane
-  tab. A bound editor page also opens **blank** — `openBlankFileEditor`
+  editor surface renders from one `workspacePage` presentation (label
+  key, icon, component, props — the props adapter receives the page
+  record and the bound type id, because one surface may serve several
+  types) in two mounts: the record body of the editor-bound type
+  (`RecordEditorBody`, under the standard record header — SPEC §4: the
+  editor is the record surface), and the workspace pane tab a record of
+  the type opens when the type resolves no compiled detail screen. A
+  bound editor page also opens **blank** — `openBlankFileEditor`
   rides the page-open seam with no entity (the create button of an
   editor-protocol type), the blank tab is a singleton entity-less page
   keyed `page:<surfaceId>`, and the editor's first save creates the
@@ -186,6 +184,13 @@ contract. It combines two halves:
   served surface declarations (`RemoteEditorSurface`, see
   [remote-surface contract](../../packages/plugin-sdk/README.md)) — the
   facade's cassette designer and sheet editor arrive that way.
+
+The mount mode is grant-keyed (SPEC §4): `editorMountMode(typeId, entity)`
+resolves the write feature through `resolveTypeFeature` + the shared
+grant evaluator (`editorWriteGranted`, the one home of that check) — a
+write grant mounts `mode: 'edit'`, a read grant mounts `mode: 'read'`
+and the surface degrades to its read-only presentation. The server stays
+fail-closed behind the same feature on every transport.
 
 Two editor-binding guards live here: `validateEditorBindings(bindings,
 registry)` throws naming the binding when a surface id is absent from the
@@ -206,14 +211,16 @@ into the type view as `{ id, url, surfaceContract }` records (module URL
 same-origin through the app's plugin-module proxy — see
 [cts-types](../../server/features/cts-types/README.md) — `null` until
 connected).
-The resolved record carries the generic editor action and the
-`RemoteEditorSurface` loader as its workspace-page component, so every
-existing consumer (detail headers, collection footers, pane tabs) opens a
+The resolved record carries the
+`RemoteEditorSurface` loader as its workspace-page component, so both
+mounts (the record body, the pane tab) open a
 plugin editor through the same seams as a local one.
 
 The loader mounts the module's default export — the factory
 `createSurface(ctx) -> component` — with a data-only contract: the
-component receives `{ record, persistence }`; the factory receives the
+component receives `{ record, persistence, mode }` (`mode` is the
+grant-keyed mount mode — a module that declares the prop degrades to its
+read-only presentation under `'read'`); the factory receives the
 host context `{ vue, components, locale }` (the host's Vue runtime subset,
 the vetted PrimeVue pack, i18n) — the consistency law: a surface composes
 from the host's vocabulary, never bundles its own (`checkSurfaceModule` in
@@ -231,11 +238,10 @@ state), else the module's own failure reason. The supported mount-contract versi
 in `shared/plugin-surfaces.js` — the install/upgrade gates and the loader
 read the same set.
 
-`instance-editor-action.js` and `workspace-pages.js` derive
-their file-type rows (cassette, sheet-design, sketch, text-document,
-csv-table, xlsx-workbook) from the editor
+`workspace-pages.js` derives its file-type rows (cassette, sheet-design,
+sketch, text-document, csv-table) from the editor
 bindings through this registry instead of hand-maintained entity-keyed
-maps — both resolve per call so their consumers'
+maps — it resolves per call so its consumers'
 computeds track the served editor list (a module-scope snapshot would
 freeze the pre-auth fallback and never see the plugin's bindings).
 Rows
@@ -243,23 +249,18 @@ key by the CTS type id — the projected entity key — so legacy
 pre-projection keys (`sheet_design`, `facade`, `facade_pattern`) no
 longer resolve an editor surface (abandoned data, root SPEC §15). The
 sheet-design editor resolves its own write grant internally and degrades
-to view-only without it; the generated action surface of editor-bound
-types renders normally on their read details. Detail headers and pane
+to view-only without it; the text editor's read-only presentation is the
+rendered markdown document. Detail headers and pane
 action strips never carry stateless field-edit `updateInstance` actions
 (`isFieldEditAction`): detail fields are inline-editable on their own,
 state-carrying updates are transitions and stay, and the editing
-affordance of an editor-bound type is its editor action (file-edit
-glyph). The ui-mapping record header (`SurfaceHeader`) drops
-`updateInstance` from its run menu the same way — editor-bound types
-render the editor action instead of the edit-mode toggle, which stays
-only for inline field surfaces without an editor. Browse surfaces hide
-the stateless field-edit form through the ui-mapping action matcher's
-`hidden` channel (tables, boards, card menus, and generated collection
-cards), and the editor action itself renders only under a write-level
-grant — it resolves the same feature the server's instance transports
-gate (`resolveTypeFeature`: field-policy feature, else the class
-collection) and checks it through the shared evaluator with the entity
-and type id; the server stays fail-closed behind it.
+surface of an editor-bound type is its record surface (SPEC §4). The
+ui-mapping record header (`SurfaceHeader`) drops
+`updateInstance` from its run menu the same way — the edit-mode toggle
+stays only for inline field surfaces without an editor. Browse surfaces
+hide the stateless field-edit form through the ui-mapping action
+matcher's `hidden` channel (tables, boards, card menus, and generated
+collection cards).
 
 `ReplacePayloadAction` is the generic replace affordance (SPEC §24):
 a record whose type declares a payload and revision scope carries it in
@@ -272,8 +273,11 @@ same write-level grant gates it; the accept list narrows to the type's
 declared MIME set when it carries no wildcards.
 
 `PayloadRevisionPicker` is the record's version surface (SPEC §24):
-the full record body mounts it on the payload preview corner for every
-revision-scoped payload type. The trigger states the current version
+the full record body mounts it on its dominant content's corner for every
+revision-scoped payload type — the payload preview's corner, or the
+editor band's corner when the editor is the record body (the
+[ui-mapping materialization](../ui-mapping/README.md) owns the
+placement). The trigger states the current version
 (`vN`; the revision list loads at mount) and opens a popover listing the
 record's payload revisions newest-first with the current revision marked;
 the rows come from `GET /api/instance-revisions?typeId&instanceId&scope`
@@ -340,8 +344,8 @@ measure, the PDF renders at page scale, and bounded media fill the
 framed region. The payload download stays the escape hatch. The type records come from
 `useFileTypeView()` ([composables/README.md](../../composables/README.md)),
 the organization-scoped cached read of the served type view. Editor-bound
-types keep this read preview in their details — the editors themselves
-open as workspace pages.
+types carry this preview on cards and in the record peek; their detail
+bodies mount the editor (SPEC §4).
 
 ## Plugin preview mounts (M7)
 
@@ -477,11 +481,10 @@ from the compiled manifest.
    as a pane tab — the manifest's `instanceDetail` screen, or the
    synthesized fallback derived from the type's list screen — rendered
    through the generator; there is no entity renderer in the home shell.
-   Editor-bound types without a detail surface open their registered
-   editor page instead, and a type with neither stays silent, exactly
-   like the routed surface contract; a create that ran with the editor
-   protocol opens the editor page first whatever the type's detail
-   surface (SPEC §4). Rows whose instance is open in the
+   An editor-bound record's detail body is the editor (SPEC §4); a type
+   resolving no detail screen opens its registered editor page bound to
+   the record, and a type with neither stays silent, exactly
+   like the routed surface contract. Rows whose instance is open in the
    active pane carry the normal text color. The full hierarchy stays
    navigable in place.
 - The sidebar footer is a separate bottom profile panel mounting the shared

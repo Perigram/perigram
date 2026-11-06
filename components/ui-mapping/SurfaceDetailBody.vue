@@ -1,6 +1,19 @@
 <template>
   <div v-if="d" :class="d.stack">
-    <div v-if="hasPreview" :class="LAYOUT.previewHero" class="relative">
+    <!-- The editor is the record body (SPEC §4): an editor-bound type's
+         full variant mounts the editor surface as the dominant content
+         and the version trigger rides its corner; every other shape (and
+         the peek presentation) keeps the preview band. -->
+    <div v-if="editorSurface" :class="[editorBand, 'relative']">
+      <RecordEditorBody :surface="editorSurface" :instance="instance" :type="type" />
+      <div class="absolute right-3 top-3 z-10">
+        <PayloadRevisionPicker
+          :entity="instance"
+          :type="type"
+        />
+      </div>
+    </div>
+    <div v-else-if="hasPreview" :class="LAYOUT.previewHero" class="relative">
       <div :class="heroBand">
         <PreviewBox variant="pane" :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
       </div>
@@ -135,7 +148,9 @@ import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import PreviewBox from './PreviewBox.vue';
 import PayloadRevisionPicker from '~/components/generated/PayloadRevisionPicker.vue';
+import RecordEditorBody from '~/components/generated/RecordEditorBody.vue';
 import { resolvePluginPreview } from '~/components/generated/plugin-preview-bindings.js';
+import { resolveFileSurface } from '~/components/generated/file-surfaces.js';
 
 const props = defineProps({
   instance: { type: Object, required: true },
@@ -146,7 +161,11 @@ const props = defineProps({
   bundle: { type: Object, default: null },
   expanded: { type: Object, default: () => ({}) },
   coveredRelations: { type: Array, default: () => [] },
-  editable: { type: Boolean, default: false }
+  editable: { type: Boolean, default: false },
+  // The depth-0 record treatment: `peek` keeps the preview presentation
+  // over the body (the record peek); `record` (the default) mounts the
+  // editor of an editor-bound type as the body.
+  presentation: { type: String, default: 'record' }
 });
 
 const emit = defineEmits(['toggle', 'inline-change', 'run', 'open-instance']);
@@ -191,6 +210,17 @@ const heroBandOfPage = () => {
 // SPEC §22.8: a single-group body renders its fields with no group titles.
 const showGroupTitles = computed(() => groups.value.filter(group => group.label).length > 1);
 const hasPreview = computed(() => surface.value.slots.includes('preview'));
+// The editor mount of an editor-bound type (SPEC §4): the record body's
+// full variant in the record presentation. The peek keeps its preview;
+// nested Card bodies keep the preview presentation.
+const editorSurface = computed(() => {
+  if (props.variant !== 'full' || props.presentation === 'peek') return null;
+  if (!props.instance?.id || !props.type?.id) return null;
+  return resolveFileSurface(null, props.type.id);
+});
+const editorBand = computed(() => (hostTraits.value?.hostKind === 'popup'
+  ? LAYOUT.editorBandBounded
+  : LAYOUT.editorBand));
 
 const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);

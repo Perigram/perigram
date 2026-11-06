@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 // Entry order mirrors SSR through a drawing-preview page: DrawingCanvas's
-// graph (entity cards -> instance-editor-action -> file-surfaces ->
-// RemoteEditorSurface -> remote-surface-mount) cycles back into the
+// graph (entity cards -> InstanceSelect -> RefRowActions -> file-surfaces
+// -> RemoteEditorSurface -> remote-surface-mount) cycles back into the
 // surface pack's own imports. The pack must resolve lazily — an eager
 // object literal reads an unfinished module binding at eval time (the
 // vite-node TDZ 500 / an undefined frozen into the pack under the SSR

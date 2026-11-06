@@ -103,8 +103,7 @@ import InstancePreviewMedia from '~/components/shared/InstancePreviewMedia.vue';
 import ReplacePayloadAction from './ReplacePayloadAction.vue';
 import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
 import { instancePayloadFileUrl } from './file-preview-contract.js';
-import { hasPermissionGrant } from '#shared/access-control.js';
-import { resolveTypeFeature } from '#shared/field-access-policies.js';
+import { editorWriteGranted } from './file-surfaces.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { useRegistryStore } from '~/stores/registry';
@@ -127,8 +126,6 @@ const emit = defineEmits(['refresh']);
 const { t } = useI18n();
 const toast = useToast();
 const instances = useInstancesStore();
-const authStore = useAuthStore();
-const registry = useRegistryStore();
 
 const revisionsPopover = ref(null);
 const loading = ref(false);
@@ -182,13 +179,7 @@ function revisionTime(revision) {
   return date.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
 }
 
-const canWrite = computed(() => hasPermissionGrant({
-  permissions: authStore.activePermissions || {},
-  feature: resolveTypeFeature(props.type?.id, registry.typeRecord(props.type?.id)),
-  level: 'write',
-  entity: props.entity,
-  typeId: props.type?.id
-}));
+const canWrite = computed(() => editorWriteGranted(props.type?.id, props.entity));
 
 const canRestore = computed(() => canWrite.value && !(props.entity?.provenance?.sources || []).length);
 

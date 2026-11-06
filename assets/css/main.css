@@ -556,6 +556,24 @@ body {
         }
     }
 
+    /* The editor band (SPEC §4): the framed region an editor surface
+       fills as the record body — the page/pane band fills the free
+       space, the bounded variant caps popup hosts. The editor owns its
+       ground; the band carries the frame alone. */
+    .ck-editor-band {
+        border: 1px solid var(--p-content-border-color);
+        border-radius: var(--p-border-radius-lg);
+        overflow: hidden;
+        height: max(24rem, calc(100dvh - 14rem));
+    }
+
+    .ck-editor-band-bounded {
+        border: 1px solid var(--p-content-border-color);
+        border-radius: var(--p-border-radius-lg);
+        overflow: hidden;
+        height: min(28rem, max(18rem, calc(100dvh - 20rem)));
+    }
+
     .ck-preview-hero-band-flow {
         height: auto;
         max-width: 46rem;

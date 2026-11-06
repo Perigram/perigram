@@ -11,7 +11,10 @@
 //     fences render as pele diagrams through it; surfaces receive it,
 //     never vendor marked/dompurify/pele), props
 //     `{ record, persistence }` (createBlank/loadDocument/saveDocument/
-//     rename).
+//     rename). Every mount also passes the grant-keyed `mode` prop
+//     ('edit' | 'read', SPEC §4) — a module that declares it degrades to
+//     its read-only presentation under 'read'; one that does not keeps
+//     its own degradation law over `access.canWrite`.
 // 2 — the editor-grade mount (M6): everything in 1 plus the ctx
 //     `queries` (cross-type instance reads), `records` (cross-type
 //     create/update/delete), `notify` (host toast), and `access` (write-grant

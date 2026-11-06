@@ -38,7 +38,10 @@ const props = defineProps({
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   // Per-type state policy map from the compiled process contract.
-  statePolicy: { type: Object, default: null }
+  statePolicy: { type: Object, default: null },
+  // The depth-0 record treatment (`record` | `peek`), threaded to the
+  // detail body.
+  presentation: { type: String, default: 'record' }
 });
 
 const emit = defineEmits(['run', 'inline-change', 'open-instance']);
@@ -53,7 +56,8 @@ const detailBodyProps = computed(() => ({
   bundle: props.bundle,
   expanded: expanded.value,
   coveredRelations: props.coveredRelations,
-  editable: props.editable
+  editable: props.editable,
+  presentation: props.presentation
 }));
 const toggleRelation = key => {
   expanded.value[key] = !expanded.value[key];

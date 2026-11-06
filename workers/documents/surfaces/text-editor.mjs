@@ -44,7 +44,10 @@ export default function createSurface({ vue, components, locale, sync, renderMar
     name: 'TextDocumentEditor',
     props: {
       record: { type: Object, default: null },
-      persistence: { type: Object, default: null }
+      persistence: { type: Object, default: null },
+      // 'read' (the opener holds no write grant) renders the document —
+      // the read-only presentation is the rendered markdown itself.
+      mode: { type: String, default: 'edit' }
     },
     setup(props) {
       const editorHost = ref(null);
@@ -54,6 +57,25 @@ export default function createSurface({ vue, components, locale, sync, renderMar
       const reloading = ref(false);
       const localTitle = ref('');
       const nameDraft = ref('');
+
+      async function loadText() {
+        return await props.persistence.loadDocument(props.record, { mimeType: 'text/markdown', raw: true }) || '';
+      }
+
+      if (props.mode === 'read') {
+        const readText = ref('');
+        const renderRead = () => {
+          readText.value = '';
+          loadText().then(text => { readText.value = text; }).catch(() => {});
+        };
+        renderRead();
+        sync.onRecordChanged(renderRead);
+        return () => h('div', {
+          class: 'ck-markdown-body text-prose h-full min-h-0 flex-1 overflow-y-auto p-6',
+          'aria-label': t('editors.text'),
+          innerHTML: renderMarkdown ? renderMarkdown(readText.value) : ''
+        });
+      }
 
       const displayName = () => localTitle.value || props.record?.name || props.persistence?.title || '';
       const nameDirty = computed(() => Boolean(nameDraft.value.trim()) && nameDraft.value.trim() !== displayName());
@@ -188,10 +210,6 @@ export default function createSurface({ vue, components, locale, sync, renderMar
         if (id === 'divider') crepe.editor.action(callCommand(insertHrCommand.key));
         if (id === 'table' && view) insertTable(view);
         focusRenderedEditor();
-      }
-
-      async function loadText() {
-        return await props.persistence.loadDocument(props.record, { mimeType: 'text/markdown', raw: true }) || '';
       }
 
       async function reloadFromRemote() {

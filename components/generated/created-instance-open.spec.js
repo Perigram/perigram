@@ -17,23 +17,24 @@ describe('created-entity open target', () => {
     expect(target.instanceId).toBe('c-1');
   });
 
-  it('opens the workspace for editor-protocol creates without a route', () => {
+  it('falls back to a toast for editor-protocol creates without a route or workspace', () => {
     const target = resolveCreatedInstanceOpen({
       action: { typeId: 'cassette', construction: { mode: 'editor' } },
       result: { entity: { _id: 'c-2', name: 'Blank tray' } },
       screenKey: 'home',
       manifest: []
     });
-    expect(target).toMatchObject({ kind: 'workspace', typeId: 'cassette', instanceId: 'c-2', name: 'Blank tray', editor: true });
+    expect(target).toMatchObject({ kind: 'toast', typeId: 'cassette', instanceId: 'c-2', name: 'Blank tray' });
   });
 
-  it('flags editor-protocol creates in the home workspace too (SPEC §UI: the editor opens)', () => {
+  it('opens the record surface in the home workspace (editor-bound types included)', () => {
     const target = resolveCreatedInstanceOpen({
       action: { typeId: 'text-document', construction: { mode: 'editor' } },
       result: { entity: { _id: 't-1', name: 'Notes' } },
       manifest: [{ template: 'home', route: '/home' }]
     });
-    expect(target).toMatchObject({ kind: 'workspace', typeId: 'text-document', instanceId: 't-1', editor: true });
+    expect(target).toMatchObject({ kind: 'workspace', typeId: 'text-document', instanceId: 't-1' });
+    expect(target.editor).toBeUndefined();
   });
 
   it('keeps non-editor creates unflagged in the home workspace', () => {
@@ -50,11 +51,11 @@ describe('created-entity open target', () => {
     const target = resolveCreatedInstanceOpen({
       action: { typeId: 'sketch', via: 'editor' },
       result: { entity: { id: 's-1', name: 'Notes' } },
-      manifest: []
+      manifest: [{ template: 'home', route: '/home' }]
     });
     expect(target.kind).toBe('workspace');
     expect(target.typeId).toBe('sketch');
-    expect(target.editor).toBe(true);
+    expect(target.editor).toBeUndefined();
   });
 
   it('falls back to a toast for non-editor creates without a route', () => {
@@ -75,7 +76,7 @@ describe('created-entity open target', () => {
     const target = resolveCreatedInstanceOpen({
       action: { typeId: 'cassette', construction: { mode: 'editor' } },
       result: { result: { branches: [{ items: [{ entity: { _id: 'c-3', name: 'Mapped' } }] }] } },
-      manifest: []
+      manifest: [{ template: 'home', route: '/home' }]
     });
     expect(target).toMatchObject({ kind: 'workspace', instanceId: 'c-3', name: 'Mapped' });
   });
@@ -89,7 +90,7 @@ describe('created-entity open target', () => {
       { items: [{ entity: { _id: 'c-chain', type: 'cassette', name: 'Tray' } }] },
       { items: [{ entity: { _id: 'i-other', type: 'e2e-item', name: 'Side effect' } }] }
     ] } };
-    expect(resolveCreatedInstanceOpen({ action, result, manifest: [] }))
+    expect(resolveCreatedInstanceOpen({ action, result, manifest: [{ template: 'home', route: '/home' }] }))
       .toMatchObject({ kind: 'workspace', typeId: 'cassette', instanceId: 'c-chain' });
   });
 });

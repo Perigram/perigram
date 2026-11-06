@@ -24,10 +24,7 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import { useInstancesStore } from '~/stores/instances';
-import { useAuthStore } from '~/stores/auth';
-import { useRegistryStore } from '~/stores/registry';
-import { hasPermissionGrant } from '#shared/access-control.js';
-import { resolveTypeFeature } from '#shared/field-access-policies.js';
+import { editorWriteGranted } from '~/components/generated/file-surfaces.js';
 
 // The generic replace affordance (SPEC §24): a record whose payload is
 // its own authored content swaps its bytes in place through the
@@ -44,8 +41,6 @@ const emit = defineEmits(['refresh']);
 const { t } = useI18n();
 const toast = useToast();
 const instances = useInstancesStore();
-const authStore = useAuthStore();
-const registry = useRegistryStore();
 const fileInput = ref(null);
 const uploading = ref(false);
 
@@ -56,13 +51,7 @@ const acceptList = computed(() => {
   return mime.some(entry => entry.includes('*')) ? undefined : mime.join(',');
 });
 
-const canWrite = computed(() => hasPermissionGrant({
-  permissions: authStore.activePermissions || {},
-  feature: resolveTypeFeature(props.type?.id, registry.typeRecord(props.type?.id)),
-  level: 'write',
-  entity: props.entity,
-  typeId: props.type?.id
-}));
+const canWrite = computed(() => editorWriteGranted(props.type?.id, props.entity));
 
 const replaceable = computed(() => Boolean(
   props.type?.id && props.type?.payload && props.type?.revisions && instanceId.value && canWrite.value

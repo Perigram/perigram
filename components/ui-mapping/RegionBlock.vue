@@ -153,7 +153,6 @@
           :bundle="bundle"
           :state-policy="node.statePolicy"
           :navigation="depth === 0 ? navigation : null"
-          :editor-action="editorActions?.[node.type?.id] || null"
           :compact="presentation === 'peek'"
           :expandable="expandable"
           @run="action => emitRun(action, { instance: node.instances[0] || null })"
@@ -281,9 +280,6 @@ const props = defineProps({
   // Host-injected contextual back affordance for the record header
   // (`{ icon, label, command }` — SurfaceHeader's navigation channel).
   navigation: { type: Object, default: null },
-  // Editor action components by type (the host resolves them over the
-  // file-surface registry; the header renders what it is given).
-  editorActions: { type: Object, default: null },
   // The depth-0 detail treatment: `record` renders the record header's
   // page chrome; `peek` renders its compact identity line over the body.
   presentation: { type: String, default: 'record' },
@@ -305,7 +301,8 @@ const bodyProps = computed(() => ({
   coveredRelations: coveredRelationKeys.value,
   pool: props.pool,
   bundle: props.bundle,
-  statePolicy: props.node.statePolicy
+  statePolicy: props.node.statePolicy,
+  presentation: props.presentation
 }));
 const childrenProps = computed(() => ({
   regions: props.node.childRegions,

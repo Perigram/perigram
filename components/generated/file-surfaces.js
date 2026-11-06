@@ -2,38 +2,57 @@ import RemoteEditorSurface from '~/components/generated/RemoteEditorSurface.vue'
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
+import { useRegistryStore } from '~/stores/registry';
 import { unref } from 'vue';
 import { isGeneratedSurfaceAction, isCreateAction } from '~/utils/action-visibility.js';
 import { createdEntity } from '~/utils/instance-run-results.js';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
+import { hasPermissionGrant } from '#shared/access-control.js';
+import { resolveTypeFeature } from '#shared/field-access-policies.js';
 import { instancePayloadFileUrl } from './file-preview-contract.js';
 
 /**
  * File surfaces: the single app-side home of the CTS file-type editor
- * contract (SPEC §21). Pack editor bindings decide which file type opens
- * which surface and in which modes; this registry maps surface ids to the
- * app's editor presentations. Process data never selects components — the
- * surface id does.
+ * contract (SPEC §4 — the editor is the record surface). Pack editor
+ * bindings decide which file type opens which surface; this registry maps
+ * surface ids to the app's editor presentations. Process data never
+ * selects components — the surface id does.
  *
- * Every editor surface is a WORKSPACE PAGE: editors never embed inside
- * generated instance detail chrome. A surface record carries:
- * - `workspacePage`: the pane workspace-page presentation
- *   (`labelKey`, `icon`, `component`, `props` — the props adapter receives
- *   the page record and the bound type id);
- * - `action`: the editor-action component that opens the page — the
- *   cassette designer keeps its own for its dialog persistence flows;
- *   every other surface declares `'generic'`, resolved to
- *   `GeneratedEditorPageAction` by `instance-editor-action.js` (the
- *   component imports this module, so a static import here would cycle).
- *   The action renders like its neighbor generated action buttons and
- *   opens the page through the pane chain in-workspace or the
- *   workspace-page-open seam elsewhere; mobile keeps a dialog.
- *   `flush` marks surfaces that own their shell (the text/csv editor's
- *   document surface): the pane host renders them without its padded
- *   scroll area, and the flag rides `resolveFileSurface` into the derived
- *   workspace-page rows.
+ * An editor surface renders in two mounts, both from the one
+ * `workspacePage` presentation (`labelKey`, `icon`, `component`, `props`
+ * — the props adapter receives the page record and the bound type id):
+ * the record body under the standard record header (the detail surface of
+ * an editor-bound type IS the editor), and the workspace pane tab a
+ * record without a compiled detail screen opens as. A bound editor page
+ * also opens **blank** — `openBlankFileEditor`.
  */
 export const fileSurfaceRegistry = {};
+
+/**
+ * The one write-grant check every editor mount and payload-version
+ * affordance takes: the same feature the server's instance transports
+ * gate (`resolveTypeFeature`: field-policy feature, else the class
+ * collection) at write level. The server stays fail-closed behind it.
+ */
+export function editorWriteGranted(typeId = '', entity = null) {
+  const authStore = useAuthStore();
+  const registry = useRegistryStore();
+  return hasPermissionGrant({
+    permissions: authStore.activePermissions || {},
+    feature: resolveTypeFeature(typeId, registry.typeRecord(typeId)),
+    level: 'write',
+    entity,
+    typeId
+  });
+}
+
+/**
+ * The editor mount mode (SPEC §4): the opener's grant decides — a write
+ * grant edits in place, a read grant renders the same surface read-only.
+ */
+export function editorMountMode(typeId = '', entity = null) {
+  return editorWriteGranted(typeId, entity) ? 'edit' : 'read';
+}
 
 /**
  * The blank construct an editor's first save rides (SPEC §UI): runs the
@@ -209,7 +228,8 @@ function activeSurfaceDeclarations() {
  * served plugin surface declarations — the loader shell mounts the
  * plugin's module (see RemoteEditorSurface). Omitting `editors` resolves
  * both lists against the organization type view when fetched, with the
- * documented fallbacks.
+ * documented fallbacks. The record carries `workspacePage` alone: the
+ * workspace tab and the record body mount the same presentation.
  */
 export function resolveFileSurface(editors, typeId = '', surfaces = null) {
   const bindings = editors == null ? activeEditorBindings() : editors;
@@ -222,7 +242,6 @@ export function resolveFileSurface(editors, typeId = '', surfaces = null) {
       typeId,
       surface: editor.surface,
       modes: [...(editor.modes || [])],
-      action: local.action || null,
       ...(local.flush ? { flush: true } : {}),
       workspacePage: local.workspacePage || null
     };
@@ -233,12 +252,11 @@ export function resolveFileSurface(editors, typeId = '', surfaces = null) {
     typeId,
     surface: editor.surface,
     modes: [...(editor.modes || [])],
-    action: 'generic',
     remote: true,
     workspacePage: {
       icon: 'pi pi-file-edit',
       component: RemoteEditorSurface,
-      props: page => ({ record: page.entity, typeId, surface: declared })
+      props: page => ({ record: page.entity, typeId, surface: declared, mode: editorMountMode(typeId, page.entity) })
     }
   };
 }
@@ -280,21 +298,6 @@ export function fileWorkspacePages(editors = activeEditorBindings(), surfaces = 
             ...(surface.flush ? { flush: true } : {}),
             props: page => surface.workspacePage.props(page, editor.type)
           }
-        : null;
-    })
-    .filter(Boolean);
-}
-
-/**
- * Derive editor-action rows: every bound file type resolves the action
- * that opens its editor page — a registered component or `'generic'`.
- */
-export function fileEditorActions(editors = activeEditorBindings(), surfaces = activeSurfaceDeclarations()) {
-  return (editors || [])
-    .map((editor) => {
-      const surface = resolveFileSurface(editors, editor.type, surfaces);
-      return surface?.action
-        ? [editor.type, { action: surface.action }]
         : null;
     })
     .filter(Boolean);
