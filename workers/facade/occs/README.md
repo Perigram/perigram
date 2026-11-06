@@ -171,10 +171,7 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     expressions and numbers survive every pass: a bare parameter absorbs
     an intentional move through its own value, and extraction rounding
     never rewrites a value inside the merge epsilon. Authored shapes with
-    an erased extracted
-    counterpart drop; a fourth argument offers the drops back as
-    adoption candidates, so an engine undo/redo that restores erased
-    canvas geometry revives the shape with its expressions. Fresh ids
+    an erased extracted counterpart drop. Fresh ids
     renumber against every kept id by object identity.
   - An authored sketch whose expressions do not resolve keeps the
     authored model whole (the drawing-is-sacred law): canvas geometry
