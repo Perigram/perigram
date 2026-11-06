@@ -45,11 +45,11 @@ the opened instance (`screen.scope.instanceId` + `screen.typeId`), every
 lineage row whose accepted parent types include that type submits the
 opened instance's reference without rendering, and a dialog whose every
 row the context supplies runs with no form at all
-([SPEC §4](../../SPEC.md)); a launch carrying no context prompts the
-lineage rows — graph-wired axes included, because their wire source is
-the launch context (`planActionLaunch` counts them only on a contextless
-launch). The same context reaches nested part-creates through
-`NestedCreateDialog`'s `scopedInstance` prop. `link` actions prompt for the relation
+([SPEC §4](../../SPEC.md)); every lineage axis without an authored
+default rides the dialog — graph-wired axes included, because their wire
+source is the launch context — and the same context reaches nested
+part-creates through `NestedCreateDialog`'s `scopedInstance` prop.
+`link` actions prompt for the relation
 target through `InstancePicker` over the pool before dispatch (`onRun`
 receives `{ relations: { key: ref } }`; the picker accepts the relation's
 declared `targetTypes` and models the instance ref `{ type, id }` it
