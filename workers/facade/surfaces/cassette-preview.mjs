@@ -15,6 +15,8 @@ const isOccsCassetteDocument = (document = null) => Boolean(
   && document.occs && document.documentType
 );
 
+const OCCS_PAYLOAD_MIME = 'application/perigram+occs';
+
 export default function createSurface({ vue, components }) {
   const { h, ref, computed, watch } = vue;
   const DrawingCanvas = components.DrawingCanvas;
@@ -29,6 +31,14 @@ export default function createSurface({ vue, components }) {
       const drawing = ref(null);
       const loading = ref(false);
       const visibleLayerNames = ref(null);
+
+      // Pending spans the host's payload fetch; the mime bound keeps
+      // DXF-payload records from spinning.
+      const awaitingPayload = computed(() => Boolean(
+        props.record?.payload?.fileId
+        && String(props.record?.payload?.mime || '') === OCCS_PAYLOAD_MIME
+        && !isOccsCassetteDocument(props.payload)
+      ));
 
       async function resolveDrawing() {
         drawing.value = null;
@@ -83,7 +93,11 @@ export default function createSurface({ vue, components }) {
           : h('div', {
               class: 'flex h-full w-full items-center justify-center rounded-ui bg-subtle text-muted'
             }, [
-              h('i', { class: loading.value ? 'pi pi-spin pi-spinner' : 'pi pi-box' })
+              h('i', {
+                class: (loading.value || awaitingPayload.value)
+                  ? 'pi pi-spin pi-spinner'
+                  : 'pi pi-box'
+              })
             ])
       ]);
     }
