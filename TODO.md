@@ -5020,3 +5020,48 @@ command over the README tree.
   under the vendored-upstream principle, and links into submodules
   resolve by pin — the docs guard passes in fresh worktrees with the
   submodule unpopulated. Landed 2026-11-06 (`agent/docs-map-20261106`).
+
+## Create-context and cross-cut placement (owner direction 2026-11-06)
+
+SPEC §4 (captioned create controls; contextless launches prompt lineage)
+and §22.8 (the lineage trail beside the identity on every unscoped class
+list). Owner words: instances rendered outside their parent were
+unrecognizable in composed views; creating inside a parent prompted the
+lineage the context already supplied while creating outside collected
+none and the records became unreachable; the "+" create button carried
+no type name.
+
+- [ ] WAITING — owner verification: every collection projection (table,
+  card-grid tile/side/plain, board, timeline, gantt, stats) renders the
+  lineage breadcrumb trail on cross-cut lists (calendar day cells stay
+  summaries); `ParentRef` retired, the trail is the one ancestry surface;
+  creates render captioned type names on every surface; a contextless
+  create (palette, unscoped class list) prompts its lineage rows, a
+  scoped create and every nested part-create auto-fill and hide them.
+
+  ### Agent Notes (2026-11-06)
+
+  Session `agent/create-context-20261106` (worktree
+  `.agent-worktrees/create-context-20261106`). Shared contract:
+  `planActionLaunch(action, { scopedInstance })` counts lineage axes as
+  dialog rows exactly on contextless launches (graph-wired lineage's
+  wire source is the launch context — the runtime's `resolveLineageContext`
+  already resolves the run-context entity into unwired lineage sockets,
+  and explicit dialog data overrides wires, so prompting never fights the
+  graph); `resolveCreateDialogInputs` keeps lineage rows through the
+  `prompt: false` suppression, resolves accepted parents over the
+  bundle's children edges with the input's declared type as fallback, and
+  carries the compiled `required` flag. Components: `NestedCreateDialog`
+  gains the `scopedInstance` channel (nested part-creates inside a
+  parent's surface stop prompting the parent), `GeneratedMappingScreen`
+  threads it and passes the screen scope into the launch decision; the
+  create button loses icon-only (resolver table) and the region-header
+  "New" collapse retires with the `uiMapping.new` key; `BreadcrumbTrail`
+  replaces `ParentRef` in every projection via the `parented` cross-cut
+  flag, and the parent-type pool overlay dies with it (the trail resolves
+  ancestors through the readable-reference seam; the children-type
+  overlay stays for the children columns). SSR smoke re-pinned to the
+  caption law. Validation: ui-mapping spec 113, design-system +
+  framework-packages guards, localization spec, SSR suite 24/24,
+  check-arch, framework:validate — green; e2e not run (no live stack in
+  this session).

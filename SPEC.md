@@ -315,7 +315,11 @@ act, so chained process effects fire at creation, not at click. A create
 launched from a context that already binds a record (a child created from
 inside its parent) never prompts that binding: the context's reference is
 submitted with the create, and the form prompts only what the context
-cannot supply. A create prompts immediate lineage parents at most — the
+cannot supply. A contextless launch prompts the create's lineage parents
+(owner direction 2026-11-06): graph-wired lineage resolves from the
+launch context, so the create palette and unscoped class lists collect
+the parent and the created child lands reachable under it. A create
+prompts immediate lineage parents at most — the
 referenced parent's own lineage supplies the ancestor chain, and the
 construct derives it (owner direction 2026-10-27); nothing ever prompts
 a grandparent. `upload`/`capture` creates prompt only the file.
@@ -324,7 +328,10 @@ Generated create actions carry procedural names (owner direction
 2026-10-26): an authored label wins; a generic one derives `New <Type>`
 and folds the creation mode — `New <Type> from <Mode>` — so same-type
 creates over different modes stay distinguishable on every surface that
-names actions. A collection offering several creates for one type renders
+names actions. Create controls render captioned on every surface (owner
+direction 2026-11-06): the caption names the created type, and the
+icon-only create button is retired. A collection offering several
+creates for one type renders
 one grouped control — the creation-mode selection beside the create
 button; the create button opens the selected mode's form.
 
@@ -1080,7 +1087,12 @@ its type, and no host heading, subtitle, or dialog title repeats the
 record's name or type. The record header carries the record's declared
 containment ancestors as a compact, background-free breadcrumb trail
 above the identity line; each ancestor opens its record through the
-surface's instance-open channel.
+surface's instance-open channel. An instance rendered outside its
+parent's surface carries the same trail beside its identity (owner
+direction 2026-11-06): every projection of an unscoped class list —
+table rows, card-grid cards, board cards, timeline entries, gantt rows,
+stat cards — renders it, and the calendar's day cells stay summaries
+(the record surface states the ancestry).
 
 ### 22.13 Instance pickers render procedural list items (owner direction 2026-10-28; closed-control amendment 2026-10-29; create amendment 2026-10-31)
 
