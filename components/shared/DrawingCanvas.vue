@@ -42,6 +42,10 @@ const props = defineProps({
   selectedDesignerProfileId: { type: String, default: null },
   designerProfileSelectable: { type: Boolean, default: true },
   designerSelectableWorkpieceIds: { type: Array, default: null },
+  // Designer mode with the authoring affordances off (a read grant): the
+  // free-shard +, the fold-angle control, the section drag handles, and
+  // the dimension edit targets stay hidden; selection rides on.
+  designerEditable: { type: Boolean, default: true },
   showDesignerWorkpieceContext: { type: Boolean, default: false },
   visibleLayerNames: { type: Array, default: null },
   defaultPen: { type: Object, default: () => DEFAULT_DRAWING_PEN },
@@ -1132,12 +1136,12 @@ onBeforeUnmount(() => {
                 @click.stop.prevent="requestDesignerFoldSelect(fold)"
               />
               <g
-                v-if="isDesignerFoldActive(fold, index)"
+                v-if="designerEditable && isDesignerFoldActive(fold, index)"
                 :transform="`translate(${fold.midX}, ${fold.midY})`"
-                class="cursor-pointer select-none"
+                :class="designerEditable ? 'cursor-pointer select-none' : 'select-none'"
                 @mouseenter="hoveredFoldEdge = index"
                 @mouseleave="hoveredFoldEdge = null"
-                @click.stop.prevent="requestDesignerFoldAngleEdit(fold, $event)"
+                @click.stop.prevent="designerEditable && requestDesignerFoldAngleEdit(fold, $event)"
               >
                 <rect
                   :x="-designerSize(22)"
@@ -1160,7 +1164,7 @@ onBeforeUnmount(() => {
             </g>
 
             <line
-              v-for="section in hasVisibleDesignerSectionLayer ? (drawing.designerSections?.handles || []) : []"
+              v-for="section in designerEditable && hasVisibleDesignerSectionLayer ? (drawing.designerSections?.handles || []) : []"
               :key="`section-handle-hit-${section.orientation}`"
               :x1="section.x1"
               :y1="section.y1"
@@ -1176,7 +1180,7 @@ onBeforeUnmount(() => {
               @mousedown.stop.prevent="startDesignerSectionDrag(section, $event)"
             />
 
-            <g v-for="(edge, index) in drawing.designerEdges || []" :key="`edge-${index}`">
+            <g v-for="(edge, index) in designerEditable ? (drawing.designerEdges || []) : []" :key="`edge-${index}`">
               <line
                 :x1="edge.x1"
                 :y1="edge.y1"
@@ -1271,10 +1275,10 @@ onBeforeUnmount(() => {
               v-for="control in visibleDesignerDimensionControls"
               :key="`dimension-control-${control.nodeId}-${control.key}-${control.dimensionKind || ''}`"
               :transform="`translate(${control.x}, ${control.y})`"
-              class="cursor-pointer select-none"
+              :class="designerEditable ? 'cursor-pointer select-none' : 'select-none'"
               @mouseenter="setDesignerFaceHover(control.nodeId)"
               @mouseleave="scheduleDesignerFaceHoverClear(control.nodeId)"
-              @click.stop.prevent="requestDesignerPointEdit(control, $event)"
+              @click.stop.prevent="designerEditable && requestDesignerPointEdit(control, $event)"
             >
               <rect
                 v-if="!showGeometry"
@@ -1284,7 +1288,7 @@ onBeforeUnmount(() => {
                 :height="dimensionControlRect(control).height"
                 :rx="dimensionControlRect(control).rx"
                 fill="transparent"
-                pointer-events="all"
+                :pointer-events="designerEditable ? 'all' : 'none'"
               />
               <template v-else>
                 <rect

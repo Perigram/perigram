@@ -22,7 +22,10 @@ export default function createSurface({ vue, components, locale, upload }) {
     name: 'SketchEditor',
     props: {
       record: { type: Object, default: null },
-      persistence: { type: Object, default: null }
+      persistence: { type: Object, default: null },
+      // 'read' (the opener holds no write grant) renders the sketch
+      // inert — the scene alone, no tools, no save.
+      mode: { type: String, default: 'edit' }
     },
     setup(props) {
       const loading = ref(true);
@@ -235,6 +238,33 @@ export default function createSurface({ vue, components, locale, upload }) {
         'stroke-linecap': 'round',
         'stroke-linejoin': 'round'
       });
+
+      if (props.mode === 'read') {
+        return () => h('div', { class: 'flex h-full min-h-0 flex-1 flex-col' }, [
+          h('div', { class: 'relative flex min-h-0 flex-1 items-stretch overflow-hidden' }, [
+            h('svg', {
+              class: 'h-full w-full select-none',
+              viewBox: viewBoxStr.value,
+              preserveAspectRatio: 'xMidYMid meet'
+            }, [
+              scene.value.background
+                ? h('image', {
+                  href: scene.value.background.url,
+                  x: 0,
+                  y: 0,
+                  width: SKETCH_VIEWBOX.width,
+                  height: SKETCH_VIEWBOX.height,
+                  preserveAspectRatio: 'xMidYMid slice'
+                })
+                : null,
+              ...scene.value.strokes.map(strokePath)
+            ]),
+            loading.value
+              ? h(Message, { severity: 'info', closable: false }, () => t('common.loading'))
+              : null
+          ])
+        ]);
+      }
 
       return () => h('div', { class: 'flex h-full min-h-0 flex-1 flex-col gap-3' }, [
         h('div', { class: 'flex flex-wrap items-center gap-2' }, [
