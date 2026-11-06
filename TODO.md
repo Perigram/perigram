@@ -5098,3 +5098,38 @@ no type name.
   framework-packages guards, localization spec, SSR suite 24/24,
   check-arch, framework:validate — green; e2e not run (no live stack in
   this session).
+
+### E. The record page is a document (SPEC §22.17)
+
+Owner decisions 2026-11-06: free prose lives in declared long-text
+fields; comments render as the trailing section; record pages only
+(list screens keep the ladder).
+
+- [ ] Document flow: depth-0 record pages render one inline stack at the
+  60rem measure — record header, property block, payload/editor, prose
+  sections, collections inline; the side rail, peer columns, and tabs
+  retire on record pages (§22.1–22.2 superseded there); list screens
+  unchanged; peek/popup keep compact presentations.
+- [ ] Property block: declared scalar facts as compact property rows
+  under the title (inline pencils stay; fact groups/fact columns die on
+  record bodies).
+- [ ] Comments section: the instance thread (today's entity chat)
+  renders as the record page's trailing section through the
+  `utils/instance-chat.js` seam; the header's chat entry retires;
+  comments naming lands in the locales.
+- [ ] Filed follow-up (separate program, not this one): record links in
+  prose — authoring grammar in the markdown editor plus InstanceInlineRef
+  chip rendering through the readable-reference seam.
+
+Session reads: SPEC §22.17, §22.1–22.3, §4 (editor-as-record-surface,
+comments direction); shared/ui-mapping/README.md (arrangement),
+components/ui-mapping/README.md (GeneratedMappingScreen/RegionBlock/
+SurfaceDetailBody), components/generated/README.md (instance-chat seam),
+components/chat README as needed.
+
+#### Agent Notes (2026-11-06)
+
+Law written from owner words this session; owner confirmed declared
+prose fields, trailing comments, and record-pages-only scope. The e2e
+stack verification for the review-era re-pins is deferred to this
+program's stack pass.

@@ -1181,6 +1181,28 @@ history. The header renders no separate history trigger and no
 transition buttons in the action cluster; the machine's runnable edges
 sit at the top of the state popover, the audit trail below them.
 
+### 22.17 The record page is a document (owner direction 2026-11-06)
+
+A record page renders as one document flow at a readable measure (the
+wide step, 60rem): the record header, a compact property block of the
+declared scalar facts (the identifier excluded — the title owns it), the
+payload or editor, declared prose fields as prose sections, and the
+child and linked collections as inline sections — each carrying its own
+title bar, full width inside the measure, tables compressing to the
+compact column scale. This supersedes the §22.1–§22.2 arrangement
+outcomes (side rail, peer columns, tabs) for record pages; the ladder
+keeps governing list screens, and the page scrolls as one document.
+Peeks and the record popup keep their compact presentations.
+
+Free prose lives in declared long-text fields; the framework carries no
+implicit record body. Inserted instances ride declared references:
+relation sections and record links inside prose, rendered as the shared
+instance chips.
+
+Comments are the document's trailing section: the instance thread
+renders inline at the foot of the record page, and the header's chat
+entry retires (the §4 comments direction delivered).
+
 ## 23. Deslopification (owner direction 2026-10-23)
 
 The current architecture carries the whole platform idea and its important
