@@ -19,7 +19,7 @@ const OCCS_PAYLOAD_MIME = 'application/perigram+occs';
 
 export default function createSurface({ vue, components }) {
   const { h, ref, computed, watch } = vue;
-  const DrawingCanvas = components.DrawingCanvas;
+  const { DrawingCanvas, ProgressSpinner } = components;
 
   return {
     name: 'CassettePreview',
@@ -93,11 +93,9 @@ export default function createSurface({ vue, components }) {
           : h('div', {
               class: 'flex h-full w-full items-center justify-center rounded-ui bg-subtle text-muted'
             }, [
-              h('i', {
-                class: (loading.value || awaitingPayload.value)
-                  ? 'pi pi-spin pi-spinner'
-                  : 'pi pi-box'
-              })
+              (loading.value || awaitingPayload.value)
+                ? h(ProgressSpinner, { class: 'h-8 w-8' })
+                : h('i', { class: 'pi pi-box' })
             ])
       ]);
     }

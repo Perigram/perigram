@@ -8,6 +8,7 @@ import DataTable from 'primevue/datatable';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
+import ProgressSpinner from 'primevue/progressspinner';
 import Popover from 'primevue/popover';
 import ScrollPanel from 'primevue/scrollpanel';
 import Select from 'primevue/select';
@@ -63,7 +64,7 @@ import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 let surfacePack = null;
 function surfaceComponentPack() {
   surfacePack ||= Object.freeze({
-    Button, Checkbox, ColorPicker, Column, DataTable, Dialog, Divider, InputText, InputNumber, IftaLabel, Message, Popover, ScrollPanel, Select, SelectButton, SpeedDial, Tag, Textarea, Toolbar, Tree,
+    Button, Checkbox, ColorPicker, Column, DataTable, Dialog, Divider, InputText, InputNumber, IftaLabel, Message, Popover, ProgressSpinner, ScrollPanel, Select, SelectButton, SpeedDial, Tag, Textarea, Toolbar, Tree,
     DesignerSurface, DesignerWorkspace, DrawingCanvas, TraceChain, InstanceInlineRef, InstanceSelect, StandardDialog
   });
   return surfacePack;
