@@ -5361,3 +5361,16 @@ Session `agent/md-record-20261106` (worktree
   `entityContext` injection, `useLineage`, and `TraceLink` are deleted.
   Consumers unchanged (same props surface); ui-lab drops the TraceLink
   primitive.
+
+  ### Agent Notes (2026-11-07, sheet editor proper breadcrumbs)
+
+  The sheet editor's working set hand-rolled its lineage presentation:
+  a parent-map serialization grouped sheets and TraceChain heads stood in
+  for breadcrumbs, while the opened record itself carried no chain. The
+  proper chain now renders at the canvas column's top for the opened
+  record, every working-set sheet tile carries its own chain above it
+  (the opened record's tile excepted — the top states it), and the
+  grouping machinery (`lineageKeyOf`/`sheetGroups`/`renderGroupChain`)
+  is deleted. The family list channel stays (filters over the record's
+  lineage keys). Spec re-pinned: the chain stub renders only for
+  records carrying ancestry.
