@@ -5438,6 +5438,23 @@ Session `agent/md-record-20261106` (worktree
   `e2e/process-generated-screen.spec.js` asserts the retired
   `.p-breadcrumb` selector and bare "New" buttons.
 
+  ### Agent Notes (2026-11-07, lineage picker tree)
+
+  Session `agent/lintree-20261107` (worktree `.agent-worktrees/
+  lintree-20261107`). Owner report: the lineage row's dropdown rendered
+  a children-down tree — every child type's records were selectable,
+  and selecting one wrote a ref typed as the accepted parent type. The
+  hierarchical branch now walks the accepted instances' containment
+  ancestry (the same walk the record chain renders): ancestor levels
+  load on demand, render as muted navigation rows with their type
+  label, and refuse selection (`selectable: false` on the node);
+  accepted-type nodes are the only selectable ones, each key carrying
+  its own type. Verified live on the stack: the note create's parent
+  picker shows Shelf › Folder only (no notes, no sibling child types),
+  the shelf click selects nothing, the folder select writes
+  `folderId` plus the derived `shelfId`; artifact
+  `.playwright/bcfix-lintree-ancestry-picker.png`.
+
   ### Agent Notes (2026-11-06, trail single-homing)
 
   Owner review: the trail was hand-wired per projection and the action
