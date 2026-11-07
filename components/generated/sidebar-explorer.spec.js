@@ -7,6 +7,7 @@ import { createSSRApp, h } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { createI18n } from 'vue-i18n';
 import ConfirmationService from 'primevue/confirmationservice';
+import ToastService from 'primevue/toastservice';
 import { describe, expect, it, vi } from 'vitest';
 
 const fixtures = vi.hoisted(() => {
@@ -102,6 +103,10 @@ vi.mock('~/stores/supportChat', () => ({
   useSupportChatStore: () => ({})
 }));
 
+vi.mock('~/stores/pages', () => ({
+  usePagesStore: () => ({ pages: [], sections: [], pageById: () => null, ensureLoaded: async () => {}, reload: async () => {} })
+}));
+
 vi.mock('~/stores/calls', () => ({
   useCallsStore: () => ({
     activeRooms: [],
@@ -148,6 +153,7 @@ async function renderSidebarModel() {
   });
   app.use(createI18n({ legacy: false, locale: 'en', messages: { en: {} } }));
   app.use(ConfirmationService);
+  app.use(ToastService);
   await renderToString(app);
   return menuModelReaders.at(-1)?.() || [];
 }

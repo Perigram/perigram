@@ -32,4 +32,20 @@ describe('create palette groups', () => {
     expect(createPaletteGroups(actions, { query: 'TEXT DOCUMENT', typeLabelOf })[0].items.length).toBe(2);
     expect(createPaletteGroups(actions, { query: 'zzz', typeLabelOf })).toEqual([]);
   });
+
+  it('pins the entry group above the type groups under the same needle', () => {
+    const pinnedGroup = { label: 'Pages', items: [{ label: 'New page', action: { kind: 'newPage' } }] };
+    const groups = createPaletteGroups(actions, { typeLabelOf, pinnedGroup });
+    expect(groups[0].label).toBe('Pages');
+    expect(groups[0].items.map(item => item.label)).toEqual(['New page']);
+    expect(groups.at(-1).label).toBe('Text Document');
+
+    const byNeedle = createPaletteGroups(actions, { query: 'new page', typeLabelOf, pinnedGroup });
+    expect(byNeedle.map(group => group.label)).toEqual(['Pages']);
+    expect(byNeedle[0].items[0].action).toEqual({ kind: 'newPage' });
+
+    const byTypeLabel = createPaletteGroups(actions, { query: 'pages', typeLabelOf, pinnedGroup });
+    expect(byTypeLabel.map(group => group.label)).toEqual(['Pages']);
+    expect(createPaletteGroups(actions, { query: 'zzz', typeLabelOf, pinnedGroup })).toEqual([]);
+  });
 });

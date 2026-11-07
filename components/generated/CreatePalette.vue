@@ -80,12 +80,16 @@ import ActionFormDialog from '~/components/ui-mapping/ActionFormDialog.vue';
 // type's declared creation protocol — the editor protocol opens the
 // blank editor surface, an upload create runs inline over the files
 // channel, every other create opens the construct dialog (the shared
-// ActionFormDialog) or runs directly when it prompts nothing.
+// ActionFormDialog) or runs directly when it prompts nothing. The pinned
+// New page entry (SPEC §26) rides above the type groups; the host owns
+// the create and the tab.
 const { t, te } = useI18n();
 const toast = useToast();
 const authStore = useAuthStore();
 const instances = useInstancesStore();
 const view = useFileTypeView();
+
+const emit = defineEmits(['create-page']);
 
 const palette = ref(null);
 const search = ref(null);
@@ -95,7 +99,10 @@ const pendingUpload = ref(null);
 const file = ref(null);
 const dialogAction = ref(null);
 const dialogFailures = ref(null);
-const hasEntries = computed(() => (authStore.actionManifest || []).some(action => isCreateAction(action) && action.typeId));
+const NEW_PAGE_ACTION = Object.freeze({ kind: 'newPage' });
+const pagesAvailable = computed(() => Boolean(authStore.organizationData?._id || authStore.userData?.organizationId));
+const hasEntries = computed(() => pagesAvailable.value
+  || (authStore.actionManifest || []).some(action => isCreateAction(action) && action.typeId));
 
 const bundle = computed(() => authStore.processPayload?.bundle || { types: [] });
 const pool = computed(() => instances.instancePool || {});
@@ -105,7 +112,10 @@ const groups = computed(() => createPaletteGroups(authStore.actionManifest || []
   typeLabelOf: typeId => view.typeById(typeId)?.name
     || (bundle.value.types || []).find(candidate => candidate.id === typeId)?.name
     || typeId,
-  actionLabelOf: action => generatedCreateLabel(action, { t, te }) || action.label || action.id
+  actionLabelOf: action => generatedCreateLabel(action, { t, te }) || action.label || action.id,
+  ...(pagesAvailable.value
+    ? { pinnedGroup: { label: t('pages.title'), items: [{ label: t('pages.newPage'), action: NEW_PAGE_ACTION }] } }
+    : {})
 }));
 
 function focusSearch() {
@@ -116,6 +126,10 @@ function focusSearch() {
 function runPaletteEntry(action) {
   palette.value?.hide();
   if (!action) return;
+  if (action === NEW_PAGE_ACTION) {
+    emit('create-page');
+    return;
+  }
   if (isEditorProtocolCreate(action)) {
     openBlankFileEditor(action.typeId);
     return;

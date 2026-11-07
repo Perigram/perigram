@@ -62,6 +62,12 @@ const INDEXES = {
   push_subscriptions: [
     { keys: { userId: 1 }, options: { name: 'user_idx' } },
     { keys: { endpoint: 1 }, options: { unique: true, name: 'endpoint_unique' } }
+  ],
+
+  // Pages Collection (custom pages + sidebar sections)
+  pages: [
+    { keys: { organizationId: 1 }, options: { name: 'org_idx' } },
+    { keys: { organizationId: 1, parentId: 1 }, options: { name: 'org_parent_idx' } }
   ]
 };
 

@@ -5,8 +5,9 @@ import { isCreateAction } from '~/utils/action-visibility.js';
 // type-label chain; entries label through the caller's create-caption
 // chain (the projection applies the create-label law). One search string
 // filters by type label and action label — a type-label match keeps the
-// whole group.
-export function createPaletteGroups(actions = [], { query = '', typeLabelOf = () => '', actionLabelOf = action => action.label || action.id } = {}) {
+// whole group. `pinnedGroup` (the New page entry) rides above the type
+// groups under the same needle.
+export function createPaletteGroups(actions = [], { query = '', typeLabelOf = () => '', actionLabelOf = action => action.label || action.id, pinnedGroup = null } = {}) {
   const needle = String(query || '').trim().toLowerCase();
   const byType = new Map();
   for (const action of actions || []) {
@@ -20,12 +21,14 @@ export function createPaletteGroups(actions = [], { query = '', typeLabelOf = ()
     typeId,
     items: entries.map(action => ({ typeId, label: actionLabelOf(action), action }))
   }));
+  const needleMatches = group => (group.label.toLowerCase().includes(needle)
+    ? group
+    : { ...group, items: group.items.filter(item => item.label.toLowerCase().includes(needle)) });
   const filtered = needle
-    ? groups
-      .map(group => (group.label.toLowerCase().includes(needle)
-        ? group
-        : { ...group, items: group.items.filter(item => item.label.toLowerCase().includes(needle)) }))
-      .filter(group => group.items.length)
+    ? groups.map(needleMatches).filter(group => group.items.length)
     : groups;
-  return filtered.sort((a, b) => a.label.localeCompare(b.label));
+  const sorted = filtered.sort((a, b) => a.label.localeCompare(b.label));
+  if (!pinnedGroup) return sorted;
+  const pinned = needle ? [needleMatches(pinnedGroup)].filter(group => group.items.length) : [pinnedGroup];
+  return [...pinned, ...sorted];
 }

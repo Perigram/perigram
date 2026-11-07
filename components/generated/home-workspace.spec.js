@@ -37,7 +37,8 @@ describe('home workspace state', () => {
       paneSequence: 2,
       openedEntityRefs: [{ key: 'project:p1', typeId: 'project', instanceId: 'p1' }],
       openedPageRefs: [{ key: 'page:cassette-designer:c1', pageId: 'cassette-designer', typeId: 'cassette', instanceId: 'c1' }],
-      sidebarCollapsed: true
+      sidebarCollapsed: true,
+      collapsedSectionKeys: ['page-section:sec-1']
     });
 
     const state = loadHomeWorkspaceState(storage, 'perigram:home-workspace:1:u1:o1');
@@ -45,6 +46,7 @@ describe('home workspace state', () => {
     expect(state.paneTree.children[0].tabKeys).toEqual(['project:p1']);
     expect(state.activePaneId).toBe('pane-2');
     expect(state.sidebarCollapsed).toBe(true);
+    expect(state.collapsedSectionKeys).toEqual(['page-section:sec-1']);
     expect(state.paneSequence).toBe(2);
     expect(state.openedEntityRefs).toEqual([{ key: 'project:p1', typeId: 'project', instanceId: 'p1' }]);
     expect(state.openedPageRefs).toEqual([{
@@ -53,6 +55,13 @@ describe('home workspace state', () => {
       typeId: 'cassette',
       instanceId: 'c1'
     }]);
+  });
+
+  it('defaults collapsed section keys to none for stored states without them', () => {
+    const storage = memoryStorage({
+      k: JSON.stringify({ version: 3, sidebarCollapsed: false })
+    });
+    expect(loadHomeWorkspaceState(storage, 'k').collapsedSectionKeys).toEqual([]);
   });
 
   it('normalizes invalid or missing stored state back to a single empty pane', () => {
