@@ -5401,3 +5401,12 @@ Session `agent/md-record-20261106` (worktree
   the conversation of the record it mounts for (instance and
   user-direct branches) and the band keys the mount by both record
   coordinates.
+
+  ### Agent Notes (2026-11-07, chain inside the component)
+
+  Owner review: hosts wrapped the chain AROUND tiles (inbox rows, the
+  sheet working set) — outside the component. The tile itself carries
+  the chain at its own top now (`InstanceInlineRef` `trace` prop; the
+  select's closed control stays clean), every chain placement renders
+  the full visible path (the collapsed compact teaser is gone), and the
+  hosts' wrapper markup is deleted.
