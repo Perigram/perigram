@@ -1,10 +1,10 @@
 // The one block-authoring vocabulary (SPEC §26): every markdown
-// authoring surface — the text editor, and the custom-page and
-// instance-block surfaces — offers this table through the slash panel
-// and applies it through `applyBlock`. Entries toggle: the entry
-// matching the focused block's kind returns the block to body text.
-// The block kinds arriving with later phases (page link, view embed,
-// AI block) join this table as their phases land.
+// authoring surface — the text editor today, the custom-page and
+// instance-block surfaces as their phases land — offers this table
+// through the slash panel and applies it through `applyBlock`. Entries
+// toggle: the entry matching the focused block's kind returns the
+// block to body text. Page-link, view-embed, and AI-block entries join
+// the table with their phases.
 import { callCommand } from '@milkdown/utils';
 import { editorViewCtx } from '@milkdown/core';
 import {

@@ -28,7 +28,30 @@ types ride the generic instance machinery from the install snapshot.
   record-change bridge) and the csv editor (`surfaces/csv-editor.mjs`,
   cell-edit DataTable). The read-only presentations (mount
   `mode: 'read'`, SPEC §4): the markdown editor renders the document
-  itself; the csv editor renders the table and the document name. Mermaid fences preview as diagrams in the
+  itself; the csv editor renders the table and the document name. The
+  markdown toolbar carries document concerns only (SPEC §26): the name
+  editing in place, save, and the dirty-remote refresh affordance.
+  Block authoring rides the slash panel — typing `/` at a word start
+  offers the block vocabulary with glyphs and keyboard navigation:
+
+  | Entry | Applies |
+  |---|---|
+  | Paragraph, Heading 1–6 | body text, heading level; the entry matching the focused block's kind returns the block to body text |
+  | Bullet, Numbered, To-do list | gfm lists; to-do sets the checkbox attr on the focused list item |
+  | Quote | blockquote; the quote entry on a quoted block lifts it out |
+  | Callout | blockquote seeded with a bold localized title; the pipeline renders blockquotes natively |
+  | Code block, Diagram | fenced code (language picker on hover, CodeMirror); diagram seeds a `mermaid` fence |
+  | Divider, Table | horizontal rule; a three-by-three gfm table |
+  | Link | the host address popover, anchored to the surface; the link applies at the caret |
+
+  Inline marks (bold, italic, inline code) author through input rules.
+  The vocabulary and its actions live in
+  `surfaces/lib/block-vocabulary.mjs` — a pure entry table plus the
+  action adapter the editor binds to its engine instance, the one
+  grammar the custom-page and instance-block surfaces (SPEC §26 later
+  phases) mount for their own authors. The page-link, view-embed, and
+  AI-block entries join the table as their phases land.
+  Mermaid fences preview as diagrams in the
   markdown editor through the host-provided `renderMarkdown` (the
   single pele home): blocks open diagram-only, crepe's Edit toggle or a
   click on the diagram flips to the CodeMirror source with the diagram

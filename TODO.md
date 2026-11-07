@@ -5598,10 +5598,69 @@ Session `agent/userspace-f-20261107` (worktree
 
 ### G. Slash and md unification (SPEC §26)
 
-- [ ] Format toolbar dies; the slash panel carries the full vocabulary:
+- [x] Format toolbar dies; the slash panel carries the full vocabulary:
   headings 1-6, toggle, callout, divider, fenced code, page link, view
   embed, AI block — one grammar in the text editor and every block
   authoring surface.
+  Landed 2026-11-07 (4ce465c02).
+- [ ] WAITING — owner verification: the text editor's toolbar carries
+  only the name field, save, and the dirty-remote refresh; typing `/`
+  offers the full vocabulary (17 entries with glyphs, keyboard
+  navigation, toggle semantics — the heading entry on a heading returns
+  body text); the to-do entry authors `- [ ]` checkboxes; the callout
+  seeds a blockquote with a bold title; the link entry opens the
+  address popover at the surface; page-link/view-embed/AI-block entries
+  are absent until phases H/J/K.
+
+#### Agent Notes (2026-11-07, phase G)
+
+Session `agent/userspace-g-20261107` (worktree
+`.agent-worktrees/userspace-g-20261107`). Landed in `4ce465c02`:
+
+- G1: the toolbar's format cluster (B/I/inline-code, H1–H6, code
+  block, paragraph, bullet, ordered, quote, link button) dies; the
+  toolbar keeps the name field + apply, save, and the dirty-remote
+  refresh affordance (document-level reconciliation, SPEC §4's
+  editor-save divergence law). The link address popover survives,
+  opened by the slash link entry and anchored to the editing surface;
+  the editor selection survives the pick, so the link applies at the
+  caret.
+- G2: the vocabulary (`surfaces/lib/block-vocabulary.mjs`) carries 17
+  entries: paragraph, H1–H6, bullet, ordered, to-do, quote, callout,
+  code block, diagram (mermaid fence), divider, table, link. To-do
+  sets the gfm `checked` attr on the focused list item (engine schema
+  supports task lists; crepe renders the checkbox; the pipeline
+  renders `- [ ]` GFM). Callout seeds a blockquote with a bold
+  localized title — the blockquote-with-title the pipeline already
+  renders, no new AST. Entries toggle exactly as the toolbar did
+  (identity-pinned in `text-editor.spec.js`: slash h2 dispatches
+  `wrapInHeadingCommand` payload 2; active h2 dispatches
+  `turnIntoTextCommand`; quote-lift rides the raw prose `lift`).
+  Interpretation flagged: the TODO's "toggle" is read as the to-do
+  checklist block — the engine and pipeline carry no collapsible
+  toggle block today; a Notion-style toggle needs a pipeline block
+  kind first. Inline marks (bold/italic/inline-code) are input-rule
+  authored — the brief's vocabulary list carries no mark entries
+  beyond link.
+- G3: `block-vocabulary.mjs` is the share module for phases H/J —
+  pure `BLOCK_VOCABULARY` table (id, labelKey, glyph, match) +
+  `blockIsActive`/`resolveBlockAction` (pure decision over the
+  source-markers selectionState) + `applyBlock` (the adapter the
+  editor binds: engine handle, view, locale, link hand-off). The
+  custom-page/instance-block surfaces mount the same table, panel, and
+  actions over their own engine instance.
+- G4: SPEC §4's toolbar-toggle paragraph, authoring-surface sentence,
+  and input-rules/slash/toolbar sentence amend (retirement + panel
+  vocabulary + toggle semantics on entries); workers/documents README
+  carries the canonical vocabulary table, the toolbar contents, and
+  the phase-boundary note (page link, view embed, AI block join with
+  H/J/K).
+- Validation: documents suites green (csv 2, fill 19, text-editor 8 —
+  new); localization, icon-fonts, markdown, plugin-surfaces,
+  plugin-sdk sdk green; `perigram-plugin surfaces` clean on both
+  surfaces; `plugin-deps:check`, `check-arch` green; SSR smoke 24/24
+  (`nuxi prepare` + vitest.ssr).
+- Open: none beyond owner verification.
 
 ### H. Custom pages (SPEC §26)
 

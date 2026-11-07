@@ -369,18 +369,21 @@ documents edit in a single-surface live editor (owner direction
 2026-10-15: the Obsidian model — the document renders in place while
 writing, the focused block shows its markdown source; the editor's
 model IS markdown, serialization is the framework's own, no rich-text
-proxy converting through HTML). Every toolbar format control toggles
-(owner direction 2026-10-15): each sets its formatting and unsets it —
-an active heading, list, or quote control returns the block to body
-text, and the pressed state shows what the focused block carries.
-The authoring surface is complete (owner direction 2026-10-15):
-headings one through six, fenced code blocks toggled from the toolbar
-(blocks carry the language picker on hover and syntax-highlighted
-CodeMirror editing), the link control with its address input, and slash
-commands — typing `/` at a word start offers the block vocabulary with
-keyboard navigation. There is no source mode and no surface toggle
+proxy converting through HTML). The format toolbar retires (owner direction 2026-11-07, amending
+2026-10-15): the toolbar carries document concerns only — the document
+name editing in place and save — and the slash panel is the formatting
+surface. Panel entries carry the 2026-10-15 toggle semantics: the
+entry matching the focused block's kind returns the block to body
+text, and inline marks author through input rules.
+The authoring surface is complete (owner directions 2026-10-15 and
+2026-11-07): headings one through six, fenced code blocks (blocks
+carry the language picker on hover and syntax-highlighted CodeMirror
+editing), bullet, numbered, and to-do lists, quote, callout, divider,
+table, the mermaid fence, and the link entry with its address input —
+typing `/` at a word start offers the whole block vocabulary with
+glyphs and keyboard navigation. There is no source mode and no surface toggle
 (owner direction 2026-10-15): the document is the one surface, markdown
-is authored through input rules, slash commands, and the toolbar, and
+is authored through input rules and the slash panel, and
 the block UI of fenced code appears on hover, never as standing
 chrome. Code renders in the app's mono voice wherever it appears.
 `text-document` instances are creatable by
