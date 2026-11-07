@@ -439,7 +439,7 @@ window depends on it).
 ## useDeclarationStation
 
 Resolves the active definition whose draft declares a stationed type —
-the document the in-place declaration editor targets (SPEC §1).
+the document the surface declaration authoring targets (SPEC §1).
 `declaringDefinitionFor(typeId)` checks the most recently activated
 definition first (`GET /api/process-definitions/active`), then the rest of
 the additive active set; drafts and archived definitions station nothing.

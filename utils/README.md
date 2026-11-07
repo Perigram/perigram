@@ -48,12 +48,13 @@ Parent: [root README](../README.md).
   the step language and the 400 plan payload are the
   [cts-types](../server/features/cts-types/README.md) contract.
 - `processDesignerDeclarationEditor.js`: Pure projection and gesture layer
-  of the in-place declaration editor (SPEC §1) — the per-type declaration
+  of the surface declaration authoring (SPEC §1) — the per-type declaration
   subtree over the canvas arrays, the node/edge/record gestures that mint
   what the canvas palette and connect gestures create, the compile-
-  diagnostics removal gate, and the lifecycle machine → mermaid derivation.
-  Spec-pinned: an in-place edit serializes through `canvasToDefinition`
-  to the document the canvas gestures save. The editor contract lives in
+  diagnostics removal gate, the field reorder, and the lifecycle machine →
+  mermaid derivation.
+  Spec-pinned: a surface edit serializes through `canvasToDefinition`
+  to the document the canvas gestures save. The authoring contract lives in
   [components/type-designer](../components/type-designer/README.md).
 - `instance-display-contract.js`: Pure surface-chrome resolver for the
   shared instance primitives. `resolveInstanceDisplayContract` derives

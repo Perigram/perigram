@@ -215,6 +215,11 @@ beside the transition history in `StateHistory`.
   presentation the record keeps the ladder arrangement — the wide step's
   side outcome lays the body beside the weight-earned side column,
   narrower hosts take the children's own step outcome below the body.
+  The depth-0 record mounts the declaration authoring provider
+  ([type-designer](../type-designer/README.md) `DeclarationAuthoring`)
+  around the header and body, so the property rows and the state
+  surface resolve one shared authoring session when the capability and
+  the declaration station admit it.
   Nested detail regions keep the Card
   surface; empty regions render the stub line or a Message by placement.
 - `RegionChildren.vue` / `PlacementBox.vue` — the arrangement
@@ -452,7 +457,12 @@ beside the transition history in `StateHistory`.
   trigger: it opens the state popover, which carries the machine's legal
   transitions on top and the shared `StateHistory` audit trail
   (`/api/state/history`, a state-stepped vertical feed) below. Instances
-  without a state render nothing (no state is information). The action
+  without a state render nothing (no state is information). With a
+  provided declaration authoring session the popover gains the authoring
+  lane ([type-designer](../type-designer/README.md)
+  `DeclarationStatePanel`) behind a quiet edit toggle, and a stateless
+  record of a stationed type carries the quiet add-states affordance at
+  the same position — capability holders only, no session no affordance. The action
   cluster sits right (the identity's flex-1 is the push) and groups by
   control kind with hairline dividers between non-empty groups
   (`LAYOUT.actionGroup`/`actionDivider`): record utilities — the
@@ -512,7 +522,14 @@ beside the transition history in `StateHistory`.
   filled values behind the per-group show-more control, single-group
   bodies carrying no group titles; structural fields and relations
   follow below the editor/preview as labeled open sections stacked full
-  width. The `peek` presentation, nested Card variants, and editor-less
+  width. With a provided declaration authoring session the property
+  block projects the stationing draft for holders (SPEC §1,
+  [type-designer](../type-designer/README.md)): every declared scalar
+  field in authored order — empty ones included — each row carrying its
+  author popover, the add-field affordance and the save control at the
+  block's end, and the rendered structural sections the same popover at
+  their label; without a session the compiled fact block renders
+  unchanged. The `peek` presentation, nested Card variants, and editor-less
   types keep the preview band and the fill grammar: preview (the Card
   variant and narrow hosts
   rendering in the bounded

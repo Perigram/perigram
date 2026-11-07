@@ -27,12 +27,14 @@ vocabulary for any declared class and never needs a pack type of its
 own — concepts that stay node-composable (like sheets) keep their
 glyphs without appearing as pack types.
 
-Declaration authoring is in place beside the canvas (owner direction
-2026-11-06): a stationed type's surfaces carry an author affordance,
-gated by the process-design capability, opening the type's declaration
-editor — fields as a property list (kind, qualifiers, the identifier
-and required flags, glyph, payload traits) and the lifecycle as the
-states-and-transitions editor. In-place authoring writes the same
+Declaration authoring is in place on the generated surfaces (owner
+direction 2026-11-07): fields author in the record page's property
+block, states author in the state surface, and no separate editor
+surface exists. The affordances are gated by the process-design
+capability and every authored reference is definition-aware — relation
+targets offered from the live registry view, states and transitions
+from/to from the type's live vocabulary, nothing free-typed where a
+picker can live. In-place authoring writes the same
 declaration records of the same definition draft the canvas authors:
 one authoring model, two projections, with the canvas remaining the
 dataflow, effects, and grants surface. The lifecycle carries a

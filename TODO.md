@@ -4912,6 +4912,10 @@ Session `agent/c-review-fix-20261106` (worktree
   lifecycle edits states and transitions and the machine view renders
   the mermaid diagram; save persists the draft and Apply stays on the
   canvas; an open designer picks an in-place save up on focus/poll.
+  Superseded by the on-surface rework (see Agent Notes 2026-11-07): the
+  pane/route header affordances and the editor page are gone; the
+  verification surface is now the record page's property block and the
+  state popover.
 
 Session reads: SPEC §1 (in-place law), §7 (CTS state law);
 components/process-designer/README.md; components/type-designer;
@@ -5013,6 +5017,87 @@ Session `agent/d-review-fix-20261106` (worktree
   carries the palette's drop-time ctsTypes record (`kind: 'field'` lives
   on that record — process.vue enrichNodeData mints it; node data
   carries no kind).
+
+#### Agent Notes (2026-11-07, on-surface rework)
+
+Session `agent/declare-onsurface-20261107` (worktree
+`.agent-worktrees/declare-onsurface-20261107`), owner direction
+2026-11-07: "all things related to 'edit declaration' should be
+customized in-place… States should be edited in state block… fields in
+page where fields belong, and all has to be definition-aware."
+
+Investigation: the record page (RegionBlock depth-0, `record`
+presentation) composes SurfaceHeader (the state surface: StateTag →
+popover with legal transitions + StateHistory; a stateless record
+renders nothing there) and SurfaceBody → SurfaceDetailBody (the §22.17
+property block: filled scalar facts as label+value rows through
+InlineField). The declaration machinery — the pure gesture layer
+(`utils/processDesignerDeclarationEditor.js`), `useDeclarationStation`,
+`definitionToCanvas`/`canvasToDefinition`,
+`useProcessDesignerPersistence` draft PATCH, `useProcessDesignerTypes`
+live registry view — was already the whole engine; the 2026-11-06
+editor page was a second chrome around it.
+
+Died: `TypeDeclarationEditor.vue`, the `typeDeclaration`
+workspace-pages registry row, `pages/types/declaration.vue`,
+`TypeDeclareEntry.vue` (the pane-header/route-action ribbon affordance
+and its mounts in GeneratedScreenPane + pages/screens), the
+`declaration-page` SSR smoke, the `uiMapping.declareType` and
+`typeDeclaration.title` locale keys.
+
+Landed:
+
+- The one authoring session: `useDeclarationAuthoring.js`
+  (components/type-designer) loads the stationing draft, mutates only
+  through the pure layer, recomputes `compileTreeDeclarations` +
+  `normalizeType` diagnostics on every change, saves the
+  `canvasToDefinition` snapshot as a draft PATCH, and guards dirty
+  route-leave (confirm host) + browser unload. `DeclarationAuthoring.vue`
+  provides it; RegionBlock mounts the provider around the depth-0
+  record (keyed by type id), gated on `organizations:admin` + station.
+- Fields author in the property block: for holders the block projects
+  the draft (every declared scalar field in authored order, empty ones
+  included, identifier holder excluded — the title owns it); each row's
+  popover (`DeclarationFieldMenu` → `DeclarationFieldPanel`) composes
+  the shared DescriptorEditor (ref accepts pick from the live registry
+  view), name edit, identifier move, move up/down
+  (`moveDeclarationField`, the new pure reorder gesture — array order
+  is declaration order), and diagnostics-gated removal; add-field at
+  the block end (`DeclarationAddField` mints through
+  `newFieldDeclaration` with the authored name+descriptor); the save
+  control rides the block-end cluster; rendered structural sections
+  carry the same popover at their label. Non-holders byte-identical.
+- States author in the state surface: the state popover gains the
+  authoring lane (`DeclarationStatePanel`) behind a quiet edit toggle —
+  states (value/label/severity/icon through the shared
+  state-severities vocabulary), add-state under the SPEC §7 carrier law
+  with the consequence stated beside the input, transitions with
+  from-chips and to-select over the live vocabulary plus intent, gated
+  removal, the machine-view dialog (mermaid through the shared
+  pipeline), and save. A stateless record of a stationed type carries
+  the quiet add-states affordance at the tag position instead.
+- `newTransitionDeclaration`-minted transitions now pick their target
+  from the vocabulary (select) instead of defaulting to states[0].
+- Pure rows survive as the panel's presentation
+  (`DeclarationStateRow` gained the label input);
+  `DeclarationFieldRow.vue` died with the page (its anatomy lives on in
+  `DeclarationFieldPanel`).
+
+Open: empty structural draft fields (long-text/json/record added in the
+draft, unseen until Apply) render only after Apply — the canvas keeps
+the full projection; the peek presentation keeps the compiled fact
+grammar (the record page is the authoring surface); the pane-tab close
+still carries no veto seam (route-leave + unload guard only, canvas
+parity); e2e round-trip awaits the next stack run.
+
+Validation: `utils/processDesignerDeclarationEditor.spec.js` 22/22 (+
+reorder, + named-field gesture), `components/type-designer` 10/10
+(panels/rows/save pins), `components/ui-mapping` green incl. the new
+`declaration-authoring.spec.js` (draft-driven property block, add-states
+affordance, non-holder parity), `components/generated`, `shared/
+design-system` 34/34, `shared/localization` clean; SSR smoke 24/24
+(declaration-page smoke replaced by the surface spec);
+`node scripts/check-arch.js` green; `npm run docs:validate` clean.
 
 #### Agent Notes (2026-11-06, deslop round)
 
