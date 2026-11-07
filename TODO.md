@@ -5374,3 +5374,12 @@ Session `agent/md-record-20261106` (worktree
   is deleted. The family list channel stays (filters over the record's
   lineage keys). Spec re-pinned: the chain stub renders only for
   records carrying ancestry.
+
+  ### Agent Notes (2026-11-07, chain homes per mount)
+
+  The editor-surface top chain duplicated the record header's chain on
+  the detail mount. One chain per mount: the record header owns it on
+  detail mounts, `GeneratedWorkspacePage` renders it at a record-bound
+  page's top on the page mount (blank editor pages carry none), and the
+  editor surface stays pure content — its working-set tiles keep their
+  own per-record chains.

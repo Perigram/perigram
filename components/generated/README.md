@@ -68,7 +68,10 @@ it through its registry props adapter, and the mobile fallback renders it
 as the route's query. The page host mounts non-`flush` pages inside its
 padded scroll area — the same content rhythm the screen panes use — while
 `flush` rows (the designer canvas, the call stage, the chats inbox, the
-self-padding directory surface) own their shell.
+self-padding directory surface) own their shell. A record-bound page
+opens with the record's lineage chain at its top — the page host is the
+record's header on this mount (the detail mount's record header owns it
+there).
 
 The manifest vocabulary is the projected UI contract, everywhere: screens and
 actions key their target by `typeId`, actions by `id` (with `parentTypeId`
