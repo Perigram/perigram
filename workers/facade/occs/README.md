@@ -261,8 +261,8 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
 - **Face sketches** — a face may carry the same parametric shape model
   as a profile on its `sketch` (add/subtract/construction shapes,
   expressions, fillets). The face is its adds minus its subtracts on the
-  child's side of the datum; a set with no add stays at zero geometry,
-  and its subtracts cut the parent where they land. Holes ride `cut.inner`. The child
+  child's side of the datum; a set with no add stays at zero geometry.
+  The parent cut is the union of the subtracts. Holes ride `cut.inner`. The child
   face keeps the material on its side of the datum; the parent-side part
   belongs to the parent cut. Every participating shape cuts the parent
   where it lands — the cut footprint is the union of the adds and

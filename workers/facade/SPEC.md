@@ -709,18 +709,16 @@ face and replace its trapezoid base; subtract shapes cut the result, and
 construction is excluded. The face is its adds minus its subtracts on
 the child's side of the datum; a set with no add leaves the face at
 zero geometry, and its subtracts cut the parent where they land. The result is the
-face region on the child's side of the datum. The child face keeps the material on its side of the datum;
-the parent-side part belongs to the parent cut. Every participating shape
-cuts the parent where it lands — the cut footprint is the union of the
-adds and subtracts, the boolean pass a closed profile applies to its
-host. The sketch is the node's authored truth
+face region on the child's side of the datum. The child face keeps the material on its side of the datum.
+The parent cut is the union of the subtracts, the boolean pass a closed
+profile applies to its host. The sketch is the node's authored truth
 (`sketch`), the OCCS face is the evaluated region (`polygon`), and the
 authored sketch rides `face.extensions.perigram.sketch`. The face editor
 is the profile editor in face mode: same expressions, fillets, shape
 list, dimensions, and undo stack; the hatch is the face itself. Its datum is the parent
 edge the face mounts to — a horizontal line spanning the host edge in
 the face's shard coordinates (the shard start sits at zero), drawn as the
-editor's highlighted mount line. The parent
+editor's dashed mount line. The parent
 face renders as a ghost outline in the same coordinates, so the author
 sees the real parent geometry and mounts the child to it. A root face
 uses its own base edge as that line. A face created on a shard is born a

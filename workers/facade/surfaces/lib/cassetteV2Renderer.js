@@ -4556,12 +4556,14 @@ export const resolveCassetteV2FaceSketchGeometry = async (face = {}, parameters 
   const { section } = buildOccsProfileFromEvaluatedSketch(evaluated);
   const operations = resolveOccsProfileSectionOperations(section) || [];
   const region = await foldCassetteV2Region({ polygons: [], holes: [] }, operations);
-  // Every participating shape cuts the parent where it lands: the cut
-  // footprint is the union of the adds and subtracts. The child face
-  // keeps the ordered fold result on its side of the datum.
+  // Subtract shapes cut the parent where they land: the parent cut is the
+  // union of the subtracts. The child face keeps the ordered fold result
+  // on its side of the datum.
   const cutRegion = await foldCassetteV2Region(
     { polygons: [], holes: [] },
-    operations.map(operation => ({ op: 'add', polygons: operation.polygons }))
+    operations
+      .filter(operation => operation.op === 'subtract')
+      .map(operation => ({ op: 'add', polygons: operation.polygons }))
   );
   const span = 1e5;
   const clipped = await foldCassetteV2Region(

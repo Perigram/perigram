@@ -140,23 +140,19 @@ test('face editor keeps the datum side live through the cassette', async ({ app 
   await expect(drawButton).not.toHaveClass(/p-button-primary/, { timeout: 15_000 });
   await page.waitForTimeout(1500);
 
-  // The face keeps the material on its side of the datum: a rectangle on
-  // the parent's side authors no face region, and the editor says so.
+  // An add over the parent's side authors no face region, cuts nothing,
+  // and the editor says so.
   const afterDraw = await canvasVerdict(page);
   const parentSideHatch = afterDraw.hatchLoops.filter(loop => loop.area > 0 && loop.bounds.maxY < 400);
   expect(parentSideHatch, 'the hatch carries no region on the parent side').toEqual([]);
+  expect(afterDraw.cutInner, 'an add cuts the parent nowhere').toEqual([]);
   await expect(inspector.getByText('The section resolves to nothing', { exact: false }))
     .toBeVisible({ timeout: 10_000 });
   await page.screenshot({ path: '.playwright/cassette-face-editor-01-parent-side-add.png' });
 
-  // The cassette follows the edit live: the parent cut rides the context
-  // before the editor closes.
-  await expect.poll(async () => (await canvasVerdict(page)).cutInner.length, { timeout: 20_000 })
-    .toBeGreaterThan(0);
-  await page.screenshot({ path: '.playwright/cassette-face-editor-02-live-cut.png' });
-
-  // A subtract-only set leaves the face at zero geometry: no authored
-  // region anywhere, and the drawn rectangle stays a parent cut.
+  // A subtract-only set leaves the face at zero geometry and cuts the
+  // parent where it lands — the cut rides the live context before the
+  // editor closes.
   const rectRow = inspector.locator('.profile-shapes-panel button[aria-label^="Rectangle s"]').first();
   await rectRow.click();
   await page.waitForTimeout(500);
@@ -169,6 +165,8 @@ test('face editor keeps the datum side live through the cassette', async ({ app 
   const afterSubtract = await canvasVerdict(page);
   expect(afterSubtract.hatchLoops.filter(loop => loop.area > 0),
     'a subtract-only set authors no face region').toEqual([]);
+  await expect.poll(async () => (await canvasVerdict(page)).cutInner.length, { timeout: 20_000 })
+    .toBeGreaterThan(0);
   await page.screenshot({ path: '.playwright/cassette-face-editor-03-subtract.png' });
 
   // Leaving the edit keeps the child face on the cassette.
@@ -490,9 +488,9 @@ test('a face is born a sketch face and zero geometry shows in the tree', async (
       .find(win => win?.location?.search?.includes('embed=1'));
     return (frameWin?.cadcraft?.doc?.all?.() || [])
       .filter(entity => entity.layer === 'perigram-profile-annotations' && entity.pts?.length === 2)
-      .map(entity => entity.color);
+      .map(entity => entity.lt || null);
   });
-  expect(mountLine, 'the amber mount line rides the datum').toContain('#d97706');
+  expect(mountLine, 'the dashed mount line rides the datum').toContain('DASHED');
   await page.screenshot({ path: '.playwright/cassette-face-editor-10-editor.png' });
 
   // Deleting every shape leaves zero geometry: the tree marks the face and
