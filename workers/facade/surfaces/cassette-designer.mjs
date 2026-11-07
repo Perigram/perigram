@@ -452,7 +452,6 @@ export default function createSurface({ vue, components, locale, queries, record
       const editingFaceNodeId = ref('');
       const faceShapeDraft = ref(createEmptyOccsProfileSketch());
       const faceShapePreservedInstance = ref({});
-      const faceShapeBaseFace = ref([]);
       const faceShapeBasisStart = ref(null);
       const faceShapeBasisEnd = ref(null);
       const faceShapeParentFace = ref([]);
@@ -2128,7 +2127,6 @@ export default function createSurface({ vue, components, locale, queries, record
           const node = treeNodes.value.find(item => item.id === nodeId);
           const face = normalizeCassetteV2Face(node, globalParameters.value);
           faceShapePreservedInstance.value = { ...(face.instance || {}) };
-          faceShapeBaseFace.value = context.baseFace || [];
           // The placed values join the authored table while the editor
           // is open; the initial draft is not committed.
           suppressFaceCommit = true;
@@ -2148,7 +2146,6 @@ export default function createSurface({ vue, components, locale, queries, record
         } catch (error) {
           faceShapeEditorError.value = error?.message || String(error);
           faceShapePreservedInstance.value = {};
-          faceShapeBaseFace.value = [];
           faceShapeDraft.value = createEmptyOccsProfileSketch();
           faceShapeBasisStart.value = null;
           faceShapeBasisEnd.value = null;
@@ -4266,7 +4263,6 @@ export default function createSurface({ vue, components, locale, queries, record
             externalHost: assemblyHostRef.value,
             panelTarget: sketchPanelHost.value,
             toolsTarget: sketchToolsHost.value,
-            baseFace: face ? faceShapeBaseFace.value : NO_RINGS,
             basisStart: face ? faceShapeBasisStart.value : null,
             basisEnd: face ? faceShapeBasisEnd.value : null,
             contextFace: face ? faceShapeParentFace.value : NO_RINGS,

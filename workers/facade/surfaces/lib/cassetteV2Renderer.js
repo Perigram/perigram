@@ -4545,21 +4545,17 @@ const faceBaseLocalRing = (node, parameters, parentBoundaryVertices, frame) => {
   ]);
 };
 
-export const resolveCassetteV2FaceSketchGeometry = async (face = {}, parameters = {}, basePolygons = []) => {
+export const resolveCassetteV2FaceSketchGeometry = async (face = {}, parameters = {}) => {
   const evaluated = evaluateOccsProfileSketch(
     face.derivedSketch || normalizeOccsProfileSketch(face.sketch || face),
     parameters
   );
+  // The face is its adds minus its subtracts, clipped to the child's side
+  // of the datum (workers/facade/SPEC.md — face owner decision). A set
+  // with no add stays empty; the base host belongs to the trapezoid face.
   const { section } = buildOccsProfileFromEvaluatedSketch(evaluated);
   const operations = resolveOccsProfileSectionOperations(section) || [];
-  // Add shapes author the face: they replace the base host. A set with
-  // no add is a modifier set, so it cuts the face's base host instead.
-  const hasAdd = operations.some(operation => operation.op === 'add');
-  const base = hasAdd
-    ? []
-    : (Array.isArray(basePolygons) ? basePolygons : [basePolygons])
-      .filter(ring => Array.isArray(ring) && ring.length >= 3);
-  const region = await foldCassetteV2Region({ polygons: base, holes: [] }, operations);
+  const region = await foldCassetteV2Region({ polygons: [], holes: [] }, operations);
   // Every participating shape cuts the parent where it lands: the cut
   // footprint is the union of the adds and subtracts. The child face
   // keeps the ordered fold result on its side of the datum.
@@ -4580,9 +4576,9 @@ export const resolveCassetteV2FaceSketchGeometry = async (face = {}, parameters 
   };
 };
 
-export const resolveCassetteV2FaceSketchRegion = async (source = {}, parameters = {}, basePolygons = []) => {
+export const resolveCassetteV2FaceSketchRegion = async (source = {}, parameters = {}) => {
   const face = normalizeCassetteV2Face(source, parameters);
-  const { outer, holes, polygons } = await resolveCassetteV2FaceSketchGeometry(face, parameters, basePolygons);
+  const { outer, holes, polygons } = await resolveCassetteV2FaceSketchGeometry(face, parameters);
   return { outer, holes, polygons };
 };
 
@@ -4633,42 +4629,42 @@ const buildCassetteV2LocalTreeCurves = async (sourceTree) => {
         parentEntry?.boundaryVertices || null,
         frame
       );
-      // Zero geometry (no shapes): the face renders nothing, holds its
-      // shard interval, and stays selectable through its base ring.
-      if (!normalizeOccsProfileSketch(node.sketch).shapes.length) {
-        const baseRing = withoutClosingVertex(placeSketchRing(baseLocalVertices, shiftedFrame));
-        const emptyEntry = {
-          node,
-          vertices: [],
-          boundaryVertices: [],
-          holes: [],
-          localVertices: [],
-          localHoles: [],
-          baseLocalVertices,
-          faceCutPolygons: [],
-          frame: shiftedFrame,
-          referenceVertices: baseRing,
-          labelBoundaryVertices: baseRing,
-          shapeType: 'polygon',
-          trapezoid: null,
-          dimensionLabels: {},
-          zeroGeometry: true
-        };
-        entryById.set(node.id, emptyEntry);
-        curves.push(emptyEntry);
-        continue;
-      }
+      // Zero geometry (no shapes, no adds, or an unresolved table): the
+      // face renders nothing, holds its shard interval, and stays
+      // selectable through its base ring. A resolved set still cuts the
+      // parent where its shapes land.
+      const baseRing = withoutClosingVertex(placeSketchRing(baseLocalVertices, shiftedFrame));
+      const emptyEntry = (cuts = []) => ({
+        node,
+        vertices: [],
+        boundaryVertices: [],
+        holes: [],
+        localVertices: [],
+        localHoles: [],
+        baseLocalVertices,
+        faceCutPolygons: cuts.map(ring => placeSketchRing(ring, shiftedFrame)),
+        frame: shiftedFrame,
+        referenceVertices: baseRing,
+        labelBoundaryVertices: baseRing,
+        shapeType: 'polygon',
+        trapezoid: null,
+        dimensionLabels: {},
+        zeroGeometry: true
+      });
       let region;
       try {
         region = await resolveCassetteV2FaceSketchGeometry(
           normalizeCassetteV2Face(node, parameters),
-          parameters,
-          [baseLocalVertices]
+          parameters
         );
       } catch {
-        // A sketch whose table does not resolve keeps the face on its base
-        // host (the drawing-is-sacred law, occs/README.md).
-        region = { outer: baseLocalVertices, holes: [], polygons: [baseLocalVertices], cuts: [] };
+        region = null;
+      }
+      if (!region?.polygons?.length) {
+        const empty = emptyEntry(region?.cuts);
+        entryById.set(node.id, empty);
+        curves.push(empty);
+        continue;
       }
       const localVertices = region.outer || [];
       const localHoles = region.holes;
@@ -5175,9 +5171,6 @@ export const cassetteV2FaceSketchContext = async (tree = createCassetteV2GraphTr
   if (!node) return { sketch, basisStart: null, basisEnd: null, parentFace: null };
   const curves = await buildCassetteV2LocalTreeCurves(sourceTree);
   const ownCurve = curves.find(item => item.node.id === nodeId);
-  const baseFace = withoutClosingVertex(
-    ownCurve?.baseLocalVertices || ownCurve?.localVertices || []
-  );
   if (!node.parentId) {
     const boundary = withoutClosingVertex(ownCurve?.boundaryVertices || []);
     const length = boundary.length >= 2
@@ -5185,7 +5178,6 @@ export const cassetteV2FaceSketchContext = async (tree = createCassetteV2GraphTr
       : NaN;
     return {
       sketch,
-      baseFace,
       basisStart: Number.isFinite(length) ? 0 : null,
       basisEnd: Number.isFinite(length) ? length : null,
       parentFace: null
@@ -5215,7 +5207,6 @@ export const cassetteV2FaceSketchContext = async (tree = createCassetteV2GraphTr
   });
   return {
     sketch,
-    baseFace,
     basisStart: -edgeStart,
     basisEnd: edgeLength - edgeStart,
     parentFace
