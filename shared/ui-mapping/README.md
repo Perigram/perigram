@@ -267,8 +267,8 @@ hierarchy), and a group-class collection is its record collection like
 any other — membership renders on the record surface through the record
 ladder (SPEC §22.11).
 
-**Hierarchy materialization** (InstancePicker's hierarchical mode, the
-workspace explorer) matches children through `childrenOfParent(type, pool,
+**Hierarchy materialization** (the workspace explorer) matches children
+through `childrenOfParent(type, pool,
 parentId)`: every children edge contributes the pool instances of its
 declared child types whose `lineage[edge.lineageKey]` points at the parent —
 the declared storage key (the edge's map key is authoring identity). A

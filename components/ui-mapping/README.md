@@ -660,10 +660,14 @@ beside the transition history in `StateHistory`.
   (filtered, via the shared Select wrapper), `InstancePicker` —
   AutoComplete with typeahead over the instance pool, loading an
   accepted type's instances on demand when the screen does not source
-  it, or TreeSelect when
-  the accepted type declares lineage children (TreeSelect's checked-keys
-  map selection resolves to the `{ type, id }` instance ref; both
-  branches filter, `common.search`) —
+  it, or TreeSelect when the accepted type has declared containment
+  ancestry: the tree nests accepted instances under their ancestry
+  (the same containment walk the record's chain renders; ancestor
+  levels load on demand and render as muted navigation rows carrying
+  their type label), accepted-type nodes are the only selectable ones,
+  and TreeSelect's checked-keys map selection resolves to the
+  `{ type, id }` instance ref of the selected node; both branches
+  filter, `common.search` —
   `InstanceMultiPicker` (shared MultiSelect wrapper), `ChipsInput`,
   `FileUploadControl`, `Slider` for bounded scalars (declared min/max),
   `RefRowActions` (the create affordance itself: compiled create actions
