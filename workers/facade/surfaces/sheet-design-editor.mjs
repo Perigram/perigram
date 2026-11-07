@@ -1658,17 +1658,7 @@ export default function createSurface({ vue, components, locale, queries, record
           palette: renderPalette,
           inspector: renderInspector,
           default: () => [
-            h('div', { class: 'flex h-full w-full flex-col' }, [
-              props.record?._id
-                ? h(components.TraceChain, {
-                  entity: props.record,
-                  typeId: 'sheet-design',
-                  variant: 'compact',
-                  expandable: true,
-                  class: 'shrink-0 px-3 pt-3'
-                })
-                : null,
-              h('div', { class: 'relative min-h-0 w-full flex-1 p-3' }, [
+            h('div', { class: 'relative h-full w-full p-3' }, [
               renderCanvas(),
               renderSpeedDial(),
               h(components.Popover, { ref: dockMenu }, () => [
@@ -1698,7 +1688,6 @@ export default function createSurface({ vue, components, locale, queries, record
                     onClick: () => applyRename()
                   })
                 ])
-              ])
               ])
             ])
           ]

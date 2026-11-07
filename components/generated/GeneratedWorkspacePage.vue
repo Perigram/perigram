@@ -20,8 +20,18 @@
     <!-- The pane's content shell: non-flush pages (the organization
          management surfaces) render inside the padded scroll area every
          other pane surface uses; flush pages (canvas designer, call
-         stage, self-padding directory surface) own their own shell. -->
+         stage, self-padding directory surface) own their own shell. A
+         record-bound page opens with the record's lineage chain — the
+         page host is the record's header on this mount. -->
     <div :class="definition.flush ? 'min-h-0 flex-1 overflow-hidden' : 'min-h-0 flex-1 overflow-auto p-4'">
+      <TraceChain
+        v-if="page.entity"
+        :entity="page.entity"
+        :type-id="page.typeId || ''"
+        variant="compact"
+        expandable
+        :class="definition.flush ? 'px-4 pt-3' : 'pb-2'"
+      />
       <!-- Every editor page resolves the same loader component; the page
            key is what gives each tab its own content instance. -->
       <component
@@ -40,6 +50,7 @@
 <script setup>
 import { computed, provide } from 'vue';
 import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 
 const props = defineProps({

@@ -137,14 +137,15 @@ describe('sheet-design-editor surface mount', () => {
     expect(html).not.toContain('data-trace-chain');
   });
 
-  it('renders the opened record\'s chain at the editor top', async () => {
+  it('renders no chain for the opened record — the page host owns it', async () => {
     const opened = { ...record, lineage: { familyId: 'parent-1' } };
     const surface = createSurface(mountContext());
     const app = createSSRApp(surface, { record: opened, persistence: { patch: async () => {}, rename: async () => {} } });
     const html = await renderToString(app);
-    // The canvas column opens with the record's chain; the opened
-    // record's own working-set tile states nothing above it.
-    expect(html.match(/data-trace-chain="sheet-design"/g)).toHaveLength(1);
+    // The surface is content: the record header (detail mount) and the
+    // workspace page host (page mount) carry the record's chain. The
+    // opened record's working-set tile states nothing above it.
+    expect(html).not.toContain('data-trace-chain');
   });
 
   it('flags lineage deviation exactly', () => {
