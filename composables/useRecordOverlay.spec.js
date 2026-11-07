@@ -1,0 +1,129 @@
+// The overlay authoring session's state machine (SPEC §26): draft
+// seeding from saved state, move/insert/remove over the draft order,
+// the trivial-draft delete, and the edit-of-a-saved-block seeding law.
+import { computed, nextTick, ref } from 'vue';
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('~/components/generated/file-surfaces.js', () => ({
+  editorWriteGranted: () => true
+}));
+
+const savedOverlay = ref(null);
+
+vi.mock('~/stores/instance-overlays.js', () => ({
+  useInstanceOverlaysStore: () => ({
+    overlayFor: () => savedOverlay.value,
+    loadedFor: () => true,
+    save: async (typeId, instanceId, doc) => {
+      lastSaved = doc;
+      return { typeId, instanceId, ...doc };
+    },
+    remove: async () => {
+      removed = true;
+      savedOverlay.value = null;
+    }
+  })
+}));
+
+let lastSaved = null;
+let removed = false;
+
+import { useRecordOverlaySession } from './useRecordOverlay.js';
+
+function session() {
+  return useRecordOverlaySession({
+    typeId: ref('queue'),
+    instanceId: ref('q1'),
+    entity: ref({ _id: 'q1' }),
+    active: ref(true),
+    tabKey: 'page:queue:q1'
+  });
+}
+
+describe('useRecordOverlaySession', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    lastSaved = null;
+    removed = false;
+  });
+
+  it('editing a saved block seeds the draft so keystrokes land', async () => {
+    savedOverlay.value = {
+      blocks: [{ id: 'b1', kind: 'text', text: 'saved words' }],
+      order: ['properties', 'b1']
+    };
+    const s = session();
+    s.syncFlow(['properties', 'b1'], ['properties']);
+    expect(s.dirty).toBe(false);
+    s.editBlock('b1');
+    expect(s.dirty).toBe(true);
+    s.updateText('b1', 'saved words and more');
+    await nextTick();
+    expect(s.applied.blocks[0].text).toBe('saved words and more');
+  });
+
+  it('moves reorder the draft order alone', () => {
+    savedOverlay.value = null;
+    const s = session();
+    s.syncFlow(['properties', 'children:notes'], ['properties', 'children:notes']);
+    s.move('children:notes', -1);
+    expect(s.applied.order).toEqual(['children:notes', 'properties']);
+    expect(s.dirty).toBe(true);
+  });
+
+  it('insert and remove keep blocks and order in step', () => {
+    savedOverlay.value = null;
+    const s = session();
+    s.syncFlow(['properties'], ['properties']);
+    s.insertText(1);
+    const block = s.applied.blocks[0];
+    expect(s.applied.order).toEqual(['properties', block.id]);
+    s.insertText(0);
+    const head = s.applied.blocks[1];
+    expect(s.applied.order).toEqual([head.id, 'properties', block.id]);
+    s.removeBlock(head.id);
+    expect(s.applied.order).toEqual(['properties', block.id]);
+    s.removeBlock(block.id);
+    expect(s.applied.blocks).toEqual([]);
+    expect(s.applied.order).toEqual(['properties']);
+  });
+
+  it('mutations proceed once the draft is seeded', () => {
+    savedOverlay.value = null;
+    const s = session();
+    s.syncFlow(['properties'], ['properties']);
+    s.insertText(1);
+    s.insertText(1);
+    expect(s.applied.blocks.length).toBe(2);
+    const moved = s.applied.order[1];
+    s.move(moved, -1);
+    expect(s.applied.order[0]).toBe(moved);
+  });
+
+  it('a trivial draft saves as a delete', async () => {
+    savedOverlay.value = {
+      blocks: [{ id: 'b1', kind: 'text', text: 'gone' }],
+      order: ['b1', 'properties']
+    };
+    const s = session();
+    s.syncFlow(['properties', 'b1'], ['properties']);
+    s.editBlock('b1');
+    s.removeBlock('b1');
+    await s.save();
+    expect(removed).toBe(true);
+    expect(lastSaved).toBe(null);
+    expect(s.dirty).toBe(false);
+  });
+
+  it('a real draft saves the composed document', async () => {
+    savedOverlay.value = null;
+    const s = session();
+    s.syncFlow(['properties'], ['properties']);
+    s.insertText(null);
+    s.updateText(s.applied.blocks[0].id, 'words');
+    await s.save();
+    expect(lastSaved.blocks[0].text).toBe('words');
+    expect(s.dirty).toBe(false);
+  });
+});

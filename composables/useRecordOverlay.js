@@ -38,7 +38,8 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
   }
 
   function ensureDraft() {
-    if (dirty.value || !loaded.value) return false;
+    if (!loaded.value) return false;
+    if (dirty.value) return true;
     draftBlocks.value = (saved.value?.blocks || []).map(block => ({ ...block }));
     draftOrder.value = [...flowKeys.value];
     dirty.value = true;
@@ -133,7 +134,10 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     closeViewPicker: () => { viewPickerAt.value = null; },
     removeBlock,
     updateText,
-    editBlock: id => { editingBlockId.value = id; },
+    editBlock: id => {
+      if (!ensureDraft()) return;
+      editingBlockId.value = id;
+    },
     closeEditor: () => { editingBlockId.value = null; },
     save
   });
