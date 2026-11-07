@@ -5332,3 +5332,19 @@ Session `agent/md-record-20261106` (worktree
   tile keeps its grounded chip at its host, the calendar re-provides
   false (summary chips), and the inbox rows carry the trail beneath the
   tile with crumbs opening ancestors through the workspace seam.
+
+  ### Agent Notes (2026-11-07, one ancestry chain)
+
+  Owner review: the trail rendered beneath the component (expected at
+  its top, inside), the sheet editor carried a second implementation,
+  and the identifier-surface trail never reached plugin surfaces. One
+  ancestry chain now serves every host: the shared `TraceChain`
+  (record headers, entity cards, chat, the plugin component pack —
+  including the sheet editor's family section) with `BreadcrumbTrail`
+  deleted; the identifier surface renders it above the identity on
+  cross-cut collections, and the inbox rows render it at the row top
+  (self-routing crumbs). The sheet editor's editor-top strip was
+  attempted and reverted: its spec pins exactly one chain (the family
+  section head) and none for lineage-less records — moving the chain to
+  the editor top is an owner decision on that surface's spec, recorded
+  here.

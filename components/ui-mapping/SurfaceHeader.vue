@@ -7,7 +7,7 @@
        identity's flex-1 is the push) and wraps below on narrow
        containers (the LAYOUT header recipe, container-relative). -->
   <div :class="[spacing ? spacing.stackTight : LAYOUT.stackTight, 'surface-header', LAYOUT.header]">
-    <BreadcrumbTrail v-if="!compact" :instance="instance" :bundle="bundle" @open="target => emit('open-instance', target)" />
+    <TraceChain v-if="!compact" :entity="instance" :type-id="type?.id || ''" variant="compact" expandable />
     <div :class="LAYOUT.headerRow">
       <!-- Contextual navigation slot: a host that opened this record
            inside another surface (a workspace tab reached from another
@@ -136,7 +136,7 @@ import {
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import ActionButton from './ActionButton.vue';
-import BreadcrumbTrail from './BreadcrumbTrail.vue';
+import TraceChain from '../shared/links/TraceChain.vue';
 import BackControl from '../shared/BackControl.vue';
 import StateTag from './StateTag.vue';
 import InstanceChatEntry from '../shared/InstanceChatEntry.vue';

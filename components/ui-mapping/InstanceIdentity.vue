@@ -1,5 +1,13 @@
 <template>
   <span :class="crossCut ? 'inline-flex min-w-0 flex-col items-start gap-1' : 'inline-flex min-w-0 items-center gap-2'">
+    <TraceChain
+      v-if="crossCut"
+      :entity="instance"
+      :type-id="type?.id || ''"
+      variant="compact"
+      expandable
+      class="min-w-0"
+    />
     <span class="inline-flex min-w-0 items-center gap-2">
       <i :class="glyph" class="shrink-0" aria-hidden="true" />
       <Button
@@ -12,11 +20,6 @@
       />
       <span v-else :class="['truncate', textClass]">{{ identity }}</span>
     </span>
-    <BreadcrumbTrail
-      v-if="crossCut"
-      :instance="instance"
-      @open="target => $emit('open', target)"
-    />
   </span>
 </template>
 
@@ -25,15 +28,16 @@ import { computed, inject, unref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import { LAYOUT, titleFor, iconFor } from '#shared/ui-mapping/index.js';
-import BreadcrumbTrail from './BreadcrumbTrail.vue';
+import TraceChain from '../shared/links/TraceChain.vue';
 
 // The instance identifier (SPEC §22.8): a record's identity line carries
 // its icon — the authored glyph, a record's declared thumb winning — and
 // opens the record under the screen's onOpen contract. Every projection
 // renders collection identities through this one surface, and an
 // identity rendered outside its parent's surface (the containment
-// cross-cut's injected flag) carries the lineage trail beneath it —
-// crumbs open their ancestors through the same open channel. The link's
+// cross-cut's injected flag) carries the lineage chain at its top — the
+// same TraceChain the record header and the entity cards render, crumbs
+// routing to compiled detail routes. The link's
 // horizontal padding dies here: the identifier owns its spacing (the
 // wrapper gap), and the preset's padding is a standalone-target
 // affordance.

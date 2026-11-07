@@ -305,17 +305,7 @@ beside the transition history in `StateHistory`.
   and month navigation is local view state — the month opens on the first
   loaded instance's month. Labels and weekday headers format through the
   active locale.
-- `BreadcrumbTrail.vue` — the lineage trail: a compact, background-free
-  Breadcrumb of ancestor identities derived from the record's declared
-  containment ancestry (`containmentAncestors` over the effective
-  containment contract) and resolved through the instances store's
-  readable-reference seam. Ancestors are navigation: each crumb opens its
-  resolved instance through the surface's identity-open channel. The
-  record header carries the trail above the identity line; cross-cut
-  collection identities carry it beneath them through the one
-  identifier surface (`InstanceIdentity` reads the collection-context
-  provide), the media tile grounds it beside its chip, and the action
-  inbox carries it beneath each row tile.
+
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identifier (`InstanceIdentity`) under the identifier field's label (a
   type without an identifier field heads the column with the type label;
@@ -689,8 +679,9 @@ beside the transition history in `StateHistory`.
   identities render through it. `RegionCollections` provides the
   containment cross-cut flag for the collection it renders, and an
   identity flagged as rendered outside its parent carries the lineage
-  trail beneath it — crumbs open ancestors through the same open
-  channel, so every projection (current and future) states ancestry
+  chain at its top, above the identity — the same shared `TraceChain`
+  the record header and the entity cards render
+  ([shared](../shared/README.md)), so every projection states ancestry
   with no per-surface wiring.
 - `ActionButton.vue` — action-button presentation from
   the compiled action record; creates render captioned (the compiled
