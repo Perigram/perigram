@@ -155,8 +155,8 @@ test('face editor keeps the datum side live through the cassette', async ({ app 
     .toBeGreaterThan(0);
   await page.screenshot({ path: '.playwright/cassette-face-editor-02-live-cut.png' });
 
-  // A subtract set is a modifier over the base host: the face keeps its
-  // own region and the drawn rectangle stays a parent cut.
+  // A subtract-only set leaves the face at zero geometry: no authored
+  // region anywhere, and the drawn rectangle stays a parent cut.
   const rectRow = inspector.locator('.profile-shapes-panel button[aria-label^="Rectangle s"]').first();
   await rectRow.click();
   await page.waitForTimeout(500);
@@ -167,9 +167,8 @@ test('face editor keeps the datum side live through the cassette', async ({ app 
     .click();
   await page.waitForTimeout(1500);
   const afterSubtract = await canvasVerdict(page);
-  expect(afterSubtract.hatchLoops.some(loop => loop.area > 0 && loop.bounds.minY >= 400),
-    'the child face region stays on its side of the datum').toBe(true);
-  await expect(inspector.getByText('The section resolves to nothing', { exact: false })).toBeHidden();
+  expect(afterSubtract.hatchLoops.filter(loop => loop.area > 0),
+    'a subtract-only set authors no face region').toEqual([]);
   await page.screenshot({ path: '.playwright/cassette-face-editor-03-subtract.png' });
 
   // Leaving the edit keeps the child face on the cassette.

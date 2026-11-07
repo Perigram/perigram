@@ -65,10 +65,6 @@ export default function createSketchEditor({ vue, components, locale }) {
       // The parent face outline in sketch coordinates, drawn as a ghost
       // so the author mounts the new face to real parent geometry.
       contextFace: { type: Array, default: () => [] },
-      // The face's own base host in sketch coordinates: the trapezoid
-      // panel the shape set modifies. Add shapes extend it, subtract
-      // shapes cut it.
-      baseFace: { type: Array, default: () => [] },
       // The face the profile is placed on, in assembly coordinates; the
       // editor folds the profile into it to preview the resulting face.
       parentFace: { type: Array, default: () => [] },
@@ -176,7 +172,6 @@ export default function createSketchEditor({ vue, components, locale }) {
         return input.filter(Array.isArray);
       };
       const parentFaceInputRings = () => inputRings(props.parentFace);
-      const faceBaseRings = () => inputRings(props.baseFace);
       // The placed face in sketch coordinates: the hatch and axis base.
       const parentFaceRings = () => (
         faceMode.value
@@ -341,8 +336,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             // face sketches).
             const resolved = await resolveCassetteV2FaceSketchGeometry(
               { sketch: normalized },
-              externalScope(),
-              faceBaseRings()
+              externalScope()
             );
             if (disposed || generation !== outlineGeneration) return;
             resolvedFace.value = { polygons: resolved.polygons, holes: resolved.holes };
@@ -2027,7 +2021,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (props.active) applyVisibleLayers();
       }, { deep: true });
 
-      watch(() => [props.baseFace, props.basisStart, props.basisEnd, props.contextFace, props.parentFace], () => {
+      watch(() => [props.basisStart, props.basisEnd, props.contextFace, props.parentFace], () => {
         if (!props.active) return;
         lastAnnotationFingerprint = '';
         scheduleOutlineResolve();

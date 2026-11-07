@@ -260,10 +260,9 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     already-placed workpieces keep their copy.
 - **Face sketches** — a face may carry the same parametric shape model
   as a profile on its `sketch` (add/subtract/construction shapes,
-  expressions, fillets). Add shapes author the face and replace its
-  trapezoid base; subtract shapes cut the result, and construction is
-  excluded. A set with no add is a modifier set: it cuts the face's base
-  host and needs no closed add outline. Holes ride `cut.inner`. The child
+  expressions, fillets). The face is its adds minus its subtracts on the
+  child's side of the datum; a set with no add stays at zero geometry,
+  and its subtracts cut the parent where they land. Holes ride `cut.inner`. The child
   face keeps the material on its side of the datum; the parent-side part
   belongs to the parent cut. Every participating shape cuts the parent
   where it lands — the cut footprint is the union of the adds and

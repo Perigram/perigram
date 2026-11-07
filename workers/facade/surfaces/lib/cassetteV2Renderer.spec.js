@@ -2731,7 +2731,6 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(context.basisStart).toBeCloseTo(-100);
     expect(context.basisEnd).toBeCloseTo(400);
     expect(context.parentFace).toHaveLength(4);
-    expect(context.baseFace.length).toBeGreaterThanOrEqual(3);
     expect(context.sketch.shapes).toHaveLength(1);
   });
 
@@ -2747,7 +2746,7 @@ describe('cassette v2 trapezoid renderer', () => {
     });
   });
 
-  it('applies a subtract-only face shape set to its base host and keeps the instance table apart', async () => {
+  it('keeps the instance table apart for a subtract-only shape set', async () => {
     const sketch = {
       parameters: { W: 40 },
       shapes: [{
@@ -2762,13 +2761,13 @@ describe('cassette v2 trapezoid renderer', () => {
     const placed = updateCassetteV2FaceInstance(authored, 'face_1', { W: 80 });
     const face = normalizeCassetteV2Face(placed.nodes[0], {});
     const curve = (await buildCassetteV2TreeCurves(placed)).find(item => item.node.id === 'face_1');
-    const holeXs = curve.holes[0].map(point => Number(point[0]));
 
     expect(face.sketch.parameters).toMatchObject({ W: 40 });
     expect(face.instance).toEqual({ W: 80 });
     expect(face.parameters.W).toBe(80);
-    expect(curve.localVertices).toHaveLength(5);
-    expect(Math.max(...holeXs) - Math.min(...holeXs)).toBeCloseTo(80);
+    // A set with no add leaves the face at zero geometry.
+    expect(curve.zeroGeometry).toBe(true);
+    expect(curve.boundaryVertices).toHaveLength(0);
 
     const cleared = updateCassetteV2FaceSketch(placed, 'face_1', null).nodes[0];
     expect(cleared.sketch).toBeUndefined();
@@ -2782,23 +2781,21 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(face.sketch.parameters).toEqual({});
   });
 
-  it('resolves a subtract-only face shape set against its base host', async () => {
-    const base = [[0, 0], [500, 0], [500, 400], [0, 400], [0, 0]];
+  it('resolves a subtract-only shape set to zero geometry with its parent cut intact', async () => {
     const region = await resolveCassetteV2FaceSketchRegion({
       parameters: { W: 40 },
       shapes: [{ id: 'hole', type: 'circle', op: 'subtract', center: [250, 200], diameter: 'W' }]
-    }, {}, [base]);
+    }, {});
 
-    expect(region.outer).toHaveLength(5);
-    expect(region.holes).toHaveLength(1);
+    expect(region.outer).toBe(null);
+    expect(region.polygons).toHaveLength(0);
   });
 
-  it('lets add shapes author the face instead of keeping the base host', async () => {
-    const base = [[0, 0], [500, 0], [500, 400], [0, 400], [0, 0]];
+  it('lets add shapes author the face', async () => {
     const region = await resolveCassetteV2FaceSketchRegion({
       parameters: {},
       shapes: [{ id: 'outline', type: 'rect', op: 'add', center: [50, 50], width: 100, height: 100 }]
-    }, {}, [base]);
+    }, {});
     const xs = region.outer.map(point => Number(point[0]));
 
     expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(100);
