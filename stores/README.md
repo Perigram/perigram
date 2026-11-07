@@ -141,6 +141,11 @@ and `rolled-back` are settled observations; the next write re-enters
   save affordance on active-organization membership. The save
   affordance, the page view picker, and the page view embed are the
   consumers.
+- `instance-overlays.js`: The organization's record-page overlays (SPEC
+  §26) over `/api/instance-overlays/:type/:id`: a per-instance cache
+  (`overlays`, `loaded` keyed `typeId:instanceId`), `ensureLoaded`,
+  `save`, and `remove`. The record document's overlay composition and
+  authoring session are the consumers.
 - `penTemplates.js`: Pen-template catalog accessor over the generic
   instance transport (tech-drawing pack): system/org grouping by tenancy
   (personal pens become org pens), stroke data under `pen.data.stroke`,

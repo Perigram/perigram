@@ -152,6 +152,50 @@ beside the transition history in `StateHistory`.
   explicit view — the table floor governs the derivation alone. The
   switch stays clear of shape-specialized projections (timeline, stats).
 
+## The record document's overlay (SPEC §26)
+
+An instance overlay composes custom blocks around the record document's
+declared sections and reorders them; the storage contract, the block
+kinds, the section-key grammar, and the order law are canonical in the
+[instance-overlays feature](../../server/features/instance-overlays/README.md).
+`composeDocumentSections`
+([shared/ui-mapping](../../shared/ui-mapping/README.md)) is the pure
+application.
+
+- **Composition.** The depth-0 record in the `record` presentation
+  renders the document's section flow through `SurfaceDetailBody`: the
+  body's own sections (`properties`, `editor`, each relation section)
+  render in the composed order, and the child collections and the
+  overlay's blocks render through the `document-section` slot the
+  `RegionBlock` host provides — child collections through one
+  `RegionChildren` stack per section, text blocks through the
+  [generated](../generated/README.md) `OverlayTextBlock`, view blocks
+  through `ViewEmbed`. The declared structural open sections ride with
+  the `editor` key (the band and its open sections are one flow
+  position). The record header, the inert stubs, and the trailing
+  comments section sit outside the order. With no overlay the flow is
+  the derivation order — the same document the fixed rendering
+  produced. A child section that empties drops to the stub strip and
+  its order entry goes dormant until the collection fills again.
+- **Hosts.** Routed record pages and workspace panes compose; the record
+  popup (a `popup` container-traits host), the peek, and nested cards
+  keep their own presentations and render no overlay.
+- **Authoring.** Write-grant holders (the
+  [file-surfaces](../generated/README.md) write-grant seam decides) get
+  the session ([composables](../../composables/README.md)
+  `useRecordOverlay`): every section renders inside a
+  `DocumentSectionShell` with hover-revealed move up/down controls and
+  an insert affordance (`OverlayInsertControl` — the Text/View pair of
+  the slash vocabulary, keyed to document sections; the view entry opens
+  the saved-views picker). Declared sections carry reorder controls
+  alone — custom blocks also edit and delete. The insert affordance at
+  the document's foot renders after the body. A text block authors
+  inline through the one engine mount; the record's own field edits stay
+  on the inline-pencil channel. The save affordance renders in the
+  record header's cluster (`SurfaceHeader`'s `cluster` slot),
+  dirty-gated and registered on the workspace page-dirty registry, and
+  upserts the whole overlay as one document.
+
 ## Components
 
 - `GeneratedMappingScreen.vue` — engine: composes and renders a compiled
@@ -231,6 +275,8 @@ beside the transition history in `StateHistory`.
   around the header and body, so the property rows and the state
   surface resolve one shared authoring session when the capability and
   the declaration station admit it.
+  The depth-0 record document also composes its instance overlay (SPEC
+  §26 — see the section below) on routed and pane hosts.
   Nested detail regions keep the Card
   surface; empty regions render the stub line or a Message by placement.
 - `RegionChildren.vue` / `PlacementBox.vue` — the arrangement
@@ -443,7 +489,9 @@ beside the transition history in `StateHistory`.
   budget the entries page through a standalone Paginator over `pageSlice`.
 - `SurfaceHeader.vue` — the record header. It paints nothing — the record
   page's stack rhythm separates it from the body, and pane boxes / route
-  shells own the frames around it. Inline-resolved actions (relation
+  shells own the frames around it. The `cluster` slot seats host-owned
+  leading cluster entries (the overlay save affordance); the rest of the
+  cluster is action groups. Inline-resolved actions (relation
   unlink — the mapping contract's `inline` flag) render on the relation
   reference they address, so the header's action cluster and overflow menu
   carry only record actions. Lineage Breadcrumb above the identity line
@@ -518,7 +566,14 @@ beside the transition history in `StateHistory`.
   (SPEC §22.17): spec rows with the per-group show-more control, an
   optional authoring projection (the holder's per-row popover, SPEC §1),
   and the row group class the popover's hover reveal rides on.
-- `SurfaceDetailBody.vue` — shared detail/full body. The `full` variant
+- `SurfaceDetailBody.vue` — shared detail/full body. The document variant
+  (`full` + `record`) renders the record document's section flow: the
+  property block, the dominant band with the declared structural open
+  sections riding beneath it, and each relation section
+  (`RelationChipSection.vue` — the one chip section both grammars
+  render) in the composed overlay order, with foreign sections (child
+  collections, custom blocks) delegated to the host's
+  `document-section` slot. The `full` variant
   in the `record` presentation of an editor-bound type mounts the editor
   surface as the body's dominant content (SPEC §4 — the editor is the
   record surface):

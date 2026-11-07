@@ -205,22 +205,24 @@ authored through the one editor engine, never an instance payload.
   pages store (renames reach open tabs), the page glyph in the tab
   strip. The create palette's New page entry creates the document
   through the API and opens the tab.
-- The surface renders the document read through the host markdown
-  pipeline (`shared/markdown.js` — the one renderer; the pipeline
-  renders empty server-side by its own law) and mounts the live engine
-  after mount: the crepe configuration follows the documents plugin's
-  reference mount (`workers/documents/surfaces/text-editor.mjs` — every
-  engine chrome off), and the block vocabulary, the slash panel, the
-  source-markers plugin, and the CodeMirror theme come from the same
-  share modules the plugin serves (`surfaces/lib/`), imported over the
-  app's own dependency graph — the grammar is consumed, never copied.
-  The crepe theme and the editor voice css load from the plugin's
-  assets, so both editor mounts read identically. The view-embed
-  vocabulary entry is live: its pick opens the saved-view picker (the
-  organization's views with their type labels) and inserts the view
-  fence at the caret; the page-link and AI-block entries stay dark
-  until phase K. The name edits in place (the rename channel); save
-  patches content through the pages API, dirty-gated, registered on the
+- The surface renders the document read through `MarkdownBlocks.vue` (the
+  one read composition: markdown segments through the host pipeline —
+  `shared/markdown.js`, which renders empty server-side by its own law —
+  and view fences through `ViewEmbed.vue`) and mounts the live engine
+  after mount through `CrepeEditor.vue`, the one inline engine mount:
+  the crepe configuration follows the documents plugin's reference mount
+  (`workers/documents/surfaces/text-editor.mjs` — every engine chrome
+  off), and the block vocabulary, the slash panel, the source-markers
+  plugin, and the CodeMirror theme come from the same share modules the
+  plugin serves (`surfaces/lib/`), imported over the app's own
+  dependency graph — the grammar is consumed, never copied. The crepe
+  theme and the editor voice css load from the plugin's assets, so every
+  editor mount reads identically. The view-embed vocabulary entry is
+  live: its pick emits to the host, which opens `ViewPickerDialog.vue`
+  (the organization's views with their type labels) and inserts the view
+  fence at the caret; the page-link and AI-block entries stay dark until
+  phase K. The name edits in place (the rename channel); save patches
+  content through the pages API, dirty-gated, registered on the
   workspace page-dirty registry so pane-close confirms; a new page
   starts blank — unnamed document, empty editor.
 - A view fence in the page's markdown carries a saved-view ref — a
@@ -247,6 +249,16 @@ authored through the one editor engine, never an instance payload.
   the same placeholder the pipeline renders for view fences outside the
   page surface. A fence naming a deleted view renders its carried name
   and a quiet unavailable state.
+- The record overlay's blocks mount beside the page's fences (SPEC §26):
+  a text block renders through `OverlayTextBlock.vue` — read through
+  `MarkdownBlocks`, authored inline through `CrepeEditor`, its text
+  saving with the overlay's document — and a view block renders
+  `ViewEmbed` verbatim with its saved ref. The insert picker's view
+  entry reuses `ViewPickerDialog`. The composition and its authoring
+  affordances live in
+  [components/ui-mapping](../ui-mapping/README.md) (the record
+  document's overlay); the overlay store and the write-grant gate are
+  the [instance-overlays feature](../../server/features/instance-overlays/README.md)'s.
 
 ## Overload Registry
 
