@@ -19,7 +19,6 @@ const OrganizationPartnersPage = defineAsyncComponent(() => import('~/pages/orga
 const OrganizationBillingPage = defineAsyncComponent(() => import('~/pages/organization/billing.vue'));
 const OrganizationProcessPage = defineAsyncComponent(() => import('~/pages/organization/process.vue'));
 const OrganizationPluginsPage = defineAsyncComponent(() => import('~/pages/organization/plugins.vue'));
-const TypeDeclarationPage = defineAsyncComponent(() => import('~/components/type-designer/TypeDeclarationEditor.vue'));
 
 // Entity-bound editor pages (for example the cassette designer) derive
 // from the editor bindings through the file-surface registry (see
@@ -103,21 +102,6 @@ export const fixedWorkspacePages = [
     icon: 'pi pi-puzzle',
     component: OrganizationPluginsPage,
     route: '/organization/plugins'
-  },
-  {
-    // The in-place declaration editor (SPEC §1): one tab per opened type
-    // declaration. The params channel carries the target type (and the
-    // resolved stationing definition) from the author affordance; the
-    // route serves mobile and deep links with the same pair as its query.
-    id: 'typeDeclaration',
-    labelKey: 'typeDeclaration.title',
-    icon: 'pi pi-list-check',
-    component: TypeDeclarationPage,
-    route: '/types/declaration',
-    props: page => ({
-      typeId: page.params?.type || page.typeId || '',
-      definitionId: page.params?.definition || ''
-    })
   },
   {
     id: 'chats',

@@ -4,12 +4,16 @@
          declared scalar facts as compact property rows — small muted
          label, ink value — collapsed to filled values behind the
          per-group show-more control; single-group bodies carry no group
-         titles. -->
+         titles. For declaration-authoring holders the block projects the
+         stationing draft (SPEC §1): every declared scalar field in
+         authored order, empty ones included, each row carrying its author
+         affordance and the block ending in add-field — non-holders keep
+         the compiled fact block byte-identical. -->
     <template v-if="documentBody">
       <section v-for="group in propertyGroups" :key="`props:${group.id}`" :class="d.stackTight">
         <span v-if="showGroupTitles && group.label" :class="d.sectionTitle">{{ group.label }}</span>
         <div :class="LAYOUT.specList">
-          <div v-for="field in shownFacts(group)" :key="field.name" :class="d.specRow">
+          <div v-for="field in shownFacts(group)" :key="field.name" :class="[d.specRow, 'group/ck-field']">
             <span :class="LAYOUT.labelCell">{{ field.label }}</span>
             <div :class="LAYOUT.factCell">
               <InlineField
@@ -19,6 +23,12 @@
                 :pool="pool"
                 :bundle="bundle"
                 @inline-change="change => emit('inline-change', change)"
+              />
+              <DeclarationFieldMenu
+                v-if="authoringReady && authoringFieldByName.has(field.name)"
+                :authoring="authoring"
+                :field="authoringFieldByName.get(field.name)"
+                :type-options="authoring.typeOptions.value"
               />
             </div>
           </div>
@@ -30,6 +40,14 @@
               size="small"
               text
               @click="toggleFacts(group)"
+            />
+          </div>
+          <div v-if="authoringReady && group.id === 'declaration'" class="flex flex-wrap items-center gap-2 pt-1">
+            <DeclarationAddField :authoring="authoring" :type-options="authoring.typeOptions.value" />
+            <DeclarationSaveButton
+              v-if="authoring.dirty.value || authoring.saving.value"
+              class="ml-auto"
+              :authoring="authoring"
             />
           </div>
         </div>
@@ -103,10 +121,19 @@
         </div>
         <!-- Structural fields follow the section grammar of everything else
              on the record page: a labeled open block per field, rendered in
-             the open. -->
+             the open. The declaration pencil rides the label for holders
+             (SPEC §1). -->
         <template v-for="field in structuralOf(group)" :key="field.name">
           <div v-if="isRichStructure(field)" :class="LAYOUT.labeledBlock">
-            <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
+            <div class="group/ck-field flex items-center gap-1">
+              <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
+              <DeclarationFieldMenu
+                v-if="authoringReady && authoringFieldByName.has(field.name)"
+                :authoring="authoring"
+                :field="authoringFieldByName.get(field.name)"
+                :type-options="authoring.typeOptions.value"
+              />
+            </div>
             <StructuralFieldPanel
               :field="field"
               :editable="editable"
@@ -119,7 +146,15 @@
             />
           </div>
           <div v-else :class="LAYOUT.labeledBlock">
-            <span :class="d.sectionTitle">{{ field.label }}</span>
+            <div class="group/ck-field flex items-center gap-1">
+              <span :class="d.sectionTitle">{{ field.label }}</span>
+              <DeclarationFieldMenu
+                v-if="authoringReady && authoringFieldByName.has(field.name)"
+                :authoring="authoring"
+                :field="authoringFieldByName.get(field.name)"
+                :type-options="authoring.typeOptions.value"
+              />
+            </div>
             <InlineField
               :field="field"
               :editable="editable"
@@ -135,7 +170,15 @@
           :key="field.name"
           :class="LAYOUT.labeledBlock"
         >
-          <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
+          <div class="group/ck-field flex items-center gap-1">
+            <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
+            <DeclarationFieldMenu
+              v-if="authoringReady && authoringFieldByName.has(field.name)"
+              :authoring="authoring"
+              :field="authoringFieldByName.get(field.name)"
+              :type-options="authoring.typeOptions.value"
+            />
+          </div>
           <InlineField
             :field="field"
             :editable="editable"
@@ -181,6 +224,9 @@ import { LAYOUT, resolveSurface, resolveActionButton, applyBudget, SCALAR_BASES,
 import InlineField from './InlineField.vue';
 import StructuralFieldPanel from './StructuralFieldPanel.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
+import DeclarationFieldMenu from '../type-designer/DeclarationFieldMenu.vue';
+import DeclarationAddField from '../type-designer/DeclarationAddField.vue';
+import DeclarationSaveButton from '../type-designer/DeclarationSaveButton.vue';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import PreviewBox from './PreviewBox.vue';
@@ -207,6 +253,17 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle', 'inline-change', 'run', 'open-instance']);
 const d = inject('uiMappingSpacing');
+// The record page's declaration authoring session (SPEC §1): provided by
+// DeclarationAuthoring at the depth-0 record; null keeps the compiled fact
+// grammar byte-identical for non-holders.
+const authoring = inject('declarationAuthoring', null);
+const authoringReady = computed(() => Boolean(authoring?.ready?.value));
+const authoringFields = computed(() => authoring?.subtree?.value?.fields || []);
+const authoringFieldByName = computed(() => new Map(
+  authoringFields.value
+    .map(field => [field.node?.data?.name, field])
+    .filter(([name]) => Boolean(name))
+));
 const hostTraits = useHostContainerTraits();
 const embedded = inject('uiMappingEmbedded', false);
 // The record document body (SPEC §22.17): the full variant in the record
@@ -301,18 +358,37 @@ const hasValue = field => field.value !== null
 // The identifier field drops at the group projection (the title owns
 // that value); every body grammar below inherits the cut.
 const scalarsOf = group => group.fields.filter(field => isScalarFact(field) && hasValue(field));
-const propertyGroups = computed(() => groups.value.filter(group => scalarsOf(group).length > 0));
+// The holder's property block projects the draft (SPEC §1): every declared
+// scalar field in authored order, empty ones included — the compiled
+// identifier cut applies through the descriptor's identifier flag.
+const declarationRows = computed(() => authoringFields.value
+  .map(({ node }) => node?.data || {})
+  .filter(data => data.name && data.descriptor && data.descriptor.identifier !== true)
+  .filter(data => isScalarFact({ descriptor: data.descriptor }))
+  .map(data => ({
+    name: data.name,
+    descriptor: data.descriptor,
+    value: props.instance.fields?.[data.name],
+    label: localizedLabel({ te, t }, fieldLabelKeyOf(data.name), startCaseKey(data.name))
+  })));
+const propertyGroups = computed(() => {
+  if (documentBody.value && authoringReady.value) {
+    return [{ id: 'declaration', label: null, fields: declarationRows.value }];
+  }
+  return groups.value.filter(group => scalarsOf(group).length > 0);
+});
+const factRowsOf = group => (group.id === 'declaration' ? group.fields : scalarsOf(group));
 const openSectionCount = group => structuralOf(group).length + inlineMapsOf(group).length;
 const structuralOf = group => group.fields.filter(field => !isScalarFact(field) && !isQuantityMap(field) && editableNow(field));
 const shownFacts = group => {
-  const scalars = scalarsOf(group);
-  if (expandedFacts.value[group.id]) return scalars;
-  const outcome = applyBudget(scalars, DETAIL_FACT_BUDGET);
-  return outcome.mode === 'collapsed' ? outcome.visible : scalars;
+  const rows = factRowsOf(group);
+  if (expandedFacts.value[group.id]) return rows;
+  const outcome = applyBudget(rows, DETAIL_FACT_BUDGET);
+  return outcome.mode === 'collapsed' ? outcome.visible : rows;
 };
 const hiddenFactCount = group => {
   if (expandedFacts.value[group.id]) return 0;
-  const outcome = applyBudget(scalarsOf(group), DETAIL_FACT_BUDGET);
+  const outcome = applyBudget(factRowsOf(group), DETAIL_FACT_BUDGET);
   return outcome.mode === 'collapsed' ? outcome.hidden : 0;
 };
 const factGroupExpanded = group => Boolean(expandedFacts.value[group.id]);

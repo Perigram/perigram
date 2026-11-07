@@ -149,14 +149,14 @@ export function fieldDescriptorSummary(descriptor = {}, typeLabelFor = null) {
 // keys the designer's palette branch seeds, declares edges keep the
 // deterministic `declares:` id, and entry wires land on the process-plane
 // `data:state` handle.
-export function newFieldDeclaration({ id, classNode, position = null }) {
+export function newFieldDeclaration({ id, classNode, position = null, name = '', descriptor = null }) {
   const typeId = classNode?.data?.typeId ?? null;
   return {
     node: {
       id,
       type: 'ctsField',
       position: position || besideClass(classNode, -260),
-      data: { refId: id, typeId, name: '', descriptor: { base: 'string' } }
+      data: { refId: id, typeId, name, descriptor: descriptor || { base: 'string' } }
     },
     edge: {
       id: `declares:${id}-${classNode.id}`,
@@ -218,6 +218,24 @@ export function newTransitionDeclaration({ id, typeId, stateNodeId = '', stateVa
 // inspector applies over the sibling field nodes.
 export function setIdentifierHolder(nodes, fieldNodeId, enabled) {
   applyFieldDisplayRole(nodes, fieldNodeId, 'identifier', enabled);
+}
+
+// Declaration order is nodes-array order: a move swaps the field node with
+// its neighboring field of the same type in the array, and the swapped
+// canvas positions keep the draft readable on the canvas.
+export function moveDeclarationField(nodes = [], fieldNodeId = '', offset = -1) {
+  const index = nodes.findIndex(node => node.id === fieldNodeId);
+  if (index < 0) return { nodes, moved: false };
+  const typeId = nodes[index].data?.typeId ?? null;
+  const fields = nodes.filter(node => node.type === 'ctsField' && (node.data?.typeId ?? null) === typeId);
+  const position = fields.findIndex(node => node.id === fieldNodeId);
+  const neighbor = fields[position + offset];
+  if (!neighbor) return { nodes, moved: false };
+  const neighborIndex = nodes.findIndex(node => node.id === neighbor.id);
+  const next = [...nodes];
+  next[index] = { ...neighbor, position: { ...nodes[index].position } };
+  next[neighborIndex] = { ...nodes[index], position: { ...neighbor.position } };
+  return { nodes: next, moved: true };
 }
 
 // Retarget keeps one target source per transition (SPEC §7): the entry
