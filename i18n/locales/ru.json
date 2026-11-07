@@ -2069,7 +2069,10 @@
         },
         "exportKinds": {
             "dxf": "DXF-чертёж"
-        }
+        },
+        "saveView": "Сохранить вид",
+        "viewName": "Название",
+        "viewMissing": "Этот вид недоступен"
     },
     "uiConstructor": {
         "title": "Демо UI-конструктора",
@@ -2347,7 +2350,10 @@
         "link": "Ссылка",
         "linkAddress": "Адрес",
         "divider": "Разделитель",
-        "table": "Таблица"
+        "table": "Таблица",
+        "view": "Вид",
+        "pickView": "Выбрать вид",
+        "pickViewEmpty": "Нет сохранённых видов"
     },
     "sketch": {
         "editorTitle": "Скетч",
@@ -2678,7 +2684,8 @@
         "moveUp": "Выше",
         "moveDown": "Ниже",
         "addStateHintInitial": "Первое состояние — станет начальным для конструкции без него.",
-        "addStateHintTransition": "Для него создаётся переход; появится после применения."    },
+        "addStateHintTransition": "Для него создаётся переход; появится после применения."
+    },
     "processDesigner": {
         "classNamePlaceholder": "Название типа",
         "socketSingleWire": "«{socket}» принимает один провод — подключите источник-список или узел коллекции.",

@@ -69,7 +69,7 @@ describe('block vocabulary', () => {
     expect(BLOCK_VOCABULARY.map(entry => entry.id)).toEqual([
       'paragraph', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'bullet', 'ordered', 'todo', 'quote', 'callout',
-      'codeblock', 'diagram', 'divider', 'table', 'link'
+      'codeblock', 'diagram', 'divider', 'table', 'link', 'view'
     ]);
     for (const entry of BLOCK_VOCABULARY) {
       expect(entry.labelKey, `${entry.id} carries a label key`).toMatch(/^editors\./);
@@ -124,5 +124,6 @@ describe('slash actions resolve to the engine commands', () => {
     expect(resolveBlockAction('callout', paragraph)).toEqual({ kind: 'callout' });
     expect(resolveBlockAction('table', paragraph)).toEqual({ kind: 'table' });
     expect(resolveBlockAction('link', paragraph)).toEqual({ kind: 'link' });
+    expect(resolveBlockAction('view', paragraph)).toEqual({ kind: 'view' });
   });
 });

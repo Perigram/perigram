@@ -3,8 +3,9 @@
 // instance-block surfaces as their phases land — offers this table
 // through the slash panel and applies it through `applyBlock`. Entries
 // toggle: the entry matching the focused block's kind returns the
-// block to body text. Page-link, view-embed, and AI-block entries join
-// the table with their phases.
+// block to body text. The view-embed entry hands off to the host's
+// view picker (hosts without saved views leave it out); page-link and
+// AI-block entries join the table with their phases.
 import { callCommand } from '@milkdown/utils';
 import { editorViewCtx } from '@milkdown/core';
 import {
@@ -32,7 +33,8 @@ export const BLOCK_VOCABULARY = [
   { id: 'diagram', labelKey: 'editors.diagram', glyph: 'pi pi-sitemap', match: ['diagram', 'mermaid', 'graph'] },
   { id: 'divider', labelKey: 'editors.divider', glyph: 'pi pi-minus', match: ['divider', 'hr', 'line'] },
   { id: 'table', labelKey: 'editors.table', glyph: 'pi pi-table', match: ['table'] },
-  { id: 'link', labelKey: 'editors.link', glyph: 'pi pi-link', match: ['link', 'url'] }
+  { id: 'link', labelKey: 'editors.link', glyph: 'pi pi-link', match: ['link', 'url'] },
+  { id: 'view', labelKey: 'editors.view', glyph: 'pi pi-objects-column', match: ['view', 'collection'] }
 ];
 
 export function blockIsActive(id, state) {
@@ -80,6 +82,7 @@ export function resolveBlockAction(id, state) {
     case 'diagram': return { kind: 'command', command: createCodeBlockCommand, payload: 'mermaid' };
     case 'table': return { kind: 'table' };
     case 'link': return { kind: 'link' };
+    case 'view': return { kind: 'view' };
     default: return null;
   }
 }
@@ -89,7 +92,7 @@ export function resolveBlockAction(id, state) {
 // `view` its ProseMirror view). The `link` kind hands off to the host's
 // address editor; `t` localizes the callout's seeded title. Returns the
 // action kind — 'link' leaves the focus with the host's address input.
-export function applyBlock({ id, state, editor, view, t, openLinkEditor }) {
+export function applyBlock({ id, state, editor, view, t, openLinkEditor, openViewPicker }) {
   const action = resolveBlockAction(id, state);
   if (!action || !editor) return action ? action.kind : null;
   switch (action.kind) {
@@ -124,10 +127,22 @@ export function applyBlock({ id, state, editor, view, t, openLinkEditor }) {
     case 'link':
       openLinkEditor();
       break;
+    case 'view':
+      // The host resolves the picked saved view; the fence it inserts
+      // carries the view ref (`{ id, name }`, the deleted-view name).
+      if (openViewPicker) openViewPicker(ref => insertViewFence(ref, view));
+      break;
     default:
       break;
   }
   return action.kind;
+}
+
+export function insertViewFence(ref, view) {
+  if (!ref?.id || !view) return;
+  const { code_block } = view.state.schema.nodes;
+  const body = view.state.schema.text(JSON.stringify({ id: String(ref.id), name: String(ref.name || '') }));
+  view.dispatch(view.state.tr.replaceSelectionWith(code_block.createChecked({ language: 'view' }, body)).scrollIntoView());
 }
 
 function focusedListItem(state) {

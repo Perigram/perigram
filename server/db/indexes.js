@@ -68,6 +68,12 @@ const INDEXES = {
   pages: [
     { keys: { organizationId: 1 }, options: { name: 'org_idx' } },
     { keys: { organizationId: 1, parentId: 1 }, options: { name: 'org_parent_idx' } }
+  ],
+
+  // Views Collection (saved collection lenses)
+  views: [
+    { keys: { organizationId: 1 }, options: { name: 'org_idx' } },
+    { keys: { organizationId: 1, typeId: 1 }, options: { name: 'org_type_idx' } }
   ]
 };
 

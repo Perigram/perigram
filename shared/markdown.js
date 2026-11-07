@@ -12,6 +12,45 @@ import { render as renderMermaidDiagram } from 'pele';
 // inherits diagrams from one hook. A fence pele cannot parse falls back
 // to the plain code block; pele's own escaping and size limits run
 // before DOMPurify sees the document.
+
+// View fences carry a saved-view ref (SPEC §26): `{"id":"…","name":"…"}`
+// as the fence body. The pipeline renders the ref as a quiet chip naming
+// the view; the custom-page read composition splits view fences out and
+// mounts the live collection region in their place (splitViewEmbeds
+// below).
+export function parseViewRef(text = '') {
+  try {
+    const parsed = JSON.parse(String(text).trim());
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    if (typeof parsed.id !== 'string' || !parsed.id.trim()) return null;
+    return { id: parsed.id, name: typeof parsed.name === 'string' ? parsed.name : '' };
+  } catch {
+    return null;
+  }
+}
+
+// Split a markdown document into markdown segments and view-embed
+// blocks: the page surface's read composition. A fence whose body is no
+// parseable ref stays markdown (the code block renders verbatim).
+export function splitViewEmbeds(source = '') {
+  const blocks = [];
+  let text = '';
+  for (const token of marked.lexer(String(source || ''))) {
+    if (token.type === 'code' && String(token.lang || '').trim() === 'view') {
+      const ref = parseViewRef(token.text);
+      if (ref) {
+        if (text) blocks.push({ type: 'markdown', text });
+        text = '';
+        blocks.push({ type: 'view', ...ref });
+        continue;
+      }
+    }
+    text += token.raw;
+  }
+  if (text) blocks.push({ type: 'markdown', text });
+  return blocks;
+}
+
 const escapeHtml = (value = '') => String(value)
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -31,13 +70,22 @@ marked.use({
   renderer: {
     code(code, infostring, escaped) {
       const lang = String(infostring || '').match(/^\S*/)?.[0] || '';
-      if (lang !== 'mermaid') return plainCodeBlock(code, lang, escaped);
-      try {
-        const { svg } = renderMermaidDiagram(String(code).replace(/\n$/, ''));
-        return `<div class="mermaid-diagram">${svg}</div>\n`;
-      } catch {
-        return plainCodeBlock(code, lang, escaped);
+      if (lang === 'mermaid') {
+        try {
+          const { svg } = renderMermaidDiagram(String(code).replace(/\n$/, ''));
+          return `<div class="mermaid-diagram">${svg}</div>\n`;
+        } catch {
+          return plainCodeBlock(code, lang, escaped);
+        }
       }
+      if (lang === 'view') {
+        const ref = parseViewRef(code);
+        // The static placeholder names the view; an id-only ref keeps
+        // the code block (ids never render, and the pipeline owns no
+        // store to resolve the name).
+        if (ref?.name) return `<div class="ck-view-embed">${escapeHtml(ref.name)}</div>\n`;
+      }
+      return plainCodeBlock(code, lang, escaped);
     }
   }
 });

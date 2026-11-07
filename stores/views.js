@@ -1,0 +1,71 @@
+import { defineStore } from 'pinia';
+import { useAuthStore } from './auth';
+
+// The organization's saved collection views (SPEC §26): the list
+// projection over `/api/views` plus per-view state loads. A view is a
+// saved lens — presentation data only, carried over the ordinary read
+// paths.
+export const useViewsStore = defineStore('views', {
+  state: () => ({
+    views: [],
+    loaded: false,
+    loading: false,
+    viewStates: {}
+  }),
+  getters: {
+    viewById: state => id => state.views.find(view => view._id === String(id)) || null,
+    viewsByType: state => typeId => state.views.filter(view => view.typeId === typeId),
+    canSave: () => {
+      const authStore = useAuthStore();
+      return Boolean(authStore.organizationData);
+    }
+  },
+  actions: {
+    async ensureLoaded() {
+      if (this.loaded || this.loading) return;
+      await this.reload();
+    },
+    async reload() {
+      this.loading = true;
+      try {
+        const response = await $fetch('/api/views');
+        this.views = response?.views || [];
+        this.loaded = true;
+      } finally {
+        this.loading = false;
+      }
+    },
+    async loadView(id) {
+      const view = await $fetch(`/api/views/${id}`);
+      this.upsert({ _id: view._id, name: view.name, typeId: view.typeId });
+      this.viewStates = { ...this.viewStates, [String(id)]: view.viewState || {} };
+      return view;
+    },
+    async createView({ name, typeId, viewState }) {
+      const view = await $fetch('/api/views', {
+        method: 'POST',
+        body: { name, typeId, viewState }
+      });
+      this.upsert(view);
+      return view;
+    },
+    async rename(id, name) {
+      const view = await $fetch(`/api/views/${id}`, { method: 'PATCH', body: { name } });
+      this.upsert(view);
+      return view;
+    },
+    async remove(id) {
+      await $fetch(`/api/views/${id}`, { method: 'DELETE' });
+      this.views = this.views.filter(view => view._id !== String(id));
+    },
+    upsert(view) {
+      if (!view?._id) return;
+      const id = String(view._id);
+      const row = { _id: id, name: view.name, typeId: view.typeId };
+      const existing = this.views.find(candidate => candidate._id === id);
+      this.views = existing
+        ? this.views.map(candidate => (candidate._id === id ? row : candidate))
+        : [...this.views, row];
+    }
+  }
+});

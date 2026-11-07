@@ -3,9 +3,13 @@
 // presentation is the one renderer every authored surface reads through.
 // The engine itself is browser-only (built after mount, destroyed with
 // the component), so the server render exercises the read half and the
-// registry props adapter that carries the page id to the surface.
+// registry props adapter that carries the page id to the surface. A
+// page carrying a view fence renders the saved view as a live
+// collection region: the read composition splits the fences out, the
+// embed composes the minimal list screen through composeScreen, and the
+// saved lens applies over the loaded pool.
 import { describe, expect, it, vi } from 'vitest';
-import { createSSRApp, h } from 'vue';
+import { createSSRApp, h, ref } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { createI18n } from 'vue-i18n';
 import { createPinia } from 'pinia';
@@ -14,12 +18,29 @@ import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
 import Re_L from '~/assets/presets/re_l';
 import GeneratedWorkspacePage from '~/components/generated/GeneratedWorkspacePage.vue';
+import { useAuthStore } from '~/stores/auth';
+import { useInstancesStore } from '~/stores/instances';
 import { usePagesStore } from '~/stores/pages';
+import { useViewsStore } from '~/stores/views';
 import en from '~/i18n/locales/en.json';
 
 globalThis.$fetch = vi.fn(async () => ({}));
+globalThis.useState = (_key, init) => ref(typeof init === 'function' ? init() : init || {});
 
-const bootPage = async () => {
+const WALL_TYPE = {
+  id: 't-wall',
+  name: 'Wall',
+  identifier: 'Name',
+  fields: { Name: { base: 'string', identifier: true } },
+  edges: {}
+};
+
+const wallDto = (id, name) => ({
+  _id: id, type: 't-wall', name, state: null,
+  lineage: {}, relations: {}, fields: { Name: name }
+});
+
+const bootPage = async ({ tab, seed = () => {} } = {}) => {
   const i18n = createI18n({
     legacy: false,
     missingWarn: false,
@@ -30,14 +51,19 @@ const bootPage = async () => {
   const pages = usePagesStore(pinia);
   pages.pages = [
     { _id: 'pg-1', kind: 'page', name: 'Field notes', parentId: null },
+    { _id: 'pg-2', kind: 'page', name: 'Crew board', parentId: null },
     { _id: 'sec-1', kind: 'section', name: 'Notes', parentId: null }
   ];
-  pages.contents = { 'pg-1': '# Walls\n\n- battens\n- cladding' };
+  pages.contents = {
+    'pg-1': '# Walls\n\n- battens\n- cladding',
+    'pg-2': '# Crew\n\n```view\n{"id":"v-1","name":"Wall crew"}\n```'
+  };
   pages.loaded = true;
+  seed(pinia);
   const app = createSSRApp({
     render: () => h(GeneratedWorkspacePage, {
-      page: { key: 'page:customPage:pg-1', kind: 'page', pageId: 'customPage', docId: 'pg-1', label: 'Field notes' },
-      tabs: [{ key: 'page:customPage:pg-1', kind: 'page', pageId: 'customPage', docId: 'pg-1', label: 'Field notes' }],
+      page: tab,
+      tabs: [tab],
       closeable: true
     })
   });
@@ -49,9 +75,17 @@ const bootPage = async () => {
   return await renderToString(app);
 };
 
+const pageTab = docId => ({
+  key: `page:customPage:${docId}`,
+  kind: 'page',
+  pageId: 'customPage',
+  docId,
+  label: 'Field notes'
+});
+
 describe('custom page SSR smoke', () => {
   it('boots a mounted page tab and binds the document through the registry adapter', async () => {
-    const html = await bootPage();
+    const html = await bootPage({ tab: pageTab('pg-1') });
 
     // The read presentation mounts the pipeline's markdown recipe (the
     // pipeline renders empty server-side by its own law — the document
@@ -59,5 +93,39 @@ describe('custom page SSR smoke', () => {
     expect(html).toContain('ck-markdown-body');
     expect(html).toContain('<span class="min-w-0 truncate">Field notes</span>');
     expect(html).not.toContain('>pg-1<');
+  });
+
+  it('renders a view fence as a live collection region with the saved lens applied', async () => {
+    const html = await bootPage({
+      tab: { ...pageTab('pg-2'), label: 'Crew board' },
+      seed: pinia => {
+        const authStore = useAuthStore(pinia);
+        authStore.user = {
+          userId: 'user-1',
+          organizationId: 'org-1',
+          process: { active: true, bundle: { types: [WALL_TYPE] }, actions: {}, producerOutputs: {} }
+        };
+        authStore.organization = { _id: 'org-1' };
+        const views = useViewsStore(pinia);
+        views.views = [{ _id: 'v-1', name: 'Wall crew', typeId: 't-wall' }];
+        views.viewStates = {
+          'v-1': { search: 'Wall one', filters: null, sort: null, projection: null }
+        };
+        views.loaded = true;
+        const instances = useInstancesStore(pinia);
+        instances.upsertRecord('t-wall', wallDto('i-1', 'Wall one'));
+        instances.upsertRecord('t-wall', wallDto('i-2', 'Wall two'));
+      }
+    });
+
+    // The embed composes the collection region and applies the saved
+    // search over the loaded pool through the ordinary machinery.
+    expect(html).toContain('>Wall crew<');
+    expect(html).toContain('>Wall one<');
+    expect(html).not.toContain('>Wall two<');
+    // Raw ids stay private display vocabulary.
+    expect(html).not.toContain('>v-1<');
+    expect(html).not.toContain('>t-wall<');
+    expect(html).not.toContain('>pg-2<');
   });
 });

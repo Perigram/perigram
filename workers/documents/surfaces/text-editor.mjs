@@ -200,7 +200,12 @@ export default function createSurface({ vue, components, locale, sync, renderMar
           onSelectionState: next => { blockState.value = next; }
         })));
         slashMenu = createSlashMenu({
-          items: BLOCK_VOCABULARY.map(({ id, labelKey, glyph, glyphText, match }) => ({ id, label: t(labelKey), glyph, glyphText, match })),
+          // The view entry rides hosts that own the saved-view picker
+          // (the custom-page surface); this editor keeps it out until
+          // its surfaces mount live embeds.
+          items: BLOCK_VOCABULARY
+            .filter(({ id }) => id !== 'view')
+            .map(({ id, labelKey, glyph, glyphText, match }) => ({ id, label: t(labelKey), glyph, glyphText, match })),
           onPick: runSlashPick
         });
         crepe.editor.use($prose(() => slashMenu.plugin));

@@ -74,6 +74,16 @@
               @update:model-value="value => (sortName = value)"
               @update:order="value => (sortOrder = value)"
             />
+            <Button
+              v-if="saveViewAvailable"
+              :label="$t('uiMapping.saveView')"
+              icon="pi pi-bookmark"
+              size="small"
+              severity="secondary"
+              text
+              class="self-start"
+              @click="saveDialogOpen = true"
+            />
           </div>
         </Popover>
         <CreateControl
@@ -95,6 +105,13 @@
       </div>
     </div>
     <RegionDataState v-if="showState" :node="node" />
+    <ViewSaveDialog
+      :visible="saveDialogOpen"
+      :type-label="regionLabel"
+      :loading="saveViewSaving"
+      @close="saveDialogOpen = false"
+      @save="saveCurrentView"
+    />
     <div v-if="showSurfaces" :class="[embeddedStack, 'relative']">
       <RegionCollections
         :node="node"
@@ -236,6 +253,7 @@ import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
+import { useToast } from 'primevue/usetoast';
 import {
   LAYOUT, GAP_BY_LEVEL, toolbarVisibleFor, sortControlRows,
   hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar,
@@ -245,10 +263,13 @@ import {
 import { instanceMatchesFilter, countPredicates } from '#shared/instance-filters/index.js';
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference, loadProjectionPreference, storeProjectionPreference, loadFilterViewState, storeFilterViewState } from '~/utils/ui-view-state.js';
+import { normalizeFilter } from '#shared/instance-filters/index.js';
+import { useViewsStore } from '~/stores/views';
 import SurfaceBody from './SurfaceBody.vue';
 import SortControl from './SortControl.vue';
 import CreateControl from './CreateControl.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
+import ViewSaveDialog from './ViewSaveDialog.vue';
 import DeclarationAuthoring from '../type-designer/DeclarationAuthoring.vue';
 import RecordComments from '../chat/RecordComments.vue';
 import FilterBuilder from '../shared/FilterBuilder.vue';
@@ -291,7 +312,12 @@ const props = defineProps({
   expandable: { type: Boolean, default: false },
   // The stub slot (SPEC → Placement-aware composition): an inert child
   // renders one compact line — label, count, its own create action.
-  stub: { type: Boolean, default: false }
+  stub: { type: Boolean, default: false },
+  // A saved view's state (SPEC §26): when present, the region renders
+  // the saved lens — the view models seed from it and persist nowhere.
+  viewState: { type: Object, default: null },
+  // Host-provided section title (the saved view's name on page embeds).
+  label: { type: String, default: '' }
 });
 
 const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh', 'expand']);
@@ -328,6 +354,9 @@ const splitTracks = computed(() => ({
   gridTemplateColumns: `minmax(0, ${12 - (childOutcome.value.span || 3)}fr) minmax(0, ${childOutcome.value.span || 3}fr)`
 }));
 const { te, t } = useI18n();
+// The nearest toast host may be absent in isolated mounts.
+let toast = null;
+try { toast = useToast(); } catch { toast = null; }
 const spacing = inject('uiMappingSpacing', null);
 // The record page is a document (SPEC §22.17): the depth-0 record in the
 // `record` presentation renders one inline stack at the measure — the
@@ -473,7 +502,9 @@ const showState = computed(() => !showSurfaces.value);
 const stubLine = computed(() => props.stub && props.node.surfaceKind === 'list'
   && (state.value === 'empty' || state.value === 'missing'));
 const embeddedStack = computed(() => (spacing ? spacing.stackTight : LAYOUT.stackTight));
-const regionLabel = computed(() => localizedLabel({ te, t }, typeLabelKey(props.node.typeId), props.node.type ? generatedEntityLabel(props.node.type, { t, te }) : props.node.id));
+// A provided label wins (the saved view's name on a page embed).
+const regionLabel = computed(() => props.label
+  || localizedLabel({ te, t }, typeLabelKey(props.node.typeId), props.node.type ? generatedEntityLabel(props.node.type, { t, te }) : props.node.id));
 // The derived list layout — the resolver's contract decision over shape,
 // class, the served state vocabulary, and the value-aware table
 // column signal (listLayoutOf is the one derivation compose-time weights
@@ -491,15 +522,26 @@ const derivedListLayout = computed(() => listLayoutOf(props.node));
 // governs the derivation alone.
 const projectionSwitchable = computed(() => hasStateVocabulary(props.node.statePolicy)
   && ['table', 'board'].includes(derivedListLayout.value));
+// The saved lens (SPEC §26): a provided view state seeds every view
+// model and turns the persistence off — controls stay live, their
+// choices stay session-local.
+const savedViewState = computed(() => props.viewState || null);
+const seedProjection = () => {
+  if (savedViewState.value) {
+    const projection = savedViewState.value.projection;
+    return projection === 'board' || projection === 'table' ? projection : null;
+  }
+  return loadProjectionPreference(projectionScope.value);
+};
 const projectionScope = computed(() => `list-projection:${props.node.typeId || ''}`);
-const projectionPreference = ref(loadProjectionPreference(projectionScope.value));
-watch(projectionScope, scope => {
-  projectionPreference.value = loadProjectionPreference(scope);
+const projectionPreference = ref(seedProjection());
+watch(projectionScope, () => {
+  projectionPreference.value = seedProjection();
 });
 const toggleProjection = () => {
   const next = listLayout.value === 'board' ? 'table' : 'board';
   projectionPreference.value = next;
-  storeProjectionPreference(projectionScope.value, next);
+  if (!savedViewState.value) storeProjectionPreference(projectionScope.value, next);
 };
 // A stored table preference is the user's explicit view: the floor
 // governs the derivation alone, a chosen table renders.
@@ -522,7 +564,7 @@ const coveredRelationKeys = computed(() => [...props.node.childRegions, ...(prop
 // filters, the projection switch, and the sort keys live behind the one
 // view control (SPEC §22.15); its badge carries the active filter
 // condition count.
-const search = ref('');
+const search = ref(savedViewState.value?.search || '');
 const searchToggleAvailable = computed(() => toolbarVisibleFor(props.node));
 // Filterable fields: the type's scalar fields plus relation, parent, and
 // children traversal axes, with the primary status over the values
@@ -540,19 +582,35 @@ const builderFields = computed(() => [
 const facetsToggleAvailable = computed(() => builderFields.value.length > 0);
 // The composed tree is persisted view state per type: it survives
 // navigation and reloads (presentation data, never a process contract).
+// A saved lens seeds the same model and skips the persistence — the
+// stored tree re-validates through normalizeFilter either way.
 const builderScope = computed(() => `collection:${props.node.typeId}`);
-const builderFilter = ref(loadFilterViewState(builderScope.value));
-watch(builderScope, scope => {
-  builderFilter.value = loadFilterViewState(scope);
+const seedFilter = () => (savedViewState.value
+  ? normalizeFilter(savedViewState.value.filters) || null
+  : loadFilterViewState(builderScope.value));
+const builderFilter = ref(seedFilter());
+watch(builderScope, () => {
+  builderFilter.value = seedFilter();
 });
-watch(builderFilter, filter => storeFilterViewState(builderScope.value, filter));
+watch(builderFilter, filter => {
+  if (!savedViewState.value) storeFilterViewState(builderScope.value, filter);
+});
 // Card ordering rides the view popover's sort keys — the same sortKeys
 // contract, shared comparator, and persisted preference (scope kept).
 // The sort control serves the card-grid projection (tables sort natively
 // by column; the board sorts per column inside BoardCollection, on its
 // own scoped preference).
 const sortScope = computed(() => `card-grid:${props.node.typeId || ''}`);
-const preferredSort = loadSortPreference(sortScope.value);
+const seedSort = () => {
+  if (savedViewState.value) {
+    const sort = savedViewState.value.sort;
+    return sort && typeof sort.name === 'string' && Number.isFinite(sort.order)
+      ? { name: sort.name, order: sort.order }
+      : null;
+  }
+  return loadSortPreference(sortScope.value);
+};
+const preferredSort = seedSort();
 const sortName = ref(preferredSort?.name || props.node.listControls?.defaultSort || null);
 const sortOrder = ref(preferredSort?.order || 1);
 const sortOptions = computed(() => (props.node.listControls?.sortKeys || [])
@@ -561,10 +619,11 @@ const sortKeyResolved = computed(() => (props.node.listControls?.sortKeys || [])
   .find(key => key.name === sortName.value) || null);
 const sortToggleAvailable = computed(() => listLayout.value === 'card-grid' && sortOptions.value.length > 0);
 watch([sortName, sortOrder], () => {
-  if (sortName.value) storeSortPreference(sortScope.value, { name: sortName.value, order: sortOrder.value });
+  if (savedViewState.value || !sortName.value) return;
+  storeSortPreference(sortScope.value, { name: sortName.value, order: sortOrder.value });
 });
-watch(sortScope, scope => {
-  const restored = loadSortPreference(scope);
+watch(sortScope, () => {
+  const restored = seedSort();
   sortName.value = restored?.name || props.node.listControls?.defaultSort || null;
   sortOrder.value = restored?.order || 1;
 });
@@ -572,7 +631,7 @@ const sortedInstances = computed(() => (sortKeyResolved.value
   ? sortControlRows(filteredInstances.value, sortKeyResolved.value, sortOrder.value)
   : filteredInstances.value));
 watch(() => props.node.id, () => {
-  search.value = '';
+  search.value = savedViewState.value?.search || '';
 });
 const viewPopover = ref();
 const viewToggleAvailable = computed(() => searchToggleAvailable.value
@@ -581,6 +640,37 @@ const viewToggleAvailable = computed(() => searchToggleAvailable.value
   || sortToggleAvailable.value);
 const conditionCount = computed(() => countPredicates(builderFilter.value));
 const toggleView = event => viewPopover.value?.toggle(event);
+// Save-the-view (SPEC §26): the popover's save entry captures the
+// region's current view models as one named lens for the organization.
+// A region already rendering a saved lens offers no save.
+const viewsStore = useViewsStore();
+const saveDialogOpen = ref(false);
+const saveViewSaving = ref(false);
+const saveViewAvailable = computed(() => savedViewState.value === null
+  && Boolean(props.node.typeId)
+  && viewsStore.canSave);
+async function saveCurrentView(name) {
+  if (!saveViewAvailable.value || !name || saveViewSaving.value) return;
+  saveViewSaving.value = true;
+  try {
+    await viewsStore.createView({
+      name,
+      typeId: props.node.typeId,
+      viewState: {
+        search: search.value,
+        filters: builderFilter.value || null,
+        sort: sortName.value ? { name: sortName.value, order: sortOrder.value } : null,
+        projection: projectionPreference.value
+      }
+    });
+    saveDialogOpen.value = false;
+    viewPopover.value?.hide();
+  } catch (error) {
+    toast?.add?.({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  } finally {
+    saveViewSaving.value = false;
+  }
+}
 const filteredInstances = computed(() => {
   if (props.node.surfaceKind !== 'list') return props.node.instances;
   const controls = props.node.listControls;

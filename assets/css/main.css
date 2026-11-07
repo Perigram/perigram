@@ -588,6 +588,19 @@ body {
     font-family: var(--ck-font-serif);
 }
 
+/* The saved-view fence's static placeholder: the pipeline's render of a
+   view ref outside the surfaces that mount the live collection region. */
+.ck-view-embed {
+    display: flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-content-border-radius);
+    color: var(--p-text-muted-color);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
 .ck-markdown-body > *:first-child {
     margin-top: 0;
 }

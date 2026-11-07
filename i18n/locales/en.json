@@ -2069,7 +2069,10 @@
         },
         "exportKinds": {
             "dxf": "DXF drawing"
-        }
+        },
+        "saveView": "Save view",
+        "viewName": "Name",
+        "viewMissing": "This view is unavailable"
     },
     "uiConstructor": {
         "title": "UI Constructor Demo",
@@ -2347,7 +2350,10 @@
         "link": "Link",
         "linkAddress": "Address",
         "divider": "Divider",
-        "table": "Table"
+        "table": "Table",
+        "view": "View",
+        "pickView": "Pick a view",
+        "pickViewEmpty": "No saved views"
     },
     "sketch": {
         "editorTitle": "Sketch",
@@ -2678,7 +2684,8 @@
         "moveUp": "Move up",
         "moveDown": "Move down",
         "addStateHintInitial": "First state — it becomes the construct without an initial state.",
-        "addStateHintTransition": "A transition to it is created; it appears after Apply."    },
+        "addStateHintTransition": "A transition to it is created; it appears after Apply."
+    },
     "processDesigner": {
         "classNamePlaceholder": "Widget name",
         "socketSingleWire": "“{socket}” accepts one wire — connect a list source or use a collection node instead.",

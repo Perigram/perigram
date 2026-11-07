@@ -57,20 +57,45 @@
       />
     </div>
     <!-- The read presentation is the host markdown pipeline (the one
-         renderer every authored surface reads through); the live engine
-         replaces it after mount. -->
+         renderer every authored surface reads through) composed with
+         live view embeds; the live engine replaces it after mount. -->
     <div
       v-if="!editorReady"
-      class="ck-markdown-body text-prose min-h-0 flex-1 overflow-y-auto p-6"
+      class="text-prose min-h-0 flex-1 overflow-y-auto p-6"
       :aria-label="t('pages.page')"
-      v-html="rendered"
-    />
+    >
+      <template v-for="(block, index) in blocks" :key="index">
+        <div v-if="block.type === 'markdown'" class="ck-markdown-body" v-html="renderedOf(block)" />
+        <ViewEmbed v-else :view-id="block.id" :fallback-name="block.name" />
+      </template>
+    </div>
     <div
       v-show="editorReady"
       ref="editorHost"
       class="crepe-host text-prose min-h-0 flex-1 overflow-y-auto"
       :aria-label="t('pages.page')"
     />
+    <StandardDialog
+      :visible="viewPickerOpen"
+      size="sm"
+      :title="t('editors.pickView')"
+      @update:visible="shown => { if (!shown) viewPickerOpen = false; }"
+    >
+      <div class="flex min-w-72 flex-col gap-1">
+        <Button
+          v-for="row in viewPickerRows"
+          :key="row._id"
+          text
+          severity="secondary"
+          class="w-full justify-start"
+          @click="pickView(row)"
+        >
+          <span class="min-w-0 truncate">{{ row.name }}</span>
+          <span v-if="row.typeLabel" class="ml-auto shrink-0 text-muted text-supporting">{{ row.typeLabel }}</span>
+        </Button>
+        <span v-if="!viewPickerRows.length" class="py-2 text-center text-muted text-supporting">{{ t('editors.pickViewEmpty') }}</span>
+      </div>
+    </StandardDialog>
   </div>
 </template>
 
@@ -80,9 +105,14 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
-import { renderMarkdown } from '#shared/markdown.js';
+import { renderMarkdown, splitViewEmbeds, parseViewRef } from '#shared/markdown.js';
+import ViewEmbed from './ViewEmbed.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { usePagesStore } from '~/stores/pages';
+import { useViewsStore } from '~/stores/views';
+import { useAuthStore } from '~/stores/auth';
 import { setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
 
 // The custom page surface (SPEC §26): one markdown document authored
 // through the one editor engine — the crepe mount follows the documents
@@ -93,8 +123,9 @@ const props = defineProps({
   docId: { type: String, required: true }
 });
 
-const { t } = useI18n();
+const { te, t } = useI18n();
 const pagesStore = usePagesStore();
+const authStore = useAuthStore();
 const tabKey = inject('workspacePageKey', '');
 
 const editorHost = ref(null);
@@ -104,7 +135,37 @@ const dirty = ref(false);
 const saving = ref(false);
 const editorReady = ref(false);
 const nameDraft = ref(null);
+const viewPickerOpen = ref(false);
+let insertViewFenceAt = () => {};
 const blockState = ref({ block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, task: false, marks: [] });
+
+const viewsStore = useViewsStore();
+const viewPickerRows = computed(() => viewsStore.views.map(view => ({
+  ...view,
+  typeLabel: typeLabelOf(view.typeId)
+})));
+
+function typeLabelOf(typeId) {
+  const type = (authBundleTypes.value || []).find(candidate => candidate.id === typeId);
+  return type ? generatedEntityLabel(type, { t, te }) : '';
+}
+
+const authBundleTypes = computed(() => authStore.processPayload?.bundle?.types);
+
+// The saved-view picker (the view-embed vocabulary entry): the picked
+// view inserts its fence at the caret through the vocabulary adapter.
+function openViewPicker(insert) {
+  insertViewFenceAt = insert;
+  viewsStore.ensureLoaded()
+    .catch(() => {})
+    .finally(() => { viewPickerOpen.value = true; });
+}
+
+function pickView(view) {
+  viewPickerOpen.value = false;
+  insertViewFenceAt({ id: view._id, name: view.name });
+  focusRenderedEditor();
+}
 
 const page = computed(() => pagesStore.pageById(props.docId));
 const displayName = computed(() => page.value?.name || '');
@@ -115,7 +176,8 @@ const nameValue = computed({
 const nameDirty = computed(() => nameDraft.value !== null
   && nameDraft.value.trim() !== ''
   && nameDraft.value.trim() !== displayName.value);
-const rendered = computed(() => renderMarkdown(pagesStore.contents[props.docId] || ''));
+const renderedOf = block => renderMarkdown(block.text);
+const blocks = computed(() => splitViewEmbeds(pagesStore.contents[props.docId] || ''));
 
 let crepe = null;
 let slashMenu = null;
@@ -161,7 +223,7 @@ async function applyLink() {
 
 function runSlashPick(id, view) {
   const kind = applyBlockAt(id, view);
-  if (kind !== 'link') focusRenderedEditor();
+  if (kind !== 'link' && kind !== 'view') focusRenderedEditor();
 }
 
 // The serializer renders an empty trailing block as `<br />`; every
@@ -185,6 +247,7 @@ async function save() {
 onMounted(async () => {
   await pagesStore.ensureLoaded();
   await pagesStore.loadContent(props.docId).catch(() => {});
+  viewsStore.ensureLoaded().catch(() => {});
   if (!editorHost.value) return;
   const [{ Crepe: CrepeEditor }, { $prose }, { languages: codeLanguages }] = await Promise.all([
     import('@milkdown/crepe'),
@@ -207,7 +270,8 @@ onMounted(async () => {
     editor: crepe,
     view,
     t,
-    openLinkEditor
+    openLinkEditor,
+    openViewPicker
   });
 
   crepe = new CrepeEditor({
@@ -229,10 +293,21 @@ onMounted(async () => {
         theme: codeMirrorTheme,
         previewOnlyByDefault: true,
         renderPreview: (language, content) => {
-          if (String(language || '').toLowerCase() !== 'mermaid') return null;
-          const host = document.createElement('div');
-          host.innerHTML = renderMarkdown(`\`\`\`mermaid\n${String(content || '')}\n\`\`\``);
-          return host.querySelector('.mermaid-diagram') || null;
+          const lang = String(language || '').toLowerCase();
+          if (lang === 'mermaid') {
+            const host = document.createElement('div');
+            host.innerHTML = renderMarkdown(`\`\`\`mermaid\n${String(content || '')}\n\`\`\``);
+            return host.querySelector('.mermaid-diagram') || null;
+          }
+          if (lang === 'view') {
+            const ref = parseViewRef(content);
+            if (!ref) return null;
+            const host = document.createElement('div');
+            host.className = 'ck-view-embed';
+            host.textContent = viewsStore.viewById(ref.id)?.name || ref.name || t('editors.view');
+            return host;
+          }
+          return null;
         }
       }
     }
