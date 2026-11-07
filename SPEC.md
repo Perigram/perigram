@@ -345,15 +345,6 @@ declared creation protocol — an upload create runs inline, the editor
 protocol opens the blank editor surface, every other create opens the
 construct dialog. The palette composes the compiled action contract.
 
-The workspace carries an action inbox (owner direction 2026-11-06): one
-surface listing the instances whose current state admits an action the
-user's roles grant — one instance tile per row with its admissible
-actions beside it, grouped by type. The listing is served by one
-framework query over the compiled active contract: per-action state
-edges crossed with per-action grants over live instances, bounded per
-action, org- and user-scoped. Inbox rows run their actions through the
-ordinary action-run contract.
-
 Documents carry their content both ways (owner direction 2026-10-13): text
 documents and CSV tables are creatable from procedural content — a `content`
 creation protocol beside upload/editor whose wired or prompted text becomes
@@ -1092,8 +1083,8 @@ above the identity line; each ancestor opens the shared record popup —
 one crumb behavior on every host. An instance rendered outside its
 parent's surface carries the same trail beneath its identity (owner
 direction 2026-11-06): the one identifier surface renders it for every
-collection projection of an unscoped class list, the media tile and the
-action-inbox rows carry it at their hosts, and the calendar's day cells
+collection projection of an unscoped class list, the media tile carries
+it at its host, and the calendar's day cells
 stay summary chips (the record surface states the ancestry).
 
 ### 22.13 Instance pickers render procedural list items (owner direction 2026-10-28; closed-control amendment 2026-10-29; create amendment 2026-10-31)

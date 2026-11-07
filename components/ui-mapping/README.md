@@ -112,7 +112,9 @@ beside the transition history in `StateHistory`.
   renders.
 - The region header renders the label, the count chip, the create set
   (+ link where a relation section owns it, SPEC §22.12), and one view
-  control (SPEC §22.15): an icon button whose popover hosts, in order,
+  control (SPEC §22.15): an outlined button carrying the localized
+  `uiMapping.view` label beside its icon, pinned at full presence on
+  every host, whose popover hosts, in order,
   the search field, the shared `FilterBuilder` panel
   ([shared](../shared/README.md)), the projection switch (where the
   collection is switchable), and the sort keys (the card-grid
@@ -128,11 +130,7 @@ beside the transition history in `StateHistory`.
   header stays one line while the row has room (SPEC §22.15): the label
   yields first through ellipsis, the controls cluster never wraps
   internally, and the controls wrap below only when the label is at its
-  floor and the cluster still overflows the row. On hover-capable
-  pointers the cluster renders quiet until the header row is hovered or
-  focused — a `(hover: hover)` media query carries the quiet state and
-  `prefers-reduced-motion` drops the transition; coarse pointers keep
-  every control at full presence. The projection switch is the one
+  floor and the cluster still overflows the row. The projection switch is the one
   layout-shaped user view state, persisted per type beside sort and
   filters: a collection whose type serves a state vocabulary and whose
   derived layout is a structural collection (table) may switch to the
@@ -503,6 +501,10 @@ beside the transition history in `StateHistory`.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card. Both variants
   render through `SurfaceDetailBody` under the identity line.
+- `PropertyRows.vue` — the property-row list both body grammars render
+  (SPEC §22.17): spec rows with the per-group show-more control, an
+  optional authoring projection (the holder's per-row popover, SPEC §1),
+  and the row group class the popover's hover reveal rides on.
 - `SurfaceDetailBody.vue` — shared detail/full body. The `full` variant
   in the `record` presentation of an editor-bound type mounts the editor
   surface as the body's dominant content (SPEC §4 — the editor is the

@@ -35,7 +35,9 @@ receives `expand` and pages the record. Instance opens emit
 `{ typeId, instanceId }` to the host consumer — the routed page
 navigates to the compiler-paired detail screen, panes and mobile map it
 to their own open seams. `EntityPopup` (the record preview popup) also
-renders through the host; for a type without a compiled screen,
+renders through the host — it mounts the record document (the measure
+and the trailing comments section, SPEC §22.17) inside its dialog; for
+a type without a compiled screen,
 `recordFloorScreen` (`detail-screen-actions.js`, beside the list-screen
 synthesizer) builds the single-source detail screen — the record floor.
 Single sources hydrate through the readable-reference seam
@@ -142,9 +144,9 @@ type**: a process chaining further constructs returns their entities too,
 and the last step must never bind a foreign record to the action's
 destination.
 
-## Create Palette and Action Inbox
+## Create Palette
 
-The home shell's two first-class action surfaces (SPEC §4):
+The home shell's first-class action surface (SPEC §4):
 
 - **The create palette** (`CreatePalette.vue`, wired into the brand
   header and the wrapped rail): one create control opening a searchable
@@ -169,22 +171,6 @@ The home shell's two first-class action surfaces (SPEC §4):
   the dialog collects the parent). Runs execute through
   the instances store's action-run channel and land through the
   created-open contract above.
-- **The action inbox** (`ActionInboxPage.vue`, the registered `inbox`
-  workspace page with `/inbox` as its mobile/deep-link route): rows
-  from `GET /api/process-definitions/active/inbox` (the query contract:
-  [process-definitions](../../server/features/process-definitions/README.md))
-  crossed with live pool state (`deriveInboxRows` in
-  `action-inbox-rows.js`): each type hydrates through the ordinary list
-  transport, a row renders while its instance stays pooled and its live
-  state still admits one of the row's actions
-  (`actionAppliesToEntity`), so action runs reconcile rows away through
-  the shared entity-event invalidation and unreadable or deleted
-  instances drop. A row is the §22.13 instance tile
-  (`InstanceInlineRef` `tile`) with its admissible actions beside it
-  (`ActionButton`), grouped under the type label; every tile carries
-  its lineage chain at its own top (`trace`); a create never
-  appears — the query admits instance-addressed actions only. Empty
-  state is a bare `StateBlock`.
 
 ## Overload Registry
 
@@ -449,18 +435,16 @@ from the compiled manifest.
   `PanelMenu` whose header and row labels crop with an ellipsis. The
   brand header is its own panel and carries the create control (below)
   beside the wrap control when expanded; wrapped, the sidebar becomes an
-  icon rail (brand mark, the create control, chats, inbox, and calls
+  icon rail (brand mark, the create control, chats, and calls
   first — the same order the expanded menu leads with — then one icon
   per top-level panel, avatar) and the wordmark returns on expand; the
   wrapped state persists with the workspace layout (`sidebarCollapsed`).
-  Communication is three entries in the menu: Chats is a plain entry
+  Communication is two entries in the menu: Chats is a plain entry
   opening the general chats pane tab in the active pane and carrying
   the total unread badge in both sidebar shapes (the wrapped rail's
   icon-corner overlay; the expanded menu's badge rides the row's
   trailing edge past the label — `ml-auto order-last` inside the
-  `headericon` fragment), the
-  Inbox entry opens the action inbox pane tab (the registered `inbox`
-  workspace page, below), and
+  `headericon` fragment), and
   Calls toggles the shared `CommunicationMenu` flyout (see
   [components/shared/README.md](../../components/shared/README.md)) —
   it lists every direct/group conversation with a ring action and
@@ -567,7 +551,7 @@ from the compiled manifest.
   tab strips, split
   right/down, pane-local close, registered workspace pages (every editor
   surface — cassette designer, sheet layout editor, sketch, text/csv,
-  table import — plus chats and the action inbox), and screen panes
+  table import — plus chats), and screen panes
   (`GeneratedScreenPane`): type
   screens and instance-bound detail screens both render through
   `GeneratedScreenHost` — the single generator host, with the instance id

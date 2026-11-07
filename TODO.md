@@ -4830,6 +4830,11 @@ Session `agent/create-inbox-20261106` (worktree
   PanelMenu model fixture provides no Toast service; the palette needs
   the app-level Toast host the real layout mounts).
 
+Retired 2026-11-07 (SPEC §26): the action inbox surface and its
+endpoint died in the user-space program's Phase F (e282445a0) — the
+pane tab, sidebar entries, mobile tab, `/inbox` route, and the
+`/active/inbox` query. The create palette stays.
+
 #### Agent Notes (2026-11-06, review fixes)
 
 Session `agent/c-review-fix-20261106` (worktree
@@ -5509,17 +5514,87 @@ over existing collections, nothing new to project.
 
 ### F. Phase 0 — discoverability repair, inbox retirement, review residue
 
-- [ ] View control pinned and labeled on every host (SPEC §22.15
+- [x] View control pinned and labeled on every host (SPEC §22.15
   amendment); hover-quieting of the header cluster dies.
-- [ ] Inbox retirement: the pane tab, /inbox route + mobile tab, sidebar
+  Landed 2026-11-07 (e282445a0).
+- [x] Inbox retirement: the pane tab, /inbox route + mobile tab, sidebar
   entries (both shapes), the /active/inbox endpoint + its spec and README
   rows, nav.inbox keys — zero reachability; the create palette stays.
-- [ ] Review residue: SurfaceDetailBody's duplicated property-row
+  Landed 2026-11-07 (e282445a0).
+- [x] Review residue: SurfaceDetailBody's duplicated property-row
   markup collapses to one loop; ChatThreadStage's sub-ladder badge font
   joins the ladder; EntityPopup README gains the document+comments
   pointer; the deslop spec's negative-space phrasing dies; canvas
   FieldNode renders ref accepts through the type-label resolver (the
   enrichment pass threads it — the live SPEC §4 violation).
+  Landed 2026-11-07 (e282445a0).
+- [ ] WAITING — owner verification: a generated collection header shows
+  the labeled View control at full presence (no hover-quieting) with the
+  condition-count badge and the popover contents unchanged; the sidebar
+  (both shapes) and the mobile bar carry no inbox entry; record bodies
+  render unchanged; the designer canvas's ref field cards show accepted
+  type labels.
+
+#### Agent Notes (2026-11-07, phase F)
+
+Session `agent/userspace-f-20261107` (worktree
+`.agent-worktrees/userspace-f-20261107`). All three steps landed in
+`e282445a0`:
+
+- View control: RegionBlock's header cluster renders at full presence —
+  the `[@media(hover:hover)]:opacity-60` quieting, its group-hover and
+  focus-within reveals, and the popover-open pinning class are deleted.
+  The control renders as an outlined secondary button carrying the
+  localized `uiMapping.view` label ("View"/"Вид" — the en+ru keys
+  already existed) beside the sliders icon; the condition-count badge
+  and the popover contents (search, FilterBuilder, projection switch,
+  sort) are unchanged. New `region-header.spec.js` pins the label and
+  the absence of the quiet classes; no spec had pinned the quiet
+  behavior, so nothing needed re-pinning.
+- Inbox retirement: `ActionInboxPage.vue`, `action-inbox-rows.js`(+spec),
+  the `inbox` workspace-pages row, both sidebar entries, the mobile
+  bottom-bar tab, `pages/inbox.vue`, the `/active/inbox` route,
+  `action-inbox.js`(+spec), the `nav.inbox` locale keys (en+ru), and the
+  README rows (process-definitions Action inbox section + route row,
+  server/api, pages /inbox row, layouts, generated) all die in one cut.
+  SPEC §4's action-inbox paragraph and §22.12's action-inbox-rows
+  mention are removed — the owner's §26 retirement paragraph supersedes
+  them (judgment call: SPEC is owner prose, but §26 contradicted §4
+  after the cut). Grep sweep: zero action-inbox references remain; the
+  word "inbox" survives only in chat contexts (ChatInboxRail,
+  support.inbox events) and generic empty-state icons.
+- Review residue: SurfaceDetailBody's two property-row/show-more blocks
+  (~25 duplicated lines) collapse into the shared `PropertyRows.vue`
+  (rows + per-group show-more; the authoring projection and the row
+  group class ride nullable props). Byte-equivalence verified
+  empirically: old-vs-new SSR renders of the document holder, document
+  non-holder, fill card, and fill full/peek branches are identical after
+  stripping Vue's hydration anchor comments (`<!--[-->`/`<!--]-->`/
+  `<!---->` — zero DOM footprint); the harness was temporary and is
+  deleted. ChatThreadStage's waiting-messages badge joins the ladder at
+  `text-label` (SPEC §4's 15px small tier covers tags and badges) and
+  the pill grows h-4→h-5 for the role's line-height (judgment call). The
+  generated README's EntityPopup paragraph states the record-document
+  mount (measure + trailing comments). The deslop spec's "never the raw
+  enum" phrasing loses the negative-space form. FieldNode's tag resolves
+  accepted type ids through `fieldDescriptorSummary(descriptor,
+  typeLabelFor)`: the designer enrichment pass (process.vue
+  `enrichNodeData`) seeds `data.fieldTypeLabelFor` per ctsField node
+  from `classNameMap` (tree class names first, registry view labels
+  second — now exposed from `useProcessDesignerTypes`), listed in
+  `DERIVED_NODE_DATA_KEYS` so it strips at save; pinned in
+  type-declaration-editor.spec.
+- Validation: components/generated + ui-mapping + type-designer + chat +
+  localization + design-system green in the touched suites; the new
+  region-header + FieldNode pins green; SSR smoke (`npx nuxi prepare` +
+  `vitest.ssr.config.js`) 24/24; `check-arch` green; `docs:validate` OK
+  (13-entry homing backlog unchanged). Pre-existing on the base commit
+  and unrelated (reproduced with this branch's changes stashed): 5
+  failures in `server/features/process-definitions/{process-definitions,
+  runtime-producer-output,runtime}.spec.js` — auth-hydration and
+  producer-migration assertions over fixtures, service tests untouched
+  by this diff.
+- Open: none beyond owner verification.
 
 ### G. Slash and md unification (SPEC §26)
 

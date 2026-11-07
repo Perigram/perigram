@@ -446,38 +446,6 @@ payload's `exports` bindings) execute through
 declared by an installed plugin, and the `generateAttachment` command
 gates the run on the caller's write grant over the source instance.
 
-### Action inbox
-
-`getActiveActionInbox(auth)` (in `action-inbox.js`, served at
-`GET /api/process-definitions/active/inbox`) answers the workspace's
-action-inbox query (SPEC §4): the instances whose current state admits
-an action the user's roles grant.
-
-- Grants ride the hydration manifest: `auth.roleAssignments.actions`
-  already carries only the assigned roles' projected actions — the query
-  adds the state window and evaluates no grants itself.
-- Selection: manual, instance-addressed actions (`createInstance` is
-  excluded — a create has no instance target) whose compiled `state`
-  window is non-empty (`from`, `to`, or both).
-- State window: a `from` admits instances whose primary state equals it;
-  a `to` without `from` admits every non-empty state except the no-op
-  target, matched over every persisted primary-state path (`state`,
-  `states.main`, `status.state`, `status.state.primary`,
-  `status.state.active.main`). The predicate is a conservative
-  over-fetch: the client re-evaluates `actionAppliesToEntity`
-  (utils/action-visibility.js) per row and drops the excess.
-- Scoping and bounding: one query per action over the type's per-class
-  collection (types the registry view declares —
-  `declarationForType` + `collectionForClass` — contribute; framework
-  feature types do not), org-filtered like the instance list transport
-  (the caller's organization plus the system catalog), sorted
-  `createdAt` descending, capped at `INBOX_ROW_CAP_PER_ACTION` (25) rows
-  per action.
-- Rows are `{ typeId, instanceId, actionIds }` — ids alone; labels,
-  tiles, and live state admissibility resolve client-side through the
-  instances pool (the client hydrates each type through the ordinary
-  list transport, so read access stays the list law's own).
-
 ### Serialization
 
 Preview and action-evaluation responses leave the process runtime
@@ -708,7 +676,6 @@ graph.
 | `POST /api/process-definitions/active/actions/:id/execute` | Execute a manual compiled action (`executeActiveProcessAction`). |
 | `GET /api/process-definitions/active/actions/:id/options` | Relation choices for a compiled action (`getActiveRelationOptions`). |
 | `POST /api/process-definitions/active/exports/run` | Run a plugin-declared derived export (`executeDerivedExportAction`). |
-| `GET /api/process-definitions/active/inbox` | Action-inbox query: instances admitting the user's granted actions (`getActiveActionInbox`). |
 | `POST /api/process-definitions/sockets/:id/project` | Outbound socket projection (`projectEntityThroughSocket`). |
 
 ## Related
