@@ -5664,9 +5664,100 @@ Session `agent/userspace-g-20261107` (worktree
 
 ### H. Custom pages (SPEC §26)
 
-- [ ] Framework pages collection + API; md block documents; user-created
+- [x] Framework pages collection + API; md block documents; user-created
   sidebar sections with nested pages; create/rename/move/delete through
   the palette and explorer gestures.
+  Landed 2026-11-07 (7248aff81).
+- [ ] WAITING — owner verification: the sidebar (expanded) shows user
+  sections after the type panels with nested page rows, loose pages as
+  root rows, and the quiet New section affordance at the foot; the
+  wrapped rail carries one icon per section that expands the sidebar and
+  that section; right-click (long-press) on a section or page carries
+  new-page-inside / rename / move / delete (delete confirms through the
+  host dialog; move picks a parent over the org's sections and pages
+  with the sidebar-root choice); deleting a parent leaves its children
+  at the root; the create palette's New page entry (en+ru) creates a
+  page and opens its tab; the page tab wears the file glyph + live name
+  (renames reach the tab), the name edits in place, typing `/` offers
+  the 17-entry vocabulary, save is dirty-gated and pane-close confirms
+  unsaved edits; an explicit section collapse survives reload.
+
+#### Agent Notes (2026-11-07, phase H)
+
+Session `agent/userspace-h-20261107` (worktree
+`.agent-worktrees/userspace-h-20261107`). Landed in `7248aff81`
+(docs in the follow-up `neo:` commit):
+
+- H1 (server): the pages feature is a capability module
+  (`server/features/pages/` — repository/service/index, README carrying
+  the canonical contract: wire shapes, routes, access law, detach
+  semantics). One `pages` collection stores both kinds; the list is the
+  tree projection (`_id, name, parentId, kind`, content excluded,
+  createdAt ascending); one PATCH covers rename/move/content; moves walk
+  the ancestor chain and refuse cycles (400); delete detaches children
+  to roots; access is active-org membership alone (`auth.organizationId`,
+  the chats precedent — no grant machinery in v1, law stated in the
+  README); foreign-org rows answer 404. Lookup indexes on
+  `organizationId` and `organizationId+parentId`.
+- H2 (sidebar): sections render as PanelMenu panels after the type
+  panels; loose pages (no section) render as root rows like the
+  communication entries — no virtual container was invented for them.
+  Context gestures ride one capture-phase seam (right-click; long-press
+  after 500ms with touch-move cancel) resolved through the existing
+  positional `menuKeyForElement`, so no per-row handlers. Move is a
+  StandardDialog + TreeSelect over the org's sections/pages plus the
+  sidebar root, with the moved page's subtree excluded client-side (the
+  server remains the cycle authority). Deleting a page closes its open
+  tabs. Explicit section collapses persist with the workspace layout
+  (`collapsedSectionKeys`, a v3-compatible addition beside
+  `sidebarCollapsed`); sections auto-expand on first sight otherwise.
+- H3 (surface): `customPage` is a registered workspace page
+  (ephemeral, per-document tab keyed `page:customPage:<docId>` over the
+  item's `docId` — the pinned-chat rule; one tab per page, session
+  scoped, labels live from the pages store). The surface renders read
+  through `shared/markdown.js` and mounts crepe after mount following
+  `text-editor.mjs` verbatim (all engine chrome off, Placeholder
+  included — a new page starts blank, no invented prose); the block
+  vocabulary, slash panel, source-markers plugin, cm theme, crepe theme
+  css, and editor voice css are consumed from the documents plugin's
+  `surfaces/lib` + `assets` by relative import over the app's own
+  dependency graph (`@milkdown/crepe` is a declared root dependency),
+  never copied; engine pieces load through dynamic imports so SSR and
+  the browser bundle stay clean. Save patches content through the pages
+  API, dirty-gated on the workspace page-dirty registry; name edits
+  commit through the rename channel. Page-link/view-embed/AI-block
+  entries stay dark until phases I/K. The palette carries the pinned
+  New page group above the type groups under the same needle, and the
+  control now renders whenever the active org exists (pages available)
+  even with no compiled creates; the entry emits `create-page` and the
+  workspace owns the create + tab.
+- Judgment calls, stated: a section is a page-kind row (`kind:
+  'section'`, root-only, content-free) chosen over a separate sections
+  collection — one collection, one tree law, one gesture set; the
+  wrapped rail carries one icon per section (the rail law "one icon per
+  top-level panel"), each expanding the sidebar and its section; page
+  tabs are ephemeral (pinned-chat precedent) rather than persisted
+  page refs — persisting them would need a state-version bump for no
+  owner-asked value.
+- Validation: `server/features/pages/pages.spec.js` (failure modes
+  first: org gating, cross-org 404, cycle refusal, section-root law,
+  unknown/foreign parent, detach-on-delete, tree shape, unnamed create)
+  9/9; components/generated suites 55→68 green (new sidebar-pages pins
+  + palette pinning + collapsedSectionKeys round-trip); localization
+  green; SSR smoke `npx nuxi prepare` + `vitest.ssr.config.js` 25/25
+  (new custom-page smoke: registry adapter binds the document, the read
+  presentation mounts the pipeline recipe, no raw id renders as a
+  label); `check-arch` green; `docs:validate` OK (13-entry homing
+  backlog unchanged). Engine-share resolution proven by importing the
+  lib modules + milkdown packages from the app's node_modules context.
+  No build/dev-server/Playwright runs (brief). Pre-existing on the base
+  commit and unrelated: the 5 process-definitions spec failures phase G
+  reported (auth-hydration/producer-migration fixtures).
+- Open: mobile carries no pane tabs, so a page created from the mobile
+  palette opens into the hidden desktop pane tree (toast confirms the
+  create) — a mobile page surface is future owner scope; realtime
+  cross-session page sync (the instance-events channel) is unused by
+  pages in v1.
 
 ### I. Custom view blocks (SPEC §26)
 

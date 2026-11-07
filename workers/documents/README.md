@@ -48,8 +48,10 @@ types ride the generic instance machinery from the install snapshot.
   The vocabulary and its actions live in
   `surfaces/lib/block-vocabulary.mjs` — a pure entry table plus the
   action adapter the editor binds to its engine instance, the one
-  grammar the custom-page and instance-block surfaces (SPEC §26 later
-  phases) mount for their own authors. The page-link, view-embed, and
+  grammar every markdown authoring surface mounts: this plugin's text
+  editor over its served engine, the app's custom-page surface
+  ([components/generated](../../components/generated/README.md))
+  over the app's own crepe instance. The page-link, view-embed, and
   AI-block entries join the table as their phases land.
   Mermaid fences preview as diagrams in the
   markdown editor through the host-provided `renderMarkdown` (the

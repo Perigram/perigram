@@ -8,7 +8,9 @@ The page SSR smoke harness: real page SFCs mounted through
 - `*.ssr-smoke.js` — smoke cases (named outside the default
   `*.spec.js` glob so the normal suite does not pick them up): whole
   pages (`chats-page`, `process-page`, `screens-page`,
-  `ui-mapping-page` — each boots an assembled surface),
+  `ui-mapping-page` — each boots an assembled surface), `custom-page`
+  for the custom page tab (the registry adapter binding the page
+  document, the read presentation mounting the pipeline recipe),
   `ui-mapping-refcolumns.ssr-smoke.js` for the generated collection
   columns over the SPEC §6 relation grammar (ref-field chip column,
   structural summary column, the table floor for identifier-only types),
