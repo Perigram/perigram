@@ -126,8 +126,21 @@ beside the transition history in `StateHistory`.
   (`utils/ui-view-state.js`), evaluated with the one matcher
   (`instanceMatchesFilter`) against the region's pool; the panel's
   fields derive through `builderFieldsForType` (see
-  [shared/ui-mapping](../../shared/ui-mapping/README.md)). The region
-  header stays one line while the row has room (SPEC §22.15): the label
+  [shared/ui-mapping](../../shared/ui-mapping/README.md)). The popover
+  also carries the save-view entry (SPEC §26) for organization members:
+  it captures the region's current view models — search, filter tree,
+  sort, projection — as one named view through the
+  [views feature](../../server/features/views/README.md)
+  (`ViewSaveDialog` prompts for the name under the type label; the
+  entry renders only with an active organization and only on regions
+  that render their own state). A region mounted with a `viewState`
+  prop renders a saved lens instead: every view model seeds from the
+  prop (the stored tree re-validates through `normalizeFilter`, the
+  projection and sort through their bounds) and the persistence skips —
+  the controls stay live but their choices stay session-local, and the
+  lens itself is never re-saved from its own embed. A `label` prop
+  overrides the type-derived section title (the embed names the view).
+  The region header stays one line while the row has room (SPEC §22.15): the label
   yields first through ellipsis, the controls cluster never wraps
   internally, and the controls wrap below only when the label is at its
   floor and the cluster still overflows the row. The projection switch is the one

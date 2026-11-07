@@ -134,6 +134,13 @@ and `rolled-back` are settled observations; the next write re-enters
   save/delete verbs. Mutations are direct fetches; an organization switch
   refetches (`reload`). The home sidebar and the custom page surface are
   the consumers.
+- `views.js`: The organization's saved collection views (SPEC §26) over
+  `/api/views`: the list projection (`views`, `viewById`,
+  `viewsByType`), per-view state loads (`viewStates`), and the
+  create/rename/remove verbs; `canSave` gates the collection header's
+  save affordance on active-organization membership. The save
+  affordance, the page view picker, and the page view embed are the
+  consumers.
 - `penTemplates.js`: Pen-template catalog accessor over the generic
   instance transport (tech-drawing pack): system/org grouping by tenancy
   (personal pens become org pens), stroke data under `pen.data.stroke`,

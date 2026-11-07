@@ -105,6 +105,11 @@ Routes are grouped into sub-directories corresponding to features:
   for rename/move/content, and delete with detach semantics. Members of
   the active organization read and write (see the
   [pages feature](../features/pages/README.md)).
+- `views/`: The organization's saved collection views (SPEC §26):
+  listing (`_id, name, typeId`, viewState excluded) with an optional
+  `typeId` filter, create, full read, one PATCH for rename/state, and
+  delete. Members of the active organization read and write (see the
+  [views feature](../features/views/README.md)).
 - sheet designs ride the generic instance transport
   (`/api/instances/sheet-design`, SPEC §13): the editor recomputes the
   layout client-side and patches generically; DXF export rides

@@ -74,7 +74,12 @@ imported through server modules that Nitro externalizes.
   bounded card media — tiles, thumbs, peeks — read the same HTML at
   compact scale). The `text` preview mode is markdown prose: its
   payload renders through this pipeline like the text editor and agent
-  answers.
+  answers. Mermaid fences render as diagrams; view fences carry a
+  saved-view ref — `parseViewRef` reads it, `splitViewEmbeds` splits a
+  document into markdown segments and embed blocks for the page
+  surface's read composition, and the pipeline itself renders the ref
+  as the quiet `ck-view-embed` chip (the live region lives on the page
+  surface, [components/generated](../components/generated/README.md)).
   Parsed as GFM with
   line breaks: a single newline is a hard
   break, the way GitHub-flavored documents and model answers read.

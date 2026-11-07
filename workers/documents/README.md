@@ -43,6 +43,7 @@ types ride the generic instance machinery from the install snapshot.
   | Code block, Diagram | fenced code (language picker on hover, CodeMirror); diagram seeds a `mermaid` fence |
   | Divider, Table | horizontal rule; a three-by-three gfm table |
   | Link | the host address popover, anchored to the surface; the link applies at the caret |
+  | View | the host saved-view picker; the pick inserts a `` ```view `` fence carrying the view ref (`{ id, name }`) |
 
   Inline marks (bold, italic, inline code) author through input rules.
   The vocabulary and its actions live in
@@ -51,8 +52,11 @@ types ride the generic instance machinery from the install snapshot.
   grammar every markdown authoring surface mounts: this plugin's text
   editor over its served engine, the app's custom-page surface
   ([components/generated](../../components/generated/README.md))
-  over the app's own crepe instance. The page-link, view-embed, and
-  AI-block entries join the table as their phases land.
+  over the app's own crepe instance. The view entry hands off to the
+  host's picker (`openViewPicker`); hosts that mount no live embed —
+  this plugin's text editor today — leave the entry out of their slash
+  panel. The page-link and AI-block entries join the table as their
+  phases land.
   Mermaid fences preview as diagrams in the
   markdown editor through the host-provided `renderMarkdown` (the
   single pele home): blocks open diagram-only, crepe's Edit toggle or a

@@ -215,12 +215,38 @@ authored through the one editor engine, never an instance payload.
   share modules the plugin serves (`surfaces/lib/`), imported over the
   app's own dependency graph — the grammar is consumed, never copied.
   The crepe theme and the editor voice css load from the plugin's
-  assets, so both editor mounts read identically. The page-link,
-  view-embed, and AI-block vocabulary entries stay dark until phases
-  I/K. The name edits in place (the rename channel); save patches
-  content through the pages API, dirty-gated, registered on the
+  assets, so both editor mounts read identically. The view-embed
+  vocabulary entry is live: its pick opens the saved-view picker (the
+  organization's views with their type labels) and inserts the view
+  fence at the caret; the page-link and AI-block entries stay dark
+  until phase K. The name edits in place (the rename channel); save
+  patches content through the pages API, dirty-gated, registered on the
   workspace page-dirty registry so pane-close confirms; a new page
   starts blank — unnamed document, empty editor.
+- A view fence in the page's markdown carries a saved-view ref — a
+  `` ```view `` fence with a `{"id":"…","name":"…"}` body (the mermaid
+  fence precedent: a fence type the pipeline knows; the name rides the
+  fence so a deleted view still renders its name). The read
+  presentation composes with the fences: `splitViewEmbeds`
+  (`shared/markdown.js`) splits the document into markdown segments and
+  embed blocks; segments render through the pipeline, embeds through
+  `ViewEmbed.vue`, which renders the saved view as a live collection
+  region through the ordinary machinery — a minimal single-list-region
+  screen composed by `composeScreen` for the view's type, materialized
+  by the one [RegionBlock](../ui-mapping/README.md) with the saved view
+  state as its view models and the view's name as its section title,
+  instances loaded through the instances store list transport (org
+  scoping and grants ride it — the lens law: an org-wide view shows
+  each member their own readable subset, and an unreadable type renders
+  the denied state), and row opens following the workspace-open seam.
+  The embed's region carries no actions: creation and quick actions
+  belong to the collection's own screens, and the embed renders the
+  lens; interacting with its controls edits the lens session-locally
+  only. In the live editor the fence is its code block — the crepe
+  preview renders the view's name as the quiet `ck-view-embed` chip,
+  the same placeholder the pipeline renders for view fences outside the
+  page surface. A fence naming a deleted view renders its carried name
+  and a quiet unavailable state.
 
 ## Overload Registry
 
