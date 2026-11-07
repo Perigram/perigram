@@ -26,17 +26,22 @@ depth-0 record treatment — `record` (the default) or `peek` — owned by
 the [ui-mapping materialization](../ui-mapping/README.md): the record
 presentation renders the depth-0 record as one document (SPEC §22.17)
 — a 60rem measure, the property block under the header, inline
-sections — with the instance thread as its trailing comments section
-([chat](../chat/README.md) `RecordComments` over the same
-`utils/instance-chat.js` thread contract every chat surface uses); the
-peek keeps its compact presentation and the header's chat entry. Its
+sections — for non-editor types, while an editor-bound type's depth-0
+record resolves the editor page (SPEC §4, owner direction 2026-11-07):
+the unified header over the editor mounted flush. The record's comments
+live behind the header's entry — the page host opens the thread stage
+as its bounded side panel (`RecordCommentsPanel`,
+[chat](../chat/README.md) over the same `utils/instance-chat.js` thread
+contract every chat surface uses); the
+peek keeps its compact presentation and its chat entry. Its
 `expandable` prop adds the depth-0 header's step-up button; the host
 receives `expand` and pages the record. Instance opens emit
 `{ typeId, instanceId }` to the host consumer — the routed page
 navigates to the compiler-paired detail screen, panes and mobile map it
 to their own open seams. `EntityPopup` (the record preview popup) also
-renders through the host — it mounts the record document (the measure
-and the trailing comments section, SPEC §22.17) inside its dialog; for
+renders through the host — it mounts the record document (the measure,
+SPEC §22.17; its header's comments entry opens the shared chat surface)
+inside its dialog; for
 a type without a compiled screen,
 `recordFloorScreen` (`detail-screen-actions.js`, beside the list-screen
 synthesizer) builds the single-source detail screen — the record floor.
@@ -69,10 +74,15 @@ it through its registry props adapter, and the mobile fallback renders it
 as the route's query. The page host mounts non-`flush` pages inside its
 padded scroll area — the same content rhythm the screen panes use — while
 `flush` rows (the designer canvas, the call stage, the chats inbox, the
-self-padding directory surface) own their shell. A record-bound page
+self-padding directory surface, and the editor pages) own their shell. A record-bound page
 opens with the record's lineage chain at its top — the page host is the
 record's header on this mount (the detail mount's record header owns it
-there).
+there) — except rows carrying their own record header (the editor
+pages): their unified header owns the lineage and the page host renders
+no chain. Every page host provides the record comments panel channel
+(SPEC §22.17): the hosted surfaces' headers open the record's thread as
+the page host's bounded side panel (`RecordCommentsPanel`,
+[chat](../chat/README.md)).
 
 The manifest vocabulary is the projected UI contract, everywhere: screens and
 actions key their target by `typeId`, actions by `id` (with `parentTypeId`
@@ -221,8 +231,11 @@ authored through the one editor engine, never an instance payload.
   live: its pick emits to the host, which opens `ViewPickerDialog.vue`
   (the organization's views with their type labels) and inserts the view
   fence at the caret; the page-link and AI-block entries stay dark until
-  phase K. The name edits in place (the rename channel); save patches
-  content through the pages API, dirty-gated, registered on the
+  phase K. The page's header is the unified page header
+  ([ui-mapping](../ui-mapping/README.md) `SurfaceHeader` with `title` +
+  `onRename`, no type or instance): the name edits in place through the
+  pages rename channel and the save patches content through the pages
+  API from the header's cluster, dirty-gated, registered on the
   workspace page-dirty registry so pane-close confirms; a new page
   starts blank — unnamed document, empty editor.
 - A view fence in the page's markdown carries a saved-view ref — a
@@ -297,11 +310,23 @@ contract. It combines two halves:
   editor surface renders from one `workspacePage` presentation (label
   key, icon, component, props — the props adapter receives the page
   record and the bound type id, because one surface may serve several
-  types) in two mounts: the record body of the editor-bound type
-  (`RecordEditorBody`, under the standard record header — SPEC §4: the
-  editor is the record surface), and the workspace pane tab a record of
-  the type opens when the type resolves no compiled detail screen. A
-  bound editor page also opens **blank** — `openBlankFileEditor`
+  types) in two mounts (SPEC §4, owner direction 2026-11-07): the
+  editor page — the depth-0 record document's editor mount flushed
+  under the unified page header on open page surfaces
+  (`RecordEditorBody` under [ui-mapping](../ui-mapping/README.md)'s
+  `SurfaceHeader`), and the workspace pane tab a record of the type
+  opens when the type resolves no compiled detail screen
+  (`EditorPageSurface` — the same header over the same flush editor,
+  entity-bound or blank). The header owns the document chrome through
+  the editor-page chrome channel (`editor-page-chrome.js`): an editor
+  module declaring the `pageChrome` prop binds `{ name, dirty, saving,
+  diverged, save(), rename(), reload() }`, the header renders the
+  in-place name edit, the dirty-marked save, and the divergence refresh
+  from it, and the host registers the dirty state on the workspace
+  page-dirty registry so pane-close confirms; the documents pack's
+  editors bind it and their own toolbars are gone, designer editors
+  (facade, tech-drawing) keep their docks and render a read-only title.
+  A bound editor page also opens **blank** — `openBlankFileEditor`
   rides the page-open seam with no entity (the create button of an
   editor-protocol type), the blank tab is a singleton entity-less page
   keyed `page:<surfaceId>`, and the editor's first save creates the
@@ -380,8 +405,8 @@ to view-only without it; the text editor's read-only presentation is the
 rendered markdown document. Detail headers and pane
 action strips never carry stateless field-edit `updateInstance` actions
 (`isFieldEditAction`): detail fields are inline-editable on their own,
-state-carrying updates are transitions and stay, and the editing
-surface of an editor-bound type is its record surface (SPEC §4). The
+state-carrying updates are transitions and stay, and an editor-bound
+type opens into its editor (SPEC §4). The
 ui-mapping record header (`SurfaceHeader`) drops
 `updateInstance` from its run menu the same way — the edit-mode toggle
 stays only for inline field surfaces without an editor. Browse surfaces
@@ -613,7 +638,7 @@ from the compiled manifest.
    as a pane tab — the manifest's `instanceDetail` screen, or the
    synthesized fallback derived from the type's list screen — rendered
    through the generator; there is no entity renderer in the home shell.
-   An editor-bound record's detail body is the editor (SPEC §4); a type
+   An editor-bound record opens into its editor page (SPEC §4); a type
    resolving no detail screen opens its registered editor page bound to
    the record, and a type with neither stays silent, exactly
    like the routed surface contract. Rows whose instance is open in the

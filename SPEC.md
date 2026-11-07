@@ -362,9 +362,11 @@ named `{key}` slots from a wired record — a placeholder document fills
 from data with no new machinery.
 
 The text editor fills its container: it opens as a flush workspace page
-and owns its document shell — one toolbar carrying the document name
-editing in place and save, with the editing surface
-growing into the pane and scrolling inside it. Markdown
+under the unified page header — the header carries the document name
+editing in place and save (owner direction 2026-11-07), with the
+editing surface growing into the pane and scrolling inside it; the
+editor's own toolbar is gone and the slash panel is the formatting
+surface. Markdown
 documents edit in a single-surface live editor (owner direction
 2026-10-15: the Obsidian model — the document renders in place while
 writing, the focused block shows its markdown source; the editor's
@@ -404,20 +406,24 @@ manually triggered, editor-mode text-document construct — at creation;
 organizations created before the starter set are repaired by
 `server/scripts/station-documents-types.js`.
 
-The editor is the record surface (owner direction 2026-11-06): every
-editor-bound file type opens into its editor — the standard record
-header (identity, state surface, version trigger, action cluster) rides
-above the editor mounted as the record body. The opener's grant decides
-the mode: a write grant edits in place, a read grant renders the same
-surface read-only — an editor surface degrades to its read-only
-presentation when the opener holds no write grant. Opening the record
-is entering it: the standalone editor action dies, and the detail
-surface of an editor-bound type is the editor itself. The editor
-renders in every host the record surface renders — the routed page, the
-workspace pane, the record popup in its bounded compact rhythm; the
-peek keeps its preview presentation. The version trigger rides the
-surface's corner in every shape, and a blank editor create keeps its
-law: the first save creates the record through the compiled construct.
+A file opens as its full-page editor under the unified page header
+(owner direction 2026-11-07, amending the 2026-11-06 editor-is-record
+law): on open surfaces — the routed page and the pane tab — the editor
+owns the whole page flush; the record document anatomy (§22.17)
+governs non-editor instance types. Property rows, trailing sections,
+and instance overlays stay off editor pages — overlays are a
+non-editor-type concern. The header owns the document's name and save:
+the editors' toolbars shed name/save, and a toolbar left with nothing
+dies; the header's save binds the editor's save channel, its dirty
+state marks the save control, and the page-dirty registry keeps
+guarding pane close. The opener's grant decides the mode: a write grant
+edits in place, a read grant renders the same surface read-only — an
+editor surface degrades to its read-only presentation when the opener
+holds no write grant. The record popup keeps the compact document with
+the bounded editor band; the peek keeps its preview presentation. The
+version trigger rides the surface's corner in every shape, and a blank
+editor create keeps its law: the first save creates the record through
+the compiled construct.
 
 Documents co-edit collaboratively (owner direction 2026-10-14): file
 editors converge on a CRDT (Yjs) — simultaneous editing of the same
@@ -922,13 +928,20 @@ the full row, and overflow stays inside the child surfaces' own bounded
 scrolls.
 
 ### 22.3 A hosted surface carries its title once (owner direction
-2026-10-23; amendments 2026-10-26, 2026-10-27)
+2026-10-23; amendments 2026-10-26, 2026-10-27; unified header
+2026-11-07)
 The host that names a screen owns that name: the pane strip's tab, the
 routed page's title bar. A collection region carries its own title bar
 in every host — label, count chip, controls — a collection
 surface is never titleless. A record page keeps its full header in
 every host — identity block, state surface, actions — beside its
 collections.
+One header anatomy serves every page surface — instance pages, editor
+pages, custom pages: breadcrumbs where lineage exists, the title
+(in-place editable where the surface owns the name), the type label
+under it, the state surface, and the action cluster (save for
+dirty-able surfaces, the comments entry, overflow). Custom pages render
+no type label and no state surface.
 
 ### 22.4 Presentation has one home per concern (owner direction 2026-10-21)
 Action presentation, action applicability, and record/picker labels
@@ -1080,7 +1093,10 @@ with no record surface counts. A collection's count renders only for loaded, acc
 non-empty collections. The record header is the record's one identity
 surface: the type glyph and the subtle type label under the title name
 its type, and no host heading, subtitle, or dialog title repeats the
-record's name or type. The record header carries the record's declared
+record's name or type. The type label opens the type's card (owner
+direction 2026-11-07): the glyph with the authored name, the field
+vocabulary, the state machine mini-view, and the declaration authoring
+entries for capability holders. The record header carries the record's declared
 containment ancestors as a compact, background-free breadcrumb trail
 above the identity line; each ancestor opens the shared record popup —
 one crumb behavior on every host. An instance rendered outside its
@@ -1197,9 +1213,12 @@ implicit record body. Inserted instances ride declared references:
 relation sections and record links inside prose, rendered as the shared
 instance chips.
 
-Comments are the document's trailing section: the instance thread
-renders inline at the foot of the record page, and the header's chat
-entry retires (the §4 comments direction delivered).
+Comments live behind the header's entry on every page surface (owner
+direction 2026-11-07): the header's comments affordance opens the
+instance thread as a bounded side panel inside the page host; the
+trailing comments band retires, and bounded hosts (the record popup,
+the peek) keep their compact entries — one comments entry point on
+every record surface.
 
 ## 23. Deslopification (owner direction 2026-10-23)
 

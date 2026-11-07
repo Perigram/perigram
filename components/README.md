@@ -39,7 +39,7 @@ All entity-related components use these patterns:
 | Structured key/value data (specs, parameters, tool dims) | `<FactRows :rows="instanceFactRows({ typeId, typeRecord, entity, auth, translator })" variant="compact|default" />` — the one derivation over the generated field vocabulary; `shared/instance-field-access.js` gates every row through the `auth` input |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StateHistory :entity="..." type-id="..." />` |
-| Detail page header | Generated record pages: the ui-mapping record header (`SurfaceHeader`) |
+| Detail/page header | The unified page header: the ui-mapping `SurfaceHeader` — instance pages, editor pages, and custom pages |
 | CRUD + status operations | instances store (`stores/instances.js`); status transitions through `useStateController` |
 | Entity/container structure | Entity cards: `<InstanceCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout; Aura owns generic chrome |
 | Section/page action rows | `<ActionToolbar>` |
@@ -60,7 +60,7 @@ All entity-related components use these patterns:
 | Folder | Owns |
 |---|---|
 | [shared/](./shared/README.md) | Registered primitives: `InstanceCard`, `DrawingCanvas`, `EntityPopup`, chat surfaces, designer frame |
-| [chat/](./chat/README.md) | The chat column family: inbox rail, thread header, message list and bubble, composer, search panel, the thread state core |
+| [chat/](./chat/README.md) | The chat column family: inbox rail, thread header, message list and bubble, composer, search panel, the record comments side panel, the thread state core |
 | [entities/](./entities/README.md) | Registry-bound entity cards — the folded surface table and card invariants |
 | [generated/](./generated/README.md) | Compiled screen surfaces: the `[screenKey]` screens route, the home workspace, `/organization/*` system screens, action visibility, the file-surface/editor registry |
 | [ui-mapping/](./ui-mapping/README.md) | Generator materializations and the type-label seam |

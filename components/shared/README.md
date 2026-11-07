@@ -715,15 +715,17 @@ thread header's title opens the entity popup (`EntityPopup.vue` +
 carry member chips inline through [`UserChip.vue`](#userchipvue).
 
 ### Detail-surface conversation entry
-The record page's comments section owns the record's conversation
-(SPEC §22.17 — [chat](../chat/README.md) `RecordComments`, the trailing
-document section). `InstanceChatEntry.vue` is the compact-surface entry:
-an icon-only chat button routing through `utils/instance-chat.js`
-(a user-typed record opens the direct thread; every other type the
-composed instance thread), mounted by the compact record header (the
-peek presentation) and `InstanceCard`
-footers. Bounded/flush editor hosts
-expose the same entry from their own chrome. Directory-shaped surfaces
+The record header's comments entry owns the record's conversation
+(SPEC §22.17): on page hosts it opens the record's thread as the page
+host's bounded side panel ([chat](../chat/README.md)
+`RecordCommentsPanel`, mounted by the routed page, the screen pane, and
+the workspace page host); hosts without the channel (the record popup)
+and the compact peek route through `utils/instance-chat.js` into the
+shared chat popup (a user-typed record opens the direct thread; every
+other type the composed instance thread). `InstanceChatEntry.vue` is
+the same seam as the composed icon-only chat button for
+`InstanceCard`
+footers. Directory-shaped surfaces
 (organization overview, directory detail) call the seam directly with
 their `identity.name` display source.
 
