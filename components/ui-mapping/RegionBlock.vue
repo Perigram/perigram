@@ -147,7 +147,7 @@
     />
   </div>
 
-  <div v-else :class="[stackFor, 'w-full', 'relative', recordDocument ? LAYOUT.measure : '']">
+  <div v-else :class="[stackFor, 'w-full', 'relative', recordDocument && !editorSurface ? LAYOUT.measure : '']">
     <RegionDataState v-if="showState" :node="node" />
     <!-- The depth-0 record carries the declaration authoring session
          (SPEC §1): the provider gates on the process-design capability and
@@ -155,7 +155,11 @@
          surfaces — the property rows and the state surface render their
          author affordances only when it is live. -->
     <DeclarationAuthoring v-if="depth === 0" :key="node.typeId" :type-id="node.typeId">
-      <template v-if="showSurfaces">
+      <!-- The editor page (SPEC §4, owner direction 2026-11-07): a
+           depth-0 record of an editor-bound type on an open page surface
+           renders the editor flush under the unified header — the
+           document anatomy stays off editor pages. -->
+      <template v-if="showSurfaces && editorSurface">
         <div class="relative">
           <SurfaceHeader
             :type="node.type"
@@ -164,9 +168,45 @@
             :level="node.level"
             :bundle="bundle"
             :state-policy="node.statePolicy"
+            :state-transitions="node.stateTransitions"
+            :navigation="depth === 0 ? navigation : null"
+            :chrome="editorChrome"
+            @run="action => emitRun(action, { instance: node.instances[0] || null })"
+            @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
+            @refresh="emit('refresh')"
+            @open-instance="emitOpen"
+          />
+          <!-- The record's reload lane: a permanent 4px track under the
+               header the strip appears inside — bounded, touching no
+               content, and its appearance shifts nothing below. -->
+          <div :class="LAYOUT.reloadLane">
+            <ProgressBar v-if="isReloading" mode="indeterminate" class="h-full" :aria-label="$t('uiMapping.loadingRegion')" />
+          </div>
+        </div>
+        <div class="flex min-h-0 flex-1 flex-col">
+          <RecordEditorBody
+            :key="node.typeId"
+            :surface="editorSurface"
+            :instance="node.instances[0]"
+            :type="node.type"
+            :chrome="editorChrome"
+          />
+        </div>
+      </template>
+      <template v-else-if="showSurfaces">
+        <div class="relative">
+          <SurfaceHeader
+            :type="node.type"
+            :instance="node.instances[0]"
+            :actions="headerActions"
+            :level="node.level"
+            :bundle="bundle"
+            :state-policy="node.statePolicy"
+            :state-transitions="node.stateTransitions"
             :navigation="depth === 0 ? navigation : null"
             :compact="presentation === 'peek'"
             :expandable="expandable"
+            :on-rename="recordRename"
             @run="action => emitRun(action, { instance: node.instances[0] || null })"
             @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
             @refresh="emit('refresh')"
@@ -270,18 +310,12 @@
       />
     </template>
     <RegionChildren
-      v-if="showSurfaces && node.stubRegions?.length"
+      v-if="showSurfaces && node.stubRegions?.length && !editorSurface"
       v-bind="childrenProps"
       v-on="childrenEvents"
       :regions="node.stubRegions"
       :arrangement="{ mode: 'stack' }"
       pack
-    />
-    <RecordComments
-      v-if="recordDocument && showSurfaces && node.type?.id && node.instances[0]"
-      :type-id="node.type.id"
-      :instance-id="instanceId"
-      :name="recordTitle"
     />
     <ViewPickerDialog
       :visible="recordOverlaySession !== null && recordOverlaySession.viewPickerAt !== null"
@@ -305,7 +339,8 @@ import { useToast } from 'primevue/usetoast';
 import {
   LAYOUT, GAP_BY_LEVEL, toolbarVisibleFor, sortControlRows,
   hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar,
-  listLayoutOf, titleFor, createActionControls, recordChildSectionKey
+  listLayoutOf, titleFor, createActionControls, recordChildSectionKey,
+  isIdentifierField
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter, countPredicates } from '#shared/instance-filters/index.js';
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
@@ -318,7 +353,10 @@ import CreateControl from './CreateControl.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
 import ViewSaveDialog from './ViewSaveDialog.vue';
 import DeclarationAuthoring from '../type-designer/DeclarationAuthoring.vue';
-import RecordComments from '../chat/RecordComments.vue';
+import RecordEditorBody from '~/components/generated/RecordEditorBody.vue';
+import { createEditorChrome } from '~/components/generated/editor-page-chrome.js';
+import { resolveFileSurface } from '~/components/generated/file-surfaces.js';
+import { setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
 import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
 import RegionCollections from './RegionCollections.vue';
@@ -416,8 +454,9 @@ try { toast = useToast(); } catch { toast = null; }
 const spacing = inject('uiMappingSpacing', null);
 // The record page is a document (SPEC §22.17): the depth-0 record in the
 // `record` presentation renders one inline stack at the measure — the
-// composed arrangement already resolves the stack, the measure centers
-// and bounds it, and the comments section closes it.
+// composed arrangement already resolves the stack and the measure
+// centers and bounds it. Editor-bound types resolve the editor page
+// instead (SPEC §4).
 const recordDocument = computed(() => props.depth === 0
   && props.presentation === 'record'
   && props.node.surfaceKind === 'detail');
@@ -427,6 +466,42 @@ const instanceId = computed(() => {
 });
 const recordTitle = computed(() => titleFor(props.node.instances[0], props.node.type, { unnamedLabel: t('common.unnamed') }));
 
+// The editor page (SPEC §4, owner direction 2026-11-07): the depth-0
+// record of an editor-bound type on an open page surface — the editor
+// owns the page flush under the unified header, and the document
+// anatomy stays off. The record popup keeps its compact document; the
+// peek keeps its preview presentation.
+const editorSurface = computed(() => {
+  if (!recordDocument.value || hostContainer.value?.hostKind === 'popup') return null;
+  if (!instanceId.value || !props.node.typeId) return null;
+  return resolveFileSurface(null, props.node.typeId);
+});
+// One chrome channel per mounted record page: the editor module binds
+// into it once per mount (the editor body re-keys with the type), so a
+// record swap in place keeps the binding live.
+let boundEditorChrome = null;
+const editorChrome = computed(() => (editorSurface.value
+  ? (boundEditorChrome ||= createEditorChrome())
+  : null));
+const tabKey = inject('workspacePageKey', '');
+if (import.meta.client) {
+  watch(() => editorChrome.value?.api?.dirty, dirty => {
+    setWorkspacePageDirty(tabKey, Boolean(dirty));
+  });
+}
+// The record title's rename channel (SPEC §22.3): the identifier
+// field's inline patch — the popup's title stays read-only and editor
+// pages rename through the chrome channel.
+const identifierName = computed(() => Object.keys(props.node.type?.fields || {})
+  .find(name => isIdentifierField(props.node.type, name)) || null);
+const recordRename = computed(() => {
+  if (!recordDocument.value || editorSurface.value
+    || hostContainer.value?.hostKind === 'popup'
+    || !props.patchable || !identifierName.value) return null;
+  const instance = props.node.instances[0];
+  return name => emitPatchFor(instance, { [identifierName.value]: name });
+});
+
 // The instance overlay (SPEC §26) rides the record page alone: the
 // document branch of the depth-0 record in the `record` presentation on
 // routed and pane hosts — the popup and every peek/nested surface keep
@@ -435,6 +510,7 @@ const recordTitle = computed(() => titleFor(props.node.instances[0], props.node.
 // file-surfaces write-grant seam decides).
 const overlaysStore = useInstanceOverlaysStore();
 const recordOverlayHost = computed(() => recordDocument.value
+  && !editorSurface.value
   && hostContainer.value?.hostKind !== 'popup'
   && Boolean(instanceId.value)
   && Boolean(props.node.typeId));
@@ -452,7 +528,7 @@ const recordOverlay = useRecordOverlaySession({
   instanceId: recordOverlayInstanceId,
   entity: computed(() => props.node.instances[0] || null),
   active: recordOverlayHost,
-  tabKey: inject('workspacePageKey', '')
+  tabKey
 });
 const recordOverlaySession = computed(() => (recordOverlay.writable ? recordOverlay : null));
 provide('recordOverlaySession', recordOverlaySession);

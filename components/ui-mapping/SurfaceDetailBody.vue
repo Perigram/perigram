@@ -313,17 +313,16 @@ const heroBandOfPage = () => {
 // SPEC §22.8: a single-group body renders its fields with no group titles.
 const showGroupTitles = computed(() => groups.value.filter(group => group.label).length > 1);
 const hasPreview = computed(() => surface.value.slots.includes('preview'));
-// The editor mount of an editor-bound type (SPEC §4): the record body's
-// full variant in the record presentation. The peek keeps its preview;
-// nested Card bodies keep the preview presentation.
+// The editor mount of an editor-bound type (SPEC §4): the compact
+// document's dominant content — the record popup's body, since the open
+// page surfaces resolve the editor page in RegionBlock. The peek keeps
+// its preview; nested Card bodies keep the preview presentation.
 const editorSurface = computed(() => {
   if (props.variant !== 'full' || props.presentation === 'peek') return null;
   if (!props.instance?.id || !props.type?.id) return null;
   return resolveFileSurface(null, props.type.id);
 });
-const editorBand = computed(() => (hostTraits.value?.hostKind === 'popup'
-  ? LAYOUT.editorBandBounded
-  : LAYOUT.editorBand));
+const editorBand = LAYOUT.editorBandBounded;
 
 const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);

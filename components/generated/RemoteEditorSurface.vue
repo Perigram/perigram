@@ -1,7 +1,7 @@
 <template>
   <StateBlock v-if="status === 'loading'" state="loading" :message="$t('common.loading')" />
   <Message v-else-if="status === 'error'" :severity="errorSeverity" :closable="false">{{ errorMessage }}</Message>
-  <component :is="mounted" v-else-if="mounted" :record="record" :persistence="persistence" :mode="mode" />
+  <component :is="mounted" v-else-if="mounted" :record="record" :persistence="persistence" :mode="mode" :page-chrome="pageChrome" />
 </template>
 
 <script setup>
@@ -30,7 +30,11 @@ const props = defineProps({
   // The opener's grant decides (SPEC §4): 'edit' edits in place, 'read'
   // renders the same surface read-only — a surface that declares the
   // prop degrades to its read-only presentation.
-  mode: { type: String, default: 'edit' }
+  mode: { type: String, default: 'edit' },
+  // The editor page chrome channel (SPEC §4, owner direction
+  // 2026-11-07): the header's name/save/dirty binding — a module that
+  // declares the prop hands its document controls to the host header.
+  pageChrome: { type: Object, default: null }
 });
 
 const { t, te, locale } = useI18n();

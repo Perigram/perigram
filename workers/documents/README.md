@@ -28,10 +28,14 @@ types ride the generic instance machinery from the install snapshot.
   record-change bridge) and the csv editor (`surfaces/csv-editor.mjs`,
   cell-edit DataTable). The read-only presentations (mount
   `mode: 'read'`, SPEC §4): the markdown editor renders the document
-  itself; the csv editor renders the table and the document name. The
-  markdown toolbar carries document concerns only (SPEC §26): the name
-  editing in place, save, and the dirty-remote refresh affordance.
-  Block authoring rides the slash panel — typing `/` at a word start
+  itself; the csv editor renders the table. The editors carry no
+  document chrome (owner direction 2026-11-07): the host's unified page
+  header owns the document name and save through the `pageChrome`
+  binding (`{ name, dirty, saving, diverged, save, rename, reload }` —
+  the header renders the in-place name edit, the dirty-marked save, and
+  the divergence refresh), and the link address popover anchors to the
+  editing surface. Block authoring rides the slash panel — typing `/` at
+  a word start
   offers the block vocabulary with glyphs and keyboard navigation:
 
   | Entry | Applies |

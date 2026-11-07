@@ -22,10 +22,10 @@ host declared one (panes and popups provide their own), so every surface
 below resolves the real box it renders in. The `presentation` prop
 (`record`, the default, or `peek`) threads into `composeScreen`: the
 record presentation composes the depth-0 record as one document stack
-(SPEC §22.17), and the record page's trailing comments section (the chat
-family's `RecordComments`, mounted by `RegionBlock` at the document's
-foot) owns the conversation — the record header carries no chat entry.
-The screen accepts a `sourceStates` prop (per-source
+(SPEC §22.17), and the record's comments live behind the header's entry —
+the page host opens the thread stage as its bounded side panel
+(`RecordCommentsPanel`, [chat](../chat/README.md)). The screen accepts a
+`sourceStates` prop (per-source
 loading/ready/empty/denied/error from the data layer) that `composeScreen`
 folds into the region tree.
 
@@ -172,8 +172,9 @@ application.
   [generated](../generated/README.md) `OverlayTextBlock`, view blocks
   through `ViewEmbed`. The declared structural open sections ride with
   the `editor` key (the band and its open sections are one flow
-  position). The record header, the inert stubs, and the trailing
-  comments section sit outside the order. With no overlay the flow is
+  position). The record header and the inert stubs sit outside the
+  order. Editor-bound types render no overlay (SPEC §4): their open
+  page surfaces resolve the editor page. With no overlay the flow is
   the derivation order — the same document the fixed rendering
   produced. A child section that empties drops to the stub strip and
   its order entry goes dormant until the collection fills again.
@@ -208,7 +209,7 @@ application.
   `record` (the default) composes the document flow — the depth-0 record
   renders one inline stack at the `LAYOUT.measure` (the wide step, 60rem)
   with `SurfaceHeader` page chrome (lineage trail, type byline, action
-  cluster, lifecycle history) and the trailing comments section;
+  cluster, lifecycle history);
   `peek` keeps the ladder arrangement and the compact identity line,
   state surface, and action cluster over the record body. A host passing
   `expandable` gets the header's step-up button, whose `expand` event the
@@ -265,11 +266,17 @@ application.
   root carries `LAYOUT.measure` (content centered and bounded at the
   wide step), a full-width `SurfaceHeader`, then the record body with
   the child and linked collections as inline sections below it in
-  composed order, the inert stubs, and the trailing comments section
-  (`RecordComments`, [chat](../chat/README.md) family); in the `peek`
-  presentation the record keeps the ladder arrangement — the wide step's
-  side outcome lays the body beside the weight-earned side column,
-  narrower hosts take the children's own step outcome below the body.
+  composed order, the inert stubs. A depth-0 record of an
+  editor-bound type on an open page surface resolves the editor page
+  (SPEC §4, owner direction 2026-11-07) instead: the unified header
+  over the editor mounted flush (`RecordEditorBody`
+  [generated](../generated/README.md) with the editor-page chrome
+  channel) — no property rows, trailing sections, stubs, or overlay
+  composition; the popup host keeps the compact document. In the
+  `peek` presentation the record keeps the ladder arrangement — the
+  wide step's side outcome lays the body beside the weight-earned side
+  column, narrower hosts take the children's own step outcome below
+  the body.
   The depth-0 record mounts the declaration authoring provider
   ([type-designer](../type-designer/README.md) `DeclarationAuthoring`)
   around the header and body, so the property rows and the state
@@ -487,28 +494,33 @@ application.
   unbreakable content from eating half the row, pushing the separator, and
   drifting items' left borders out of alignment. Past the shared page
   budget the entries page through a standalone Paginator over `pageSlice`.
-- `SurfaceHeader.vue` — the record header. It paints nothing — the record
-  page's stack rhythm separates it from the body, and pane boxes / route
-  shells own the frames around it. The `cluster` slot seats host-owned
-  leading cluster entries (the overlay save affordance); the rest of the
-  cluster is action groups. Inline-resolved actions (relation
-  unlink — the mapping contract's `inline` flag) render on the relation
-  reference they address, so the header's action cluster and overflow menu
-  carry only record actions. Lineage Breadcrumb above the identity line
-  (when the record has declared containment ancestors), a
-  contextual `navigation` channel (the `#navigation` slot for direct
+- `SurfaceHeader.vue` — the unified page header (SPEC §22.3): one
+  anatomy for every page surface — the record document (non-editor
+  types), the editor pages ([generated](../generated/README.md) files,
+  whose name/save live here through the chrome channel), and custom
+  pages (a `title` + `onRename` with no type or instance, so no type
+  label, state surface, or comments entry renders). It paints nothing —
+  the page's stack rhythm separates it from the body, and pane boxes /
+  route shells own the frames around it. Lineage Breadcrumb above the
+  identity line (when the record has declared containment ancestors),
+  a contextual `navigation` channel (the `#navigation` slot for direct
   template hosts plus the `navigation` prop — `{ icon, label, command }`
   threaded through GeneratedMappingScreen → RegionBlock to the depth-0
   header; a host that opened the record inside another surface injects its
   back affordance ahead of the identity block), then one identity line,
   rendered in every host (the pane tab names the record beside it, and
-  the header stays the record page's own title surface): Avatar carrying
+  the header stays the page's own title surface): Avatar carrying
   the type glyph, the title in the container-stepped
   `text-record-title` role (the one title resolver —
   [shared/ui-mapping](../../shared/ui-mapping/README.md); instance ids
-  are private display vocabulary), a subtle type label under the title
-  through the same type-label chain, and exactly one
-  state surface riding the title line. A state axis is a tree, so stateful
+  are private display vocabulary). The title edits in place where the
+  surface owns the name: a bound editor chrome channel (`rename`),
+  else the host's `onRename` (the record document's identifier-field
+  patch — the popup's title stays read-only); the quiet transparent
+  input commits on enter and blur. A subtle type label under the title
+  through the same type-label chain opens the type's card
+  (`TypeCardPopup`, below), and exactly one
+  state surface rides the title line. A state axis is a tree, so stateful
   records carry no lifecycle strip: an instance with a flat `state`
   renders the segmented current-state tag (`StateTag`, resolved against
   the region's `statePolicy` — the header shows the data's state even when
@@ -521,17 +533,25 @@ application.
   lane ([type-designer](../type-designer/README.md)
   `DeclarationStatePanel`) behind a quiet edit toggle, and a stateless
   record of a stationed type carries the quiet add-states affordance at
-  the same position — capability holders only, no session no affordance. The action
-  cluster sits right (the identity's flex-1 is the push) and groups by
+  the same position — capability holders only, no session no affordance.
+  The action cluster sits right (the identity's flex-1 is the push): the
+  bound editor's divergence refresh and dirty-marked save (SPEC §4),
+  host-owned leading cluster entries through the `cluster` slot (the
+  record overlay's save, SPEC §26; the custom page's save), the
+  comments entry, then action groups by
   control kind with hairline dividers between non-empty groups
   (`LAYOUT.actionGroup`/`actionDivider`): record utilities — the
   construct re-derive — then at most `HEADER_ACTIONS_INLINE` generated
   buttons inline — a third and every further action join one popup
-  ellipsis menu with the same localized labels. The conversation
-  affordance (`InstanceChatEntry`) renders only on the compact header:
-  the record page's comments section owns the thread (SPEC §22.17), and
-  the peek has no room for one. An editor-bound type's
-  editing surface is its record body (SPEC §4), so the header carries no
+  ellipsis menu with the same localized labels. The comments entry
+  (SPEC §22.17) renders wherever the header carries a record identity:
+  a provided `recordCommentsPanel` channel (the page hosts — routed
+  page, pane, workspace page — provide it) opens the record's thread
+  as the bounded side panel (`RecordCommentsPanel`,
+  [chat](../chat/README.md)); hosts without the channel (the record
+  popup) and the compact peek keep the shared chat-surface entry — one
+  comments entry point on every record surface. An editor-bound type's
+  open page is its editor (SPEC §4), so the header carries no
   editor action. Runtime transitions
   arrive as `{ __runtime, state: { to }, intent, region }` from the
   page's state-service fetch, dispatch through the dedicated
@@ -545,11 +565,21 @@ application.
   steps with the same width (1.5rem narrow, 1.75rem from the 34rem
   step). `compact` renders the label-size identity line with the state
   surface and action cluster over the body; lineage and byline stay on
-  the record page. `expandable` adds the step-up button at the end of the
+  the page. `expandable` adds the step-up button at the end of the
   cluster and emits `expand`. The version surface and its replace
   affordance ride the payload preview
   ([generated](../generated/README.md)). Under the header rides the
   record's permanent reload lane (SPEC §22.9).
+- `TypeCardPopup.vue` — the type's card (SPEC §22.8): the quiet type
+  label's popup. The glyph with the authored name, the field vocabulary
+  as read rows (label + descriptor hint — the declaration session's
+  draft in authored order for holders, the compiled type record
+  otherwise), the states as the machine mini-view (the declaration
+  authoring's mermaid render over the session draft or the served
+  vocabulary plus authored edges), and the authoring entries for a
+  live session: edit-states opens the header's state popover authoring
+  lane, edit-fields opens the declaration designer page (the property
+  rows' popovers carry no programmatic open seam).
 - `StateTag.vue` — the segmented state tag: one materialization of the
   mapping contract's `stateDisplayFor`. Flat values render as a single Tag
   styled by the authored severity/icon; dotted values render as a path —
@@ -575,12 +605,13 @@ application.
   collections, custom blocks) delegated to the host's
   `document-section` slot. The `full` variant
   in the `record` presentation of an editor-bound type mounts the editor
-  surface as the body's dominant content (SPEC §4 — the editor is the
-  record surface):
+  surface as the body's dominant content (SPEC §4) — the compact
+  document the record popup renders, since the open page surfaces
+  resolve the editor page in `RegionBlock`:
   `RecordEditorBody`
-  ([generated](../generated/README.md)) fills the framed
-  `LAYOUT.editorBand` (the bounded `LAYOUT.editorBandBounded` in popup
-  hosts), the version trigger overlays its corner, and the body grammar
+  ([generated](../generated/README.md)) fills the bounded
+  `LAYOUT.editorBandBounded`, the version trigger overlays its corner, and
+  the body grammar
   follows the type's content — the fact strip renders only when
   the type carries filled non-identifier scalar facts, so a
   payload-only document type shows the editor alone while a canvas type
@@ -730,7 +761,7 @@ application.
   button's accessible name carries the sole accepted type's label beside
   "Create", so it never collides with the dialog's submit — and open the
   picked record as the bounded record popup when a value rides the row
-  (the record surface of an editor-bound type is its editor, SPEC §4);
+  (an editor-bound type opens into its editor, SPEC §4);
   type records
   resolve through the served type view, so pickers compose it without a
   bundle; the protocol menu mounts in the affordance root, so a

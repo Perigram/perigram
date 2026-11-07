@@ -6011,3 +6011,91 @@ Session `agent/userspace-j-20261107` (worktree
 Session reads per phase: phase F — SPEC §22.15, §26 inbox paragraph,
 components/ui-mapping README (view control), components/generated
 README (inbox), the 2026-11-07 review findings in Program E notes.
+
+## Unified page header (owner direction 2026-11-07)
+
+Law: SPEC §4 (the full-page editor amendment, the text-editor toolbar
+amendment), §22.3 (the unified header anatomy), §22.8 (the type label
+opens the type's card), §22.17 (comments behind the header entry).
+Owner words this session: a file opens as its full-page editor, not a
+page; its comments go somewhere; one header for editors, instance
+pages, and custom pages; the type name under the title is clickable and
+opens a type popup.
+
+### Steps
+
+- [x] The unified header: `SurfaceHeader` is the one header —
+  breadcrumbs, in-place editable title where the surface owns the name
+  (the record document's identifier patch, the editor chrome channel,
+  the custom page rename), the clickable type label, the state surface,
+  and the action cluster (chrome save + divergence refresh, host slot
+  saves, comments entry, actions/overflow). Custom pages pass
+  `title`/`onRename` with no type or instance.
+- [x] Full-page editors: an editor-bound depth-0 record on an open page
+  surface renders the editor flush under the header (no property rows,
+  trailing sections, stubs, or overlays); the workspace editor page tab
+  mounts through `EditorPageSurface` (flush, own record header); the
+  record popup keeps the compact document with the bounded editor band;
+  the peek keeps its preview.
+- [x] The chrome channel: the documents editors (text, csv) shed their
+  toolbars and bind `{ name, dirty, saving, diverged, save, rename,
+  reload }` through the `pageChrome` prop; the header renders the
+  name/save/refresh and the host registers dirty on the page-dirty
+  registry.
+- [x] Comments to the header: the entry opens the thread as a bounded
+  right-side panel (`RecordCommentsPanel`) mounted by the page hosts —
+  the routed page (viewport-anchored, it scrolls with the window), the
+  screen pane, and the workspace page host (absolute inside their
+  bounded columns); the trailing `RecordComments` band retires; the
+  popup and the peek keep the shared chat-surface entry — one comments
+  entry point on every record surface.
+- [x] The type popup (`TypeCardPopup`): glyph + authored name, the
+  field vocabulary rows, the machine mini-view (the declaration
+  authoring's mermaid render), and the authoring entries for capability
+  holders — edit-states opens the header's state popover authoring
+  lane; edit-fields opens the declaration designer page.
+- [ ] WAITING — owner verification: an editor-bound file opens into its
+  full-page editor with the header owning name/save (dirty-marked,
+  pane-close still confirms); a regular record page keeps its document
+  with the header's comments entry opening the side panel; the record
+  popup keeps its compact document; the type label under any title
+  opens the type's card; a custom page shows the same header with no
+  type label.
+
+#### Agent Notes (2026-11-08)
+
+Session `agent/header-unify-20261107` (worktree
+`.agent-worktrees/header-unify-20261107`).
+
+- What died: `RecordComments.vue` (the trailing band), the documents
+  editors' toolbar rows (text/csv — name input, apply check, save,
+  remote-refresh), the csv read-mode name row, CustomPageSurface's
+  name/save row, SurfaceDetailBody's page-host editor band branch (the
+  popup keeps `editorBandBounded`), GeneratedWorkspacePage's lineage
+  strip over editor pages.
+- Header audit beyond the stated anatomy: the navigation channel
+  (routed back, §22.3), the reload lane (§22.9), the overlay save
+  cluster slot (§26), and the declaration authoring affordances (§1)
+  all stay — each is a standing law's own channel. Nothing else
+  rendered.
+- Judgment calls: (1) the facade and tech-drawing editors keep their
+  designer docks — their toolbars carry designer tooling far beyond
+  name/save; only the documents editors' toolbars were exactly the
+  document chrome, so only those died (validation scope pins
+  workers/documents). Their headers render a read-only title until they
+  bind the chrome channel. (2) The side panel anchors per host: the
+  routed record page window-scrolls, so its panel is viewport-fixed
+  below the navbar; pane and workspace-page hosts get an absolute panel
+  inside their bounded columns — one panel component, two anchor modes.
+  (3) The type popup's fields entry navigates to the declaration
+  designer page (`organizationProcess`) — the property rows' author
+  popovers carry no programmatic open seam; the states entry opens the
+  header's own state popover lane programmatically (the HoverPeek
+  `popover.show({}, anchor)` precedent).
+- Validation: components/ui-mapping, components/chat,
+  components/generated, workers/documents, shared/ui-mapping spec
+  suites green (text-editor/csv-editor specs re-pinned: the surface
+  renders alone and binds the chrome channel); localization green
+  (one new key, `typeDeclaration.editFields`, en+ru); check-arch,
+  docs:validate, and the SSR smoke run in the session's validation
+  pass (results in the handoff).

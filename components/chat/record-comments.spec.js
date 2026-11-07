@@ -1,8 +1,8 @@
-// The record comments band's re-key law: the thread is a pure function of
-// the opened record. Every record host (routed page, pane tab, record
-// popup) swaps the record in place through the same unkeyed chain, so the
-// band itself must re-key the thread mount — and the thread core pins one
-// conversation per mount by design (the call-workspace pin law).
+// The record comments panel's re-key law: the thread is a pure function
+// of the opened record. Every record host (routed page, pane tab) swaps
+// the record in place, so the panel itself must re-key the thread mount
+// — and the thread core pins one conversation per mount by design (the
+// call-workspace pin law).
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createSSRApp, h } from 'vue';
@@ -74,9 +74,9 @@ describe('record comments thread', () => {
   });
 
   it('keys the thread mount by the record identity', () => {
-    const source = readFileSync(join(__dirname, 'RecordComments.vue'), 'utf8');
+    const source = readFileSync(join(__dirname, 'RecordCommentsPanel.vue'), 'utf8');
     const threadMount = source.match(/<RecordCommentsThread[\s\S]*?>/)?.[0] || '';
     expect(threadMount).toContain(':key=');
-    expect(threadMount).toMatch(/key="`\$\{typeId\}:\$\{instanceId\}`"/);
+    expect(threadMount).toMatch(/key="`\$\{target.typeId\}:\$\{target.instanceId\}`"/);
   });
 });

@@ -16,9 +16,9 @@
       :region-events="regionBlockEvents"
     />
 
-    <!-- The record page is a document (SPEC §22.17): the comments
-         section at its foot owns the conversation; the header carries no
-         chat entry. -->
+    <!-- The record page's comments live behind the header's entry
+         (SPEC §22.17): the page host opens the thread stage as its
+         bounded side panel. -->
 
     <StandardDialog
       v-model:visible="linkDialogVisible"

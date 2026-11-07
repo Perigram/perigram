@@ -1,4 +1,5 @@
 import RemoteEditorSurface from '~/components/generated/RemoteEditorSurface.vue';
+import EditorPageSurface from '~/components/generated/EditorPageSurface.vue';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
@@ -13,18 +14,21 @@ import { instancePayloadFileUrl } from './file-preview-contract.js';
 
 /**
  * File surfaces: the single app-side home of the CTS file-type editor
- * contract (SPEC §4 — the editor is the record surface). Pack editor
- * bindings decide which file type opens which surface; this registry maps
- * surface ids to the app's editor presentations. Process data never
- * selects components — the surface id does.
+ * contract (SPEC §4 — a file opens as its full-page editor under the
+ * unified page header). Pack editor bindings decide which file type
+ * opens which surface; this registry maps surface ids to the app's
+ * editor presentations. Process data never selects components — the
+ * surface id does.
  *
  * An editor surface renders in two mounts, both from the one
- * `workspacePage` presentation (`labelKey`, `icon`, `component`, `props`
- * — the props adapter receives the page record and the bound type id):
- * the record body under the standard record header (the detail surface of
- * an editor-bound type IS the editor), and the workspace pane tab a
- * record without a compiled detail screen opens as. A bound editor page
- * also opens **blank** — `openBlankFileEditor`.
+ * `workspacePage` presentation (`labelKey`, `icon`, `component`,
+ * `props` — the props adapter receives the page record and the bound
+ * type id): the editor page — the record document's editor mount
+ * flushed under the unified header on open page surfaces (the detail
+ * pane/tab of an editor-bound type), and the workspace pane tab
+ * (`EditorPageSurface`) a record without a compiled detail screen opens
+ * as. A bound editor page also opens **blank** —
+ * `openBlankFileEditor`.
  */
 export const fileSurfaceRegistry = {};
 
@@ -283,6 +287,8 @@ export function openBlankFileEditor(typeId = '') {
  * surface has a pane presentation. Page ids are the surface ids, so
  * persisted pane state stays stable; the props adapter receives the page
  * record and the bound type id (one surface may serve several types).
+ * Editor pages own their shell (flush) and their record header — the
+ * page host skips its own lineage strip for them.
  */
 export function fileWorkspacePages(editors = activeEditorBindings(), surfaces = activeSurfaceDeclarations()) {
   return (editors || [])
@@ -294,9 +300,10 @@ export function fileWorkspacePages(editors = activeEditorBindings(), surfaces = 
             typeId: editor.type,
             labelKey: surface.workspacePage.labelKey,
             icon: surface.workspacePage.icon,
-            component: surface.workspacePage.component,
-            ...(surface.flush ? { flush: true } : {}),
-            props: page => surface.workspacePage.props(page, editor.type)
+            component: EditorPageSurface,
+            flush: true,
+            recordHeader: true,
+            props: page => ({ editor: surface.workspacePage, entity: page.entity, typeId: editor.type })
           }
         : null;
     })

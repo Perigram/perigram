@@ -1,8 +1,9 @@
 // The documents plugin's markdown editor surface (surface contract 3 —
 // the capability mount): the single-surface live editing engine
 // (milkdown, through crepe) with every piece of engine chrome disabled —
-// the visible chrome is the host primitives (the document toolbar, the
-// slash panel) and the app's theme. Markdown remains the model: the
+// the visible chrome is the host header (the document name and save,
+// through the page-chrome binding) and the slash panel on the app's
+// theme. Markdown remains the model: the
 // payload round-trips through the
 // framework's own serializer, no rich-text proxy. The milkdown/codemirror
 // families are declared vendored dependencies (the split vendor build
@@ -32,7 +33,7 @@ function injectStyles() {
 }
 
 export default function createSurface({ vue, components, locale, sync, renderMarkdown = null }) {
-  const { h, ref, computed, onMounted, onBeforeUnmount, defineComponent } = vue;
+  const { h, ref, computed, reactive, onMounted, onBeforeUnmount, defineComponent } = vue;
   const t = locale.t;
   const { Button, InputText, Popover } = components;
 
@@ -47,7 +48,11 @@ export default function createSurface({ vue, components, locale, sync, renderMar
       persistence: { type: Object, default: null },
       // 'read' (the opener holds no write grant) renders the document —
       // the read-only presentation is the rendered markdown itself.
-      mode: { type: String, default: 'edit' }
+      mode: { type: String, default: 'edit' },
+      // The editor page chrome channel (SPEC §4): the host header owns
+      // the document name and save; the editor binds its document
+      // state into it.
+      pageChrome: { type: Object, default: null }
     },
     setup(props) {
       const editorHost = ref(null);
@@ -56,7 +61,6 @@ export default function createSurface({ vue, components, locale, sync, renderMar
       const remoteChanged = ref(false);
       const reloading = ref(false);
       const localTitle = ref('');
-      const nameDraft = ref('');
 
       async function loadText() {
         return await props.persistence.loadDocument(props.record, { mimeType: 'text/markdown', raw: true }) || '';
@@ -78,10 +82,10 @@ export default function createSurface({ vue, components, locale, sync, renderMar
       }
 
       const displayName = () => localTitle.value || props.record?.name || props.persistence?.title || '';
-      const nameDirty = computed(() => Boolean(nameDraft.value.trim()) && nameDraft.value.trim() !== displayName());
 
-      async function commitName() {
-        const name = nameDraft.value.trim();
+      // The header's rename channel: the page header owns the draft; the
+      // editor applies the committed name through the persistence.
+      async function rename(name) {
         if (!name || name === displayName()) return;
         try {
           await props.persistence.rename(props.record, name);
@@ -261,73 +265,38 @@ export default function createSurface({ vue, components, locale, sync, renderMar
         }
       }
 
-      const nameFieldPt = { root: { style: { background: 'transparent', borderColor: 'transparent' } } };
+      // The document chrome hand-off (SPEC §4): the header renders the
+      // name, the dirty-marked save, and the divergence refresh from
+      // this binding; the surface below is the editor alone.
+      props.pageChrome?.bind?.(Object.assign(
+        reactive({
+          name: computed(displayName),
+          dirty,
+          saving,
+          diverged: computed(() => remoteChanged.value && dirty.value)
+        }),
+        { save, rename, reload: reloadFromRemote }
+      ));
 
       return () => h('div', { class: 'flex h-full min-h-0 flex-1 flex-col p-4' }, [
-        h('div', { class: 'flex min-w-0 flex-wrap items-center gap-2 border-b border-chrome-border py-1' }, [
-          h('div', { class: 'flex min-w-40 max-w-72 flex-1 items-center gap-1' }, [
-            h(InputText, {
-              modelValue: nameDraft.value,
-              size: 'small',
-              class: 'w-full min-w-0',
-              pt: nameFieldPt,
-              placeholder: t('common.unnamed'),
-              'aria-label': t('common.rename'),
-              'onUpdate:modelValue': value => { nameDraft.value = value; },
-              onKeydown: event => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  commitName();
-                }
-              },
-              onBlur: commitName
-            }),
-            nameDirty.value
-              ? h(Button, { icon: 'pi pi-check', severity: 'secondary', text: true, rounded: true, size: 'small', 'aria-label': t('common.apply'), onClick: commitName })
-              : null
-          ]),
-          h(Popover, { ref: linkPopover }, () => h('div', { class: 'flex items-center gap-2 p-2' }, [
-            h(InputText, {
-              modelValue: linkUrl.value,
-              size: 'small',
-              class: 'w-72',
-              type: 'url',
-              placeholder: t('editors.linkAddress'),
-              'aria-label': t('editors.linkAddress'),
-              'onUpdate:modelValue': value => { linkUrl.value = value; },
-              onKeydown: event => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  applyLink();
-                }
-              }
-            }),
-            h(Button, { icon: 'pi pi-check', severity: 'secondary', text: true, rounded: true, size: 'small', 'aria-label': t('common.apply'), onClick: applyLink })
-          ])),
-          remoteChanged.value && dirty.value
-            ? h(Button, {
-              icon: 'pi pi-refresh',
-              severity: 'secondary',
-              text: true,
-              rounded: true,
-              size: 'small',
-              class: 'ml-auto',
-              'aria-label': t('common.refresh'),
-              onClick: reloadFromRemote
-            })
-            : null,
-          h(Button, {
-            label: t('common.save'),
-            icon: 'pi pi-save',
+        h(Popover, { ref: linkPopover }, () => h('div', { class: 'flex items-center gap-2 p-2' }, [
+          h(InputText, {
+            modelValue: linkUrl.value,
             size: 'small',
-            text: true,
-            class: remoteChanged.value && dirty.value ? '' : 'ml-auto',
-            loading: saving.value,
-            disabled: !dirty.value,
-            onClick: save
-          })
-        ]),
+            class: 'w-72',
+            type: 'url',
+            placeholder: t('editors.linkAddress'),
+            'aria-label': t('editors.linkAddress'),
+            'onUpdate:modelValue': value => { linkUrl.value = value; },
+            onKeydown: event => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                applyLink();
+              }
+            }
+          }),
+          h(Button, { icon: 'pi pi-check', severity: 'secondary', text: true, rounded: true, size: 'small', 'aria-label': t('common.apply'), onClick: applyLink })
+        ])),
         h('div', { ref: editorHost, class: 'crepe-host text-prose min-h-0 flex-1 overflow-y-auto', 'aria-label': t('editors.text') })
       ]);
     }

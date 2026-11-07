@@ -2683,6 +2683,7 @@
         "notStationed": "This type has no authored declaration in the active process.",
         "unsavedLeave": "Leave with unsaved declaration changes?",
         "editStates": "Edit states",
+        "editFields": "Edit fields",
         "addStates": "Add states",
         "stateLabel": "Label",
         "moveUp": "Move up",
