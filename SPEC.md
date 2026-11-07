@@ -1169,11 +1169,13 @@ collection whose loaded pool fills no data column beside identity keeps
 the table — the stacked identifier-only list projection is retired.
 
 A collection's header cluster is quiet by default (owner direction
-2026-11-06): the header renders the label, the count chip, the create
-affordance, and one view control; search, filters, sort, and the
-projection switch live behind the view control's popover, which carries
-the active condition count as its badge. Hover-capable pointers reveal
-the cluster on header hover; coarse pointers keep every control pinned.
+2026-11-06, amended 2026-11-07): the header renders the label, the
+count chip, the create affordance, and one view control; search,
+filters, sort, and the projection switch live behind the view control's
+popover, which carries the active condition count as its badge. The
+view control renders pinned with its label on every host — a control
+that hides itself until hover reads as removed (owner finding
+2026-11-07).
 
 ### 22.16 The state surface is one control (owner direction 2026-10-31)
 
@@ -1438,3 +1440,38 @@ tests over every legal and illegal edge. A needed transition the table
 lacks is a contract defect; the table gains the edge and its test. A
 persisted state written outside its owner's seam is a defect regardless
 of the values written.
+
+## 26. User space (owner direction 2026-11-07)
+
+Users expand the workspace beside the process: custom pages, custom
+collection views, and instance-page customization are user data, never
+process definitions — framework collections carrying markdown blocks
+through the one editor engine.
+
+Custom pages are markdown documents in a framework pages collection
+(organization, name, parent). Users create their own sidebar sections
+and nest pages freely; the sidebar is user-organizable beside the
+process panels.
+
+A custom view is a saved representation of an existing collection: the
+per-type view state (search, filters, sort, projection) plus its type,
+named, embeddable as a block on pages and record pages. A view is a
+saved lens: it queries through the ordinary read paths and grants and
+carries no access of its own.
+
+Instance pages carry rights-gated custom blocks around the declared
+content. Declared blocks — the property rows, the collections —
+reorder and never delete; custom blocks compose around them.
+
+The AI block is ask/answer: the organization's assistant answers in
+place under the opener's delegated principal, rendered as markdown,
+persisted with the page; re-asking re-runs it.
+
+All authored content renders through the one markdown pipeline and
+authors through one slash vocabulary: the format toolbar retires —
+typing `/` offers the whole block set (headings, toggles, callouts,
+dividers, code, page links, view embeds, AI blocks) in the text
+editor, custom pages, and instance blocks alike.
+
+The action inbox retires (owner direction 2026-11-07): the surface and
+its endpoint die; the create palette stays.

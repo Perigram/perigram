@@ -5495,3 +5495,64 @@ Session `agent/md-record-20261106` (worktree
   select's closed control stays clean), every chain placement renders
   the full visible path (the collapsed compact teaser is gone), and the
   hosts' wrapper markup is deleted.
+
+## User space programs (owner direction 2026-11-07)
+
+Law: SPEC §26 (user space), §22.15 amendment (the view control pinned
+and labeled). Owner words this session: more Notion — custom collection
+views added anywhere, non-process-definition custom pages in separate
+top-level collections, instance pages customizable (text blocks, custom
+views; declared fields move, never delete), Notion AI block, all md
+rendering with one slash vocabulary (format toolbar dies). The inbox
+retires. Custom views reuse the existing view machinery — saved lenses
+over existing collections, nothing new to project.
+
+### F. Phase 0 — discoverability repair, inbox retirement, review residue
+
+- [ ] View control pinned and labeled on every host (SPEC §22.15
+  amendment); hover-quieting of the header cluster dies.
+- [ ] Inbox retirement: the pane tab, /inbox route + mobile tab, sidebar
+  entries (both shapes), the /active/inbox endpoint + its spec and README
+  rows, nav.inbox keys — zero reachability; the create palette stays.
+- [ ] Review residue: SurfaceDetailBody's duplicated property-row
+  markup collapses to one loop; ChatThreadStage's sub-ladder badge font
+  joins the ladder; EntityPopup README gains the document+comments
+  pointer; the deslop spec's negative-space phrasing dies; canvas
+  FieldNode renders ref accepts through the type-label resolver (the
+  enrichment pass threads it — the live SPEC §4 violation).
+
+### G. Slash and md unification (SPEC §26)
+
+- [ ] Format toolbar dies; the slash panel carries the full vocabulary:
+  headings 1-6, toggle, callout, divider, fenced code, page link, view
+  embed, AI block — one grammar in the text editor and every block
+  authoring surface.
+
+### H. Custom pages (SPEC §26)
+
+- [ ] Framework pages collection + API; md block documents; user-created
+  sidebar sections with nested pages; create/rename/move/delete through
+  the palette and explorer gestures.
+
+### I. Custom view blocks (SPEC §26)
+
+- [ ] Save-the-view affordance on collection headers; the saved view
+  (type + view state, named) renders as a block on pages and record
+  pages through the ordinary list contract; read paths and grants
+  unchanged.
+
+### J. Instance-page overlays (SPEC §26)
+
+- [ ] Rights-gated custom blocks around declared content on record
+  pages; declared blocks reorder-only; overlay storage keyed by
+  instance.
+
+### K. AI block (SPEC §26)
+
+- [ ] Ask/answer block through the org assistant under the delegated
+  principal; answer rendered as md, persisted with the page; re-ask
+  re-runs.
+
+Session reads per phase: phase F — SPEC §22.15, §26 inbox paragraph,
+components/ui-mapping README (view control), components/generated
+README (inbox), the 2026-11-07 review findings in Program E notes.
