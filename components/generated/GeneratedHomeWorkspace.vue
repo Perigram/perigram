@@ -21,7 +21,7 @@
             <img v-else src="/icon.svg" alt="Perigram" class="h-7 w-7" />
           </NuxtLink>
           <div v-if="!sidebarCollapsed" class="flex items-center gap-1">
-            <CreatePalette />
+            <CreatePalette @create-page="createCustomPage()" />
             <Button
               icon="pi pi-chevron-left"
               text
@@ -54,7 +54,7 @@
           class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto p-1.5"
           :aria-label="$t('nav.home')"
         >
-          <CreatePalette />
+          <CreatePalette @create-page="createCustomPage()" />
           <span class="relative inline-flex">
             <Button
               icon="pi pi-comments"
@@ -96,17 +96,40 @@
             :title="node.label"
             @click="openTypeScreen(node.data.screen)"
           />
+          <Button
+            v-for="section in userSections"
+            :key="section._id"
+            icon="pi pi-folder-open"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="sectionLabel(section)"
+            :title="sectionLabel(section)"
+            @click="expandSectionFromRail(section)"
+          />
         </nav>
 
         <!-- Expanded navigation is one raw PanelMenu: two communication
              entries first — Chats opens the chats page, and Calls toggles
              its suggestions flyout and carries active call rooms as rows
              only while calls run — then one panel per top-level explorer
-             type. Default rows
-             carry the registry icons and title-resolver labels. The
-             capture click handler splits header and row clicks from
-             collapse toggling (chevron-only). -->
-        <div v-else class="min-h-0 flex-1 overflow-y-auto p-1.5">
+             type, the user sections with their nested pages, and loose
+             root pages; the new-section affordance sits at the foot.
+             Default rows carry the registry icons and title-resolver
+             labels. The capture click handler splits header and row
+             clicks from collapse toggling (chevron-only); the same seam
+             routes context gestures (right-click, long-press) on user
+             sections and pages to their context menu. -->
+        <div
+          v-else
+          class="min-h-0 flex-1 overflow-y-auto p-1.5"
+          @contextmenu.capture="onSidebarContextMenu"
+          @touchstart.passive="onSidebarTouchStart"
+          @touchmove.passive="onSidebarTouchCancel"
+          @touchend="onSidebarTouchCancel"
+          @touchcancel="onSidebarTouchCancel"
+        >
           <PanelMenu
             v-model:expanded-keys="expandedKeys"
             :model="sidebarMenuModel"
@@ -124,7 +147,56 @@
               <i v-else :class="iconClass" aria-hidden="true" />
             </template>
           </PanelMenu>
+          <Button
+            :label="t('pages.newSection')"
+            icon="pi pi-plus"
+            text
+            size="small"
+            severity="secondary"
+            class="mt-1 w-full justify-start text-muted"
+            :aria-label="t('pages.newSection')"
+            @click="createSection"
+          />
         </div>
+
+        <!-- Section and page authoring: the context menu, the rename and
+             move dialogs over the organization's sections and pages. -->
+        <ContextMenu ref="pagesContextMenu" :model="pagesMenuModel" />
+        <StandardDialog
+          v-model:visible="renameVisible"
+          :title="t('common.rename')"
+          size="sm"
+          :save-disabled="!renameDraft.trim()"
+          @cancel="renameVisible = false"
+          @save="commitRename"
+        >
+          <InputText
+            v-model="renameDraft"
+            size="small"
+            class="w-full"
+            :placeholder="t('common.unnamed')"
+            :aria-label="t('common.rename')"
+            @keydown.enter.prevent="commitRename"
+          />
+        </StandardDialog>
+        <StandardDialog
+          v-model:visible="moveVisible"
+          :title="t('pages.moveTitle')"
+          size="sm"
+          @cancel="moveVisible = false"
+          @save="commitMove"
+        >
+          <TreeSelect
+            :model-value="moveSelection"
+            :options="moveTreeOptions"
+            option-label="label"
+            option-value="key"
+            selection-mode="single"
+            class="w-full"
+            :placeholder="t('pages.root')"
+            @update:model-value="keys => selectMoveKey(keys)"
+          />
+        </StandardDialog>
 
         <!-- The Calls flyout is anchored at whichever entry toggled it
              (expanded row or wrapped icon) and lives outside the two
@@ -207,7 +279,7 @@
          nothing routes away from the shell on mobile. -->
     <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden" data-home-workspace-mobile>
       <header class="flex h-12 shrink-0 items-center justify-end px-4">
-        <CreatePalette />
+        <CreatePalette @create-page="createCustomPage()" />
       </header>
       <div class="min-h-0 flex-1 overflow-y-auto p-4">
         <GeneratedScreenHost
@@ -237,11 +309,16 @@ import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Badge from 'primevue/badge';
 import PanelMenu from 'primevue/panelmenu';
+import ContextMenu from 'primevue/contextmenu';
+import InputText from 'primevue/inputtext';
+import TreeSelect from 'primevue/treeselect';
 import { useConfirm } from 'primevue/useconfirm';
+import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { isWorkspacePageDirty, setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
 import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
 import { useEntityPopup } from '~/composables/useEntityPopup';
@@ -262,6 +339,7 @@ import { useInstancesStore } from '~/stores/instances';
 import { useRegistryStore } from '~/stores/registry';
 import { useSupportChatStore } from '~/stores/supportChat';
 import { useCallsStore } from '~/stores/calls';
+import { usePagesStore } from '~/stores/pages';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js';
 import { callRoomIcon } from '~/utils/call-rooms.js';
@@ -300,9 +378,11 @@ const instances = useInstancesStore();
 const registryStore = useRegistryStore();
 const supportChatStore = useSupportChatStore();
 const callsStore = useCallsStore();
+const pagesStore = usePagesStore();
 const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
 const confirm = useConfirm();
+const toast = useToast();
 const activePaneId = ref('pane-1');
 const paneSequence = ref(1);
 
@@ -323,6 +403,10 @@ const paneHistories = ref(new Map());
 const PANE_HISTORY_LIMIT = 50;
 const sidebarCollapsed = ref(false);
 const expandedKeys = ref({});
+// Explicitly collapsed user sections persist with the workspace layout
+// (v3-compatible addition); sections auto-expand on first sight
+// otherwise, like the type hierarchy.
+const collapsedSectionKeys = ref([]);
 const callsFlyout = ref(null);
 const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
@@ -488,6 +572,7 @@ const workspaceItems = computed(() => [
   ...openedPageItems.value,
   ...callPageItems.value,
   ...chatPageItems.value,
+  ...customPageItems.value,
   ...staticPageItems.value
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
@@ -544,10 +629,14 @@ const visibleTypes = computed(() => new Set(screenfulTypes.value));
 
 // The PanelMenu model: type nodes become panels (their registry icon is
 // PanelMenu's item icon), entity nodes become rows carrying the workspace
-// item for the #item slot, and the communication entries lead.
+// item for the #item slot, the communication entries lead, and the user
+// sections follow the type panels with their nested page trees; loose
+// root pages render as root rows.
 const sidebarMenuModel = computed(() => [
   ...communicationPanelModels(),
-  ...explorerNodes.value.map(node => typePanelItem(node))
+  ...explorerNodes.value.map(node => typePanelItem(node)),
+  ...userSectionItems(),
+  ...loosePageItems()
 ]);
 
 // Menu selection follows the active pane's selected tab: a type screen
@@ -565,6 +654,8 @@ const selectedMenuKeys = computed(() => {
     keys.add(typeMenuKey(typeId));
   } else if (item.kind === 'page' && item.pageId === 'chats') {
     keys.add('communication:chats');
+  } else if (item.kind === 'page' && item.pageId === 'customPage' && item.docId) {
+    keys.add(`${PAGE_KEY_PREFIX}${item.docId}`);
   } else if (typeId) {
     const instanceIdValue = item.instanceId || instanceId(item.entity);
     if (instanceIdValue) keys.add(`${typeId}:${instanceIdValue}`);
@@ -730,6 +821,267 @@ function activeRoomItems() {
     label: room.participants ? `${activeRoomLabel(room)} (${room.participants})` : activeRoomLabel(room),
     command: () => openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })
   }));
+}
+
+// User sections and their pages (SPEC §26): a section is the sidebar's
+// root grouping — a collapsible panel with nested page rows; a loose
+// page (no section) renders as a root row beside the panels. Rows open
+// the page as a workspace tab; context gestures author the tree.
+const SECTION_KEY_PREFIX = 'page-section:';
+const PAGE_KEY_PREFIX = 'custom-page:';
+
+const userSections = computed(() => pagesStore.sections);
+
+function sectionMenuKey(section = {}) {
+  return `${SECTION_KEY_PREFIX}${section._id}`;
+}
+
+function pageMenuKey(page = {}) {
+  return `${PAGE_KEY_PREFIX}${page._id}`;
+}
+
+function sectionLabel(section = {}) {
+  return section.name || t('common.unnamed');
+}
+
+function pageLabel(page = {}) {
+  return page?.name || t('common.unnamed');
+}
+
+function pageChildrenOf(parentId) {
+  const wanted = parentId == null ? null : String(parentId);
+  return pagesStore.pages.filter(page => page.kind === 'page' && (page.parentId ?? null) === wanted);
+}
+
+function customPageItem(page) {
+  const selected = selectedMenuKeys.value.has(pageMenuKey(page));
+  const children = pageChildrenOf(page._id);
+  return {
+    key: pageMenuKey(page),
+    icon: 'pi pi-file',
+    label: pageLabel(page),
+    class: selected ? 'rounded-ui bg-[var(--ck-chrome-subtle)]' : undefined,
+    docId: page._id,
+    command: menuCommand(pageMenuKey(page), () => openCustomPageTab(page._id)),
+    items: children.length ? children.map(customPageItem) : undefined
+  };
+}
+
+function userSectionItems() {
+  return userSections.value.map(section => ({
+    key: sectionMenuKey(section),
+    icon: 'pi pi-folder-open',
+    label: sectionLabel(section),
+    items: pageChildrenOf(section._id).map(customPageItem)
+  }));
+}
+
+function loosePageItems() {
+  return pageChildrenOf(null).map(customPageItem);
+}
+
+// The organization's pages load beside the process panels once the
+// caller has an active organization; an organization switch refetches.
+watch(() => [
+  authStore.userIsSet,
+  authStore.organizationData?._id || authStore.userData?.organizationId
+], ([, organizationId], [, previousOrganizationId] = []) => {
+  if (!authStore.userIsSet || !organizationId) return;
+  if (previousOrganizationId && previousOrganizationId !== organizationId) {
+    pagesStore.reload();
+    return;
+  }
+  pagesStore.ensureLoaded();
+}, { immediate: true });
+
+async function createSection() {
+  try {
+    const section = await pagesStore.createSection();
+    expandedKeys.value = { ...expandedKeys.value, [sectionMenuKey(section)]: true };
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
+}
+
+async function createCustomPage(parentId = null) {
+  try {
+    const page = await pagesStore.createPage(parentId);
+    openCustomPageTab(page._id);
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
+}
+
+const pagesContextMenu = ref(null);
+const pagesMenuModel = ref([]);
+const renameVisible = ref(false);
+const renameDraft = ref('');
+const renameTargetId = ref('');
+const moveVisible = ref(false);
+const moveTargetId = ref('');
+const moveSelection = ref(null);
+let sidebarLongPressTimer = null;
+
+function pageOrSectionByKey(key = '') {
+  if (key.startsWith(SECTION_KEY_PREFIX) || key.startsWith(PAGE_KEY_PREFIX)) {
+    return pagesStore.pageById(key.replace(/^(page-section:|custom-page:)/, ''));
+  }
+  return null;
+}
+
+function onSidebarContextMenu(event) {
+  const element = event.target?.closest?.('.p-panelmenu-header, .p-panelmenu-item');
+  const row = element ? pageOrSectionByKey(menuKeyForElement(element)) : null;
+  if (!row) return;
+  event.preventDefault();
+  event.stopPropagation();
+  openPagesMenu(row, event);
+}
+
+// Long-press opens the same context menu as right-click (the chat
+// gesture): the press must hold past scroll intent, so any touch move
+// cancels it.
+function onSidebarTouchStart(event) {
+  const touch = event.touches?.[0];
+  if (!touch) return;
+  onSidebarTouchCancel();
+  sidebarLongPressTimer = setTimeout(() => {
+    sidebarLongPressTimer = null;
+    onSidebarContextMenu({ target: event.target, pageX: touch.pageX, pageY: touch.pageY, preventDefault: () => {}, stopPropagation: () => {} });
+  }, 500);
+}
+
+function onSidebarTouchCancel() {
+  if (sidebarLongPressTimer) {
+    clearTimeout(sidebarLongPressTimer);
+    sidebarLongPressTimer = null;
+  }
+}
+
+function openPagesMenu(row, event) {
+  const section = row.kind === 'section';
+  pagesMenuModel.value = [
+    ...(section
+      ? [{ label: t('pages.newPage'), icon: 'pi pi-plus', command: () => createCustomPage(row._id) }]
+      : []),
+    { label: t('common.rename'), icon: 'pi pi-pencil', command: () => openRename(row) },
+    ...(section ? [] : [{ label: t('pages.move'), icon: 'pi pi-arrows-alt', command: () => openMove(row) }]),
+    { label: t('common.delete'), icon: 'pi pi-trash', command: () => confirmDeletePage(row) }
+  ];
+  pagesContextMenu.value?.show(event);
+}
+
+function openRename(row) {
+  renameTargetId.value = row._id;
+  renameDraft.value = row.name || '';
+  renameVisible.value = true;
+}
+
+async function commitRename() {
+  const name = renameDraft.value.trim();
+  const id = renameTargetId.value;
+  renameVisible.value = false;
+  if (!id || !name) return;
+  try {
+    await pagesStore.rename(id, name);
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
+}
+
+// The move picker covers the organization's sections and pages plus the
+// root; the moved page's own subtree stays out (the server refuses
+// cycles as the authority).
+const moveTreeOptions = computed(() => {
+  if (!moveVisible.value) return [];
+  const excluded = new Set(collectSubtreeIds(moveTargetId.value));
+  const nodeFor = page => ({
+    key: `move:${page._id}`,
+    label: page.name || t('common.unnamed'),
+    children: pagesStore.pages
+      .filter(candidate => candidate.parentId === page._id && !excluded.has(candidate._id))
+      .map(nodeFor)
+  });
+  const roots = pagesStore.pages
+    .filter(page => !page.parentId && !excluded.has(page._id))
+    .map(nodeFor);
+  return [{ key: 'move:root', label: t('pages.root'), children: roots }];
+});
+
+function collectSubtreeIds(id = '') {
+  const ids = new Set([String(id)]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const page of pagesStore.pages) {
+      if (page.parentId && ids.has(String(page.parentId)) && !ids.has(page._id)) {
+        ids.add(page._id);
+        grew = true;
+      }
+    }
+  }
+  return [...ids];
+}
+
+function openMove(row) {
+  moveTargetId.value = row._id;
+  moveSelection.value = { [`move:${row.parentId || 'root'}`]: true };
+  moveVisible.value = true;
+}
+
+function selectMoveKey(keys) {
+  const key = keys ? Object.keys(keys).find(Boolean) : null;
+  moveSelection.value = key ? { [key]: true } : null;
+}
+
+async function commitMove() {
+  const selected = Object.keys(moveSelection.value || {})[0] || 'move:root';
+  const parentId = selected === 'move:root' ? null : selected.replace(/^move:/, '');
+  const id = moveTargetId.value;
+  moveVisible.value = false;
+  if (!id) return;
+  try {
+    await pagesStore.move(id, parentId);
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
+}
+
+function confirmDeletePage(row) {
+  confirm.require({
+    header: t('common.delete'),
+    message: t('pages.deleteConfirm', { name: row.name || t('common.unnamed') }),
+    icon: 'pi pi-exclamation-triangle',
+    rejectLabel: t('common.cancel'),
+    acceptLabel: t('common.delete'),
+    accept: () => deletePage(row)
+  });
+}
+
+async function deletePage(row) {
+  try {
+    await pagesStore.remove(row._id);
+    if (row.kind === 'section') {
+      collapsedSectionKeys.value = collapsedSectionKeys.value.filter(key => key !== sectionMenuKey(row));
+    }
+    closeTabsByKey(`page:customPage:${row._id}`);
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
+}
+
+function closeTabsByKey(key) {
+  customPageRefs.value = customPageRefs.value.filter(reference => reference.key !== key);
+  setWorkspacePageDirty(key, false);
+  for (const pane of [...panes.value]) {
+    if ((pane.tabKeys || []).includes(key)) closePaneTabConfirmed(pane.id, key);
+  }
+}
+
+function expandSectionFromRail(section = {}) {
+  sidebarCollapsed.value = false;
+  collapsedSectionKeys.value = collapsedSectionKeys.value.filter(key => key !== sectionMenuKey(section));
+  expandedKeys.value = { ...expandedKeys.value, [sectionMenuKey(section)]: true };
 }
 
 // The sidebar footer's second line: the active organization's name (the
@@ -914,6 +1266,29 @@ watch(explorerNodes, value => {
   expandedKeys.value = next;
 }, { immediate: true });
 
+// Sections follow the type-panel law: auto-expand on first sight, honor
+// an explicit collapse. A collapse recorded in expandedKeys lands in the
+// persisted set; re-expanding drops it again.
+watch(userSections, value => {
+  const next = { ...expandedKeys.value };
+  for (const section of value) {
+    const key = sectionMenuKey(section);
+    if (!(key in next) && !collapsedSectionKeys.value.includes(key)) next[key] = true;
+  }
+  expandedKeys.value = next;
+}, { immediate: true });
+
+watch(expandedKeys, (next, previous = {}) => {
+  for (const section of userSections.value) {
+    const key = sectionMenuKey(section);
+    if (key in next && key in previous && next[key] !== previous[key]) {
+      collapsedSectionKeys.value = next[key]
+        ? collapsedSectionKeys.value.filter(candidate => candidate !== key)
+        : [...new Set([...collapsedSectionKeys.value, key])];
+    }
+  }
+});
+
 // Active rooms must be visible the moment they exist: the Calls entry
 // carries them as rows, so it auto-expands on the empty-to-active
 // transition (initial load included); an explicit collapse while calls
@@ -939,6 +1314,7 @@ function applyPersistedWorkspaceState(key) {
   openedPageRefs.value = state.openedPageRefs;
   openedScreenRefs.value = state.openedScreenRefs || [];
   sidebarCollapsed.value = Boolean(state.sidebarCollapsed);
+  collapsedSectionKeys.value = state.collapsedSectionKeys || [];
   hydratedStorageKey.value = key;
 }
 
@@ -959,7 +1335,7 @@ watch(workspaceStorageKey, key => {
 });
 
 watch(
-  [paneTree, activePaneId, paneSequence, openedEntityRefs, openedPageRefs, openedScreenRefs, sidebarCollapsed],
+  [paneTree, activePaneId, paneSequence, openedEntityRefs, openedPageRefs, openedScreenRefs, sidebarCollapsed, collapsedSectionKeys],
   () => {
     const key = workspaceStorageKey.value;
     if (!key || hydratedStorageKey.value !== key || typeof window === 'undefined') return;
@@ -970,7 +1346,8 @@ watch(
       openedEntityRefs: openedEntityRefs.value,
       openedPageRefs: openedPageRefs.value,
       openedScreenRefs: openedScreenRefs.value,
-      sidebarCollapsed: sidebarCollapsed.value
+      sidebarCollapsed: sidebarCollapsed.value,
+      collapsedSectionKeys: collapsedSectionKeys.value
     });
   },
   { deep: true }
@@ -1111,6 +1488,24 @@ function openEphemeralTab(refs, record) {
     refs.value = [...refs.value, record];
   }
   if (activePane.value) selectPaneTab(activePane.value.id, record.key, { newTab: true });
+}
+
+// Custom page tabs follow the pinned-chat rule: one ephemeral tab per
+// page document; labels resolve live from the pages store, so renames
+// reach open tabs without refresh.
+const customPageRefs = ref([]);
+
+const customPageItems = computed(() => customPageRefs.value.map(reference => ({
+  key: reference.key,
+  kind: 'page',
+  pageId: 'customPage',
+  docId: reference.docId,
+  label: pageLabel(pagesStore.pageById(reference.docId))
+})));
+
+function openCustomPageTab(docId = '') {
+  if (!docId) return;
+  openEphemeralTab(customPageRefs, { key: `page:customPage:${docId}`, docId });
 }
 
 function openChatTab(conversationKey = '', label = '') {
@@ -1428,6 +1823,7 @@ function forgetClosedTabRefs(key) {
     openedScreenRefs.value = openedScreenRefs.value.filter(reference => reference.key !== key);
     if (callPageRefs.value.some(call => call.key === key)) callsStore.tabClosed(key);
     callPageRefs.value = callPageRefs.value.filter(call => call.key !== key);
+    customPageRefs.value = customPageRefs.value.filter(reference => reference.key !== key);
   }
 }
 

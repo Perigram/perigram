@@ -128,6 +128,12 @@ and `rolled-back` are settled observations; the next write re-enters
   and pen overrides create/update the org shadow — system rows are never
   mutated. Lookups keep the editor contract (`data.code`/`data.category`,
   `getByCode`/`getByCategory`, `ensureStandards()`).
+- `pages.js`: The organization's custom pages and sidebar sections (SPEC
+  §26) over `/api/pages`: the tree projection (`pages`, `sections`,
+  `pageById`), per-document content loads, and the create/rename/move/
+  save/delete verbs. Mutations are direct fetches; an organization switch
+  refetches (`reload`). The home sidebar and the custom page surface are
+  the consumers.
 - `penTemplates.js`: Pen-template catalog accessor over the generic
   instance transport (tech-drawing pack): system/org grouping by tenancy
   (personal pens become org pens), stroke data under `pen.data.stroke`,

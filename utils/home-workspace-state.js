@@ -37,8 +37,9 @@ export function saveHomeWorkspaceState(storage, key, state) {
 // workspace normalization contract; explorer fields are not part of the
 // home shell and are dropped here. Home panes additionally never exist
 // without a tab, so tabless leaves normalize to a default empty tab.
-// `sidebarCollapsed` is a v3-compatible addition: stored states without
-// it default to the expanded sidebar.
+// `sidebarCollapsed` and `collapsedSectionKeys` are v3-compatible
+// additions: stored states without them default to the expanded sidebar
+// and no collapsed sections.
 function paneState(value) {
   const state = normalizeProjectWorkspaceState(value);
   return {
@@ -48,6 +49,7 @@ function paneState(value) {
     openedEntityRefs: state.openedEntityRefs,
     openedPageRefs: state.openedPageRefs,
     openedScreenRefs: state.openedScreenRefs,
-    sidebarCollapsed: Boolean(value?.sidebarCollapsed)
+    sidebarCollapsed: Boolean(value?.sidebarCollapsed),
+    collapsedSectionKeys: Array.isArray(value?.collapsedSectionKeys) ? value.collapsedSectionKeys : []
   };
 }

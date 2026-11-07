@@ -100,6 +100,11 @@ Routes are grouped into sub-directories corresponding to features:
   relations: active-organization listing, request, accept, decline, and
   cancel/terminate, all gated by `organizations:admin` on the respective
   side (see the [partnerships feature](../features/partnerships/README.md)).
+- `pages/`: The organization's custom pages and sidebar sections (SPEC
+  §26): tree listing (content excluded), create, full read, one PATCH
+  for rename/move/content, and delete with detach semantics. Members of
+  the active organization read and write (see the
+  [pages feature](../features/pages/README.md)).
 - sheet designs ride the generic instance transport
   (`/api/instances/sheet-design`, SPEC §13): the editor recomputes the
   layout client-side and patches generically; DXF export rides

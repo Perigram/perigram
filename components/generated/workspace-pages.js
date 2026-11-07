@@ -11,6 +11,7 @@ import { fileWorkspacePages } from '~/components/generated/file-surfaces.js';
 // Registry rows (ids, labels, icons, route maps) stay synchronous.
 const ChatSupport = defineAsyncComponent(() => import('~/components/ChatSupport.vue'));
 const CallWorkspacePage = defineAsyncComponent(() => import('~/components/calls/CallWorkspacePage.vue'));
+const CustomPageSurface = defineAsyncComponent(() => import('~/components/generated/CustomPageSurface.vue'));
 const DirectoryDetailSurface = defineAsyncComponent(() => import('~/components/directory/DirectoryDetailSurface.vue'));
 const OrganizationTeamPage = defineAsyncComponent(() => import('~/pages/organization/users.vue'));
 const OrganizationModelsPage = defineAsyncComponent(() => import('~/pages/organization/models.vue'));
@@ -128,6 +129,17 @@ export const fixedWorkspacePages = [
       room: page.room,
       conversationKey: page.conversationKey || ''
     })
+  },
+  // A custom page (SPEC §26): one tab per page document, keyed by the
+  // page id on the workspace item (the chats/calls ephemeral-ref rule —
+  // the registry row is a singleton surface, the data drives the tabs).
+  {
+    id: 'customPage',
+    labelKey: 'pages.page',
+    icon: 'pi pi-file',
+    component: CustomPageSurface,
+    ephemeral: true,
+    props: page => ({ docId: page.docId || '' })
   }
 ];
 

@@ -171,6 +171,56 @@ The home shell's first-class action surface (SPEC §4):
   the dialog collects the parent). Runs execute through
   the instances store's action-run channel and land through the
   created-open contract above.
+- The palette also carries the pinned **New page** entry (SPEC §26) as
+  its own group above the type groups under the same search needle; the
+  control renders while the organization carries pages even with no
+  compiled creates. The entry emits `create-page` to the host — the
+  workspace creates the page through the pages API and opens its tab.
+
+## Custom Pages
+
+Custom pages (SPEC §26) are the user's own markdown documents — a
+framework collection served by the
+[pages feature](../../server/features/pages/README.md), rendered and
+authored through the one editor engine, never an instance payload.
+
+- The home sidebar carries the user's sections after the type panels:
+  collapsible `PanelMenu` panels (folder glyph) with nested page rows
+  (file glyph); a loose page — no section — renders as a root row beside
+  the panels, like the communication entries. Rows open the page as a
+  pane tab; a quiet New section affordance sits at the panels' foot and
+  creates an unnamed section. Context gestures on sections and pages —
+  right-click or long-press — carry the authoring menu (new page inside
+  for sections; rename through a dialog; move through a parent picker
+  over the organization's sections and pages with the sidebar-root
+  choice; delete through the shared confirm). Sections auto-expand on
+  first sight like the type panels; an explicit collapse persists per
+  section key with the workspace layout (`collapsedSectionKeys`, a
+  v3-compatible addition). The wrapped rail carries one icon per
+  section; the icon expands the sidebar and that section.
+- `customPage` is a registered workspace page over
+  `CustomPageSurface.vue`, keyed per page document on the workspace item
+  (`docId`), following the ephemeral-ref rule the pinned chats and calls
+  use: one tab per page, session-scoped, labels resolving live from the
+  pages store (renames reach open tabs), the page glyph in the tab
+  strip. The create palette's New page entry creates the document
+  through the API and opens the tab.
+- The surface renders the document read through the host markdown
+  pipeline (`shared/markdown.js` — the one renderer; the pipeline
+  renders empty server-side by its own law) and mounts the live engine
+  after mount: the crepe configuration follows the documents plugin's
+  reference mount (`workers/documents/surfaces/text-editor.mjs` — every
+  engine chrome off), and the block vocabulary, the slash panel, the
+  source-markers plugin, and the CodeMirror theme come from the same
+  share modules the plugin serves (`surfaces/lib/`), imported over the
+  app's own dependency graph — the grammar is consumed, never copied.
+  The crepe theme and the editor voice css load from the plugin's
+  assets, so both editor mounts read identically. The page-link,
+  view-embed, and AI-block vocabulary entries stay dark until phases
+  I/K. The name edits in place (the rename channel); save patches
+  content through the pages API, dirty-gated, registered on the
+  workspace page-dirty registry so pane-close confirms; a new page
+  starts blank — unnamed document, empty editor.
 
 ## Overload Registry
 
@@ -437,8 +487,11 @@ from the compiled manifest.
   beside the wrap control when expanded; wrapped, the sidebar becomes an
   icon rail (brand mark, the create control, chats, and calls
   first — the same order the expanded menu leads with — then one icon
-  per top-level panel, avatar) and the wordmark returns on expand; the
+  per top-level panel and per user section, avatar) and the wordmark
+  returns on expand; the
   wrapped state persists with the workspace layout (`sidebarCollapsed`).
+  User sections ride the rail under the same law (the
+  [custom pages](#custom-pages) section owns their contract).
   Communication is two entries in the menu: Chats is a plain entry
   opening the general chats pane tab in the active pane and carrying
   the total unread badge in both sidebar shapes (the wrapped rail's
@@ -551,7 +604,7 @@ from the compiled manifest.
   tab strips, split
   right/down, pane-local close, registered workspace pages (every editor
   surface — cassette designer, sheet layout editor, sketch, text/csv,
-  table import — plus chats), and screen panes
+  table import — plus chats and custom pages), and screen panes
   (`GeneratedScreenPane`): type
   screens and instance-bound detail screens both render through
   `GeneratedScreenHost` — the single generator host, with the instance id
@@ -564,7 +617,8 @@ from the compiled manifest.
   belongs to sidebar sections and entity operations to the detail
   screens' own action surfaces.
 - Tab creation is explicit: new tabs come only from the tab strip's add
-  control, sidebar type screens, explorer instance rows, and live call stages (calls stay in their own tab so workspace
+  control, sidebar type screens, explorer instance rows, custom page
+  rows and the palette's New page entry, and live call stages (calls stay in their own tab so workspace
   navigation never unmounts an active call). Every other navigation —
   explorer rows, nested entity links, workspace pages — reuses the pane's
   selected tab in place (replacing an empty placeholder like any content), and

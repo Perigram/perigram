@@ -3423,6 +3423,16 @@
         "searching": "Searching…",
         "noResults": "Nothing found"
     },
+    "pages": {
+        "title": "Pages",
+        "page": "Page",
+        "newPage": "New page",
+        "newSection": "New section",
+        "move": "Move…",
+        "moveTitle": "Move page",
+        "root": "Sidebar root",
+        "deleteConfirm": "Delete {name}?"
+    },
     "partnerships": {
         "title": "Partners",
         "hint": "Organization partners and requests",

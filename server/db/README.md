@@ -25,4 +25,5 @@ Unique indexes: `cassettes.identity.slug`, memberships
 remaining manifest collections carry lookup indexes: `cassettes` by lineage,
 `status_events` by target and
 timestamp, `workflow_overrides` by organization/type/status,
-`organizations` by type, `push_subscriptions` by user.
+`organizations` by type, `pages` by organization and by
+organization+parent, `push_subscriptions` by user.
