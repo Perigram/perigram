@@ -2072,7 +2072,11 @@
         },
         "saveView": "Сохранить вид",
         "viewName": "Название",
-        "viewMissing": "Этот вид недоступен"
+        "viewMissing": "Этот вид недоступен",
+        "addBlock": "Добавить блок",
+        "textBlock": "Текст",
+        "moveSectionUp": "Выше",
+        "moveSectionDown": "Ниже"
     },
     "uiConstructor": {
         "title": "Демо UI-конструктора",

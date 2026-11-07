@@ -1,6 +1,10 @@
 <template>
   <div v-if="variant === 'full'" :class="LAYOUT.stack">
-    <SurfaceDetailBody v-bind="detailBodyProps" variant="full" v-on="detailBodyEvents" />
+    <SurfaceDetailBody v-bind="detailBodyProps" variant="full" v-on="detailBodyEvents">
+      <template #document-section="scope">
+        <slot name="document-section" v-bind="scope" />
+      </template>
+    </SurfaceDetailBody>
   </div>
 
   <Card v-else class="w-full">
@@ -41,7 +45,12 @@ const props = defineProps({
   statePolicy: { type: Object, default: null },
   // The depth-0 record treatment (`record` | `peek`), threaded to the
   // detail body.
-  presentation: { type: String, default: 'record' }
+  presentation: { type: String, default: 'record' },
+  // The instance's saved overlay (SPEC §26), threaded to the detail body.
+  overlay: { type: Object, default: null },
+  // The document's child collection sections (SPEC §26), threaded to the
+  // detail body.
+  childSections: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['run', 'inline-change', 'open-instance']);
@@ -57,7 +66,9 @@ const detailBodyProps = computed(() => ({
   expanded: expanded.value,
   coveredRelations: props.coveredRelations,
   editable: props.editable,
-  presentation: props.presentation
+  presentation: props.presentation,
+  overlay: props.overlay,
+  childSections: props.childSections
 }));
 const toggleRelation = key => {
   expanded.value[key] = !expanded.value[key];

@@ -1563,4 +1563,4 @@ export const cardVariantFor = defaultMapping.cardVariantFor;
 export const cardAnatomyFor = defaultMapping.cardAnatomyFor;
 export const tableColumnCount = defaultMapping.tableColumnCount;
 export const cardFactCount = defaultMapping.cardFactCount;
-export { composeScreen, buildInstancePool, screenWeight } from './screen.js';
+export { composeScreen, buildInstancePool, screenWeight, recordChildSectionKey, composeDocumentSections } from './screen.js';
