@@ -524,6 +524,7 @@ const staticBoundarySpecs = new Set([
   'components/ui-rework-review.spec.js',
   'components/generated/project-workspace.spec.js',
   'components/generated/project-file-operations.spec.js',
+  'components/chat/record-comments.spec.js',
 ]);
 const specFiles = walkDir('.').filter(file => file.endsWith('.spec.js') && !file.includes('node_modules'));
 specFiles.forEach(file => {

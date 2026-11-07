@@ -5383,3 +5383,21 @@ Session `agent/md-record-20261106` (worktree
   page's top on the page mount (blank editor pages carry none), and the
   editor surface stays pure content — its working-set tiles keep their
   own per-record chains.
+
+  #### Agent Notes (2026-11-07, comments re-key repair)
+
+  Owner report: the record page's comments section kept one record's
+  thread across record opens. Root cause: every record host (routed
+  page on a param-only navigation, pane tab on in-place content
+  replacement, record popup on an in-place request swap) reuses the
+  mounted chain and feeds `RecordComments` new props reactively, but
+  `useChatThread`'s pin opens one conversation per mount by design (the
+  call-workspace pin law) — a changed `conversationKey` prop never
+  re-opens, so the band kept the first record's thread. Fix at the
+  owning seam: `RecordComments` keys the `RecordCommentsThread` mount
+  by the record identity (`typeId:instanceId`), remounting the thread
+  with every record swap; no watcher surgery in the shared thread core.
+  Pinned by `components/chat/record-comments.spec.js`: the thread binds
+  the conversation of the record it mounts for (instance and
+  user-direct branches) and the band keys the mount by both record
+  coordinates.
