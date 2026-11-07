@@ -5348,3 +5348,16 @@ Session `agent/md-record-20261106` (worktree
   section head) and none for lineage-less records — moving the chain to
   the editor top is an owner decision on that surface's spec, recorded
   here.
+
+  ### Agent Notes (2026-11-07, lawful TraceChain)
+
+  Owner review: the unification crowned the legacy component. TraceChain
+  now implements the current laws — titles through the one title
+  resolver (`titleFor`) with the entity type label as the unresolved
+  fallback (record ids and hardcoded English fallbacks die with
+  `FALLBACK_LABELS`), crumbs open the shared record popup
+  (`useEntityPopup`, the one interactive-reference law) replacing
+  self-routing to detail routes, and the legacy `lineage` prop,
+  `entityContext` injection, `useLineage`, and `TraceLink` are deleted.
+  Consumers unchanged (same props surface); ui-lab drops the TraceLink
+  primitive.

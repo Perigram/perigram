@@ -362,7 +362,7 @@ beside the transition history in `StateHistory`.
   containment cross-cut (`crossCut` on the composed node — scoped sources
   render inside the surface that already states their parent): every
   identity renders outside its parent's surface, and the identifier
-  surface carries the lineage trail beneath it (see `InstanceIdentity`).
+  surface carries the lineage chain at its top (see `InstanceIdentity`).
   Containment navigation belongs to the workspace
   explorer.
 - `CardGrid.vue` — the media and membership collection projection

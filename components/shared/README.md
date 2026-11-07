@@ -845,32 +845,28 @@ transcription stay in the host composer.
 
 ## Navigation & Links (`components/shared/links/`)
 
-- **`TraceLink.vue`**: Atomic, icon-aware navigation link for lineage/status
-  location rows where direct route navigation is intended. Do not use it for
-  entity relation summaries inside cards/details; use `InstanceInlineRef` so the
-  relation resolves through `useEntity` and the registered entity card.
-- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` and an explicit canonical entity type—never pass raw ancestry arrays or infer types from lineage key spelling. Resolves names async through the instances store over the §3 wire title (the `fields` identifier row); cached per session. Its `exclude` refs remove explicit ancestry. Generated detail routes also exclude an ancestor only when the route carries that compiled Lineage key with the same entity id, preventing the app breadcrumb and entity trace from repeating the same context. In process mode the chain follows the effective compiled Lineage bindings only.
+- **`TraceChain.vue`**: The one lineage-chain surface: the record's declared
+  containment ancestry as a compact crumb strip, rendered by record
+  headers, entity cards, chat, collection identities, and the plugin
+  component pack. Always use `:entity="entity"` and an explicit canonical
+  entity type—never pass raw ancestry arrays or infer types from lineage
+  key spelling. Titles resolve async through the instances store's
+  readable-reference seam and the one title resolver (`titleFor`) over
+  the §3 wire identifier row; an ancestor whose name never resolves (a
+  deleted or unreadable parent) renders its entity type label, and raw
+  lineage ids never render. Its `exclude` refs remove explicit ancestry,
+  and the active organization's reference is always omitted. In process
+  mode the chain follows the effective compiled lineage bindings only;
+  non-process routes may use canonical domain containment.
   Card title chrome uses compact trace mode: it shows the nearest parent
   lineage item and an ellipsis expander when more ancestry exists. Expanded
-  popovers and detail pages render the full lineage breadcrumb chain. Supported
-  lineage parents are whatever exact keys the effective compiled bindings
-  declare; non-process routes may use canonical domain containment.
-  Trace labels must resolve to entity display names from context or the entity
-  store; raw lineage ids are link targets only and must not be shown as labels.
-  An ancestor whose name never resolves (a deleted or unreadable parent)
-  renders its entity type label in the slot.
-  Trace links must route through the represented entity surface. In active
-  process mode they resolve through the user's effective generated screen
-  manifest and use the same `/screens/:screenKey?instanceId=...` detail contract
-  as generated collection rows; if the user has no matching detail screen, the
-  breadcrumb renders as non-clickable text. Static routes are used only outside
-  process mode and only for entities with real static surfaces.
+  popovers and detail pages render the full lineage breadcrumb chain.
+  Crumbs open the shared record popup (`useEntityPopup`) — the one
+  interactive-reference law — and render as plain text when the ancestor's
+  type resolves no record surface.
   Entity card bodies must not duplicate these supported lineage parents as
   `InstanceInlineRef` rows or generated `entityRef` fields; keep body relation
   rows for non-lineage provenance and relations that TraceChain does not own.
-  Development surfaces can provide `entityContext`; `TraceChain` prefers those
-  in-memory entities for labels before calling authenticated APIs, so fixture
-  lineage does not create protected API errors.
 
 ---
 
@@ -1043,7 +1039,7 @@ control itself.
 Do not hide all meaningful body content behind `variant === 'card'`; relation
 popovers depend on the same default slot body being available in inline and
 compact cards.
-Nested interactive children such as `InstanceState`, `TraceLink`,
+Nested interactive children such as `InstanceState`, `TraceChain`,
 `GeometryPreview`, buttons, and nested inline entity cards
 mark themselves as card-interactive targets. Parent card click handlers must use
 `utils/interactive-target.js` before emitting view/select actions. Cards whose

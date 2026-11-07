@@ -1086,8 +1086,8 @@ surface: the type glyph and the subtle type label under the title name
 its type, and no host heading, subtitle, or dialog title repeats the
 record's name or type. The record header carries the record's declared
 containment ancestors as a compact, background-free breadcrumb trail
-above the identity line; each ancestor opens its record through the
-surface's instance-open channel. An instance rendered outside its
+above the identity line; each ancestor opens the shared record popup —
+one crumb behavior on every host. An instance rendered outside its
 parent's surface carries the same trail beneath its identity (owner
 direction 2026-11-06): the one identifier surface renders it for every
 collection projection of an unscoped class list, the media tile and the
