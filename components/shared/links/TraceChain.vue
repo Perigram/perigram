@@ -3,7 +3,7 @@
         <ol class="flex max-w-full flex-wrap items-center gap-1 text-muted text-supporting">
             <li v-for="(item, index) in visibleItems" :key="`${item.type}-${item.id || index}`" class="flex min-w-0 items-center gap-1">
                 <Button
-                    v-if="item.type === 'separator'"
+                    v-if="item.type === 'separator' || item.type === 'expand'"
                     icon="pi pi-ellipsis-h"
                     text
                     rounded
@@ -12,28 +12,20 @@
                     class="h-6 w-6 shrink-0 p-0"
                     @click="isExpanded = true"
                 />
-                <Button
-                    v-else-if="item.type === 'expand'"
-                    icon="pi pi-ellipsis-h"
-                    text
-                    rounded
-                    size="small"
-                    :aria-label="$t('common.more')"
-                    class="h-6 w-6 shrink-0 p-0"
-                    @click="isExpanded = true"
-                />
-                <TraceLink
-                    v-else
-                    :type="item.type"
-                    :id="item.id"
-                    :label="labels[labelKey(item)] || item.label || ''"
-                    :fallback-label="fallbackLabel(item)"
-                    :to="routeForItem(item)"
-                    :disabled="!routeForItem(item)"
-                    :slug="item.slug"
-                    class="max-w-[14rem]"
-                />
-                <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-muted"></i>
+                <button
+                    v-else-if="openable(item.type)"
+                    type="button"
+                    class="inline-flex min-w-0 items-center gap-1.5 rounded-ui p-1"
+                    @click.stop="openAncestor(item)"
+                >
+                    <i :class="iconFor(item.type)" class="shrink-0" aria-hidden="true"></i>
+                    <span class="max-w-[14rem] truncate">{{ labelOf(item) }}</span>
+                </button>
+                <span v-else class="inline-flex min-w-0 items-center gap-1.5 rounded-ui p-1">
+                    <i :class="iconFor(item.type)" class="shrink-0" aria-hidden="true"></i>
+                    <span class="max-w-[14rem] truncate">{{ labelOf(item) }}</span>
+                </span>
+                <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-muted" aria-hidden="true"></i>
             </li>
         </ol>
     </nav>
@@ -41,124 +33,82 @@
 
 <script setup>
 /**
- * TraceChain - v24 Standardized
- * Visualizes the ancestry tree for any entity.
- * Names are resolved async via the instances store (cached, no duplicate fetches).
+ * TraceChain — the one lineage-chain surface: the record's declared
+ * containment ancestry as a compact crumb strip. Titles resolve through
+ * the one title resolver (`titleFor`) over the readable-reference seam;
+ * an ancestor whose name never resolves reads as its entity type label
+ * (record ids never render). Crumbs open the shared record popup
+ * (`useEntityPopup`) — the one interactive-reference law — so every
+ * host (record headers, entity cards, chat, collection identities,
+ * plugin surfaces) behaves identically with no per-host wiring.
  */
-import { ref, computed, inject, toRef, unref, watchEffect } from 'vue';
-import TraceLink from './TraceLink.vue';
+import { ref, computed, watchEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
-import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
-import { useLineage } from '~/composables/useBlocks';
+import { titleFor } from '#shared/ui-mapping/index.js';
+import { useRegistryStore } from '~/stores/registry';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
-import { instanceRecordTitle } from '~/utils/instance-shape.js';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
-import { containmentAncestors, normalizeHierarchyType, traceContextExclusions, visibleTraceAncestors } from '~/utils/instance-hierarchy.js';
+import { useEntityPopup } from '~/composables/useEntityPopup.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
+import { containmentAncestors, traceContextExclusions, visibleTraceAncestors } from '~/utils/instance-hierarchy.js';
 
 const props = defineProps({
     entity: { type: Object, default: null },
     typeId: { type: String, default: '' },
-    lineage: { type: Object, default: null },
     expandable: { type: Boolean, default: false },
     variant: { type: String, default: 'full' },
     exclude: { type: Array, default: () => [] }
 });
 
-const instances = useInstancesStore();
+const { t, te } = useI18n();
+const registry = useRegistryStore();
 const authStore = useAuthStore();
-const { typeById } = useFileTypeView();
+const instances = useInstancesStore();
 const effectiveContainment = useEffectiveContainment();
-const entityContext = inject('entityContext', null);
+const { typeById } = useFileTypeView();
+const popup = useEntityPopup();
 const isExpanded = ref(!props.expandable);
-const { lineage: entityLineage } = useLineage(toRef(props, 'entity'));
-const labels = ref({});
-const resolvedEntities = ref({});
-
-const FALLBACK_LABELS = {
-    organization: 'Organization',
-    cassette: 'Cassette'
-};
-
-const activeLineage = computed(() => props.lineage || entityLineage.value);
-const effectiveExclusions = computed(() => traceContextExclusions({
-    exclusions: props.exclude,
-    activeOrganizationId: authStore.organizationData?._id || authStore.userData?.organizationId || ''
-}));
+const resolved = ref({});
 
 const items = computed(() => visibleTraceAncestors(
     containmentAncestors(
-        { ...(props.entity || {}), lineage: activeLineage.value || {} },
+        props.entity || {},
         props.typeId || props.entity?.typeId || '',
         effectiveContainment()
     ),
-    effectiveExclusions.value
+    traceContextExclusions({
+        exclusions: props.exclude,
+        activeOrganizationId: authStore.organizationData?._id || authStore.userData?.organizationId || ''
+    })
 ));
 
-const findContextEntity = (type, id) => {
-    const context = unref(entityContext);
-    if (!context?.entities || !type || !id) return null;
-    const key = id.toString();
-    const byType = context.entities[normalizeHierarchyType(type)];
-    if (byType?.[key]) return byType[key];
-    if (Array.isArray(byType)) {
-        return byType.find(entity => entity?._id?.toString() === key) || null;
-    }
-    return Object.values(byType || {}).find(entity => entity?._id?.toString() === key) || null;
-};
+const keyOf = item => `${item.type}:${item.id}`;
+const iconFor = type => registry.iconFor(type);
+const openable = type => popup.openable(type);
 
-const labelKey = (item) => `${item.type}:${item.id}`;
+function openAncestor(item) {
+    popup.open({ typeId: item.type, instanceId: String(item.id) });
+}
 
-const fallbackLabel = (item) => item?.label || FALLBACK_LABELS[item?.type] || '';
+function labelOf(item) {
+    const instance = resolved.value[keyOf(item)];
+    if (!instance) return generatedEntityLabel(item.type, { t, te });
+    return titleFor(instance, typeById(item.type), { unnamedLabel: t('common.unnamed') });
+}
 
-// Wire DTOs carry the title in `fields` (the identifier row); screen
-// instances keep the legacy name slots.
-const entityLabel = (entity, typeId = '') => {
-    if (!entity) return '';
-    const title = instanceRecordTitle(entity, typeById(normalizeHierarchyType(typeId)));
-    if (title) return title;
-    return entity?.name
-        || entity?.title
-        || entity?.data?.name
-        || entity?.data?.title
-        || entity?.fields?.name
-        || '';
-};
-
-const routeForItem = (item) => {
-    if (!item?.type || !item?.id) return null;
-    const resolvedEntity = resolvedEntities.value[labelKey(item)] || null;
-    if (authStore.processActive) {
-        return detailRouteForInstance({
-            entity: resolvedEntity || { _id: item.id },
-            typeId: generatedTypeId(item.type),
-            manifest: authStore.screenManifest
-        });
-    }
-    // Non-process orgs render plain labels: routing is manifest-derived
-    // only — the hardcoded legacy per-entity route tables are gone.
-    return null;
-};
-
-const generatedTypeId = (type) => {
-    return normalizeHierarchyType(type);
-};
-
-// Resolve entity names for all lineage items, using the injected context first.
 watchEffect(async () => {
     for (const item of items.value) {
-        const key = labelKey(item);
-        if (labels.value[key]) continue;
-        const contextEntity = findContextEntity(item.type, item.id);
-        const entity = contextEntity || await instances.resolveReadableReference(instances.canonicalTypeKey(item.type), item.id, { silent: true });
-        const label = entityLabel(entity, item.type);
-        if (entity) {
-            resolvedEntities.value[key] = entity;
-        }
-        if (label) {
-            labels.value[key] = label;
-        }
+        const key = keyOf(item);
+        if (resolved.value[key]) continue;
+        const dto = await instances.resolveReadableReference(
+            instances.canonicalTypeKey(item.type),
+            item.id,
+            { silent: true }
+        );
+        if (dto) resolved.value[key] = dto;
     }
 });
 

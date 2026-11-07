@@ -127,9 +127,6 @@
               </DesignerWorkspace>
             </template>
 
-            <template v-else-if="primitive.key === 'TraceLink'">
-              <TraceLink type="organization" :id="MOCK_IDS.organizationId" :label="$t('uiLab.fixtures.downtownComplex')" slug="acme-manufacturing" />
-            </template>
 
             <template v-else-if="primitive.key === 'TraceChain'">
               <TraceChain :entity="primitiveEntity" type-id="cassette" />
@@ -242,7 +239,6 @@ import frameworkManifest from '~/framework.manifest.json';
 import InstanceState from '~/components/shared/state/InstanceState.vue';
 import StateHistory from '~/components/shared/state/StateHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
 import FactRows from '~/components/shared/FactRows.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
@@ -290,7 +286,6 @@ const PRIMITIVE_EXAMPLE_KEYS = [
   'DesignerWorkspace',
   'DesignerDialog',
   'GeometryPreview',
-  'TraceLink',
   'TraceChain',
   'ActionToolbar',
   'ResponsiveGrid',
