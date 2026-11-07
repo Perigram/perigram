@@ -59,8 +59,6 @@
                       v-if="parented"
                       :entity="instance"
                       :type-id="type?.id || ''"
-                      variant="compact"
-                      expandable
                       :class="FILE_CHIP_CLASS"
                     />
                   </div>

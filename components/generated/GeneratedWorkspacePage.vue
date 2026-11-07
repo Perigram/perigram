@@ -28,8 +28,6 @@
         v-if="page.entity"
         :entity="page.entity"
         :type-id="page.typeId || ''"
-        variant="compact"
-        expandable
         :class="definition.flush ? 'px-4 pt-3' : 'pb-2'"
       />
       <!-- Every editor page resolves the same loader component; the page

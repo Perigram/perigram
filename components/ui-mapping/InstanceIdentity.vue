@@ -4,8 +4,6 @@
       v-if="crossCut"
       :entity="instance"
       :type-id="type?.id || ''"
-      variant="compact"
-      expandable
       class="min-w-0"
     />
     <span class="inline-flex min-w-0 items-center gap-2">

@@ -7,6 +7,7 @@ import FactRows from '~/components/shared/FactRows.vue';
 import InstancePeek from '~/components/shared/InstancePeek.vue';
 import StateTag from '~/components/ui-mapping/StateTag.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
 import HoverPeek from '~/components/shared/HoverPeek.vue';
 import ActionButton from '~/components/ui-mapping/ActionButton.vue';
@@ -33,6 +34,9 @@ const props = defineProps({
   fetch: { type: Boolean, default: true },
   interactive: { type: Boolean, default: true },
   variant: { type: String, default: 'inline' },
+  // A tile rendered outside its parent's surface carries its lineage
+  // chain at its own top (hosts of tile rows opt in).
+  trace: { type: Boolean, default: false },
   compactLayout: { type: String, default: 'row' },
   showTypeLabel: { type: Boolean, default: false },
   contextActionEntries: { type: Array, default: () => [] },
@@ -251,7 +255,7 @@ function executeContextualAction(action) {
   >
     <span
       v-if="variant === 'tile' && resolved"
-      class="instance-inline-tile flex min-w-0 max-w-full w-full items-stretch gap-3 rounded-ui border border-content-border bg-content p-2 transition-colors"
+      class="instance-inline-tile flex min-w-0 max-w-full w-full flex-col items-stretch gap-2 rounded-ui border border-content-border bg-content p-2 transition-colors"
       :class="[
         { 'border-primary': active },
         (selectable && interactive) || refOpenable ? 'cursor-pointer hover:bg-subtle' : null
@@ -263,6 +267,13 @@ function executeContextualAction(action) {
       @click="onTileActivate($event)"
       @keydown="onTileKeydown($event)"
     >
+      <TraceChain
+        v-if="trace"
+        :entity="resolved || entity"
+        :type-id="generatedTypeId"
+        class="min-w-0"
+      />
+      <span class="flex min-w-0 w-full items-stretch gap-3">
       <span
         v-if="compactHasPreview"
         :class="LAYOUT.previewSideRow"
@@ -298,6 +309,7 @@ function executeContextualAction(action) {
       </span>
       <span v-if="$slots.trailing" class="inline-flex shrink-0 items-center self-center" @click.stop>
         <slot name="trailing" />
+      </span>
       </span>
     </span>
 

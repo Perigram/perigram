@@ -1521,28 +1521,17 @@ export default function createSurface({ vue, components, locale, queries, record
         return ids;
       });
 
-      const renderSheetTile = entry => h('div', {
+      const renderSheetTile = entry => h(components.InstanceInlineRef, {
         key: entry.id,
-        class: 'flex min-w-0 flex-col gap-1'
-      }, [
-        String(props.record?._id) === String(entry.record?._id)
-          ? null
-          : h(components.TraceChain, {
-            entity: entry.record,
-            typeId: 'sheet-design',
-            variant: 'compact',
-            expandable: true,
-            class: 'min-w-0'
-          }),
-        h(components.InstanceInlineRef, {
-          type: 'sheet-design',
-          entity: entry.record,
-          id: entry.id,
-          variant: 'tile',
-          active: activeSheetId.value === entry.id,
-          selectable: true,
-          onSelect: () => { selectSheet(entry.id); }
-        }, {
+        type: 'sheet-design',
+        entity: entry.record,
+        id: entry.id,
+        variant: 'tile',
+        trace: true,
+        active: activeSheetId.value === entry.id,
+        selectable: true,
+        onSelect: () => { selectSheet(entry.id); }
+      }, {
         trailing: () => [
           cutsOf(entry.id).length > 1
             ? h(components.Button, {
@@ -1567,8 +1556,7 @@ export default function createSurface({ vue, components, locale, queries, record
             onClick: () => { removeSheetFromCanvas(entry); }
           })
         ]
-        })
-      ]);
+      });
 
       const renderSheetsSection = () => h('section', { class: 'flex min-w-0 flex-col gap-3' }, [
         sectionLabel(t('sheetDesign.sheetDesigns')),
