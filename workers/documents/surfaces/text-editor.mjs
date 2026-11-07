@@ -1,8 +1,9 @@
 // The documents plugin's markdown editor surface (surface contract 3 —
 // the capability mount): the single-surface live editing engine
 // (milkdown, through crepe) with every piece of engine chrome disabled —
-// the visible chrome is this toolbar's host primitives and the app's
-// theme. Markdown remains the model: the payload round-trips through the
+// the visible chrome is the host primitives (the document toolbar, the
+// slash panel) and the app's theme. Markdown remains the model: the
+// payload round-trips through the
 // framework's own serializer, no rich-text proxy. The milkdown/codemirror
 // families are declared vendored dependencies (the split vendor build
 // keeps one prosemirror class identity); the crepe theme and the editor
@@ -10,12 +11,11 @@
 // Remote saves reconcile through the host's record-change bridge.
 import { Crepe as CrepeEditor } from '@milkdown/crepe';
 import { $prose, callCommand, replaceAll } from '@milkdown/utils';
-import { editorViewCtx } from '@milkdown/core';
-import { wrapInHeadingCommand, toggleStrongCommand, toggleEmphasisCommand, toggleInlineCodeCommand, turnIntoTextCommand, wrapInBulletListCommand, wrapInOrderedListCommand, wrapInBlockquoteCommand, createCodeBlockCommand, toggleLinkCommand, insertHrCommand, liftListItemCommand } from '@milkdown/preset-commonmark';
-import { lift } from '@milkdown/prose/commands';
+import { toggleLinkCommand } from '@milkdown/preset-commonmark';
 import { createSourceMarkersPlugin } from './lib/source-markers-plugin.js';
 import { codeMirrorTheme } from './lib/cm-theme.js';
 import { createSlashMenu } from './lib/slash-menu.js';
+import { BLOCK_VOCABULARY, applyBlock } from './lib/block-vocabulary.mjs';
 
 const CSS_ASSETS = ['../assets/vendor/crepe-theme.css', '../assets/text-editor.css'];
 
@@ -91,82 +91,26 @@ export default function createSurface({ vue, components, locale, sync, renderMar
         }
       }
 
-      // The format row speaks markdown's own vocabulary. Marks carry
-      // their meaning typographically; every control toggles; heading
-      // commands take the LEVEL as the raw command payload.
-      const formatControls = [
-        { id: 'strong', label: 'B', class: 'font-bold', labelKey: 'editors.bold', command: toggleStrongCommand, off: toggleStrongCommand },
-        { id: 'emphasis', label: 'I', class: 'italic', labelKey: 'editors.italic', command: toggleEmphasisCommand, off: toggleEmphasisCommand },
-        { id: 'code', label: '</>', labelKey: 'editors.inlineCode', command: toggleInlineCodeCommand, off: toggleInlineCodeCommand },
-        { id: 'h1', label: 'H1', labelKey: 'editors.heading1', command: wrapInHeadingCommand, payload: 1, off: turnIntoTextCommand },
-        { id: 'h2', label: 'H2', labelKey: 'editors.heading2', command: wrapInHeadingCommand, payload: 2, off: turnIntoTextCommand },
-        { id: 'h3', label: 'H3', labelKey: 'editors.heading3', command: wrapInHeadingCommand, payload: 3, off: turnIntoTextCommand },
-        { id: 'h4', label: 'H4', labelKey: 'editors.heading4', command: wrapInHeadingCommand, payload: 4, off: turnIntoTextCommand },
-        { id: 'h5', label: 'H5', labelKey: 'editors.heading5', command: wrapInHeadingCommand, payload: 5, off: turnIntoTextCommand },
-        { id: 'h6', label: 'H6', labelKey: 'editors.heading6', command: wrapInHeadingCommand, payload: 6, off: turnIntoTextCommand },
-        { id: 'codeblock', icon: 'pi pi-code', labelKey: 'editors.codeBlock', command: createCodeBlockCommand, off: turnIntoTextCommand },
-        { id: 'paragraph', label: '¶', labelKey: 'editors.paragraph', command: turnIntoTextCommand, off: turnIntoTextCommand },
-        { id: 'bullet', icon: 'pi pi-list', labelKey: 'editors.bulletList', command: wrapInBulletListCommand, off: liftListItemCommand },
-        { id: 'ordered', icon: 'pi pi-list-check', labelKey: 'editors.numberedList', command: wrapInOrderedListCommand, off: liftListItemCommand },
-        { id: 'quote', icon: 'pi pi-comment', labelKey: 'editors.quote', command: wrapInBlockquoteCommand, off: 'lift' }
-      ];
+      // Block authoring rides the slash panel (SPEC §26): the
+      // source-markers plugin reports the focused block's state on
+      // every selection or document change, and the vocabulary actions
+      // (lib/block-vocabulary.mjs) apply at the caret.
+      const blockState = ref({ block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, task: false, marks: [] });
 
-      // The focused block as the toolbar sees it, reported by the
-      // source-markers plugin on every selection or document change.
-      const blockState = ref({ block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, marks: [] });
-      const linkActive = computed(() => blockState.value.marks.includes('link'));
-
-      function isActive(control) {
-        const state = blockState.value;
-        switch (control.id) {
-          case 'strong': return state.marks.includes('strong');
-          case 'emphasis': return state.marks.includes('emphasis');
-          case 'code': return state.marks.includes('code_inline');
-          case 'h1': return state.block === 'heading' && state.headingLevel === 1;
-          case 'h2': return state.block === 'heading' && state.headingLevel === 2;
-          case 'h3': return state.block === 'heading' && state.headingLevel === 3;
-          case 'h4': return state.block === 'heading' && state.headingLevel === 4;
-          case 'h5': return state.block === 'heading' && state.headingLevel === 5;
-          case 'h6': return state.block === 'heading' && state.headingLevel === 6;
-          case 'codeblock': return state.block === 'code_block';
-          case 'paragraph': return state.block === 'paragraph' && !state.bullet && !state.ordered && !state.quote;
-          case 'bullet': return state.bullet;
-          case 'ordered': return state.ordered;
-          case 'quote': return state.quote;
-          default: return false;
-        }
-      }
-
-      // The toolbar row suppresses mousedown so pointer clicks never
-      // steal focus from the editor; keyboard activation returns it.
       function focusRenderedEditor() {
         editorHost.value?.querySelector('.ProseMirror')?.focus();
-      }
-
-      function runFormat(control, { force = false } = {}) {
-        if (!crepe) return;
-        const active = isActive(control);
-        if (active && control.off === 'lift') {
-          // Blockquotes have no preset unwrap command: lift the focused
-          // block out of the quote through the raw prose command.
-          crepe.editor.action(ctx => {
-            const view = ctx.get(editorViewCtx);
-            lift(view.state, view.dispatch, view);
-          });
-          focusRenderedEditor();
-          return;
-        }
-        const command = active && !force && control.off !== null ? control.off : control.command;
-        if (!command) return;
-        crepe.editor.action(callCommand(command.key, control.payload));
-        focusRenderedEditor();
       }
 
       const linkPopover = ref(null);
       const linkUrl = ref('');
 
-      function toggleLinkPopover(event) {
-        linkPopover.value?.toggle(event);
+      // The link entry's hand-off: the address input opens anchored to
+      // the editing surface — the editor selection survives the panel
+      // pick, so the applied link lands at the caret.
+      function openLinkEditor() {
+        const anchor = editorHost.value?.querySelector('.ProseMirror') || editorHost.value;
+        if (!anchor) return;
+        linkPopover.value?.show({ currentTarget: anchor }, anchor);
       }
 
       function applyLink() {
@@ -177,39 +121,9 @@ export default function createSurface({ vue, components, locale, sync, renderMar
         focusRenderedEditor();
       }
 
-      // A three-by-three table node over the gfm schema crepe mounts.
-      function insertTable(view) {
-        const { table, table_row, table_header, table_cell, paragraph } = view.state.schema.nodes;
-        const row = (cellType, count) => table_row.createChecked(null, Array.from({ length: count }, () => cellType.createChecked(null, paragraph.create())));
-        const node = table.createChecked(null, [row(table_header, 3), row(table_cell, 3), row(table_cell, 3)]);
-        view.dispatch(view.state.tr.replaceSelectionWith(node).scrollIntoView());
-      }
-
-      function slashItems() {
-        const headings = [1, 2, 3, 4, 5, 6].map(level => ({
-          id: `h${level}`,
-          label: t(`editors.heading${level}`),
-          match: [`h${level}`, `heading${level}`, 'heading']
-        }));
-        return [
-          { id: 'paragraph', label: t('editors.paragraph'), match: ['text', 'paragraph', 'p'] },
-          ...headings,
-          { id: 'bullet', label: t('editors.bulletList'), match: ['bullet', 'list', 'ul'] },
-          { id: 'ordered', label: t('editors.numberedList'), match: ['ordered', 'numbered', 'ol'] },
-          { id: 'quote', label: t('editors.quote'), match: ['quote', 'blockquote'] },
-          { id: 'codeblock', label: t('editors.codeBlock'), match: ['code', 'codeblock'] },
-          { id: 'divider', label: t('editors.divider'), match: ['divider', 'hr', 'line'] },
-          { id: 'table', label: t('editors.table'), match: ['table'] }
-        ];
-      }
-
       function runSlashPick(id, view) {
-        const control = formatControls.find(entry => entry.id === id);
-        if (control) return runFormat(control, { force: true });
-        if (!crepe) return;
-        if (id === 'divider') crepe.editor.action(callCommand(insertHrCommand.key));
-        if (id === 'table' && view) insertTable(view);
-        focusRenderedEditor();
+        const kind = applyBlock({ id, state: blockState.value, editor: crepe, view, t, openLinkEditor });
+        if (kind !== 'link') focusRenderedEditor();
       }
 
       async function reloadFromRemote() {
@@ -285,7 +199,10 @@ export default function createSurface({ vue, components, locale, sync, renderMar
         crepe.editor.use($prose(() => createSourceMarkersPlugin({
           onSelectionState: next => { blockState.value = next; }
         })));
-        slashMenu = createSlashMenu({ items: slashItems(), onPick: runSlashPick });
+        slashMenu = createSlashMenu({
+          items: BLOCK_VOCABULARY.map(({ id, labelKey, glyph, glyphText, match }) => ({ id, label: t(labelKey), glyph, glyphText, match })),
+          onPick: runSlashPick
+        });
         crepe.editor.use($prose(() => slashMenu.plugin));
         crepe.on(api => api.markdownUpdated(() => {
           // Only post-load changes are edits — a programmatic remote
@@ -364,31 +281,6 @@ export default function createSurface({ vue, components, locale, sync, renderMar
             nameDirty.value
               ? h(Button, { icon: 'pi pi-check', severity: 'secondary', text: true, rounded: true, size: 'small', 'aria-label': t('common.apply'), onClick: commitName })
               : null
-          ]),
-          h('div', { class: 'flex items-center gap-1', onMousedown: event => event.preventDefault() }, [
-            ...formatControls.map(control => h(Button, {
-              key: control.id,
-              icon: control.icon,
-              label: control.label,
-              severity: isActive(control) ? 'primary' : 'secondary',
-              text: true,
-              rounded: true,
-              size: 'small',
-              class: control.class,
-              'aria-label': t(control.labelKey),
-              'aria-pressed': isActive(control),
-              onClick: () => runFormat(control)
-            })),
-            h(Button, {
-              icon: 'pi pi-link',
-              severity: linkActive.value ? 'primary' : 'secondary',
-              text: true,
-              rounded: true,
-              size: 'small',
-              'aria-label': t('editors.link'),
-              'aria-pressed': linkActive.value,
-              onClick: toggleLinkPopover
-            })
           ]),
           h(Popover, { ref: linkPopover }, () => h('div', { class: 'flex items-center gap-2 p-2' }, [
             h(InputText, {

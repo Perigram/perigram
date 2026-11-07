@@ -25,8 +25,9 @@ export function focusedMarkerDescriptors(state) {
   return [{ pos: state.selection.$from.start(), side: -1, text: prefix }];
 }
 
-// The toolbar's view of the selection: focused block kind, heading
-// level, list/quote containers, and the marks about to be applied.
+// The selection's authoring state — focused block kind, heading
+// level, list/quote containers (task lists carry a checked list item),
+// and the marks about to be applied.
 export function selectionState(state) {
   const { from, to, $from, empty } = state.selection;
   const parent = $from.parent;
@@ -41,11 +42,14 @@ export function selectionState(state) {
   let bullet = false;
   let ordered = false;
   let quote = false;
+  let task = false;
   for (let depth = $from.depth; depth >= 1; depth -= 1) {
-    const name = $from.node(depth).type.name;
+    const node = $from.node(depth);
+    const name = node.type.name;
     if (name === 'bullet_list') bullet = true;
     else if (name === 'ordered_list') ordered = true;
     else if (name === 'blockquote') quote = true;
+    else if (name === 'list_item' && node.attrs.checked != null) task = true;
   }
   return {
     block: parent.type.name,
@@ -53,6 +57,7 @@ export function selectionState(state) {
     bullet,
     ordered,
     quote,
+    task,
     marks: [...marks]
   };
 }

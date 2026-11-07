@@ -3,8 +3,7 @@
 // @milkdown/plugin-slash (input tracking + floating-ui positioning);
 // this module owns the menu DOM, query filtering, and keyboard
 // navigation. Picking an item deletes the `/query` text and hands the
-// id to the host editor, which runs the same command path the toolbar
-// uses.
+// id to the host editor, which applies the block-vocabulary action.
 import { Plugin } from '@milkdown/prose/state';
 import { SlashProvider } from '@milkdown/plugin-slash';
 
@@ -45,12 +44,32 @@ export function createSlashMenu({ items, onPick }) {
     element.replaceChildren(...filtered.map((item, index) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = `md-slash-item w-full text-left px-2.5 py-1 rounded-ui text-body text-chrome-foreground hover:bg-chrome-subtle${index === active ? ' bg-chrome-subtle' : ''}`;
-      button.textContent = item.label;
+      button.className = `md-slash-item flex w-full items-center gap-2 text-left px-2.5 py-1 rounded-ui text-body text-chrome-foreground hover:bg-chrome-subtle${index === active ? ' bg-chrome-subtle' : ''}`;
+      button.appendChild(glyphOf(item));
+      const label = document.createElement('span');
+      label.textContent = item.label;
+      button.appendChild(label);
       button.addEventListener('mousedown', event => event.preventDefault());
       button.addEventListener('click', () => pick(index));
       return button;
     }));
+  }
+
+  // The entry's glyph: the host icon font's class when the entry
+  // carries one, else its text glyph (H1…H6). One fixed glyph column
+  // keeps every label on the same edge.
+  function glyphOf(item) {
+    if (item.glyph) {
+      const icon = document.createElement('i');
+      icon.className = `w-6 flex-none text-center ${item.glyph}`;
+      icon.setAttribute('aria-hidden', 'true');
+      return icon;
+    }
+    const text = document.createElement('span');
+    text.className = 'w-6 flex-none text-center';
+    text.setAttribute('aria-hidden', 'true');
+    text.textContent = item.glyphText || '';
+    return text;
   }
 
   function pick(index) {
