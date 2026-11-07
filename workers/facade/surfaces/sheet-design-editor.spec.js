@@ -29,7 +29,13 @@ const ButtonStub = (props, { slots }) => h('button', {
   'aria-label': props['aria-label'] || ''
 }, slots?.default ? slots.default() : null);
 
-const ActionsChainStub = (props) => h('nav', { 'data-trace-chain': String(props.typeId || ''), 'aria-label': 'Traceability' });
+// The chain renders only for records carrying ancestry — the real
+// component's contract.
+const ActionsChainStub = (props) => (
+  props.entity?.lineage && Object.keys(props.entity.lineage).length
+    ? h('nav', { 'data-trace-chain': String(props.typeId || ''), 'aria-label': 'Traceability' })
+    : null
+);
 const mountContext = ({ queries } = {}) => {
   return {
     vue: { h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent },
@@ -127,15 +133,17 @@ describe('sheet-design-editor surface mount', () => {
 
     expect(sheetQueryCalls).toEqual([{}]);
     expect(html.match(/data-ref-variant="tile"/g)).toHaveLength(2);
-    // No lineage, no section chain.
+    // No lineage, no chain anywhere.
     expect(html).not.toContain('data-trace-chain');
   });
 
-  it('renders the family context as one section chain, off the tiles', async () => {
+  it('renders the opened record\'s chain at the editor top', async () => {
     const opened = { ...record, lineage: { familyId: 'parent-1' } };
     const surface = createSurface(mountContext());
     const app = createSSRApp(surface, { record: opened, persistence: { patch: async () => {}, rename: async () => {} } });
     const html = await renderToString(app);
+    // The canvas column opens with the record's chain; the opened
+    // record's own working-set tile states nothing above it.
     expect(html.match(/data-trace-chain="sheet-design"/g)).toHaveLength(1);
   });
 
