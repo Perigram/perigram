@@ -5412,6 +5412,32 @@ Session `agent/md-record-20261106` (worktree
   defects in the same path (field: id shapes, accepts fallback) that
   this render-line fix finally exercises.
 
+  ### Agent Notes (2026-11-07, chain repair)
+
+  Session `agent/bcfix-20261107` (worktree `.agent-worktrees/
+  bcfix-20261107`). Owner report: chains in some places showed the
+  direct parent alone, and crumb icons/chevrons rendered oversized.
+  Diagnosis: (1) `TraceChain` kept a compact/expandable teaser —
+  `InstanceCard` mounts it for any type whose surface contract leaves
+  trace visible — that rendered the nearest ancestor plus an expander;
+  SPEC §22.8's full-trail law owns the contract, so the teaser branch,
+  the `variant`/`expandable` props, and the matching shared-README
+  sentence are deleted; chains longer than three crumbs keep the
+  middle-ellipsis reveal. (2) PrimeVue's base layer pins `.pi` at
+  `1rem`, so the 12px-supporting chain carried 16px glyphs (18px on the
+  mobile root); crumb icons and chevrons now size at `text-[0.75rem]`
+  (the StateTag/StateHistory pattern). Create-context verification on
+  the live stack (fresh org, three-level chain authored through the
+  declaration + process APIs): the scoped create inside the folder
+  detail prompts the name row alone and stores the full chain
+  (`folderId` + derived `shelfId`); the contextless creates (unscoped
+  list button and the global palette) prompt the labeled lineage
+  picker; record header, workspace tab, and cross-cut list identities
+  render the whole chain — the create-context seams hold at HEAD with a
+  consistent declaration set. Pre-existing staleness left as-is:
+  `e2e/process-generated-screen.spec.js` asserts the retired
+  `.p-breadcrumb` selector and bare "New" buttons.
+
   ### Agent Notes (2026-11-06, trail single-homing)
 
   Owner review: the trail was hand-wired per projection and the action

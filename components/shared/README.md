@@ -857,10 +857,9 @@ transcription stay in the host composer.
   lineage ids never render. Its `exclude` refs remove explicit ancestry,
   and the active organization's reference is always omitted. In process
   mode the chain follows the effective compiled lineage bindings only;
-  non-process routes may use canonical domain containment.
-  Card title chrome uses compact trace mode: it shows the nearest parent
-  lineage item and an ellipsis expander when more ancestry exists. Expanded
-  popovers and detail pages render the full lineage breadcrumb chain.
+  non-process routes may use canonical domain containment. Every mount
+  renders the full visible path; a chain longer than three crumbs hides
+  its middle behind an ellipsis that reveals it.
   Crumbs open the shared record popup (`useEntityPopup`) — the one
   interactive-reference law — and render as plain text when the ancestor's
   type resolves no record surface.
