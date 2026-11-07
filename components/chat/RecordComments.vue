@@ -8,7 +8,16 @@
       ref="band"
       class="relative flex h-support-chat min-h-0 flex-col overflow-hidden rounded-panel border border-chrome-border bg-content"
     >
-      <RecordCommentsThread v-if="active" :type-id="typeId" :instance-id="instanceId" :name="name" />
+      <!-- The thread remounts with the opened record: every host (routed
+           page, pane tab, popup) swaps the record in place through this
+           band. -->
+      <RecordCommentsThread
+        v-if="active"
+        :key="`${typeId}:${instanceId}`"
+        :type-id="typeId"
+        :instance-id="instanceId"
+        :name="name"
+      />
     </div>
   </section>
 </template>
