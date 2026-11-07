@@ -2072,7 +2072,11 @@
         },
         "saveView": "Save view",
         "viewName": "Name",
-        "viewMissing": "This view is unavailable"
+        "viewMissing": "This view is unavailable",
+        "addBlock": "Add block",
+        "textBlock": "Text",
+        "moveSectionUp": "Move up",
+        "moveSectionDown": "Move down"
     },
     "uiConstructor": {
         "title": "UI Constructor Demo",

@@ -93,6 +93,10 @@
         </div>
       </div>
       <div :class="LAYOUT.row" class="header-actions">
+        <!-- Host-authored cluster entries (the record overlay's save
+             affordance, SPEC §26) render ahead of the record's action
+             groups. -->
+        <slot name="cluster" />
         <!-- The cluster groups by control kind — record utilities (the
              construct re-derive), generated actions, machine transitions
              — one tight group per kind with hairline dividers between

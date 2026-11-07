@@ -270,6 +270,42 @@ export function screenWeight(screen = {}) {
   return walk(screen.regions);
 }
 
+// The section key of a record document's child region (SPEC §26): a
+// relation-scoped child addresses its relation key — the same key the
+// relation's inline chip section would carry, whichever renders it — and
+// a lineage-scoped child addresses its lineage key, else its child type.
+export function recordChildSectionKey(region = {}) {
+  if (region.relationKey) return `relation:${region.relationKey}`;
+  return `children:${region.lineageKey || region.typeId || region.id}`;
+}
+
+// The record document's section flow under an instance overlay (SPEC
+// §26): the authored order decides, declared content always renders — a
+// declared key the order omits appends in derivation order, an order
+// entry naming no current section or block drops, a stored block its
+// order omits appends — so the arrangement survives new declared
+// sections and declared blocks reorder and never delete. A null overlay
+// leaves the derivation order untouched.
+export function composeDocumentSections(declaredKeys = [], overlay = null) {
+  const blocks = Array.isArray(overlay?.blocks) ? overlay.blocks : [];
+  const blockById = new Map(blocks.map(block => [block.id, block]));
+  const known = new Set([...declaredKeys, ...blockById.keys()]);
+  const ordered = [];
+  const seen = new Set();
+  const push = key => {
+    if (known.has(key) && !seen.has(key)) {
+      seen.add(key);
+      ordered.push(key);
+    }
+  };
+  for (const key of Array.isArray(overlay?.order) ? overlay.order : []) push(key);
+  for (const key of declaredKeys) push(key);
+  for (const block of blocks) push(block.id);
+  return ordered.map(key => (blockById.has(key)
+    ? { key, block: blockById.get(key) }
+    : { key, block: null }));
+}
+
 // composeScreen(screen, contract, bundle, pool, options) -> pure region
 // tree. The bundle supplies surface/preview policy per entity type; the
 // pool is the data layer stand-in ({ type -> { id -> instance } }). List

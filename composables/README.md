@@ -145,6 +145,22 @@ screen page and the workspace detail pane both mount it through
 `GeneratedScreenHost`; the host's overload branch (`useGeneratedScreen`)
 keeps its own listener of the same shape.
 
+## useRecordOverlay
+
+`useRecordOverlay({ typeId, instanceId, entity, active, tabKey })` is the
+record document's overlay authoring session (SPEC §26): it holds the draft
+blocks and section order, seeds them from the current composed flow
+(`syncFlow(composedKeys, declaredKeys)` — the render site reports both on
+every change), applies moves/inserts/removals/text edits, and saves the
+whole overlay as one document (a trivial draft — no blocks and the natural
+order — deletes the stored overlay). `writable` resolves through the
+file-surfaces write-grant seam; dirty transitions register on the workspace
+page-dirty registry under `tabKey` so pane-close confirms. The depth-0
+record branch of
+[components/ui-mapping](../components/ui-mapping/README.md)'s RegionBlock
+is the one mount; the section shells, insert picker, text-block editor, and
+the header's save affordance bind to it.
+
 ## useContainerTraits
 
 The container-traits measurement seam of the generative UI

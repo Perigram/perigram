@@ -172,7 +172,20 @@
             @refresh="emit('refresh')"
             @open-instance="emitOpen"
             @expand="emit('expand')"
-          />
+          >
+            <template #cluster>
+              <Button
+                v-if="recordOverlaySession?.dirty"
+                :label="t('common.save')"
+                icon="pi pi-save"
+                size="small"
+                text
+                severity="secondary"
+                :loading="recordOverlaySession.saving"
+                @click="saveOverlay"
+              />
+            </template>
+          </SurfaceHeader>
           <!-- The record's reload lane: a permanent 4px track under the
                header the strip appears inside — bounded, touching no
                content, and its appearance shifts nothing below. -->
@@ -202,13 +215,43 @@
             variant="full"
             :editable="patchable"
             v-on="bodyEvents"
-          />
+          >
+            <template #document-section="{ section }">
+              <DocumentSectionShell
+                :session="recordOverlaySession"
+                :section-key="section.key"
+                :index="section.index"
+                :block="section.block || null"
+              >
+                <RegionChildren
+                  v-if="childRegionFor(section.key)"
+                  v-bind="childrenProps"
+                  v-on="childrenEvents"
+                  :regions="[childRegionFor(section.key)]"
+                />
+                <OverlayTextBlock
+                  v-else-if="section.block?.kind === 'text'"
+                  :block="section.block"
+                  :session="recordOverlaySession"
+                />
+                <ViewEmbed
+                  v-else-if="section.block?.kind === 'view'"
+                  :view-id="section.block.view?.id || ''"
+                  :fallback-name="section.block.view?.name || ''"
+                />
+              </DocumentSectionShell>
+            </template>
+          </SurfaceBody>
           <RegionChildren
-            v-if="node.childRegions.length"
+            v-if="node.childRegions.length && !documentComposing"
             v-bind="childrenProps"
             v-on="childrenEvents"
             :arrangement="node.childArrangement"
           />
+          <!-- The document's foot insert affordance (SPEC §26). -->
+          <div v-if="recordOverlaySession" class="relative flex h-5 items-center">
+            <OverlayInsertControl :session="recordOverlaySession" :at="recordOverlaySession.flowCount" />
+          </div>
         </template>
       </template>
     </DeclarationAuthoring>
@@ -240,11 +283,16 @@
       :instance-id="instanceId"
       :name="recordTitle"
     />
+    <ViewPickerDialog
+      :visible="recordOverlaySession !== null && recordOverlaySession.viewPickerAt !== null"
+      @close="recordOverlaySession?.closeViewPicker()"
+      @pick="view => recordOverlaySession?.pickView(view)"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref, watch } from 'vue';
+import { computed, inject, onMounted, provide, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
@@ -257,8 +305,7 @@ import { useToast } from 'primevue/usetoast';
 import {
   LAYOUT, GAP_BY_LEVEL, toolbarVisibleFor, sortControlRows,
   hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar,
-  listLayoutOf, titleFor,
-  createActionControls
+  listLayoutOf, titleFor, createActionControls, recordChildSectionKey
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter, countPredicates } from '#shared/instance-filters/index.js';
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
@@ -278,9 +325,16 @@ import RegionCollections from './RegionCollections.vue';
 import RegionChildren from './RegionChildren.vue';
 import PlacementBox from './PlacementBox.vue';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
+import { useRecordOverlaySession } from '~/composables/useRecordOverlay.js';
+import { useInstanceOverlaysStore } from '~/stores/instance-overlays';
 import { generatedEntityLabel, generatedActionLabel } from '~/utils/generated-labels.js';
 import { isRelationLinkAction, isRelationUnlinkAction } from '~/utils/action-visibility.js';
 import ActionButton from './ActionButton.vue';
+import DocumentSectionShell from './DocumentSectionShell.vue';
+import OverlayInsertControl from './OverlayInsertControl.vue';
+import OverlayTextBlock from '~/components/generated/OverlayTextBlock.vue';
+import ViewEmbed from '~/components/generated/ViewEmbed.vue';
+import ViewPickerDialog from '~/components/generated/ViewPickerDialog.vue';
 const props = defineProps({
   node: { type: Object, required: true },
   pool: { type: Object, default: () => ({}) },
@@ -332,7 +386,9 @@ const bodyProps = computed(() => ({
   pool: props.pool,
   bundle: props.bundle,
   statePolicy: props.node.statePolicy,
-  presentation: props.presentation
+  presentation: props.presentation,
+  overlay: recordOverlaySaved.value,
+  childSections: recordChildSections.value
 }));
 const childrenProps = computed(() => ({
   regions: props.node.childRegions,
@@ -370,6 +426,53 @@ const instanceId = computed(() => {
   return id ? String(id) : '';
 });
 const recordTitle = computed(() => titleFor(props.node.instances[0], props.node.type, { unnamedLabel: t('common.unnamed') }));
+
+// The instance overlay (SPEC §26) rides the record page alone: the
+// document branch of the depth-0 record in the `record` presentation on
+// routed and pane hosts — the popup and every peek/nested surface keep
+// their own presentations. Readers get the saved composition applied;
+// write-grant holders get the authoring session over it (the
+// file-surfaces write-grant seam decides).
+const overlaysStore = useInstanceOverlaysStore();
+const recordOverlayHost = computed(() => recordDocument.value
+  && hostContainer.value?.hostKind !== 'popup'
+  && Boolean(instanceId.value)
+  && Boolean(props.node.typeId));
+const recordOverlayTypeId = computed(() => (recordOverlayHost.value ? String(props.node.typeId) : ''));
+const recordOverlayInstanceId = computed(() => (recordOverlayHost.value ? instanceId.value : ''));
+const recordOverlaySaved = computed(() => (recordOverlayTypeId.value && recordOverlayInstanceId.value
+  ? overlaysStore.overlayFor(recordOverlayTypeId.value, recordOverlayInstanceId.value)
+  : null));
+const recordChildSections = computed(() => props.node.childRegions
+  .map(region => ({ key: recordChildSectionKey(region), region })));
+const childRegionByKey = computed(() => new Map(recordChildSections.value.map(section => [section.key, section.region])));
+const childRegionFor = key => childRegionByKey.value.get(key) || null;
+const recordOverlay = useRecordOverlaySession({
+  typeId: recordOverlayTypeId,
+  instanceId: recordOverlayInstanceId,
+  entity: computed(() => props.node.instances[0] || null),
+  active: recordOverlayHost,
+  tabKey: inject('workspacePageKey', '')
+});
+const recordOverlaySession = computed(() => (recordOverlay.writable ? recordOverlay : null));
+provide('recordOverlaySession', recordOverlaySession);
+if (import.meta.client) {
+  watch([recordOverlayTypeId, recordOverlayInstanceId], ([typeId, overlayInstanceId]) => {
+    if (typeId && overlayInstanceId) overlaysStore.ensureLoaded(typeId, overlayInstanceId);
+  }, { immediate: true });
+}
+// The composed document: sections move into the body's flow while an
+// overlay or session is live; otherwise the children render after the
+// body as today.
+const documentComposing = computed(() => recordOverlayHost.value
+  && Boolean(recordOverlaySaved.value || recordOverlaySession.value));
+async function saveOverlay() {
+  try {
+    await recordOverlay.save();
+  } catch (error) {
+    toast?.add?.({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
+}
 
 // The standalone list region sits on the section rhythm; embedded ones
 // (side columns, tabs) stack tight.

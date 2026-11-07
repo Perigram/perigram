@@ -110,6 +110,11 @@ Routes are grouped into sub-directories corresponding to features:
   `typeId` filter, create, full read, one PATCH for rename/state, and
   delete. Members of the active organization read and write (see the
   [views feature](../features/views/README.md)).
+- `instance-overlays/:type/:id`: One record-page overlay per instance
+  (SPEC §26): read (`null` when none), one PATCH that creates or replaces
+  the whole document, and delete. Members read; writes take the record's
+  write grant (see the
+  [instance-overlays feature](../features/instance-overlays/README.md)).
 - sheet designs ride the generic instance transport
   (`/api/instances/sheet-design`, SPEC §13): the editor recomputes the
   layout client-side and patches generically; DXF export rides

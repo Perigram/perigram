@@ -15,6 +15,7 @@ import Re_L from '~/assets/presets/re_l';
 import ScreensPage from '~/pages/screens/[screenKey].vue';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
+import { useInstanceOverlaysStore } from '~/stores/instance-overlays';
 
 globalThis.h = h;
 globalThis.watch = watch;
@@ -249,5 +250,48 @@ describe('generated screens page with projected vocabulary', () => {
     expect(html).toContain('Comments');
     expect(html).not.toContain('pi pi-comments');
     expect(html).not.toContain('support.instanceChat');
+  });
+
+  it('renders the record document with a saved overlay composed: a text block and the authored order', async () => {
+    await router.push('/screens/auto_t-k3x9fj2mqa_detail?instanceId=i-1');
+    setActivePinia(createPinia());
+    const authStore = await useAuthStore();
+    await authStore.setUser();
+    useInstancesStore().upsertRecord('t-k3x9fj2mqa', {
+      _id: 'i-1', type: 't-k3x9fj2mqa', name: 'Ticket one',
+      state: 'new', lineage: {}, relations: {}, fields: { note: 'First note' }
+    });
+    // The overlay store's cache renders composed server-side: an authored
+    // text block above the property rows, the editor slot after.
+    useInstanceOverlaysStore().overlays = {
+      't-k3x9fj2mqa:i-1': {
+        blocks: [{ id: 'b1', kind: 'text', text: '## Site notes\nBring tape.' }],
+        order: ['b1', 'properties', 'editor']
+      }
+    };
+    useInstanceOverlaysStore().loaded = { 't-k3x9fj2mqa:i-1': true };
+
+    const i18n = createI18n({
+      legacy: false,
+      missingWarn: false,
+      fallbackWarn: false,
+      messages: { en: { uiMapping: { comments: 'Comments' } } }
+    });
+    const app = createSSRApp({ render: () => h(ScreensPage) });
+    app.use(i18n);
+    app.use(router);
+    app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
+    app.use(ToastService);
+    app.use(ConfirmService);
+    app.directive('tooltip', { getSSRProps: () => ({}) });
+
+    const html = await renderToString(app);
+    // The md pipeline sanitizes in the browser (DOMPurify), so the text
+    // block's body hydrates client-side; the composed document still pins
+    // server-side: the block's section renders ahead of the property rows
+    // (the authored order), the property rows after it.
+    expect(html).toContain('ck-markdown-body');
+    expect(html.indexOf('ck-markdown-body')).toBeLessThan(html.indexOf('First note'));
+    expect(html).toContain('Comments');
   });
 });

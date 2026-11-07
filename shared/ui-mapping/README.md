@@ -760,6 +760,17 @@ the data layer stands in with. The region tree is frozen, pure, and what
 materializes — screens are generated from the contract, never
 handwritten.
 
+`recordChildSectionKey(region)` keys a record document's child region for
+the overlay order (SPEC §26): `relation:<key>` for a relation-scoped
+child (the same key the relation's inline chip section carries),
+`children:<lineageKey | typeId>` for a lineage-scoped one.
+`composeDocumentSections(declaredKeys, overlay)` applies an instance
+overlay to the document's declared section keys — the storage contract
+and its order law (declared keys append in derivation order when the
+authored order omits them; order entries naming nothing drop; stored
+blocks their order omits appends) are canonical in the
+[instance-overlays feature](../../server/features/instance-overlays/README.md).
+
 ## Consumption
 
 - Runtime: [pages/screens/[screenKey].vue](../../pages/README.md) renders

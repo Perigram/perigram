@@ -5898,9 +5898,109 @@ Session `agent/userspace-i-20261107` (worktree
 
 ### J. Instance-page overlays (SPEC §26)
 
-- [ ] Rights-gated custom blocks around declared content on record
+- [x] Rights-gated custom blocks around declared content on record
   pages; declared blocks reorder-only; overlay storage keyed by
   instance.
+  Landed 2026-11-07.
+- [ ] WAITING — owner verification: a write-granted member's record page
+  (routed or pane) hover-reveals each section's controls (insert above,
+  move up/down; edit/delete on custom blocks alone) plus the foot insert
+  affordance; the picker offers Text / View with the saved-views picker
+  behind View; a text block authors inline with the full slash
+  vocabulary; the header cluster's save is dirty-gated and pane-close
+  confirms unsaved overlay edits; every reader sees the authored order
+  with custom blocks composed; the popup and the peek render no overlay;
+  a record nobody customized renders today's document.
+
+#### Agent Notes (2026-11-07, phase J)
+
+Session `agent/userspace-j-20261107` (worktree
+`.agent-worktrees/userspace-j-20261107`).
+
+- J1 (server): the overlays feature is a capability module
+  (`server/features/instance-overlays/` — repository/service/index/README,
+  the pages/views conventions): one org-scoped `instance_overlays`
+  collection, unique on `(organizationId, typeId, instanceId)`, storing
+  `{ blocks, order, updatedBy, updatedAt }`. One PATCH creates or
+  replaces the whole document; read answers the overlay or `null`;
+  delete 404s when none exists. Reads take active-org membership (the
+  pages/views precedent); writes take **the record's own write grant**
+  — `writeGrantTarget` (declaration `access.inherits`, else the class
+  collection) resolved against the loaded instance through
+  `hasInstanceAccess` at write level, fail-closed, the same seam the
+  instance patch transport and the client's `editorWriteGranted` take.
+  A foreign or missing record 404s before grant evaluation. Block
+  payloads validate (v1 kinds `text` → markdown source, `view` →
+  `{ id, name }` — the page fence's shape); malformed blocks/orders
+  refuse 400. Spec 8/8, failure modes first (org gating, foreign 404,
+  grant refusal, one-per-instance replacement, fidelity, validation,
+  delete).
+- J2/J3 (client): the depth-0 record document became a composed section
+  flow. `SurfaceDetailBody` renders its own sections (the property
+  block, the dominant band with the declared structural open sections
+  riding beneath it, each relation section) in the order
+  `composeDocumentSections` resolves, and delegates foreign sections
+  (child collections, custom blocks) to the host slot RegionBlock
+  fills — children through single-region `RegionChildren` stacks, text
+  blocks through `OverlayTextBlock` (read `MarkdownBlocks`/authored
+  `CrepeEditor`), view blocks through `ViewEmbed` verbatim. With no
+  overlay the flow is the derivation order — the fixed document
+  (byte-parity pinned: the record-document smoke and the ui-mapping
+  document specs render unchanged). Authoring: the session
+  (`composables/useRecordOverlay.js`) exists for write-grant holders
+  (the file-surfaces seam decides); shells (`DocumentSectionShell`)
+  hover-reveal move/insert (+edit/delete on blocks); the insert picker
+  (`OverlayInsertControl`) carries the Text/View pair — the slash
+  vocabulary's entry set keyed to document sections, since an overlay
+  is a structured block document, a markdown surface only inside its
+  text blocks; the save affordance rides the header cluster
+  (`SurfaceHeader`'s new `cluster` slot), dirty-gated on the workspace
+  page-dirty registry (the screen pane now provides its tab key), and
+  saves the whole overlay (a trivial draft — no blocks, natural order —
+  deletes it). The overlay store (`stores/instance-overlays.js`) caches
+  per instance; readers get the saved composition applied.
+- Judgment calls, stated: (a) the section-key grammar — `properties`,
+  `editor` (the payload/editor band plus the declared structural open
+  sections that ride beneath it — they move as one flow position in
+  v1), `relation:<key>` (an inline chip section or its relation-scoped
+  child collection, whichever renders it — one key per relation), and
+  `children:<lineageKey | typeId>` for lineage-scoped child sections;
+  the header, the inert stubs, and the trailing comments section sit
+  outside the order. (b) The insert affordance renders as a hover
+  control on each section's leading corner plus the document's foot —
+  a between-sections hover line was the alternative, rejected as
+  untestable at this layer. (c) The popup, the peek, and nested cards
+  render no overlay (the popup is excluded by its `popup`
+  container-traits hostKind; the peek and nested cards never reach the
+  document branch). (d) An emptied child section drops to the stub
+  strip and its order entry goes dormant until the collection refills —
+  declared content keeps rendering under every drift, per the law.
+  (e) Authoring affordances render for holders with no save-state
+  toggle (Notion rhythm: hover-revealed, focus-within reachable).
+- Unslop: the custom page's engine mount, read composition, and view
+  picker were extracted (`CrepeEditor.vue`, `MarkdownBlocks.vue`,
+  `ViewPickerDialog.vue`) and consumed by both surfaces — the overlay
+  mounts the one engine, the one md composition, the one ViewEmbed, the
+  one picker; the relation chip section markup became
+  `RelationChipSection.vue`, the one section both body grammars render.
+- Validation: `server/features/instance-overlays` 8/8;
+  `shared/ui-mapping` 138/138 incl. the new order-law pins (child key
+  grammar, no-overlay identity, interleave, unknown-drop/missing-append,
+  omitted-block append); `components/ui-mapping` 17/17 incl. new
+  `record-overlay.spec.js` 4 (parity, interleave order, append law,
+  view block through the host slot); `components/generated` 55/55;
+  `workers/documents` 29/29; `server/features/{pages,views}` green;
+  localization green; SSR smoke 27/27 (`npx nuxi prepare` +
+  `vitest.ssr.config.js`; new case: a seeded overlay with a text block
+  composes the block's section ahead of the property rows; the md body
+  itself hydrates client-side — DOMPurify is browser-bound, the
+  pipeline's own law); `check-arch` green; `docs:validate` OK. No
+  build/dev-server/Playwright runs (brief).
+- Open: the popover- and editor-level affordances (the insert picker's
+  menu, the inline crepe mount, the save flow) are interaction-scope —
+  SSR cannot render closed popovers or client-only engine mounts; the
+  phase K AI block joins the vocabulary table and the insert picker
+  when it lands.
 
 ### K. AI block (SPEC §26)
 

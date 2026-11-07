@@ -36,7 +36,7 @@
 // instanceDetail or the synthesized fallback) render with the instance id
 // in the screen scope. Instance opens emit `{ typeId, instanceId }` to the
 // workspace — routing stays with the host, never the generator.
-import { computed, ref } from 'vue';
+import { computed, provide, ref } from 'vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -88,6 +88,9 @@ const scopedScreen = computed(() => {
 const activeKey = computed(() => (props.item.instanceId
   ? `screen:${props.item.screenKey}:${props.item.instanceId}`
   : (props.item.screenKey ? `screen:${props.item.screenKey}` : props.item.key)));
+// The pane's tab key: the workspace page-dirty registry keys an open
+// record page's unsaved overlay by its pane tab, so pane-close confirms.
+provide('workspacePageKey', activeKey.value);
 // Screen records resolve after auth hydration; only a hydrated manifest
 // with no matching record — or a template no surface renders — is a
 // not-found.

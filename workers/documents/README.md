@@ -50,7 +50,8 @@ types ride the generic instance machinery from the install snapshot.
   `surfaces/lib/block-vocabulary.mjs` — a pure entry table plus the
   action adapter the editor binds to its engine instance, the one
   grammar every markdown authoring surface mounts: this plugin's text
-  editor over its served engine, the app's custom-page surface
+  editor over its served engine, the app's custom-page surface and the
+  instance overlay's text blocks
   ([components/generated](../../components/generated/README.md))
   over the app's own crepe instance. The view entry hands off to the
   host's picker (`openViewPicker`); hosts that mount no live embed —

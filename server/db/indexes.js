@@ -74,6 +74,14 @@ const INDEXES = {
   views: [
     { keys: { organizationId: 1 }, options: { name: 'org_idx' } },
     { keys: { organizationId: 1, typeId: 1 }, options: { name: 'org_type_idx' } }
+  ],
+
+  // Instance Overlays Collection (record-page custom blocks, SPEC §26)
+  instance_overlays: [
+    {
+      keys: { organizationId: 1, typeId: 1, instanceId: 1 },
+      options: { unique: true, name: 'org_type_instance_unique' }
+    }
   ]
 };
 
