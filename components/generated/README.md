@@ -179,10 +179,9 @@ The home shell's two first-class action surfaces (SPEC §4):
   the shared entity-event invalidation and unreadable or deleted
   instances drop. A row is the §22.13 instance tile
   (`InstanceInlineRef` `tile`) with its admissible actions beside it
-  (`ActionButton`), grouped under the type label, and the lineage
-  trail beneath the tile — every inbox row sits outside its parent's
-  surface, crumbs opening ancestors through the workspace-open seam;
-  a create never
+  (`ActionButton`), grouped under the type label, the shared
+  `TraceChain` at the row's top — every inbox row sits outside its
+  parent's surface; a create never
   appears — the query admits instance-addressed actions only. Empty
   state is a bare `StateBlock`.
 
