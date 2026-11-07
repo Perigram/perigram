@@ -55,12 +55,13 @@
                       @click="openable && $emit('open', instance)"
                       @keydown.enter.prevent="openable && $emit('open', instance)"
                     />
-                    <BreadcrumbTrail
+                    <TraceChain
                       v-if="parented"
-                      :instance="instance"
-                      :bundle="bundle"
+                      :entity="instance"
+                      :type-id="type?.id || ''"
+                      variant="compact"
+                      expandable
                       :class="FILE_CHIP_CLASS"
-                      @open="target => $emit('open', target)"
                     />
                   </div>
                 </template>
@@ -206,7 +207,7 @@ import {
 import { instancePayloadFileUrl } from '~/components/generated/file-preview-contract.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
-import BreadcrumbTrail from './BreadcrumbTrail.vue';
+import TraceChain from '../shared/links/TraceChain.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
 import FileChip from '~/components/shared/FileChip.vue';
 import { CHIP_LABEL_PT, FILE_CHIP_CLASS } from '~/components/shared/chip-surface.js';
