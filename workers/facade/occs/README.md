@@ -273,7 +273,9 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   authored sketch rides `face.extensions.perigram.sketch`. The outer
   ring rotates so its datum edge (y = 0) starts the ring, keeping E0 the
   attachment edge and fold routes stable. The trapezoid face remains the
-  quick path; converting seeds the sketch from the current outline. The
+  quick path; converting seeds the sketch from the current outline. A
+  sketch face with no shapes has zero geometry: it renders nothing,
+  holds its shard, and the designer's workpiece tree marks it. The
   face editor's datum is the parent edge line in shard coordinates (the
   shard start is zero); the parent face renders as a ghost outline in
   those same coordinates, and the editor's hatch evaluates through

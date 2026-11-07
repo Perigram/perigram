@@ -703,7 +703,7 @@ and Y. An invalid expression marks its field with the PrimeVue invalid
 state and carries the reason in the field title.
 
 Owner decision (2026-11-02, faces are parametric shapes; amended
-2026-11-04): a face may be authored as a parametric sketch in the profile
+2026-11-04, 2026-11-07): a face may be authored as a parametric sketch in the profile
 shape model; the trapezoid remains the quick path. Add shapes author the
 face and replace its trapezoid base; subtract shapes cut the result, and
 construction is excluded. A set with no add is a modifier set: it cuts
@@ -718,13 +718,19 @@ authored sketch rides `face.extensions.perigram.sketch`. The face editor
 is the profile editor in face mode: same expressions, fillets, shape
 list, dimensions, and undo stack; the hatch is the face itself. Its datum is the parent
 edge the face mounts to — a horizontal line spanning the host edge in
-the face's shard coordinates (the shard start sits at zero). The parent
+the face's shard coordinates (the shard start sits at zero), drawn as the
+editor's highlighted mount line. The parent
 face renders as a ghost outline in the same coordinates, so the author
 sees the real parent geometry and mounts the child to it. A root face
-uses its own base edge as that line. Converting a trapezoid seeds the
+uses its own base edge as that line. A face created on a shard is born a
+sketch face: its sketch carries the conversion seeding (a rectangle
+keeping the authored width and height bindings), so authoring starts
+with no conversion step. Converting a trapezoid seeds the
 sketch from its current outline, keeping authored width and height
 expressions for a rectangle and a closed chain for any other outline;
-clearing the sketch returns the face to its trapezoid parameters. The
+clearing the sketch returns the face to its trapezoid parameters. A
+sketch face with no shapes has zero geometry: it renders nothing, holds
+its shard, and the workpiece tree marks it. The
 sketch commits to the node live whatever its table resolves to: structural
 edits land while a field error persists, a face whose sketch does not
 evaluate renders its trapezoid base until the table resolves, and the
