@@ -706,8 +706,9 @@ Owner decision (2026-11-02, faces are parametric shapes; amended
 2026-11-04, 2026-11-07): a face may be authored as a parametric sketch in the profile
 shape model; the trapezoid remains the quick path. Add shapes author the
 face and replace its trapezoid base; subtract shapes cut the result, and
-construction is excluded. A set with no add is a modifier set: it cuts
-the face's base host and needs no closed add outline. The result is the
+construction is excluded. The face is its adds minus its subtracts on
+the child's side of the datum; a set with no add leaves the face at
+zero geometry, and its subtracts cut the parent where they land. The result is the
 face region on the child's side of the datum. The child face keeps the material on its side of the datum;
 the parent-side part belongs to the parent cut. Every participating shape
 cuts the parent where it lands — the cut footprint is the union of the
