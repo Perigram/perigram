@@ -5374,3 +5374,21 @@ Session `agent/md-record-20261106` (worktree
   is deleted. The family list channel stays (filters over the record's
   lineage keys). Spec re-pinned: the chain stub renders only for
   records carrying ancestry.
+
+  #### Agent Notes (2026-11-07, comments re-key repair)
+
+  Owner report: the record page's comments section kept one record's
+  thread across record opens. Root cause: every record host (routed
+  page on a param-only navigation, pane tab on in-place content
+  replacement, record popup on an in-place request swap) reuses the
+  mounted chain and feeds `RecordComments` new props reactively, but
+  `useChatThread`'s pin opens one conversation per mount by design (the
+  call-workspace pin law) — a changed `conversationKey` prop never
+  re-opens, so the band kept the first record's thread. Fix at the
+  owning seam: `RecordComments` keys the `RecordCommentsThread` mount
+  by the record identity (`typeId:instanceId`), remounting the thread
+  with every record swap; no watcher surgery in the shared thread core.
+  Pinned by `components/chat/record-comments.spec.js`: the thread binds
+  the conversation of the record it mounts for (instance and
+  user-direct branches) and the band keys the mount by both record
+  coordinates.

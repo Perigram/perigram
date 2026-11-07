@@ -21,7 +21,7 @@ Parent: [components README](../README.md). Target law: [SPEC](./SPEC.md).
 | `ChatMessageBubble.vue` | one message's content: the sender avatar gutter, reply quote, forwarded provenance, body, attachments, instance refs, caption row with the run's seen marks |
 | `ChatComposer.vue` | typing indicator, model select, reply bar, instance target strip, staged files and refs, agent question, voice row, text composer |
 | `ChatSearchPanel.vue` | in-thread search: text, sender, attachment-kind filters over `GET /api/support/search`; result rows jump to the message |
-| `RecordComments.vue` | the record page's trailing comments section (SPEC §22.17): the "Comments" title over a bounded band that mounts the pinned thread on visibility — `instanceThreadKey` (`utils/instance-chat.js`) derives the thread kind (a `user` record rides the direct thread) |
+| `RecordComments.vue` | the record page's trailing comments section (SPEC §22.17): the "Comments" title over a bounded band that mounts the pinned thread on visibility — `instanceThreadKey` (`utils/instance-chat.js`) derives the thread kind (a `user` record rides the direct thread); the thread mount re-keys with the opened record, since every record host (routed page, pane tab, popup) swaps the record in place through the band |
 | `useChatThread.js` | the thread state core: history paging, realtime reconcile, read cursors and seen derivation, send pipeline, staging, strip, dialogs state; returns the reactive bag every child destructures |
 | `useVoiceRecorder.js` | MediaRecorder lifecycle for voice messages; the send tail stays in the thread core |
 State law: children are presentational over the thread bag; template
