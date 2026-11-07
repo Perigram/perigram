@@ -3,7 +3,7 @@
         <ol class="flex max-w-full flex-wrap items-center gap-1 text-muted text-supporting">
             <li v-for="(item, index) in visibleItems" :key="`${item.type}-${item.id || index}`" class="flex min-w-0 items-center gap-1">
                 <Button
-                    v-if="item.type === 'separator' || item.type === 'expand'"
+                    v-if="item.type === 'separator'"
                     icon="pi pi-ellipsis-h"
                     text
                     rounded
@@ -18,14 +18,14 @@
                     class="inline-flex min-w-0 items-center gap-1.5 rounded-ui p-1"
                     @click.stop="openAncestor(item)"
                 >
-                    <i :class="iconFor(item.type)" class="shrink-0" aria-hidden="true"></i>
+                    <i :class="iconFor(item.type)" class="shrink-0 text-[0.75rem]" aria-hidden="true"></i>
                     <span class="max-w-[14rem] truncate">{{ labelOf(item) }}</span>
                 </button>
                 <span v-else class="inline-flex min-w-0 items-center gap-1.5 rounded-ui p-1">
-                    <i :class="iconFor(item.type)" class="shrink-0" aria-hidden="true"></i>
+                    <i :class="iconFor(item.type)" class="shrink-0 text-[0.75rem]" aria-hidden="true"></i>
                     <span class="max-w-[14rem] truncate">{{ labelOf(item) }}</span>
                 </span>
-                <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-muted" aria-hidden="true"></i>
+                <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-[0.75rem] text-muted" aria-hidden="true"></i>
             </li>
         </ol>
     </nav>
@@ -34,13 +34,14 @@
 <script setup>
 /**
  * TraceChain — the one lineage-chain surface: the record's declared
- * containment ancestry as a compact crumb strip. Titles resolve through
+ * containment ancestry as a compact crumb strip, rendered at full visible
+ * path on every host (record headers, entity cards, chat, collection
+ * identities, plugin surfaces). Titles resolve through
  * the one title resolver (`titleFor`) over the readable-reference seam;
  * an ancestor whose name never resolves reads as its entity type label
  * (record ids never render). Crumbs open the shared record popup
  * (`useEntityPopup`) — the one interactive-reference law — so every
- * host (record headers, entity cards, chat, collection identities,
- * plugin surfaces) behaves identically with no per-host wiring.
+ * host behaves identically with no per-host wiring.
  */
 import { ref, computed, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -58,8 +59,6 @@ import { containmentAncestors, traceContextExclusions, visibleTraceAncestors } f
 const props = defineProps({
     entity: { type: Object, default: null },
     typeId: { type: String, default: '' },
-    expandable: { type: Boolean, default: false },
-    variant: { type: String, default: 'full' },
     exclude: { type: Array, default: () => [] }
 });
 
@@ -70,7 +69,7 @@ const instances = useInstancesStore();
 const effectiveContainment = useEffectiveContainment();
 const { typeById } = useFileTypeView();
 const popup = useEntityPopup();
-const isExpanded = ref(!props.expandable);
+const isExpanded = ref(false);
 const resolved = ref({});
 
 const items = computed(() => visibleTraceAncestors(
@@ -113,13 +112,6 @@ watchEffect(async () => {
 });
 
 const visibleItems = computed(() => {
-    if (props.variant === 'compact' && !isExpanded.value) {
-        const last = items.value[items.value.length - 1];
-        if (!last) return [];
-        return items.value.length > 1 && props.expandable
-            ? [{ type: 'expand', id: 'lineage-expand' }, last]
-            : [last];
-    }
     if (isExpanded.value || items.value.length <= 3) return items.value;
     return [items.value[0], { type: 'separator' }, ...items.value.slice(-2)];
 });
