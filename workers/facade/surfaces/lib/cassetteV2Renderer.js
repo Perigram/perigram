@@ -4633,6 +4633,31 @@ const buildCassetteV2LocalTreeCurves = async (sourceTree) => {
         parentEntry?.boundaryVertices || null,
         frame
       );
+      // Zero geometry (no shapes): the face renders nothing, holds its
+      // shard interval, and stays selectable through its base ring.
+      if (!normalizeOccsProfileSketch(node.sketch).shapes.length) {
+        const baseRing = withoutClosingVertex(placeSketchRing(baseLocalVertices, shiftedFrame));
+        const emptyEntry = {
+          node,
+          vertices: [],
+          boundaryVertices: [],
+          holes: [],
+          localVertices: [],
+          localHoles: [],
+          baseLocalVertices,
+          faceCutPolygons: [],
+          frame: shiftedFrame,
+          referenceVertices: baseRing,
+          labelBoundaryVertices: baseRing,
+          shapeType: 'polygon',
+          trapezoid: null,
+          dimensionLabels: {},
+          zeroGeometry: true
+        };
+        entryById.set(node.id, emptyEntry);
+        curves.push(emptyEntry);
+        continue;
+      }
       let region;
       try {
         region = await resolveCassetteV2FaceSketchGeometry(

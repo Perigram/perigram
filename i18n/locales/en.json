@@ -495,6 +495,7 @@
             "faceRole": "Face role",
             "editFaceShape": "Edit shape",
             "useTrapezoidFace": "Use trapezoid",
+            "faceWithoutGeometry": "No geometry",
             "edgeFull": "No free space is left on this edge.",
             "faceShapeEditor": {
                 "title": "Face shape",

@@ -35,6 +35,8 @@ import {
   resolveCassetteV2Expression,
   resolveCassetteV2FaceSketchRegion,
   updateCassetteV2FaceInstance,
+  cassetteV2FaceSketchFromNode,
+  isCassetteV2SketchFace,
   updateCassetteV2FaceSketch,
   updateCassetteV2GraphNode,
   updateCassetteV2Workpiece,
@@ -2607,10 +2609,20 @@ export default function createSurface({ vue, components, locale, queries, record
         selectWorkpieceForInspector(result.selectedWorkpieceId);
       };
 
-      const addFaceAtEdge = (parentId, edgeIndex, options = {}) => {
+      const addFaceAtEdge = async (parentId, edgeIndex, options = {}) => {
         if (!parentId && parentId !== '') return;
         const result = addCassetteV2GraphChild(cassetteTree.value, parentId, edgeIndex, options);
-        cassetteTree.value = result.tree;
+        let tree = result.tree;
+        if (!result.refused) {
+          // A face is born a sketch face: the conversion seeding (a
+          // rectangle with the default bindings) is its first sketch.
+          tree = updateCassetteV2FaceSketch(
+            tree,
+            result.nodeId,
+            await cassetteV2FaceSketchFromNode(tree, result.nodeId)
+          );
+        }
+        cassetteTree.value = tree;
         if (result.refused) {
           notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.edgeFull'), life: 3000 });
           return;
@@ -3963,7 +3975,14 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const faceTreeLabel = (node) => h('div', { class: 'flex min-w-0 flex-1 items-center gap-2' }, [
         h('i', { class: 'pi pi-stop shrink-0 text-xs text-muted', 'aria-hidden': 'true' }),
-        h('span', { class: 'min-w-0 flex-1 truncate' }, defaultFaceRole(node).replace(/_/g, ' '))
+        h('span', { class: 'min-w-0 flex-1 truncate' }, defaultFaceRole(node).replace(/_/g, ' ')),
+        isCassetteV2SketchFace(node) && !normalizeOccsProfileSketch(node.sketch).shapes.length
+          ? h('i', {
+              class: 'pi pi-exclamation-circle shrink-0 text-xs text-warn',
+              title: t('cassette.v2.faceWithoutGeometry'),
+              'aria-label': t('cassette.v2.faceWithoutGeometry')
+            })
+          : null
       ]);
 
       const relationTreeLabel = (relationRow) => {

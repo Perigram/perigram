@@ -420,3 +420,105 @@ test('the Delete key removes the canvas-selected shape', async ({ app }) => {
   await page.screenshot({ path: '.playwright/cassette-face-editor-08-delete-key-reopened.png' });
   await app.expectCleanRuntime();
 });
+
+test('a face is born a sketch face and zero geometry shows in the tree', async ({ app }) => {
+  test.setTimeout(420_000);
+  await app.installPlugins(['tech-drawing', 'facade']);
+  await app.connectPlugin('facade', process.env.E2E_FACADE_URL || 'http://facade-executor:8790');
+  await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
+  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'], via: { 'cassette-template': 'editor' } });
+  const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette-template');
+  const page = app.page;
+  await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
+  await page.addInitScript(() => window.localStorage.setItem(
+    'perigram:onboarding:cassette-designer-v2',
+    JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
+  ));
+  await app.gotoClient(list.route);
+  const newButton = page.locator('main').getByRole('button', { name: /^New/ });
+  await newButton.waitFor({ timeout: 60_000 });
+  await newButton.click();
+  await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
+  const inspector = page.locator('.designer-workspace__inspector').first();
+
+  const edgePoint = async () => page.evaluate(() => {
+    const svgs = Array.from(document.querySelectorAll('svg'));
+    const svg = svgs.find(node => node.querySelectorAll('line[stroke-width="20"]').length);
+    if (!svg) return null;
+    const lines = Array.from(svg.querySelectorAll('line[stroke-width="20"]'));
+    const pts = lines.map(line => {
+      const point = svg.createSVGPoint();
+      point.x = (Number(line.getAttribute('x1')) + Number(line.getAttribute('x2'))) / 2;
+      point.y = (Number(line.getAttribute('y1')) + Number(line.getAttribute('y2'))) / 2;
+      const screen = point.matrixTransform(svg.getScreenCTM());
+      return { x: screen.x, y: screen.y };
+    }).filter(item => Number.isFinite(item.x));
+    pts.sort((a, b) => a.y - b.y);
+    return pts[0] || null;
+  });
+  let edge = await edgePoint();
+  for (let attempt = 0; attempt < 20 && !edge; attempt += 1) {
+    await page.waitForTimeout(1500);
+    edge = await edgePoint();
+  }
+  expect(edge).toBeTruthy();
+  await page.mouse.move(edge.x, edge.y);
+  await page.waitForTimeout(600);
+  await page.mouse.click(edge.x, edge.y);
+  await page.getByRole('button', { name: 'Add face' }).click();
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: '.playwright/cassette-face-editor-09-born.png' });
+
+  // The born face is a sketch face: opening the editor shows the default
+  // rectangle with its height bound to the cassette global, and the amber
+  // mount line rides the datum.
+  await page.mouse.click(edge.x, edge.y - 30);
+  await page.waitForTimeout(1200);
+  await inspector.getByRole('button', { name: 'Edit shape' }).click();
+  const dialog = page.locator('[data-sketch-mode="face"]').first();
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  const canvas = dialog.locator('[role="application"]').first();
+  await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
+  await page.waitForTimeout(1500);
+  await expect(inspector.locator('.profile-shapes-panel button[aria-label^="Rectangle s"]')).toHaveCount(1);
+  const heightField = inspector.locator('input[aria-label^="h s"]').first();
+  await inspector.locator('.profile-shapes-panel button[aria-label^="Rectangle s"]').first().click();
+  await page.waitForTimeout(500);
+  await expect(heightField).toHaveValue('R');
+  const mountLine = await page.evaluate(() => {
+    const frameWin = Array.from(document.querySelectorAll('iframe'))
+      .map(node => node.contentWindow)
+      .find(win => win?.location?.search?.includes('embed=1'));
+    return (frameWin?.cadcraft?.doc?.all?.() || [])
+      .filter(entity => entity.layer === 'perigram-profile-annotations' && entity.pts?.length === 2)
+      .map(entity => entity.color);
+  });
+  expect(mountLine, 'the amber mount line rides the datum').toContain('#d97706');
+  await page.screenshot({ path: '.playwright/cassette-face-editor-10-editor.png' });
+
+  // Deleting every shape leaves zero geometry: the tree marks the face and
+  // the cassette drops its panel.
+  await inspector.locator('.profile-shapes-panel button[aria-label^="Rectangle s"]')
+    .locator('xpath=ancestor::div[contains(@class,"border-b")]')
+    .first()
+    .getByRole('button', { name: /^Delete/ }).click();
+  await page.waitForTimeout(900);
+  for (let attempt = 0; attempt < 3 && await dialog.isVisible().catch(() => false); attempt += 1) {
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+  }
+  await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await page.waitForTimeout(2000);
+  await expect(inspector.locator('[role="treeitem"] i.pi-exclamation-circle')).toBeVisible({ timeout: 20_000 });
+  const flangeHatch = await page.evaluate(() => {
+    const frameWin = Array.from(document.querySelectorAll('iframe'))
+      .map(node => node.contentWindow)
+      .find(win => win?.location?.search?.includes('embed=1'));
+    return (frameWin?.cadcraft?.doc?.all?.() || [])
+      .filter(entity => entity.type === 'hatch' && entity.layer === '1_1_Лицо_Кассеты')
+      .flatMap(entity => (entity.loops || []).length);
+  });
+  expect(flangeHatch.filter(count => count > 0).length, 'the zero-geometry face paints no fill').toBe(1);
+  await page.screenshot({ path: '.playwright/cassette-face-editor-11-zero-geometry.png' });
+  await app.expectCleanRuntime();
+});

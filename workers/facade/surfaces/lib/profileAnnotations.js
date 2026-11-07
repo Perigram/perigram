@@ -292,7 +292,20 @@ export function buildProfileAnnotations({
       type: 'poly',
       pts: [point(basisStart, 0), point(basisEnd, 0)],
       closed: false,
-      color: 7,
+      // The mount line carries the accent color (the highlighted parent
+      // mount edge, workers/facade/SPEC.md).
+      color: '#d97706',
+      lw: 0.5,
+      layer: PROFILE_ANNOTATION_LAYER
+    });
+    decorations.push({
+      type: 'poly',
+      pts: [
+        point(basisStart, -2), point(basisStart, 2),
+        point(basisEnd, 2), point(basisEnd, -2)
+      ],
+      closed: true,
+      color: '#d97706',
       layer: PROFILE_ANNOTATION_LAYER
     });
   } else if (Number.isFinite(axisStart) && Number.isFinite(axisEnd) && axisEnd > axisStart) {
