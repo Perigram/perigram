@@ -163,10 +163,12 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
     }
 
     const layout = await buildOccsProductionLayout(
-      cutEmbeddedCurves.map(curve => ({
-        id: curve.node?.id,
-        vertices: curve.boundaryVertices || curve.vertices
-      }))
+      cutEmbeddedCurves
+        .filter(curve => (curve.boundaryVertices || curve.vertices || []).length >= 3)
+        .map(curve => ({
+          id: curve.node?.id,
+          vertices: curve.boundaryVertices || curve.vertices
+        }))
     );
     const workpieceMeta = {
       workpieceId: workpiece.id,
