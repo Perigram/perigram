@@ -15,16 +15,21 @@
       @update:model-value="keys => selectTreeKey(keys)"
     >
       <template #option="{ node }">
-        <div v-if="node.instance" class="pointer-events-none w-full min-w-0">
+        <div
+          v-if="node.instance"
+          class="pointer-events-none w-full min-w-0"
+          :class="node.selectable ? '' : 'opacity-60'"
+        >
           <InstanceInlineRef
             :type="node.typeId"
             :entity="node.instance"
             :fetch="false"
             :interactive="false"
             variant="option"
+            :show-type-label="!node.selectable"
           />
         </div>
-        <span v-else>{{ node.label }}</span>
+        <span v-else :class="node.selectable ? '' : 'opacity-60'">{{ node.label }}</span>
       </template>
     </TreeSelect>
     <AutoComplete v-else
@@ -67,12 +72,19 @@ import { computed, ref, watch } from 'vue';
 import AutoComplete from 'primevue/autocomplete';
 import TreeSelect from 'primevue/treeselect';
 import { useI18n } from 'vue-i18n';
-import { childrenOfParent } from '#shared/ui-mapping/index.js';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import RefRowActions from './RefRowActions.vue';
 import { instanceOptionLabel, instancePickerOptions } from '~/utils/instance-select.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { useInstancesStore } from '~/stores/instances';
+import { useAuthStore } from '~/stores/auth';
+import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
+import {
+  containmentAncestors,
+  normalizeHierarchyType,
+  traceContextExclusions,
+  visibleTraceAncestors
+} from '~/utils/instance-hierarchy.js';
 
 const props = defineProps({
   accepts: { type: Array, default: () => [] },
@@ -87,13 +99,42 @@ const emit = defineEmits(['construct-create']);
 const model = defineModel();
 const query = ref('');
 const instances = useInstancesStore();
+const authStore = useAuthStore();
+const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
 const typeRecordOf = typeId => typesById.value[typeId] || null;
+const normalize = typeId => normalizeHierarchyType(typeId);
+const bundleIdOf = normalized => {
+  for (const typeId of props.accepts) {
+    if (normalize(typeId) === normalized) return typeId;
+  }
+  return (props.bundle?.types || []).find(type => normalize(type.id) === normalized)?.id || normalized;
+};
+
+// The ancestor types the accepted types nest under through the effective
+// containment contract, transitively — the tree navigates these levels
+// down to the accepted instances.
+const ancestorTypeIds = computed(() => {
+  const found = new Set();
+  const accepted = new Set((props.accepts || []).map(normalize));
+  const queue = [...accepted];
+  while (queue.length) {
+    const child = queue.shift();
+    for (const triple of effectiveContainment()) {
+      if (normalize(triple.childType) !== child) continue;
+      const parent = normalize(triple.parentType);
+      if (parent === 'organization' || accepted.has(parent) || found.has(parent)) continue;
+      found.add(parent);
+      queue.push(parent);
+    }
+  }
+  return [...found].map(bundleIdOf);
+});
 
 // Ref rows in create dialogs name types the surrounding screen may not
-// source; load each accepted type's instances on demand and merge them
-// over the host pool.
+// source; load each accepted and ancestor type's instances on demand and
+// merge them over the host pool.
 const fetchedTypes = ref({});
 async function ensureType(typeId) {
   const key = instances.canonicalTypeKey(typeId);
@@ -105,13 +146,14 @@ async function ensureType(typeId) {
     fetchedTypes.value[key] = false;
   }
 }
-watch(() => props.accepts, ids => {
+watch(() => [...(props.accepts || []), ...ancestorTypeIds.value], ids => {
   for (const typeId of ids || []) ensureType(typeId);
-}, { immediate: true, deep: true });
+}, { immediate: true });
 
+const sourcedTypes = computed(() => [...new Set([...(props.accepts || []), ...ancestorTypeIds.value])]);
 const mergedPool = computed(() => {
   const pool = { ...(props.pool || {}) };
-  for (const typeId of props.accepts || []) {
+  for (const typeId of sourcedTypes.value) {
     const key = instances.canonicalTypeKey(typeId);
     const bucket = key ? instances.records[key] : null;
     if (!bucket) continue;
@@ -127,26 +169,13 @@ const mergedPool = computed(() => {
   }
   return pool;
 });
+const poolInstancesOf = typeId => Object.values(mergedPool.value[typeId] || {});
 
-const acceptedType = computed(() => typeRecordOf(props.accepts[0]));
-const hierarchical = computed(() => Boolean(Object.keys(acceptedType.value?.edges?.children || {}).length));
-const buildNode = (instance, seen = new Set()) => {
-  if (seen.has(instance.id)) return null;
-  const nextSeen = new Set([...seen, instance.id]);
-  const type = typeRecordOf(instance.type);
-  // Children resolve through the shared hierarchy matcher (declared
-  // lineageKey, never the edge's map key) — the same matcher the
-  // workspace explorer nests through.
-  const children = childrenOfParent(type, mergedPool.value, instance.id)
-    .filter(child => !nextSeen.has(child.id));
-  return {
-    key: instance.id,
-    label: instanceOptionLabel(instance, type, { unnamedLabel: t('common.unnamed') }),
-    typeId: instance.type,
-    instance,
-    children: children.map(child => buildNode(child, nextSeen)).filter(Boolean)
-  };
-};
+// A type with declared containment ancestry renders as the ancestry tree:
+// accepted instances nested under their ancestors (the same walk the
+// record's chain renders), ancestors as pure navigation levels.
+const hierarchical = computed(() => ancestorTypeIds.value.length > 0);
+
 // Records the model references beyond the pool — a picker create's
 // record, a host-applied construct result — supplement the derived
 // options so the closed control resolves their labels.
@@ -160,14 +189,75 @@ const supplementFor = (typeId, id, entity) => {
     typeId
   });
 };
-const treeOptions = computed(() => hierarchical.value
-  ? [
-      ...Object.values(mergedPool.value[props.accepts[0]] || {}).map(instance => buildNode(instance)).filter(Boolean),
-      ...supplemented.value
-        .filter(entry => entry.typeId === props.accepts[0])
-        .map(entry => ({ key: entry.value.id, label: entry.label, typeId: entry.typeId, instance: entry.entity, children: [] }))
-    ]
-  : []);
+
+const tree = computed(() => {
+  if (!hierarchical.value) return { roots: [], byKey: new Map() };
+  const containment = effectiveContainment();
+  const exclusions = traceContextExclusions({
+    activeOrganizationId: authStore.organizationData?._id || authStore.userData?.organizationId || ''
+  });
+  const byKey = new Map();
+  const ordered = [];
+  const selectableTypes = new Set((props.accepts || []).map(normalize));
+  const nodeOf = (bundleTypeId, id, instance) => {
+    const key = `${bundleTypeId}:${id}`;
+    let node = byKey.get(key);
+    if (!node) {
+      node = {
+        key,
+        id,
+        typeId: bundleTypeId,
+        instance: null,
+        label: '',
+        selectable: selectableTypes.has(normalize(bundleTypeId)),
+        parentNodeKey: null,
+        children: []
+      };
+      byKey.set(key, node);
+      ordered.push(node);
+    }
+    if (instance && !node.instance) {
+      node.instance = instance;
+      node.label = instanceOptionLabel(instance, typeRecordOf(bundleTypeId), { unnamedLabel: t('common.unnamed') });
+    }
+    return node;
+  };
+  const chainOf = instance => visibleTraceAncestors(
+    containmentAncestors(instance, instance.type, containment),
+    exclusions
+  );
+  for (const acceptedTypeId of props.accepts || []) {
+    for (const instance of poolInstancesOf(acceptedTypeId)) {
+      const leaf = nodeOf(acceptedTypeId, instance.id, instance);
+      let parent = null;
+      for (const ref of chainOf(instance)) {
+        const bundleId = bundleIdOf(ref.type);
+        const record = poolInstancesOf(bundleId)
+          .find(row => row.id === String(ref.id) || String(row._id ?? '') === String(ref.id)) || null;
+        const node = nodeOf(bundleId, String(ref.id), record);
+        if (parent && node.parentNodeKey == null) {
+          node.parentNodeKey = parent.key;
+          parent.children.push(node);
+        }
+        parent = node;
+      }
+      if (parent && leaf.parentNodeKey == null) {
+        leaf.parentNodeKey = parent.key;
+        parent.children.push(leaf);
+      }
+    }
+  }
+  for (const entry of supplemented.value) {
+    if (!(props.accepts || []).includes(entry.typeId)) continue;
+    nodeOf(entry.typeId, entry.value.id, entry.entity);
+  }
+  for (const node of ordered) {
+    if (!node.label) node.label = generatedEntityLabel(node.typeId, { t, te });
+  }
+  const roots = ordered.filter(node => node.parentNodeKey == null);
+  return { roots, byKey };
+});
+const treeOptions = computed(() => tree.value.roots);
 // PrimeVue 4 TreeSelect models the selection as a checked-keys map
 // (`{ [key]: true }`) in every mode; the model stays the `{ type, id }`
 // instance ref.
@@ -177,10 +267,14 @@ function selectedTreeKey(value) {
   return Object.keys(value).find(key => value[key] === true || value[key]?.checked) || null;
 }
 function selectTreeKey(keys) {
-  const id = selectedTreeKey(keys);
-  model.value = id ? { type: props.accepts[0], id } : null;
+  const key = selectedTreeKey(keys);
+  const node = key ? tree.value.byKey.get(key) : null;
+  model.value = node ? { type: node.typeId, id: node.id } : null;
 }
-const treeSelection = computed(() => (props.model?.id ? { [props.model.id]: true } : null));
+const treeSelection = computed(() => {
+  if (!props.model?.id || !props.model.type) return null;
+  return { [`${bundleIdOf(normalize(props.model.type))}:${props.model.id}`]: true };
+});
 const options = computed(() => {
   const derived = instancePickerOptions(mergedPool.value, props.accepts, {
     typeRecordFor: typeRecordOf,
@@ -193,7 +287,7 @@ const options = computed(() => {
 });
 const search = event => {
   query.value = String(event.query || '');
-  for (const typeId of props.accepts || []) ensureType(typeId);
+  for (const typeId of sourcedTypes.value) ensureType(typeId);
 };
 const filteredOptions = computed(() => {
   const needle = query.value.toLowerCase();
