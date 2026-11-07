@@ -1,39 +1,26 @@
 <template>
   <div class="flex h-full min-h-0 flex-1 flex-col">
-    <div class="flex min-w-0 flex-wrap items-center gap-2 border-b border-chrome-border py-1">
-      <div class="flex min-w-40 max-w-72 flex-1 items-center gap-1">
-        <InputText
-          v-model="nameValue"
-          size="small"
-          class="w-full min-w-0"
-          :pt="nameFieldPt"
-          :placeholder="t('common.unnamed')"
-          :aria-label="t('common.rename')"
-          @keydown.enter.prevent.stop="commitName"
-          @blur="commitName"
-        />
+    <!-- The custom page's header (SPEC §22.3): the unified anatomy with
+         the page's own concerns — in-place name editing and the
+         dirty-gated save. A page is no instance: no type label, no state
+         surface, no comments entry. -->
+    <SurfaceHeader
+      :title="displayName"
+      :on-rename="commitName"
+    >
+      <template #cluster>
         <Button
-          v-if="nameDirty"
-          icon="pi pi-check"
-          severity="secondary"
-          text
-          rounded
+          :label="t('common.save')"
+          icon="pi pi-save"
           size="small"
-          :aria-label="t('common.apply')"
-          @click="commitName"
+          text
+          severity="secondary"
+          :loading="saving"
+          :disabled="!dirty"
+          @click="save"
         />
-      </div>
-      <Button
-        :label="t('common.save')"
-        icon="pi pi-save"
-        size="small"
-        text
-        class="ml-auto"
-        :loading="saving"
-        :disabled="!dirty"
-        @click="save"
-      />
-    </div>
+      </template>
+    </SurfaceHeader>
     <!-- The read presentation is the host markdown pipeline (the one
          renderer every authored surface reads through) composed with
          live view embeds; the live engine replaces it after mount. -->
@@ -67,7 +54,7 @@
 import { computed, inject, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
+import SurfaceHeader from '~/components/ui-mapping/SurfaceHeader.vue';
 import CrepeEditor from './CrepeEditor.vue';
 import MarkdownBlocks from './MarkdownBlocks.vue';
 import ViewPickerDialog from './ViewPickerDialog.vue';
@@ -86,26 +73,13 @@ const editor = ref(null);
 const dirty = ref(false);
 const saving = ref(false);
 const editorReady = ref(false);
-const nameDraft = ref(null);
 const viewPickerOpen = ref(false);
 let insertFenceAt = () => {};
 
-const nameFieldPt = { root: { style: { background: 'transparent', borderColor: 'transparent' } } };
-
 const page = computed(() => pagesStore.pageById(props.docId));
 const displayName = computed(() => page.value?.name || '');
-const nameValue = computed({
-  get: () => nameDraft.value ?? displayName.value,
-  set: value => { nameDraft.value = value; }
-});
-const nameDirty = computed(() => nameDraft.value !== null
-  && nameDraft.value.trim() !== ''
-  && nameDraft.value.trim() !== displayName.value);
 
-async function commitName() {
-  if (nameDraft.value === null) return;
-  const name = nameDraft.value.trim();
-  nameDraft.value = null;
+async function commitName(name) {
   if (!name || name === displayName.value) return;
   try {
     await pagesStore.rename(props.docId, name);

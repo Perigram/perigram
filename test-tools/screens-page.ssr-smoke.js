@@ -243,12 +243,13 @@ describe('generated screens page with projected vocabulary', () => {
 
     const html = await renderToString(app);
     // The document at the measure (SPEC §22.17): the record header, the
-    // property rows under it, and the comments section as the trailing
-    // block — the header's chat entry retired.
+    // property rows under it, and the comments behind the header's
+    // entry — the trailing band retired, the page host's side panel
+    // mounts closed.
     expect(html).toContain('Ticket one');
     expect(html).toContain('ck-record-measure');
-    expect(html).toContain('Comments');
-    expect(html).not.toContain('pi pi-comments');
+    expect(html).toContain('pi pi-comments');
+    expect(html).not.toContain('h-support-chat');
     expect(html).not.toContain('support.instanceChat');
   });
 

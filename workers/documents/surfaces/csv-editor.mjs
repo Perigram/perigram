@@ -8,9 +8,9 @@
 import * as XLSX from 'xlsx';
 
 export default function createSurface({ vue, components, locale, sync }) {
-  const { h, ref, watch, onMounted, defineComponent } = vue;
+  const { h, ref, computed, reactive, watch, onMounted, defineComponent } = vue;
   const t = locale.t;
-  const { Button, Column, DataTable, InputText } = components;
+  const { Column, DataTable, InputText } = components;
 
   if (!sync) {
     throw new Error('csv-editor requires the contract-3 mount context (sync capability)');
@@ -21,9 +21,13 @@ export default function createSurface({ vue, components, locale, sync }) {
     props: {
       record: { type: Object, default: null },
       persistence: { type: Object, default: null },
-      // 'read' (the opener holds no write grant) renders the table and
-      // the document name — no editing controls.
-      mode: { type: String, default: 'edit' }
+      // 'read' (the opener holds no write grant) renders the table —
+      // no editing controls.
+      mode: { type: String, default: 'edit' },
+      // The editor page chrome channel (SPEC §4): the host header owns
+      // the document name and save; the editor binds its document
+      // state into it.
+      pageChrome: { type: Object, default: null }
     },
     setup(props) {
       const columns = ref([]);
@@ -32,20 +36,15 @@ export default function createSurface({ vue, components, locale, sync }) {
       const dirty = ref(false);
       const remoteChanged = ref(false);
       const localTitle = ref('');
-      const nameDraft = ref('');
 
       const displayName = () => localTitle.value || props.record?.name || props.persistence?.title || '';
-      const nameDirtyComputed = { get value() { return Boolean(nameDraft.value.trim()) && nameDraft.value.trim() !== displayName(); } };
-
-      // Quiet document text, not form chrome: the pt styles strip the
-      // outlined fill and border — the focus ring keeps the affordance.
-      const nameFieldPt = { root: { style: { background: 'transparent', borderColor: 'transparent' } } };
 
       let loading = true;
       watch(rows, () => { if (!loading) dirty.value = true; }, { deep: true });
 
-      async function commitName() {
-        const name = nameDraft.value.trim();
+      // The header's rename channel: the page header owns the draft; the
+      // editor applies the committed name through the persistence.
+      async function rename(name) {
         if (!name || name === displayName()) return;
         try {
           await props.persistence.rename(props.record, name);
@@ -70,8 +69,8 @@ export default function createSurface({ vue, components, locale, sync }) {
       }
 
       // Remote saves/renames reconcile: clean reloads the rows, dirty
-      // raises the refresh affordance (the surface's own publications
-      // are skipped host-side).
+      // raises the header's divergence refresh (the surface's own
+      // publications are skipped host-side).
       sync.onRecordChanged(() => {
         if (dirty.value) {
           remoteChanged.value = true;
@@ -92,6 +91,12 @@ export default function createSurface({ vue, components, locale, sync }) {
         data[field] = newValue;
       }
 
+      function reloadFromRemote() {
+        remoteChanged.value = false;
+        loading = true;
+        loadRows();
+      }
+
       async function save() {
         saving.value = true;
         try {
@@ -108,15 +113,12 @@ export default function createSurface({ vue, components, locale, sync }) {
 
       if (props.mode === 'read') {
         return () => h('div', { class: 'flex h-full min-h-0 flex-1 flex-col p-4' }, [
-          h('div', { class: 'flex min-w-0 items-center gap-2 border-b border-chrome-border py-1' }, [
-            h('span', { class: 'truncate text-supporting' }, displayName() || t('common.unnamed'))
-          ]),
           h(DataTable, {
             value: rows.value,
             scrollable: true,
             scrollHeight: 'flex',
             size: 'small',
-            class: 'mt-2 min-h-80 flex-1'
+            class: 'min-h-80 flex-1'
           }, () => columns.value.map(column => h(Column, {
             key: column,
             field: column,
@@ -125,63 +127,27 @@ export default function createSurface({ vue, components, locale, sync }) {
         ]);
       }
 
+      // The document chrome hand-off (SPEC §4): the header renders the
+      // name, the dirty-marked save, and the divergence refresh from
+      // this binding; the surface below is the table alone.
+      props.pageChrome?.bind?.(Object.assign(
+        reactive({
+          name: computed(displayName),
+          dirty,
+          saving,
+          diverged: computed(() => remoteChanged.value && dirty.value)
+        }),
+        { save, rename, reload: reloadFromRemote }
+      ));
+
       return () => h('div', { class: 'flex h-full min-h-0 flex-1 flex-col p-4' }, [
-        h('div', { class: 'flex min-w-0 flex-wrap items-center gap-2 border-b border-chrome-border py-1' }, [
-          h('div', { class: 'flex min-w-40 max-w-72 flex-1 items-center gap-1' }, [
-            h(InputText, {
-              modelValue: nameDraft.value,
-              size: 'small',
-              class: 'w-full min-w-0',
-              pt: nameFieldPt,
-              placeholder: t('common.unnamed'),
-              'aria-label': t('common.rename'),
-              'onUpdate:modelValue': value => { nameDraft.value = value; },
-              onKeydown: event => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  commitName();
-                }
-              },
-              onBlur: commitName
-            }),
-            nameDirtyComputed.value
-              ? h(Button, { icon: 'pi pi-check', severity: 'secondary', text: true, rounded: true, size: 'small', 'aria-label': t('common.apply'), onClick: commitName })
-              : null
-          ]),
-          remoteChanged.value && dirty.value
-            ? h(Button, {
-              icon: 'pi pi-refresh',
-              severity: 'secondary',
-              text: true,
-              rounded: true,
-              size: 'small',
-              'aria-label': t('common.refresh'),
-              onClick: () => {
-                remoteChanged.value = false;
-                loading = true;
-                loadRows();
-              }
-            })
-            : null,
-          h(Button, {
-            label: t('common.save'),
-            icon: 'pi pi-save',
-            size: 'small',
-            text: true,
-            class: remoteChanged.value && dirty.value ? '' : 'ml-auto',
-            loading: saving.value,
-            disabled: !dirty.value,
-            onClick: save
-          })
-        ]),
         h(DataTable, {
           value: rows.value,
           editMode: 'cell',
           scrollable: true,
           scrollHeight: 'flex',
           size: 'small',
-          class: 'mt-2 min-h-80 flex-1',
+          class: 'min-h-80 flex-1',
           onCellEditComplete: applyCellEdit
         }, () => columns.value.map(column => h(Column, {
           key: column,

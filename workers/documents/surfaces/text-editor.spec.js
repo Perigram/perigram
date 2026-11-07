@@ -1,11 +1,14 @@
-// The slash panel is the formatting surface (SPEC §26): the edit
-// mount's toolbar carries document concerns only (name, save), and the
-// block vocabulary + its actions live in lib/block-vocabulary.mjs —
-// every slash entry resolves to the engine's own command, with the
-// toggle semantics the format row carried (an entry matching the
-// focused block returns it to body text).
+// The slash panel is the formatting surface (SPEC §26) and the host
+// header owns the document chrome (SPEC §4, owner direction
+// 2026-11-07): the edit mount renders the editor alone and binds its
+// document state — name, dirty, save, rename — into the page-chrome
+// channel. The block vocabulary + its actions live in
+// lib/block-vocabulary.mjs — every slash entry resolves to the
+// engine's own command, with the toggle semantics the format row
+// carried (an entry matching the focused block returns it to body
+// text).
 import { describe, it, expect } from 'vitest';
-import { createSSRApp, h, ref, computed, onMounted, onBeforeUnmount, defineComponent } from 'vue';
+import { createSSRApp, h, reactive, ref, computed, onMounted, onBeforeUnmount, defineComponent } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import {
   wrapInHeadingCommand, turnIntoTextCommand, wrapInBulletListCommand,
@@ -20,11 +23,11 @@ const ButtonStub = (props, { slots }) => h('button', {
   'data-button-label': props.label || '',
   'data-button-aria-label': props.ariaLabel || ''
 }, slots?.default ? slots.default() : null);
-const InputTextStub = () => h('input', { 'data-input-text': 'true' });
+const InputTextStub = props => h('input', { 'data-input-text': 'true', 'aria-label': props['aria-label'] || '' });
 const PopoverStub = (props, { slots }) => (slots?.default ? slots.default() : null);
 
 const mountContext = () => ({
-  vue: { h, ref, computed, onMounted, onBeforeUnmount, defineComponent },
+  vue: { h, ref, computed, reactive, onMounted, onBeforeUnmount, defineComponent },
   components: { Button: ButtonStub, InputText: InputTextStub, Popover: PopoverStub },
   locale: { t: key => key, te: () => true, locale: ref('en') },
   sync: { onRecordChanged: () => {} }
@@ -37,23 +40,39 @@ const persistence = {
   rename: async () => {}
 };
 
-const mount = async mode => {
+const mount = async (mode, pageChrome = null) => {
   const surface = createSurface(mountContext());
-  const app = createSSRApp(surface, { record: { _id: 'md-1', name: 'Notes.md' }, persistence, mode });
+  const app = createSSRApp(surface, { record: { _id: 'md-1', name: 'Notes.md' }, persistence, mode, pageChrome });
   return await renderToString(app);
 };
 
-describe('text-editor toolbar (document concerns only)', () => {
-  it('edit mount keeps the name field and save, carrying no format controls', async () => {
+describe('text-editor surface (the header owns the document chrome)', () => {
+  it('edit mount renders the editor alone, carrying no document controls', async () => {
     const html = await mount('edit');
-    expect(html).toContain('data-input-text');
-    expect(html).toContain('data-button-icon="pi pi-save"');
+    // The link address editor is the one input the surface itself hosts;
+    // the name field and save live in the host header.
+    expect(html).not.toContain('aria-label="common.rename"');
+    expect(html).not.toContain('data-button-label="common.save"');
+    expect(html).not.toContain('data-button-icon="pi pi-save"');
     for (const key of ['editors.heading1', 'editors.heading6', 'editors.quote', 'editors.bulletList', 'editors.numberedList', 'editors.codeBlock', 'editors.link', 'editors.paragraph']) {
       expect(html).not.toContain(`data-button-aria-label="${key}"`);
     }
     for (const icon of ['pi pi-list', 'pi pi-code', 'pi pi-link', 'pi pi-comment']) {
       expect(html).not.toContain(`data-button-icon="${icon}"`);
     }
+  });
+
+  it('binds the document state into the page-chrome channel', async () => {
+    const bound = [];
+    const pageChrome = reactive({ api: null, bind: next => { pageChrome.api = next; bound.push(next); } });
+    await mount('edit', pageChrome);
+    expect(bound).toHaveLength(1);
+    const api = bound[0];
+    expect(typeof api.save).toBe('function');
+    expect(typeof api.rename).toBe('function');
+    expect(typeof api.reload).toBe('function');
+    expect(api.name).toBe('Notes.md');
+    expect(api.dirty).toBe(false);
   });
 
   it('read mount renders the document with no editing chrome', async () => {

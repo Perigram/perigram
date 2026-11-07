@@ -14,18 +14,24 @@
       @close="$emit('close')"
     />
 
-    <div ref="scrollHost" class="min-h-0 flex-1 overflow-auto p-4">
-      <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
-      <StateBlock v-else-if="notFound" state="error" :message="$t('generatedScreen.notFound')" />
-      <!-- Every pane screen — generator templates and the home overload
-           alike — renders through the single generator host and emits
-           instance opens to the workspace instead of routing. -->
-      <GeneratedScreenHost
-        v-else
-        :screen="scopedScreen"
-        @open-instance="payload => $emit('open-entity', { typeId: payload.typeId, instanceId: payload.instanceId })"
-        @refresh="$emit('refresh')"
-      />
+    <!-- The pane's content column: the scroll host the container-traits
+         seam measures, with the bounded comments side panel anchored
+         beside it (SPEC §22.17). -->
+    <div class="relative flex min-h-0 flex-1 flex-col">
+      <div ref="scrollHost" class="min-h-0 flex-1 overflow-auto p-4">
+        <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
+        <StateBlock v-else-if="notFound" state="error" :message="$t('generatedScreen.notFound')" />
+        <!-- Every pane screen — generator templates and the home overload
+             alike — renders through the single generator host and emits
+             instance opens to the workspace instead of routing. -->
+        <GeneratedScreenHost
+          v-else
+          :screen="scopedScreen"
+          @open-instance="payload => $emit('open-entity', { typeId: payload.typeId, instanceId: payload.instanceId })"
+          @refresh="$emit('refresh')"
+        />
+      </div>
+      <RecordCommentsPanel :target="commentsTarget" @close="commentsTarget = null" />
     </div>
   </section>
 </template>
@@ -39,6 +45,7 @@
 import { computed, provide, ref } from 'vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
+import RecordCommentsPanel from '~/components/chat/RecordCommentsPanel.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { synthesizeDetailScreen } from '~/components/generated/detail-screen-actions.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
@@ -61,6 +68,16 @@ defineEmits(['refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 
 // the pane the user shaped (the container seam contract).
 const scrollHost = ref(null);
 provideContainerTraits({ hostKind: 'pane', elRef: scrollHost });
+
+// The pane's comments channel (SPEC §22.17): the hosted record's header
+// opens the thread as the bounded side panel inside the pane.
+const commentsTarget = ref(null);
+provide('recordCommentsPanel', target => {
+  commentsTarget.value = commentsTarget.value?.instanceId === target.instanceId
+    && commentsTarget.value?.typeId === target.typeId
+    ? null
+    : target;
+});
 
 const authStore = useAuthStore();
 

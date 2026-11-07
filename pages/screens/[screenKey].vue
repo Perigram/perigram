@@ -12,23 +12,33 @@
       @open-instance="openInstance"
     />
   </StandardPage>
-  <GeneratedScreenHost
-    v-else-if="screen"
-    ref="host"
-    :screen="screen"
-    :screen-key="screenKey"
-    :navigation="detailNavigation"
-    @open-instance="openInstance"
-  />
+  <template v-else-if="screen">
+    <GeneratedScreenHost
+      ref="host"
+      :screen="screen"
+      :screen-key="screenKey"
+      :navigation="detailNavigation"
+      @open-instance="openInstance"
+    />
+    <!-- The routed record page scrolls with the window: its comments
+         panel anchors to the viewport (SPEC §22.17). -->
+    <RecordCommentsPanel
+      v-if="screen.template === 'instanceDetail'"
+      :target="commentsTarget"
+      viewport
+      @close="commentsTarget = null"
+    />
+  </template>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import { useAuthStore } from '~/stores/auth';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
+import RecordCommentsPanel from '~/components/chat/RecordCommentsPanel.vue';
 import { synthesizeDetailScreen } from '~/components/generated/detail-screen-actions.js';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -48,6 +58,16 @@ const authStore = useAuthStore();
 // navigation. Re-fetching it on mount replaces the manifest and unmounts the
 // generated workspace immediately after hydration.
 const refreshingAuth = ref(!authStore.userIsSet);
+
+// The routed record page's comments channel (SPEC §22.17): the record
+// header opens the thread as the bounded side panel on this surface.
+const commentsTarget = ref(null);
+provide('recordCommentsPanel', target => {
+  commentsTarget.value = commentsTarget.value?.instanceId === target.instanceId
+    && commentsTarget.value?.typeId === target.typeId
+    ? null
+    : target;
+});
 
 // The routed surface owns the back affordance (in-app history with the
 // home ladder fallback — usePageBack): the page header for list screens,
