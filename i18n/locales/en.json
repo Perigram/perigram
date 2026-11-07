@@ -307,8 +307,7 @@
         "organization": "Organization",
         "settings": "Settings",
         "collapseSidebar": "Collapse sidebar",
-        "expandSidebar": "Expand sidebar",
-        "inbox": "Inbox"
+        "expandSidebar": "Expand sidebar"
     },
     "status": {
         "status": "Status",

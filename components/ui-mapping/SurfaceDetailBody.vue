@@ -13,35 +13,19 @@
       <section v-for="group in propertyGroups" :key="`props:${group.id}`" :class="d.stackTight">
         <span v-if="showGroupTitles && group.label" :class="d.sectionTitle">{{ group.label }}</span>
         <div :class="LAYOUT.specList">
-          <div v-for="field in shownFacts(group)" :key="field.name" :class="[d.specRow, 'group/ck-field']">
-            <span :class="LAYOUT.labelCell">{{ field.label }}</span>
-            <div :class="LAYOUT.factCell">
-              <InlineField
-                :field="field"
-                :editable="editable"
-                :quantitative="quantitative"
-                :pool="pool"
-                :bundle="bundle"
-                @inline-change="change => emit('inline-change', change)"
-              />
-              <DeclarationFieldMenu
-                v-if="authoringReady && authoringFieldByName.has(field.name)"
-                :authoring="authoring"
-                :field="authoringFieldByName.get(field.name)"
-                :type-options="authoring.typeOptions.value"
-              />
-            </div>
-          </div>
-          <div v-if="hiddenFactCount(group) > 0" class="py-1">
-            <Button
-              :label="factGroupExpanded(group)
-                ? $t('uiMapping.showLess')
-                : $t('uiMapping.showMore', { count: hiddenFactCount(group) })"
-              size="small"
-              text
-              @click="toggleFacts(group)"
-            />
-          </div>
+          <PropertyRows
+            :fields="shownFacts(group)"
+            :hidden-count="hiddenFactCount(group)"
+            :expanded="factGroupExpanded(group)"
+            :editable="editable"
+            :quantitative="quantitative"
+            :pool="pool"
+            :bundle="bundle"
+            :authoring="authoringRows"
+            grouped
+            @toggle="toggleFacts(group)"
+            @inline-change="change => emit('inline-change', change)"
+          />
           <div v-if="authoringReady && group.id === 'declaration'" class="flex flex-wrap items-center gap-2 pt-1">
             <DeclarationAddField :authoring="authoring" :type-options="authoring.typeOptions.value" />
             <DeclarationSaveButton
@@ -95,29 +79,17 @@
       >
         <span v-if="showGroupTitles && group.label && (!documentBody || openSectionCount(group) > 0)" :class="d.sectionTitle">{{ group.label }}</span>
         <div v-if="!documentBody && shownFacts(group).length" :class="variant === 'full' ? LAYOUT.factsGrid : LAYOUT.specList">
-          <div v-for="field in shownFacts(group)" :key="field.name" :class="d.specRow">
-            <span :class="LAYOUT.labelCell">{{ field.label }}</span>
-            <div :class="LAYOUT.factCell">
-              <InlineField
-                :field="field"
-                :editable="editable"
-                :quantitative="quantitative"
-                :pool="pool"
-                :bundle="bundle"
-                @inline-change="change => emit('inline-change', change)"
-              />
-            </div>
-          </div>
-          <div v-if="hiddenFactCount(group) > 0" class="py-1">
-            <Button
-              :label="factGroupExpanded(group)
-                ? $t('uiMapping.showLess')
-                : $t('uiMapping.showMore', { count: hiddenFactCount(group) })"
-              size="small"
-              text
-              @click="toggleFacts(group)"
-            />
-          </div>
+          <PropertyRows
+            :fields="shownFacts(group)"
+            :hidden-count="hiddenFactCount(group)"
+            :expanded="factGroupExpanded(group)"
+            :editable="editable"
+            :quantitative="quantitative"
+            :pool="pool"
+            :bundle="bundle"
+            @toggle="toggleFacts(group)"
+            @inline-change="change => emit('inline-change', change)"
+          />
         </div>
         <!-- Structural fields follow the section grammar of everything else
              on the record page: a labeled open block per field, rendered in
@@ -222,6 +194,7 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import { LAYOUT, resolveSurface, resolveActionButton, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, RENDERABLE_PREVIEW_MODES, ASPECT_PREVIEW_MODES, resolveFieldGroups, resolvePreview, fieldLabelKey, localizedLabel, startCaseKey, isIdentifierField, typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import InlineField from './InlineField.vue';
+import PropertyRows from './PropertyRows.vue';
 import StructuralFieldPanel from './StructuralFieldPanel.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import DeclarationFieldMenu from '../type-designer/DeclarationFieldMenu.vue';
@@ -264,6 +237,15 @@ const authoringFieldByName = computed(() => new Map(
     .map(field => [field.node?.data?.name, field])
     .filter(([name]) => Boolean(name))
 ));
+// The PropertyRows projection of the session (SPEC §1): holders' rows
+// carry the author popover; null keeps the compiled block.
+const authoringRows = computed(() => (authoringReady.value
+  ? {
+      session: authoring,
+      fieldByName: authoringFieldByName.value,
+      typeOptions: authoring.typeOptions.value
+    }
+  : null));
 const hostTraits = useHostContainerTraits();
 const embedded = inject('uiMappingEmbedded', false);
 // The record document body (SPEC §22.17): the full variant in the record

@@ -40,5 +40,5 @@ const name = computed(() => props.data.name || '');
 const isRef = computed(() => props.data.descriptor?.base === 'ref');
 const inputSpec = computed(() => props.data.inputSpecs?.[0] || {});
 const outputSpec = computed(() => props.data.outputSpecs?.[0] || {});
-const typeLabel = computed(() => fieldDescriptorSummary(props.data.descriptor || {}));
+const typeLabel = computed(() => fieldDescriptorSummary(props.data.descriptor || {}, props.data.fieldTypeLabelFor || null));
 </script>

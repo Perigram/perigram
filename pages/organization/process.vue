@@ -814,6 +814,7 @@ const {
   ctsRegistry,
   ctsProjectedDomain,
   ctsTypeView,
+  classNameMap,
   ctsOrgTypes,
   refreshTreeOverlay,
   loadOrgTypes,
@@ -2625,7 +2626,8 @@ const DERIVED_NODE_DATA_KEYS = [
   'summary',
   'purpose',
   'inputSpecs',
-  'outputSpecs'
+  'outputSpecs',
+  'fieldTypeLabelFor'
 ];
 
 function enrichNodeData(node) {
@@ -2662,6 +2664,12 @@ function enrichNodeData(node) {
     const ports = declarationNodePorts(node, ctsTypeView()) || {};
     data.inputSpecs = ports.inputSpecs || [];
     data.outputSpecs = ports.outputSpecs || [];
+    if (node.type === 'ctsField') {
+      // Ref cards render accepted type LABELS (SPEC §4): the resolver
+      // covers tree class names first, the registry view's labels second.
+      const labels = classNameMap();
+      data.fieldTypeLabelFor = id => labels.get(id) || id;
+    }
     if (node.type === 'ctsClass') {
       data.version = 1;
       data.scope = 'org';

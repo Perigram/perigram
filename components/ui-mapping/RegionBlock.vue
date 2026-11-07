@@ -14,7 +14,7 @@
          the label yields first (ellipsis), the controls cluster never
          wraps internally, and wrapping happens only when the label is at
          its floor and the controls still overflow the row. -->
-    <div class="group/region-header flex min-w-0 flex-wrap items-center justify-between gap-2">
+    <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
         <span :class="['min-w-0 truncate', embedded ? 'text-label' : 'text-section-heading']">{{ regionLabel }}</span>
         <!-- SPEC §22.8: the count renders only for loaded, accessible,
@@ -22,28 +22,21 @@
              count, and an empty one states itself through its message. -->
         <Tag v-if="showSurfaces && hasInstances" class="shrink-0" :value="String(node.instances.length)" severity="secondary" />
       </div>
-      <!-- SPEC §22.15: the cluster is quiet until the header row is
-           hovered or focused; coarse pointers keep it at full presence
-           (the quiet state lives inside the hover-capability media
-           query). -->
       <div
         v-if="createControls.length || linkControls.length || viewToggleAvailable"
-        class="flex shrink-0 flex-wrap items-center justify-end gap-2 transition-opacity duration-150 group-hover/region-header:opacity-100 group-focus-within/region-header:opacity-100 motion-reduce:transition-none"
-        :class="viewOpen ? 'opacity-100' : '[@media(hover:hover)]:opacity-60'"
+        class="flex shrink-0 flex-wrap items-center justify-end gap-2"
       >
         <Button
           v-if="viewToggleAvailable"
           icon="pi pi-sliders-h"
-          text
-          rounded
+          :label="$t('uiMapping.view')"
           size="small"
           severity="secondary"
+          outlined
           :badge="conditionCount ? String(conditionCount) : null"
-          :aria-label="$t('uiMapping.view')"
-          v-tooltip.bottom="$t('uiMapping.view')"
           @click="toggleView"
         />
-        <Popover ref="viewPopover" @show="viewOpen = true" @hide="viewOpen = false">
+        <Popover ref="viewPopover">
           <div class="flex w-72 flex-col gap-3">
             <IconField v-if="searchToggleAvailable">
               <InputIcon class="pi pi-search" />
@@ -582,7 +575,6 @@ watch(() => props.node.id, () => {
   search.value = '';
 });
 const viewPopover = ref();
-const viewOpen = ref(false);
 const viewToggleAvailable = computed(() => searchToggleAvailable.value
   || facetsToggleAvailable.value
   || projectionSwitchable.value

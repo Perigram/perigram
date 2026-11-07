@@ -34,7 +34,7 @@
             />
             <span
                 v-if="waitingMessages"
-                class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-ui bg-primary px-1 text-[0.65rem] text-primary-contrast"
+                class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-ui bg-primary px-1 text-label text-primary-contrast"
             >
                 {{ waitingMessages }}
             </span>

@@ -19,6 +19,7 @@ import DeclarationStatePanel from './DeclarationStatePanel.vue';
 import DeclarationStateRow from './DeclarationStateRow.vue';
 import DeclarationTransitionRow from './DeclarationTransitionRow.vue';
 import DeclarationSaveButton from './DeclarationSaveButton.vue';
+import FieldNode from './FieldNode.vue';
 import { stateSeverityOptions } from './state-severities.js';
 
 async function render(component, props, provides = {}) {
@@ -142,7 +143,7 @@ describe('DeclarationStateRow', () => {
     expect(html).toContain('pi-check');
   });
 
-  it('renders the localized severity label in the select, never the raw enum', async () => {
+  it('renders the localized severity label in the select', async () => {
     const html = await render(DeclarationStateRow, { state: stateOf({ value: 'draft', severity: 'warn' }) });
     expect(html).toContain('Warning');
     expect(html).not.toContain('>warn<');
@@ -179,6 +180,20 @@ describe('DeclarationTransitionRow', () => {
       stateOptions
     });
     expect(html).toContain('any');
+  });
+});
+
+describe('FieldNode', () => {
+  it('renders accepted type labels through the enrichment resolver (SPEC §4)', async () => {
+    const html = await render(FieldNode, {
+      data: {
+        name: 'Parent',
+        descriptor: { base: 'ref', accepts: ['t-cassette', 't-sheet'] },
+        fieldTypeLabelFor: id => ({ 't-cassette': 'Cassette', 't-sheet': 'Sheet' })[id] || id
+      }
+    });
+    expect(html).toContain('Ref(Cassette|Sheet)');
+    expect(html).not.toContain('t-cassette');
   });
 });
 

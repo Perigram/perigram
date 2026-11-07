@@ -46,7 +46,7 @@
         </header>
 
         <!-- Wrapped rail: the create control, then communication first
-             (chats, inbox, calls — the same order the expanded menu leads
+             (chats, calls — the same order the expanded menu leads
              with), then one icon per top-level panel; the brand mark,
              profile avatar, and this rail are the whole sidebar. -->
         <nav
@@ -75,16 +75,6 @@
             />
           </span>
           <Button
-            icon="pi pi-inbox"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="$t('nav.inbox')"
-            :title="$t('nav.inbox')"
-            @click="openWorkspacePage({ pageId: 'inbox' })"
-          />
-          <Button
             icon="pi pi-phone"
             text
             rounded
@@ -108,11 +98,11 @@
           />
         </nav>
 
-        <!-- Expanded navigation is one raw PanelMenu: three communication
-             entries first — Chats opens the chats page; Inbox opens the
-             action inbox; Calls toggles its suggestions flyout and
-             carries active call rooms as rows only while calls run —
-             then one panel per top-level explorer type. Default rows
+        <!-- Expanded navigation is one raw PanelMenu: two communication
+             entries first — Chats opens the chats page, and Calls toggles
+             its suggestions flyout and carries active call rooms as rows
+             only while calls run — then one panel per top-level explorer
+             type. Default rows
              carry the registry icons and title-resolver labels. The
              capture click handler splits header and row clicks from
              collapse toggling (chevron-only). -->
@@ -575,8 +565,6 @@ const selectedMenuKeys = computed(() => {
     keys.add(typeMenuKey(typeId));
   } else if (item.kind === 'page' && item.pageId === 'chats') {
     keys.add('communication:chats');
-  } else if (item.kind === 'page' && item.pageId === 'inbox') {
-    keys.add('communication:inbox');
   } else if (typeId) {
     const instanceIdValue = item.instanceId || instanceId(item.entity);
     if (instanceIdValue) keys.add(`${typeId}:${instanceIdValue}`);
@@ -710,13 +698,11 @@ function entityPanelItem(node) {
 }
 
 // The communication entries in the PanelMenu: Chats opens the chats
-// workspace page, Inbox opens the action inbox page, and Calls toggles
-// the CommunicationMenu flyout and carries active call rooms as its rows
-// only while rooms exist.
+// workspace page, and Calls toggles the CommunicationMenu flyout and
+// carries active call rooms as its rows only while rooms exist.
 function communicationPanelModels() {
   const rooms = activeRoomItems();
   const chatsSelected = selectedMenuKeys.value.has('communication:chats');
-  const inboxSelected = selectedMenuKeys.value.has('communication:inbox');
   return [
     {
       key: 'communication:chats',
@@ -724,13 +710,6 @@ function communicationPanelModels() {
       icon: 'pi pi-comments',
       headerClass: chatsSelected ? 'rounded-ui bg-[var(--ck-chrome-subtle)]' : undefined,
       command: menuCommand('communication:chats', () => openChatsPage())
-    },
-    {
-      key: 'communication:inbox',
-      label: t('nav.inbox'),
-      icon: 'pi pi-inbox',
-      headerClass: inboxSelected ? 'rounded-ui bg-[var(--ck-chrome-subtle)]' : undefined,
-      command: menuCommand('communication:inbox', () => openWorkspacePage({ pageId: 'inbox' }))
     },
     {
       key: 'communication:calls',

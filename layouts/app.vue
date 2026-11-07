@@ -110,9 +110,6 @@
                             </span>
                             <i v-else class="pi pi-comments" aria-hidden="true" />
                         </Tab>
-                        <Tab value="inbox" :pt="bottomBarTabPt" :aria-label="$t('nav.inbox')">
-                            <i class="pi pi-inbox" aria-hidden="true" />
-                        </Tab>
                     </TabList>
                 </Tabs>
                 <UserAccountMenu v-if="authStore.userIsSet">
@@ -314,12 +311,10 @@
     const isGeneratedHomeRoute = computed(() => activeGeneratedScreen.value?.template === 'home')
     const isStandaloneDesignerRoute = computed(() => route.path === '/organization/process')
     const isChatsRoute = computed(() => route.path === '/chats' || route.path.startsWith('/chats/'))
-    const isInboxRoute = computed(() => route.path === '/inbox')
     const isBoundedWorkspaceRoute = computed(() => (
         isGeneratedWorkspaceRoute.value
         || isStandaloneDesignerRoute.value
         || isChatsRoute.value
-        || isInboxRoute.value
     ))
     const isAccountRoute = computed(() => route.path.startsWith('/organization'))
     const isFlushMobileSurface = computed(() => isAccountRoute.value || isChatsRoute.value)
@@ -359,7 +354,6 @@
     // --- Mobile app tabs (PrimeVue Tabs bottom strip) ---
     const mobileTabValue = computed(() => {
         if (isChatsRoute.value) return 'chats'
-        if (isInboxRoute.value) return 'inbox'
         if (isGeneratedHomeRoute.value) return mobileHomeTabKey.value
         return mobileTabForScreensRoute()
     })
@@ -381,10 +375,6 @@
     const selectMobileTab = (value) => {
         if (value === 'chats') {
             navigateMobile('/chats')
-            return
-        }
-        if (value === 'inbox') {
-            navigateMobile('/inbox')
             return
         }
         if (value === 'home') {

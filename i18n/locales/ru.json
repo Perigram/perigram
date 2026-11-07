@@ -307,8 +307,7 @@
         "organization": "Организация",
         "settings": "Настройки",
         "collapseSidebar": "Свернуть панель",
-        "expandSidebar": "Развернуть панель",
-        "inbox": "Входящие"
+        "expandSidebar": "Развернуть панель"
     },
     "status": {
         "status": "Статус",

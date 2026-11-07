@@ -304,6 +304,7 @@ export function useProcessDesignerTypes({
     ctsRegistry,
     ctsProjectedDomain,
     ctsTypeView,
+    classNameMap,
     ctsOrgTypes,
     servedCommands,
     resetCtsRegistry,
