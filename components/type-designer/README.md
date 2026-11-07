@@ -1,13 +1,15 @@
 # COMPONENT: Type Designer
 
-Declaration authoring surfaces for the process designer: the class/field/
-state Vue Flow node cards, the recursive field-descriptor editor, and the
-in-place declaration editor page. 
+Declaration authoring vocabulary for the platform: the class/field/state
+Vue Flow node cards, the recursive field-descriptor editor, and the
+surface declaration authoring session with its affordances (SPEC §1).
 [pages/organization/process.vue](../../pages/organization/process.vue)
 mounts the cards as its `ctsClass`/`ctsField`/`ctsState` node templates,
-and the process designer's
+the process designer's
 [DeclarationInspector](../process-designer/README.md#inspector-anatomy)
-hosts the descriptor editor for the selected field node. Parent:
+hosts the descriptor editor for the selected field node, and the
+generated record surfaces mount the authoring affordances
+([ui-mapping](../ui-mapping/README.md)). Parent:
 [components](../README.md).
 
 ## Nodes
@@ -21,7 +23,7 @@ sizes, socket tones, and the quiet-card law follow the
 [canvas channel vocabulary](../process-designer/README.md#canvas-channel-vocabulary).
 
 | File | Node | Contract |
-|---|---|---|
+|---|---|
 | `TypeNode.vue` | `ctsClass` | Class declaration card (`md`): class icon from `data.class` (file/item/group/process), label, class tag; scope version, editor tag, and field/state counts live in the header tooltip. Sockets: `input:declare` (declares/children wires land here), `output:type` (renders once the class carries its type id). |
 | `FieldNode.vue` | `ctsField` | Field card (`sm`): inline rename input emitting `rename`; the descriptor renders as a tag (`unit`, `Ref(a|b)`, `base?`); `output:field` wires the field into its type, and a `ref`-base field gains `input:targets` for wired accepted targets. |
 | `StateNode.vue` | `ctsState` | State value token (`sm`): inline rename input emitting `rename`; terminal marker; `output:state` wires the value into create/transition sockets, `input:state` nests another state inside it. |
@@ -46,33 +48,27 @@ registry's `describeType`, its message rendering inline; an unset `ref`
 (no accepted targets) is authored-in-progress and stays out of the
 declaration until targets are picked.
 
-## The in-place declaration editor (SPEC §1)
+## Surface declaration authoring (SPEC §1)
 
-`TypeDeclarationEditor.vue` is the registered `typeDeclaration` workspace
-page (`/types/declaration` as its mobile/deep-link route), opened by the
-author affordance on a stationed type's surfaces
-([generated](../generated/README.md)). It receives the `typeId` (and the
-resolved stationing definition id) through the page-open params channel
-and is a **second projection of the same declaration records the canvas
-authors** — one authoring model, two projections:
+Declaration authoring happens on the generated surfaces — fields in the
+record page's property block, states in the state surface — with no
+separate editor surface. One authoring model: the pure gesture layer
+below mutates the same canvas declaration records the designer authors,
+and every surface affordance is a projection of one session.
 
-| Concern | Contract |
+| Piece | Contract |
 |---|---|
-| Load | The stationing definition document through the designer's read API (`GET /api/process-definitions/:id`); the page title is the draft class node's authored name (the registry type label as fallback), the subtitle the definition's display name. |
-| Projection | `definitionToCanvas`/`canvasToDefinition` (packages/processes transpiler) between the document and the edited node/edge arrays — the same seam the canvas round-trips through. |
-| Fields | One property row per declared field (SPEC §22.8): the name renders as the small muted label and click-edits in place (PrimeVue `Inplace`); the kind + qualifier summary renders as the ink value through `fieldDescriptorSummary`, a ref's accepted types resolved through the type-label chain over `typeOptions`; the nullable qualifier rides the summary's `?`. The identifier holder carries the `Identifier` mark beside the value. The row's affordances — identifier move, descriptor edit, remove — stay quiet until the row is hovered or focused on hover-capable pointers and pinned on touch (the region-header cluster convention, SPEC §22.15). The shared `DescriptorEditor` expands in a bordered inset under its row. |
-| Lifecycle | The states of the type's vocabulary render as the severity-and-icon chips records wear (`StateTag`'s Tag vocabulary) with in-place rename; severity picks through `stateSeverityOptions` (localized labels); the icon input previews the live glyph in its leading slot. A state enters the vocabulary through an operation (SPEC §7): add-state carries it into the first construct without an initial state, else mints the targeting transition. |
-| Transitions | Machine-table rows: the from column renders one severity-styled chip per wiring-derived source state (an authored `state.from` appended as legacy data; a transition with no derived sources renders the `any` chip); the target picks from the vocabulary (retarget rewires the entry edge); the intent edits inline. |
-| Writes | The same declaration records: class node data, field nodes and their `declares` wires, state nodes and their `entry` wires into `cts.construct`/`cts.transition` records. `interpretDeclarationEdges` runs after each structural edit — the same live interpretation the canvas runs. |
-| Validation | `compileTreeDeclarations` + `normalizeType` diagnostics on every change (the class-inspector chain, pinned in `utils/processDesignerDeclarationEditor.js`); a removal that would orphan consumers is refused and its fresh diagnostics surfaced inline. |
-| Save | `PATCH /api/process-definitions/:id` with the `canvasToDefinition` snapshot — draft persistence only; the Apply ceremony stays the only activation path. The page action row (StandardPage actions) carries the save, dirty-gated; leaving the routed page with unsaved changes prompts through the standard confirm host, and a dirty mount guards the browser unload. The editor registers its dirty state on its workspace tab key (`useWorkspacePageKey` provide → `setWorkspacePageDirty`), so closing its pane tab or pane prompts through the same confirm host. |
-| Machine view | One `StandardDialog` (lg) from the lifecycle header: `machineModelOf` + `mermaidFlowchartOf` render through the shared markdown pipeline (mermaid fences as diagrams app-wide) inside a bounded scrolling region (60dvh cap); the initial state derives from the construct's entry target, each transition renders one edge per wiring-derived source state (`transitionSourcesOf`, the draft-side twin of the compiled `declaredTransitionSources` — [packages/processes](../../packages/processes/README.md) → Workflow synthesis), and a transition with no derived sources renders from the initial state, else from every other state. |
+| Session | `useDeclarationAuthoring.js` — resolves the stationing definition (`useDeclarationStation`), loads it through the designer's persistence seam, projects with `definitionToCanvas`/`canvasToDefinition`, runs `interpretDeclarationEdges` after each structural edit, and mutates only through the pure layer. Diagnostics recompute on every change (`compileTreeDeclarations` + `normalizeType`); save is a draft `PATCH` (`saveDraft`); Apply stays in the designer. |
+| Provider | `DeclarationAuthoring.vue` renders a bare slot and provides the session as `declarationAuthoring`; [ui-mapping](../ui-mapping/README.md)'s RegionBlock mounts it around the depth-0 record. It gates on the process-design capability (`organizations:admin`, the designer's own seam) and the declaration station; non-holders and pack types get no session and the surfaces stay byte-identical. |
+| Fields | The record page's property block projects the draft for holders: every declared scalar field in authored order, empty ones included, one author affordance per row. The row popover (`DeclarationFieldMenu` → `DeclarationFieldPanel`) composes the shared `DescriptorEditor` — kind, qualifiers, relation targets offered from the live registry view (`typeOptions` over the designer's CTS type view) — beside the name, the identifier-holder move, move up/down (`moveDeclarationField`), and removal gated by live diagnostics (an orphaning remove refuses with the compiler's fresh reason). The block ends in the add-field affordance (`DeclarationAddField`, minting through `newFieldDeclaration` with the authored name and descriptor); rendered structural sections carry the same popover at their label. |
+| States | The state popover ([ui-mapping](../ui-mapping/README.md) SurfaceHeader) gains the authoring lane `DeclarationStatePanel`: the vocabulary states edit value, label, severity/icon (`state-severities.js`), transitions author from/to the type's live vocabulary with the intent label, removal is diagnostics-gated, and the machine view (`machineModelOf` + `mermaidFlowchartOf` through the shared markdown pipeline) opens one dialog away. Add-state carries the SPEC §7 law — the first construct without an initial state gets it, else a targeting transition is minted — and the consequence is stated beside the input before commit. A stateless record of a stationed type carries the quiet add-states affordance at the state surface position instead. |
+| Save | `DeclarationSaveButton` — the one save affordance, dirty-gated, mounted in the property block's end cluster and the state panel. |
+| Guard | A dirty session warns on route leave through the standard confirm host (`onBeforeRouteLeave` in the session) and on browser unload; closing a host pane tab without a route change carries no veto seam (canvas parity). |
 
-The loaded rows render through pure-presentation components —
-`DeclarationFieldRow.vue`, `DeclarationStateRow.vue`,
-`DeclarationTransitionRow.vue` — every mutation an event up to the editor
-page (the process-designer inspector law); the page owns loading, the
-draft arrays, gestures, diagnostics, and save.
+`DeclarationStateRow.vue` and `DeclarationTransitionRow.vue` are
+pure-presentation rows the state panel composes — every mutation an
+event up (the process-designer inspector law); the panels bind them to
+the session's gestures.
 
 Glyph authoring, payload-traits authoring, the transition guard
 editor, actor assignment, field policy, grants, and the dataflow wiring
@@ -80,7 +76,7 @@ stay on the canvas inspector (v1 boundary).
 
 The pure projection and gesture layer lives in
 [utils](../../utils/README.md) → `processDesignerDeclarationEditor.js`
-(spec-pinned: the in-place round-trip must serialize to the document the
+(spec-pinned: the surface round-trip must serialize to the document the
 canvas gestures save); the stationing-definition resolution in
 [composables](../../composables/README.md) → `useDeclarationStation`.
 
@@ -101,6 +97,6 @@ canvas gestures save); the stationing-definition resolution in
 
 - Parent: [components](../README.md)
 - [process-designer](../process-designer/README.md) — canvas contract, inspector, wire grammar
-- [generated](../generated/README.md) — the author affordance and the workspace-page registry
+- [ui-mapping](../ui-mapping/README.md) — the record surfaces the affordances mount on
 - [shared](../shared/README.md) — `DesignerNodeCard`, `DesignerSocketHandle`
 - [packages/cts](../../packages/cts/SPEC.md) — declaration and descriptor grammar

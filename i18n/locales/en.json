@@ -2018,7 +2018,6 @@
         "sortOrderLabel": "Toggle sort order",
         "view": "View",
         "comments": "Comments",
-        "declareType": "Edit declaration",
         "moreActions": "More actions",
         "calendarPrev": "Previous month",
         "calendarNext": "Next month",
@@ -2661,7 +2660,6 @@
         "writable": "Writable"
     },
     "typeDeclaration": {
-        "title": "Declaration",
         "fields": "Fields",
         "lifecycle": "Lifecycle",
         "machineView": "State machine",
@@ -2673,8 +2671,14 @@
         "fromAny": "any",
         "identifier": "Identifier",
         "notStationed": "This type has no authored declaration in the active process.",
-        "unsavedLeave": "Leave with unsaved declaration changes?"
-    },
+        "unsavedLeave": "Leave with unsaved declaration changes?",
+        "editStates": "Edit states",
+        "addStates": "Add states",
+        "stateLabel": "Label",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "addStateHintInitial": "First state — it becomes the construct without an initial state.",
+        "addStateHintTransition": "A transition to it is created; it appears after Apply."    },
     "processDesigner": {
         "classNamePlaceholder": "Widget name",
         "socketSingleWire": "“{socket}” accepts one wire — connect a list source or use a collection node instead.",

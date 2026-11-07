@@ -14,15 +14,6 @@
       @close="$emit('close')"
     />
 
-    <!-- Host chrome, never generated content (SPEC §1): the declaration
-         affordance of the hosted screen's type renders as the pane's own
-         header row and renders nothing for types without an authored
-         declaration in the active definition. -->
-    <TypeDeclareEntry
-      v-if="declareTypeId"
-      :type-id="declareTypeId"
-    />
-
     <div ref="scrollHost" class="min-h-0 flex-1 overflow-auto p-4">
       <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
       <StateBlock v-else-if="notFound" state="error" :message="$t('generatedScreen.notFound')" />
@@ -49,7 +40,6 @@ import { computed, ref } from 'vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import TypeDeclareEntry from '~/components/generated/TypeDeclareEntry.vue';
 import { synthesizeDetailScreen } from '~/components/generated/detail-screen-actions.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
 import { screenByKey } from '~/utils/process-navigation.js';
@@ -98,15 +88,6 @@ const scopedScreen = computed(() => {
 const activeKey = computed(() => (props.item.instanceId
   ? `screen:${props.item.screenKey}:${props.item.instanceId}`
   : (props.item.screenKey ? `screen:${props.item.screenKey}` : props.item.key)));
-// The declaration affordance rides the pane header for the type's list
-// and record surfaces (SPEC §1) — the host decides the chrome; the entry
-// itself resolves the station and renders nothing otherwise.
-const declareTypeId = computed(() => {
-  const template = resolvedScreen.value?.template;
-  if (template === 'typeList' && !props.item.instanceId) return String(resolvedScreen.value.typeId || '');
-  if (template === 'instanceDetail') return String(resolvedScreen.value.typeId || '');
-  return '';
-});
 // Screen records resolve after auth hydration; only a hydrated manifest
 // with no matching record — or a template no surface renders — is a
 // not-found.

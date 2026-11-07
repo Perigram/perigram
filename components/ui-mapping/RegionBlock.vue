@@ -139,62 +139,69 @@
 
   <div v-else :class="[stackFor, 'w-full', 'relative', recordDocument ? LAYOUT.measure : '']">
     <RegionDataState v-if="showState" :node="node" />
-    <template v-if="depth === 0 && showSurfaces">
-      <div class="relative">
-        <SurfaceHeader
-          :type="node.type"
-          :instance="node.instances[0]"
-          :actions="headerActions"
-          :level="node.level"
-          :bundle="bundle"
-          :state-policy="node.statePolicy"
-          :navigation="depth === 0 ? navigation : null"
-          :compact="presentation === 'peek'"
-          :expandable="expandable"
-          @run="action => emitRun(action, { instance: node.instances[0] || null })"
-          @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
-          @refresh="emit('refresh')"
-          @open-instance="emitOpen"
-          @expand="emit('expand')"
-        />
-        <!-- The record's reload lane: a permanent 4px track under the
-             header the strip appears inside — bounded, touching no
-             content, and its appearance shifts nothing below. -->
-        <div :class="LAYOUT.reloadLane">
-          <ProgressBar v-if="isReloading" mode="indeterminate" class="h-full" :aria-label="$t('uiMapping.loadingRegion')" />
+    <!-- The depth-0 record carries the declaration authoring session
+         (SPEC §1): the provider gates on the process-design capability and
+         the declaration station, and provides the session to the record
+         surfaces — the property rows and the state surface render their
+         author affordances only when it is live. -->
+    <DeclarationAuthoring v-if="depth === 0" :key="node.typeId" :type-id="node.typeId">
+      <template v-if="showSurfaces">
+        <div class="relative">
+          <SurfaceHeader
+            :type="node.type"
+            :instance="node.instances[0]"
+            :actions="headerActions"
+            :level="node.level"
+            :bundle="bundle"
+            :state-policy="node.statePolicy"
+            :navigation="depth === 0 ? navigation : null"
+            :compact="presentation === 'peek'"
+            :expandable="expandable"
+            @run="action => emitRun(action, { instance: node.instances[0] || null })"
+            @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
+            @refresh="emit('refresh')"
+            @open-instance="emitOpen"
+            @expand="emit('expand')"
+          />
+          <!-- The record's reload lane: a permanent 4px track under the
+               header the strip appears inside — bounded, touching no
+               content, and its appearance shifts nothing below. -->
+          <div :class="LAYOUT.reloadLane">
+            <ProgressBar v-if="isReloading" mode="indeterminate" class="h-full" :aria-label="$t('uiMapping.loadingRegion')" />
+          </div>
         </div>
-      </div>
-      <div v-if="splitSide" class="region-split grid w-full grid-cols-1 gap-6" :style="splitTracks">
-        <div class="min-w-0 flex flex-col gap-6">
+        <div v-if="splitSide" class="region-split grid w-full grid-cols-1 gap-6" :style="splitTracks">
+          <div class="min-w-0 flex flex-col gap-6">
+            <SurfaceBody
+              v-bind="bodyProps"
+              variant="full"
+              :editable="patchable"
+              v-on="bodyEvents"
+            />
+          </div>
+          <PlacementBox>
+            <RegionChildren
+              v-bind="childrenProps"
+              v-on="childrenEvents"
+            />
+          </PlacementBox>
+        </div>
+        <template v-else>
           <SurfaceBody
             v-bind="bodyProps"
             variant="full"
             :editable="patchable"
             v-on="bodyEvents"
           />
-        </div>
-        <PlacementBox>
           <RegionChildren
+            v-if="node.childRegions.length"
             v-bind="childrenProps"
             v-on="childrenEvents"
+            :arrangement="node.childArrangement"
           />
-        </PlacementBox>
-      </div>
-      <template v-else>
-        <SurfaceBody
-          v-bind="bodyProps"
-          variant="full"
-          :editable="patchable"
-          v-on="bodyEvents"
-        />
-        <RegionChildren
-          v-if="node.childRegions.length"
-          v-bind="childrenProps"
-          v-on="childrenEvents"
-          :arrangement="node.childArrangement"
-        />
+        </template>
       </template>
-    </template>
+    </DeclarationAuthoring>
     <template v-else-if="showSurfaces">
       <ProgressBar v-if="isReloading" mode="indeterminate" :class="LAYOUT.reloadBar" :aria-label="$t('uiMapping.loadingRegion')" />
       <SurfaceBody
@@ -249,6 +256,7 @@ import SurfaceBody from './SurfaceBody.vue';
 import SortControl from './SortControl.vue';
 import CreateControl from './CreateControl.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
+import DeclarationAuthoring from '../type-designer/DeclarationAuthoring.vue';
 import RecordComments from '../chat/RecordComments.vue';
 import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';

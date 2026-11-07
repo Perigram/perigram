@@ -13,6 +13,7 @@ import {
   fieldDescriptorSummary,
   machineModelOf,
   mermaidFlowchartOf,
+  moveDeclarationField,
   newFieldDeclaration,
   newStateDeclaration,
   newTransitionDeclaration,
@@ -226,9 +227,35 @@ describe('in-place field authoring round-trips the canvas shape', () => {
     expect(field.node.data).toEqual({ refId: 'fld_a', typeId: TYPE_ID, name: '', descriptor: { base: 'string' } });
     expect(field.edge).toMatchObject({ role: 'type', label: 'field', targetHandle: 'input:declare' });
 
+    const named = newFieldDeclaration({ id: 'fld_b', classNode: base.nodes[0], name: 'Width', descriptor: { base: 'quantity', unit: 'mm' } });
+    expect(named.node.data).toEqual({ refId: 'fld_b', typeId: TYPE_ID, name: 'Width', descriptor: { base: 'quantity', unit: 'mm' } });
+
     const state = newStateDeclaration({ id: 'st_a', value: 'review' });
     expect(state.node.type).toBe('ctsState');
     expect(state.node.data.value).toBe('review');
+  });
+
+  it('moves a field within the authored order and refuses the ends', () => {
+    const base = canvasFixture();
+    const lower = newFieldDeclaration({
+      id: 'fld_lower',
+      classNode: base.nodes[0],
+      name: 'Width',
+      position: { x: -260, y: 160 }
+    });
+    const nodes = [...base.nodes, lower.node];
+    const compiledFieldIds = (array) => Object.keys(
+      compileTreeDeclarations(array, base.edges, base.records)
+        .declarations.find(declaration => declaration.id === TYPE_ID).fields
+    );
+    expect(compiledFieldIds(nodes)).toEqual(['title', 'width']);
+    const up = moveDeclarationField(nodes, 'fld_lower', -1);
+    expect(up.moved).toBe(true);
+    expect(up.nodes.findIndex(node => node.id === 'fld_lower')).toBe(1);
+    expect(up.nodes.findIndex(node => node.id === 'fld_title')).toBe(5);
+    expect(compiledFieldIds(up.nodes)).toEqual(['width', 'title']);
+    expect(moveDeclarationField(up.nodes, 'fld_lower', -1).moved).toBe(false);
+    expect(moveDeclarationField(nodes, 'fld_lower', 1).moved).toBe(false);
   });
 });
 
