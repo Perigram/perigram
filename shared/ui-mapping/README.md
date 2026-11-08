@@ -642,8 +642,10 @@ weights grant them and tab past the budget — one ladder for screens and
 record children. A screen section that resolved empty leaves the ladder as
 a compact stub strip below the arranged content (`stubRegions` on the
 composed screen; loading/denied/error sections keep their state surfaces
-in the arrangement). Every weight is a compose-time value
-over the composed tree.
+in the arrangement). A host whose empty collection is its own content
+passes `keepEmptyLists` and keeps the section in the arrangement with its
+header and empty state. Every weight is a compose-time value over the
+composed tree.
 
 The spacing coefficient (0.5–2) selects the rhythm set
 (`spacingClasses` over the literal `SPACING_SCALES` table): stack rhythm,

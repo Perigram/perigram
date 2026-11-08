@@ -47,6 +47,9 @@
   read.
 - The header carries the class dialog action alone: no class avatar or
   duplicate type label, and the save control renders while dirty.
+- The class collection keeps its header and empty state when the class
+  has no records: `GeneratedScreenHost` forwards `keepEmptyLists` into
+  the screen composition, so the class list stays in the arrangement.
 
 ## Notion-like document blocks and collection views (owner direction 2026-11-08)
 

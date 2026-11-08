@@ -176,8 +176,10 @@ menu. The page's save control renders while the document is dirty.
 The class page leads with the class's collection: its compiled
 `typeList` screen through the generator host, so create and link actions
 run through the ordinary action pipeline; a class with no compiled
-screen mounts the minimal live collection view. The page document's
-blocks follow below the collection.
+screen mounts the minimal live collection view. The collection keeps its
+header and empty state when the class has no records
+(`keepEmptyLists`). The page document's blocks follow below the
+collection.
 
 ## Custom Pages
 

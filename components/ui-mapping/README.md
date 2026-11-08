@@ -248,7 +248,9 @@ application.
   `peek` keeps the ladder arrangement, the lineage trail, and the compact
   identity line, state surface, and action cluster over the record body. A host passing
   `expandable` gets the header's step-up button, whose `expand` event the
-  host turns into the record's own page. The root measures itself and
+  host turns into the record's own page. `keepEmptyLists` keeps an empty
+  top-level list section in the arrangement with its header and empty
+  state instead of the stub strip (the class page's own collection). The root measures itself and
   provides the page container record when no host declared one, so step
   engagement and budgets resolve against the real box (a designer preview
   box or narrow viewport arranges narrow). The root also provides the
