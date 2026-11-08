@@ -113,6 +113,14 @@
   the ProseMirror view, so adding a chip or opening a block keeps the
   caret where the author put it.
 
+### Agent Notes (2026-11-08, agent/trailing-block-20261108)
+
+- The trailing line renders only while no block editor is open.
+  Backspace in its empty line reopens the document's last text block
+  through the overlay session's `resumeLastTextBlock`.
+- Focused: `useRecordOverlay` spec green; `docs:validate` and `check-arch`
+  green.
+
 ## Deslopification program (owner direction 2026-10-23)
 
 Baseline: full-repo audit of 2026-10-24 (nine area reports, three

@@ -159,7 +159,8 @@ page-dirty registry under `tabKey` so pane-close confirms. The depth-0
 record branch of
 [components/ui-mapping](../components/ui-mapping/README.md)'s RegionBlock
 is the one mount; the section shells, insert picker, text-block editor, and
-the header's save affordance bind to it.
+the header's save affordance bind to it. `resumeLastTextBlock()` reopens
+the document's last text block for the trailing line's Backspace.
 
 ## useContainerTraits
 

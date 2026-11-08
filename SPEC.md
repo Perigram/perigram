@@ -1470,9 +1470,11 @@ same entries, the gutter reserves its lane outside the content, and the
 drag handle is a six-dot grip. Collection headers carry their views as
 tabs: the derived layout, the type's saved views, and add view.
 
-Writers always have a trailing live editor; its Enter commits the text
-as a block. A writable record document mounts the live engine in every
-text block, so the block reads the same while edited and while idle.
+Writers always have a trailing live editor while no block editor is
+open; its Enter commits the text as a block, and Backspace in its empty
+line resumes the document's last text block. A writable record document
+mounts the live engine in every text block, so the block reads the same
+while edited and while idle.
 Text blocks accept inline instance references, stored as `#instance:`
 links and rendered through the shared instance chip; file references
 render through the shared file chip.

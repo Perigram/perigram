@@ -275,8 +275,9 @@ the `section` field set.
   asks for a source address, file for any upload or address, instance
   opens the tree), and the view entry reuses `ViewPickerDialog`. The
   document's trailing line is a
-  real inline engine mount, empty and type-ready for writers; Enter
-  commits it as a block. The composition and its authoring
+  real inline engine mount, empty and type-ready for writers, rendered
+  only while no block editor is open; Enter commits it as a block and
+  Backspace in its empty line resumes the last text block. The composition and its authoring
   affordances live in
   [components/ui-mapping](../ui-mapping/README.md) (the record
   document's overlay); the overlay store and the write-grant gate are
