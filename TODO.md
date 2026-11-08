@@ -106,7 +106,12 @@
   saved page after reload no longer starts the editor on an empty draft.
 - The File entry accepts any upload or address and renders the shared
   `FileChip`; the read composition mounts the same chip from `#file:`
-  links.
+  links, carrying the label only in the chip. The engine reset no longer
+  strips chip padding, so editor chips match chat.
+- Writable record documents mount the engine in every text block; the
+  read/edit renderer split is gone for writers. Focus restores through
+  the ProseMirror view, so adding a chip or opening a block keeps the
+  caret where the author put it.
 
 ## Deslopification program (owner direction 2026-10-23)
 

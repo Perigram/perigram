@@ -264,15 +264,17 @@ the `section` field set.
   rhythm. A fence naming a deleted view renders its carried name and a
   quiet unavailable state.
 - The record overlay's blocks mount beside the page's fences (SPEC §26):
-  a text block renders through `OverlayTextBlock.vue` — read through
-  `MarkdownBlocks`, authored inline through `CrepeEditor` at the click
-  point, its text saving with the overlay's document — and a view block
-  renders `ViewEmbed` verbatim with its saved ref. Inline instance
-  links read through the shared `InstanceInlineRef` chip. The document
+  a writable session mounts `CrepeEditor` in every text block through
+  `OverlayTextBlock.vue`, so editing and resting states share one
+  renderer and one chip face; readers mount `MarkdownBlocks`. The text
+  saves with the overlay's document, and a view block renders `ViewEmbed`
+  verbatim with its saved ref. Inline instance and file references render
+  through the shared `InstanceInlineRef` and `FileChip`. The document
   gutter's plus opens the same block vocabulary as the slash
   panel; text entries insert a text block opened at that kind (image
-  asks for a source address, instance opens the picker), and the view
-  entry reuses `ViewPickerDialog`. The document's trailing line is a
+  asks for a source address, file for any upload or address, instance
+  opens the tree), and the view entry reuses `ViewPickerDialog`. The
+  document's trailing line is a
   real inline engine mount, empty and type-ready for writers; Enter
   commits it as a block. The composition and its authoring
   affordances live in
