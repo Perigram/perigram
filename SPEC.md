@@ -1070,7 +1070,8 @@ its child collections alone; the hierarchy tree projection is retired.
 File and instance references render through the shared chip recipes the
 chat surfaces own: file chips name the file and carry its file-type
 glyph, instance chips ride InstanceInlineRef's bordered default and
-carry the authored type glyph at the same icon scale. A boolean renders as the checkbox
+carry the authored type glyph at the same icon scale. Inline chips ride
+compact padding and middle alignment inside prose. A boolean renders as the checkbox
 state it is. A record's identifier carries its icon (the authored
 glyph, a record's declared thumb winning) through the one identifier
 surface; type names render bare — a collection's title bar labels its
@@ -1472,8 +1473,8 @@ same entries, the gutter reserves its lane outside the content, and the
 drag handle is a six-dot grip. Collection headers carry their views as
 tabs: the derived layout, the type's saved views, and add view.
 
-Writers always have a trailing live editor while no block editor is
-open; its Enter commits the text as a block, and Backspace in its empty
+Writers always have a trailing live editor while no block editor holds
+focus; its Enter commits the text as a block, and Backspace in its empty
 line resumes the document's last text block. A writable record document
 mounts the live engine in every text block, so the block reads the same
 while edited and while idle.
@@ -1517,11 +1518,12 @@ registry and its instances untouched.
 
 Every organization class appears in the sidebar as its own type panel.
 Every class entry opens its class page: a regular Page instance bound to
-the class type by `fields.classTypeId`. The class page carries the
-unified page header with its class dialog entry, the class's collection
-with the compiled create and link affordances, and the block editor with
-the slash vocabulary, instance mentions, collection views, and images
-like every user page. The panel context menu opens the class dialog.
+the class type by `fields.classTypeId`. The class page leads with its
+class collection — the compiled list screen with its create and link
+affordances — then the block editor with the slash vocabulary, instance
+mentions, collection views, and images like every user page. The
+unified header carries the class dialog action and the dirty-gated save.
+The panel context menu opens the class dialog.
 Every record header type label is clickable: editable for organization
 classes to capability holders, read-only otherwise. The sidebar's New class action creates a class, and the dialog
 edits name, class kind, glyph, fields, states, and CTS children. A

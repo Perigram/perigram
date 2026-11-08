@@ -22,22 +22,31 @@
 
 ### Agent Notes (2026-11-08, agent/editor-mentions-20261108)
 
-- A screenless class now opens its bound Page instance: `fields.classTypeId`
+- A screenless class opens its bound Page instance: `fields.classTypeId`
   binds the page to the class, the pages service returns the existing
-  page for a repeated create, and the class page seeds a collection view
-  of its class. It mounts the same page header and block editor as every
-  custom page; class pages stay out of the sidebar page tree.
+  page for a repeated create, and the class page carries its class
+  collection above the block editor. It mounts the same page header and
+  block editor as every custom page; class pages stay out of the sidebar
+  page tree.
 
 ### Agent Notes (2026-11-08, agent/class-pages-chips-20261108)
 
-- Every sidebar class entry opens its class page. The class page header
-  carries the class type label (the class dialog entry) and the page's
-  collection fence mounts the class's compiled `typeList` screen through
+- Every sidebar class entry opens its class page. The class page leads
+  with the class's compiled `typeList` screen through
   `GeneratedScreenHost`, so create and link actions run through the
   ordinary action pipeline; a screenless class mounts the minimal live
   collection view. The wrapped sidebar rail follows the same open path.
 - Focused: `view-embed`, `sidebar-pages`, `sidebar-explorer`, and the
   hierarchy spec green; `docs:validate` and `check-arch` green.
+
+### Agent Notes (2026-11-09, class page document)
+
+- The class collection is a surface section above the page document,
+  mounted by `CustomPageSurface`; the page document carries blocks alone.
+  `ensureClassPage` strips a legacy seeded collection fence on first
+  read.
+- The header carries the class dialog action alone: no class avatar or
+  duplicate type label, and the save control renders while dirty.
 
 ## Notion-like document blocks and collection views (owner direction 2026-11-08)
 
@@ -130,12 +139,17 @@
 - File chips render the file-type glyph family (mime or extension
   derived), and generated-family icons drop their standalone scale
   inside chips, so file and instance chip icons share one em box.
+- Inline instance/file chips ride compact padding (`!px-2 !py-0.5`) and
+  middle alignment.
 
 ### Agent Notes (2026-11-08, agent/trailing-block-20261108)
 
-- The trailing line renders only while no block editor is open.
-  Backspace in its empty line reopens the document's last text block
-  through the overlay session's `resumeLastTextBlock`.
+- The trailing line renders only while no block editor holds focus:
+  `OverlayTextBlock` reports focus through the overlay session's
+  `activeBlockId`, and the trailing line hides while a block editor is
+  active. Backspace in its empty line reopens the document's last text
+  block through `resumeLastTextBlock`, and the resumed block focuses at
+  its end.
 - Focused: `useRecordOverlay` spec green; `docs:validate` and `check-arch`
   green.
 

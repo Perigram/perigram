@@ -77,7 +77,8 @@ imported through server modules that Nitro externalizes.
   answers. Mermaid fences render as diagrams; view fences carry a
   saved-view ref — `parseViewRef` reads it, `splitViewEmbeds` splits a
   document into markdown segments and embed blocks for the page
-  surface's read composition, and the pipeline itself renders the ref
+  surface's read composition, `removeViewEmbeds` strips matching fences
+  during page migration, and the pipeline itself renders the ref
   as the quiet `ck-view-embed` chip where no live host exists (the live
   region mounts on page surfaces and the live editor,
   [components/generated](../components/generated/README.md)).

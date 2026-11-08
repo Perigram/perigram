@@ -22,7 +22,8 @@ One `items` document of type `page` per page or section:
 | `createdBy` / `createdAt` / `updatedAt` | Provenance. |
 
 A class page is an ordinary Page instance: it carries blocks and the
-editor vocabulary like every page. Creating a page with an already-bound
+editor vocabulary like every page, and the class page surface renders the
+class's collection above them. Creating a page with an already-bound
 `classTypeId` returns the bound page, so opening a class panel is
 idempotent. Class pages stay out of the sidebar page tree; the class
 panel owns their navigation.

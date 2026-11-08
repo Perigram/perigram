@@ -164,21 +164,20 @@ surfaces and action forms.
 
 Every organization class entry opens its regular Page instance (SPEC
 §27): the class panel asks the pages store for the page bound to the
-class type, creating it with a seeded collection view when absent, and
-opens it as an ordinary `customPage` tab. The class page therefore carries
-the same unified header, block editor, slash vocabulary, instance
-mentions, and collection views as every user page. The header's class
-type label opens the class dialog for capability holders.
-`fields.classTypeId` is the binding; class pages stay out of the sidebar
-page tree, and the class panel and class dialog remain their navigation.
-The dialog still opens from the panel context menu.
+class type, creating it when absent, and opens it as an ordinary
+`customPage` tab. The class page carries the same unified header, block
+editor, slash vocabulary, instance mentions, and collection views as
+every user page. The header carries the class dialog action for
+capability holders. `fields.classTypeId` is the binding; class pages
+stay out of the sidebar page tree, and the class panel and class dialog
+remain their navigation. The dialog still opens from the panel context
+menu. The page's save control renders while the document is dirty.
 
-The class page's collection entry mounts the class's compiled `typeList`
-screen through the generator host, so its create and link actions run
-through the ordinary action pipeline; a class with no compiled screen
-mounts the minimal live collection view. `ViewEmbed` selects this path
-when the collection fence's `typeId` matches the page's `classTypeId`;
-saved-view fences keep the lens presentation.
+The class page leads with the class's collection: its compiled
+`typeList` screen through the generator host, so create and link actions
+run through the ordinary action pipeline; a class with no compiled
+screen mounts the minimal live collection view. The page document's
+blocks follow below the collection.
 
 ## Custom Pages
 
@@ -262,10 +261,9 @@ the `section` field set.
   lens law: an org-wide view shows each member their own readable
   subset, and an unreadable type renders the denied state), and row
   opens follow the workspace-open seam. The embed's region carries no
-  actions except on the class page's class-collection entry, which mounts
-  the compiled list screen with its create and link actions; the saved
-  lens renders the view and interacting with its controls edits the lens
-  session-locally only. In the live editor the same
+  actions: creation and quick actions belong to the collection's own
+  screens, and the embed renders the lens; interacting with its controls
+  edits the lens session-locally only. In the live editor the same
   `ViewEmbed` mounts inside the fence's engine preview
   (`CrepeEditor.vue` `ck-live-view`), so the collection reads live while
   the author types; each embed owns a 1rem vertical frame, separating
@@ -285,8 +283,8 @@ the `section` field set.
   opens the tree), and the view entry reuses `ViewPickerDialog`. The
   document's trailing line is a
   real inline engine mount, empty and type-ready for writers, rendered
-  only while no block editor is open; Enter commits it as a block and
-  Backspace in its empty line resumes the last text block. The composition and its authoring
+  only while no block editor holds focus; Enter commits it as a block
+  and Backspace in its empty line resumes the last text block. The composition and its authoring
   affordances live in
   [components/ui-mapping](../ui-mapping/README.md) (the record
   document's overlay); the overlay store and the write-grant gate are

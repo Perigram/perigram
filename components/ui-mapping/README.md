@@ -220,8 +220,8 @@ application.
   Instance entry opens the shared `InstanceSelect`, and the read
   composition mounts the shared `InstanceInlineRef` chip in place of
   each link. The document's trailing line is a real inline engine mount, empty and
-  type-ready for writers; it renders only while no block editor is open.
-  Enter commits its text as a block and leaves a fresh empty line, and
+  type-ready for writers; it renders only while no block editor holds
+  focus. Enter commits its text as a block and leaves a fresh empty line, and
   Backspace in its empty line resumes the document's last text block. It
   is the document's single placeholder: empty text blocks render nothing
   and drop when their editor closes. The record's own

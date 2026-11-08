@@ -37,9 +37,9 @@ The class library is the organization's `scope: 'org'` registry view
 [useFileTypeView](../../composables/README.md)). Organization classes
 appear as sidebar type panels and every entry opens its bound Page
 instance ([components/generated](../generated/README.md) — the regular
-page whose collection mounts the class's compiled list screen); the panel
-context menu opens `ClassDialog.vue`. The sidebar's New class action
-creates a class.
+page whose collection mounts the class's compiled list screen and whose
+header carries the class dialog action); the panel context menu opens
+`ClassDialog.vue`. The sidebar's New class action creates a class.
 
 | Piece | Contract |
 |---|---|
