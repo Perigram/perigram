@@ -46,9 +46,10 @@
 - The collection-view picker is the type containment tree; a pick
   carries its type id and renders the type's live view with its header
   tabs. Saved views stay in the header tabs.
-- Enter at the end of a text block starts the next block; the document
-  keeps a real inline editor at its foot, empty and type-ready. Enter
-  commits its text as a block and leaves a fresh empty line. The
+- Enter at the end of a text block starts the next block; Backspace in
+  an empty block removes it and resumes the previous text block. The
+  document keeps a real inline editor at its foot, empty and type-ready.
+  Enter commits its text as a block and leaves a fresh empty line. The
   trailing line is the single placeholder: empty text blocks render
   nothing and drop when their editor closes. Callout inserts an empty
   blockquote.
