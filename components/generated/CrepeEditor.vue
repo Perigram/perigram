@@ -91,7 +91,10 @@ const props = defineProps({
   // blocks render their content without marker glyphs.
   showSourceMarkers: { type: Boolean, default: false },
   // Backspace in an empty document block removes the block.
-  deleteOnEmptyBackspace: { type: Boolean, default: false }
+  deleteOnEmptyBackspace: { type: Boolean, default: false },
+  // A class page's class id: its collection fence mounts the class's
+  // compiled list screen.
+  classTypeId: { type: String, default: '' }
 });
 
 const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty']);
@@ -285,7 +288,8 @@ function liveViewPreview(content) {
   const vnode = h(ViewEmbed, {
     viewId: ref.id || '',
     typeId: ref.typeId || '',
-    fallbackName: ref.name || ''
+    fallbackName: ref.name || '',
+    classTypeId: props.classTypeId
   });
   vnode.appContext = appContext;
   render(vnode, host);

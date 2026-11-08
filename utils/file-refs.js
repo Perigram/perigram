@@ -31,6 +31,24 @@ export function fileIdFromHref(href = '') {
   return match ? decodeURIComponent(match[1]) : '';
 }
 
+// The file-type glyph family the shared chips use: the same generated
+// icons the file classes declare, so a file chip and its instance chip
+// carry one icon scale.
+export function fileTypeIconClass(mime = '', name = '') {
+  const type = String(mime || '').toLowerCase();
+  const extension = String(name).split('.').pop()?.toLowerCase() || '';
+  const glyph = glyphName => `ck-file-type-icon ck-file-type-icon-${glyphName}`;
+  if (type.includes('pdf')) return glyph('pdf-document');
+  if (type.includes('csv') || extension === 'csv') return glyph('csv-table');
+  if (type.includes('spreadsheet') || type.includes('excel') || ['xls', 'xlsx'].includes(extension)) return glyph('xlsx-workbook');
+  if (type.includes('word') || ['doc', 'docx'].includes(extension)) return glyph('docx-document');
+  if (type.includes('svg')) return glyph('svg-file');
+  if (type.includes('image')) return glyph('image');
+  if (type.includes('dxf')) return glyph('dxf-source');
+  if (type.includes('text') || type.includes('markdown') || ['md', 'txt'].includes(extension)) return glyph('text-document');
+  return 'pi pi-file';
+}
+
 // The FileChip descriptor for a stored or addressed file reference.
 export function fileRefDescriptor({ href = '', name = '' } = {}) {
   const parsed = parseFileHref(href) || { href };

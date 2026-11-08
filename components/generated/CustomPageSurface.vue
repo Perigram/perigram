@@ -6,6 +6,7 @@
          surface, no comments entry. -->
     <SurfaceHeader
       :title="displayName"
+      :type="classType"
       :on-rename="commitName"
     >
       <template #cluster>
@@ -29,13 +30,14 @@
       class="text-prose min-h-0 flex-1 overflow-y-auto p-6"
       :aria-label="t('pages.page')"
     >
-      <MarkdownBlocks :source="pagesStore.contents[docId] || ''" />
+      <MarkdownBlocks :source="pagesStore.contents[docId] || ''" :class-type-id="classTypeId" />
     </div>
     <CrepeEditor
       v-if="contentReady"
       v-show="editorReady"
       ref="editor"
       :default-value="pagesStore.contents[docId] || ''"
+      :class-type-id="classTypeId"
       :placeholder="t('editors.slashHint')"
       show-source-markers
       @ready="editorReady = true"
@@ -55,6 +57,7 @@ import SurfaceHeader from '~/components/ui-mapping/SurfaceHeader.vue';
 import CrepeEditor from './CrepeEditor.vue';
 import MarkdownBlocks from './MarkdownBlocks.vue';
 import { usePagesStore } from '~/stores/pages';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { stripSerializerTail } from '#shared/markdown.js';
 import { setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
 
@@ -64,6 +67,7 @@ const props = defineProps({
 
 const { t } = useI18n();
 const pagesStore = usePagesStore();
+const fileTypeView = useFileTypeView();
 const tabKey = inject('workspacePageKey', '');
 
 const editor = ref(null);
@@ -74,6 +78,8 @@ const editorReady = ref(false);
 
 const page = computed(() => pagesStore.pageById(props.docId));
 const displayName = computed(() => page.value?.name || '');
+const classTypeId = computed(() => page.value?.classTypeId || '');
+const classType = computed(() => (classTypeId.value ? fileTypeView.typeById(classTypeId.value) : null));
 
 async function commitName(name) {
   if (!name || name === displayName.value) return;

@@ -46,12 +46,15 @@ export function containmentAncestors(entity = {}, typeId = '', containment = [])
     // Refs match in both stored shapes (the `{ id }` object and the
     // normalized id) — the same law every containment matcher reads.
     const id = ref?.id ?? ref;
-    const parentType = normalizeHierarchyType(relation.parentType);
-    const key = `${parentType}:${id}`;
+    const parentType = relation.parentType;
+    const parentKey = normalizeHierarchyType(parentType);
+    const key = `${parentKey}:${id}`;
     if (!id || visited.has(key)) break;
     visited.add(key);
+    // Ancestor refs carry the declaration's canonical type id: breadcrumbs
+    // resolve served type records and popup surfaces by it.
     refs.unshift({ type: parentType, id, lineageKey: relation.lineageKey });
-    childType = parentType;
+    childType = parentKey;
   }
 
   const organizationRef = lineage.organizationId;

@@ -36,6 +36,7 @@ import Chip from 'primevue/chip';
 import HoverPeek from '~/components/shared/HoverPeek.vue';
 import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
 import { resolveAttachmentPeek } from '~/components/generated/file-preview-contract.js';
+import { fileTypeIconClass } from '~/utils/file-refs.js';
 import { CHIP_LABEL_PT, FILE_CHIP_CLASS } from './chip-surface.js';
 
 const props = defineProps({
@@ -63,11 +64,5 @@ const title = computed(() => {
   const parts = [label.value, size.value].filter(Boolean);
   return parts.join(' · ');
 });
-const icon = computed(() => {
-  const value = mime.value;
-  if (value.includes('pdf')) return 'pi pi-file-pdf';
-  if (value.includes('sheet') || value.includes('excel')) return 'pi pi-file-excel';
-  if (value.includes('word')) return 'pi pi-file-word';
-  return 'pi pi-file';
-});
+const icon = computed(() => fileTypeIconClass(mime.value, name.value));
 </script>

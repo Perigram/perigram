@@ -53,6 +53,15 @@ describe('entity containment hierarchy', () => {
     ]);
   });
 
+  it('keeps the declaration canonical type id on ancestor refs', () => {
+    const entity = { _id: 'cassette-1', lineage: { designId: 'design-1' } };
+    expect(containmentAncestors(entity, 'cassette', [
+      { parentType: 'cassette-design', childType: 'cassette', lineageKey: 'designId' }
+    ])).toEqual([
+      { type: 'cassette-design', id: 'design-1', lineageKey: 'designId' }
+    ]);
+  });
+
   it('keeps unrelated entity relations out of ancestry and root filtering', () => {
     const project = {
       lineage: { organizationId: 'org-1' },

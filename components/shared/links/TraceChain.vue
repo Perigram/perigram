@@ -84,18 +84,20 @@ const items = computed(() => visibleTraceAncestors(
     })
 ));
 
-const keyOf = item => `${item.type}:${item.id}`;
-const iconFor = type => registry.iconFor(type);
-const openable = type => popup.openable(type);
+const canonicalType = type => instances.canonicalTypeKey(type) || type;
+const keyOf = item => `${canonicalType(item.type)}:${item.id}`;
+const iconFor = type => registry.iconFor(canonicalType(type));
+const openable = type => popup.openable(canonicalType(type));
 
 function openAncestor(item) {
-    popup.open({ typeId: item.type, instanceId: String(item.id) });
+    popup.open({ typeId: canonicalType(item.type), instanceId: String(item.id) });
 }
 
 function labelOf(item) {
     const instance = resolved.value[keyOf(item)];
-    if (!instance) return generatedEntityLabel(item.type, { t, te });
-    return titleFor(instance, typeById(item.type), { unnamedLabel: t('common.unnamed') });
+    const typeId = canonicalType(item.type);
+    if (!instance) return generatedEntityLabel(typeId, { t, te });
+    return titleFor(instance, typeById(typeId), { unnamedLabel: t('common.unnamed') });
 }
 
 watchEffect(async () => {

@@ -31,6 +31,21 @@ export function typeListScreenForTypeId({ screens = [], typeId = '' } = {}) {
   )) || null;
 }
 
+// The class page's collection host: the compiled typeList screen when
+// the manifest carries one (its actions included), else the minimal
+// single-source list the generated regions can materialize.
+export function classListScreenForTypeId({ screens = [], typeId = '' } = {}) {
+  if (!typeId) return null;
+  return typeListScreenForTypeId({ screens, typeId }) || {
+    id: `class:${typeId}`,
+    screenKey: `class:${typeId}`,
+    template: 'typeList',
+    typeId,
+    sources: [{ id: typeId, typeId }],
+    regions: [{ id: 'main', slot: 'main', sourceId: typeId }]
+  };
+}
+
 // Synthesize the missing detail screen from its list screen in the
 // compiled UI contract vocabulary (instanceDetail + typeId), mirroring
 // the routed surface fallback so workspace tabs render through the

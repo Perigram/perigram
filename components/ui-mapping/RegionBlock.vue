@@ -8,6 +8,14 @@
       :state-policy="node.statePolicy"
       @run="emitRun"
     />
+    <ActionButton
+      v-for="action in linkControls"
+      :key="`link:${action.id}`"
+      :action="action"
+      :state-policy="node.statePolicy"
+      :label="sectionLinkLabel(action)"
+      @run="emitRun"
+    />
   </div>
   <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
     <!-- SPEC §22.15: the header stays one line while the row has room —

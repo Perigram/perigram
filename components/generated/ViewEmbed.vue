@@ -3,8 +3,13 @@
        it: a region seeded before the state lands freezes every view
        model at its empty default. A collection entry carries no saved
        lens and renders the type's live view directly. -->
+  <GeneratedScreenHost
+    v-if="classListScreen"
+    :screen="classListScreen"
+    @open-instance="openHostInstance"
+  />
   <RegionBlock
-    v-if="node && (viewState || !viewId)"
+    v-else-if="node && (viewState || !viewId)"
     :key="viewKey"
     :node="node"
     :pool="pool"
@@ -37,6 +42,8 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import RegionBlock from '~/components/ui-mapping/RegionBlock.vue';
 import RegionDataState from '~/components/ui-mapping/RegionDataState.vue';
+import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
+import { classListScreenForTypeId } from '~/components/generated/detail-screen-actions.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useViewsStore } from '~/stores/views';
@@ -50,7 +57,10 @@ const props = defineProps({
   typeId: { type: String, default: '' },
   // The name the fence carried at authoring time — the deleted-view
   // title and the fallback while the store loads.
-  fallbackName: { type: String, default: '' }
+  fallbackName: { type: String, default: '' },
+  // A class page names its class: its collection entry mounts the type's
+  // compiled list screen (create and link actions included).
+  classTypeId: { type: String, default: '' }
 });
 
 const { te, t } = useI18n();
@@ -67,6 +77,11 @@ const typeLabel = computed(() => {
 });
 const name = computed(() => view.value?.name || props.fallbackName || typeLabel.value);
 const viewKey = computed(() => view.value?._id || `type:${targetTypeId.value}`);
+const classListScreen = computed(() => (
+  !props.viewId && props.classTypeId && targetTypeId.value === props.classTypeId
+    ? classListScreenForTypeId({ screens: authStore.screenManifest || [], typeId: targetTypeId.value })
+    : null
+));
 
 const pool = computed(() => instancesStore.instancePool);
 const bundle = computed(() => authStore.processPayload?.bundle || { types: [] });
@@ -121,6 +136,11 @@ async function loadType(typeId) {
 function openInstance(instance) {
   if (!instance?.type || !instance?.id) return;
   openInstanceInWorkspace({ typeId: instance.type, instanceId: String(instance.id) });
+}
+
+function openHostInstance({ typeId, instanceId } = {}) {
+  if (!typeId || !instanceId) return;
+  openInstanceInWorkspace({ typeId, instanceId: String(instanceId) });
 }
 
 onMounted(async () => {

@@ -92,7 +92,7 @@
             severity="secondary"
             :aria-label="node.label"
             :title="node.label"
-            @click="openTypeScreen(node.data.screen)"
+            @click="openClassPage(node.data.typeId)"
           />
           <Button
             v-for="section in userSections"
@@ -331,7 +331,7 @@ import ClassDialog from '~/components/type-designer/ClassDialog.vue';
 import { titleFor, typeLabelKey, localizedLabel, iconFor } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { resolveGeneratedWorkspacePage, generatedWorkspacePages, entityWorkspacePageIdFor } from '~/components/generated/workspace-pages.js';
-import { resolveDetailScreen, typeListScreenForTypeId } from '~/components/generated/detail-screen-actions.js';
+import { resolveDetailScreen } from '~/components/generated/detail-screen-actions.js';
 import { resolveFileSurface } from '~/components/generated/file-surfaces.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { screenByKey } from '~/utils/process-navigation.js';
@@ -678,7 +678,8 @@ const selectedMenuKeys = computed(() => {
   } else if (item.kind === 'page' && item.pageId === 'chats') {
     keys.add('communication:chats');
   } else if (item.kind === 'page' && item.pageId === 'customPage' && item.docId) {
-    keys.add(`${PAGE_KEY_PREFIX}${item.docId}`);
+    const page = pagesStore.pageById(item.docId);
+    keys.add(page?.classTypeId ? typeMenuKey(page.classTypeId) : `${PAGE_KEY_PREFIX}${item.docId}`);
   } else if (typeId) {
     const instanceIdValue = item.instanceId || instanceId(item.entity);
     if (instanceIdValue) keys.add(`${typeId}:${instanceIdValue}`);
@@ -780,9 +781,7 @@ function typePanelItem(node) {
     // Class names carry no icon: the glyph is the instance signal, so a
     // type panel never reads as one of its own rows.
     typeId: node.data.typeId,
-    command: menuCommand(node.key, () => (node.data.screen
-      ? openTypeScreen(node.data.screen)
-      : openClassPage(node.data.typeId))),
+    command: menuCommand(node.key, () => openClassPage(node.data.typeId)),
     items: (node.children || []).map(child => entityPanelItem(child))
   };
 }
@@ -1152,13 +1151,12 @@ const explorerNodes = computed(() => {
 function typeNode(typeId) {
   const section = sections.value.find(candidate => candidate.source.typeId === typeId);
   const sectionInstances = section ? sectionItemsFor(section.region.id) : [];
-  const screen = typeScreenFor(typeId);
   return {
     key: typeMenuKey(typeId),
     label: typeLabelOf(typeId),
     icon: classView.typeById(typeId)?.glyph || instances.iconFor(typeId),
     selectable: true,
-    data: { typeId, screen, section },
+    data: { typeId, section },
     leaf: !sectionInstances.length,
     children: sectionInstances.map(item => entityNode(item))
   };
@@ -1199,11 +1197,6 @@ function typeLabelOf(typeId = '') {
   // ids.
   if (!record) return typeId;
   return localizedLabel({ te, t }, typeLabelKey(typeId), record.name || '');
-}
-
-// The screen a type node opens: its compiled typeList screen.
-function typeScreenFor(typeId = '') {
-  return typeListScreenForTypeId({ screens: authStore.screenManifest || [], typeId });
 }
 
 function screenLabelFor(screenKey = '') {
@@ -1272,22 +1265,6 @@ function openInstanceTab(typeId = '', instanceIdValue = '') {
   if (fallbackPageId) {
     openWorkspacePage({ pageId: fallbackPageId, typeId, entity: { _id: instanceIdValue } });
   }
-}
-
-// A type (or its screen) opens as a pane tab in the active pane — never a
-// separate route.
-function openTypeScreen(screen = null) {
-  if (!screen?.screenKey && !screen?.id) return;
-  const screenKey = screen.screenKey || screen.id;
-  const key = `screen:${screenKey}`;
-  if (!openedScreenRefs.value.some(reference => reference.key === key)) {
-    openedScreenRefs.value = [...openedScreenRefs.value, {
-      key,
-      screenKey,
-      typeId: screen.typeId || ''
-    }];
-  }
-  if (activePane.value) selectPaneTab(activePane.value.id, key);
 }
 
 watch(explorerNodes, value => {
