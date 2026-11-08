@@ -181,13 +181,15 @@ These rules are blocking, not advisory:
   costume names for stored slots at the wire is a defect, not a design.
   Only true must-haves travel, as plain fields.
 - Do not revert or overwrite unrelated user/agent changes.
-- Do not run `npm run build` or start dev servers unless explicitly asked.
+- DO NOT run `npm run build` or start dev servers unless explicitly asked.
 - Continue until the task is implemented, documented, validated, and
   committed, or clearly report the blocker.
 - When a user asks to implement a plan, execute the whole accepted plan.
   Do not intentionally ship a partial plan slice unless the user explicitly
   narrows scope or an external blocker makes completion impossible; report
   any blocker before committing partial work.
+- Before running any heavyweight command like playwright or npm install, make sure that there
+  is enough RAM on a machine. THIS IS A FUCKING MUST!!
 
 ## Documentation Rules
 
@@ -214,7 +216,7 @@ These rules are blocking, not advisory:
   before committing or pushing.
 - Report any validation that could not be run.
 - Only if user says task is done, move it to TODO.md_archive. NEVER
-  mark it as done by yourself. 
+  mark it as done by yourself.
 
 ## Commit Rules
 
@@ -245,30 +247,23 @@ unstaged files.
 
 ## Coding rules
 
-### Tests
-
-- DON'T write unit tests after you write code unless it absolutely necessary to test core functionality. 
-- Highly prefer E2E tests as the sole testing mechanism. Use them to verify complex features work. At the end of E2E tests, produce a verifiable and repeatable artifact. 
-- DO NOT USE BROWSER OR PLAYWRIGHT UNLESS ABSOLUTERLY NECESSARY
-- If you must test a system in isolation, FIRST write all the ways it could fail, THEN write the code.
-
 ### UI labels
 
-- Unless absolutely needed, DO NOT add any labels or messages that need to "describe" UI element or action. UI needs to be self-explanatory. 
+- Unless absolutely needed, DO NOT add any labels or messages that need to "describe" UI element or action. UI needs to be self-explanatory.
 - Unless absolutely needed, DO NOT expose ID or other technical information that belongs to code only, unless it's absolutely needed for
-  debugging or administration. 
+  debugging or administration.
 
 ### UNSLOP EVERYTHING YOU SEE
 
 - If you meet obvious slop, fix it immediately. Most of times it's duplications: one thing lives in
   2-3-10 places because previous agents failed to find existing place and wrote their own new
-  implementations. Your side quest is to fix, centralize, deduplicate, and make docs match reality. 
+  implementations. Your side quest is to fix, centralize, deduplicate, and make docs match reality.
   Before doing it, check top-level project architecture to decide where thing should live.
 - Remove slop docs and comments that bloat codebase. Previous agents often left comments on "why
   they removed something" and "what it's no more" which no one gives fuck about. Remove this slop
   when you see it. Also remove verbose explanations of obvious things that give zero value. I need
   only concrete conventional docs that describe software, not a place for agents to release their
-  graphomania. 
+  graphomania.
 
 ### Comment and prose bans (absolute, owner direction 2026-10-17)
 
