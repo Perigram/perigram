@@ -2,6 +2,7 @@
   <StandardDialog
     :visible="visible"
     size="lg"
+    fill
     :title="readOnly ? (readonlyType?.name || $t('classes.title')) : (draftMode ? $t('classes.childTitle') : (isCreate ? $t('classes.createTitle') : $t('classes.editTitle')))"
     :show-default-footer="!readOnly"
     :cancel-label="$t('common.cancel')"
@@ -12,7 +13,7 @@
     @cancel="close"
     @save="save"
   >
-    <div v-if="readOnly" class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1">
+    <div v-if="readOnly" class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
       <div class="grid items-end gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
         <div class="flex flex-col gap-1">
           <span class="text-label text-muted">{{ $t('classes.name') }}</span>
@@ -63,7 +64,7 @@
       </section>
     </div>
 
-    <div v-else class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1">
+    <div v-else class="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-1">
       <div class="grid items-end gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
         <div class="flex flex-col gap-1">
           <label class="text-label text-muted">{{ $t('classes.name') }}</label>
@@ -91,7 +92,7 @@
         </div>
       </div>
 
-      <section class="flex flex-col gap-1">
+      <section class="flex flex-col gap-3">
         <div class="flex items-center justify-between gap-2">
           <span class="text-label text-muted">{{ $t('classes.fields') }}</span>
           <Button
@@ -103,7 +104,7 @@
             @click="addField"
           />
         </div>
-        <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-center">
+        <div class="flex flex-wrap items-center gap-3">
           <span class="text-label text-muted">{{ $t('processDesigner.namesRecord') }}</span>
           <Select
             :model-value="identifierFieldId"
@@ -111,15 +112,16 @@
             option-label="label"
             option-value="value"
             size="small"
-            class="w-full"
+            class="w-full sm:w-64"
             :aria-label="$t('processDesigner.namesRecord')"
             @update:model-value="setIdentifierField"
           />
         </div>
-        <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-5">
           <FieldDeclarationForm
             v-for="field in draft.fields"
             :key="field.key"
+            class="border-t border-chrome-border pt-5 first:border-t-0 first:pt-0"
             :name="field.name"
             :descriptor="field.descriptor"
             :type-options="typeOptions"
@@ -133,85 +135,89 @@
         <Message v-if="fieldError" severity="warn" :closable="false">{{ fieldError }}</Message>
       </section>
 
-      <section class="flex flex-col gap-1">
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-label text-muted">{{ $t('classes.states') }}</span>
-          <Button
-            icon="pi pi-plus"
-            :label="$t('typeDeclaration.addState')"
-            size="small"
-            text
-            severity="secondary"
-            @click="addState"
-          />
-        </div>
-        <div class="flex flex-col gap-5">
-          <StateDeclarationForm
-            v-for="state in draft.states"
-            :key="state.key"
-            :value="state.value"
-            :severity="state.severity"
-            :icon="state.icon"
-            removable
-            @update:value="value => state.value = value"
-            @update:severity="value => state.severity = value"
-            @update:icon="value => state.icon = value"
-            @remove="removeState(state)"
-          />
-        </div>
-        <Message v-if="stateError" severity="warn" :closable="false">{{ stateError }}</Message>
-      </section>
+      <div class="grid items-start gap-5" :class="classMayDeclareChildren(draft.class) ? 'md:grid-cols-2' : ''">
+        <section class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-label text-muted">{{ $t('classes.states') }}</span>
+            <Button
+              icon="pi pi-plus"
+              :label="$t('typeDeclaration.addState')"
+              size="small"
+              text
+              severity="secondary"
+              @click="addState"
+            />
+          </div>
+          <div class="flex flex-col gap-5">
+            <StateDeclarationForm
+              v-for="state in draft.states"
+              :key="state.key"
+              class="border-t border-chrome-border pt-5 first:border-t-0 first:pt-0"
+              :value="state.value"
+              :severity="state.severity"
+              :icon="state.icon"
+              removable
+              @update:value="value => state.value = value"
+              @update:severity="value => state.severity = value"
+              @update:icon="value => state.icon = value"
+              @remove="removeState(state)"
+            />
+          </div>
+          <Message v-if="stateError" severity="warn" :closable="false">{{ stateError }}</Message>
+        </section>
 
-      <section v-if="classMayDeclareChildren(draft.class)" class="flex flex-col gap-2">
-        <span class="text-label text-muted">{{ $t('classes.children') }}</span>
-        <div
-          v-for="child in draft.children"
-          :key="`${child.entryKey}:${child.draft?.id || child.typeId}`"
-          class="flex items-center gap-2 border-b border-chrome-border py-1 last:border-b-0"
-        >
-          <i :class="child.draft?.glyph || typeGlyph(child.typeId)" class="shrink-0 text-muted" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate text-body">{{ child.draft?.name || typeLabelOf(child.typeId) }}</span>
-          <Button
-            icon="pi pi-pencil"
-            size="small"
-            text
-            severity="secondary"
-            :aria-label="$t('classes.editTitle')"
-            :title="$t('classes.editTitle')"
-            @click="openChild(child)"
-          />
-          <Button
-            icon="pi pi-times"
-            size="small"
-            text
-            severity="danger"
-            :aria-label="$t('common.delete')"
-            :title="$t('common.delete')"
-            @click="removeChild(child)"
-          />
-        </div>
-        <Select
-          v-model="existingChild"
-          :options="existingChildOptions"
-          option-label="label"
-          option-value="value"
-          size="small"
-          :placeholder="$t('classes.addExistingChild')"
-          :aria-label="$t('classes.addExistingChild')"
-          class="w-full sm:w-1/2"
-          @update:model-value="value => { addChildType(value); existingChild = null; }"
-        />
-        <Button
-          icon="pi pi-plus"
-          :label="$t('classes.addChild')"
-          size="small"
-          text
-          severity="secondary"
-          class="self-start"
-          @click="openNewChild"
-        />
-        <Message v-if="childError" severity="warn" :closable="false">{{ childError }}</Message>
-      </section>
+        <section v-if="classMayDeclareChildren(draft.class)" class="flex flex-col gap-3">
+          <span class="text-label text-muted">{{ $t('classes.children') }}</span>
+          <div
+            v-for="child in draft.children"
+            :key="`${child.entryKey}:${child.draft?.id || child.typeId}`"
+            class="flex items-center gap-2 border-b border-chrome-border py-1 last:border-b-0"
+          >
+            <i :class="child.draft?.glyph || typeGlyph(child.typeId)" class="shrink-0 text-muted" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate text-body">{{ child.draft?.name || typeLabelOf(child.typeId) }}</span>
+            <Button
+              icon="pi pi-pencil"
+              size="small"
+              text
+              severity="secondary"
+              :aria-label="$t('classes.editTitle')"
+              :title="$t('classes.editTitle')"
+              @click="openChild(child)"
+            />
+            <Button
+              icon="pi pi-times"
+              size="small"
+              text
+              severity="danger"
+              :aria-label="$t('common.delete')"
+              :title="$t('common.delete')"
+              @click="removeChild(child)"
+            />
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <Select
+              v-model="existingChild"
+              :options="existingChildOptions"
+              option-label="label"
+              option-value="value"
+              size="small"
+              :placeholder="$t('classes.addExistingChild')"
+              :aria-label="$t('classes.addExistingChild')"
+              class="min-w-0 flex-1"
+              @update:model-value="value => { addChildType(value); existingChild = null; }"
+            />
+            <Button
+              icon="pi pi-plus"
+              :label="$t('classes.addChild')"
+              size="small"
+              text
+              severity="secondary"
+              @click="openNewChild"
+            />
+          </div>
+          <Message v-if="childError" severity="warn" :closable="false">{{ childError }}</Message>
+        </section>
+      </div>
 
       <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
     </div>
