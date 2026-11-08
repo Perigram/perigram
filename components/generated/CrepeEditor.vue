@@ -162,13 +162,18 @@ function placeCaretAnchor(pos) {
   });
 }
 
+// The slash item that hands off runs inside its own click; the overlay
+// opens on the next task so that click cannot dismiss it as an outside
+// click.
 function openAddressEditor() {
   if (!caretAnchor.value) return;
   pendingRange = currentRange();
   const from = pendingRange?.from ?? 0;
   placeCaretAnchor(from);
   linkUrl.value = '';
-  addressPopover.value?.show({ currentTarget: caretAnchor.value }, caretAnchor.value);
+  setTimeout(() => {
+    addressPopover.value?.show({ currentTarget: caretAnchor.value }, caretAnchor.value);
+  }, 0);
 }
 
 function openLinkEditor() {
@@ -177,19 +182,19 @@ function openLinkEditor() {
 
 function openImageEditor() {
   pendingRange = currentRange();
-  imageDialogOpen.value = true;
+  setTimeout(() => { imageDialogOpen.value = true; }, 0);
 }
 
 function openInstancePicker() {
   pendingRange = currentRange();
   placeCaretAnchor(pendingRange?.from ?? 0);
-  mentionPicker.value?.open(caretAnchor.value);
+  setTimeout(() => mentionPicker.value?.open(caretAnchor.value), 0);
 }
 
 function openMention(pos) {
   pendingRange = { from: pos, to: pos };
   placeCaretAnchor(pos);
-  mentionPicker.value?.open(caretAnchor.value);
+  setTimeout(() => mentionPicker.value?.open(caretAnchor.value), 0);
 }
 
 function applyInstancePick(ref) {
@@ -234,7 +239,7 @@ async function applyAddress() {
 
 function openViewPicker(insert) {
   pendingViewInsert = insert;
-  viewPickerOpen.value = true;
+  setTimeout(() => { viewPickerOpen.value = true; }, 0);
 }
 
 function applyViewPick(ref) {
@@ -389,6 +394,22 @@ onMounted(async () => {
       event.stopPropagation();
       emit('delete-empty');
       return;
+    }
+    if (event.key === 'Enter' && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
+      let emptyParagraph = false;
+      withView(view => {
+        const { selection } = view.state;
+        if (!selection.empty) return;
+        const { $to } = selection;
+        emptyParagraph = $to.depth === 1
+          && $to.parent.type.name === 'paragraph'
+          && $to.parent.content.size === 0;
+      });
+      if (emptyParagraph) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
     }
     if (!props.splitOnEnter || event.key !== 'Enter'
       || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
