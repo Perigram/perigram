@@ -46,7 +46,10 @@ import { useViewsStore } from '~/stores/views';
 const props = defineProps({
   // The markdown the engine opens with; external edits after mount are
   // the host's own channel (the editor is the live source).
-  defaultValue: { type: String, default: '' }
+  defaultValue: { type: String, default: '' },
+  // A user-space page invites its first block; the engine placeholder
+  // renders the hint.
+  placeholder: { type: String, default: '' }
 });
 
 const emit = defineEmits(['update', 'pick-view', 'ready']);
@@ -135,7 +138,7 @@ onMounted(async () => {
       [CrepeEditor.Feature.Latex]: false,
       [CrepeEditor.Feature.AI]: false,
       [CrepeEditor.Feature.Cursor]: false,
-      [CrepeEditor.Feature.Placeholder]: false
+      [CrepeEditor.Feature.Placeholder]: props.placeholder ? { text: props.placeholder } : false
     },
     featureConfigs: {
       [CrepeEditor.Feature.CodeMirror]: {

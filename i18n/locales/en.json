@@ -2076,7 +2076,11 @@
         "addBlock": "Add block",
         "textBlock": "Text",
         "moveSectionUp": "Move up",
-        "moveSectionDown": "Move down"
+        "moveSectionDown": "Move down",
+        "moveSection": "Move section",
+        "sectionActions": "Section actions",
+        "addViewBlock": "Add view",
+        "slashHint": "Type '/' for commands"
     },
     "uiConstructor": {
         "title": "UI Constructor Demo",
@@ -2357,7 +2361,8 @@
         "table": "Table",
         "view": "View",
         "pickView": "Pick a view",
-        "pickViewEmpty": "No saved views"
+        "pickViewEmpty": "No saved views",
+        "slashHint": "Type '/' for commands"
     },
     "sketch": {
         "editorTitle": "Sketch",

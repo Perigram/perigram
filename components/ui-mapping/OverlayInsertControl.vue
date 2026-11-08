@@ -1,26 +1,38 @@
 <template>
-  <Button
-    icon="pi pi-plus"
-    text
-    rounded
-    size="small"
-    severity="secondary"
-    :aria-label="t('uiMapping.addBlock')"
-    :title="t('uiMapping.addBlock')"
-    :disabled="!session.loaded"
-    @click="event => menu?.toggle(event)"
-  />
-  <Menu ref="menu" :model="items" popup />
+  <span class="flex items-center gap-1">
+    <Button
+      icon="pi pi-plus"
+      text
+      rounded
+      size="small"
+      severity="secondary"
+      class="h-6 w-6"
+      :aria-label="t('uiMapping.addBlock')"
+      :title="t('uiMapping.addBlock')"
+      :disabled="!session.loaded"
+      @click="session.insertText(at)"
+    />
+    <Button
+      icon="pi pi-objects-column"
+      text
+      rounded
+      size="small"
+      severity="secondary"
+      class="h-6 w-6"
+      :aria-label="t('uiMapping.addViewBlock')"
+      :title="t('uiMapping.addViewBlock')"
+      :disabled="!session.loaded"
+      @click="session.openViewPicker(at)"
+    />
+  </span>
 </template>
 
 <script setup>
-// The insert picker (SPEC §26): the document-section vocabulary — a text
-// block or a saved-view embed — the same pair the slash panel carries,
-// keyed to document sections.
-import { computed, ref } from 'vue';
+// The gutter's insert pair (SPEC §26): the plus creates a focused text
+// block at this position in one gesture; the columns control embeds a
+// saved view.
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
-import Menu from 'primevue/menu';
 
 const props = defineProps({
   session: { type: Object, required: true },
@@ -29,17 +41,4 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
-const menu = ref();
-const items = computed(() => [
-  {
-    label: t('uiMapping.textBlock'),
-    icon: 'pi pi-align-left',
-    command: () => props.session.insertText(props.at)
-  },
-  {
-    label: t('uiMapping.view'),
-    icon: 'pi pi-objects-column',
-    command: () => props.session.openViewPicker(props.at)
-  }
-]);
 </script>

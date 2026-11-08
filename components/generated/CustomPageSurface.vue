@@ -35,6 +35,7 @@
       v-show="editorReady"
       ref="editor"
       :default-value="pagesStore.contents[docId] || ''"
+      :placeholder="t('editors.slashHint')"
       @ready="editorReady = true"
       @update="onMarkdown"
       @pick-view="insert => openFencePicker(insert)"

@@ -101,6 +101,16 @@ describe('useRecordOverlaySession', () => {
     expect(s.applied.order[0]).toBe(moved);
   });
 
+  it('drag moves a section to the drop index', () => {
+    savedOverlay.value = null;
+    const s = session();
+    s.syncFlow(['properties', 'children:a', 'children:b'], ['properties', 'children:a', 'children:b']);
+    s.moveToIndex('children:b', 0);
+    expect(s.applied.order).toEqual(['children:b', 'properties', 'children:a']);
+    s.moveToIndex('children:b', 3);
+    expect(s.applied.order).toEqual(['properties', 'children:a', 'children:b']);
+  });
+
   it('a trivial draft saves as a delete', async () => {
     savedOverlay.value = {
       blocks: [{ id: 'b1', kind: 'text', text: 'gone' }],

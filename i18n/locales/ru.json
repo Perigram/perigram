@@ -2076,7 +2076,11 @@
         "addBlock": "Добавить блок",
         "textBlock": "Текст",
         "moveSectionUp": "Выше",
-        "moveSectionDown": "Ниже"
+        "moveSectionDown": "Ниже",
+        "moveSection": "Переместить раздел",
+        "sectionActions": "Действия раздела",
+        "addViewBlock": "Добавить вид",
+        "slashHint": "Введите '/' для команд"
     },
     "uiConstructor": {
         "title": "Демо UI-конструктора",
@@ -2357,7 +2361,8 @@
         "table": "Таблица",
         "view": "Вид",
         "pickView": "Выбрать вид",
-        "pickViewEmpty": "Нет сохранённых видов"
+        "pickViewEmpty": "Нет сохранённых видов",
+        "slashHint": "Введите '/' для команд"
     },
     "sketch": {
         "editorTitle": "Скетч",

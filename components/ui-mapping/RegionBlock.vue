@@ -288,9 +288,14 @@
             v-on="childrenEvents"
             :arrangement="node.childArrangement"
           />
-          <!-- The document's foot insert affordance (SPEC §26). -->
-          <div v-if="recordOverlaySession" class="relative flex h-5 items-center">
-            <OverlayInsertControl :session="recordOverlaySession" :at="recordOverlaySession.flowCount" />
+          <!-- The document's foot insert strip (SPEC §26): the full
+               width of the measure invites the next block. -->
+          <div v-if="recordOverlaySession" class="group/ck-doc-foot relative flex min-h-8 items-center pl-6">
+            <OverlayInsertControl
+              class="opacity-0 transition-opacity group-hover/ck-doc-foot:opacity-100 focus-within:opacity-100"
+              :session="recordOverlaySession"
+              :at="recordOverlaySession.flowCount"
+            />
           </div>
         </template>
       </template>

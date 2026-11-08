@@ -1,33 +1,30 @@
 <template>
-  <!-- The overlay's text block (SPEC §26): reads through the one markdown
-       composition, authors inline through the one engine mount; the text
-       saves with the overlay's document. -->
-  <div v-if="editing" class="flex flex-col gap-2">
-    <div class="flex items-center justify-end">
-      <Button
-        icon="pi pi-check"
-        size="small"
-        text
-        rounded
-        severity="secondary"
-        :aria-label="t('common.apply')"
-        :title="t('common.apply')"
-        @click="session.closeEditor()"
-      />
-    </div>
+  <!-- The overlay's text block (SPEC §26): continuous document content —
+       read through the one markdown composition, authored inline through
+       the one engine mount. Clicking the text opens the editor at the
+       caret; Escape or Cmd/Ctrl+Enter closes it. -->
+  <div
+    ref="root"
+    :class="session ? 'cursor-text' : ''"
+    @click="startEditing"
+    @keydown.esc.stop.prevent="closeEditor"
+    @keydown.meta.enter.stop.prevent="closeEditor"
+    @keydown.ctrl.enter.stop.prevent="closeEditor"
+  >
     <CrepeEditor
+      v-if="editing"
+      ref="editor"
+      class="ck-inline-editor min-h-16"
       :default-value="block.text"
-      class="min-h-24"
+      @ready="focusEditor"
       @update="text => session.updateText(block.id, text)"
     />
+    <MarkdownBlocks v-else :source="block.text" />
   </div>
-  <MarkdownBlocks v-else :source="block.text" />
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
-import Button from 'primevue/button';
+import { computed, nextTick, ref } from 'vue';
 import CrepeEditor from './CrepeEditor.vue';
 import MarkdownBlocks from './MarkdownBlocks.vue';
 
@@ -38,6 +35,23 @@ const props = defineProps({
   session: { type: Object, default: null }
 });
 
-const { t } = useI18n();
+const root = ref(null);
+const editor = ref(null);
 const editing = computed(() => Boolean(props.session && props.session.editingBlockId === props.block.id));
+
+function startEditing() {
+  if (!props.session || !props.session.writable || editing.value) return;
+  props.session.editBlock(props.block.id);
+}
+
+function focusEditor() {
+  nextTick(() => {
+    editor.value?.focus?.();
+    root.value?.scrollIntoView?.({ block: 'nearest' });
+  });
+}
+
+function closeEditor() {
+  props.session?.closeEditor?.();
+}
 </script>

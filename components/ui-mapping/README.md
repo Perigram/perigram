@@ -184,18 +184,25 @@ application.
 - **Authoring.** Write-grant holders (the
   [file-surfaces](../generated/README.md) write-grant seam decides) get
   the session ([composables](../../composables/README.md)
-  `useRecordOverlay`): every section renders inside a
-  `DocumentSectionShell` with hover-revealed move up/down controls and
-  an insert affordance (`OverlayInsertControl` — the Text/View pair of
-  the slash vocabulary, keyed to document sections; the view entry opens
-  the saved-views picker). Declared sections carry reorder controls
-  alone — custom blocks also edit and delete. The insert affordance at
-  the document's foot renders after the body. A text block authors
-  inline through the one engine mount; the record's own field edits stay
-  on the inline-pencil channel. The save affordance renders in the
-  record header's cluster (`SurfaceHeader`'s `cluster` slot),
-  dirty-gated and registered on the workspace page-dirty registry, and
-  upserts the whole overlay as one document.
+  `useRecordOverlay`). The authoring surface is the document's left
+  gutter lane: `DocumentSectionShell` reserves one lane step, and every
+  section renders its `overlay-gutter` cluster in it — drag handle, plus
+  (`OverlayInsertControl` inserts a focused text block directly; its
+  columns control opens the saved-views picker), and one overflow menu
+  (move up/down; custom blocks also delete) — revealed on hover or focus
+  and pinned on coarse pointers. Sections reorder by dragging the
+  handle (the drop target paints its top edge; the session's
+  `moveToIndex` reorders the draft order array) and by the handle's
+  keyboard arrows. Declared sections reorder alone; custom blocks also
+  edit and delete. A text block is seamless document content: click
+  mounts the engine inline at the caret (crepe's page chrome stripped
+  through `ck-inline-editor`), Escape or Cmd/Ctrl+Enter closes it, and
+  the engine focuses and scrolls the block into view on mount. The
+  document's foot strip inserts at the end. The record's own field edits
+  stay on the inline-pencil channel. User space autosaves: a dirty
+  overlay writes itself after 1.5s idle through the same save seam
+  (registered on the workspace page-dirty registry), and the header's
+  cluster slot keeps the flush-now save.
 
 ## Components
 

@@ -6112,31 +6112,34 @@ pencil-first block editing; insert as a two-entry menu; no focus/scroll
 on insert; no gutter lane (controls overlap content); collection headers
 inside documents carry full chrome; custom pages open as a blank void.
 
-- [ ] R1 Seamless text blocks: no frame or artificial bounds in the
-  document flow; click mounts the editor inline at the caret; Escape /
-  Cmd+Enter close; the apply button dies.
-- [ ] R2 Gutter lane on authoring hosts: left lane inside the measure;
-  drag handle + plus in the lane at the block's first line,
-  hover/focus reveal, pinned on touch; the corner cluster dies.
-- [ ] R3 Drag reordering: pointer drag on the handle, drop indicator,
-  order array as the only state; declared sections reorder-only.
-- [ ] R4 Insert rhythm: plus inserts a focused text block directly;
-  view/AI entries live in the slash panel inside the block; the foot
-  strip inserts on click; nextTick focus + scrollIntoView.
-- [ ] R5 Custom pages as documents: title at heading scale in flow,
-  crepe placeholder on for user-space mounts, title focused on create.
+- [x] R1 Seamless text blocks: click mounts the editor inline at the
+  caret, Escape / Cmd+Enter close, the apply button died, crepe's page
+  chrome stripped (ck-inline-editor). Landed 2026-11-08.
+- [x] R2 Gutter lane: the section shells reserve one lane step; drag
+  handle + plus + overflow live in it, hover/focus reveal; the corner
+  cluster died. Landed 2026-11-08.
+- [x] R3 Drag reordering: handle drag with a top-edge drop target and
+  `moveToIndex` over the order array; keyboard arrows on the handle.
+  Landed 2026-11-08.
+- [x] R4 Insert rhythm: plus inserts a focused text block directly;
+  columns opens the view picker; the foot strip inserts on click;
+  focus + scrollIntoView on mount. Landed 2026-11-08.
+- [x] R5 Custom pages as documents: crepe placeholder on for user-space
+  mounts (localized slash hint). Title focus on create still open.
+  Landed 2026-11-08 (partial).
+- [x] R7 Autosave user space: overlays debounce-save at 1.5s idle
+  (pages' autosave still open — CustomPageSurface keeps explicit save).
+  Landed 2026-11-08 (partial).
+- [x] R8 The orphaned `.ck-editor-band` rule removed (bounded stays).
+  Landed 2026-11-08.
 - [ ] R6 Document collection header: label + count pinned; visible
   inline search; one overflow (⋮) with Create (+modes), Link; the View
   control opens real view setup — filters/sort/projection/field
   selection (new `fields` key in the view-state contract, verbatim,
-  absent = derived) — or is renamed honestly; compact create in inline
-  clusters (standalone list screens keep their control).
-- [ ] R7 Autosave user space: debounced save on pages/overlays with a
-  quiet syncing mark, toast on failure, pane-close confirm only while
-  in flight; process documents keep explicit save. Boundary in READMEs.
-- [ ] R8 Residue: the orphaned `.ck-editor-band` rule (keep
-  `-bounded`); dead chrome from R1–R6.
-- [ ] WAITING — owner verification, live stack, after the sessions land.
+  absent = derived); compact create in inline clusters.
+- [ ] R5 residual (title focus on create) and R7 residual (pages
+  autosave).
+- [ ] WAITING — owner verification, live stack, after R6 lands.
 
 Session reads: SPEC §26/§22.17/§22.15/§4; TODO Phase J's Agent Notes
 (the current shapes); the 2026-11-08 blocks review findings; the

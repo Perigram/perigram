@@ -1,4 +1,4 @@
-import { computed, reactive, ref } from 'vue';
+import { computed, onScopeDispose, reactive, ref, watch } from 'vue';
 import { useInstanceOverlaysStore } from '~/stores/instance-overlays';
 import { editorWriteGranted } from '~/components/generated/file-surfaces.js';
 import { setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
@@ -21,6 +21,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
   const dirty = ref(false);
   const saving = ref(false);
   const editingBlockId = ref(null);
+  const dragKey = ref(null);
   const viewPickerAt = ref(null);
   // The render site reports the composed flow and the natural derivation
   // on every change: the draft seeds from them and the save decision
@@ -36,6 +37,22 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     flowKeys.value = keys;
     naturalKeys = declaredKeys;
   }
+
+  // User space autosaves (owner ruling 2026-11-08): a settled draft
+  // writes itself; the header's save slot stays as the flush-now
+  // control.
+  let autosaveTimer = null;
+  watch(dirty, value => {
+    if (!value) return;
+    if (autosaveTimer) clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => {
+      autosaveTimer = null;
+      save().catch(() => {});
+    }, 1500);
+  });
+  onScopeDispose(() => {
+    if (autosaveTimer) clearTimeout(autosaveTimer);
+  });
 
   function ensureDraft() {
     if (!loaded.value) return false;
@@ -54,6 +71,20 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     if (index < 0 || target < 0 || target >= draftOrder.value.length) return;
     const next = [...draftOrder.value];
     [next[index], next[target]] = [next[target], next[index]];
+    draftOrder.value = next;
+  }
+
+  // Drag reordering: the pointer picks a target index between two
+  // sections; the order array alone decides the document.
+  function moveToIndex(key, targetIndex) {
+    if (!ensureDraft()) return;
+    const index = draftOrder.value.indexOf(key);
+    if (index < 0) return;
+    const clamped = Math.max(0, Math.min(targetIndex, draftOrder.value.length));
+    const next = [...draftOrder.value];
+    next.splice(index, 1);
+    const destination = index < clamped ? clamped - 1 : clamped;
+    next.splice(destination, 0, key);
     draftOrder.value = next;
   }
 
@@ -125,9 +156,13 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     saving,
     flowCount: computed(() => flowKeys.value.length),
     editingBlockId: computed(() => editingBlockId.value),
+    dragKey: computed(() => dragKey.value),
+    beginDrag: key => { dragKey.value = key; },
+    endDrag: () => { dragKey.value = null; },
     viewPickerAt: computed(() => viewPickerAt.value),
     syncFlow,
     move,
+    moveToIndex,
     insertText,
     openViewPicker,
     pickView,
