@@ -661,9 +661,14 @@ body {
     cursor: pointer;
 }
 
-.ck-instance-ref.ProseMirror-selectednode {
+.ck-instance-ref.ProseMirror-selectednode,
+.ck-file-ref.ProseMirror-selectednode {
     outline: 2px solid var(--p-primary-color);
     outline-offset: 2px;
+}
+
+.ck-file-ref {
+    vertical-align: middle;
 }
 
 /* Collection views author as live regions inside the editor. The engine

@@ -82,6 +82,18 @@ export function parseInstanceHref(href = '') {
 
 export const instanceHref = (type, id) => `#instance:${encodeURIComponent(String(type))}/${encodeURIComponent(String(id))}`;
 
+// Arbitrary file references are links on the `file:` fragment: the read
+// pipeline mounts the shared file chip into each link's placeholder.
+export function parseFileHref(href = '') {
+  const raw = String(href || '');
+  const value = raw.startsWith('#') ? raw.slice(1) : raw;
+  if (!value.startsWith('file:')) return null;
+  const target = decodeURIComponent(value.slice('file:'.length));
+  return target ? { href: target } : null;
+}
+
+export const fileHref = href => `#file:${encodeURIComponent(String(href))}`;
+
 const plainCodeBlock = (code, lang = '', escaped = false) => {
   const body = `${String(code).replace(/\n$/, '')}\n`;
   const safe = escaped ? body : escapeHtml(body);
@@ -112,9 +124,13 @@ marked.use({
       return plainCodeBlock(code, lang, escaped);
     },
     link(href, title, text) {
-      const ref = parseInstanceHref(href);
-      if (ref) {
-        return `<span data-instance-type="${escapeHtml(ref.type)}" data-instance-id="${escapeHtml(ref.id)}"></span>`;
+      const instance = parseInstanceHref(href);
+      if (instance) {
+        return `<span data-instance-type="${escapeHtml(instance.type)}" data-instance-id="${escapeHtml(instance.id)}"></span>`;
+      }
+      const file = parseFileHref(href);
+      if (file) {
+        return `<span data-file-href="${escapeHtml(file.href)}">${text}</span>`;
       }
       const titleAttribute = title ? ` title="${escapeHtml(title)}"` : '';
       return `<a href="${escapeHtml(href)}"${titleAttribute}>${text}</a>`;

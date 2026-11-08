@@ -32,6 +32,7 @@
       <MarkdownBlocks :source="pagesStore.contents[docId] || ''" />
     </div>
     <CrepeEditor
+      v-if="contentReady"
       v-show="editorReady"
       ref="editor"
       :default-value="pagesStore.contents[docId] || ''"
@@ -68,6 +69,7 @@ const tabKey = inject('workspacePageKey', '');
 const editor = ref(null);
 const dirty = ref(false);
 const saving = ref(false);
+const contentReady = ref(false);
 const editorReady = ref(false);
 
 const page = computed(() => pagesStore.pageById(props.docId));
@@ -103,5 +105,6 @@ async function save() {
 onMounted(async () => {
   await pagesStore.ensureLoaded();
   await pagesStore.loadContent(props.docId).catch(() => {});
+  contentReady.value = true;
 });
 </script>

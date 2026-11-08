@@ -60,6 +60,7 @@ export function resolveBlockAction(id, state) {
     case 'callout': return active ? { kind: 'lift' } : { kind: 'callout' };
     case 'divider': return { kind: 'command', command: insertHrCommand };
     case 'image': return { kind: 'image' };
+    case 'file': return { kind: 'file' };
     case 'diagram': return { kind: 'command', command: createCodeBlockCommand, payload: 'mermaid' };
     case 'table': return { kind: 'table' };
     case 'link': return { kind: 'link' };
@@ -74,7 +75,7 @@ export function resolveBlockAction(id, state) {
 // `view` its ProseMirror view). The `link` and `image` kinds hand off
 // to the host's address editor. Returns the action kind — a hand-off
 // kind leaves the focus with the host's address input.
-export function applyBlock({ id, state, editor, view, openLinkEditor, openImageEditor, openInstancePicker, openViewPicker }) {
+export function applyBlock({ id, state, editor, view, openLinkEditor, openImageEditor, openFilePicker, openInstancePicker, openViewPicker }) {
   const action = resolveBlockAction(id, state);
   if (!action || !editor) return action ? action.kind : null;
   switch (action.kind) {
@@ -110,6 +111,9 @@ export function applyBlock({ id, state, editor, view, openLinkEditor, openImageE
       break;
     case 'image':
       if (openImageEditor) openImageEditor();
+      break;
+    case 'file':
+      if (openFilePicker) openFilePicker();
       break;
     case 'instance':
       if (openInstancePicker) openInstancePicker(ref => insertInstanceLink(ref, view));

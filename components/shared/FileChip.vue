@@ -49,7 +49,7 @@ const emit = defineEmits(['open']);
 const mime = computed(() => String(props.file?.mime || props.file?.mimeType || ''));
 const name = computed(() => String(props.file?.name || '').trim());
 const label = computed(() => name.value || mime.value || '—');
-const openable = computed(() => Boolean(props.file?.fileId));
+const openable = computed(() => Boolean(props.file?.fileId || props.file?.url));
 const peek = computed(() => resolveAttachmentPeek(props.file || {}));
 const size = computed(() => {
   const bytes = Number(props.file?.size) || 0;

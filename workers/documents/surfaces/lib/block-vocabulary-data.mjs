@@ -16,6 +16,7 @@ export const BLOCK_VOCABULARY = [
   { id: 'callout', labelKey: 'editors.callout', glyph: 'pi pi-info-circle', match: ['callout', 'note'], insertable: true },
   { id: 'codeblock', labelKey: 'editors.codeBlock', glyph: 'pi pi-code', match: ['code', 'codeblock'], insertable: true },
   { id: 'image', labelKey: 'editors.image', glyph: 'pi pi-image', match: ['image', 'picture', 'photo'], insertable: true },
+  { id: 'file', labelKey: 'editors.file', glyph: 'pi pi-paperclip', match: ['file', 'attachment'], insertable: true },
   { id: 'diagram', labelKey: 'editors.diagram', glyph: 'pi pi-sitemap', match: ['diagram', 'mermaid', 'graph'], insertable: true },
   { id: 'divider', labelKey: 'editors.divider', glyph: 'pi pi-minus', match: ['divider', 'hr', 'line'], insertable: true },
   { id: 'table', labelKey: 'editors.table', glyph: 'pi pi-table', match: ['table'], insertable: true },

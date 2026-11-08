@@ -142,7 +142,7 @@ export default function createSurface({ vue, components, locale, sync, renderMar
 
       function runSlashPick(id, view) {
         const kind = applyBlock({ id, state: blockState.value, editor: crepe, view, openLinkEditor, openImageEditor });
-        if (kind !== 'link' && kind !== 'image') focusRenderedEditor();
+        if (kind !== 'link' && kind !== 'image' && kind !== 'file') focusRenderedEditor();
       }
 
       async function reloadFromRemote() {
@@ -223,7 +223,7 @@ export default function createSurface({ vue, components, locale, sync, renderMar
           // (the custom-page surface); this editor keeps it out until
           // its surfaces mount live embeds.
           items: BLOCK_VOCABULARY
-            .filter(({ id }) => id !== 'view' && id !== 'instance')
+            .filter(({ id }) => id !== 'view' && id !== 'instance' && id !== 'file')
             .map(({ id, labelKey, glyph, glyphText, match }) => ({ id, label: t(labelKey), glyph, glyphText, match })),
           onPick: runSlashPick
         });

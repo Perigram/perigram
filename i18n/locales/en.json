@@ -2391,6 +2391,7 @@
         "codeBlock": "Code block",
         "diagram": "Diagram",
         "image": "Image",
+        "file": "File",
         "link": "Link",
         "linkAddress": "Address",
         "divider": "Divider",

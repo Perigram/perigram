@@ -37,6 +37,11 @@
     @close="imageDialogOpen = false"
     @insert="applyImage"
   />
+  <FileInsertDialog
+    :visible="fileDialogOpen"
+    @close="fileDialogOpen = false"
+    @insert="applyFile"
+  />
   <ViewPickerDialog
     :visible="viewPickerOpen"
     @close="viewPickerOpen = false"
@@ -58,13 +63,13 @@ import Popover from 'primevue/popover';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import { renderMarkdown, parseViewRef, stripSerializerTail } from '#shared/markdown.js';
-import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
-import { useInstancesStore } from '~/stores/instances';
 import InstanceMentionPicker from './InstanceMentionPicker.vue';
 import ImageInsertDialog from './ImageInsertDialog.vue';
+import FileInsertDialog from './FileInsertDialog.vue';
 import ViewPickerDialog from './ViewPickerDialog.vue';
 import ViewEmbed from './ViewEmbed.vue';
 import { createInstanceRefPlugins, insertInstanceRef } from './instance-ref-node.js';
+import { createFileRefPlugins, insertFileRef } from './file-ref-node.js';
 
 defineOptions({ inheritAttrs: false });
 
@@ -92,7 +97,6 @@ const props = defineProps({
 const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty']);
 
 const { t } = useI18n();
-const instancesStore = useInstancesStore();
 const instance = getCurrentInstance();
 const appContext = instance?.appContext;
 const editorHost = ref(null);
@@ -101,6 +105,7 @@ const addressPopover = ref(null);
 const mentionPicker = ref(null);
 const linkUrl = ref('');
 const imageDialogOpen = ref(false);
+const fileDialogOpen = ref(false);
 const viewPickerOpen = ref(false);
 const blockState = ref({ block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, task: false, marks: [] });
 
@@ -185,6 +190,11 @@ function openImageEditor() {
   setTimeout(() => { imageDialogOpen.value = true; }, 0);
 }
 
+function openFilePicker() {
+  pendingRange = currentRange();
+  setTimeout(() => { fileDialogOpen.value = true; }, 0);
+}
+
 function openInstancePicker() {
   pendingRange = currentRange();
   placeCaretAnchor(pendingRange?.from ?? 0);
@@ -212,6 +222,15 @@ function applyImage(src) {
     const image = view.state.schema.nodes.image;
     if (!image) return;
     view.dispatch(view.state.tr.replaceSelectionWith(image.create({ src, alt: '', title: '' })).scrollIntoView());
+  });
+  pendingRange = null;
+  focus();
+}
+
+function applyFile(file) {
+  withView(view => {
+    restoreRange(view, pendingRange);
+    insertFileRef(view, file);
   });
   pendingRange = null;
   focus();
@@ -251,7 +270,7 @@ function applyViewPick(ref) {
 
 function runSlashPick(id, view) {
   const kind = applyBlockAt(id, view);
-  if (kind !== 'link' && kind !== 'image' && kind !== 'instance' && kind !== 'view') focus();
+  if (kind !== 'link' && kind !== 'image' && kind !== 'file' && kind !== 'instance' && kind !== 'view') focus();
 }
 
 // The saved-view fence's live presentation inside the live editor.
@@ -308,6 +327,7 @@ onMounted(async () => {
     view,
     openLinkEditor,
     openImageEditor,
+    openFilePicker,
     openInstancePicker,
     openViewPicker
   });
@@ -349,11 +369,14 @@ onMounted(async () => {
     markers: props.showSourceMarkers
   })));
   const instanceRef = createInstanceRefPlugins({
-    iconFor: type => instancesStore.iconFor(type),
-    onOpen: ref => openInstanceInWorkspace({ typeId: ref.type, instanceId: ref.id }),
+    appContext,
     onMention: openMention
   });
-  crepe.editor.use([instanceRef.schema, instanceRef.view, instanceRef.behavior]);
+  const fileRef = createFileRefPlugins({ appContext });
+  crepe.editor.use([
+    instanceRef.schema, instanceRef.view, instanceRef.behavior,
+    fileRef.schema, fileRef.view
+  ]);
   slashMenu = createSlashMenu({
     items: vocabulary.BLOCK_VOCABULARY.map(({ id, labelKey, glyph, glyphText, match }) => ({ id, label: t(labelKey), glyph, glyphText, match })),
     onPick: runSlashPick
