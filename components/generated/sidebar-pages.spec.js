@@ -1,6 +1,6 @@
 // Sidebar user sections (SPEC §26): sections render as collapsible
 // panels after the type panels with nested page trees; loose root pages
-// render as root rows; the new-section affordance sits at the foot.
+// render as root rows.
 import { createSSRApp, h } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { createI18n } from 'vue-i18n';
@@ -127,7 +127,6 @@ vi.mock('~/components/generated/workspace-pages.js', () => ({
 vi.mock('~/components/shared/UserAccountMenu.vue', () => ({ default: { name: 'StubbedUserAccountMenu', render: () => null } }));
 vi.mock('~/components/shared/WorkspaceSplitNode.vue', () => ({ default: { name: 'StubbedWorkspaceSplitNode', render: () => null } }));
 vi.mock('~/components/shared/CommunicationMenu.vue', () => ({ default: { name: 'StubbedCommunicationMenu', render: () => null } }));
-vi.mock('~/components/generated/CreatePalette.vue', () => ({ default: { name: 'StubbedCreatePalette', props: ['createPage'], render: () => null } }));
 vi.mock('~/components/generated/GeneratedScreenHost.vue', () => ({ default: { name: 'StubbedScreenHost', render: () => null } }));
 vi.mock('~/components/generated/GeneratedWorkspacePane.vue', () => ({ default: { name: 'StubbedWorkspacePane', render: () => null } }));
 
@@ -172,8 +171,8 @@ describe('sidebar user sections', () => {
     expect(model.filter(item => item.key === 'page-section:sec-notes').length).toBe(1);
   });
 
-  it('carries the new-section affordance at the foot', async () => {
+  it('drops the new-section affordance from the foot', async () => {
     const html = await renderSidebar();
-    expect(html).toContain('pages.newSection');
+    expect(html).not.toContain('pages.newSection');
   });
 });

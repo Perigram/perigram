@@ -52,8 +52,8 @@
               class="shrink-0"
               @select="event => statePopover?.toggle(event)"
             />
-            <Popover v-if="currentState" ref="statePopover" @hide="authoringLane = false">
-              <div :class="['flex flex-col gap-3', authoringLane ? 'w-[26rem]' : 'w-80']">
+            <Popover v-if="currentState" ref="statePopover">
+              <div class="flex w-80 flex-col gap-3">
                 <div v-if="transitionActions.length" :class="LAYOUT.row">
                   <ActionButton
                     v-for="action in transitionActions"
@@ -64,43 +64,8 @@
                   />
                 </div>
                 <StateHistory :instance="instance" :type-id="type.id" :target-id="instance.id" compact />
-                <template v-if="authoringReady">
-                  <Divider />
-                  <DeclarationStatePanel v-if="authoringLane" :authoring="authoring" />
-                  <Button
-                    v-else
-                    icon="pi pi-pencil"
-                    :label="$t('typeDeclaration.editStates')"
-                    size="small"
-                    text
-                    severity="secondary"
-                    class="self-start"
-                    @click="authoringLane = true"
-                  />
-                </template>
               </div>
             </Popover>
-            <!-- The authoring twin of the state surface (SPEC §1): a
-                 stateless record of a type with an authored declaration
-                 carries the quiet add-states affordance where the tag would
-                 sit; capability holders only. -->
-            <template v-else-if="authoringReady">
-              <Button
-                icon="pi pi-plus"
-                :label="$t('typeDeclaration.addStates')"
-                size="small"
-                text
-                severity="secondary"
-                class="shrink-0"
-                data-testid="state-add-entry"
-                @click="event => addStatesPopover?.toggle(event)"
-              />
-              <Popover ref="addStatesPopover">
-                <div class="flex w-[26rem] max-w-[86vw] flex-col gap-3">
-                  <DeclarationStatePanel :authoring="authoring" />
-                </div>
-              </Popover>
-            </template>
           </div>
           <!-- The quiet type label opens the class dialog (SPEC §27)
                for capability holders; the label stays a label for
@@ -241,7 +206,6 @@ import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
-import Divider from 'primevue/divider';
 import InputText from 'primevue/inputtext';
 import Menu from 'primevue/menu';
 import Popover from 'primevue/popover';
@@ -260,16 +224,8 @@ import BackControl from '../shared/BackControl.vue';
 import StateTag from './StateTag.vue';
 import StateHistory from '../shared/state/StateHistory.vue';
 import ClassDialog from '../type-designer/ClassDialog.vue';
-import DeclarationStatePanel from '../type-designer/DeclarationStatePanel.vue';
 
 const spacing = inject('uiMappingSpacing', null);
-// The record surface's declaration authoring session (SPEC §1): provided
-// by DeclarationAuthoring at the record page; null everywhere else keeps
-// the header byte-identical for non-holders.
-const authoring = inject('declarationAuthoring', null);
-const authoringReady = computed(() => Boolean(authoring?.ready?.value));
-const authoringLane = ref(false);
-const addStatesPopover = ref(null);
 // The page host's comments panel channel (SPEC §22.17): page hosts
 // provide `{ open(target) }`; bounded hosts (the popup, the peek) keep
 // the shared chat surface.

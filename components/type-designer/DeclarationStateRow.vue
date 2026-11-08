@@ -1,11 +1,11 @@
 <template>
   <div class="group/state-row flex min-w-0 flex-col gap-2 border-b border-chrome-border py-2 last:border-b-0">
     <div class="flex min-w-0 items-center gap-2">
-      <Inplace closable @open="draft = state.node.data.value || ''">
+      <Inplace closable @open="draft = state.value || ''">
         <template #display>
           <div class="flex min-w-0 items-center gap-2 rounded-ui px-1 py-0.5 transition-colors hover:bg-subtle">
-            <Tag :severity="state.node.data.severity || 'info'" :icon="state.node.data.icon || undefined" class="min-w-0">
-              <span class="min-w-0 truncate">{{ state.node.data.value || $t('typeCanvas.stateName') }}</span>
+            <Tag :severity="state.severity || 'info'" :icon="state.icon || undefined" class="min-w-0">
+              <span class="min-w-0 truncate">{{ state.value || $t('typeCanvas.stateName') }}</span>
             </Tag>
             <i class="pi pi-pencil shrink-0 text-muted text-supporting" aria-hidden="true" />
           </div>
@@ -37,9 +37,15 @@
           </div>
         </template>
       </Inplace>
-      <div
-        class="ml-auto flex shrink-0 items-center gap-1 transition-opacity duration-150 [@media(hover:hover)]:opacity-60 group-hover/state-row:opacity-100 group-focus-within/state-row:opacity-100 motion-reduce:transition-none"
-      >
+      <div class="ml-auto flex shrink-0 items-center gap-1">
+        <label class="flex items-center gap-1 text-supporting text-muted">
+          <Checkbox
+            :model-value="state.terminal === true"
+            :binary="true"
+            @update:model-value="value => $emit('terminal', value === true)"
+          />
+          {{ $t('processDesigner.stateTerminal') }}
+        </label>
         <Button
           icon="pi pi-trash"
           size="small"
@@ -53,7 +59,7 @@
     </div>
     <div class="flex min-w-0 flex-wrap items-center gap-2">
       <Select
-        :model-value="state.node.data.severity || 'info'"
+        :model-value="state.severity || 'info'"
         :options="severityOptions"
         option-label="label"
         option-value="value"
@@ -63,18 +69,18 @@
         @update:model-value="value => $emit('severity', value || 'info')"
       />
       <IconField class="w-32 shrink-0">
-        <InputIcon v-if="state.node.data.icon" :class="state.node.data.icon" aria-hidden="true" />
+        <InputIcon v-if="state.icon" :class="state.icon" aria-hidden="true" />
         <InputText
-          :model-value="state.node.data.icon || ''"
+          :model-value="state.icon || ''"
           size="small"
           class="w-full"
           :placeholder="$t('processDesigner.stateIcon')"
           :aria-label="$t('processDesigner.stateIcon')"
-          @update:model-value="value => $emit('icon', String(value || '').trim() || null)"
+          @update:model-value="value => $emit('icon', String(value || '').trim() || '')"
         />
       </IconField>
       <InputText
-        :model-value="state.node.data.label || ''"
+        :model-value="state.label || ''"
         size="small"
         class="min-w-0 flex-1"
         :placeholder="$t('typeDeclaration.stateLabel')"
@@ -89,6 +95,7 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
+import Checkbox from 'primevue/checkbox';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
@@ -97,13 +104,12 @@ import Tag from 'primevue/tag';
 import Select from '~/components/shared/InstanceSelect.vue';
 import { stateSeverityOptions } from '~/components/type-designer/state-severities.js';
 
-// Pure presentation — every mutation is an event up to the hosting surface
-// (row contract: components/type-designer/README.md).
+// Pure presentation — every mutation is an event up to the hosting surface.
 defineProps({
   state: { type: Object, required: true }
 });
 
-const emit = defineEmits(['rename', 'label', 'severity', 'icon', 'remove']);
+const emit = defineEmits(['rename', 'label', 'severity', 'icon', 'terminal', 'remove']);
 
 const { t } = useI18n();
 const severityOptions = stateSeverityOptions(t);

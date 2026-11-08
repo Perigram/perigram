@@ -137,7 +137,15 @@
         "fieldNameInvalid": "Имена полей пишутся в lowerCamelCase.",
         "fieldNameDuplicate": "Имена полей должны быть уникальными.",
         "identifierRequired": "Отметьте ровно одно поле как идентификатор.",
-        "groupNeedsChildren": "Класс-группа требует хотя бы один дочерний класс."
+        "groupNeedsChildren": "Класс-группа требует хотя бы один дочерний класс.",
+        "childTitle": "Дочерний класс",
+        "states": "Состояния",
+        "instances": "Записи",
+        "noInstances": "Записей нет",
+        "stateNameRequired": "У каждого состояния должно быть значение.",
+        "stateNameInvalid": "Значение состояния — один плоский сегмент.",
+        "stateNameDuplicate": "Значения состояний должны быть уникальными.",
+        "instancesUnavailable": "Записи недоступны"
     },
     "designer": {
         "toolbar": "Панель инструментов",
@@ -3414,7 +3422,8 @@
         "scheduleStart": "Запустить в",
         "scheduleInterval": "Повторять каждые",
         "scheduleIntervalPlaceholder": "ISO-длительность, напр. P1D",
-        "startOnEvent": "Запуск по событию"
+        "startOnEvent": "Запуск по событию",
+        "stateTerminal": "Терминальное"
     },
     "generatedScreen": {
         "home": "Главная",

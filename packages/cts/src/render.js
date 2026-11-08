@@ -63,8 +63,8 @@ export function resolvedStateDisplay(vocabulary = {}) {
 
 // Derivation-only display policy: the pieces the client bundle attaches
 // beyond the declaration's own record. `name` passes through verbatim
-// (null → consumers render "Unnamed"). State display is not type-derived:
-// it rides compiled process contracts from the draft's state nodes (§7).
+// (null → consumers render "Unnamed"). State display policy is class data;
+// compiled process contracts still author transitions over it.
 export function renderPolicyFor(type = {}) {
   const glyph = type.glyph || ICON_BY_CLASS[type.class] || 'pi pi-circle';
   const flagged = flag => Object.keys(type.fields || {}).find(name => type.fields[name][flag] === true) || null;
@@ -100,6 +100,7 @@ export function compileClientBundle(registry, organizationId = null) {
         identifier: policy.identifier,
         depiction: policy.depiction,
         fields: type.fields,
+        ...(type.stateVocabulary ? { stateVocabulary: type.stateVocabulary } : {}),
         sections: policy.sections,
         payload: type.payload,
         previewSource: type.previewSource || null,

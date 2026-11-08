@@ -4,7 +4,7 @@
          own sections render in the composed order — the property block
          (the declared scalar facts as compact property rows, collapsed to
          filled values behind the per-group show-more control; the
-         declaration-authoring projection for holders, SPEC §1), the
+         compiled facts), the
          dominant band with the declared open sections riding beneath it,
          each relation section — and the child collections and custom
          blocks compose around them through the host's slot. Without an
@@ -28,19 +28,10 @@
               :quantitative="quantitative"
               :pool="pool"
               :bundle="bundle"
-              :authoring="authoringRows"
               grouped
               @toggle="toggleFacts(group)"
               @inline-change="change => emit('inline-change', change)"
             />
-            <div v-if="authoringReady && group.id === 'declaration'" class="flex flex-wrap items-center gap-2 pt-1">
-              <DeclarationAddField :authoring="authoring" :type-options="authoring.typeOptions.value" />
-              <DeclarationSaveButton
-                v-if="authoring.dirty.value || authoring.saving.value"
-                class="ml-auto"
-                :authoring="authoring"
-              />
-            </div>
           </div>
         </section>
       </DocumentSectionShell>
@@ -109,12 +100,6 @@
               <div v-if="isRichStructure(field)" :class="LAYOUT.labeledBlock">
                 <div class="group/ck-field flex items-center gap-1">
                   <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
-                  <DeclarationFieldMenu
-                    v-if="authoringReady && authoringFieldByName.has(field.name)"
-                    :authoring="authoring"
-                    :field="authoringFieldByName.get(field.name)"
-                    :type-options="authoring.typeOptions.value"
-                  />
                 </div>
                 <StructuralFieldPanel
                   :field="field"
@@ -130,12 +115,6 @@
               <div v-else :class="LAYOUT.labeledBlock">
                 <div class="group/ck-field flex items-center gap-1">
                   <span :class="d.sectionTitle">{{ field.label }}</span>
-                  <DeclarationFieldMenu
-                    v-if="authoringReady && authoringFieldByName.has(field.name)"
-                    :authoring="authoring"
-                    :field="authoringFieldByName.get(field.name)"
-                    :type-options="authoring.typeOptions.value"
-                  />
                 </div>
                 <InlineField
                   :field="field"
@@ -154,12 +133,6 @@
             >
               <div class="group/ck-field flex items-center gap-1">
                 <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
-                <DeclarationFieldMenu
-                  v-if="authoringReady && authoringFieldByName.has(field.name)"
-                  :authoring="authoring"
-                  :field="authoringFieldByName.get(field.name)"
-                  :type-options="authoring.typeOptions.value"
-                />
               </div>
               <InlineField
                 :field="field"
@@ -213,9 +186,6 @@ import PropertyRows from './PropertyRows.vue';
 import StructuralFieldPanel from './StructuralFieldPanel.vue';
 import RelationChipSection from './RelationChipSection.vue';
 import DocumentSectionShell from './DocumentSectionShell.vue';
-import DeclarationFieldMenu from '../type-designer/DeclarationFieldMenu.vue';
-import DeclarationAddField from '../type-designer/DeclarationAddField.vue';
-import DeclarationSaveButton from '../type-designer/DeclarationSaveButton.vue';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import PreviewBox from './PreviewBox.vue';
@@ -239,7 +209,7 @@ const props = defineProps({
   // editor of an editor-bound type as the body.
   presentation: { type: String, default: 'record' },
   // The instance's saved overlay (SPEC §26): the applied arrangement when
-  // no authoring session supersedes it.
+  // no live composition supersedes it.
   overlay: { type: Object, default: null },
   // The document's child collection sections (`[{ key }]` in derivation
   // order) the composition interleaves when an overlay or session is
@@ -249,26 +219,6 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle', 'inline-change', 'run', 'open-instance']);
 const d = inject('uiMappingSpacing');
-// The record page's declaration authoring session (SPEC §1): provided by
-// DeclarationAuthoring at the depth-0 record; null keeps the compiled fact
-// grammar byte-identical for non-holders.
-const authoring = inject('declarationAuthoring', null);
-const authoringReady = computed(() => Boolean(authoring?.ready?.value));
-const authoringFields = computed(() => authoring?.subtree?.value?.fields || []);
-const authoringFieldByName = computed(() => new Map(
-  authoringFields.value
-    .map(field => [field.node?.data?.name, field])
-    .filter(([name]) => Boolean(name))
-));
-// The PropertyRows projection of the session (SPEC §1): holders' rows
-// carry the author popover; null keeps the compiled block.
-const authoringRows = computed(() => (authoringReady.value
-  ? {
-      session: authoring,
-      fieldByName: authoringFieldByName.value,
-      typeOptions: authoring.typeOptions.value
-    }
-  : null));
 const hostTraits = useHostContainerTraits();
 const embedded = inject('uiMappingEmbedded', false);
 // The record document body (SPEC §22.17): the full variant in the record
@@ -362,26 +312,8 @@ const hasValue = field => field.value !== null
 // The identifier field drops at the group projection (the title owns
 // that value); every body grammar below inherits the cut.
 const scalarsOf = group => group.fields.filter(field => isScalarFact(field) && hasValue(field));
-// The holder's property block projects the draft (SPEC §1): every declared
-// scalar field in authored order, empty ones included — the compiled
-// identifier cut applies through the descriptor's identifier flag.
-const declarationRows = computed(() => authoringFields.value
-  .map(({ node }) => node?.data || {})
-  .filter(data => data.name && data.descriptor && data.descriptor.identifier !== true)
-  .filter(data => isScalarFact({ descriptor: data.descriptor }))
-  .map(data => ({
-    name: data.name,
-    descriptor: data.descriptor,
-    value: props.instance.fields?.[data.name],
-    label: localizedLabel({ te, t }, fieldLabelKeyOf(data.name), startCaseKey(data.name))
-  })));
-const propertyGroups = computed(() => {
-  if (documentBody.value && authoringReady.value) {
-    return [{ id: 'declaration', label: null, fields: declarationRows.value }];
-  }
-  return groups.value.filter(group => scalarsOf(group).length > 0);
-});
-const factRowsOf = group => (group.id === 'declaration' ? group.fields : scalarsOf(group));
+const propertyGroups = computed(() => groups.value.filter(group => scalarsOf(group).length > 0));
+const factRowsOf = group => scalarsOf(group);
 const openSectionCount = group => structuralOf(group).length + inlineMapsOf(group).length;
 const structuralOf = group => group.fields.filter(field => !isScalarFact(field) && !isQuantityMap(field) && editableNow(field));
 const shownFacts = group => {
@@ -429,8 +361,8 @@ const relationViews = computed(() => {
   });
 });
 
-// The document's section flow (SPEC §26): the applied overlay (an
-// authoring session's draft supersedes the saved shape) composes around
+// The document's section flow (SPEC §26): the applied overlay composes
+// around
 // the declared keys; the session and the render site stay in sync
 // through syncFlow.
 const overlaySessionRef = inject('recordOverlaySession', null);

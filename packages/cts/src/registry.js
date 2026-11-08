@@ -7,6 +7,7 @@ import { normalizeOperator, OPERATOR_SPECIES_BY_LETTER } from './operators.js';
 import { describeType } from './values.js';
 import { requireCompatible, normalizeMigrateSteps } from './diff.js';
 import { checkBooleanExpression } from './expressions.js';
+import { normalizeStateVocabulary } from './states.js';
 
 // Payload traits (SPEC §4): the payload declaration carries the accepted
 // MIME list, byte limit, preview mode, and creation protocols. Canonical
@@ -119,6 +120,8 @@ export function normalizeType(declaration = {}) {
     .find(field => field?.role === 'previewSource' && field?.path)
     || declaration.previewSource;
 
+  const states = normalizeStateVocabulary(declaration.stateVocabulary || {});
+
   const type = {
     id: declaration.id,
     class: declaration.class,
@@ -149,6 +152,7 @@ export function normalizeType(declaration = {}) {
     // graphs as outputs, never as constructs.
     ...(declaration.derived === true ? { derived: true } : {}),
     edges: normalizeEdges(declaration.edges || {}, declaration.id),
+    ...(Object.keys(states).length ? { stateVocabulary: states } : {}),
     // Declared write-gate delegation (owner decision 2026-10-17): a type
     // may authorize its record writes by another type's grant
     // (`access.inherits`, the listing grammar the instance write

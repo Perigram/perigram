@@ -11,7 +11,7 @@ import { statePolicyByType } from '#shared/ui-mapping/index.js';
 // [shared/ui-mapping](../../shared/ui-mapping/README.md).
 export const useStatePolicy = () => {
     const authStore = useAuthStore();
-    const policyByType = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}));
+    const policyByType = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}, authStore.processPayload?.bundle?.types || []));
     // typeIdGetter: a getter function or a refable value; the returned
     // computed tracks it so mounts follow prop changes.
     const policyFor = typeIdGetter => computed(() => {

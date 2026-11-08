@@ -2,10 +2,10 @@
   <StandardDialog
     :visible="visible"
     size="lg"
-    :title="isCreate ? $t('classes.createTitle') : $t('classes.editTitle')"
+    :title="draftMode ? $t('classes.childTitle') : (isCreate ? $t('classes.createTitle') : $t('classes.editTitle'))"
     show-default-footer
     :cancel-label="$t('common.cancel')"
-    :save-label="isCreate ? $t('common.create') : $t('common.save')"
+    :save-label="draftMode ? $t('common.add') : (isCreate ? $t('common.create') : $t('common.save'))"
     :loading="saving"
     :save-disabled="!canSave"
     @update:visible="value => emit('update:visible', value)"
@@ -13,7 +13,7 @@
     @save="save"
   >
     <div class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1">
-      <div class="grid gap-3 md:grid-cols-2">
+      <div class="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
         <div class="flex flex-col gap-1">
           <label class="text-label text-muted">{{ $t('classes.name') }}</label>
           <InputText
@@ -34,37 +34,9 @@
             @update:model-value="setClass"
           />
         </div>
-      </div>
-
-      <div class="flex flex-col gap-1">
-        <label class="text-label text-muted">{{ $t('processDesigner.icon') }}</label>
-        <div class="flex items-center gap-2">
-          <Select
-            :model-value="draft.glyph || ''"
-            :options="glyphOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
-            class="min-w-0 flex-1"
-            :aria-label="$t('processDesigner.icon')"
-            @update:model-value="value => { draft.glyph = String(value || ''); }"
-          >
-            <template #value="slotProps">
-              <i v-if="slotProps.value" :class="slotProps.value" aria-hidden="true" />
-              <span v-else class="text-muted">{{ $t('processDesigner.auto') }}</span>
-            </template>
-            <template #option="slotProps">
-              <i v-if="slotProps.option.value" :class="slotProps.option.value" :aria-label="slotProps.option.label" />
-              <span v-else class="text-muted">{{ $t('processDesigner.auto') }}</span>
-            </template>
-          </Select>
-          <InputText
-            v-model="draft.glyph"
-            size="small"
-            class="min-w-0 flex-1"
-            :placeholder="$t('processDesigner.icon')"
-            :aria-label="$t('processDesigner.icon')"
-          />
+        <div class="flex flex-col gap-1">
+          <label class="text-label text-muted">{{ $t('processDesigner.icon') }}</label>
+          <GlyphSelect v-model="draft.glyph" :aria-label="$t('processDesigner.icon')" />
         </div>
       </div>
 
@@ -96,15 +68,41 @@
         <Message v-if="fieldError" severity="warn" :closable="false">{{ fieldError }}</Message>
       </section>
 
+      <section class="flex flex-col gap-1">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-label text-muted">{{ $t('classes.states') }}</span>
+          <Button
+            icon="pi pi-plus"
+            :label="$t('typeDeclaration.addState')"
+            size="small"
+            text
+            severity="secondary"
+            @click="addState"
+          />
+        </div>
+        <DeclarationStateRow
+          v-for="state in draft.states"
+          :key="state.key"
+          :state="state"
+          @rename="value => state.value = value"
+          @label="value => state.label = value"
+          @severity="value => state.severity = value"
+          @icon="value => state.icon = value"
+          @terminal="value => state.terminal = value"
+          @remove="removeState(state)"
+        />
+        <Message v-if="stateError" severity="warn" :closable="false">{{ stateError }}</Message>
+      </section>
+
       <section v-if="classMayDeclareChildren(draft.class)" class="flex flex-col gap-2">
         <span class="text-label text-muted">{{ $t('classes.children') }}</span>
         <div
           v-for="child in draft.children"
-          :key="`${child.entryKey}:${child.typeId}`"
+          :key="`${child.entryKey}:${child.draft?.id || child.typeId}`"
           class="flex items-center gap-2 border-b border-chrome-border py-1 last:border-b-0"
         >
-          <i :class="typeGlyph(child.typeId)" class="shrink-0 text-muted" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate text-body">{{ typeLabelOf(child.typeId) }}</span>
+          <i :class="child.draft?.glyph || typeGlyph(child.typeId)" class="shrink-0 text-muted" aria-hidden="true" />
+          <span class="min-w-0 flex-1 truncate text-body">{{ child.draft?.name || typeLabelOf(child.typeId) }}</span>
           <Button
             icon="pi pi-pencil"
             size="small"
@@ -112,7 +110,7 @@
             severity="secondary"
             :aria-label="$t('classes.editTitle')"
             :title="$t('classes.editTitle')"
-            @click="openChild(child.typeId)"
+            @click="openChild(child)"
           />
           <Button
             icon="pi pi-times"
@@ -134,31 +132,15 @@
           :aria-label="$t('classes.addExistingChild')"
           @update:model-value="value => { addChildType(value); existingChild = null; }"
         />
-        <div class="flex flex-wrap items-center gap-2 rounded-ui border border-content-border p-2">
-          <InputText
-            v-model="newChild.name"
-            size="small"
-            class="min-w-40 flex-1"
-            :placeholder="$t('classes.childName')"
-            :aria-label="$t('classes.childName')"
-            @keydown.enter.prevent="createChild"
-          />
-          <Select
-            v-model="newChild.class"
-            :options="childClassOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
-          />
-          <Button
-            icon="pi pi-plus"
-            :label="$t('classes.addChild')"
-            size="small"
-            :loading="childSaving"
-            :disabled="!newChild.name.trim()"
-            @click="createChild"
-          />
-        </div>
+        <Button
+          icon="pi pi-plus"
+          :label="$t('classes.addChild')"
+          size="small"
+          text
+          severity="secondary"
+          class="self-start"
+          @click="openNewChild"
+        />
         <Message v-if="childError" severity="warn" :closable="false">{{ childError }}</Message>
       </section>
 
@@ -168,6 +150,12 @@
     <ClassDialog
       v-model:visible="childDialogVisible"
       :type-id="childDialogTypeId"
+    />
+    <ClassDialog
+      v-model:visible="childDraftVisible"
+      draft-mode
+      :initial-draft="childDraftInitial"
+      @draft="commitChildDraft"
     />
   </StandardDialog>
 </template>
@@ -182,7 +170,8 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import DeclarationFieldRow from '~/components/type-designer/DeclarationFieldRow.vue';
-import { classGlyphOptions } from '~/components/type-designer/class-glyphs.js';
+import DeclarationStateRow from '~/components/type-designer/DeclarationStateRow.vue';
+import GlyphSelect from '~/components/type-designer/GlyphSelect.vue';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { fieldDescriptorSummary } from '~/utils/processDesignerDeclarationEditor.js';
@@ -192,29 +181,28 @@ const props = defineProps({
   visible: { type: Boolean, default: false },
   typeId: { type: String, default: '' },
   type: { type: Object, default: null },
-  startInCreate: { type: Boolean, default: false }
+  startInCreate: { type: Boolean, default: false },
+  draftMode: { type: Boolean, default: false },
+  initialDraft: { type: Object, default: null }
 });
 
-const emit = defineEmits(['update:visible', 'saved']);
+const emit = defineEmits(['update:visible', 'saved', 'draft']);
 
 const { t } = useI18n();
 const toast = useToast();
 const view = useFileTypeView();
 
-const isCreate = computed(() => props.startInCreate || !props.typeId);
+const isCreate = computed(() => props.draftMode || props.startInCreate || !props.typeId);
 const classOptions = DECLARABLE_CLASSES.map(value => ({ label: value, value }));
-const childClassOptions = DECLARABLE_CLASSES
-  .filter(value => value !== 'group')
-  .map(value => ({ label: value, value }));
-const glyphOptions = classGlyphOptions;
 
 const draft = ref(freshDraft());
 const base = ref(null);
 const expandedField = ref('');
 const error = ref('');
 const saving = ref(false);
-const childSaving = ref(false);
-const newChild = ref({ name: '', class: 'item' });
+const childDraftVisible = ref(false);
+const childDraftInitial = ref(null);
+const childDraftTarget = ref(null);
 const existingChild = ref(null);
 const childDialogVisible = ref(false);
 const childDialogTypeId = ref('');
@@ -234,6 +222,14 @@ const fieldError = computed(() => {
   return '';
 });
 
+const stateError = computed(() => {
+  const values = draft.value.states.map(state => String(state.value || '').trim());
+  if (values.some(value => !value)) return t('classes.stateNameRequired');
+  if (values.some(value => value.includes('.'))) return t('classes.stateNameInvalid');
+  if (new Set(values).size !== values.length) return t('classes.stateNameDuplicate');
+  return '';
+});
+
 const childError = computed(() => (
   draft.value.class === 'group' && !draft.value.children.length
     ? t('classes.groupNeedsChildren')
@@ -243,6 +239,7 @@ const childError = computed(() => (
 const canSave = computed(() => Boolean(
   String(draft.value.name || '').trim()
   && !fieldError.value
+  && !stateError.value
   && !childError.value
   && !saving.value
 ));
@@ -262,15 +259,23 @@ function freshDraft() {
     glyph: '',
     payload: null,
     fields: [{ key: mintId('field'), name: 'name', descriptor: { base: 'string', identifier: true } }],
-    children: []
+    children: [],
+    states: []
   };
 }
 
 function initialize() {
   error.value = '';
   expandedField.value = '';
-  newChild.value = { name: '', class: 'item' };
   existingChild.value = null;
+  if (props.initialDraft) {
+    draft.value = JSON.parse(JSON.stringify(props.initialDraft));
+    draft.value.fields ||= [];
+    draft.value.children ||= [];
+    draft.value.states ||= [];
+    base.value = null;
+    return;
+  }
   if (isCreate.value) {
     draft.value = freshDraft();
     base.value = null;
@@ -297,7 +302,15 @@ function initialize() {
     })),
     children: Object.entries(record.edges?.children || {}).flatMap(([entryKey, declaration]) => (
       (declaration.types || []).map(typeId => ({ entryKey, typeId }))
-    ))
+    )),
+    states: Object.entries(record.stateVocabulary || {}).map(([value, declaration]) => ({
+      key: mintId('state'),
+      value,
+      label: declaration?.policy?.label || '',
+      severity: declaration?.policy?.severity || 'info',
+      icon: declaration?.policy?.icon || '',
+      terminal: declaration?.terminal === true
+    }))
   };
   if (!draft.value.fields.length) {
     draft.value.fields.push({ key: mintId('field'), name: 'name', descriptor: { base: 'string', identifier: true } });
@@ -359,69 +372,104 @@ function removeField(field) {
   draft.value.fields = draft.value.fields.filter(candidate => candidate !== field);
 }
 
-function addChildType(typeId) {
-  if (!typeId || draft.value.children.some(child => child.typeId === typeId)) return;
-  const entryKey = draft.value.children[0]?.entryKey
+function addState() {
+  let index = draft.value.states.length + 1;
+  while (draft.value.states.some(state => state.value === `state${index}`)) index += 1;
+  draft.value.states.push({
+    key: mintId('state'),
+    value: `state${index}`,
+    label: '',
+    severity: 'info',
+    icon: '',
+    terminal: false
+  });
+}
+
+function removeState(state) {
+  draft.value.states = draft.value.states.filter(candidate => candidate !== state);
+}
+
+function primaryChildEntryKey() {
+  return draft.value.children[0]?.entryKey
     || Object.keys(base.value?.edges?.children || {})[0]
     || 'children';
-  draft.value.children.push({ entryKey, typeId });
+}
+
+function addChildType(typeId) {
+  if (!typeId || draft.value.children.some(child => child.typeId === typeId)) return;
+  draft.value.children.push({ entryKey: primaryChildEntryKey(), typeId });
 }
 
 function removeChild(child) {
   draft.value.children = draft.value.children.filter(candidate => candidate !== child);
 }
 
-function openChild(typeId) {
-  childDialogTypeId.value = typeId;
+function openChild(child) {
+  if (child.draft) {
+    childDraftTarget.value = child;
+    childDraftInitial.value = JSON.parse(JSON.stringify(child.draft));
+    childDraftVisible.value = true;
+    return;
+  }
+  childDialogTypeId.value = child.typeId;
   childDialogVisible.value = true;
 }
 
-async function createChild() {
-  const name = newChild.value.name.trim();
-  if (!name || childSaving.value) return;
-  childSaving.value = true;
-  error.value = '';
-  try {
-    const result = await $fetch('/api/admin/cts/types', {
-      method: 'POST',
-      body: {
-        id: generateTypeId(),
-        class: newChild.value.class,
-        name,
-        fields: { name: { base: 'string', identifier: true } },
-        edges: {}
-      }
-    });
-    await view.refresh();
-    addChildType(result.type.id);
-    newChild.value.name = '';
-    toast.add({ severity: 'success', summary: t('common.created'), detail: name, life: 2400 });
-  } catch (failure) {
-    error.value = failure?.data?.message || failure?.message || t('common.error');
-  } finally {
-    childSaving.value = false;
-  }
+function openNewChild() {
+  childDraftTarget.value = null;
+  childDraftInitial.value = null;
+  childDraftVisible.value = true;
 }
 
-function buildDeclaration() {
-  const record = base.value || {};
+function commitChildDraft(value) {
+  if (childDraftTarget.value) {
+    Object.assign(childDraftTarget.value, { typeId: value.id, draft: value });
+  } else {
+    draft.value.children.push({
+      entryKey: primaryChildEntryKey(),
+      typeId: value.id,
+      draft: value
+    });
+  }
+  childDraftTarget.value = null;
+  childDraftInitial.value = null;
+  childDraftVisible.value = false;
+}
+
+function declarationFor(draftValue, record = {}) {
   const declaration = {
     ...record,
-    id: record.id || draft.value.id || generateTypeId(),
-    class: draft.value.class,
-    name: draft.value.name.trim(),
-    fields: Object.fromEntries(draft.value.fields.map(field => [
+    id: record.id || draftValue.id || generateTypeId(),
+    class: draftValue.class,
+    name: draftValue.name.trim(),
+    fields: Object.fromEntries(draftValue.fields.map(field => [
       String(field.name).trim(),
       { ...field.descriptor }
     ]))
   };
-  if (draft.value.glyph) declaration.glyph = draft.value.glyph;
+  if (draftValue.glyph) declaration.glyph = draftValue.glyph;
   else delete declaration.glyph;
   if (declaration.class !== 'file') delete declaration.payload;
 
+  const states = {};
+  for (const state of draftValue.states || []) {
+    const value = String(state.value || '').trim();
+    const policy = {
+      ...(String(state.label || '').trim() ? { label: String(state.label).trim() } : {}),
+      ...(String(state.icon || '').trim() ? { icon: String(state.icon).trim() } : {}),
+      ...(state.severity && state.severity !== 'info' ? { severity: state.severity } : {})
+    };
+    states[value] = {
+      ...(state.terminal === true ? { terminal: true } : {}),
+      ...(Object.keys(policy).length ? { policy } : {})
+    };
+  }
+  if (Object.keys(states).length) declaration.stateVocabulary = states;
+  else delete declaration.stateVocabulary;
+
   const edges = { ...(record.edges || {}) };
   const children = {};
-  for (const child of draft.value.children) {
+  for (const child of draftValue.children) {
     const entryKey = child.entryKey || 'children';
     const original = record.edges?.children?.[entryKey] || {};
     const current = children[entryKey] || { ...original, types: [] };
@@ -445,11 +493,41 @@ function buildDeclaration() {
   return declaration;
 }
 
+function buildDeclaration() {
+  return declarationFor(draft.value, base.value || {});
+}
+
+async function persistChildDrafts(createdIds) {
+  for (const child of draft.value.children.filter(candidate => candidate.draft)) {
+    await persistDraftTree(child, createdIds);
+  }
+}
+
+async function persistDraftTree(entry, createdIds) {
+  const childDraft = entry.draft;
+  for (const nested of childDraft.children.filter(candidate => candidate.draft)) {
+    await persistDraftTree(nested, createdIds);
+  }
+  const result = await $fetch('/api/admin/cts/types', {
+    method: 'POST',
+    body: declarationFor(childDraft, {})
+  });
+  entry.typeId = result.type.id;
+  createdIds.push(result.type.id);
+}
+
 async function save() {
   if (!canSave.value) return;
+  if (props.draftMode) {
+    emit('draft', JSON.parse(JSON.stringify(draft.value)));
+    close();
+    return;
+  }
   saving.value = true;
   error.value = '';
+  const createdIds = [];
   try {
+    await persistChildDrafts(createdIds);
     const result = await $fetch('/api/admin/cts/types', {
       method: 'POST',
       body: buildDeclaration()
@@ -464,6 +542,9 @@ async function save() {
     emit('saved', result.type);
     close();
   } catch (failure) {
+    for (const typeId of createdIds.reverse()) {
+      await $fetch(`/api/admin/cts/types/${typeId}?abandon=true`, { method: 'DELETE' }).catch(() => {});
+    }
     error.value = failure?.data?.message || failure?.message || t('common.error');
   } finally {
     saving.value = false;

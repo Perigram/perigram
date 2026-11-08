@@ -137,7 +137,15 @@
         "fieldNameInvalid": "Field names are lowerCamelCase.",
         "fieldNameDuplicate": "Field names must be unique.",
         "identifierRequired": "Mark exactly one field as the identifier.",
-        "groupNeedsChildren": "A group class needs at least one child class."
+        "groupNeedsChildren": "A group class needs at least one child class.",
+        "childTitle": "Child class",
+        "states": "States",
+        "instances": "Instances",
+        "noInstances": "No instances",
+        "stateNameRequired": "Every state needs a value.",
+        "stateNameInvalid": "State values are one flat segment.",
+        "stateNameDuplicate": "State values must be unique.",
+        "instancesUnavailable": "Instances unavailable"
     },
     "designer": {
         "toolbar": "Toolbar",
@@ -3414,7 +3422,8 @@
         "scheduleStart": "Start at",
         "scheduleInterval": "Repeat every",
         "scheduleIntervalPlaceholder": "ISO duration, e.g. P1D",
-        "startOnEvent": "Start on event"
+        "startOnEvent": "Start on event",
+        "stateTerminal": "Terminal"
     },
     "generatedScreen": {
         "home": "Home",
