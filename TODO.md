@@ -128,7 +128,8 @@
 ### Agent Notes (2026-11-08, file chip glyphs)
 
 - File chips render the file-type glyph family (mime or extension
-  derived), matching the instance chips' icon scale.
+  derived), and generated-family icons drop their standalone scale
+  inside chips, so file and instance chip icons share one em box.
 
 ### Agent Notes (2026-11-08, agent/trailing-block-20261108)
 

@@ -438,7 +438,10 @@ The chip recipe home: `CHIP_LABEL_PT` (the truncating label
 passthrough), `FILE_CHIP_CLASS`, `INSTANCE_CHIP_CLASS`. Every chip the
 app renders — file chips, instance chips, card identity chips —
 consumes these; a second copy of a chip class string is a defect.
-Collection counts render as a `Tag` with `secondary` severity.
+Generated-family icon glyphs (`ck-entity-icon`/`ck-file-type-icon`) drop
+their standalone scale inside chips, so every chip icon fills the same
+PrimeIcon em box. Collection counts render as a `Tag` with `secondary`
+severity.
 
 ### `InstanceSelect.vue` / `InstanceMultiSelect.vue`
 The entity dropdown wrappers: options carrying an entity render as
