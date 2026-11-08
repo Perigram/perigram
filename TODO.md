@@ -48,7 +48,9 @@
   tabs. Saved views stay in the header tabs.
 - Enter at the end of a text block starts the next block; the document
   keeps a trailing type-ready line whose first keystroke starts the
-  next block. Callout inserts an empty blockquote.
+  next block. The trailing line is the single placeholder: empty text
+  blocks render nothing and drop when their editor closes. Callout
+  inserts an empty blockquote.
 - Text blocks accept inline instance references: the Instance entry
   opens the record picker and inserts an `instance:` link rendered as
   a chip in prose and the editor.

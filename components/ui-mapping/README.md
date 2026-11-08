@@ -216,7 +216,9 @@ application.
   instance references ride the text as `#instance:` links rendered as
   chips; the Instance entry opens the instance picker at the caret. The
   document's trailing line is always present and type-ready for
-  writers; its first keystroke starts the next block. The record's own
+  writers; its first keystroke starts the next block. It is the
+  document's single placeholder: empty text blocks render nothing and
+  drop when their editor closes. The record's own
   field edits
   stay on the inline-pencil channel. User space autosaves: a dirty
   overlay writes itself after 1.5s idle through the same save seam
