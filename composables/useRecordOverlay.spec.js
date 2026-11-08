@@ -155,6 +155,32 @@ describe('useRecordOverlaySession', () => {
     expect(s.editingBlockId).toBe('b1');
   });
 
+  it('trailing Backspace resumes the last text block', () => {
+    savedOverlay.value = {
+      blocks: [
+        { id: 'b1', kind: 'text', text: 'first' },
+        { id: 'b2', kind: 'view', view: { typeId: 'widget', name: 'Widgets' } }
+      ],
+      order: ['properties', 'b1', 'b2']
+    };
+    const s = session();
+    s.syncFlow(['properties', 'b1', 'b2'], ['properties']);
+    expect(s.resumeLastTextBlock()).toBe(true);
+    expect(s.editingBlockId).toBe('b1');
+    expect(s.initialBlockFor('b1')).toBe('');
+  });
+
+  it('trailing Backspace without a text block keeps the editor closed', () => {
+    savedOverlay.value = {
+      blocks: [{ id: 'b1', kind: 'view', view: { typeId: 'widget', name: 'Widgets' } }],
+      order: ['properties', 'b1']
+    };
+    const s = session();
+    s.syncFlow(['properties', 'b1'], ['properties']);
+    expect(s.resumeLastTextBlock()).toBe(false);
+    expect(s.editingBlockId).toBe(null);
+  });
+
   it('appends the trailing line text as a block', () => {
     savedOverlay.value = null;
     const s = session();

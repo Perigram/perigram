@@ -158,6 +158,18 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     }
   }
 
+  // The trailing line's Backspace resumes the document's last text block,
+  // the same continuation the empty-block Backspace gives.
+  function resumeLastTextBlock() {
+    if (!ensureDraft()) return false;
+    const id = [...draftOrder.value].reverse()
+      .find(key => draftBlocks.value.some(block => block.id === key && block.kind === 'text'));
+    if (!id) return false;
+    editingInitialBlock.value = '';
+    editingBlockId.value = id;
+    return true;
+  }
+
   function updateText(id, text) {
     if (!ensureDraft()) return;
     draftBlocks.value = draftBlocks.value.map(block => (block.id === id ? { ...block, text } : block));
@@ -208,6 +220,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     closeViewPicker: () => { viewPickerAt.value = null; },
     removeBlock,
     removeEmptyBlock,
+    resumeLastTextBlock,
     updateText,
     editBlock: id => {
       if (!ensureDraft()) return;

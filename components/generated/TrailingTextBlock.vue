@@ -1,5 +1,5 @@
 <template>
-  <div v-if="session?.writable" class="ck-doc-tail min-h-6">
+  <div v-if="session?.writable && !session.editingBlockId" class="ck-doc-tail min-h-6">
     <CrepeEditor
       :key="editorKey"
       ref="editor"
@@ -7,9 +7,11 @@
       :default-value="draft"
       :placeholder="t('editors.slashHint')"
       split-on-enter
+      delete-on-empty-backspace
       @ready="focusIfRequested"
       @update="text => (draft = text)"
       @enter="commit(true)"
+      @delete-empty="resumePrevious"
     />
   </div>
 </template>
@@ -46,6 +48,10 @@ function commit(focusNext = false) {
     focusAfterCommit.value = true;
     nextTick(focusIfRequested);
   }
+}
+
+function resumePrevious() {
+  props.session.resumeLastTextBlock?.();
 }
 
 function focusIfRequested() {
