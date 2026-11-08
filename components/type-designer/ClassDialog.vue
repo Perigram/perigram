@@ -103,18 +103,15 @@
             @click="addField"
           />
         </div>
-        <div class="flex items-center gap-2">
-          <span class="text-label text-muted">{{ $t('classes.titleField') }}</span>
-          <Select
-            :model-value="identifierFieldId"
-            :options="fieldOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
-            class="w-52"
-            :aria-label="$t('classes.titleField')"
-            @update:model-value="setIdentifierField"
-          />
+        <div
+          v-if="draft.fields.length"
+          class="grid grid-cols-[minmax(0,1fr)_9rem_8rem_4.5rem_2.5rem] gap-2 text-label text-muted"
+        >
+          <span>{{ $t('classes.name') }}</span>
+          <span>{{ $t('classes.type') }}</span>
+          <span>{{ $t('typesPane.nullableColumn') }}</span>
+          <span>{{ $t('classes.titleColumn') }}</span>
+          <span />
         </div>
         <DeclarationFieldRow
           v-for="field in draft.fields"
@@ -124,6 +121,7 @@
           :simple="true"
           @rename="value => renameField(field, value)"
           @descriptor="value => updateDescriptor(field, value)"
+          @title="setIdentifierField(field.id)"
           @remove="removeField(field)"
         />
         <Message v-if="fieldError" severity="warn" :closable="false">{{ fieldError }}</Message>
@@ -141,8 +139,8 @@
             @click="addState"
           />
         </div>
-        <div v-if="draft.states.length" class="grid grid-cols-[minmax(0,1fr)_8rem_8rem_auto] gap-2 text-label text-muted">
-          <span>{{ $t('typeCanvas.stateName') }}</span>
+        <div v-if="draft.states.length" class="grid grid-cols-[minmax(0,1fr)_10rem_8rem_auto] gap-2 text-label text-muted">
+          <span>{{ $t('classes.stateColumn') }}</span>
           <span>{{ $t('processDesigner.stateSeverity') }}</span>
           <span>{{ $t('processDesigner.stateIcon') }}</span>
           <span />
@@ -292,14 +290,6 @@ const typeOptions = computed(() => view.types.value.map(type => ({
   label: type.name || type.id,
   value: type.id
 })));
-
-const fieldOptions = computed(() => draft.value.fields.map(field => ({
-  label: field.name || field.id,
-  value: field.id
-})));
-
-const identifierFieldId = computed(() => draft.value.fields
-  .find(field => field.descriptor?.identifier === true)?.id || '');
 
 function setIdentifierField(fieldId) {
   for (const field of draft.value.fields) {

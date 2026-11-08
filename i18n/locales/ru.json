@@ -143,7 +143,10 @@
         "stateNameInvalid": "Значение состояния — один плоский сегмент.",
         "stateNameDuplicate": "Значения состояний должны быть уникальными.",
         "instancesUnavailable": "Записи недоступны",
-        "titleField": "Поле заголовка"
+        "titleField": "Поле заголовка",
+        "type": "Тип",
+        "titleColumn": "Заголовок",
+        "stateColumn": "Состояние"
     },
     "designer": {
         "toolbar": "Панель инструментов",
@@ -2713,7 +2716,8 @@
         "recordFields": "поля записи",
         "tags": "теги варианта",
         "values": "значения",
-        "writable": "Редактируется после создания"
+        "writable": "Редактируется после создания",
+        "nullableColumn": "Пустое"
     },
     "typeDeclaration": {
         "fields": "Поля",

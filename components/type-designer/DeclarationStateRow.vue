@@ -1,5 +1,5 @@
 <template>
-  <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_8rem_8rem_auto] items-center gap-2 py-1.5">
+  <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_10rem_8rem_auto] items-center gap-2 py-1.5">
     <InputText
       :model-value="state.value || ''"
       size="small"

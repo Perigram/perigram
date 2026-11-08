@@ -143,7 +143,10 @@
         "stateNameInvalid": "State values are one flat segment.",
         "stateNameDuplicate": "State values must be unique.",
         "instancesUnavailable": "Instances unavailable",
-        "titleField": "Title field"
+        "titleField": "Title field",
+        "type": "Type",
+        "titleColumn": "Title",
+        "stateColumn": "State"
     },
     "designer": {
         "toolbar": "Toolbar",
@@ -2713,7 +2716,8 @@
         "recordFields": "record fields",
         "tags": "variant tags",
         "values": "values",
-        "writable": "Editable after creation"
+        "writable": "Editable after creation",
+        "nullableColumn": "Empty"
     },
     "typeDeclaration": {
         "fields": "Fields",

@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col gap-2">
-    <div class="flex items-center gap-2">
+  <div v-if="!detailsOnly || detailsVisible" class="flex flex-col gap-2">
+    <div v-if="!detailsOnly" class="flex items-center gap-2">
       <Select
         :model-value="modelValue.base"
         :options="baseOptions"
@@ -20,7 +20,7 @@
       </label>
     </div>
 
-    <div v-if="!simple" class="flex flex-wrap items-center gap-4">
+    <div v-if="!simple && !detailsOnly" class="flex flex-wrap items-center gap-4">
       <label class="flex items-center gap-2">
         <Checkbox
           :model-value="modelValue.writable !== false"
@@ -128,17 +128,19 @@ import InputText from 'primevue/inputtext';
 import MultiSelect from 'primevue/multiselect';
 import Select from 'primevue/select';
 import Message from 'primevue/message';
-import { describeType, FIELD_BASES, UNITS, UNLINK_POLICIES } from '~/packages/cts/src/index.js';
+import { describeType, UNITS, UNLINK_POLICIES } from '~/packages/cts/src/index.js';
+import { descriptorBaseOptions, switchDescriptorBase } from '~/components/type-designer/descriptor-base.js';
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
   typeOptions: { type: Array, default: () => [] },
   depth: { type: Number, default: 0 },
-  simple: { type: Boolean, default: false }
+  simple: { type: Boolean, default: false },
+  detailsOnly: { type: Boolean, default: false }
 });
 const emit = defineEmits(['update:modelValue']);
 
-const baseOptions = FIELD_BASES.map(base => ({ label: base, value: base }));
+const baseOptions = descriptorBaseOptions;
 const units = [...UNITS];
 const unlinkOptions = UNLINK_POLICIES.map(value => ({ label: value, value }));
 
@@ -164,19 +166,11 @@ function patch(changes) {
 }
 
 function setBase(base) {
-  const next = { base };
-  // SPEC §4 naming facets describe the field and survive a base switch.
-  for (const key of ['label', 'display', 'control', 'identifier', 'depiction']) {
-    if (props.modelValue[key] !== undefined) next[key] = props.modelValue[key];
-  }
-  if (props.modelValue.nullable === true) next.nullable = true;
-  if (base === 'quantity') next.unit = props.modelValue.unit || units[0];
-  if (base === 'ref') {
-    next.accepts = props.modelValue.accepts?.length ? props.modelValue.accepts : [];
-    if (props.modelValue.unlink === 'delete') next.unlink = 'delete';
-  }
-  emit('update:modelValue', next);
+  emit('update:modelValue', switchDescriptorBase(props.modelValue, base));
 }
+
+const detailsVisible = computed(() => ['quantity', 'ref', 'enum', 'variant', 'list', 'map', 'record']
+  .includes(props.modelValue.base));
 
 function setRecordField(index, changes) {
   const entries = recordEntries.value.map(entry => ({ name: entry.name, descriptor: entry.descriptor }));
