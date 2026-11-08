@@ -6132,11 +6132,13 @@ inside documents carry full chrome; custom pages open as a blank void.
   Landed 2026-11-08 (partial).
 - [x] R8 The orphaned `.ck-editor-band` rule removed (bounded stays).
   Landed 2026-11-08.
-- [ ] R6 Document collection header: label + count pinned; visible
-  inline search; one overflow (⋮) with Create (+modes), Link; the View
-  control opens real view setup — filters/sort/projection/field
-  selection (new `fields` key in the view-state contract, verbatim,
-  absent = derived); compact create in inline clusters.
+- [x] R6 Document collection header: label + count pinned; the search
+  field renders in the header; the document host's create/link controls
+  sit behind one compact (+) popover (standalone list screens keep the
+  inline cluster); the View popover carries field selection — the
+  explicit column set persists per type (`perigram:fields:` in
+  utils/ui-view-state.js, absent = the derived budget) and filters the
+  table columns. Landed 2026-11-08.
 - [ ] R5 residual (title focus on create) and R7 residual (pages
   autosave).
 - [ ] WAITING — owner verification, live stack, after R6 lands.

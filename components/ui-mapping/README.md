@@ -162,6 +162,14 @@ kinds, the section-key grammar, and the order law are canonical in the
 ([shared/ui-mapping](../../shared/ui-mapping/README.md)) is the pure
 application.
 
+- **Collection header in the document.** A collection section inside
+  the record document renders the quiet header: label and count pinned,
+  the search field in the header itself, the labeled View control, and
+  one compact (+) popover carrying the create and link controls; the
+  View popover's field selection sets the collection's explicit column
+  set (persisted per type through `utils/ui-view-state.js`, absent = the
+  derived budget). Standalone list screens keep the inline control
+  cluster.
 - **Composition.** The depth-0 record in the `record` presentation
   renders the document's section flow through `SurfaceDetailBody`: the
   body's own sections (`properties`, `editor`, each relation section)
