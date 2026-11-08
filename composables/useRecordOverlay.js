@@ -144,6 +144,20 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     }
   }
 
+  function removeEmptyBlock(id) {
+    if (!ensureDraft()) return;
+    const index = draftOrder.value.indexOf(id);
+    if (index < 0) return;
+    const previous = draftOrder.value.slice(0, index)
+      .reverse()
+      .find(key => draftBlocks.value.some(block => block.id === key && block.kind === 'text'));
+    removeBlock(id);
+    if (previous) {
+      editingInitialBlock.value = '';
+      editingBlockId.value = previous;
+    }
+  }
+
   function updateText(id, text) {
     if (!ensureDraft()) return;
     draftBlocks.value = draftBlocks.value.map(block => (block.id === id ? { ...block, text } : block));
@@ -193,6 +207,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     pickView,
     closeViewPicker: () => { viewPickerAt.value = null; },
     removeBlock,
+    removeEmptyBlock,
     updateText,
     editBlock: id => {
       if (!ensureDraft()) return;

@@ -62,10 +62,12 @@ const props = defineProps({
   splitOnEnter: { type: Boolean, default: false },
   // The live-source markers are page-editor signage; in-place document
   // blocks render their content without marker glyphs.
-  showSourceMarkers: { type: Boolean, default: false }
+  showSourceMarkers: { type: Boolean, default: false },
+  // Backspace in an empty document block removes the block.
+  deleteOnEmptyBackspace: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['update', 'pick-view', 'ready', 'enter']);
+const emit = defineEmits(['update', 'pick-view', 'ready', 'enter', 'delete-empty']);
 
 const { t } = useI18n();
 const viewsStore = useViewsStore();
@@ -121,15 +123,27 @@ async function applyAddress() {
   const href = linkUrl.value.trim();
   if (!href || !crepe) return;
   addressPopover.value?.hide();
-  const [{ callCommand }, { toggleLinkCommand, insertImageCommand }] = await Promise.all([
+  const [{ callCommand }, { insertImageCommand }] = await Promise.all([
     import('@milkdown/utils'),
     import('@milkdown/preset-commonmark')
   ]);
   const image = addressKind.value === 'image';
-  crepe.editor.action(callCommand(
-    (image ? insertImageCommand : toggleLinkCommand).key,
-    image ? { src: href } : { href }
-  ));
+  if (image) {
+    crepe.editor.action(callCommand(insertImageCommand.key, { src: href }));
+  } else {
+    crepe.editor.action(ctx => {
+      const view = ctx.get(editorViewCtx);
+      const { from, to, empty } = view.state.selection;
+      if (!empty) {
+        view.dispatch(view.state.tr.addMark(from, to, view.state.schema.marks.link.create({ href })));
+        return;
+      }
+      const label = href;
+      const tr = view.state.tr.insertText(label);
+      tr.addMark(from, from + label.length, view.state.schema.marks.link.create({ href }));
+      view.dispatch(tr);
+    });
+  }
   focus();
 }
 
@@ -242,9 +256,24 @@ onMounted(async () => {
   };
   editorHost.value.addEventListener('click', editorDiagramClick);
   editorEnterKey = event => {
+    if (document.querySelector('.md-slash-menu[data-show="true"]')) return;
+    if (event.key === 'Backspace' && props.deleteOnEmptyBackspace
+      && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
+      if (!crepe || !editorViewCtx) return;
+      let empty = false;
+      crepe.editor.action(ctx => {
+        const view = ctx.get(editorViewCtx);
+        const { doc } = view.state;
+        empty = doc.childCount === 1 && doc.firstChild?.isTextblock && doc.firstChild.content.size === 0;
+      });
+      if (!empty) return;
+      event.preventDefault();
+      event.stopPropagation();
+      emit('delete-empty');
+      return;
+    }
     if (!props.splitOnEnter || event.key !== 'Enter'
       || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
-    if (document.querySelector('.md-slash-menu[data-show="true"]')) return;
     if (!crepe || !editorViewCtx) return;
     let split = false;
     crepe.editor.action(ctx => {

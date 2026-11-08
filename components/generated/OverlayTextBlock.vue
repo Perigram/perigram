@@ -15,9 +15,11 @@
       :initial-block="initialBlock"
       :initial-point="pendingPoint"
       split-on-enter
+      delete-on-empty-backspace
       @ready="onEditorReady"
       @update="text => session.updateText(block.id, text)"
       @enter="insertAfter"
+      @delete-empty="deleteBlock"
     />
     <MarkdownBlocks v-else-if="block.text" :source="block.text" />
   </div>
@@ -58,6 +60,10 @@ function onEditorReady() {
 
 function insertAfter() {
   props.session?.insertTextAfter?.(props.block.id);
+}
+
+function deleteBlock() {
+  props.session?.removeEmptyBlock?.(props.block.id);
 }
 
 function closeEditor() {

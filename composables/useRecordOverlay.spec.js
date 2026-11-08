@@ -140,6 +140,21 @@ describe('useRecordOverlaySession', () => {
     expect(id).toBeTruthy();
   });
 
+  it('backspace on an empty block removes it and resumes the previous text block', () => {
+    savedOverlay.value = {
+      blocks: [{ id: 'b1', kind: 'text', text: 'words' }],
+      order: ['properties', 'b1']
+    };
+    const s = session();
+    s.syncFlow(['properties', 'b1'], ['properties']);
+    s.insertTextAfter('b1');
+    const empty = s.applied.blocks[1].id;
+    s.removeEmptyBlock(empty);
+    expect(s.applied.blocks.map(block => block.id)).toEqual(['b1']);
+    expect(s.applied.order).toEqual(['properties', 'b1']);
+    expect(s.editingBlockId).toBe('b1');
+  });
+
   it('appends the trailing line text as a block', () => {
     savedOverlay.value = null;
     const s = session();

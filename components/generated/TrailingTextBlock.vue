@@ -1,5 +1,5 @@
 <template>
-  <div v-if="session?.writable" class="ck-doc-tail relative min-h-8" @focusout="onFocusOut">
+  <div v-if="session?.writable" class="ck-doc-tail relative min-h-8">
     <CrepeEditor
       :key="editorKey"
       ref="editor"
@@ -52,12 +52,6 @@ function focusIfRequested() {
   if (!focusAfterCommit.value) return;
   focusAfterCommit.value = false;
   editor.value?.focus?.();
-}
-
-function onFocusOut(event) {
-  const next = event.relatedTarget;
-  if (next?.closest?.('.p-dialog, .p-popover, .p-overlaypanel, .md-slash-menu')) return;
-  commit(false);
 }
 
 onBeforeUnmount(() => {
