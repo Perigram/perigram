@@ -92,6 +92,12 @@
   `components/generated` and `workers/documents` focused suites green;
   Playwright probe drives `@`, chip selection/deletion, collection view
   insertion, image insertion, and the class page.
+- Slash hand-offs defer their overlay to the next task: the selecting
+  click otherwise reaches the newly bound outside-click listener and
+  closes the link and instance popovers immediately. Enter on an empty
+  top-level paragraph keeps the caret inside it, so the page editor folds
+  sequential blank lines like the inline blocks. Playwright probes pinned
+  both behaviors.
 
 ## Deslopification program (owner direction 2026-10-23)
 

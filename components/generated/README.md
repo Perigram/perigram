@@ -221,8 +221,11 @@ the `section` field set.
   atomic `instance_ref` node (`instance-ref-node.js`) that renders the
   shared chip face, opens on click, and selects as one unit before
   Backspace removes it. The image entry opens `ImageInsertDialog.vue`
-  (upload or address) and inserts the engine's image node. The page-link
-  and AI-block entries stay dark until phase K. The page's header is the unified page header
+  (upload or address) and inserts the engine's image node. Every slash
+  hand-off opens on the next task, so the selecting click cannot dismiss
+  its popover or dialog as an outside click. Enter on an empty top-level
+  paragraph keeps the caret in that paragraph. The page-link and AI-block
+  entries stay dark until phase K. The page's header is the unified page header
   ([ui-mapping](../ui-mapping/README.md) `SurfaceHeader` with `title` +
   `onRename`, no type or instance): the name edits in place through the
   pages rename channel and the save patches content through the pages
