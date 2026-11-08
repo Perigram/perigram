@@ -4,6 +4,7 @@
        reference. -->
   <GeneratedScreenPane
     v-if="item?.kind === 'screen'"
+    :key="item?.key || item?.screenKey"
     :item="item"
     :tabs="tabs"
     :closeable="closeable"
@@ -20,6 +21,7 @@
   />
   <GeneratedWorkspacePage
     v-else-if="item?.kind === 'page'"
+    :key="item?.key"
     :page="item"
     :tabs="tabs"
     :closeable="closeable"
