@@ -47,10 +47,11 @@
   carries its type id and renders the type's live view with its header
   tabs. Saved views stay in the header tabs.
 - Enter at the end of a text block starts the next block; the document
-  keeps a trailing type-ready line whose first keystroke starts the
-  next block. The trailing line is the single placeholder: empty text
-  blocks render nothing and drop when their editor closes. Callout
-  inserts an empty blockquote.
+  keeps a real inline editor at its foot, empty and type-ready. Enter
+  commits its text as a block and leaves a fresh empty line. The
+  trailing line is the single placeholder: empty text blocks render
+  nothing and drop when their editor closes. Callout inserts an empty
+  blockquote.
 - Text blocks accept inline instance references: the Instance entry
   opens the record picker and inserts an `instance:` link rendered as
   a chip in prose and the editor.

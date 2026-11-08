@@ -255,8 +255,9 @@ the `section` field set.
   document gutter's plus opens the same block vocabulary as the slash
   panel; text entries insert a text block opened at that kind (image
   asks for a source address, instance opens the picker), and the view
-  entry reuses `ViewPickerDialog`. The document's trailing line is
-  always type-ready for writers. The composition and its authoring
+  entry reuses `ViewPickerDialog`. The document's trailing line is a
+  real inline engine mount, empty and type-ready for writers; Enter
+  commits it as a block. The composition and its authoring
   affordances live in
   [components/ui-mapping](../ui-mapping/README.md) (the record
   document's overlay); the overlay store and the write-grant gate are
