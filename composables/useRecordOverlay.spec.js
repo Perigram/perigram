@@ -127,6 +127,19 @@ describe('useRecordOverlaySession', () => {
     expect(s.dirty).toBe(false);
   });
 
+  it('closing an empty new block drops it', () => {
+    savedOverlay.value = null;
+    const s = session();
+    s.syncFlow(['properties'], ['properties']);
+    s.insertText(1);
+    const id = s.applied.blocks[0].id;
+    s.closeEditor();
+    expect(s.editingBlockId).toBe(null);
+    expect(s.applied.blocks).toEqual([]);
+    expect(s.applied.order).toEqual(['properties']);
+    expect(id).toBeTruthy();
+  });
+
   it('a real draft saves the composed document', async () => {
     savedOverlay.value = null;
     const s = session();

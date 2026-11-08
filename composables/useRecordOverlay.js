@@ -193,8 +193,11 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
       editingBlockId.value = id;
     },
     closeEditor: () => {
+      const id = editingBlockId.value;
       editingBlockId.value = null;
       editingInitialBlock.value = '';
+      const block = draftBlocks.value.find(candidate => candidate.id === id);
+      if (block?.kind === 'text' && !String(block.text || '').trim()) removeBlock(id);
     },
     save
   });
