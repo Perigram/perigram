@@ -103,18 +103,27 @@
             @click="addField"
           />
         </div>
+        <div class="flex items-center gap-2">
+          <span class="text-label text-muted">{{ $t('classes.titleField') }}</span>
+          <Select
+            :model-value="identifierFieldId"
+            :options="fieldOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+            class="w-52"
+            :aria-label="$t('classes.titleField')"
+            @update:model-value="setIdentifierField"
+          />
+        </div>
         <DeclarationFieldRow
           v-for="field in draft.fields"
           :key="field.key"
           :field="{ node: { data: { name: field.name, descriptor: field.descriptor } } }"
-          :summary="expandedField === field.key ? '' : summaryOf(field.descriptor)"
           :type-options="typeOptions"
           :simple="true"
-          :expanded="expandedField === field.key"
           @rename="value => renameField(field, value)"
           @descriptor="value => updateDescriptor(field, value)"
-          @toggle-identifier="toggleIdentifier(field)"
-          @toggle-expand="expandedField = expandedField === field.key ? '' : field.key"
           @remove="removeField(field)"
         />
         <Message v-if="fieldError" severity="warn" :closable="false">{{ fieldError }}</Message>
@@ -131,6 +140,12 @@
             severity="secondary"
             @click="addState"
           />
+        </div>
+        <div v-if="draft.states.length" class="grid grid-cols-[minmax(0,1fr)_8rem_8rem_auto] gap-2 text-label text-muted">
+          <span>{{ $t('typeCanvas.stateName') }}</span>
+          <span>{{ $t('processDesigner.stateSeverity') }}</span>
+          <span>{{ $t('processDesigner.stateIcon') }}</span>
+          <span />
         </div>
         <DeclarationStateRow
           v-for="state in draft.states"
@@ -264,7 +279,6 @@ const classOptions = DECLARABLE_CLASSES.map(value => ({ label: value, value }));
 
 const draft = ref(freshDraft());
 const base = ref(null);
-const expandedField = ref('');
 const error = ref('');
 const saving = ref(false);
 const childDraftVisible = ref(false);
@@ -278,6 +292,23 @@ const typeOptions = computed(() => view.types.value.map(type => ({
   label: type.name || type.id,
   value: type.id
 })));
+
+const fieldOptions = computed(() => draft.value.fields.map(field => ({
+  label: field.name || field.id,
+  value: field.id
+})));
+
+const identifierFieldId = computed(() => draft.value.fields
+  .find(field => field.descriptor?.identifier === true)?.id || '');
+
+function setIdentifierField(fieldId) {
+  for (const field of draft.value.fields) {
+    const descriptor = { ...field.descriptor };
+    if (field.id === fieldId) descriptor.identifier = true;
+    else delete descriptor.identifier;
+    field.descriptor = descriptor;
+  }
+}
 
 const fieldError = computed(() => {
   const names = draft.value.fields.map(field => String(field.name || '').trim());
@@ -331,7 +362,6 @@ function freshDraft() {
 
 function initialize() {
   error.value = '';
-  expandedField.value = '';
   existingChild.value = null;
   if (props.initialDraft) {
     draft.value = JSON.parse(JSON.stringify(props.initialDraft));
@@ -394,10 +424,6 @@ function setClass(value) {
   if (value === 'file') draft.value.children = [];
 }
 
-function summaryOf(descriptor) {
-  return fieldDescriptorSummary(descriptor, typeId => typeLabelOf(typeId));
-}
-
 function typeLabelOf(typeId) {
   return view.typeById(typeId)?.name || typeId;
 }
@@ -413,16 +439,6 @@ function renameField(field, name) {
 
 function updateDescriptor(field, value) {
   field.descriptor = value;
-}
-
-function toggleIdentifier(field) {
-  const enabled = field.descriptor?.identifier !== true;
-  for (const candidate of draft.value.fields) {
-    const descriptor = { ...candidate.descriptor };
-    if (candidate === field && enabled) descriptor.identifier = true;
-    else delete descriptor.identifier;
-    candidate.descriptor = descriptor;
-  }
 }
 
 function uniqueFieldId(name) {
@@ -447,11 +463,15 @@ function addField() {
     descriptor: { base: 'string', label: name }
   };
   draft.value.fields.push(field);
-  expandedField.value = field.key;
+  if (!draft.value.fields.some(candidate => candidate.descriptor?.identifier === true)) {
+    setIdentifierField(field.id);
+  }
 }
 
 function removeField(field) {
+  const wasIdentifier = field.descriptor?.identifier === true;
   draft.value.fields = draft.value.fields.filter(candidate => candidate !== field);
+  if (wasIdentifier && draft.value.fields.length) setIdentifierField(draft.value.fields[0].id);
 }
 
 function addState() {

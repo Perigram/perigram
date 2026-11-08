@@ -131,11 +131,8 @@
         "children": "Children",
         "addChild": "Add child class",
         "addExistingChild": "Add existing class",
-        "childName": "Child class name",
         "saved": "Saved",
         "fieldNameRequired": "Every field needs a name.",
-        "fieldNameInvalid": "Field names are lowerCamelCase.",
-        "fieldNameDuplicate": "Field names must be unique.",
         "identifierRequired": "Mark exactly one field as the identifier.",
         "groupNeedsChildren": "A group class needs at least one child class.",
         "childTitle": "Child class",
@@ -145,7 +142,8 @@
         "stateNameRequired": "Every state needs a value.",
         "stateNameInvalid": "State values are one flat segment.",
         "stateNameDuplicate": "State values must be unique.",
-        "instancesUnavailable": "Instances unavailable"
+        "instancesUnavailable": "Instances unavailable",
+        "titleField": "Title field"
     },
     "designer": {
         "toolbar": "Toolbar",
@@ -2404,7 +2402,8 @@
         "savedViews": "Saved views",
         "collections": "Collections",
         "noCollections": "No collections",
-        "slashHint": "Type '/' for commands"
+        "slashHint": "Type '/' for commands",
+        "noInstances": "No instances"
     },
     "sketch": {
         "editorTitle": "Sketch",
@@ -3429,8 +3428,7 @@
         "scheduleStart": "Start at",
         "scheduleInterval": "Repeat every",
         "scheduleIntervalPlaceholder": "ISO duration, e.g. P1D",
-        "startOnEvent": "Start on event",
-        "stateTerminal": "Terminal"
+        "startOnEvent": "Start on event"
     },
     "generatedScreen": {
         "home": "Home",

@@ -131,11 +131,8 @@
         "children": "Дочерние классы",
         "addChild": "Добавить дочерний класс",
         "addExistingChild": "Добавить существующий класс",
-        "childName": "Имя дочернего класса",
         "saved": "Сохранено",
         "fieldNameRequired": "У каждого поля должно быть имя.",
-        "fieldNameInvalid": "Имена полей пишутся в lowerCamelCase.",
-        "fieldNameDuplicate": "Имена полей должны быть уникальными.",
         "identifierRequired": "Отметьте ровно одно поле как идентификатор.",
         "groupNeedsChildren": "Класс-группа требует хотя бы один дочерний класс.",
         "childTitle": "Дочерний класс",
@@ -145,7 +142,8 @@
         "stateNameRequired": "У каждого состояния должно быть значение.",
         "stateNameInvalid": "Значение состояния — один плоский сегмент.",
         "stateNameDuplicate": "Значения состояний должны быть уникальными.",
-        "instancesUnavailable": "Записи недоступны"
+        "instancesUnavailable": "Записи недоступны",
+        "titleField": "Поле заголовка"
     },
     "designer": {
         "toolbar": "Панель инструментов",
@@ -2404,7 +2402,8 @@
         "savedViews": "Сохранённые виды",
         "collections": "Коллекции",
         "noCollections": "Нет коллекций",
-        "slashHint": "Введите '/' для команд"
+        "slashHint": "Введите '/' для команд",
+        "noInstances": "Нет записей"
     },
     "sketch": {
         "editorTitle": "Скетч",
@@ -3429,8 +3428,7 @@
         "scheduleStart": "Запустить в",
         "scheduleInterval": "Повторять каждые",
         "scheduleIntervalPlaceholder": "ISO-длительность, напр. P1D",
-        "startOnEvent": "Запуск по событию",
-        "stateTerminal": "Терминальное"
+        "startOnEvent": "Запуск по событию"
     },
     "generatedScreen": {
         "home": "Главная",
