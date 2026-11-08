@@ -1,14 +1,20 @@
+import { ObjectId } from 'mongodb';
 import { connectDB } from '~/server/db/mongo';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 
-const COLLECTION = 'pages';
+// Custom pages and their sidebar sections are Page-class instances
+// (cts framework `page`, items collection). The section flag and markdown
+// source are Page fields; parent containment is the `pageId` lineage key.
+const COLLECTION = 'items';
+const LEGACY_COLLECTION = 'pages';
+const TYPE = 'page';
 
 export function serialize(row) {
   return {
     _id: row._id.toString(),
-    kind: row.kind,
-    name: row.name,
-    parentId: row.parentId ? String(row.parentId) : null
+    kind: row.fields?.section === true ? 'section' : 'page',
+    name: row.fields?.name || row.name || '',
+    parentId: row.lineage?.pageId ? String(row.lineage.pageId) : null
   };
 }
 
@@ -16,17 +22,57 @@ export function serializeFull(row) {
   return {
     ...serialize(row),
     organizationId: String(row.organizationId),
-    content: row.content || '',
+    content: row.fields?.content || '',
     createdBy: row.createdBy ? String(row.createdBy) : null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
   };
 }
 
+function orgFilter(organizationId) {
+  const org = toFlexibleId(organizationId);
+  return { $in: [org, String(organizationId)] };
+}
+
+// One-time adoption of the former `pages` collection. The old rows keep
+// their ids so links and open tabs keep resolving.
+export async function migrateLegacy(organizationId) {
+  const db = await connectDB();
+  const legacy = await db.collection(LEGACY_COLLECTION)
+    .find({ organizationId: orgFilter(organizationId) })
+    .toArray();
+  if (!legacy.length) return;
+  await db.collection(COLLECTION).bulkWrite(legacy.map(row => ({
+    updateOne: {
+      filter: { _id: row._id },
+      update: {
+        $setOnInsert: {
+          type: TYPE,
+          typeVersion: 1,
+          organizationId: toFlexibleId(organizationId),
+          name: row.name || '',
+          fields: {
+            name: row.name || '',
+            content: row.content || '',
+            section: row.kind === 'section'
+          },
+          state: null,
+          lineage: row.parentId ? { pageId: String(row.parentId) } : {},
+          ...(row.createdBy ? { createdBy: row.createdBy } : {}),
+          createdAt: row.createdAt || new Date(),
+          updatedAt: row.updatedAt || new Date()
+        }
+      },
+      upsert: true
+    }
+  })), { ordered: false });
+  await db.collection(LEGACY_COLLECTION).deleteMany({ organizationId: orgFilter(organizationId) });
+}
+
 export async function findByOrganization(organizationId) {
   const db = await connectDB();
   return db.collection(COLLECTION)
-    .find({ organizationId: toFlexibleId(organizationId) })
+    .find({ type: TYPE, organizationId: orgFilter(organizationId) })
     .sort({ createdAt: 1, _id: 1 })
     .toArray();
 }
@@ -34,29 +80,47 @@ export async function findByOrganization(organizationId) {
 export async function findById(id) {
   const db = await connectDB();
   if (!id) return null;
-  return db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) });
+  return db.collection(COLLECTION).findOne({ _id: toFlexibleId(id), type: TYPE });
 }
 
 export async function create(data) {
   const db = await connectDB();
   const now = new Date();
-  const result = await db.collection(COLLECTION).insertOne({
-    kind: 'page',
-    name: '',
-    parentId: null,
-    content: '',
-    ...data,
+  const name = data.name || '';
+  const section = data.kind === 'section';
+  const doc = {
+    _id: new ObjectId(),
+    type: TYPE,
+    typeVersion: 1,
+    organizationId: toFlexibleId(data.organizationId),
+    name,
+    fields: { name, content: '', section },
+    state: null,
+    lineage: data.parentId ? { pageId: String(data.parentId) } : {},
+    ...(data.createdBy ? { createdBy: data.createdBy } : {}),
     createdAt: now,
     updatedAt: now
-  });
-  return result.insertedId;
+  };
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc._id;
 }
 
 export async function update(id, changes) {
   const db = await connectDB();
+  const set = { updatedAt: new Date() };
+  const unset = {};
+  if (changes.name !== undefined) {
+    set.name = changes.name;
+    set['fields.name'] = changes.name;
+  }
+  if (changes.content !== undefined) set['fields.content'] = changes.content;
+  if (changes.parentId !== undefined) {
+    if (changes.parentId) set['lineage.pageId'] = String(changes.parentId);
+    else unset['lineage.pageId'] = '';
+  }
   return db.collection(COLLECTION).findOneAndUpdate(
-    { _id: toFlexibleId(id) },
-    { $set: { ...changes, updatedAt: new Date() } },
+    { _id: toFlexibleId(id), type: TYPE },
+    { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) },
     { returnDocument: 'after' }
   );
 }
@@ -64,12 +128,16 @@ export async function update(id, changes) {
 export async function detachChildren(organizationId, parentId) {
   const db = await connectDB();
   await db.collection(COLLECTION).updateMany(
-    { organizationId: toFlexibleId(organizationId), parentId: toFlexibleId(parentId) },
-    { $set: { parentId: null, updatedAt: new Date() } }
+    {
+      type: TYPE,
+      organizationId: orgFilter(organizationId),
+      'lineage.pageId': { $in: [String(parentId), toFlexibleId(parentId)] }
+    },
+    { $unset: { 'lineage.pageId': '' }, $set: { updatedAt: new Date() } }
   );
 }
 
 export async function remove(id) {
   const db = await connectDB();
-  await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });
+  await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id), type: TYPE });
 }

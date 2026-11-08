@@ -19,8 +19,8 @@ import { iconFontGlyphs } from '#shared/icon-fonts.js';
  * owns no business logic and never touches a repository.
  *
  * Authoring discipline the descriptions encode: validate before activate,
- * surface the activation gates (migration plan, type death) as structured
- * results the caller must confirm, never push through them.
+ * surface activation gates (the migration plan) as structured results the
+ * caller must confirm, never push through them.
  */
 
 const LIST_LIMIT_DEFAULT = 25;
@@ -145,7 +145,7 @@ const AUTHORING_GUIDE = [
     '1. compose_process_definition (or get_process_definition digest + edit_process_definition — same gestures, small payloads, no graph echo-back). Digest rows carry each node\'s socket handles — connect against them.',
     '2. validate_process_definition: its anchored diagnostics name exactly what to fix.',
     '3. In-tree declarations MUST be posted into the registry with apply_declarations before activation — validation overlays the draft, the activation compile resolves the registry.',
-    '4. activate_process_definition: activation gates (migration plan, type death) are confirmations to resolve, never bypass — status migration targets are declared with declare_status_mappings (one mapping per plan row), type death with confirmTypeDeath.',
+    '4. activate_process_definition: activation gates (the migration plan) are confirmations to resolve, never bypass — status migration targets are declared with declare_status_mappings (one mapping per plan row).',
     'Full document view only via get_process_definition {full: true}.'
 ].join('\n');
 
@@ -572,12 +572,11 @@ export const TOOL_SPECS = [
     },
     {
         name: 'activate_process_definition',
-        description: 'Activates a definition (additively, into the active set). Activation gates return as a structured { activationBlocked, ... } result: read the migration plan / type death rows, then resolve them — status migrations through declare_status_mappings (one mapping per plan row, targets from the plan), type death by re-calling with confirmTypeDeath: true.',
+        description: 'Activates a definition (additively, into the active set). Activation gates return as a structured { activationBlocked, ... } result: read the migration plan, then resolve it through declare_status_mappings (one mapping per plan row, targets from the plan).',
         inputSchema: {
             type: 'object',
             properties: {
-                definitionId: { type: 'string' },
-                confirmTypeDeath: { type: 'boolean' }
+                definitionId: { type: 'string' }
             },
             required: ['definitionId'],
             additionalProperties: false
@@ -588,8 +587,7 @@ export const TOOL_SPECS = [
                 // the entity echo crossed the conversation limit.
                 return definitionDigest(await processDefinitionsService.activate(
                     requireString(args.definitionId, 'definitionId'),
-                    auth,
-                    { confirmTypeDeath: Boolean(args.confirmTypeDeath) }
+                    auth
                 ));
             } catch (error) {
                 if (error?.statusCode === 409) {
@@ -649,33 +647,20 @@ export const TOOL_SPECS = [
     },
     {
         name: 'delete_process_definition',
-        description: 'Deletes a definition permanently (admin access). Types no other stored definition declares die with it, WITH ALL THEIR DATA: that type-death manifest returns as a structured { deletionBlocked, gate } result — read it, surface it to the room when it carries live data, and re-call with confirmTypeDeath: true to proceed. Prefer deactivate_process_definition for removing a definition from the active set.',
+        description: 'Deletes a definition permanently (admin access). Prefer deactivate_process_definition for removing a definition from the active set.',
         inputSchema: {
             type: 'object',
             properties: {
-                definitionId: { type: 'string' },
-                confirmTypeDeath: { type: 'boolean' }
+                definitionId: { type: 'string' }
             },
             required: ['definitionId'],
             additionalProperties: false
         },
         execute: async (args, auth) => {
-            try {
-                return await processDefinitionsService.remove(
-                    requireString(args.definitionId, 'definitionId'),
-                    auth,
-                    { confirmTypeDeath: Boolean(args.confirmTypeDeath) }
-                );
-            } catch (error) {
-                if (error?.statusCode === 409) {
-                    return {
-                        deletionBlocked: true,
-                        message: error.message,
-                        ...(error.data ? { gate: error.data } : {})
-                    };
-                }
-                throw error;
-            }
+            return await processDefinitionsService.remove(
+                requireString(args.definitionId, 'definitionId'),
+                auth
+            );
         }
     },
     {
@@ -834,7 +819,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'ask_user',
-        description: 'Asks the conversation a question and waits for the answer: the run suspends, the question (with optional one-tap options) renders at the composer, and the next message from a participant replies to it. Use it for decisions that belong to the room — a new definition\'s simplified Mermaid proposition (the diagram in your answer, the validation question here), activation gates carrying live data (status migration targets, type death), or genuinely ambiguous intent. Declared intent proceeds; a failed tool call is retried on its corrected input.',
+        description: 'Asks the conversation a question and waits for the answer: the run suspends, the question (with optional one-tap options) renders at the composer, and the next message from a participant replies to it. Use it for decisions that belong to the room — a new definition\'s simplified Mermaid proposition (the diagram in your answer, the validation question here), activation gates carrying live data (status migration targets), or genuinely ambiguous intent. Declared intent proceeds; a failed tool call is retried on its corrected input.',
         inputSchema: {
             type: 'object',
             properties: {

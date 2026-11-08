@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // executeTool — the catalog the model drives on chat and MCP — over the
 // real process-definitions service and headless authoring seam, on an
 // in-memory definition store. Faked persistence: no stored org types
-// (type death stays empty), app-registry instance services per test.
+// app-registry instance services per test.
 //
 // Contracts pinned:
 //  1. compose/edit answer a digest whose edges address node:socket.
@@ -58,17 +58,11 @@ vi.mock('../cts-types/service.js', async () => {
         })
     };
 });
-// No stored org-authored types: the type-death manifest stays empty and
-// activate stays hermetic (findTypeDeathCandidates reads this through
-// lifetime.js — see that module for why the service cannot mock it).
+// No stored org-authored types: activate stays hermetic.
 vi.mock('../cts-types/repository.js', () => ({
     listByOrganization: vi.fn(async () => []),
     findByTypeId: vi.fn(async () => null)
 }));
-vi.mock('../cts-types/lifetime.js', async (importOriginal) => {
-    const actual = await importOriginal();
-    return { ...actual, countInstancesOfType: vi.fn(async () => 0) };
-});
 vi.mock('~/server/runtime/app-registry.js', () => ({
     getAppRegistry: vi.fn(),
     getAppRegistry: vi.fn(),

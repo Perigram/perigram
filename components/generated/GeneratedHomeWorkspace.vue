@@ -21,7 +21,7 @@
             <img v-else src="/icon.svg" alt="Perigram" class="h-7 w-7" />
           </NuxtLink>
           <div v-if="!sidebarCollapsed" class="flex items-center gap-1">
-            <CreatePalette @create-page="createCustomPage()" />
+            <CreatePalette @create-page="createCustomPage()" @create-class="openClassDialog()" />
             <Button
               icon="pi pi-chevron-left"
               text
@@ -54,7 +54,7 @@
           class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto p-1.5"
           :aria-label="$t('nav.home')"
         >
-          <CreatePalette @create-page="createCustomPage()" />
+          <CreatePalette @create-page="createCustomPage()" @create-class="openClassDialog()" />
           <span class="relative inline-flex">
             <Button
               icon="pi pi-comments"
@@ -279,7 +279,7 @@
          nothing routes away from the shell on mobile. -->
     <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden" data-home-workspace-mobile>
       <header class="flex h-12 shrink-0 items-center justify-end px-4">
-        <CreatePalette @create-page="createCustomPage()" />
+        <CreatePalette @create-page="createCustomPage()" @create-class="openClassDialog()" />
       </header>
       <div class="min-h-0 flex-1 overflow-y-auto p-4">
         <GeneratedScreenHost
@@ -299,7 +299,11 @@
       </div>
     </div>
 
-
+    <ClassDialog
+      v-model:visible="classDialogVisible"
+      :type-id="classDialogTypeId"
+      :start-in-create="classDialogCreate"
+    />
   </div>
 </template>
 
@@ -327,7 +331,8 @@ import { consumePendingWorkspacePage, workspacePageOpenEvent } from '~/utils/wor
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import CreatePalette from '~/components/generated/CreatePalette.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
-import { titleFor, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
+import ClassDialog from '~/components/type-designer/ClassDialog.vue';
+import { titleFor, typeLabelKey, localizedLabel, iconFor } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { resolveGeneratedWorkspacePage, generatedWorkspacePages, entityWorkspacePageIdFor } from '~/components/generated/workspace-pages.js';
 import { resolveDetailScreen, typeListScreenForTypeId } from '~/components/generated/detail-screen-actions.js';
@@ -341,6 +346,8 @@ import { useSupportChatStore } from '~/stores/supportChat';
 import { useCallsStore } from '~/stores/calls';
 import { usePagesStore } from '~/stores/pages';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { PAGE_TYPE_ID } from '~/packages/cts/src/index.js';
 import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js';
 import { callRoomIcon } from '~/utils/call-rooms.js';
 import { useCallRoomLabel } from '~/composables/useCallRoomLabel.js';
@@ -379,6 +386,7 @@ const registryStore = useRegistryStore();
 const supportChatStore = useSupportChatStore();
 const callsStore = useCallsStore();
 const pagesStore = usePagesStore();
+const classView = useFileTypeView();
 const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
 const confirm = useConfirm();
@@ -627,12 +635,43 @@ const screenfulTypes = computed(() => new Set((authStore.screenManifest || [])
 // nesting renders only between stationed types (both endpoints visible).
 const visibleTypes = computed(() => new Set(screenfulTypes.value));
 
+const classesAvailable = computed(() => authStore.hasPermission('organizations', 'admin'));
+const orgClasses = computed(() => (classesAvailable.value ? classView.types.value : [])
+  .filter(type => type.scope === 'org' && type.class !== 'party' && type.id !== PAGE_TYPE_ID)
+  .sort((left, right) => String(left.name || left.id).localeCompare(String(right.name || right.id))));
+
+const classDialogVisible = ref(false);
+const classDialogTypeId = ref('');
+const classDialogCreate = ref(false);
+
+function openClassDialog(typeId = '') {
+  classDialogTypeId.value = typeId;
+  classDialogCreate.value = !typeId;
+  classDialogVisible.value = true;
+}
+
+function classPanelModels() {
+  if (!classesAvailable.value || !orgClasses.value.length) return [];
+  return [{
+    key: 'classes',
+    label: t('classes.title'),
+    icon: 'pi pi-box',
+    items: orgClasses.value.map(type => ({
+      key: `class:${type.id}`,
+      icon: iconFor(type),
+      label: type.name || t('common.unnamed'),
+      command: menuCommand(`class:${type.id}`, () => openClassDialog(type.id))
+    }))
+  }];
+}
+
 // The PanelMenu model: type nodes become panels (their registry icon is
 // PanelMenu's item icon), entity nodes become rows carrying the workspace
 // item for the #item slot, the communication entries lead, and the user
 // sections follow the type panels with their nested page trees; loose
 // root pages render as root rows.
 const sidebarMenuModel = computed(() => [
+  ...classPanelModels(),
   ...communicationPanelModels(),
   ...explorerNodes.value.map(node => typePanelItem(node)),
   ...userSectionItems(),

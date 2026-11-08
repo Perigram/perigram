@@ -3,7 +3,7 @@ import { useProcessDesignerApply } from './useProcessDesignerApply.js';
 
 // The Apply machine: one authoritative `applyState` value over the closed
 // states idle, saving, applying, migration-required, type-migration-required,
-// type-death-required, error; every gate confirm/cancel consumes its state.
+// type-migration-required, error; every gate confirm/cancel consumes its state.
 function mountApply(overrides = {}) {
   const persistence = {
     saveDraft: vi.fn(async () => ({ _id: 'draft-1' })),
@@ -254,47 +254,6 @@ describe('useProcessDesignerApply machine', () => {
     expect(persistence.activateDraft).not.toHaveBeenCalled();
   });
 
-  it('pauses in type-death-required and confirms activation with consent', async () => {
-    const rows = [{ typeId: 'facade-order', name: 'Facade order', instances: 2 }];
-    const activateError = { data: { statusCode: 409, data: { typeDeath: rows } } };
-    let calls = 0;
-    const persistence = {
-      saveDraft: vi.fn(async () => ({ _id: 'draft-1' })),
-      validateDraft: vi.fn(async () => ({ ok: true, errors: [], warnings: [] })),
-      activateDraft: vi.fn(async () => {
-        calls += 1;
-        if (calls === 1) throw activateError;
-        return { _id: 'draft-1', data: { compiled: {} } };
-      })
-    };
-    const { apply } = mountApply({ persistence });
-
-    await apply.applyProcess();
-    expect(apply.applyState.value).toBe('type-death-required');
-    expect(apply.applyDetail.value).toEqual(rows);
-
-    const activated = await apply.confirmTypeDeath();
-    expect(activated?._id).toBe('draft-1');
-    expect(persistence.activateDraft).toHaveBeenCalledWith('draft-1', { confirmTypeDeath: true });
-    expect(apply.applyState.value).toBe('idle');
-  });
-
-  it('cancel returns type-death-required to idle without activating', async () => {
-    const rows = [{ typeId: 'facade-order', name: 'Facade order', instances: 2 }];
-    const persistence = {
-      saveDraft: vi.fn(async () => ({ _id: 'draft-1' })),
-      validateDraft: vi.fn(async () => ({ ok: true, errors: [], warnings: [] })),
-      activateDraft: vi.fn(async () => { throw { data: { data: { typeDeath: rows } } }; })
-    };
-    const { apply } = mountApply({ persistence });
-
-    await apply.applyProcess();
-    apply.cancelTypeDeath();
-
-    expect(apply.applyState.value).toBe('idle');
-    expect(apply.applyDetail.value).toBeNull();
-  });
-
   it('ignores overlapping gate arrivals: a second apply cannot replace an open gate', async () => {
     const { apply, persistence } = mountApply();
     persistence.validateDraft.mockResolvedValue({ ...validResult, migrationPlan: plan });
@@ -302,7 +261,6 @@ describe('useProcessDesignerApply machine', () => {
 
     await apply.applyProcess();
     apply.cancelTypeMigration();
-    apply.cancelTypeDeath();
 
     expect(persistence.validateDraft).toHaveBeenCalledTimes(1);
     expect(apply.applyState.value).toBe('migration-required');
@@ -322,15 +280,5 @@ describe('useProcessDesignerApply machine', () => {
 
     expect(apply.applyState.value).toBe('type-migration-required');
     expect(persistence.activateDraft).not.toHaveBeenCalled();
-  });
-});
-
-describe('type lifetime payload', () => {
-  it('extracts the death payload from both h3 nestings', async () => {
-    const { typeDeathOf } = await import('./useProcessDesignerApply.js');
-    const rows = [{ typeId: 'facade-order', name: 'Facade order', instances: 2 }];
-    expect(typeDeathOf({ data: { statusCode: 409, data: { typeDeath: rows } } })).toEqual(rows);
-    expect(typeDeathOf({ data: { typeDeath: rows } })).toEqual(rows);
-    expect(typeDeathOf({ data: { message: 'other' } })).toBeNull();
   });
 });

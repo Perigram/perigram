@@ -10,12 +10,10 @@ const APPLY_TRANSITIONS = Object.freeze({
     activated: 'idle',
     failed: 'error',
     'migration-required': 'migration-required',
-    'type-migration-required': 'type-migration-required',
-    'type-death-required': 'type-death-required'
+    'type-migration-required': 'type-migration-required'
   },
   'migration-required': { 'confirm-migration': 'applying', 'cancel-migration': 'idle' },
   'type-migration-required': { 'confirm-type-migration': 'applying', 'cancel-type-migration': 'idle' },
-  'type-death-required': { 'confirm-type-death': 'applying', 'cancel-type-death': 'idle' },
   error: { save: 'saving', apply: 'applying' }
 });
 
@@ -31,13 +29,6 @@ function declaredMappingsCover(plan, statuses = []) {
   );
 }
 
-// The type-death 409 payload: h3's createError nests its `data` one level
-// deep in the ofetch error body (the same nesting as the migration plan —
-// `error.data.data.*`), while some transports hand the payload over
-// already unwrapped. One extraction for every death-gate catch.
-export function typeDeathOf(error) {
-  return error?.data?.data?.typeDeath || error?.data?.typeDeath || null;
-}
 export function useProcessDesignerApply({
   persistence,
   t,
@@ -173,32 +164,7 @@ export function useProcessDesignerApply({
       move('migration-required', result.migrationPlan);
       return null;
     }
-    try {
-      return completeActivation(await persistence.activateDraft(draft.value._id));
-    } catch (error) {
-      const death = typeDeathOf(error);
-      if (death?.length) {
-        move('type-death-required', death);
-        return null;
-      }
-      throw error;
-    }
-  }
-
-  async function confirmTypeDeath() {
-    if (!draft.value?._id || !move('confirm-type-death')) return;
-    try {
-      const activated = await persistence.activateDraft(draft.value._id, { confirmTypeDeath: true });
-      return completeActivation(activated);
-    } catch (error) {
-      const death = typeDeathOf(error);
-      if (death?.length) {
-        // Live counts drifted since the pause: refresh the disclaimer.
-        move('type-death-required', death);
-        return null;
-      }
-      reportApplyError(error);
-    }
+    return completeActivation(await persistence.activateDraft(draft.value._id));
   }
 
   async function confirmApplyMigration(mappings) {
@@ -277,10 +243,6 @@ export function useProcessDesignerApply({
     }
   }
 
-  function cancelTypeDeath() {
-    move('cancel-type-death');
-  }
-
   return {
     applyState,
     applyDetail,
@@ -291,8 +253,6 @@ export function useProcessDesignerApply({
     confirmApplyMigration,
     cancelApplyMigration,
     confirmTypeMigration,
-    cancelTypeMigration,
-    confirmTypeDeath,
-    cancelTypeDeath
+    cancelTypeMigration
   };
 }

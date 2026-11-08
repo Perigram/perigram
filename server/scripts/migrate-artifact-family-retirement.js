@@ -5,8 +5,7 @@ import { connectDB } from '../db/mongo.js';
 // their export kinds migrate to the plugin's declared vocabulary
 // (LAYOUT_DXF -> dxf); the artifact and artifact-template entity rows,
 // their revisions, status history, workflow overrides, GridFS blobs, and
-// artifact-linked chat refs die with their types (the type-lifetime
-// law). Dry-run by default; `--apply` persists. Idempotent: re-running
+// artifact-linked chat refs leave with the retired type rows. Dry-run by default; `--apply` persists. Idempotent: re-running
 // matches nothing once migrated.
 const RETIRED_TYPES = ['artifact', 'artifact_template'];
 const RETIRED_BUCKETS = ['artifacts', 'artifactTemplates', 'capturePhotos', 'userDxf', 'nestDxf', 'nestSvg'];

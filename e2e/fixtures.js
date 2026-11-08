@@ -179,7 +179,11 @@ export const test = base.extend({
       async declareType(declaration = {}) {
         const response = await request.post('/api/admin/cts/types', { data: declaration });
         expect(response.ok(), await response.text()).toBeTruthy();
-        return await response.json();
+        const created = await response.json();
+        helper.trackCleanup(async () => {
+          await request.delete(`/api/admin/cts/types/${created.type.id}?abandon=true`, { failOnStatusCode: false });
+        });
+        return created;
       },
       // The registry declarations the suite posted, keyed by type id —
       // the single source `seedSpeciesProcess` mirrors in-tree.
@@ -195,9 +199,7 @@ export const test = base.extend({
       // `domainTypes` joins the authoring registry beside the mounted packs
       // (a fixture plugin's installed types). `declares` names additional
       // org types the definition declares without constructing (a seeded
-      // child's file type): every org type the suite posted must be
-      // declared by some stored definition, or activation 409s on the
-      // type-lifetime gate (cts SPEC §4).
+      // child's file type).
       async seedSpeciesProcess({ types = ['cassette-template', 'image'], via = {}, label = null, domainTypes = [], declares = [] } = {}) {
         const me = await (await request.get('/api/auth/me')).json();
         const organizationId = me.organizationId;
@@ -216,13 +218,11 @@ export const test = base.extend({
         types.forEach((typeId, index) => {
           authoring.drop('construct', { id: `e2e-${index}` });
         });
-        // Type lifetime (cts SPEC §4): the seeded definition declares its
-        // org types in-tree — the declaration gestures behind the
-        // designer's palette drops — so activation never sees them as
-        // orphans. Shapes mirror the registry declarations read back live
-        // (the single source of truth), keeping the draft-overlay compile
-        // identical to the registry compile; pack/plugin/system types need
-        // no declaration.
+        // The seeded definition declares its org types in-tree — the
+        // declaration gestures behind the designer's palette drops.
+        // Shapes mirror the registry declarations read back live, keeping
+        // the draft-overlay compile identical to the registry compile;
+        // pack/plugin/system types need no declaration.
         const declaredById = await helper.readOrgTypeDeclarations();
         const declaredIds = [...types, ...declares];
         declaredIds.forEach((typeId, index) => {
@@ -278,10 +278,7 @@ export const test = base.extend({
         const draft = await draftResponse.json();
         helper.trackCleanup(async () => {
           await request.post(`/api/process-definitions/${draft._id}/deactivate`, { failOnStatusCode: false });
-          // The suite owns these types outright: teardown consents to the
-          // type-lifetime gate so the definition and its declared types die
-          // together instead of piling up as orphans.
-          await request.delete(`/api/process-definitions/${draft._id}`, { data: { confirmTypeDeath: true }, failOnStatusCode: false });
+          await request.delete(`/api/process-definitions/${draft._id}`, { failOnStatusCode: false });
         });
         const activate = async () => request.post(`/api/process-definitions/${draft._id}/activate`, {}, { failOnStatusCode: false });
         let activated = await activate();

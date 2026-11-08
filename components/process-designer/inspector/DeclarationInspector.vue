@@ -208,9 +208,9 @@ import Message from 'primevue/message';
 import Select from '~/components/shared/InstanceSelect.vue';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
 import { stateSeverityOptions } from '~/components/type-designer/state-severities.js';
+import { classGlyphOptions } from '~/components/type-designer/class-glyphs.js';
 import { DECLARABLE_CLASSES, CREATION_PROTOCOLS } from '~/packages/cts/src/index.js';
 import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
-import { iconFontGlyphs } from '#shared/icon-fonts.js';
 
 const props = defineProps({
   node: { type: Object, required: true },
@@ -287,19 +287,6 @@ function setClass(value) {
   emit('sync');
 }
 
-// A curated PrimeIcon set (the class defaults plus common entity shapes)
-// followed by the built icon-font palette (every ck-* glyph the font
-// build offers, generated beside the CSS in shared/icon-fonts.js) — one
-// picker row, not an icon designer; the free-text field beside it
-// carries any other icon id verbatim.
-const GLYPH_CHOICES = Object.freeze([
-  'pi pi-users', 'pi pi-file', 'pi pi-box', 'pi pi-folder', 'pi pi-cog',
-  'pi pi-image', 'pi pi-tag', 'pi pi-map-marker', 'pi pi-calendar', 'pi pi-book'
-]);
+const glyphOptions = classGlyphOptions;
 
-const glyphOptions = Object.freeze([
-  { label: '', value: '' },
-  ...GLYPH_CHOICES.map(value => ({ label: value, value })),
-  ...iconFontGlyphs.map(value => ({ label: value, value }))
-]);
 </script>

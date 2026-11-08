@@ -62,12 +62,23 @@ export function useFileTypeView() {
     return entry.types.value.find(type => type.id === normalized) || null;
   }
 
+  async function refresh() {
+    const view = await fetchTypeView(organizationId);
+    entry.types.value = view.types;
+    entry.editors.value = view.editors;
+    entry.surfaces.value = view.surfaces;
+    entry.previews.value = view.previews;
+    entry.loaded.value = true;
+    return view;
+  }
+
   return {
     types: entry.types,
     editors: entry.editors,
     surfaces: entry.surfaces,
     previews: entry.previews,
     loaded: entry.loaded,
-    typeById
+    typeById,
+    refresh
   };
 }

@@ -102,29 +102,29 @@
               </Popover>
             </template>
           </div>
-          <!-- The quiet type label opens the type's card (SPEC §22.8):
-               glyph, authored name, the field vocabulary, the machine
-               mini-view, and the authoring entries for holders. -->
+          <!-- The quiet type label opens the class dialog (SPEC §27)
+               for capability holders; the label stays a label for
+               everyone else. -->
           <Button
-            v-if="!compact && type"
-            ref="typeLabelButton"
+            v-if="!compact && type && canEditClass"
             :label="typeLabel"
             text
             size="small"
             severity="secondary"
             class="w-fit justify-start truncate p-0 text-supporting"
             :aria-label="typeLabel"
-            @click="event => typeCard?.toggle(event)"
+            @click="classEditorOpen = true"
           />
-          <Popover ref="typeCard">
-            <TypeCardPopup
-              :type="type"
-              :state-policy="statePolicy"
-              :state-transitions="stateTransitions"
-              @author-fields="openFieldsAuthoring"
-              @author-states="openStatesAuthoring"
-            />
-          </Popover>
+          <span
+            v-else-if="!compact && type"
+            class="w-fit truncate text-supporting text-muted"
+          >{{ typeLabel }}</span>
+          <ClassDialog
+            v-if="type && classEditorOpen"
+            v-model:visible="classEditorOpen"
+            :type="type"
+            :type-id="type.id"
+          />
         </div>
       </div>
       <div :class="LAYOUT.row" class="header-actions">
@@ -252,13 +252,14 @@ import {
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { openInstanceChat } from '~/utils/instance-chat.js';
-import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
+import { useAuthStore } from '~/stores/auth';
+import { PAGE_TYPE_ID } from '~/packages/cts/src/index.js';
 import ActionButton from './ActionButton.vue';
 import TraceChain from '../shared/links/TraceChain.vue';
 import BackControl from '../shared/BackControl.vue';
 import StateTag from './StateTag.vue';
 import StateHistory from '../shared/state/StateHistory.vue';
-import TypeCardPopup from './TypeCardPopup.vue';
+import ClassDialog from '../type-designer/ClassDialog.vue';
 import DeclarationStatePanel from '../type-designer/DeclarationStatePanel.vue';
 
 const spacing = inject('uiMappingSpacing', null);
@@ -273,6 +274,7 @@ const addStatesPopover = ref(null);
 // provide `{ open(target) }`; bounded hosts (the popup, the peek) keep
 // the shared chat surface.
 const commentsPanel = inject('recordCommentsPanel', null);
+const authStore = useAuthStore();
 const { te, t } = useI18n();
 
 const props = defineProps({
@@ -288,9 +290,6 @@ const props = defineProps({
   bundle: { type: Object, default: null },
   // The region's per-type state policy map (contract.statePolicy[typeId]).
   statePolicy: { type: Object, default: null },
-  // The contract's authored machine edges for the type
-  // (stateTransitionsByType) — the type card's machine mini-view.
-  stateTransitions: { type: Array, default: null },
   // Host-injected contextual back affordance as data (the template
   // `#navigation` slot is the same channel for direct hosts):
   // `{ icon, label, command }`.
@@ -315,6 +314,10 @@ const identity = computed(() => titleFor(props.instance, props.type, { unnamedLa
 const displayName = computed(() => chromeApi.value?.name
   || (props.instance ? identity.value : props.title));
 const typeLabel = computed(() => (props.type ? generatedEntityLabel(props.type, { t, te }) : ''));
+const canEditClass = computed(() => props.type?.scope === 'org'
+  && props.type?.id !== PAGE_TYPE_ID
+  && authStore.hasPermission('organizations', 'admin'));
+const classEditorOpen = ref(false);
 
 const glyph = computed(() => iconFor(props.type, props.instance));
 // The title's in-place edit: the chrome channel's rename where an
@@ -335,22 +338,6 @@ function commitName() {
   if (!name || name === displayName.value) return;
   const channel = renameChannel.value;
   if (channel) Promise.resolve(channel(name)).catch(() => {});
-}
-
-const typeCard = ref(null);
-const typeLabelButton = ref(null);
-function openStatesAuthoring() {
-  typeCard.value?.hide();
-  authoringLane.value = true;
-  const anchor = typeLabelButton.value?.$el;
-  const popover = currentState.value ? statePopover.value : addStatesPopover.value;
-  popover?.show?.({}, anchor);
-}
-// The fields jump has no programmatic open on the property rows' popovers:
-// the declaration designer page is the canonical authoring home.
-function openFieldsAuthoring() {
-  typeCard.value?.hide();
-  openWorkspacePageFromChrome({ pageId: 'organizationProcess' });
 }
 
 const instanceId = computed(() => {

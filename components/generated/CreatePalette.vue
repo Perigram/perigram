@@ -81,15 +81,14 @@ import ActionFormDialog from '~/components/ui-mapping/ActionFormDialog.vue';
 // blank editor surface, an upload create runs inline over the files
 // channel, every other create opens the construct dialog (the shared
 // ActionFormDialog) or runs directly when it prompts nothing. The pinned
-// New page entry (SPEC §26) rides above the type groups; the host owns
-// the create and the tab.
+// class entry rides above the type groups; the host owns the dialog.
 const { t, te } = useI18n();
 const toast = useToast();
 const authStore = useAuthStore();
 const instances = useInstancesStore();
 const view = useFileTypeView();
 
-const emit = defineEmits(['create-page']);
+const emit = defineEmits(['create-page', 'create-class']);
 
 const palette = ref(null);
 const search = ref(null);
@@ -100,8 +99,11 @@ const file = ref(null);
 const dialogAction = ref(null);
 const dialogFailures = ref(null);
 const NEW_PAGE_ACTION = Object.freeze({ kind: 'newPage' });
+const NEW_CLASS_ACTION = Object.freeze({ kind: 'newClass' });
 const pagesAvailable = computed(() => Boolean(authStore.organizationData?._id || authStore.userData?.organizationId));
-const hasEntries = computed(() => pagesAvailable.value
+const classesAvailable = computed(() => authStore.hasPermission('organizations', 'admin'));
+const hasEntries = computed(() => classesAvailable.value
+  || pagesAvailable.value
   || (authStore.actionManifest || []).some(action => isCreateAction(action) && action.typeId));
 
 const bundle = computed(() => authStore.processPayload?.bundle || { types: [] });
@@ -113,9 +115,11 @@ const groups = computed(() => createPaletteGroups(authStore.actionManifest || []
     || (bundle.value.types || []).find(candidate => candidate.id === typeId)?.name
     || typeId,
   actionLabelOf: action => generatedCreateLabel(action, { t, te }) || action.label || action.id,
-  ...(pagesAvailable.value
-    ? { pinnedGroup: { label: t('pages.title'), items: [{ label: t('pages.newPage'), action: NEW_PAGE_ACTION }] } }
-    : {})
+  ...(classesAvailable.value
+    ? { pinnedGroup: { label: t('classes.title'), items: [{ label: t('classes.newClass'), action: NEW_CLASS_ACTION }] } }
+    : pagesAvailable.value
+      ? { pinnedGroup: { label: t('pages.title'), items: [{ label: t('pages.newPage'), action: NEW_PAGE_ACTION }] } }
+      : {})
 }));
 
 function focusSearch() {
@@ -128,6 +132,10 @@ function runPaletteEntry(action) {
   if (!action) return;
   if (action === NEW_PAGE_ACTION) {
     emit('create-page');
+    return;
+  }
+  if (action === NEW_CLASS_ACTION) {
+    emit('create-class');
     return;
   }
   if (isEditorProtocolCreate(action)) {

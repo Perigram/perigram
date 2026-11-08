@@ -10,6 +10,11 @@ const { mockedConnectDB } = vi.hoisted(() => ({
 
 vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
 
+vi.mock('../cts-types/service.js', () => ({
+  compileRegistryForOrganization: vi.fn(async () => ({ getType: vi.fn(() => ({ id: 'page' })) })),
+  defineType: vi.fn()
+}));
+
 vi.mock('h3', () => ({
   createError: vi.fn(err => {
     const error = new Error(err.message);
@@ -44,6 +49,7 @@ describe('pages', () => {
 
   beforeEach(async () => {
     await db.collection('pages').deleteMany({});
+    await db.collection('items').deleteMany({});
   });
 
   async function seedPage(organizationId, data = {}) {

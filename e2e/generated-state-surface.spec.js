@@ -126,12 +126,11 @@ async function seedStatefulProcess(app) {
   // the activation round-trip regenerates records from the canvas and
   // refuses any key the canvas cannot reproduce.
   const stateRecords = {
-    // Type lifetime (cts SPEC §4): the definition declares the org type
-    // in-tree beside its state records — the class record plus its field
-    // record and declares edge, mirroring what declareClass/declareField
-    // author — so activation never sees the type as an orphan. The field
-    // mirror keeps the draft-overlay construction identical to the
-    // registry compile.
+    // The definition declares the org type in-tree beside its state
+    // records — the class record plus its field record and declares edge,
+    // mirroring what declareClass/declareField author. The field mirror
+    // keeps the draft-overlay construction identical to the registry
+    // compile.
     cls_widget: { id: 'cls_widget', kind: 'class', typeId: TYPE, name: 'E2E State Widget', class: 'item', glyph: null, payload: null, operators: [] },
     fld_widget_name: { id: 'fld_widget_name', kind: 'field', typeId: TYPE, name: 'name', descriptor: { base: 'string' } },
     st_draft: { id: 'st_draft', kind: 'state', typeId: TYPE, value: 'draft', severity: 'info', terminal: false },
