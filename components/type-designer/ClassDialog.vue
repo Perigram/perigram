@@ -85,10 +85,10 @@
             @update:model-value="setClass"
           />
         </div>
-        <GlyphSelect
-          v-model="draft.glyph"
-          :aria-label="$t('processDesigner.icon')"
-        />
+        <div class="flex flex-col gap-1">
+          <label class="text-label text-muted">{{ $t('processDesigner.icon') }}</label>
+          <GlyphSelect v-model="draft.glyph" :aria-label="$t('processDesigner.icon')" />
+        </div>
       </div>
 
       <section class="flex flex-col gap-1">
@@ -103,27 +103,33 @@
             @click="addField"
           />
         </div>
-        <div
-          v-if="draft.fields.length"
-          class="grid grid-cols-[minmax(0,1fr)_9rem_8rem_4.5rem_2.5rem] gap-2 text-label text-muted"
-        >
-          <span>{{ $t('classes.name') }}</span>
-          <span>{{ $t('classes.type') }}</span>
-          <span>{{ $t('typesPane.nullableColumn') }}</span>
-          <span>{{ $t('classes.titleColumn') }}</span>
-          <span />
+        <div class="flex items-center gap-2">
+          <span class="text-label text-muted">{{ $t('processDesigner.namesRecord') }}</span>
+          <Select
+            :model-value="identifierFieldId"
+            :options="fieldOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+            class="w-52"
+            :aria-label="$t('processDesigner.namesRecord')"
+            @update:model-value="setIdentifierField"
+          />
         </div>
-        <DeclarationFieldRow
-          v-for="field in draft.fields"
-          :key="field.key"
-          :field="{ node: { data: { name: field.name, descriptor: field.descriptor } } }"
-          :type-options="typeOptions"
-          :simple="true"
-          @rename="value => renameField(field, value)"
-          @descriptor="value => updateDescriptor(field, value)"
-          @title="setIdentifierField(field.id)"
-          @remove="removeField(field)"
-        />
+        <div class="flex flex-col gap-6">
+          <FieldDeclarationForm
+            v-for="field in draft.fields"
+            :key="field.key"
+            :name="field.name"
+            :descriptor="field.descriptor"
+            :type-options="typeOptions"
+            :simple="true"
+            removable
+            @update:name="value => renameField(field, value)"
+            @update:descriptor="value => updateDescriptor(field, value)"
+            @remove="removeField(field)"
+          />
+        </div>
         <Message v-if="fieldError" severity="warn" :closable="false">{{ fieldError }}</Message>
       </section>
 
@@ -139,21 +145,20 @@
             @click="addState"
           />
         </div>
-        <div v-if="draft.states.length" class="grid grid-cols-[minmax(0,1fr)_10rem_8rem_auto] gap-2 text-label text-muted">
-          <span>{{ $t('classes.stateColumn') }}</span>
-          <span>{{ $t('processDesigner.stateSeverity') }}</span>
-          <span>{{ $t('processDesigner.stateIcon') }}</span>
-          <span />
+        <div class="flex flex-col gap-5">
+          <StateDeclarationForm
+            v-for="state in draft.states"
+            :key="state.key"
+            :value="state.value"
+            :severity="state.severity"
+            :icon="state.icon"
+            removable
+            @update:value="value => state.value = value"
+            @update:severity="value => state.severity = value"
+            @update:icon="value => state.icon = value"
+            @remove="removeState(state)"
+          />
         </div>
-        <DeclarationStateRow
-          v-for="state in draft.states"
-          :key="state.key"
-          :state="state"
-          @rename="value => state.value = value"
-          @severity="value => state.severity = value"
-          @icon="value => state.icon = value"
-          @remove="removeState(state)"
-        />
         <Message v-if="stateError" severity="warn" :closable="false">{{ stateError }}</Message>
       </section>
 
@@ -233,8 +238,8 @@ import Select from 'primevue/select';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
-import DeclarationFieldRow from '~/components/type-designer/DeclarationFieldRow.vue';
-import DeclarationStateRow from '~/components/type-designer/DeclarationStateRow.vue';
+import FieldDeclarationForm from '~/components/type-designer/FieldDeclarationForm.vue';
+import StateDeclarationForm from '~/components/type-designer/StateDeclarationForm.vue';
 import GlyphSelect from '~/components/type-designer/GlyphSelect.vue';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
@@ -290,6 +295,14 @@ const typeOptions = computed(() => view.types.value.map(type => ({
   label: type.name || type.id,
   value: type.id
 })));
+
+const fieldOptions = computed(() => draft.value.fields.map(field => ({
+  label: field.name || field.id,
+  value: field.id
+})));
+
+const identifierFieldId = computed(() => draft.value.fields
+  .find(field => field.descriptor?.identifier === true)?.id || '');
 
 function setIdentifierField(fieldId) {
   for (const field of draft.value.fields) {

@@ -3454,7 +3454,7 @@
         "compose": "Compose",
         "field": "Field",
         "state": "State",
-        "fieldName": "field name",
+        "fieldName": "Field name",
         "stateName": "state name",
         "unit": "Unit",
         "accepts": "Accepts",

@@ -1,6 +1,6 @@
 <template>
-  <div v-if="!detailsOnly || detailsVisible" class="flex flex-col gap-2">
-    <div v-if="!detailsOnly" class="flex items-center gap-2">
+  <div class="flex flex-col gap-2">
+    <div class="flex items-center gap-2">
       <Select
         :model-value="modelValue.base"
         :options="baseOptions"
@@ -20,7 +20,7 @@
       </label>
     </div>
 
-    <div v-if="!simple && !detailsOnly" class="flex flex-wrap items-center gap-4">
+    <div v-if="!simple" class="flex flex-wrap items-center gap-4">
       <label class="flex items-center gap-2">
         <Checkbox
           :model-value="modelValue.writable !== false"
@@ -135,8 +135,7 @@ const props = defineProps({
   modelValue: { type: Object, required: true },
   typeOptions: { type: Array, default: () => [] },
   depth: { type: Number, default: 0 },
-  simple: { type: Boolean, default: false },
-  detailsOnly: { type: Boolean, default: false }
+  simple: { type: Boolean, default: false }
 });
 const emit = defineEmits(['update:modelValue']);
 
@@ -169,8 +168,6 @@ function setBase(base) {
   emit('update:modelValue', switchDescriptorBase(props.modelValue, base));
 }
 
-const detailsVisible = computed(() => ['quantity', 'ref', 'enum', 'variant', 'list', 'map', 'record']
-  .includes(props.modelValue.base));
 
 function setRecordField(index, changes) {
   const entries = recordEntries.value.map(entry => ({ name: entry.name, descriptor: entry.descriptor }));

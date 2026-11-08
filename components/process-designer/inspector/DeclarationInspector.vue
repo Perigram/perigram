@@ -102,14 +102,12 @@
 
     <template v-else-if="node.type === 'ctsField'">
       <div class="flex flex-col gap-3">
-        <div class="flex flex-col gap-1">
-          <label>{{ $t('typeCanvas.fieldName') }}</label>
-          <InputText v-model="node.data.name" @update:model-value="$emit('sync')" />
-        </div>
-        <DescriptorEditor
-          :model-value="node.data.descriptor || { base: 'string' }"
+        <FieldDeclarationForm
+          :name="node.data.name || ''"
+          :descriptor="node.data.descriptor || { base: 'string' }"
           :type-options="typeOptions"
-          @update:model-value="value => { node.data.descriptor = value; $emit('sync'); }"
+          @update:name="value => { node.data.name = value; $emit('sync'); }"
+          @update:descriptor="value => { node.data.descriptor = value; $emit('sync'); }"
         />
         <Message
           v-for="diagnostic in diagnostics"
@@ -123,26 +121,14 @@
 
     <template v-else-if="node.type === 'ctsState'">
       <div class="flex flex-col gap-3">
-        <InputText v-model="node.data.value" :placeholder="$t('typeCanvas.stateName')" @update:model-value="$emit('sync')" />
-        <div class="flex items-center gap-2">
-          <Select
-            :model-value="node.data.severity || 'info'"
-            :options="severityOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
-            class="min-w-0 flex-1"
-            :aria-label="$t('processDesigner.stateSeverity')"
-            @update:model-value="value => { node.data.severity = value; $emit('sync'); }"
-          />
-          <InputText
-            :model-value="node.data.icon || ''"
-            size="small"
-            class="min-w-0 flex-1"
-            :placeholder="$t('processDesigner.stateIcon')"
-            @update:model-value="value => { node.data.icon = String(value || '').trim() || null; $emit('sync'); }"
-          />
-        </div>
+        <StateDeclarationForm
+          :value="node.data.value || ''"
+          :severity="node.data.severity || 'info'"
+          :icon="node.data.icon || ''"
+          @update:value="value => { node.data.value = value; $emit('sync'); }"
+          @update:severity="value => { node.data.severity = value; $emit('sync'); }"
+          @update:icon="value => { node.data.icon = value || null; $emit('sync'); }"
+        />
       </div>
     </template>
 
@@ -185,8 +171,8 @@ import InputNumber from 'primevue/inputnumber';
 import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Message from 'primevue/message';
 import Select from '~/components/shared/InstanceSelect.vue';
-import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
-import { stateSeverityOptions } from '~/components/type-designer/state-severities.js';
+import FieldDeclarationForm from '~/components/type-designer/FieldDeclarationForm.vue';
+import StateDeclarationForm from '~/components/type-designer/StateDeclarationForm.vue';
 import GlyphSelect from '~/components/type-designer/GlyphSelect.vue';
 import { DECLARABLE_CLASSES, CREATION_PROTOCOLS } from '~/packages/cts/src/index.js';
 import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
@@ -206,7 +192,6 @@ const props = defineProps({
 const emit = defineEmits(['sync', 'update-name', 'update-identifier-field']);
 
 const { t } = useI18n();
-const severityOptions = stateSeverityOptions(t);
 
 const classOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
 
