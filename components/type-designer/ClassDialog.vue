@@ -109,6 +109,7 @@
           :field="{ node: { data: { name: field.name, descriptor: field.descriptor } } }"
           :summary="expandedField === field.key ? '' : summaryOf(field.descriptor)"
           :type-options="typeOptions"
+          :simple="true"
           :expanded="expandedField === field.key"
           @rename="value => renameField(field, value)"
           @descriptor="value => updateDescriptor(field, value)"

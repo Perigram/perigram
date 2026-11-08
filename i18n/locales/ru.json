@@ -2396,6 +2396,9 @@
         "table": "Таблица",
         "view": "Вид",
         "collectionView": "Вид коллекции",
+        "addCollectionView": "Добавить вид коллекции",
+        "instance": "Экземпляр",
+        "pickInstance": "Вставить экземпляр",
         "pickView": "Выбрать вид",
         "addView": "Добавить вид",
         "savedViews": "Сохранённые виды",
@@ -2706,12 +2709,12 @@
     },
     "typesPane": {
         "addField": "Добавить поле",
-        "constructible": "Создаваемое",
-        "nullable": "nullable",
+        "constructible": "Задаётся при создании",
+        "nullable": "Может быть пустым",
         "recordFields": "поля записи",
         "tags": "теги варианта",
         "values": "значения",
-        "writable": "Редактируемое"
+        "writable": "Редактируется после создания"
     },
     "typeDeclaration": {
         "fields": "Поля",

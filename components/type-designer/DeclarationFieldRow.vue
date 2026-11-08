@@ -1,5 +1,5 @@
 <template>
-  <div class="group/field-row flex flex-col gap-2 border-b border-chrome-border py-2 last:border-b-0">
+  <div class="group/field-row flex flex-col gap-2 py-2">
     <div class="flex min-w-0 items-center gap-3">
       <Inplace closable @open="draft = field.node.data.name || ''">
         <template #display>
@@ -76,10 +76,11 @@
         />
       </div>
     </div>
-    <div v-if="expanded" class="rounded-ui border border-content-border p-3">
+    <div v-if="expanded" class="pl-1">
       <DescriptorEditor
         :model-value="field.node.data.descriptor || { base: 'string' }"
         :type-options="typeOptions"
+        :simple="simple"
         @update:model-value="value => $emit('descriptor', value)"
       />
     </div>
@@ -100,7 +101,8 @@ defineProps({
   field: { type: Object, required: true },
   summary: { type: String, default: '' },
   typeOptions: { type: Array, default: () => [] },
-  expanded: { type: Boolean, default: false }
+  expanded: { type: Boolean, default: false },
+  simple: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['rename', 'descriptor', 'toggle-identifier', 'toggle-expand', 'remove']);

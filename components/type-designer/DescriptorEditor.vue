@@ -20,7 +20,7 @@
       </label>
     </div>
 
-    <div class="flex flex-wrap items-center gap-4">
+    <div v-if="!simple" class="flex flex-wrap items-center gap-4">
       <label class="flex items-center gap-2">
         <Checkbox
           :model-value="modelValue.writable !== false"
@@ -56,16 +56,18 @@
         class="w-full"
         @update:model-value="value => patch({ accepts: value })"
       />
-      <label class="text-label text-muted">{{ $t('typeCanvas.unlink') }}</label>
-      <Select
-        :model-value="modelValue.unlink || 'detach'"
-        :options="unlinkOptions"
-        option-label="label"
-        option-value="value"
-        size="small"
-        class="w-44"
-        @update:model-value="value => patch({ unlink: value === 'delete' ? 'delete' : undefined })"
-      />
+      <template v-if="!simple">
+        <label class="text-label text-muted">{{ $t('typeCanvas.unlink') }}</label>
+        <Select
+          :model-value="modelValue.unlink || 'detach'"
+          :options="unlinkOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="w-44"
+          @update:model-value="value => patch({ unlink: value === 'delete' ? 'delete' : undefined })"
+        />
+      </template>
     </div>
 
     <div v-else-if="modelValue.base === 'enum'" class="flex flex-col gap-1">
@@ -129,7 +131,8 @@ import { describeType, FIELD_BASES, UNITS, UNLINK_POLICIES } from '~/packages/ct
 const props = defineProps({
   modelValue: { type: Object, required: true },
   typeOptions: { type: Array, default: () => [] },
-  depth: { type: Number, default: 0 }
+  depth: { type: Number, default: 0 },
+  simple: { type: Boolean, default: false }
 });
 const emit = defineEmits(['update:modelValue']);
 
