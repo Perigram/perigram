@@ -1472,9 +1472,16 @@ tabs: the derived layout, the type's saved views, and add view.
 
 Writers always have a trailing live editor; its Enter commits the text
 as a block. Text blocks accept inline instance references, stored as
-`#instance:` links and rendered through the shared instance chip. The
-collection-view picker is the type containment tree, with saved views
-living in the header tabs.
+`#instance:` links and rendered through the shared instance chip.
+Typing `@` or picking the instance entry opens the shared instance tree
+— home sections, lineage children, and lenient search, the same tree
+chat attachments browse. A pick inserts one atomic chip: it opens the
+record on click and a Backspace at its edge selects it before the next
+removes it. The collection-view picker shows the type containment tree
+with each collection's saved views beneath it; choosing a collection
+inserts its live default view and choosing a saved view inserts that
+lens. Collection embeds author live in the editor. The image entry
+accepts a stored upload or an address.
 
 The AI block is ask/answer: the organization's assistant answers in
 place under the opener's delegated principal, rendered as markdown,
@@ -1499,9 +1506,11 @@ registry and its instances untouched.
 
 Every organization class appears in the sidebar as its own type panel.
 A class with a screen opens that screen; a class without one opens its
-class page. The class page is the unified header over the same generated
-type-list screen every class page uses, synthesized from the class type;
-the header type label and the panel context menu open the class dialog.
+class page. The class page is a regular Page instance bound to the class
+type by `fields.classTypeId`, seeded with a collection view of that
+class: it carries the unified page header, the block editor, the slash
+vocabulary, instance mentions, collection views, and images like every
+user page. The panel context menu opens the class dialog.
 Every record header type label is clickable: editable for organization
 classes to capability holders, read-only otherwise. The sidebar's New class action creates a class, and the dialog
 edits name, class kind, glyph, fields, states, and CTS children. A

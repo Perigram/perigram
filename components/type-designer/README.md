@@ -36,14 +36,14 @@ The class library is the organization's `scope: 'org'` registry view
 (`GET /api/admin/cts/types` through
 [useFileTypeView](../../composables/README.md)). Organization classes
 appear as sidebar type panels: a screen-backed class opens its screen;
-a class without one opens `ClassSurface.vue`; the panel context menu and
-the header type label open `ClassDialog.vue`. The sidebar's New class action
-creates a class.
+a class without one opens its bound Page instance
+([components/generated](../generated/README.md) — the regular page with a
+seeded collection view); the panel context menu opens `ClassDialog.vue`.
+The sidebar's New class action creates a class.
 
 | Piece | Contract |
 |---|---|
 | `ClassDialog.vue` | Create/edit one org declaration: name, class, glyph, fields, states, and children edges. The body is the dialog's one scroll surface (`fill`): the header and footer stay fixed, fields form the primary section, and states and children pair in the lower row. Saves through `POST /api/admin/cts/types` with the loaded declaration and those facets replaced. A `group` class cannot save without a child. |
-| `ClassSurface.vue` | The class page: the unified header over the same generated type-list screen every class page uses, synthesized with one source and one region when no compiled process screen exists. |
 | Fields | `FieldDeclarationForm` — a proportional name/type grid (3:2 when its container admits, stacked when narrow) with the shared `DescriptorBaseControl`; base-specific qualifiers sit in a container-adaptive grid below. The class-level Names-record select owns the identifier flag. The registry key is an internal id minted from the initial label via `rowFieldId` and kept stable across renames. |
 | States | `StateDeclarationForm` — state name over severity and icon, the process-designer inspector's state form. The vocabulary persists on the declaration and overrides the compiled process policy for the same values. |
 | Children | Existing classes attach through the parent's `edges.children` entry; each type keeps its entry's `lineageKey` and `onRemove`. Add child class opens a draft `ClassDialog` — the child persists with the parent save, never on the click; the draft dialog offers every declarable class, group included. |

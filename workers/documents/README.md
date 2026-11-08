@@ -48,8 +48,8 @@ types ride the generic instance machinery from the install snapshot.
   | Image | the host address popover, anchored to the surface; the source applies at the caret |
   | Divider, Table | horizontal rule; a three-by-three gfm table |
   | Link | the host address popover, anchored to the surface; the link applies at the caret |
-  | Instance | the host record picker; the pick inserts an inline `#instance:<type>/<id>` link |
-  | Collection view | the host picker is the type containment tree; the pick inserts a `` ```view `` fence carrying the collection ref (`{ typeId, name }`) |
+  | Instance | the host instance tree (`@` and the entry share it); the pick inserts an atomic chip serialized as an inline `#instance:<type>/<id>` link |
+  | Collection view | the host picker is the type containment tree with saved views beneath each collection; the pick inserts a `` ```view `` fence carrying either the collection ref (`{ typeId, name }`) or a saved lens ref (`{ id, typeId, name }`) |
 
   Inline marks (bold, italic, inline code) author through input rules.
   The entry table lives in `surfaces/lib/block-vocabulary-data.mjs`; the

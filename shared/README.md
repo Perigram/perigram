@@ -78,8 +78,9 @@ imported through server modules that Nitro externalizes.
   saved-view ref — `parseViewRef` reads it, `splitViewEmbeds` splits a
   document into markdown segments and embed blocks for the page
   surface's read composition, and the pipeline itself renders the ref
-  as the quiet `ck-view-embed` chip (the live region lives on the page
-  surface, [components/generated](../components/generated/README.md)).
+  as the quiet `ck-view-embed` chip where no live host exists (the live
+  region mounts on page surfaces and the live editor,
+  [components/generated](../components/generated/README.md)).
   Parsed as GFM with
   line breaks: a single newline is a hard
   break, the way GitHub-flavored documents and model answers read.

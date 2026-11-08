@@ -65,7 +65,7 @@ All entity-related components use these patterns:
 | [generated/](./generated/README.md) | Compiled screen surfaces: the `[screenKey]` screens route, the home workspace, `/organization/*` system screens, action visibility, the file-surface/editor registry |
 | [ui-mapping/](./ui-mapping/README.md) | Generator materializations and the type-label seam |
 | [process-designer/](./process-designer/README.md) | The process designer canvas surface |
-| [type-designer/](./type-designer/README.md) | Class declaration vocabulary: the DescriptorEditor, Field/State/TypeNode canvas cards, the class dialog, and the class page (SPEC §27) |
+| [type-designer/](./type-designer/README.md) | Class declaration vocabulary: the DescriptorEditor, Field/State/TypeNode canvas cards, and the class dialog (SPEC §27) |
 | [calls/](./calls/README.md) | Call surfaces over `stores/calls.js` |
 | [media/](./media/README.md) | The MediaDock now-playing dock over `stores/media.js` |
 | [directory/](./directory/README.md) | `DirectoryDetailSurface` — user/organization detail inside the home workspace |
@@ -126,7 +126,7 @@ PrimeVue Button, Tag, and Badge keep their own font-size: add `size="small"` to 
 
 - Tokens and the surface ladder: [assets/tokens/README.md](../assets/tokens/README.md)
 - Table row-surface recipe: [components/ui-mapping/README.md](./ui-mapping/README.md)
-- `InstanceCard` body/variant contract, chat surface components, `useBlocks` rule: [components/shared/README.md](./shared/README.md)
+- `InstanceCard` body/variant contract, the shared instance tree, chat surface components, `useBlocks` rule: [components/shared/README.md](./shared/README.md)
 - Entity card family — registry, surface table, card invariants: [components/entities/README.md](./entities/README.md)
 - Compiled screens and the home workspace: [components/generated/README.md](./generated/README.md)
 - Mobile home tabs: [composables/README.md](../composables/README.md)

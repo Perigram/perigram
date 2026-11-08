@@ -19,6 +19,14 @@
   content; the pages feature adopts old `pages` rows into Page instances
   and backs the sidebar tree with that instance tree.
 
+### Agent Notes (2026-11-08, agent/editor-mentions-20261108)
+
+- A screenless class now opens its bound Page instance: `fields.classTypeId`
+  binds the page to the class, the pages service returns the existing
+  page for a repeated create, and the class page seeds a collection view
+  of its class. It mounts the same page header and block editor as every
+  custom page; class pages stay out of the sidebar page tree.
+
 ## Notion-like document blocks and collection views (owner direction 2026-11-08)
 
 - [ ] WAITING — owner verification: in-place block rendering, collection
@@ -63,6 +71,27 @@
 - Validation: focused vitest (ui-mapping, generated, documents surfaces,
   overlay session, markdown fences) green; `check-docs` and `check-arch`
   green.
+
+### Agent Notes (2026-11-08, agent/editor-mentions-20261108)
+
+- Instance authoring uses the shared `InstanceTree.vue` (extracted from
+  the chat attachment picker): typing `@` or picking Instance opens the
+  same home-section/lineage tree with lenient search. A pick is an
+  atomic `instance_ref` node rendered as the shared chip face; the first
+  Backspace at its edge selects it and the next removes it. The node
+  serializes to the same `#instance:` markdown link the read pipeline
+  already renders.
+- The collection picker now carries each collection's saved views under
+  its containment node; choosing a collection inserts its live default
+  view and choosing a saved view inserts that lens. View fences mount
+  the live `ViewEmbed` inside the editor with a 1rem block frame, so
+  adjacent collections keep the document's block rhythm.
+- The image entry opens an upload-or-address dialog and inserts the
+  engine image node. Link insertion keeps the captured selection.
+- Validation: `server/features/pages` + framework manifest green;
+  `components/generated` and `workers/documents` focused suites green;
+  Playwright probe drives `@`, chip selection/deletion, collection view
+  insertion, image insertion, and the class page.
 
 ## Deslopification program (owner direction 2026-10-23)
 

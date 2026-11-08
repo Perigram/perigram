@@ -17,8 +17,15 @@ One `items` document of type `page` per page or section:
 | `fields.name` | String, the Page identifier; may be empty. |
 | `fields.content` | Markdown block source; sections carry the empty string. |
 | `fields.section` | Boolean; sections are `true`, pages `false`. |
+| `fields.classTypeId` | Optional class binding; a class page is the one page bound to that organization class. |
 | `lineage.pageId` | Parent page or section id; absent at the root. |
 | `createdBy` / `createdAt` / `updatedAt` | Provenance. |
+
+A class page is an ordinary Page instance: it carries blocks and the
+editor vocabulary like every page. Creating a page with an already-bound
+`classTypeId` returns the bound page, so opening a class panel is
+idempotent. Class pages stay out of the sidebar page tree; the class
+panel owns their navigation.
 
 A section is a Page instance with `fields.section: true`. Sections are
 root-only: create and move refuse a section with a parent. Pages nest
@@ -49,8 +56,8 @@ organization answers 404.
 
 ## Tree Semantics
 
-- The list projection is the tree: `{ _id, name, parentId, kind }` per
-  row, content excluded; clients nest rows through `parentId`.
+- The list projection is the tree: `{ _id, name, parentId, kind, classTypeId }`
+  per row, content excluded; clients nest rows through `parentId`.
 - Move is a `lineage.pageId` change. The service walks the ancestor chain
   from the new parent and refuses a move that would create a cycle
   (400).
@@ -66,7 +73,7 @@ Service seam: `listTree`, `getById`, `create`, `update`, `remove`.
 | Endpoint | Responsibility |
 |---|---|
 | `GET /api/pages` | The organization's rows in the tree projection, `createdAt` ascending. |
-| `POST /api/pages` | Create (`{ kind?, name?, parentId? }`, org member). |
+| `POST /api/pages` | Create (`{ kind?, name?, parentId?, classTypeId?, content? }`, org member). |
 | `GET /api/pages/:id` | One full page (content included). |
 | `PATCH /api/pages/:id` | Rename / move / save content (`{ name?, parentId?, content? }`, any subset). |
 | `DELETE /api/pages/:id` | Delete; children become roots. |
