@@ -66,8 +66,13 @@ const savedViews = computed(() => viewsStore.views.map(view => ({
   typeLabel: typeLabelOf(view.typeId)
 })));
 
+// Collections are the types the organization serves a list screen for —
+// the same set the workspace opens as collection surfaces.
+const listableTypeIds = computed(() => new Set((authStore.screenManifest || [])
+  .filter(screen => screen.template === 'typeList' && screen.typeId)
+  .map(screen => String(screen.typeId))));
 const collections = computed(() => (authStore.processPayload?.bundle?.types || [])
-  .filter(type => type?.id)
+  .filter(type => type?.id && listableTypeIds.value.has(String(type.id)))
   .map(type => ({ typeId: String(type.id), name: typeLabelOf(type.id) }))
   .sort((left, right) => left.name.localeCompare(right.name)));
 
