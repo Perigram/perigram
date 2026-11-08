@@ -58,7 +58,13 @@ export default defineNuxtConfig({
         ...portableAliases
     },
 
-    devtools: { enabled: true },
+    // Dev-memory: the Vite worker isolate holds ~1.4GB of transform caches.
+    // inspect plugin (via devtools) copies every transform; sourcemaps are
+    // decoded+retained per module; inlineStyles re-processes component CSS
+    // for SSR. All three are dead weight when nobody is debugging.
+    devtools: { enabled: false },
+    sourcemap: { client: false, server: false },
+    features: { inlineStyles: false },
 
 
     modules: ['@nuxtjs/i18n', '@primevue/nuxt-module', '@nuxtjs/tailwindcss', '@pinia/nuxt'],

@@ -16,7 +16,7 @@ services:
     environment:
       - MONGODB_URI=mongodb://mongo:27017/perigram_dev
       - NODE_ENV=development
-      - NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=4096}
+      - NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=2560}
       - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
       - PLATFORM_OPERATOR_TOKEN=${PLATFORM_OPERATOR_TOKEN:-perigram-dev-operator}
       - FACADE_EXECUTOR_URL=${FACADE_EXECUTOR_URL:-http://facade-executor:8790}
