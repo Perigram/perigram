@@ -110,26 +110,11 @@ beside the transition history in `StateHistory`.
   header the strip appears inside (SPEC §22.9) — and
   plain content for ready — the only loading/empty states any component
   renders.
-- The region header renders the label, the count chip, the search field
-  (SPEC §22.15), the create set (+ link where a relation section owns
-  it, SPEC §22.12), and one View control: an outlined button carrying
-  the localized `uiMapping.view` label beside its icon, pinned at full
-  presence on every host, whose popover hosts the shared `FilterBuilder`
-  panel ([shared](../shared/README.md)), the projection switch (where
-  the collection is switchable), and the sort keys (the card-grid
-  projection). The View button badges the active filter condition count
-  (`countPredicates`). Every hosted control is a live model: typing
-  filters at once, toggling the projection and picking a sort key apply
-  at once. Search stays a region-owned model; the filter tree and the
-  projection and sort choices are persisted view state per type
-  (`utils/ui-view-state.js`), evaluated with the one matcher
-  (`instanceMatchesFilter`) against the region's pool; the panel's
-  fields derive through `builderFieldsForType` (see
-  [shared/ui-mapping](../../shared/ui-mapping/README.md)). The View
-  popover's field selection sets the collection's explicit column set
-  (persisted per type, absent = the derived budget).
-- A second header row carries the collection's view tabs (SPEC §26):
-  the derived-layout tab (`Table`, `Board`, `Cards`, `Timeline`, `Stats`,
+- The region header is one row: the label, the count chip, the view
+  tabs (SPEC §26), then the controls cluster — the search field, the
+  filter control, view settings, and the create set (+ link where a
+  relation section owns it, SPEC §22.12). The view tabs are the
+  derived-layout tab (`Table`, `Board`, `Cards`, `Timeline`, `Stats`,
   `Gantt`, `Calendar`), one tab per saved view of the type, and the
   add-view (+) affordance for organization members. A saved tab loads
   the view's four models — search, filter tree, sort, projection —
@@ -139,6 +124,19 @@ beside the transition history in `StateHistory`.
   reader's own state intact. The add-view affordance captures the
   current models through `ViewSaveDialog` under the type label and
   activates the new tab.
+- The search field renders on every collection region and stays a
+  region-owned model. The filter control is a funnel button badged with
+  the active condition count (`countPredicates`); its popover hosts the
+  shared `FilterBuilder` panel ([shared](../shared/README.md)) over the
+  fields `builderFieldsForType` derives ([shared/ui-mapping](../../shared/ui-mapping/README.md)).
+  View settings is a sliders button whose popover hosts the projection
+  switch (where the collection is switchable), the sort keys (the
+  card-grid projection), and the field selection that sets the
+  collection's explicit column set (persisted per type, absent = the
+  derived budget). Every hosted control is a live model. The filter
+  tree and the projection and sort choices are persisted view state per
+  type (`utils/ui-view-state.js`), evaluated with the one matcher
+  (`instanceMatchesFilter`) against the region's pool.
 - A region mounted with a `viewState` prop renders a saved lens instead
   of tabs: every view model seeds from the prop (the stored tree
   re-validates through `normalizeFilter`, the projection and sort
@@ -197,24 +195,26 @@ application.
   [file-surfaces](../generated/README.md) write-grant seam decides) get
   the session ([composables](../../composables/README.md)
   `useRecordOverlay`). The authoring surface is the document's left
-  gutter lane: the document root reserves a 3.5rem lane for every viewer
-  (content never shifts between readers and holders), and every section
+  gutter lane: the lane sits in the measure's left margin, so every
+  viewer keeps the same header and content position. Every section
   renders the lane's pair aligned with the section's first line and
   revealed on hover or focus: the plus first, then the six-dot drag
   handle. The plus opens the same block vocabulary as the slash panel —
   headings, lists, to-do, quote, callout, code, image, diagram, divider,
   table, collection view; a text entry inserts a text block opened at
-  that kind and the collection-view entry opens the picker over the
-  organization's saved views and embeddable collections. The drag handle
-  opens the section menu (move up/down; custom blocks also delete) and
-  drags to reorder; the drop target paints a floating line above the
-  section. Sections reorder by dragging the handle and by the handle's
-  keyboard arrows. Declared sections reorder alone; custom blocks also
-  edit and delete. A text block is seamless document content: click
-  mounts the engine inline at the click point (crepe's page chrome
-  stripped through `ck-inline-editor`), Escape or Cmd/Ctrl+Enter closes
-  it, and the engine scrolls the block into view on mount. The
-  document's foot strip inserts at the end. The record's own field edits
+  that kind, the callout inserts an empty blockquote, and the
+  collection-view entry opens the picker over the organization's saved
+  views and embeddable collections. The drag handle opens the section
+  menu (move up/down; custom blocks also delete) and drags to reorder;
+  the drop target paints a floating line above the section. Sections
+  reorder by dragging the handle and by the handle's keyboard arrows.
+  Declared sections reorder alone; custom blocks also edit and delete.
+  A text block is seamless document content: click mounts the engine
+  inline at the click point (crepe's page chrome stripped through
+  `ck-inline-editor`), Escape or Cmd/Ctrl+Enter closes it, and Enter at
+  the block's end starts the next block. The engine scrolls the block
+  into view on mount. The document's foot strip inserts at the end. The
+  record's own field edits
   stay on the inline-pencil channel. User space autosaves: a dirty
   overlay writes itself after 1.5s idle through the same save seam
   (registered on the workspace page-dirty registry) and keeps the open
