@@ -30,6 +30,22 @@ sizes, socket tones, and the quiet-card law follow the
 
 `rename` events route to the page's `renameDeclarationNode`.
 
+## Class library and class dialog (SPEC §27)
+
+The class library is the organization's `scope: 'org'` registry view
+(`GET /api/admin/cts/types` through
+[useFileTypeView](../../composables/README.md)). The sidebar Classes panel
+lists it; the create palette's pinned New class entry and every record
+header's type label open `ClassDialog.vue`.
+
+| Piece | Contract |
+|---|---|
+| `ClassDialog.vue` | Create/edit one org declaration: name, class, glyph, the field row list, and children edges. Saves through `POST /api/admin/cts/types` with the loaded declaration and name, class, glyph, fields, and children replaced. A `group` class cannot save without a child. |
+| Field rows | The same `DeclarationFieldRow` + `DescriptorEditor` vocabulary as surface authoring; exactly one field carries the identifier flag. |
+| Children | Existing classes attach through the parent's `edges.children` entry; each type keeps its entry's `lineageKey` and `onRemove`. New child classes are created from the same section with a default identifier field, then attached. |
+| Capability | `organizations:admin`, the same seam as declaration authoring. |
+| `class-glyphs.js` | The curated glyph set plus the built icon-font palette, shared by the class dialog and the process-designer declaration inspector. |
+
 ## DescriptorEditor
 
 `DescriptorEditor.vue` is the v-model editor for the whole field
@@ -50,11 +66,11 @@ declaration until targets are picked.
 
 ## Surface declaration authoring (SPEC §1)
 
-Declaration authoring happens on the generated surfaces — fields in the
-record page's property block, states in the state surface — with no
-separate editor surface. One authoring model: the pure gesture layer
-below mutates the same canvas declaration records the designer authors,
-and every surface affordance is a projection of one session.
+Class metadata, fields, and children author in the class dialog.
+Surface declaration authoring authors fields in the record page's
+property block and states in the state surface. The surface session
+mutates the same canvas declaration records the designer authors, and
+every surface affordance is a projection of one session.
 
 | Piece | Contract |
 |---|---|
@@ -100,3 +116,4 @@ canvas gestures save); the stationing-definition resolution in
 - [ui-mapping](../ui-mapping/README.md) — the record surfaces the affordances mount on
 - [shared](../shared/README.md) — `DesignerNodeCard`, `DesignerSocketHandle`
 - [packages/cts](../../packages/cts/SPEC.md) — declaration and descriptor grammar
+- [server/features/cts-types](../../server/features/cts-types/README.md) — the org registry write gate

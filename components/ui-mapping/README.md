@@ -518,9 +518,9 @@ application.
   else the host's `onRename` (the record document's identifier-field
   patch — the popup's title stays read-only); the quiet transparent
   input commits on enter and blur. A subtle type label under the title
-  through the same type-label chain opens the type's card
-  (`TypeCardPopup`, below), and exactly one
-  state surface rides the title line. A state axis is a tree, so stateful
+  through the same type-label chain opens the class dialog (SPEC §27,
+  [type-designer](../type-designer/README.md)) for capability holders,
+  and exactly one state surface rides the title line. A state axis is a tree, so stateful
   records carry no lifecycle strip: an instance with a flat `state`
   renders the segmented current-state tag (`StateTag`, resolved against
   the region's `statePolicy` — the header shows the data's state even when
@@ -570,16 +570,6 @@ application.
   affordance ride the payload preview
   ([generated](../generated/README.md)). Under the header rides the
   record's permanent reload lane (SPEC §22.9).
-- `TypeCardPopup.vue` — the type's card (SPEC §22.8): the quiet type
-  label's popup. The glyph with the authored name, the field vocabulary
-  as read rows (label + descriptor hint — the declaration session's
-  draft in authored order for holders, the compiled type record
-  otherwise), the states as the machine mini-view (the declaration
-  authoring's mermaid render over the session draft or the served
-  vocabulary plus authored edges), and the authoring entries for a
-  live session: edit-states opens the header's state popover authoring
-  lane, edit-fields opens the declaration designer page (the property
-  rows' popovers carry no programmatic open seam).
 - `StateTag.vue` — the segmented state tag: one materialization of the
   mapping contract's `stateDisplayFor`. Flat values render as a single Tag
   styled by the authored severity/icon; dotted values render as a path —

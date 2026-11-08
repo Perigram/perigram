@@ -1,28 +1,42 @@
 # COMPONENT: Custom Pages
 
-The framework pages collection (SPEC §26): per-organization markdown
-pages and the sidebar sections that group them. A page is user data —
-a framework collection authored through the one editor engine, never a
-process definition and never an instance payload.
+Per-organization pages and the sidebar sections that group them are
+Page-class instances (`page` organization type, `items` collection)
+authored through the one editor engine. The page API is the
+organization-member surface over those instances.
 
 Parent: [server/features](../README.md).
 
 ## Document
 
-One `pages` document per page or section:
+One `items` document of type `page` per page or section:
 
-| Field | Shape |
+| Slot | Shape |
 |---|---|
 | `organizationId` | Owning organization (flexible id). |
-| `kind` | `page` or `section`. |
-| `name` | String, may be empty (naming is the rename channel). |
-| `parentId` | Flexible id of the parent page or section, `null` at the root. |
-| `content` | Markdown source; sections carry the empty string. |
+| `fields.name` | String, the Page identifier; may be empty. |
+| `fields.content` | Markdown block source; sections carry the empty string. |
+| `fields.section` | Boolean; sections are `true`, pages `false`. |
+| `lineage.pageId` | Parent page or section id; absent at the root. |
 | `createdBy` / `createdAt` / `updatedAt` | Provenance. |
 
-A section is a `kind: 'section'` row — the sidebar's root grouping
-node. Sections are root-only: create and move refuse a section with a
-`parentId`. Pages nest freely under sections and under other pages.
+A section is a Page instance with `fields.section: true`. Sections are
+root-only: create and move refuse a section with a parent. Pages nest
+freely under sections and under other pages.
+
+The Page declaration (`pageTypeDeclaration` in
+[packages/cts](../../../packages/cts/README.md)) is seeded as an
+organization type on the first page operation: `name` (identifier),
+`content`, `section`, and the self `children` edge keyed `pageId`. The
+`page` id is reserved for this default class and stays out of the class
+library.
+
+## Legacy migration
+
+The first page operation in an organization adopts rows from the former
+`pages` collection into `items` Page instances and deletes the old rows.
+Ids, names, content, parent refs, and provenance are preserved;
+`kind: 'section'` becomes `fields.section: true`.
 
 ## Access
 
@@ -37,12 +51,12 @@ organization answers 404.
 
 - The list projection is the tree: `{ _id, name, parentId, kind }` per
   row, content excluded; clients nest rows through `parentId`.
-- Move is a `parentId` change. The service walks the ancestor chain
+- Move is a `lineage.pageId` change. The service walks the ancestor chain
   from the new parent and refuses a move that would create a cycle
   (400).
 - Delete detaches: children of a deleted row become roots
-  (`parentId → null`) — containment's detach semantics, one update,
-  no cascade.
+  (`lineage.pageId` removed) — containment's detach semantics, one
+  update, no cascade.
 - A parent that does not exist in the organization refuses with 400.
 
 ## API
@@ -61,3 +75,4 @@ Service seam: `listTree`, `getById`, `create`, `update`, `remove`.
 
 - [The page surface](../../../components/generated/README.md) — the workspace page that authors these documents
 - [The block vocabulary](../../../workers/documents/README.md) — the authoring grammar that surface mounts
+- [packages/cts](../../../packages/cts/README.md) — the Page declaration

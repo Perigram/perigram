@@ -84,11 +84,9 @@ Process-definition tools ride the authoring and lifecycle seam of
 - `activate_process_definition` and `deactivate_process_definition`
   answer the digest of the changed definition; activation gates return
   as the structured `{ activationBlocked, gate }` result.
-- `delete_process_definition` removes a definition (admin access):
-  exclusively-owned types — types no other stored definition declares —
-  die with their data, announced as the structured `{ deletionBlocked,
-  gate }` type-death manifest, confirmed by a re-call with
-  `confirmTypeDeath: true`.
+- `delete_process_definition` removes a definition (admin access).
+  Types are registry entries with their own lifetime; deletion leaves
+  them and their data untouched.
 - `update_definition_graph` is the graph-level save — nodes, wires, and
   value inputs — with activation gates returned as structured results.
 

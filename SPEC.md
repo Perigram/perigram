@@ -29,17 +29,18 @@ glyphs without appearing as pack types.
 
 Declaration authoring is in place on the generated surfaces (owner
 direction 2026-11-07): fields author in the record page's property
-block, states author in the state surface, and no separate editor
-surface exists. The affordances are gated by the process-design
-capability and every authored reference is definition-aware — relation
-targets offered from the live registry view, states and transitions
-from/to from the type's live vocabulary, nothing free-typed where a
-picker can live. In-place authoring writes the same
-declaration records of the same definition draft the canvas authors:
-one authoring model, two projections, with the canvas remaining the
-dataflow, effects, and grants surface. The lifecycle carries a
-dedicated machine view one popup away — the type's states and legal
-edges as a diagram. In-place edits target the definition draft that
+block and states author in the state surface. Class metadata, the field
+list, and CTS children author in the class dialog (SPEC §27). The
+affordances are gated by the process-design capability and every
+authored reference is definition-aware — relation targets offered from
+the live registry view, states and transitions from/to from the type's
+live vocabulary, nothing free-typed where a picker can live. In-place
+authoring writes the same declaration records of the same definition
+draft the canvas authors: one authoring model, two projections, with
+the canvas remaining the dataflow, effects, and grants surface. The
+lifecycle carries a dedicated machine view one popup away — the type's
+states and legal edges as a diagram. In-place edits target the
+definition draft that
 stations the type and save as draft; the Apply ceremony stays the only
 activation path, and an edit landing beside an open canvas reconciles
 through the shared definition draft.
@@ -118,8 +119,7 @@ AI identity. In group and instance (organization) chats the triggering
 message's sender is the principal; a sender who loses the capability or
 their grants leaves the AI silent. The AI authors process definitions and
 operates instances through the same tool catalog, with
-validate-before-activate and the migration/type-death gates as explicit
-steps, and attaches instances to its replies as inline reference chips —
+validate-before-activate and the migration gate as explicit steps, and attaches instances to its replies as inline reference chips —
 the same validated instance refs human sends carry. Agent authoring
 produces only graphs the visual designer could author (owner direction
 2026-10-18): an effect carries one role grant — its lane; wires address
@@ -1442,7 +1442,7 @@ the contract names the combination as one.
 | Connections stream | `idle`, `connecting`, `open`, `reconnecting`, `error`; subscription sync `idle`, `syncing`, `synced`, `failed` | `composables/useConnections.js` |
 | Instance-events poll | `idle`, `polling`, `connected`, `error`, `stopped` | `stores/instanceEvents.js` |
 | Call line/session/placement | line `idle`, `ringing`, `joining`, `in-call`; session `connecting`, `connected`, `reconnecting`, `failed`; placement `tab`, `dialog`, `floating`, `dock` | `stores/calls.js` |
-| Designer Apply | `idle`, `saving`, `applying`, `migration-required`, `type-migration-required`, `type-death-required`, `error` | `composables/useProcessDesignerApply.js` |
+| Designer Apply | `idle`, `saving`, `applying`, `migration-required`, `type-migration-required`, `error` | `composables/useProcessDesignerApply.js` |
 | Optimistic write | per record `idle`, `pending`, `confirmed`, `rolled-back`, `queued` | `stores/instances.js` |
 | Chat client run mirror | `idle`, `running`, `awaiting-answer`, `stopping`, `completed`, `failed` | `components/chat` |
 
@@ -1458,13 +1458,14 @@ of the values written.
 
 Users expand the workspace beside the process: custom pages, custom
 collection views, and instance-page customization are user data, never
-process definitions — framework collections carrying markdown blocks
-through the one editor engine.
+process definitions — Page-class instances and framework collections
+carrying markdown blocks through the one editor engine.
 
-Custom pages are markdown documents in a framework pages collection
-(organization, name, parent). Users create their own sidebar sections
-and nest pages freely; the sidebar is user-organizable beside the
-process panels.
+Custom pages are Page-class instances (`page` organization type seeded
+by the pages feature, items collection) carrying name, markdown content,
+a section flag, and `pageId` parent lineage. Users create their own sidebar sections and
+nest pages freely; the sidebar is user-organizable beside the process
+panels.
 
 A custom view is a saved representation of an existing collection: the
 per-type view state (search, filters, sort, projection) plus its type,
@@ -1488,3 +1489,26 @@ editor, custom pages, and instance blocks alike.
 
 The action inbox retires (owner direction 2026-11-07): the surface and
 its endpoint die; the create palette stays.
+
+## 27. Classes are organization data (owner direction 2026-11-08)
+
+A class is an organization-owned registry entry, not a declaration
+nested in a process draft. The class library is the source of truth:
+classes exist until explicitly deleted, and process definitions
+reference type ids. Applying or deleting a definition leaves the
+registry and its instances untouched.
+
+The sidebar carries a Classes panel listing the organization's classes.
+The create palette's pinned entry creates a class, and the class dialog
+edits name, class kind, glyph, fields, and CTS children. The dialog
+writes directly through the registry write gate; a compatible
+declaration reaches screens and actions through the contract-change
+event, so class edits apply instantly.
+
+Children are CTS containment through the parent's `edges.children`
+entry. The dialog attaches existing classes and creates child classes
+in place; a `group` class requires at least one child.
+
+The default page type is a Page class carrying block content. Custom
+pages migrate into Page-class instances with their sections and nesting
+preserved; the sidebar page tree is that instance tree.

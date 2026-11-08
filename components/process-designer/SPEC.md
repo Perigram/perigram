@@ -94,10 +94,9 @@ renders. A migration-gate refusal pauses Apply with `pendingTypeMigration` and o
 offering the declarative steps (`rename-field`, `rename-enum-value`, `retype-field`, …).
 Removed workflow states with live instances that the draft's declared migrations leave
 uncovered pause with `pendingMigration` on `ApplyMigrationDialog` (one target state per
-removed state, confirmed as a declaration on the draft). Orphaned types (`pendingTypeDeath`)
-and definition deletion (`pendingDefinitionDeath`) pause on
-`TypeDeathDialog` naming each dying type with its live record count; the
-author confirms each death.
+removed state, confirmed as a declaration on the draft). Types outlive
+definition activation and deletion; class metadata edits in the class
+dialog (SPEC §27).
 
 ### Screens tab
 

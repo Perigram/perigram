@@ -1,5 +1,17 @@
 # TODO
 
+## Class library and Page class (SPEC §27)
+
+- [ ] WAITING — owner verification: registry-owned type lifetime — the
+  definition-owned death gates and `confirmTypeDeath` are gone; classes
+  live until explicit removal.
+- [ ] WAITING — owner verification: Classes panel, create-palette New
+  class entry, class dialog (name, class, glyph, fields, children), and
+  the record header type label as the dialog entry.
+- [ ] WAITING — owner verification: default Page class with block
+  content; the pages feature adopts old `pages` rows into Page instances
+  and backs the sidebar tree with that instance tree.
+
 ## Deslopification program (owner direction 2026-10-23)
 
 Baseline: full-repo audit of 2026-10-24 (nine area reports, three
@@ -4325,12 +4337,11 @@ work list; each task names the owner seam and the desired machine.
   `components/calls/README.md:134-165`.
 - [x] `composables/useProcessDesignerApply.js`: replace the parallel refs
   with one `applyState` — `idle`, `saving`, `applying`,
-  `migration-required`, `type-migration-required`,
-  `type-death-required`, `error`. Confirm and cancel consume the state and
-  move to the next state; the three gates share the same transition table.
-  Test save-only, validation failure, migration confirm/cancel, type
-  migration confirm/cancel, type death confirm/cancel, and overlapping
-  gate arrival. Evidence: `useProcessDesignerApply.js:59-305`.
+  `migration-required`, `type-migration-required`, `error`. Confirm and
+  cancel consume the state and move to the next state; the two gates share
+  the same transition table. Test save-only, validation failure, migration
+  confirm/cancel, type migration confirm/cancel, and overlapping gate
+  arrival. Evidence: `useProcessDesignerApply.js`.
 - [x] `stores/instances.js`: name the per-record write state — `idle`,
   `pending`, `confirmed`, `rolled-back`, `queued` — and serialize writes
   per record id. A preview enters `pending`; the response settles
@@ -6049,18 +6060,16 @@ opens a type popup.
   bounded columns); the trailing `RecordComments` band retires; the
   popup and the peek keep the shared chat-surface entry — one comments
   entry point on every record surface.
-- [x] The type popup (`TypeCardPopup`): glyph + authored name, the
-  field vocabulary rows, the machine mini-view (the declaration
-  authoring's mermaid render), and the authoring entries for capability
-  holders — edit-states opens the header's state popover authoring
-  lane; edit-fields opens the declaration designer page.
+- [x] The class dialog (`ClassDialog`): name, class, glyph, field rows,
+  and CTS children for capability holders; the record header's type label
+  and the sidebar Classes panel open it.
 - [ ] WAITING — owner verification: an editor-bound file opens into its
   full-page editor with the header owning name/save (dirty-marked,
   pane-close still confirms); a regular record page keeps its document
   with the header's comments entry opening the side panel; the record
   popup keeps its compact document; the type label under any title
-  opens the type's card; a custom page shows the same header with no
-  type label.
+  opens the class dialog for capability holders; a custom page shows the
+  same header with no type label.
 
 #### Agent Notes (2026-11-08)
 

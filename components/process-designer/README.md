@@ -394,13 +394,13 @@ requirements consume capability authored on role, profile, or action
 access records: a gated screen renders once selected roles supply its
 capability, and screen edits author process policy only.
 
-Apply pauses on three gates, each with its own consent dialog:
+Apply pauses on two gates, each with its own consent dialog:
 
 | Gate | Pause | Dialog |
 |---|---|---|
 | Breaking type change with live instances and no covering `migrate` steps (CTS SPEC §11) | `pendingTypeMigration` | `TypeMigrationStepsDialog`: one row per breaking change, labeled by the type's authored NAME and the field's authored LABEL; an uncoverable change renders blocked with the reason |
 | Removed workflow states with live instances that the draft's declared migrations (`data.migrations.statuses`) leave uncovered | `pendingMigration` | `ApplyMigrationDialog`: one target state per removed state, pre-filled from the declarations; confirming persists the mappings as a declaration on the draft, saves, then activates. See the Apply migration contract in [server/features/process-definitions](../../server/features/process-definitions/README.md) and the refusal payload contract in [server/features/cts-types](../../server/features/cts-types/README.md) |
-| Apply that orphans types (`pendingTypeDeath`); definition deletion or activation-switch flip whose types no other stored definition declares (`pendingDefinitionDeath`, page-owned) | pauses Apply | `TypeDeathDialog`: names each dying type by its authored name with its live record count; confirming retries with `confirmTypeDeath` (CTS SPEC §4) |
+
 
 `TypeMigrationStepsDialog` offers the declarative steps; confirming writes
 them onto the matching class node's `data.migrate` (found by typeId),
@@ -529,8 +529,8 @@ nodes, which show no inspection action.
 9 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `CtsTypeNode.vue`),
 palette (`OperationPalette.vue`), lanes (`LaneBands.vue`), the loop edge
 (`SelfLoopEdge.vue`), dialogs (`TypeMigrationStepsDialog.vue`,
-`ApplyMigrationDialog.vue`, `TypeDeathDialog.vue`), and
-`TypedValueControl.vue` — plus `inspector/` (3 SFCs:
+`ApplyMigrationDialog.vue`), and `TypedValueControl.vue` — plus
+`inspector/` (3 SFCs:
 `DeclarationEdgeInspector`, `DeclarationInspector`,
 `ProcessNodeInspector`). The class/field/state declaration cards render
 through the shared `components/type-designer` SFCs (`TypeNode.vue`,
