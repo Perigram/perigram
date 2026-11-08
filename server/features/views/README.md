@@ -66,6 +66,9 @@ the instances list transport (org scoping and grants ride it), so a
 view shared organization-wide shows each member their own readable
 subset. A type the member cannot read renders the denied state.
 
+A collection-view entry names a type and renders that type's live view;
+it creates no saved view.
+
 ## API
 
 Service seam: `list`, `getById`, `create`, `update`, `remove`.

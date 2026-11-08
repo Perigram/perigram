@@ -231,9 +231,10 @@ the `section` field set.
   plugin serves (`surfaces/lib/`), imported over the app's own
   dependency graph — the grammar is consumed, never copied. The crepe
   theme and the editor voice css load from the plugin's assets, so every
-  editor mount reads identically. The view-embed vocabulary entry is
-  live: its pick emits to the host, which opens `ViewPickerDialog.vue`
-  (the organization's views with their type labels) and inserts the view
+  editor mount reads identically. The collection-view vocabulary entry
+  is live: its pick emits to the host, which opens
+  `ViewPickerDialog.vue` (the organization's saved views with their
+  type labels beside the embeddable collections) and inserts the view
   fence at the caret; the page-link and AI-block entries stay dark until
   phase K. The page's header is the unified page header
   ([ui-mapping](../ui-mapping/README.md) `SurfaceHeader` with `title` +
@@ -242,30 +243,32 @@ the `section` field set.
   API from the header's cluster, dirty-gated, registered on the
   workspace page-dirty registry so pane-close confirms; a new page
   starts blank — unnamed document, empty editor.
-- A view fence in the page's markdown carries a saved-view ref — a
-  `` ```view `` fence with a `{"id":"…","name":"…"}` body (the mermaid
-  fence precedent: a fence type the pipeline knows; the name rides the
-  fence so a deleted view still renders its name). The read
+- A view fence in the page's markdown carries a view ref — a
+  `` ```view `` fence with a `{"id":"…","name":"…"}` body for a saved
+  lens or `{"typeId":"…","name":"…"}` for a collection entry (the
+  mermaid fence precedent: a fence type the pipeline knows; the name
+  rides the fence so a deleted view still renders its name). The read
   presentation composes with the fences: `splitViewEmbeds`
   (`shared/markdown.js`) splits the document into markdown segments and
   embed blocks; segments render through the pipeline, embeds through
-  `ViewEmbed.vue`, which renders the saved view as a live collection
+  `ViewEmbed.vue`, which renders the target as a live collection
   region through the ordinary machinery — a minimal single-list-region
   screen composed by `composeScreen` for the view's type, materialized
-  by the one [RegionBlock](../ui-mapping/README.md) with the saved view
-  state as its view models and the view's name as its section title,
-  instances loaded through the instances store list transport (org
-  scoping and grants ride it — the lens law: an org-wide view shows
-  each member their own readable subset, and an unreadable type renders
-  the denied state), and row opens following the workspace-open seam.
-  The embed's region carries no actions: creation and quick actions
-  belong to the collection's own screens, and the embed renders the
-  lens; interacting with its controls edits the lens session-locally
-  only. In the live editor the fence is its code block — the crepe
-  preview renders the view's name as the quiet `ck-view-embed` chip,
-  the same placeholder the pipeline renders for view fences outside the
-  page surface. A fence naming a deleted view renders its carried name
-  and a quiet unavailable state.
+  by the one [RegionBlock](../ui-mapping/README.md) with a saved view's
+  state as its view models and the view's name as its section title. A
+  collection entry renders the type's live view with the collection
+  header's tabs and add-view affordance. Instances load through the
+  instances store list transport (org scoping and grants ride it — the
+  lens law: an org-wide view shows each member their own readable
+  subset, and an unreadable type renders the denied state), and row
+  opens follow the workspace-open seam. The embed's region carries no
+  actions: creation and quick actions belong to the collection's own
+  screens, and the embed renders the lens; interacting with its controls
+  edits the lens session-locally only. In the live editor the fence is
+  its code block — the crepe preview renders the view's name as the
+  quiet `ck-view-embed` chip, the same placeholder the pipeline renders
+  for view fences outside the page surface. A fence naming a deleted
+  view renders its carried name and a quiet unavailable state.
 - The record overlay's blocks mount beside the page's fences (SPEC §26):
   a text block renders through `OverlayTextBlock.vue` — read through
   `MarkdownBlocks`, authored inline through `CrepeEditor` at the click

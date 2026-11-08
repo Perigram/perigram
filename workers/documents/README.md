@@ -48,7 +48,7 @@ types ride the generic instance machinery from the install snapshot.
   | Image | the host address popover, anchored to the surface; the source applies at the caret |
   | Divider, Table | horizontal rule; a three-by-three gfm table |
   | Link | the host address popover, anchored to the surface; the link applies at the caret |
-  | View | the host saved-view picker; the pick inserts a `` ```view `` fence carrying the view ref (`{ id, name }`) |
+  | Collection view | the host picker lists the organization's saved views and embeddable collections; the pick inserts a `` ```view `` fence carrying the view ref (`{ id, typeId, name }` for a saved lens, `{ typeId, name }` for a collection) |
 
   Inline marks (bold, italic, inline code) author through input rules.
   The entry table lives in `surfaces/lib/block-vocabulary-data.mjs`; the

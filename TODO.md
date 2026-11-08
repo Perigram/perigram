@@ -28,16 +28,21 @@
   with the action adapter staying in `block-vocabulary.mjs`; the slash
   panel and the gutter insert menu consume the same table. Added the
   image entry with the host address hand-off.
-- Gutter lane widened to 3.5rem, plus first then a six-dot grip, aligned
-  with the section's first line; the shared insert menu carries the view
-  entry beside the block entries.
+- Gutter lane widened to 3.5rem; plus and a six-dot grip share one
+  1.5rem control shape, plus first, aligned with the section's first
+  line. The shared insert menu carries the collection-view entry.
 - Overlay text blocks author at the click point with crepe page chrome
-  stripped; autosave no longer closes the editor and late keystrokes
-  reseed the draft.
+  stripped; autosave leaves the editor open and late keystrokes reseed
+  the draft. Read HTML and the in-place engine share the markdown
+  recipe, so entering the editor keeps the block's typography.
 - Collection headers carry the derived-layout tab, saved view tabs, and
   the add-view (+); selecting a saved tab suppresses preference writes.
+- The collection-view picker lists saved views beside embeddable
+  collections; a collection entry carries its type id and renders the
+  type's live view with its header tabs.
 - Validation: focused vitest (ui-mapping, generated, documents surfaces,
-  overlay session) green; `check-docs` and `check-arch` green.
+  overlay session, markdown fences) green; `check-docs` and `check-arch`
+  green.
 
 ## Deslopification program (owner direction 2026-10-23)
 

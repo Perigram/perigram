@@ -26,7 +26,7 @@ One `instance_overlays` document per instance, keyed uniquely by
 | Kind | Payload |
 |---|---|
 | `text` | `text` — markdown source through the one editor engine. |
-| `view` | `view: { id, name }` — a saved-view reference, the same shape the page view fence carries. |
+| `view` | `view: { id?, typeId?, name }` — a saved-view reference (`id` + `typeId`) or a collection entry (`typeId` alone) rendering the type's live view; the same shape the page view fence carries. |
 
 Every block carries a client-authored unique `id`; block ids are the
 overlay's own namespace, distinct from the declared keys by shape

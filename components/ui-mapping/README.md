@@ -203,8 +203,9 @@ application.
   revealed on hover or focus: the plus first, then the six-dot drag
   handle. The plus opens the same block vocabulary as the slash panel —
   headings, lists, to-do, quote, callout, code, image, diagram, divider,
-  table, view embed; a text entry inserts a text block opened at that
-  kind and the view entry opens the saved-view picker. The drag handle
+  table, collection view; a text entry inserts a text block opened at
+  that kind and the collection-view entry opens the picker over the
+  organization's saved views and embeddable collections. The drag handle
   opens the section menu (move up/down; custom blocks also delete) and
   drags to reorder; the drop target paints a floating line above the
   section. Sections reorder by dragging the handle and by the handle's

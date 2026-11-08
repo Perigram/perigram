@@ -1471,7 +1471,8 @@ A custom view is a saved representation of an existing collection: the
 per-type view state (search, filters, sort, projection) plus its type,
 named, embeddable as a block on pages and record pages. A view is a
 saved lens: it queries through the ordinary read paths and grants and
-carries no access of its own.
+carries no access of its own. A collection view embeds a type's live
+default view; it is a type reference, not a saved view.
 
 Instance pages carry rights-gated custom blocks around the declared
 content. Declared blocks — the property rows, the collections —
