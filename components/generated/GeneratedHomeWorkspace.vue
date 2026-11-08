@@ -162,6 +162,7 @@
         <!-- Section and page authoring: the context menu, the rename and
              move dialogs over the organization's sections and pages. -->
         <ContextMenu ref="pagesContextMenu" :model="pagesMenuModel" />
+        <ContextMenu ref="typeContextMenu" :model="typeMenuModel" />
         <StandardDialog
           v-model:visible="renameVisible"
           :title="t('common.rename')"
@@ -634,6 +635,10 @@ const screenfulTypes = computed(() => new Set((authStore.screenManifest || [])
 // phantom into the app as a "structural" node: no station, no UI. Type
 // nesting renders only between stationed types (both endpoints visible).
 const visibleTypes = computed(() => new Set(screenfulTypes.value));
+const panelTypes = computed(() => new Set([
+  ...visibleTypes.value,
+  ...orgClasses.value.map(type => type.id)
+]));
 
 const classesAvailable = computed(() => authStore.hasPermission('organizations', 'admin'));
 const orgClasses = computed(() => (classesAvailable.value ? classView.types.value : [])
@@ -650,28 +655,12 @@ function openClassDialog(typeId = '') {
   classDialogVisible.value = true;
 }
 
-function classPanelModels() {
-  if (!classesAvailable.value || !orgClasses.value.length) return [];
-  return [{
-    key: 'classes',
-    label: t('classes.title'),
-    icon: 'pi pi-box',
-    items: orgClasses.value.map(type => ({
-      key: `class:${type.id}`,
-      icon: iconFor(type),
-      label: type.name || t('common.unnamed'),
-      command: menuCommand(`class:${type.id}`, () => openClassDialog(type.id))
-    }))
-  }];
-}
-
 // The PanelMenu model: type nodes become panels (their registry icon is
 // PanelMenu's item icon), entity nodes become rows carrying the workspace
 // item for the #item slot, the communication entries lead, and the user
 // sections follow the type panels with their nested page trees; loose
 // root pages render as root rows.
 const sidebarMenuModel = computed(() => [
-  ...classPanelModels(),
   ...communicationPanelModels(),
   ...explorerNodes.value.map(node => typePanelItem(node)),
   ...userSectionItems(),
@@ -796,7 +785,9 @@ function typePanelItem(node) {
     // Class names carry no icon: the glyph is the instance signal, so a
     // type panel never reads as one of its own rows.
     typeId: node.data.typeId,
-    command: menuCommand(node.key, () => openTypeScreen(node.data.screen)),
+    command: menuCommand(node.key, () => (node.data.screen
+      ? openTypeScreen(node.data.screen)
+      : openClassDialog(node.data.typeId))),
     items: (node.children || []).map(child => entityPanelItem(child))
   };
 }
@@ -953,6 +944,8 @@ async function createCustomPage(parentId = null) {
 
 const pagesContextMenu = ref(null);
 const pagesMenuModel = ref([]);
+const typeMenuModel = ref([]);
+const typeContextMenu = ref(null);
 const renameVisible = ref(false);
 const renameDraft = ref('');
 const renameTargetId = ref('');
@@ -970,7 +963,23 @@ function pageOrSectionByKey(key = '') {
 
 function onSidebarContextMenu(event) {
   const element = event.target?.closest?.('.p-panelmenu-header, .p-panelmenu-item');
-  const row = element ? pageOrSectionByKey(menuKeyForElement(element)) : null;
+  const key = element ? menuKeyForElement(element) : null;
+  if (element?.classList?.contains('p-panelmenu-header') && key?.startsWith('type:')) {
+    const typeId = key.slice('type:'.length);
+    const record = classView.typeById(typeId);
+    if (record?.scope === 'org' && typeId !== PAGE_TYPE_ID && classesAvailable.value) {
+      event.preventDefault();
+      event.stopPropagation();
+      typeMenuModel.value = [{
+        label: t('classes.editTitle'),
+        icon: 'pi pi-pencil',
+        command: () => openClassDialog(typeId)
+      }];
+      typeContextMenu.value?.show(event);
+      return;
+    }
+  }
+  const row = element ? pageOrSectionByKey(key) : null;
   if (!row) return;
   event.preventDefault();
   event.stopPropagation();
@@ -1138,15 +1147,16 @@ const explorerNodes = computed(() => {
   // A type nested under another stationed type through the containment
   // graph never panels on its own: its instances live beneath their
   // parent instances, so a root panel beside the parent's would duplicate
-  // the whole subtree. The menu renders type panels for un-nested
-  // stationed types alone — instance rows only, no type rows.
+  // the whole subtree. The menu renders panels for un-nested types and
+  // classes — instance rows beneath stationed types, the class dialog
+  // beneath classes without a screen.
   const nestedTypes = new Set();
   for (const triple of effectiveContainment()) {
     if (triple.childType === triple.parentType) continue;
-    if (!visibleTypes.value.has(triple.childType) || !visibleTypes.value.has(triple.parentType)) continue;
+    if (!panelTypes.value.has(triple.childType) || !panelTypes.value.has(triple.parentType)) continue;
     nestedTypes.add(triple.childType);
   }
-  return [...visibleTypes.value]
+  return [...panelTypes.value]
     .filter(typeId => !nestedTypes.has(typeId))
     .map(typeId => typeNode(typeId))
     .sort((a, b) => a.label.localeCompare(b.label));
@@ -1159,7 +1169,7 @@ function typeNode(typeId) {
   return {
     key: typeMenuKey(typeId),
     label: typeLabelOf(typeId),
-    icon: instances.iconFor(typeId),
+    icon: classView.typeById(typeId)?.glyph || instances.iconFor(typeId),
     selectable: true,
     data: { typeId, screen, section },
     leaf: !sectionInstances.length,
@@ -1196,7 +1206,7 @@ function openMobileInstance({ typeId, instanceId } = {}) {
 }
 
 function typeLabelOf(typeId = '') {
-  const record = registryStore.typeRecord(typeId);
+  const record = classView.typeById(typeId) || registryStore.typeRecord(typeId);
   // Procedural label contract only: the generated type key (locale
   // override) over the authored type name — no entity contracts, no raw
   // ids.

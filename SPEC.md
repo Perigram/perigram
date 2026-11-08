@@ -1498,9 +1498,11 @@ classes exist until explicitly deleted, and process definitions
 reference type ids. Applying or deleting a definition leaves the
 registry and its instances untouched.
 
-The sidebar carries a Classes panel listing the organization's classes.
-The create palette's pinned entry creates a class, and the class dialog
-edits name, class kind, glyph, fields, and CTS children. The dialog
+Every organization class appears in the sidebar as its own type panel.
+A class with a screen opens that screen; a class without one opens the
+class dialog. The panel context menu opens the same dialog. The create
+palette's pinned entry creates a class, and the class dialog edits name,
+class kind, glyph, fields, and CTS children. The dialog
 writes directly through the registry write gate; a compatible
 declaration reaches screens and actions through the contract-change
 event, so class edits apply instantly.

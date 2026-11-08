@@ -106,6 +106,15 @@
           <i :class="typeGlyph(child.typeId)" class="shrink-0 text-muted" aria-hidden="true" />
           <span class="min-w-0 flex-1 truncate text-body">{{ typeLabelOf(child.typeId) }}</span>
           <Button
+            icon="pi pi-pencil"
+            size="small"
+            text
+            severity="secondary"
+            :aria-label="$t('classes.editTitle')"
+            :title="$t('classes.editTitle')"
+            @click="openChild(child.typeId)"
+          />
+          <Button
             icon="pi pi-times"
             size="small"
             text
@@ -155,6 +164,11 @@
 
       <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
     </div>
+
+    <ClassDialog
+      v-model:visible="childDialogVisible"
+      :type-id="childDialogTypeId"
+    />
   </StandardDialog>
 </template>
 
@@ -202,6 +216,8 @@ const saving = ref(false);
 const childSaving = ref(false);
 const newChild = ref({ name: '', class: 'item' });
 const existingChild = ref(null);
+const childDialogVisible = ref(false);
+const childDialogTypeId = ref('');
 
 const typeOptions = computed(() => view.types.value.map(type => ({
   label: type.name || type.id,
@@ -353,6 +369,11 @@ function addChildType(typeId) {
 
 function removeChild(child) {
   draft.value.children = draft.value.children.filter(candidate => candidate !== child);
+}
+
+function openChild(typeId) {
+  childDialogTypeId.value = typeId;
+  childDialogVisible.value = true;
 }
 
 async function createChild() {
