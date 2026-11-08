@@ -1492,9 +1492,9 @@ registry and its instances untouched.
 
 Every organization class appears in the sidebar as its own type panel.
 A class with a screen opens that screen; a class without one opens its
-class page. The class page lists fields, states, and instances and opens
-the class dialog for editing; the panel context menu opens the same
-dialog. The sidebar's New class action creates a class, and the dialog
+class page. The class page is the same generated type-list screen every
+class page uses, synthesized from the class type; the header type label
+and the panel context menu open the class dialog. The sidebar's New class action creates a class, and the dialog
 edits name, class kind, glyph, fields, states, and CTS children. A
 child class added in the dialog stays a draft until the parent saves; it
 never lands in the registry on the click. The dialog writes directly

@@ -37,13 +37,13 @@ The class library is the organization's `scope: 'org'` registry view
 [useFileTypeView](../../composables/README.md)). Organization classes
 appear as sidebar type panels: a screen-backed class opens its screen;
 a class without one opens `ClassSurface.vue`; the panel context menu and
-the class page open `ClassDialog.vue`. The sidebar's New class action
+the header type label open `ClassDialog.vue`. The sidebar's New class action
 creates a class.
 
 | Piece | Contract |
 |---|---|
 | `ClassDialog.vue` | Create/edit one org declaration: name, class, glyph, fields, states, and children edges. Saves through `POST /api/admin/cts/types` with the loaded declaration and those facets replaced. A `group` class cannot save without a child. |
-| `ClassSurface.vue` | The class page: the unified header, fields, state tags, and the class's instances. Its edit action opens the dialog. |
+| `ClassSurface.vue` | The class page: the same generated type-list screen every class page uses, synthesized with one source and one region when no compiled process screen exists. |
 | Field rows | `DeclarationFieldRow` + `DescriptorEditor`; exactly one field carries the identifier flag. |
 | States | `DeclarationStateRow` edits the class's flat state vocabulary: value, label, severity, icon, terminal. The vocabulary persists on the declaration and overrides the compiled process policy for the same values. |
 | Children | Existing classes attach through the parent's `edges.children` entry; each type keeps its entry's `lineageKey` and `onRemove`. Add child class opens a draft `ClassDialog` — the child persists with the parent save, never on the click; the draft dialog offers every declarable class, group included. |

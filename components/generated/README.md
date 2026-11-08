@@ -163,10 +163,10 @@ surfaces and action forms.
 ## Class Pages
 
 A screenless organization class opens `ClassSurface.vue` as a workspace
-tab (SPEC §27): the unified header, the declared fields, the class state
-tags, and the class's instances. Its edit action opens
-[`ClassDialog.vue`](../type-designer/README.md). The page ref is
-ephemeral per class type, like custom pages.
+tab (SPEC §27): the same generated type-list screen every class page uses,
+synthesized with the class type as its one source and region. The class
+dialog opens from the header type label and the panel context menu. The
+page ref is ephemeral per class type, like custom pages.
 
 ## Custom Pages
 

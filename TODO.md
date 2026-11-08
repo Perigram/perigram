@@ -7,7 +7,7 @@
   live until explicit removal.
 - [ ] WAITING — owner verification: class panels in the sidebar
   (screen-backed classes open their screen, screenless classes open the
-  class page, panel context menus open the dialog), the sidebar New class
+  same generated type-list page, panel context menus open the dialog), the sidebar New class
   action, the class dialog (name, class, compact glyph select, fields,
   states, children), and the record header type label as the dialog
   entry.
