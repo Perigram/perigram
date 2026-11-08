@@ -44,7 +44,7 @@ creates a class.
 |---|---|
 | `ClassDialog.vue` | Create/edit one org declaration: name, class, glyph, fields, states, and children edges. Saves through `POST /api/admin/cts/types` with the loaded declaration and those facets replaced. A `group` class cannot save without a child. |
 | `ClassSurface.vue` | The class page: the unified header over the same generated type-list screen every class page uses, synthesized with one source and one region when no compiled process screen exists. |
-| Field rows | `DeclarationFieldRow` + `DescriptorEditor`: each row shows the free-form field label and its always-visible type editor in one flow. The registry key is an internal id minted from the initial label via `rowFieldId` and kept stable across renames. A class-level Title field selector owns the identifier flag. |
+| Field rows | `DeclarationFieldRow` + `DescriptorEditor`: a compact table — Name, Type, Empty, Title — one row per field, with the registry key an internal id minted from the initial label via `rowFieldId` and kept stable across renames. The Title radio owns the identifier flag; advanced qualifiers appear beneath the row only for bases that carry them. |
 | States | `DeclarationStateRow` edits the class's flat state vocabulary: value, severity, icon. The vocabulary persists on the declaration and overrides the compiled process policy for the same values. |
 | Children | Existing classes attach through the parent's `edges.children` entry; each type keeps its entry's `lineageKey` and `onRemove`. Add child class opens a draft `ClassDialog` — the child persists with the parent save, never on the click; the draft dialog offers every declarable class, group included. |
 | Capability | `organizations:admin`, the same seam as declaration authoring. |
@@ -67,6 +67,8 @@ fresh object through
 naming-facet keys (`label`, `display`, `control`, `identifier`,
 `depiction`) and `nullable`. `simple` mode (the class dialog) hides the
 advanced `writable`/`constructible` flags and the ref unlink policy;
+`details-only` renders only those base-specific qualifiers, for the
+field table's second line;
 those remain in the contract for system rows and the process-designer
 inspector. Validation runs live through the registry's `describeType`,
 its message rendering inline; an unset `ref` (no accepted targets) is
