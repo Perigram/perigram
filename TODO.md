@@ -12,6 +12,31 @@
   content; the pages feature adopts old `pages` rows into Page instances
   and backs the sidebar tree with that instance tree.
 
+## Notion-like document blocks and collection views (owner direction 2026-11-08)
+
+- [ ] WAITING — owner verification: in-place block rendering, collection
+  view tabs in the header, and the document gutter controls. The editor
+  authors flush at the click point, autosave keeps the editor open, the
+  gutter plus opens the slash vocabulary, and the header carries the
+  type's saved views as tabs.
+
+### Agent Notes (2026-11-08, agent/notion-blocks-20261108)
+
+- Block vocabulary moved to `block-vocabulary-data.mjs` (pure entries)
+  with the action adapter staying in `block-vocabulary.mjs`; the slash
+  panel and the gutter insert menu consume the same table. Added the
+  image entry with the host address hand-off.
+- Gutter lane widened to 3.5rem, plus first then a six-dot grip, aligned
+  with the section's first line; the shared insert menu carries the view
+  entry beside the block entries.
+- Overlay text blocks author at the click point with crepe page chrome
+  stripped; autosave no longer closes the editor and late keystrokes
+  reseed the draft.
+- Collection headers carry the derived-layout tab, saved view tabs, and
+  the add-view (+); selecting a saved tab suppresses preference writes.
+- Validation: focused vitest (ui-mapping, generated, documents surfaces,
+  overlay session) green; `check-docs` and `check-arch` green.
+
 ## Deslopification program (owner direction 2026-10-23)
 
 Baseline: full-repo audit of 2026-10-24 (nine area reports, three

@@ -268,11 +268,13 @@ the `section` field set.
   and a quiet unavailable state.
 - The record overlay's blocks mount beside the page's fences (SPEC §26):
   a text block renders through `OverlayTextBlock.vue` — read through
-  `MarkdownBlocks`, authored inline through `CrepeEditor`, its text
-  saving with the overlay's document — and a view block renders
-  `ViewEmbed` verbatim with its saved ref. The insert picker's view
-  entry reuses `ViewPickerDialog`. The composition and its authoring
-  affordances live in
+  `MarkdownBlocks`, authored inline through `CrepeEditor` at the click
+  point, its text saving with the overlay's document — and a view block
+  renders `ViewEmbed` verbatim with its saved ref. The document gutter's
+  plus opens the same block vocabulary as the slash panel; text entries
+  insert a text block opened at that kind (image asks for a source
+  address), and the view entry reuses `ViewPickerDialog`. The
+  composition and its authoring affordances live in
   [components/ui-mapping](../ui-mapping/README.md) (the record
   document's overlay); the overlay store and the write-grant gate are
   the [instance-overlays feature](../../server/features/instance-overlays/README.md)'s.

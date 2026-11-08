@@ -1477,6 +1477,12 @@ Instance pages carry rights-gated custom blocks around the declared
 content. Declared blocks — the property rows, the collections —
 reorder and never delete; custom blocks compose around them.
 
+The page and record document author through one block vocabulary at
+the gutter and the caret: the block plus and the slash panel offer the
+same entries, the gutter reserves its lane outside the content, and the
+drag handle is a six-dot grip. Collection headers carry their views as
+tabs: the derived layout, the type's saved views, and add view.
+
 The AI block is ask/answer: the organization's assistant answers in
 place under the opener's delegated principal, rendered as markdown,
 persisted with the page; re-asking re-runs it.

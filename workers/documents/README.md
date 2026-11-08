@@ -45,23 +45,24 @@ types ride the generic instance machinery from the install snapshot.
   | Quote | blockquote; the quote entry on a quoted block lifts it out |
   | Callout | blockquote seeded with a bold localized title; the pipeline renders blockquotes natively |
   | Code block, Diagram | fenced code (language picker on hover, CodeMirror); diagram seeds a `mermaid` fence |
+  | Image | the host address popover, anchored to the surface; the source applies at the caret |
   | Divider, Table | horizontal rule; a three-by-three gfm table |
   | Link | the host address popover, anchored to the surface; the link applies at the caret |
   | View | the host saved-view picker; the pick inserts a `` ```view `` fence carrying the view ref (`{ id, name }`) |
 
   Inline marks (bold, italic, inline code) author through input rules.
-  The vocabulary and its actions live in
-  `surfaces/lib/block-vocabulary.mjs` — a pure entry table plus the
-  action adapter the editor binds to its engine instance, the one
-  grammar every markdown authoring surface mounts: this plugin's text
-  editor over its served engine, the app's custom-page surface and the
-  instance overlay's text blocks
-  ([components/generated](../../components/generated/README.md))
-  over the app's own crepe instance. The view entry hands off to the
-  host's picker (`openViewPicker`); hosts that mount no live embed —
-  this plugin's text editor today — leave the entry out of their slash
-  panel. The page-link and AI-block entries join the table as their
-  phases land.
+  The entry table lives in `surfaces/lib/block-vocabulary-data.mjs`; the
+  action adapter beside it in `surfaces/lib/block-vocabulary.mjs` binds
+  the entries to an engine instance. The table is the one grammar every
+  markdown authoring surface mounts: this plugin's text editor over its
+  served engine, the app's custom-page surface, and the instance
+  overlay's text blocks and gutter insert menu
+  ([components/generated](../../components/generated/README.md)) over
+  the app's own crepe instance. The view entry hands off to the host's
+  picker (`openViewPicker`); the image and link entries hand off to the
+  host's address editor. Hosts without live embeds leave the view entry
+  out of their slash panel. The page-link and AI-block entries join the
+  table as their phases land.
   Mermaid fences preview as diagrams in the
   markdown editor through the host-provided `renderMarkdown` (the
   single pele home): blocks open diagram-only, crepe's Edit toggle or a

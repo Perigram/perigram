@@ -110,15 +110,14 @@ beside the transition history in `StateHistory`.
   header the strip appears inside (SPEC §22.9) — and
   plain content for ready — the only loading/empty states any component
   renders.
-- The region header renders the label, the count chip, the create set
-  (+ link where a relation section owns it, SPEC §22.12), and one view
-  control (SPEC §22.15): an outlined button carrying the localized
-  `uiMapping.view` label beside its icon, pinned at full presence on
-  every host, whose popover hosts, in order,
-  the search field, the shared `FilterBuilder` panel
-  ([shared](../shared/README.md)), the projection switch (where the
-  collection is switchable), and the sort keys (the card-grid
-  projection). The view button badges the active filter condition count
+- The region header renders the label, the count chip, the search field
+  (SPEC §22.15), the create set (+ link where a relation section owns
+  it, SPEC §22.12), and one View control: an outlined button carrying
+  the localized `uiMapping.view` label beside its icon, pinned at full
+  presence on every host, whose popover hosts the shared `FilterBuilder`
+  panel ([shared](../shared/README.md)), the projection switch (where
+  the collection is switchable), and the sort keys (the card-grid
+  projection). The View button badges the active filter condition count
   (`countPredicates`). Every hosted control is a live model: typing
   filters at once, toggling the projection and picking a sort key apply
   at once. Search stays a region-owned model; the filter tree and the
@@ -126,20 +125,27 @@ beside the transition history in `StateHistory`.
   (`utils/ui-view-state.js`), evaluated with the one matcher
   (`instanceMatchesFilter`) against the region's pool; the panel's
   fields derive through `builderFieldsForType` (see
-  [shared/ui-mapping](../../shared/ui-mapping/README.md)). The popover
-  also carries the save-view entry (SPEC §26) for organization members:
-  it captures the region's current view models — search, filter tree,
-  sort, projection — as one named view through the
-  [views feature](../../server/features/views/README.md)
-  (`ViewSaveDialog` prompts for the name under the type label; the
-  entry renders only with an active organization and only on regions
-  that render their own state). A region mounted with a `viewState`
-  prop renders a saved lens instead: every view model seeds from the
-  prop (the stored tree re-validates through `normalizeFilter`, the
-  projection and sort through their bounds) and the persistence skips —
-  the controls stay live but their choices stay session-local, and the
-  lens itself is never re-saved from its own embed. A `label` prop
-  overrides the type-derived section title (the embed names the view).
+  [shared/ui-mapping](../../shared/ui-mapping/README.md)). The View
+  popover's field selection sets the collection's explicit column set
+  (persisted per type, absent = the derived budget).
+- A second header row carries the collection's view tabs (SPEC §26):
+  the derived-layout tab (`Table`, `Board`, `Cards`, `Timeline`, `Stats`,
+  `Gantt`, `Calendar`), one tab per saved view of the type, and the
+  add-view (+) affordance for organization members. A saved tab loads
+  the view's four models — search, filter tree, sort, projection —
+  through the [views feature](../../server/features/views/README.md);
+  the default tab restores the per-type preferences. Selecting a tab
+  suspends preference writes, so browsing a saved lens leaves the
+  reader's own state intact. The add-view affordance captures the
+  current models through `ViewSaveDialog` under the type label and
+  activates the new tab.
+- A region mounted with a `viewState` prop renders a saved lens instead
+  of tabs: every view model seeds from the prop (the stored tree
+  re-validates through `normalizeFilter`, the projection and sort
+  through their bounds) and the persistence skips — the controls stay
+  live but their choices stay session-local, and the lens itself is
+  never re-saved from its own embed. A `label` prop overrides the
+  type-derived section title (the embed names the view).
   The region header stays one line while the row has room (SPEC §22.15): the label
   yields first through ellipsis, the controls cluster never wraps
   internally, and the controls wrap below only when the label is at its
@@ -164,12 +170,10 @@ application.
 
 - **Collection header in the document.** A collection section inside
   the record document renders the quiet header: label and count pinned,
-  the search field in the header itself, the labeled View control, and
-  one compact (+) popover carrying the create and link controls; the
-  View popover's field selection sets the collection's explicit column
-  set (persisted per type through `utils/ui-view-state.js`, absent = the
-  derived budget). Standalone list screens keep the inline control
-  cluster.
+  the search field, the labeled View control, one compact (+) popover
+  carrying the create and link controls, and the view-tab row (the
+  derived layout, the type's saved views, add view). Standalone list
+  screens carry the inline control cluster.
 - **Composition.** The depth-0 record in the `record` presentation
   renders the document's section flow through `SurfaceDetailBody`: the
   body's own sections (`properties`, `editor`, each relation section)
@@ -193,25 +197,27 @@ application.
   [file-surfaces](../generated/README.md) write-grant seam decides) get
   the session ([composables](../../composables/README.md)
   `useRecordOverlay`). The authoring surface is the document's left
-  gutter lane: the document root reserves one lane step for every viewer
+  gutter lane: the document root reserves a 3.5rem lane for every viewer
   (content never shifts between readers and holders), and every section
-  renders the lane's pair — the `⠿` handle (click opens the section menu:
-  move up/down; custom blocks also delete; drag reorders) and the plus
-  (`OverlayInsertControl` inserts a focused text block directly; its
-  columns control opens the saved-views picker) — aligned with the
-  section's first line and revealed on hover or focus. The drop target
-  paints a floating line above the section. Sections reorder by dragging the
-  handle (the drop target paints its top edge; the session's
-  `moveToIndex` reorders the draft order array) and by the handle's
+  renders the lane's pair aligned with the section's first line and
+  revealed on hover or focus: the plus first, then the six-dot drag
+  handle. The plus opens the same block vocabulary as the slash panel —
+  headings, lists, to-do, quote, callout, code, image, diagram, divider,
+  table, view embed; a text entry inserts a text block opened at that
+  kind and the view entry opens the saved-view picker. The drag handle
+  opens the section menu (move up/down; custom blocks also delete) and
+  drags to reorder; the drop target paints a floating line above the
+  section. Sections reorder by dragging the handle and by the handle's
   keyboard arrows. Declared sections reorder alone; custom blocks also
   edit and delete. A text block is seamless document content: click
-  mounts the engine inline at the caret (crepe's page chrome stripped
-  through `ck-inline-editor`), Escape or Cmd/Ctrl+Enter closes it, and
-  the engine focuses and scrolls the block into view on mount. The
+  mounts the engine inline at the click point (crepe's page chrome
+  stripped through `ck-inline-editor`), Escape or Cmd/Ctrl+Enter closes
+  it, and the engine scrolls the block into view on mount. The
   document's foot strip inserts at the end. The record's own field edits
   stay on the inline-pencil channel. User space autosaves: a dirty
   overlay writes itself after 1.5s idle through the same save seam
-  (registered on the workspace page-dirty registry), and the header's
+  (registered on the workspace page-dirty registry) and keeps the open
+  editor while later keystrokes queue the next write; the header's
   cluster slot keeps the flush-now save.
 
 ## Components

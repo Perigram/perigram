@@ -80,6 +80,6 @@ Service seam: `list`, `getById`, `create`, `update`, `remove`.
 
 ## Related
 
-- [The save affordance and the lens rendering](../../../components/ui-mapping/README.md) — the collection header's view popover saves the current state; a provided view state renders the lens.
+- [The view tabs and lens rendering](../../../components/ui-mapping/README.md) — the collection header lists the type's saved views as tabs and saves the current state; a provided view state renders the lens.
 - [The page view embed](../../../components/generated/README.md) — the fence grammar and the live region composition.
 - [The views store](../../../stores/README.md) — the client transport.
