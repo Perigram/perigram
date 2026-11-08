@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { composeScreen, buildInstancePool } from './screen.js';
+import { composeScreen, buildInstancePool, recordChildSectionKey, composeDocumentSections } from './screen.js';
 import { incomingChildrenEdges, parentRefOf } from './index.js';
 
 const bundle = {
@@ -626,5 +626,50 @@ describe('screen composition', () => {
     expect(controls.sortKeys.map(key => key.name)).toEqual(['size']);
     expect(controls.searchKeys).toEqual(['name']);
     expect(controls.pagination.rows).toBe(10);
+  });
+});
+
+describe('record document sections (SPEC §26 overlays)', () => {
+  const DECLARED = ['properties', 'editor', 'relation:linked', 'children:t-part'];
+
+  it('keys child regions by relation, lineage key, then child type', () => {
+    expect(recordChildSectionKey({ relationKey: 'linked' })).toBe('relation:linked');
+    expect(recordChildSectionKey({ lineageKey: 'documents' })).toBe('children:documents');
+    expect(recordChildSectionKey({ typeId: 't-part' })).toBe('children:t-part');
+  });
+
+  it('leaves the derivation order untouched without an overlay', () => {
+    expect(composeDocumentSections(DECLARED, null))
+      .toEqual(DECLARED.map(key => ({ key, block: null })));
+  });
+
+  it('applies the authored order, interleaving custom blocks with declared keys', () => {
+    const overlay = {
+      blocks: [{ id: 'b1', kind: 'text', text: 'Notes' }],
+      order: ['b1', 'editor', 'properties']
+    };
+    expect(composeDocumentSections(DECLARED, overlay).map(section => section.key))
+      .toEqual(['b1', 'editor', 'properties', 'relation:linked', 'children:t-part']);
+    expect(composeDocumentSections(DECLARED, overlay)[0].block).toEqual({ id: 'b1', kind: 'text', text: 'Notes' });
+  });
+
+  it('declared content never deletes: unknown order keys drop, missing declared keys append in derivation order', () => {
+    const overlay = {
+      blocks: [],
+      // 'relation:gone' addresses no current section; 'properties' is
+      // absent from the order entirely.
+      order: ['relation:gone', 'editor']
+    };
+    expect(composeDocumentSections(DECLARED, overlay).map(section => section.key))
+      .toEqual(['editor', 'properties', 'relation:linked', 'children:t-part']);
+  });
+
+  it('appends a stored block its order omits', () => {
+    const overlay = {
+      blocks: [{ id: 'b2', kind: 'view', view: { id: 'v', name: 'Walls' } }],
+      order: ['editor']
+    };
+    expect(composeDocumentSections(DECLARED, overlay).map(section => section.key))
+      .toEqual(['editor', 'properties', 'relation:linked', 'children:t-part', 'b2']);
   });
 });
