@@ -1,12 +1,18 @@
 import { iconFontGlyphs } from '#shared/icon-fonts.js';
+import { primeiconGlyphs } from '#shared/primeicons.js';
 
-const CURATED = Object.freeze([
-  'pi pi-users', 'pi pi-file', 'pi pi-box', 'pi pi-folder', 'pi pi-cog',
-  'pi pi-image', 'pi pi-tag', 'pi pi-map-marker', 'pi pi-calendar', 'pi pi-book'
-]);
+function glyphOption(value) {
+  const className = value.split(/\s+/).at(-1);
+  const label = className
+    .replace(/^pi-/, '')
+    .replace(/^ck-entity-icon-/, '')
+    .replace(/^ck-file-type-icon-/, '')
+    .replace(/-/g, ' ');
+  return { value, label, search: `${label} ${value}`.toLowerCase() };
+}
 
 export const classGlyphOptions = Object.freeze([
-  { label: '', value: '' },
-  ...CURATED.map(value => ({ label: value, value })),
-  ...iconFontGlyphs.map(value => ({ label: value, value }))
+  { value: '', label: '', search: '' },
+  ...primeiconGlyphs.map(glyphOption),
+  ...iconFontGlyphs.map(glyphOption)
 ]);

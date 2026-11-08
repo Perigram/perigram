@@ -36,13 +36,10 @@
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-label text-muted">{{ $t('processDesigner.stateIcon') }}</label>
-        <InputText
+        <GlyphSelect
           :model-value="icon || ''"
-          size="small"
-          class="w-full"
-          :placeholder="$t('processDesigner.stateIcon')"
           :aria-label="$t('processDesigner.stateIcon')"
-          @update:model-value="next => emit('update:icon', String(next || '').trim())"
+          @update:model-value="next => emit('update:icon', next)"
         />
       </div>
     </div>
@@ -54,6 +51,7 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
+import GlyphSelect from '~/components/type-designer/GlyphSelect.vue';
 import { stateSeverityOptions } from '~/components/type-designer/state-severities.js';
 
 defineProps({

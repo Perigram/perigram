@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 // Icon-font drift guard: every `ck-*` glyph class a mounted pack type
 // declares must resolve to a rule in the generated font blocks of
@@ -45,5 +45,14 @@ describe('Icon font glyph coverage', () => {
     const moduleGlyphClasses = iconFontGlyphs.map(glyph => glyph.split(/\s+/)[1]);
     expect(cssGlyphClasses.sort(), 'the CSS carries glyph classes the palette module does not list')
       .toEqual(moduleGlyphClasses.sort());
+  });
+
+  it('lists every PrimeIcons glyph the installed package ships', async () => {
+    const { primeiconGlyphs } = await import('../shared/primeicons.js');
+    const expected = readdirSync('node_modules/primeicons/raw-svg')
+      .filter(file => file.endsWith('.svg'))
+      .map(file => `pi pi-${file.slice(0, -'.svg'.length)}`)
+      .sort();
+    expect(primeiconGlyphs).toEqual(expected);
   });
 });

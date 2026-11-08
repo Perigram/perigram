@@ -33,17 +33,11 @@
     </div>
     <div class="col-span-2 flex items-center gap-2 sm:col-span-1 sm:block">
       <span class="text-label text-muted sm:hidden">{{ $t('processDesigner.stateIcon') }}</span>
-      <IconField class="w-full">
-        <InputIcon v-if="icon" :class="icon" aria-hidden="true" />
-        <InputText
-          :model-value="icon || ''"
-          size="small"
-          class="w-full"
-          :placeholder="$t('processDesigner.stateIcon')"
-          :aria-label="$t('processDesigner.stateIcon')"
-          @update:model-value="next => emit('update:icon', String(next || '').trim())"
-        />
-      </IconField>
+      <GlyphSelect
+        :model-value="icon || ''"
+        :aria-label="$t('processDesigner.stateIcon')"
+        @update:model-value="next => emit('update:icon', next)"
+      />
     </div>
     <Button
       icon="pi pi-trash"
@@ -61,10 +55,9 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
-import IconField from 'primevue/iconfield';
-import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
+import GlyphSelect from '~/components/type-designer/GlyphSelect.vue';
 import { stateSeverityOptions } from '~/components/type-designer/state-severities.js';
 
 defineProps({
