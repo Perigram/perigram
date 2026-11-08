@@ -140,6 +140,16 @@ describe('useRecordOverlaySession', () => {
     expect(id).toBeTruthy();
   });
 
+  it('appends the trailing line text as a block', () => {
+    savedOverlay.value = null;
+    const s = session();
+    s.syncFlow(['properties'], ['properties']);
+    s.appendTextBlock('Bottom note');
+    expect(s.applied.blocks).toHaveLength(1);
+    expect(s.applied.blocks[0].text).toBe('Bottom note');
+    expect(s.applied.order).toEqual(['properties', s.applied.blocks[0].id]);
+  });
+
   it('a real draft saves the composed document', async () => {
     savedOverlay.value = null;
     const s = session();

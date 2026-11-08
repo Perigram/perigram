@@ -276,6 +276,7 @@ onMounted(async () => {
   editorEnterKey = event => {
     if (!props.splitOnEnter || event.key !== 'Enter'
       || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (document.querySelector('.md-slash-menu[data-show="true"]')) return;
     if (!crepe || !editorViewCtx) return;
     let split = false;
     crepe.editor.action(ctx => {

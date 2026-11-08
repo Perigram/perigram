@@ -372,22 +372,9 @@
             v-on="childrenEvents"
             :arrangement="node.childArrangement"
           />
-          <!-- The document's trailing line (SPEC §26): always present and
-               type-ready for writers; a click starts the next text block. -->
-          <div v-if="recordOverlaySession" class="group/ck-doc-foot relative flex min-h-8 items-center">
-            <OverlayInsertControl
-              class="absolute -left-14 top-0 opacity-0 transition-opacity group-hover/ck-doc-foot:opacity-100 focus-within:opacity-100"
-              :session="recordOverlaySession"
-              :at="recordOverlaySession.flowCount"
-            />
-            <button
-              type="button"
-              class="min-h-8 w-full cursor-text py-1 text-left text-muted text-supporting"
-              @click="startTrailingBlock"
-            >
-              {{ $t('editors.slashHint') }}
-            </button>
-          </div>
+          <!-- The document's trailing line (SPEC §26): a real inline
+               engine mount, empty and type-ready for writers. -->
+          <TrailingTextBlock v-if="recordOverlaySession" :session="recordOverlaySession" />
         </template>
       </template>
     </template>
@@ -467,6 +454,7 @@ import ActionButton from './ActionButton.vue';
 import DocumentSectionShell from './DocumentSectionShell.vue';
 import OverlayInsertControl from './OverlayInsertControl.vue';
 import OverlayTextBlock from '~/components/generated/OverlayTextBlock.vue';
+import TrailingTextBlock from '~/components/generated/TrailingTextBlock.vue';
 import ViewEmbed from '~/components/generated/ViewEmbed.vue';
 import ViewPickerDialog from '~/components/generated/ViewPickerDialog.vue';
 const props = defineProps({
@@ -638,11 +626,6 @@ if (import.meta.client) {
 // body as today.
 const documentComposing = computed(() => recordOverlayHost.value
   && Boolean(recordOverlaySaved.value || recordOverlaySession.value));
-function startTrailingBlock() {
-  if (!recordOverlaySession.value) return;
-  recordOverlaySession.value.insertText(recordOverlaySession.value.flowCount);
-}
-
 async function saveOverlay() {
   try {
     await recordOverlay.save();

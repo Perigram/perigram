@@ -112,6 +112,12 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     insertText(index + 1, initialBlock);
   }
 
+  function appendTextBlock(text) {
+    const value = String(text || '');
+    if (!value.trim() || !ensureDraft()) return null;
+    return insertBlock({ id: blockId(), kind: 'text', text: value }, draftOrder.value.length);
+  }
+
   function openViewPicker(at) {
     if (!ensureDraft()) return;
     viewPickerAt.value = at;
@@ -182,6 +188,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     moveToIndex,
     insertText,
     insertTextAfter,
+    appendTextBlock,
     openViewPicker,
     pickView,
     closeViewPicker: () => { viewPickerAt.value = null; },
