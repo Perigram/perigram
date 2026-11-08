@@ -36,6 +36,7 @@
       ref="editor"
       :default-value="pagesStore.contents[docId] || ''"
       :placeholder="t('editors.slashHint')"
+      show-source-markers
       @ready="editorReady = true"
       @update="onMarkdown"
       @pick-view="insert => openFencePicker(insert)"

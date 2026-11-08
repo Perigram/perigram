@@ -7,10 +7,11 @@ import { focusedMarkerDescriptors, selectionState } from './source-markers.js';
 // and reports the selection state to the toolbar. Widgets never enter
 // the clipboard — prosemirror serializes copies from the document
 // schema, decorations are view-only.
-export function createSourceMarkersPlugin({ onSelectionState = null } = {}) {
+export function createSourceMarkersPlugin({ onSelectionState = null, markers = true } = {}) {
   return new Plugin({
     props: {
       decorations(state) {
+        if (!markers) return null;
         const widgets = focusedMarkerDescriptors(state).map(({ pos, side, text }) =>
           Decoration.widget(pos, buildMarker(text), { side })
         );

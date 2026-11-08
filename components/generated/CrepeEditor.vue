@@ -59,7 +59,10 @@ const props = defineProps({
   initialPoint: { type: Object, default: null },
   // Enter at the end of the block emits `enter`; the host starts the
   // next document block (the Notion block break).
-  splitOnEnter: { type: Boolean, default: false }
+  splitOnEnter: { type: Boolean, default: false },
+  // The live-source markers are page-editor signage; in-place document
+  // blocks render their content without marker glyphs.
+  showSourceMarkers: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['update', 'pick-view', 'ready', 'enter']);
@@ -211,7 +214,8 @@ onMounted(async () => {
     }
   });
   crepe.editor.use($prose(() => createSourceMarkersPlugin({
-    onSelectionState: next => { blockState.value = next; }
+    onSelectionState: next => { blockState.value = next; },
+    markers: props.showSourceMarkers
   })));
   slashMenu = createSlashMenu({
     items: vocabulary.BLOCK_VOCABULARY.map(({ id, labelKey, glyph, glyphText, match }) => ({ id, label: t(labelKey), glyph, glyphText, match })),
