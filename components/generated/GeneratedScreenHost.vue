@@ -25,6 +25,7 @@
     :on-open="openInstance"
     :navigation="navigation"
     :expandable="expandable"
+    :keep-empty-lists="keepEmptyLists"
     :export-actions="exportActionsByType"
     @instance-mounted="loadRuntimeTransitions"
     @expand="emit('expand')"
@@ -113,7 +114,10 @@ const props = defineProps({
   // page chrome, `peek` its compact identity line over the body.
   presentation: { type: String, default: 'record' },
   // Host-selected step-up affordance on the depth-0 record header.
-  expandable: { type: Boolean, default: false }
+  expandable: { type: Boolean, default: false },
+  // Keep an empty list section in the arrangement with its header and
+  // empty state (the class page's own collection).
+  keepEmptyLists: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['open-instance', 'refresh', 'expand']);

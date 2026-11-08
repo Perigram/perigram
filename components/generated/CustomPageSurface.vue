@@ -38,6 +38,7 @@
         v-if="classListScreen"
         :screen="classListScreen"
         class="mb-6"
+        keep-empty-lists
         @open-instance="openClassInstance"
       />
       <!-- The read presentation is the host markdown pipeline; the live

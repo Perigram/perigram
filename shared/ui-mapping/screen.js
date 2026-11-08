@@ -330,7 +330,8 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
   // leaves the arrangement and renders as a compact stub below it;
   // loading, denied, and error sections keep their state surfaces in the
   // ladder.
-  const inertSection = region => region.surfaceKind === 'list' && region.instances.length === 0
+  const inertSection = region => !options.keepEmptyLists
+    && region.surfaceKind === 'list' && region.instances.length === 0
     && region.dataState === 'empty';
   const activeRegions = composed.filter(region => !inertSection(region));
   const stubRegions = composed.filter(inertSection);

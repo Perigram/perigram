@@ -141,13 +141,18 @@ const props = defineProps({
   // title bar); the list header label stays with the host.
   // Explicit rhythm coefficient (the design-lab slider); null rides the
   // derived system.
-  spacingScale: { type: Number, default: null }
+  spacingScale: { type: Number, default: null },
+  // A host whose empty collection is the surface's own content (the class
+  // page) keeps the list section in the arrangement with its header and
+  // empty state; every other host renders it as a stub.
+  keepEmptyLists: { type: Boolean, default: false }
 });
 
 const pool = computed(() => buildInstancePool(props.instances));
 const composed = computed(() => composeScreen(props.screen, props.contract, props.bundle, pool.value, {
   sourceStates: props.sourceStates || null,
-  presentation: props.presentation
+  presentation: props.presentation,
+  keepEmptyLists: props.keepEmptyLists
 }));
 // Context- and data-aware rhythm (SPEC → Container traits, density): the
 // host record's density tier tightened for heavy screens; an explicit

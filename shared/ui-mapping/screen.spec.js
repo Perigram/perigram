@@ -347,6 +347,10 @@ describe('screen composition', () => {
     expect(emptyPool.stubRegions[0].dataState).toBe('empty');
     expect(emptyPool.regions[0].dataState).toBe('missing');
 
+    const keptEmptyList = composeScreen(screen, contract, bundle, {}, { keepEmptyLists: true });
+    expect(keptEmptyList.regions[0].dataState).toBe('empty');
+    expect(keptEmptyList.stubRegions).toEqual([]);
+
     const loading = composeScreen(screen, contract, bundle, {}, { sourceStates: { widget: 'loading', detail: 'denied' } });
     expect(loading.regions[0].dataState).toBe('loading');
     expect(loading.regions[1].dataState).toBe('denied');
