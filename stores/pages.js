@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { removeViewEmbeds } from '#shared/markdown.js';
 
 // The organization's custom pages and sidebar sections (SPEC §26): the
 // tree projection over `/api/pages` plus per-document content loads.
@@ -53,15 +54,17 @@ export const usePagesStore = defineStore('pages', {
         if (!(String(existing._id) in this.contents)) {
           await this.loadContent(existing._id).catch(() => null);
         }
+        const content = this.contents[String(existing._id)] || '';
+        const cleaned = removeViewEmbeds(content, ref => ref.typeId === String(typeId));
+        if (cleaned !== content) await this.saveContent(existing._id, cleaned).catch(() => null);
         return existing;
       }
-      const content = `\`\`\`view\n${JSON.stringify({ typeId: String(typeId), name })}\n\`\`\`\n`;
       const page = await $fetch('/api/pages', {
         method: 'POST',
-        body: { name, classTypeId: String(typeId), content }
+        body: { name, classTypeId: String(typeId) }
       });
       this.upsert(page);
-      this.contents = { ...this.contents, [String(page._id)]: page.content ?? content };
+      this.contents = { ...this.contents, [String(page._id)]: page.content || '' };
       return page;
     },
     async createSection() {

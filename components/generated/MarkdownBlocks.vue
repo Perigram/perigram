@@ -7,7 +7,6 @@
           :view-id="block.id || ''"
           :type-id="block.typeId || ''"
           :fallback-name="block.name"
-          :class-type-id="classTypeId"
         />
       </div>
     </template>
@@ -40,10 +39,7 @@ import ViewEmbed from './ViewEmbed.vue';
 import { fileRefDescriptor } from '~/utils/file-refs.js';
 
 const props = defineProps({
-  source: { type: String, default: '' },
-  // The class page's class id: its collection fence mounts the class's
-  // compiled list screen.
-  classTypeId: { type: String, default: '' }
+  source: { type: String, default: '' }
 });
 
 const root = ref(null);

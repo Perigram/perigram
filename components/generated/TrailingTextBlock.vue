@@ -1,5 +1,5 @@
 <template>
-  <div v-if="session?.writable && !session.editingBlockId" class="ck-doc-tail min-h-6">
+  <div v-if="session?.writable && !session.editingBlockId && !session.activeBlockId" class="ck-doc-tail min-h-6">
     <CrepeEditor
       :key="editorKey"
       ref="editor"

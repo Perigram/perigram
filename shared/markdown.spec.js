@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderMarkdown, parseViewRef, splitViewEmbeds, parseInstanceHref, instanceHref } from './markdown.js';
+import { renderMarkdown, parseViewRef, splitViewEmbeds, removeViewEmbeds, parseInstanceHref, instanceHref } from './markdown.js';
 
 // The markdown document contract: one render pipeline shared by the
 // source editor and the read viewer — the text preview mode is markdown
@@ -67,5 +67,16 @@ describe('splitViewEmbeds', () => {
 
   it('returns no blocks for an empty document', () => {
     expect(splitViewEmbeds('')).toEqual([]);
+  });
+});
+
+describe('removeViewEmbeds', () => {
+  const fence = (typeId, name) => '```view\n' + JSON.stringify({ typeId, name }) + '\n```';
+
+  it('strips the fences a predicate matches and keeps the rest', () => {
+    const source = `# Notes\n\n${fence('class-type', 'Widgets')}\n\nafter\n`;
+    expect(removeViewEmbeds(source, ref => ref.typeId === 'class-type'))
+      .toBe('# Notes\n\nafter\n');
+    expect(removeViewEmbeds(source, ref => ref.typeId === 'other')).toBe(source);
   });
 });

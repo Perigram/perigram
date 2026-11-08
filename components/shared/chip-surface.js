@@ -2,5 +2,5 @@
 // app renders — file chips, instance chips, card identity chips — rides
 // the same truncating label passthrough and the bordered chip classes.
 export const CHIP_LABEL_PT = Object.freeze({ label: { class: 'truncate' } });
-export const FILE_CHIP_CLASS = 'min-w-0 max-w-full border border-content-border bg-subtle text-supporting';
-export const INSTANCE_CHIP_CLASS = 'min-w-0 max-w-full border border-content-border bg-transparent text-supporting';
+export const FILE_CHIP_CLASS = 'min-w-0 max-w-full border border-content-border bg-subtle text-supporting !px-2 !py-0.5 align-middle';
+export const INSTANCE_CHIP_CLASS = 'min-w-0 max-w-full border border-content-border bg-transparent text-supporting !px-2 !py-0.5 align-middle';

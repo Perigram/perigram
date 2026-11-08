@@ -57,6 +57,20 @@ export function splitViewEmbeds(source = '') {
   return blocks;
 }
 
+// Remove view fences matching a ref predicate: the page migration seam
+// that moves a seeded collection out of the document.
+export function removeViewEmbeds(source = '', matches = () => false) {
+  let text = '';
+  for (const token of marked.lexer(String(source || ''))) {
+    if (token.type === 'code' && String(token.lang || '').trim() === 'view') {
+      const ref = parseViewRef(token.text);
+      if (ref && matches(ref)) continue;
+    }
+    text += token.raw;
+  }
+  return text.replace(/\n{3,}/g, '\n\n');
+}
+
 const escapeHtml = (value = '') => String(value)
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')

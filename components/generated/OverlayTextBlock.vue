@@ -2,6 +2,8 @@
   <div
     ref="root"
     :class="session?.writable ? 'cursor-text' : ''"
+    @focusin="session?.activateBlock?.(block.id)"
+    @focusout="onFocusOut"
     @keydown.esc.stop.prevent="closeEditor"
     @keydown.meta.enter.stop.prevent="closeEditor"
     @keydown.ctrl.enter.stop.prevent="closeEditor"
@@ -24,7 +26,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import CrepeEditor from './CrepeEditor.vue';
 import MarkdownBlocks from './MarkdownBlocks.vue';
 
@@ -39,12 +41,26 @@ const root = ref(null);
 const editor = ref(null);
 const initialBlock = computed(() => (props.session?.initialBlockFor?.(props.block.id) || ''));
 
-function onEditorReady() {
-  if (props.session?.editingBlockId !== props.block.id) return;
+function focusEditor() {
   nextTick(() => {
-    editor.value?.focus?.();
+    editor.value?.focusEnd?.();
     root.value?.scrollIntoView?.({ block: 'nearest' });
   });
+}
+
+function onEditorReady() {
+  if (props.session?.editingBlockId !== props.block.id) return;
+  focusEditor();
+}
+
+watch(
+  () => props.session?.editingBlockId,
+  id => { if (id === props.block.id) focusEditor(); }
+);
+
+function onFocusOut(event) {
+  if (root.value?.contains?.(event.relatedTarget)) return;
+  props.session?.deactivateBlock?.(props.block.id);
 }
 
 function insertAfter() {
@@ -57,5 +73,7 @@ function deleteBlock() {
 
 function closeEditor() {
   props.session?.closeEditor?.();
+  props.session?.deactivateBlock?.(props.block.id);
+  root.value?.querySelector?.('.ProseMirror')?.blur?.();
 }
 </script>

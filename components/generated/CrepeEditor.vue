@@ -2,7 +2,7 @@
   <div
     ref="editorHost"
     v-bind="$attrs"
-    class="crepe-host text-prose min-h-0 flex-1 overflow-y-auto"
+    :class="scroll ? 'crepe-host text-prose min-h-0 flex-1 overflow-y-auto' : 'crepe-host text-prose min-h-0'"
   />
   <span ref="caretAnchor" class="pointer-events-none fixed h-0 w-0" aria-hidden="true" />
   <Popover ref="addressPopover">
@@ -92,9 +92,9 @@ const props = defineProps({
   showSourceMarkers: { type: Boolean, default: false },
   // Backspace in an empty document block removes the block.
   deleteOnEmptyBackspace: { type: Boolean, default: false },
-  // A class page's class id: its collection fence mounts the class's
-  // compiled list screen.
-  classTypeId: { type: String, default: '' }
+  // The engine owns the scroll column; embedded document hosts provide
+  // the page scroll and mount the engine flush.
+  scroll: { type: Boolean, default: true }
 });
 
 const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty']);
@@ -157,6 +157,19 @@ function focus(point = null) {
     const hit = view.posAtCoords({ left: point.x, top: point.y });
     const at = hit ? hit.pos : view.state.doc.content.size;
     view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(at))));
+  });
+}
+
+function focusEnd() {
+  if (!crepe) {
+    editorHost.value?.querySelector('.ProseMirror')?.focus();
+    return;
+  }
+  withView(view => {
+    view.focus();
+    if (!TextSelection) return;
+    const end = view.state.doc.content.size;
+    view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(end))));
   });
 }
 
@@ -288,8 +301,7 @@ function liveViewPreview(content) {
   const vnode = h(ViewEmbed, {
     viewId: ref.id || '',
     typeId: ref.typeId || '',
-    fallbackName: ref.name || '',
-    classTypeId: props.classTypeId
+    fallbackName: ref.name || ''
   });
   vnode.appContext = appContext;
   render(vnode, host);
@@ -489,5 +501,5 @@ function getMarkdown() {
   return markdownValue();
 }
 
-defineExpose({ focus, getMarkdown });
+defineExpose({ focus, focusEnd, getMarkdown });
 </script>

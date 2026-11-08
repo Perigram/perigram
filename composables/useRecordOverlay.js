@@ -22,6 +22,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
   const saving = ref(false);
   const editingBlockId = ref(null);
   const editingInitialBlock = ref('');
+  const activeBlockId = ref(null);
   const dragKey = ref(null);
   const viewPickerAt = ref(null);
   // The render site reports the composed flow and the natural derivation
@@ -142,6 +143,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
       editingBlockId.value = null;
       editingInitialBlock.value = '';
     }
+    if (activeBlockId.value === id) activeBlockId.value = null;
   }
 
   function removeEmptyBlock(id) {
@@ -204,6 +206,9 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     saving,
     flowCount: computed(() => flowKeys.value.length),
     editingBlockId: computed(() => editingBlockId.value),
+    activeBlockId: computed(() => activeBlockId.value),
+    activateBlock: id => { activeBlockId.value = id; },
+    deactivateBlock: id => { if (activeBlockId.value === id) activeBlockId.value = null; },
     initialBlockFor: id => (editingBlockId.value === id ? editingInitialBlock.value : ''),
     dragKey: computed(() => dragKey.value),
     beginDrag: key => { dragKey.value = key; },
