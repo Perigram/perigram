@@ -203,18 +203,21 @@ application.
   headings, lists, to-do, quote, callout, code, image, diagram, divider,
   table, collection view; a text entry inserts a text block opened at
   that kind, the callout inserts an empty blockquote, and the
-  collection-view entry opens the picker over the organization's saved
-  views and embeddable collections. The drag handle opens the section
-  menu (move up/down; custom blocks also delete) and drags to reorder;
-  the drop target paints a floating line above the section. Sections
-  reorder by dragging the handle and by the handle's keyboard arrows.
-  Declared sections reorder alone; custom blocks also edit and delete.
-  A text block is seamless document content: click mounts the engine
-  inline at the click point (crepe's page chrome stripped through
-  `ck-inline-editor`), Escape or Cmd/Ctrl+Enter closes it, and Enter at
-  the block's end starts the next block. The engine scrolls the block
-  into view on mount. The document's foot strip inserts at the end. The
-  record's own field edits
+  collection-view entry opens the type containment tree. The drag
+  handle opens the section menu (move up/down; custom blocks also
+  delete) and drags to reorder; the drop target paints a floating line
+  above the section. Sections reorder by dragging the handle and by the
+  handle's keyboard arrows. Declared sections reorder alone; custom
+  blocks also edit and delete. A text block is seamless document
+  content: click mounts the engine inline at the click point (crepe's
+  page chrome stripped through `ck-inline-editor`), Escape or
+  Cmd/Ctrl+Enter closes it, and Enter at the block's end starts the
+  next block. The engine scrolls the block into view on mount. Inline
+  instance references ride the text as `#instance:` links rendered as
+  chips; the Instance entry opens the instance picker at the caret. The
+  document's trailing line is always present and type-ready for
+  writers; its first keystroke starts the next block. The record's own
+  field edits
   stay on the inline-pencil channel. User space autosaves: a dirty
   overlay writes itself after 1.5s idle through the same save seam
   (registered on the workspace page-dirty registry) and keeps the open

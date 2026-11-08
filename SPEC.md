@@ -1470,6 +1470,12 @@ same entries, the gutter reserves its lane outside the content, and the
 drag handle is a six-dot grip. Collection headers carry their views as
 tabs: the derived layout, the type's saved views, and add view.
 
+Writers always have a trailing type-ready line; its first keystroke
+starts the next block. Text blocks accept inline instance references,
+stored as `#instance:` links and rendered as chips. The collection-view
+picker is the type containment tree, with saved views living in the
+header tabs.
+
 The AI block is ask/answer: the organization's assistant answers in
 place under the opener's delegated principal, rendered as markdown,
 persisted with the page; re-asking re-runs it.
