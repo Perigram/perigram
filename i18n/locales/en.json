@@ -2080,7 +2080,9 @@
         "moveSection": "Move section",
         "sectionActions": "Section actions",
         "addViewBlock": "Add view",
-        "slashHint": "Type '/' for commands"
+        "slashHint": "Type '/' for commands",
+        "fields": "Fields",
+        "collectionActions": "Collection actions"
     },
     "uiConstructor": {
         "title": "UI Constructor Demo",

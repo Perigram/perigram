@@ -525,6 +525,7 @@ const staticBoundarySpecs = new Set([
   'components/generated/project-workspace.spec.js',
   'components/generated/project-file-operations.spec.js',
   'components/chat/record-comments.spec.js',
+  'components/generated/workspace-pane-identity.spec.js',
 ]);
 const specFiles = walkDir('.').filter(file => file.endsWith('.spec.js') && !file.includes('node_modules'));
 specFiles.forEach(file => {

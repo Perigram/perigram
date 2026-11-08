@@ -68,6 +68,33 @@ export function storeProjectionPreference(scope = '', projection = '') {
   writeScoped(PROJECTION_PREFIX + scope, projection);
 }
 
+// --- Field selection --------------------------------------------------------
+
+// The user's explicit column set per collection scope (SPEC §26 view
+// setup): the keys a view shows; absent means the derived budget decides.
+const FIELDS_PREFIX = 'perigram:fields:';
+
+export function loadFieldPreference(scope = '') {
+  const raw = readScoped(FIELDS_PREFIX + scope);
+  if (raw === null) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.every(key => typeof key === 'string')
+      ? parsed
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export function storeFieldPreference(scope = '', keys = null) {
+  if (!Array.isArray(keys)) {
+    writeScoped(FIELDS_PREFIX + scope, null);
+    return;
+  }
+  writeScoped(FIELDS_PREFIX + scope, JSON.stringify(keys));
+}
+
 // --- Filter trees -----------------------------------------------------------
 
 // The user's composed filter tree per collection scope. Stored trees

@@ -23,9 +23,19 @@
         <Tag v-if="showSurfaces && hasInstances" class="shrink-0" :value="String(node.instances.length)" severity="secondary" />
       </div>
       <div
-        v-if="createControls.length || linkControls.length || viewToggleAvailable"
+        v-if="createControls.length || linkControls.length || viewToggleAvailable || searchToggleAvailable"
         class="flex shrink-0 flex-wrap items-center justify-end gap-2"
       >
+        <IconField v-if="searchToggleAvailable" class="w-40">
+          <InputIcon class="pi pi-search" />
+          <InputText
+            v-model="search"
+            size="small"
+            class="w-full"
+            :placeholder="$t('uiMapping.searchPlaceholder')"
+            :aria-label="$t('uiMapping.searchPlaceholder')"
+          />
+        </IconField>
         <Button
           v-if="viewToggleAvailable"
           icon="pi pi-sliders-h"
@@ -38,16 +48,6 @@
         />
         <Popover ref="viewPopover">
           <div class="flex w-72 flex-col gap-3">
-            <IconField v-if="searchToggleAvailable">
-              <InputIcon class="pi pi-search" />
-              <InputText
-                v-model="search"
-                size="small"
-                class="w-full"
-                :placeholder="$t('uiMapping.searchPlaceholder')"
-                :aria-label="$t('uiMapping.searchPlaceholder')"
-              />
-            </IconField>
             <FilterBuilder
               v-if="facetsToggleAvailable"
               :model-value="builderFilter"
@@ -74,6 +74,25 @@
               @update:model-value="value => (sortName = value)"
               @update:order="value => (sortOrder = value)"
             />
+            <div v-if="fieldOptions.length" class="flex flex-col gap-2">
+              <span :class="LAYOUT.sectionTitle">{{ $t('uiMapping.fields') }}</span>
+              <div class="flex flex-col gap-1">
+                <div
+                  v-for="field in fieldOptions"
+                  :key="field.name"
+                  class="flex items-center gap-2"
+                >
+                  <Checkbox
+                    :model-value="fieldChecked(field.name)"
+                    binary
+                    size="small"
+                    :input-id="`view-field-${field.name}`"
+                    @update:model-value="toggleField(field.name)"
+                  />
+                  <label :for="`view-field-${field.name}`" class="text-label">{{ field.label }}</label>
+                </div>
+              </div>
+            </div>
             <Button
               v-if="saveViewAvailable"
               :label="$t('uiMapping.saveView')"
@@ -86,22 +105,56 @@
             />
           </div>
         </Popover>
-        <CreateControl
-          v-for="control in createControls"
-          :key="control.action.id"
-          :action="control.action"
-          :group="control.group"
-          :state-policy="node.statePolicy"
-          @run="emitRun"
-        />
-        <ActionButton
-          v-for="action in linkControls"
-          :key="`link:${action.id}`"
-          :action="action"
-          :state-policy="node.statePolicy"
-          :label="sectionLinkLabel(action)"
-          @run="emitRun"
-        />
+        <template v-if="recordDocument">
+          <Button
+            v-if="createControls.length || linkControls.length"
+            icon="pi pi-plus"
+            size="small"
+            severity="secondary"
+            outlined
+            :aria-label="$t('uiMapping.collectionActions')"
+            :title="$t('uiMapping.collectionActions')"
+            @click="event => controlsPopover?.toggle(event)"
+          />
+          <Popover ref="controlsPopover">
+            <div class="flex w-56 flex-col items-stretch gap-1">
+              <CreateControl
+                v-for="control in createControls"
+                :key="control.action.id"
+                :action="control.action"
+                :group="control.group"
+                :state-policy="node.statePolicy"
+                @run="emitRun"
+              />
+              <ActionButton
+                v-for="action in linkControls"
+                :key="`link:${action.id}`"
+                :action="action"
+                :state-policy="node.statePolicy"
+                :label="sectionLinkLabel(action)"
+                @run="emitRun"
+              />
+            </div>
+          </Popover>
+        </template>
+        <template v-else>
+          <CreateControl
+            v-for="control in createControls"
+            :key="control.action.id"
+            :action="control.action"
+            :group="control.group"
+            :state-policy="node.statePolicy"
+            @run="emitRun"
+          />
+          <ActionButton
+            v-for="action in linkControls"
+            :key="`link:${action.id}`"
+            :action="action"
+            :state-policy="node.statePolicy"
+            :label="sectionLinkLabel(action)"
+            @run="emitRun"
+          />
+        </template>
       </div>
     </div>
     <RegionDataState v-if="showState" :node="node" />
@@ -114,7 +167,7 @@
     />
     <div v-if="showSurfaces" :class="[embeddedStack, 'relative']">
       <RegionCollections
-        :node="node"
+        :node="collectionsNode"
         :list-layout="listLayout"
         :filtered-instances="filteredInstances"
         :sorted-instances="sortedInstances"
@@ -336,6 +389,7 @@ import { useI18n } from 'vue-i18n';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
+import Checkbox from 'primevue/checkbox';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
@@ -349,7 +403,7 @@ import {
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter, countPredicates } from '#shared/instance-filters/index.js';
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
-import { loadSortPreference, storeSortPreference, loadProjectionPreference, storeProjectionPreference, loadFilterViewState, storeFilterViewState } from '~/utils/ui-view-state.js';
+import { loadSortPreference, storeSortPreference, loadProjectionPreference, storeProjectionPreference, loadFilterViewState, storeFilterViewState, loadFieldPreference, storeFieldPreference } from '~/utils/ui-view-state.js';
 import { normalizeFilter } from '#shared/instance-filters/index.js';
 import { useViewsStore } from '~/stores/views';
 import SurfaceBody from './SurfaceBody.vue';
@@ -818,6 +872,42 @@ watch(() => props.node.id, () => {
   search.value = savedViewState.value?.search || '';
 });
 const viewPopover = ref();
+const controlsPopover = ref();
+
+// View setup's field selection (SPEC §26): the user's explicit column
+// set per type, derived when absent.
+const fieldsScope = computed(() => `fields:${props.node.typeId || ''}`);
+const viewFields = ref(loadFieldPreference(fieldsScope.value));
+watch(fieldsScope, () => {
+  viewFields.value = loadFieldPreference(fieldsScope.value);
+});
+const fieldOptions = computed(() => (props.node.listControls?.sortKeys || [])
+  .map(key => ({ name: key.name, label: key.label })));
+const seededFields = computed(() => viewFields.value
+  ?? fieldOptions.value.map(field => field.name));
+function fieldChecked(name) {
+  return seededFields.value.includes(name);
+}
+function toggleField(name) {
+  const next = new Set(seededFields.value);
+  if (next.has(name)) next.delete(name);
+  else next.add(name);
+  const all = fieldOptions.value.length;
+  viewFields.value = next.size === all ? null : [...next];
+  storeFieldPreference(fieldsScope.value, viewFields.value);
+}
+const collectionsNode = computed(() => {
+  if (!viewFields.value || !props.node.listControls) return props.node;
+  const keys = new Set(viewFields.value);
+  return {
+    ...props.node,
+    listControls: {
+      ...props.node.listControls,
+      sortKeys: (props.node.listControls.sortKeys || []).filter(key => keys.has(key.name))
+    }
+  };
+});
+
 const viewToggleAvailable = computed(() => searchToggleAvailable.value
   || facetsToggleAvailable.value
   || projectionSwitchable.value

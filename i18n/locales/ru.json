@@ -2080,7 +2080,9 @@
         "moveSection": "Переместить раздел",
         "sectionActions": "Действия раздела",
         "addViewBlock": "Добавить вид",
-        "slashHint": "Введите '/' для команд"
+        "slashHint": "Введите '/' для команд",
+        "fields": "Поля",
+        "collectionActions": "Действия коллекции"
     },
     "uiConstructor": {
         "title": "Демо UI-конструктора",
