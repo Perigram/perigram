@@ -38,7 +38,11 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   `shared/icon-fonts.js` — the generated authoring palette listing every
   glyph class string the families offer (the process designer's
   declaration glyph row consumes it; glyph vocabulary never requires a
-  pack type of its own). The consumers are type `glyph` declarations: the packs'
+  pack type of its own). The script also generates
+  `shared/primeicons.js` from `node_modules/primeicons/raw-svg`; that
+  list is the other half of the declaration glyph picker's searchable
+  palette. `--palette-only` refreshes the PrimeIcons list without
+  rebuilding the fonts. The consumers are type `glyph` declarations: the packs'
   file types carry `ck-file-type-icon ck-file-type-icon-<typeId>`, and
   the facade plugin's listing (`workers/facade/listing.json`) carries
   `ck-entity-icon ck-entity-icon-<name>` — both consumed exactly like a

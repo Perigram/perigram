@@ -49,7 +49,7 @@ The sidebar's New class action creates a class.
 | Children | Existing classes attach through the parent's `edges.children` entry; each type keeps its entry's `lineageKey` and `onRemove`. Add child class opens a draft `ClassDialog` — the child persists with the parent save, never on the click; the draft dialog offers every declarable class, group included. |
 | Capability | `organizations:admin`, the same seam as declaration authoring. |
 | `FieldDeclarationForm.vue` / `StateDeclarationForm.vue` | The process-designer inspector's declaration forms; both declaration surfaces share the descriptor grammar and state-severity vocabulary. |
-| `GlyphSelect.vue` | The one icon-sized glyph picker, shared by the class dialog and the process-designer declaration inspector. `class-glyphs.js` carries its option set. |
+| `GlyphSelect.vue` | The one icon-sized glyph picker, shared by the class dialog (class glyph and state icons) and the process-designer declaration inspector. It searches the full PrimeIcons set plus every generated `ck-` family glyph; `class-glyphs.js` carries the option set. |
 
 ## DescriptorEditor
 
