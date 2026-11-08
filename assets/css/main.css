@@ -662,6 +662,14 @@ body {
     padding: 0.5rem 0.75rem;
 }
 
+/* Chip icons share the PrimeIcon em box: the generated icon families'
+   standalone scale overflows it and makes mixed instance/file chips read
+   at different sizes. */
+.p-chip .ck-entity-icon,
+.p-chip .ck-file-type-icon {
+    transform: none;
+}
+
 .ck-instance-ref {
     vertical-align: middle;
     cursor: pointer;
