@@ -6095,3 +6095,49 @@ Session `agent/header-unify-20261107` (worktree
   (one new key, `typeDeclaration.editFields`, en+ru); check-arch,
   docs:validate, and the SSR smoke run in the session's validation
   pass (results in the handoff).
+
+### L. blocks-round-2 — Notion-grade block authoring (owner direction 2026-11-07/08)
+
+Owner verdicts, verbatim: "Page blocks management and whole page layout is
+a weak parody on Notion"; "Text block is rendered separately in your
+version, with it's artificial bounds; hover buttons are awful and placed
+wrong... in collections, there is lots of slop in headers, starting from
+'view' button which actually triggers a filter, bloated create buttons
+text (in some cases take more than 1/2 of screen lol), no actual view
+setup, no search." Rulings: quiet document sections (label+count pinned,
+Create/Link disclosed); autosave user space (pages + overlays; process
+documents keep explicit save). Prior review (2026-11-08) evidence stands:
+no drag anywhere; three gestures to type in a record-page block;
+pencil-first block editing; insert as a two-entry menu; no focus/scroll
+on insert; no gutter lane (controls overlap content); collection headers
+inside documents carry full chrome; custom pages open as a blank void.
+
+- [ ] R1 Seamless text blocks: no frame or artificial bounds in the
+  document flow; click mounts the editor inline at the caret; Escape /
+  Cmd+Enter close; the apply button dies.
+- [ ] R2 Gutter lane on authoring hosts: left lane inside the measure;
+  drag handle + plus in the lane at the block's first line,
+  hover/focus reveal, pinned on touch; the corner cluster dies.
+- [ ] R3 Drag reordering: pointer drag on the handle, drop indicator,
+  order array as the only state; declared sections reorder-only.
+- [ ] R4 Insert rhythm: plus inserts a focused text block directly;
+  view/AI entries live in the slash panel inside the block; the foot
+  strip inserts on click; nextTick focus + scrollIntoView.
+- [ ] R5 Custom pages as documents: title at heading scale in flow,
+  crepe placeholder on for user-space mounts, title focused on create.
+- [ ] R6 Document collection header: label + count pinned; visible
+  inline search; one overflow (⋮) with Create (+modes), Link; the View
+  control opens real view setup — filters/sort/projection/field
+  selection (new `fields` key in the view-state contract, verbatim,
+  absent = derived) — or is renamed honestly; compact create in inline
+  clusters (standalone list screens keep their control).
+- [ ] R7 Autosave user space: debounced save on pages/overlays with a
+  quiet syncing mark, toast on failure, pane-close confirm only while
+  in flight; process documents keep explicit save. Boundary in READMEs.
+- [ ] R8 Residue: the orphaned `.ck-editor-band` rule (keep
+  `-bounded`); dead chrome from R1–R6.
+- [ ] WAITING — owner verification, live stack, after the sessions land.
+
+Session reads: SPEC §26/§22.17/§22.15/§4; TODO Phase J's Agent Notes
+(the current shapes); the 2026-11-08 blocks review findings; the
+degradation/editor laws in Program B notes.
