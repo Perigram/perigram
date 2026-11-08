@@ -3773,6 +3773,11 @@ the tree is reactive to both loaded records and the served type view.
 The header's unused pool prop is cut. `process-generated-screen.spec.js`
 pins the parent crumb on a child detail surface.
 
+### Agent Notes (2026-11-09, peek trail)
+
+- The peek header renders the record's lineage trail above its compact
+  identity line, the same `TraceChain` every record surface mounts.
+
 ### Agent Notes (2026-11-08, canonical ancestor types)
 
 - `containmentAncestors` keeps the declaration's canonical parent type id

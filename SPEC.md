@@ -1147,10 +1147,10 @@ the state tag, the record's action cluster, and the body's leading
 facts. A file chip's peek carries its payload preview and name facts. A
 click opens the full record popup or the file viewer. The peek is a
 preview surface: hovering-capable pointers raise it, and its whole body
-opens the record. Record pages carry the lineage trail, type byline,
-action cluster, and lifecycle history; the peek header keeps the action
-cluster and carries the step-up affordance that opens the record as its
-own workspace page. The record popup rides the compact rhythm (bounded
+opens the record. Record pages and peeks carry the record's lineage
+trail above the identity line. Record pages add the type byline and
+lifecycle history; the peek header keeps the action cluster and carries
+the step-up affordance that opens the record as its own workspace page. The record popup rides the compact rhythm (bounded
 hosts compact) and arrangement decisions see its measured width, so a
 wide popup composes at its real width.
 ### 22.15 Collection headers and the table floor (owner direction

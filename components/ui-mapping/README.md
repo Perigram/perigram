@@ -245,8 +245,8 @@ application.
   renders one inline stack at the `LAYOUT.measure` (the wide step, 60rem)
   with `SurfaceHeader` page chrome (lineage trail, type byline, action
   cluster, lifecycle history);
-  `peek` keeps the ladder arrangement and the compact identity line,
-  state surface, and action cluster over the record body. A host passing
+  `peek` keeps the ladder arrangement, the lineage trail, and the compact
+  identity line, state surface, and action cluster over the record body. A host passing
   `expandable` gets the header's step-up button, whose `expand` event the
   host turns into the record's own page. The root measures itself and
   provides the page container record when no host declared one, so step

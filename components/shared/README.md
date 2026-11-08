@@ -409,9 +409,9 @@ peek presentation. `scopedDetailScreen`
 ([generated surfaces](../generated/README.md)) binds the compiled
 detail screen (or the synthesized pair, or the record floor) to the
 record; `GeneratedScreenHost presentation="peek"` renders the record
-preview, the compact identity line with its state tag, the record's
-action cluster, and the body's leading facts, and the popover body
-provides the measured `popup` container profile. Rendered inside
+preview, the lineage trail, the compact identity line with its state
+tag, the record's action cluster, and the body's leading facts, and the
+popover body provides the measured `popup` container profile. Rendered inside
 [`HoverPeek.vue`](#hoverpeekvue) by every instance-chip trigger; the
 trigger gates the peek on the record being openable. Identity opens from
 the generator swap the peek subject in place; the header's step-up
