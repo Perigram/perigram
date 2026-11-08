@@ -12,7 +12,9 @@ export const usePagesStore = defineStore('pages', {
   }),
   getters: {
     sections: state => state.pages.filter(page => page.kind === 'section'),
-    pageById: state => id => state.pages.find(page => page._id === String(id)) || null
+    customPages: state => state.pages.filter(page => page.kind === 'page' && !page.classTypeId),
+    pageById: state => id => state.pages.find(page => page._id === String(id)) || null,
+    classPageForType: state => typeId => state.pages.find(page => page.classTypeId === String(typeId)) || null
   },
   actions: {
     async ensureLoaded() {
@@ -41,6 +43,25 @@ export const usePagesStore = defineStore('pages', {
         body: parentId ? { parentId } : {}
       });
       this.upsert(page);
+      return page;
+    },
+    async ensureClassPage(typeId, name = '') {
+      if (!typeId) return null;
+      await this.ensureLoaded();
+      const existing = this.classPageForType(typeId);
+      if (existing) {
+        if (!(String(existing._id) in this.contents)) {
+          await this.loadContent(existing._id).catch(() => null);
+        }
+        return existing;
+      }
+      const content = `\`\`\`view\n${JSON.stringify({ typeId: String(typeId), name })}\n\`\`\`\n`;
+      const page = await $fetch('/api/pages', {
+        method: 'POST',
+        body: { name, classTypeId: String(typeId), content }
+      });
+      this.upsert(page);
+      this.contents = { ...this.contents, [String(page._id)]: page.content ?? content };
       return page;
     },
     async createSection() {
@@ -82,7 +103,8 @@ export const usePagesStore = defineStore('pages', {
         _id: id,
         kind: page.kind,
         name: page.name,
-        parentId: page.parentId ? String(page.parentId) : null
+        parentId: page.parentId ? String(page.parentId) : null,
+        classTypeId: page.classTypeId ? String(page.classTypeId) : null
       };
       this.pages = existing
         ? this.pages.map(candidate => (candidate._id === id ? row : candidate))

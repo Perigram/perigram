@@ -4,6 +4,7 @@
     v-bind="$attrs"
     class="crepe-host text-prose min-h-0 flex-1 overflow-y-auto"
   />
+  <span ref="caretAnchor" class="pointer-events-none fixed h-0 w-0" aria-hidden="true" />
   <Popover ref="addressPopover">
     <div class="flex items-center gap-2 p-2">
       <InputText
@@ -26,10 +27,20 @@
       />
     </div>
   </Popover>
-  <InstanceRefDialog
-    :visible="instancePickerOpen"
-    @close="instancePickerOpen = false"
-    @pick="applyInstancePick"
+  <InstanceMentionPicker
+    ref="mentionPicker"
+    @select="applyInstancePick"
+    @hide="focus"
+  />
+  <ImageInsertDialog
+    :visible="imageDialogOpen"
+    @close="imageDialogOpen = false"
+    @insert="applyImage"
+  />
+  <ViewPickerDialog
+    :visible="viewPickerOpen"
+    @close="viewPickerOpen = false"
+    @pick="applyViewPick"
   />
 </template>
 
@@ -41,15 +52,19 @@
 // surfaces/lib) and the code/theme assets consumed by relative import.
 // Engine pieces load through dynamic imports so SSR and the browser
 // bundle stay clean.
-import { onBeforeUnmount, onMounted, ref} from 'vue';
+import { getCurrentInstance, h, onBeforeUnmount, onMounted, ref, render } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Popover from 'primevue/popover';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
-import { renderMarkdown, parseViewRef, parseInstanceHref, stripSerializerTail } from '#shared/markdown.js';
+import { renderMarkdown, parseViewRef, stripSerializerTail } from '#shared/markdown.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
-import { useViewsStore } from '~/stores/views';
-import InstanceRefDialog from './InstanceRefDialog.vue';
+import { useInstancesStore } from '~/stores/instances';
+import InstanceMentionPicker from './InstanceMentionPicker.vue';
+import ImageInsertDialog from './ImageInsertDialog.vue';
+import ViewPickerDialog from './ViewPickerDialog.vue';
+import ViewEmbed from './ViewEmbed.vue';
+import { createInstanceRefPlugins, insertInstanceRef } from './instance-ref-node.js';
 
 defineOptions({ inheritAttrs: false });
 
@@ -74,16 +89,19 @@ const props = defineProps({
   deleteOnEmptyBackspace: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['update', 'pick-view', 'ready', 'enter', 'delete-empty']);
+const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty']);
 
 const { t } = useI18n();
-const viewsStore = useViewsStore();
+const instancesStore = useInstancesStore();
+const instance = getCurrentInstance();
+const appContext = instance?.appContext;
 const editorHost = ref(null);
+const caretAnchor = ref(null);
 const addressPopover = ref(null);
+const mentionPicker = ref(null);
 const linkUrl = ref('');
-const addressKind = ref('link');
-const instancePickerOpen = ref(false);
-let instanceInsert = null;
+const imageDialogOpen = ref(false);
+const viewPickerOpen = ref(false);
 const blockState = ref({ block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, task: false, marks: [] });
 
 let crepe = null;
@@ -94,9 +112,30 @@ let loaded = false;
 let applyBlockAt = () => null;
 let editorViewCtx = null;
 let TextSelection = null;
+let pendingRange = null;
+let pendingViewInsert = null;
+const livePreviewHosts = new Set();
 
 function markdownValue() {
   return stripSerializerTail(crepe ? crepe.getMarkdown() : props.defaultValue);
+}
+
+function withView(callback) {
+  if (!crepe) return null;
+  let result = null;
+  crepe.editor.action(ctx => { result = callback(ctx.get(editorViewCtx)); });
+  return result;
+}
+
+function currentRange() {
+  return withView(view => ({ from: view.state.selection.from, to: view.state.selection.to }));
+}
+
+function restoreRange(view, range) {
+  if (!range || !TextSelection) return;
+  const from = Math.min(range.from, view.state.doc.content.size);
+  const to = Math.min(range.to, view.state.doc.content.size);
+  view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, from, to)));
 }
 
 function focus(point = null) {
@@ -104,40 +143,72 @@ function focus(point = null) {
   if (!prose) return;
   prose.focus();
   if (!point || !crepe || !editorViewCtx || !TextSelection) return;
-  crepe.editor.action(ctx => {
-    const view = ctx.get(editorViewCtx);
+  withView(view => {
     const hit = view.posAtCoords({ left: point.x, top: point.y });
     const at = hit ? hit.pos : view.state.doc.content.size;
     view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(at))));
   });
 }
 
-function openAddressEditor(kind) {
-  const anchor = editorHost.value?.querySelector('.ProseMirror') || editorHost.value;
-  if (!anchor) return;
-  addressKind.value = kind;
+function placeCaretAnchor(pos) {
+  const anchor = caretAnchor.value;
+  if (!anchor) return false;
+  return withView(view => {
+    const at = Math.max(0, Math.min(pos, view.state.doc.content.size));
+    const coords = view.coordsAtPos(at);
+    anchor.style.left = `${coords.left}px`;
+    anchor.style.top = `${coords.bottom}px`;
+    return true;
+  });
+}
+
+function openAddressEditor() {
+  if (!caretAnchor.value) return;
+  pendingRange = currentRange();
+  const from = pendingRange?.from ?? 0;
+  placeCaretAnchor(from);
   linkUrl.value = '';
-  addressPopover.value?.show({ currentTarget: anchor }, anchor);
+  addressPopover.value?.show({ currentTarget: caretAnchor.value }, caretAnchor.value);
 }
 
 function openLinkEditor() {
-  openAddressEditor('link');
+  openAddressEditor();
 }
 
 function openImageEditor() {
-  openAddressEditor('image');
+  pendingRange = currentRange();
+  imageDialogOpen.value = true;
 }
 
-function openInstancePicker(insert) {
-  instanceInsert = insert;
-  instancePickerOpen.value = true;
+function openInstancePicker() {
+  pendingRange = currentRange();
+  placeCaretAnchor(pendingRange?.from ?? 0);
+  mentionPicker.value?.open(caretAnchor.value);
+}
+
+function openMention(pos) {
+  pendingRange = { from: pos, to: pos };
+  placeCaretAnchor(pos);
+  mentionPicker.value?.open(caretAnchor.value);
 }
 
 function applyInstancePick(ref) {
-  instancePickerOpen.value = false;
-  const insert = instanceInsert;
-  instanceInsert = null;
-  if (insert && ref) insert(ref);
+  withView(view => {
+    restoreRange(view, pendingRange);
+    insertInstanceRef(view, ref);
+  });
+  pendingRange = null;
+  focus();
+}
+
+function applyImage(src) {
+  withView(view => {
+    restoreRange(view, pendingRange);
+    const image = view.state.schema.nodes.image;
+    if (!image) return;
+    view.dispatch(view.state.tr.replaceSelectionWith(image.create({ src, alt: '', title: '' })).scrollIntoView());
+  });
+  pendingRange = null;
   focus();
 }
 
@@ -145,27 +216,31 @@ async function applyAddress() {
   const href = linkUrl.value.trim();
   if (!href || !crepe) return;
   addressPopover.value?.hide();
-  const [{ callCommand }, { insertImageCommand }] = await Promise.all([
-    import('@milkdown/utils'),
-    import('@milkdown/preset-commonmark')
-  ]);
-  const image = addressKind.value === 'image';
-  if (image) {
-    crepe.editor.action(callCommand(insertImageCommand.key, { src: href }));
-  } else {
-    crepe.editor.action(ctx => {
-      const view = ctx.get(editorViewCtx);
-      const { from, to, empty } = view.state.selection;
-      if (!empty) {
-        view.dispatch(view.state.tr.addMark(from, to, view.state.schema.marks.link.create({ href })));
-        return;
-      }
-      const label = href;
-      const tr = view.state.tr.insertText(label);
-      tr.addMark(from, from + label.length, view.state.schema.marks.link.create({ href }));
-      view.dispatch(tr);
-    });
-  }
+  withView(view => {
+    restoreRange(view, pendingRange);
+    const { from, to, empty } = view.state.selection;
+    if (!empty) {
+      view.dispatch(view.state.tr.addMark(from, to, view.state.schema.marks.link.create({ href })));
+      return;
+    }
+    const label = href;
+    const tr = view.state.tr.insertText(label);
+    tr.addMark(from, from + label.length, view.state.schema.marks.link.create({ href }));
+    view.dispatch(tr);
+  });
+  pendingRange = null;
+  focus();
+}
+
+function openViewPicker(insert) {
+  pendingViewInsert = insert;
+  viewPickerOpen.value = true;
+}
+
+function applyViewPick(ref) {
+  viewPickerOpen.value = false;
+  pendingViewInsert?.(ref);
+  pendingViewInsert = null;
   focus();
 }
 
@@ -174,10 +249,30 @@ function runSlashPick(id, view) {
   if (kind !== 'link' && kind !== 'image' && kind !== 'instance' && kind !== 'view') focus();
 }
 
-// The host resolves the picked saved view; the fence it inserts carries
-// the view ref (`{ id, name }`, the deleted-view name).
-function openViewPicker(insert) {
-  emit('pick-view', insert);
+// The saved-view fence's live presentation inside the live editor.
+function liveViewPreview(content) {
+  const ref = parseViewRef(content);
+  if (!ref) return null;
+  const host = document.createElement('div');
+  host.className = 'ck-live-view';
+  host.contentEditable = 'false';
+  const vnode = h(ViewEmbed, {
+    viewId: ref.id || '',
+    typeId: ref.typeId || '',
+    fallbackName: ref.name || ''
+  });
+  vnode.appContext = appContext;
+  render(vnode, host);
+  livePreviewHosts.add(host);
+  return host;
+}
+
+function cleanupDetachedPreviews() {
+  for (const host of livePreviewHosts) {
+    if (host.isConnected) continue;
+    render(null, host);
+    livePreviewHosts.delete(host);
+  }
 }
 
 onMounted(async () => {
@@ -238,14 +333,7 @@ onMounted(async () => {
             host.innerHTML = renderMarkdown(`\`\`\`mermaid\n${String(content || '')}\n\`\`\``);
             return host.querySelector('.mermaid-diagram') || null;
           }
-          if (lang === 'view') {
-            const ref = parseViewRef(content);
-            if (!ref) return null;
-            const host = document.createElement('div');
-            host.className = 'ck-view-embed';
-            host.textContent = viewsStore.viewById(ref.id)?.name || ref.name || t('editors.view');
-            return host;
-          }
+          if (lang === 'view') return liveViewPreview(content);
           return null;
         }
       }
@@ -255,33 +343,31 @@ onMounted(async () => {
     onSelectionState: next => { blockState.value = next; },
     markers: props.showSourceMarkers
   })));
+  const instanceRef = createInstanceRefPlugins({
+    iconFor: type => instancesStore.iconFor(type),
+    onOpen: ref => openInstanceInWorkspace({ typeId: ref.type, instanceId: ref.id }),
+    onMention: openMention
+  });
+  crepe.editor.use([instanceRef.schema, instanceRef.view, instanceRef.behavior]);
   slashMenu = createSlashMenu({
     items: vocabulary.BLOCK_VOCABULARY.map(({ id, labelKey, glyph, glyphText, match }) => ({ id, label: t(labelKey), glyph, glyphText, match })),
     onPick: runSlashPick
   });
   crepe.editor.use($prose(() => slashMenu.plugin));
   crepe.on(api => api.markdownUpdated(() => {
+    cleanupDetachedPreviews();
     if (loaded) emit('update', markdownValue());
   }));
   await crepe.create();
   loaded = true;
   if (props.initialBlock && props.initialBlock !== 'paragraph') {
-    let proseView = null;
-    crepe.editor.action(ctx => { proseView = ctx.get(editorViewCtx); });
-    applyBlockAt(props.initialBlock, proseView);
+    withView(view => applyBlockAt(props.initialBlock, view));
     emit('update', markdownValue());
   }
   emit('ready');
   editorDiagramClick = event => {
-    const anchor = event.target?.closest?.('a[href^="#instance:"]');
-    if (anchor) {
-      const ref = parseInstanceHref(anchor.getAttribute('href'));
-      if (ref) {
-        event.preventDefault();
-        openInstanceInWorkspace({ typeId: ref.type, instanceId: ref.id });
-      }
-      return;
-    }
+    const instanceRef = event.target?.closest?.('[data-instance-ref]');
+    if (instanceRef) return;
     const block = event.target?.closest?.('.milkdown-code-block');
     if (!block?.querySelector('.preview .mermaid-diagram')) return;
     if (!block.querySelector('.codemirror-host.hidden')) return;
@@ -294,8 +380,7 @@ onMounted(async () => {
       && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
       if (!crepe || !editorViewCtx) return;
       let empty = false;
-      crepe.editor.action(ctx => {
-        const view = ctx.get(editorViewCtx);
+      withView(view => {
         const { doc } = view.state;
         empty = doc.childCount === 1 && doc.firstChild?.isTextblock && doc.firstChild.content.size === 0;
       });
@@ -309,8 +394,7 @@ onMounted(async () => {
       || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
     if (!crepe || !editorViewCtx) return;
     let split = false;
-    crepe.editor.action(ctx => {
-      const view = ctx.get(editorViewCtx);
+    withView(view => {
       const { selection } = view.state;
       if (!selection.empty) return;
       const { $to } = selection;
@@ -335,6 +419,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   loaded = false;
+  for (const host of livePreviewHosts) render(null, host);
+  livePreviewHosts.clear();
   if (editorDiagramClick && editorHost.value) {
     editorHost.value.removeEventListener('click', editorDiagramClick);
     editorDiagramClick = null;

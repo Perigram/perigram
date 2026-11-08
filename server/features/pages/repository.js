@@ -14,7 +14,8 @@ export function serialize(row) {
     _id: row._id.toString(),
     kind: row.fields?.section === true ? 'section' : 'page',
     name: row.fields?.name || row.name || '',
-    parentId: row.lineage?.pageId ? String(row.lineage.pageId) : null
+    parentId: row.lineage?.pageId ? String(row.lineage.pageId) : null,
+    classTypeId: row.fields?.classTypeId ? String(row.fields.classTypeId) : null
   };
 }
 
@@ -83,6 +84,15 @@ export async function findById(id) {
   return db.collection(COLLECTION).findOne({ _id: toFlexibleId(id), type: TYPE });
 }
 
+export async function findByClassType(organizationId, classTypeId) {
+  const db = await connectDB();
+  return db.collection(COLLECTION).findOne({
+    type: TYPE,
+    organizationId: orgFilter(organizationId),
+    'fields.classTypeId': String(classTypeId)
+  });
+}
+
 export async function create(data) {
   const db = await connectDB();
   const now = new Date();
@@ -94,7 +104,12 @@ export async function create(data) {
     typeVersion: 1,
     organizationId: toFlexibleId(data.organizationId),
     name,
-    fields: { name, content: '', section },
+    fields: {
+      name,
+      content: data.content || '',
+      section,
+      ...(data.classTypeId ? { classTypeId: String(data.classTypeId) } : {})
+    },
     state: null,
     lineage: data.parentId ? { pageId: String(data.parentId) } : {},
     ...(data.createdBy ? { createdBy: data.createdBy } : {}),

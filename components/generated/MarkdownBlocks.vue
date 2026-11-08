@@ -2,12 +2,13 @@
   <div ref="root" class="contents">
     <template v-for="(block, index) in blocks" :key="index">
       <div v-if="block.type === 'markdown'" class="ck-markdown-body" v-html="renderedOf(block)" />
-      <ViewEmbed
-        v-else
-        :view-id="block.id || ''"
-        :type-id="block.typeId || ''"
-        :fallback-name="block.name"
-      />
+      <div v-else class="ck-document-embed">
+        <ViewEmbed
+          :view-id="block.id || ''"
+          :type-id="block.typeId || ''"
+          :fallback-name="block.name"
+        />
+      </div>
     </template>
     <Teleport
       v-for="item in instanceRefs"

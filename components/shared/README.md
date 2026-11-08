@@ -662,35 +662,42 @@ The chat column family (inbox rail, thread, message list, composer,
 search) lives in [components/chat](../chat/README.md); the atoms below
 stay shared primitives.
 
-### `ChatAttachmentPicker.vue`
-The chat composer's attachment surface: a Popover hosting PrimeVue
-`Tree`, both unmodified Aura. No `pt`, padding, border, or background
-overrides. Leading file entries (icon + hidden input) ride above the tree
-— files and entity refs share the one attach surface: device upload
-constrained by the host's `filesAccept`, and camera photo/video capture
-(`capture="environment"`; on desktop browsers the capture hint degrades to
-the platform picker). Both emit `files` for the host to stage, through the
-same caps and instance-chat gating.
-Home-screen sections are the roots and load through the SAME
-compiled home-screen list sources the home sidebar's PanelMenu renders —
-the instances store's `listInstances` with the source's resolved filters —
-so the picker browses the full user-available window (shared observation
-cache, no option-list cap) instead of a capped options endpoint; entities
-expand through pure lineage nesting (`linkedExplorerChildSources` list
-fetches; relation links are deliberately skipped so the tree stays a
-hierarchy). Search is the Tree's built-in lenient filter over loaded node
-labels. The section's generated create entries list right beside the
-entity entries — and every entity repeats the pattern through its type's
-detail-screen child creates, so creation lives inside the hierarchy at
-every level (never behind a second popup). Lazy loading is node-driven
+### `InstanceTree.vue`
+
+The one instance tree every picker browses (SPEC §26, §22.13): a PrimeVue
+`Tree`, unmodified Aura. Home-screen sections are the roots and load
+through the SAME compiled home-screen list sources the home sidebar's
+PanelMenu renders — the instances store's `listInstances` with the
+source's resolved filters — so the picker browses the full user-available
+window (shared observation cache, no option-list cap). Entities expand
+through pure lineage nesting (`linkedExplorerChildSources` list fetches;
+relation links are skipped so the tree stays a hierarchy). Search is the
+Tree's built-in lenient filter; the sections load on first sight and the
+list stays searchable before the author expands anything. Entity labels
+resolve through `instanceRecordTitle` over the served type view. The
+section's generated create entries list beside the entity entries — and
+every entity repeats the pattern through its type's detail-screen child
+creates — when `showCreate` is on. Lazy loading is node-driven
 (`@node-expand` carries the section/entity payload directly, so loads are
 never routed by key-prefix parsing). Rows select; chevrons only expand.
-Tapping an entity selects it and closes the picker; tapping a create entry
-runs the generated flow in the host and attaches the created entity. Each
-open resets the tree (sections re-expand and their lists reload) so the
-tree reflects the current workspace pool. Recipient chat-only visibility
-is NOT computed here: the support service derives it on send and on draft
-hydration through the instance-options endpoint (see
+`reset()` reloads sections for a fresh open; `focusFilter()` lands the
+caret in the search field. The host owns the picked record, the
+create-action flow, and file staging; the tree emits
+`select`/`create-action`.
+
+### `ChatAttachmentPicker.vue`
+The chat composer's attachment surface: a Popover hosting the shared
+`InstanceTree`, with leading file entries above it — files and entity refs
+share the one attach surface: device upload constrained by the host's
+`filesAccept`, and camera photo/video capture (`capture="environment"`; on
+desktop browsers the capture hint degrades to the platform picker). Both
+emit `files` for the host to stage, through the same caps and
+instance-chat gating. Tapping an entity selects it and closes the picker;
+tapping a create entry runs the generated flow in the host and attaches
+the created entity. Each open resets the tree so it reflects the current
+workspace pool. Recipient chat-only visibility is NOT computed here: the
+support service derives it on send and on draft hydration through the
+instance-options endpoint (see
 [support feature](../../server/features/support/README.md)). The host
 owns the draft `entityRefs`, the create-action flows, and file staging;
 the picker only emits `select`/`create-action`/`files`.

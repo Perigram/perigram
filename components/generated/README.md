@@ -162,11 +162,15 @@ surfaces and action forms.
 
 ## Class Pages
 
-A screenless organization class opens `ClassSurface.vue` as a workspace
-tab (SPEC §27): the same generated type-list screen every class page uses,
-synthesized with the class type as its one source and region. The class
-dialog opens from the header type label and the panel context menu. The
-page ref is ephemeral per class type, like custom pages.
+A screenless organization class opens its regular Page instance (SPEC
+§27): the class panel asks the pages store for the page bound to the
+class type, creating it with a seeded collection view when absent, and
+opens it as an ordinary `customPage` tab. The class page therefore carries
+the same unified header, block editor, slash vocabulary, instance
+mentions, and collection views as every user page. `fields.classTypeId`
+is the binding; class pages stay out of the sidebar page tree, and the
+class panel and class dialog remain their navigation. The dialog still
+opens from the panel context menu.
 
 ## Custom Pages
 
@@ -208,12 +212,17 @@ the `section` field set.
   plugin serves (`surfaces/lib/`), imported over the app's own
   dependency graph — the grammar is consumed, never copied. The crepe
   theme and the editor voice css load from the plugin's assets, so every
-  editor mount reads identically. The collection-view vocabulary entry
-  is live: its pick emits to the host, which opens
-  `ViewPickerDialog.vue` (the type containment tree) and inserts the
-  view fence at the caret; the instance entry opens `InstanceRefDialog`
-  over the shared `InstanceSelect` and inserts an inline `#instance:`
-  link. The page-link and AI-block entries stay dark until phase K. The page's header is the unified page header
+  editor mount reads identically. The collection-view entry opens
+  `ViewPickerDialog.vue` — the collection containment tree with each
+  collection's saved views beneath it — and inserts the chosen collection
+  or lens fence at the caret. The instance entry and typing `@` open
+  `InstanceMentionPicker.vue` over the shared `InstanceTree.vue`, the same
+  section-and-lineage tree chat attachments browse; the pick lands as an
+  atomic `instance_ref` node (`instance-ref-node.js`) that renders the
+  shared chip face, opens on click, and selects as one unit before
+  Backspace removes it. The image entry opens `ImageInsertDialog.vue`
+  (upload or address) and inserts the engine's image node. The page-link
+  and AI-block entries stay dark until phase K. The page's header is the unified page header
   ([ui-mapping](../ui-mapping/README.md) `SurfaceHeader` with `title` +
   `onRename`, no type or instance): the name edits in place through the
   pages rename channel and the save patches content through the pages
@@ -241,11 +250,13 @@ the `section` field set.
   opens follow the workspace-open seam. The embed's region carries no
   actions: creation and quick actions belong to the collection's own
   screens, and the embed renders the lens; interacting with its controls
-  edits the lens session-locally only. In the live editor the fence is
-  its code block — the crepe preview renders the view's name as the
-  quiet `ck-view-embed` chip, the same placeholder the pipeline renders
-  for view fences outside the page surface. A fence naming a deleted
-  view renders its carried name and a quiet unavailable state.
+  edits the lens session-locally only. In the live editor the same
+  `ViewEmbed` mounts inside the fence's engine preview
+  (`CrepeEditor.vue` `ck-live-view`), so the collection reads live while
+  the author types; each embed owns a 1rem vertical frame, separating
+  neighbouring collection blocks from the collection header's own
+  rhythm. A fence naming a deleted view renders its carried name and a
+  quiet unavailable state.
 - The record overlay's blocks mount beside the page's fences (SPEC §26):
   a text block renders through `OverlayTextBlock.vue` — read through
   `MarkdownBlocks`, authored inline through `CrepeEditor` at the click
@@ -543,9 +554,9 @@ from the compiled manifest.
   wordmark returns on expand; the wrapped state persists with the
   workspace layout (`sidebarCollapsed`). Organization classes appear as
   type panels (SPEC §27): a class with a screen opens the screen; a class
-  without one opens its class page
-  ([type-designer](../type-designer/README.md)); the panel context menu
-  opens the class dialog for every organization class. The expanded
+  without one opens its class page — the bound Page instance with the
+  seeded collection view ([Class Pages](#class-pages)); the panel context
+  menu opens the class dialog for every organization class. The expanded
   menu's foot carries the New class action. User sections ride the rail
   under the same law (the [custom pages](#custom-pages) section owns
   their contract).

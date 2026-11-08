@@ -45,7 +45,7 @@ export async function getById(id, auth = {}) {
   return repository.serializeFull(page);
 }
 
-export async function create({ kind = 'page', name = '', parentId = null } = {}, auth = {}) {
+export async function create({ kind = 'page', name = '', parentId = null, classTypeId = null, content = '' } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   await ensurePageType(organizationId, auth.userId);
   await repository.migrateLegacy(organizationId);
@@ -53,6 +53,14 @@ export async function create({ kind = 'page', name = '', parentId = null } = {},
     throw createError({ statusCode: 400, message: 'Unknown page kind' });
   }
   const normalizedName = normalizeName(name);
+  const normalizedClassTypeId = classTypeId ? String(classTypeId) : '';
+  if (normalizedClassTypeId) {
+    if (kind === 'section') {
+      throw createError({ statusCode: 400, message: 'A class page is a page' });
+    }
+    const existing = await repository.findByClassType(organizationId, normalizedClassTypeId);
+    if (existing) return repository.serializeFull(existing);
+  }
   let normalizedParent = null;
   if (parentId) {
     if (kind === 'section') {
@@ -66,14 +74,16 @@ export async function create({ kind = 'page', name = '', parentId = null } = {},
     kind,
     name: normalizedName,
     parentId: normalizedParent,
-    content: '',
+    classTypeId: normalizedClassTypeId,
+    content,
     createdBy: auth.userId
   });
   return {
     _id: String(id),
     kind,
     name: normalizedName,
-    parentId: normalizedParent ? String(normalizedParent) : null
+    parentId: normalizedParent ? String(normalizedParent) : null,
+    classTypeId: normalizedClassTypeId || null
   };
 }
 

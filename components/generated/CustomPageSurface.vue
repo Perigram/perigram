@@ -39,12 +39,6 @@
       show-source-markers
       @ready="editorReady = true"
       @update="onMarkdown"
-      @pick-view="insert => openFencePicker(insert)"
-    />
-    <ViewPickerDialog
-      :visible="viewPickerOpen"
-      @close="viewPickerOpen = false"
-      @pick="pickView"
     />
   </div>
 </template>
@@ -59,7 +53,6 @@ import Button from 'primevue/button';
 import SurfaceHeader from '~/components/ui-mapping/SurfaceHeader.vue';
 import CrepeEditor from './CrepeEditor.vue';
 import MarkdownBlocks from './MarkdownBlocks.vue';
-import ViewPickerDialog from './ViewPickerDialog.vue';
 import { usePagesStore } from '~/stores/pages';
 import { stripSerializerTail } from '#shared/markdown.js';
 import { setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
@@ -76,8 +69,6 @@ const editor = ref(null);
 const dirty = ref(false);
 const saving = ref(false);
 const editorReady = ref(false);
-const viewPickerOpen = ref(false);
-let insertFenceAt = () => {};
 
 const page = computed(() => pagesStore.pageById(props.docId));
 const displayName = computed(() => page.value?.name || '');
@@ -94,17 +85,6 @@ async function commitName(name) {
 function onMarkdown() {
   dirty.value = true;
   setWorkspacePageDirty(tabKey, true);
-}
-
-function openFencePicker(insert) {
-  insertFenceAt = insert;
-  viewPickerOpen.value = true;
-}
-
-function pickView(view) {
-  viewPickerOpen.value = false;
-  insertFenceAt(view);
-  editor.value?.focus();
 }
 
 async function save() {

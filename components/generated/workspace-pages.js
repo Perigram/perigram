@@ -12,7 +12,6 @@ import { fileWorkspacePages } from '~/components/generated/file-surfaces.js';
 const ChatSupport = defineAsyncComponent(() => import('~/components/ChatSupport.vue'));
 const CallWorkspacePage = defineAsyncComponent(() => import('~/components/calls/CallWorkspacePage.vue'));
 const CustomPageSurface = defineAsyncComponent(() => import('~/components/generated/CustomPageSurface.vue'));
-const ClassSurface = defineAsyncComponent(() => import('~/components/type-designer/ClassSurface.vue'));
 const DirectoryDetailSurface = defineAsyncComponent(() => import('~/components/directory/DirectoryDetailSurface.vue'));
 const OrganizationTeamPage = defineAsyncComponent(() => import('~/pages/organization/users.vue'));
 const OrganizationModelsPage = defineAsyncComponent(() => import('~/pages/organization/models.vue'));
@@ -142,17 +141,6 @@ export const fixedWorkspacePages = [
     ephemeral: true,
     props: page => ({ docId: page.docId || '' })
   },
-  // A class page (SPEC §27): one tab per organization class. The class
-  // page carries the declaration's fields, states, and instances; the
-  // class editor opens from the header and the panel context menu.
-  {
-    id: 'class',
-    labelKey: 'classes.title',
-    icon: 'pi pi-box',
-    component: ClassSurface,
-    ephemeral: true,
-    props: page => ({ typeId: page.classTypeId || '' })
-  }
 ];
 
 // The full page list, derived per call: the file-type half reads the
