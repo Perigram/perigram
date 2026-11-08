@@ -1,6 +1,7 @@
 <template>
   <div
     ref="editorHost"
+    v-bind="$attrs"
     class="crepe-host text-prose min-h-0 flex-1 overflow-y-auto"
   />
   <Popover ref="addressPopover">
@@ -42,6 +43,8 @@ import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import { renderMarkdown, parseViewRef, stripSerializerTail } from '#shared/markdown.js';
 import { useViewsStore } from '~/stores/views';
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
   // The markdown the engine opens with; external edits after mount are
