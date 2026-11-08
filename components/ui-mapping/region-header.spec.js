@@ -82,10 +82,10 @@ const plainHtml = html => html
   .replaceAll('<!---->', '');
 
 describe('region header view control', () => {
-  it('renders the view control with its localized label at full presence', async () => {
+  it('renders the search and filter controls at full presence', async () => {
     const html = await render(listNode(), { uiMappingSpacing: SPACING });
-    expect(html).toContain('>View<');
-    expect(html).toContain('pi-sliders-h');
+    expect(html).toContain('placeholder="Search"');
+    expect(html).toContain('pi pi-filter');
     expect(html).not.toContain('opacity-60');
     expect(html).not.toContain('group-hover');
   });

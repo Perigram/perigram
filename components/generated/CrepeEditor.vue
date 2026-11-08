@@ -56,10 +56,13 @@ const props = defineProps({
   // The block kind a freshly inserted document block opens as.
   initialBlock: { type: String, default: '' },
   // The click point the caret lands on when an in-place block opens.
-  initialPoint: { type: Object, default: null }
+  initialPoint: { type: Object, default: null },
+  // Enter at the end of the block emits `enter`; the host starts the
+  // next document block (the Notion block break).
+  splitOnEnter: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['update', 'pick-view', 'ready']);
+const emit = defineEmits(['update', 'pick-view', 'ready', 'enter']);
 
 const { t } = useI18n();
 const viewsStore = useViewsStore();
@@ -72,6 +75,7 @@ const blockState = ref({ block: 'paragraph', headingLevel: null, bullet: false, 
 let crepe = null;
 let slashMenu = null;
 let editorDiagramClick = null;
+let editorEnterKey = null;
 let loaded = false;
 let applyBlockAt = () => null;
 let editorViewCtx = null;
@@ -234,6 +238,30 @@ onMounted(async () => {
     block.querySelector('.preview-toggle-button')?.click();
   };
   editorHost.value.addEventListener('click', editorDiagramClick);
+  editorEnterKey = event => {
+    if (!props.splitOnEnter || event.key !== 'Enter'
+      || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (!crepe || !editorViewCtx) return;
+    let split = false;
+    crepe.editor.action(ctx => {
+      const view = ctx.get(editorViewCtx);
+      const { selection } = view.state;
+      if (!selection.empty) return;
+      const { $to } = selection;
+      if ($to.parent.type.name === 'code_block') return;
+      const atBlockEnd = $to.parentOffset === $to.parent.content.size;
+      const index = $to.depth === 1 ? $to.index(0) : -1;
+      const trailingEmpty = index >= 0 && index === view.state.doc.childCount - 2
+        && view.state.doc.child(index + 1).content.size === 0;
+      const lastBlock = index >= 0 && (index === view.state.doc.childCount - 1 || trailingEmpty);
+      split = atBlockEnd && lastBlock;
+    });
+    if (!split) return;
+    event.preventDefault();
+    event.stopPropagation();
+    emit('enter');
+  };
+  editorHost.value.addEventListener('keydown', editorEnterKey, true);
 });
 
 onBeforeUnmount(() => {
@@ -241,6 +269,10 @@ onBeforeUnmount(() => {
   if (editorDiagramClick && editorHost.value) {
     editorHost.value.removeEventListener('click', editorDiagramClick);
     editorDiagramClick = null;
+  }
+  if (editorEnterKey && editorHost.value) {
+    editorHost.value.removeEventListener('keydown', editorEnterKey, true);
+    editorEnterKey = null;
   }
   slashMenu?.destroy();
   slashMenu = null;

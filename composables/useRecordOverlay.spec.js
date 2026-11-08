@@ -138,6 +138,20 @@ describe('useRecordOverlaySession', () => {
     expect(s.dirty).toBe(false);
   });
 
+  it('breaks a block by inserting the next text block after it', () => {
+    savedOverlay.value = {
+      blocks: [{ id: 'b1', kind: 'text', text: 'words' }],
+      order: ['properties', 'b1']
+    };
+    const s = session();
+    s.syncFlow(['properties', 'b1'], ['properties']);
+    s.insertTextAfter('b1');
+    expect(s.applied.order[0]).toBe('properties');
+    expect(s.applied.order[1]).toBe('b1');
+    expect(s.applied.order[2]).toBe(s.applied.blocks[1].id);
+    expect(s.editingBlockId).toBe(s.applied.blocks[1].id);
+  });
+
   it('an autosave keeps the block editor open and accepts the next edit', async () => {
     savedOverlay.value = {
       blocks: [{ id: 'b1', kind: 'text', text: 'saved words' }],

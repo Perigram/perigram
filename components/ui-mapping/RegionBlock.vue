@@ -21,12 +21,43 @@
              non-empty collections — a denied or failed source has no
              count, and an empty one states itself through its message. -->
         <Tag v-if="showSurfaces && hasInstances" class="shrink-0" :value="String(node.instances.length)" severity="secondary" />
+        <div v-if="viewTabsAvailable" class="flex min-w-0 flex-wrap items-center gap-1">
+          <Button
+            :label="defaultViewLabel"
+            text
+            size="small"
+            :severity="activeViewId ? 'secondary' : 'primary'"
+            class="shrink-0"
+            @click="selectDefaultView"
+          />
+          <Button
+            v-for="view in regionViews"
+            :key="view._id"
+            :label="view.name"
+            text
+            size="small"
+            :severity="activeViewId === view._id ? 'primary' : 'secondary'"
+            class="shrink-0"
+            @click="selectSavedView(view)"
+          />
+          <Button
+            v-if="saveViewAvailable"
+            icon="pi pi-plus"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('uiMapping.addView')"
+            :title="$t('uiMapping.addView')"
+            @click="saveDialogOpen = true"
+          />
+        </div>
       </div>
       <div
-        v-if="createControls.length || linkControls.length || viewToggleAvailable || searchToggleAvailable"
+        v-if="createControls.length || linkControls.length || searchToggleAvailable || filterToggleAvailable || optionsToggleAvailable"
         class="flex shrink-0 flex-wrap items-center justify-end gap-2"
       >
-        <IconField v-if="searchToggleAvailable" class="w-40">
+        <IconField v-if="searchToggleAvailable" class="w-44">
           <InputIcon class="pi pi-search" />
           <InputText
             v-model="search"
@@ -37,23 +68,39 @@
           />
         </IconField>
         <Button
-          v-if="viewToggleAvailable"
-          icon="pi pi-sliders-h"
-          :label="$t('uiMapping.view')"
+          v-if="filterToggleAvailable"
+          icon="pi pi-filter"
+          text
+          rounded
           size="small"
           severity="secondary"
-          outlined
+          :aria-label="$t('uiMapping.filters')"
+          :title="$t('uiMapping.filters')"
           :badge="conditionCount ? String(conditionCount) : null"
-          @click="toggleView"
+          @click="toggleFilter"
         />
-        <Popover ref="viewPopover">
+        <Popover ref="filterPopover">
           <div class="flex w-72 flex-col gap-3">
             <FilterBuilder
-              v-if="facetsToggleAvailable"
               :model-value="builderFilter"
               :fields="builderFields"
               @update:model-value="value => (builderFilter = value)"
             />
+          </div>
+        </Popover>
+        <Button
+          v-if="optionsToggleAvailable"
+          icon="pi pi-sliders-h"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="$t('uiMapping.viewSettings')"
+          :title="$t('uiMapping.viewSettings')"
+          @click="toggleOptions"
+        />
+        <Popover ref="optionsPopover">
+          <div class="flex w-72 flex-col gap-3">
             <Button
               v-if="projectionSwitchable"
               :icon="listLayout === 'board' ? 'pi pi-list' : 'pi pi-objects-column'"
@@ -147,37 +194,6 @@
         </template>
       </div>
     </div>
-    <div v-if="viewTabsAvailable" class="flex min-w-0 items-center gap-1 overflow-x-auto">
-      <Button
-        :label="defaultViewLabel"
-        text
-        size="small"
-        :severity="activeViewId ? 'secondary' : 'primary'"
-        class="shrink-0"
-        @click="selectDefaultView"
-      />
-      <Button
-        v-for="view in regionViews"
-        :key="view._id"
-        :label="view.name"
-        text
-        size="small"
-        :severity="activeViewId === view._id ? 'primary' : 'secondary'"
-        class="shrink-0"
-        @click="selectSavedView(view)"
-      />
-      <Button
-        v-if="saveViewAvailable"
-        icon="pi pi-plus"
-        text
-        rounded
-        size="small"
-        severity="secondary"
-        :aria-label="$t('uiMapping.addView')"
-        :title="$t('uiMapping.addView')"
-        @click="saveDialogOpen = true"
-      />
-    </div>
     <RegionDataState v-if="showState" :node="node" />
     <ViewSaveDialog
       :visible="saveDialogOpen"
@@ -221,7 +237,7 @@
     />
   </div>
 
-  <div v-else :class="[stackFor, 'w-full', 'relative', recordDocument && !editorSurface ? [LAYOUT.measure, 'pl-14'] : '']">
+  <div v-else :class="[stackFor, 'w-full', 'relative', recordDocument && !editorSurface ? LAYOUT.measure : '']">
     <RegionDataState v-if="showState" :node="node" />
     <!-- The depth-0 record carries the declaration authoring session
          (SPEC §1): the provider gates on the process-design capability and
@@ -416,7 +432,7 @@ import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
 import { useToast } from 'primevue/usetoast';
 import {
-  LAYOUT, GAP_BY_LEVEL, toolbarVisibleFor, sortControlRows,
+  LAYOUT, GAP_BY_LEVEL, sortControlRows,
   hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar,
   listLayoutOf, titleFor, createActionControls, recordChildSectionKey,
   isIdentifierField
@@ -823,7 +839,8 @@ const coveredRelationKeys = computed(() => [...props.node.childRegions, ...(prop
 // view control (SPEC §22.15); its badge carries the active filter
 // condition count.
 const search = ref(savedViewState.value?.search || '');
-const searchToggleAvailable = computed(() => toolbarVisibleFor(props.node));
+const searchToggleAvailable = computed(() => props.node.surfaceKind === 'list'
+  && Boolean(props.node.typeId || props.node.listControls));
 // Filterable fields: the type's scalar fields plus relation, parent, and
 // children traversal axes, with the primary status over the values
 // actually present. The name axis always exists, so every list surface
@@ -892,7 +909,8 @@ watch(() => props.node.id, () => {
   activeViewId.value = null;
   search.value = savedViewState.value?.search || '';
 });
-const viewPopover = ref();
+const filterPopover = ref();
+const optionsPopover = ref();
 const controlsPopover = ref();
 
 // View setup's field selection (SPEC §26): the user's explicit column
@@ -929,12 +947,13 @@ const collectionsNode = computed(() => {
   };
 });
 
-const viewToggleAvailable = computed(() => searchToggleAvailable.value
-  || facetsToggleAvailable.value
-  || projectionSwitchable.value
-  || sortToggleAvailable.value);
+const filterToggleAvailable = computed(() => facetsToggleAvailable.value);
+const optionsToggleAvailable = computed(() => projectionSwitchable.value
+  || sortToggleAvailable.value
+  || fieldOptions.value.length > 0);
 const conditionCount = computed(() => countPredicates(builderFilter.value));
-const toggleView = event => viewPopover.value?.toggle(event);
+const toggleFilter = event => filterPopover.value?.toggle(event);
+const toggleOptions = event => optionsPopover.value?.toggle(event);
 // Save-the-view (SPEC §26): the popover's save entry captures the
 // region's current view models as one named lens for the organization.
 // A region already rendering a saved lens offers no save.
@@ -1014,7 +1033,7 @@ async function saveCurrentView(name) {
     });
     activeViewId.value = created?._id || null;
     saveDialogOpen.value = false;
-    viewPopover.value?.hide();
+    optionsPopover.value?.hide();
   } catch (error) {
     toast?.add?.({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
   } finally {

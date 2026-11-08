@@ -12,10 +12,13 @@
       ref="editor"
       class="ck-inline-editor"
       :default-value="block.text"
+      :placeholder="t('editors.slashHint')"
       :initial-block="initialBlock"
       :initial-point="pendingPoint"
+      split-on-enter
       @ready="focusEditor"
       @update="text => session.updateText(block.id, text)"
+      @enter="insertAfter"
     />
     <template v-else>
       <MarkdownBlocks v-if="block.text" :source="block.text" />
@@ -57,6 +60,10 @@ function focusEditor() {
     pendingPoint.value = null;
     root.value?.scrollIntoView?.({ block: 'nearest' });
   });
+}
+
+function insertAfter() {
+  props.session?.insertTextAfter?.(props.block.id);
 }
 
 function closeEditor() {

@@ -2034,6 +2034,7 @@
         "sortLabel": "Сортировка",
         "sortOrderLabel": "Изменить порядок сортировки",
         "view": "Вид",
+        "viewSettings": "Настройки вида",
         "addView": "Добавить вид",
         "layoutTable": "Таблица",
         "layoutBoard": "Доска",
