@@ -131,9 +131,10 @@ and `rolled-back` are settled observations; the next write re-enters
 - `pages.js`: The organization's custom pages and sidebar sections (SPEC
   §26) over `/api/pages`: the tree projection (`pages`, `sections`,
   `pageById`), per-document content loads, and the create/rename/move/
-  save/delete verbs. Mutations are direct fetches; an organization switch
-  refetches (`reload`). The home sidebar and the custom page surface are
-  the consumers.
+  save/delete verbs, plus `ensureClassPage(typeId, name)` — the idempotent
+  class-bound Page instance with its seeded collection view. Mutations are
+  direct fetches; an organization switch refetches (`reload`). The home
+  sidebar and the custom page surface are the consumers.
 - `views.js`: The organization's saved collection views (SPEC §26) over
   `/api/views`: the list projection (`views`, `viewById`), per-view
   state loads (`viewStates`) that drop the row on a 404 GET (a

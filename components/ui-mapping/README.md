@@ -281,18 +281,19 @@ application.
   the stepped outcomes and budgets canonical in
   [shared/ui-mapping](../../shared/ui-mapping/README.md). A region
   rendering in the stub slot (`stub` prop, the pack strip under a record
-  body) renders its create affordance alone — while
-  loading/denied/error states keep the shared `RegionDataState` surface.
+  body) renders its create affordances and, for a relation section, its
+  injected link action — while loading/denied/error states keep the
+  shared `RegionDataState` surface.
   A create action renders its compiled caption (the procedural
   create-label law names the created type and mode). The toolbar and
   stub line render their create set
   through
   `createActionControls`: same-type creates collapse to one
   `CreateControl` (see below) whose mode selection names the siblings.
-  A relation-scoped section's toolbar also renders the injected link
-  actions for its relation (SPEC §22.12) beside the create set — the
-  same-type link collapses to the bare "Link" — and its rows (every
-  projection) carry the relation's unlink
+  A relation-scoped section's toolbar and its empty stub line render the
+  injected link actions for its relation (SPEC §22.12) beside the create
+  set — the same-type link collapses to the bare "Link" — and its rows
+  (every projection) carry the relation's unlink
   actions in their ellipsis menus, running against the parent record
   with the row's relation ref as payload. A class list region renders
   no link — the action addresses a concrete parent instance.

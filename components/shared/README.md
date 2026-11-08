@@ -392,8 +392,9 @@ readable. `fill` opts a host-owned fixed-height band in (DrawingCanvas
 surface — the host's — frames the preview.
 
 ### `FileChip.vue`
-The app's one file chip (SPEC §22.8): the file's name, a mime-aware
-icon, the bordered subtle chip, `name · size` on hover. A descriptor carrying a stored `fileId` or a
+The app's one file chip (SPEC §22.8): the file's name, its file-type
+glyph from the generated file-type icon family, the bordered subtle chip,
+`name · size` on hover. A descriptor carrying a stored `fileId` or a
 direct `url` is openable; the peek resolves only for stored files with a
 renderable mode (image, svg, pdf, text, dxf through
 `resolveAttachmentPeek` in

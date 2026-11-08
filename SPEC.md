@@ -1004,7 +1004,8 @@ its placement follows that address: it renders in the toolbar of the
 collection section for its target relation, beside the section's
 create affordance, and the record header carries record-level actions
 alone — a link action with no section for its relation on the open
-detail keeps the header as its fallback surface. An unlink action
+detail keeps the header as its fallback surface. An empty relation's
+stub line carries its link action beside the create affordances. An unlink action
 addresses one linked instance: it renders on that row's menu in the
 relation-scoped section and on the record body's relation chip menu,
 with the parent record and the relation ref as its run context.
@@ -1067,8 +1068,9 @@ transform. Structural values
 render as labeled blocks on their own lines. The record page carries
 its child collections alone; the hierarchy tree projection is retired.
 File and instance references render through the shared chip recipes the
-chat surfaces own: file chips name the file, instance chips ride
-InstanceInlineRef's bordered default. A boolean renders as the checkbox
+chat surfaces own: file chips name the file and carry its file-type
+glyph, instance chips ride InstanceInlineRef's bordered default and
+carry the authored type glyph at the same icon scale. A boolean renders as the checkbox
 state it is. A record's identifier carries its icon (the authored
 glyph, a record's declared thumb winning) through the one identifier
 surface; type names render bare — a collection's title bar labels its
@@ -1514,12 +1516,12 @@ reference type ids. Applying or deleting a definition leaves the
 registry and its instances untouched.
 
 Every organization class appears in the sidebar as its own type panel.
-A class with a screen opens that screen; a class without one opens its
-class page. The class page is a regular Page instance bound to the class
-type by `fields.classTypeId`, seeded with a collection view of that
-class: it carries the unified page header, the block editor, the slash
-vocabulary, instance mentions, collection views, and images like every
-user page. The panel context menu opens the class dialog.
+Every class entry opens its class page: a regular Page instance bound to
+the class type by `fields.classTypeId`. The class page carries the
+unified page header with its class dialog entry, the class's collection
+with the compiled create and link affordances, and the block editor with
+the slash vocabulary, instance mentions, collection views, and images
+like every user page. The panel context menu opens the class dialog.
 Every record header type label is clickable: editable for organization
 classes to capability holders, read-only otherwise. The sidebar's New class action creates a class, and the dialog
 edits name, class kind, glyph, fields, states, and CTS children. A

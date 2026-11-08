@@ -162,15 +162,23 @@ surfaces and action forms.
 
 ## Class Pages
 
-A screenless organization class opens its regular Page instance (SPEC
+Every organization class entry opens its regular Page instance (SPEC
 §27): the class panel asks the pages store for the page bound to the
 class type, creating it with a seeded collection view when absent, and
 opens it as an ordinary `customPage` tab. The class page therefore carries
 the same unified header, block editor, slash vocabulary, instance
-mentions, and collection views as every user page. `fields.classTypeId`
-is the binding; class pages stay out of the sidebar page tree, and the
-class panel and class dialog remain their navigation. The dialog still
-opens from the panel context menu.
+mentions, and collection views as every user page. The header's class
+type label opens the class dialog for capability holders.
+`fields.classTypeId` is the binding; class pages stay out of the sidebar
+page tree, and the class panel and class dialog remain their navigation.
+The dialog still opens from the panel context menu.
+
+The class page's collection entry mounts the class's compiled `typeList`
+screen through the generator host, so its create and link actions run
+through the ordinary action pipeline; a class with no compiled screen
+mounts the minimal live collection view. `ViewEmbed` selects this path
+when the collection fence's `typeId` matches the page's `classTypeId`;
+saved-view fences keep the lens presentation.
 
 ## Custom Pages
 
@@ -254,9 +262,10 @@ the `section` field set.
   lens law: an org-wide view shows each member their own readable
   subset, and an unreadable type renders the denied state), and row
   opens follow the workspace-open seam. The embed's region carries no
-  actions: creation and quick actions belong to the collection's own
-  screens, and the embed renders the lens; interacting with its controls
-  edits the lens session-locally only. In the live editor the same
+  actions except on the class page's class-collection entry, which mounts
+  the compiled list screen with its create and link actions; the saved
+  lens renders the view and interacting with its controls edits the lens
+  session-locally only. In the live editor the same
   `ViewEmbed` mounts inside the fence's engine preview
   (`CrepeEditor.vue` `ck-live-view`), so the collection reads live while
   the author types; each embed owns a 1rem vertical frame, separating
@@ -562,11 +571,11 @@ from the compiled manifest.
   one icon per top-level panel and per user section, avatar) and the
   wordmark returns on expand; the wrapped state persists with the
   workspace layout (`sidebarCollapsed`). Organization classes appear as
-  type panels (SPEC §27): a class with a screen opens the screen; a class
-  without one opens its class page — the bound Page instance with the
-  seeded collection view ([Class Pages](#class-pages)); the panel context
-  menu opens the class dialog for every organization class. The expanded
-  menu's foot carries the New class action. User sections ride the rail
+  type panels (SPEC §27): every class entry opens its class page — the
+  bound Page instance with the collection entry and block editor
+  ([Class Pages](#class-pages)); the panel context menu opens the class
+  dialog for every organization class. The expanded menu's foot carries
+  the New class action. User sections ride the rail
   under the same law (the [custom pages](#custom-pages) section owns
   their contract).
   Communication is two entries in the menu: Chats is a plain entry
@@ -694,7 +703,7 @@ from the compiled manifest.
   belongs to sidebar sections and entity operations to the detail
   screens' own action surfaces.
 - Tab creation is explicit: new tabs come only from the tab strip's add
-  control, sidebar type screens and class pages, explorer instance rows,
+  control, sidebar class pages, explorer instance rows,
   custom page rows, and live call stages (calls stay in their own tab so
   workspace navigation never unmounts an active call). Every other navigation —
   explorer rows, nested entity links, workspace pages — reuses the pane's

@@ -5,12 +5,13 @@
 - [ ] WAITING — owner verification: registry-owned type lifetime — the
   definition-owned death gates and `confirmTypeDeath` are gone; classes
   live until explicit removal.
-- [ ] WAITING — owner verification: class panels in the sidebar
-  (screen-backed classes open their screen, screenless classes open the
-  same generated type-list page, panel context menus open the dialog), the sidebar New class
-  action, the class dialog (name, class, compact glyph select, fields,
-  states, children), and the record header type label as the dialog
-  entry.
+- [ ] WAITING — owner verification: class panels in the sidebar open
+  the class page for every class (its collection carries the compiled
+  create and link actions, the header type label opens the class dialog,
+  and the page keeps the block editor), panel context menus open the
+  dialog, the sidebar New class action creates a class, and the class
+  dialog edits name, class, compact glyph select, fields, states, and
+  children.
 - [ ] WAITING — owner verification: child classes save with the parent
   (a draft dialog, group included), class states persist on the
   declaration and override compiled state policy, and the record pages
@@ -26,6 +27,17 @@
   page for a repeated create, and the class page seeds a collection view
   of its class. It mounts the same page header and block editor as every
   custom page; class pages stay out of the sidebar page tree.
+
+### Agent Notes (2026-11-08, agent/class-pages-chips-20261108)
+
+- Every sidebar class entry opens its class page. The class page header
+  carries the class type label (the class dialog entry) and the page's
+  collection fence mounts the class's compiled `typeList` screen through
+  `GeneratedScreenHost`, so create and link actions run through the
+  ordinary action pipeline; a screenless class mounts the minimal live
+  collection view. The wrapped sidebar rail follows the same open path.
+- Focused: `view-embed`, `sidebar-pages`, `sidebar-explorer`, and the
+  hierarchy spec green; `docs:validate` and `check-arch` green.
 
 ## Notion-like document blocks and collection views (owner direction 2026-11-08)
 
@@ -112,6 +124,11 @@
   read/edit renderer split is gone for writers. Focus restores through
   the ProseMirror view, so adding a chip or opening a block keeps the
   caret where the author put it.
+
+### Agent Notes (2026-11-08, file chip glyphs)
+
+- File chips render the file-type glyph family (mime or extension
+  derived), matching the instance chips' icon scale.
 
 ### Agent Notes (2026-11-08, agent/trailing-block-20261108)
 
@@ -3755,6 +3772,13 @@ the tree is reactive to both loaded records and the served type view.
 The header's unused pool prop is cut. `process-generated-screen.spec.js`
 pins the parent crumb on a child detail surface.
 
+### Agent Notes (2026-11-08, canonical ancestor types)
+
+- `containmentAncestors` keeps the declaration's canonical parent type id
+  on each crumb; `TraceChain` canonicalizes through the instances store
+  before resolving the served type record, glyph, label, and popup
+  target, so kebab registry ids keep their spelling.
+
 ## Ref type aliases resolve to the registry id; peeks host the served id (owner report 2026-10-31)
 
 Owner report: a relation chip's hover panel opens but writes that no record
@@ -5346,6 +5370,12 @@ no type name.
   creates render captioned type names on every surface; a contextless
   create (palette, unscoped class list) prompts its lineage rows, a
   scoped create and every nested part-create auto-fill and hide them.
+
+  ### Agent Notes (2026-11-08, empty relation link)
+
+  An empty relation section drops to the stub strip; the stub line now
+  renders the relation's injected link action beside its create
+  affordances, the same toolbar placement the filled section carries.
 
   ### Agent Notes (2026-11-06)
 

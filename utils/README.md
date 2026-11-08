@@ -9,6 +9,9 @@ Parent: [root README](../README.md).
   `workspacePageKey` by the page mount), and the workspace's pane/tab
   close paths confirm through the shared dialog before closing a dirty
   tab.
+- `instance-hierarchy.js`: The containment walk — ancestor refs carry the
+  declaration's canonical type id so breadcrumb labels, glyphs, and popup
+  targets resolve through the served type view.
 
 ## Design System Contract
 
@@ -102,7 +105,8 @@ Parent: [root README](../README.md).
   section; the thread core's direct-key grammar homes here).
 - `file-refs.js`: The document file-reference descriptor: derives the
   shared `FileChip` facts (name, mime, stored id/bucket, direct URL) from a
-  file link's href and carried label.
+  file link's href and carried label; `fileTypeIconClass` is the one
+  mime/extension-to-file-type-glyph derivation the chip renders.
 - `chat-file-targets.js`: Pure resolver for the chat composer's instance-chat
   upload window: over the served CTS type view it collects a composer
   target's declared `file`-class children whose payload traits and `upload`
