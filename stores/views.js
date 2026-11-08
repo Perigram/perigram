@@ -14,7 +14,6 @@ export const useViewsStore = defineStore('views', {
   }),
   getters: {
     viewById: state => id => state.views.find(view => view._id === String(id)) || null,
-    viewsByType: state => typeId => state.views.filter(view => view.typeId === typeId),
     canSave: () => {
       const authStore = useAuthStore();
       return Boolean(authStore.organizationData);
@@ -36,7 +35,20 @@ export const useViewsStore = defineStore('views', {
       }
     },
     async loadView(id) {
-      const view = await $fetch(`/api/views/${id}`);
+      let view;
+      try {
+        view = await $fetch(`/api/views/${id}`);
+      } catch (error) {
+        // A 404 means the view is gone server-side; the list cache drops
+        // the stale row so readers render the unavailable state.
+        if (error?.status === 404 || error?.statusCode === 404 || error?.data?.statusCode === 404) {
+          this.views = this.views.filter(candidate => candidate._id !== String(id));
+          const states = { ...this.viewStates };
+          delete states[String(id)];
+          this.viewStates = states;
+        }
+        throw error;
+      }
       this.upsert({ _id: view._id, name: view.name, typeId: view.typeId });
       this.viewStates = { ...this.viewStates, [String(id)]: view.viewState || {} };
       return view;

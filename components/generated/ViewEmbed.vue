@@ -1,6 +1,9 @@
 <template>
+  <!-- The lens travels over its own GET, so the region mounts only with
+       it: a region seeded before the state lands freezes every view
+       model at its empty default. -->
   <RegionBlock
-    v-if="node"
+    v-if="node && viewState"
     :key="view._id"
     :node="node"
     :pool="pool"
@@ -11,6 +14,7 @@
     :load-type="loadType"
     @open="openInstance"
   />
+  <RegionDataState v-else-if="node" :node="node" />
   <!-- A fence naming a deleted (or unloaded-org) view renders its name
        and a quiet empty state. -->
   <div v-else-if="viewsStore.loaded" class="flex flex-col gap-1 py-3">
@@ -30,6 +34,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import RegionBlock from '~/components/ui-mapping/RegionBlock.vue';
+import RegionDataState from '~/components/ui-mapping/RegionDataState.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useViewsStore } from '~/stores/views';
@@ -78,10 +83,15 @@ const screen = computed(() => (view.value ? {
 
 // Source state: loading only while the fetch is in flight; the pool
 // itself derives ready/empty at compose time, so an already-loaded type
-// renders at once on both sides of hydration.
+// renders at once on both sides of hydration. A pending lens is a
+// loading region whatever the pool holds — the region cannot render.
 const fetchState = ref(null);
-const sourceState = computed(() => fetchState.value
-  ?? (Object.keys(pool.value[view.value?.typeId] || {}).length ? 'ready' : 'loading'));
+const lensPending = computed(() => Boolean(view.value) && viewState.value === null);
+const sourceState = computed(() => {
+  if (lensPending.value) return 'loading';
+  return fetchState.value
+    ?? (Object.keys(pool.value[view.value?.typeId] || {}).length ? 'ready' : 'loading');
+});
 
 const composed = computed(() => (screen.value
   ? composeScreen(screen.value, contract.value, bundle.value, pool.value, {
@@ -103,7 +113,7 @@ function openInstance(instance) {
 }
 
 onMounted(async () => {
-  await viewsStore.ensureLoaded();
+  await viewsStore.ensureLoaded().catch(() => {});
   if (!view.value) return;
   try {
     await viewsStore.loadView(props.viewId);

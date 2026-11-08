@@ -135,12 +135,12 @@ and `rolled-back` are settled observations; the next write re-enters
   refetches (`reload`). The home sidebar and the custom page surface are
   the consumers.
 - `views.js`: The organization's saved collection views (SPEC §26) over
-  `/api/views`: the list projection (`views`, `viewById`,
-  `viewsByType`), per-view state loads (`viewStates`), and the
-  create/rename/remove verbs; `canSave` gates the collection header's
-  save affordance on active-organization membership. The save
-  affordance, the page view picker, and the page view embed are the
-  consumers.
+  `/api/views`: the list projection (`views`, `viewById`), per-view
+  state loads (`viewStates`) that drop the row on a 404 GET (a
+  server-side delete leaves the cache), and the create/rename/remove
+  verbs; `canSave` gates the collection header's save affordance on
+  active-organization membership. The save affordance, the page view
+  picker, and the page view embed are the consumers.
 - `instance-overlays.js`: The organization's record-page overlays (SPEC
   §26) over `/api/instance-overlays/:type/:id`: a per-instance cache
   (`overlays`, `loaded` keyed `typeId:instanceId`), `ensureLoaded`,
