@@ -212,9 +212,7 @@ application.
   content: click mounts the engine inline at the click point (crepe's
   page chrome stripped through `ck-inline-editor`), Escape or
   Cmd/Ctrl+Enter closes it, and Enter at the block's end starts the
-  next block. The engine scrolls the block into view on mount. Inline
-  instance references ride the text as `#instance:` links rendered as
-  chips; the Instance entry opens the instance picker at the caret. The
+  next block. The engine scrolls the block into view on mount. The
   document's trailing line is a real inline engine mount, empty and
   type-ready for writers; Enter commits its text as a block and leaves a
   fresh empty line. It is the document's single placeholder: empty text

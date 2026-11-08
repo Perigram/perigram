@@ -211,9 +211,8 @@ the `section` field set.
   editor mount reads identically. The collection-view vocabulary entry
   is live: its pick emits to the host, which opens
   `ViewPickerDialog.vue` (the type containment tree) and inserts the
-  view fence at the caret; the instance entry opens the instance picker
-  and inserts an inline `#instance:` link. The page-link and AI-block
-  entries stay dark until phase K. The page's header is the unified page header
+  view fence at the caret; the page-link and AI-block entries stay dark
+  until phase K. The page's header is the unified page header
   ([ui-mapping](../ui-mapping/README.md) `SurfaceHeader` with `title` +
   `onRename`, no type or instance): the name edits in place through the
   pages rename channel and the save patches content through the pages
@@ -250,9 +249,8 @@ the `section` field set.
   a text block renders through `OverlayTextBlock.vue` — read through
   `MarkdownBlocks`, authored inline through `CrepeEditor` at the click
   point, its text saving with the overlay's document — and a view block
-  renders `ViewEmbed` verbatim with its saved ref. Inline instance
-  references ride the text as `#instance:` links and read as chips. The
-  document gutter's plus opens the same block vocabulary as the slash
+  renders `ViewEmbed` verbatim with its saved ref. The document
+  gutter's plus opens the same block vocabulary as the slash
   panel; text entries insert a text block opened at that kind (image
   asks for a source address, instance opens the picker), and the view
   entry reuses `ViewPickerDialog`. The document's trailing line is a

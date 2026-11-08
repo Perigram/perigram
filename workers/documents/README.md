@@ -48,7 +48,6 @@ types ride the generic instance machinery from the install snapshot.
   | Image | the host address popover, anchored to the surface; the source applies at the caret |
   | Divider, Table | horizontal rule; a three-by-three gfm table |
   | Link | the host address popover, anchored to the surface; the link applies at the caret |
-  | Instance | the host instance picker; the pick inserts an inline `#instance:<type>/<id>` link |
   | Collection view | the host picker is the type containment tree; the pick inserts a `` ```view `` fence carrying the collection ref (`{ typeId, name }`) |
 
   Inline marks (bold, italic, inline code) author through input rules.
