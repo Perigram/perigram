@@ -5,9 +5,11 @@
 - [ ] WAITING — owner verification: registry-owned type lifetime — the
   definition-owned death gates and `confirmTypeDeath` are gone; classes
   live until explicit removal.
-- [ ] WAITING — owner verification: Classes panel, create-palette New
-  class entry, class dialog (name, class, glyph, fields, children), and
-  the record header type label as the dialog entry.
+- [ ] WAITING — owner verification: class panels in the sidebar
+  (screen-backed classes open their screen, screenless classes open the
+  dialog), the create-palette New class entry, the class dialog (name,
+  class, glyph, fields, children), and the record header type label as
+  the dialog entry.
 - [ ] WAITING — owner verification: default Page class with block
   content; the pages feature adopts old `pages` rows into Page instances
   and backs the sidebar tree with that instance tree.
@@ -6083,7 +6085,7 @@ opens a type popup.
   entry point on every record surface.
 - [x] The class dialog (`ClassDialog`): name, class, glyph, field rows,
   and CTS children for capability holders; the record header's type label
-  and the sidebar Classes panel open it.
+  and organization-class sidebar panels open it.
 - [ ] WAITING — owner verification: an editor-bound file opens into its
   full-page editor with the header owning name/save (dirty-marked,
   pane-close still confirms); a regular record page keeps its document

@@ -34,9 +34,11 @@ sizes, socket tones, and the quiet-card law follow the
 
 The class library is the organization's `scope: 'org'` registry view
 (`GET /api/admin/cts/types` through
-[useFileTypeView](../../composables/README.md)). The sidebar Classes panel
-lists it; the create palette's pinned New class entry and every record
-header's type label open `ClassDialog.vue`.
+[useFileTypeView](../../composables/README.md)). Organization classes
+appear as sidebar type panels: a class without a screen opens
+`ClassDialog.vue` on click, a screen-backed class opens its screen, and
+the panel context menu opens the dialog. The create palette's pinned New
+class entry and every record header's type label open the same dialog.
 
 | Piece | Contract |
 |---|---|

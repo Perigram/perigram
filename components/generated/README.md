@@ -559,9 +559,10 @@ from the compiled manifest.
   per top-level panel and per user section, avatar) and the wordmark
   returns on expand; the
   wrapped state persists with the workspace layout (`sidebarCollapsed`).
-  Capability holders lead with a Classes panel listing the organization's
-  classes (SPEC §27); a row opens the class dialog
-  ([type-designer](../type-designer/README.md)). User sections ride the
+  Organization classes appear as type panels (SPEC §27): a class with a
+  screen opens the screen; a class without one opens the class dialog
+  ([type-designer](../type-designer/README.md)); the panel context menu
+  opens the dialog for every organization class. User sections ride the
   rail under the same law (the [custom pages](#custom-pages) section owns
   their contract).
   Communication is two entries in the menu: Chats is a plain entry
