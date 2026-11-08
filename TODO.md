@@ -53,6 +53,9 @@
   trailing line is the single placeholder: empty text blocks render
   nothing and drop when their editor closes. Callout inserts an empty
   blockquote.
+- Text blocks accept inline instance references through the Instance
+  entry: the shared InstanceSelect picks a record and the shared
+  InstanceInlineRef chip renders it in prose.
 - The record measure keeps the page header's position; the gutter lane
   sits in the left margin.
 - Validation: focused vitest (ui-mapping, generated, documents surfaces,

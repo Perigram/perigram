@@ -214,7 +214,10 @@ application.
   Cmd/Ctrl+Enter closes it, and Enter at the block's end starts the
   next block. Backspace in an empty block removes it and resumes the
   previous text block. The engine scrolls the block into view on mount.
-  The document's trailing line is a real inline engine mount, empty and
+  Inline instance references ride the text as `#instance:` links; the
+  Instance entry opens the shared `InstanceSelect`, and the read
+  composition mounts the shared `InstanceInlineRef` chip in place of
+  each link. The document's trailing line is a real inline engine mount, empty and
   type-ready for writers; Enter commits its text as a block and leaves a
   fresh empty line. It is the document's single placeholder: empty text
   blocks render nothing and drop when their editor closes. The record's own

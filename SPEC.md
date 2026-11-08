@@ -1471,8 +1471,10 @@ drag handle is a six-dot grip. Collection headers carry their views as
 tabs: the derived layout, the type's saved views, and add view.
 
 Writers always have a trailing live editor; its Enter commits the text
-as a block. The collection-view picker is the type containment tree,
-with saved views living in the header tabs.
+as a block. Text blocks accept inline instance references, stored as
+`#instance:` links and rendered through the shared instance chip. The
+collection-view picker is the type containment tree, with saved views
+living in the header tabs.
 
 The AI block is ask/answer: the organization's assistant answers in
 place under the opener's delegated principal, rendered as markdown,
