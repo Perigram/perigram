@@ -640,8 +640,8 @@ body {
     line-height: 1.25rem;
 }
 
-/* Inline instance links read as chips in the in-place editor; the read
-   composition mounts the shared InstanceInlineRef component. */
+/* Inline instance links read as atomic chips in the in-place editor; the
+   read composition mounts the shared InstanceInlineRef component. */
 .ck-inline-editor.crepe-host .milkdown .ProseMirror a[href^="#instance:"] {
     display: inline-flex;
     align-items: baseline;
@@ -654,6 +654,39 @@ body {
     font-size: 0.875em;
     line-height: 1.5;
     text-decoration: none;
+}
+
+.ck-instance-ref {
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.ck-instance-ref.ProseMirror-selectednode {
+    outline: 2px solid var(--p-primary-color);
+    outline-offset: 2px;
+}
+
+/* Collection views author as live regions inside the editor. The engine
+   frames its code block as a source tool; the live region owns the frame
+   and the vertical rhythm between neighbouring embeds. */
+.ck-live-view {
+    display: block;
+    margin: 1rem 0;
+    padding: 0.75rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-content-border-radius);
+}
+
+.milkdown-code-block:has(.ck-live-view) {
+    margin: 1rem 0;
+}
+
+.milkdown-code-block:has(.ck-live-view) > .tools {
+    display: none;
+}
+
+.ck-document-embed {
+    margin: 1rem 0;
 }
 
 :is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) > *:first-child {

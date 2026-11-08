@@ -12,7 +12,8 @@ export const pageTypeDeclaration = Object.freeze({
   fields: {
     name: { base: 'string', identifier: true },
     content: { base: 'string', nullable: true },
-    section: { base: 'boolean' }
+    section: { base: 'boolean' },
+    classTypeId: { base: 'string', nullable: true }
   },
   edges: {
     children: {

@@ -577,7 +577,6 @@ const workspaceItems = computed(() => [
   ...callPageItems.value,
   ...chatPageItems.value,
   ...customPageItems.value,
-  ...classPageItems.value,
   ...staticPageItems.value
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
@@ -876,7 +875,8 @@ function pageLabel(page = {}) {
 
 function pageChildrenOf(parentId) {
   const wanted = parentId == null ? null : String(parentId);
-  return pagesStore.pages.filter(page => page.kind === 'page' && (page.parentId ?? null) === wanted);
+  const pages = pagesStore.customPages || pagesStore.pages || [];
+  return pages.filter(page => page.kind === 'page' && !page.classTypeId && (page.parentId ?? null) === wanted);
 }
 
 function customPageItem(page) {
@@ -1539,19 +1539,14 @@ const customPageItems = computed(() => customPageRefs.value.map(reference => ({
   label: pageLabel(pagesStore.pageById(reference.docId))
 })));
 
-const classPageRefs = ref([]);
-
-const classPageItems = computed(() => classPageRefs.value.map(reference => ({
-  key: reference.key,
-  kind: 'page',
-  pageId: 'class',
-  classTypeId: reference.typeId,
-  label: typeLabelOf(reference.typeId)
-})));
-
-function openClassPage(typeId = '') {
+async function openClassPage(typeId = '') {
   if (!typeId) return;
-  openEphemeralTab(classPageRefs, { key: `page:class:${typeId}`, typeId });
+  try {
+    const page = await pagesStore.ensureClassPage(typeId, typeLabelOf(typeId));
+    if (page?._id) openCustomPageTab(page._id);
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
 }
 
 function openCustomPageTab(docId = '') {
@@ -1875,7 +1870,6 @@ function forgetClosedTabRefs(key) {
     if (callPageRefs.value.some(call => call.key === key)) callsStore.tabClosed(key);
     callPageRefs.value = callPageRefs.value.filter(call => call.key !== key);
     customPageRefs.value = customPageRefs.value.filter(reference => reference.key !== key);
-    classPageRefs.value = classPageRefs.value.filter(reference => reference.key !== key);
   }
 }
 

@@ -80,7 +80,7 @@ describe('pages', () => {
     await seedPage(ORG_B, { name: 'Theirs' });
     const tree = await pagesService.listTree(memberOf(ORG_A));
     expect(tree).toHaveLength(1);
-    expect(tree[0]).toEqual({ _id: mine, name: 'Mine', parentId: null, kind: 'page' });
+    expect(tree[0]).toEqual({ _id: mine, name: 'Mine', parentId: null, kind: 'page', classTypeId: null });
   });
 
   it('answers a foreign page 404 on read, update, and delete', async () => {
@@ -123,7 +123,7 @@ describe('pages', () => {
     const child = await seedPage(ORG_A, { parentId: parent });
     await pagesService.remove(parent, memberOf(ORG_A));
     const tree = await pagesService.listTree(memberOf(ORG_A));
-    expect(tree).toEqual([{ _id: child, name: '', parentId: null, kind: 'page' }]);
+    expect(tree).toEqual([{ _id: child, name: '', parentId: null, kind: 'page', classTypeId: null }]);
   });
 
   it('creates unnamed pages and sections; rename and content ride the patch', async () => {
@@ -145,5 +145,23 @@ describe('pages', () => {
     await pagesService.update(b, { parentId: null }, memberOf(ORG_A));
     const tree = await pagesService.listTree(memberOf(ORG_A));
     expect(tree.every(row => row.parentId === null)).toBe(true);
+  });
+
+  it('returns the one page already bound to a class', async () => {
+    const first = await pagesService.create({
+      name: 'Widgets',
+      classTypeId: 'widget',
+      content: '```view\n{"typeId":"widget","name":"Widgets"}\n```\n'
+    }, memberOf(ORG_A));
+    const second = await pagesService.create({ name: 'Other', classTypeId: 'widget' }, memberOf(ORG_A));
+    expect(second._id).toBe(first._id);
+    const tree = await pagesService.listTree(memberOf(ORG_A));
+    expect(tree).toEqual([{
+      _id: first._id,
+      name: 'Widgets',
+      parentId: null,
+      kind: 'page',
+      classTypeId: 'widget'
+    }]);
   });
 });

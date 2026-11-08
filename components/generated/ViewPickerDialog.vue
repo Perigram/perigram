@@ -20,25 +20,29 @@
 </template>
 
 <script setup>
-// The collection-view picker (SPEC §26): the page view fence and the
-// record overlay's view block choose a collection. The chooser is the
-// type containment tree — parent collections nest their children — so
-// the pick mirrors the workspace hierarchy.
+// The collection-view picker (SPEC §26): the type containment tree with
+// each collection's saved views beneath it. Selecting a collection
+// inserts its live default view; selecting a saved view inserts that
+// lens. Both render through the same ViewEmbed contract.
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tree from 'primevue/tree';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { useAuthStore } from '~/stores/auth';
+import { useInstancesStore } from '~/stores/instances';
+import { useViewsStore } from '~/stores/views';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedEntityLabel } from '~/utils/generated-labels';
 
-defineProps({
+const props = defineProps({
   visible: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['close', 'pick']);
 const { te, t } = useI18n();
 const authStore = useAuthStore();
+const instances = useInstancesStore();
+const viewsStore = useViewsStore();
 const effectiveContainment = useEffectiveContainment();
 
 // Collections are the types the organization serves a list screen for —
@@ -59,12 +63,40 @@ const collections = computed(() => {
     .sort((left, right) => left.label.localeCompare(right.label));
 });
 
+const viewsByType = computed(() => {
+  const grouped = new Map();
+  for (const view of viewsStore.views || []) {
+    const typeId = String(view.typeId || '');
+    if (!typeId) continue;
+    if (!grouped.has(typeId)) grouped.set(typeId, []);
+    grouped.get(typeId).push(view);
+  }
+  return grouped;
+});
+
 const nodes = computed(() => {
   const byId = new Map(collections.value.map(row => [row.id, {
-    key: row.id,
+    key: `type:${row.id}`,
     label: row.label,
-    icon: 'pi pi-table',
-    children: []
+    icon: instances.iconFor(row.id),
+    selectable: true,
+    data: { kind: 'collection', typeId: row.id, name: row.label },
+    children: (viewsByType.value.get(row.id) || [])
+      .slice()
+      .sort((left, right) => String(left.name || '').localeCompare(String(right.name || '')))
+      .map(view => ({
+        key: `view:${view._id}`,
+        label: view.name || t('editors.view'),
+        icon: 'pi pi-filter',
+        selectable: true,
+        leaf: true,
+        data: {
+          kind: 'view',
+          id: String(view._id),
+          typeId: row.id,
+          name: view.name || ''
+        }
+      }))
   }]));
   const parentOf = new Map();
   for (const entry of effectiveContainment()) {
@@ -75,7 +107,7 @@ const nodes = computed(() => {
   }
   const roots = [];
   for (const node of byId.values()) {
-    const parent = parentOf.get(node.key);
+    const parent = parentOf.get(node.key.slice('type:'.length));
     if (parent && byId.has(parent)) byId.get(parent).children.push(node);
     else roots.push(node);
   }
@@ -96,7 +128,18 @@ watch(nodes, value => {
     }));
 }, { immediate: true });
 
+watch(() => props.visible, async visible => {
+  if (visible) await viewsStore.ensureLoaded().catch(() => {});
+}, { immediate: true });
+
 function selectNode(node) {
-  emit('pick', { typeId: node.key, name: node.label });
+  const data = node.data || {};
+  if (data.kind === 'view') {
+    emit('pick', { id: data.id, typeId: data.typeId, name: data.name });
+    return;
+  }
+  if (data.kind === 'collection') {
+    emit('pick', { typeId: data.typeId, name: data.name });
+  }
 }
 </script>
