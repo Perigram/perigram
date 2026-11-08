@@ -35,11 +35,16 @@
   stripped; autosave leaves the editor open and late keystrokes reseed
   the draft. Read HTML and the in-place engine share the markdown
   recipe, so entering the editor keeps the block's typography.
-- Collection headers carry the derived-layout tab, saved view tabs, and
-  the add-view (+); selecting a saved tab suppresses preference writes.
+- Collection headers keep the label, count, view tabs, search, filter,
+  view settings, and create set on one row; selecting a saved tab
+  suppresses preference writes.
 - The collection-view picker lists saved views beside embeddable
   collections; a collection entry carries its type id and renders the
   type's live view with its header tabs.
+- Enter at the end of a text block starts the next block; the empty
+  editor carries the slash hint. Callout inserts an empty blockquote.
+- The record measure keeps the page header's position; the gutter lane
+  sits in the left margin.
 - Validation: focused vitest (ui-mapping, generated, documents surfaces,
   overlay session, markdown fences) green; `check-docs` and `check-arch`
   green.

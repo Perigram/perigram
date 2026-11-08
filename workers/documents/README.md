@@ -43,7 +43,7 @@ types ride the generic instance machinery from the install snapshot.
   | Paragraph, Heading 1–6 | body text, heading level; the entry matching the focused block's kind returns the block to body text |
   | Bullet, Numbered, To-do list | gfm lists; to-do sets the checkbox attr on the focused list item |
   | Quote | blockquote; the quote entry on a quoted block lifts it out |
-  | Callout | blockquote seeded with a bold localized title; the pipeline renders blockquotes natively |
+  | Callout | an empty blockquote the author fills in immediately; the pipeline renders blockquotes natively |
   | Code block, Diagram | fenced code (language picker on hover, CodeMirror); diagram seeds a `mermaid` fence |
   | Image | the host address popover, anchored to the surface; the source applies at the caret |
   | Divider, Table | horizontal rule; a three-by-three gfm table |
