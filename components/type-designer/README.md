@@ -1,15 +1,15 @@
 # COMPONENT: Type Designer
 
-Declaration authoring vocabulary for the platform: the class/field/state
-Vue Flow node cards, the recursive field-descriptor editor, and the
-surface declaration authoring session with its affordances (SPEC §1).
+Class declaration authoring for the platform: the class/field/state
+Vue Flow node cards, the recursive field-descriptor editor, the class
+dialog, and the class page (SPEC §27).
 [pages/organization/process.vue](../../pages/organization/process.vue)
 mounts the cards as its `ctsClass`/`ctsField`/`ctsState` node templates,
 the process designer's
 [DeclarationInspector](../process-designer/README.md#inspector-anatomy)
-hosts the descriptor editor for the selected field node, and the
-generated record surfaces mount the authoring affordances
-([ui-mapping](../ui-mapping/README.md)). Parent:
+hosts the descriptor editor for the selected field node, and the home
+sidebar mounts the class page and dialog
+([components/generated](../generated/README.md)). Parent:
 [components](../README.md).
 
 ## Nodes
@@ -35,18 +35,20 @@ sizes, socket tones, and the quiet-card law follow the
 The class library is the organization's `scope: 'org'` registry view
 (`GET /api/admin/cts/types` through
 [useFileTypeView](../../composables/README.md)). Organization classes
-appear as sidebar type panels: a class without a screen opens
-`ClassDialog.vue` on click, a screen-backed class opens its screen, and
-the panel context menu opens the dialog. The create palette's pinned New
-class entry and every record header's type label open the same dialog.
+appear as sidebar type panels: a screen-backed class opens its screen;
+a class without one opens `ClassSurface.vue`; the panel context menu and
+the header type label open `ClassDialog.vue`. The sidebar's New class action
+creates a class.
 
 | Piece | Contract |
 |---|---|
-| `ClassDialog.vue` | Create/edit one org declaration: name, class, glyph, the field row list, and children edges. Saves through `POST /api/admin/cts/types` with the loaded declaration and name, class, glyph, fields, and children replaced. A `group` class cannot save without a child. |
-| Field rows | The same `DeclarationFieldRow` + `DescriptorEditor` vocabulary as surface authoring; exactly one field carries the identifier flag. |
-| Children | Existing classes attach through the parent's `edges.children` entry; each type keeps its entry's `lineageKey` and `onRemove`. New child classes are created from the same section with a default identifier field, then attached. |
+| `ClassDialog.vue` | Create/edit one org declaration: name, class, glyph, fields, states, and children edges. Saves through `POST /api/admin/cts/types` with the loaded declaration and those facets replaced. A `group` class cannot save without a child. |
+| `ClassSurface.vue` | The class page: the same generated type-list screen every class page uses, synthesized with one source and one region when no compiled process screen exists. |
+| Field rows | `DeclarationFieldRow` + `DescriptorEditor`; exactly one field carries the identifier flag. |
+| States | `DeclarationStateRow` edits the class's flat state vocabulary: value, severity, icon. The vocabulary persists on the declaration and overrides the compiled process policy for the same values. |
+| Children | Existing classes attach through the parent's `edges.children` entry; each type keeps its entry's `lineageKey` and `onRemove`. Add child class opens a draft `ClassDialog` — the child persists with the parent save, never on the click; the draft dialog offers every declarable class, group included. |
 | Capability | `organizations:admin`, the same seam as declaration authoring. |
-| `class-glyphs.js` | The curated glyph set plus the built icon-font palette, shared by the class dialog and the process-designer declaration inspector. |
+| `GlyphSelect.vue` | The one icon-sized glyph picker, shared by the class dialog and the process-designer declaration inspector. `class-glyphs.js` carries its option set. |
 
 ## DescriptorEditor
 
@@ -58,7 +60,9 @@ descriptor grammar: base select over the CTS `FIELD_BASES`, `nullable`,
 chip-authored values/tags for `enum`/`variant`, recursive `itemType`
 for `list`/`map`, and named record fields recursing the editor; the
 qualifier blocks label through the §22.8 label cell (`text-label
-text-muted`). Every change emits a fresh object through
+text-muted`). The base, unit, and unlink pickers are single `Select`
+controls; accepted ref targets are a `MultiSelect`. Every change emits a
+fresh object through
 `update:modelValue`; switching the base preserves the SPEC §4
 naming-facet keys (`label`, `display`, `control`, `identifier`,
 `depiction`) and `nullable`. Validation runs live through the
@@ -66,45 +70,14 @@ registry's `describeType`, its message rendering inline; an unset `ref`
 (no accepted targets) is authored-in-progress and stays out of the
 declaration until targets are picked.
 
-## Surface declaration authoring (SPEC §1)
-
-Class metadata, fields, and children author in the class dialog.
-Surface declaration authoring authors fields in the record page's
-property block and states in the state surface. The surface session
-mutates the same canvas declaration records the designer authors, and
-every surface affordance is a projection of one session.
-
-| Piece | Contract |
-|---|---|
-| Session | `useDeclarationAuthoring.js` — resolves the stationing definition (`useDeclarationStation`), loads it through the designer's persistence seam, projects with `definitionToCanvas`/`canvasToDefinition`, runs `interpretDeclarationEdges` after each structural edit, and mutates only through the pure layer. Diagnostics recompute on every change (`compileTreeDeclarations` + `normalizeType`); save is a draft `PATCH` (`saveDraft`); Apply stays in the designer. |
-| Provider | `DeclarationAuthoring.vue` renders a bare slot and provides the session as `declarationAuthoring`; [ui-mapping](../ui-mapping/README.md)'s RegionBlock mounts it around the depth-0 record. It gates on the process-design capability (`organizations:admin`, the designer's own seam) and the declaration station; non-holders and pack types get no session and the surfaces stay byte-identical. |
-| Fields | The record page's property block projects the draft for holders: every declared scalar field in authored order, empty ones included, one author affordance per row. The row popover (`DeclarationFieldMenu` → `DeclarationFieldPanel`) composes the shared `DescriptorEditor` — kind, qualifiers, relation targets offered from the live registry view (`typeOptions` over the designer's CTS type view) — beside the name, the identifier-holder move, move up/down (`moveDeclarationField`), and removal gated by live diagnostics (an orphaning remove refuses with the compiler's fresh reason). The block ends in the add-field affordance (`DeclarationAddField`, minting through `newFieldDeclaration` with the authored name and descriptor); rendered structural sections carry the same popover at their label. |
-| States | The state popover ([ui-mapping](../ui-mapping/README.md) SurfaceHeader) gains the authoring lane `DeclarationStatePanel`: the vocabulary states edit value, label, severity/icon (`state-severities.js`), transitions author from/to the type's live vocabulary with the intent label, removal is diagnostics-gated, and the machine view (`machineModelOf` + `mermaidFlowchartOf` through the shared markdown pipeline) opens one dialog away. Add-state carries the SPEC §7 law — the first construct without an initial state gets it, else a targeting transition is minted — and the consequence is stated beside the input before commit. A stateless record of a stationed type carries the quiet add-states affordance at the state surface position instead. |
-| Save | `DeclarationSaveButton` — the one save affordance, dirty-gated, mounted in the property block's end cluster and the state panel. |
-| Guard | A dirty session warns on route leave through the standard confirm host (`onBeforeRouteLeave` in the session) and on browser unload; closing a host pane tab without a route change carries no veto seam (canvas parity). |
-
-`DeclarationStateRow.vue` and `DeclarationTransitionRow.vue` are
-pure-presentation rows the state panel composes — every mutation an
-event up (the process-designer inspector law); the panels bind them to
-the session's gestures.
-
-Glyph authoring, payload-traits authoring, the transition guard
-editor, actor assignment, field policy, grants, and the dataflow wiring
-stay on the canvas inspector (v1 boundary).
-
-The pure projection and gesture layer lives in
-[utils](../../utils/README.md) → `processDesignerDeclarationEditor.js`
-(spec-pinned: the surface round-trip must serialize to the document the
-canvas gestures save); the stationing-definition resolution in
-[composables](../../composables/README.md) → `useDeclarationStation`.
-
 ## Conventions
 
 - The card face stays quiet — identity, tag, sockets; meta detail rides
   the tooltip ([process-designer](../process-designer/README.md) card
   anatomy).
 - `state-severities.js` homes the state-severity vocabulary shared with the
-  [process-designer](../process-designer/README.md) inspector;
+  [process-designer](../process-designer/README.md) inspector and the class
+  state rows;
   `stateSeverityOptions(t)` labels it through
   `processDesigner.stateSeverities.*` (en+ru).
 - The descriptor vocabulary (bases, units, naming facets, mutability
@@ -115,7 +88,7 @@ canvas gestures save); the stationing-definition resolution in
 
 - Parent: [components](../README.md)
 - [process-designer](../process-designer/README.md) — canvas contract, inspector, wire grammar
-- [ui-mapping](../ui-mapping/README.md) — the record surfaces the affordances mount on
+- [ui-mapping](../ui-mapping/README.md) — the record surfaces the field facts render on
 - [shared](../shared/README.md) — `DesignerNodeCard`, `DesignerSocketHandle`
 - [packages/cts](../../packages/cts/SPEC.md) — declaration and descriptor grammar
 - [server/features/cts-types](../../server/features/cts-types/README.md) — the org registry write gate

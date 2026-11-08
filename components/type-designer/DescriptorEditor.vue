@@ -1,12 +1,12 @@
 <template>
   <div class="flex flex-col gap-2">
     <div class="flex items-center gap-2">
-      <SelectButton
+      <Select
         :model-value="modelValue.base"
         :options="baseOptions"
         option-label="label"
         option-value="value"
-        class="flex-1"
+        class="w-44 max-w-full"
         size="small"
         @update:model-value="value => setBase(value)"
       />
@@ -41,25 +41,29 @@
 
     <div v-if="modelValue.base === 'quantity'" class="flex flex-col gap-1">
       <label class="text-label text-muted">{{ $t('typeCanvas.unit') }}</label>
-      <SelectButton :model-value="modelValue.unit" :options="units" size="small" @update:model-value="value => patch({ unit: value })" />
+      <Select :model-value="modelValue.unit" :options="units" size="small" class="w-44" @update:model-value="value => patch({ unit: value })" />
     </div>
 
     <div v-else-if="modelValue.base === 'ref'" class="flex flex-col gap-1">
       <label class="text-label text-muted">{{ $t('typeCanvas.accepts') }}</label>
-      <SelectButton
+      <MultiSelect
         :model-value="modelValue.accepts || []"
         :options="typeOptions"
         option-label="label"
         option-value="value"
-        multiple
+        display="chip"
         size="small"
+        class="w-full"
         @update:model-value="value => patch({ accepts: value })"
       />
       <label class="text-label text-muted">{{ $t('typeCanvas.unlink') }}</label>
-      <SelectButton
+      <Select
         :model-value="modelValue.unlink || 'detach'"
         :options="unlinkOptions"
+        option-label="label"
+        option-value="value"
         size="small"
+        class="w-44"
         @update:model-value="value => patch({ unlink: value === 'delete' ? 'delete' : undefined })"
       />
     </div>
@@ -117,8 +121,9 @@ import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputChips from 'primevue/inputchips';
 import InputText from 'primevue/inputtext';
+import MultiSelect from 'primevue/multiselect';
+import Select from 'primevue/select';
 import Message from 'primevue/message';
-import SelectButton from 'primevue/selectbutton';
 import { describeType, FIELD_BASES, UNITS, UNLINK_POLICIES } from '~/packages/cts/src/index.js';
 
 const props = defineProps({
@@ -130,7 +135,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const baseOptions = FIELD_BASES.map(base => ({ label: base, value: base }));
 const units = [...UNITS];
-const unlinkOptions = [...UNLINK_POLICIES];
+const unlinkOptions = UNLINK_POLICIES.map(value => ({ label: value, value }));
 
 const error = computed(() => {
   // An unset ref is authored-in-progress, staying out of the declaration

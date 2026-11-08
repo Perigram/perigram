@@ -717,10 +717,11 @@ export function stateSegmentsOf(value = '') {
   return String(value ?? '').split('.').filter(Boolean);
 }
 
-// statePolicyByType(producerOutputs): { [typeId]: { [value]: { label,
-// severity, icon, terminal } } } from the compiled workflows. The first
-// authored entry for a value wins when several producers emit one type.
-export function statePolicyByType(producerOutputs = {}) {
+// statePolicyByType(producerOutputs, types): { [typeId]: { [value]:
+// { label, severity, icon, terminal } } }. Graph workflows supply the
+// states their transitions reach; the class declaration overrides the
+// display policy of the values it declares.
+export function statePolicyByType(producerOutputs = {}, types = []) {
   const byType = {};
   for (const output of Object.values(producerOutputs || {})) {
     const typeId = output?.typeId;
@@ -736,6 +737,20 @@ export function statePolicyByType(producerOutputs = {}) {
           terminal: definition.isTerminal === true
         });
       }
+    }
+  }
+  for (const type of types || []) {
+    if (!type?.id || !type.stateVocabulary) continue;
+    const policies = byType[type.id] || (byType[type.id] = {});
+    for (const [value, declaration = {}] of Object.entries(type.stateVocabulary)) {
+      const policy = declaration.policy || {};
+      const existing = policies[value] || {};
+      policies[value] = Object.freeze({
+        label: policy.label || existing.label || null,
+        severity: policy.severity || existing.severity || null,
+        icon: policy.icon || existing.icon || null,
+        terminal: declaration.terminal === true
+      });
     }
   }
   return byType;

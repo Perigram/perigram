@@ -27,23 +27,14 @@ vocabulary for any declared class and never needs a pack type of its
 own — concepts that stay node-composable (like sheets) keep their
 glyphs without appearing as pack types.
 
-Declaration authoring is in place on the generated surfaces (owner
-direction 2026-11-07): fields author in the record page's property
-block and states author in the state surface. Class metadata, the field
-list, and CTS children author in the class dialog (SPEC §27). The
-affordances are gated by the process-design capability and every
-authored reference is definition-aware — relation targets offered from
-the live registry view, states and transitions from/to from the type's
-live vocabulary, nothing free-typed where a picker can live. In-place
-authoring writes the same declaration records of the same definition
-draft the canvas authors: one authoring model, two projections, with
-the canvas remaining the dataflow, effects, and grants surface. The
-lifecycle carries a dedicated machine view one popup away — the type's
-states and legal edges as a diagram. In-place edits target the
-definition draft that
-stations the type and save as draft; the Apply ceremony stays the only
-activation path, and an edit landing beside an open canvas reconciles
-through the shared definition draft.
+Class declaration authoring lives in the class dialog (SPEC §27, owner
+direction 2026-11-08): name, class kind, glyph, fields, states, and CTS
+children save directly to the organization registry. The affordances
+are gated by the process-design capability; relation targets come from
+the live registry view, nothing free-typed where a picker can live.
+Record pages render data and carry no declaration authoring. The
+process canvas remains the dataflow, effects, transitions, and grants
+surface, and Apply remains the only activation path.
 
 
 ## 2. Parties in processes (owner direction 2026-10-13)
@@ -319,8 +310,8 @@ inside its parent) never prompts that binding: the context's reference is
 submitted with the create, and the form prompts only what the context
 cannot supply. A contextless launch prompts the create's lineage parents
 (owner direction 2026-11-06): graph-wired lineage resolves from the
-launch context, so the create palette and unscoped class lists collect
-the parent and the created child lands reachable under it. A create
+launch context, so action forms and unscoped class lists collect the parent and the
+created child lands reachable under it. A create
 prompts immediate lineage parents at most — the
 referenced parent's own lineage supplies the ancestor chain, and the
 construct derives it (owner direction 2026-10-27); nothing ever prompts
@@ -337,13 +328,9 @@ creates for one type renders
 one grouped control — the creation-mode selection beside the create
 button; the create button opens the selected mode's form.
 
-The home shell carries one create control (owner direction 2026-11-06):
-it opens a searchable palette of every compiled create action the
-current user may run, grouped by type, each entry named by the
-procedural create-label law and dispatching by the target type's
-declared creation protocol — an upload create runs inline, the editor
-protocol opens the blank editor surface, every other create opens the
-construct dialog. The palette composes the compiled action contract.
+The home sidebar carries one New class action (SPEC §27). Compiled
+create actions stay on their collection and action surfaces, dispatching
+by the target type's declared creation protocol.
 
 Documents carry their content both ways (owner direction 2026-10-13): text
 documents and CSV tables are creatable from procedural content — a `content`
@@ -1093,10 +1080,9 @@ with no record surface counts. A collection's count renders only for loaded, acc
 non-empty collections. The record header is the record's one identity
 surface: the type glyph and the subtle type label under the title name
 its type, and no host heading, subtitle, or dialog title repeats the
-record's name or type. The type label opens the type's card (owner
-direction 2026-11-07): the glyph with the authored name, the field
-vocabulary, the state machine mini-view, and the declaration authoring
-entries for capability holders. The record header carries the record's declared
+record's name or type. The type label opens the class dialog (SPEC
+§27) for capability holders: name, class kind, glyph, fields, states,
+and CTS children. The record header carries the record's declared
 containment ancestors as a compact, background-free breadcrumb trail
 above the identity line; each ancestor opens the shared record popup —
 one crumb behavior on every host. An instance rendered outside its
@@ -1495,7 +1481,7 @@ dividers, code, page links, view embeds, AI blocks) in the text
 editor, custom pages, and instance blocks alike.
 
 The action inbox retires (owner direction 2026-11-07): the surface and
-its endpoint die; the create palette stays.
+its endpoint die.
 
 ## 27. Classes are organization data (owner direction 2026-11-08)
 
@@ -1506,13 +1492,16 @@ reference type ids. Applying or deleting a definition leaves the
 registry and its instances untouched.
 
 Every organization class appears in the sidebar as its own type panel.
-A class with a screen opens that screen; a class without one opens the
-class dialog. The panel context menu opens the same dialog. The create
-palette's pinned entry creates a class, and the class dialog edits name,
-class kind, glyph, fields, and CTS children. The dialog
-writes directly through the registry write gate; a compatible
-declaration reaches screens and actions through the contract-change
-event, so class edits apply instantly.
+A class with a screen opens that screen; a class without one opens its
+class page. The class page is the same generated type-list screen every
+class page uses, synthesized from the class type; the header type label
+and the panel context menu open the class dialog. The sidebar's New class action creates a class, and the dialog
+edits name, class kind, glyph, fields, states, and CTS children. A
+child class added in the dialog stays a draft until the parent saves; it
+never lands in the registry on the click. The dialog writes directly
+through the registry write gate; a compatible declaration reaches
+screens and actions through the contract-change event, so class edits
+apply instantly.
 
 Children are CTS containment through the parent's `edges.children`
 entry. The dialog attaches existing classes and creates child classes

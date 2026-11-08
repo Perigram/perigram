@@ -74,7 +74,7 @@ const contract = computed(() => {
   const producerOutputs = authStore.processPayload?.producerOutputs || {};
   return {
     actions: {},
-    statePolicy: statePolicyByType(producerOutputs),
+    statePolicy: statePolicyByType(producerOutputs, bundle.value.types || []),
     stateTransitions: stateTransitionsByType(producerOutputs)
   };
 });

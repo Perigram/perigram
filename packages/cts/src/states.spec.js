@@ -8,6 +8,7 @@ import {
   normalizeStateVocabulary, normalizeStatePolicy,
   stateValues, statePolicy, isTerminalState
 } from './states.js';
+import { normalizeType } from './registry.js';
 
 describe('flat state vocabularies', () => {
   it('normalizes a flat vocabulary with terminal flags and policy', () => {
@@ -48,5 +49,29 @@ describe('flat state vocabularies', () => {
     expect(() => normalizeStateVocabulary({ ready: 'yes' })).toThrow(/must be an object or true/);
     expect(() => normalizeStatePolicy('bold')).toThrow(/must be an object/);
     expect(normalizeStatePolicy({ label: 4, icon: null, severity: 'info' })).toEqual({ label: '4', severity: 'info' });
+  });
+});
+
+describe('class state vocabulary', () => {
+  it('lives on stateVocabulary and ignores the legacy states facet', () => {
+    const type = normalizeType({
+      id: 'class-with-states',
+      class: 'item',
+      fields: { name: { base: 'string', identifier: true } },
+      stateVocabulary: {
+        draft: { policy: { label: 'Draft' } },
+        archived: { terminal: true }
+      }
+    });
+    expect(type.stateVocabulary.archived.terminal).toBe(true);
+    expect(type.stateVocabulary.draft.policy.label).toBe('Draft');
+
+    const legacy = normalizeType({
+      id: 'legacy-states',
+      class: 'file',
+      fields: { name: { base: 'string', identifier: true } },
+      states: { main: { initial: 'draft', states: { draft: {} } } }
+    });
+    expect(legacy.stateVocabulary).toBeUndefined();
   });
 });

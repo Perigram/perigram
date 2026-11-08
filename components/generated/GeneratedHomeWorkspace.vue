@@ -21,7 +21,6 @@
             <img v-else src="/icon.svg" alt="Perigram" class="h-7 w-7" />
           </NuxtLink>
           <div v-if="!sidebarCollapsed" class="flex items-center gap-1">
-            <CreatePalette @create-page="createCustomPage()" @create-class="openClassDialog()" />
             <Button
               icon="pi pi-chevron-left"
               text
@@ -54,7 +53,6 @@
           class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto p-1.5"
           :aria-label="$t('nav.home')"
         >
-          <CreatePalette @create-page="createCustomPage()" @create-class="openClassDialog()" />
           <span class="relative inline-flex">
             <Button
               icon="pi pi-comments"
@@ -148,14 +146,15 @@
             </template>
           </PanelMenu>
           <Button
-            :label="t('pages.newSection')"
+            v-if="classesAvailable"
+            :label="t('classes.newClass')"
             icon="pi pi-plus"
             text
             size="small"
             severity="secondary"
             class="mt-1 w-full justify-start text-muted"
-            :aria-label="t('pages.newSection')"
-            @click="createSection"
+            :aria-label="t('classes.newClass')"
+            @click="openClassDialog()"
           />
         </div>
 
@@ -279,9 +278,6 @@
          desktop panes; instance opens mount the ITEM POPUP below —
          nothing routes away from the shell on mobile. -->
     <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden" data-home-workspace-mobile>
-      <header class="flex h-12 shrink-0 items-center justify-end px-4">
-        <CreatePalette @create-page="createCustomPage()" @create-class="openClassDialog()" />
-      </header>
       <div class="min-h-0 flex-1 overflow-y-auto p-4">
         <GeneratedScreenHost
           v-if="mobileTypeScreen"
@@ -330,7 +326,6 @@ import { useEntityPopup } from '~/composables/useEntityPopup';
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import { consumePendingWorkspacePage, workspacePageOpenEvent } from '~/utils/workspace-page-open.js';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
-import CreatePalette from '~/components/generated/CreatePalette.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import ClassDialog from '~/components/type-designer/ClassDialog.vue';
 import { titleFor, typeLabelKey, localizedLabel, iconFor } from '#shared/ui-mapping/index.js';
@@ -582,6 +577,7 @@ const workspaceItems = computed(() => [
   ...callPageItems.value,
   ...chatPageItems.value,
   ...customPageItems.value,
+  ...classPageItems.value,
   ...staticPageItems.value
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
@@ -787,7 +783,7 @@ function typePanelItem(node) {
     typeId: node.data.typeId,
     command: menuCommand(node.key, () => (node.data.screen
       ? openTypeScreen(node.data.screen)
-      : openClassDialog(node.data.typeId))),
+      : openClassPage(node.data.typeId))),
     items: (node.children || []).map(child => entityPanelItem(child))
   };
 }
@@ -923,15 +919,6 @@ watch(() => [
   }
   pagesStore.ensureLoaded();
 }, { immediate: true });
-
-async function createSection() {
-  try {
-    const section = await pagesStore.createSection();
-    expandedKeys.value = { ...expandedKeys.value, [sectionMenuKey(section)]: true };
-  } catch (error) {
-    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
-  }
-}
 
 async function createCustomPage(parentId = null) {
   try {
@@ -1552,6 +1539,21 @@ const customPageItems = computed(() => customPageRefs.value.map(reference => ({
   label: pageLabel(pagesStore.pageById(reference.docId))
 })));
 
+const classPageRefs = ref([]);
+
+const classPageItems = computed(() => classPageRefs.value.map(reference => ({
+  key: reference.key,
+  kind: 'page',
+  pageId: 'class',
+  classTypeId: reference.typeId,
+  label: typeLabelOf(reference.typeId)
+})));
+
+function openClassPage(typeId = '') {
+  if (!typeId) return;
+  openEphemeralTab(classPageRefs, { key: `page:class:${typeId}`, typeId });
+}
+
 function openCustomPageTab(docId = '') {
   if (!docId) return;
   openEphemeralTab(customPageRefs, { key: `page:customPage:${docId}`, docId });
@@ -1873,6 +1875,7 @@ function forgetClosedTabRefs(key) {
     if (callPageRefs.value.some(call => call.key === key)) callsStore.tabClosed(key);
     callPageRefs.value = callPageRefs.value.filter(call => call.key !== key);
     customPageRefs.value = customPageRefs.value.filter(reference => reference.key !== key);
+    classPageRefs.value = classPageRefs.value.filter(reference => reference.key !== key);
   }
 }
 

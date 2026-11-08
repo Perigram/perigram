@@ -239,12 +239,7 @@
 
   <div v-else :class="[stackFor, 'w-full', 'relative', recordDocument && !editorSurface ? LAYOUT.measure : '']">
     <RegionDataState v-if="showState" :node="node" />
-    <!-- The depth-0 record carries the declaration authoring session
-         (SPEC §1): the provider gates on the process-design capability and
-         the declaration station, and provides the session to the record
-         surfaces — the property rows and the state surface render their
-         author affordances only when it is live. -->
-    <DeclarationAuthoring v-if="depth === 0" :key="node.typeId" :type-id="node.typeId">
+    <template v-if="depth === 0">
       <!-- The editor page (SPEC §4, owner direction 2026-11-07): a
            depth-0 record of an editor-bound type on an open page surface
            renders the editor flush under the unified header — the
@@ -388,7 +383,7 @@
           </div>
         </template>
       </template>
-    </DeclarationAuthoring>
+    </template>
     <template v-else-if="showSurfaces">
       <ProgressBar v-if="isReloading" mode="indeterminate" :class="LAYOUT.reloadBar" :aria-label="$t('uiMapping.loadingRegion')" />
       <SurfaceBody
@@ -447,7 +442,6 @@ import SortControl from './SortControl.vue';
 import CreateControl from './CreateControl.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
 import ViewSaveDialog from './ViewSaveDialog.vue';
-import DeclarationAuthoring from '../type-designer/DeclarationAuthoring.vue';
 import RecordEditorBody from '~/components/generated/RecordEditorBody.vue';
 import { createEditorChrome } from '~/components/generated/editor-page-chrome.js';
 import { resolveFileSurface } from '~/components/generated/file-surfaces.js';

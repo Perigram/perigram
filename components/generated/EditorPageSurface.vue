@@ -44,7 +44,7 @@ const registryStore = useRegistryStore();
 
 const typeRecord = computed(() => registryStore.typeRecord(props.typeId));
 const record = computed(() => props.entity || null);
-const statePolicyForType = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {})[props.typeId] || null);
+const statePolicyForType = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}, authStore.processPayload?.bundle?.types || [])[props.typeId] || null);
 
 const chrome = createEditorChrome();
 const tabKey = inject('workspacePageKey', '');

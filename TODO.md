@@ -7,9 +7,14 @@
   live until explicit removal.
 - [ ] WAITING — owner verification: class panels in the sidebar
   (screen-backed classes open their screen, screenless classes open the
-  dialog), the create-palette New class entry, the class dialog (name,
-  class, glyph, fields, children), and the record header type label as
-  the dialog entry.
+  same generated type-list page, panel context menus open the dialog), the sidebar New class
+  action, the class dialog (name, class, compact glyph select, fields,
+  states, children), and the record header type label as the dialog
+  entry.
+- [ ] WAITING — owner verification: child classes save with the parent
+  (a draft dialog, group included), class states persist on the
+  declaration and override compiled state policy, and the record pages
+  carry no field/state authoring affordances.
 - [ ] WAITING — owner verification: default Page class with block
   content; the pages feature adopts old `pages` rows into Page instances
   and backs the sidebar tree with that instance tree.

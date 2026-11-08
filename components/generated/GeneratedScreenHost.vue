@@ -170,7 +170,7 @@ const exportActionsByType = computed(() => {
   }
   return byType;
 });
-const statePolicy = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}));
+const statePolicy = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}, authStore.processPayload?.bundle?.types || []));
 const stateTransitions = computed(() => stateTransitionsByType(authStore.processPayload?.producerOutputs || {}));
 
 // The store exposes the keyed pool ({ type -> { id -> instance }}); the

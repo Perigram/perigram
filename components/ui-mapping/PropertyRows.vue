@@ -10,12 +10,6 @@
         :bundle="bundle"
         @inline-change="change => $emit('inline-change', change)"
       />
-      <DeclarationFieldMenu
-        v-if="authoring && authoring.fieldByName.has(field.name)"
-        :authoring="authoring.session"
-        :field="authoring.fieldByName.get(field.name)"
-        :type-options="authoring.typeOptions"
-      />
     </div>
   </div>
   <div v-if="hiddenCount > 0" class="py-1">
@@ -35,7 +29,6 @@ import { inject } from 'vue';
 import Button from 'primevue/button';
 import { LAYOUT } from '#shared/ui-mapping/index.js';
 import InlineField from './InlineField.vue';
-import DeclarationFieldMenu from '../type-designer/DeclarationFieldMenu.vue';
 
 defineProps({
   // The shown rows (already budgeted) and the collapsed remainder count.
@@ -46,10 +39,6 @@ defineProps({
   quantitative: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
-  // The holder's session projection — `{ session, fieldByName,
-  // typeOptions }` — or null for the compiled block.
-  authoring: { type: Object, default: null },
-  // Rows carry the `ck-field` hover group (the authoring menu's reveal).
   grouped: { type: Boolean, default: false }
 });
 

@@ -10,33 +10,12 @@
             @update:model-value="value => $emit('update-name', String(value || ''))"
           />
         </div>
-        <div class="flex items-center gap-2">
-          <Select
+        <div class="flex flex-col gap-1">
+          <label>{{ $t('processDesigner.icon') }}</label>
+          <GlyphSelect
             :model-value="node.data.glyph || ''"
-            :options="glyphOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
-            class="min-w-0 flex-1"
             :aria-label="$t('processDesigner.icon')"
-            @update:model-value="value => { node.data.glyph = String(value || '').trim() || null; $emit('sync'); }"
-          >
-            <template #value="slotProps">
-              <i v-if="slotProps.value" :class="slotProps.value" aria-hidden="true" />
-              <span v-else class="text-muted">{{ $t('processDesigner.auto') }}</span>
-            </template>
-            <template #option="slotProps">
-              <i v-if="slotProps.option.value" :class="slotProps.option.value" :aria-label="slotProps.option.label" />
-              <span v-else class="text-muted">{{ $t('processDesigner.auto') }}</span>
-            </template>
-          </Select>
-          <InputText
-            :model-value="node.data.glyph || ''"
-            size="small"
-            class="min-w-0 flex-1"
-            :placeholder="$t('processDesigner.icon')"
-            :aria-label="$t('processDesigner.icon')"
-            @update:model-value="value => { node.data.glyph = String(value || '').trim() || null; $emit('sync'); }"
+            @update:model-value="value => { node.data.glyph = value || null; $emit('sync'); }"
           />
         </div>
         <div class="flex flex-col gap-1">
@@ -208,7 +187,7 @@ import Message from 'primevue/message';
 import Select from '~/components/shared/InstanceSelect.vue';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
 import { stateSeverityOptions } from '~/components/type-designer/state-severities.js';
-import { classGlyphOptions } from '~/components/type-designer/class-glyphs.js';
+import GlyphSelect from '~/components/type-designer/GlyphSelect.vue';
 import { DECLARABLE_CLASSES, CREATION_PROTOCOLS } from '~/packages/cts/src/index.js';
 import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
 
@@ -287,6 +266,5 @@ function setClass(value) {
   emit('sync');
 }
 
-const glyphOptions = classGlyphOptions;
 
 </script>
