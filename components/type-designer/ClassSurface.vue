@@ -1,16 +1,26 @@
 <template>
-  <GeneratedScreenHost
-    v-if="screen"
-    :screen="screen"
-    @open-instance="openInstance"
-    @refresh="refresh"
-  />
-  <Message v-else severity="warn" :closable="false">{{ $t('common.notAvailable') }}</Message>
+  <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+    <SurfaceHeader
+      v-if="type"
+      :type="type"
+      :title="type.name || ''"
+      :level="0"
+    />
+    <div class="min-h-0 flex-1 overflow-auto p-4">
+      <GeneratedScreenHost
+        v-if="screen"
+        :screen="screen"
+        @open-instance="openInstance"
+      />
+      <Message v-else severity="warn" :closable="false">{{ $t('common.notAvailable') }}</Message>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import Message from 'primevue/message';
+import SurfaceHeader from '~/components/ui-mapping/SurfaceHeader.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
@@ -23,8 +33,8 @@ const view = useFileTypeView();
 const type = computed(() => view.typeById(props.typeId));
 
 // The same minimal type-list screen the collection embed composes: one
-// source and one region over the class type. Compiled process screens
-// keep their own presentation; this is the class page's floor.
+// source and one region over the class type. The class page's header
+// carries the class identity and its edit affordance.
 const screen = computed(() => (type.value ? {
   id: `class:${type.value.id}`,
   screenKey: `class:${type.value.id}`,
@@ -37,9 +47,5 @@ const screen = computed(() => (type.value ? {
 function openInstance(instance) {
   if (!instance?.type || !instance?.id) return;
   openInstanceInWorkspace({ typeId: instance.type, instanceId: String(instance.id) });
-}
-
-function refresh() {
-  view.refresh();
 }
 </script>

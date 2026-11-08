@@ -67,11 +67,11 @@
               </div>
             </Popover>
           </div>
-          <!-- The quiet type label opens the class dialog (SPEC §27)
-               for capability holders; the label stays a label for
-               everyone else. -->
+          <!-- The quiet type label opens the class dialog (SPEC §27).
+               Organization classes open it editable for capability
+               holders; every other class opens it read-only. -->
           <Button
-            v-if="!compact && type && canEditClass"
+            v-if="!compact && type"
             :label="typeLabel"
             text
             size="small"
@@ -80,15 +80,12 @@
             :aria-label="typeLabel"
             @click="classEditorOpen = true"
           />
-          <span
-            v-else-if="!compact && type"
-            class="w-fit truncate text-supporting text-muted"
-          >{{ typeLabel }}</span>
           <ClassDialog
             v-if="type && classEditorOpen"
             v-model:visible="classEditorOpen"
             :type="type"
             :type-id="type.id"
+            :read-only="!canEditClass"
           />
         </div>
       </div>

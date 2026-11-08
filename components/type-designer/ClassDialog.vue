@@ -2,8 +2,8 @@
   <StandardDialog
     :visible="visible"
     size="lg"
-    :title="draftMode ? $t('classes.childTitle') : (isCreate ? $t('classes.createTitle') : $t('classes.editTitle'))"
-    show-default-footer
+    :title="readOnly ? (readonlyType?.name || $t('classes.title')) : (draftMode ? $t('classes.childTitle') : (isCreate ? $t('classes.createTitle') : $t('classes.editTitle')))"
+    :show-default-footer="!readOnly"
     :cancel-label="$t('common.cancel')"
     :save-label="draftMode ? $t('common.add') : (isCreate ? $t('common.create') : $t('common.save'))"
     :loading="saving"
@@ -12,7 +12,58 @@
     @cancel="close"
     @save="save"
   >
-    <div class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1">
+    <div v-if="readOnly" class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1">
+      <div class="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+        <div class="flex flex-col gap-1">
+          <span class="text-label text-muted">{{ $t('classes.name') }}</span>
+          <span class="text-body">{{ readonlyType?.name || $t('common.unnamed') }}</span>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-label text-muted">{{ $t('processDesigner.declarationClass') }}</span>
+          <span class="text-body">{{ readonlyType?.class || '' }}</span>
+        </div>
+        <i :class="readonlyType?.glyph || 'pi pi-circle'" class="h-9 w-9 self-end text-center leading-9" :aria-label="$t('processDesigner.icon')" />
+      </div>
+
+      <section class="flex flex-col gap-1">
+        <span class="text-label text-muted">{{ $t('classes.fields') }}</span>
+        <div
+          v-for="field in readonlyFields"
+          :key="field.name"
+          class="flex min-w-0 items-center gap-3 border-b border-chrome-border py-1.5 last:border-b-0"
+        >
+          <span class="min-w-0 flex-1 truncate text-body">{{ field.name }}</span>
+          <span class="text-muted text-supporting">{{ field.summary }}</span>
+        </div>
+      </section>
+
+      <section v-if="readonlyStates.length" class="flex flex-col gap-1">
+        <span class="text-label text-muted">{{ $t('classes.states') }}</span>
+        <div class="flex flex-wrap gap-2">
+          <Tag
+            v-for="state in readonlyStates"
+            :key="state.value"
+            :value="state.label"
+            :severity="state.severity"
+            :icon="state.icon || undefined"
+          />
+        </div>
+      </section>
+
+      <section v-if="readonlyChildren.length" class="flex flex-col gap-1">
+        <span class="text-label text-muted">{{ $t('classes.children') }}</span>
+        <div
+          v-for="child in readonlyChildren"
+          :key="child.typeId"
+          class="flex items-center gap-2 border-b border-chrome-border py-1.5 last:border-b-0"
+        >
+          <i :class="typeGlyph(child.typeId)" class="shrink-0 text-muted" aria-hidden="true" />
+          <span class="min-w-0 flex-1 truncate text-body">{{ typeLabelOf(child.typeId) }}</span>
+        </div>
+      </section>
+    </div>
+
+    <div v-else class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1">
       <div class="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
         <div class="flex flex-col gap-1">
           <label class="text-label text-muted">{{ $t('classes.name') }}</label>
@@ -163,6 +214,7 @@ import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
+import Tag from 'primevue/tag';
 import Select from 'primevue/select';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
@@ -181,7 +233,8 @@ const props = defineProps({
   type: { type: Object, default: null },
   startInCreate: { type: Boolean, default: false },
   draftMode: { type: Boolean, default: false },
-  initialDraft: { type: Object, default: null }
+  initialDraft: { type: Object, default: null },
+  readOnly: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['update:visible', 'saved', 'draft']);
@@ -189,6 +242,20 @@ const emit = defineEmits(['update:visible', 'saved', 'draft']);
 const { t } = useI18n();
 const toast = useToast();
 const view = useFileTypeView();
+const readonlyType = computed(() => props.type || view.typeById(props.typeId));
+const readonlyFields = computed(() => Object.entries(readonlyType.value?.fields || {}).map(([name, descriptor]) => ({
+  name,
+  summary: fieldDescriptorSummary(descriptor, typeId => typeLabelOf(typeId))
+})));
+const readonlyStates = computed(() => Object.entries(readonlyType.value?.stateVocabulary || {}).map(([value, declaration]) => ({
+  value,
+  label: declaration?.policy?.label || value,
+  severity: declaration?.policy?.severity || 'info',
+  icon: declaration?.policy?.icon || null
+})));
+const readonlyChildren = computed(() => Object.entries(readonlyType.value?.edges?.children || {})
+  .flatMap(([, declaration]) => declaration.types || [])
+  .map(typeId => ({ typeId })));
 
 const isCreate = computed(() => props.draftMode || props.startInCreate || !props.typeId);
 const classOptions = DECLARABLE_CLASSES.map(value => ({ label: value, value }));
