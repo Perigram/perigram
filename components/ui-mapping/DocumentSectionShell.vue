@@ -1,15 +1,10 @@
 <template>
-  <!-- With a session the section carries its authoring affordances in the
-       document's permanent left gutter lane — the drag handle (click
-       opens the block menu, drag reorders) and the insert control,
-       aligned with the section's first line and revealed on hover or
-       focus. The lane exists for every viewer, so content never shifts. -->
   <div v-if="session" :class="spacing.stack" class="group/ck-doc-section relative">
     <div
-      class="absolute -left-6 top-0.5 z-10 flex items-center gap-1 opacity-0 transition-opacity group-hover/ck-doc-section:opacity-100 focus-within:opacity-100"
+      class="absolute -left-14 top-0.5 z-10 flex w-14 items-center justify-end gap-0.5 pr-1 opacity-0 transition-opacity group-hover/ck-doc-section:opacity-100 focus-within:opacity-100"
     >
+      <OverlayInsertControl :session="session" :at="index + 1" />
       <Button
-        icon="pi pi-bars"
         text
         rounded
         size="small"
@@ -20,10 +15,21 @@
         :title="t('uiMapping.sectionActions')"
         @click="event => menu?.toggle(event)"
         @dragstart="dragStart"
+        @dragend="session.endDrag?.()"
         @keydown.up.prevent="session.move(sectionKey, -1)"
         @keydown.down.prevent="session.move(sectionKey, 1)"
-      />
-      <OverlayInsertControl :session="session" :at="index + 1" />
+      >
+        <template #icon>
+          <svg viewBox="0 0 16 16" class="h-4 w-4" fill="currentColor" aria-hidden="true">
+            <circle cx="5.5" cy="3.5" r="1.15" />
+            <circle cx="10.5" cy="3.5" r="1.15" />
+            <circle cx="5.5" cy="8" r="1.15" />
+            <circle cx="10.5" cy="8" r="1.15" />
+            <circle cx="5.5" cy="12.5" r="1.15" />
+            <circle cx="10.5" cy="12.5" r="1.15" />
+          </svg>
+        </template>
+      </Button>
     </div>
     <Menu ref="menu" :model="items" popup />
     <div

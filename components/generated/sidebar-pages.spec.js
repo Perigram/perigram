@@ -59,7 +59,8 @@ vi.mock('~/stores/auth', () => ({
     organizationData: { _id: 'org-1' },
     userOrganizations: [],
     userData: { id: 'u1', organizationId: 'org-1' },
-    userIsSet: true
+    userIsSet: true,
+    hasPermission: () => false
   })
 }));
 

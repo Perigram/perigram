@@ -60,6 +60,7 @@ import CrepeEditor from './CrepeEditor.vue';
 import MarkdownBlocks from './MarkdownBlocks.vue';
 import ViewPickerDialog from './ViewPickerDialog.vue';
 import { usePagesStore } from '~/stores/pages';
+import { stripSerializerTail } from '#shared/markdown.js';
 import { setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
 
 const props = defineProps({
@@ -104,10 +105,6 @@ function pickView(view) {
   insertFenceAt({ id: view._id, name: view.name });
   editor.value?.focus();
 }
-
-// The serializer renders an empty trailing block as `<br />`; every
-// markdown export strips the tail.
-const stripSerializerTail = text => String(text || '').replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n');
 
 async function save() {
   saving.value = true;

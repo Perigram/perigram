@@ -88,7 +88,7 @@ describe('block vocabulary', () => {
     expect(BLOCK_VOCABULARY.map(entry => entry.id)).toEqual([
       'paragraph', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'bullet', 'ordered', 'todo', 'quote', 'callout',
-      'codeblock', 'diagram', 'divider', 'table', 'link', 'view'
+      'codeblock', 'image', 'diagram', 'divider', 'table', 'link', 'view'
     ]);
     for (const entry of BLOCK_VOCABULARY) {
       expect(entry.labelKey, `${entry.id} carries a label key`).toMatch(/^editors\./);
@@ -140,6 +140,7 @@ describe('slash actions resolve to the engine commands', () => {
     expect(resolveBlockAction('codeblock', { ...paragraph, block: 'code_block' }).command).toBe(turnIntoTextCommand);
     expect(resolveBlockAction('diagram', paragraph)).toEqual({ kind: 'command', command: createCodeBlockCommand, payload: 'mermaid' });
     expect(resolveBlockAction('divider', paragraph).command).toBe(insertHrCommand);
+    expect(resolveBlockAction('image', paragraph)).toEqual({ kind: 'image' });
     expect(resolveBlockAction('callout', paragraph)).toEqual({ kind: 'callout' });
     expect(resolveBlockAction('table', paragraph)).toEqual({ kind: 'table' });
     expect(resolveBlockAction('link', paragraph)).toEqual({ kind: 'link' });

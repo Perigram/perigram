@@ -558,15 +558,25 @@ body {
 
     /* The bounded editor band (SPEC §4): the framed region a popup's
        editor surface fills. */
-    /* Document text blocks author flush (§26): crepe's page chrome — the
-       page padding and page ground — belongs to the standalone editor,
-       not to a block inside a document. */
-    .ck-inline-editor .milkdown .ProseMirror {
+    /* Document text blocks author flush (§26): the standalone editor owns
+       the page padding, measure, and ground; an in-place block fills its
+       document slot. */
+    .ck-inline-editor.crepe-host {
+        overflow: visible;
+    }
+
+    .ck-inline-editor.crepe-host .milkdown {
+        background: transparent;
+    }
+
+    .ck-inline-editor.crepe-host .milkdown .editor {
+        max-width: none;
+        margin: 0;
         padding: 0;
     }
 
-    .ck-inline-editor .milkdown {
-        background: transparent;
+    .ck-inline-editor.crepe-host .milkdown .ProseMirror {
+        padding: 0;
     }
 
     .ck-editor-band-bounded {

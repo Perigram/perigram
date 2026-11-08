@@ -1,41 +1,20 @@
 // The one block-authoring vocabulary (SPEC §26): every markdown
-// authoring surface — the text editor today, the custom-page and
-// instance-block surfaces as their phases land — offers this table
-// through the slash panel and applies it through `applyBlock`. Entries
-// toggle: the entry matching the focused block's kind returns the
-// block to body text. The view-embed entry hands off to the host's
-// view picker (hosts without saved views leave it out); page-link and
-// AI-block entries join the table with their phases.
+// authoring surface — the text editor, the custom-page and
+// instance-block surfaces — offers this table through the slash panel
+// and applies it through `applyBlock`. Entries toggle: the entry
+// matching the focused block's kind returns the block to body text.
+// The view entry hands off to the host's saved-view picker.
 import { callCommand } from '@milkdown/utils';
 import { editorViewCtx } from '@milkdown/core';
 import {
   wrapInHeadingCommand, turnIntoTextCommand, wrapInBulletListCommand,
   wrapInOrderedListCommand, wrapInBlockquoteCommand, createCodeBlockCommand,
-  insertHrCommand, liftListItemCommand
+  insertHrCommand, insertImageCommand, liftListItemCommand
 } from '@milkdown/preset-commonmark';
 import { lift } from '@milkdown/prose/commands';
+import { BLOCK_VOCABULARY } from './block-vocabulary-data.mjs';
 
-// `state` is the source-markers selectionState of the focused block.
-export const BLOCK_VOCABULARY = [
-  { id: 'paragraph', labelKey: 'editors.paragraph', glyph: 'pi pi-align-left', match: ['text', 'paragraph', 'p'] },
-  { id: 'h1', labelKey: 'editors.heading1', glyphText: 'H1', match: ['h1', 'heading1', 'heading'] },
-  { id: 'h2', labelKey: 'editors.heading2', glyphText: 'H2', match: ['h2', 'heading2', 'heading'] },
-  { id: 'h3', labelKey: 'editors.heading3', glyphText: 'H3', match: ['h3', 'heading3', 'heading'] },
-  { id: 'h4', labelKey: 'editors.heading4', glyphText: 'H4', match: ['h4', 'heading4', 'heading'] },
-  { id: 'h5', labelKey: 'editors.heading5', glyphText: 'H5', match: ['h5', 'heading5', 'heading'] },
-  { id: 'h6', labelKey: 'editors.heading6', glyphText: 'H6', match: ['h6', 'heading6', 'heading'] },
-  { id: 'bullet', labelKey: 'editors.bulletList', glyph: 'pi pi-list', match: ['bullet', 'list', 'ul'] },
-  { id: 'ordered', labelKey: 'editors.numberedList', glyph: 'pi pi-list-check', match: ['ordered', 'numbered', 'ol'] },
-  { id: 'todo', labelKey: 'editors.todo', glyph: 'pi pi-check-square', match: ['todo', 'task', 'check'] },
-  { id: 'quote', labelKey: 'editors.quote', glyph: 'pi pi-comment', match: ['quote', 'blockquote'] },
-  { id: 'callout', labelKey: 'editors.callout', glyph: 'pi pi-info-circle', match: ['callout', 'note'] },
-  { id: 'codeblock', labelKey: 'editors.codeBlock', glyph: 'pi pi-code', match: ['code', 'codeblock'] },
-  { id: 'diagram', labelKey: 'editors.diagram', glyph: 'pi pi-sitemap', match: ['diagram', 'mermaid', 'graph'] },
-  { id: 'divider', labelKey: 'editors.divider', glyph: 'pi pi-minus', match: ['divider', 'hr', 'line'] },
-  { id: 'table', labelKey: 'editors.table', glyph: 'pi pi-table', match: ['table'] },
-  { id: 'link', labelKey: 'editors.link', glyph: 'pi pi-link', match: ['link', 'url'] },
-  { id: 'view', labelKey: 'editors.view', glyph: 'pi pi-objects-column', match: ['view', 'collection'] }
-];
+export { BLOCK_VOCABULARY };
 
 export function blockIsActive(id, state) {
   if (!state) return false;
@@ -47,6 +26,7 @@ export function blockIsActive(id, state) {
     case 'ordered': return state.ordered;
     case 'todo': return state.task;
     case 'quote': return state.quote;
+    case 'callout': return state.quote;
     case 'codeblock': return state.block === 'code_block';
     default: return false;
   }
@@ -77,8 +57,9 @@ export function resolveBlockAction(id, state) {
         ? { kind: 'command', command: turnIntoTextCommand }
         : { kind: 'command', command: createCodeBlockCommand };
     case 'todo': return { kind: 'task', checked: active ? null : false, wrap: !(state && (state.bullet || state.ordered)) };
-    case 'callout': return { kind: 'callout' };
+    case 'callout': return active ? { kind: 'lift' } : { kind: 'callout' };
     case 'divider': return { kind: 'command', command: insertHrCommand };
+    case 'image': return { kind: 'image' };
     case 'diagram': return { kind: 'command', command: createCodeBlockCommand, payload: 'mermaid' };
     case 'table': return { kind: 'table' };
     case 'link': return { kind: 'link' };
@@ -92,7 +73,7 @@ export function resolveBlockAction(id, state) {
 // `view` its ProseMirror view). The `link` kind hands off to the host's
 // address editor; `t` localizes the callout's seeded title. Returns the
 // action kind — 'link' leaves the focus with the host's address input.
-export function applyBlock({ id, state, editor, view, t, openLinkEditor, openViewPicker }) {
+export function applyBlock({ id, state, editor, view, t, openLinkEditor, openImageEditor, openViewPicker }) {
   const action = resolveBlockAction(id, state);
   if (!action || !editor) return action ? action.kind : null;
   switch (action.kind) {
@@ -126,6 +107,9 @@ export function applyBlock({ id, state, editor, view, t, openLinkEditor, openVie
       break;
     case 'link':
       openLinkEditor();
+      break;
+    case 'image':
+      if (openImageEditor) openImageEditor();
       break;
     case 'view':
       // The host resolves the picked saved view; the fence it inserts

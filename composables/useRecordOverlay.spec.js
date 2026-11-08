@@ -17,6 +17,7 @@ vi.mock('~/stores/instance-overlays.js', () => ({
     loadedFor: () => true,
     save: async (typeId, instanceId, doc) => {
       lastSaved = doc;
+      savedOverlay.value = { blocks: doc.blocks.map(block => ({ ...block })), order: [...doc.order] };
       return { typeId, instanceId, ...doc };
     },
     remove: async () => {
@@ -135,5 +136,20 @@ describe('useRecordOverlaySession', () => {
     await s.save();
     expect(lastSaved.blocks[0].text).toBe('words');
     expect(s.dirty).toBe(false);
+  });
+
+  it('an autosave keeps the block editor open and accepts the next edit', async () => {
+    savedOverlay.value = {
+      blocks: [{ id: 'b1', kind: 'text', text: 'saved words' }],
+      order: ['properties', 'b1']
+    };
+    const s = session();
+    s.syncFlow(['properties', 'b1'], ['properties']);
+    s.editBlock('b1');
+    s.updateText('b1', 'first edit');
+    await s.save();
+    expect(s.editingBlockId).toBe('b1');
+    s.updateText('b1', 'second edit');
+    expect(s.applied.blocks[0].text).toBe('second edit');
   });
 });

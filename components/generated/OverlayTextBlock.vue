@@ -1,8 +1,4 @@
 <template>
-  <!-- The overlay's text block (SPEC §26): continuous document content —
-       read through the one markdown composition, authored inline through
-       the one engine mount. Clicking the text opens the editor at the
-       caret; Escape or Cmd/Ctrl+Enter closes it. -->
   <div
     ref="root"
     :class="session ? 'cursor-text' : ''"
@@ -14,17 +10,23 @@
     <CrepeEditor
       v-if="editing"
       ref="editor"
-      class="ck-inline-editor min-h-16"
+      class="ck-inline-editor"
       :default-value="block.text"
+      :initial-block="initialBlock"
+      :initial-point="pendingPoint"
       @ready="focusEditor"
       @update="text => session.updateText(block.id, text)"
     />
-    <MarkdownBlocks v-else :source="block.text" />
+    <template v-else>
+      <MarkdownBlocks v-if="block.text" :source="block.text" />
+      <span v-else-if="session?.writable" class="block py-1 text-muted text-supporting">{{ t('editors.slashHint') }}</span>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { computed, nextTick, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import CrepeEditor from './CrepeEditor.vue';
 import MarkdownBlocks from './MarkdownBlocks.vue';
 
@@ -35,18 +37,24 @@ const props = defineProps({
   session: { type: Object, default: null }
 });
 
+const { t } = useI18n();
 const root = ref(null);
 const editor = ref(null);
+const pendingPoint = ref(null);
 const editing = computed(() => Boolean(props.session && props.session.editingBlockId === props.block.id));
+const initialBlock = computed(() => (props.session?.initialBlockFor?.(props.block.id) || ''));
 
-function startEditing() {
+function startEditing(event) {
   if (!props.session || !props.session.writable || editing.value) return;
+  if (event.target?.closest?.('a')) return;
+  pendingPoint.value = { x: event.clientX, y: event.clientY };
   props.session.editBlock(props.block.id);
 }
 
 function focusEditor() {
   nextTick(() => {
-    editor.value?.focus?.();
+    editor.value?.focus?.(pendingPoint.value);
+    pendingPoint.value = null;
     root.value?.scrollIntoView?.({ block: 'nearest' });
   });
 }

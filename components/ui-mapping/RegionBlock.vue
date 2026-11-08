@@ -93,16 +93,6 @@
                 </div>
               </div>
             </div>
-            <Button
-              v-if="saveViewAvailable"
-              :label="$t('uiMapping.saveView')"
-              icon="pi pi-bookmark"
-              size="small"
-              severity="secondary"
-              text
-              class="self-start"
-              @click="saveDialogOpen = true"
-            />
           </div>
         </Popover>
         <template v-if="recordDocument">
@@ -157,6 +147,37 @@
         </template>
       </div>
     </div>
+    <div v-if="viewTabsAvailable" class="flex min-w-0 items-center gap-1 overflow-x-auto">
+      <Button
+        :label="defaultViewLabel"
+        text
+        size="small"
+        :severity="activeViewId ? 'secondary' : 'primary'"
+        class="shrink-0"
+        @click="selectDefaultView"
+      />
+      <Button
+        v-for="view in regionViews"
+        :key="view._id"
+        :label="view.name"
+        text
+        size="small"
+        :severity="activeViewId === view._id ? 'primary' : 'secondary'"
+        class="shrink-0"
+        @click="selectSavedView(view)"
+      />
+      <Button
+        v-if="saveViewAvailable"
+        icon="pi pi-plus"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        :aria-label="$t('uiMapping.addView')"
+        :title="$t('uiMapping.addView')"
+        @click="saveDialogOpen = true"
+      />
+    </div>
     <RegionDataState v-if="showState" :node="node" />
     <ViewSaveDialog
       :visible="saveDialogOpen"
@@ -200,7 +221,7 @@
     />
   </div>
 
-  <div v-else :class="[stackFor, 'w-full', 'relative', recordDocument && !editorSurface ? [LAYOUT.measure, 'pl-6'] : '']">
+  <div v-else :class="[stackFor, 'w-full', 'relative', recordDocument && !editorSurface ? [LAYOUT.measure, 'pl-14'] : '']">
     <RegionDataState v-if="showState" :node="node" />
     <!-- The depth-0 record carries the declaration authoring session
          (SPEC §1): the provider gates on the process-design capability and
@@ -343,7 +364,7 @@
                width of the measure invites the next block. -->
           <div v-if="recordOverlaySession" class="group/ck-doc-foot relative flex min-h-8 items-center">
             <OverlayInsertControl
-              class="opacity-0 transition-opacity group-hover/ck-doc-foot:opacity-100 focus-within:opacity-100"
+              class="absolute -left-14 top-0 opacity-0 transition-opacity group-hover/ck-doc-foot:opacity-100 focus-within:opacity-100"
               :session="recordOverlaySession"
               :at="recordOverlaySession.flowCount"
             />
@@ -777,7 +798,7 @@ watch(projectionScope, () => {
 const toggleProjection = () => {
   const next = listLayout.value === 'board' ? 'table' : 'board';
   projectionPreference.value = next;
-  if (!savedViewState.value) storeProjectionPreference(projectionScope.value, next);
+  if (!savedViewState.value && !activeViewId.value) storeProjectionPreference(projectionScope.value, next);
 };
 // A stored table preference is the user's explicit view: the floor
 // governs the derivation alone, a chosen table renders.
@@ -829,7 +850,7 @@ watch(builderScope, () => {
   builderFilter.value = seedFilter();
 });
 watch(builderFilter, filter => {
-  if (!savedViewState.value) storeFilterViewState(builderScope.value, filter);
+  if (!savedViewState.value && !activeViewId.value) storeFilterViewState(builderScope.value, filter);
 });
 // Card ordering rides the view popover's sort keys — the same sortKeys
 // contract, shared comparator, and persisted preference (scope kept).
@@ -855,7 +876,7 @@ const sortKeyResolved = computed(() => (props.node.listControls?.sortKeys || [])
   .find(key => key.name === sortName.value) || null);
 const sortToggleAvailable = computed(() => listLayout.value === 'card-grid' && sortOptions.value.length > 0);
 watch([sortName, sortOrder], () => {
-  if (savedViewState.value || !sortName.value) return;
+  if (savedViewState.value || activeViewId.value || !sortName.value) return;
   storeSortPreference(sortScope.value, { name: sortName.value, order: sortOrder.value });
 });
 watch(sortScope, () => {
@@ -867,6 +888,7 @@ const sortedInstances = computed(() => (sortKeyResolved.value
   ? sortControlRows(filteredInstances.value, sortKeyResolved.value, sortOrder.value)
   : filteredInstances.value));
 watch(() => props.node.id, () => {
+  activeViewId.value = null;
   search.value = savedViewState.value?.search || '';
 });
 const viewPopover = ref();
@@ -921,11 +943,65 @@ const saveViewSaving = ref(false);
 const saveViewAvailable = computed(() => savedViewState.value === null
   && Boolean(props.node.typeId)
   && viewsStore.canSave);
+// Saved views live in the collection header as tabs (SPEC §26): the
+// saved lens loads its four view models; the default tab restores the
+// per-type preferences. Selecting a tab suppresses preference writes so
+// browsing a saved view never overwrites the reader's own state.
+const activeViewId = ref(null);
+const regionViews = computed(() => (savedViewState.value
+  ? []
+  : viewsStore.views.filter(view => view.typeId === props.node.typeId)));
+const viewTabsAvailable = computed(() => Boolean(props.node.typeId)
+  && savedViewState.value === null
+  && (regionViews.value.length > 0 || saveViewAvailable.value));
+const LAYOUT_LABEL_KEYS = {
+  table: 'uiMapping.layoutTable',
+  board: 'uiMapping.layoutBoard',
+  'card-grid': 'uiMapping.layoutCards',
+  timeline: 'uiMapping.layoutTimeline',
+  stats: 'uiMapping.layoutStats',
+  gantt: 'uiMapping.layoutGantt',
+  calendar: 'uiMapping.layoutCalendar'
+};
+const defaultViewLabel = computed(() => t(LAYOUT_LABEL_KEYS[derivedListLayout.value] || 'uiMapping.view'));
+onMounted(() => {
+  if (!savedViewState.value) viewsStore.ensureLoaded().catch(() => {});
+});
+function applyViewState(state = {}) {
+  search.value = typeof state.search === 'string' ? state.search : '';
+  builderFilter.value = normalizeFilter(state.filters) || null;
+  const projection = state.projection === 'board' || state.projection === 'table' ? state.projection : null;
+  projectionPreference.value = projection;
+  const sort = state.sort && typeof state.sort.name === 'string'
+    ? { name: state.sort.name, order: Number.isFinite(state.sort.order) ? state.sort.order : 1 }
+    : null;
+  sortName.value = sort?.name || props.node.listControls?.defaultSort || null;
+  sortOrder.value = sort?.order || 1;
+}
+async function selectSavedView(view) {
+  if (activeViewId.value === view._id) return;
+  try {
+    const loaded = await viewsStore.loadView(view._id);
+    activeViewId.value = view._id;
+    applyViewState(loaded?.viewState || {});
+  } catch (error) {
+    toast?.add?.({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
+}
+function selectDefaultView() {
+  activeViewId.value = null;
+  search.value = '';
+  projectionPreference.value = loadProjectionPreference(projectionScope.value);
+  builderFilter.value = loadFilterViewState(builderScope.value);
+  const restored = loadSortPreference(sortScope.value);
+  sortName.value = restored?.name || props.node.listControls?.defaultSort || null;
+  sortOrder.value = restored?.order || 1;
+}
 async function saveCurrentView(name) {
   if (!saveViewAvailable.value || !name || saveViewSaving.value) return;
   saveViewSaving.value = true;
   try {
-    await viewsStore.createView({
+    const created = await viewsStore.createView({
       name,
       typeId: props.node.typeId,
       viewState: {
@@ -935,6 +1011,7 @@ async function saveCurrentView(name) {
         projection: projectionPreference.value
       }
     });
+    activeViewId.value = created?._id || null;
     saveDialogOpen.value = false;
     viewPopover.value?.hide();
   } catch (error) {

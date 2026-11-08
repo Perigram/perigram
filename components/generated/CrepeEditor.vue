@@ -3,7 +3,7 @@
     ref="editorHost"
     class="crepe-host text-prose min-h-0 flex-1 overflow-y-auto"
   />
-  <Popover ref="linkPopover">
+  <Popover ref="addressPopover">
     <div class="flex items-center gap-2 p-2">
       <InputText
         v-model="linkUrl"
@@ -12,7 +12,7 @@
         type="url"
         :placeholder="t('editors.linkAddress')"
         :aria-label="t('editors.linkAddress')"
-        @keydown.enter.prevent="applyLink"
+        @keydown.enter.prevent="applyAddress"
       />
       <Button
         icon="pi pi-check"
@@ -21,7 +21,7 @@
         rounded
         size="small"
         :aria-label="t('common.apply')"
-        @click="applyLink"
+        @click="applyAddress"
       />
     </div>
   </Popover>
@@ -40,7 +40,7 @@ import { useI18n } from 'vue-i18n';
 import Popover from 'primevue/popover';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
-import { renderMarkdown, parseViewRef } from '#shared/markdown.js';
+import { renderMarkdown, parseViewRef, stripSerializerTail } from '#shared/markdown.js';
 import { useViewsStore } from '~/stores/views';
 
 const props = defineProps({
@@ -49,7 +49,11 @@ const props = defineProps({
   defaultValue: { type: String, default: '' },
   // A user-space page invites its first block; the engine placeholder
   // renders the hint.
-  placeholder: { type: String, default: '' }
+  placeholder: { type: String, default: '' },
+  // The block kind a freshly inserted document block opens as.
+  initialBlock: { type: String, default: '' },
+  // The click point the caret lands on when an in-place block opens.
+  initialPoint: { type: Object, default: null }
 });
 
 const emit = defineEmits(['update', 'pick-view', 'ready']);
@@ -57,8 +61,9 @@ const emit = defineEmits(['update', 'pick-view', 'ready']);
 const { t } = useI18n();
 const viewsStore = useViewsStore();
 const editorHost = ref(null);
-const linkPopover = ref(null);
+const addressPopover = ref(null);
 const linkUrl = ref('');
+const addressKind = ref('link');
 const blockState = ref({ block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, task: false, marks: [] });
 
 let crepe = null;
@@ -66,32 +71,61 @@ let slashMenu = null;
 let editorDiagramClick = null;
 let loaded = false;
 let applyBlockAt = () => null;
+let editorViewCtx = null;
+let TextSelection = null;
 
-function focus() {
-  editorHost.value?.querySelector('.ProseMirror')?.focus();
+function markdownValue() {
+  return stripSerializerTail(crepe ? crepe.getMarkdown() : props.defaultValue);
+}
+
+function focus(point = null) {
+  const prose = editorHost.value?.querySelector('.ProseMirror');
+  if (!prose) return;
+  prose.focus();
+  if (!point || !crepe || !editorViewCtx || !TextSelection) return;
+  crepe.editor.action(ctx => {
+    const view = ctx.get(editorViewCtx);
+    const hit = view.posAtCoords({ left: point.x, top: point.y });
+    const at = hit ? hit.pos : view.state.doc.content.size;
+    view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(at))));
+  });
+}
+
+function openAddressEditor(kind) {
+  const anchor = editorHost.value?.querySelector('.ProseMirror') || editorHost.value;
+  if (!anchor) return;
+  addressKind.value = kind;
+  linkUrl.value = '';
+  addressPopover.value?.show({ currentTarget: anchor }, anchor);
 }
 
 function openLinkEditor() {
-  const anchor = editorHost.value?.querySelector('.ProseMirror') || editorHost.value;
-  if (!anchor) return;
-  linkPopover.value?.show({ currentTarget: anchor }, anchor);
+  openAddressEditor('link');
 }
 
-async function applyLink() {
+function openImageEditor() {
+  openAddressEditor('image');
+}
+
+async function applyAddress() {
   const href = linkUrl.value.trim();
   if (!href || !crepe) return;
-  linkPopover.value?.hide();
-  const [{ callCommand }, { toggleLinkCommand }] = await Promise.all([
+  addressPopover.value?.hide();
+  const [{ callCommand }, { toggleLinkCommand, insertImageCommand }] = await Promise.all([
     import('@milkdown/utils'),
     import('@milkdown/preset-commonmark')
   ]);
-  crepe.editor.action(callCommand(toggleLinkCommand.key, { href }));
+  const image = addressKind.value === 'image';
+  crepe.editor.action(callCommand(
+    (image ? insertImageCommand : toggleLinkCommand).key,
+    image ? { src: href } : { href }
+  ));
   focus();
 }
 
 function runSlashPick(id, view) {
   const kind = applyBlockAt(id, view);
-  if (kind !== 'link' && kind !== 'view') focus();
+  if (kind !== 'link' && kind !== 'image' && kind !== 'view') focus();
 }
 
 // The host resolves the picked saved view; the fence it inserts carries
@@ -102,11 +136,15 @@ function openViewPicker(insert) {
 
 onMounted(async () => {
   if (!editorHost.value) return;
-  const [{ Crepe: CrepeEditor }, { $prose }, { languages: codeLanguages }] = await Promise.all([
+  const [{ Crepe: CrepeEditor }, { $prose }, { languages: codeLanguages }, { editorViewCtx: viewCtx }, { TextSelection: selectionType }] = await Promise.all([
     import('@milkdown/crepe'),
     import('@milkdown/utils'),
-    import('@codemirror/language-data')
+    import('@codemirror/language-data'),
+    import('@milkdown/core'),
+    import('@milkdown/prose/state')
   ]);
+  editorViewCtx = viewCtx;
+  TextSelection = selectionType;
   const [{ createSourceMarkersPlugin }, { createSlashMenu }, vocabulary, { codeMirrorTheme }] = await Promise.all([
     import('../../workers/documents/surfaces/lib/source-markers-plugin.js'),
     import('../../workers/documents/surfaces/lib/slash-menu.js'),
@@ -124,6 +162,7 @@ onMounted(async () => {
     view,
     t,
     openLinkEditor,
+    openImageEditor,
     openViewPicker
   });
 
@@ -174,10 +213,16 @@ onMounted(async () => {
   });
   crepe.editor.use($prose(() => slashMenu.plugin));
   crepe.on(api => api.markdownUpdated(() => {
-    if (loaded) emit('update', crepe.getMarkdown());
+    if (loaded) emit('update', markdownValue());
   }));
   await crepe.create();
   loaded = true;
+  if (props.initialBlock && props.initialBlock !== 'paragraph') {
+    let proseView = null;
+    crepe.editor.action(ctx => { proseView = ctx.get(editorViewCtx); });
+    applyBlockAt(props.initialBlock, proseView);
+    emit('update', markdownValue());
+  }
   emit('ready');
   editorDiagramClick = event => {
     const block = event.target?.closest?.('.milkdown-code-block');
@@ -201,7 +246,7 @@ onBeforeUnmount(() => {
 });
 
 function getMarkdown() {
-  return crepe ? crepe.getMarkdown() : props.defaultValue;
+  return markdownValue();
 }
 
 defineExpose({ focus, getMarkdown });

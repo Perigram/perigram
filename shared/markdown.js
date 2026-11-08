@@ -90,6 +90,11 @@ marked.use({
   }
 });
 
+// The serializer renders an empty trailing block as `<br />`; every
+// markdown export strips the tail so persisted source carries no
+// serializer artifact.
+export const stripSerializerTail = text => String(text || '').replace(/(?:\n?<br\s*\/?>)+\s*$/, '\n');
+
 // Markdown source to sanitized HTML. Server-side there is no DOM, so the
 // render is the empty string there — the module stays import-safe in
 // Node (the render dependencies only run behind the window guard).

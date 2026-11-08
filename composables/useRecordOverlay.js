@@ -21,6 +21,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
   const dirty = ref(false);
   const saving = ref(false);
   const editingBlockId = ref(null);
+  const editingInitialBlock = ref('');
   const dragKey = ref(null);
   const viewPickerAt = ref(null);
   // The render site reports the composed flow and the natural derivation
@@ -96,9 +97,12 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     return block.id;
   }
 
-  function insertText(at) {
+  function insertText(at, initialBlock = '') {
     const id = insertBlock({ id: blockId(), kind: 'text', text: '' }, at);
-    if (id) editingBlockId.value = id;
+    if (id) {
+      editingInitialBlock.value = initialBlock;
+      editingBlockId.value = id;
+    }
   }
 
   function openViewPicker(at) {
@@ -118,11 +122,14 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     if (!ensureDraft()) return;
     draftBlocks.value = draftBlocks.value.filter(block => block.id !== id);
     draftOrder.value = draftOrder.value.filter(key => key !== id);
-    if (editingBlockId.value === id) editingBlockId.value = null;
+    if (editingBlockId.value === id) {
+      editingBlockId.value = null;
+      editingInitialBlock.value = '';
+    }
   }
 
   function updateText(id, text) {
-    if (!dirty.value) return;
+    if (!ensureDraft()) return;
     draftBlocks.value = draftBlocks.value.map(block => (block.id === id ? { ...block, text } : block));
   }
 
@@ -140,7 +147,6 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
         });
       }
       dirty.value = false;
-      editingBlockId.value = null;
       setWorkspacePageDirty(tabKey, false);
       return true;
     } finally {
@@ -156,6 +162,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     saving,
     flowCount: computed(() => flowKeys.value.length),
     editingBlockId: computed(() => editingBlockId.value),
+    initialBlockFor: id => (editingBlockId.value === id ? editingInitialBlock.value : ''),
     dragKey: computed(() => dragKey.value),
     beginDrag: key => { dragKey.value = key; },
     endDrag: () => { dragKey.value = null; },
@@ -171,9 +178,13 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     updateText,
     editBlock: id => {
       if (!ensureDraft()) return;
+      editingInitialBlock.value = '';
       editingBlockId.value = id;
     },
-    closeEditor: () => { editingBlockId.value = null; },
+    closeEditor: () => {
+      editingBlockId.value = null;
+      editingInitialBlock.value = '';
+    },
     save
   });
 }

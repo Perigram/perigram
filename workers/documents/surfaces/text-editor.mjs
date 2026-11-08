@@ -12,7 +12,7 @@
 // Remote saves reconcile through the host's record-change bridge.
 import { Crepe as CrepeEditor } from '@milkdown/crepe';
 import { $prose, callCommand, replaceAll } from '@milkdown/utils';
-import { toggleLinkCommand } from '@milkdown/preset-commonmark';
+import { insertImageCommand, toggleLinkCommand } from '@milkdown/preset-commonmark';
 import { createSourceMarkersPlugin } from './lib/source-markers-plugin.js';
 import { codeMirrorTheme } from './lib/cm-theme.js';
 import { createSlashMenu } from './lib/slash-menu.js';
@@ -105,29 +105,44 @@ export default function createSurface({ vue, components, locale, sync, renderMar
         editorHost.value?.querySelector('.ProseMirror')?.focus();
       }
 
-      const linkPopover = ref(null);
+      const addressPopover = ref(null);
       const linkUrl = ref('');
+      const addressKind = ref('link');
 
-      // The link entry's hand-off: the address input opens anchored to
-      // the editing surface — the editor selection survives the panel
-      // pick, so the applied link lands at the caret.
-      function openLinkEditor() {
+      // The link and image entries' hand-off: the address input opens
+      // anchored to the editing surface — the editor selection survives
+      // the panel pick, so the applied target lands at the caret.
+      function openAddressEditor(kind) {
         const anchor = editorHost.value?.querySelector('.ProseMirror') || editorHost.value;
         if (!anchor) return;
-        linkPopover.value?.show({ currentTarget: anchor }, anchor);
+        addressKind.value = kind;
+        linkUrl.value = '';
+        addressPopover.value?.show({ currentTarget: anchor }, anchor);
       }
 
-      function applyLink() {
+      function openLinkEditor() {
+        openAddressEditor('link');
+      }
+
+      function openImageEditor() {
+        openAddressEditor('image');
+      }
+
+      function applyAddress() {
         const href = linkUrl.value.trim();
         if (!href || !crepe) return;
-        linkPopover.value?.hide();
-        crepe.editor.action(callCommand(toggleLinkCommand.key, { href }));
+        addressPopover.value?.hide();
+        const image = addressKind.value === 'image';
+        crepe.editor.action(callCommand(
+          (image ? insertImageCommand : toggleLinkCommand).key,
+          image ? { src: href } : { href }
+        ));
         focusRenderedEditor();
       }
 
       function runSlashPick(id, view) {
-        const kind = applyBlock({ id, state: blockState.value, editor: crepe, view, t, openLinkEditor });
-        if (kind !== 'link') focusRenderedEditor();
+        const kind = applyBlock({ id, state: blockState.value, editor: crepe, view, t, openLinkEditor, openImageEditor });
+        if (kind !== 'link' && kind !== 'image') focusRenderedEditor();
       }
 
       async function reloadFromRemote() {
@@ -279,7 +294,7 @@ export default function createSurface({ vue, components, locale, sync, renderMar
       ));
 
       return () => h('div', { class: 'flex h-full min-h-0 flex-1 flex-col p-4' }, [
-        h(Popover, { ref: linkPopover }, () => h('div', { class: 'flex items-center gap-2 p-2' }, [
+        h(Popover, { ref: addressPopover }, () => h('div', { class: 'flex items-center gap-2 p-2' }, [
           h(InputText, {
             modelValue: linkUrl.value,
             size: 'small',
@@ -291,11 +306,11 @@ export default function createSurface({ vue, components, locale, sync, renderMar
             onKeydown: event => {
               if (event.key === 'Enter') {
                 event.preventDefault();
-                applyLink();
+                applyAddress();
               }
             }
           }),
-          h(Button, { icon: 'pi pi-check', severity: 'secondary', text: true, rounded: true, size: 'small', 'aria-label': t('common.apply'), onClick: applyLink })
+          h(Button, { icon: 'pi pi-check', severity: 'secondary', text: true, rounded: true, size: 'small', 'aria-label': t('common.apply'), onClick: applyAddress })
         ])),
         h('div', { ref: editorHost, class: 'crepe-host text-prose min-h-0 flex-1 overflow-y-auto', 'aria-label': t('editors.text') })
       ]);
