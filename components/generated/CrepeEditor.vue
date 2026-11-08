@@ -223,9 +223,10 @@ onMounted(async () => {
       [CrepeEditor.Feature.Latex]: false,
       [CrepeEditor.Feature.AI]: false,
       [CrepeEditor.Feature.Cursor]: false,
-      [CrepeEditor.Feature.Placeholder]: props.placeholder ? { text: props.placeholder } : false
+      [CrepeEditor.Feature.Placeholder]: Boolean(props.placeholder)
     },
     featureConfigs: {
+      [CrepeEditor.Feature.Placeholder]: { text: props.placeholder || '' },
       [CrepeEditor.Feature.CodeMirror]: {
         languages: codeLanguages,
         theme: codeMirrorTheme,

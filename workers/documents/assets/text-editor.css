@@ -66,6 +66,21 @@
   border-radius: var(--p-border-radius-sm);
 }
 
+/* The engine's block placeholder (crepe's placeholder decoration): the
+   empty block carries data-placeholder and the pseudo-element paints the
+   hint at the text origin. */
+.crepe-placeholder {
+  position: relative;
+}
+
+.crepe-placeholder::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  height: 0;
+  color: var(--crepe-color-on-surface-variant);
+  pointer-events: none;
+}
+
 /* The slash command menu (slash-menu.js): visibility and stacking
    mechanics only — the menu mounts on the page root and carries the
    host's overlay utilities (bg-content, shadow-overlay) on the

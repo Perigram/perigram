@@ -333,48 +333,50 @@
           </PlacementBox>
         </div>
         <template v-else>
-          <SurfaceBody
-            v-bind="bodyProps"
-            variant="full"
-            :editable="patchable"
-            v-on="bodyEvents"
-          >
-            <template #document-section="{ section }">
-              <DocumentSectionShell
-                :session="recordOverlaySession"
-                :section-key="section.key"
-                :index="section.index"
-                :block="section.block || null"
-              >
-                <RegionChildren
-                  v-if="childRegionFor(section.key)"
-                  v-bind="childrenProps"
-                  v-on="childrenEvents"
-                  :regions="[childRegionFor(section.key)]"
-                />
-                <OverlayTextBlock
-                  v-else-if="section.block?.kind === 'text'"
-                  :block="section.block"
+          <div class="flex min-w-0 flex-col gap-2">
+            <SurfaceBody
+              v-bind="bodyProps"
+              variant="full"
+              :editable="patchable"
+              v-on="bodyEvents"
+            >
+              <template #document-section="{ section }">
+                <DocumentSectionShell
                   :session="recordOverlaySession"
-                />
-                <ViewEmbed
-                  v-else-if="section.block?.kind === 'view'"
-                  :view-id="section.block.view?.id || ''"
-                  :type-id="section.block.view?.typeId || ''"
-                  :fallback-name="section.block.view?.name || ''"
-                />
-              </DocumentSectionShell>
-            </template>
-          </SurfaceBody>
-          <RegionChildren
-            v-if="node.childRegions.length && !documentComposing"
-            v-bind="childrenProps"
-            v-on="childrenEvents"
-            :arrangement="node.childArrangement"
-          />
-          <!-- The document's trailing line (SPEC §26): a real inline
-               engine mount, empty and type-ready for writers. -->
-          <TrailingTextBlock v-if="recordOverlaySession" :session="recordOverlaySession" />
+                  :section-key="section.key"
+                  :index="section.index"
+                  :block="section.block || null"
+                >
+                  <RegionChildren
+                    v-if="childRegionFor(section.key)"
+                    v-bind="childrenProps"
+                    v-on="childrenEvents"
+                    :regions="[childRegionFor(section.key)]"
+                  />
+                  <OverlayTextBlock
+                    v-else-if="section.block?.kind === 'text'"
+                    :block="section.block"
+                    :session="recordOverlaySession"
+                  />
+                  <ViewEmbed
+                    v-else-if="section.block?.kind === 'view'"
+                    :view-id="section.block.view?.id || ''"
+                    :type-id="section.block.view?.typeId || ''"
+                    :fallback-name="section.block.view?.name || ''"
+                  />
+                </DocumentSectionShell>
+              </template>
+            </SurfaceBody>
+            <RegionChildren
+              v-if="node.childRegions.length && !documentComposing"
+              v-bind="childrenProps"
+              v-on="childrenEvents"
+              :arrangement="node.childArrangement"
+            />
+            <!-- The document's trailing line (SPEC §26): a real inline
+                 engine mount, empty and type-ready for writers. -->
+            <TrailingTextBlock v-if="recordOverlaySession" :session="recordOverlaySession" />
+          </div>
         </template>
       </template>
     </template>

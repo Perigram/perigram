@@ -1,21 +1,16 @@
 <template>
-  <div v-if="session?.writable" class="ck-doc-tail relative min-h-8">
+  <div v-if="session?.writable" class="ck-doc-tail min-h-6">
     <CrepeEditor
       :key="editorKey"
       ref="editor"
       class="ck-inline-editor"
       :default-value="draft"
+      :placeholder="t('editors.slashHint')"
       split-on-enter
       @ready="focusIfRequested"
       @update="text => (draft = text)"
       @enter="commit(true)"
     />
-    <span
-      v-if="!draft.trim()"
-      class="pointer-events-none absolute left-0 top-0 text-muted text-supporting"
-    >
-      {{ t('editors.slashHint') }}
-    </span>
   </div>
 </template>
 
