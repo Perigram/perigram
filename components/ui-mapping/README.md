@@ -193,12 +193,14 @@ application.
   [file-surfaces](../generated/README.md) write-grant seam decides) get
   the session ([composables](../../composables/README.md)
   `useRecordOverlay`). The authoring surface is the document's left
-  gutter lane: `DocumentSectionShell` reserves one lane step, and every
-  section renders its `overlay-gutter` cluster in it — drag handle, plus
+  gutter lane: the document root reserves one lane step for every viewer
+  (content never shifts between readers and holders), and every section
+  renders the lane's pair — the `⠿` handle (click opens the section menu:
+  move up/down; custom blocks also delete; drag reorders) and the plus
   (`OverlayInsertControl` inserts a focused text block directly; its
-  columns control opens the saved-views picker), and one overflow menu
-  (move up/down; custom blocks also delete) — revealed on hover or focus
-  and pinned on coarse pointers. Sections reorder by dragging the
+  columns control opens the saved-views picker) — aligned with the
+  section's first line and revealed on hover or focus. The drop target
+  paints a floating line above the section. Sections reorder by dragging the
   handle (the drop target paints its top edge; the session's
   `moveToIndex` reorders the draft order array) and by the handle's
   keyboard arrows. Declared sections reorder alone; custom blocks also
