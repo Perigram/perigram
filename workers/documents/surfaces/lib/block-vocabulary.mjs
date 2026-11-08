@@ -63,7 +63,6 @@ export function resolveBlockAction(id, state) {
     case 'diagram': return { kind: 'command', command: createCodeBlockCommand, payload: 'mermaid' };
     case 'table': return { kind: 'table' };
     case 'link': return { kind: 'link' };
-    case 'instance': return { kind: 'instance' };
     case 'view': return { kind: 'view' };
     default: return null;
   }
@@ -74,7 +73,7 @@ export function resolveBlockAction(id, state) {
 // `view` its ProseMirror view). The `link` and `image` kinds hand off
 // to the host's address editor. Returns the action kind — a hand-off
 // kind leaves the focus with the host's address input.
-export function applyBlock({ id, state, editor, view, openLinkEditor, openImageEditor, openInstancePicker, openViewPicker }) {
+export function applyBlock({ id, state, editor, view, openLinkEditor, openImageEditor, openViewPicker }) {
   const action = resolveBlockAction(id, state);
   if (!action || !editor) return action ? action.kind : null;
   switch (action.kind) {
@@ -111,9 +110,6 @@ export function applyBlock({ id, state, editor, view, openLinkEditor, openImageE
     case 'image':
       if (openImageEditor) openImageEditor();
       break;
-    case 'instance':
-      if (openInstancePicker) openInstancePicker(ref => insertInstanceLink(ref, view));
-      break;
     case 'view':
       // The host resolves the picked saved view; the fence it inserts
       // carries the view ref (`{ id, name }`, the deleted-view name).
@@ -123,17 +119,6 @@ export function applyBlock({ id, state, editor, view, openLinkEditor, openImageE
       break;
   }
   return action.kind;
-}
-
-export function insertInstanceLink(ref, view) {
-  if (!ref?.type || !ref?.id || !view) return;
-  const href = `#instance:${encodeURIComponent(String(ref.type))}/${encodeURIComponent(String(ref.id))}`;
-  const label = String(ref.label || ref.name || ref.id);
-  const link = view.state.schema.marks.link;
-  const from = view.state.selection.from;
-  const tr = view.state.tr.insertText(label);
-  tr.addMark(from, from + label.length, link.create({ href }));
-  view.dispatch(tr.scrollIntoView());
 }
 
 export function insertViewFence(ref, view) {

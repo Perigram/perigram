@@ -223,7 +223,7 @@ export default function createSurface({ vue, components, locale, sync, renderMar
           // (the custom-page surface); this editor keeps it out until
           // its surfaces mount live embeds.
           items: BLOCK_VOCABULARY
-            .filter(({ id }) => id !== 'view' && id !== 'instance')
+            .filter(({ id }) => id !== 'view')
             .map(({ id, labelKey, glyph, glyphText, match }) => ({ id, label: t(labelKey), glyph, glyphText, match })),
           onPick: runSlashPick
         });

@@ -2398,15 +2398,12 @@
         "view": "View",
         "collectionView": "Collection view",
         "addCollectionView": "Add collection view",
-        "instance": "Instance",
-        "pickInstance": "Insert instance",
         "pickView": "Pick a view",
         "addView": "Add view",
         "savedViews": "Saved views",
         "collections": "Collections",
         "noCollections": "No collections",
-        "slashHint": "Type '/' for commands",
-        "noInstances": "No instances"
+        "slashHint": "Type '/' for commands"
     },
     "sketch": {
         "editorTitle": "Sketch",

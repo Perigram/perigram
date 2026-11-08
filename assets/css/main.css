@@ -640,29 +640,6 @@ body {
     line-height: 1.25rem;
 }
 
-/* Inline instance references read as chips inside prose and the editor. */
-.ck-markdown-body .ck-instance-ref,
-.ck-inline-editor.crepe-host .milkdown .ProseMirror a[href^="#instance:"],
-.ck-inline-editor.crepe-host .milkdown .ProseMirror a[href^="instance:"] {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.25rem;
-    padding: 0 0.4rem;
-    border-radius: var(--p-border-radius-sm);
-    background: var(--ck-chrome-subtle);
-    color: var(--p-text-color);
-    font-family: var(--ck-font-ui);
-    font-size: 0.875em;
-    line-height: 1.35;
-    text-decoration: none;
-}
-
-.ck-markdown-body .ck-instance-ref:hover,
-.ck-inline-editor.crepe-host .milkdown .ProseMirror a[href^="#instance:"]:hover,
-.ck-inline-editor.crepe-host .milkdown .ProseMirror a[href^="instance:"]:hover {
-    background: var(--p-content-hover-background);
-}
-
 :is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) > *:first-child {
     margin-top: 0;
 }

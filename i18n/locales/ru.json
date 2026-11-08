@@ -2398,15 +2398,12 @@
         "view": "Вид",
         "collectionView": "Вид коллекции",
         "addCollectionView": "Добавить вид коллекции",
-        "instance": "Экземпляр",
-        "pickInstance": "Вставить экземпляр",
         "pickView": "Выбрать вид",
         "addView": "Добавить вид",
         "savedViews": "Сохранённые виды",
         "collections": "Коллекции",
         "noCollections": "Нет коллекций",
-        "slashHint": "Введите '/' для команд",
-        "noInstances": "Нет записей"
+        "slashHint": "Введите '/' для команд"
     },
     "sketch": {
         "editorTitle": "Скетч",
