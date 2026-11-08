@@ -123,9 +123,12 @@ export function applyBlock({ id, state, editor, view, t, openLinkEditor, openIma
 }
 
 export function insertViewFence(ref, view) {
-  if (!ref?.id || !view) return;
+  if ((!ref?.id && !ref?.typeId) || !view) return;
   const { code_block } = view.state.schema.nodes;
-  const body = view.state.schema.text(JSON.stringify({ id: String(ref.id), name: String(ref.name || '') }));
+  const target = ref.id
+    ? { id: String(ref.id), typeId: String(ref.typeId || ''), name: String(ref.name || '') }
+    : { typeId: String(ref.typeId), name: String(ref.name || '') };
+  const body = view.state.schema.text(JSON.stringify(target));
   view.dispatch(view.state.tr.replaceSelectionWith(code_block.createChecked({ language: 'view' }, body)).scrollIntoView());
 }
 

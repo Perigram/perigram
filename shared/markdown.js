@@ -13,17 +13,23 @@ import { render as renderMermaidDiagram } from 'pele';
 // to the plain code block; pele's own escaping and size limits run
 // before DOMPurify sees the document.
 
-// View fences carry a saved-view ref (SPEC §26): `{"id":"…","name":"…"}`
-// as the fence body. The pipeline renders the ref as a quiet chip naming
-// the view; the custom-page read composition splits view fences out and
-// mounts the live collection region in their place (splitViewEmbeds
-// below).
+// View fences carry a view ref (SPEC §26): `{"id":"…","name":"…"}` for a
+// saved lens or `{"typeId":"…","name":"…"}` for a collection entry. The
+// pipeline renders the ref as a quiet chip naming the view; the
+// custom-page read composition splits view fences out and mounts the
+// live collection region in their place (splitViewEmbeds below).
 export function parseViewRef(text = '') {
   try {
     const parsed = JSON.parse(String(text).trim());
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-    if (typeof parsed.id !== 'string' || !parsed.id.trim()) return null;
-    return { id: parsed.id, name: typeof parsed.name === 'string' ? parsed.name : '' };
+    const id = typeof parsed.id === 'string' && parsed.id.trim() ? parsed.id : '';
+    const typeId = typeof parsed.typeId === 'string' && parsed.typeId.trim() ? parsed.typeId : '';
+    if (!id && !typeId) return null;
+    return {
+      ...(id ? { id } : {}),
+      ...(typeId ? { typeId } : {}),
+      name: typeof parsed.name === 'string' ? parsed.name : ''
+    };
   } catch {
     return null;
   }

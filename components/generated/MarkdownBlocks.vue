@@ -1,7 +1,12 @@
 <template>
   <template v-for="(block, index) in blocks" :key="index">
     <div v-if="block.type === 'markdown'" class="ck-markdown-body" v-html="renderedOf(block)" />
-    <ViewEmbed v-else :view-id="block.id" :fallback-name="block.name" />
+    <ViewEmbed
+      v-else
+      :view-id="block.id || ''"
+      :type-id="block.typeId || ''"
+      :fallback-name="block.name"
+    />
   </template>
 </template>
 

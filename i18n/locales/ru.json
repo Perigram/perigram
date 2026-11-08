@@ -2387,8 +2387,12 @@
         "divider": "Разделитель",
         "table": "Таблица",
         "view": "Вид",
+        "collectionView": "Вид коллекции",
         "pickView": "Выбрать вид",
-        "pickViewEmpty": "Нет сохранённых видов",
+        "addView": "Добавить вид",
+        "savedViews": "Сохранённые виды",
+        "collections": "Коллекции",
+        "noCollections": "Нет коллекций",
         "slashHint": "Введите '/' для команд"
     },
     "sketch": {

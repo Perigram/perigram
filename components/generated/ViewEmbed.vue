@@ -1,15 +1,16 @@
 <template>
   <!-- The lens travels over its own GET, so the region mounts only with
        it: a region seeded before the state lands freezes every view
-       model at its empty default. -->
+       model at its empty default. A collection entry carries no saved
+       lens and renders the type's live view directly. -->
   <RegionBlock
-    v-if="node && viewState"
-    :key="view._id"
+    v-if="node && (viewState || !viewId)"
+    :key="viewKey"
     :node="node"
     :pool="pool"
     :bundle="bundle"
     :view-state="viewState"
-    :label="view.name"
+    :label="name"
     openable
     :load-type="loadType"
     @open="openInstance"
@@ -24,13 +25,14 @@
 </template>
 
 <script setup>
-// The saved-view embed (SPEC §26): a page's view fence renders the
-// saved lens as a live collection region through the ordinary machinery
-// — a minimal single-list-region screen composed by composeScreen,
-// materialized by RegionBlock, loaded through the instances store list
-// transport (org-scoped, grants respected). A view is a lens: it
-// renders whatever the current member can read and carries no access
-// of its own.
+// The saved-view or collection embed (SPEC §26): a view fence renders
+// the chosen lens as a live collection region through the ordinary
+// machinery — a minimal single-list-region screen composed by
+// composeScreen, materialized by RegionBlock, loaded through the
+// instances store list transport (org-scoped, grants respected). A view
+// is a lens: it renders whatever the current member can read and
+// carries no access of its own. A collection entry names its type and
+// keeps the region's view tabs live.
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import RegionBlock from '~/components/ui-mapping/RegionBlock.vue';
@@ -39,23 +41,32 @@ import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useViewsStore } from '~/stores/views';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { composeScreen, statePolicyByType, stateTransitionsByType } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
-  viewId: { type: String, required: true },
+  viewId: { type: String, default: '' },
+  // A collection entry's type id (no saved lens).
+  typeId: { type: String, default: '' },
   // The name the fence carried at authoring time — the deleted-view
   // title and the fallback while the store loads.
   fallbackName: { type: String, default: '' }
 });
 
-const { t } = useI18n();
+const { te, t } = useI18n();
 const authStore = useAuthStore();
 const instancesStore = useInstancesStore();
 const viewsStore = useViewsStore();
 
-const view = computed(() => viewsStore.viewById(props.viewId));
-const viewState = computed(() => viewsStore.viewStates[props.viewId] || null);
-const name = computed(() => view.value?.name || props.fallbackName);
+const view = computed(() => (props.viewId ? viewsStore.viewById(props.viewId) : null));
+const targetTypeId = computed(() => view.value?.typeId || props.typeId);
+const viewState = computed(() => (props.viewId ? (viewsStore.viewStates[props.viewId] || null) : null));
+const typeLabel = computed(() => {
+  const type = (authStore.processPayload?.bundle?.types || []).find(candidate => candidate.id === targetTypeId.value);
+  return type ? generatedEntityLabel(type, { t, te }) : '';
+});
+const name = computed(() => view.value?.name || props.fallbackName || typeLabel.value);
+const viewKey = computed(() => view.value?._id || `type:${targetTypeId.value}`);
 
 const pool = computed(() => instancesStore.instancePool);
 const bundle = computed(() => authStore.processPayload?.bundle || { types: [] });
@@ -72,13 +83,13 @@ const contract = computed(() => {
 // floor the detail synthesis builds from a type's list screen, with no
 // actions: creation and quick actions belong to the collection's own
 // screens, and the embed renders the lens.
-const screen = computed(() => (view.value ? {
-  id: `view:${view.value._id}`,
-  screenKey: `view:${view.value._id}`,
+const screen = computed(() => (targetTypeId.value ? {
+  id: `view:${viewKey.value}`,
+  screenKey: `view:${viewKey.value}`,
   template: 'typeList',
-  typeId: view.value.typeId,
-  sources: [{ id: view.value.typeId, typeId: view.value.typeId }],
-  regions: [{ id: 'main', slot: 'main', sourceId: view.value.typeId }]
+  typeId: targetTypeId.value,
+  sources: [{ id: targetTypeId.value, typeId: targetTypeId.value }],
+  regions: [{ id: 'main', slot: 'main', sourceId: targetTypeId.value }]
 } : null));
 
 // Source state: loading only while the fetch is in flight; the pool
@@ -86,16 +97,16 @@ const screen = computed(() => (view.value ? {
 // renders at once on both sides of hydration. A pending lens is a
 // loading region whatever the pool holds — the region cannot render.
 const fetchState = ref(null);
-const lensPending = computed(() => Boolean(view.value) && viewState.value === null);
+const lensPending = computed(() => Boolean(view.value) && props.viewId && viewState.value === null);
 const sourceState = computed(() => {
   if (lensPending.value) return 'loading';
   return fetchState.value
-    ?? (Object.keys(pool.value[view.value?.typeId] || {}).length ? 'ready' : 'loading');
+    ?? (Object.keys(pool.value[targetTypeId.value] || {}).length ? 'ready' : 'loading');
 });
 
 const composed = computed(() => (screen.value
   ? composeScreen(screen.value, contract.value, bundle.value, pool.value, {
-    sourceStates: { [view.value.typeId]: sourceState.value }
+    sourceStates: { [targetTypeId.value]: sourceState.value }
   })
   : null));
 const node = computed(() => composed.value?.regions?.[0] || null);
@@ -114,13 +125,16 @@ function openInstance(instance) {
 
 onMounted(async () => {
   await viewsStore.ensureLoaded().catch(() => {});
-  if (!view.value) return;
-  try {
-    await viewsStore.loadView(props.viewId);
-  } catch {
-    return;
+  if (props.viewId && !view.value) return;
+  if (props.viewId) {
+    try {
+      await viewsStore.loadView(props.viewId);
+    } catch {
+      return;
+    }
   }
-  const typeKey = instancesStore.canonicalTypeKey(view.value.typeId);
+  if (!targetTypeId.value) return;
+  const typeKey = instancesStore.canonicalTypeKey(targetTypeId.value);
   if (!typeKey) return;
   fetchState.value = 'loading';
   try {

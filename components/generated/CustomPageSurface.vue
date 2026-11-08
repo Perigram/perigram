@@ -102,7 +102,7 @@ function openFencePicker(insert) {
 
 function pickView(view) {
   viewPickerOpen.value = false;
-  insertFenceAt({ id: view._id, name: view.name });
+  insertFenceAt(view);
   editor.value?.focus();
 }
 

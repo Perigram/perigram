@@ -4,12 +4,9 @@
       class="absolute -left-14 top-0.5 z-10 flex w-14 items-center justify-end gap-0.5 pr-1 opacity-0 transition-opacity group-hover/ck-doc-section:opacity-100 focus-within:opacity-100"
     >
       <OverlayInsertControl :session="session" :at="index + 1" />
-      <Button
-        text
-        rounded
-        size="small"
-        severity="secondary"
-        class="h-6 w-6 cursor-grab active:cursor-grabbing"
+      <button
+        type="button"
+        class="ck-block-control cursor-grab active:cursor-grabbing"
         draggable="true"
         :aria-label="t('uiMapping.sectionActions')"
         :title="t('uiMapping.sectionActions')"
@@ -19,17 +16,15 @@
         @keydown.up.prevent="session.move(sectionKey, -1)"
         @keydown.down.prevent="session.move(sectionKey, 1)"
       >
-        <template #icon>
-          <svg viewBox="0 0 16 16" class="h-4 w-4" fill="currentColor" aria-hidden="true">
-            <circle cx="5.5" cy="3.5" r="1.15" />
-            <circle cx="10.5" cy="3.5" r="1.15" />
-            <circle cx="5.5" cy="8" r="1.15" />
-            <circle cx="10.5" cy="8" r="1.15" />
-            <circle cx="5.5" cy="12.5" r="1.15" />
-            <circle cx="10.5" cy="12.5" r="1.15" />
-          </svg>
-        </template>
-      </Button>
+        <svg viewBox="0 0 16 16" class="h-4 w-4" fill="currentColor" aria-hidden="true">
+          <circle cx="5.5" cy="3.5" r="1.15" />
+          <circle cx="10.5" cy="3.5" r="1.15" />
+          <circle cx="5.5" cy="8" r="1.15" />
+          <circle cx="10.5" cy="8" r="1.15" />
+          <circle cx="5.5" cy="12.5" r="1.15" />
+          <circle cx="10.5" cy="12.5" r="1.15" />
+        </svg>
+      </button>
     </div>
     <Menu ref="menu" :model="items" popup />
     <div
@@ -52,7 +47,6 @@
 <script setup>
 import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Button from 'primevue/button';
 import Menu from 'primevue/menu';
 import OverlayInsertControl from './OverlayInsertControl.vue';
 

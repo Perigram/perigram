@@ -20,5 +20,5 @@ export const BLOCK_VOCABULARY = [
   { id: 'divider', labelKey: 'editors.divider', glyph: 'pi pi-minus', match: ['divider', 'hr', 'line'], insertable: true },
   { id: 'table', labelKey: 'editors.table', glyph: 'pi pi-table', match: ['table'], insertable: true },
   { id: 'link', labelKey: 'editors.link', glyph: 'pi pi-link', match: ['link', 'url'], insertable: false },
-  { id: 'view', labelKey: 'editors.view', glyph: 'pi pi-objects-column', match: ['view', 'collection'], insertable: true }
+  { id: 'view', labelKey: 'editors.collectionView', glyph: 'pi pi-objects-column', match: ['view', 'collection'], insertable: true }
 ];

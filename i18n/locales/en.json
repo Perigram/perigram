@@ -2387,8 +2387,12 @@
         "divider": "Divider",
         "table": "Table",
         "view": "View",
+        "collectionView": "Collection view",
         "pickView": "Pick a view",
-        "pickViewEmpty": "No saved views",
+        "addView": "Add view",
+        "savedViews": "Saved views",
+        "collections": "Collections",
+        "noCollections": "No collections",
         "slashHint": "Type '/' for commands"
     },
     "sketch": {

@@ -558,27 +558,6 @@ body {
 
     /* The bounded editor band (SPEC §4): the framed region a popup's
        editor surface fills. */
-    /* Document text blocks author flush (§26): the standalone editor owns
-       the page padding, measure, and ground; an in-place block fills its
-       document slot. */
-    .ck-inline-editor.crepe-host {
-        overflow: visible;
-    }
-
-    .ck-inline-editor.crepe-host .milkdown {
-        background: transparent;
-    }
-
-    .ck-inline-editor.crepe-host .milkdown .editor {
-        max-width: none;
-        margin: 0;
-        padding: 0;
-    }
-
-    .ck-inline-editor.crepe-host .milkdown .ProseMirror {
-        padding: 0;
-    }
-
     .ck-editor-band-bounded {
         border: 1px solid var(--p-content-border-color);
         border-radius: var(--p-border-radius-lg);
@@ -592,11 +571,59 @@ body {
     }
 }
 
+/* The document gutter's controls: one 1.5rem icon-button shape for the
+   plus and the drag handle, flush inside the reserved lane. */
+.ck-block-control {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--p-border-radius-sm);
+    background: transparent;
+    color: var(--p-text-muted-color);
+    cursor: pointer;
+}
+
+.ck-block-control:hover:not(:disabled) {
+    background: var(--p-content-hover-background);
+    color: var(--p-text-color);
+}
+
+.ck-block-control:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+/* Document text blocks author flush (§26): the standalone editor owns
+   the page padding, measure, and ground; an in-place block fills its
+   document slot. These rules sit outside the utilities layer so the
+   engine's dynamically injected stylesheet cannot outrank them. */
+.ck-inline-editor.crepe-host {
+    overflow: visible;
+}
+
+.ck-inline-editor.crepe-host .milkdown {
+    background: transparent;
+}
+
+.ck-inline-editor.crepe-host .milkdown .editor {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+
+.ck-inline-editor.crepe-host .milkdown .ProseMirror {
+    padding: 0;
+}
+
 /* The markdown read recipe: the markdown editor's reading typography
    (crepe's document metrics on the app tokens), worn by every host of
    the pipeline's sanitized HTML — chat answers and file previews read
    like the editor. */
-.ck-markdown-body {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) {
     font-family: var(--ck-font-serif);
 }
 
@@ -613,73 +640,73 @@ body {
     line-height: 1.25rem;
 }
 
-.ck-markdown-body > *:first-child {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) > *:first-child {
     margin-top: 0;
 }
 
-.ck-markdown-body > *:last-child {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) > *:last-child {
     margin-bottom: 0;
 }
 
-.ck-markdown-body h1,
-.ck-markdown-body h2,
-.ck-markdown-body h3,
-.ck-markdown-body h4,
-.ck-markdown-body h5,
-.ck-markdown-body h6 {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h1,
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h2,
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h3,
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h4,
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h5,
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h6 {
     font-family: var(--ck-font-serif);
     font-weight: 400;
     padding: 2px 0;
 }
 
-.ck-markdown-body h1 {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h1 {
     font-size: 2.625em;
     line-height: 1.1905;
     margin-top: 32px;
 }
 
-.ck-markdown-body h2 {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h2 {
     font-size: 2.25em;
     line-height: 1.2222;
     margin-top: 28px;
 }
 
-.ck-markdown-body h3 {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h3 {
     font-size: 2em;
     line-height: 1.25;
     margin-top: 24px;
 }
 
-.ck-markdown-body h4 {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h4 {
     font-size: 1.75em;
     line-height: 1.2857;
     margin-top: 20px;
 }
 
-.ck-markdown-body h5 {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h5 {
     font-size: 1.5em;
     line-height: 1.3333;
     margin-top: 16px;
 }
 
-.ck-markdown-body h6 {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h6 {
     font-size: 1.125em;
     font-weight: 700;
     line-height: 1.5556;
     margin-top: 16px;
 }
 
-.ck-markdown-body p {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) p {
     line-height: 1.5;
     padding: 4px 0;
 }
 
-.ck-markdown-body a {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) a {
     color: var(--p-primary-color);
     text-decoration: underline;
 }
 
-.ck-markdown-body code {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) code {
     color: var(--ck-chrome-foreground);
     background: var(--ck-chrome-subtle);
     font-family: var(--ck-font-mono);
@@ -689,25 +716,25 @@ body {
     border-radius: var(--p-border-radius-sm);
 }
 
-.ck-markdown-body pre {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) pre {
     background: var(--ck-chrome-subtle);
     padding: 10px;
     border-radius: var(--p-border-radius-sm);
     overflow-x: auto;
 }
 
-.ck-markdown-body pre code {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) pre code {
     padding: 0;
     background: transparent;
 }
 
-.ck-markdown-body blockquote {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) blockquote {
     position: relative;
     margin: 4px 0;
     padding-left: 40px;
 }
 
-.ck-markdown-body blockquote::before {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) blockquote::before {
     content: "";
     position: absolute;
     left: 0;
@@ -718,7 +745,7 @@ body {
     border-radius: 100px;
 }
 
-.ck-markdown-body hr {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) hr {
     border: none;
     height: 13px;
     box-sizing: content-box;
@@ -727,43 +754,43 @@ body {
     background-clip: content-box;
 }
 
-.ck-markdown-body ul,
-.ck-markdown-body ol {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) ul,
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) ol {
     margin: 4px 0;
     padding: 0 0 0 1.25em;
 }
 
-.ck-markdown-body ul {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) ul {
     list-style: disc;
 }
 
-.ck-markdown-body ol {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) ol {
     list-style: decimal;
 }
 
-.ck-markdown-body li {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) li {
     padding: 2px 0;
 }
 
-.ck-markdown-body table {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) table {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
 }
 
-.ck-markdown-body th,
-.ck-markdown-body td {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) th,
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) td {
     vertical-align: top;
     border: 1px solid var(--ck-chrome-border);
     padding: 2px 8px;
     text-align: left;
 }
 
-.ck-markdown-body th {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) th {
     background: var(--ck-chrome-subtle);
 }
 
-.ck-markdown-body img {
+:is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) img {
     max-width: 100%;
     vertical-align: bottom;
 }

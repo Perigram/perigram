@@ -1,17 +1,15 @@
 <template>
   <span class="inline-flex">
-    <Button
-      icon="pi pi-plus"
-      text
-      rounded
-      size="small"
-      severity="secondary"
-      class="h-6 w-6"
+    <button
+      type="button"
+      class="ck-block-control"
       :aria-label="t('uiMapping.addBlock')"
       :title="t('uiMapping.addBlock')"
       :disabled="!session.loaded"
       @click="event => menu?.toggle(event)"
-    />
+    >
+      <i class="pi pi-plus" aria-hidden="true" />
+    </button>
     <Popover ref="menu">
       <div class="flex w-52 flex-col gap-0.5 p-1">
         <button
@@ -36,7 +34,6 @@
 // kind; the view entry opens the saved-view picker.
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 import { BLOCK_VOCABULARY } from '../../workers/documents/surfaces/lib/block-vocabulary-data.mjs';
 

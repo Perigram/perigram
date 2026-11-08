@@ -113,8 +113,11 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
   function pickView(view) {
     const at = viewPickerAt.value;
     viewPickerAt.value = null;
-    if (view?._id && at !== null) {
-      insertBlock({ id: blockId(), kind: 'view', view: { id: String(view._id), name: view.name || '' } }, at);
+    if (at === null || !view) return;
+    if (view.id) {
+      insertBlock({ id: blockId(), kind: 'view', view: { id: String(view.id), typeId: String(view.typeId || ''), name: view.name || '' } }, at);
+    } else if (view.typeId) {
+      insertBlock({ id: blockId(), kind: 'view', view: { typeId: String(view.typeId), name: view.name || '' } }, at);
     }
   }
 

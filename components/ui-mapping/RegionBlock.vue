@@ -349,6 +349,7 @@
                 <ViewEmbed
                   v-else-if="section.block?.kind === 'view'"
                   :view-id="section.block.view?.id || ''"
+                  :type-id="section.block.view?.typeId || ''"
                   :fallback-name="section.block.view?.name || ''"
                 />
               </DocumentSectionShell>
