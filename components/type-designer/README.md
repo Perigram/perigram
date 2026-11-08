@@ -44,7 +44,7 @@ creates a class.
 |---|---|
 | `ClassDialog.vue` | Create/edit one org declaration: name, class, glyph, fields, states, and children edges. Saves through `POST /api/admin/cts/types` with the loaded declaration and those facets replaced. A `group` class cannot save without a child. |
 | `ClassSurface.vue` | The class page: the unified header over the same generated type-list screen every class page uses, synthesized with one source and one region when no compiled process screen exists. |
-| Fields | `FieldDeclarationForm` — the same labeled stack the process-designer inspector renders: field-name input over the shared `DescriptorEditor`. The class-level Names-record select owns the identifier flag. The registry key is an internal id minted from the initial label via `rowFieldId` and kept stable across renames. |
+| Fields | `FieldDeclarationForm` — a proportional name/type grid (3:2 when its container admits, stacked when narrow) with the shared `DescriptorBaseControl`; base-specific qualifiers sit in a container-adaptive grid below. The class-level Names-record select owns the identifier flag. The registry key is an internal id minted from the initial label via `rowFieldId` and kept stable across renames. |
 | States | `StateDeclarationForm` — state name over severity and icon, the process-designer inspector's state form. The vocabulary persists on the declaration and overrides the compiled process policy for the same values. |
 | Children | Existing classes attach through the parent's `edges.children` entry; each type keeps its entry's `lineageKey` and `onRemove`. Add child class opens a draft `ClassDialog` — the child persists with the parent save, never on the click; the draft dialog offers every declarable class, group included. |
 | Capability | `organizations:admin`, the same seam as declaration authoring. |
@@ -54,8 +54,8 @@ creates a class.
 ## DescriptorEditor
 
 `DescriptorEditor.vue` is the v-model editor for the whole field
-descriptor grammar: base select over the CTS `FIELD_BASES`, the
-`Can be empty` toggle (`nullable`), and the per-base qualifiers — unit
+descriptor grammar: `DescriptorBaseControl` (base select over the CTS
+`FIELD_BASES` plus the `Can be empty` toggle), and the per-base qualifiers — unit
 (CTS `UNITS`) for `quantity`, `accepts` from `typeOptions` for `ref`
 (beside its unlink policy over CTS `UNLINK_POLICIES`),
 chip-authored values/tags for `enum`/`variant`, recursive `itemType`
@@ -68,6 +68,9 @@ fresh object through
 naming-facet keys (`label`, `display`, `control`, `identifier`,
 `depiction`) and `nullable`. `simple` mode (the class dialog) hides the
 advanced `writable`/`constructible` flags and the ref unlink policy;
+`details-only` mode renders only the qualifiers beneath the field form's
+name/type row. The qualifier grid adapts to its container: one column in
+the inspector, two in the wide class dialog;
 
 those remain in the contract for system rows and the process-designer
 inspector. Validation runs live through the registry's `describeType`,
