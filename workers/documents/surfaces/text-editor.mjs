@@ -141,7 +141,7 @@ export default function createSurface({ vue, components, locale, sync, renderMar
       }
 
       function runSlashPick(id, view) {
-        const kind = applyBlock({ id, state: blockState.value, editor: crepe, view, t, openLinkEditor, openImageEditor });
+        const kind = applyBlock({ id, state: blockState.value, editor: crepe, view, openLinkEditor, openImageEditor });
         if (kind !== 'link' && kind !== 'image') focusRenderedEditor();
       }
 

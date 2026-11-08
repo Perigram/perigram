@@ -167,7 +167,6 @@ onMounted(async () => {
     state: blockState.value,
     editor: crepe,
     view,
-    t,
     openLinkEditor,
     openImageEditor,
     openViewPicker

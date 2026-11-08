@@ -70,10 +70,10 @@ export function resolveBlockAction(id, state) {
 
 // Applies a vocabulary entry at the caret: dispatches the resolved
 // action through the bound engine (`editor` is the crepe instance,
-// `view` its ProseMirror view). The `link` kind hands off to the host's
-// address editor; `t` localizes the callout's seeded title. Returns the
-// action kind — 'link' leaves the focus with the host's address input.
-export function applyBlock({ id, state, editor, view, t, openLinkEditor, openImageEditor, openViewPicker }) {
+// `view` its ProseMirror view). The `link` and `image` kinds hand off
+// to the host's address editor. Returns the action kind — a hand-off
+// kind leaves the focus with the host's address input.
+export function applyBlock({ id, state, editor, view, openLinkEditor, openImageEditor, openViewPicker }) {
   const action = resolveBlockAction(id, state);
   if (!action || !editor) return action ? action.kind : null;
   switch (action.kind) {
@@ -98,8 +98,7 @@ export function applyBlock({ id, state, editor, view, t, openLinkEditor, openIma
     }
     case 'callout': {
       const { blockquote, paragraph } = view.state.schema.nodes;
-      const title = view.state.schema.text(t('editors.calloutTitle'), [view.state.schema.marks.strong.create()]);
-      view.dispatch(view.state.tr.replaceSelectionWith(blockquote.createChecked(null, paragraph.create(null, title))).scrollIntoView());
+      view.dispatch(view.state.tr.replaceSelectionWith(blockquote.createChecked(null, paragraph.create())).scrollIntoView());
       break;
     }
     case 'table':
