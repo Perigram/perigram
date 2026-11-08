@@ -638,15 +638,6 @@
       @cancel="cancelTypeMigration"
     />
 
-    <TypeDeathDialog
-      :visible="applyState === 'type-death-required' || Boolean(pendingDefinitionDeath)"
-      :type-death="(applyState === 'type-death-required' ? applyDetail : null) || pendingDefinitionDeath?.typeDeath || []"
-      :deleting-definition="pendingDefinitionDeath?.action === 'delete'"
-      :loading="applyState === 'applying' || Boolean(definitionBusyId)"
-      @update:visible="value => { if (!value) { cancelTypeDeath(); pendingDefinitionDeath = null; } }"
-      @confirm="pendingDefinitionDeath ? confirmDefinitionDeath() : confirmTypeDeath()"
-      @cancel="() => { cancelTypeDeath(); pendingDefinitionDeath = null; }"
-    />
 
 
   </StandardPage>
@@ -683,7 +674,6 @@ import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
-import TypeDeathDialog from '~/components/process-designer/TypeDeathDialog.vue';
 import OperationPalette from '~/components/process-designer/OperationPalette.vue';
 import TypeMigrationStepsDialog from '~/components/process-designer/TypeMigrationStepsDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
@@ -745,7 +735,7 @@ import { useProcessDesignerNodeSync } from '~/composables/useProcessDesignerNode
 import { useProcessDesignerTypes } from '~/composables/useProcessDesignerTypes.js';
 import { useProcessDesignerCanvas } from '~/composables/useProcessDesignerCanvas.js';
 import { useProcessDesignerContextPalette } from '~/composables/useProcessDesignerContextPalette.js';
-import { typeDeathOf, useProcessDesignerApply } from '~/composables/useProcessDesignerApply.js';
+import { useProcessDesignerApply } from '~/composables/useProcessDesignerApply.js';
 import { useProcessDesignerPreview } from '~/composables/useProcessDesignerPreview.js';
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 import { useProcessDesignerLiveGraph } from '~/composables/useProcessDesignerLiveGraph.js';
@@ -1009,9 +999,7 @@ const {
   confirmApplyMigration,
   cancelApplyMigration,
   confirmTypeMigration,
-  cancelTypeMigration,
-  confirmTypeDeath,
-  cancelTypeDeath
+  cancelTypeMigration
 } = useProcessDesignerApply({
   persistence,
   t,
@@ -2136,20 +2124,11 @@ async function toggleDefinitionActive(process, active) {
     upsertProcessDefinition(updated);
     if (String(draft.value?._id) === id) setDraft(updated);
   } catch (error) {
-    // Type lifetime (cts SPEC §4): activating through the switch can
-    // orphan types too — same disclaimer, same consent.
-    const death = typeDeathOf(error);
-    if (death?.length) {
-      pendingDefinitionDeath.value = { definitionId: id, typeDeath: death, action: 'activate' };
-      return;
-    }
     toast.add({ severity: 'error', summary: t('processDesigner.activate'), detail: error?.data?.message || error?.message || '', life: 5000 });
   } finally {
     definitionBusyId.value = null;
   }
 }
-
-const pendingDefinitionDeath = ref(null);
 
 async function removeDefinition(process) {
   const id = String(process._id);
@@ -2159,47 +2138,6 @@ async function removeDefinition(process) {
     await persistence.request(`/api/process-definitions/${id}`, { method: 'DELETE' });
     dropRemovedDefinition(id);
   } catch (error) {
-    // Type lifetime (cts SPEC §4): deleting a definition takes its
-    // exclusively-owned types with it — pause on the death disclaimer.
-    const death = typeDeathOf(error);
-    if (death?.length) {
-      pendingDefinitionDeath.value = { definitionId: id, typeDeath: death, action: 'delete' };
-      return;
-    }
-    toast.add({ severity: 'error', summary: t('common.delete'), detail: error?.data?.message || error?.message || '', life: 5000 });
-  } finally {
-    definitionBusyId.value = null;
-  }
-}
-
-async function confirmDefinitionDeath() {
-  const pending = pendingDefinitionDeath.value;
-  if (!pending || definitionBusyId.value) return;
-  definitionBusyId.value = pending.definitionId;
-  try {
-    const updated = pending.action === 'activate'
-      ? await persistence.request(`/api/process-definitions/${pending.definitionId}/activate`, {
-        method: 'POST',
-        body: { confirmTypeDeath: true }
-      })
-      : await persistence.request(`/api/process-definitions/${pending.definitionId}`, {
-        method: 'DELETE',
-        body: { confirmTypeDeath: true }
-      });
-    pendingDefinitionDeath.value = null;
-    if (pending.action === 'activate') {
-      upsertProcessDefinition(updated);
-      if (String(draft.value?._id) === pending.definitionId) setDraft(updated);
-    } else {
-      dropRemovedDefinition(pending.definitionId);
-    }
-  } catch (error) {
-    const death = typeDeathOf(error);
-    if (death?.length) {
-      pendingDefinitionDeath.value = { ...pending, typeDeath: death };
-      return;
-    }
-    pendingDefinitionDeath.value = null;
     toast.add({ severity: 'error', summary: t('common.delete'), detail: error?.data?.message || error?.message || '', life: 5000 });
   } finally {
     definitionBusyId.value = null;

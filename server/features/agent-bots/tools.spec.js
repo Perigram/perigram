@@ -291,20 +291,11 @@ describe('definition tool authoring surface', () => {
         expect((await mcpToolDescriptors()).map(tool => tool.name)).toContain('edit_process_definition');
     });
 
-    it('deletion surfaces the type-death gate as a structured result; confirmation proceeds', async () => {
-        const gate = { typeDeath: [{ typeId: 'cassette', instances: 4 }] };
-        mockedProcessDefinitions.remove.mockRejectedValueOnce(Object.assign(
-            new Error('Deleting this definition deletes 1 type(s) no other definition declares, with all their data'),
-            { statusCode: 409, data: gate }
-        ));
-        const blocked = await executeTool('delete_process_definition', { definitionId: 'd1' }, AUTH);
-        expect(blocked).toMatchObject({ deletionBlocked: true, gate });
-        expect(mockedProcessDefinitions.remove.mock.calls[0][2]).toEqual({ confirmTypeDeath: false });
-
+    it('deletes a definition', async () => {
         mockedProcessDefinitions.remove.mockResolvedValueOnce({ removed: true });
-        await expect(executeTool('delete_process_definition', { definitionId: 'd1', confirmTypeDeath: true }, AUTH))
+        await expect(executeTool('delete_process_definition', { definitionId: 'd1' }, AUTH))
             .resolves.toEqual({ removed: true });
-        expect(mockedProcessDefinitions.remove.mock.calls[1][2]).toEqual({ confirmTypeDeath: true });
+        expect(mockedProcessDefinitions.remove.mock.calls[0].slice(0, 2)).toEqual(['d1', AUTH]);
         expect((await mcpToolDescriptors()).map(tool => tool.name)).toContain('delete_process_definition');
     });
 

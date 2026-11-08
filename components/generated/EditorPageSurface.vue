@@ -11,7 +11,6 @@
       :instance="record"
       :chrome="chrome"
       :state-policy="statePolicyForType"
-      :state-transitions="transitionsForType"
       :level="0"
     />
     <div class="relative flex min-h-0 flex-1 flex-col">
@@ -27,7 +26,7 @@ import { createEditorChrome } from '~/components/generated/editor-page-chrome.js
 import { setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
 import { useAuthStore } from '~/stores/auth';
 import { useRegistryStore } from '~/stores/registry';
-import { statePolicyByType, stateTransitionsByType } from '#shared/ui-mapping/index.js';
+import { statePolicyByType } from '#shared/ui-mapping/index.js';
 
 // The editor page host for the file-surface registry's workspace-page
 // mount: header + flush editor, entity-bound or blank. The compiled
@@ -46,7 +45,6 @@ const registryStore = useRegistryStore();
 const typeRecord = computed(() => registryStore.typeRecord(props.typeId));
 const record = computed(() => props.entity || null);
 const statePolicyForType = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {})[props.typeId] || null);
-const transitionsForType = computed(() => stateTransitionsByType(authStore.processPayload?.producerOutputs || {})[props.typeId] || null);
 
 const chrome = createEditorChrome();
 const tabKey = inject('workspacePageKey', '');

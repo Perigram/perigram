@@ -10,18 +10,14 @@ Parent: [server/features](../README.md).
 
 - `repository.js` persists org-authored declarations in `cts_types`
   (never system types — those compile from the domain packs at runtime).
-- `lifetime.js` owns the type-lifetime law (cts SPEC §4): an org
-  type lives while any stored process definition's
-  current graph declares it (active, draft, or turned off — history
-  snapshots retain copies for restore but keep nothing alive).
-  `findTypeDeathCandidates` derives the orphans, `typeDeathManifest`
-  builds the disclaimer payload (authored name + live instance count),
-  and `killTypesWithData` executes the confirmed death — declaration,
-  instances, status history, and stored files leave together (the purge
-  itself lives in
-  [instances](../instances/README.md)). The gates that pause on the
-  disclaimer live in
-  [process-definitions](../process-definitions/README.md).
+- An org type lives until `removeType` deletes it (cts SPEC §4).
+  Process definitions reference type ids; their activation and deletion
+  leave the registry untouched.
+- The class library and
+  [class dialog](../../../components/type-designer/README.md) write
+  declarations directly through `defineType`; compilation is an
+  access-time projection, so a persisted compatible change reaches
+  screens and actions through the contract-change event.
 
 ### Write gate
 
@@ -107,12 +103,12 @@ preview slots mount them read-only (see
 
 ## API
 
-`GET /api/admin/cts/types` — merged org view (the designer types pane and
-the process designer's registry read this): compiled types, diagnostics,
-attachment kinds, pack editor bindings, and installed plugin surface
-declarations. `POST /api/admin/cts/types` —
+`GET /api/admin/cts/types` — merged org view (the class library, the
+designer types pane, and the process designer's registry read this):
+compiled types, diagnostics, attachment kinds, pack editor bindings, and
+installed plugin surface declarations. `POST /api/admin/cts/types` —
 author/evolve a declaration. `DELETE /api/admin/cts/types/:id` — remove an
-org type.
+org type through the removal ceremony.
 
 ## Related
 

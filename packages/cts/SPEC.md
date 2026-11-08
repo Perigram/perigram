@@ -267,15 +267,11 @@ always resolve against one organization's view of the registry — system
 types first, that organization's types overlaying — never the union of all
 orgs.
 
-Type lifetime (owner decision 2026-10-13): an org type lives while any
-stored process definition's current graph declares it — active, draft, or
-turned off; version-history snapshots retain their declaration copies for
-restore but do not keep a type alive. The apply that orphans a type and
-the deletion of its last declaring definition kill the type WITH its data
-— registry entry, instances, status history, and stored files — behind an
-explicit disclaimer naming each dying type and its instance count;
-nothing dies without confirmation. The runtime (screens, actions,
-navigation, explorer) is dictated by the ACTIVE definitions only.
+Type lifetime (owner direction 2026-11-08): an org type lives until it is
+explicitly deleted through the registry removal ceremony. Process
+definitions reference type ids; they do not own types or decide their
+lifetime. The runtime (screens, actions, navigation, explorer) is
+dictated by the ACTIVE definitions only.
 
 ## 5. Classes
 

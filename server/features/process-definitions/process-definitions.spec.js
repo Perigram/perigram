@@ -46,13 +46,6 @@ vi.mock('../cts-types/service.js', async () => {
   }
   return { compileRegistryForOrganization: vi.fn(async () => registry) };
 });
-// Activation's type-death gate (cts-types lifetime law) has its own spec;
-// this suite activates fixtures whose orgs declare no stored types.
-vi.mock('../cts-types/lifetime.js', () => ({
-  findTypeDeathCandidates: vi.fn(async () => []),
-  typeDeathManifest: vi.fn(async () => []),
-  killTypesWithData: vi.fn(async () => [])
-}));
 vi.mock('./repository.js', () => ({
   find: vi.fn(),
   findById: vi.fn(),

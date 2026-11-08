@@ -377,7 +377,7 @@ invariant).
 
 `useProcessDesignerApply` owns one authoritative `applyState` value; the
 page renders dialogs and dock controls from it, and `applyDetail` carries
-the current gate's payload or the error message. The three gates share one
+the current gate's payload or the error message. The two gates share one
 transition table.
 
 | From | Event | To |
@@ -390,13 +390,10 @@ transition table.
 | `applying` | validation or apply failure | `error` |
 | `applying` | validation returns an uncovered migration plan | `migration-required` |
 | `applying` | declaration post returns structured plan failures | `type-migration-required` |
-| `applying` | activation returns a type-death 409 | `type-death-required` |
 | `migration-required` | confirm; mappings persist as a declaration | `applying` |
 | `migration-required` | cancel | `idle` |
 | `type-migration-required` | confirm; steps write onto class nodes and the apply retries | `applying` |
 | `type-migration-required` | cancel | `idle` |
-| `type-death-required` | confirm; activation retries with explicit consent | `applying` |
-| `type-death-required` | cancel | `idle` |
 | `error` | Save or Apply | `saving` / `applying` |
 
 Events outside the table are ignored: a second Apply while a gate is open
@@ -444,8 +441,10 @@ and fact-row surfaces (`InstanceSurfaceContent`, entity cards, generated
 collections) resolve their display descriptors from the same view: the
 bundle's derived display policy is the one fact vocabulary
 ([utils/README.md](../utils/README.md) → `fact-rows.js`).
-The cache never serves another organization's view after an org switch,
-and a failed fetch is dropped from the cache (consumers keep their
+`refresh()` re-fetches the same organization's view and updates every
+consumer's refs; the class dialog calls it after a registry write. The
+cache never serves another organization's view after an org switch, and a
+failed fetch is dropped from the cache (consumers keep their
 declaration-less fallbacks for that mount; the next consumer retries
 instead of inheriting an empty view for the session — the chat upload
 window depends on it).

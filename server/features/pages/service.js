@@ -1,22 +1,54 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '~/server/utils/objectid.js';
+import { PAGE_TYPE_ID, pageTypeDeclaration } from '~/packages/cts/src/index.js';
+import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
 import * as repository from './repository.js';
 
 const KINDS = new Set(['page', 'section']);
+const ensuredPageTypes = new Set();
+const ensuringPageTypes = new Map();
+
+function ensurePageType(organizationId, actor) {
+  const key = String(organizationId);
+  if (ensuredPageTypes.has(key)) return Promise.resolve();
+  if (ensuringPageTypes.has(key)) return ensuringPageTypes.get(key);
+  const pending = (async () => {
+    try {
+      const registry = await compileRegistryForOrganization(organizationId);
+      if (!registry.getType(PAGE_TYPE_ID, organizationId)) {
+        await defineType(pageTypeDeclaration, { organizationId, actor });
+      }
+      ensuredPageTypes.add(key);
+    } catch {
+      // The pages surface keeps working when the registry is temporarily
+      // uncompilable; the next call retries the seed.
+    } finally {
+      ensuringPageTypes.delete(key);
+    }
+  })();
+  ensuringPageTypes.set(key, pending);
+  return pending;
+}
 
 export async function listTree(auth = {}) {
   const organizationId = resolveOrganizationId(auth);
+  await ensurePageType(organizationId, auth.userId);
+  await repository.migrateLegacy(organizationId);
   return (await repository.findByOrganization(organizationId)).map(repository.serialize);
 }
 
 export async function getById(id, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
+  await ensurePageType(organizationId, auth.userId);
+  await repository.migrateLegacy(organizationId);
   const page = await requireOwnPage(id, organizationId);
   return repository.serializeFull(page);
 }
 
 export async function create({ kind = 'page', name = '', parentId = null } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
+  await ensurePageType(organizationId, auth.userId);
+  await repository.migrateLegacy(organizationId);
   if (!KINDS.has(kind)) {
     throw createError({ statusCode: 400, message: 'Unknown page kind' });
   }
@@ -37,17 +69,24 @@ export async function create({ kind = 'page', name = '', parentId = null } = {},
     content: '',
     createdBy: auth.userId
   });
-  return repository.serialize({ _id: id, kind, name: normalizedName, parentId: normalizedParent });
+  return {
+    _id: String(id),
+    kind,
+    name: normalizedName,
+    parentId: normalizedParent ? String(normalizedParent) : null
+  };
 }
 
 export async function update(id, { name, parentId, content } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
+  await ensurePageType(organizationId, auth.userId);
+  await repository.migrateLegacy(organizationId);
   const page = await requireOwnPage(id, organizationId);
   const changes = {};
   if (name !== undefined) changes.name = normalizeName(name);
   if (content !== undefined) changes.content = String(content ?? '');
   if (parentId !== undefined) {
-    if (page.kind === 'section' && parentId) {
+    if (page.fields?.section === true && parentId) {
       throw createError({ statusCode: 400, message: 'A section is a root' });
     }
     changes.parentId = toFlexibleId(await resolvedParentId(id, parentId, organizationId));
@@ -58,6 +97,8 @@ export async function update(id, { name, parentId, content } = {}, auth = {}) {
 
 export async function remove(id, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
+  await ensurePageType(organizationId, auth.userId);
+  await repository.migrateLegacy(organizationId);
   const page = await requireOwnPage(id, organizationId);
   await repository.detachChildren(organizationId, page._id);
   await repository.remove(page._id);
@@ -102,7 +143,8 @@ async function resolvedParentId(id, parentId, organizationId) {
       throw createError({ statusCode: 400, message: 'A page cannot move inside itself' });
     }
     seen.add(currentId);
-    current = current.parentId ? await repository.findById(current.parentId) : null;
+    const parentRef = current.lineage?.pageId;
+    current = parentRef ? await repository.findById(parentRef) : null;
   }
   return String(parentId);
 }

@@ -131,7 +131,7 @@ test('a persisted draft with the machine `_id` default heals to the row field', 
   expect(draftResponse.ok(), await draftResponse.text()).toBeTruthy();
   const draft = await draftResponse.json();
   app.trackCleanup(async () => {
-    await request.delete(`/api/process-definitions/${draft._id}`, { data: { confirmTypeDeath: true }, failOnStatusCode: false });
+    await request.delete(`/api/process-definitions/${draft._id}`, { failOnStatusCode: false });
   });
 
   await bootDesigner(app);

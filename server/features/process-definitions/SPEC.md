@@ -19,7 +19,7 @@ compiler ([packages/processes](../../../packages/processes/README.md)),
 state and command/task runtimes, generated screens, agent authoring.
 
 Parents: [features README](../README.md) · [features SPEC](../SPEC.md) · neighbors: [cts-types](../cts-types/README.md)
-(type lifetime), [workflow-overrides](../workflow-overrides/README.md),
+(registry ownership), [workflow-overrides](../workflow-overrides/README.md),
 [core machines](../../core/machines/README.md).
 
 ## Contracts owned here
@@ -32,7 +32,7 @@ Parents: [features README](../README.md) · [features SPEC](../SPEC.md) · neigh
 | Validate | Recompiles both sides from canonical records and produces the semantic Apply diff (`diffProcessContracts`): actions, screens, role grants, per-typeId CRUD capabilities, per-producer workflows, field-policy sections, and the entity statuses the next contract removes. Draft validation overlays the draft's own declarations. |
 | Activate | Requires canonical semantic records, validates the draft, verifies transpiler round-trip, compiles the contract, marks the definition `ACTIVE`, writes the activated snapshot to `data.activated` (the runtime compiles `data.activated || data`), records the superseded snapshot in `data.history` (cap 50). |
 | Deactivate | Removes one definition from the active set (state returns to `DRAFT`, editable, re-activatable) and re-derives the runtime contract. |
-| Type death | An org type lives while any stored definition's current graph declares it. Activation-orphaning types and definition deletion pause on the same disclaimer (`data.typeDeath`: one row per dying type, authored name, live count) — 409 until `confirmTypeDeath: true`; the confirmed retry kills each orphan with its data (declaration, instances, status history, stored files) through the [cts-types](../cts-types/README.md) lifetime executor. |
+| Type lifetime | Definitions reference type ids. An org type lives until explicitly deleted through the [cts-types](../cts-types/README.md) removal ceremony; activation and deletion leave types and their data untouched. |
 
 Activation is additive: several `ACTIVE` definitions compile as one
 canvas — `mergeActiveDefinitions` concatenates graph nodes/edges with id

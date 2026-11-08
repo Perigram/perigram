@@ -181,18 +181,22 @@ The home shell's first-class action surface (SPEC §4):
   the dialog collects the parent). Runs execute through
   the instances store's action-run channel and land through the
   created-open contract above.
-- The palette also carries the pinned **New page** entry (SPEC §26) as
-  its own group above the type groups under the same search needle; the
-  control renders while the organization carries pages even with no
-  compiled creates. The entry emits `create-page` to the host — the
-  workspace creates the page through the pages API and opens its tab.
+- The palette also carries one pinned entry above the type groups under
+  the same search needle: capability holders get **New class** (SPEC
+  §27), everyone else gets **New page** (SPEC §26). The control renders
+  while either the class library or the organization's pages are
+  available, even with no compiled creates. New class emits
+  `create-class` and the workspace opens the class dialog; New page
+  emits `create-page` — the workspace creates the page through the
+  pages API and opens its tab.
 
 ## Custom Pages
 
-Custom pages (SPEC §26) are the user's own markdown documents — a
-framework collection served by the
+Custom pages (SPEC §26) are the user's own markdown documents — Page
+instances served by the
 [pages feature](../../server/features/pages/README.md), rendered and
-authored through the one editor engine, never an instance payload.
+authored through the one editor engine. Sections are Page instances with
+the `section` field set.
 
 - The home sidebar carries the user's sections after the type panels:
   collapsible `PanelMenu` panels (folder glyph) with nested page rows
@@ -553,8 +557,11 @@ from the compiled manifest.
   per top-level panel and per user section, avatar) and the wordmark
   returns on expand; the
   wrapped state persists with the workspace layout (`sidebarCollapsed`).
-  User sections ride the rail under the same law (the
-  [custom pages](#custom-pages) section owns their contract).
+  Capability holders lead with a Classes panel listing the organization's
+  classes (SPEC §27); a row opens the class dialog
+  ([type-designer](../type-designer/README.md)). User sections ride the
+  rail under the same law (the [custom pages](#custom-pages) section owns
+  their contract).
   Communication is two entries in the menu: Chats is a plain entry
   opening the general chats pane tab in the active pane and carrying
   the total unread badge in both sidebar shapes (the wrapped rail's

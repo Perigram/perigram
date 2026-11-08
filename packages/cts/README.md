@@ -136,6 +136,8 @@ modules onto its sections.
 - `pack/cnc.js` — the CNC starter type pack: the collapse-table
   acceptance fixture (file/item/group/process families, the typed
   nesting seam, sample instances).
+- `pack/page.js` — `pageTypeDeclaration`/`PAGE_TYPE_ID`: the default Page
+  class seeded as an organization type by the pages feature.
 - `pack/framework.js` — `frameworkTypes`: the framework's own type
   declarations, exported from the index.
 - `index.js` — public exports.

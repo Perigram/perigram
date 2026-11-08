@@ -29,7 +29,7 @@ Target law: [SPEC.md](./SPEC.md).
 | Activate | Requires canonical semantic process records, validates the draft, verifies the process transpiler round-trip, compiles the runtime contract, and marks the definition `ACTIVE`. Each activation writes the activated snapshot to `data.activated`; the runtime compiles `data.activated || data` for every active-set member, so live draft edits stay out of the runtime. Re-activation records the superseded snapshot in `data.history` (capped at 50); the Definitions pane restores a history entry as the definition's data, and restoring goes live through activation. |
 | Deactivate | Removes one definition from the active set (state returns to `DRAFT`, editable and re-activatable) and re-derives the runtime contract. |
 | Archive | Moves a definition to `ARCHIVED` from `DRAFT`, `ACTIVE`, or `ARCHIVED`; the runtime contract drops an active definition on the same request. |
-| Type death | An org type lives while any stored definition's current graph declares it — active, draft, or turned off. Activation-orphaning types and definition deletion pause on the same disclaimer (`data.typeDeath`, one row per dying type with its authored name and live instance count; the designer renders `TypeDeathDialog`): the apply or delete fails with HTTP 409 until the request carries `confirmTypeDeath: true`; the confirmed retry kills each orphan with its data (declaration, instances, status history, stored files — the executor is [cts-types](../cts-types/README.md)) before proceeding. |
+| Type lifetime | Definitions reference type ids. An org type lives until explicitly deleted through the [cts-types](../cts-types/README.md) removal ceremony; activation and deletion leave types and their data untouched. |
 
 Publication is one state machine; `data.migrations.state` is a separate
 axis with `none`, `required`, `applied`, and `incomplete`.
@@ -668,9 +668,9 @@ graph.
 | `POST /api/process-definitions/preview` | Evaluate a draft node preview (`preview`). |
 | `GET /api/process-definitions/:id` | Read one definition. |
 | `PATCH /api/process-definitions/:id` | Save (`update`; identity-only PATCH leaves data untouched). |
-| `DELETE /api/process-definitions/:id` | Remove (`remove`; `confirmTypeDeath` gate). |
+| `DELETE /api/process-definitions/:id` | Remove (`remove`). |
 | `POST /api/process-definitions/:id/validate` | Validate and return the semantic Apply diff. |
-| `POST /api/process-definitions/:id/activate` | Activate (`confirmTypeDeath` gate, migration declarations; activate-then-migrate in one request). |
+| `POST /api/process-definitions/:id/activate` | Activate (migration declarations; activate-then-migrate in one request). |
 | `POST /api/process-definitions/:id/deactivate` | Remove one definition from the active set. |
 | `POST /api/process-definitions/:id/archive` | Archive the definition. |
 | `POST /api/process-definitions/active/actions/:id/execute` | Execute a manual compiled action (`executeActiveProcessAction`). |
@@ -681,7 +681,7 @@ graph.
 ## Related
 
 - [server/features](../README.md) — feature classification and shared service rules
-- [cts-types](../cts-types/README.md) — type lifetime, registry view, declaration boundary
+- [cts-types](../cts-types/README.md) — registry view, declaration boundary, type removal
 - [organizations](../organizations/README.md) — signup bootstrap, role catalog
 - [plugins](../plugins/README.md) — starter constructs, export bindings
 - [agent-bots](../agent-bots/README.md) — authoring tools, wake rules

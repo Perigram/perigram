@@ -46,10 +46,8 @@ noise.
 
 Seeded species processes declare their org types in-tree
 (`seedSpeciesProcess` mirrors the posted registry declarations through the
-declaration gestures, with `declares` for construct-less types): under the
-type-lifetime law (cts SPEC §4) activation 409s on any org type no stored
-definition declares, and suite teardown consents to the gate so seeded
-definitions and their types die together.
+declaration gestures, with `declares` for construct-less types). Teardown
+deletes the definitions and the suite's posted types.
 
 ## Coverage
 
