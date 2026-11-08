@@ -7,7 +7,7 @@
        separates it from the body, and pane boxes / route shells own the
        frames around it. -->
   <div :class="[spacing ? spacing.stackTight : LAYOUT.stackTight, 'surface-header', LAYOUT.header]">
-    <TraceChain v-if="instance && !compact" :entity="instance" :type-id="type?.id || ''" />
+    <TraceChain v-if="instance" :entity="instance" :type-id="type?.id || ''" />
     <div :class="LAYOUT.headerRow">
       <!-- Contextual navigation slot: a host that opened this record
            inside another surface (a workspace tab reached from another
