@@ -287,9 +287,9 @@ declare. Five, because the codebase exhibits exactly five identity laws:
 | `group` | lineage children | — | identity is its membership |
 | `process` | input edges (provenance sources); output types | payload | identity is a run; state driven by operators, not users |
 
-No class declares states: state vocabularies are process-graph authoring
-(§7). Class obligations are structural only: they constrain what a type
-may and must *declare* (payload, edges), never what data it must carry.
+A class may declare its flat state vocabulary and display policy (§7).
+Class obligations remain structural: they constrain what a type may and
+must *declare* (payload, edges, states), never what data it must carry.
 
 ## 6. Edges
 
@@ -353,12 +353,12 @@ edges:
 
 ## 7. States & typed-operation authoring
 
-States are authored in the process graph, never in the type declaration.
-A type carries no state vocabulary: it declares identity, class, fields,
-edges, and operators only. The state vocabulary of a type is the set of
-state nodes authored in a process definition and wired into that type's
-create and transition operations. The same value may appear in several
-types' vocabularies.
+A type declaration may carry a flat state vocabulary with display
+policy under `stateVocabulary`; the class dialog authors it. Process
+graphs author transitions and entry states, and a graph state value the
+class does not declare still renders from the graph. The class
+declaration's policy overrides the graph's display for the same value.
+The same value may appear in several types' vocabularies.
 
 ```
 StateNode ::= { value: string, policy?: { label?, icon?, severity? } }
@@ -585,7 +585,7 @@ The compiler enforces exactly these; each replaces a hand-maintained guard:
 | R1 | closed rows: every field path used by any predicate/patch/record node is in the target type's row | field-access duplication |
 | R2 | typed edges: every Ref assignment checks the edge's target set and `onRemove` | bare `data.*Id` drift |
 | R3 | unit discipline on `Quantity` | suffix strings, unit qualifiers |
-| R4 | state authoring: flat values on state nodes wired into create/transition sockets; nesting is wiring a state into a state input; no axis names, no parent markers (§7) | process-graph validators |
+| R4 | state authoring: flat values on the class declaration and on state nodes wired into create/transition sockets; nesting is wiring a state into a state input; no axis names, no parent markers (§7) | class write gate and process-graph validators |
 | R5 | dataflow: process graph sockets typecheck; `s` consumes only V (entities reach services solely via `p`) | missing-field/reachability diagnostics |
 | R6 | class obligations of §5 checked at type-compile | `meta` flag vs master/system drift |
 | R7 | version/migration completeness per §11 | ad-hoc migrate scripts |

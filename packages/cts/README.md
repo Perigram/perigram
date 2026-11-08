@@ -35,9 +35,10 @@ modules onto its sections.
   `UNLINK_POLICIES` is the closed vocabulary — the registry check
   covers ref-field entries the same way); lineage
   acyclicity (R2) with recursive self-containment compiling clean.
-- `states.js` — the state-vocabulary facet of declarations:
+- `states.js` — the state-vocabulary facet of type declarations:
   normalization (flat values, per-state display policy) and its readers.
-  Machines are graph-derived (SPEC §7).
+  Class declarations carry the vocabulary and policy; transitions stay
+  graph-derived (SPEC §7).
 - `operators.js` — the six species with typed signatures and
   event/schedule triggers (SPEC §8); services and projections are
   ref-free.

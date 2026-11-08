@@ -65,7 +65,7 @@ All entity-related components use these patterns:
 | [generated/](./generated/README.md) | Compiled screen surfaces: the `[screenKey]` screens route, the home workspace, `/organization/*` system screens, action visibility, the file-surface/editor registry |
 | [ui-mapping/](./ui-mapping/README.md) | Generator materializations and the type-label seam |
 | [process-designer/](./process-designer/README.md) | The process designer canvas surface |
-| [type-designer/](./type-designer/README.md) | Declaration authoring vocabulary: the DescriptorEditor and Field/State/TypeNode canvas cards for the process designer, plus the surface authoring session and affordances (SPEC §1) |
+| [type-designer/](./type-designer/README.md) | Class declaration vocabulary: the DescriptorEditor, Field/State/TypeNode canvas cards, the class dialog, and the class page (SPEC §27) |
 | [calls/](./calls/README.md) | Call surfaces over `stores/calls.js` |
 | [media/](./media/README.md) | The MediaDock now-playing dock over `stores/media.js` |
 | [directory/](./directory/README.md) | `DirectoryDetailSurface` — user/organization detail inside the home workspace |

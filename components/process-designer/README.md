@@ -22,16 +22,14 @@ transition facts are authored on declarations — the process view selects
 them through typed references, and status fallback choices and transition
 availability derive from the bound type's projected recursive lifecycle.
 
-Declaration authoring is in place on the generated surfaces (SPEC §1):
-the record page's property rows and the state surface carry the authoring
-affordances ([type-designer](../type-designer/README.md)), and their edits
-write the same class/field/state nodes, declaration wires, and transition
-records this canvas authors, saving the same definition draft. The canvas
-reconciles an out-of-band draft save by re-fetching its document on
-window focus and on a 30s poll, comparing the draft data signature
-against the settled load baseline; a dirty canvas reconciles nothing
-(its own save is the next write, last-writer-wins like the canvas
-itself).
+Class metadata, fields, states, and children author in the class dialog
+([type-designer](../type-designer/README.md)); the canvas declaration
+nodes author the graph-composed types, declaration wires, and transition
+records. The canvas reconciles an out-of-band draft save by re-fetching
+its document on window focus and on a 30s poll, comparing the draft
+data signature against the settled load baseline; a dirty canvas
+reconciles nothing (its own save is the next write,
+last-writer-wins like the canvas itself).
 
 ## Contracts owned here
 

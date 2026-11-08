@@ -24,14 +24,14 @@ Target law: [SPEC.md](./SPEC.md).
   `control` pins the edit-variant control.
 - **Type records** — entries of the CTS client bundle
   (`compileClientBundle()`), carrying `class`, `payload`, `name`, `glyph`,
-  `identifier`, `depiction`, and the derived display policy `sections`
-  (total field assignment by base). Type records carry no state
-  vocabulary (SPEC §7) and no `render` facet.
+  `identifier`, `depiction`, the derived display policy `sections` (total
+  field assignment by base), and the declared `stateVocabulary` when the class carries one. Type records carry no `render` facet.
 - **State policy maps** — `{ [typeId]: { [value]: { label, severity,
   icon, terminal } } }`, derived client-side by `statePolicyByType` from
   the compiled producer workflows the hydration payload carries
-  (`producerOutputs[*].workflow.regions[*].states` — the authored
-  label/severity/icon/terminal per state value). The contract hands the
+  (`producerOutputs[*].workflow.regions[*].states`) and the class
+  declarations' `stateVocabulary`; a class entry overrides the graph
+  policy for the same value. The contract hands the
   map to `composeScreen` as `statePolicy`; every region node carries its
   type's map (`null` when the process authored no states for the type).
 - **Action records** — compiled process actions (`actionKind`, `trigger`,
@@ -326,11 +326,11 @@ Instances carry one flat `state` string (the wire DTO projects it
 verbatim through `dtoToScreenInstance`; nothing synthesizes one). Three
 pure helpers own every state-presentation decision:
 
-- `statePolicyByType(producerOutputs)` — `{ [typeId]: { [value]:
+- `statePolicyByType(producerOutputs, types)` — `{ [typeId]: { [value]:
   { label, severity, icon, terminal } } }` from the compiled producer
-  workflows; the first authored entry wins when several producers emit
-  one type. This is the only client-side derivation of the state
-  vocabulary — types declare nothing about states.
+  workflows plus the class declarations' `stateVocabulary`; the first producer
+  entry wins when several emit one type, and a class entry overrides its
+  value's display policy.
 - `stateFieldPolicyByType(producerOutputs)` — `{ [typeId]: { [value]:
   { visible, editable } } }` from the same workflows (CTS SPEC §7
   `fieldPolicy`): the per-state field narrowing the display seam and the

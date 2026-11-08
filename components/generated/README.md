@@ -154,41 +154,19 @@ type**: a process chaining further constructs returns their entities too,
 and the last step must never bind a foreign record to the action's
 destination.
 
-## Create Palette
+## Sidebar New class
 
-The home shell's first-class action surface (SPEC §4):
+The sidebar foot carries one New class action for capability holders
+(SPEC §27). It opens `ClassDialog.vue`. Compiled create actions keep their own
+surfaces and action forms.
 
-- **The create palette** (`CreatePalette.vue`, wired into the brand
-  header and the wrapped rail): one create control opening a searchable
-  Popover (IconField search + grouped Listbox) over every compiled
-  create action the manifest carries for the current user, grouped by
-  type label through the one type-label chain
-  (`createPaletteGroups` in `create-palette.js`); entries keep the
-  manifest's procedural create labels (the projection applies the
-  create-label law), and one search string filters by type label and
-  action label (a type-label match keeps the whole group). The control
-  renders only while the manifest carries at least one runnable create.
-  Dispatch follows the target type's declared creation protocol:
-  the `editor` protocol opens the blank editor surface
-  (`openBlankFileEditor`), an `upload`-mode create runs inline over the
-  files channel (`upload-create.js` in
-  [components/ui-mapping](../ui-mapping/README.md), shared with the
-  reference-row create), and every other create opens the shared action
-  form dialog
-  ([components/ui-mapping](../ui-mapping/README.md)) or runs directly
-  when it prompts nothing (`planActionLaunch` — the palette launches
-  contextlessly, so a create's lineage axes count as prompted rows and
-  the dialog collects the parent). Runs execute through
-  the instances store's action-run channel and land through the
-  created-open contract above.
-- The palette also carries one pinned entry above the type groups under
-  the same search needle: capability holders get **New class** (SPEC
-  §27), everyone else gets **New page** (SPEC §26). The control renders
-  while either the class library or the organization's pages are
-  available, even with no compiled creates. New class emits
-  `create-class` and the workspace opens the class dialog; New page
-  emits `create-page` — the workspace creates the page through the
-  pages API and opens its tab.
+## Class Pages
+
+A screenless organization class opens `ClassSurface.vue` as a workspace
+tab (SPEC §27): the unified header, the declared fields, the class state
+tags, and the class's instances. Its edit action opens
+[`ClassDialog.vue`](../type-designer/README.md). The page ref is
+ephemeral per class type, like custom pages.
 
 ## Custom Pages
 
@@ -202,8 +180,7 @@ the `section` field set.
   collapsible `PanelMenu` panels (folder glyph) with nested page rows
   (file glyph); a loose page — no section — renders as a root row beside
   the panels, like the communication entries. Rows open the page as a
-  pane tab; a quiet New section affordance sits at the panels' foot and
-  creates an unnamed section. Context gestures on sections and pages —
+  pane tab. Context gestures on sections and pages —
   right-click or long-press — carry the authoring menu (new page inside
   for sections; rename through a dialog; move through a parent picker
   over the organization's sections and pages with the sidebar-root
@@ -217,8 +194,8 @@ the `section` field set.
   (`docId`), following the ephemeral-ref rule the pinned chats and calls
   use: one tab per page, session-scoped, labels resolving live from the
   pages store (renames reach open tabs), the page glyph in the tab
-  strip. The create palette's New page entry creates the document
-  through the API and opens the tab.
+  strip. The section menu's New page entry creates the document through
+  the API and opens the tab.
 - The surface renders the document read through `MarkdownBlocks.vue` (the
   one read composition: markdown segments through the host pipeline —
   `shared/markdown.js`, which renders empty server-side by its own law —
@@ -552,18 +529,18 @@ from the compiled manifest.
   resolves through the same per-instance fetch.
 - The sidebar owns navigation for the whole shell as a PrimeVue
   `PanelMenu` whose header and row labels crop with an ellipsis. The
-  brand header is its own panel and carries the create control (below)
-  beside the wrap control when expanded; wrapped, the sidebar becomes an
-  icon rail (brand mark, the create control, chats, and calls
-  first — the same order the expanded menu leads with — then one icon
-  per top-level panel and per user section, avatar) and the wordmark
-  returns on expand; the
-  wrapped state persists with the workspace layout (`sidebarCollapsed`).
-  Organization classes appear as type panels (SPEC §27): a class with a
-  screen opens the screen; a class without one opens the class dialog
+  brand header is its own panel and carries the wrap control when
+  expanded; wrapped, the sidebar becomes an icon rail (brand mark, chats,
+  and calls first — the same order the expanded menu leads with — then
+  one icon per top-level panel and per user section, avatar) and the
+  wordmark returns on expand; the wrapped state persists with the
+  workspace layout (`sidebarCollapsed`). Organization classes appear as
+  type panels (SPEC §27): a class with a screen opens the screen; a class
+  without one opens its class page
   ([type-designer](../type-designer/README.md)); the panel context menu
-  opens the dialog for every organization class. User sections ride the
-  rail under the same law (the [custom pages](#custom-pages) section owns
+  opens the class dialog for every organization class. The expanded
+  menu's foot carries the New class action. User sections ride the rail
+  under the same law (the [custom pages](#custom-pages) section owns
   their contract).
   Communication is two entries in the menu: Chats is a plain entry
   opening the general chats pane tab in the active pane and carrying
@@ -690,9 +667,9 @@ from the compiled manifest.
   belongs to sidebar sections and entity operations to the detail
   screens' own action surfaces.
 - Tab creation is explicit: new tabs come only from the tab strip's add
-  control, sidebar type screens, explorer instance rows, custom page
-  rows and the palette's New page entry, and live call stages (calls stay in their own tab so workspace
-  navigation never unmounts an active call). Every other navigation —
+  control, sidebar type screens and class pages, explorer instance rows,
+  custom page rows, and live call stages (calls stay in their own tab so
+  workspace navigation never unmounts an active call). Every other navigation —
   explorer rows, nested entity links, workspace pages — reuses the pane's
   selected tab in place (replacing an empty placeholder like any content), and
   opening an item that already has a tab in the pane just selects it; a

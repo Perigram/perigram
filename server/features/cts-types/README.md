@@ -17,7 +17,8 @@ Parent: [server/features](../README.md).
   [class dialog](../../../components/type-designer/README.md) write
   declarations directly through `defineType`; compilation is an
   access-time projection, so a persisted compatible change reaches
-  screens and actions through the contract-change event.
+  screens and actions through the contract-change event. Class states
+  (flat values with display policy) normalize at the same gate.
 
 ### Write gate
 
