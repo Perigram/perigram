@@ -44,7 +44,7 @@ creates a class.
 |---|---|
 | `ClassDialog.vue` | Create/edit one org declaration: name, class, glyph, fields, states, and children edges. Saves through `POST /api/admin/cts/types` with the loaded declaration and those facets replaced. A `group` class cannot save without a child. |
 | `ClassSurface.vue` | The class page: the unified header over the same generated type-list screen every class page uses, synthesized with one source and one region when no compiled process screen exists. |
-| Field rows | `DeclarationFieldRow` + `DescriptorEditor`; exactly one field carries the identifier flag. The row edits the free-form field label; the registry key is an internal id minted from the initial label via `rowFieldId` and kept stable across renames. |
+| Field rows | `DeclarationFieldRow` + `DescriptorEditor`; exactly one field carries the identifier flag. The row edits the free-form field label; the registry key is an internal id minted from the initial label via `rowFieldId` and kept stable across renames. The expanded editor sits in the row flow without a separating border or nested panel. |
 | States | `DeclarationStateRow` edits the class's flat state vocabulary: value, severity, icon. The vocabulary persists on the declaration and overrides the compiled process policy for the same values. |
 | Children | Existing classes attach through the parent's `edges.children` entry; each type keeps its entry's `lineageKey` and `onRemove`. Add child class opens a draft `ClassDialog` — the child persists with the parent save, never on the click; the draft dialog offers every declarable class, group included. |
 | Capability | `organizations:admin`, the same seam as declaration authoring. |
@@ -53,9 +53,9 @@ creates a class.
 ## DescriptorEditor
 
 `DescriptorEditor.vue` is the v-model editor for the whole field
-descriptor grammar: base select over the CTS `FIELD_BASES`, `nullable`,
-`writable`/`constructible`, and the per-base qualifiers — unit (CTS
-`UNITS`) for `quantity`, `accepts` from `typeOptions` for `ref`
+descriptor grammar: base select over the CTS `FIELD_BASES`, the
+`Can be empty` toggle (`nullable`), and the per-base qualifiers — unit
+(CTS `UNITS`) for `quantity`, `accepts` from `typeOptions` for `ref`
 (beside its unlink policy over CTS `UNLINK_POLICIES`),
 chip-authored values/tags for `enum`/`variant`, recursive `itemType`
 for `list`/`map`, and named record fields recursing the editor; the
@@ -65,10 +65,13 @@ controls; accepted ref targets are a `MultiSelect`. Every change emits a
 fresh object through
 `update:modelValue`; switching the base preserves the SPEC §4
 naming-facet keys (`label`, `display`, `control`, `identifier`,
-`depiction`) and `nullable`. Validation runs live through the
-registry's `describeType`, its message rendering inline; an unset `ref`
-(no accepted targets) is authored-in-progress and stays out of the
-declaration until targets are picked.
+`depiction`) and `nullable`. `simple` mode (the class dialog) hides the
+advanced `writable`/`constructible` flags and the ref unlink policy;
+those remain in the contract for system rows and the process-designer
+inspector. Validation runs live through the registry's `describeType`,
+its message rendering inline; an unset `ref` (no accepted targets) is
+authored-in-progress and stays out of the declaration until targets are
+picked.
 
 ## Conventions
 
