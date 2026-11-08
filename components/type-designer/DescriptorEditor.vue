@@ -86,6 +86,7 @@
         :model-value="modelValue.itemType || { base: 'string' }"
         :type-options="typeOptions"
         :depth="depth + 1"
+        :simple="simple"
         @update:model-value="value => patch({ itemType: value })"
       />
     </div>
@@ -104,6 +105,7 @@
           :model-value="field.descriptor"
           :type-options="typeOptions"
           :depth="depth + 1"
+          :simple="simple"
           class="flex-1"
           @update:model-value="value => setRecordField(index, { descriptor: value })"
         />
