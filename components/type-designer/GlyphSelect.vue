@@ -12,7 +12,7 @@
     <i :class="[modelValue || 'pi pi-circle', modelValue ? '' : 'text-muted']" aria-hidden="true" />
   </Button>
   <Popover ref="picker" @show="focusSearch" @hide="query = ''">
-    <div class="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2">
+    <div class="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2" @keydown.esc.stop.prevent="picker?.hide()">
       <IconField>
         <InputIcon class="pi pi-search" />
         <InputText
