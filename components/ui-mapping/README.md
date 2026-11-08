@@ -538,8 +538,9 @@ application.
   patch — the popup's title stays read-only); the quiet transparent
   input commits on enter and blur. A subtle type label under the title
   through the same type-label chain opens the class dialog (SPEC §27,
-  [type-designer](../type-designer/README.md)) for capability holders,
-  and exactly one state surface rides the title line. A state axis is a tree, so stateful
+  [type-designer](../type-designer/README.md)); it is editable for
+  organization classes to capability holders and read-only otherwise.
+  Exactly one state surface rides the title line. A state axis is a tree, so stateful
   records carry no lifecycle strip: an instance with a flat `state`
   renders the segmented current-state tag (`StateTag`, resolved against
   the region's `statePolicy` — the header shows the data's state even when
