@@ -5817,6 +5817,81 @@ Session `agent/userspace-h-20261107` (worktree
   state. Pinned by components/generated/view-embed.spec.js and
   stores/views.spec.js. Also: the dead `viewsByType` getter removed.
 
+#### Agent Notes (2026-11-07, phase I)
+
+Session `agent/userspace-i-20261107` (worktree
+`.agent-worktrees/userspace-i-20261107`).
+
+- I1 (server): the views feature is a capability module
+  (`server/features/views/` — repository/service/index/README, the
+  pages conventions): one org-scoped `views` collection
+  `{ organizationId, name, typeId, viewState }`; the list projection
+  excludes viewState (pickers read `{ _id, name, typeId }`, optional
+  `typeId` query); one PATCH covers rename/state-replace; access is
+  active-org membership alone; foreign rows answer 404; name/typeId
+  required (400). viewState is stored and served verbatim — the
+  persisted per-type state over every popover model
+  (`{ search, filters, sort, projection }`, filters as the canonical
+  tree, sort a sortKeys entry + order, projection inside the
+  switchable pair); readers re-validate (normalizeFilter, bounds), the
+  same revival law `utils/ui-view-state.js` applies. Lookup indexes in
+  `server/db/indexes.js`.
+- I2 (save affordance): RegionBlock's view popover gains the save
+  entry (icon button in the popover body) gated on
+  `viewsStore.canSave` (active org) and on the region rendering its
+  own state (a provided viewState prop — a lens — offers no save).
+  `ViewSaveDialog.vue` (StandardDialog) prompts for the name under the
+  type label; RegionBlock captures the region's CURRENT models and
+  creates through the views store. A `viewState` prop seeds every view
+  model (search/filter/projection/sort) and turns persistence off; a
+  `label` prop overrides the section title.
+- I3 (the view block): the embed rides a ```view fence carrying
+  `{"id","name"}` (the mermaid fence precedent — the name rides the
+  fence so a deleted view still renders its name). Judgment calls,
+  stated: (a) the fence grammar is JSON in the fence body — parseable,
+  space-safe, read by `parseViewRef`/`splitViewEmbeds` in
+  `shared/markdown.js` (marked's lexer; a non-parseable fence stays a
+  plain code block); the pipeline renders view fences as a quiet
+  `ck-view-embed` chip for every reader outside the page surface, and
+  the crepe preview shows the same chip inside the editor — the LIVE
+  region belongs to surfaces that compose Vue (the page read
+  presentation), a manual Vue mount inside CodeMirror was rejected.
+  (b) The composition seam: `ViewEmbed.vue` composes the minimal
+  single-list-region screen through `composeScreen` (the
+  detail-screen-actions floor precedent — unscoped list source, no
+  actions: creation/quick actions belong to the collection's own
+  screens, the embed is the lens) and renders the one RegionBlock
+  directly with the saved viewState + name — RegionBlock mounts fine
+  given a composed node, so no GeneratedScreenHost threading was
+  needed; the pool loads through the instances store list transport
+  (grants and org scoping ride it — the lens law), the source state
+  derives from the pool (loading only while a fetch is in flight), row
+  opens route through `openInstanceInWorkspace`. (c) The controls
+  boundary: the embed's view controls render and stay live (typing
+  filters at once) but persist nothing — neither localStorage nor the
+  view doc; re-saving a lens from its own embed is refused outright.
+  The vocabulary's view entry hands off to the host picker
+  (`openViewPicker` → the picked view inserts its fence at the caret
+  through `insertViewFence`); the plugin's text editor filters the
+  entry out until its surfaces mount live embeds (phase J).
+- Validation: `server/features/views/views.spec.js` 7/7 (failure modes
+  first: org gating, cross-org 404, required name/typeId, viewState
+  round-trip fidelity, rename/replace, delete, typeId filter);
+  `shared/markdown.spec.js` 7/7 (fence grammar pins);
+  `components/ui-mapping` 13/13 incl. region-header 4 (lens seeding
+  pins: badge from saved filters, label override, saved search applied
+  to rows; save-dialog pin through a StandardDialog stub — PrimeVue
+  Dialog renders nothing SSR); `workers/documents` 29/29 (vocabulary
+  identity + view action pins); `components/generated` +
+  `shared/ui-mapping` 189/189; localization green; SSR smoke 26/26
+  (new case: a page carrying a view fence renders the region with the
+  saved search applied over the seeded pool, no raw ids);
+  `check-arch` green; `docs:validate` OK (13-entry homing backlog
+  unchanged). No build/dev-server/Playwright runs (brief).
+- Open: the popover's save entry and the picker's authoring flow are
+  E2E-scope (SSR cannot render the closed popover or dialog); phase J
+  mounts the same ViewEmbed on record pages.
+
 ### J. Instance-page overlays (SPEC §26)
 
 - [x] Rights-gated custom blocks around declared content on record
