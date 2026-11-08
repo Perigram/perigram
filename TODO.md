@@ -98,6 +98,15 @@
   top-level paragraph keeps the caret inside it, so the page editor folds
   sequential blank lines like the inline blocks. Playwright probes pinned
   both behaviors.
+- Instance chips render the shared `InstanceInlineRef` inside the editor,
+  so they carry the chat chip face, peek, and record popup. Multiple
+  chips keep a separating space; the first Backspace selects the chip
+  even when the caret sits after that space.
+- Page content mounts only after its document load resolves: opening a
+  saved page after reload no longer starts the editor on an empty draft.
+- The File entry accepts any upload or address and renders the shared
+  `FileChip`; the read composition mounts the same chip from `#file:`
+  links.
 
 ## Deslopification program (owner direction 2026-10-23)
 

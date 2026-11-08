@@ -1481,9 +1481,11 @@ removes it. The collection-view picker shows the type containment tree
 with each collection's saved views beneath it; choosing a collection
 inserts its live default view and choosing a saved view inserts that
 lens. Collection embeds author live in the editor. The image entry
-accepts a stored upload or an address. A slash hand-off opens after the
-selecting click, so the picker or dialog stays open. Enter on an empty
-top-level paragraph keeps the caret in that paragraph.
+accepts a stored upload or an address. The file entry accepts any file,
+stored or addressed, and renders through the shared file chip. A slash
+hand-off opens after the selecting click, so the picker or dialog stays
+open. Enter on an empty top-level paragraph keeps the caret in that
+paragraph.
 
 The AI block is ask/answer: the organization's assistant answers in
 place under the opener's delegated principal, rendered as markdown,

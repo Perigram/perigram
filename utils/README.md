@@ -100,6 +100,9 @@ Parent: [root README](../README.md).
   `instanceThreadKey`/`directConversationKey` are the pure key
   derivations the pinned-thread mounts read (the record page's comments
   section; the thread core's direct-key grammar homes here).
+- `file-refs.js`: The document file-reference descriptor: derives the
+  shared `FileChip` facts (name, mime, stored id/bucket, direct URL) from a
+  file link's href and carried label.
 - `chat-file-targets.js`: Pure resolver for the chat composer's instance-chat
   upload window: over the served CTS type view it collects a composer
   target's declared `file`-class children whose payload traits and `upload`

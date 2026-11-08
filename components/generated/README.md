@@ -221,7 +221,10 @@ the `section` field set.
   atomic `instance_ref` node (`instance-ref-node.js`) that renders the
   shared chip face, opens on click, and selects as one unit before
   Backspace removes it. The image entry opens `ImageInsertDialog.vue`
-  (upload or address) and inserts the engine's image node. Every slash
+  (upload or address) and inserts the engine's image node. The file entry
+  opens `FileInsertDialog.vue` for any file and inserts a `file_ref` node
+  (`file-ref-node.js`) rendering the shared `FileChip`; it serializes to a
+  `#file:` link and the read composition mounts the same chip. Every slash
   hand-off opens on the next task, so the selecting click cannot dismiss
   its popover or dialog as an outside click. Enter on an empty top-level
   paragraph keeps the caret in that paragraph. The page-link and AI-block

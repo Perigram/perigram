@@ -393,10 +393,11 @@ surface — the host's — frames the preview.
 
 ### `FileChip.vue`
 The app's one file chip (SPEC §22.8): the file's name, a mime-aware
-icon, the bordered subtle chip, `name · size` on hover. A file whose
-descriptor resolves a renderable peek mode (image, svg, pdf, text, dxf
-through `resolveAttachmentPeek` in
-[file-preview-contract](../generated/README.md)) raises its payload peek
+icon, the bordered subtle chip, `name · size` on hover. A descriptor carrying a stored `fileId` or a
+direct `url` is openable; the peek resolves only for stored files with a
+renderable mode (image, svg, pdf, text, dxf through
+`resolveAttachmentPeek` in
+[file-preview-contract](../generated/README.md)) and raises its payload peek
 on hover (SPEC §22.14) — the framed media band plus the name and
 `mime · size` strip; the click stays the consumer's `open` event.
 Accepts either wire shape (generator blobs and chat attachments).

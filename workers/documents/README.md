@@ -45,7 +45,8 @@ types ride the generic instance machinery from the install snapshot.
   | Quote | blockquote; the quote entry on a quoted block lifts it out |
   | Callout | an empty blockquote the author fills in immediately; the pipeline renders blockquotes natively |
   | Code block, Diagram | fenced code (language picker on hover, CodeMirror); diagram seeds a `mermaid` fence |
-  | Image | the host address popover, anchored to the surface; the source applies at the caret |
+  | Image | the host image chooser (stored upload or address); the source applies at the caret |
+  | File | the host file chooser (stored upload or address); the pick becomes the shared file chip |
   | Divider, Table | horizontal rule; a three-by-three gfm table |
   | Link | the host address popover, anchored to the surface; the link applies at the caret |
   | Instance | the host instance tree (`@` and the entry share it); the pick inserts an atomic chip serialized as an inline `#instance:<type>/<id>` link |
