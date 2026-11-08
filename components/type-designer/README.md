@@ -45,7 +45,7 @@ creates a class.
 | `ClassDialog.vue` | Create/edit one org declaration: name, class, glyph, fields, states, and children edges. Saves through `POST /api/admin/cts/types` with the loaded declaration and those facets replaced. A `group` class cannot save without a child. |
 | `ClassSurface.vue` | The class page: the same generated type-list screen every class page uses, synthesized with one source and one region when no compiled process screen exists. |
 | Field rows | `DeclarationFieldRow` + `DescriptorEditor`; exactly one field carries the identifier flag. |
-| States | `DeclarationStateRow` edits the class's flat state vocabulary: value, label, severity, icon, terminal. The vocabulary persists on the declaration and overrides the compiled process policy for the same values. |
+| States | `DeclarationStateRow` edits the class's flat state vocabulary: value, severity, icon. The vocabulary persists on the declaration and overrides the compiled process policy for the same values. |
 | Children | Existing classes attach through the parent's `edges.children` entry; each type keeps its entry's `lineageKey` and `onRemove`. Add child class opens a draft `ClassDialog` — the child persists with the parent save, never on the click; the draft dialog offers every declarable class, group included. |
 | Capability | `organizations:admin`, the same seam as declaration authoring. |
 | `GlyphSelect.vue` | The one icon-sized glyph picker, shared by the class dialog and the process-designer declaration inspector. `class-glyphs.js` carries its option set. |
