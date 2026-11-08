@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderMarkdown, parseViewRef, splitViewEmbeds } from './markdown.js';
+import { renderMarkdown, parseViewRef, splitViewEmbeds, parseInstanceHref, instanceHref } from './markdown.js';
 
 // The markdown document contract: one render pipeline shared by the
 // source editor and the read viewer — the text preview mode is markdown
@@ -26,6 +26,17 @@ describe('parseViewRef', () => {
     expect(parseViewRef('v-1')).toBeNull();
     expect(parseViewRef('{"name":"Walls"}')).toBeNull();
     expect(parseViewRef('[]')).toBeNull();
+  });
+});
+
+describe('instance refs', () => {
+  it('round-trips the instance link scheme', () => {
+    const href = instanceHref('probe-note', 'id-1');
+    expect(href).toBe('#instance:probe-note/id-1');
+    expect(parseInstanceHref(href)).toEqual({ type: 'probe-note', id: 'id-1' });
+    expect(parseInstanceHref('instance:probe-note/id-1')).toEqual({ type: 'probe-note', id: 'id-1' });
+    expect(parseInstanceHref('https://example.com')).toBeNull();
+    expect(parseInstanceHref('instance:missing')).toBeNull();
   });
 });
 
