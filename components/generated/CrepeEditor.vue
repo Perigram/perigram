@@ -315,6 +315,9 @@ onMounted(async () => {
       if (!selection.empty) return;
       const { $to } = selection;
       if ($to.parent.type.name === 'code_block') return;
+      // An empty paragraph keeps its Enter inside the same document
+      // block: sequential empty lines are one block, not a stack.
+      if ($to.parent.content.size === 0) return;
       const atBlockEnd = $to.parentOffset === $to.parent.content.size;
       const index = $to.depth === 1 ? $to.index(0) : -1;
       const trailingEmpty = index >= 0 && index === view.state.doc.childCount - 2
