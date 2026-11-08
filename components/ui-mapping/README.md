@@ -212,8 +212,9 @@ application.
   content: click mounts the engine inline at the click point (crepe's
   page chrome stripped through `ck-inline-editor`), Escape or
   Cmd/Ctrl+Enter closes it, and Enter at the block's end starts the
-  next block. Backspace in an empty block removes it and resumes the
-  previous text block. The engine scrolls the block into view on mount.
+  next block. An empty paragraph keeps Enter inside the same block, so
+  sequential empty lines never stack as separate blocks. Backspace in an
+  empty block removes it and resumes the previous text block. The engine scrolls the block into view on mount.
   Inline instance references ride the text as `#instance:` links; the
   Instance entry opens the shared `InstanceSelect`, and the read
   composition mounts the shared `InstanceInlineRef` chip in place of
