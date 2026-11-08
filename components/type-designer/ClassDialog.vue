@@ -13,7 +13,7 @@
     @save="save"
   >
     <div v-if="readOnly" class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1">
-      <div class="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
+      <div class="grid items-end gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
         <div class="flex flex-col gap-1">
           <span class="text-label text-muted">{{ $t('classes.name') }}</span>
           <span class="text-body">{{ readonlyType?.name || $t('common.unnamed') }}</span>
@@ -64,7 +64,7 @@
     </div>
 
     <div v-else class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1">
-      <div class="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
+      <div class="grid items-end gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
         <div class="flex flex-col gap-1">
           <label class="text-label text-muted">{{ $t('classes.name') }}</label>
           <InputText
@@ -103,7 +103,7 @@
             @click="addField"
           />
         </div>
-        <div class="flex items-center gap-2">
+        <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-center">
           <span class="text-label text-muted">{{ $t('processDesigner.namesRecord') }}</span>
           <Select
             :model-value="identifierFieldId"
@@ -111,7 +111,7 @@
             option-label="label"
             option-value="value"
             size="small"
-            class="w-52"
+            class="w-full"
             :aria-label="$t('processDesigner.namesRecord')"
             @update:model-value="setIdentifierField"
           />
@@ -198,7 +198,7 @@
           size="small"
           :placeholder="$t('classes.addExistingChild')"
           :aria-label="$t('classes.addExistingChild')"
-          class="w-80 max-w-full"
+          class="w-full sm:w-1/2"
           @update:model-value="value => { addChildType(value); existingChild = null; }"
         />
         <Button

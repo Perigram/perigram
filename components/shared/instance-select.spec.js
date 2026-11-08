@@ -150,6 +150,7 @@ describe('entity Select wrappers', () => {
       'components/ui-mapping/CreateControl.vue',
       'components/ui-mapping/LayerMappingRow.vue',
       'components/type-designer/ClassDialog.vue',
+      'components/type-designer/DescriptorBaseControl.vue',
       'components/type-designer/DescriptorEditor.vue',
       'components/type-designer/StateDeclarationForm.vue',
       'pages/organization/models.vue'

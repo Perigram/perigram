@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-3">
+  <div class="state-declaration-form flex flex-col gap-3">
     <div class="flex items-center gap-2">
       <InputText
         :model-value="value"
@@ -20,25 +20,31 @@
         @click="emit('remove')"
       />
     </div>
-    <div class="flex items-center gap-2">
-      <Select
-        :model-value="severity || 'info'"
-        :options="severityOptions"
-        option-label="label"
-        option-value="value"
-        size="small"
-        class="w-40 shrink-0"
-        :aria-label="$t('processDesigner.stateSeverity')"
-        @update:model-value="next => emit('update:severity', next || 'info')"
-      />
-      <InputText
-        :model-value="icon || ''"
-        size="small"
-        class="w-52 shrink-0"
-        :placeholder="$t('processDesigner.stateIcon')"
-        :aria-label="$t('processDesigner.stateIcon')"
-        @update:model-value="next => emit('update:icon', String(next || '').trim())"
-      />
+    <div class="state-declaration-grid">
+      <div class="flex flex-col gap-1">
+        <label class="text-label text-muted">{{ $t('processDesigner.stateSeverity') }}</label>
+        <Select
+          :model-value="severity || 'info'"
+          :options="severityOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="w-full"
+          :aria-label="$t('processDesigner.stateSeverity')"
+          @update:model-value="next => emit('update:severity', next || 'info')"
+        />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label class="text-label text-muted">{{ $t('processDesigner.stateIcon') }}</label>
+        <InputText
+          :model-value="icon || ''"
+          size="small"
+          class="w-full"
+          :placeholder="$t('processDesigner.stateIcon')"
+          :aria-label="$t('processDesigner.stateIcon')"
+          @update:model-value="next => emit('update:icon', String(next || '').trim())"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -62,3 +68,21 @@ const emit = defineEmits(['update:value', 'update:severity', 'update:icon', 'rem
 const { t } = useI18n();
 const severityOptions = stateSeverityOptions(t);
 </script>
+
+<style scoped>
+.state-declaration-form {
+  container-type: inline-size;
+}
+
+.state-declaration-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+@container (min-width: 24rem) {
+  .state-declaration-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+</style>
