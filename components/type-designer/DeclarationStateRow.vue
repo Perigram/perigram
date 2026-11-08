@@ -38,14 +38,6 @@
         </template>
       </Inplace>
       <div class="ml-auto flex shrink-0 items-center gap-1">
-        <label class="flex items-center gap-1 text-supporting text-muted">
-          <Checkbox
-            :model-value="state.terminal === true"
-            :binary="true"
-            @update:model-value="value => $emit('terminal', value === true)"
-          />
-          {{ $t('processDesigner.stateTerminal') }}
-        </label>
         <Button
           icon="pi pi-trash"
           size="small"
@@ -79,14 +71,6 @@
           @update:model-value="value => $emit('icon', String(value || '').trim() || '')"
         />
       </IconField>
-      <InputText
-        :model-value="state.label || ''"
-        size="small"
-        class="min-w-0 flex-1"
-        :placeholder="$t('typeDeclaration.stateLabel')"
-        :aria-label="$t('typeDeclaration.stateLabel')"
-        @update:model-value="value => $emit('label', String(value || ''))"
-      />
     </div>
   </div>
 </template>
@@ -95,7 +79,6 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
-import Checkbox from 'primevue/checkbox';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
@@ -109,7 +92,7 @@ defineProps({
   state: { type: Object, required: true }
 });
 
-const emit = defineEmits(['rename', 'label', 'severity', 'icon', 'terminal', 'remove']);
+const emit = defineEmits(['rename', 'severity', 'icon', 'remove']);
 
 const { t } = useI18n();
 const severityOptions = stateSeverityOptions(t);

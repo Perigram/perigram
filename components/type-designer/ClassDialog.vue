@@ -34,10 +34,10 @@
             @update:model-value="setClass"
           />
         </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-label text-muted">{{ $t('processDesigner.icon') }}</label>
-          <GlyphSelect v-model="draft.glyph" :aria-label="$t('processDesigner.icon')" />
-        </div>
+        <GlyphSelect
+          v-model="draft.glyph"
+          :aria-label="$t('processDesigner.icon')"
+        />
       </div>
 
       <section class="flex flex-col gap-1">
@@ -56,7 +56,7 @@
           v-for="field in draft.fields"
           :key="field.key"
           :field="{ node: { data: { name: field.name, descriptor: field.descriptor } } }"
-          :summary="summaryOf(field.descriptor)"
+          :summary="expandedField === field.key ? '' : summaryOf(field.descriptor)"
           :type-options="typeOptions"
           :expanded="expandedField === field.key"
           @rename="value => renameField(field, value)"
@@ -85,10 +85,8 @@
           :key="state.key"
           :state="state"
           @rename="value => state.value = value"
-          @label="value => state.label = value"
           @severity="value => state.severity = value"
           @icon="value => state.icon = value"
-          @terminal="value => state.terminal = value"
           @remove="removeState(state)"
         />
         <Message v-if="stateError" severity="warn" :closable="false">{{ stateError }}</Message>
@@ -306,10 +304,8 @@ function initialize() {
     states: Object.entries(record.stateVocabulary || {}).map(([value, declaration]) => ({
       key: mintId('state'),
       value,
-      label: declaration?.policy?.label || '',
       severity: declaration?.policy?.severity || 'info',
-      icon: declaration?.policy?.icon || '',
-      terminal: declaration?.terminal === true
+      icon: declaration?.policy?.icon || ''
     }))
   };
   if (!draft.value.fields.length) {
@@ -378,10 +374,8 @@ function addState() {
   draft.value.states.push({
     key: mintId('state'),
     value: `state${index}`,
-    label: '',
     severity: 'info',
-    icon: '',
-    terminal: false
+    icon: ''
   });
 }
 
@@ -455,14 +449,10 @@ function declarationFor(draftValue, record = {}) {
   for (const state of draftValue.states || []) {
     const value = String(state.value || '').trim();
     const policy = {
-      ...(String(state.label || '').trim() ? { label: String(state.label).trim() } : {}),
       ...(String(state.icon || '').trim() ? { icon: String(state.icon).trim() } : {}),
       ...(state.severity && state.severity !== 'info' ? { severity: state.severity } : {})
     };
-    states[value] = {
-      ...(state.terminal === true ? { terminal: true } : {}),
-      ...(Object.keys(policy).length ? { policy } : {})
-    };
+    states[value] = Object.keys(policy).length ? { policy } : {};
   }
   if (Object.keys(states).length) declaration.stateVocabulary = states;
   else delete declaration.stateVocabulary;

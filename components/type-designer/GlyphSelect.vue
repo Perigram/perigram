@@ -1,7 +1,7 @@
 <template>
   <Button
     type="button"
-    text
+    outlined
     severity="secondary"
     class="h-9 w-9 shrink-0 p-0"
     :aria-label="ariaLabel"
