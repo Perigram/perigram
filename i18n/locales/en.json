@@ -2397,6 +2397,8 @@
         "table": "Table",
         "view": "View",
         "collectionView": "Collection view",
+        "instance": "Instance",
+        "pickInstance": "Insert instance",
         "addCollectionView": "Add collection view",
         "pickView": "Pick a view",
         "addView": "Add view",

@@ -64,6 +64,24 @@ const escapeHtml = (value = '') => String(value)
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
 
+// Inline instance references are links on the `instance:` fragment:
+// `#instance:<type>/<id>`. The read composition mounts the shared
+// InstanceInlineRef chip into each link's placeholder; authors insert
+// the same markdown link at the caret.
+export function parseInstanceHref(href = '') {
+  const raw = String(href || '');
+  const value = raw.startsWith('#') ? raw.slice(1) : raw;
+  if (!value.startsWith('instance:')) return null;
+  const body = value.slice('instance:'.length);
+  const slash = body.lastIndexOf('/');
+  if (slash <= 0 || slash === body.length - 1) return null;
+  const type = decodeURIComponent(body.slice(0, slash));
+  const id = decodeURIComponent(body.slice(slash + 1));
+  return type && id ? { type, id } : null;
+}
+
+export const instanceHref = (type, id) => `#instance:${encodeURIComponent(String(type))}/${encodeURIComponent(String(id))}`;
+
 const plainCodeBlock = (code, lang = '', escaped = false) => {
   const body = `${String(code).replace(/\n$/, '')}\n`;
   const safe = escaped ? body : escapeHtml(body);
@@ -92,6 +110,14 @@ marked.use({
         if (ref?.name) return `<div class="ck-view-embed">${escapeHtml(ref.name)}</div>\n`;
       }
       return plainCodeBlock(code, lang, escaped);
+    },
+    link(href, title, text) {
+      const ref = parseInstanceHref(href);
+      if (ref) {
+        return `<span data-instance-type="${escapeHtml(ref.type)}" data-instance-id="${escapeHtml(ref.id)}"></span>`;
+      }
+      const titleAttribute = title ? ` title="${escapeHtml(title)}"` : '';
+      return `<a href="${escapeHtml(href)}"${titleAttribute}>${text}</a>`;
     }
   }
 });

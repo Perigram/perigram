@@ -640,6 +640,22 @@ body {
     line-height: 1.25rem;
 }
 
+/* Inline instance links read as chips in the in-place editor; the read
+   composition mounts the shared InstanceInlineRef component. */
+.ck-inline-editor.crepe-host .milkdown .ProseMirror a[href^="#instance:"] {
+    display: inline-flex;
+    align-items: baseline;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 999px;
+    padding: 0 0.5rem;
+    background: transparent;
+    color: var(--p-text-muted-color);
+    font-family: var(--ck-font-ui);
+    font-size: 0.875em;
+    line-height: 1.5;
+    text-decoration: none;
+}
+
 :is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) > *:first-child {
     margin-top: 0;
 }
@@ -656,6 +672,7 @@ body {
 :is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) h6 {
     font-family: var(--ck-font-serif);
     font-weight: 400;
+    margin: 0;
     padding: 2px 0;
 }
 
@@ -697,6 +714,7 @@ body {
 }
 
 :is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) p {
+    margin: 0;
     line-height: 1.5;
     padding: 4px 0;
 }
@@ -717,6 +735,7 @@ body {
 }
 
 :is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) pre {
+    margin: 0;
     background: var(--ck-chrome-subtle);
     padding: 10px;
     border-radius: var(--p-border-radius-sm);
@@ -746,6 +765,7 @@ body {
 }
 
 :is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) hr {
+    margin: 0;
     border: none;
     height: 13px;
     box-sizing: content-box;
@@ -772,7 +792,18 @@ body {
     padding: 2px 0;
 }
 
+/* The engine wraps tight-list and table-cell text in paragraphs; the
+   read pipeline does not. Remove the paragraph rhythm there so both
+   readings share one spacing. */
+:is(.ck-inline-editor.crepe-host .milkdown .ProseMirror) li > p,
+:is(.ck-inline-editor.crepe-host .milkdown .ProseMirror) th > p,
+:is(.ck-inline-editor.crepe-host .milkdown .ProseMirror) td > p {
+    margin: 0;
+    padding: 0;
+}
+
 :is(.ck-markdown-body, .ck-inline-editor.crepe-host .milkdown .ProseMirror) table {
+    margin: 0;
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;

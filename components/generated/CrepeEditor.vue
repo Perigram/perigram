@@ -26,6 +26,11 @@
       />
     </div>
   </Popover>
+  <InstanceRefDialog
+    :visible="instancePickerOpen"
+    @close="instancePickerOpen = false"
+    @pick="applyInstancePick"
+  />
 </template>
 
 <script setup>
@@ -41,8 +46,10 @@ import { useI18n } from 'vue-i18n';
 import Popover from 'primevue/popover';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
-import { renderMarkdown, parseViewRef, stripSerializerTail } from '#shared/markdown.js';
+import { renderMarkdown, parseViewRef, parseInstanceHref, stripSerializerTail } from '#shared/markdown.js';
+import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { useViewsStore } from '~/stores/views';
+import InstanceRefDialog from './InstanceRefDialog.vue';
 
 defineOptions({ inheritAttrs: false });
 
@@ -75,6 +82,8 @@ const editorHost = ref(null);
 const addressPopover = ref(null);
 const linkUrl = ref('');
 const addressKind = ref('link');
+const instancePickerOpen = ref(false);
+let instanceInsert = null;
 const blockState = ref({ block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, task: false, marks: [] });
 
 let crepe = null;
@@ -119,6 +128,19 @@ function openImageEditor() {
   openAddressEditor('image');
 }
 
+function openInstancePicker(insert) {
+  instanceInsert = insert;
+  instancePickerOpen.value = true;
+}
+
+function applyInstancePick(ref) {
+  instancePickerOpen.value = false;
+  const insert = instanceInsert;
+  instanceInsert = null;
+  if (insert && ref) insert(ref);
+  focus();
+}
+
 async function applyAddress() {
   const href = linkUrl.value.trim();
   if (!href || !crepe) return;
@@ -149,7 +171,7 @@ async function applyAddress() {
 
 function runSlashPick(id, view) {
   const kind = applyBlockAt(id, view);
-  if (kind !== 'link' && kind !== 'image' && kind !== 'view') focus();
+  if (kind !== 'link' && kind !== 'image' && kind !== 'instance' && kind !== 'view') focus();
 }
 
 // The host resolves the picked saved view; the fence it inserts carries
@@ -186,6 +208,7 @@ onMounted(async () => {
     view,
     openLinkEditor,
     openImageEditor,
+    openInstancePicker,
     openViewPicker
   });
 
@@ -249,6 +272,15 @@ onMounted(async () => {
   }
   emit('ready');
   editorDiagramClick = event => {
+    const anchor = event.target?.closest?.('a[href^="#instance:"]');
+    if (anchor) {
+      const ref = parseInstanceHref(anchor.getAttribute('href'));
+      if (ref) {
+        event.preventDefault();
+        openInstanceInWorkspace({ typeId: ref.type, instanceId: ref.id });
+      }
+      return;
+    }
     const block = event.target?.closest?.('.milkdown-code-block');
     if (!block?.querySelector('.preview .mermaid-diagram')) return;
     if (!block.querySelector('.codemirror-host.hidden')) return;

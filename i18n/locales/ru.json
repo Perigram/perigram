@@ -2397,6 +2397,8 @@
         "table": "Таблица",
         "view": "Вид",
         "collectionView": "Вид коллекции",
+        "instance": "Экземпляр",
+        "pickInstance": "Вставить экземпляр",
         "addCollectionView": "Добавить вид коллекции",
         "pickView": "Выбрать вид",
         "addView": "Добавить вид",
