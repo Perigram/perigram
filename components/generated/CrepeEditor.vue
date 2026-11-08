@@ -144,11 +144,13 @@ function restoreRange(view, range) {
 }
 
 function focus(point = null) {
-  const prose = editorHost.value?.querySelector('.ProseMirror');
-  if (!prose) return;
-  prose.focus();
-  if (!point || !crepe || !editorViewCtx || !TextSelection) return;
+  if (!crepe) {
+    editorHost.value?.querySelector('.ProseMirror')?.focus();
+    return;
+  }
   withView(view => {
+    view.focus();
+    if (!point || !TextSelection) return;
     const hit = view.posAtCoords({ left: point.x, top: point.y });
     const at = hit ? hit.pos : view.state.doc.content.size;
     view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(at))));

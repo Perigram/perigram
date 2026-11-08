@@ -1,6 +1,7 @@
+import { h, render } from 'vue';
 import { $nodeSchema, $prose, $view } from '@milkdown/utils';
 import { NodeSelection, Plugin } from '@milkdown/prose/state';
-import { INSTANCE_CHIP_CLASS } from '~/components/shared/chip-surface.js';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { parseInstanceHref, instanceHref } from '#shared/markdown.js';
 
 // Inline instance references are atomic authoring nodes (SPEC §26): the
@@ -10,7 +11,7 @@ import { parseInstanceHref, instanceHref } from '#shared/markdown.js';
 // one unit before deleting.
 const NODE_NAME = 'instance_ref';
 
-export function createInstanceRefPlugins({ iconFor = () => '', onOpen = () => {}, onMention = () => {} } = {}) {
+export function createInstanceRefPlugins({ appContext = null, onMention = () => {} } = {}) {
   const schema = $nodeSchema(NODE_NAME, () => ({
     inline: true,
     group: 'inline',
@@ -60,41 +61,35 @@ export function createInstanceRefPlugins({ iconFor = () => '', onOpen = () => {}
 
   const view = $view(schema.node, () => (node) => {
     const dom = document.createElement('span');
-    dom.className = `ck-instance-ref p-chip p-component ${INSTANCE_CHIP_CLASS}`;
+    dom.className = 'ck-instance-ref';
     dom.contentEditable = 'false';
     dom.dataset.instanceRef = '';
-    dom.setAttribute('role', 'button');
 
-    let current = node;
+    let unmount = null;
     const paint = value => {
       dom.dataset.instanceType = value.attrs.type;
       dom.dataset.instanceId = value.attrs.id;
       dom.dataset.instanceLabel = value.attrs.label;
-      dom.title = value.attrs.label;
-      dom.replaceChildren();
-      const icon = document.createElement('i');
-      icon.className = `p-chip-icon ${iconFor(value.attrs.type)}`;
-      icon.setAttribute('aria-hidden', 'true');
-      const label = document.createElement('span');
-      label.className = 'p-chip-label truncate';
-      label.textContent = value.attrs.label || value.attrs.id;
-      dom.append(icon, label);
+      unmount?.();
+      const vnode = h(InstanceInlineRef, {
+        type: value.attrs.type,
+        id: value.attrs.id
+      });
+      vnode.appContext = appContext;
+      render(vnode, dom);
+      unmount = () => render(null, dom);
     };
     paint(node);
-    dom.addEventListener('click', event => {
-      event.preventDefault();
-      onOpen({ type: current.attrs.type, id: current.attrs.id });
-    });
 
     return {
       dom,
       update: next => {
         if (next.type.name !== NODE_NAME) return false;
-        current = next;
         paint(next);
         return true;
       },
-      ignoreMutation: () => true
+      ignoreMutation: () => true,
+      destroy: () => unmount?.()
     };
   });
 
@@ -104,7 +99,7 @@ export function createInstanceRefPlugins({ iconFor = () => '', onOpen = () => {}
         if (text !== '@') return false;
         const $from = view.state.doc.resolve(from);
         if ($from.parent.type.name === 'code_block') return false;
-        const before = $from.parent.textBetween(Math.max(0, $from.parentOffset - 1), $from.parentOffset, null, '\ufffc');
+        const before = $from.parent.textBetween(Math.max(0, $from.parentOffset - 1), $from.parentOffset, null, ' ');
         if (before && !/[\s([{>"']/.test(before)) return false;
         onMention(from);
         return true;
@@ -113,13 +108,35 @@ export function createInstanceRefPlugins({ iconFor = () => '', onOpen = () => {}
         if (event.key !== 'Backspace' && event.key !== 'Delete') return false;
         const { selection } = view.state;
         if (!selection.empty) return false;
-        const node = event.key === 'Backspace' ? selection.$from.nodeBefore : selection.$from.nodeAfter;
-        if (node?.type.name !== NODE_NAME) return false;
-        const pos = event.key === 'Backspace'
-          ? selection.$from.pos - node.nodeSize
-          : selection.$from.pos;
-        view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, pos)));
-        return true;
+        const { $from } = selection;
+        if (event.key === 'Backspace') {
+          const before = $from.nodeBefore;
+          if (before?.type.name === NODE_NAME) {
+            view.dispatch(view.state.tr.setSelection(NodeSelection.create(
+              view.state.doc,
+              $from.pos - before.nodeSize
+            )));
+            return true;
+          }
+          if (before?.isText && before.text.endsWith(' ')) {
+            const spacerStart = $from.pos - before.nodeSize;
+            const node = view.state.doc.resolve(spacerStart).nodeBefore;
+            if (node?.type.name === NODE_NAME) {
+              const tr = view.state.tr.delete($from.pos - 1, $from.pos);
+              tr.setSelection(NodeSelection.create(tr.doc, spacerStart - node.nodeSize));
+              view.dispatch(tr);
+              return true;
+            }
+          }
+        }
+        if (event.key === 'Delete') {
+          const after = $from.nodeAfter;
+          if (after?.type.name === NODE_NAME) {
+            view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, $from.pos)));
+            return true;
+          }
+        }
+        return false;
       }
     }
   }));
@@ -136,5 +153,7 @@ export function insertInstanceRef(view, ref) {
     id: String(ref.id),
     label: String(ref.label || ref.name || ref.id)
   });
-  view.dispatch(view.state.tr.replaceSelectionWith(node).scrollIntoView());
+  const tr = view.state.tr.replaceSelectionWith(node);
+  tr.insertText(' ');
+  view.dispatch(tr.scrollIntoView());
 }

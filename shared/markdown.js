@@ -130,7 +130,7 @@ marked.use({
       }
       const file = parseFileHref(href);
       if (file) {
-        return `<span data-file-href="${escapeHtml(file.href)}">${text}</span>`;
+        return `<span data-file-href="${escapeHtml(file.href)}" data-file-label="${escapeHtml(text)}"></span>`;
       }
       const titleAttribute = title ? ` title="${escapeHtml(title)}"` : '';
       return `<a href="${escapeHtml(href)}"${titleAttribute}>${text}</a>`;

@@ -656,6 +656,12 @@ body {
     text-decoration: none;
 }
 
+/* The engine's reset zeroes every descendant's padding; chips carry the
+   preset's own chip padding so they read exactly as they do in chat. */
+.milkdown .p-chip {
+    padding: 0.5rem 0.75rem;
+}
+
 .ck-instance-ref {
     vertical-align: middle;
     cursor: pointer;

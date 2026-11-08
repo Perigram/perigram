@@ -62,7 +62,7 @@ function registerRefs() {
     return {
       el: node,
       slot: `${index}:${href}`,
-      file: fileRefDescriptor({ href, name: node.textContent?.trim() || '' })
+      file: fileRefDescriptor({ href, name: node.dataset.fileLabel || '' })
     };
   });
 }

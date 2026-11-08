@@ -1,19 +1,17 @@
 <template>
   <div
     ref="root"
-    :class="session ? 'cursor-text' : ''"
-    @click="startEditing"
+    :class="session?.writable ? 'cursor-text' : ''"
     @keydown.esc.stop.prevent="closeEditor"
     @keydown.meta.enter.stop.prevent="closeEditor"
     @keydown.ctrl.enter.stop.prevent="closeEditor"
   >
     <CrepeEditor
-      v-if="editing"
+      v-if="session?.writable"
       ref="editor"
       class="ck-inline-editor"
       :default-value="block.text"
       :initial-block="initialBlock"
-      :initial-point="pendingPoint"
       split-on-enter
       delete-on-empty-backspace
       @ready="onEditorReady"
@@ -39,21 +37,12 @@ const props = defineProps({
 
 const root = ref(null);
 const editor = ref(null);
-const pendingPoint = ref(null);
-const editing = computed(() => Boolean(props.session && props.session.editingBlockId === props.block.id));
 const initialBlock = computed(() => (props.session?.initialBlockFor?.(props.block.id) || ''));
 
-function startEditing(event) {
-  if (!props.session || !props.session.writable || editing.value) return;
-  if (event.target?.closest?.('a')) return;
-  pendingPoint.value = { x: event.clientX, y: event.clientY };
-  props.session.editBlock(props.block.id);
-}
-
 function onEditorReady() {
+  if (props.session?.editingBlockId !== props.block.id) return;
   nextTick(() => {
-    editor.value?.focus?.(pendingPoint.value);
-    pendingPoint.value = null;
+    editor.value?.focus?.();
     root.value?.scrollIntoView?.({ block: 'nearest' });
   });
 }
