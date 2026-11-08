@@ -113,7 +113,7 @@ const nodes = computed(() => {
   }
   const sortNodes = list => {
     list.sort((left, right) => left.label.localeCompare(right.label));
-    for (const node of list) sortNodes(node.children);
+    for (const node of list) sortNodes(node.children || []);
     return list;
   };
   return sortNodes(roots);
@@ -122,9 +122,9 @@ const nodes = computed(() => {
 const expandedKeys = ref({});
 watch(nodes, value => {
   expandedKeys.value = Object.fromEntries(value
-    .filter(node => node.children.length)
+    .filter(node => (node.children || []).length)
     .flatMap(function walk(node) {
-      return [[node.key, true], ...node.children.flatMap(walk)];
+      return [[node.key, true], ...(node.children || []).flatMap(walk)];
     }));
 }, { immediate: true });
 
