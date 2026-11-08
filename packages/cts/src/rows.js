@@ -10,7 +10,7 @@ export function isRowKeyId(name = '') {
 export function normalizeRow(row = {}) {
   const normalized = {};
   for (const [name, descriptor] of Object.entries(row)) {
-    if (!isRowKeyId(name)) throw new Error(`Field name ${name} must be lowerCamelCase`);
+    if (!isRowKeyId(name)) throw new Error(`Field id ${name} must be lowerCamelCase`);
     normalized[name] = describeType(descriptor);
   }
   return Object.freeze(normalized);

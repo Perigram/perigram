@@ -225,7 +225,8 @@ import GlyphSelect from '~/components/type-designer/GlyphSelect.vue';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { fieldDescriptorSummary } from '~/utils/processDesignerDeclarationEditor.js';
-import { classMayDeclareChildren, DECLARABLE_CLASSES } from '~/packages/cts/src/index.js';
+import { startCaseKey } from '#shared/ui-mapping/index.js';
+import { classMayDeclareChildren, DECLARABLE_CLASSES, rowFieldId } from '~/packages/cts/src/index.js';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -280,8 +281,6 @@ const typeOptions = computed(() => view.types.value.map(type => ({
 const fieldError = computed(() => {
   const names = draft.value.fields.map(field => String(field.name || '').trim());
   if (names.some(name => !name)) return t('classes.fieldNameRequired');
-  if (names.some(name => !/^[a-z][a-zA-Z0-9]*$/.test(name))) return t('classes.fieldNameInvalid');
-  if (new Set(names).size !== names.length) return t('classes.fieldNameDuplicate');
   const identifiers = draft.value.fields.filter(field => field.descriptor?.identifier === true);
   if (identifiers.length !== 1) return t('classes.identifierRequired');
   return '';
@@ -323,7 +322,7 @@ function freshDraft() {
     name: '',
     glyph: '',
     payload: null,
-    fields: [{ key: mintId('field'), name: 'name', descriptor: { base: 'string', identifier: true } }],
+    fields: [{ key: mintId('field'), id: 'fName', name: 'Name', descriptor: { base: 'string', identifier: true, label: 'Name' } }],
     children: [],
     states: []
   };
@@ -360,9 +359,10 @@ function initialize() {
     name: record.name || '',
     glyph: record.glyph || '',
     payload: record.payload || null,
-    fields: Object.entries(record.fields || {}).map(([name, descriptor]) => ({
+    fields: Object.entries(record.fields || {}).map(([id, descriptor]) => ({
       key: mintId('field'),
-      name,
+      id,
+      name: descriptor.label || startCaseKey(id),
       descriptor: { ...descriptor }
     })),
     children: Object.entries(record.edges?.children || {}).flatMap(([entryKey, declaration]) => (
@@ -376,7 +376,7 @@ function initialize() {
     }))
   };
   if (!draft.value.fields.length) {
-    draft.value.fields.push({ key: mintId('field'), name: 'name', descriptor: { base: 'string', identifier: true } });
+    draft.value.fields.push({ key: mintId('field'), id: 'fName', name: 'Name', descriptor: { base: 'string', identifier: true, label: 'Name' } });
   }
 }
 
@@ -406,7 +406,8 @@ function typeGlyph(typeId) {
 }
 
 function renameField(field, name) {
-  field.name = String(name || '');
+  field.name = String(name || '').trim();
+  field.descriptor = { ...field.descriptor, label: field.name };
 }
 
 function updateDescriptor(field, value) {
@@ -423,10 +424,27 @@ function toggleIdentifier(field) {
   }
 }
 
+function uniqueFieldId(name) {
+  const base = rowFieldId(name) || `f${Math.random().toString(36).slice(2, 10)}`;
+  let id = base;
+  let suffix = 2;
+  while (draft.value.fields.some(field => field.id === id)) {
+    id = `${base}${suffix}`;
+    suffix += 1;
+  }
+  return id;
+}
+
 function addField() {
   let index = draft.value.fields.length + 1;
-  while (draft.value.fields.some(field => field.name === `field${index}`)) index += 1;
-  const field = { key: mintId('field'), name: `field${index}`, descriptor: { base: 'string' } };
+  while (draft.value.fields.some(field => field.name === `Field ${index}`)) index += 1;
+  const name = `Field ${index}`;
+  const field = {
+    key: mintId('field'),
+    id: uniqueFieldId(name),
+    name,
+    descriptor: { base: 'string', label: name }
+  };
   draft.value.fields.push(field);
   expandedField.value = field.key;
 }
@@ -504,8 +522,8 @@ function declarationFor(draftValue, record = {}) {
     class: draftValue.class,
     name: draftValue.name.trim(),
     fields: Object.fromEntries(draftValue.fields.map(field => [
-      String(field.name).trim(),
-      { ...field.descriptor }
+      field.id,
+      { ...field.descriptor, label: field.name.trim() }
     ]))
   };
   if (draftValue.glyph) declaration.glyph = draftValue.glyph;
