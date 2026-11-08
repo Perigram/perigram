@@ -463,7 +463,9 @@ chip-surface recipe). Option lists over an instance pool build through
 ([utils](../../utils/README.md) — the one derivation: identifier-field
 label, type-prefixed for multi-type pickers, value, entity, type id);
 `instance-select.spec.js` owns the direct-import guard (plain enum
-selects are the allowance).
+selects use PrimeVue directly). The wrapper preserves a caller width
+utility on the PrimeVue select; only a select with no width utility
+defaults to `w-full`.
 
 ### `InstanceInlineRef.vue`
 Compact embedded entity reference for relation rows inside cards and details.
