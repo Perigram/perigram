@@ -1,45 +1,42 @@
 <template>
   <!-- With a session the section carries its authoring affordances in the
-       document's left gutter lane — drag handle, insert below, and one
-       overflow (move, and edit/delete for custom blocks) — revealed on
-       hover or focus. Without a session the shell adds nothing. -->
-  <div v-if="session" :class="spacing.stack" class="group/ck-doc-section relative pl-6">
+       document's permanent left gutter lane — the drag handle (click
+       opens the block menu, drag reorders) and the insert control,
+       aligned with the section's first line and revealed on hover or
+       focus. The lane exists for every viewer, so content never shifts. -->
+  <div v-if="session" :class="spacing.stack" class="group/ck-doc-section relative">
     <div
-      class="absolute top-0 left-0 z-10 flex items-center gap-1 opacity-0 transition-opacity group-hover/ck-doc-section:opacity-100 focus-within:opacity-100"
+      class="absolute -left-6 top-0.5 z-10 flex items-center gap-1 opacity-0 transition-opacity group-hover/ck-doc-section:opacity-100 focus-within:opacity-100"
     >
-      <button
-        type="button"
-        class="flex h-6 w-6 cursor-grab items-center justify-center rounded-ui text-muted hover:text-body active:cursor-grabbing"
-        draggable="true"
-        :aria-label="t('uiMapping.moveSection')"
-        :title="t('uiMapping.moveSection')"
-        @dragstart="dragStart"
-        @keydown.up.prevent="session.move(sectionKey, -1)"
-        @keydown.down.prevent="session.move(sectionKey, 1)"
-      >
-        <i class="pi pi-bars" aria-hidden="true" />
-      </button>
-      <OverlayInsertControl :session="session" :at="index + 1" />
       <Button
-        icon="pi pi-ellipsis-v"
+        icon="pi pi-bars"
         text
         rounded
         size="small"
         severity="secondary"
-        class="h-6 w-6"
+        class="h-6 w-6 cursor-grab active:cursor-grabbing"
+        draggable="true"
         :aria-label="t('uiMapping.sectionActions')"
         :title="t('uiMapping.sectionActions')"
         @click="event => menu?.toggle(event)"
+        @dragstart="dragStart"
+        @keydown.up.prevent="session.move(sectionKey, -1)"
+        @keydown.down.prevent="session.move(sectionKey, 1)"
       />
+      <OverlayInsertControl :session="session" :at="index + 1" />
     </div>
     <Menu ref="menu" :model="items" popup />
     <div
-      class="rounded-ui transition-shadow"
-      :class="dropTarget ? 'border-t-2 border-primary' : 'border-t-2 border-transparent'"
+      class="relative"
       @dragover.prevent="over"
       @dragleave="dropTarget = false"
       @drop.prevent="drop"
     >
+      <div
+        v-if="dropTarget"
+        class="absolute inset-x-0 -top-1.5 h-0.5 rounded-full bg-primary"
+        aria-hidden="true"
+      />
       <slot />
     </div>
   </div>

@@ -200,7 +200,7 @@
     />
   </div>
 
-  <div v-else :class="[stackFor, 'w-full', 'relative', recordDocument && !editorSurface ? LAYOUT.measure : '']">
+  <div v-else :class="[stackFor, 'w-full', 'relative', recordDocument && !editorSurface ? [LAYOUT.measure, 'pl-6'] : '']">
     <RegionDataState v-if="showState" :node="node" />
     <!-- The depth-0 record carries the declaration authoring session
          (SPEC §1): the provider gates on the process-design capability and
@@ -343,7 +343,7 @@
           />
           <!-- The document's foot insert strip (SPEC §26): the full
                width of the measure invites the next block. -->
-          <div v-if="recordOverlaySession" class="group/ck-doc-foot relative flex min-h-8 items-center pl-6">
+          <div v-if="recordOverlaySession" class="group/ck-doc-foot relative flex min-h-8 items-center">
             <OverlayInsertControl
               class="opacity-0 transition-opacity group-hover/ck-doc-foot:opacity-100 focus-within:opacity-100"
               :session="recordOverlaySession"
