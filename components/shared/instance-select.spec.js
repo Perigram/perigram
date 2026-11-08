@@ -149,6 +149,9 @@ describe('entity Select wrappers', () => {
       'components/shared/ChatBotPanel.vue',
       'components/ui-mapping/CreateControl.vue',
       'components/ui-mapping/LayerMappingRow.vue',
+      'components/type-designer/ClassDialog.vue',
+      'components/type-designer/DescriptorEditor.vue',
+      'components/type-designer/StateDeclarationForm.vue',
       'pages/organization/models.vue'
     ]);
     const violations = vueFiles(['components', 'pages', 'layouts'])

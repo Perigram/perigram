@@ -27,14 +27,14 @@
         option-label="label"
         option-value="value"
         size="small"
-        class="min-w-0 flex-1"
+        class="w-40 shrink-0"
         :aria-label="$t('processDesigner.stateSeverity')"
         @update:model-value="next => emit('update:severity', next || 'info')"
       />
       <InputText
         :model-value="icon || ''"
         size="small"
-        class="min-w-0 flex-1"
+        class="w-52 shrink-0"
         :placeholder="$t('processDesigner.stateIcon')"
         :aria-label="$t('processDesigner.stateIcon')"
         @update:model-value="next => emit('update:icon', String(next || '').trim())"
@@ -47,7 +47,7 @@
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import Select from '~/components/shared/InstanceSelect.vue';
+import Select from 'primevue/select';
 import { stateSeverityOptions } from '~/components/type-designer/state-severities.js';
 
 defineProps({

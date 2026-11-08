@@ -13,7 +13,7 @@
     @save="save"
   >
     <div v-if="readOnly" class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1">
-      <div class="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+      <div class="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
         <div class="flex flex-col gap-1">
           <span class="text-label text-muted">{{ $t('classes.name') }}</span>
           <span class="text-body">{{ readonlyType?.name || $t('common.unnamed') }}</span>
@@ -64,7 +64,7 @@
     </div>
 
     <div v-else class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1">
-      <div class="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+      <div class="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
         <div class="flex flex-col gap-1">
           <label class="text-label text-muted">{{ $t('classes.name') }}</label>
           <InputText
@@ -198,6 +198,7 @@
           size="small"
           :placeholder="$t('classes.addExistingChild')"
           :aria-label="$t('classes.addExistingChild')"
+          class="w-80 max-w-full"
           @update:model-value="value => { addChildType(value); existingChild = null; }"
         />
         <Button

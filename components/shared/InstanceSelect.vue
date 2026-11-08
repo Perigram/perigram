@@ -57,8 +57,8 @@
   </div>
   <PrimeSelect
     v-else
-    v-bind="$attrs"
-    class="w-full"
+    v-bind="selectAttrs"
+    :class="selectClass"
     :model-value="modelValue"
     :options="options"
     :option-label="optionLabel"
@@ -115,6 +115,17 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'create-select', 'construct-create']);
 const slots = useSlots();
 const attrs = useAttrs();
+const selectAttrs = computed(() => {
+  const { class: _class, ...rest } = attrs;
+  return rest;
+});
+const selectClass = computed(() => {
+  const classText = Array.isArray(attrs.class)
+    ? attrs.class.join(' ')
+    : (typeof attrs.class === 'string' ? attrs.class : '');
+  const hasWidth = /(^|\s)(w-|min-w-|max-w-|flex-1|grow|basis-)/.test(classText);
+  return hasWidth ? attrs.class : [attrs.class, 'w-full'];
+});
 const instances = useInstancesStore();
 const { t } = useI18n();
 const { typeById } = useFileTypeView();
