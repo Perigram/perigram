@@ -436,8 +436,9 @@ bound.
 ### `chip-surface.js`
 The chip recipe home: `CHIP_LABEL_PT` (the truncating label
 passthrough), `FILE_CHIP_CLASS`, `INSTANCE_CHIP_CLASS`. Every chip the
-app renders — file chips, instance chips, card identity chips —
-consumes these; a second copy of a chip class string is a defect.
+app renders — file chips, instance chips, `InstanceCard`'s inline card
+identity chip — consumes these; a second copy of a chip class string is
+a defect.
 Instance and file chips follow the inline-code layout: an inline Flex
 box in the UI font at em size (`0.875em`), horizontal em-based padding
 (`0.5em`) with zero vertical padding, the small surface radius, baseline
@@ -481,9 +482,11 @@ Compact embedded entity reference for relation rows inside cards and details.
 When only an id is provided, it resolves the DTO through the entity store's
 access-filtered optional-reference lookup (with a directory-card fallback for
 the framework party types, so cross-tenant users and organizations still
-resolve to their name-level card), resolves the matching design-system
-entity card, and renders that card with
-`variant="inline"`. An id-only ref resolves once per record identity:
+resolve to their name-level card). Registry-bound types render their
+design-system card with `variant="inline"`; the card root lays out inline
+and its identity chip wears `INSTANCE_CHIP_CLASS`, so those refs share
+the prose line and chip face with every other ref. An id-only ref
+resolves once per record identity:
 pool re-renders hand it a fresh entity object for the same record and the
 chip keeps its instance (an open peek stays open), while the store's
 record cache serves the repeated lookups. The peek hosts the served type
