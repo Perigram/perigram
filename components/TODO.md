@@ -319,6 +319,26 @@ identifier title → wire name → option label → unnamed fallback.
 `dtoToScreenInstance`'s wire-name absorption fires on null identifier
 rows too. SPEC §22.13 restated on the chip.
 
+### Chip faces and tree rows (owner direction 2026-11-09)
+
+- [ ] WAITING — owner verification: default chips keep the preset chip
+  geometry in tables, cards, chats, and pickers; the inline-code face
+  belongs to page text blocks and their read composition; instance tree
+  pickers render tree rows with the type glyph and identifier. SPEC §22.8
+  carries the prose-face sentence for owner reconciliation.
+
+#### Agent Notes (2026-11-09, agent/chips-fix-20261109)
+
+- `chip-surface.js` carries two faces: the default bordered chip over
+  Aura geometry (`FILE_CHIP_CLASS`, `INSTANCE_CHIP_CLASS`) and the prose
+  face (`FILE_PROSE_CHIP_CLASS`, `INSTANCE_PROSE_CHIP_CLASS`) for the
+  page editor nodes and `MarkdownBlocks`. `InstanceInlineRef` and
+  `FileChip` expose `prose`; the preset owns default chip geometry and
+  `.ck-chip` owns the prose layout. `InstanceTree` renders entity rows as
+  type glyph plus identifier.
+- Focused: design-system, instance-select, ui-mapping, generated, SSR
+  suite; guards.
+
 ### Region reload strips take no flow slot (SPEC §22.8)
 
 - [ ] WAITING — owner verification: the indeterminate reload bar takes no

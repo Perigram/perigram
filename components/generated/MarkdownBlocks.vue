@@ -18,14 +18,14 @@
       :key="item.slot"
       :to="item.el"
     >
-      <InstanceInlineRef :type="item.type" :id="item.id" />
+      <InstanceInlineRef :type="item.type" :id="item.id" prose />
     </Teleport>
     <Teleport
       v-for="item in fileRefs"
       :key="item.slot"
       :to="item.el"
     >
-      <FileChip :file="item.file" @open="openFile(item.file)" />
+      <FileChip :file="item.file" prose @open="openFile(item.file)" />
     </Teleport>
   </div>
 </template>

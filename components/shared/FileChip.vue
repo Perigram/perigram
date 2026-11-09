@@ -8,8 +8,8 @@
         v-on="peekEvents"
         :label="label"
         :icon="icon"
-        :pt="CHIP_LABEL_PT"
-        :class="[FILE_CHIP_CLASS, { 'cursor-pointer': openable }]"
+        :pt="chipPt"
+        :class="[chipClass, { 'cursor-pointer': openable }]"
         :title="title"
         :role="openable ? 'button' : undefined"
         :tabindex="openable ? 0 : undefined"
@@ -37,15 +37,19 @@ import HoverPeek from '~/components/shared/HoverPeek.vue';
 import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
 import { resolveAttachmentPeek } from '~/components/generated/file-preview-contract.js';
 import { fileTypeIconClass } from '~/utils/file-refs.js';
-import { CHIP_LABEL_PT, FILE_CHIP_CLASS } from './chip-surface.js';
+import { CHIP_LABEL_PT, FILE_CHIP_CLASS, FILE_PROSE_CHIP_CLASS, PROSE_CHIP_LABEL_PT } from './chip-surface.js';
 
 const props = defineProps({
   // The stored file reference in either wire shape: generator blobs
   // (`{ fileId, mime, name, size }`) and chat attachments
   // (`{ fileId, mimeType, name, size }`).
-  file: { type: Object, default: null }
+  file: { type: Object, default: null },
+  prose: { type: Boolean, default: false }
 });
 const emit = defineEmits(['open']);
+
+const chipClass = computed(() => (props.prose ? FILE_PROSE_CHIP_CLASS : FILE_CHIP_CLASS));
+const chipPt = computed(() => (props.prose ? PROSE_CHIP_LABEL_PT : CHIP_LABEL_PT));
 
 const mime = computed(() => String(props.file?.mime || props.file?.mimeType || ''));
 const name = computed(() => String(props.file?.name || '').trim());

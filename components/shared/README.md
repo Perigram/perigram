@@ -394,7 +394,8 @@ surface — the host's — frames the preview.
 ### `FileChip.vue`
 The app's one file chip (SPEC §22.8): the file's name, its file-type
 glyph from the generated file-type icon family, the bordered subtle chip,
-`name · size` on hover. A descriptor carrying a stored `fileId` or a
+`name · size` on hover. A prose host passes `prose` for the inline-code
+face. A descriptor carrying a stored `fileId` or a
 direct `url` is openable; the peek resolves only for stored files with a
 renderable mode (image, svg, pdf, text, dxf through
 `resolveAttachmentPeek` in
@@ -434,24 +435,25 @@ the framed media region, and the body scrolls past its 22rem height
 bound.
 
 ### `chip-surface.js`
-The chip recipe home: `CHIP_LABEL_PT` (the truncating label
-passthrough), `FILE_CHIP_CLASS`, `INSTANCE_CHIP_CLASS`. Every chip the
-app renders — file chips, instance chips, `InstanceCard`'s inline card
-identity chip — consumes these; a second copy of a chip class string is
-a defect.
-The classes carry the inline typography, the clamps, the border, and the
-surface role; padding, gap, radius, and the icon box are chip component
-tokens ([design tokens](../../assets/tokens/README.md)). The `ck-chip`
-marker reasserts the token padding inside the markdown editor, whose
-descendant reset zeroes padding.
-Instance and file chips follow the inline-code layout: an inline Flex box in the UI
-font at em size (`0.875em`), em-based padding (`0.5em` horizontal,
-`0.25em` vertical), the small surface radius, baseline alignment, and
-a line height of one. Generated-family icon glyphs
+The chip recipe home: `CHIP_LABEL_PT` (the truncating label passthrough),
+the default `FILE_CHIP_CLASS`/`INSTANCE_CHIP_CLASS`, and the prose
+`FILE_PROSE_CHIP_CLASS`/`INSTANCE_PROSE_CHIP_CLASS`. Every chip the app
+renders — file chips, instance chips, `InstanceCard`'s inline card
+identity chip — consumes a recipe here; a second copy of a chip class
+string is a defect.
+The default face keeps the preset's chip geometry — padding, pill radius,
+and icon box — and carries the clamps, the border, and the surface role:
+`bg-subtle` for files, transparent for instances.
+The prose face carries the inline-code layout for page text blocks and
+their read composition: an inline Flex box in the UI font at em size
+(`0.875em`), em-based padding (`0.5em` horizontal, `0.25em` vertical),
+the small surface radius, baseline alignment, and a line height of one.
+The `ck-chip` marker reasserts that padding inside the markdown editor,
+whose descendant reset zeroes padding. Generated-family icon glyphs
 (`ck-entity-icon`/`ck-file-type-icon`) drop their standalone scale inside
-chips, so every chip icon fills the same em box. An unresolved instance
-reference wears the same chip face. Collection counts render as a `Tag`
-with `secondary` severity.
+prose chips, so every chip icon fills the same em box. An unresolved
+instance reference wears the same chip face. Collection counts render as
+a `Tag` with `secondary` severity.
 
 ### `InstanceSelect.vue` / `InstanceMultiSelect.vue`
 The entity dropdown wrappers: options carrying an entity render as
@@ -490,7 +492,7 @@ the framework party types, so cross-tenant users and organizations still
 resolve to their name-level card). Registry-bound types render their
 design-system card with `variant="inline"`; the card root lays out inline
 and its identity chip wears `INSTANCE_CHIP_CLASS`, so those refs share
-the prose line and chip face with every other ref. An id-only ref
+the relation line and default chip face with every other ref. An id-only ref
 resolves once per record identity:
 pool re-renders hand it a fresh entity object for the same record and the
 chip keeps its instance (an open peek stays open), while the store's
@@ -522,7 +524,8 @@ context where an always-expanded nested card would overload the surface; do not
 render extra lifecycle badges next to these relation chips because status
 belongs on the actual entity card/detail.
 Inline chips are the raw PrimeVue `Chip` — icon plus truncating label,
-Aura's own chrome. There is no per-type tint: a tone mapping would mean
+Aura's own chrome. The `prose` prop swaps in the inline-code face for
+page text blocks and their read composition. There is no per-type tint: a tone mapping would mean
 branching on authored type names inside shared code, and per-type
 presentation vocabulary rides declarations (the registry's `glyph` is
 the model) — no tone declaration exists, so none is synthesized. The
@@ -692,7 +695,9 @@ through pure lineage nesting (`linkedExplorerChildSources` list fetches;
 relation links are skipped so the tree stays a hierarchy). Search is the
 Tree's built-in lenient filter; the sections load on first sight and the
 list stays searchable before the author expands anything. Entity labels
-resolve through `instanceRecordTitle` over the served type view. The
+resolve through `instanceRecordTitle` over the served type view; each
+entity row renders its type glyph beside the truncating identifier as
+one tree row. The
 section's generated create entries list beside the entity entries — and
 every entity repeats the pattern through its type's detail-screen child
 creates — when `showCreate` is on. Lazy loading is node-driven

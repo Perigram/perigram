@@ -73,7 +73,8 @@ export function createInstanceRefPlugins({ appContext = null, onMention = () => 
       unmount?.();
       const vnode = h(InstanceInlineRef, {
         type: value.attrs.type,
-        id: value.attrs.id
+        id: value.attrs.id,
+        prose: true
       });
       vnode.appContext = appContext;
       render(vnode, dom);
