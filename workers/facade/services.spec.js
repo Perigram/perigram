@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bake, extractGeometry, nestingParts } from './services.js';
+import { bake, extractGeometry, nestingParts, nestingSheetCount } from './services.js';
 import { createDefaultOccsCassetteTemplateDefinition } from './occs/templates.js';
 import { generateLayeredDxf } from './vendor/dxf-writer.js';
 
@@ -57,5 +57,11 @@ describe('nesting parts projection', () => {
   it('refuses a design without baked geometry', async () => {
     await expect(nestingParts({ typeId: 'cassette-design', instanceId: 'design-1', fields: {} }))
       .rejects.toThrow(/bake the template or import the DXF/);
+  });
+});
+
+describe('nesting sheet stock', () => {
+  it('uses the item count as the worst-case sheet stock', () => {
+    expect(nestingSheetCount([{ count: 2 }, { count: 1 }, {}, { count: '3' }])).toBe(7);
   });
 });

@@ -436,7 +436,7 @@ describe('headless definition authoring', () => {
 
     contract.domain = domainWithPackServices(facadeServices, 'sync-served');
     sync.syncProcessNode(record);
-    expect(record.inputs.map(port => port.id)).toEqual(['in', 'items', 'sheetWidth', 'sheetHeight', 'space', 'sheetCount']);
+    expect(record.inputs.map(port => port.id)).toEqual(['in', 'items', 'sheetWidth', 'sheetHeight', 'space']);
     expect(record.outputs.map(port => port.id)).toEqual(['completed', 'result']);
   });
 });

@@ -122,8 +122,15 @@ export async function bake({ refs = {}, draft = {} } = {}) {
 // The nesting solve (SPEC §8 V→V): job items and the sheet as values in,
 // layouts and a summary out. The solver itself runs in the external
 // nesting worker (NESTING_WORKER_URL) — this executor validates, maps,
-// and summarizes.
-export async function nestingSolve({ items, sheetWidth, sheetHeight, space, sheetCount } = {}) {
+// and summarizes. Sheet stock is the worst-case count (one part per
+// sheet); the solver uses only the sheets it needs.
+export function nestingSheetCount(items = []) {
+  return Math.max(1, items.reduce((total, item) => (
+    total + Math.max(1, Math.trunc(Number(item?.count) || 1))
+  ), 0));
+}
+
+export async function nestingSolve({ items, sheetWidth, sheetHeight, space } = {}) {
   if (!Array.isArray(items) || !items.length) badRequest('The nesting run has no parts to place');
   for (const [index, item] of items.entries()) {
     if (!item || typeof item !== 'object') badRequest(`Item ${index} is not a part`);
@@ -133,7 +140,7 @@ export async function nestingSolve({ items, sheetWidth, sheetHeight, space, shee
     width: Number(sheetWidth),
     height: Number(sheetHeight),
     space: Number(space ?? 3),
-    sheetCount: Math.max(1, Math.trunc(Number(sheetCount ?? 1) || 1))
+    sheetCount: nestingSheetCount(items)
   };
   for (const key of ['width', 'height', 'space', 'sheetCount']) {
     if (!(Number(params[key]) > 0)) badRequest(`Nesting params require a positive ${key}`);
