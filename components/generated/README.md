@@ -270,10 +270,10 @@ the `section` field set.
   region carries no actions: creation and quick actions belong to the
   collection's own screens, and the embed renders the lens; interacting
   with its controls edits the lens session-locally only. In the live
-  editor the same `ViewEmbed` mounts inside the fence's code-block
-  carrier (`CrepeEditor.vue` `ck-live-view`); the carrier's source
-  chrome drops away and the collection renders as the block, so it reads
-  live while
+  editor the same `ViewEmbed` mounts from the atomic `view_ref` block
+  node (`view-ref-node.js`), rendered in the `ck-live-view` block; the
+  node parses and serializes the same ```view fence, so the collection
+  reads live while
   the author types; each embed owns a 1rem vertical frame, separating
   neighbouring collection blocks from the collection header's own
   rhythm. A fence naming a deleted view renders its carried name and a
