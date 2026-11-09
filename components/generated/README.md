@@ -262,7 +262,7 @@ the `section` field set.
   section title. Legacy markdown `content` migrates through
   `splitViewEmbeds` (`shared/markdown.js`) into the same blocks. A
   collection entry renders the type's live view with the collection
-  header's tabs and add-view affordance. Instances
+  header's view-setup popover and add-view affordance. Instances
   load through the instances store list transport (org scoping and
   grants ride it — the lens law: an org-wide view shows each member
   their own readable subset, and an unreadable type renders the denied

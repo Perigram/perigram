@@ -110,56 +110,54 @@ beside the transition history in `StateHistory`.
   header the strip appears inside (SPEC §22.9) — and
   plain content for ready — the only loading/empty states any component
   renders.
-- The region header has a title row — label, count chip, and create set
-  (+ link where a relation section owns it, SPEC §22.12) — and a view row
-  under it: the view tabs at the leading end, the search trigger, filter
-  control, and view settings at the trailing end. A create whose target
-  the region already names renders the bare `New`; the full class-named
-  caption renders when the button stands alone on an empty stub line.
+- The region header is one title row — label, count chip, and create set
+  (+ link where a relation section owns it, SPEC §22.12) — with the
+  search trigger and the one view-setup trigger at the trailing end. A
+  create whose target the region already names renders the bare `New`;
+  the full class-named caption renders when the button stands alone on
+  an empty stub line.
+- The view-setup popover is the collection's one view surface. Its view
+  list carries the derived layout, the switchable alternate projection
+  (Table ↔ Board), one entry per saved view of the type, and the add-view
+  affordance for organization members. A saved entry loads the view's
+  four models — search, filter tree, sort, projection — through the
+  [views feature](../../server/features/views/README.md); a layout entry
+  restores the per-type models for that projection. Selecting a saved
+  entry suspends preference writes, so browsing a saved lens leaves the
+  reader's own state intact. The add-view affordance captures the
+  current models through `ViewSaveDialog` under the type label and
+  selects the new entry.
+- The same popover hosts the shared `FilterBuilder` panel
+  ([shared](../shared/README.md)) over the fields `builderFieldsForType`
+  derives ([shared/ui-mapping](../../shared/ui-mapping/README.md)), the
+  sort keys (the card-grid projection), and the field selection that sets
+  the collection's explicit column set (persisted per type, absent = the
+  derived budget). The trigger badges the active condition count
+  (`countPredicates`). Every hosted control is a live model. The filter
+  tree, projection, and sort choices are persisted view state per type
+  (`utils/ui-view-state.js`), evaluated with the one matcher
+  (`instanceMatchesFilter`) against the region's pool.
 - Search renders as a round icon button on every collection region and
   expands in place to its input on press; an active query keeps it open
   and an empty blur collapses it. The input binds the region-owned
-  search model. The filter control is a funnel button badged with the
-  active condition count (`countPredicates`); its popover hosts the
-  shared `FilterBuilder` panel ([shared](../shared/README.md)) over the
-  fields `builderFieldsForType` derives ([shared/ui-mapping](../../shared/ui-mapping/README.md)).
-  View settings is a sliders button whose popover hosts the sort keys
-  (the card-grid projection) and the field selection that sets the
-  collection's explicit column set (persisted per type, absent = the
-  derived budget). Every hosted control is a live model. The filter
-  tree and the projection and sort choices are persisted view state per
-  type (`utils/ui-view-state.js`), evaluated with the one matcher
-  (`instanceMatchesFilter`) against the region's pool.
-- The view tabs are the collection's data views: the derived-layout tab
-  (`Table`, `Board`, `Cards`, `Timeline`, `Stats`, `Gantt`, `Calendar`),
-  the switchable alternate layout (`Table` ↔ `Board`) beside it, one tab
-  per saved view of the type, and the add-view (+) affordance for
-  organization members. A saved tab loads the view's four models —
-  search, filter tree, sort, projection — through the
-  [views feature](../../server/features/views/README.md); a layout tab
-  restores the per-type models for that projection. Selecting a saved
-  tab suspends preference writes, so browsing a saved lens leaves the
-  reader's own state intact. The add-view affordance captures the
-  current models through `ViewSaveDialog` under the type label and
-  activates the new tab.
+  search model.
+- The layout choice carries the one layout-shaped user view state,
+  persisted per type beside sort and filters: a collection whose type
+  serves a state vocabulary and whose derived layout is a structural
+  collection (table) offers the board choice, and a derived board offers
+  the table choice; a stored preference for a non-switchable collection
+  is ignored. A stored preference is the user's explicit view — the
+  table floor governs the derivation alone. Timeline and stats keep
+  their derived shape.
 - A region mounted with a `viewState` prop renders a saved lens instead
-  of tabs: every view model seeds from the prop (the stored tree
-  re-validates through `normalizeFilter`, the projection and sort
+  of the view list: every view model seeds from the prop (the stored
+  tree re-validates through `normalizeFilter`, the projection and sort
   through their bounds) and the persistence skips — the controls stay
   live but their choices stay session-local, and the lens itself is
   never re-saved from its own embed. A `label` prop overrides the
-  type-derived section title (the embed names the view).
-  The title row stays one line while it has room (SPEC §22.15): the label
-  yields first through ellipsis. The view row keeps the view tabs at its
-  leading end and the view controls at its trailing end. The layout tabs
-  carry the one layout-shaped user view state,
-  persisted per type beside sort and filters: a collection whose type
-  serves a state vocabulary and whose derived layout is a structural
-  collection (table) offers the board tab, and a derived board offers
-  the table tab; a stored preference for a non-switchable collection is
-  ignored. A stored preference is the user's explicit view — the table
-  floor governs the derivation alone. The tabs stay clear of
-  shape-specialized projections (timeline, stats).
+  type-derived section title (the embed names the view). The title row
+  stays one line while it has room (SPEC §22.15): the label yields first
+  through ellipsis.
 
 ## The record document's overlay (SPEC §26)
 
@@ -173,8 +171,8 @@ application.
 
 - **Collection header in the document.** A collection section inside
   the record document renders the same header as a standalone list:
-  label, count, and create set at the leading end; the search trigger,
-  view tabs, filter, and view settings at the trailing end.
+  label, count, and create set at the leading end; the search and
+  view-setup triggers at the trailing end.
 - **Composition.** The depth-0 record in the `record` presentation
   renders the document's section flow through `SurfaceDetailBody`: the
   body's own sections (`properties`, `editor`, each relation section)
@@ -283,8 +281,8 @@ application.
   the
   matcher is [shared/ui-mapping](../../shared/ui-mapping/README.md)'s).
   The list header stays one line while the row has room — label, count
-  chip, and create set lead; the search trigger, view tabs, filter, and
-  view settings trail (SPEC §22.15, see above). List regions stack the header row and the
+  chip, and create set lead; the search and view-setup triggers trail
+  (SPEC §22.15, see above). List regions stack the header row and the
   collection surface (`RegionCollections.vue`, the one materialization of
   the layout switch embedded and standalone lists share) on the section
   rhythm; nested child regions arrange through `RegionChildren.vue` over
