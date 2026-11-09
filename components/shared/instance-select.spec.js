@@ -229,7 +229,7 @@ describe('entity Select wrappers', () => {
     expect(html.match(/data-entity-id="queue-2"/g)).toHaveLength(1);
     // One chip per selected value inside the control's value area: the
     // glyph + label chip with its remove affordance.
-    expect(html.match(/class="p-chip-label truncate leading-none"[^>]*>Queue [12]</g)).toHaveLength(2);
+    expect(html.match(/class="p-chip-label truncate leading-\[1\.25\]"[^>]*>Queue [12]</g)).toHaveLength(2);
     expect(html.match(/p-chip-icon pi pi-circle/g)).toHaveLength(2);
     expect(html.indexOf('data-prime-value')).toBeLessThan(html.indexOf('data-entity-id'));
   });

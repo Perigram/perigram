@@ -455,7 +455,7 @@ function executeContextualAction(action) {
       </HoverPeek>
       <span v-else :class="[INSTANCE_CHIP_CLASS, 'text-muted']" data-instance-card-interactive="true">
         <i :class="icon" class="shrink-0"></i>
-        <span class="truncate leading-none">{{ resolvedId ? unresolvedLabel : $t('common.notAvailable') }}</span>
+        <span class="truncate leading-[1.25]">{{ resolvedId ? unresolvedLabel : $t('common.notAvailable') }}</span>
       </span>
       <i
         v-if="revision && resolved"
