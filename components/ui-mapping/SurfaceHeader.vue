@@ -48,20 +48,6 @@
               @blur="commitName"
             />
             <span v-else :class="[compact ? 'text-label' : (TYPE_BY_LEVEL[props.level] || 'text-section-heading'), LAYOUT.nameClamp]">{{ identity }}</span>
-            <!-- The quiet type label sits beside the title and opens the
-                 class dialog (SPEC §27). Organization classes open it
-                 editable for capability holders; every other class opens
-                 it read-only. -->
-            <Button
-              v-if="!compact && type"
-              :label="typeLabel"
-              text
-              size="small"
-              severity="secondary"
-              class="max-w-[12rem] shrink-0 truncate p-0 text-supporting"
-              :aria-label="typeLabel"
-              @click="classEditorOpen = true"
-            />
             <!-- One state surface per header: the segmented current-state
                  tag is the trigger for the state popover — legal
                  transitions on top, the status_events audit trail below.
@@ -90,6 +76,20 @@
               </div>
             </Popover>
           </div>
+          <!-- The quiet type label sits under the title and opens the
+               class dialog (SPEC §27). Organization classes open it
+               editable for capability holders; every other class opens
+               it read-only. -->
+          <Button
+            v-if="!compact && type"
+            :label="typeLabel"
+            text
+            size="small"
+            severity="secondary"
+            class="mt-0.5 max-w-full self-start truncate p-0 text-supporting"
+            :aria-label="typeLabel"
+            @click="classEditorOpen = true"
+          />
           <ClassDialog
             v-if="type && classEditorOpen"
             v-model:visible="classEditorOpen"
