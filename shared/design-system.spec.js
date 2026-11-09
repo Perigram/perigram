@@ -208,7 +208,7 @@ describe('Design system manifest', () => {
       chip: {
         root: {
           paddingX: '0.5em',
-          paddingY: '0',
+          paddingY: '0.25em',
           gap: '0.375em',
           borderRadius: '{border.radius.sm}'
         },
