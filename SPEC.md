@@ -928,7 +928,7 @@ collections.
 One header anatomy serves every page surface — instance pages, editor
 pages, custom pages: breadcrumbs where lineage exists, the title
 (in-place editable where the surface owns the name), the type label
-under it, the state surface, and the action cluster (save for
+beside it, the state surface, and the action cluster (save for
 dirty-able surfaces, the comments entry, overflow). Custom pages render
 no type label and no state surface.
 
@@ -1085,8 +1085,8 @@ type identity. A card's beyond-budget overflow opens
 the record's popup — the record surface carries the full set; a type
 with no record surface counts. A collection's count renders only for loaded, accessible,
 non-empty collections. The record header is the record's one identity
-surface: the type glyph and the subtle type label under the title name
-its type, and no host heading, subtitle, or dialog title repeats the
+surface: the type glyph and the subtle type label beside the title
+name its type, and no host heading, subtitle, or dialog title repeats the
 record's name or type. The type label opens the class dialog (SPEC
 §27) for capability holders: name, class kind, glyph, fields, states,
 and CTS children. The record header carries the record's declared

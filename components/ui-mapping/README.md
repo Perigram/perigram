@@ -555,7 +555,7 @@ application.
   surface owns the name: a bound editor chrome channel (`rename`),
   else the host's `onRename` (the record document's identifier-field
   patch — the popup's title stays read-only); the quiet transparent
-  input commits on enter and blur. A subtle type label under the title
+  input commits on enter and blur. A subtle type label beside the title
   through the same type-label chain opens the class dialog (SPEC §27,
   [type-designer](../type-designer/README.md)); it is editable for
   organization classes to capability holders and read-only otherwise.
