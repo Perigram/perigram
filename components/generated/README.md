@@ -222,11 +222,11 @@ the `section` field set.
   dependency graph — the grammar is consumed, never copied. The crepe
   theme and the editor voice css load from the plugin's assets, so every
   editor mount reads identically. The collection-view entry opens
-  `ViewPickerDialog.vue` — the workspace's actual collections, the home
-  screen's list sections `InstanceTree.vue` also roots — with each
-  collection's saved views beneath it, and inserts the chosen collection
-  or lens fence at the caret. A pick leaves the caret in a fresh paragraph
-  after the embed, so the collection authors live. The instance entry and typing `@` open
+  `ViewPickerDialog.vue` — the shared instance tree picks the parent
+  record, then the record's detail screen supplies its child collections
+  — and inserts the chosen child collection or saved lens fence at the
+  caret. A pick leaves the caret in a fresh paragraph after the embed, so
+  the collection authors live. The instance entry and typing `@` open
   `InstanceMentionPicker.vue` over the shared `InstanceTree.vue`, the same
   section-and-lineage tree chat attachments browse; the pick lands as an
   atomic `instance_ref` node (`instance-ref-node.js`) that renders the
@@ -248,28 +248,32 @@ the `section` field set.
   starts blank — unnamed document, empty editor.
 - A view fence in the page's markdown carries a view ref — a
   `` ```view `` fence with a `{"id":"…","name":"…"}` body for a saved
-  lens or `{"typeId":"…","name":"…"}` for a collection entry (the
-  mermaid fence precedent: a fence type the pipeline knows; the name
-  rides the fence so a deleted view still renders its name). The read
-  presentation composes with the fences: `splitViewEmbeds`
-  (`shared/markdown.js`) splits the document into markdown segments and
-  embed blocks; segments render through the pipeline, embeds through
-  `ViewEmbed.vue`, which renders the target as a live collection
-  region through the ordinary machinery — a minimal single-list-region
-  screen composed by `composeScreen` for the view's type, materialized
-  by the one [RegionBlock](../ui-mapping/README.md) with a saved view's
-  state as its view models and the view's name as its section title. A
-  collection entry renders the type's live view with the collection
-  header's tabs and add-view affordance. Instances load through the
-  instances store list transport (org scoping and grants ride it — the
-  lens law: an org-wide view shows each member their own readable
-  subset, and an unreadable type renders the denied state), and row
-  opens follow the workspace-open seam. The embed's region carries no
-  actions: creation and quick actions belong to the collection's own
-  screens, and the embed renders the lens; interacting with its controls
-  edits the lens session-locally only. In the live editor the same
-  `ViewEmbed` mounts inside the fence's engine preview
-  (`CrepeEditor.vue` `ck-live-view`), so the collection reads live while
+  lens or a collection body (`{"typeId":"…","name":"…"}` for a type
+  entry, with `parentTypeId`, `parentId`, and `sourceId` for a record's
+  child collection; the mermaid fence precedent: a fence type the
+  pipeline knows; the name rides the fence so a deleted view still
+  renders its name). The read presentation composes with the fences:
+  `splitViewEmbeds` (`shared/markdown.js`) splits the document into
+  markdown segments and embed blocks; segments render through the
+  pipeline, embeds through `ViewEmbed.vue`, which renders the target as
+  a live collection region through the ordinary machinery — a record
+  child composes the parent detail screen's child source over the
+  record scope, a type entry composes the minimal single-list-region
+  screen — materialized by the one [RegionBlock](../ui-mapping/README.md)
+  with a saved view's state as its view models and the view's name as
+  its section title. A collection entry renders the type's live view
+  with the collection header's tabs and add-view affordance. Instances
+  load through the instances store list transport (org scoping and
+  grants ride it — the lens law: an org-wide view shows each member
+  their own readable subset, and an unreadable type renders the denied
+  state), and row opens follow the workspace-open seam. The embed's
+  region carries no actions: creation and quick actions belong to the
+  collection's own screens, and the embed renders the lens; interacting
+  with its controls edits the lens session-locally only. In the live
+  editor the same `ViewEmbed` mounts inside the fence's code-block
+  carrier (`CrepeEditor.vue` `ck-live-view`); the carrier's source
+  chrome drops away and the collection renders as the block, so it reads
+  live while
   the author types; each embed owns a 1rem vertical frame, separating
   neighbouring collection blocks from the collection header's own
   rhythm. A fence naming a deleted view renders its carried name and a

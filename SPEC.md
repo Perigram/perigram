@@ -1462,8 +1462,9 @@ A custom view is a saved representation of an existing collection: the
 per-type view state (search, filters, sort, projection) plus its type,
 named, embeddable as a block on pages and record pages. A view is a
 saved lens: it queries through the ordinary read paths and grants and
-carries no access of its own. A collection view embeds a type's live
-default view; it is a type reference, not a saved view.
+carries no access of its own. A collection view embeds a record's child
+collection, or a type's live default view when no parent record is
+selected; it is a collection reference, not a saved view.
 
 Instance pages carry rights-gated custom blocks around the declared
 content. Declared blocks — the property rows, the collections —
@@ -1488,13 +1489,13 @@ Typing `@` or picking the instance entry opens the shared instance tree
 — home sections, lineage children, and lenient search, the same tree
 chat attachments browse. A pick inserts one atomic chip: it opens the
 record on click and a Backspace at its edge selects it before the next
-removes it. The collection-view picker lists the workspace's actual
-collections — the home sections' list sources, the same set the home
-workspace and the instance tree render — with each collection's saved
-views beneath it; choosing a collection inserts its live default view
-and choosing a saved view inserts that lens. Collection embeds author
-live in the editor, and a pick lands the caret in a fresh paragraph
-after the embed. The image entry
+removes it. The collection-view picker browses the shared instance tree
+— home sections, lineage children, and lenient search, the same tree
+chat attachments browse — then lists the chosen record's child
+collections from its detail screen; choosing a collection embeds it
+scoped to that record, and choosing a saved view embeds the lens beneath
+the same record. Collection embeds author live in the editor, and a pick
+lands the caret in a fresh paragraph after the embed. The image entry
 accepts a stored upload or an address. The file entry accepts any file,
 stored or addressed, and renders through the shared file chip. A slash
 hand-off opens after the selecting click, so the picker or dialog stays

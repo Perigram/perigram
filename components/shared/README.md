@@ -686,7 +686,8 @@ The one instance tree every picker browses (SPEC §26, §22.13): a PrimeVue
 through the SAME compiled home-screen list sources the home sidebar's
 PanelMenu renders — the instances store's `listInstances` with the
 source's resolved filters — so the picker browses the full user-available
-window (shared observation cache, no option-list cap). Entities expand
+window (shared observation cache, no option-list cap). The
+collection-view picker mounts it for its parent-record step. Entities expand
 through pure lineage nesting (`linkedExplorerChildSources` list fetches;
 relation links are skipped so the tree stays a hierarchy). Search is the
 Tree's built-in lenient filter; the sections load on first sight and the

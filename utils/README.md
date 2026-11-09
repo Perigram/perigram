@@ -14,8 +14,8 @@ Parent: [root README](../README.md).
   targets resolve through the served type view.
 - `home-collections.js`: The workspace collection set — the home screen's
   list regions, excluding single-instance sources and parent-bound child
-  sources, with labels through `generatedRegionLabel`. `InstanceTree` and
-  the collection-view picker share this derivation.
+  sources, with labels through `generatedRegionLabel`. `InstanceTree`
+  roots its sections through this derivation.
 
 ## Design System Contract
 
