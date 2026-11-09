@@ -2059,6 +2059,7 @@
         "today": "Сегодня",
         "projectionBoard": "Показать как доску",
         "projectionTable": "Показать как таблицу",
+        "new": "Создать",
         "createCaption": "Создать {type}",
         "createCaptionFromMode": "Создать {type} из {mode}",
         "creationMode": "Способ создания",

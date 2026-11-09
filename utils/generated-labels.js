@@ -54,7 +54,7 @@ function actionTypeOf(action = {}) {
 // an authored label wins; the generic `New <Type>` / `New <Type> from
 // <Mode>` shape translates through `uiMapping.createCaption*` over the
 // one type-label chain and the mode name.
-export function generatedCreateLabel(action = {}, { t, te } = {}) {
+export function generatedCreateLabel(action = {}, { t, te, includeMode = true } = {}) {
   if (!isCreateAction(action)) return null;
   const authored = String(action.label || '').trim();
   const mode = creationModeLabel(action.construction?.mode);
@@ -64,7 +64,7 @@ export function generatedCreateLabel(action = {}, { t, te } = {}) {
     || authored === `New ${baseName} from ${mode}`;
   if (!generic) return authored;
   const typeLabel = generatedEntityLabel(actionTypeOf(action), { t, te });
-  return mode
+  return mode && includeMode
     ? t('uiMapping.createCaptionFromMode', { type: typeLabel, mode })
     : t('uiMapping.createCaption', { type: typeLabel });
 }

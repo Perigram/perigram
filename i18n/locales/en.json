@@ -2059,6 +2059,7 @@
         "today": "Today",
         "projectionBoard": "Show as board",
         "projectionTable": "Show as table",
+        "new": "New",
         "createCaption": "New {type}",
         "createCaptionFromMode": "New {type} from {mode}",
         "creationMode": "Creation mode",

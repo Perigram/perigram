@@ -7,7 +7,7 @@
        separates it from the body, and pane boxes / route shells own the
        frames around it. -->
   <div :class="[spacing ? spacing.stackTight : LAYOUT.stackTight, 'surface-header', LAYOUT.header]">
-    <TraceChain v-if="instance" :entity="instance" :type-id="type?.id || ''" />
+    <TraceChain v-if="instance && !compact" :entity="instance" :type-id="type?.id || ''" />
     <div :class="LAYOUT.headerRow">
       <!-- Contextual navigation slot: a host that opened this record
            inside another surface (a workspace tab reached from another
@@ -22,14 +22,22 @@
       />
       <slot name="navigation" />
       <div :class="[LAYOUT.row, LAYOUT.headerIdentity]">
-        <Avatar v-if="type" :icon="glyph" shape="circle" :size="compact ? undefined : 'large'" class="shrink-0" />
+        <Avatar v-if="type && !compact" :icon="glyph" shape="circle" size="large" class="shrink-0" />
         <div class="flex min-w-0 flex-1 flex-col">
           <div :class="LAYOUT.row" class="min-w-0">
-            <!-- The title edits in place where the surface owns the name:
-                 an editor's chrome channel, a host rename channel, else
-                 the resolved title renders as text. -->
+            <!-- The peek names the record as its lineage trail's last
+                 crumb; every other header renders the editable title. -->
+            <TraceChain
+              v-if="compact && instance"
+              :entity="instance"
+              :type-id="type?.id || ''"
+              :current-label="identity"
+              :current-icon="glyph"
+              include-current
+              class="min-w-0 flex-1"
+            />
             <InputText
-              v-if="renameChannel"
+              v-else-if="renameChannel"
               v-model="nameValue"
               :class="[compact ? 'text-label' : (TYPE_BY_LEVEL[props.level] || 'text-section-heading'), 'min-w-0 w-full']"
               :pt="nameFieldPt"
@@ -89,7 +97,7 @@
           />
         </div>
       </div>
-      <div :class="LAYOUT.row" class="header-actions">
+      <div :class="[LAYOUT.row, compact ? 'ml-auto justify-end' : null]" class="header-actions">
         <!-- The editor chrome cluster (SPEC §4): the bound editor's
              divergence refresh and dirty-marked save render ahead of the
              host entries; an editor that binds nothing renders

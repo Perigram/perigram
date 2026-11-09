@@ -3,7 +3,7 @@
   <Popover ref="popover" @show="onShow" @hide="shown = false">
     <div
       v-if="shown"
-      class="flex max-h-[min(22rem,calc(100dvh-4rem))] w-80 max-w-[calc(100vw-2rem)] flex-col overflow-y-auto"
+      class="flex w-80 max-w-[calc(100vw-2rem)] flex-col"
       @mouseenter="holdPeek"
       @mouseleave="scheduleHide"
       @click="onBodyClick"
@@ -20,8 +20,8 @@
 // into the panel. Clicks keep the trigger's own open behavior — the peek
 // is dismissed by the same click through the popover's outside listener.
 // The panel rides Aura's own chrome: content sits on the preset's
-// popover padding, media bands frame themselves (the framed media
-// region), and the body scrolls past its height bound.
+// popover padding and media bands frame themselves (the framed media
+// region).
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import Popover from 'primevue/popover';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';

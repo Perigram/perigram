@@ -1,11 +1,12 @@
-// The collection header's view control (SPEC §22.15 amendment): the
-// control renders pinned with its localized label on every host, and
-// the header cluster carries full presence — the hover-quiet disclosure
-// is gone. SSR-mount pattern per declaration-authoring. The saved-lens
-// and save-the-view contracts (SPEC §26) pin here too: a provided view
-// state seeds the region's view models (the filter condition count
-// badges the control), the label override names the embed, and the
-// save dialog prompts for a name under the type label.
+// The collection header (SPEC §22.15): the label and its create set
+// lead, the view and filter cluster sits right, search stays an icon
+// until pressed, and the class name rides the create caption only on
+// the empty stub line where the button stands alone. SSR-mount pattern
+// per declaration-authoring. The saved-lens and save-the-view contracts
+// (SPEC §26) pin here too: a provided view state seeds the region's
+// view models (the filter condition count badges the control), the
+// label override names the embed, and the save dialog prompts for a
+// name under the type label.
 import { createSSRApp, h, ref } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { createI18n } from 'vue-i18n';
@@ -55,7 +56,16 @@ const TYPE = { id: 't-widget', label: 'Widget', identifier: 'Name', fields: { Na
 
 // A loaded pool past SEARCH_AT rows makes the search — and with it the
 // view control — available.
-const listNode = () => ({
+const CREATE_ACTION = {
+  id: 'create-widget',
+  actionKind: 'createInstance',
+  typeId: 't-widget',
+  label: 'New Widget',
+  trigger: { mode: 'manual' },
+  construction: { mode: 'genericCreate' }
+};
+
+const listNode = (overrides = {}) => ({
   id: 'region-1',
   surfaceKind: 'list',
   level: 1,
@@ -67,11 +77,12 @@ const listNode = () => ({
     fields: { Name: `Widget ${index}` }
   })),
   listControls: { facets: [], sortKeys: [], searchKeys: ['Name'], defaultSort: null, pagination: { paginateAt: 10, rows: 10 } },
-  actions: [],
+  actions: [CREATE_ACTION],
   childRegions: [],
   dataState: 'ready',
   statePolicy: null,
-  crossCut: false
+  crossCut: false,
+  ...overrides
 });
 
 // Vue hydration anchors carry no DOM footprint; strip them for text
@@ -81,13 +92,27 @@ const plainHtml = html => html
   .replaceAll('<!--]-->', '')
   .replaceAll('<!---->', '');
 
-describe('region header view control', () => {
-  it('renders the search and filter controls at full presence', async () => {
+describe('region header controls', () => {
+  it('renders the search as an icon until pressed and keeps the filter pinned', async () => {
     const html = await render(listNode(), { uiMappingSpacing: SPACING });
-    expect(html).toContain('placeholder="Search"');
+    expect(html).toContain('pi pi-search');
+    expect(html).not.toContain('placeholder="Search"');
     expect(html).toContain('pi pi-filter');
     expect(html).not.toContain('opacity-60');
     expect(html).not.toContain('group-hover');
+  });
+
+  it('renders the bare New beside the label and the full caption on the empty stub line', async () => {
+    const header = await render(listNode(), { uiMappingSpacing: SPACING });
+    expect(header).toContain('>New<');
+    expect(header).not.toContain('New Widget');
+
+    const stub = await render(
+      listNode({ instances: [], dataState: 'empty' }),
+      { uiMappingSpacing: SPACING },
+      { stub: true }
+    );
+    expect(stub).toContain('New Widget');
   });
 });
 

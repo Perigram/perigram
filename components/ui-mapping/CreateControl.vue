@@ -3,6 +3,7 @@
     v-if="!grouped"
     :action="action"
     :state-policy="statePolicy"
+    :label="buttonLabel"
     @run="run"
   />
   <InputGroup v-else>
@@ -41,7 +42,10 @@ const props = defineProps({
   // same-type creates renders the creation-mode selection beside it.
   action: { type: Object, required: true },
   group: { type: Array, default: null },
-  statePolicy: { type: Object, default: null }
+  statePolicy: { type: Object, default: null },
+  // A host-supplied caption that wins over the type caption (a
+  // collection header already naming its class passes the bare "New").
+  label: { type: String, default: null }
 });
 
 const emit = defineEmits(['run']);
@@ -57,9 +61,10 @@ const modeOptions = computed(() => (props.group || []).map(action => ({
   value: action.id
 })));
 // The caption names the created type through the localized create-label
-// chain; the grouped button renders it beside the creation-mode selection.
+// chain; the creation mode lives in the select, never in the caption.
 const resolved = computed(() => resolveActionButton(selectedAction.value, { statePolicy: props.statePolicy }));
-const buttonLabel = computed(() => generatedCreateLabel(selectedAction.value, { t, te })
+const buttonLabel = computed(() => props.label
+  || generatedCreateLabel(selectedAction.value, { t, te, includeMode: false })
   || resolved.value.label
   || selectedAction.value.label);
 const run = action => emit('run', action);
