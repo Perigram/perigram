@@ -883,7 +883,9 @@ solve groups the resulting sheets by composition, joining sheets that
 cut the same designs the same way into one sheet design carrying the
 group's count. Composition is the sheet shape and the multiset of
 placement design keys; placement order, rotation, and translation are
-the solver's arrangement. A supplied `designKey` names the
+the solver's arrangement. Sheet stock is the item count as the
+worst case (one sheet per part); the solver uses only the sheets it
+needs, so a run prompts no sheet count. A supplied `designKey` names the
 cassette-design composition; absent one, the design reference is the
 key. An organization's queue entry holds one design beside its count,
 and nesting reads those entries.

@@ -3046,7 +3046,10 @@ Ordered steps:
   tool diameter arrive by wire, and the tool diameter feeds the solve's
   `space`). Relation construction inputs are scalar for cardinality one
   and labelled by the target type name. The solve action carries no state
-  gate, so a solved attempt keeps its run button for a re-run.
+  gate, so a solved attempt keeps its run button for a re-run. The solve
+  evaluates sheet stock from the item counts and prompts no sheet count;
+  installed facade snapshots are repaired by
+  `server/scripts/retire-nesting-sheet-count.js`.
 
   ### Agent Notes (2026-10-28, family slice)
 
