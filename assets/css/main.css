@@ -661,24 +661,11 @@ body {
     vertical-align: baseline;
 }
 
-/* Collection views author as live regions inside the editor. The code
-   block is only the fence carrier: its source chrome drops away and the
-   collection renders as the block itself. */
+/* Collection views author as live regions inside the editor: the view
+   ref is an atomic block, and the collection renders as the block. */
 .ck-live-view {
     display: block;
     margin: 1rem 0;
-}
-
-.milkdown-code-block:has(.ck-live-view) {
-    margin: 1rem 0;
-    padding: 0;
-    background: transparent;
-}
-
-.milkdown-code-block:has(.ck-live-view) > .tools,
-.milkdown-code-block:has(.ck-live-view) .preview-panel .preview-label,
-.milkdown-code-block:has(.ck-live-view) .preview-panel .preview-divider {
-    display: none;
 }
 
 .ck-document-embed {

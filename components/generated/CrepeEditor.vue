@@ -57,19 +57,19 @@
 // surfaces/lib) and the code/theme assets consumed by relative import.
 // Engine pieces load through dynamic imports so SSR and the browser
 // bundle stay clean.
-import { getCurrentInstance, h, onBeforeUnmount, onMounted, ref, render } from 'vue';
+import { getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Popover from 'primevue/popover';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
-import { renderMarkdown, parseViewRef, stripSerializerTail } from '#shared/markdown.js';
+import { renderMarkdown, stripSerializerTail } from '#shared/markdown.js';
 import InstanceMentionPicker from './InstanceMentionPicker.vue';
 import ImageInsertDialog from './ImageInsertDialog.vue';
 import FileInsertDialog from './FileInsertDialog.vue';
 import ViewPickerDialog from './ViewPickerDialog.vue';
-import ViewEmbed from './ViewEmbed.vue';
 import { createInstanceRefPlugins, insertInstanceRef } from './instance-ref-node.js';
 import { createFileRefPlugins, insertFileRef } from './file-ref-node.js';
+import { createViewRefPlugins, insertViewRef } from './view-ref-node.js';
 
 defineOptions({ inheritAttrs: false });
 
@@ -122,7 +122,6 @@ let editorViewCtx = null;
 let TextSelection = null;
 let pendingRange = null;
 let pendingViewInsert = null;
-const livePreviewHosts = new Set();
 
 function markdownValue() {
   return stripSerializerTail(crepe ? crepe.getMarkdown() : props.defaultValue);
@@ -303,35 +302,6 @@ function runSlashPick(id, view) {
   if (kind !== 'link' && kind !== 'image' && kind !== 'file' && kind !== 'instance' && kind !== 'view') focus();
 }
 
-// The saved-view fence's live presentation inside the live editor.
-function liveViewPreview(content) {
-  const ref = parseViewRef(content);
-  if (!ref) return null;
-  const host = document.createElement('div');
-  host.className = 'ck-live-view';
-  host.contentEditable = 'false';
-  const vnode = h(ViewEmbed, {
-    viewId: ref.id || '',
-    typeId: ref.typeId || '',
-    parentTypeId: ref.parentTypeId || '',
-    parentId: ref.parentId || '',
-    sourceId: ref.sourceId || '',
-    fallbackName: ref.name || ''
-  });
-  vnode.appContext = appContext;
-  render(vnode, host);
-  livePreviewHosts.add(host);
-  return host;
-}
-
-function cleanupDetachedPreviews() {
-  for (const host of livePreviewHosts) {
-    if (host.isConnected) continue;
-    render(null, host);
-    livePreviewHosts.delete(host);
-  }
-}
-
 onMounted(async () => {
   if (!editorHost.value) return;
   const [{ Crepe: CrepeEditor }, { $prose }, { languages: codeLanguages }, { editorViewCtx: viewCtx }, { TextSelection: selectionType }] = await Promise.all([
@@ -362,7 +332,8 @@ onMounted(async () => {
     openImageEditor,
     openFilePicker,
     openInstancePicker,
-    openViewPicker
+    openViewPicker,
+    insertView: insertViewRef
   });
 
   crepe = new CrepeEditor({
@@ -391,7 +362,6 @@ onMounted(async () => {
             host.innerHTML = renderMarkdown(`\`\`\`mermaid\n${String(content || '')}\n\`\`\``);
             return host.querySelector('.mermaid-diagram') || null;
           }
-          if (lang === 'view') return liveViewPreview(content);
           return null;
         }
       }
@@ -406,9 +376,11 @@ onMounted(async () => {
     onMention: openMention
   });
   const fileRef = createFileRefPlugins({ appContext });
+  const viewRef = createViewRefPlugins({ appContext });
   crepe.editor.use([
     instanceRef.schema, instanceRef.view, instanceRef.behavior,
-    fileRef.schema, fileRef.view
+    fileRef.schema, fileRef.view,
+    viewRef.remark, viewRef.schema, viewRef.view
   ]);
   slashMenu = createSlashMenu({
     items: vocabulary.BLOCK_VOCABULARY.map(({ id, labelKey, glyph, glyphText, match }) => ({ id, label: t(labelKey), glyph, glyphText, match })),
@@ -416,7 +388,6 @@ onMounted(async () => {
   });
   crepe.editor.use($prose(() => slashMenu.plugin));
   crepe.on(api => api.markdownUpdated(() => {
-    cleanupDetachedPreviews();
     if (loaded) emit('update', markdownValue());
   }));
   await crepe.create();
@@ -511,8 +482,6 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   loaded = false;
-  for (const host of livePreviewHosts) render(null, host);
-  livePreviewHosts.clear();
   if (editorDiagramClick && editorHost.value) {
     editorHost.value.removeEventListener('click', editorDiagramClick);
     editorDiagramClick = null;

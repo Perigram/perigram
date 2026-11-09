@@ -76,7 +76,7 @@ export function resolveBlockAction(id, state) {
 // `view` its ProseMirror view). The `link` and `image` kinds hand off
 // to the host's address editor. Returns the action kind — a hand-off
 // kind leaves the focus with the host's address input.
-export function applyBlock({ id, state, editor, view, openLinkEditor, openImageEditor, openFilePicker, openInstancePicker, openViewPicker }) {
+export function applyBlock({ id, state, editor, view, openLinkEditor, openImageEditor, openFilePicker, openInstancePicker, openViewPicker, insertView }) {
   const action = resolveBlockAction(id, state);
   if (!action || !editor) return action ? action.kind : null;
   switch (action.kind) {
@@ -122,7 +122,7 @@ export function applyBlock({ id, state, editor, view, openLinkEditor, openImageE
     case 'view':
       // The host resolves the picked saved view; the fence it inserts
       // carries the view ref (`{ id, name }`, the deleted-view name).
-      if (openViewPicker) openViewPicker(ref => insertViewFence(ref, view));
+      if (openViewPicker) openViewPicker(ref => (insertView || insertViewFence)(ref, view));
       break;
     default:
       break;
