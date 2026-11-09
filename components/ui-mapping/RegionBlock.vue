@@ -13,15 +13,15 @@
       :key="`link:${action.id}`"
       :action="action"
       :state-policy="node.statePolicy"
-      :label="sectionLinkLabel(action)"
+      :label="stubLinkLabel(action)"
       @run="emitRun"
     />
   </div>
   <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
     <!-- SPEC §22.15: the header stays one line while the row has room —
-         the label yields first (ellipsis), the controls cluster never
-         wraps internally, and wrapping happens only when the label is at
-         its floor and the controls still overflow the row. -->
+         the label and its create set lead, the view and filter cluster
+         sits right, the label yields first through ellipsis, and the
+         cluster wraps below only when the label is at its floor. -->
     <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
         <span :class="['min-w-0 truncate', embedded ? 'text-label' : 'text-section-heading']">{{ regionLabel }}</span>
@@ -29,6 +29,52 @@
              non-empty collections — a denied or failed source has no
              count, and an empty one states itself through its message. -->
         <Tag v-if="showSurfaces && hasInstances" class="shrink-0" :value="String(node.instances.length)" severity="secondary" />
+        <CreateControl
+          v-for="control in createControls"
+          :key="control.action.id"
+          :action="control.action"
+          :group="control.group"
+          :state-policy="node.statePolicy"
+          :label="createControlLabel(control)"
+          @run="emitRun"
+        />
+        <ActionButton
+          v-for="action in linkControls"
+          :key="`link:${action.id}`"
+          :action="action"
+          :state-policy="node.statePolicy"
+          :label="sectionLinkLabel(action)"
+          @run="emitRun"
+        />
+      </div>
+      <div
+        v-if="searchToggleAvailable || filterToggleAvailable || optionsToggleAvailable || viewTabsAvailable"
+        class="flex shrink-0 flex-wrap items-center justify-end gap-2"
+      >
+        <IconField v-if="searchOpen" class="w-44">
+          <InputIcon class="pi pi-search cursor-pointer" @click="closeSearch" />
+          <InputText
+            ref="searchInput"
+            v-model="search"
+            size="small"
+            class="w-full"
+            :placeholder="$t('uiMapping.searchPlaceholder')"
+            :aria-label="$t('uiMapping.searchPlaceholder')"
+            @keydown.esc="closeSearch"
+            @blur="search || closeSearch()"
+          />
+        </IconField>
+        <Button
+          v-else-if="searchToggleAvailable"
+          icon="pi pi-search"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="$t('uiMapping.searchPlaceholder')"
+          :title="$t('uiMapping.searchPlaceholder')"
+          @click="openSearch"
+        />
         <div v-if="viewTabsAvailable" class="flex min-w-0 flex-wrap items-center gap-1">
           <Button
             :label="defaultViewLabel"
@@ -60,21 +106,6 @@
             @click="saveDialogOpen = true"
           />
         </div>
-      </div>
-      <div
-        v-if="createControls.length || linkControls.length || searchToggleAvailable || filterToggleAvailable || optionsToggleAvailable"
-        class="flex shrink-0 flex-wrap items-center justify-end gap-2"
-      >
-        <IconField v-if="searchToggleAvailable" class="w-44">
-          <InputIcon class="pi pi-search" />
-          <InputText
-            v-model="search"
-            size="small"
-            class="w-full"
-            :placeholder="$t('uiMapping.searchPlaceholder')"
-            :aria-label="$t('uiMapping.searchPlaceholder')"
-          />
-        </IconField>
         <Button
           v-if="filterToggleAvailable"
           icon="pi pi-filter"
@@ -150,56 +181,6 @@
             </div>
           </div>
         </Popover>
-        <template v-if="recordDocument">
-          <Button
-            v-if="createControls.length || linkControls.length"
-            icon="pi pi-plus"
-            size="small"
-            severity="secondary"
-            outlined
-            :aria-label="$t('uiMapping.collectionActions')"
-            :title="$t('uiMapping.collectionActions')"
-            @click="event => controlsPopover?.toggle(event)"
-          />
-          <Popover ref="controlsPopover">
-            <div class="flex w-56 flex-col items-stretch gap-1">
-              <CreateControl
-                v-for="control in createControls"
-                :key="control.action.id"
-                :action="control.action"
-                :group="control.group"
-                :state-policy="node.statePolicy"
-                @run="emitRun"
-              />
-              <ActionButton
-                v-for="action in linkControls"
-                :key="`link:${action.id}`"
-                :action="action"
-                :state-policy="node.statePolicy"
-                :label="sectionLinkLabel(action)"
-                @run="emitRun"
-              />
-            </div>
-          </Popover>
-        </template>
-        <template v-else>
-          <CreateControl
-            v-for="control in createControls"
-            :key="control.action.id"
-            :action="control.action"
-            :group="control.group"
-            :state-policy="node.statePolicy"
-            @run="emitRun"
-          />
-          <ActionButton
-            v-for="action in linkControls"
-            :key="`link:${action.id}`"
-            :action="action"
-            :state-policy="node.statePolicy"
-            :label="sectionLinkLabel(action)"
-            @run="emitRun"
-          />
-        </template>
       </div>
     </div>
     <RegionDataState v-if="showState" :node="node" />
@@ -324,7 +305,7 @@
             <ProgressBar v-if="isReloading" mode="indeterminate" class="h-full" :aria-label="$t('uiMapping.loadingRegion')" />
           </div>
         </div>
-        <div v-if="splitSide" class="region-split grid w-full grid-cols-1 gap-6" :style="splitTracks">
+        <div v-if="splitSide && presentation !== 'peek'" class="region-split grid w-full grid-cols-1 gap-6" :style="splitTracks">
           <div class="min-w-0 flex flex-col gap-6">
             <SurfaceBody
               v-bind="bodyProps"
@@ -376,7 +357,7 @@
               </template>
             </SurfaceBody>
             <RegionChildren
-              v-if="node.childRegions.length && !documentComposing"
+              v-if="node.childRegions.length && !documentComposing && presentation !== 'peek'"
               v-bind="childrenProps"
               v-on="childrenEvents"
               :arrangement="node.childArrangement"
@@ -396,14 +377,14 @@
         v-on="bodyEvents"
       />
       <RegionChildren
-        v-if="node.childRegions.length"
+        v-if="node.childRegions.length && presentation !== 'peek'"
         v-bind="childrenProps"
         v-on="childrenEvents"
         :arrangement="node.childArrangement"
       />
     </template>
     <RegionChildren
-      v-if="showSurfaces && node.stubRegions?.length && !editorSurface"
+      v-if="showSurfaces && node.stubRegions?.length && !editorSurface && presentation !== 'peek'"
       v-bind="childrenProps"
       v-on="childrenEvents"
       :regions="node.stubRegions"
@@ -419,7 +400,7 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, provide, ref, watch } from 'vue';
+import { computed, inject, nextTick, onMounted, provide, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
@@ -718,6 +699,13 @@ const emitPatchFor = (instance, changes) => {
 const emitPatch = changes => emitPatchFor(props.node.instances[0], changes);
 const inlineChange = ({ name, value } = {}) => emitPatch({ [name]: value });
 const emitRun = (action, context) => emit('run', action, context);
+// The header already names the collection's class, so its own create
+// collapses to the bare "New"; a create for another type keeps its type
+// caption. The empty stub line renders the create alone and keeps the
+// full caption.
+const createControlLabel = control => (control.action.typeId === props.node.typeId
+  ? localizedLabel({ te, t }, 'uiMapping.new', 'New')
+  : null);
 const bodyEvents = {
   run: emitRun,
   'inline-change': inlineChange,
@@ -732,6 +720,9 @@ const sectionLinkLabel = action => {
     ? t('common.link')
     : generatedActionLabel(action, action.id, { t, te });
 };
+// The empty stub line renders its link alone, so the caption names the
+// target class.
+const stubLinkLabel = action => generatedActionLabel(action, action.id, { t, te });
 const instanceActionsForType = computed(() => props.instanceActions?.[props.node.typeId] || []);
 // The collection toolbar renders type-level actions only: creates. Every
 // other action kind addresses a concrete instance (delete, transitions,
@@ -833,13 +824,26 @@ const coveredRelationKeys = computed(() => [...props.node.childRegions, ...(prop
 // Region-local search state over the composed list-controls contract;
 // the query applies client-side over the loaded instances. The filter
 // tree is persisted view state per type and is evaluated with the one
-// matcher (`instanceMatchesFilter`) against the region's pool. Search,
-// filters, the projection switch, and the sort keys live behind the one
-// view control (SPEC §22.15); its badge carries the active filter
-// condition count.
+// matcher (`instanceMatchesFilter`) against the region's pool. The
+// view and filter cluster sits at the header's trailing end (SPEC
+// §22.15); the filter badge carries the active condition count.
 const search = ref(savedViewState.value?.search || '');
 const searchToggleAvailable = computed(() => props.node.surfaceKind === 'list'
   && Boolean(props.node.typeId || props.node.listControls));
+// Search stays an icon until pressed, then expands in place; an active
+// query keeps it open.
+const searchOpen = ref(Boolean(search.value));
+const searchInput = ref(null);
+function openSearch() {
+  searchOpen.value = true;
+  nextTick(() => searchInput.value?.$el?.focus?.());
+}
+function closeSearch() {
+  searchOpen.value = false;
+}
+watch(search, value => {
+  if (value) searchOpen.value = true;
+});
 // Filterable fields: the type's scalar fields plus relation, parent, and
 // children traversal axes, with the primary status over the values
 // actually present. The name axis always exists, so every list surface
@@ -910,7 +914,6 @@ watch(() => props.node.id, () => {
 });
 const filterPopover = ref();
 const optionsPopover = ref();
-const controlsPopover = ref();
 
 // View setup's field selection (SPEC §26): the user's explicit column
 // set per type, derived when absent.
@@ -1010,6 +1013,7 @@ async function selectSavedView(view) {
 function selectDefaultView() {
   activeViewId.value = null;
   search.value = '';
+  searchOpen.value = false;
   projectionPreference.value = loadProjectionPreference(projectionScope.value);
   builderFilter.value = loadFilterViewState(builderScope.value);
   const restored = loadSortPreference(sortScope.value);

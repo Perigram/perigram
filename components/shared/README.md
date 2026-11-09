@@ -410,9 +410,10 @@ peek presentation. `scopedDetailScreen`
 ([generated surfaces](../generated/README.md)) binds the compiled
 detail screen (or the synthesized pair, or the record floor) to the
 record; `GeneratedScreenHost presentation="peek"` renders the record
-preview, the lineage trail, the compact identity line with its state
-tag, the record's action cluster, and the body's leading facts, and the
-popover body provides the measured `popup` container profile. Rendered inside
+preview, the lineage trail with the record name as its last crumb (or
+sole crumb), the state tag, the record's action cluster, and the
+body's leading fact group, and the popover body provides the measured
+`popup` container profile. Rendered inside
 [`HoverPeek.vue`](#hoverpeekvue) by every instance-chip trigger; the
 trigger gates the peek on the record being openable. Identity opens from
 the generator swap the peek subject in place; the header's step-up
@@ -431,8 +432,8 @@ body emits
 `open` (nested interactive controls keep their own clicks). The panel is
 a 20rem column riding Aura's own chrome — the preset's popover padding
 spaces the body from the panel border, media bands frame themselves as
-the framed media region, and the body scrolls past its 22rem height
-bound.
+the framed media region, and the body composes its preview and leading
+facts without a scroll container.
 
 ### `chip-surface.js`
 The chip recipe home: `CHIP_LABEL_PT` (the truncating label passthrough),
@@ -896,7 +897,9 @@ transcription stay in the host composer.
   its middle behind an ellipsis that reveals it.
   Crumbs open the shared record popup (`useEntityPopup`) — the one
   interactive-reference law — and render as plain text when the ancestor's
-  type resolves no record surface.
+  type resolves no record surface. `includeCurrent` appends the record
+  itself as the final crumb; `currentLabel`/`currentIcon` supply that
+  crumb's display (the record peek's identity line).
   Entity card bodies must not duplicate these supported lineage parents as
   `InstanceInlineRef` rows or generated `entityRef` fields; keep body relation
   rows for non-lineage provenance and relations that TraceChain does not own.

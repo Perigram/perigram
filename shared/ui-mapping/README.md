@@ -504,9 +504,10 @@ set: creates targeting one type become a single control
 contract order (a sole create is its own single-entry group), so a type
 with several creation modes renders one affordance. The control's own
 materialization (`CreateControl`) groups the creation-mode selection with
-the create button in one PrimeVue `InputGroup`; the button dispatches
-the selected action, which follows the ordinary launch contract (its
-params dialog, or a direct run for a mode without prompted inputs).
+the create button in one PrimeVue `InputGroup`; the button caption names
+the created type without the mode and dispatches the selected action,
+which follows the ordinary launch contract (its params dialog, or a
+direct run for a mode without prompted inputs).
 
 ## Budgets
 

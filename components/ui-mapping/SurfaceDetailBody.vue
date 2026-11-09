@@ -74,7 +74,7 @@
              block above. -->
         <div :class="documentBody ? d.stack : LAYOUT.bodyGrid">
           <section
-            v-for="group in groups"
+            v-for="group in visibleGroups"
             :key="group.id"
             :class="d.stackTight"
           >
@@ -96,7 +96,7 @@
                  on the record page: a labeled open block per field, rendered in
                  the open. The declaration pencil rides the label for holders
                  (SPEC §1). -->
-            <template v-for="field in structuralOf(group)" :key="field.name">
+            <template v-for="field in peekPresentation ? [] : structuralOf(group)" :key="field.name">
               <div v-if="isRichStructure(field)" :class="LAYOUT.labeledBlock">
                 <div class="group/ck-field flex items-center gap-1">
                   <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
@@ -127,7 +127,7 @@
               </div>
             </template>
             <div
-              v-for="field in inlineMapsOf(group)"
+              v-for="field in peekPresentation ? [] : inlineMapsOf(group)"
               :key="field.name"
               :class="LAYOUT.labeledBlock"
             >
@@ -146,7 +146,7 @@
           </section>
 
           <RelationChipSection
-            v-for="relation in documentBody ? [] : relationViews"
+            v-for="relation in documentBody || peekPresentation ? [] : relationViews"
             :key="relation.key"
             :relation="relation"
             :instance="instance"
@@ -223,8 +223,10 @@ const hostTraits = useHostContainerTraits();
 const embedded = inject('uiMappingEmbedded', false);
 // The record document body (SPEC §22.17): the full variant in the record
 // presentation leads with the property block and stacks its open sections
-// full width. The peek and nested Card variants keep the fill grammar.
+// full width. The peek keeps the preview and the leading fact group; the
+// nested Card variants keep the fill grammar.
 const documentBody = computed(() => props.variant === 'full' && props.presentation === 'record');
+const peekPresentation = computed(() => props.presentation === 'peek');
 
 // One structural panel edits at a time (SPEC UI): the parent owns the
 // editing field name, StructuralFieldPanel owns its draft.
@@ -313,6 +315,11 @@ const hasValue = field => field.value !== null
 // that value); every body grammar below inherits the cut.
 const scalarsOf = group => group.fields.filter(field => isScalarFact(field) && hasValue(field));
 const propertyGroups = computed(() => groups.value.filter(group => scalarsOf(group).length > 0));
+// The peek body is the record's preview and its leading fact group — the
+// bounded panel composes, never scrolls (SPEC §22.14).
+const visibleGroups = computed(() => (peekPresentation.value
+  ? propertyGroups.value.slice(0, 1)
+  : groups.value));
 const factRowsOf = group => scalarsOf(group);
 const openSectionCount = group => structuralOf(group).length + inlineMapsOf(group).length;
 const structuralOf = group => group.fields.filter(field => !isScalarFact(field) && !isQuantityMap(field) && editableNow(field));
