@@ -468,6 +468,17 @@ export const primeSemanticTokens = {
 // per-instance through pt, which also owns what tokens cannot
 // express: label size, the +/− glyph, and state-dependent chrome).
 export const primeComponentTokens = {
+    chip: {
+        root: {
+            paddingX: '0.5em',
+            paddingY: '0',
+            gap: '0.375em',
+            borderRadius: '{border.radius.sm}'
+        },
+        icon: {
+            size: '1em'
+        }
+    },
     fieldset: {
         root: {
             padding: '0 0.75rem 0.75rem'

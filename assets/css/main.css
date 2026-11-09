@@ -640,20 +640,10 @@ body {
     line-height: 1.25rem;
 }
 
-/* Inline instance links read as atomic chips in the in-place editor; the
-   read composition mounts the shared InstanceInlineRef component. */
-.ck-inline-editor.crepe-host .milkdown .ProseMirror a[href^="#instance:"] {
-    display: inline-flex;
-    align-items: baseline;
-    border: 1px solid var(--p-content-border-color);
-    border-radius: 999px;
-    padding: 0 0.5rem;
-    background: transparent;
-    color: var(--p-text-muted-color);
-    font-family: var(--ck-font-ui);
-    font-size: 0.875em;
-    line-height: 1.5;
-    text-decoration: none;
+/* The engine reset zeroes every descendant's padding; the chip marker
+   restores the chip token padding inside the editor. */
+.milkdown .ck-chip {
+    padding: var(--p-chip-padding-y) var(--p-chip-padding-x);
 }
 
 .ck-instance-ref {

@@ -205,6 +205,15 @@ describe('Design system manifest', () => {
     expect(tailwindConfig).toContain("'./packages/*/src/editors/**/*.{vue,js}'");
     expect(tailwindConfig).toContain("'./workers/facade/surfaces/**/*.{js,mjs}'");
     expect(primeComponentTokens).toEqual({
+      chip: {
+        root: {
+          paddingX: '0.5em',
+          paddingY: '0',
+          gap: '0.375em',
+          borderRadius: '{border.radius.sm}'
+        },
+        icon: { size: '1em' }
+      },
       fieldset: {
         root: { padding: '0 0.75rem 0.75rem' },
         legend: { padding: '0.25rem 0.5rem', gap: '0.375rem' }
@@ -331,9 +340,10 @@ describe('Design system manifest', () => {
     expect(HOST_PROFILES.dialog.density).toBe(1);
     expect(HOST_PROFILES.pane.density).toBe(0.75);
     // Chips ride the bordered recipe (SPEC §22.8): the classes carry the
-    // clamps, the border, the inline layout, and the supporting face.
-    expect(FILE_CHIP_CLASS).toBe('min-w-0 max-w-full border border-content-border bg-subtle !inline-flex items-center gap-[0.375em] !px-[0.5em] !py-0 rounded-[var(--p-border-radius-sm)] align-baseline font-sans font-normal text-[0.875em] leading-none');
-    expect(INSTANCE_CHIP_CLASS).toBe('min-w-0 max-w-full border border-content-border bg-transparent !inline-flex items-center gap-[0.375em] !px-[0.5em] !py-0 rounded-[var(--p-border-radius-sm)] align-baseline font-sans font-normal text-[0.875em] leading-none');
+    // clamps, the border, the inline typography, and the surface role;
+    // chip component tokens own padding, gap, radius, and the icon box.
+    expect(FILE_CHIP_CLASS).toBe('border border-content-border bg-subtle ck-chip min-w-0 max-w-full items-baseline font-sans font-normal text-[0.875em] leading-none');
+    expect(INSTANCE_CHIP_CLASS).toBe('border border-content-border bg-transparent ck-chip min-w-0 max-w-full items-baseline font-sans font-normal text-[0.875em] leading-none');
     expect(Object.keys(designTokens.typography.roles)).toEqual([
       'page-title',
       'record-title',
