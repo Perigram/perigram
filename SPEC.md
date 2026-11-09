@@ -1070,8 +1070,8 @@ its child collections alone; the hierarchy tree projection is retired.
 File and instance references render through the shared chip recipes the
 chat surfaces own: file chips name the file and carry its file-type
 glyph, instance chips ride InstanceInlineRef's bordered default and
-carry the authored type glyph at the same icon scale. Inline chips ride
-compact padding and middle alignment inside prose. A boolean renders as the checkbox
+carry the authored type glyph at the same icon scale. Inline chips are
+one-line 24px pills with middle alignment inside prose. A boolean renders as the checkbox
 state it is. A record's identifier carries its icon (the authored
 glyph, a record's declared thumb winning) through the one identifier
 surface; type names render bare — a collection's title bar labels its

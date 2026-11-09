@@ -438,11 +438,13 @@ The chip recipe home: `CHIP_LABEL_PT` (the truncating label
 passthrough), `FILE_CHIP_CLASS`, `INSTANCE_CHIP_CLASS`. Every chip the
 app renders — file chips, instance chips, card identity chips —
 consumes these; a second copy of a chip class string is a defect.
-Instance and file chips ride compact padding (`!px-2 !py-0.5`) and
-middle alignment so they sit inside prose at its line box. Generated-family icon glyphs (`ck-entity-icon`/`ck-file-type-icon`)
-drop their standalone scale inside chips, so every chip icon fills the
-same PrimeIcon em box. Collection counts render as a `Tag` with
-`secondary` severity.
+Instance and file chips are one-line 24px pills (`h-6 !px-2 !py-0`,
+middle alignment, leading-none label) so they sit inside prose at its
+line box. Generated-family icon glyphs
+(`ck-entity-icon`/`ck-file-type-icon`) drop their standalone scale inside
+chips, so every chip icon fills the same PrimeIcon em box. An unresolved
+instance reference wears the same chip face. Collection counts render as
+a `Tag` with `secondary` severity.
 
 ### `InstanceSelect.vue` / `InstanceMultiSelect.vue`
 The entity dropdown wrappers: options carrying an entity render as

@@ -142,8 +142,8 @@
 - File chips render the file-type glyph family (mime or extension
   derived), and generated-family icons drop their standalone scale
   inside chips, so file and instance chip icons share one em box.
-- Inline instance/file chips ride compact padding (`!px-2 !py-0.5`) and
-  middle alignment.
+- Inline instance/file chips are one-line 24px pills (`h-6 !px-2
+  !py-0`), and an unresolved instance reference wears the same face.
 
 ### Agent Notes (2026-11-08, agent/trailing-block-20261108)
 
