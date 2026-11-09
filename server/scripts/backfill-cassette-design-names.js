@@ -5,9 +5,11 @@
 //
 //   node server/scripts/backfill-cassette-design-names.js
 //   node server/scripts/backfill-cassette-design-names.js --apply
+//   node server/scripts/backfill-cassette-design-names.js --replace-placeholders --apply
 import { connectDB } from '../db/mongo.js';
 
 const APPLY = process.argv.includes('--apply');
+const REPLACE_PLACEHOLDERS = process.argv.includes('--replace-placeholders');
 const db = await connectDB();
 const files = db.collection('files');
 
@@ -38,10 +40,15 @@ const boundsName = (geometry) => {
   return width > 0 && height > 0 ? `Cassette design ${Math.round(width)}×${Math.round(height)}` : '';
 };
 
+const isPlaceholderName = (value) => {
+  const name = String(value || '').trim();
+  return !name || name.length === 1 || /^[\p{P}\p{S}]+$/u.test(name);
+};
+
 const nameFor = (record) => {
   const fields = record.fields || {};
-  if (String(record.name || '').trim()) return '';
-  if (String(fields.name || '').trim()) return '';
+  const current = String(record.name || fields.name || '').trim();
+  if (current && !(REPLACE_PLACEHOLDERS && isPlaceholderName(current))) return '';
   const templateName = templateNames.get(templateIdOf(fields.template));
   if (templateName) {
     const signature = parameterSignature(fields.parameters);
