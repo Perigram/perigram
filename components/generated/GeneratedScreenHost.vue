@@ -24,6 +24,7 @@
     :on-patch="runGeneratedPatch"
     :on-open="openInstance"
     :navigation="navigation"
+    :header-target="headerTarget"
     :expandable="expandable"
     :keep-empty-lists="keepEmptyLists"
     :export-actions="exportActionsByType"
@@ -110,6 +111,8 @@ const props = defineProps({
   // hosts that opened this record inside another surface feed it so a
   // detail deep link can return to where the user came from.
   navigation: { type: Object, default: null },
+  // Host-owned DOM target for the depth-0 record header.
+  headerTarget: { type: Object, default: null },
   // The depth-0 record treatment: `record` renders the record header's
   // page chrome, `peek` its compact identity line over the body.
   presentation: { type: String, default: 'record' },

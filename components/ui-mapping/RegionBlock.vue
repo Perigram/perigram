@@ -268,36 +268,38 @@
       </template>
       <template v-else-if="showSurfaces">
         <div class="relative">
-          <SurfaceHeader
-            :type="node.type"
-            :instance="node.instances[0]"
-            :actions="headerActions"
-            :level="node.level"
-            :bundle="bundle"
-            :state-policy="node.statePolicy"
-            :navigation="depth === 0 ? navigation : null"
-            :compact="presentation === 'peek'"
-            :expandable="expandable"
-            :on-rename="recordRename"
-            @run="action => emitRun(action, { instance: node.instances[0] || null })"
-            @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
-            @refresh="emit('refresh')"
-            @open-instance="emitOpen"
-            @expand="emit('expand')"
-          >
-            <template #cluster>
-              <Button
-                v-if="recordOverlaySession?.dirty"
-                :label="t('common.save')"
-                icon="pi pi-save"
-                size="small"
-                text
-                severity="secondary"
-                :loading="recordOverlaySession.saving"
-                @click="saveOverlay"
-              />
-            </template>
-          </SurfaceHeader>
+          <Teleport :to="headerTarget || 'body'" :disabled="!headerTarget">
+            <SurfaceHeader
+              :type="node.type"
+              :instance="node.instances[0]"
+              :actions="headerActions"
+              :level="node.level"
+              :bundle="bundle"
+              :state-policy="node.statePolicy"
+              :navigation="depth === 0 ? navigation : null"
+              :compact="presentation === 'peek'"
+              :expandable="expandable"
+              :on-rename="recordRename"
+              @run="action => emitRun(action, { instance: node.instances[0] || null })"
+              @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
+              @refresh="emit('refresh')"
+              @open-instance="emitOpen"
+              @expand="emit('expand')"
+            >
+              <template #cluster>
+                <Button
+                  v-if="recordOverlaySession?.dirty"
+                  :label="t('common.save')"
+                  icon="pi pi-save"
+                  size="small"
+                  text
+                  severity="secondary"
+                  :loading="recordOverlaySession.saving"
+                  @click="saveOverlay"
+                />
+              </template>
+            </SurfaceHeader>
+          </Teleport>
           <!-- The record's reload lane: a permanent 4px track under the
                header the strip appears inside — bounded, touching no
                content, and its appearance shifts nothing below. -->
@@ -472,6 +474,8 @@ const props = defineProps({
   // Host-injected contextual back affordance for the record header
   // (`{ icon, label, command }` — SurfaceHeader's navigation channel).
   navigation: { type: Object, default: null },
+  // Host-owned DOM target for the depth-0 record header.
+  headerTarget: { type: Object, default: null },
   // The depth-0 detail treatment: `record` renders the record header's
   // page chrome; `peek` renders its compact identity line over the body.
   presentation: { type: String, default: 'record' },
