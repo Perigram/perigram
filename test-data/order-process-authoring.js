@@ -15,7 +15,7 @@ export function emptyAuthoringDomain() {
 
 export function composeOrderTree(authoring) {
   authoring.declareClass({ id: 'orderClass', typeId: 'facade-order', class: 'group', name: 'Facade order' });
-  authoring.declareClass({ id: 'entryClass', typeId: 'nesting-entry', class: 'item', name: 'Nesting entry' });
+  authoring.declareClass({ id: 'entryClass', typeId: 'queue-entry', class: 'item', name: 'Queue entry' });
   authoring.declareClass({ id: 'attemptClass', typeId: 'nesting-attempt', class: 'item', name: 'Nesting attempt' });
   authoring.declareField({ id: 'entryLabelField', ownerClassId: 'entryClass', name: 'label', descriptor: { base: 'string', identifier: true } });
   authoring.declareField({ id: 'entryDesignField', ownerClassId: 'entryClass', name: 'design', descriptor: { base: 'ref' } });
@@ -98,28 +98,39 @@ export function composeOrderGraph(authoring, tableType) {
 
   authoring.drop('extractProjection', { id: 'polygons' });
   authoring.configure('polygons', { typeId: 'cassette-design', projection: 'nesting-polygons' });
-  authoring.drop('constructRecord', { id: 'jobItems' });
-  authoring.configure('jobItems', { fields: ['designKey', 'polygonParts', 'count'] });
-  authoring.drop('literal', { id: 'one' });
-  authoring.configure('one', { type: { base: 'number', nullable: false, unit: 'count' }, value: 1 });
-  authoring.drop('recordField', { id: 'rowCassette' });
-  authoring.configure('rowCassette', { path: 'cassette', type: { base: 'string', nullable: true } });
   authoring.drop('recordField', { id: 'rowCount' });
   authoring.configure('rowCount', { path: 'count', type: { base: 'number', nullable: true, unit: 'count' } });
   authoring.drop('coalesceValue', { id: 'countValue' });
   authoring.configure('countValue', { type: { base: 'number', nullable: false, unit: 'count' } });
-  authoring.drop('constructRecord', { id: 'designKeyRecord' });
-  authoring.configure('designKeyRecord', { fields: ['cassette', 'A', 'B'] });
-  authoring.drop('formatValue', { id: 'designKey' });
-  authoring.configure('designKey', { type: { base: 'string', nullable: false }, template: '{cassette}|{A}|{B}' });
+  authoring.drop('literal', { id: 'one' });
+  authoring.configure('one', { type: { base: 'number', nullable: false, unit: 'count' }, value: 1 });
 
   authoring.drop('construct', { id: 'mkEntry' });
   authoring.wireDeclaration('entryClass', 'mkEntry', 'binds');
   authoring.configure('mkEntry', { access: adminAccess });
-  authoring.setInputDefault('mkEntry', 'fields.label', 'Nesting entry');
-  authoring.setInputDefault('mkEntry', 'fields.count', 1);
+  authoring.setInputDefault('mkEntry', 'fields.label', 'Queue entry');
+
+  authoring.drop('childEntities', { id: 'orderChildren' });
+  authoring.configure('orderChildren', { typeId: 'facade-order' });
+  authoring.drop('getField', { id: 'entryType' });
+  authoring.configure('entryType', { typeId: 'queue-entry', path: 'type' });
+  authoring.drop('literal', { id: 'entryTypeLiteral' });
+  authoring.configure('entryTypeLiteral', { type: { base: 'string', nullable: false }, value: 'queue-entry' });
+  authoring.drop('compareValues', { id: 'entryMask' });
+  authoring.configure('entryMask', { operation: 'eq' });
+  authoring.drop('filterList', { id: 'entryList' });
+  authoring.drop('joinByKey', { id: 'entryParts' });
+  authoring.configure('entryParts', { leftKey: 'fields.design', rightKey: 'designId' });
+  authoring.drop('recordField', { id: 'entryDesignId' });
+  authoring.configure('entryDesignId', { path: 'right.designId', type: { base: 'id' } });
+  authoring.drop('recordField', { id: 'entryPolygonParts' });
+  authoring.configure('entryPolygonParts', { path: 'right.polygonParts', type: { base: 'json' } });
+  authoring.drop('recordField', { id: 'entryQuantity' });
+  authoring.configure('entryQuantity', { path: 'left.fields.count', type: { base: 'number', nullable: false, unit: 'count' } });
+  authoring.drop('constructRecord', { id: 'jobItems' });
+  authoring.configure('jobItems', { fields: ['designId', 'polygonParts', 'count'] });
   authoring.drop('getField', { id: 'entryDesign' });
-  authoring.configure('entryDesign', { typeId: 'nesting-entry' });
+  authoring.configure('entryDesign', { typeId: 'queue-entry' });
   authoring.setInputDefault('entryDesign', 'field', 'fields.design');
   authoring.drop('construct', { id: 'mkCassette' });
   authoring.wireDeclaration('cassetteInstanceRef', 'mkCassette', 'binds');
@@ -213,16 +224,12 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('pairs', 'data:pairs', 'rowTemplate', 'data:value');
   authoring.connect('rows', 'data:result', 'paramA', 'data:value');
   authoring.connect('rows', 'data:result', 'paramB', 'data:value');
-  authoring.connect('rows', 'data:result', 'rowCassette', 'data:value');
   authoring.connect('rows', 'data:result', 'rowCount', 'data:value');
   authoring.connect('paramA', 'data:value', 'params', 'data:A');
   authoring.connect('paramB', 'data:value', 'params', 'data:B');
-  authoring.connect('rowCassette', 'data:value', 'designKeyRecord', 'data:cassette');
-  authoring.connect('paramA', 'data:value', 'designKeyRecord', 'data:A');
-  authoring.connect('paramB', 'data:value', 'designKeyRecord', 'data:B');
-  authoring.connect('designKeyRecord', 'data:record', 'designKey', 'data:record');
   authoring.connect('rowCount', 'data:value', 'countValue', 'data:value');
   authoring.connect('one', 'data:value', 'countValue', 'data:fallback');
+  authoring.connect('countValue', 'data:value', 'mkEntry', 'data:fields.count');
   authoring.connect('bake', 'data:result', 'mkEntry', 'data:fields.design');
   authoring.connect('order', 'data:result', 'mkEntry', `data:lineage.${ORDER_LINEAGE_KEY}`);
   authoring.connect('mkEntry', 'data:result', 'entryDesign', 'data:entity');
@@ -239,10 +246,21 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('thicknesses', 'data:value', 'materials', 'data:fields.thickness');
   authoring.connect('order', 'data:result', 'materials', `data:lineage.${ORDER_LINEAGE_KEY}`);
 
-  authoring.connect('bake', 'data:result', 'polygons', 'data:entity');
-  authoring.connect('polygons', 'data:result', 'jobItems', 'data:polygonParts');
-  authoring.connect('designKey', 'data:value', 'jobItems', 'data:designKey');
-  authoring.connect('countValue', 'data:value', 'jobItems', 'data:count');
+  authoring.connect('order', 'data:result', 'orderChildren', 'data:entity');
+  authoring.connect('orderChildren', 'data:result', 'entryType', 'data:entity');
+  authoring.connect('entryType', 'data:value', 'entryMask', 'data:left');
+  authoring.connect('entryTypeLiteral', 'data:value', 'entryMask', 'data:right');
+  authoring.connect('orderChildren', 'data:result', 'entryList', 'data:items');
+  authoring.connect('entryMask', 'data:result', 'entryList', 'data:mask');
+  authoring.connect('orderChildren', 'data:result', 'polygons', 'data:entity');
+  authoring.connect('entryList', 'data:items', 'entryParts', 'data:left');
+  authoring.connect('polygons', 'data:result', 'entryParts', 'data:right');
+  authoring.connect('entryParts', 'data:pairs', 'entryDesignId', 'data:value');
+  authoring.connect('entryParts', 'data:pairs', 'entryPolygonParts', 'data:value');
+  authoring.connect('entryParts', 'data:pairs', 'entryQuantity', 'data:value');
+  authoring.connect('entryDesignId', 'data:value', 'jobItems', 'data:designId');
+  authoring.connect('entryPolygonParts', 'data:value', 'jobItems', 'data:polygonParts');
+  authoring.connect('entryQuantity', 'data:value', 'jobItems', 'data:count');
   authoring.connect('materials', 'data:result', 'loop', 'data:items');
   authoring.connect('loop', 'data:item', 'matWidth', 'data:entity');
   authoring.connect('loop', 'data:item', 'matHeight', 'data:entity');
