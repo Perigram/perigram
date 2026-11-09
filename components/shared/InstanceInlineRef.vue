@@ -453,9 +453,9 @@ function executeContextualAction(action) {
           <InstancePeek :type-id="servedTypeId" :instance-id="resolvedId" />
         </template>
       </HoverPeek>
-      <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted" data-instance-card-interactive="true">
+      <span v-else :class="[INSTANCE_CHIP_CLASS, 'text-muted']" data-instance-card-interactive="true">
         <i :class="icon" class="shrink-0"></i>
-        <span class="truncate">{{ resolvedId ? unresolvedLabel : $t('common.notAvailable') }}</span>
+        <span class="truncate leading-none">{{ resolvedId ? unresolvedLabel : $t('common.notAvailable') }}</span>
       </span>
       <i
         v-if="revision && resolved"
