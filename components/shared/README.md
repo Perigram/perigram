@@ -779,9 +779,11 @@ Inline refs, compact micro cards, and inline entity-card chips open it
 (see [`InstanceInlineRef.vue`](#instanceinlinerefvue)); its expand action
 steps the record up to its page, so a ref discovered inside a workspace
 still lands in the pane.
-The dialog header carries only the icon-only expand action beside the
-dialog's own close — the record header inside the dialog is the record's
-one identity surface (SPEC §22.8). An action the hosted surface runs
+The dialog header seats the record header itself: `GeneratedScreenHost`
+teleports the depth-0 `SurfaceHeader` into the header target, so the
+popup title and its action cluster are the record's one identity
+surface, with the icon-only expand action and the dialog's close
+trailing them (SPEC §22.8). An action the hosted surface runs
 that opens another surface — a workspace tab, the chat drawer — closes
 the popup: the popup never floats over a
 surface it opened. The

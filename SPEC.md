@@ -925,12 +925,15 @@ in every host — label, count chip, controls — a collection
 surface is never titleless. A record page keeps its full header in
 every host — identity block, state surface, actions — beside its
 collections.
-One header anatomy serves every page surface — instance pages, editor
-pages, custom pages: breadcrumbs where lineage exists, the title
-(in-place editable where the surface owns the name), the type label
-beside it, the state surface, and the action cluster (save for
-dirty-able surfaces, the comments entry, overflow). Custom pages render
-no type label and no state surface.
+One header anatomy serves every page and record-popup surface — instance
+pages, editor pages, custom pages, the record popup: breadcrumbs where
+lineage exists, the title (in-place editable where the surface owns the
+name), the type label beside it, the state surface, and the action
+cluster (save for dirty-able surfaces, the comments entry, overflow).
+The popup seats this header in its own dialog header, so the popup title
+and its buttons are the record header, with the close and step-up
+actions trailing it. Custom pages render no type label and no state
+surface.
 
 ### 22.4 Presentation has one home per concern (owner direction 2026-10-21)
 Action presentation, action applicability, and record/picker labels
@@ -1157,9 +1160,12 @@ whole body opens the record. Record pages carry the record's lineage
 trail above the identity line; the peek folds the name into that trail.
 Record pages add the type byline and lifecycle history; the peek header
 keeps the action cluster and carries the step-up affordance that opens
-the record as its own workspace page. The record popup rides the compact
-rhythm (bounded hosts compact) and arrangement decisions see its
-measured width, so a wide popup composes at its real width.
+the record as its own workspace page. The record popup seats that header
+in its dialog header, so the popup carries one title surface with its
+action cluster and no second header inside the content. The record popup
+rides the compact rhythm (bounded hosts compact) and arrangement
+decisions see its measured width, so a wide popup composes at its real
+width.
 ### 22.15 Collection headers and the table floor (owner direction
 2026-10-29; header ends 2026-11-09)
 
