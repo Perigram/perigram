@@ -286,7 +286,8 @@ the `section` field set.
   document's trailing line is a
   real inline engine mount, empty and type-ready for writers, rendered
   only while no block editor holds focus; Enter commits it as a block
-  and Backspace in its empty line resumes the last text block. The composition and its authoring
+  and Backspace in its empty line resumes the last text block. Arrow keys
+  at a text block's visual edge continue in the adjacent text block. The composition and its authoring
   affordances live in
   [components/ui-mapping](../ui-mapping/README.md) (the record
   document's overlay); the overlay store and the write-grant gate are

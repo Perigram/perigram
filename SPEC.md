@@ -1071,9 +1071,9 @@ File and instance references render through the shared chip recipes the
 chat surfaces own: file chips name the file and carry its file-type
 glyph, instance chips ride InstanceInlineRef's bordered default and
 carry the authored type glyph at the same icon scale. Inline chips
-follow the inline-code layout: em-sized text, horizontal em-based padding
-with zero vertical padding, the small surface radius, and a line height
-that fits the prose line. A boolean renders as the checkbox
+follow the inline-code layout in the UI typography role: em-sized text,
+horizontal em-based padding with zero vertical padding, the small surface
+radius, baseline alignment, and a line height that fits the prose line. A boolean renders as the checkbox
 state it is. A record's identifier carries its icon (the authored
 glyph, a record's declared thumb winning) through the one identifier
 surface; type names render bare — a collection's title bar labels its
@@ -1477,9 +1477,10 @@ tabs: the derived layout, the type's saved views, and add view.
 
 Writers always have a trailing live editor while no block editor holds
 focus; its Enter commits the text as a block, and Backspace in its empty
-line resumes the document's last text block. A writable record document
-mounts the live engine in every text block, so the block reads the same
-while edited and while idle.
+line resumes the document's last text block. Cursor arrows at a text
+block's visual edge continue in the adjacent text block at its start or
+end. A writable record document mounts the live engine in every text
+block, so the block reads the same while edited and while idle.
 Text blocks accept inline instance references, stored as `#instance:`
 links and rendered through the shared instance chip; file references
 render through the shared file chip.

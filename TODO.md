@@ -142,10 +142,11 @@
 - File chips render the file-type glyph family (mime or extension
   derived), and generated-family icons drop their standalone scale
   inside chips, so file and instance chip icons share one em box.
-- Inline instance/file chips follow the inline-code layout: `0.875em`
-  text, `0.5em` horizontal padding with zero vertical padding, small
-  surface radius, and a line height that fits the prose line; an
-  unresolved instance reference wears the same face.
+- Inline instance/file chips follow the inline-code layout in the UI
+  typography role: `0.875em` text, `0.5em` horizontal padding with zero
+  vertical padding, small surface radius, baseline alignment, and a line
+  height that fits the prose line; an unresolved instance reference wears
+  the same face.
 
 ### Agent Notes (2026-11-08, agent/trailing-block-20261108)
 
@@ -155,6 +156,9 @@
   active. Backspace in its empty line reopens the document's last text
   block through `resumeLastTextBlock`, and the resumed block focuses at
   its end.
+- Arrow keys at a text block's visual edge continue in the adjacent text
+  block through `moveCaret`; caret start/end travels with the focus
+  hand-off, and non-editing sections between text blocks are skipped.
 - Focused: `useRecordOverlay` spec green; `docs:validate` and `check-arch`
   green.
 

@@ -162,7 +162,8 @@ is the one mount; the section shells, insert picker, text-block editor, and
 the header's save affordance bind to it. `activateBlock`/`activeBlockId`
 track the focused block editor (the trailing line renders only when none
 holds focus); `resumeLastTextBlock()` reopens the document's last text
-block for the trailing line's Backspace.
+block for the trailing line's Backspace; `moveCaret(id, direction)` hands
+the caret to the adjacent text block, skipping non-editing sections.
 
 ## useContainerTraits
 
