@@ -215,7 +215,8 @@ the `section` field set.
   every collection block mounts `ViewEmbed.vue` as a sibling component
   outside any editor. `DocumentSectionShell` and
   `OverlayInsertControl` provide the gutter plus, drag reorder, and
-  delete; the trailing `TrailingTextBlock` commits the next text block.
+  delete; the document's last text block is a real empty block, and
+  typing in it appends a fresh empty block.
   The crepe configuration follows the documents plugin's reference mount
   (`workers/documents/surfaces/text-editor.mjs` — every engine chrome
   off), and the block vocabulary, the slash panel, the source-markers

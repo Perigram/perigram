@@ -35,7 +35,8 @@ text and collection blocks: block insert/reorder/remove, per-text-block
 editing state, the page-level collection picker, autosave through
 `stores/pages.js`, and the workspace dirty registry. Text blocks mount
 `OverlayTextBlock` editors; collection blocks mount `ViewEmbed` as
-siblings, outside every editor.
+siblings, outside every editor. The document always ends with one empty
+text block; typing in it appends a fresh empty block.
 
 ---
 

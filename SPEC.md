@@ -1478,9 +1478,11 @@ same entries, the gutter reserves its lane outside the content, and the
 drag handle is a six-dot grip. Collection headers carry their views as
 tabs: the derived layout, the type's saved views, and add view.
 
-Writers always have a trailing live editor while no block editor holds
-focus; its Enter commits the text as a block, and Backspace in its empty
-line resumes the document's last text block. Cursor arrows at a text
+A page document ends with one empty text block rendered like every other
+block; typing in it appends a fresh empty block. A record document keeps
+its trailing live editor while no block editor holds focus; Enter commits
+the text as a block, and Backspace in its empty line resumes the last
+text block. Cursor arrows at a text
 block's visual edge continue in the adjacent text block at its start or
 end. A writable record document mounts the live engine in every text
 block, so the block reads the same while edited and while idle.
