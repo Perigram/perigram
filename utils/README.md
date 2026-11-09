@@ -97,7 +97,8 @@ Parent: [root README](../README.md).
   same chain. `generatedCreateLabel` owns the localized create caption
   (SPEC §4): an authored label wins; the generic `New <Type>` /
   `New <Type> from <Mode>` shape composes from the `uiMapping.createCaption*`
-  keys over the localized type label and mode name.
+  keys over the localized type label and mode name; `includeMode: false`
+  yields the type caption alone for the collection create control.
 - `data-display.js`: Shared path resolution and value formatting for fact rows (`decorateDataValue`), plus the byte-size and payload-fact labels (`formatFileSize`, `payloadFactLine`). It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`. Declared `unit`s render as value suffixes through the closed unit-symbol table (`mm`, `m`, `m2`→`m²`, `percent`, `min`, `deg`); `display: 'dimensions'` renders the width × length span of a resolved specs object.
 - `instance-chat.js`: The instance-conversation seam. `openInstanceChat`
   opens the shared chat popup for an instance surface (card footers,

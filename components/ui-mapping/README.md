@@ -110,23 +110,17 @@ beside the transition history in `StateHistory`.
   header the strip appears inside (SPEC §22.9) — and
   plain content for ready — the only loading/empty states any component
   renders.
-- The region header is one row: the label, the count chip, the view
-  tabs (SPEC §26), then the controls cluster — the search field, the
-  filter control, view settings, and the create set (+ link where a
-  relation section owns it, SPEC §22.12). The view tabs are the
-  derived-layout tab (`Table`, `Board`, `Cards`, `Timeline`, `Stats`,
-  `Gantt`, `Calendar`), one tab per saved view of the type, and the
-  add-view (+) affordance for organization members. A saved tab loads
-  the view's four models — search, filter tree, sort, projection —
-  through the [views feature](../../server/features/views/README.md);
-  the default tab restores the per-type preferences. Selecting a tab
-  suspends preference writes, so browsing a saved lens leaves the
-  reader's own state intact. The add-view affordance captures the
-  current models through `ViewSaveDialog` under the type label and
-  activates the new tab.
-- The search field renders on every collection region and stays a
-  region-owned model. The filter control is a funnel button badged with
-  the active condition count (`countPredicates`); its popover hosts the
+- The region header leads with the label, the count chip, and the
+  create set (+ link where a relation section owns it, SPEC §22.12);
+  the trailing cluster carries the search trigger, the view tabs, the
+  filter control, and view settings. A create whose target the region
+  already names renders the bare `New`; the full class-named caption
+  renders when the button stands alone on an empty stub line.
+- Search renders as a round icon button on every collection region and
+  expands in place to its input on press; an active query keeps it open
+  and an empty blur collapses it. The input binds the region-owned
+  search model. The filter control is a funnel button badged with the
+  active condition count (`countPredicates`); its popover hosts the
   shared `FilterBuilder` panel ([shared](../shared/README.md)) over the
   fields `builderFieldsForType` derives ([shared/ui-mapping](../../shared/ui-mapping/README.md)).
   View settings is a sliders button whose popover hosts the projection
@@ -137,6 +131,16 @@ beside the transition history in `StateHistory`.
   tree and the projection and sort choices are persisted view state per
   type (`utils/ui-view-state.js`), evaluated with the one matcher
   (`instanceMatchesFilter`) against the region's pool.
+- The view tabs are the derived-layout tab (`Table`, `Board`, `Cards`,
+  `Timeline`, `Stats`, `Gantt`, `Calendar`), one tab per saved view of
+  the type, and the add-view (+) affordance for organization members. A
+  saved tab loads the view's four models — search, filter tree, sort,
+  projection — through the [views feature](../../server/features/views/README.md);
+  the default tab restores the per-type preferences. Selecting a tab
+  suspends preference writes, so browsing a saved lens leaves the
+  reader's own state intact. The add-view affordance captures the
+  current models through `ViewSaveDialog` under the type label and
+  activates the new tab.
 - A region mounted with a `viewState` prop renders a saved lens instead
   of tabs: every view model seeds from the prop (the stored tree
   re-validates through `normalizeFilter`, the projection and sort
@@ -145,9 +149,9 @@ beside the transition history in `StateHistory`.
   never re-saved from its own embed. A `label` prop overrides the
   type-derived section title (the embed names the view).
   The region header stays one line while the row has room (SPEC §22.15): the label
-  yields first through ellipsis, the controls cluster never wraps
-  internally, and the controls wrap below only when the label is at its
-  floor and the cluster still overflows the row. The projection switch is the one
+  yields first through ellipsis, and the trailing cluster wraps below
+  only when the label is at its floor and the cluster still overflows
+  the row. The projection switch is the one
   layout-shaped user view state, persisted per type beside sort and
   filters: a collection whose type serves a state vocabulary and whose
   derived layout is a structural collection (table) may switch to the
@@ -167,11 +171,9 @@ kinds, the section-key grammar, and the order law are canonical in the
 application.
 
 - **Collection header in the document.** A collection section inside
-  the record document renders the quiet header: label and count pinned,
-  the search field, the labeled View control, one compact (+) popover
-  carrying the create and link controls, and the view-tab row (the
-  derived layout, the type's saved views, add view). Standalone list
-  screens carry the inline control cluster.
+  the record document renders the same header as a standalone list:
+  label, count, and create set at the leading end; the search trigger,
+  view tabs, filter, and view settings at the trailing end.
 - **Composition.** The depth-0 record in the `record` presentation
   renders the document's section flow through `SurfaceDetailBody`: the
   body's own sections (`properties`, `editor`, each relation section)
@@ -278,7 +280,8 @@ application.
   the
   matcher is [shared/ui-mapping](../../shared/ui-mapping/README.md)'s).
   The list header stays one line while the row has room — label, count
-  chip, the view control, actions (SPEC §22.15, see above). List regions stack the header row and the
+  chip, and create set lead; the search trigger, view tabs, filter, and
+  view settings trail (SPEC §22.15, see above). List regions stack the header row and the
   collection surface (`RegionCollections.vue`, the one materialization of
   the layout switch embedded and standalone lists share) on the section
   rhythm; nested child regions arrange through `RegionChildren.vue` over
@@ -288,12 +291,12 @@ application.
   body) renders its create affordances and, for a relation section, its
   injected link action — while loading/denied/error states keep the
   shared `RegionDataState` surface.
-  A create action renders its compiled caption (the procedural
-  create-label law names the created type and mode). The toolbar and
-  stub line render their create set
-  through
-  `createActionControls`: same-type creates collapse to one
-  `CreateControl` (see below) whose mode selection names the siblings.
+  A create action renders its compiled caption without the creation
+  mode; the header shortens its own type's create to the bare `New`
+  while the empty stub line keeps the class name. The toolbar and stub
+  line render their create set through `createActionControls`:
+  same-type creates collapse to one `CreateControl` (see below) whose
+  mode selection names the siblings.
   A relation-scoped section's toolbar and its empty stub line render the
   injected link actions for its relation (SPEC §22.12) beside the create
   set — the same-type link collapses to the bare "Link" — and its rows
@@ -594,10 +597,11 @@ application.
   the `min-w-0` chain, wide headers floor the identity at 16rem so a
   large action cluster wraps below the identity, and the record title
   steps with the same width (1.5rem narrow, 1.75rem from the 34rem
-  step). `compact` renders the label-size identity line with the state
-  surface and action cluster over the body; lineage and byline stay on
-  the page. `expandable` adds the step-up button at the end of the
-  cluster and emits `expand`. The version surface and its replace
+  step). `compact` renders the record name as the lineage trail's last
+  crumb (or its sole crumb without ancestors), with the state surface
+  and action cluster over the body; the byline stays on the page.
+  `expandable` adds the step-up button at the end of the cluster and
+  emits `expand`. The version surface and its replace
   affordance ride the payload preview
   ([generated](../generated/README.md)). Under the header rides the
   record's permanent reload lane (SPEC §22.9).
@@ -841,10 +845,10 @@ application.
   renders its ActionButton; a sibling group (several creation modes, one
   type) renders one PrimeVue `InputGroup` composing the creation-mode
   `Select` (options from `creationModeLabel`, lead action selected) with
-  an attached create `Button` — icon/severity/caption from
-  `resolveActionButton` and the caption chain
-  (`actionLabelKey`/`localizedLabel`) — that dispatches the selected
-  action through the ordinary run channel.
+  an attached create `Button` that dispatches the selected action
+  through the ordinary run channel. The caption comes from the
+  create-label chain without the creation mode; a host `label` prop
+  shortens it to the bare `New` where its own chrome names the class.
 - `ActionFormDialog.vue` — the one generated action form dialog
   (`StandardDialog` + `FillDialogBody` shell): rows from
   `resolveCreateDialogInputs` (or `resolveRunDialogInputs` for

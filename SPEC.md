@@ -318,15 +318,17 @@ construct derives it (owner direction 2026-10-27); nothing ever prompts
 a grandparent. `upload`/`capture` creates prompt only the file.
 
 Generated create actions carry procedural names (owner direction
-2026-10-26): an authored label wins; a generic one derives `New <Type>`
-and folds the creation mode — `New <Type> from <Mode>` — so same-type
-creates over different modes stay distinguishable on every surface that
-names actions. Create controls render captioned on every surface (owner
-direction 2026-11-06): the caption names the created type, and the
-icon-only create button is retired. A collection offering several
-creates for one type renders
-one grouped control — the creation-mode selection beside the create
-button; the create button opens the selected mode's form.
+2026-10-26; collection controls 2026-11-09): an authored label wins; a
+generic one derives `New <Type>` and folds the creation mode —
+`New <Type> from <Mode>` — on action surfaces that name modes in their
+caption. A collection create control renders the type caption without
+the mode, and a collection offering several creates for one type
+renders one grouped control — the creation-mode selection beside the
+create button; the create button opens the selected mode's form. The
+collection header shortens its own type's create to the bare `New`.
+Create controls render captioned on every surface (owner direction
+2026-11-06): the caption names the created type or its class context,
+and the icon-only create button is retired.
 
 The home sidebar carries one New class action (SPEC §27). Compiled
 create actions stay on their collection and action surfaces, dispatching
@@ -1140,43 +1142,46 @@ opens the construct dialog the host owns — and the created record
 selects into the picker. Every picker searches its options, hierarchical
 pools included.
 
-### 22.14 Record peeks and popup rhythm (owner direction 2026-10-29; peek presentation 2026-10-31)
+### 22.14 Record peeks and popup rhythm (owner direction 2026-10-29; peek presentation 2026-10-31; composed peek 2026-11-09)
 
 Instance and file chips preview on hover and open on click. Hovering a
 chip with a previewable record raises its peek after a short deliberate
 delay: the compiled record surface in its peek presentation — a bounded
-20rem panel over the record's preview, a compact identity line carrying
-the state tag, the record's action cluster, and the body's leading
-facts. A file chip's peek carries its payload preview and name facts. A
-click opens the full record popup or the file viewer. The peek is a
-preview surface: hovering-capable pointers raise it, and its whole body
-opens the record. Record pages and peeks carry the record's lineage
-trail above the identity line. Record pages add the type byline and
-lifecycle history; the peek header keeps the action cluster and carries
-the step-up affordance that opens the record as its own workspace page. The record popup rides the compact rhythm (bounded
-hosts compact) and arrangement decisions see its measured width, so a
-wide popup composes at its real width.
+20rem panel that composes without scrolling: the record name as the
+lineage trail's last crumb (or its sole crumb when it has no ancestors),
+the state tag, the record's action cluster, the preview, and the body's
+leading fact group. A file chip's peek carries its payload preview and
+name facts. A click opens the full record popup or the file viewer. The
+peek is a preview surface: hovering-capable pointers raise it, and its
+whole body opens the record. Record pages carry the record's lineage
+trail above the identity line; the peek folds the name into that trail.
+Record pages add the type byline and lifecycle history; the peek header
+keeps the action cluster and carries the step-up affordance that opens
+the record as its own workspace page. The record popup rides the compact
+rhythm (bounded hosts compact) and arrangement decisions see its
+measured width, so a wide popup composes at its real width.
 ### 22.15 Collection headers and the table floor (owner direction
-2026-10-29)
+2026-10-29; header ends 2026-11-09)
 
 A collection's header row stays one line while the row has room: the
-section label yields first through ellipsis, the controls cluster never
-wraps internally, and the controls wrap below the label only when the
-label is at its floor and the cluster still overflows the row. A
-collection's identity column is headed by the type's identifier field
-label; a type that declares no identifier field heads the column with
-the type label. The table is the floor of the layout derivation: a
-collection whose loaded pool fills no data column beside identity keeps
-the table — the stacked identifier-only list projection is retired.
+label yields first through ellipsis, the controls cluster never wraps
+internally, and the controls wrap below the label only when the label
+is at its floor and the cluster still overflows the row. A collection's
+identity column is headed by the type's identifier field label; a type
+that declares no identifier field heads the column with the type label.
+The table is the floor of the layout derivation: a collection whose
+loaded pool fills no data column beside identity keeps the table — the
+stacked identifier-only list projection is retired.
 
-A collection's header cluster is quiet by default (owner direction
-2026-11-06, amended 2026-11-07): the header renders the label, the
-count chip, the create affordance, and one view control; search,
-filters, sort, and the projection switch live behind the view control's
-popover, which carries the active condition count as its badge. The
-view control renders pinned with its label on every host — a control
-that hides itself until hover reads as removed (owner finding
-2026-11-07).
+A collection's header leads with its label, count chip, and create set;
+the view tabs, filter control, and view settings cluster at the trailing
+end. The view tabs (the derived layout and the type's saved views) are
+view customization, not title vocabulary. Search stays an icon until
+pressed, expands in place, and collapses again when emptied. A create
+whose target the header already names renders the bare "New"; a create
+or link rendered alone on an empty stub line names its class. The
+creation mode is the InputGroup selection beside a grouped create, never
+part of the button caption.
 
 ### 22.16 The state surface is one control (owner direction 2026-10-31)
 
