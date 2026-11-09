@@ -33,6 +33,7 @@
       </template>
     </TreeSelect>
     <AutoComplete v-else
+      ref="autocompleteRef"
       :model-value="selectedOption"
       :suggestions="filteredOptions"
       option-label="label"
@@ -41,6 +42,8 @@
       fluid
       class="min-w-0 flex-1"
       :complete-on-focus="true"
+      @focus="openOptions"
+      @click="openOptions"
       @complete="search"
       @update:model-value="option => (model = option?.value ?? null)"
     >
@@ -289,10 +292,18 @@ const options = computed(() => {
   const known = new Set(derived.map(option => option.value?.id));
   return [...derived, ...supplemented.value.filter(option => !known.has(option.value?.id))];
 });
+const autocompleteRef = ref(null);
 const search = event => {
   query.value = String(event.query || '');
   for (const typeId of sourcedTypes.value) ensureType(typeId);
 };
+// PrimeVue opens the overlay from its suggestions watcher; when the
+// options are already cached and the empty query does not change the
+// list, focus must open it explicitly.
+function openOptions() {
+  search({ query: query.value });
+  autocompleteRef.value?.show();
+}
 const filteredOptions = computed(() => {
   const needle = query.value.toLowerCase();
   return options.value.filter(option => option.label.toLowerCase().includes(needle));
