@@ -3027,6 +3027,25 @@ Ordered steps:
   designs, joins entries to those items, and nests the entries; E2E pins
   the counts, the entries, and the sheet family. Backfill and rerun the
   order flow on a live org after the definition is re-authored.
+- [ ] WAITING — owner verification: Nesting vocabulary — org-level
+  `sheet` (width/height) and `machine` (tool diameter) types replace the
+  solve's manual sheetWidth/sheetHeight/space prompts. The nesting
+  attempt carries a `sheet` relation and a `machine` relation; the solve
+  reads the attempt's sheet dimensions and machine tool diameter.
+  `server/scripts/author-org-sheet-machine.js` authors this into an org
+  through the definition API.
+
+  ### Agent Notes (2026-11-09, org sheet and machine)
+
+  Session `agent/org-sheet-machine-20261109` (worktree
+  `.agent-worktrees/org-sheet-machine-20261109`). Ran the script on Org1
+  (`org-6a05940e`, definition `process-6aca6604d2c6b24e605bf9c2`):
+  `sheet` and `machine` types, one each per root; the nesting attempt's
+  create form prompts both relations; `sheet`/`machine` create actions
+  are exposed; the solve action carries no prompt rows (dimensions and
+  tool diameter arrive by wire, and the tool diameter feeds the solve's
+  `space`). Relation construction inputs are scalar for cardinality one
+  and labelled by the target type name.
 
   ### Agent Notes (2026-10-28, family slice)
 

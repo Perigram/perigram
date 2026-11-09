@@ -894,6 +894,12 @@ process definition: the table's rows fan out into a design render
 `{ design, count }` per row. The platform carries no table-to-entry
 code; the graph is the contract.
 
+A nesting attempt holds one `sheet` relation (width and height) and one
+`machine` relation (tool diameter). The solve reads the attempt's sheet
+dimensions and machine tool diameter in place of prompting sheet width,
+sheet height, and spacing on every run; the machine's tool diameter is
+the nesting clearance.
+
 Owner decision (2026-10-31, composition is sheet-design identity): a
 flow matches a solved layout against stored sheet designs by
 `compositionKey` and reuses the matching record; construction happens
