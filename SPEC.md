@@ -1073,7 +1073,7 @@ glyph, instance chips ride InstanceInlineRef's bordered default and
 carry the authored type glyph at the same icon scale. Inline chips
 follow the inline-code layout in the UI font: em-sized text, horizontal
 em-based padding with zero vertical padding, the small surface radius,
-baseline alignment, and a line height that fits the prose line. A boolean renders as the checkbox
+baseline alignment, and a line height of one. A boolean renders as the checkbox
 state it is. A record's identifier carries its icon (the authored
 glyph, a record's declared thumb winning) through the one identifier
 surface; type names render bare — a collection's title bar labels its

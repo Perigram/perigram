@@ -145,8 +145,7 @@
 - Inline instance/file chips follow the inline-code layout in the UI
   font: `0.875em` text, `0.5em` horizontal padding with zero vertical
   padding, small surface radius, baseline alignment, and a line height
-  that fits the prose line; an unresolved instance reference wears the
-  same face.
+  of one; an unresolved instance reference wears the same face.
 
 ### Agent Notes (2026-11-08, agent/trailing-block-20261108)
 
