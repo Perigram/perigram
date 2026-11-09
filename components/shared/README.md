@@ -438,10 +438,10 @@ The chip recipe home: `CHIP_LABEL_PT` (the truncating label
 passthrough), `FILE_CHIP_CLASS`, `INSTANCE_CHIP_CLASS`. Every chip the
 app renders — file chips, instance chips, card identity chips —
 consumes these; a second copy of a chip class string is a defect.
-Instance and file chips follow the inline-code layout: the UI typography
-role at em size (`0.875em`), horizontal em-based padding (`0.5em`) with
-zero vertical padding, the small surface radius, baseline alignment, and
-a line height that fits the prose line. Generated-family icon glyphs
+Instance and file chips follow the inline-code layout: the UI font at em
+size (`0.875em`), horizontal em-based padding (`0.5em`) with zero vertical
+padding, the small surface radius, baseline alignment, and a line height
+that fits the prose line. Generated-family icon glyphs
 (`ck-entity-icon`/`ck-file-type-icon`) drop their standalone scale inside
 chips, so every chip icon fills the same em box. An unresolved instance
 reference wears the same chip face. Collection counts render as a `Tag`
