@@ -20,6 +20,7 @@
       @update="text => session.updateText(block.id, text)"
       @enter="insertAfter"
       @delete-empty="deleteBlock"
+      @caret-boundary="moveCaret"
     />
     <MarkdownBlocks v-else-if="block.text" :source="block.text" />
   </div>
@@ -43,7 +44,8 @@ const initialBlock = computed(() => (props.session?.initialBlockFor?.(props.bloc
 
 function focusEditor() {
   nextTick(() => {
-    editor.value?.focusEnd?.();
+    if (props.session?.caretFor?.(props.block.id) === 'end') editor.value?.focusEnd?.();
+    else editor.value?.focusStart?.();
     root.value?.scrollIntoView?.({ block: 'nearest' });
   });
 }
@@ -65,6 +67,10 @@ function onFocusOut(event) {
 
 function insertAfter() {
   props.session?.insertTextAfter?.(props.block.id);
+}
+
+function moveCaret(direction) {
+  props.session?.moveCaret?.(props.block.id, direction);
 }
 
 function deleteBlock() {

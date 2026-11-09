@@ -21,6 +21,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
   const dirty = ref(false);
   const saving = ref(false);
   const editingBlockId = ref(null);
+  const editingCaret = ref('start');
   const editingInitialBlock = ref('');
   const activeBlockId = ref(null);
   const dragKey = ref(null);
@@ -102,6 +103,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     const id = insertBlock({ id: blockId(), kind: 'text', text: '' }, at);
     if (id) {
       editingInitialBlock.value = initialBlock;
+      editingCaret.value = 'start';
       editingBlockId.value = id;
     }
   }
@@ -156,8 +158,27 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     removeBlock(id);
     if (previous) {
       editingInitialBlock.value = '';
+      editingCaret.value = 'end';
       editingBlockId.value = previous;
     }
+  }
+
+  // Arrow keys at a text block's visual edge continue in the adjacent
+  // text block; non-editing sections between them are skipped.
+  function moveCaret(id, direction = 'down') {
+    if (!ensureDraft()) return false;
+    const forward = direction === 'down' || direction === 'right';
+    const start = draftOrder.value.indexOf(id);
+    if (start < 0) return false;
+    for (let index = start + (forward ? 1 : -1); index >= 0 && index < draftOrder.value.length; index += forward ? 1 : -1) {
+      const key = draftOrder.value[index];
+      if (!draftBlocks.value.some(block => block.id === key && block.kind === 'text')) continue;
+      editingInitialBlock.value = '';
+      editingCaret.value = forward ? 'start' : 'end';
+      editingBlockId.value = key;
+      return true;
+    }
+    return false;
   }
 
   // The trailing line's Backspace resumes the document's last text block,
@@ -168,6 +189,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
       .find(key => draftBlocks.value.some(block => block.id === key && block.kind === 'text'));
     if (!id) return false;
     editingInitialBlock.value = '';
+    editingCaret.value = 'end';
     editingBlockId.value = id;
     return true;
   }
@@ -206,6 +228,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     saving,
     flowCount: computed(() => flowKeys.value.length),
     editingBlockId: computed(() => editingBlockId.value),
+    caretFor: id => (editingBlockId.value === id ? editingCaret.value : 'start'),
     activeBlockId: computed(() => activeBlockId.value),
     activateBlock: id => { activeBlockId.value = id; },
     deactivateBlock: id => { if (activeBlockId.value === id) activeBlockId.value = null; },
@@ -223,6 +246,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     openViewPicker,
     pickView,
     closeViewPicker: () => { viewPickerAt.value = null; },
+    moveCaret,
     removeBlock,
     removeEmptyBlock,
     resumeLastTextBlock,
@@ -230,6 +254,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     editBlock: id => {
       if (!ensureDraft()) return;
       editingInitialBlock.value = '';
+      editingCaret.value = 'start';
       editingBlockId.value = id;
     },
     closeEditor: () => {

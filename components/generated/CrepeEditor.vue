@@ -97,7 +97,7 @@ const props = defineProps({
   scroll: { type: Boolean, default: true }
 });
 
-const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty']);
+const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty', 'caret-boundary']);
 
 const { t } = useI18n();
 const instance = getCurrentInstance();
@@ -170,6 +170,18 @@ function focusEnd() {
     if (!TextSelection) return;
     const end = view.state.doc.content.size;
     view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(end))));
+  });
+}
+
+function focusStart() {
+  if (!crepe) {
+    editorHost.value?.querySelector('.ProseMirror')?.focus();
+    return;
+  }
+  withView(view => {
+    view.focus();
+    if (!TextSelection) return;
+    view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(0), 1)));
   });
 }
 
@@ -436,6 +448,21 @@ onMounted(async () => {
       emit('delete-empty');
       return;
     }
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)
+      && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
+      const direction = event.key.slice('Arrow'.length).toLowerCase();
+      let boundary = false;
+      withView(view => {
+        if (!view.state.selection.empty) return;
+        boundary = view.endOfTextblock(direction);
+      });
+      if (boundary) {
+        event.preventDefault();
+        event.stopPropagation();
+        emit('caret-boundary', direction);
+        return;
+      }
+    }
     if (event.key === 'Enter' && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
       let emptyParagraph = false;
       withView(view => {
@@ -501,5 +528,5 @@ function getMarkdown() {
   return markdownValue();
 }
 
-defineExpose({ focus, focusEnd, getMarkdown });
+defineExpose({ focus, focusStart, focusEnd, getMarkdown });
 </script>

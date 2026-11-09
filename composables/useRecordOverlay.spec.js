@@ -155,6 +155,27 @@ describe('useRecordOverlaySession', () => {
     expect(s.editingBlockId).toBe('b1');
   });
 
+  it('moves the caret into the adjacent text block, skipping view sections', () => {
+    savedOverlay.value = {
+      blocks: [
+        { id: 'b1', kind: 'text', text: 'first' },
+        { id: 'v1', kind: 'view', view: { typeId: 'widget', name: 'Widgets' } },
+        { id: 'b2', kind: 'text', text: 'second' }
+      ],
+      order: ['properties', 'b1', 'v1', 'b2']
+    };
+    const s = session();
+    s.syncFlow(['properties', 'b1', 'v1', 'b2'], ['properties']);
+    expect(s.moveCaret('b1', 'down')).toBe(true);
+    expect(s.editingBlockId).toBe('b2');
+    expect(s.caretFor('b2')).toBe('start');
+    expect(s.moveCaret('b2', 'up')).toBe(true);
+    expect(s.editingBlockId).toBe('b1');
+    expect(s.caretFor('b1')).toBe('end');
+    expect(s.moveCaret('b1', 'up')).toBe(false);
+    expect(s.moveCaret('b2', 'down')).toBe(false);
+  });
+
   it('trailing Backspace resumes the last text block', () => {
     savedOverlay.value = {
       blocks: [
