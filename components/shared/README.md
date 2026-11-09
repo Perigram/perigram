@@ -445,8 +445,8 @@ tokens ([design tokens](../../assets/tokens/README.md)). The `ck-chip`
 marker reasserts the token padding inside the markdown editor, whose
 descendant reset zeroes padding.
 Instance and file chips follow the inline-code layout: an inline Flex box in the UI
-font at em size (`0.875em`), horizontal em-based padding (`0.5em`) with
-zero vertical padding, the small surface radius, baseline alignment, and
+font at em size (`0.875em`), em-based padding (`0.5em` horizontal,
+`0.25em` vertical), the small surface radius, baseline alignment, and
 a line height of one. Generated-family icon glyphs
 (`ck-entity-icon`/`ck-file-type-icon`) drop their standalone scale inside
 chips, so every chip icon fills the same em box. An unresolved instance
