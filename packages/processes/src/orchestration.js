@@ -548,11 +548,17 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   const cacheKey = `${nodeId}:${resolvedOutputId}:${tokenContext.scope || 'root'}`;
   if (tokenContext.values?.[cacheKey]) return tokenContext.values[cacheKey];
   if (tokenContext.values?.[`${nodeId}:${resolvedOutputId}`]) return tokenContext.values[`${nodeId}:${resolvedOutputId}`];
-  const contextualOutput = await resolveContextualEntityOutput(
-    ports.outputs.find(port => port.id === resolvedOutputId),
-    run.context?.inputs || {},
-    environment
-  );
+  // Read nodes execute their own select: the run-context shortcut yields
+  // a bare reference, while a current read must hand downstream relation
+  // reads the stored entity. Effects keep the shortcut for their ref
+  // outputs.
+  const contextualOutput = record.kind === 'cts.read'
+    ? null
+    : await resolveContextualEntityOutput(
+        ports.outputs.find(port => port.id === resolvedOutputId),
+        run.context?.inputs || {},
+        environment
+      );
   if (contextualOutput) return contextualOutput;
   if (record.kind.endsWith('Trigger') || isEffectRecord(record) || record.kind.startsWith('control.')) {
     const error = new Error(`Operational node ${record.id || node.id} has not emitted data output ${resolvedOutputId}`);
