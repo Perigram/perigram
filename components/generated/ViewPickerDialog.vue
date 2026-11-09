@@ -20,10 +20,12 @@
 </template>
 
 <script setup>
-// The collection-view picker (SPEC §26): the type containment tree with
-// each collection's saved views beneath it. Selecting a collection
-// inserts its live default view; selecting a saved view inserts that
-// lens. Both render through the same ViewEmbed contract.
+// The collection-view picker (SPEC §26): the workspace's actual
+// collections — the home screen's list sections, the same set the home
+// workspace and the instance tree render — with each collection's saved
+// views beneath it. Selecting a collection inserts its live default
+// view; selecting a saved view inserts that lens. Both render through
+// the same ViewEmbed contract.
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tree from 'primevue/tree';
@@ -31,8 +33,7 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useViewsStore } from '~/stores/views';
-import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
-import { generatedEntityLabel } from '~/utils/generated-labels';
+import { homeCollectionSections } from '~/utils/home-collections.js';
 
 const props = defineProps({
   visible: { type: Boolean, default: false }
@@ -43,23 +44,15 @@ const { te, t } = useI18n();
 const authStore = useAuthStore();
 const instances = useInstancesStore();
 const viewsStore = useViewsStore();
-const effectiveContainment = useEffectiveContainment();
 
-// Collections are the types the organization serves a list screen for —
-// the same set the workspace opens as collection surfaces.
 const collections = computed(() => {
-  const types = authStore.processPayload?.bundle?.types || [];
-  const listable = new Set((authStore.screenManifest || [])
-    .filter(screen => screen.template === 'typeList' && screen.typeId)
-    .map(screen => String(screen.typeId)));
-  const rows = types
-    .filter(type => type?.id && listable.has(String(type.id)))
-    .map(type => ({ id: String(type.id), label: generatedEntityLabel(type, { t, te }) }));
-  const sorted = rows.sort((left, right) => left.label.localeCompare(right.label));
-  if (rows.length) return sorted;
-  return types
-    .filter(type => type?.id)
-    .map(type => ({ id: String(type.id), label: generatedEntityLabel(type, { t, te }) }))
+  const home = (authStore.screenManifest || []).find(screen => screen.template === 'home') || null;
+  return homeCollectionSections(home, { t, te })
+    .map(section => ({
+      key: `collection:${section.region.id}`,
+      typeId: String(section.source.typeId),
+      label: section.label
+    }))
     .sort((left, right) => left.label.localeCompare(right.label));
 });
 
@@ -74,14 +67,14 @@ const viewsByType = computed(() => {
   return grouped;
 });
 
-const nodes = computed(() => {
-  const byId = new Map(collections.value.map(row => [row.id, {
-    key: `type:${row.id}`,
+const nodes = computed(() => collections.value
+  .map(row => ({
+    key: row.key,
     label: row.label,
-    icon: instances.iconFor(row.id),
+    icon: instances.iconFor(row.typeId),
     selectable: true,
-    data: { kind: 'collection', typeId: row.id, name: row.label },
-    children: (viewsByType.value.get(row.id) || [])
+    data: { kind: 'collection', typeId: row.typeId, name: row.label },
+    children: (viewsByType.value.get(row.typeId) || [])
       .slice()
       .sort((left, right) => String(left.name || '').localeCompare(String(right.name || '')))
       .map(view => ({
@@ -93,31 +86,12 @@ const nodes = computed(() => {
         data: {
           kind: 'view',
           id: String(view._id),
-          typeId: row.id,
+          typeId: row.typeId,
           name: view.name || ''
         }
       }))
-  }]));
-  const parentOf = new Map();
-  for (const entry of effectiveContainment()) {
-    const parent = String(entry.parentType || '');
-    const child = String(entry.childType || '');
-    if (!byId.has(parent) || !byId.has(child) || parent === child) continue;
-    if (!parentOf.has(child)) parentOf.set(child, parent);
-  }
-  const roots = [];
-  for (const node of byId.values()) {
-    const parent = parentOf.get(node.key.slice('type:'.length));
-    if (parent && byId.has(parent)) byId.get(parent).children.push(node);
-    else roots.push(node);
-  }
-  const sortNodes = list => {
-    list.sort((left, right) => left.label.localeCompare(right.label));
-    for (const node of list) sortNodes(node.children || []);
-    return list;
-  };
-  return sortNodes(roots);
-});
+  }))
+  .sort((left, right) => left.label.localeCompare(right.label)));
 
 const expandedKeys = ref({});
 watch(nodes, value => {

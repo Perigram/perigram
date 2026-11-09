@@ -54,12 +54,13 @@ import { useI18n } from 'vue-i18n';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { isGeneratedSurfaceAction } from '~/utils/action-visibility.js';
 import { generatedDetailScreenForTypeId } from '~/components/generated/detail-screen-actions.js';
-import { generatedActionLabel, generatedEntityLabel, generatedRegionLabel } from '~/utils/generated-labels.js';
+import { generatedActionLabel, generatedEntityLabel } from '~/utils/generated-labels.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
 import { resolveSourceFilters } from '~/utils/generated-screen-source.js';
+import { homeCollectionSections } from '~/utils/home-collections.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { instanceRecordTitle } from '~/utils/instance-shape.js';
 
@@ -100,21 +101,7 @@ const entityLabel = (entity = null, type = '') => (
 
 const homeScreen = computed(() => authStore.screenManifest.find(screen => screen.template === 'home') || null);
 
-const sections = computed(() => {
-  const home = homeScreen.value;
-  if (!home) return [];
-  return (home.regions || [])
-    .map(region => {
-      const source = (home.sources || []).find(candidate => candidate.id === region.sourceId) || {};
-      if (!source.typeId || source.mode === 'single') return null;
-      const parentBound = (source.lineageBindings || [])
-        .some(binding => binding.childTypeId === source.typeId
-          && binding.parentTypeId !== 'organization');
-      if (parentBound) return null;
-      return { region, source, label: generatedRegionLabel(region, source, { t, te }) };
-    })
-    .filter(Boolean);
-});
+const sections = computed(() => homeCollectionSections(homeScreen.value, { t, te }));
 
 function createActionsFor(actionIds = []) {
   return [...new Set(actionIds)]

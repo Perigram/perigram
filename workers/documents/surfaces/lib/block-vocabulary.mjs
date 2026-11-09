@@ -6,6 +6,7 @@
 // The view entry hands off to the host's saved-view picker.
 import { callCommand } from '@milkdown/utils';
 import { editorViewCtx } from '@milkdown/core';
+import { TextSelection } from '@milkdown/prose/state';
 import {
   wrapInHeadingCommand, turnIntoTextCommand, wrapInBulletListCommand,
   wrapInOrderedListCommand, wrapInBlockquoteCommand, createCodeBlockCommand,
@@ -142,12 +143,18 @@ export function insertInstanceLink(ref, view) {
 
 export function insertViewFence(ref, view) {
   if ((!ref?.id && !ref?.typeId) || !view) return;
-  const { code_block } = view.state.schema.nodes;
+  const { code_block, paragraph } = view.state.schema.nodes;
   const target = ref.id
     ? { id: String(ref.id), typeId: String(ref.typeId || ''), name: String(ref.name || '') }
     : { typeId: String(ref.typeId), name: String(ref.name || '') };
   const body = view.state.schema.text(JSON.stringify(target));
-  view.dispatch(view.state.tr.replaceSelectionWith(code_block.createChecked({ language: 'view' }, body)).scrollIntoView());
+  const fence = code_block.createChecked({ language: 'view' }, body);
+  const from = view.state.selection.from;
+  const tr = view.state.tr.replaceSelectionWith(fence);
+  const after = tr.mapping.map(from, -1) + fence.nodeSize;
+  tr.insert(after, paragraph.create());
+  tr.setSelection(TextSelection.near(tr.doc.resolve(after + 1), 1));
+  view.dispatch(tr.scrollIntoView());
 }
 
 function focusedListItem(state) {
