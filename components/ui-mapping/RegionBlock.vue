@@ -22,8 +22,8 @@
          the label and its create set lead, the view and filter cluster
          sits right, the label yields first through ellipsis, and the
          cluster wraps below only when the label is at its floor. -->
-    <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
-      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+    <div class="flex min-w-0 flex-col gap-2">
+      <div class="flex min-w-0 flex-wrap items-center gap-2">
         <span :class="['min-w-0 truncate', embedded ? 'text-label' : 'text-section-heading']">{{ regionLabel }}</span>
         <!-- SPEC §22.8: the count renders only for loaded, accessible,
              non-empty collections — a denied or failed source has no
@@ -49,118 +49,116 @@
       </div>
       <div
         v-if="searchToggleAvailable || filterToggleAvailable || optionsToggleAvailable || viewTabsAvailable"
-        class="flex shrink-0 flex-wrap items-center justify-end gap-2"
+        class="flex min-w-0 flex-wrap items-center justify-between gap-2"
       >
-        <IconField v-if="searchOpen" class="w-44">
-          <InputIcon class="pi pi-search cursor-pointer" @click="closeSearch" />
-          <InputText
-            ref="searchInput"
-            v-model="search"
+        <div v-if="viewTabsAvailable" class="flex min-w-0 items-center gap-1">
+          <Tabs :value="activeViewKey" scrollable class="min-w-0" @update:value="selectViewTab">
+            <TabList>
+              <Tab v-for="tab in viewTabs" :key="tab.id" :value="tab.id">{{ tab.label }}</Tab>
+            </TabList>
+          </Tabs>
+          <Button
+            v-if="saveViewAvailable"
+            icon="pi pi-plus"
+            text
+            rounded
             size="small"
-            class="w-full"
-            :placeholder="$t('uiMapping.searchPlaceholder')"
-            :aria-label="$t('uiMapping.searchPlaceholder')"
-            @keydown.esc="closeSearch"
-            @blur="search || closeSearch()"
+            severity="secondary"
+            :aria-label="$t('uiMapping.addView')"
+            :title="$t('uiMapping.addView')"
+            @click="saveDialogOpen = true"
           />
-        </IconField>
-        <Button
-          v-else-if="searchToggleAvailable"
-          icon="pi pi-search"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="$t('uiMapping.searchPlaceholder')"
-          :title="$t('uiMapping.searchPlaceholder')"
-          @click="openSearch"
-        />
-        <Tabs
-          v-if="viewTabsAvailable"
-          :value="activeViewKey"
-          scrollable
-          class="min-w-0"
-          @update:value="selectViewTab"
-        >
-          <TabList>
-            <Tab v-for="tab in viewTabs" :key="tab.id" :value="tab.id">{{ tab.label }}</Tab>
-          </TabList>
-        </Tabs>
-        <Button
-          v-if="saveViewAvailable"
-          icon="pi pi-plus"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="$t('uiMapping.addView')"
-          :title="$t('uiMapping.addView')"
-          @click="saveDialogOpen = true"
-        />
-        <Button
-          v-if="filterToggleAvailable"
-          icon="pi pi-filter"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="$t('uiMapping.filters')"
-          :title="$t('uiMapping.filters')"
-          :badge="conditionCount ? String(conditionCount) : null"
-          @click="toggleFilter"
-        />
-        <Popover ref="filterPopover">
-          <div class="flex w-72 flex-col gap-3">
-            <FilterBuilder
-              :model-value="builderFilter"
-              :fields="builderFields"
-              @update:model-value="value => (builderFilter = value)"
+        </div>
+        <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <IconField v-if="searchOpen" class="w-44">
+            <InputIcon class="pi pi-search cursor-pointer" @click="closeSearch" />
+            <InputText
+              ref="searchInput"
+              v-model="search"
+              size="small"
+              class="w-full"
+              :placeholder="$t('uiMapping.searchPlaceholder')"
+              :aria-label="$t('uiMapping.searchPlaceholder')"
+              @keydown.esc="closeSearch"
+              @blur="search || closeSearch()"
             />
-          </div>
-        </Popover>
-        <Button
-          v-if="optionsToggleAvailable"
-          icon="pi pi-sliders-h"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="$t('uiMapping.viewSettings')"
-          :title="$t('uiMapping.viewSettings')"
-          @click="toggleOptions"
-        />
-        <Popover ref="optionsPopover">
-          <div class="flex w-72 flex-col gap-3">
-            <SortControl
-              v-if="sortToggleAvailable"
-              inline
-              :options="sortOptions"
-              :model-value="sortName"
-              :order="sortOrder"
-              @update:model-value="value => (sortName = value)"
-              @update:order="value => (sortOrder = value)"
-            />
-            <div v-if="fieldOptions.length" class="flex flex-col gap-2">
-              <span :class="LAYOUT.sectionTitle">{{ $t('uiMapping.fields') }}</span>
-              <div class="flex flex-col gap-1">
-                <div
-                  v-for="field in fieldOptions"
-                  :key="field.name"
-                  class="flex items-center gap-2"
-                >
-                  <Checkbox
-                    :model-value="fieldChecked(field.name)"
-                    binary
-                    size="small"
-                    :input-id="`view-field-${field.name}`"
-                    @update:model-value="toggleField(field.name)"
-                  />
-                  <label :for="`view-field-${field.name}`" class="text-label">{{ field.label }}</label>
+          </IconField>
+          <Button
+            v-else-if="searchToggleAvailable"
+            icon="pi pi-search"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('uiMapping.searchPlaceholder')"
+            :title="$t('uiMapping.searchPlaceholder')"
+            @click="openSearch"
+          />
+          <Button
+            v-if="filterToggleAvailable"
+            icon="pi pi-filter"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('uiMapping.filters')"
+            :title="$t('uiMapping.filters')"
+            :badge="conditionCount ? String(conditionCount) : null"
+            @click="toggleFilter"
+          />
+          <Popover ref="filterPopover">
+            <div class="flex w-72 flex-col gap-3">
+              <FilterBuilder
+                :model-value="builderFilter"
+                :fields="builderFields"
+                @update:model-value="value => (builderFilter = value)"
+              />
+            </div>
+          </Popover>
+          <Button
+            v-if="optionsToggleAvailable"
+            icon="pi pi-sliders-h"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('uiMapping.viewSettings')"
+            :title="$t('uiMapping.viewSettings')"
+            @click="toggleOptions"
+          />
+          <Popover ref="optionsPopover">
+            <div class="flex w-72 flex-col gap-3">
+              <SortControl
+                v-if="sortToggleAvailable"
+                inline
+                :options="sortOptions"
+                :model-value="sortName"
+                :order="sortOrder"
+                @update:model-value="value => (sortName = value)"
+                @update:order="value => (sortOrder = value)"
+              />
+              <div v-if="fieldOptions.length" class="flex flex-col gap-2">
+                <span :class="LAYOUT.sectionTitle">{{ $t('uiMapping.fields') }}</span>
+                <div class="flex flex-col gap-1">
+                  <div
+                    v-for="field in fieldOptions"
+                    :key="field.name"
+                    class="flex items-center gap-2"
+                  >
+                    <Checkbox
+                      :model-value="fieldChecked(field.name)"
+                      binary
+                      size="small"
+                      :input-id="`view-field-${field.name}`"
+                      @update:model-value="toggleField(field.name)"
+                    />
+                    <label :for="`view-field-${field.name}`" class="text-label">{{ field.label }}</label>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </Popover>
+          </Popover>
+        </div>
       </div>
     </div>
     <RegionDataState v-if="showState" :node="node" />

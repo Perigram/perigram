@@ -110,12 +110,12 @@ beside the transition history in `StateHistory`.
   header the strip appears inside (SPEC §22.9) — and
   plain content for ready — the only loading/empty states any component
   renders.
-- The region header leads with the label, the count chip, and the
-  create set (+ link where a relation section owns it, SPEC §22.12);
-  the trailing cluster carries the search trigger, the view tabs, the
-  filter control, and view settings. A create whose target the region
-  already names renders the bare `New`; the full class-named caption
-  renders when the button stands alone on an empty stub line.
+- The region header has a title row — label, count chip, and create set
+  (+ link where a relation section owns it, SPEC §22.12) — and a view row
+  under it: the view tabs at the leading end, the search trigger, filter
+  control, and view settings at the trailing end. A create whose target
+  the region already names renders the bare `New`; the full class-named
+  caption renders when the button stands alone on an empty stub line.
 - Search renders as a round icon button on every collection region and
   expands in place to its input on press; an active query keeps it open
   and an empty blur collapses it. The input binds the region-owned
@@ -149,10 +149,10 @@ beside the transition history in `StateHistory`.
   live but their choices stay session-local, and the lens itself is
   never re-saved from its own embed. A `label` prop overrides the
   type-derived section title (the embed names the view).
-  The region header stays one line while the row has room (SPEC §22.15): the label
-  yields first through ellipsis, and the trailing cluster wraps below
-  only when the label is at its floor and the cluster still overflows
-  the row. The layout tabs carry the one layout-shaped user view state,
+  The title row stays one line while it has room (SPEC §22.15): the label
+  yields first through ellipsis. The view row keeps the view tabs at its
+  leading end and the view controls at its trailing end. The layout tabs
+  carry the one layout-shaped user view state,
   persisted per type beside sort and filters: a collection whose type
   serves a state vocabulary and whose derived layout is a structural
   collection (table) offers the board tab, and a derived board offers

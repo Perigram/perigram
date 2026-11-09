@@ -1169,26 +1169,25 @@ width.
 ### 22.15 Collection headers and the table floor (owner direction
 2026-10-29; header ends 2026-11-09)
 
-A collection's header row stays one line while the row has room: the
-label yields first through ellipsis, the controls cluster never wraps
-internally, and the controls wrap below the label only when the label
-is at its floor and the cluster still overflows the row. A collection's
-identity column is headed by the type's identifier field label; a type
-that declares no identifier field heads the column with the type label.
-The table is the floor of the layout derivation: a collection whose
-loaded pool fills no data column beside identity keeps the table — the
-stacked identifier-only list projection is retired.
+A collection's title row stays one line while the row has room and
+carries the label, count chip, and create set; the label yields first
+through ellipsis. A collection's identity column is headed by the type's
+identifier field label; a type that declares no identifier field heads
+the column with the type label. The table is the floor of the layout
+derivation: a collection whose loaded pool fills no data column beside
+identity keeps the table — the stacked identifier-only list projection
+is retired.
 
-A collection's header leads with its label, count chip, and create set;
-the view tabs, filter control, and view settings cluster at the trailing
-end. The view tabs are the collection's data views — the derived layout,
-the switchable alternate projection (Table ↔ Board), and the type's
-saved views — not title vocabulary. Search stays an icon until pressed,
-expands in place, and collapses again when emptied. A create whose
-target the header already names renders the bare "New"; a create or link
-rendered alone on an empty stub line names its class. The creation mode
-is the InputGroup selection beside a grouped create, never part of the
-button caption.
+The view row under it is the collection's data views — the derived
+layout, the switchable alternate projection (Table ↔ Board), and the
+type's saved views as tabs with the add-view affordance at their end.
+The view row also carries the search trigger, filter control, and view
+settings at its trailing end. The view tabs are view customization, not
+title vocabulary. Search stays an icon until pressed, expands in place,
+and collapses again when emptied. A create whose target the title row
+already names renders the bare "New"; a create or link rendered alone on
+an empty stub line names its class. The creation mode is the InputGroup
+selection beside a grouped create, never part of the button caption.
 
 ### 22.16 The state surface is one control (owner direction 2026-10-31)
 
