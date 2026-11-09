@@ -247,10 +247,12 @@ application.
   depth-0 record treatment and threads into `composeScreen`:
   `record` (the default) composes the document flow — the depth-0 record
   renders one inline stack at the `LAYOUT.measure` (the wide step, 60rem)
-  with `SurfaceHeader` page chrome (lineage trail, type byline, action
+  with `SurfaceHeader` page chrome (lineage trail, identity line, action
   cluster, lifecycle history);
   `peek` keeps the ladder arrangement, the lineage trail, and the compact
-  identity line, state surface, and action cluster over the record body. A host passing
+  identity line, state surface, and action cluster over the record body.
+  A host passing `headerTarget` seats that header in its own DOM
+  (the record popup's dialog header) through a teleport. A host passing
   `expandable` gets the header's step-up button, whose `expand` event the
   host turns into the record's own page. `keepEmptyLists` keeps an empty
   top-level list section in the arrangement with its header and empty
@@ -555,8 +557,9 @@ application.
   surface owns the name: a bound editor chrome channel (`rename`),
   else the host's `onRename` (the record document's identifier-field
   patch — the popup's title stays read-only); the quiet transparent
-  input commits on enter and blur. A subtle type label under the title
-  through the same type-label chain opens the class dialog (SPEC §27,
+  input commits on enter and blur. The identity line carries the title,
+  the state surface, and the quiet type label in one row; the type label
+  opens the class dialog (SPEC §27,
   [type-designer](../type-designer/README.md)); it is editable for
   organization classes to capability holders and read-only otherwise.
   Exactly one state surface rides the title line. A state axis is a tree, so stateful
