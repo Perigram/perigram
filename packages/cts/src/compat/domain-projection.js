@@ -35,6 +35,7 @@ function constructionInputLabel({ path = '', label = '', typeId = '' } = {}, lab
   }
   const [, name] = clean.split('.');
   if (clean.startsWith('fields.') && name) {
+    if (label && label !== clean) return label;
     return name.replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
   }
   if (label && label !== clean) return label;
@@ -113,20 +114,23 @@ function withAccessFlags(schema, policy) {
 function relationEntriesFor(type, view) {
   const entries = [];
   const seen = new Set();
-  const push = (key, target, where = null, unlink = null, constructible = true) => {
+  const push = (key, target, where = null, unlink = null, constructible = true, cardinality = 'one') => {
     const dedupe = `${key}:${target}`;
     if (seen.has(dedupe) || !view.has(target)) return;
     seen.add(dedupe);
     entries.push({
       key,
       target,
+      cardinality: cardinality === 'many' ? 'many' : 'one',
       ...(where ? { where } : {}),
       ...(unlink ? { unlink } : {}),
       ...(constructible === false ? { constructible: false } : {})
     });
   };
   for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
-    for (const target of declaration.types || []) push(key, target, declaration.where || null, declaration.unlink || null);
+    for (const target of declaration.types || []) {
+      push(key, target, declaration.where || null, declaration.unlink || null, true, declaration.cardinality === 'one' ? 'one' : 'many');
+    }
   }
   for (const [name, descriptor] of Object.entries(type.fields || {})) {
     if (descriptor?.base !== 'ref') continue;
@@ -227,11 +231,14 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
       const targets = (declaration.types || []).filter(target => view.has(target));
       if (!targets.length) continue;
+      const targetType = targets.length === 1 ? { typeId: targets[0] } : { accepts: targets };
       relationFields.push({
         path: `relations.${key}`,
         block: 'relations',
-        label: `relations.${key}`,
-        type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', ...(targets.length === 1 ? { typeId: targets[0] } : { accepts: targets }) } },
+        label: targets.length === 1 ? (view.get(targets[0])?.name || key) : key,
+        type: declaration.cardinality === 'one'
+          ? { base: 'entityRef', nullable: true, ...targetType }
+          : { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', ...targetType } },
         writable: true,
         constructible: true
       });
@@ -353,17 +360,21 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     // One field per relation key: a multi-target relation is one edge
     // (ref fields and edges.relations both declare them).
     const relationsByKey = new Map();
-    for (const { key, target, constructible } of relationEntriesFor(type, view)) {
-      const entry = relationsByKey.get(key) || { targets: [], constructible: true };
+    for (const { key, target, constructible, cardinality } of relationEntriesFor(type, view)) {
+      const entry = relationsByKey.get(key) || { targets: [], constructible: true, cardinality: 'one' };
       entry.targets.push(target);
       if (constructible === false) entry.constructible = false;
+      if (cardinality === 'many') entry.cardinality = 'many';
       relationsByKey.set(key, entry);
     }
-    for (const [key, { targets, constructible }] of relationsByKey) {
+    for (const [key, { targets, constructible, cardinality }] of relationsByKey) {
+      const targetType = targets.length === 1 ? { typeId: targets[0] } : { accepts: targets };
       relations.push({
         path: `relations.${key}`,
-        label: `relations.${key}`,
-        type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', ...(targets.length === 1 ? { typeId: targets[0] } : { accepts: targets }) } },
+        label: targets.length === 1 ? (view.get(targets[0])?.name || key) : key,
+        type: cardinality === 'many'
+          ? { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', ...targetType } }
+          : { base: 'entityRef', nullable: true, ...targetType },
         constructible
       });
     }
