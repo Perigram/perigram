@@ -75,39 +75,28 @@
           :title="$t('uiMapping.searchPlaceholder')"
           @click="openSearch"
         />
-        <div v-if="viewTabsAvailable" class="flex min-w-0 flex-wrap items-center gap-1">
-          <Button
-            v-for="tab in layoutTabs"
-            :key="tab.id"
-            :label="tab.label"
-            text
-            size="small"
-            :severity="!activeViewId && activeLayoutTabId === tab.id ? 'primary' : 'secondary'"
-            class="shrink-0"
-            @click="selectLayoutTab(tab)"
-          />
-          <Button
-            v-for="view in regionViews"
-            :key="view._id"
-            :label="view.name"
-            text
-            size="small"
-            :severity="activeViewId === view._id ? 'primary' : 'secondary'"
-            class="shrink-0"
-            @click="selectSavedView(view)"
-          />
-          <Button
-            v-if="saveViewAvailable"
-            icon="pi pi-plus"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="$t('uiMapping.addView')"
-            :title="$t('uiMapping.addView')"
-            @click="saveDialogOpen = true"
-          />
-        </div>
+        <Tabs
+          v-if="viewTabsAvailable"
+          :value="activeViewKey"
+          scrollable
+          class="min-w-0"
+          @update:value="selectViewTab"
+        >
+          <TabList>
+            <Tab v-for="tab in viewTabs" :key="tab.id" :value="tab.id">{{ tab.label }}</Tab>
+          </TabList>
+        </Tabs>
+        <Button
+          v-if="saveViewAvailable"
+          icon="pi pi-plus"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="$t('uiMapping.addView')"
+          :title="$t('uiMapping.addView')"
+          @click="saveDialogOpen = true"
+        />
         <Button
           v-if="filterToggleAvailable"
           icon="pi pi-filter"
@@ -398,6 +387,9 @@ import { useI18n } from 'vue-i18n';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
 import Checkbox from 'primevue/checkbox';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
@@ -985,7 +977,15 @@ const layoutTabs = computed(() => {
     label: t(LAYOUT_LABEL_KEYS[layout] || 'uiMapping.view')
   }));
 });
-const activeLayoutTabId = computed(() => `layout:${listLayout.value}`);
+const savedViewTabs = computed(() => regionViews.value.map(view => ({
+  id: `saved:${view._id}`,
+  label: view.name,
+  view
+})));
+const viewTabs = computed(() => [...layoutTabs.value, ...savedViewTabs.value]);
+const activeViewKey = computed(() => (activeViewId.value
+  ? `saved:${activeViewId.value}`
+  : `layout:${listLayout.value}`));
 const viewTabsAvailable = computed(() => Boolean(props.node.typeId)
   && savedViewState.value === null
   && (layoutTabs.value.length > 1 || regionViews.value.length > 0 || saveViewAvailable.value));
@@ -1026,6 +1026,15 @@ function selectLayoutTab(tab) {
   }
   projectionPreference.value = tab.layout;
   storeProjectionPreference(projectionScope.value, tab.layout);
+}
+function selectViewTab(key) {
+  const saved = savedViewTabs.value.find(tab => tab.id === key);
+  if (saved) {
+    selectSavedView(saved.view);
+    return;
+  }
+  const layout = layoutTabs.value.find(tab => tab.id === key);
+  if (layout) selectLayoutTab(layout);
 }
 async function saveCurrentView(name) {
   if (!saveViewAvailable.value || !name || saveViewSaving.value) return;
