@@ -42,12 +42,18 @@ import { useInstancesStore } from '~/stores/instances';
 import { useViewsStore } from '~/stores/views';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
+import { generatedDetailScreenForTypeId } from './detail-screen-actions.js';
 import { composeScreen, statePolicyByType, stateTransitionsByType } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   viewId: { type: String, default: '' },
   // A collection entry's type id (no saved lens).
   typeId: { type: String, default: '' },
+  // A record's child collection: the parent record and its detail-screen
+  // child source.
+  parentTypeId: { type: String, default: '' },
+  parentId: { type: String, default: '' },
+  sourceId: { type: String, default: '' },
   // The name the fence carried at authoring time — the deleted-view
   // title and the fallback while the store loads.
   fallbackName: { type: String, default: '' }
@@ -79,34 +85,72 @@ const contract = computed(() => {
   };
 });
 
-// The minimal single-list-region screen for the view's type — the same
-// floor the detail synthesis builds from a type's list screen, with no
-// actions: creation and quick actions belong to the collection's own
-// screens, and the embed renders the lens.
-const screen = computed(() => (targetTypeId.value ? {
-  id: `view:${viewKey.value}`,
-  screenKey: `view:${viewKey.value}`,
-  template: 'typeList',
-  typeId: targetTypeId.value,
-  sources: [{ id: targetTypeId.value, typeId: targetTypeId.value }],
-  regions: [{ id: 'main', slot: 'main', sourceId: targetTypeId.value }]
-} : null));
+const recordScoped = computed(() => Boolean(props.parentTypeId && props.parentId));
+const parentDetail = computed(() => (recordScoped.value
+  ? generatedDetailScreenForTypeId({
+    screens: authStore.screenManifest || [],
+    typeId: props.parentTypeId
+  })
+  : null));
+const parentRegion = computed(() => {
+  const detail = parentDetail.value;
+  if (!detail) return null;
+  const region = (detail.regions || []).find(candidate => candidate.slot === 'children'
+    && (props.sourceId
+      ? candidate.sourceId === props.sourceId
+      : (detail.sources || []).some(source => source.id === candidate.sourceId
+        && String(source.typeId) === String(targetTypeId.value))));
+  if (!region) return null;
+  const source = (detail.sources || []).find(candidate => candidate.id === region.sourceId);
+  return source ? { region, source } : null;
+});
+const collectionSourceId = computed(() => parentRegion.value?.source?.id || targetTypeId.value);
+
+// The collection region: a record's child collection composes the parent
+// detail screen's child source over the parent scope; a type entry keeps
+// the minimal single-list-region screen. Both render through the same
+// collection machinery, with no actions: creation and quick actions
+// belong to the collection's own screens, and the embed renders the lens.
+const screen = computed(() => {
+  if (!targetTypeId.value) return null;
+  if (recordScoped.value && parentDetail.value && parentRegion.value) {
+    return {
+      id: `view:${viewKey.value}`,
+      screenKey: `view:${viewKey.value}`,
+      template: 'typeList',
+      typeId: props.parentTypeId,
+      scope: { instanceId: props.parentId },
+      sources: parentDetail.value.sources,
+      regions: [{ ...parentRegion.value.region, slot: 'main' }]
+    };
+  }
+  return {
+    id: `view:${viewKey.value}`,
+    screenKey: `view:${viewKey.value}`,
+    template: 'typeList',
+    typeId: targetTypeId.value,
+    sources: [{ id: targetTypeId.value, typeId: targetTypeId.value }],
+    regions: [{ id: 'main', slot: 'main', sourceId: targetTypeId.value }]
+  };
+});
 
 // Source state: loading only while the fetch is in flight; the pool
 // itself derives ready/empty at compose time, so an already-loaded type
 // renders at once on both sides of hydration. A pending lens is a
 // loading region whatever the pool holds — the region cannot render.
 const fetchState = ref(null);
+const parentReady = ref(!recordScoped.value
+  || Boolean(pool.value[props.parentTypeId]?.[props.parentId]));
 const lensPending = computed(() => Boolean(view.value) && props.viewId && viewState.value === null);
 const sourceState = computed(() => {
-  if (lensPending.value) return 'loading';
+  if (lensPending.value || !parentReady.value) return 'loading';
   return fetchState.value
     ?? (Object.keys(pool.value[targetTypeId.value] || {}).length ? 'ready' : 'loading');
 });
 
 const composed = computed(() => (screen.value
   ? composeScreen(screen.value, contract.value, bundle.value, pool.value, {
-    sourceStates: { [targetTypeId.value]: sourceState.value }
+    sourceStates: { [collectionSourceId.value]: sourceState.value }
   })
   : null));
 const node = computed(() => composed.value?.regions?.[0] || null);
@@ -134,6 +178,17 @@ onMounted(async () => {
     }
   }
   if (!targetTypeId.value) return;
+  if (recordScoped.value) {
+    const parentKey = instancesStore.canonicalTypeKey(props.parentTypeId);
+    if (parentKey) {
+      try {
+        await instancesStore.fetchInstance(parentKey, props.parentId);
+      } catch {
+        // The child source resolves to an empty set without its parent.
+      }
+    }
+    parentReady.value = true;
+  }
   const typeKey = instancesStore.canonicalTypeKey(targetTypeId.value);
   if (!typeKey) return;
   fetchState.value = 'loading';

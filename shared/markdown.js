@@ -24,10 +24,16 @@ export function parseViewRef(text = '') {
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
     const id = typeof parsed.id === 'string' && parsed.id.trim() ? parsed.id : '';
     const typeId = typeof parsed.typeId === 'string' && parsed.typeId.trim() ? parsed.typeId : '';
+    const parentTypeId = typeof parsed.parentTypeId === 'string' && parsed.parentTypeId.trim() ? parsed.parentTypeId : '';
+    const parentId = typeof parsed.parentId === 'string' && parsed.parentId.trim() ? parsed.parentId : '';
+    const sourceId = typeof parsed.sourceId === 'string' && parsed.sourceId.trim() ? parsed.sourceId : '';
     if (!id && !typeId) return null;
     return {
       ...(id ? { id } : {}),
       ...(typeId ? { typeId } : {}),
+      ...(parentTypeId ? { parentTypeId } : {}),
+      ...(parentId ? { parentId } : {}),
+      ...(sourceId ? { sourceId } : {}),
       name: typeof parsed.name === 'string' ? parsed.name : ''
     };
   } catch {

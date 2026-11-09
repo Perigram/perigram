@@ -2401,6 +2401,7 @@
         "instance": "Instance",
         "pickInstance": "Insert instance",
         "addCollectionView": "Add collection view",
+        "pickCollectionParent": "Choose a record",
         "pickView": "Pick a view",
         "addView": "Add view",
         "savedViews": "Saved views",

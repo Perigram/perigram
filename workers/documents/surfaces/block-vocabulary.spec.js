@@ -44,7 +44,13 @@ describe('insertViewFence', () => {
       }
     };
 
-    insertViewFence({ typeId: 'user', name: 'Users' }, view);
+    insertViewFence({
+      typeId: 'user',
+      name: 'Users',
+      parentTypeId: 'project',
+      parentId: 'p-1',
+      sourceId: 'users'
+    }, view);
 
     const types = [];
     state.doc.forEach(node => types.push(node.type.name));
@@ -52,5 +58,8 @@ describe('insertViewFence', () => {
     expect(types.at(-1)).toBe('paragraph');
     expect(state.selection.$from.parent.type.name).toBe('paragraph');
     expect(state.selection.$from.parent.content.size).toBe(0);
+    expect(state.doc.textContent).toContain('"parentTypeId":"project"');
+    expect(state.doc.textContent).toContain('"parentId":"p-1"');
+    expect(state.doc.textContent).toContain('"sourceId":"users"');
   });
 });

@@ -2401,6 +2401,7 @@
         "instance": "Экземпляр",
         "pickInstance": "Вставить экземпляр",
         "addCollectionView": "Добавить вид коллекции",
+        "pickCollectionParent": "Выберите запись",
         "pickView": "Выбрать вид",
         "addView": "Добавить вид",
         "savedViews": "Сохранённые виды",

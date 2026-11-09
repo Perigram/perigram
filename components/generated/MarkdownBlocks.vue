@@ -6,6 +6,9 @@
         <ViewEmbed
           :view-id="block.id || ''"
           :type-id="block.typeId || ''"
+          :parent-type-id="block.parentTypeId || ''"
+          :parent-id="block.parentId || ''"
+          :source-id="block.sourceId || ''"
           :fallback-name="block.name"
         />
       </div>

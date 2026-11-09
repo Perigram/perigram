@@ -31,12 +31,47 @@ const WALL_TYPE = {
   edges: {}
 };
 
+const PROJECT_TYPE = {
+  id: 't-project',
+  name: 'Project',
+  identifier: 'Name',
+  fields: { Name: { base: 'string', identifier: true } },
+  edges: {}
+};
+
+const PROJECT_DETAIL = {
+  id: 't-project_detail',
+  screenKey: 't-project_detail',
+  template: 'instanceDetail',
+  typeId: 't-project',
+  sources: [
+    { id: 'project', typeId: 't-project', mode: 'single', identifier: '$screen.scope.instanceId', filters: {} },
+    { id: 'walls', typeId: 't-wall', mode: 'list', filters: {}, relation: { sourceId: 'project', key: 'walls' } }
+  ],
+  regions: [
+    { id: 'main', slot: 'main', sourceId: 'project', surface: 'detail' },
+    { id: 'walls', slot: 'children', sourceId: 'walls', surface: 'card' }
+  ]
+};
+
 const wallDto = (id, name) => ({
   _id: id, type: 't-wall', name, state: null,
   lineage: {}, relations: {}, fields: { Name: name }
 });
 
-async function renderEmbed({ viewRow = null, viewState = null, seedPool = true } = {}) {
+const projectDto = (id, name) => ({
+  _id: id, type: 't-project', name, state: null,
+  lineage: {}, relations: { walls: [{ type: 't-wall', id: 'i-1' }] }, fields: { Name: name }
+});
+
+async function renderEmbed({
+  viewRow = null,
+  viewState = null,
+  seedPool = true,
+  screens = [],
+  parent = null,
+  props = {}
+} = {}) {
   const i18n = createI18n({
     legacy: false, missingWarn: false, fallbackWarn: false, messages: { en }
   });
@@ -45,19 +80,21 @@ async function renderEmbed({ viewRow = null, viewState = null, seedPool = true }
   authStore.user = {
     userId: 'user-1',
     organizationId: 'org-1',
-    process: { active: true, bundle: { types: [WALL_TYPE] }, actions: {}, producerOutputs: {} }
+    screens,
+    process: { active: true, bundle: { types: [PROJECT_TYPE, WALL_TYPE] }, actions: {}, producerOutputs: {} }
   };
   authStore.organization = { _id: 'org-1' };
   const views = useViewsStore(pinia);
   if (viewRow) views.views = [viewRow];
   if (viewState) views.viewStates = { [viewRow._id]: viewState };
   views.loaded = true;
-  if (seedPool) {
+  if (seedPool || parent) {
     const instances = useInstancesStore(pinia);
     instances.upsertRecord('t-wall', wallDto('i-1', 'Wall one'));
     instances.upsertRecord('t-wall', wallDto('i-2', 'Wall two'));
+    if (parent) instances.upsertRecord('t-project', projectDto('p-1', 'Project one'));
   }
-  const app = createSSRApp({ render: () => h(ViewEmbed, { viewId: 'v-1', fallbackName: 'Wall crew' }) });
+  const app = createSSRApp({ render: () => h(ViewEmbed, { viewId: 'v-1', fallbackName: 'Wall crew', ...props }) });
   app.use(i18n);
   app.use(pinia);
   app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
@@ -95,5 +132,25 @@ describe('view embed', () => {
 
     expect(html).toContain('>Wall crew<');
     expect(html).toContain('unavailable');
+  });
+
+  it('renders a record child collection through the parent detail screen source', async () => {
+    const html = await renderEmbed({
+      viewRow: null,
+      screens: [PROJECT_DETAIL],
+      parent: true,
+      props: {
+        viewId: '',
+        typeId: 't-wall',
+        parentTypeId: 't-project',
+        parentId: 'p-1',
+        sourceId: 'walls',
+        fallbackName: 'Walls'
+      }
+    });
+
+    expect(html).toContain('>Walls<');
+    expect(html).toContain('>Wall one<');
+    expect(html).not.toContain('>Wall two<');
   });
 });

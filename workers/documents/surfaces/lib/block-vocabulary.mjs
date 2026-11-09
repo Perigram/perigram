@@ -144,9 +144,14 @@ export function insertInstanceLink(ref, view) {
 export function insertViewFence(ref, view) {
   if ((!ref?.id && !ref?.typeId) || !view) return;
   const { code_block, paragraph } = view.state.schema.nodes;
-  const target = ref.id
-    ? { id: String(ref.id), typeId: String(ref.typeId || ''), name: String(ref.name || '') }
-    : { typeId: String(ref.typeId), name: String(ref.name || '') };
+  const target = {
+    ...(ref.id ? { id: String(ref.id) } : {}),
+    typeId: String(ref.typeId || ''),
+    name: String(ref.name || ''),
+    ...(ref.parentTypeId ? { parentTypeId: String(ref.parentTypeId) } : {}),
+    ...(ref.parentId ? { parentId: String(ref.parentId) } : {}),
+    ...(ref.sourceId ? { sourceId: String(ref.sourceId) } : {})
+  };
   const body = view.state.schema.text(JSON.stringify(target));
   const fence = code_block.createChecked({ language: 'view' }, body);
   const from = view.state.selection.from;

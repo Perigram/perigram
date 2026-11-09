@@ -23,6 +23,8 @@ describe('parseViewRef', () => {
     expect(parseViewRef('{"id":"v-1","name":"Walls"}')).toEqual({ id: 'v-1', name: 'Walls' });
     expect(parseViewRef('{"id":"v-1"}')).toEqual({ id: 'v-1', name: '' });
     expect(parseViewRef('{"typeId":"t-1","name":"Walls"}')).toEqual({ typeId: 't-1', name: 'Walls' });
+    expect(parseViewRef('{"typeId":"t-1","parentTypeId":"t-2","parentId":"i-1","sourceId":"s-1","name":"Walls"}'))
+      .toEqual({ typeId: 't-1', parentTypeId: 't-2', parentId: 'i-1', sourceId: 's-1', name: 'Walls' });
     expect(parseViewRef('v-1')).toBeNull();
     expect(parseViewRef('{"name":"Walls"}')).toBeNull();
     expect(parseViewRef('[]')).toBeNull();

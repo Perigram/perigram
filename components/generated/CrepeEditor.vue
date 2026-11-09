@@ -313,6 +313,9 @@ function liveViewPreview(content) {
   const vnode = h(ViewEmbed, {
     viewId: ref.id || '',
     typeId: ref.typeId || '',
+    parentTypeId: ref.parentTypeId || '',
+    parentId: ref.parentId || '',
+    sourceId: ref.sourceId || '',
     fallbackName: ref.name || ''
   });
   vnode.appContext = appContext;

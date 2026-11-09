@@ -661,22 +661,23 @@ body {
     vertical-align: baseline;
 }
 
-/* Collection views author as live regions inside the editor. The engine
-   frames its code block as a source tool; the live region owns the frame
-   and the vertical rhythm between neighbouring embeds. */
+/* Collection views author as live regions inside the editor. The code
+   block is only the fence carrier: its source chrome drops away and the
+   collection renders as the block itself. */
 .ck-live-view {
     display: block;
     margin: 1rem 0;
-    padding: 0.75rem;
-    border: 1px solid var(--p-content-border-color);
-    border-radius: var(--p-content-border-radius);
 }
 
 .milkdown-code-block:has(.ck-live-view) {
     margin: 1rem 0;
+    padding: 0;
+    background: transparent;
 }
 
-.milkdown-code-block:has(.ck-live-view) > .tools {
+.milkdown-code-block:has(.ck-live-view) > .tools,
+.milkdown-code-block:has(.ck-live-view) .preview-panel .preview-label,
+.milkdown-code-block:has(.ck-live-view) .preview-panel .preview-divider {
     display: none;
 }
 
