@@ -1179,13 +1179,12 @@ identity keeps the table — the stacked identifier-only list projection
 is retired.
 
 The view setup is one trigger at the title row's trailing end, beside the
-search icon. Its popover carries the collection's data views — the
-derived layout, the switchable alternate projection (Table ↔ Board), the
-type's saved views, and the add-view affordance — then the shared filter
-builder, the sort keys, and the field selection. The trigger badges the
-active condition count. The view setup is view customization, not title
-vocabulary. Search stays an icon until pressed, expands in place, and
-collapses again when emptied. A create whose target the title row
+search icon. Its popover carries the display layout as projection icons —
+the derived layout and the switchable alternate (Table ↔ Board) — then
+the shared filter builder, the sort keys, and the field selection. The
+trigger badges the active condition count. The view setup is view
+customization, not title vocabulary. Search stays an icon until pressed,
+expands in place, and collapses again when emptied. A create whose target the title row
 already names renders the bare "New"; a create or link rendered alone on
 an empty stub line names its class. The creation mode is the InputGroup
 selection beside a grouped create, never part of the button caption.
@@ -1487,9 +1486,8 @@ reorder and never delete; custom blocks compose around them.
 The page and record document author through one block vocabulary at
 the gutter and the caret: the block plus and the slash panel offer the
 same entries, the gutter reserves its lane outside the content, and the
-drag handle is a six-dot grip. Collection headers carry their views in
-the view-setup popover: the derived layout, the type's saved views, and
-add view.
+drag handle is a six-dot grip. Collection headers switch their display
+layout in the view-setup popover.
 
 A page document ends with one empty text block rendered like every other
 block; typing in it appends a fresh empty block. A record document keeps

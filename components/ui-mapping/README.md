@@ -116,17 +116,11 @@ beside the transition history in `StateHistory`.
   create whose target the region already names renders the bare `New`;
   the full class-named caption renders when the button stands alone on
   an empty stub line.
-- The view-setup popover is the collection's one view surface. Its view
-  list carries the derived layout, the switchable alternate projection
-  (Table ↔ Board), one entry per saved view of the type, and the add-view
-  affordance for organization members. A saved entry loads the view's
-  four models — search, filter tree, sort, projection — through the
-  [views feature](../../server/features/views/README.md); a layout entry
-  restores the per-type models for that projection. Selecting a saved
-  entry suspends preference writes, so browsing a saved lens leaves the
-  reader's own state intact. The add-view affordance captures the
-  current models through `ViewSaveDialog` under the type label and
-  selects the new entry.
+- The view-setup popover is the collection's one view surface. Its
+  layout picker renders the display types as projection icons: the
+  derived layout and, where the collection switches, the alternate
+  (Table ↔ Board). Picking a layout restores the per-type models for that
+  projection and persists the choice.
 - The same popover hosts the shared `FilterBuilder` panel
   ([shared](../shared/README.md)) over the fields `builderFieldsForType`
   derives ([shared/ui-mapping](../../shared/ui-mapping/README.md)), the
@@ -149,15 +143,13 @@ beside the transition history in `StateHistory`.
   is ignored. A stored preference is the user's explicit view — the
   table floor governs the derivation alone. Timeline and stats keep
   their derived shape.
-- A region mounted with a `viewState` prop renders a saved lens instead
-  of the view list: every view model seeds from the prop (the stored
-  tree re-validates through `normalizeFilter`, the projection and sort
-  through their bounds) and the persistence skips — the controls stay
-  live but their choices stay session-local, and the lens itself is
-  never re-saved from its own embed. A `label` prop overrides the
-  type-derived section title (the embed names the view). The title row
-  stays one line while it has room (SPEC §22.15): the label yields first
-  through ellipsis.
+- A region mounted with a `viewState` prop renders a saved lens: every
+  view model seeds from the prop (the stored tree re-validates through
+  `normalizeFilter`, the projection and sort through their bounds) and
+  the persistence skips — the controls stay live but their choices stay
+  session-local. A `label` prop overrides the type-derived section title
+  (the embed names the view). The title row stays one line while it has
+  room (SPEC §22.15): the label yields first through ellipsis.
 
 ## The record document's overlay (SPEC §26)
 
