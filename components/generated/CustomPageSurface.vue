@@ -54,6 +54,7 @@
             v-if="session.blockByKey(key)?.kind === 'text'"
             :block="session.blockByKey(key)"
             :session="session"
+            :placeholder="session.isTrailingBlock(key) ? t('editors.slashHint') : ''"
           />
           <ViewEmbed
             v-else-if="session.blockByKey(key)?.kind === 'view'"
@@ -65,7 +66,6 @@
             :fallback-name="session.blockByKey(key).view?.name || ''"
           />
         </DocumentSectionShell>
-        <TrailingTextBlock v-if="session.writable" :session="session" />
       </div>
       <ViewPickerDialog
         :visible="session.viewPickerAt !== null"
@@ -94,7 +94,6 @@ import Button from 'primevue/button';
 import SurfaceHeader from '~/components/ui-mapping/SurfaceHeader.vue';
 import DocumentSectionShell from '~/components/ui-mapping/DocumentSectionShell.vue';
 import OverlayTextBlock from './OverlayTextBlock.vue';
-import TrailingTextBlock from './TrailingTextBlock.vue';
 import ViewEmbed from './ViewEmbed.vue';
 import ViewPickerDialog from './ViewPickerDialog.vue';
 import GeneratedScreenHost from './GeneratedScreenHost.vue';

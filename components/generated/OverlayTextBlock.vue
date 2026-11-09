@@ -14,6 +14,7 @@
       class="ck-inline-editor"
       :default-value="block.text"
       :initial-block="initialBlock"
+      :placeholder="placeholder"
       split-on-enter
       delete-on-empty-backspace
       @ready="onEditorReady"
@@ -34,6 +35,9 @@ import MarkdownBlocks from './MarkdownBlocks.vue';
 
 const props = defineProps({
   block: { type: Object, required: true },
+  // The final empty text block carries the slash hint; other blocks stay
+  // text-ready without chrome.
+  placeholder: { type: String, default: '' },
   // The overlay session; a reader mounts the block with no session and
   // no authoring.
   session: { type: Object, default: null }

@@ -25,6 +25,33 @@ export function usePageDocumentSession({ docId, tabKey }) {
   const viewPickerAt = ref(null);
   let seededDocument = null;
 
+  const blockById = computed(() => new Map(draftBlocks.value.map(block => [block.id, block])));
+
+  function markDirty() {
+    dirty.value = true;
+    setWorkspacePageDirty(tabKey, true);
+  }
+
+  function isEmptyText(block) {
+    return block?.kind === 'text' && !String(block.text || '').trim();
+  }
+
+  // The page document always ends with one empty text block: the author's
+  // next line is a real block, not a separate composer outside the list.
+  function ensureTrailingTextBlock() {
+    const lastKey = draftOrder.value[draftOrder.value.length - 1];
+    if (isEmptyText(blockById.value.get(lastKey))) return false;
+    const existing = draftBlocks.value.find(isEmptyText);
+    if (existing) {
+      draftOrder.value = [...draftOrder.value.filter(key => key !== existing.id), existing.id];
+      return true;
+    }
+    const block = { id: createBlockId('t'), kind: 'text', text: '' };
+    draftBlocks.value = [...draftBlocks.value, block];
+    draftOrder.value = [...draftOrder.value, block.id];
+    return true;
+  }
+
   watch(document, value => {
     if (dirty.value) return;
     const key = JSON.stringify(value);
@@ -32,14 +59,8 @@ export function usePageDocumentSession({ docId, tabKey }) {
     seededDocument = key;
     draftBlocks.value = (value.blocks || []).map(block => ({ ...block }));
     draftOrder.value = [...(value.order || [])];
+    ensureTrailingTextBlock();
   }, { immediate: true, deep: true });
-
-  const blockById = computed(() => new Map(draftBlocks.value.map(block => [block.id, block])));
-
-  function markDirty() {
-    dirty.value = true;
-    setWorkspacePageDirty(tabKey, true);
-  }
 
   function move(key, direction) {
     const index = draftOrder.value.indexOf(key);
@@ -48,6 +69,7 @@ export function usePageDocumentSession({ docId, tabKey }) {
     const next = [...draftOrder.value];
     [next[index], next[target]] = [next[target], next[index]];
     draftOrder.value = next;
+    ensureTrailingTextBlock();
     markDirty();
   }
 
@@ -60,6 +82,7 @@ export function usePageDocumentSession({ docId, tabKey }) {
     const destination = index < clamped ? clamped - 1 : clamped;
     next.splice(destination, 0, key);
     draftOrder.value = next;
+    ensureTrailingTextBlock();
     markDirty();
   }
 
@@ -67,6 +90,7 @@ export function usePageDocumentSession({ docId, tabKey }) {
     draftBlocks.value = [...draftBlocks.value, block];
     const index = Math.max(0, Math.min(at, draftOrder.value.length));
     draftOrder.value = [...draftOrder.value.slice(0, index), block.id, ...draftOrder.value.slice(index)];
+    ensureTrailingTextBlock();
     markDirty();
     return block.id;
   }
@@ -127,6 +151,7 @@ export function usePageDocumentSession({ docId, tabKey }) {
       editingInitialBlock.value = '';
     }
     if (activeBlockId.value === blockId) activeBlockId.value = null;
+    ensureTrailingTextBlock();
     markDirty();
   }
 
@@ -171,6 +196,7 @@ export function usePageDocumentSession({ docId, tabKey }) {
 
   function updateText(blockId, text) {
     draftBlocks.value = draftBlocks.value.map(block => (block.id === blockId ? { ...block, text } : block));
+    ensureTrailingTextBlock();
     markDirty();
   }
 
@@ -211,6 +237,8 @@ export function usePageDocumentSession({ docId, tabKey }) {
     blocks: computed(() => draftBlocks.value),
     order: computed(() => draftOrder.value),
     blockByKey: key => blockById.value.get(key) || null,
+    isTrailingBlock: key => key === draftOrder.value[draftOrder.value.length - 1]
+      && isEmptyText(blockById.value.get(key)),
     editingBlockId: computed(() => editingBlockId.value),
     caretFor: blockId => (editingBlockId.value === blockId ? editingCaret.value : 'start'),
     activeBlockId: computed(() => activeBlockId.value),
