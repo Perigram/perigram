@@ -2,7 +2,7 @@
 // vocabulary and wires the nesting attempt's relations into the solve.
 // The nesting attempt carries one sheet (width/height) and one machine
 // (tool diameter); the solve reads those values in place of manual
-// sheetWidth/sheetHeight/space prompts.
+// sheetWidth/sheetHeight/space prompts and stays runnable after a run.
 //
 //   node server/scripts/author-org-sheet-machine.js --org org-6a05940e
 //   node server/scripts/author-org-sheet-machine.js --org org-6a05940e --apply
@@ -172,6 +172,10 @@ function planDefinition(definition, types, adminRoleId) {
     level: 'admin',
     grants: [{ roleId: adminRoleId, level: 'admin' }]
   };
+
+  if (definition.data.processNodes?.solve) {
+    authoring.configure('solve', { state: {} });
+  }
 
   const sheetConstruct = definition.data.processNodes?.mkSheet || null;
   const rebuildSheet = Boolean(sheetConstruct && sheetConstruct.typeId !== 'sheet');
