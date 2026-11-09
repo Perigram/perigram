@@ -5,6 +5,6 @@ export const CHIP_LABEL_PT = Object.freeze({
   label: { class: 'truncate leading-[1.25]' },
   icon: { class: '!text-[1em] !leading-[1.25]' }
 });
-const INLINE_CHIP_LAYOUT = 'inline-flex items-center gap-[0.375em] !px-[0.5em] !py-0 rounded-[var(--p-border-radius-sm)] align-baseline font-[var(--ck-font-ui)] font-normal text-[0.875em] leading-[1.25]';
+const INLINE_CHIP_LAYOUT = '!inline-flex items-center gap-[0.375em] !px-[0.5em] !py-0 rounded-[var(--p-border-radius-sm)] align-baseline font-sans font-normal text-[0.875em] leading-[1.25]';
 export const FILE_CHIP_CLASS = `min-w-0 max-w-full border border-content-border bg-subtle ${INLINE_CHIP_LAYOUT}`;
 export const INSTANCE_CHIP_CLASS = `min-w-0 max-w-full border border-content-border bg-transparent ${INLINE_CHIP_LAYOUT}`;
