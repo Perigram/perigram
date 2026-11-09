@@ -1,12 +1,11 @@
 // The collection header (SPEC §22.15): the label and its create set
-// lead, the view and filter cluster sits right, search stays an icon
-// until pressed, and the class name rides the create caption only on
-// the empty stub line where the button stands alone. SSR-mount pattern
-// per declaration-authoring. The saved-lens and save-the-view contracts
-// (SPEC §26) pin here too: a provided view state seeds the region's
-// view models (the filter condition count badges the control), the
-// label override names the embed, and the save dialog prompts for a
-// name under the type label.
+// lead, search and the one view-setup trigger trail, search stays an
+// icon until pressed, and the class name rides the create caption only
+// on the empty stub line where the button stands alone. The saved-lens
+// and save-the-view contracts (SPEC §26) pin here too: a provided view
+// state seeds the region's view models (the filter condition count
+// badges the setup trigger), the label override names the embed, and the
+// save dialog prompts for a name under the type label.
 import { createSSRApp, h, ref } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { createI18n } from 'vue-i18n';
@@ -93,11 +92,13 @@ const plainHtml = html => html
   .replaceAll('<!---->', '');
 
 describe('region header controls', () => {
-  it('renders the search as an icon until pressed and keeps the filter pinned', async () => {
+  it('renders the search and the one view-setup trigger as icons', async () => {
     const html = await render(listNode(), { uiMappingSpacing: SPACING });
     expect(html).toContain('pi pi-search');
     expect(html).not.toContain('placeholder="Search"');
-    expect(html).toContain('pi pi-filter');
+    expect(html).toContain('pi pi-sliders-h');
+    expect(html).not.toContain('pi pi-filter');
+    expect(html).not.toContain('p-tablist');
     expect(html).not.toContain('opacity-60');
     expect(html).not.toContain('group-hover');
   });

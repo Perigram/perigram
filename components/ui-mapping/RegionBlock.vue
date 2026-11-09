@@ -19,11 +19,11 @@
   </div>
   <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
     <!-- SPEC §22.15: the header stays one line while the row has room —
-         the label and its create set lead, the view and filter cluster
-         sits right, the label yields first through ellipsis, and the
-         cluster wraps below only when the label is at its floor. -->
-    <div class="flex min-w-0 flex-col gap-2">
-      <div class="flex min-w-0 flex-wrap items-center gap-2">
+         the label and its create set lead, the search and view setup
+         trail, the label yields first through ellipsis, and the setup
+         wraps below only when the label is at its floor. -->
+    <div class="flex min-w-0 flex-wrap items-center gap-2">
+      <div class="flex min-w-0 flex-1 items-center gap-2">
         <span :class="['min-w-0 truncate', embedded ? 'text-label' : 'text-section-heading']">{{ regionLabel }}</span>
         <!-- SPEC §22.8: the count renders only for loaded, accessible,
              non-empty collections — a denied or failed source has no
@@ -47,89 +47,80 @@
           @run="emitRun"
         />
       </div>
-      <div
-        v-if="searchToggleAvailable || filterToggleAvailable || optionsToggleAvailable || viewTabsAvailable"
-        class="flex min-w-0 flex-wrap items-center justify-between gap-2"
-      >
-        <div v-if="viewTabsAvailable" class="flex min-w-0 flex-1 items-center gap-1">
-          <Tabs :value="activeViewKey" scrollable class="min-w-0 flex-1" @update:value="selectViewTab">
-            <TabList>
-              <Tab v-for="tab in viewTabs" :key="tab.id" :value="tab.id">{{ tab.label }}</Tab>
-            </TabList>
-          </Tabs>
-          <Button
-            v-if="saveViewAvailable"
-            icon="pi pi-plus"
-            text
-            rounded
+      <div class="flex shrink-0 items-center gap-1">
+        <IconField v-if="searchOpen" class="w-44">
+          <InputIcon class="pi pi-search cursor-pointer" @click="closeSearch" />
+          <InputText
+            ref="searchInput"
+            v-model="search"
             size="small"
-            severity="secondary"
-            :aria-label="$t('uiMapping.addView')"
-            :title="$t('uiMapping.addView')"
-            @click="saveDialogOpen = true"
-          />
-        </div>
-        <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          <IconField v-if="searchOpen" class="w-44">
-            <InputIcon class="pi pi-search cursor-pointer" @click="closeSearch" />
-            <InputText
-              ref="searchInput"
-              v-model="search"
-              size="small"
-              class="w-full"
-              :placeholder="$t('uiMapping.searchPlaceholder')"
-              :aria-label="$t('uiMapping.searchPlaceholder')"
-              @keydown.esc="closeSearch"
-              @blur="search || closeSearch()"
-            />
-          </IconField>
-          <Button
-            v-else-if="searchToggleAvailable"
-            icon="pi pi-search"
-            text
-            rounded
-            size="small"
-            severity="secondary"
+            class="w-full"
+            :placeholder="$t('uiMapping.searchPlaceholder')"
             :aria-label="$t('uiMapping.searchPlaceholder')"
-            :title="$t('uiMapping.searchPlaceholder')"
-            @click="openSearch"
+            @keydown.esc="closeSearch"
+            @blur="search || closeSearch()"
           />
-          <Button
-            v-if="filterToggleAvailable"
-            icon="pi pi-filter"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="$t('uiMapping.filters')"
-            :title="$t('uiMapping.filters')"
-            :badge="conditionCount ? String(conditionCount) : null"
-            @click="toggleFilter"
-          />
-          <Popover ref="filterPopover">
-            <div class="flex w-72 flex-col gap-3">
+        </IconField>
+        <Button
+          v-else-if="searchToggleAvailable"
+          icon="pi pi-search"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="$t('uiMapping.searchPlaceholder')"
+          :title="$t('uiMapping.searchPlaceholder')"
+          @click="openSearch"
+        />
+        <Button
+          v-if="viewSettingsAvailable"
+          icon="pi pi-sliders-h"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="$t('uiMapping.viewSettings')"
+          :title="$t('uiMapping.viewSettings')"
+          :badge="conditionCount ? String(conditionCount) : null"
+          @click="toggleViewSettings"
+        />
+        <Popover ref="viewPopover">
+          <div class="flex w-96 flex-col gap-3">
+            <div v-if="viewSelectAvailable || saveViewAvailable" class="flex flex-col gap-2">
+              <span :class="LAYOUT.sectionTitle">{{ $t('uiMapping.view') }}</span>
+              <div class="flex flex-col gap-1">
+                <Button
+                  v-for="option in viewOptions"
+                  :key="option.id"
+                  :label="option.label"
+                  text
+                  size="small"
+                  class="justify-start"
+                  :severity="option.active ? undefined : 'secondary'"
+                  @click="selectViewOption(option)"
+                />
+              </div>
+              <Button
+                v-if="saveViewAvailable"
+                icon="pi pi-plus"
+                :label="$t('uiMapping.addView')"
+                text
+                size="small"
+                class="justify-start"
+                @click="saveDialogOpen = true"
+              />
+            </div>
+            <div v-if="filterToggleAvailable" class="flex flex-col gap-2">
+              <span :class="LAYOUT.sectionTitle">{{ $t('uiMapping.filters') }}</span>
               <FilterBuilder
                 :model-value="builderFilter"
                 :fields="builderFields"
                 @update:model-value="value => (builderFilter = value)"
               />
             </div>
-          </Popover>
-          <Button
-            v-if="optionsToggleAvailable"
-            icon="pi pi-sliders-h"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="$t('uiMapping.viewSettings')"
-            :title="$t('uiMapping.viewSettings')"
-            @click="toggleOptions"
-          />
-          <Popover ref="optionsPopover">
-            <div class="flex w-72 flex-col gap-3">
+            <div v-if="sortToggleAvailable" class="flex flex-col gap-2">
+              <span :class="LAYOUT.sectionTitle">{{ $t('uiMapping.sortLabel') }}</span>
               <SortControl
-                v-if="sortToggleAvailable"
                 inline
                 :options="sortOptions"
                 :model-value="sortName"
@@ -137,28 +128,28 @@
                 @update:model-value="value => (sortName = value)"
                 @update:order="value => (sortOrder = value)"
               />
-              <div v-if="fieldOptions.length" class="flex flex-col gap-2">
-                <span :class="LAYOUT.sectionTitle">{{ $t('uiMapping.fields') }}</span>
-                <div class="flex flex-col gap-1">
-                  <div
-                    v-for="field in fieldOptions"
-                    :key="field.name"
-                    class="flex items-center gap-2"
-                  >
-                    <Checkbox
-                      :model-value="fieldChecked(field.name)"
-                      binary
-                      size="small"
-                      :input-id="`view-field-${field.name}`"
-                      @update:model-value="toggleField(field.name)"
-                    />
-                    <label :for="`view-field-${field.name}`" class="text-label">{{ field.label }}</label>
-                  </div>
+            </div>
+            <div v-if="fieldOptions.length" class="flex flex-col gap-2">
+              <span :class="LAYOUT.sectionTitle">{{ $t('uiMapping.fields') }}</span>
+              <div class="flex flex-col gap-1">
+                <div
+                  v-for="field in fieldOptions"
+                  :key="field.name"
+                  class="flex items-center gap-2"
+                >
+                  <Checkbox
+                    :model-value="fieldChecked(field.name)"
+                    binary
+                    size="small"
+                    :input-id="`view-field-${field.name}`"
+                    @update:model-value="toggleField(field.name)"
+                  />
+                  <label :for="`view-field-${field.name}`" class="text-label">{{ field.label }}</label>
                 </div>
               </div>
             </div>
-          </Popover>
-        </div>
+          </div>
+        </Popover>
       </div>
     </div>
     <RegionDataState v-if="showState" :node="node" />
@@ -385,9 +376,6 @@ import { useI18n } from 'vue-i18n';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
-import Tabs from 'primevue/tabs';
-import TabList from 'primevue/tablist';
-import Tab from 'primevue/tab';
 import Checkbox from 'primevue/checkbox';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
@@ -892,8 +880,7 @@ watch(() => props.node.id, () => {
   activeViewId.value = null;
   search.value = savedViewState.value?.search || '';
 });
-const filterPopover = ref();
-const optionsPopover = ref();
+const viewPopover = ref();
 
 // View setup's field selection (SPEC §26): the user's explicit column
 // set per type, derived when absent.
@@ -930,12 +917,9 @@ const collectionsNode = computed(() => {
 });
 
 const filterToggleAvailable = computed(() => facetsToggleAvailable.value);
-const optionsToggleAvailable = computed(() => sortToggleAvailable.value
-  || fieldOptions.value.length > 0);
 const conditionCount = computed(() => countPredicates(builderFilter.value));
-const toggleFilter = event => filterPopover.value?.toggle(event);
-const toggleOptions = event => optionsPopover.value?.toggle(event);
-// Save-the-view (SPEC §26): the popover's save entry captures the
+const toggleViewSettings = event => viewPopover.value?.toggle(event);
+// Save-the-view (SPEC §26): the setup popover's save entry captures the
 // region's current view models as one named lens for the organization.
 // A region already rendering a saved lens offers no save.
 const viewsStore = useViewsStore();
@@ -944,10 +928,12 @@ const saveViewSaving = ref(false);
 const saveViewAvailable = computed(() => savedViewState.value === null
   && Boolean(props.node.typeId)
   && viewsStore.canSave);
-// Saved views live in the collection header as tabs (SPEC §26): the
-// saved lens loads its four view models; the default tab restores the
-// per-type preferences. Selecting a tab suppresses preference writes so
-// browsing a saved view never overwrites the reader's own state.
+// The setup popover is the collection's one view surface (SPEC §22.15):
+// view selection, filters, sort, and fields; the trigger badges the
+// active condition count. Saved views load their four view models;
+// picking a layout restores the per-type preferences. While a saved view
+// is active the preference writes stay suspended, so browsing a saved
+// lens never overwrites the reader's own state.
 const activeViewId = ref(null);
 const regionViews = computed(() => (savedViewState.value
   ? []
@@ -961,9 +947,10 @@ const LAYOUT_LABEL_KEYS = {
   gantt: 'uiMapping.layoutGantt',
   calendar: 'uiMapping.layoutCalendar'
 };
-// View tabs are the collection's data views (SPEC §22.15): the derived
-// layout always, the switchable alternate beside it, then saved lenses.
-const layoutTabs = computed(() => {
+// The view options are the collection's data views (SPEC §22.15): the
+// derived layout always, the switchable alternate beside it, then the
+// saved lenses.
+const layoutOptions = computed(() => {
   const layouts = [derivedListLayout.value];
   if (projectionSwitchable.value) {
     const alternate = derivedListLayout.value === 'board' ? 'table' : 'board';
@@ -972,21 +959,27 @@ const layoutTabs = computed(() => {
   return layouts.map(layout => ({
     id: `layout:${layout}`,
     layout,
-    label: t(LAYOUT_LABEL_KEYS[layout] || 'uiMapping.view')
+    label: t(LAYOUT_LABEL_KEYS[layout] || 'uiMapping.view'),
+    active: !activeViewId.value && listLayout.value === layout
   }));
 });
-const savedViewTabs = computed(() => regionViews.value.map(view => ({
-  id: `saved:${view._id}`,
-  label: view.name,
-  view
-})));
-const viewTabs = computed(() => [...layoutTabs.value, ...savedViewTabs.value]);
-const activeViewKey = computed(() => (activeViewId.value
-  ? `saved:${activeViewId.value}`
-  : `layout:${listLayout.value}`));
-const viewTabsAvailable = computed(() => Boolean(props.node.typeId)
+const viewOptions = computed(() => [
+  ...layoutOptions.value,
+  ...regionViews.value.map(view => ({
+    id: `saved:${view._id}`,
+    view,
+    label: view.name,
+    active: activeViewId.value === view._id
+  }))
+]);
+const viewSelectAvailable = computed(() => Boolean(props.node.typeId)
   && savedViewState.value === null
-  && (layoutTabs.value.length > 1 || regionViews.value.length > 0 || saveViewAvailable.value));
+  && (layoutOptions.value.length > 1 || regionViews.value.length > 0));
+const viewSettingsAvailable = computed(() => viewSelectAvailable.value
+  || saveViewAvailable.value
+  || filterToggleAvailable.value
+  || sortToggleAvailable.value
+  || fieldOptions.value.length > 0);
 onMounted(() => {
   if (!savedViewState.value) viewsStore.ensureLoaded().catch(() => {});
 });
@@ -1011,7 +1004,7 @@ async function selectSavedView(view) {
     toast?.add?.({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
   }
 }
-function selectLayoutTab(tab) {
+function selectLayoutOption(option) {
   const wasSaved = Boolean(activeViewId.value);
   activeViewId.value = null;
   if (wasSaved) {
@@ -1022,17 +1015,12 @@ function selectLayoutTab(tab) {
     sortName.value = restored?.name || props.node.listControls?.defaultSort || null;
     sortOrder.value = restored?.order || 1;
   }
-  projectionPreference.value = tab.layout;
-  storeProjectionPreference(projectionScope.value, tab.layout);
+  projectionPreference.value = option.layout;
+  storeProjectionPreference(projectionScope.value, option.layout);
 }
-function selectViewTab(key) {
-  const saved = savedViewTabs.value.find(tab => tab.id === key);
-  if (saved) {
-    selectSavedView(saved.view);
-    return;
-  }
-  const layout = layoutTabs.value.find(tab => tab.id === key);
-  if (layout) selectLayoutTab(layout);
+function selectViewOption(option) {
+  if (option.view) selectSavedView(option.view);
+  else selectLayoutOption(option);
 }
 async function saveCurrentView(name) {
   if (!saveViewAvailable.value || !name || saveViewSaving.value) return;
@@ -1050,7 +1038,7 @@ async function saveCurrentView(name) {
     });
     activeViewId.value = created?._id || null;
     saveDialogOpen.value = false;
-    optionsPopover.value?.hide();
+    viewPopover.value?.hide();
   } catch (error) {
     toast?.add?.({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
   } finally {
