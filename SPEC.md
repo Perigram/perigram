@@ -1450,13 +1450,15 @@ of the values written.
 Users expand the workspace beside the process: custom pages, custom
 collection views, and instance-page customization are user data, never
 process definitions — Page-class instances and framework collections
-carrying markdown blocks through the one editor engine.
+carrying ordered block documents.
 
 Custom pages are Page-class instances (`page` organization type seeded
-by the pages feature, items collection) carrying name, markdown content,
-a section flag, and `pageId` parent lineage. Users create their own sidebar sections and
-nest pages freely; the sidebar is user-organizable beside the process
-panels.
+by the pages feature, items collection) carrying name, an ordered
+document of text and collection blocks (`blocks` + `order`), a section
+flag, and `pageId` parent lineage. Text blocks mount their own editors;
+collection blocks mount beside them, outside any editor instance. Users
+create their own sidebar sections and nest pages freely; the sidebar is
+user-organizable beside the process panels.
 
 A custom view is a saved representation of an existing collection: the
 per-type view state (search, filters, sort, projection) plus its type,

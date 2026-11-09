@@ -50,7 +50,7 @@ types ride the generic instance machinery from the install snapshot.
   | Divider, Table | horizontal rule; a three-by-three gfm table |
   | Link | the host address popover, anchored to the surface; the link applies at the caret |
   | Instance | the host instance tree (`@` and the entry share it); the pick inserts an atomic chip serialized as an inline `#instance:<type>/<id>` link |
-  | Collection view | the host picker browses the shared instance tree to the parent record, then lists the record's child collections with their saved views; the pick inserts a `` ```view `` fence carrying the collection ref (`{ typeId, name, parentTypeId, parentId, sourceId }`) or a saved lens ref (`{ id, typeId, name, parentTypeId, parentId, sourceId }`), and leaves the caret in a paragraph after the embed |
+  | Collection view | the host picker browses the shared instance tree to the parent record, then lists the record's child collections with their saved views; the pick inserts a `view` block carrying the collection ref (`{ typeId, name, parentTypeId, parentId, sourceId }`) or a saved lens ref (`{ id, typeId, name, parentTypeId, parentId, sourceId }`) beside the text blocks, and the host mounts `ViewEmbed` |
 
   Inline marks (bold, italic, inline code) author through input rules.
   The entry table lives in `surfaces/lib/block-vocabulary-data.mjs`; the

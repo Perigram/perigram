@@ -15,7 +15,8 @@ One `items` document of type `page` per page or section:
 |---|---|
 | `organizationId` | Owning organization (flexible id). |
 | `fields.name` | String, the Page identifier; may be empty. |
-| `fields.content` | Markdown block source; sections carry the empty string. |
+| `fields.blocks` | Ordered block records: `{ id, kind: 'text', text }` or `{ id, kind: 'view', view }`; sections carry an empty list. |
+| `fields.order` | Block ids in document order. |
 | `fields.section` | Boolean; sections are `true`, pages `false`. |
 | `fields.classTypeId` | Optional class binding; a class page is the one page bound to that organization class. |
 | `lineage.pageId` | Parent page or section id; absent at the root. |
@@ -35,16 +36,20 @@ freely under sections and under other pages.
 The Page declaration (`pageTypeDeclaration` in
 [packages/cts](../../../packages/cts/README.md)) is seeded as an
 organization type on the first page operation: `name` (identifier),
-`content`, `section`, and the self `children` edge keyed `pageId`. The
-`page` id is reserved for this default class and stays out of the class
-library.
+`blocks`, `order`, `section`, and the self `children` edge keyed
+`pageId`. The `page` id is reserved for this default class and stays out
+of the class library.
 
 ## Legacy migration
 
 The first page operation in an organization adopts rows from the former
 `pages` collection into `items` Page instances and deletes the old rows.
-Ids, names, content, parent refs, and provenance are preserved;
-`kind: 'section'` becomes `fields.section: true`.
+Ids, names, parent refs, and provenance are preserved;
+`kind: 'section'` becomes `fields.section: true`, and markdown `content`
+splits into ordered text and collection blocks through
+`blocksFromMarkdown`. The Page declaration lands at version 2 with a
+declared `remove-field content` migration, so the legacy field is gone
+from stored instances.
 
 ## Access
 
@@ -74,9 +79,9 @@ Service seam: `listTree`, `getById`, `create`, `update`, `remove`.
 | Endpoint | Responsibility |
 |---|---|
 | `GET /api/pages` | The organization's rows in the tree projection, `createdAt` ascending. |
-| `POST /api/pages` | Create (`{ kind?, name?, parentId?, classTypeId?, content? }`, org member). |
-| `GET /api/pages/:id` | One full page (content included). |
-| `PATCH /api/pages/:id` | Rename / move / save content (`{ name?, parentId?, content? }`, any subset). |
+| `POST /api/pages` | Create (`{ kind?, name?, parentId?, classTypeId?, blocks?, order? }`, org member). |
+| `GET /api/pages/:id` | One full page (`blocks` and `order` included). |
+| `PATCH /api/pages/:id` | Rename / move / save the block document (`{ name?, parentId?, blocks?, order? }`, any subset). |
 | `DELETE /api/pages/:id` | Delete; children become roots. |
 
 ## Related

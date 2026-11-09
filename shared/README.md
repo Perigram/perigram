@@ -63,6 +63,11 @@ imported through server modules that Nitro externalizes.
   sources emit is its projection. Pure data and functions; the canonical
   contract lives in
   [instance-filters/README.md](./instance-filters/README.md).
+- `page-document.js`: The Page block document contract — `blocksFromMarkdown`
+  splits legacy markdown into ordered text/collection blocks,
+  `normalizePageDocument` keeps only known ordered blocks, and
+  `createBlockId` mints block ids. Consumed by the pages feature, its
+  store, and the page document session.
 - `markdown.js`: The markdown document contract — `renderMarkdown`
   (source to sanitized HTML, empty server-side) shared by the source
   editor and the read viewer, plus `MARKDOWN_ELEMENT_CLASSES`

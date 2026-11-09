@@ -28,6 +28,17 @@ imports it); instance cards and pages consume the composables instead. See
 
 ---
 
+## usePageDocument — the Page block document session
+
+`usePageDocumentSession({ docId, tabKey })` owns a custom page's ordered
+text and collection blocks: block insert/reorder/remove, per-text-block
+editing state, the page-level collection picker, autosave through
+`stores/pages.js`, and the workspace dirty registry. Text blocks mount
+`OverlayTextBlock` editors; collection blocks mount `ViewEmbed` as
+siblings, outside every editor.
+
+---
+
 ## useStatePolicy — the flat state vocabulary source
 
 Every state surface — generated screens and the shared instance chrome

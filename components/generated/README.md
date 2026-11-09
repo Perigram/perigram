@@ -209,12 +209,14 @@ the `section` field set.
   pages store (renames reach open tabs), the page glyph in the tab
   strip. The section menu's New page entry creates the document through
   the API and opens the tab.
-- The surface renders the document read through `MarkdownBlocks.vue` (the
-  one read composition: markdown segments through the host pipeline —
-  `shared/markdown.js`, which renders empty server-side by its own law —
-  and view fences through `ViewEmbed.vue`) and mounts the live engine
-  after mount through `CrepeEditor.vue`, the one inline engine mount:
-  the crepe configuration follows the documents plugin's reference mount
+- The surface renders the ordered Page block document (`fields.blocks` +
+  `fields.order`) through `usePageDocumentSession`: every text block
+  mounts its own `OverlayTextBlock` → `CrepeEditor.vue` instance, and
+  every collection block mounts `ViewEmbed.vue` as a sibling component
+  outside any editor. `DocumentSectionShell` and
+  `OverlayInsertControl` provide the gutter plus, drag reorder, and
+  delete; the trailing `TrailingTextBlock` commits the next text block.
+  The crepe configuration follows the documents plugin's reference mount
   (`workers/documents/surfaces/text-editor.mjs` — every engine chrome
   off), and the block vocabulary, the slash panel, the source-markers
   plugin, and the CodeMirror theme come from the same share modules the
@@ -224,60 +226,54 @@ the `section` field set.
   editor mount reads identically. The collection-view entry opens
   `ViewPickerDialog.vue` — the shared instance tree picks the parent
   record, then the record's detail screen supplies its child collections
-  — and inserts the chosen child collection or saved lens fence at the
-  caret. A pick leaves the caret in a fresh paragraph after the embed, so
-  the collection authors live. The instance entry and typing `@` open
-  `InstanceMentionPicker.vue` over the shared `InstanceTree.vue`, the same
-  section-and-lineage tree chat attachments browse; the pick lands as an
-  atomic `instance_ref` node (`instance-ref-node.js`) that renders the
-  shared chip face, opens on click, and selects as one unit before
-  Backspace removes it. The image entry opens `ImageInsertDialog.vue`
-  (upload or address) and inserts the engine's image node. The file entry
-  opens `FileInsertDialog.vue` for any file and inserts a `file_ref` node
-  (`file-ref-node.js`) rendering the shared `FileChip`; it serializes to a
-  `#file:` link and the read composition mounts the same chip. Every slash
-  hand-off opens on the next task, so the selecting click cannot dismiss
-  its popover or dialog as an outside click. Enter on an empty top-level
-  paragraph keeps the caret in that paragraph. The page-link and AI-block
-  entries stay dark until phase K. The page's header is the unified page header
+  — and inserts the chosen child collection or saved lens as a sibling
+  view block. A text block's slash view entry delegates to the page
+  session's picker, so collections never nest inside a text editor. The
+  instance entry and typing `@` open `InstanceMentionPicker.vue` over the
+  shared `InstanceTree.vue`, the same section-and-lineage tree chat
+  attachments browse; the pick lands as an atomic `instance_ref` node
+  (`instance-ref-node.js`) that renders the shared chip face, opens on
+  click, and selects as one unit before Backspace removes it. The image
+  entry opens `ImageInsertDialog.vue` (upload or address) and inserts the
+  engine's image node. The file entry opens `FileInsertDialog.vue` for any
+  file and inserts a `file_ref` node (`file-ref-node.js`) rendering the
+  shared `FileChip`; it serializes to a `#file:` link and the read
+  composition mounts the same chip. Every slash hand-off opens on the
+  next task, so the selecting click cannot dismiss its popover or dialog
+  as an outside click. Enter on an empty top-level paragraph keeps the
+  caret in that paragraph. The page-link and AI-block entries stay dark
+  until phase K. The page's header is the unified page header
   ([ui-mapping](../ui-mapping/README.md) `SurfaceHeader` with `title` +
   `onRename`, no type or instance): the name edits in place through the
-  pages rename channel and the save patches content through the pages
-  API from the header's cluster, dirty-gated, registered on the
+  pages rename channel and the save patches `blocks`/`order` through the
+  pages API from the header's cluster, dirty-gated, registered on the
   workspace page-dirty registry so pane-close confirms; a new page
-  starts blank — unnamed document, empty editor.
-- A view fence in the page's markdown carries a view ref — a
-  `` ```view `` fence with a `{"id":"…","name":"…"}` body for a saved
-  lens or a collection body (`{"typeId":"…","name":"…"}` for a type
-  entry, with `parentTypeId`, `parentId`, and `sourceId` for a record's
-  child collection; the mermaid fence precedent: a fence type the
-  pipeline knows; the name rides the fence so a deleted view still
-  renders its name). The read presentation composes with the fences:
-  `splitViewEmbeds` (`shared/markdown.js`) splits the document into
-  markdown segments and embed blocks; segments render through the
-  pipeline, embeds through `ViewEmbed.vue`, which renders the target as
-  a live collection region through the ordinary machinery — a record
-  child composes the parent detail screen's child source over the
-  record scope, a type entry composes the minimal single-list-region
-  screen — materialized by the one [RegionBlock](../ui-mapping/README.md)
-  with a saved view's state as its view models and the view's name as
-  its section title. A collection entry renders the type's live view
-  with the collection header's tabs and add-view affordance. Instances
+  starts blank — unnamed document, empty block list.
+- A page view block carries a view ref — `{"id":"…","name":"…"}` for a
+  saved lens or a collection body (`{"typeId":"…","name":"…"}` for a
+  type entry, with `parentTypeId`, `parentId`, and `sourceId` for a
+  record's child collection). `ViewEmbed.vue` renders it as a live
+  collection region through the ordinary machinery — a record child
+  composes the parent detail screen's child source over the record
+  scope, a type entry composes the minimal single-list-region screen —
+  materialized by the one [RegionBlock](../ui-mapping/README.md) with a
+  saved view's state as its view models and the view's name as its
+  section title. Legacy markdown `content` migrates through
+  `splitViewEmbeds` (`shared/markdown.js`) into the same blocks. A
+  collection entry renders the type's live view with the collection
+  header's tabs and add-view affordance. Instances
   load through the instances store list transport (org scoping and
   grants ride it — the lens law: an org-wide view shows each member
   their own readable subset, and an unreadable type renders the denied
   state), and row opens follow the workspace-open seam. The embed's
   region carries no actions: creation and quick actions belong to the
   collection's own screens, and the embed renders the lens; interacting
-  with its controls edits the lens session-locally only. In the live
-  editor the same `ViewEmbed` mounts from the atomic `view_ref` block
-  node (`view-ref-node.js`), rendered in the `ck-live-view` block; the
-  node parses and serializes the same ```view fence, so the collection
-  reads live while
-  the author types; each embed owns a 1rem vertical frame, separating
-  neighbouring collection blocks from the collection header's own
-  rhythm. A fence naming a deleted view renders its carried name and a
-  quiet unavailable state.
+  with its controls edits the lens session-locally only. The view block
+  is a sibling of the text-block editors, so the editor reset never
+  reaches the collection; each block owns a 1rem vertical frame,
+  separating neighbouring collection blocks from the collection
+  header's own rhythm. A block naming a deleted view renders its carried
+  name and a quiet unavailable state.
 - The record overlay's blocks mount beside the page's fences (SPEC §26):
   a writable session mounts `CrepeEditor` in every text block through
   `OverlayTextBlock.vue`, so editing and resting states share one
