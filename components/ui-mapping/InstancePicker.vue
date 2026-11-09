@@ -141,7 +141,11 @@ async function ensureType(typeId) {
   if (!key || fetchedTypes.value[key]) return;
   fetchedTypes.value[key] = true;
   try {
-    await instances.listInstances(key, {}, { silent: true });
+    // An empty cache is a first-use cache: fetch instead of trusting a
+    // prior empty observation, so a dialog opened before the store's first
+    // read still lists the records already in the database.
+    const cached = Object.keys(instances.records?.[key] || {}).length > 0;
+    await instances.listInstances(key, {}, { silent: true, force: !cached });
   } catch {
     fetchedTypes.value[key] = false;
   }
