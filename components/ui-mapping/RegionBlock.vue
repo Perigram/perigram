@@ -77,12 +77,14 @@
         />
         <div v-if="viewTabsAvailable" class="flex min-w-0 flex-wrap items-center gap-1">
           <Button
-            :label="defaultViewLabel"
+            v-for="tab in layoutTabs"
+            :key="tab.id"
+            :label="tab.label"
             text
             size="small"
-            :severity="activeViewId ? 'secondary' : 'primary'"
+            :severity="!activeViewId && activeLayoutTabId === tab.id ? 'primary' : 'secondary'"
             class="shrink-0"
-            @click="selectDefaultView"
+            @click="selectLayoutTab(tab)"
           />
           <Button
             v-for="view in regionViews"
@@ -140,17 +142,6 @@
         />
         <Popover ref="optionsPopover">
           <div class="flex w-72 flex-col gap-3">
-            <Button
-              v-if="projectionSwitchable"
-              :icon="listLayout === 'board' ? 'pi pi-list' : 'pi pi-objects-column'"
-              text
-              rounded
-              size="small"
-              severity="secondary"
-              class="self-start"
-              :aria-label="listLayout === 'board' ? $t('uiMapping.projectionTable') : $t('uiMapping.projectionBoard')"
-              @click="toggleProjection"
-            />
             <SortControl
               v-if="sortToggleAvailable"
               inline
@@ -806,11 +797,6 @@ const projectionPreference = ref(seedProjection());
 watch(projectionScope, () => {
   projectionPreference.value = seedProjection();
 });
-const toggleProjection = () => {
-  const next = listLayout.value === 'board' ? 'table' : 'board';
-  projectionPreference.value = next;
-  if (!savedViewState.value && !activeViewId.value) storeProjectionPreference(projectionScope.value, next);
-};
 // A stored table preference is the user's explicit view: the floor
 // governs the derivation alone, a chosen table renders.
 const listLayout = computed(() => {
@@ -954,8 +940,7 @@ const collectionsNode = computed(() => {
 });
 
 const filterToggleAvailable = computed(() => facetsToggleAvailable.value);
-const optionsToggleAvailable = computed(() => projectionSwitchable.value
-  || sortToggleAvailable.value
+const optionsToggleAvailable = computed(() => sortToggleAvailable.value
   || fieldOptions.value.length > 0);
 const conditionCount = computed(() => countPredicates(builderFilter.value));
 const toggleFilter = event => filterPopover.value?.toggle(event);
@@ -977,9 +962,6 @@ const activeViewId = ref(null);
 const regionViews = computed(() => (savedViewState.value
   ? []
   : viewsStore.views.filter(view => view.typeId === props.node.typeId)));
-const viewTabsAvailable = computed(() => Boolean(props.node.typeId)
-  && savedViewState.value === null
-  && (regionViews.value.length > 0 || saveViewAvailable.value));
 const LAYOUT_LABEL_KEYS = {
   table: 'uiMapping.layoutTable',
   board: 'uiMapping.layoutBoard',
@@ -989,7 +971,24 @@ const LAYOUT_LABEL_KEYS = {
   gantt: 'uiMapping.layoutGantt',
   calendar: 'uiMapping.layoutCalendar'
 };
-const defaultViewLabel = computed(() => t(LAYOUT_LABEL_KEYS[derivedListLayout.value] || 'uiMapping.view'));
+// View tabs are the collection's data views (SPEC §22.15): the derived
+// layout always, the switchable alternate beside it, then saved lenses.
+const layoutTabs = computed(() => {
+  const layouts = [derivedListLayout.value];
+  if (projectionSwitchable.value) {
+    const alternate = derivedListLayout.value === 'board' ? 'table' : 'board';
+    if (!layouts.includes(alternate)) layouts.push(alternate);
+  }
+  return layouts.map(layout => ({
+    id: `layout:${layout}`,
+    layout,
+    label: t(LAYOUT_LABEL_KEYS[layout] || 'uiMapping.view')
+  }));
+});
+const activeLayoutTabId = computed(() => `layout:${listLayout.value}`);
+const viewTabsAvailable = computed(() => Boolean(props.node.typeId)
+  && savedViewState.value === null
+  && (layoutTabs.value.length > 1 || regionViews.value.length > 0 || saveViewAvailable.value));
 onMounted(() => {
   if (!savedViewState.value) viewsStore.ensureLoaded().catch(() => {});
 });
@@ -1014,15 +1013,19 @@ async function selectSavedView(view) {
     toast?.add?.({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
   }
 }
-function selectDefaultView() {
+function selectLayoutTab(tab) {
+  const wasSaved = Boolean(activeViewId.value);
   activeViewId.value = null;
-  search.value = '';
-  searchOpen.value = false;
-  projectionPreference.value = loadProjectionPreference(projectionScope.value);
-  builderFilter.value = loadFilterViewState(builderScope.value);
-  const restored = loadSortPreference(sortScope.value);
-  sortName.value = restored?.name || props.node.listControls?.defaultSort || null;
-  sortOrder.value = restored?.order || 1;
+  if (wasSaved) {
+    search.value = '';
+    searchOpen.value = false;
+    builderFilter.value = loadFilterViewState(builderScope.value);
+    const restored = loadSortPreference(sortScope.value);
+    sortName.value = restored?.name || props.node.listControls?.defaultSort || null;
+    sortOrder.value = restored?.order || 1;
+  }
+  projectionPreference.value = tab.layout;
+  storeProjectionPreference(projectionScope.value, tab.layout);
 }
 async function saveCurrentView(name) {
   if (!saveViewAvailable.value || !name || saveViewSaving.value) return;

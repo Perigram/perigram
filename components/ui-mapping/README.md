@@ -123,21 +123,22 @@ beside the transition history in `StateHistory`.
   active condition count (`countPredicates`); its popover hosts the
   shared `FilterBuilder` panel ([shared](../shared/README.md)) over the
   fields `builderFieldsForType` derives ([shared/ui-mapping](../../shared/ui-mapping/README.md)).
-  View settings is a sliders button whose popover hosts the projection
-  switch (where the collection is switchable), the sort keys (the
-  card-grid projection), and the field selection that sets the
+  View settings is a sliders button whose popover hosts the sort keys
+  (the card-grid projection) and the field selection that sets the
   collection's explicit column set (persisted per type, absent = the
   derived budget). Every hosted control is a live model. The filter
   tree and the projection and sort choices are persisted view state per
   type (`utils/ui-view-state.js`), evaluated with the one matcher
   (`instanceMatchesFilter`) against the region's pool.
-- The view tabs are the derived-layout tab (`Table`, `Board`, `Cards`,
-  `Timeline`, `Stats`, `Gantt`, `Calendar`), one tab per saved view of
-  the type, and the add-view (+) affordance for organization members. A
-  saved tab loads the view's four models — search, filter tree, sort,
-  projection — through the [views feature](../../server/features/views/README.md);
-  the default tab restores the per-type preferences. Selecting a tab
-  suspends preference writes, so browsing a saved lens leaves the
+- The view tabs are the collection's data views: the derived-layout tab
+  (`Table`, `Board`, `Cards`, `Timeline`, `Stats`, `Gantt`, `Calendar`),
+  the switchable alternate layout (`Table` ↔ `Board`) beside it, one tab
+  per saved view of the type, and the add-view (+) affordance for
+  organization members. A saved tab loads the view's four models —
+  search, filter tree, sort, projection — through the
+  [views feature](../../server/features/views/README.md); a layout tab
+  restores the per-type models for that projection. Selecting a saved
+  tab suspends preference writes, so browsing a saved lens leaves the
   reader's own state intact. The add-view affordance captures the
   current models through `ViewSaveDialog` under the type label and
   activates the new tab.
@@ -151,14 +152,14 @@ beside the transition history in `StateHistory`.
   The region header stays one line while the row has room (SPEC §22.15): the label
   yields first through ellipsis, and the trailing cluster wraps below
   only when the label is at its floor and the cluster still overflows
-  the row. The projection switch is the one
-  layout-shaped user view state, persisted per type beside sort and
-  filters: a collection whose type serves a state vocabulary and whose
-  derived layout is a structural collection (table) may switch to the
-  board, and a derived board may switch back; a stored preference for a
-  non-switchable collection is ignored. A stored preference is the user's
-  explicit view — the table floor governs the derivation alone. The
-  switch stays clear of shape-specialized projections (timeline, stats).
+  the row. The layout tabs carry the one layout-shaped user view state,
+  persisted per type beside sort and filters: a collection whose type
+  serves a state vocabulary and whose derived layout is a structural
+  collection (table) offers the board tab, and a derived board offers
+  the table tab; a stored preference for a non-switchable collection is
+  ignored. A stored preference is the user's explicit view — the table
+  floor governs the derivation alone. The tabs stay clear of
+  shape-specialized projections (timeline, stats).
 
 ## The record document's overlay (SPEC §26)
 

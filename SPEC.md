@@ -1181,13 +1181,14 @@ stacked identifier-only list projection is retired.
 
 A collection's header leads with its label, count chip, and create set;
 the view tabs, filter control, and view settings cluster at the trailing
-end. The view tabs (the derived layout and the type's saved views) are
-view customization, not title vocabulary. Search stays an icon until
-pressed, expands in place, and collapses again when emptied. A create
-whose target the header already names renders the bare "New"; a create
-or link rendered alone on an empty stub line names its class. The
-creation mode is the InputGroup selection beside a grouped create, never
-part of the button caption.
+end. The view tabs are the collection's data views — the derived layout,
+the switchable alternate projection (Table ↔ Board), and the type's
+saved views — not title vocabulary. Search stays an icon until pressed,
+expands in place, and collapses again when emptied. A create whose
+target the header already names renders the bare "New"; a create or link
+rendered alone on an empty stub line names its class. The creation mode
+is the InputGroup selection beside a grouped create, never part of the
+button caption.
 
 ### 22.16 The state surface is one control (owner direction 2026-10-31)
 
