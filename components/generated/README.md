@@ -222,9 +222,11 @@ the `section` field set.
   dependency graph — the grammar is consumed, never copied. The crepe
   theme and the editor voice css load from the plugin's assets, so every
   editor mount reads identically. The collection-view entry opens
-  `ViewPickerDialog.vue` — the collection containment tree with each
-  collection's saved views beneath it — and inserts the chosen collection
-  or lens fence at the caret. The instance entry and typing `@` open
+  `ViewPickerDialog.vue` — the workspace's actual collections, the home
+  screen's list sections `InstanceTree.vue` also roots — with each
+  collection's saved views beneath it, and inserts the chosen collection
+  or lens fence at the caret. A pick leaves the caret in a fresh paragraph
+  after the embed, so the collection authors live. The instance entry and typing `@` open
   `InstanceMentionPicker.vue` over the shared `InstanceTree.vue`, the same
   section-and-lineage tree chat attachments browse; the pick lands as an
   atomic `instance_ref` node (`instance-ref-node.js`) that renders the

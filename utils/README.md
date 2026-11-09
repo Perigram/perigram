@@ -12,6 +12,10 @@ Parent: [root README](../README.md).
 - `instance-hierarchy.js`: The containment walk — ancestor refs carry the
   declaration's canonical type id so breadcrumb labels, glyphs, and popup
   targets resolve through the served type view.
+- `home-collections.js`: The workspace collection set — the home screen's
+  list regions, excluding single-instance sources and parent-bound child
+  sources, with labels through `generatedRegionLabel`. `InstanceTree` and
+  the collection-view picker share this derivation.
 
 ## Design System Contract
 

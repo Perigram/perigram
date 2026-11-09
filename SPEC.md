@@ -1488,10 +1488,13 @@ Typing `@` or picking the instance entry opens the shared instance tree
 — home sections, lineage children, and lenient search, the same tree
 chat attachments browse. A pick inserts one atomic chip: it opens the
 record on click and a Backspace at its edge selects it before the next
-removes it. The collection-view picker shows the type containment tree
-with each collection's saved views beneath it; choosing a collection
-inserts its live default view and choosing a saved view inserts that
-lens. Collection embeds author live in the editor. The image entry
+removes it. The collection-view picker lists the workspace's actual
+collections — the home sections' list sources, the same set the home
+workspace and the instance tree render — with each collection's saved
+views beneath it; choosing a collection inserts its live default view
+and choosing a saved view inserts that lens. Collection embeds author
+live in the editor, and a pick lands the caret in a fresh paragraph
+after the embed. The image entry
 accepts a stored upload or an address. The file entry accepts any file,
 stored or addressed, and renders through the shared file chip. A slash
 hand-off opens after the selecting click, so the picker or dialog stays
