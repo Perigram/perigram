@@ -51,8 +51,8 @@
         v-if="searchToggleAvailable || filterToggleAvailable || optionsToggleAvailable || viewTabsAvailable"
         class="flex min-w-0 flex-wrap items-center justify-between gap-2"
       >
-        <div v-if="viewTabsAvailable" class="flex min-w-0 items-center gap-1">
-          <Tabs :value="activeViewKey" scrollable class="min-w-0" @update:value="selectViewTab">
+        <div v-if="viewTabsAvailable" class="flex min-w-0 flex-1 items-center gap-1">
+          <Tabs :value="activeViewKey" scrollable class="min-w-0 flex-1" @update:value="selectViewTab">
             <TabList>
               <Tab v-for="tab in viewTabs" :key="tab.id" :value="tab.id">{{ tab.label }}</Tab>
             </TabList>
