@@ -245,8 +245,10 @@ function executeContextualAction(action) {
 
 <template>
   <span
-    class="inline-flex min-w-0 max-w-full items-center gap-1 align-baseline"
     :class="[
+      variant === 'inline'
+        ? 'inline min-w-0 max-w-full align-baseline'
+        : 'inline-flex min-w-0 max-w-full items-center gap-1 align-baseline',
       (variant === 'tile' && resolved)
         || (variant === 'compact' && compactCardWorthy)
         || (variant === 'option' && resolved) ? 'w-full' : null,
