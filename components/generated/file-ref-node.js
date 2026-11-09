@@ -65,6 +65,7 @@ export function createFileRefPlugins({ appContext = null } = {}) {
       const href = value.attrs.href;
       const vnode = h(FileChip, {
         file: fileRefDescriptor({ href, name: value.attrs.label }),
+        prose: true,
         onOpen: () => {
           if (typeof window !== 'undefined') window.open(href, '_blank', 'noopener');
         }

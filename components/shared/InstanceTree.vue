@@ -33,15 +33,13 @@
         <ProgressSpinner class="h-3.5 w-3.5 shrink-0" />
         <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
       </span>
-      <InstanceInlineRef
+      <span
         v-else-if="node.data?.item"
-        :type="node.data.item.type"
-        :entity="node.data.item.entity"
-        :fetch="false"
-        :fields="[]"
-        :interactive="false"
-        variant="inline"
-      />
+        class="flex min-w-0 flex-1 items-center gap-2"
+      >
+        <i :class="iconFor(node.data.item.type)" class="shrink-0 text-muted" aria-hidden="true" />
+        <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
+      </span>
     </template>
   </Tree>
 </template>
@@ -51,7 +49,6 @@ import { computed, ref, watch } from 'vue';
 import ProgressSpinner from 'primevue/progressspinner';
 import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
-import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { isGeneratedSurfaceAction } from '~/utils/action-visibility.js';
 import { generatedDetailScreenForTypeId } from '~/components/generated/detail-screen-actions.js';
 import { generatedActionLabel, generatedEntityLabel } from '~/utils/generated-labels.js';

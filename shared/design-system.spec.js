@@ -50,7 +50,12 @@ import { frameworkTypes } from '../packages/cts/src/index.js';
 import { normalizeType, renderPolicyFor } from '../packages/cts/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { resolveInstanceRelationRefs } from '../utils/instance-relations.js';
-import { FILE_CHIP_CLASS, INSTANCE_CHIP_CLASS } from '../components/shared/chip-surface.js';
+import {
+  FILE_CHIP_CLASS,
+  FILE_PROSE_CHIP_CLASS,
+  INSTANCE_CHIP_CLASS,
+  INSTANCE_PROSE_CHIP_CLASS
+} from '../components/shared/chip-surface.js';
 import {
   HOST_PROFILES,
   LAYOUT,
@@ -205,15 +210,6 @@ describe('Design system manifest', () => {
     expect(tailwindConfig).toContain("'./packages/*/src/editors/**/*.{vue,js}'");
     expect(tailwindConfig).toContain("'./workers/facade/surfaces/**/*.{js,mjs}'");
     expect(primeComponentTokens).toEqual({
-      chip: {
-        root: {
-          paddingX: '0.5em',
-          paddingY: '0.25em',
-          gap: '0.375em',
-          borderRadius: '{border.radius.sm}'
-        },
-        icon: { size: '1em' }
-      },
       fieldset: {
         root: { padding: '0 0.75rem 0.75rem' },
         legend: { padding: '0.25rem 0.5rem', gap: '0.375rem' }
@@ -339,11 +335,13 @@ describe('Design system manifest', () => {
     expect(HOST_PROFILES.popup.density).toBe(0.75);
     expect(HOST_PROFILES.dialog.density).toBe(1);
     expect(HOST_PROFILES.pane.density).toBe(0.75);
-    // Chips ride the bordered recipe (SPEC §22.8): the classes carry the
-    // clamps, the border, the inline typography, and the surface role;
-    // chip component tokens own padding, gap, radius, and the icon box.
-    expect(FILE_CHIP_CLASS).toBe('border border-content-border bg-subtle ck-chip min-w-0 max-w-full items-baseline font-sans font-normal text-[0.875em] leading-none');
-    expect(INSTANCE_CHIP_CLASS).toBe('border border-content-border bg-transparent ck-chip min-w-0 max-w-full items-baseline font-sans font-normal text-[0.875em] leading-none');
+    // Default chips (SPEC §22.8) ride Aura's geometry with the bordered
+    // surface recipe; the prose face carries the inline-code layout for
+    // page text blocks and their read composition.
+    expect(FILE_CHIP_CLASS).toBe('bg-subtle min-w-0 max-w-full border border-content-border text-supporting');
+    expect(INSTANCE_CHIP_CLASS).toBe('bg-transparent min-w-0 max-w-full border border-content-border text-supporting');
+    expect(FILE_PROSE_CHIP_CLASS).toBe('border border-content-border bg-subtle ck-chip inline-flex min-w-0 max-w-full items-center align-baseline font-sans font-normal text-[0.875em] leading-none');
+    expect(INSTANCE_PROSE_CHIP_CLASS).toBe('border border-content-border bg-transparent ck-chip inline-flex min-w-0 max-w-full items-center align-baseline font-sans font-normal text-[0.875em] leading-none');
     expect(Object.keys(designTokens.typography.roles)).toEqual([
       'page-title',
       'record-title',

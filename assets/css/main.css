@@ -640,10 +640,17 @@ body {
     line-height: 1.25rem;
 }
 
+/* Prose chips carry the inline-code layout (SPEC §22.8). */
+.ck-chip {
+    gap: 0.375em;
+    padding: 0.25em 0.5em;
+    border-radius: var(--p-border-radius-sm);
+}
+
 /* The engine reset zeroes every descendant's padding; the chip marker
-   restores the chip token padding inside the editor. */
+   restores the prose chip padding inside the editor. */
 .milkdown .ck-chip {
-    padding: var(--p-chip-padding-y) var(--p-chip-padding-x);
+    padding: 0.25em 0.5em;
 }
 
 .ck-instance-ref {

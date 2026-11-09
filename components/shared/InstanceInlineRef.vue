@@ -2,7 +2,7 @@
 import { computed, inject, unref, watch, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Chip from 'primevue/chip';
-import { CHIP_LABEL_PT, INSTANCE_CHIP_CLASS } from './chip-surface.js';
+import { CHIP_LABEL_PT, INSTANCE_CHIP_CLASS, INSTANCE_PROSE_CHIP_CLASS, PROSE_CHIP_LABEL_PT } from './chip-surface.js';
 import FactRows from '~/components/shared/FactRows.vue';
 import InstancePeek from '~/components/shared/InstancePeek.vue';
 import StateTag from '~/components/ui-mapping/StateTag.vue';
@@ -41,6 +41,7 @@ const props = defineProps({
   showTypeLabel: { type: Boolean, default: false },
   contextActionEntries: { type: Array, default: () => [] },
   chipClass: { type: [String, Array, Object], default: '' },
+  prose: { type: Boolean, default: false },
   revision: { type: String, default: null },
   active: { type: Boolean, default: false },
   selectable: { type: Boolean, default: false }
@@ -103,6 +104,8 @@ const cardProps = computed(() => ({
 const hoverSurface = 'transition-colors hover:bg-subtle';
 const chipInteractiveClass = hoverSurface;
 const compactInteractiveClass = `${hoverSurface} rounded-panel p-1 -m-1`;
+const inlineChipClass = computed(() => (props.prose ? INSTANCE_PROSE_CHIP_CLASS : INSTANCE_CHIP_CLASS));
+const inlineChipPt = computed(() => (props.prose ? PROSE_CHIP_LABEL_PT : CHIP_LABEL_PT));
 const { typeById } = useFileTypeView();
 const compactDisplay = computed(() => resolveInstanceDisplayContract({
   typeId: generatedTypeId.value,
@@ -364,7 +367,7 @@ function executeContextualAction(action) {
             :label="identityLabel"
             :icon="icon || undefined"
             :pt="CHIP_LABEL_PT"
-            class="min-w-0 max-w-full flex-1"
+            :class="[INSTANCE_CHIP_CLASS, 'flex-1']"
             :title="identityLabel"
           />
           <span v-else class="min-w-0 flex-1 truncate text-label">
@@ -441,8 +444,8 @@ function executeContextualAction(action) {
             v-on="peekEvents"
             :label="identityLabel"
             :icon="icon || undefined"
-            :pt="CHIP_LABEL_PT"
-            :class="[INSTANCE_CHIP_CLASS, chipClass, { 'cursor-pointer': refOpenable }, refOpenable ? chipInteractiveClass : null]"
+            :pt="inlineChipPt"
+            :class="[inlineChipClass, chipClass, { 'cursor-pointer': refOpenable }, refOpenable ? chipInteractiveClass : null]"
             :role="refOpenable ? 'button' : undefined"
             :tabindex="refOpenable ? 0 : undefined"
             :title="chipTitle"
@@ -455,7 +458,7 @@ function executeContextualAction(action) {
           <InstancePeek :type-id="servedTypeId" :instance-id="resolvedId" />
         </template>
       </HoverPeek>
-      <span v-else :class="[INSTANCE_CHIP_CLASS, 'text-muted']" data-instance-card-interactive="true">
+      <span v-else :class="[inlineChipClass, 'text-muted']" data-instance-card-interactive="true">
         <i :class="icon" class="shrink-0"></i>
         <span class="truncate">{{ resolvedId ? unresolvedLabel : $t('common.notAvailable') }}</span>
       </span>
