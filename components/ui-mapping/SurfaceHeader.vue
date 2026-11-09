@@ -39,7 +39,7 @@
             <InputText
               v-else-if="renameChannel"
               v-model="nameValue"
-              :class="[compact ? 'text-label' : (TYPE_BY_LEVEL[props.level] || 'text-section-heading'), 'min-w-0']"
+              :class="[compact ? 'text-label' : (TYPE_BY_LEVEL[props.level] || 'text-section-heading'), 'w-auto min-w-0 max-w-full']"
               :size="titleFieldSize"
               :pt="nameFieldPt"
               :placeholder="t('common.unnamed')"
@@ -293,7 +293,7 @@ const nameValue = computed({
   set: value => { nameDraft.value = value; }
 });
 const titleFieldSize = computed(() => Math.min(Math.max(String(nameValue.value || '').length, 4), 60));
-const nameFieldPt = { root: { style: { background: 'transparent', borderColor: 'transparent', boxShadow: 'none' } } };
+const nameFieldPt = { root: { style: { width: 'auto', maxWidth: '100%', background: 'transparent', borderColor: 'transparent', boxShadow: 'none' } } };
 function commitName() {
   if (nameDraft.value === null) return;
   const name = String(nameDraft.value).trim();
