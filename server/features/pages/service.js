@@ -1,6 +1,7 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 import { PAGE_TYPE_ID, pageTypeDeclaration } from '~/packages/cts/src/index.js';
+import { normalizePageDocument } from '#shared/page-document.js';
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
 import * as repository from './repository.js';
 
@@ -15,7 +16,8 @@ function ensurePageType(organizationId, actor) {
   const pending = (async () => {
     try {
       const registry = await compileRegistryForOrganization(organizationId);
-      if (!registry.getType(PAGE_TYPE_ID, organizationId)) {
+      const current = registry.getType(PAGE_TYPE_ID, organizationId);
+      if (!current || Number(current.version || 1) < Number(pageTypeDeclaration.version || 1)) {
         await defineType(pageTypeDeclaration, { organizationId, actor });
       }
       ensuredPageTypes.add(key);
@@ -30,25 +32,29 @@ function ensurePageType(organizationId, actor) {
   return pending;
 }
 
+async function preparePages(organizationId, actor) {
+  await repository.migrateLegacy(organizationId);
+  await repository.migrateDocuments(organizationId);
+  await ensurePageType(organizationId, actor);
+}
+
 export async function listTree(auth = {}) {
   const organizationId = resolveOrganizationId(auth);
-  await ensurePageType(organizationId, auth.userId);
-  await repository.migrateLegacy(organizationId);
+  await preparePages(organizationId, auth.userId);
   return (await repository.findByOrganization(organizationId)).map(repository.serialize);
 }
 
 export async function getById(id, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
-  await ensurePageType(organizationId, auth.userId);
-  await repository.migrateLegacy(organizationId);
+  await preparePages(organizationId, auth.userId);
   const page = await requireOwnPage(id, organizationId);
   return repository.serializeFull(page);
 }
 
-export async function create({ kind = 'page', name = '', parentId = null, classTypeId = null, content = '' } = {}, auth = {}) {
+export async function create({ kind = 'page', name = '', parentId = null, classTypeId = null, blocks = [], order = [] } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
-  await ensurePageType(organizationId, auth.userId);
-  await repository.migrateLegacy(organizationId);
+  await preparePages(organizationId, auth.userId);
+  const document = normalizePageDocument({ blocks, order });
   if (!KINDS.has(kind)) {
     throw createError({ statusCode: 400, message: 'Unknown page kind' });
   }
@@ -75,7 +81,8 @@ export async function create({ kind = 'page', name = '', parentId = null, classT
     name: normalizedName,
     parentId: normalizedParent,
     classTypeId: normalizedClassTypeId,
-    content,
+    blocks: document.blocks,
+    order: document.order,
     createdBy: auth.userId
   });
   return {
@@ -87,14 +94,20 @@ export async function create({ kind = 'page', name = '', parentId = null, classT
   };
 }
 
-export async function update(id, { name, parentId, content } = {}, auth = {}) {
+export async function update(id, { name, parentId, blocks, order } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
-  await ensurePageType(organizationId, auth.userId);
-  await repository.migrateLegacy(organizationId);
+  await preparePages(organizationId, auth.userId);
   const page = await requireOwnPage(id, organizationId);
   const changes = {};
   if (name !== undefined) changes.name = normalizeName(name);
-  if (content !== undefined) changes.content = String(content ?? '');
+  if (blocks !== undefined || order !== undefined) {
+    const document = normalizePageDocument({
+      blocks: blocks !== undefined ? blocks : page.fields?.blocks,
+      order: order !== undefined ? order : page.fields?.order
+    });
+    changes.blocks = document.blocks;
+    changes.order = document.order;
+  }
   if (parentId !== undefined) {
     if (page.fields?.section === true && parentId) {
       throw createError({ statusCode: 400, message: 'A section is a root' });
@@ -107,8 +120,7 @@ export async function update(id, { name, parentId, content } = {}, auth = {}) {
 
 export async function remove(id, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
-  await ensurePageType(organizationId, auth.userId);
-  await repository.migrateLegacy(organizationId);
+  await preparePages(organizationId, auth.userId);
   const page = await requireOwnPage(id, organizationId);
   await repository.detachChildren(organizationId, page._id);
   await repository.remove(page._id);

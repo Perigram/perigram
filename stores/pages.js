@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { removeViewEmbeds } from '#shared/markdown.js';
+import { normalizePageDocument } from '#shared/page-document.js';
 
 // The organization's custom pages and sidebar sections (SPEC §26): the
 // tree projection over `/api/pages` plus per-document content loads.
@@ -9,7 +9,7 @@ export const usePagesStore = defineStore('pages', {
     pages: [],
     loaded: false,
     loading: false,
-    contents: {}
+    documents: {}
   }),
   getters: {
     sections: state => state.pages.filter(page => page.kind === 'section'),
@@ -32,9 +32,12 @@ export const usePagesStore = defineStore('pages', {
         this.loading = false;
       }
     },
-    async loadContent(id) {
+    async loadDocument(id) {
       const page = await $fetch(`/api/pages/${id}`);
-      this.contents = { ...this.contents, [String(id)]: page.content || '' };
+      this.documents = {
+        ...this.documents,
+        [String(id)]: normalizePageDocument({ blocks: page.blocks, order: page.order })
+      };
       this.upsert({ ...page });
       return page;
     },
@@ -51,12 +54,15 @@ export const usePagesStore = defineStore('pages', {
       await this.ensureLoaded();
       const existing = this.classPageForType(typeId);
       if (existing) {
-        if (!(String(existing._id) in this.contents)) {
-          await this.loadContent(existing._id).catch(() => null);
+        if (!(String(existing._id) in this.documents)) {
+          await this.loadDocument(existing._id).catch(() => null);
         }
-        const content = this.contents[String(existing._id)] || '';
-        const cleaned = removeViewEmbeds(content, ref => ref.typeId === String(typeId));
-        if (cleaned !== content) await this.saveContent(existing._id, cleaned).catch(() => null);
+        const document = this.documents[String(existing._id)] || { blocks: [], order: [] };
+        const blocks = document.blocks.filter(block => !(block.kind === 'view' && block.view?.typeId === String(typeId)));
+        if (blocks.length !== document.blocks.length) {
+          const order = document.order.filter(key => blocks.some(block => block.id === key));
+          await this.saveDocument(existing._id, { blocks, order }).catch(() => null);
+        }
         return existing;
       }
       const page = await $fetch('/api/pages', {
@@ -64,7 +70,7 @@ export const usePagesStore = defineStore('pages', {
         body: { name, classTypeId: String(typeId) }
       });
       this.upsert(page);
-      this.contents = { ...this.contents, [String(page._id)]: page.content || '' };
+      this.documents = { ...this.documents, [String(page._id)]: { blocks: [], order: [] } };
       return page;
     },
     async createSection() {
@@ -81,9 +87,10 @@ export const usePagesStore = defineStore('pages', {
     async move(id, parentId) {
       await this.patch(id, { parentId });
     },
-    async saveContent(id, content) {
-      await this.patch(id, { content });
-      this.contents = { ...this.contents, [String(id)]: content };
+    async saveDocument(id, document) {
+      const normalized = normalizePageDocument(document);
+      await this.patch(id, normalized);
+      this.documents = { ...this.documents, [String(id)]: normalized };
     },
     async patch(id, body) {
       const page = await $fetch(`/api/pages/${id}`, { method: 'PATCH', body });
@@ -93,9 +100,9 @@ export const usePagesStore = defineStore('pages', {
     async remove(id) {
       await $fetch(`/api/pages/${id}`, { method: 'DELETE' });
       this.pages = this.pages.filter(page => page._id !== String(id));
-      const contents = { ...this.contents };
-      delete contents[String(id)];
-      this.contents = contents;
+      const documents = { ...this.documents };
+      delete documents[String(id)];
+      this.documents = documents;
       await this.reload();
     },
     upsert(page) {

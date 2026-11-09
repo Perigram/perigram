@@ -42,11 +42,6 @@
     @close="fileDialogOpen = false"
     @insert="applyFile"
   />
-  <ViewPickerDialog
-    :visible="viewPickerOpen"
-    @close="viewPickerOpen = false"
-    @pick="applyViewPick"
-  />
 </template>
 
 <script setup>
@@ -66,10 +61,8 @@ import { renderMarkdown, stripSerializerTail } from '#shared/markdown.js';
 import InstanceMentionPicker from './InstanceMentionPicker.vue';
 import ImageInsertDialog from './ImageInsertDialog.vue';
 import FileInsertDialog from './FileInsertDialog.vue';
-import ViewPickerDialog from './ViewPickerDialog.vue';
 import { createInstanceRefPlugins, insertInstanceRef } from './instance-ref-node.js';
 import { createFileRefPlugins, insertFileRef } from './file-ref-node.js';
-import { createViewRefPlugins, insertViewRef } from './view-ref-node.js';
 
 defineOptions({ inheritAttrs: false });
 
@@ -97,7 +90,7 @@ const props = defineProps({
   scroll: { type: Boolean, default: true }
 });
 
-const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty', 'caret-boundary']);
+const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty', 'caret-boundary', 'request-view']);
 
 const { t } = useI18n();
 const instance = getCurrentInstance();
@@ -109,7 +102,6 @@ const mentionPicker = ref(null);
 const linkUrl = ref('');
 const imageDialogOpen = ref(false);
 const fileDialogOpen = ref(false);
-const viewPickerOpen = ref(false);
 const blockState = ref({ block: 'paragraph', headingLevel: null, bullet: false, ordered: false, quote: false, task: false, marks: [] });
 
 let crepe = null;
@@ -121,7 +113,6 @@ let applyBlockAt = () => null;
 let editorViewCtx = null;
 let TextSelection = null;
 let pendingRange = null;
-let pendingViewInsert = null;
 
 function markdownValue() {
   return stripSerializerTail(crepe ? crepe.getMarkdown() : props.defaultValue);
@@ -285,19 +276,11 @@ async function applyAddress() {
   focus();
 }
 
-function openViewPicker(insert) {
-  pendingViewInsert = insert;
-  setTimeout(() => { viewPickerOpen.value = true; }, 0);
-}
-
-function applyViewPick(ref) {
-  viewPickerOpen.value = false;
-  pendingViewInsert?.(ref);
-  pendingViewInsert = null;
-  focus();
-}
-
 function runSlashPick(id, view) {
+  if (id === 'view') {
+    emit('request-view');
+    return;
+  }
   const kind = applyBlockAt(id, view);
   if (kind !== 'link' && kind !== 'image' && kind !== 'file' && kind !== 'instance' && kind !== 'view') focus();
 }
@@ -331,9 +314,7 @@ onMounted(async () => {
     openLinkEditor,
     openImageEditor,
     openFilePicker,
-    openInstancePicker,
-    openViewPicker,
-    insertView: insertViewRef
+    openInstancePicker
   });
 
   crepe = new CrepeEditor({
@@ -376,11 +357,9 @@ onMounted(async () => {
     onMention: openMention
   });
   const fileRef = createFileRefPlugins({ appContext });
-  const viewRef = createViewRefPlugins({ appContext });
   crepe.editor.use([
     instanceRef.schema, instanceRef.view, instanceRef.behavior,
-    fileRef.schema, fileRef.view,
-    viewRef.remark, viewRef.schema, viewRef.view
+    fileRef.schema, fileRef.view
   ]);
   slashMenu = createSlashMenu({
     items: vocabulary.BLOCK_VOCABULARY.map(({ id, labelKey, glyph, glyphText, match }) => ({ id, label: t(labelKey), glyph, glyphText, match })),

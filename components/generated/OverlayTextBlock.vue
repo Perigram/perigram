@@ -21,6 +21,7 @@
       @enter="insertAfter"
       @delete-empty="deleteBlock"
       @caret-boundary="moveCaret"
+      @request-view="requestView"
     />
     <MarkdownBlocks v-else-if="block.text" :source="block.text" />
   </div>
@@ -75,6 +76,10 @@ function moveCaret(direction) {
 
 function deleteBlock() {
   props.session?.removeEmptyBlock?.(props.block.id);
+}
+
+function requestView() {
+  props.session?.openViewPickerAfter?.(props.block.id);
 }
 
 function closeEditor() {

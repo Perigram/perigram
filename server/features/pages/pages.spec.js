@@ -75,7 +75,7 @@ describe('pages', () => {
     await expect(pagesService.create({}, auth)).rejects.toMatchObject({ statusCode: 403 });
   });
 
-  it('scopes the tree to the caller organization and excludes content', async () => {
+  it('scopes the tree to the caller organization and excludes the document', async () => {
     const mine = await seedPage(ORG_A, { name: 'Mine' });
     await seedPage(ORG_B, { name: 'Theirs' });
     const tree = await pagesService.listTree(memberOf(ORG_A));
@@ -126,16 +126,29 @@ describe('pages', () => {
     expect(tree).toEqual([{ _id: child, name: '', parentId: null, kind: 'page', classTypeId: null }]);
   });
 
-  it('creates unnamed pages and sections; rename and content ride the patch', async () => {
+  it('creates unnamed pages and sections; rename and blocks ride the patch', async () => {
     const section = await pagesService.create({ kind: 'section' }, memberOf(ORG_A));
     expect(section).toMatchObject({ kind: 'section', name: '', parentId: null });
     const page = await pagesService.create({ parentId: section._id }, memberOf(ORG_A));
     expect(page).toMatchObject({ kind: 'page', name: '', parentId: section._id });
 
-    const saved = await pagesService.update(page._id, { name: 'Notes', content: '# Notes' }, memberOf(ORG_A));
-    expect(saved).toMatchObject({ name: 'Notes', content: '# Notes' });
+    const blocks = [{ id: 'b1', kind: 'text', text: '# Notes' }];
+    const saved = await pagesService.update(page._id, { name: 'Notes', blocks, order: ['b1'] }, memberOf(ORG_A));
+    expect(saved).toMatchObject({ name: 'Notes', blocks, order: ['b1'] });
     const read = await pagesService.getById(page._id, memberOf(ORG_A));
-    expect(read).toMatchObject({ name: 'Notes', content: '# Notes', parentId: section._id });
+    expect(read).toMatchObject({ name: 'Notes', blocks, order: ['b1'], parentId: section._id });
+  });
+
+  it('migrates legacy markdown content into ordered blocks', async () => {
+    const page = await seedPage(ORG_A, {
+      name: 'Legacy',
+      content: 'Intro\n\n```view\n{"typeId":"widget","name":"Widgets"}\n```\n\nOutro\n'
+    });
+    const read = await pagesService.getById(page, memberOf(ORG_A));
+    expect(read.content).toBeUndefined();
+    expect(read.blocks.map(block => block.kind)).toEqual(['text', 'view', 'text']);
+    expect(read.order).toEqual(read.blocks.map(block => block.id));
+    expect(read.blocks[1].view).toMatchObject({ typeId: 'widget', name: 'Widgets' });
   });
 
   it('moves a page to another parent and back to the root', async () => {
@@ -151,7 +164,8 @@ describe('pages', () => {
     const first = await pagesService.create({
       name: 'Widgets',
       classTypeId: 'widget',
-      content: '```view\n{"typeId":"widget","name":"Widgets"}\n```\n'
+      blocks: [{ id: 'v1', kind: 'view', view: { typeId: 'widget', name: 'Widgets' } }],
+      order: ['v1']
     }, memberOf(ORG_A));
     const second = await pagesService.create({ name: 'Other', classTypeId: 'widget' }, memberOf(ORG_A));
     expect(second._id).toBe(first._id);

@@ -19,14 +19,14 @@
           @click="classEditorOpen = true"
         />
         <Button
-          v-if="dirty"
+          v-if="session.dirty"
           :label="t('common.save')"
           icon="pi pi-save"
           size="small"
           text
           severity="secondary"
-          :loading="saving"
-          @click="save"
+          :loading="session.saving"
+          @click="session.save"
         />
       </template>
     </SurfaceHeader>
@@ -41,19 +41,36 @@
         keep-empty-lists
         @open-instance="openClassInstance"
       />
-      <!-- The read presentation is the host markdown pipeline; the live
-           engine replaces it after mount. -->
-      <MarkdownBlocks v-if="!editorReady" :source="pagesStore.contents[docId] || ''" />
-      <CrepeEditor
-        v-if="contentReady"
-        v-show="editorReady"
-        ref="editor"
-        :default-value="pagesStore.contents[docId] || ''"
-        :placeholder="t('editors.slashHint')"
-        :scroll="false"
-        show-source-markers
-        @ready="editorReady = true"
-        @update="onMarkdown"
+      <div v-if="session.loaded" class="mx-auto flex w-full max-w-[72ch] flex-col gap-2">
+        <DocumentSectionShell
+          v-for="(key, index) in session.order"
+          :key="key"
+          :session="session"
+          :section-key="key"
+          :index="index"
+          :block="session.blockByKey(key)"
+        >
+          <OverlayTextBlock
+            v-if="session.blockByKey(key)?.kind === 'text'"
+            :block="session.blockByKey(key)"
+            :session="session"
+          />
+          <ViewEmbed
+            v-else-if="session.blockByKey(key)?.kind === 'view'"
+            :view-id="session.blockByKey(key).view?.id || ''"
+            :type-id="session.blockByKey(key).view?.typeId || ''"
+            :parent-type-id="session.blockByKey(key).view?.parentTypeId || ''"
+            :parent-id="session.blockByKey(key).view?.parentId || ''"
+            :source-id="session.blockByKey(key).view?.sourceId || ''"
+            :fallback-name="session.blockByKey(key).view?.name || ''"
+          />
+        </DocumentSectionShell>
+        <TrailingTextBlock v-if="session.writable" :session="session" />
+      </div>
+      <ViewPickerDialog
+        :visible="session.viewPickerAt !== null"
+        @close="session.closeViewPicker"
+        @pick="session.pickView"
       />
     </div>
     <ClassDialog
@@ -67,24 +84,28 @@
 </template>
 
 <script setup>
-// The custom page surface (SPEC §26): one markdown document authored
-// through the one editor engine (CrepeEditor) and persisted through the
-// pages API alone. A class page leads with its class's live collection.
-import { computed, inject, onMounted, ref } from 'vue';
+// The custom page surface (SPEC §26): one ordered block document — text
+// blocks mount their own editor instances, collection blocks mount
+// ViewEmbed beside them — persisted through the pages API. A class page
+// leads with its class's live collection.
+import { computed, inject, onMounted, provide, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import SurfaceHeader from '~/components/ui-mapping/SurfaceHeader.vue';
-import CrepeEditor from './CrepeEditor.vue';
-import MarkdownBlocks from './MarkdownBlocks.vue';
+import DocumentSectionShell from '~/components/ui-mapping/DocumentSectionShell.vue';
+import OverlayTextBlock from './OverlayTextBlock.vue';
+import TrailingTextBlock from './TrailingTextBlock.vue';
+import ViewEmbed from './ViewEmbed.vue';
+import ViewPickerDialog from './ViewPickerDialog.vue';
 import GeneratedScreenHost from './GeneratedScreenHost.vue';
 import ClassDialog from '~/components/type-designer/ClassDialog.vue';
 import { classListScreenForTypeId } from './detail-screen-actions.js';
+import { usePageDocumentSession } from '~/composables/usePageDocument.js';
 import { usePagesStore } from '~/stores/pages';
 import { useAuthStore } from '~/stores/auth';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
-import { stripSerializerTail } from '#shared/markdown.js';
-import { setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
+import { spacingClasses } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   docId: { type: String, required: true }
@@ -95,14 +116,10 @@ const pagesStore = usePagesStore();
 const authStore = useAuthStore();
 const fileTypeView = useFileTypeView();
 const tabKey = inject('workspacePageKey', '');
+const session = usePageDocumentSession({ docId: computed(() => props.docId), tabKey });
+provide('uiMappingSpacing', reactive(spacingClasses(1)));
 
-const editor = ref(null);
-const dirty = ref(false);
-const saving = ref(false);
-const contentReady = ref(false);
-const editorReady = ref(false);
 const classEditorOpen = ref(false);
-
 const page = computed(() => pagesStore.pageById(props.docId));
 const displayName = computed(() => page.value?.name || '');
 const classTypeId = computed(() => page.value?.classTypeId || '');
@@ -126,24 +143,6 @@ async function commitName(name) {
   }
 }
 
-function onMarkdown() {
-  dirty.value = true;
-  setWorkspacePageDirty(tabKey, true);
-}
-
-async function save() {
-  saving.value = true;
-  try {
-    await pagesStore.saveContent(props.docId, stripSerializerTail(editor.value?.getMarkdown()));
-    dirty.value = false;
-    setWorkspacePageDirty(tabKey, false);
-  } catch (error) {
-    console.error('Failed to save page:', error?.message || error);
-  } finally {
-    saving.value = false;
-  }
-}
-
 function openClassInstance({ typeId, instanceId } = {}) {
   if (!typeId || !instanceId) return;
   openInstanceInWorkspace({ typeId, instanceId: String(instanceId) });
@@ -151,7 +150,6 @@ function openClassInstance({ typeId, instanceId } = {}) {
 
 onMounted(async () => {
   await pagesStore.ensureLoaded();
-  await pagesStore.loadContent(props.docId).catch(() => {});
-  contentReady.value = true;
+  await pagesStore.loadDocument(props.docId).catch(() => {});
 });
 </script>

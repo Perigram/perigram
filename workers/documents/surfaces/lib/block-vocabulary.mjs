@@ -76,7 +76,7 @@ export function resolveBlockAction(id, state) {
 // `view` its ProseMirror view). The `link` and `image` kinds hand off
 // to the host's address editor. Returns the action kind — a hand-off
 // kind leaves the focus with the host's address input.
-export function applyBlock({ id, state, editor, view, openLinkEditor, openImageEditor, openFilePicker, openInstancePicker, openViewPicker, insertView }) {
+export function applyBlock({ id, state, editor, view, openLinkEditor, openImageEditor, openFilePicker, openInstancePicker }) {
   const action = resolveBlockAction(id, state);
   if (!action || !editor) return action ? action.kind : null;
   switch (action.kind) {
@@ -119,11 +119,6 @@ export function applyBlock({ id, state, editor, view, openLinkEditor, openImageE
     case 'instance':
       if (openInstancePicker) openInstancePicker(ref => insertInstanceLink(ref, view));
       break;
-    case 'view':
-      // The host resolves the picked saved view; the fence it inserts
-      // carries the view ref (`{ id, name }`, the deleted-view name).
-      if (openViewPicker) openViewPicker(ref => (insertView || insertViewFence)(ref, view));
-      break;
     default:
       break;
   }
@@ -141,26 +136,6 @@ export function insertInstanceLink(ref, view) {
   view.dispatch(tr.scrollIntoView());
 }
 
-export function insertViewFence(ref, view) {
-  if ((!ref?.id && !ref?.typeId) || !view) return;
-  const { code_block, paragraph } = view.state.schema.nodes;
-  const target = {
-    ...(ref.id ? { id: String(ref.id) } : {}),
-    typeId: String(ref.typeId || ''),
-    name: String(ref.name || ''),
-    ...(ref.parentTypeId ? { parentTypeId: String(ref.parentTypeId) } : {}),
-    ...(ref.parentId ? { parentId: String(ref.parentId) } : {}),
-    ...(ref.sourceId ? { sourceId: String(ref.sourceId) } : {})
-  };
-  const body = view.state.schema.text(JSON.stringify(target));
-  const fence = code_block.createChecked({ language: 'view' }, body);
-  const from = view.state.selection.from;
-  const tr = view.state.tr.replaceSelectionWith(fence);
-  const after = tr.mapping.map(from, -1) + fence.nodeSize;
-  tr.insert(after, paragraph.create());
-  tr.setSelection(TextSelection.near(tr.doc.resolve(after + 1), 1));
-  view.dispatch(tr.scrollIntoView());
-}
 
 function focusedListItem(state) {
   const { $from } = state.selection;

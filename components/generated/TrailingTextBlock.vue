@@ -12,6 +12,7 @@
       @update="text => (draft = text)"
       @enter="commit(true)"
       @delete-empty="resumePrevious"
+      @request-view="requestView"
     />
   </div>
 </template>
@@ -52,6 +53,10 @@ function commit(focusNext = false) {
 
 function resumePrevious() {
   props.session.resumeLastTextBlock?.();
+}
+
+function requestView() {
+  props.session.openViewPickerAtEnd?.();
 }
 
 function focusIfRequested() {

@@ -163,16 +163,10 @@
         "purpose": "Token-backed SVG preview for a resolved previewSource drawing value."
       },
       {
-        "componentPath": "components/shared/links/TraceLink.vue",
-        "key": "TraceLink",
-        "kind": "trace",
-        "purpose": "Single related-entity link used inside rows, status locations, and custom relation fields; TraceChain is for full ancestry."
-      },
-      {
         "componentPath": "components/shared/links/TraceChain.vue",
         "key": "TraceChain",
         "kind": "trace",
-        "purpose": "Canonical lineage breadcrumb chain for entity ancestry."
+        "purpose": "The one lineage-chain surface: containment ancestry as a compact crumb strip on record headers, entity cards, chat, collection identities, and plugin surfaces; crumbs open the shared record popup."
       },
       {
         "componentPath": "components/shared/ActionToolbar.vue",
@@ -270,6 +264,7 @@
         "--ck-primary-950": "#09090b",
         "--ck-primary-ink": "#27272a",
         "--ck-process-canvas-background": "var(--p-surface-50)",
+        "--ck-record-measure": "60rem",
         "--ck-scrollbar-thumb": "color-mix(in srgb, var(--p-text-color) 32%, transparent)",
         "--ck-scrollbar-thumb-hover": "color-mix(in srgb, var(--p-text-color) 55%, transparent)",
         "--ck-selection-background": "color-mix(in srgb, var(--p-accent-color) 20%, transparent)",
@@ -353,6 +348,7 @@
           "floatingMenuMinWidth": "12.5rem",
           "gridGap": "1.25rem",
           "pageMaxWidth": "1600px",
+          "recordMeasure": "60rem",
           "supportChatAdminHeight": "calc(100vh - 12rem)",
           "supportChatAdminMessageMax": "80%",
           "supportChatHeight": "31.25rem",
