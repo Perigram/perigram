@@ -3049,7 +3049,10 @@ Ordered steps:
   gate, so a solved attempt keeps its run button for a re-run. The solve
   evaluates sheet stock from the item counts and prompts no sheet count;
   installed facade snapshots are repaired by
-  `server/scripts/retire-nesting-sheet-count.js`.
+  `server/scripts/retire-nesting-sheet-count.js`. The design source
+  projects every cassette design, so a queue entry may reference a
+  library design outside the queue; entry design refs are normalized to
+  typed refs for the join.
 
   ### Agent Notes (2026-10-28, family slice)
 

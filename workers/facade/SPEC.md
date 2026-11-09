@@ -887,8 +887,10 @@ the solver's arrangement. Sheet stock is the item count as the
 worst case (one sheet per part); the solver uses only the sheets it
 needs, so a run prompts no sheet count. A supplied `designKey` names the
 cassette-design composition; absent one, the design reference is the
-key. An organization's queue entry holds one design beside its count,
-and nesting reads those entries.
+key. An organization's queue entry holds one design beside its count;
+that design may be a library record outside the queue, so nesting
+projects every cassette design and joins each entry's design ref to
+its item. Nesting reads those entries.
 
 An XLSX order table becomes queue entries through the organization's
 process definition: the table's rows fan out into a design render

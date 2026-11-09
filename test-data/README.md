@@ -39,10 +39,10 @@ non-spec files here.
   mounted domain. The XLSX table's rows fan out into baked cassette
   designs and one `queue-entry` child per line carrying the design ref
   and the row's count; each entry constructs the physical
-  `cassette-instance` it stands for. The graph projects each design to
-  one nesting item, joins entries to those items by design ref, nests
-  the entries per material, constructs one sheet design per solved
-  composition under the nesting attempt, reuses a stored sheet design
+  `cassette-instance` it stands for. The graph projects the org's
+  cassette designs to one nesting item each, joins entries to those
+  items by design ref, nests the entries per material, constructs one
+  sheet design per solved composition under the nesting attempt, reuses a stored sheet design
   whose `compositionKey` matches, and cuts each new sheet through a
   sheet instance and cut plan. `e2e/order-process.spec.js` drives it
   through the real authoring API.
