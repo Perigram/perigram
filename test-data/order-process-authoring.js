@@ -96,6 +96,8 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.wireDeclaration('materialClass', 'materials', 'binds');
   authoring.configure('materials', { access: adminAccess });
 
+  authoring.drop('allEntities', { id: 'designs' });
+  authoring.wireDeclaration('designRef', 'designs', 'binds');
   authoring.drop('extractProjection', { id: 'polygons' });
   authoring.configure('polygons', { typeId: 'cassette-design', projection: 'nesting-polygons' });
   authoring.drop('recordField', { id: 'rowCount' });
@@ -252,7 +254,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('entryTypeLiteral', 'data:value', 'entryMask', 'data:right');
   authoring.connect('orderChildren', 'data:result', 'entryList', 'data:items');
   authoring.connect('entryMask', 'data:result', 'entryList', 'data:mask');
-  authoring.connect('orderChildren', 'data:result', 'polygons', 'data:entity');
+  authoring.connect('designs', 'data:result', 'polygons', 'data:entity');
   authoring.connect('entryList', 'data:items', 'entryParts', 'data:left');
   authoring.connect('polygons', 'data:result', 'entryParts', 'data:right');
   authoring.connect('entryParts', 'data:pairs', 'entryDesignId', 'data:value');

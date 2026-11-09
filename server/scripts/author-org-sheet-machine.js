@@ -181,10 +181,29 @@ function planDefinition(definition, types, adminRoleId) {
   const rebuildSheet = Boolean(sheetConstruct && sheetConstruct.typeId !== 'sheet');
   if (rebuildSheet) authoring.removeNode('mkSheet');
 
-  for (const [refId, typeId] of [['sheetTypeRef', 'sheet'], ['machineRef', 'machine']]) {
+  for (const [refId, typeId] of [
+    ['sheetTypeRef', 'sheet'],
+    ['machineRef', 'machine'],
+    ['designSourceRef', 'cassette-design']
+  ]) {
     if (!definition.data.graph.nodes?.some(node => node.id === refId)) {
       authoring.declareTypeRef({ id: refId, typeId });
     }
+  }
+
+  // Queue entries may reference a library cassette design outside the
+  // queue's child tree. Project every cassette design; the entry-design
+  // join then resolves the referenced design wherever it lives.
+  const designsNode = definition.data.processNodes?.designs || null;
+  const retargetDesigns = !designsNode
+    || designsNode.kind !== 'cts.read'
+    || designsNode.select !== 'all'
+    || designsNode.typeId !== 'cassette-design';
+  if (retargetDesigns) {
+    authoring.removeNode('designs');
+    authoring.drop('allEntities', { id: 'designs' });
+    authoring.wireDeclaration('designSourceRef', 'designs', 'binds');
+    authoring.connect('designs', 'data:result', 'polygons', 'data:entity');
   }
   for (const [nodeId, refId, rebuild] of [
     ['mkSheet', 'sheetTypeRef', rebuildSheet],
@@ -215,6 +234,26 @@ function planDefinition(definition, types, adminRoleId) {
     }
   }
 
+  // The nesting-polygons projection now returns one item per design
+  // (designId + all workpiece parts). Point the entry pair at that item
+  // shape and drop the flat part-list flatten.
+  if (definition.data.processNodes?.entryParts) {
+    authoring.configure('entryParts', { leftKey: 'fields.design.id', rightKey: 'designId' });
+  }
+  if (definition.data.processNodes?.entryPolygons) {
+    authoring.configure('entryPolygons', { path: 'right.polygonParts' });
+  }
+  if (definition.data.processNodes?.jobItems) {
+    authoring.configure('jobItems', { fields: ['designId', 'polygonParts', 'count'] });
+  }
+  if (definition.data.processNodes?.allPolygons) {
+    authoring.removeNode('allPolygons');
+  }
+  if (!definition.data.processNodes?.entryDesignId) {
+    authoring.drop('recordField', { id: 'entryDesignId' });
+    authoring.configure('entryDesignId', { path: 'right.designId', type: { base: 'id' } });
+  }
+
   const edges = definition.data.graph.edges || [];
   const connected = (source, sourceHandle, target, targetHandle) => edges.some(edge => (
     edge.source === source
@@ -230,7 +269,11 @@ function planDefinition(definition, types, adminRoleId) {
     ['attemptMachine', 'data:result', 'toolDiameterValue', 'data:entity'],
     ['sheetWidthValue', 'data:value', 'solve', 'data:sheetWidth'],
     ['sheetHeightValue', 'data:value', 'solve', 'data:sheetHeight'],
-    ['toolDiameterValue', 'data:value', 'solve', 'data:space']
+    ['toolDiameterValue', 'data:value', 'solve', 'data:space'],
+    ['designs', 'data:result', 'polygons', 'data:entity'],
+    ['polygons', 'data:result', 'entryParts', 'data:right'],
+    ['entryParts', 'data:pairs', 'entryDesignId', 'data:value'],
+    ['entryDesignId', 'data:value', 'jobItems', 'data:designId']
   ];
   for (const [source, sourceHandle, target, targetHandle] of wires) {
     if (!connected(source, sourceHandle, target, targetHandle)) {
@@ -243,6 +286,24 @@ function planDefinition(definition, types, adminRoleId) {
     if (definition.data?.[key] !== undefined) data[key] = definition.data[key];
   }
   return data;
+}
+
+async function normalizeQueueEntryDesignRefs() {
+  const entries = await db.collection('items')
+    .find({ organizationId: ORG, type: 'queue-entry' })
+    .toArray();
+  let changed = 0;
+  for (const entry of entries) {
+    const design = entry.fields?.design;
+    if (typeof design !== 'string' || !design) continue;
+    changed += 1;
+    if (!APPLY) continue;
+    await db.collection('items').updateOne(
+      { _id: entry._id },
+      { $set: { 'fields.design': { type: 'cassette-design', id: design } } }
+    );
+  }
+  return changed;
 }
 
 await db.collection('sessions').insertOne({
@@ -273,8 +334,10 @@ try {
     const draft = planDefinition(definitionDoc, plannedTypes, adminRoleId);
     const newNodes = Object.keys(draft.processNodes || {}).filter(id => !definitionDoc.data.processNodes?.[id]);
     const newEdges = (draft.graph?.edges || []).filter(edge => !(definitionDoc.data.graph?.edges || []).some(existing => existing.id === edge.id));
+    const designRefs = await normalizeQueueEntryDesignRefs();
     console.log(`[dry-run] org ${ORG}, definition ${definitionId}`);
     console.log('[dry-run] would define types: sheet, machine, nesting-attempt(with sheet/machine relations)');
+    console.log(`[dry-run] would normalize ${designRefs} queue-entry design ref(s)`);
     console.log(`[dry-run] would add nodes: ${newNodes.join(', ')}`);
     console.log(`[dry-run] would add edges: ${newEdges.map(edge => `${edge.source}->${edge.target}`).join(', ')}`);
     process.exit(0);
@@ -287,12 +350,13 @@ try {
   const definitionTypes = (await organizationTypes()).types || [];
   const definition = await api(`/api/process-definitions/${definitionId}`);
   const data = planDefinition(definition, definitionTypes, adminRoleId);
+  const designRefs = await normalizeQueueEntryDesignRefs();
   const patched = await api(`/api/process-definitions/${definitionId}`, {
     method: 'PATCH',
     body: JSON.stringify({ data })
   });
   await api(`/api/process-definitions/${definitionId}/activate`, { method: 'POST' });
-  console.log(`Org ${ORG}: authored sheet + machine on definition ${definitionId} (${patched?.identity?.name || ''}); activated`);
+  console.log(`Org ${ORG}: authored sheet + machine on definition ${definitionId} (${patched?.identity?.name || ''}); normalized ${designRefs} entry design ref(s); activated`);
 } catch (error) {
   console.error(error?.message || error);
   process.exitCode = 1;
