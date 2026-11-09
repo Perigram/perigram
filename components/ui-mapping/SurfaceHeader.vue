@@ -39,7 +39,8 @@
             <InputText
               v-else-if="renameChannel"
               v-model="nameValue"
-              :class="[compact ? 'text-label' : (TYPE_BY_LEVEL[props.level] || 'text-section-heading'), 'min-w-0 flex-1']"
+              :class="[compact ? 'text-label' : (TYPE_BY_LEVEL[props.level] || 'text-section-heading'), 'min-w-0']"
+              :size="titleFieldSize"
               :pt="nameFieldPt"
               :placeholder="t('common.unnamed')"
               :aria-label="t('common.rename')"
@@ -291,7 +292,8 @@ const nameValue = computed({
   get: () => nameDraft.value ?? displayName.value,
   set: value => { nameDraft.value = value; }
 });
-const nameFieldPt = { root: { style: { background: 'transparent', borderColor: 'transparent' } } };
+const titleFieldSize = computed(() => Math.min(Math.max(String(nameValue.value || '').length, 4), 60));
+const nameFieldPt = { root: { style: { background: 'transparent', borderColor: 'transparent', boxShadow: 'none' } } };
 function commitName() {
   if (nameDraft.value === null) return;
   const name = String(nameDraft.value).trim();
