@@ -101,7 +101,7 @@ const cardProps = computed(() => ({
 }));
 // The open reference's hover affordance: one step up the surface ladder.
 const hoverSurface = 'transition-colors hover:bg-subtle';
-const chipInteractiveClass = `${hoverSurface} rounded-ui`;
+const chipInteractiveClass = hoverSurface;
 const compactInteractiveClass = `${hoverSurface} rounded-panel p-1 -m-1`;
 const { typeById } = useFileTypeView();
 const compactDisplay = computed(() => resolveInstanceDisplayContract({
