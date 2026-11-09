@@ -62,7 +62,6 @@ Parent: [assets](../README.md).
   | Header slots (the generated search/sort strips) | theme side padding dropped — they align inside padded surfaces with a bottom rhythm |
   | Embedded paginators (table, tree-table, view — top and bottom) | separator borders dropped |
   | Cards | shadow dropped |
-  | Chips | inline-code layout: `0.5em` horizontal and `0.25em` vertical padding, `0.375em` gap, small radius, `1em` icon box |
   | Tab strips | transparent |
   | Tree rows | explorer density — transparent, zero root padding, `0.75rem` indent, tight node padding, `1.5rem` toggle |
   | Panels and PanelMenu panels | no background; Panels drop the border too (PanelMenu keeps Aura's hairline; the workspace node's pane Panels restore it locally) |
