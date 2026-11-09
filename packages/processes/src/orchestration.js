@@ -410,10 +410,14 @@ async function effectOutputValues(nodeId, record, result, environment) {
 function extractEffectItemInputs(record, inputs, environment) {
   const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
   const accessById = new Map(ports.inputs.map(port => [port.id, port.access || 'item']));
-  return Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [
-    id,
-    packetValue(packet, accessById.get(id) || 'item')
-  ]));
+  return Object.fromEntries(Object.entries(inputs).map(([id, packet]) => {
+    try {
+      return [id, packetValue(packet, accessById.get(id) || 'item')];
+    } catch (error) {
+      const node = record.id || record.kind || 'effect';
+      throw new Error(`${node} input ${id}: ${error?.message || error}`);
+    }
+  }));
 }
 
 // The run context's untyped entity (the manual transport's instanceId) is
