@@ -245,7 +245,7 @@ function executeContextualAction(action) {
 
 <template>
   <span
-    class="inline-flex min-w-0 max-w-full items-center gap-1 align-middle"
+    class="inline-flex min-w-0 max-w-full items-center gap-1 align-baseline"
     :class="[
       (variant === 'tile' && resolved)
         || (variant === 'compact' && compactCardWorthy)
