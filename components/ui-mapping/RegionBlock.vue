@@ -86,29 +86,24 @@
         />
         <Popover ref="viewPopover">
           <div class="flex w-96 flex-col gap-3">
-            <div v-if="viewSelectAvailable || saveViewAvailable" class="flex flex-col gap-2">
+            <div v-if="layoutOptions.length > 1" class="flex flex-col gap-2">
               <span :class="LAYOUT.sectionTitle">{{ $t('uiMapping.view') }}</span>
-              <div class="flex flex-col gap-1">
-                <Button
-                  v-for="option in viewOptions"
+              <div class="grid grid-cols-2 gap-1">
+                <button
+                  v-for="option in layoutOptions"
                   :key="option.id"
-                  :label="option.label"
-                  text
-                  size="small"
-                  class="justify-start"
-                  :severity="option.active ? undefined : 'secondary'"
-                  @click="selectViewOption(option)"
-                />
+                  type="button"
+                  class="flex min-w-0 flex-col items-center gap-1 rounded-ui border p-2 text-label transition-colors"
+                  :class="option.active
+                    ? 'border-primary bg-primary-surface text-primary'
+                    : 'border-content-border text-muted hover:bg-subtle'"
+                  :aria-pressed="option.active"
+                  @click="selectLayoutOption(option)"
+                >
+                  <i :class="[option.icon, 'text-lg']" />
+                  <span class="truncate">{{ option.label }}</span>
+                </button>
               </div>
-              <Button
-                v-if="saveViewAvailable"
-                icon="pi pi-plus"
-                :label="$t('uiMapping.addView')"
-                text
-                size="small"
-                class="justify-start"
-                @click="saveDialogOpen = true"
-              />
             </div>
             <div v-if="filterToggleAvailable" class="flex flex-col gap-2">
               <span :class="LAYOUT.sectionTitle">{{ $t('uiMapping.filters') }}</span>
@@ -153,13 +148,6 @@
       </div>
     </div>
     <RegionDataState v-if="showState" :node="node" />
-    <ViewSaveDialog
-      :visible="saveDialogOpen"
-      :type-label="regionLabel"
-      :loading="saveViewSaving"
-      @close="saveDialogOpen = false"
-      @save="saveCurrentView"
-    />
     <div v-if="showSurfaces" :class="[embeddedStack, 'relative']">
       <RegionCollections
         :node="collectionsNode"
@@ -392,12 +380,10 @@ import { instanceMatchesFilter, countPredicates } from '#shared/instance-filters
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference, loadProjectionPreference, storeProjectionPreference, loadFilterViewState, storeFilterViewState, loadFieldPreference, storeFieldPreference } from '~/utils/ui-view-state.js';
 import { normalizeFilter } from '#shared/instance-filters/index.js';
-import { useViewsStore } from '~/stores/views';
 import SurfaceBody from './SurfaceBody.vue';
 import SortControl from './SortControl.vue';
 import CreateControl from './CreateControl.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
-import ViewSaveDialog from './ViewSaveDialog.vue';
 import RecordEditorBody from '~/components/generated/RecordEditorBody.vue';
 import { createEditorChrome } from '~/components/generated/editor-page-chrome.js';
 import { resolveFileSurface } from '~/components/generated/file-surfaces.js';
@@ -839,7 +825,7 @@ watch(builderScope, () => {
   builderFilter.value = seedFilter();
 });
 watch(builderFilter, filter => {
-  if (!savedViewState.value && !activeViewId.value) storeFilterViewState(builderScope.value, filter);
+  if (!savedViewState.value) storeFilterViewState(builderScope.value, filter);
 });
 // Card ordering rides the view popover's sort keys — the same sortKeys
 // contract, shared comparator, and persisted preference (scope kept).
@@ -865,7 +851,7 @@ const sortKeyResolved = computed(() => (props.node.listControls?.sortKeys || [])
   .find(key => key.name === sortName.value) || null);
 const sortToggleAvailable = computed(() => listLayout.value === 'card-grid' && sortOptions.value.length > 0);
 watch([sortName, sortOrder], () => {
-  if (savedViewState.value || activeViewId.value || !sortName.value) return;
+  if (savedViewState.value || !sortName.value) return;
   storeSortPreference(sortScope.value, { name: sortName.value, order: sortOrder.value });
 });
 watch(sortScope, () => {
@@ -877,7 +863,6 @@ const sortedInstances = computed(() => (sortKeyResolved.value
   ? sortControlRows(filteredInstances.value, sortKeyResolved.value, sortOrder.value)
   : filteredInstances.value));
 watch(() => props.node.id, () => {
-  activeViewId.value = null;
   search.value = savedViewState.value?.search || '';
 });
 const viewPopover = ref();
@@ -919,25 +904,11 @@ const collectionsNode = computed(() => {
 const filterToggleAvailable = computed(() => facetsToggleAvailable.value);
 const conditionCount = computed(() => countPredicates(builderFilter.value));
 const toggleViewSettings = event => viewPopover.value?.toggle(event);
-// Save-the-view (SPEC §26): the setup popover's save entry captures the
-// region's current view models as one named lens for the organization.
-// A region already rendering a saved lens offers no save.
-const viewsStore = useViewsStore();
-const saveDialogOpen = ref(false);
-const saveViewSaving = ref(false);
-const saveViewAvailable = computed(() => savedViewState.value === null
-  && Boolean(props.node.typeId)
-  && viewsStore.canSave);
 // The setup popover is the collection's one view surface (SPEC §22.15):
-// view selection, filters, sort, and fields; the trigger badges the
-// active condition count. Saved views load their four view models;
-// picking a layout restores the per-type preferences. While a saved view
-// is active the preference writes stay suspended, so browsing a saved
-// lens never overwrites the reader's own state.
-const activeViewId = ref(null);
-const regionViews = computed(() => (savedViewState.value
-  ? []
-  : viewsStore.views.filter(view => view.typeId === props.node.typeId)));
+// the display layout, filters, sort, and fields; the trigger badges the
+// active condition count. The layout picker is the display type, so each
+// choice renders its projection icon; picking one restores the per-type
+// preferences.
 const LAYOUT_LABEL_KEYS = {
   table: 'uiMapping.layoutTable',
   board: 'uiMapping.layoutBoard',
@@ -947,9 +918,15 @@ const LAYOUT_LABEL_KEYS = {
   gantt: 'uiMapping.layoutGantt',
   calendar: 'uiMapping.layoutCalendar'
 };
-// The view options are the collection's data views (SPEC §22.15): the
-// derived layout always, the switchable alternate beside it, then the
-// saved lenses.
+const LAYOUT_ICONS = {
+  table: 'pi pi-table',
+  board: 'pi pi-objects-column',
+  'card-grid': 'pi pi-th-large',
+  timeline: 'pi pi-chart-line',
+  stats: 'pi pi-chart-bar',
+  gantt: 'pi pi-align-left',
+  calendar: 'pi pi-calendar'
+};
 const layoutOptions = computed(() => {
   const layouts = [derivedListLayout.value];
   if (projectionSwitchable.value) {
@@ -960,90 +937,17 @@ const layoutOptions = computed(() => {
     id: `layout:${layout}`,
     layout,
     label: t(LAYOUT_LABEL_KEYS[layout] || 'uiMapping.view'),
-    active: !activeViewId.value && listLayout.value === layout
+    icon: LAYOUT_ICONS[layout] || 'pi pi-table',
+    active: listLayout.value === layout
   }));
 });
-const viewOptions = computed(() => [
-  ...layoutOptions.value,
-  ...regionViews.value.map(view => ({
-    id: `saved:${view._id}`,
-    view,
-    label: view.name,
-    active: activeViewId.value === view._id
-  }))
-]);
-const viewSelectAvailable = computed(() => Boolean(props.node.typeId)
-  && savedViewState.value === null
-  && (layoutOptions.value.length > 1 || regionViews.value.length > 0));
-const viewSettingsAvailable = computed(() => viewSelectAvailable.value
-  || saveViewAvailable.value
+const viewSettingsAvailable = computed(() => layoutOptions.value.length > 1
   || filterToggleAvailable.value
   || sortToggleAvailable.value
   || fieldOptions.value.length > 0);
-onMounted(() => {
-  if (!savedViewState.value) viewsStore.ensureLoaded().catch(() => {});
-});
-function applyViewState(state = {}) {
-  search.value = typeof state.search === 'string' ? state.search : '';
-  builderFilter.value = normalizeFilter(state.filters) || null;
-  const projection = state.projection === 'board' || state.projection === 'table' ? state.projection : null;
-  projectionPreference.value = projection;
-  const sort = state.sort && typeof state.sort.name === 'string'
-    ? { name: state.sort.name, order: Number.isFinite(state.sort.order) ? state.sort.order : 1 }
-    : null;
-  sortName.value = sort?.name || props.node.listControls?.defaultSort || null;
-  sortOrder.value = sort?.order || 1;
-}
-async function selectSavedView(view) {
-  if (activeViewId.value === view._id) return;
-  try {
-    const loaded = await viewsStore.loadView(view._id);
-    activeViewId.value = view._id;
-    applyViewState(loaded?.viewState || {});
-  } catch (error) {
-    toast?.add?.({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
-  }
-}
 function selectLayoutOption(option) {
-  const wasSaved = Boolean(activeViewId.value);
-  activeViewId.value = null;
-  if (wasSaved) {
-    search.value = '';
-    searchOpen.value = false;
-    builderFilter.value = loadFilterViewState(builderScope.value);
-    const restored = loadSortPreference(sortScope.value);
-    sortName.value = restored?.name || props.node.listControls?.defaultSort || null;
-    sortOrder.value = restored?.order || 1;
-  }
   projectionPreference.value = option.layout;
   storeProjectionPreference(projectionScope.value, option.layout);
-}
-function selectViewOption(option) {
-  if (option.view) selectSavedView(option.view);
-  else selectLayoutOption(option);
-}
-async function saveCurrentView(name) {
-  if (!saveViewAvailable.value || !name || saveViewSaving.value) return;
-  saveViewSaving.value = true;
-  try {
-    const created = await viewsStore.createView({
-      name,
-      typeId: props.node.typeId,
-      viewState: {
-        search: search.value,
-        filters: builderFilter.value || null,
-        sort: sortName.value ? { name: sortName.value, order: sortOrder.value } : null,
-        projection: projectionPreference.value
-      }
-    });
-    activeViewId.value = created?._id || null;
-    saveDialogOpen.value = false;
-    viewPopover.value?.hide();
-  } catch (error) {
-    toast?.add?.({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
-  } finally {
-    saveViewSaving.value = false;
-  }
 }
 const filteredInstances = computed(() => {
   if (props.node.surfaceKind !== 'list') return props.node.instances;

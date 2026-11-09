@@ -1,42 +1,19 @@
 // The collection header (SPEC §22.15): the label and its create set
 // lead, search and the one view-setup trigger trail, search stays an
 // icon until pressed, and the class name rides the create caption only
-// on the empty stub line where the button stands alone. The saved-lens
-// and save-the-view contracts (SPEC §26) pin here too: a provided view
-// state seeds the region's view models (the filter condition count
-// badges the setup trigger), the label override names the embed, and the
-// save dialog prompts for a name under the type label.
+// on the empty stub line where the button stands alone. The view-setup
+// selection pins the layout as a display-type control; a provided saved
+// lens seeds the region's view models (the filter condition count
+// badges the setup trigger) and names the embed through the label prop.
 import { createSSRApp, h, ref } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { createI18n } from 'vue-i18n';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import Re_L from '~/assets/presets/re_l';
 import en from '~/i18n/locales/en.json';
 import RegionBlock from './RegionBlock.vue';
-import ViewSaveDialog from './ViewSaveDialog.vue';
-
-// PrimeVue Dialog renders nothing server-side; the stub exposes the
-// dialog contract (title/subtitle/slot) to the SSR mount.
-vi.mock('../shared/StandardDialog.vue', async () => {
-  const { h } = await import('vue');
-  return {
-    default: {
-      name: 'StandardDialog',
-      props: ['visible', 'title', 'subtitle', 'showDefaultFooter', 'cancelLabel', 'saveLabel', 'loading', 'saveDisabled'],
-      setup(props, { slots }) {
-        return () => (props.visible
-          ? h('div', { 'data-dialog': '' }, [
-              h('span', { 'data-title': '' }, props.title),
-              h('small', { 'data-subtitle': '' }, props.subtitle),
-              slots.default?.()
-            ])
-          : null);
-      }
-    }
-  };
-});
 
 globalThis.useState = (_key, init) => ref(typeof init === 'function' ? init() : init || {});
 
@@ -117,7 +94,7 @@ describe('region header controls', () => {
   });
 });
 
-describe('saved view lens', () => {
+describe('provided view lens', () => {
   it('seeds the filter condition count and the label override from the saved state', async () => {
     const viewState = {
       search: '',
@@ -135,19 +112,5 @@ describe('saved view lens', () => {
     const html = plainHtml(await render(listNode(), { uiMappingSpacing: SPACING }, { viewState }));
     expect(html).toContain('>Widget 1<');
     expect(html).not.toContain('>Widget 2<');
-  });
-});
-
-describe('save view dialog', () => {
-  it('prompts for a name under the type label and renders no ids', async () => {
-    const app = createSSRApp({ render: () => h(ViewSaveDialog, { visible: true, typeLabel: 'Widget' }) });
-    app.use(createPinia());
-    app.use(createI18n({ legacy: false, locale: 'en', missingWarn: false, fallbackWarn: false, messages: { en } }));
-    app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
-    const html = await renderToString(app);
-    expect(html).toContain('Save view');
-    expect(html).toContain('>Widget<');
-    expect(html).toContain('aria-label="Name"');
-    expect(html).not.toContain('t-widget');
   });
 });

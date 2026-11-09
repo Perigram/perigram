@@ -2044,7 +2044,6 @@
         "sortOrderLabel": "Toggle sort order",
         "view": "View",
         "viewSettings": "View settings",
-        "addView": "Add view",
         "layoutTable": "Table",
         "layoutBoard": "Board",
         "layoutCards": "Cards",
@@ -2107,8 +2106,6 @@
         "exportKinds": {
             "dxf": "DXF drawing"
         },
-        "saveView": "Save view",
-        "viewName": "Name",
         "viewMissing": "This view is unavailable",
         "addBlock": "Add block",
         "moveSectionUp": "Move up",

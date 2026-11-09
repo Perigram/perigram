@@ -2044,7 +2044,6 @@
         "sortOrderLabel": "Изменить порядок сортировки",
         "view": "Вид",
         "viewSettings": "Настройки вида",
-        "addView": "Добавить вид",
         "layoutTable": "Таблица",
         "layoutBoard": "Доска",
         "layoutCards": "Карточки",
@@ -2107,8 +2106,6 @@
         "exportKinds": {
             "dxf": "DXF-чертёж"
         },
-        "saveView": "Сохранить вид",
-        "viewName": "Название",
         "viewMissing": "Этот вид недоступен",
         "addBlock": "Добавить блок",
         "moveSectionUp": "Выше",
