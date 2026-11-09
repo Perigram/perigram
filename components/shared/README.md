@@ -439,10 +439,15 @@ passthrough), `FILE_CHIP_CLASS`, `INSTANCE_CHIP_CLASS`. Every chip the
 app renders — file chips, instance chips, `InstanceCard`'s inline card
 identity chip — consumes these; a second copy of a chip class string is
 a defect.
-Instance and file chips follow the inline-code layout: an inline Flex
-box in the UI font at em size (`0.875em`), horizontal em-based padding
-(`0.5em`) with zero vertical padding, the small surface radius, baseline
-alignment, and a line height of one. Generated-family icon glyphs
+The classes carry the inline typography, the clamps, the border, and the
+surface role; padding, gap, radius, and the icon box are chip component
+tokens ([design tokens](../../assets/tokens/README.md)). The `ck-chip`
+marker reasserts the token padding inside the markdown editor, whose
+descendant reset zeroes padding.
+Instance and file chips follow the inline-code layout: an inline Flex box in the UI
+font at em size (`0.875em`), horizontal em-based padding (`0.5em`) with
+zero vertical padding, the small surface radius, baseline alignment, and
+a line height of one. Generated-family icon glyphs
 (`ck-entity-icon`/`ck-file-type-icon`) drop their standalone scale inside
 chips, so every chip icon fills the same em box. An unresolved instance
 reference wears the same chip face. Collection counts render as a `Tag`
