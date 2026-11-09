@@ -25,11 +25,28 @@ function bufferOf(base64, what) {
   return Buffer.from(base64, 'base64');
 }
 
+function parameterSignature(parameters = {}) {
+  return Object.entries(parameters)
+    .filter(([, value]) => value != null && value !== '')
+    .map(([key, value]) => `${key} ${value}`)
+    .join(' · ');
+}
+
+function templateDesignName(template = {}, parameters = {}) {
+  const base = String(template.name || '').trim() || 'Cassette design';
+  const signature = parameterSignature(parameters);
+  return signature ? `${base} · ${signature}` : base;
+}
+
+function uploadedDesignName(payloadMeta = {}) {
+  return String(payloadMeta.name || '').trim().replace(/\.[a-z0-9]+$/i, '') || 'Cassette design';
+}
+
 // cassette-design construction (upload and convertDxf share it): extract
 // the nesting polygons and production-layer curves from a DXF payload.
 // Input: { mode, payloadBase64, draft.data.mapping }. Output:
-// { data: { geometry, mapping } }.
-export async function extractGeometry({ mode, payloadBase64, mapping, draft = {} } = {}) {
+// { data: { name, geometry, mapping } }.
+export async function extractGeometry({ mode, payloadBase64, mapping, payloadMeta = {}, draft = {} } = {}) {
   const buffer = bufferOf(payloadBase64, `Construction ${mode || 'upload'}`);
   const authored = mapping && typeof mapping === 'object' ? mapping : draft?.data?.mapping;
   const layerMapping = Object.fromEntries(
@@ -65,13 +82,19 @@ export async function extractGeometry({ mode, payloadBase64, mapping, draft = {}
       sourceId: `${target}:${part.handles?.[0] || index}`
     }))
   ));
-  return { data: { geometry: { polygons: polygonParts, nestingPolygons: polygonParts, layerData }, mapping: layerMapping } };
+  return {
+    data: {
+      name: uploadedDesignName(payloadMeta),
+      geometry: { polygons: polygonParts, nestingPolygons: polygonParts, layerData },
+      mapping: layerMapping
+    }
+  };
 }
 
 // cassette-design render (the bake engine): evaluate an OCCS parametric
 // template once at the authored parameter values. Input:
 // { refs: { template: { id, name, payloadBase64 } }, draft: { data:
-// { parameters } } }. Output: { data: { geometry } } — the
+// { parameters } } }. Output: { data: { name, geometry } } — the
 // template/parameters provenance rides the platform's draft, evaluation
 // is construction-time only.
 export async function bake({ refs = {}, draft = {} } = {}) {
@@ -93,7 +116,7 @@ export async function bake({ refs = {}, draft = {} } = {}) {
     templateId: template.id,
     templateName: template.name || 'Cassette template'
   });
-  return { data: { geometry: evaluation } };
+  return { data: { name: templateDesignName(template, parameters), geometry: evaluation } };
 }
 
 // The nesting solve (SPEC §8 V→V): job items and the sheet as values in,
@@ -128,19 +151,17 @@ export async function nestingSolve({ items, sheetWidth, sheetHeight, space, shee
   };
 }
 
-// The cassette-design nesting-parts projection (SPEC §8 p): the instance's
-// stored geometry in → nesting polygon parts, each with its workpiece's
-// layers and the design's own identity, out. Input: { typeId, instanceId,
-// fields }. Output: the parts list.
+// The cassette-design nesting-parts projection (SPEC §8 p): one baked
+// design in → one nesting item out, carrying the design ref and each
+// workpiece's polygon parts. Input: { typeId, instanceId, fields }.
 export async function nestingParts({ typeId, instanceId, fields = {} } = {}) {
   const geometry = fields.geometry || null;
-  if (!geometry || !Array.isArray(geometry.nestingPolygons)) {
-    badRequest('Nesting parts projection requires stored cassette-design geometry');
+  if (!geometry || !Array.isArray(geometry.nestingPolygons) || !geometry.nestingPolygons.length) {
+    badRequest('Cassette design has no baked geometry — bake the template or import the DXF before nesting');
   }
-  const parts = nestingPartsProjection(geometry);
-  return String(instanceId || '')
-    ? parts.map(part => ({ ...part, designId: String(instanceId) }))
-    : parts;
+  const polygonParts = nestingPartsProjection(geometry)
+    .map(part => ({ ...part, designId: String(instanceId || '') }));
+  return { designId: String(instanceId || ''), polygonParts };
 }
 
 // The stored sheet-design match: a solved layout's composition key and the

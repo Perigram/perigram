@@ -134,10 +134,10 @@ test('the order process runs live: table rows become baked designs, materials, a
 
   const { utils, write } = await import('xlsx');
   const sheet = utils.aoa_to_sheet([
-    ['name', 'cassette', 'A', 'B'],
-    ['Tray A left 1', templateName, 600, 450],
-    ['Tray A left 2', templateName, 600, 450],
-    ['Tray B small', templateName, 300, 300]
+    ['name', 'cassette', 'A', 'B', 'count'],
+    ['Tray A left 1', templateName, 600, 450, 2],
+    ['Tray A left 2', templateName, 600, 450, 1],
+    ['Tray B small', templateName, 300, 300, 3]
   ]);
   const workbook = utils.book_new();
   utils.book_append_sheet(workbook, sheet, 'Order');
@@ -217,9 +217,9 @@ test('the order process runs live: table rows become baked designs, materials, a
   const materials = (await instancesOf('sheet-material')).filter(material => orderIdOf(material) === orderId);
   expect(materials.map(material => material.data?.code ?? material.fields?.code).sort()).toEqual(['ACM-1250x2500-04', 'ACM-1500x3000-06']);
 
-  const entries = (await instancesOf('nesting-entry')).filter(entry => orderIdOf(entry) === orderId);
-  expect(entries, 'one queue entry per physical cassette').toHaveLength(3);
-  expect(entries.every(entry => Number(entry.fields?.count ?? 0) === 1)).toBe(true);
+  const entries = (await instancesOf('queue-entry')).filter(entry => orderIdOf(entry) === orderId);
+  expect(entries, 'one queue entry per table line').toHaveLength(3);
+  expect(entries.map(entry => Number(entry.fields?.count ?? 0)).sort()).toEqual([1, 2, 3]);
   const cassettes = (await instancesOf('cassette-instance')).filter(instance => orderIdOf(instance) === orderId);
   expect(cassettes, 'one physical cassette per entry').toHaveLength(3);
   for (const cassette of cassettes) expect(cassette.fields?.design).toBeTruthy();
@@ -271,7 +271,7 @@ test('the order process runs live: table rows become baked designs, materials, a
     .sort((left, right) => String(right.createdAt ?? '').localeCompare(String(left.createdAt ?? '')))[0];
   const replayOrderId = String(replayOrder._id);
   expect(replayOrderId).not.toBe(orderId);
-  const replayEntries = (await instancesOf('nesting-entry')).filter(entry => orderIdOf(entry) === replayOrderId);
+  const replayEntries = (await instancesOf('queue-entry')).filter(entry => orderIdOf(entry) === replayOrderId);
   expect(replayEntries).toHaveLength(3);
   const replayCassettes = (await instancesOf('cassette-instance')).filter(instance => orderIdOf(instance) === replayOrderId);
   expect(replayCassettes).toHaveLength(3);

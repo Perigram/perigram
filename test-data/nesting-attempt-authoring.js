@@ -24,8 +24,12 @@ export function composeNestingAttemptGraph(authoring, { adminAccess = null } = {
   authoring.drop('extractProjection', { id: 'polygons' });
   authoring.configure('polygons', { typeId: 'cassette-design', projection: 'nesting-polygons' });
 
+  authoring.drop('recordField', { id: 'designId' });
+  authoring.configure('designId', { path: 'designId', type: { base: 'id' } });
+  authoring.drop('recordField', { id: 'designPolygonParts' });
+  authoring.configure('designPolygonParts', { path: 'polygonParts', type: { base: 'json' } });
   authoring.drop('constructRecord', { id: 'jobItems' });
-  authoring.configure('jobItems', { fields: ['polygonParts', 'count'] });
+  authoring.configure('jobItems', { fields: ['designId', 'polygonParts', 'count'] });
   authoring.drop('literal', { id: 'one' });
   authoring.configure('one', { type: { base: 'number', nullable: false, unit: 'count' }, value: 1 });
 
@@ -56,7 +60,10 @@ export function composeNestingAttemptGraph(authoring, { adminAccess = null } = {
   if (adminAccess) authoring.configure('attachDxf', { access: adminAccess });
 
   authoring.connect('designs', 'data:result', 'polygons', 'data:entity');
-  authoring.connect('polygons', 'data:result', 'jobItems', 'data:polygonParts');
+  authoring.connect('polygons', 'data:result', 'designId', 'data:value');
+  authoring.connect('polygons', 'data:result', 'designPolygonParts', 'data:value');
+  authoring.connect('designId', 'data:value', 'jobItems', 'data:designId');
+  authoring.connect('designPolygonParts', 'data:value', 'jobItems', 'data:polygonParts');
   authoring.connect('one', 'data:value', 'jobItems', 'data:count');
   authoring.connect('jobItems', 'data:record', 'solveItems', 'data:value');
   authoring.connect('solveItems', 'data:value', 'solve', 'data:items');
