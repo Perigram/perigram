@@ -294,7 +294,17 @@ const nameValue = computed({
   set: value => { nameDraft.value = value; }
 });
 const titleFieldSize = computed(() => Math.min(Math.max(String(nameValue.value || '').length, 4), 60));
-const nameFieldPt = { root: { style: { width: 'auto', maxWidth: '100%', background: 'transparent', borderColor: 'transparent', boxShadow: 'none' } } };
+const nameFieldPt = computed(() => ({
+  root: {
+    style: {
+      width: `calc(${titleFieldSize.value}ch + 1.25rem)`,
+      maxWidth: '100%',
+      background: 'transparent',
+      borderColor: 'transparent',
+      boxShadow: 'none'
+    }
+  }
+}));
 function commitName() {
   if (nameDraft.value === null) return;
   const name = String(nameDraft.value).trim();
