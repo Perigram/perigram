@@ -143,9 +143,9 @@
   derived), and generated-family icons drop their standalone scale
   inside chips, so file and instance chip icons share one em box.
 - Inline instance/file chips follow the inline-code layout: `0.875em`
-  text, symmetric `0.125em`/`0.5em` padding, small surface radius, and a
-  line height that fits the prose line; an unresolved instance reference
-  wears the same face.
+  text, `0.5em` horizontal padding with zero vertical padding, small
+  surface radius, and a line height that fits the prose line; an
+  unresolved instance reference wears the same face.
 
 ### Agent Notes (2026-11-08, agent/trailing-block-20261108)
 
