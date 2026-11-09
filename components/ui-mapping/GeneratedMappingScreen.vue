@@ -132,6 +132,9 @@ const props = defineProps({
   // header (`{ icon, label, command }` — SurfaceHeader's navigation
   // channel, threaded through RegionBlock to the depth-0 header).
   navigation: { type: Object, default: null },
+  // Host-owned DOM target for the depth-0 record header (the record
+  // popup's dialog header).
+  headerTarget: { type: Object, default: null },
   // The depth-0 detail treatment: `record` renders the record header's
   // page chrome; `peek` renders its compact identity line over the body.
   presentation: { type: String, default: 'record' },
@@ -241,6 +244,7 @@ const regionBlockProps = computed(() => ({
   resolveTransitions: props.onFetchTransitions,
   loadType: props.onLoadType,
   navigation: props.navigation,
+  headerTarget: props.headerTarget,
   presentation: props.presentation,
   expandable: props.expandable
 }));

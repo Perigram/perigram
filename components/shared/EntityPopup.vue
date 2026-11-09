@@ -9,18 +9,23 @@
     :size="isDirectoryType ? 'md' : 'xl'"
     :show-default-footer="false"
   >
-    <template #header-actions>
-      <Button
-        v-if="expandable()"
-        icon="pi pi-external-link"
-        text
-        rounded
-        size="small"
-        severity="secondary"
-        :aria-label="$t('common.expand')"
-        :title="$t('common.expand')"
-        @click="expand"
-      />
+    <template #header>
+      <div class="flex min-w-0 flex-1 items-center gap-2">
+        <!-- The record header renders into the dialog header, so the popup
+             carries one title surface and its action cluster. -->
+        <div ref="popupHeader" class="min-w-0 flex-1" />
+        <Button
+          v-if="expandable()"
+          icon="pi pi-external-link"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="$t('common.expand')"
+          :title="$t('common.expand')"
+          @click="expand"
+        />
+      </div>
     </template>
     <!-- Width-measure host: the dialog content owns the scroll surface. -->
     <div ref="popupBody">
@@ -34,6 +39,7 @@
       <GeneratedScreenHost
         v-else-if="visible && detailScreen"
         :screen="detailScreen"
+        :header-target="popupHeader"
         @open-instance="openInstance"
       />
     </div>
@@ -68,6 +74,7 @@ const { t, te } = useI18n();
 // width drives arrangement, the popup profile carries height/scroll and
 // the compact density tier.
 const popupBody = ref(null);
+const popupHeader = ref(null);
 provideContainerTraits({ hostKind: 'popup', elRef: popupBody });
 
 // An action the hosted surface runs that opens another surface — an

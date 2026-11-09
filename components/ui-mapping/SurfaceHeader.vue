@@ -24,7 +24,7 @@
       <div :class="[LAYOUT.row, LAYOUT.headerIdentity]">
         <Avatar v-if="type && !compact" :icon="glyph" shape="circle" size="large" class="shrink-0" />
         <div class="flex min-w-0 flex-1 flex-col">
-          <div :class="LAYOUT.row" class="min-w-0">
+          <div class="flex min-w-0 items-center gap-2">
             <!-- The peek names the record as its lineage trail's last
                  crumb; every other header renders the editable title. -->
             <TraceChain
@@ -39,7 +39,7 @@
             <InputText
               v-else-if="renameChannel"
               v-model="nameValue"
-              :class="[compact ? 'text-label' : (TYPE_BY_LEVEL[props.level] || 'text-section-heading'), 'min-w-0 w-full']"
+              :class="[compact ? 'text-label' : (TYPE_BY_LEVEL[props.level] || 'text-section-heading'), 'min-w-0 flex-1']"
               :pt="nameFieldPt"
               :placeholder="t('common.unnamed')"
               :aria-label="t('common.rename')"
@@ -60,6 +60,19 @@
               class="shrink-0"
               @select="event => statePopover?.toggle(event)"
             />
+            <!-- The quiet type label opens the class dialog (SPEC §27).
+                 Organization classes open it editable for capability
+                 holders; every other class opens it read-only. -->
+            <Button
+              v-if="!compact && type"
+              :label="typeLabel"
+              text
+              size="small"
+              severity="secondary"
+              class="max-w-[12rem] shrink-0 truncate p-0 text-supporting"
+              :aria-label="typeLabel"
+              @click="classEditorOpen = true"
+            />
             <Popover v-if="currentState" ref="statePopover">
               <div class="flex w-80 flex-col gap-3">
                 <div v-if="transitionActions.length" :class="LAYOUT.row">
@@ -75,19 +88,6 @@
               </div>
             </Popover>
           </div>
-          <!-- The quiet type label opens the class dialog (SPEC §27).
-               Organization classes open it editable for capability
-               holders; every other class opens it read-only. -->
-          <Button
-            v-if="!compact && type"
-            :label="typeLabel"
-            text
-            size="small"
-            severity="secondary"
-            class="w-fit justify-start truncate p-0 text-supporting"
-            :aria-label="typeLabel"
-            @click="classEditorOpen = true"
-          />
           <ClassDialog
             v-if="type && classEditorOpen"
             v-model:visible="classEditorOpen"
@@ -97,7 +97,7 @@
           />
         </div>
       </div>
-      <div :class="[LAYOUT.row, compact ? 'ml-auto justify-end' : null]" class="header-actions">
+      <div :class="LAYOUT.row" class="header-actions ml-auto justify-end">
         <!-- The editor chrome cluster (SPEC §4): the bound editor's
              divergence refresh and dirty-marked save render ahead of the
              host entries; an editor that binds nothing renders
@@ -312,7 +312,7 @@ function openComments() {
   // open the shared chat surface — one comments entry on every record
   // surface.
   if (!commentsPanel || props.compact) {
-    openInstanceChat(target);
+    openInstanceChat({ type: target.typeId, id: target.instanceId, name: target.name });
     return;
   }
   commentsPanel(target);
