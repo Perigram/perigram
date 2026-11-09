@@ -3828,9 +3828,17 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
       throw new Error(`Action ${id} producerOutputId emits ${producerOutput.typeId}, not ${resolvedTypeId}`);
     }
     const normalizedAction = resolvedTypeId && !action.typeId ? { ...action, typeId: resolvedTypeId } : action;
-    const inputs = actionInputsForExposure(normalizedAction, parentTypeId, domain).map(input => (
+    let inputs = actionInputsForExposure(normalizedAction, parentTypeId, domain).map(input => (
       input.id === 'entity' && !input.typeId && resolvedTypeId ? { ...input, typeId: resolvedTypeId } : input
     ));
+    if ((normalizedAction.actionKind || 'createEntity') === 'runCommand') {
+      const inputIds = new Set(inputs.map(input => input.id).filter(Boolean));
+      const wired = new Set(wiredHandlePaths(id, process.graph, inputIds));
+      inputs = inputs.map(input => {
+        const key = input.id || String(input.dataPath || '').replace(/^parameters\./, '');
+        return wired.has(key) ? { ...input, prompt: false } : input;
+      });
+    }
     const outputs = action.outputs || [];
     return [id, {
       id: action.id || id,
