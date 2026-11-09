@@ -2,7 +2,7 @@
     <!-- Inline: pill chip; the click opens the shared record popup -->
     <template v-if="variant === 'inline'">
         <span
-            class="inline-flex min-w-0 max-w-full items-center gap-2 align-middle"
+            class="inline-flex min-w-0 max-w-full items-center gap-2 align-baseline"
             :class="{ 'cursor-pointer': popupOpenable }"
             :role="popupOpenable ? 'button' : undefined"
             :tabindex="popupOpenable ? 0 : undefined"
@@ -14,7 +14,7 @@
                 :label="identityLabel"
                 :icon="instanceConfig.icon || undefined"
                 :pt="CHIP_LABEL_PT"
-                class="min-w-0 max-w-full"
+                :class="[INSTANCE_CHIP_CLASS, 'min-w-0 max-w-full']"
                 :title="identityLabel"
             />
             <slot name="inline-extra" />
@@ -147,7 +147,7 @@ import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
 import Card from 'primevue/card';
 import Chip from 'primevue/chip';
-import { CHIP_LABEL_PT } from './chip-surface.js';
+import { CHIP_LABEL_PT, INSTANCE_CHIP_CLASS } from './chip-surface.js';
 import { useRegistryStore } from '~/stores/registry';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';

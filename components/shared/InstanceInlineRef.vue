@@ -425,7 +425,7 @@ function executeContextualAction(action) {
         :is="cardComponent"
         v-if="resolved && cardComponent"
         v-bind="cardProps"
-        class="min-w-0 max-w-full"
+        class="inline min-w-0 max-w-full"
         data-instance-card-interactive="true"
       />
       <!-- The identity chip is the popup trigger and the peek trigger:
@@ -457,7 +457,7 @@ function executeContextualAction(action) {
       </HoverPeek>
       <span v-else :class="[INSTANCE_CHIP_CLASS, 'text-muted']" data-instance-card-interactive="true">
         <i :class="icon" class="shrink-0"></i>
-        <span class="truncate leading-none">{{ resolvedId ? unresolvedLabel : $t('common.notAvailable') }}</span>
+        <span class="truncate">{{ resolvedId ? unresolvedLabel : $t('common.notAvailable') }}</span>
       </span>
       <i
         v-if="revision && resolved"

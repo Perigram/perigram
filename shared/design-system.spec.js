@@ -331,9 +331,9 @@ describe('Design system manifest', () => {
     expect(HOST_PROFILES.dialog.density).toBe(1);
     expect(HOST_PROFILES.pane.density).toBe(0.75);
     // Chips ride the bordered recipe (SPEC §22.8): the classes carry the
-    // clamps, the border, and the supporting face.
-    expect(FILE_CHIP_CLASS).toBe('min-w-0 max-w-full border border-content-border bg-subtle text-supporting');
-    expect(INSTANCE_CHIP_CLASS).toBe('min-w-0 max-w-full border border-content-border bg-transparent text-supporting');
+    // clamps, the border, the inline layout, and the supporting face.
+    expect(FILE_CHIP_CLASS).toBe('min-w-0 max-w-full border border-content-border bg-subtle !inline-flex items-center gap-[0.375em] !px-[0.5em] !py-0 rounded-[var(--p-border-radius-sm)] align-baseline font-sans font-normal text-[0.875em] leading-none');
+    expect(INSTANCE_CHIP_CLASS).toBe('min-w-0 max-w-full border border-content-border bg-transparent !inline-flex items-center gap-[0.375em] !px-[0.5em] !py-0 rounded-[var(--p-border-radius-sm)] align-baseline font-sans font-normal text-[0.875em] leading-none');
     expect(Object.keys(designTokens.typography.roles)).toEqual([
       'page-title',
       'record-title',
@@ -775,6 +775,7 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain('instance-inline-compact-status-row');
     expect(inlineRef).not.toContain('instance-inline-compact-fallback');
     expect(instanceCard).toContain('primevue/chip');
+    expect(instanceCard).toContain('INSTANCE_CHIP_CLASS');
     expect(instanceCard).toContain('titleFor');
     expect(entityPreview).toContain('hideDimensionLayer');
     expect(entityPreview).toContain(':hide-dimension-layer="hideDimensionLayer"');
