@@ -3001,6 +3001,29 @@ Ordered steps:
   cassette-instance per entry under the order. E2E
   `e2e/order-process.spec.js` pins three entries and three physical
   cassettes for three table lines, and the same on replay.
+- [ ] WAITING — owner verification: Cassette designs are baked geometry
+  with two authoring modes (`render` template+parameters, `upload` DXF);
+  construction names derive so design pickers list readable records;
+  the `nesting-polygons` projection emits one item per design carrying
+  `designId` and every workpiece's parts; queue entries drive nesting by
+  joining the entry's design ref to that item; XLSX rows become designs
+  and entries through the order process. Existing Org1 process
+  definitions re-author against the item-shaped projection; the
+  name backfill is `server/scripts/backfill-cassette-design-names.js`.
+
+  ### Agent Notes (2026-11-09, cassette designs and queue entries)
+
+  Session `agent/cassette-queue-designs-20261109` (worktree
+  `.agent-worktrees/cassette-queue-designs-20261109`). The facade
+  services name baked designs from template+parameters and imported
+  designs from the DXF file; the projection returns one design item
+  instead of a flat part list, so entries join by design ref and a
+  multi-workpiece design reaches the solver as one item.
+  `test-data/order-process-authoring.js` now declares `queue-entry`,
+  builds one entry per XLSX row with the row count, projects the order's
+  designs, joins entries to those items, and nests the entries; E2E pins
+  the counts, the entries, and the sheet family. Backfill and rerun the
+  order flow on a live org after the definition is re-authored.
 
   ### Agent Notes (2026-10-28, family slice)
 

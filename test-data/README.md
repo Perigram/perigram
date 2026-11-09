@@ -36,13 +36,16 @@ non-spec files here.
   records and credentials stay out of this fixture.
 - `order-process-authoring.js` — the e2e seam that composes the order
   process (`createOrderProcessAuthoring` and the compose helpers) over a
-  mounted domain. Each table line constructs a `nesting-entry` child with
-  its `design` ref and `count`, and each entry constructs the physical
-  `cassette-instance` it stands for. The graph nests the entries per
-  material, constructs one sheet design per solved composition under the
-  nesting attempt, reuses a stored sheet design whose `compositionKey`
-  matches, and cuts each new sheet through a sheet instance and cut plan.
-  `e2e/order-process.spec.js` drives it through the real authoring API.
+  mounted domain. The XLSX table's rows fan out into baked cassette
+  designs and one `queue-entry` child per line carrying the design ref
+  and the row's count; each entry constructs the physical
+  `cassette-instance` it stands for. The graph projects each design to
+  one nesting item, joins entries to those items by design ref, nests
+  the entries per material, constructs one sheet design per solved
+  composition under the nesting attempt, reuses a stored sheet design
+  whose `compositionKey` matches, and cuts each new sheet through a
+  sheet instance and cut plan. `e2e/order-process.spec.js` drives it
+  through the real authoring API.
 - `ui-mapping-fixtures.js` / `ui-mapping-random.js` — synthetic compiler
   output for the UI mapping contract. The fixed world is a
   self-recursive filesystem-like graph: a forest of three top folders

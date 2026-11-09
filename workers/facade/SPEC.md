@@ -842,7 +842,13 @@ through the plugin's export binding (owner decision 2026-10-10).
 - `cassette-design` (file) — baked geometry. One template produces many
   designs; a design refers to one or zero templates through a nullable
   `template` ref (a DXF-imported design carries none; the `source` ref
-  is the import path).
+  is the import path). A design is authored through one of two
+  construction modes: `render` bakes a template at parameter values, and
+  `upload` extracts geometry from a mapped DXF. Both modes store the same
+  baked `geometry`; every design is nestable without a second step. The
+  record name derives from the template and its parameter values on
+  `render`, and from the uploaded file on `upload`; pickers list designs
+  by that name.
 - Owner decision (2026-10-31, DXF import): the upload create takes the
   DXF file and immediately maps its source layers to the OCCS layer
   vocabulary; the mapping is the create form's declared `mapping` input,
@@ -868,17 +874,25 @@ through the plugin's export binding (owner decision 2026-10-10).
 - `sheet-instance` (item) — the digital twin of a physical sheet: a
   plain record, referred by many.
 
-Nesting produces the sheet designs with quantities: the solve's input
-items are cassette-design geometries keyed by their cassette-design
-refs — a placement without its design ref refuses — and its output
-groups the resulting sheets by composition, joining sheets that cut the
-same designs the same way into one sheet design carrying the group's
-count. Composition is the sheet shape and the multiset of placement
-design keys; placement order, rotation, and translation are the
-solver's arrangement. A supplied `designKey` names the cassette-design
-composition; absent one, the design reference is the key. An
-organization's queue entry holds one design beside its count, and the
-queue materializes one entry per physical cassette before nesting.
+Nesting produces the sheet designs with quantities: the
+`nesting-polygons` projection turns one baked cassette design into one
+nesting item carrying the design ref and every workpiece's polygon
+parts, and the solve consumes the queue entry's design item beside that
+entry's count — a design item without its design ref refuses. The
+solve groups the resulting sheets by composition, joining sheets that
+cut the same designs the same way into one sheet design carrying the
+group's count. Composition is the sheet shape and the multiset of
+placement design keys; placement order, rotation, and translation are
+the solver's arrangement. A supplied `designKey` names the
+cassette-design composition; absent one, the design reference is the
+key. An organization's queue entry holds one design beside its count,
+and nesting reads those entries.
+
+An XLSX order table becomes queue entries through the organization's
+process definition: the table's rows fan out into a design render
+(template from the row, parameters from the row) and a queue entry
+`{ design, count }` per row. The platform carries no table-to-entry
+code; the graph is the contract.
 
 Owner decision (2026-10-31, composition is sheet-design identity): a
 flow matches a solved layout against stored sheet designs by
