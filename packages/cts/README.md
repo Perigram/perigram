@@ -92,7 +92,9 @@ modules onto its sections.
   inputs; payload protocols add the file input plus the type's declared
   `payload.inputs`; ref fields marked `constructible: false` stay out of
   every create form; construction lineage inputs address immediate parent
-  axes — the ancestor chain derives at the instance construct seam),
+  axes — the ancestor chain derives at the instance construct seam;
+  relation inputs are one entity ref for `cardinality: 'one'` edges and a
+  type list for many, labelled by the target type's name),
   `relations`, and `attachmentKinds`. Party types project as readable
   principals
   (SPEC §13). The base domain contributes operator contracts, the
