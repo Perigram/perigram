@@ -223,10 +223,13 @@ count as filled). Upload/capture dialogs prompt the file
 alone; the construct seam fills the record's name from the uploaded
 file's name. Quantity rows draft the SPEC §2
 `{ value, unit }` shape their control models (a unit-carrying default
-prefills in that shape), and the dialog's payload scalarizes drafts at the
-boundary (`createDialogPayload`: instance refs by `id` — picker lists
-entrywise, a spot assignment keeping its `spot` beside the id —,
-quantities by `value`, file references passing as the payload object).
+prefills in that shape); numeric controls write through
+`numericControlWrite` (a quantity descriptor wraps into that shape, a
+plain `number` stays scalar), and the dialog's payload scalarizes drafts
+at the boundary (`createDialogPayload`: instance refs by `id` — picker
+lists entrywise, a spot assignment keeping its `spot` beside the id —,
+quantity drafts by `value`, file references passing as the payload
+object).
 Inputs resolving to
 nothing stay hidden, so typed constructor inputs keep their editor
 surfaces. Construction-input labels are authored vocabulary resolved at the

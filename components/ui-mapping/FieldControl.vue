@@ -111,7 +111,7 @@
   <InputNumber
     v-else-if="outcome.component === 'InputNumber'"
     :model-value="typeof model === 'number' ? model : model?.value ?? null"
-    @update:model-value="value => (model = typeof model === 'number' ? value : { value, unit: descriptor.unit })"
+    @update:model-value="value => (model = numericControlWrite(descriptor, model, value))"
     class="w-full"
   />
   <QuantityInput
@@ -215,7 +215,7 @@ import Chart from 'primevue/chart';
 import Rating from 'primevue/rating';
 import Slider from 'primevue/slider';
 import OrderList from 'primevue/orderlist';
-import { LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity, formatValue } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity, formatValue, numericControlWrite } from '#shared/ui-mapping/index.js';
 import { designTokens } from '~/assets/tokens/index.js';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';

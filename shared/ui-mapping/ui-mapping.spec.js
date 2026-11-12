@@ -52,6 +52,8 @@ import {
   localizedLabel,
   resolveCreateDialogInputs,
   resolveRunDialogInputs,
+  createDialogPayload,
+  numericControlWrite,
   planActionLaunch,
   childrenOfParent,
   statePolicyByType,
@@ -1357,6 +1359,31 @@ describe('create dialog input resolution', () => {
     );
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ id: 'fields.note', label: 'Note', descriptor: { base: 'string' } });
+  });
+
+  it('scalarizes the draft at the boundary: quantity drafts by value, picker refs by id, files as the payload object', () => {
+    expect(createDialogPayload({
+      'fields.width': { value: 12, unit: 'mm' },
+      'fields.count': { value: 3 },
+      'fields.table': { type: 'workbook', id: 'wb-1' },
+      'fields.parts': { type: 'workbook', id: 'wb-2', spot: 'a1' },
+      payload: { fileId: 'f-1', mime: 'text/csv' }
+    })).toEqual({
+      'fields.width': 12,
+      'fields.count': 3,
+      'fields.table': 'wb-1',
+      'fields.parts': { id: 'wb-2', spot: 'a1' },
+      payload: { fileId: 'f-1', mime: 'text/csv' }
+    });
+  });
+
+  it('keeps numeric drafts lawful: quantity wraps, number stays scalar', () => {
+    const quantity = { base: 'quantity', unit: 'mm' };
+    const number = { base: 'number' };
+    expect(numericControlWrite(quantity, null, 12)).toEqual({ value: 12, unit: 'mm' });
+    expect(numericControlWrite(number, null, 12)).toBe(12);
+    expect(numericControlWrite(number, 3, 7)).toBe(7);
+    expect(numericControlWrite(quantity, { value: 3, unit: 'mm' }, 7)).toEqual({ value: 7, unit: 'mm' });
   });
 
   it('renders operator reference prompts as instance pickers', () => {

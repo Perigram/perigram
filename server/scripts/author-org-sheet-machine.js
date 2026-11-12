@@ -234,11 +234,13 @@ function planDefinition(definition, types, adminRoleId) {
     }
   }
 
-  // The nesting-polygons projection now returns one item per design
-  // (designId + all workpiece parts). Point the entry pair at that item
-  // shape and drop the flat part-list flatten.
+  // The nesting-polygons projection returns one item per design (designId
+  // + all workpiece parts). The entry's stored design ref joins it: the
+  // construct boundary scalarizes a ref-field draft to its bare id under
+  // `fields.<name>` (instances README), so `fields.design` is the join
+  // key the demo fixture authors.
   if (definition.data.processNodes?.entryParts) {
-    authoring.configure('entryParts', { leftKey: 'fields.design.id', rightKey: 'designId' });
+    authoring.configure('entryParts', { leftKey: 'fields.design', rightKey: 'designId' });
   }
   if (definition.data.processNodes?.entryPolygons) {
     authoring.configure('entryPolygons', { path: 'right.polygonParts' });
@@ -288,20 +290,31 @@ function planDefinition(definition, types, adminRoleId) {
   return data;
 }
 
+// Queue entries store their design ref as the bare id under
+// `fields.design` (the construct scalarize law) and their count as a
+// plain number (the dialog scalarizes quantity drafts to `value`).
+// Older orgs may carry typed-ref rows from a previous re-authoring and
+// `{ value }` objects from the dialog's unscalarized number drafts;
+// normalize both back so the join key and the count read what creates
+// write.
 async function normalizeQueueEntryDesignRefs() {
   const entries = await db.collection('items')
     .find({ organizationId: ORG, type: 'queue-entry' })
     .toArray();
   let changed = 0;
   for (const entry of entries) {
+    const set = {};
     const design = entry.fields?.design;
-    if (typeof design !== 'string' || !design) continue;
+    const designId = design && typeof design === 'object' ? String(design.id ?? '') : null;
+    if (designId) set['fields.design'] = designId;
+    const count = entry.fields?.count;
+    if (count && typeof count === 'object' && !Array.isArray(count) && count.value !== undefined) {
+      set['fields.count'] = count.value;
+    }
+    if (!Object.keys(set).length) continue;
     changed += 1;
     if (!APPLY) continue;
-    await db.collection('items').updateOne(
-      { _id: entry._id },
-      { $set: { 'fields.design': { type: 'cassette-design', id: design } } }
-    );
+    await db.collection('items').updateOne({ _id: entry._id }, { $set: set });
   }
   return changed;
 }
@@ -337,7 +350,7 @@ try {
     const designRefs = await normalizeQueueEntryDesignRefs();
     console.log(`[dry-run] org ${ORG}, definition ${definitionId}`);
     console.log('[dry-run] would define types: sheet, machine, nesting-attempt(with sheet/machine relations)');
-    console.log(`[dry-run] would normalize ${designRefs} queue-entry design ref(s)`);
+    console.log(`[dry-run] would normalize ${designRefs} queue-entry row(s)`);
     console.log(`[dry-run] would add nodes: ${newNodes.join(', ')}`);
     console.log(`[dry-run] would add edges: ${newEdges.map(edge => `${edge.source}->${edge.target}`).join(', ')}`);
     process.exit(0);
@@ -356,7 +369,7 @@ try {
     body: JSON.stringify({ data })
   });
   await api(`/api/process-definitions/${definitionId}/activate`, { method: 'POST' });
-  console.log(`Org ${ORG}: authored sheet + machine on definition ${definitionId} (${patched?.identity?.name || ''}); normalized ${designRefs} entry design ref(s); activated`);
+  console.log(`Org ${ORG}: authored sheet + machine on definition ${definitionId} (${patched?.identity?.name || ''}); normalized ${designRefs} queue-entry row(s); activated`);
 } catch (error) {
   console.error(error?.message || error);
   process.exitCode = 1;
