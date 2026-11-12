@@ -3014,6 +3014,26 @@ Ordered steps:
   definitions re-author against the item-shaped projection; the
   name backfill is `server/scripts/backfill-cassette-design-names.js`.
 
+  ### Agent Notes (2026-11-12, queue-entry join repair)
+
+  Owner report: quantities rendered as "12 undefined" and org1's
+  queue-entry creation left the nesting solve dead. Root causes, both
+  reproduced live: (1) the create dialog's InputNumber wrote
+  `{ value, unit: undefined }` for plain `number` rows and the payload
+  scalarize keyed on `unit`'s presence, so `{ value }` objects stored
+  verbatim and `formatQuantity` rendered the undefined unit —
+  `numericControlWrite` (shared/ui-mapping) now owns the numeric write
+  (quantity wraps, number stays scalar) and the scalarize reads
+  `value` presence; (2) the 2026-11-09 re-authoring joined
+  `fields.design.id` over typed refs, but the platform's construct law
+  scalarizes ref-field drafts to bare ids (instances README), so every
+  UI-created entry stored a bare id and the solve died on
+  `entryParts: unmatched left keys` — `author-org-sheet-machine.js`
+  joins `fields.design` (the fixture's lawful spelling) and its
+  normalize pass now restores bare ids and scalar counts on stored
+  entries. Org1 repair: re-run the script with
+  `--org org-6a05940e --apply`.
+
   ### Agent Notes (2026-11-09, cassette designs and queue entries)
 
   Session `agent/cassette-queue-designs-20261109` (worktree
