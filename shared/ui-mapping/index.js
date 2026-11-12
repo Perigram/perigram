@@ -1444,7 +1444,7 @@ export function createDialogPayload(draft = {}) {
     if (value.id !== undefined) {
       return value.spot !== undefined ? { id: value.id, spot: value.spot } : value.id;
     }
-    if (value.unit !== undefined && value.value !== undefined) return value.value;
+    if (value.value !== undefined) return value.value;
     return value;
   };
   const payload = {};
@@ -1452,6 +1452,17 @@ export function createDialogPayload(draft = {}) {
     payload[key] = scalarize(value);
   }
   return payload;
+}
+
+// The one numeric-write rule every number/quantity control binds: a
+// quantity descriptor drafts the SPEC §2 `{ value, unit }` shape, every
+// other numeric base keeps the scalar. A nullish model starts at the
+// descriptor's own base.
+export function numericControlWrite(descriptor = {}, model, value) {
+  if (model === null || model === undefined) {
+    return descriptor.base === 'quantity' ? { value, unit: descriptor.unit } : value;
+  }
+  return typeof model === 'number' || descriptor.base !== 'quantity' ? value : { value, unit: descriptor.unit };
 }
 
 // The declared storage key of one children edge: the `lineageKey` the
