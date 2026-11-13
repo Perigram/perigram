@@ -97,6 +97,7 @@ export function useProcessDesignerPreview({
   });
   const selectedNodeSupportsPreview = computed(() => {
     const kind = operationKindOf(selectedProcessNode.value || {});
+    if (kind === 'cts.service') return true;
     return Boolean(kind && !EFFECT_SPECIES_KINDS.has(kind) && !kind.startsWith('control.'));
   });
   const selectedNodePreviewOutputs = computed(() => {

@@ -1012,6 +1012,80 @@ describe('durable process orchestration', () => {
     expect(result.nodes.secrets.outputs.value.branches[0].items).toEqual(['[redacted]', '[redacted]', { safe: 1 }]);
   });
 
+  it('evaluates a value service node in preview through the service channel', async () => {
+    const serviceContext = () => ({
+      ...catalogContext(),
+      domain: {
+        serviceContracts: {
+          'plugin.docs.csv-text': {
+            signature: {
+              input: { base: 'record', fields: { rows: { base: 'list', itemType: { base: 'record' } } } },
+              output: { base: 'string' }
+            }
+          }
+        }
+      }
+    });
+    const definition = process([
+      { id: 'rows', kind: 'source.literalList', value: [{ a: 1 }, { a: 2 }] },
+      { id: 'csv', kind: 'cts.service', operator: 'plugin.docs.csv-text' },
+      { id: 'rendered', kind: 'value.format', template: '{value}' }
+    ], ['rows', 'csv', 'rendered'], [
+      data('rows', 'csv', 'rows'),
+      data('csv', 'rendered', 'value')
+    ]);
+    const previewService = vi.fn(async (operator, parameters) => {
+      expect(operator).toBe('plugin.docs.csv-text');
+      expect(parameters).toEqual({ rows: [{ a: 1 }, { a: 2 }] });
+      return 'a\n1\n2';
+    });
+    const result = await previewProcessDataflow(definition, {}, {
+      catalogContext: serviceContext,
+      previewService
+    });
+    expect(result.nodes.csv.outputs.result.branches[0].items).toEqual(['a\n1\n2']);
+    expect(result.nodes.rendered.outputs.value.branches[0].items).toEqual(['a\n1\n2']);
+  });
+
+  it('memoizes one preview service dispatch per fan-out consumer', async () => {
+    const serviceContext = () => ({
+      domain: {
+        serviceContracts: {
+          'plugin.docs.echo': {
+            signature: { input: { base: 'record', fields: { text: { base: 'string' } } }, output: { base: 'string' } }
+          }
+        }
+      }
+    });
+    const definition = process([
+      { id: 'text', kind: 'source.literalItem', value: 'ping' },
+      { id: 'echo', kind: 'cts.service', operator: 'plugin.docs.echo' },
+      { id: 'one', kind: 'value.format', template: '1{value}' },
+      { id: 'two', kind: 'value.format', template: '2{value}' }
+    ], ['text', 'echo', 'one', 'two'], [
+      data('text', 'echo', 'text'),
+      data('echo', 'one', 'value'),
+      data('echo', 'two', 'value')
+    ]);
+    const previewService = vi.fn(async () => 'pong');
+    const result = await previewProcessDataflow(definition, {}, {
+      catalogContext: serviceContext,
+      previewService
+    });
+    expect(previewService).toHaveBeenCalledTimes(1);
+    expect(result.nodes.one.outputs.value.branches[0].items).toEqual(['1pong']);
+    expect(result.nodes.two.outputs.value.branches[0].items).toEqual(['2pong']);
+  });
+
+  it('keeps service nodes opaque outside preview scope', async () => {
+    const definition = process([
+      { id: 'text', kind: 'source.literalItem', value: 'ping' },
+      { id: 'echo', kind: 'cts.service', operator: 'plugin.docs.echo', trigger: { mode: 'manual' } }
+    ], ['text', 'echo'], [data('text', 'echo', 'text')]);
+    const result = await previewProcessDataflow(definition, {}, { catalogContext: () => ({}) });
+    expect(result.nodes.echo).toBeUndefined();
+  });
+
   it('keeps missing fields distinct from present nulls in preview', async () => {
     const definition = process([
       { id: 'entity', kind: 'source.literalItem', value: { name: null } },

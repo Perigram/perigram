@@ -18,6 +18,7 @@ import {
   validate
 } from './service.js';
 import * as processRepository from './repository.js';
+import * as pluginsRepository from '../plugins/repository.js';
 import * as ctsTypes from '../cts-types/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { stateService } from '~/server/core/machines/service.js';
@@ -34,7 +35,8 @@ vi.mock('../plugins/repository.js', () => ({
   listInstallsByOrganization: vi.fn(async () => []),
   listDeclarationsByOrganization: vi.fn(async () => []),
   findDeclarationByTypeId: vi.fn(async () => null),
-  findInstallByConnectorToken: vi.fn(async () => null)
+  findInstallByConnectorToken: vi.fn(async () => null),
+  findInstall: vi.fn(async () => null)
 }));
 vi.mock('../cts-types/service.js', async () => {
   const cts = await import('~/packages/cts/src/index.js');
@@ -103,7 +105,8 @@ describe('current process-definition service contract', () => {
       roleAssignments: {}
     });
     getAppRegistry.mockReturnValue({
-      getInstanceService: type => type === 'organization' ? organizationService : null
+      getInstanceService: type => type === 'organization' ? organizationService : null,
+      getCommandDefinition: () => null
     });
   });
 
@@ -866,6 +869,64 @@ describe('current process-definition service contract', () => {
     // The response is already the JSON contract: no undefined property or
     // array item degrades to null on the wire.
     expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
+  });
+
+  it('evaluates an installed endpoint value service in draft preview (SPEC §28)', async () => {
+    const install = {
+      organizationId: 'org-1',
+      pluginId: 'coatings',
+      name: 'Coatings',
+      version: '1',
+      services: [
+        {
+          id: 'match',
+          label: 'Coating match',
+          mode: 'endpoint',
+          group: 'coatings',
+          signature: { input: { base: 'record', fields: { code: { base: 'string' } } }, output: { base: 'string' } }
+        }
+      ],
+      endpoints: { match: 'https://executor.example/match' }
+    };
+    pluginsRepository.listInstallsByOrganization.mockResolvedValue([install]);
+    pluginsRepository.findInstall.mockResolvedValue(install);
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify('matte'), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const result = await preview({
+        definition: {
+          data: {
+            ...previewProcessData(),
+            processNodes: {
+              code: { id: 'code', kind: 'source.literalItem', value: 'C-1' },
+              match: { id: 'match', kind: 'cts.service', operator: 'plugin.coatings.match' }
+            },
+            graph: {
+              ...previewProcessData().graph,
+              nodes: ['code', 'match'].map(id => ({ id, type: 'processNode', position: { x: 0, y: 0 }, data: { refId: id } })),
+              edges: [{
+                id: 'code-match',
+                source: 'code',
+                sourceHandle: 'data:value',
+                target: 'match',
+                targetHandle: 'data:code',
+                role: 'data'
+              }]
+            }
+          }
+        }
+      }, adminAuth());
+
+      expect(result.nodes.match.outputs.result.branches[0].items).toEqual(['matte']);
+      expect(fetchMock).toHaveBeenCalledWith('https://executor.example/match', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ code: 'C-1' })
+      }));
+    } finally {
+      vi.unstubAllGlobals();
+      pluginsRepository.listInstallsByOrganization.mockResolvedValue([]);
+      pluginsRepository.findInstall.mockResolvedValue(null);
+    }
   });
 
   it('persists a read -> list/tree leaf rewrite -> update entity read-modify-write chain through processUpdate', async () => {

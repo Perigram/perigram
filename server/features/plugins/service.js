@@ -731,15 +731,7 @@ export async function executeConnectorService(command, { parameters, auth = {} }
   // installed version, and the canonical input — same inputs, same
   // output, no executor call.
   if (serviceModeOf(service) === 'endpoint') {
-    if (service?.cache === 'deterministic') {
-      const cacheKey = deterministicServiceKey(install, serviceId, parameters);
-      const cached = await repository.findCachedServiceResult(cacheKey);
-      if (cached) return cached.result;
-      const result = await callEndpointService(install, serviceId, parameters);
-      await repository.storeCachedServiceResult(cacheKey, result);
-      return result;
-    }
-    return await callEndpointService(install, serviceId, parameters);
+    return await invokeEndpointValueService(command.id, parameters, auth);
   }
 
   const run = await enqueueTask(command.id, {
@@ -751,6 +743,32 @@ export async function executeConnectorService(command, { parameters, auth = {} }
   // The async boundary: the command result carries the enqueued run, so
   // a waiting process invocation parks until the connector completes it.
   return { tasks: [run] };
+}
+
+// The synchronous endpoint dispatch shared by connector commands and
+// draft preview (SPEC §28 preview law): the configured URL, the
+// deterministic-cache replay, and the claim-mode refusal — a preview
+// is a pure read and parks on no queue.
+export async function invokeEndpointValueService(commandId, parameters, auth = {}) {
+  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+  const install = await installForCommand(commandId, organizationId);
+  if (!install) {
+    throw createError({ statusCode: 404, message: `Command ${commandId} is not installed for this organization` });
+  }
+  const serviceId = commandId.match(PLUGIN_COMMAND_PATTERN)[2];
+  const service = (install.services || []).find(item => item.id === serviceId);
+  if (serviceModeOf(service) !== 'endpoint') {
+    throw createError({ statusCode: 400, message: `Service ${serviceId} executes through the worker claim protocol — preview evaluates endpoint services only` });
+  }
+  if (service?.cache === 'deterministic') {
+    const cacheKey = deterministicServiceKey(install, serviceId, parameters);
+    const cached = await repository.findCachedServiceResult(cacheKey);
+    if (cached) return cached.result;
+    const result = await callEndpointService(install, serviceId, parameters);
+    await repository.storeCachedServiceResult(cacheKey, result);
+    return result;
+  }
+  return await callEndpointService(install, serviceId, parameters);
 }
 
 // One canonical serialization for cache keys: sorted keys at every depth,

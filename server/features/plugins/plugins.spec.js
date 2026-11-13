@@ -81,7 +81,7 @@ import { __db } from '~/server/db/mongo';
 import * as typeStore from '../cts-types/repository.js';
 import {
   install, installFromCatalog, uninstall, listInstalled, listCatalog, servicesForOrganization,
-  projectedServicesForOrganization, projectedDomainsForOrganization, commandDefinitionFor, executeConnectorService,
+  projectedServicesForOrganization, projectedDomainsForOrganization, commandDefinitionFor, executeConnectorService, invokeEndpointValueService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings,
   fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview
@@ -928,6 +928,49 @@ describe('endpoint-mode services', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it('dispatches a preview value service through the endpoint with the same cache replay', async () => {
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings'
+        ? {
+          ...endpointInstall,
+          services: [
+            { id: 'match', label: 'Coating match', mode: 'endpoint', cache: 'deterministic', signature: { input: { base: 'json' }, output: { base: 'json' } } }
+          ]
+        }
+        : null
+    ));
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ shade: 'matte' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const first = await invokeEndpointValueService('plugin.coatings.match', { code: 'C-1' }, AUTH);
+      expect(first).toEqual({ shade: 'matte' });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      repository.findCachedServiceResult.mockResolvedValueOnce({ result: { shade: 'matte' } });
+      const second = await invokeEndpointValueService('plugin.coatings.match', { code: 'C-1' }, AUTH);
+      expect(second).toEqual({ shade: 'matte' });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      repository.findCachedServiceResult.mockResolvedValue(null);
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('refuses a preview dispatch of a claim-mode service', async () => {
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings'
+        ? { ...endpointInstall, services: [{ id: 'poll', label: 'Poll', signature: { input: { base: 'json' }, output: { base: 'json' } } }] }
+        : null
+    ));
+    await expect(invokeEndpointValueService('plugin.coatings.poll', {}, AUTH))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('claim protocol') });
+  });
+
+  it('404s a preview dispatch of an uninstalled service', async () => {
+    await expect(invokeEndpointValueService('plugin.coatings.unknown', {}, AUTH))
+      .rejects.toMatchObject({ statusCode: 404 });
   });
 
   it('saves and serves the surface origin beside the endpoints', async () => {

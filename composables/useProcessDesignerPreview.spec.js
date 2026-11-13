@@ -4,7 +4,7 @@ import { useProcessDesignerPreview } from './useProcessDesignerPreview.js';
 // The diagnostic focus contract: a node-anchored diagnostic selects the node
 // and frames it into view; an edge-anchored diagnostic selects the edge and
 // frames both endpoints; a passing validation never moves the viewport.
-function mountPreview({ nodes = [], edges = [], frameNodeIds, graphEvaluation } = {}) {
+function mountPreview({ nodes = [], edges = [], frameNodeIds, graphEvaluation, selectedProcessNode } = {}) {
   const selectNode = vi.fn();
   const selectEdge = vi.fn();
   const preview = useProcessDesignerPreview({
@@ -12,7 +12,7 @@ function mountPreview({ nodes = [], edges = [], frameNodeIds, graphEvaluation } 
     validation: { value: null },
     selectedNode: { value: null },
     selectedNodeId: { value: null },
-    selectedProcessNode: { value: null },
+    selectedProcessNode: { value: selectedProcessNode || null },
     processNodeOutputs: () => [],
     persistence: {},
     serializeProcess: () => ({}),
@@ -71,5 +71,19 @@ describe('useProcessDesignerPreview diagnostic focus', () => {
     expect(preview.nodeDiagnostics.value('bad')).toEqual(['Division by zero']);
     expect(preview.nodeDiagnostics.value('good')).toBeNull();
     expect(preview.nodeDiagnostics.value('absent')).toBeNull();
+  });
+});
+
+describe('useProcessDesignerPreview node support', () => {
+  it.each([
+    [{ kind: 'cts.service' }, true],
+    [{ kind: 'cts.read' }, true],
+    [{ kind: 'value.format' }, true],
+    [{ kind: 'cts.mutate' }, false],
+    [{ kind: 'control.forEach' }, false],
+    [{}, false]
+  ])('node %j previews: %s', async (record, expected) => {
+    const { preview } = await mountPreview({ selectedProcessNode: record });
+    expect(preview.selectedNodeSupportsPreview.value).toBe(expected);
   });
 });

@@ -61,7 +61,8 @@ export async function previewProcessDataflow(definition, sample = {}, environmen
     if (node.type !== 'processNode') continue;
     if (environment.targetNodeId && String(node.id) !== String(environment.targetNodeId)) continue;
     const record = process.processNodes?.[recordId(node)];
-    if (!record || isEffectRecord(record) || record.kind.startsWith('control.')) continue;
+    if (!record || record.kind.startsWith('control.')) continue;
+    if (isEffectRecord(record) && !(record.kind === 'cts.service' && typeof environment.previewService === 'function')) continue;
     const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
     const outputs = {};
     let error = null;
@@ -560,7 +561,11 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
         environment
       );
   if (contextualOutput) return contextualOutput;
-  if (record.kind.endsWith('Trigger') || isEffectRecord(record) || record.kind.startsWith('control.')) {
+  const previewServiceCall = record.kind === 'cts.service'
+    && tokenContext.scope === 'preview'
+    && typeof environment.previewService === 'function' ? record : null;
+  if (record.kind.endsWith('Trigger') || record.kind.startsWith('control.')
+    || (isEffectRecord(record) && !previewServiceCall)) {
     const error = new Error(`Operational node ${record.id || node.id} has not emitted data output ${resolvedOutputId}`);
     error.code = 'PROCESS_OUTPUT_UNAVAILABLE';
     throw error;
@@ -605,17 +610,37 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
     error.code = 'PROCESS_OUTPUT_UNAVAILABLE';
     throw error;
   }
-  const packet = await executeProcessDataNode(record, inputs, {
-    ...(environment.data || {}),
-    domain: environment.domain,
-    fieldSchemas: environment.catalogContext?.(record)?.fieldSchemas,
-    inputs: run.context?.inputs,
-    trigger: run.trigger,
-    now: environment.now,
-    outputId
-  });
+  const packet = previewServiceCall
+    ? await executePreviewService(previewServiceCall, inputs, ports, environment)
+    : await executeProcessDataNode(record, inputs, {
+      ...(environment.data || {}),
+      domain: environment.domain,
+      fieldSchemas: environment.catalogContext?.(record)?.fieldSchemas,
+      inputs: run.context?.inputs,
+      trigger: run.trigger,
+      now: environment.now,
+      outputId
+    });
+  // One dispatch per output per preview pass: fan-out consumers reuse
+  // the memoized packet.
+  if (previewServiceCall) tokenContext.values[cacheKey] = packet;
   resolving.delete(cacheKey);
   return packet;
+}
+
+// Preview scope evaluates a value service as a data node (SPEC §28):
+// one dispatch over the assembled input record — a list field passes
+// its whole list — and the returned value becomes the result packet.
+async function executePreviewService(record, inputs, ports, environment) {
+  if (!record.operator) throw new Error(`Service node ${record.id || record.kind} has no operator`);
+  const parameters = {};
+  for (const port of ports.inputs.filter(item => item.role === 'data')) {
+    if (!inputs[port.id]) continue;
+    parameters[port.id] = packetValue(inputs[port.id], port.access === 'list' ? 'list' : 'item');
+  }
+  const result = await environment.previewService(record.operator, parameters);
+  const output = ports.outputs.find(item => item.role === 'data') || {};
+  return createDataPacket(structuredClone(result), output.access === 'list' ? 'list' : 'item');
 }
 
 async function resolveContextualEntityOutput(port = {}, inputs = {}, environment = {}) {
