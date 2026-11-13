@@ -660,6 +660,24 @@ workspace instance/page open events. Owner follow-up: the construct
 re-derive seats in the record-utilities group beside payload revisions
 and replacement.
 
+#### Agent Notes (2026-11-13)
+
+Session `agent/record-followup-20261113211548` (worktree
+`.agent-worktrees/record-followup-20261113211548`), owner direction: peek
+previews and the panel itself stay bounded. `LAYOUT.previewEmbedBand`
+was a dead reference (the recipe key died with the handful-records
+revert; the CSS class survived), so the peek's preview band rendered
+with no class at all — payloads painted at natural size inside the
+20rem popover. The recipe is restored (`ck-preview-embed-band`, 9rem
+narrow step) and `HoverPeek` caps the panel at
+`min(30rem, 100dvh-2rem)`. Same session: empty child sections render
+their title with the create set beneath (SPEC §22.8 amended), the
+framed preview band on record pages carries a reader-resize grip
+(§22.8), the version stamp renders as quiet supporting-size text
+button, the trailing line is an always-on placeholder that mounts the
+engine on first activation (§26 amended), and `CrepeEditor` guards its
+async mount against an unmounted host.
+
 ### Record version surface and state-step history (owner direction 2026-10-31)
 
 - [ ] WAITING — owner verification: the version trigger rides the payload

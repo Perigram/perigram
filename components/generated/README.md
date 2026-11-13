@@ -286,9 +286,9 @@ the `section` field set.
   panel; text entries insert a text block opened at that kind (image
   asks for a source address, file for any upload or address, instance
   opens the tree), and the view entry reuses `ViewPickerDialog`. The
-  document's trailing line is a
-  real inline engine mount, empty and type-ready for writers, rendered
-  only while no block editor holds focus; Enter commits it as a block
+  document's trailing line is
+  always mounted while no block editor holds focus — the idle placeholder
+  alone, the live engine from the first activation; Enter commits it as a block
   and Backspace in its empty line resumes the last text block. Arrow keys
   at a text block's visual edge continue in the adjacent text block. The composition and its authoring
   affordances live in

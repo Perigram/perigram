@@ -3,7 +3,7 @@
   <Popover ref="popover" @show="onShow" @hide="shown = false">
     <div
       v-if="shown"
-      class="flex w-80 max-w-[calc(100vw-2rem)] flex-col"
+      class="flex w-80 max-w-[calc(100vw-2rem)] max-h-[min(30rem,calc(100dvh-2rem))] flex-col overflow-hidden"
       @mouseenter="holdPeek"
       @mouseleave="scheduleHide"
       @click="onBodyClick"

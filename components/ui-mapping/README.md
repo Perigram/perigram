@@ -214,9 +214,10 @@ application.
   Inline instance references ride the text as `#instance:` links; the
   Instance entry opens the shared `InstanceSelect`, and the read
   composition mounts the shared `InstanceInlineRef` chip in place of
-  each link. The document's trailing line is a real inline engine mount, empty and
-  type-ready for writers; it renders only while no block editor holds
-  focus. Enter commits its text as a block and leaves a fresh empty line, and
+  each link. The document's trailing line is always mounted while no
+  block editor holds focus: idle it renders the placeholder alone, and
+  the live engine mounts from the first activation. Enter commits its
+  text as a block and leaves a fresh empty line, and
   Backspace in its empty line resumes the document's last text block. It
   is the document's single placeholder: empty text blocks render nothing
   and drop when their editor closes. The record's own
@@ -684,8 +685,9 @@ application.
   and the replace affordance
   ([generated](../generated/README.md)). A list region with
   nothing to show
-  renders at content width, and a record's empty child regions pack side
-  by side as compact stubs (`RegionChildren pack`). Every scalar and
+  renders at content width, and a record's empty child regions render
+  their section title with the create set directly beneath it, packed
+  side by side at content width (`RegionChildren pack`). Every scalar and
   simple structural field renders through `InlineField.vue`, the one
   detail value cell (plain display; the click-to-edit Inplace with pencil
   on patchable surfaces) — hosts own the label placement, so facts,
