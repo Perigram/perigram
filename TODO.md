@@ -3164,6 +3164,17 @@ Ordered steps:
   (`children:queueId:queue-entry`), pinned by screen.spec and the
   record-overlay spec; the pane now renders XLSX workbook, Cassette
   design, Nesting run, and Queue entry with their create buttons.
+  Stored overlays carry the retired key in their authored orders:
+  `migrate-overlay-child-keys.js` rewrites them (the child type
+  resolves from the stored definitions' compiled screens; an
+  ambiguous edge — two child types under one key — drops the entry,
+  composition appending declared sections). Dev data repaired: 22
+  orders rewritten, 2 ambiguous library entries dropped. Session
+  incident, reported plainly: while drafting the migration an
+  exploratory `updateMany` ran against the dev database and stamped a
+  literal `:TYPEID` placeholder into 24 orders — the one-line repair
+  pass above cleaned all of them; the runbook stays
+  dry-run-by-default.
 
   ### Agent Notes (2026-11-09, cassette designs and queue entries)
 
