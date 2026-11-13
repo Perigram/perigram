@@ -70,11 +70,19 @@ function requireRef(input, field, serviceId) {
   };
 }
 
+// The payload source serves both dispatches: a composed value service
+// receives the hydrated blob handle under the `payload` field, a
+// projection receives the envelope's top-level base64.
+function payloadSource(input = {}) {
+  return input?.payload?.payloadBase64 ? input.payload : input;
+}
+
 function bufferOf(input = {}) {
-  if (!input?.payloadBase64 || typeof input.payloadBase64 !== 'string') {
-    badRequest('the projection requires payloadBase64');
+  const source = payloadSource(input);
+  if (!source?.payloadBase64 || typeof source.payloadBase64 !== 'string') {
+    badRequest('the service requires a payload with payloadBase64');
   }
-  return Buffer.from(input.payloadBase64, 'base64');
+  return Buffer.from(source.payloadBase64, 'base64');
 }
 
 // Spreadsheet column letter: 0 → A, 25 → Z, 26 → AA.
@@ -106,9 +114,11 @@ function recordsByPosition(matrix) {
 
 function sheetMatrix(input = {}) {
   const buffer = bufferOf(input);
+  const csv = input.typeId === 'csv-table'
+    || String(payloadSource(input).mime || '').startsWith('text/csv');
   let workbook;
   try {
-    workbook = input.typeId === 'csv-table'
+    workbook = csv
       ? XLSX.read(new TextDecoder().decode(buffer), { type: 'string' })
       : XLSX.read(buffer, { type: 'array' });
   } catch {

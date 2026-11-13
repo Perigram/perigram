@@ -973,6 +973,71 @@ describe('endpoint-mode services', () => {
       .rejects.toMatchObject({ statusCode: 404 });
   });
 
+  it('hydrates a declared blob input field with its stored payload bytes', async () => {
+    const blobInstall = {
+      ...endpointInstall,
+      services: [
+        {
+          id: 'match',
+          label: 'Coating match',
+          mode: 'endpoint',
+          signature: { input: { base: 'record', fields: { payload: { base: 'blob' } } }, output: { base: 'json' } }
+        }
+      ]
+    };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? blobInstall : null
+    ));
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ shade: 'matte' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const handle = { fileId: 'f-1', mime: 'text/csv', size: 7, name: 'spec.csv' };
+      const result = await invokeEndpointValueService('plugin.coatings.match', { payload: handle }, AUTH);
+      expect(result).toEqual({ shade: 'matte' });
+      expect(fetchMock).toHaveBeenCalledWith('https://executor.example/match', expect.objectContaining({
+        body: JSON.stringify({ payload: { ...handle, payloadBase64: Buffer.from('payload').toString('base64') } })
+      }));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('keys the deterministic cache on the raw handle, beside the hydration', async () => {
+    const blobInstall = {
+      ...endpointInstall,
+      services: [
+        {
+          id: 'match',
+          label: 'Coating match',
+          mode: 'endpoint',
+          cache: 'deterministic',
+          signature: { input: { base: 'record', fields: { payload: { base: 'blob' } } }, output: { base: 'json' } }
+        }
+      ]
+    };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? blobInstall : null
+    ));
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const handle = { fileId: 'f-1', mime: 'text/csv', size: 7 };
+      const first = await invokeEndpointValueService('plugin.coatings.match', { payload: { ...handle } }, AUTH);
+      expect(first).toEqual({ ok: true });
+
+      // Same handle: cache hit under the raw-parameter key, one fetch.
+      const [storedKey, storedResult] = repository.storeCachedServiceResult.mock.calls[0];
+      repository.findCachedServiceResult.mockResolvedValueOnce({ result: storedResult });
+      const second = await invokeEndpointValueService('plugin.coatings.match', { payload: { ...handle } }, AUTH);
+      expect(second).toEqual({ ok: true });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(storedKey).toMatch(/^coatings@2:match:[0-9a-f]{64}$/);
+    } finally {
+      repository.findCachedServiceResult.mockResolvedValue(null);
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('saves and serves the surface origin beside the endpoints', async () => {
     repository.findInstall.mockResolvedValue({
       ...endpointInstall,

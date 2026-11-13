@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "7",
+  "version": "8",
   "requires": [
     "tech-drawing"
   ],
@@ -145,7 +145,7 @@
           {
             "id": "text",
             "label": "Text",
-            "group": "tableData",
+            "group": "table-data",
             "output": {
               "base": "string"
             },
@@ -215,7 +215,7 @@
           {
             "id": "rows",
             "label": "Table rows",
-            "group": "tableData",
+            "group": "table-data",
             "output": {
               "base": "list",
               "itemType": {
@@ -229,7 +229,7 @@
           {
             "id": "cells",
             "label": "Table cells (positional)",
-            "group": "tableData",
+            "group": "table-data",
             "output": {
               "base": "list",
               "itemType": {
@@ -273,7 +273,7 @@
           {
             "id": "rows",
             "label": "Table rows",
-            "group": "tableData",
+            "group": "table-data",
             "output": {
               "base": "list",
               "itemType": {
@@ -287,7 +287,7 @@
           {
             "id": "cells",
             "label": "Table cells (positional)",
-            "group": "tableData",
+            "group": "table-data",
             "output": {
               "base": "list",
               "itemType": {
@@ -367,11 +367,25 @@
         "mode": "endpoint",
         "signature": {
           "input": {
-            "base": "json"
+            "base": "record",
+            "fields": {
+              "payload": {
+                "base": "blob"
+              }
+            }
           },
           "output": {
-            "base": "json"
+            "base": "list",
+            "itemType": {
+              "base": "record"
+            }
           }
+        },
+        "group": "table-data",
+        "cache": "deterministic",
+        "render": {
+          "label": "Table rows",
+          "icon": "pi pi-table"
         }
       },
       {
@@ -380,11 +394,25 @@
         "mode": "endpoint",
         "signature": {
           "input": {
-            "base": "json"
+            "base": "record",
+            "fields": {
+              "payload": {
+                "base": "blob"
+              }
+            }
           },
           "output": {
-            "base": "json"
+            "base": "list",
+            "itemType": {
+              "base": "record"
+            }
           }
+        },
+        "group": "table-data",
+        "cache": "deterministic",
+        "render": {
+          "label": "Table cells (positional)",
+          "icon": "pi pi-table"
         }
       },
       {
@@ -393,18 +421,29 @@
         "mode": "endpoint",
         "signature": {
           "input": {
-            "base": "json"
+            "base": "record",
+            "fields": {
+              "payload": {
+                "base": "blob"
+              }
+            }
           },
           "output": {
             "base": "string"
           }
+        },
+        "group": "table-data",
+        "cache": "deterministic",
+        "render": {
+          "label": "Document text",
+          "icon": "pi pi-table"
         }
       },
       {
         "id": "csv-text",
         "label": "CSV text",
         "mode": "endpoint",
-        "group": "tableData",
+        "group": "table-data",
         "render": {
           "label": "CSV text",
           "icon": "pi pi-table"
@@ -424,7 +463,8 @@
           "output": {
             "base": "string"
           }
-        }
+        },
+        "cache": "deterministic"
       },
       {
         "id": "fill",

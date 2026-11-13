@@ -761,14 +761,40 @@ export async function invokeEndpointValueService(commandId, parameters, auth = {
     throw createError({ statusCode: 400, message: `Service ${serviceId} executes through the worker claim protocol — preview evaluates endpoint services only` });
   }
   if (service?.cache === 'deterministic') {
+    // The cache keys the raw parameters: a blob field's handle names
+    // its storage content, the hydrated bytes add nothing.
     const cacheKey = deterministicServiceKey(install, serviceId, parameters);
     const cached = await repository.findCachedServiceResult(cacheKey);
     if (cached) return cached.result;
-    const result = await callEndpointService(install, serviceId, parameters);
+    const result = await callEndpointService(install, serviceId, await hydrateBlobParameters(service, parameters));
     await repository.storeCachedServiceResult(cacheKey, result);
     return result;
   }
-  return await callEndpointService(install, serviceId, parameters);
+  return await callEndpointService(install, serviceId, await hydrateBlobParameters(service, parameters));
+}
+
+// A service input field declared with base `blob` receives a payload
+// handle `{ fileId, mime, size, name? }` on the wire; the dispatch
+// hydrates the handle with its bytes so the executor reads
+// `payloadBase64` and reaches no storage. Declaration-driven — the
+// service's own signature names which fields carry handles.
+async function hydrateBlobParameters(service = {}, parameters = null) {
+  const fields = service.signature?.input?.base === 'record' ? service.signature.input.fields || {} : {};
+  const blobFields = Object.entries(fields)
+    .filter(([, descriptor]) => descriptor?.base === 'blob')
+    .map(([name]) => name);
+  if (!blobFields.length || !parameters || typeof parameters !== 'object') return parameters;
+  const hydrated = { ...parameters };
+  for (const name of blobFields) {
+    const handle = hydrated[name];
+    if (!handle || typeof handle !== 'object' || !handle.fileId || handle.payloadBase64) continue;
+    const buffer = await filesService.getFileBuffer(String(handle.fileId), 'files');
+    if (!buffer) {
+      throw createError({ statusCode: 400, message: `Service input ${name}: file ${handle.fileId} has no stored payload` });
+    }
+    hydrated[name] = { ...handle, payloadBase64: Buffer.from(buffer).toString('base64') };
+  }
+  return hydrated;
 }
 
 // One canonical serialization for cache keys: sorted keys at every depth,
