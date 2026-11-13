@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "8",
+  "version": "9",
   "requires": [
     "tech-drawing"
   ],
@@ -491,6 +491,90 @@
             "base": "json"
           }
         }
+      },
+      {
+        "id": "parse-markdown",
+        "label": "Parse markdown",
+        "mode": "endpoint",
+        "group": "document-compose",
+        "cache": "deterministic",
+        "render": {
+          "label": "Parse markdown",
+          "icon": "pi pi-book"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "text": {
+                "base": "string"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "export-markdown",
+        "label": "Export markdown",
+        "mode": "endpoint",
+        "group": "document-compose",
+        "cache": "deterministic",
+        "render": {
+          "label": "Export markdown",
+          "icon": "pi pi-download"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "document": {
+                "base": "json"
+              }
+            }
+          },
+          "output": {
+            "base": "string"
+          }
+        }
+      },
+      {
+        "id": "compose-report",
+        "label": "Compose report",
+        "mode": "endpoint",
+        "group": "document-compose",
+        "cache": "deterministic",
+        "render": {
+          "label": "Compose report",
+          "icon": "pi pi-file"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "title": {
+                "base": "string"
+              },
+              "sectionTitle": {
+                "base": "string"
+              },
+              "flow": {
+                "base": "json"
+              },
+              "rows": {
+                "base": "list",
+                "itemType": {
+                  "base": "record"
+                }
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
       }
     ],
     "editors": [
@@ -519,6 +603,12 @@
         "id": "csv-editor",
         "module": "/surfaces/csv-editor.mjs",
         "surfaceContract": 3
+      },
+      {
+        "id": "report-preview",
+        "module": "/surfaces/report-preview.mjs",
+        "surfaceContract": 1,
+        "kind": "preview"
       }
     ],
     "starterConstructs": [
@@ -617,6 +707,13 @@
         "version": "7.22.3",
         "module": "/assets/vendor/milkdown-prose-commands.mjs",
         "license": "MIT"
+      }
+    ],
+    "previewChannels": [
+      {
+        "id": "report",
+        "surface": "report-preview",
+        "label": "Report"
       }
     ]
   }
