@@ -36,6 +36,17 @@ Slices:
   the documents extraction trio (`table-rows`/`table-cells`/`text`) is
   palette-wireable in the `table-data` section with deterministic
   cache, composing payload → rows → `csv-text` on the canvas.
+- [x] S4 Documents vertical as the HAG MVP — markdown → flow document,
+  dataset creation, report composition, HTML render: documents-plugin
+  palette services with record signatures plus a report preview
+  channel (HAG §16 phases 3-4 over the one graph).
+  Landed 2026-11-13: `parse-markdown`/`export-markdown`
+  (`text.flow-document@1` round-trip, drop diagnostics) and
+  `compose-report` (`document.report@1`) in the `document-compose`
+  section; the `report` preview channel renders every report value the
+  whole-graph evaluation carries; the IR contracts live in the
+  documents README. Reordered ahead of S3: the typing lands on the
+  value kinds this vertical proves.
 - [ ] S3 Typed value contracts on sockets — plugin-declared value kinds
   (flow-document, table dataset) gate connections; conversion stays an
   explicit operation (HAG P1/P4).
@@ -52,12 +63,43 @@ Slices:
   outputs to channel surfaces; a claim-mode service answers the node
   error; runtime execution is unchanged.
 
+- [ ] S4 residual: `render-html` as a graph-facing export service, DOCX
+  and PDF report export targets (HAG §11.2 order), and md-table
+  extraction through `table-rows`-shaped payloads.
 - [ ] WAITING — owner verification: S2 — on the canvas, a file
   instance's payload handle (read `payload` field) wires into the
   documents extraction services and previews live; the palette
   `table-data` section lists rows/cells/text beside CSV text; running
   the composed service hydrates the payload once per distinct handle
   (deterministic replay).
+
+- [ ] WAITING — owner verification: S4 — with the documents plugin
+  installed, the `document-compose` palette section composes
+  `parse-markdown` → `compose-report` (beside `table-rows` rows) and
+  the Preview tab's `report` channel renders the composed report
+  read-only; markdown round-trips through the flow-document IR with
+  drop diagnostics.
+
+### Agent Notes (2026-11-13, agent/nodes-report-vertical-20261113)
+
+- S4 landed. `workers/documents/report.js`: markdown ↔
+  `text.flow-document@1` (marked lexer as the adapter, replaceable
+  behind the IR), `compose-report` → `document.report@1` refusing
+  kind-mismatched inputs (parse/extract stay the graph's explicit
+  operations). Listing v9 adds the `document-compose` services
+  (deterministic, record signatures), the `report-preview` contract-1
+  preview surface (render functions over the channel payload,
+  `reportsOf` exported as its selection law), and the `report`
+  preview channel. IR contracts canonical in the documents README.
+- One-graph adaptation recorded: the report's table block carries row
+  records inline — values are the artifacts on the graph, the HAG
+  ArtifactRef indirection resolves to the value itself.
+- Validation: report spec 10 ✓ (round-trip, diagnostics, compose
+  refusals, services dispatch, surface check + selection + render),
+  documents services 5 ✓, fill 19 ✓, framework-packages ✓,
+  `perigram-plugin validate` v9 ✓, `surfaces` check ✓,
+  `check-plugin-deps` ✓, `check-arch` ✓, `docs:validate` ✓. The 3
+  process-definitions failures pre-exist on the merge base.
 
 ### Agent Notes (2026-11-13, agent/nodes-payload-values-20261113)
 

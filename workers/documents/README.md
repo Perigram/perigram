@@ -29,6 +29,39 @@ types ride the generic instance machinery from the install snapshot.
   kind), and `render-pdf` (source ref payload → rendered PDF payload,
   dispatched on the source kind) stay implementation executors for
   their construction and conversion bindings.
+- Report vertical (`report.js`, palette section `document-compose`,
+  deterministic): `parse-markdown` (text → `text.flow-document@1`),
+  `export-markdown` (flow document → markdown text), `compose-report`
+  (flow document + row records → `document.report@1`) — the values
+  compose on the canvas and preview through the `report` channel
+  (`surfaces/report-preview.mjs`, contract-1 preview surface rendering
+  every `document.report` the whole-graph evaluation carries).
+
+### Document IR contracts
+
+`text.flow-document@1` — flowing text independent of serialization:
+
+| Block | Shape |
+|---|---|
+| `paragraph` / `heading` | `{ children: InlineNode[] }` (+ `level` 1–6 on headings) |
+| `list` | `{ ordered: boolean, items: InlineNode[][] }` |
+| `blockquote` | `{ blocks: Block[] }` |
+| `code-block` | `{ language?: string, text: string }` |
+| `table` | `{ rows: Record<string, string>[] }` — header-keyed records |
+| `horizontal-rule` | `{}` |
+
+Inline nodes: `text` (`text`), `strong`/`emphasis` (`children`),
+`code` (`text`), `link` (`href`, `children`). Parse diagnostics ride
+`diagnostics: string[]` (`UNSUPPORTED_HTML`, `UNSUPPORTED_IMAGE`) — a
+dropped construct is reported, never silently lost; an inline image
+keeps its literal markdown as text.
+
+`document.report@1` — `{ title?, sections: [{ id, title?, blocks }] }`
+where a section's blocks are `{ type: 'flow', document }` (a
+flow-document value) and `{ type: 'table', rows }` (row records). On
+the one graph, values are the artifacts: the table block carries its
+rows inline. `compose-report` refuses a flow input that is not a flow
+document — parse and extract are the graph's own explicit operations.
 - Editor surfaces (contract 3 — the capability mount): the markdown
   editor (`surfaces/text-editor.mjs`, milkdown/crepe with every engine
   chrome disabled — remote saves reconcile through the host's
