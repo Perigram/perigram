@@ -793,6 +793,7 @@ const processLoadError = ref('');
 const nodes = ref([]);
 const edges = ref([]);
 const validation = ref(null);
+const channelPreviewPayload = ref(null);
 const creatingDraft = ref(false);
 const savedDraftSignature = ref('');
 const organizationRoles = ref({});
@@ -1019,18 +1020,18 @@ const {
   edges,
   selectNode,
   selectEdge,
-  frameNodeIds
+  frameNodeIds,
+  graphEvaluation: channelPreviewPayload
 });
 
 // Preview channels (SPEC §28): the whole-graph evaluation a channel tab
 // consumes — the same preview seam the node inspector rides, with no
 // target node (every node evaluates, effects suppressed). The result is
-// the read-only payload handed to each channel mount.
-const channelPreviewPayload = ref(null);
+// the read-only payload handed to each channel mount and the per-node
+// evaluation errors folded into the canvas fault states.
 const channelPreviewRunning = ref(false);
 const channelPreviewError = ref('');
 async function runChannelPreview() {
-  if (!servedPreviewChannels.value.length) return;
   channelPreviewRunning.value = true;
   channelPreviewError.value = '';
   try {
@@ -1828,8 +1829,8 @@ const previewAuthoringSignature = computed(() => JSON.stringify({
   nodes: nodes.value.map(node => [node.id, node.type, node.data]),
   edges: edges.value.map(edge => [edge.id, edge.source, edge.target, edge.sourceHandle, edge.targetHandle, edge.role, edge.label])
 }));
-watch(previewAuthoringSignature, () => schedulePreviewRecompute());
-watch(inspectTab, () => schedulePreviewRecompute());
+watch(previewAuthoringSignature, () => { schedulePreviewRecompute(); scheduleChannelPreview(); });
+watch(inspectTab, () => { schedulePreviewRecompute(); scheduleChannelPreview(); });
 
 function schedulePreviewRecompute() {
   if (previewRecomputeTimer) {
@@ -1845,6 +1846,19 @@ function schedulePreviewRecompute() {
     const sequence = ++previewRecomputeSequence;
     recomputeProcessPreview(() => sequence === previewRecomputeSequence);
   }, 120);
+}
+
+// The whole-graph evaluation (channel payload + node fault errors) rides
+// its own debounce: it runs when the Preview tab opens and re-runs on
+// authoring changes while the tab stays open — one evaluation serves the
+// channel mounts and the faulted cards alike.
+let channelPreviewTimer = null;
+function scheduleChannelPreview() {
+  if (channelPreviewTimer) clearTimeout(channelPreviewTimer);
+  channelPreviewTimer = setTimeout(() => {
+    channelPreviewTimer = null;
+    if (inspectTab.value === 'preview') runChannelPreview();
+  }, 300);
 }
 
 // The live evaluation loop (Blender-style): any authoring change — a
