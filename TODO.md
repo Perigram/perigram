@@ -174,29 +174,6 @@ archived only on the owner's word.
 
 ### Repository shape (SPEC §23.1)
 
-- [x] Remove `video/` (19 tracked files) — the explainer-video renderer:
-  `video/groundtruth.mjs` imports deleted `utils/` files
-  (ERR_MODULE_NOT_FOUND reproduced at audit), all 5 relative links in
-  `video/README.md` resolve above the repo root and are broken, and
-  `nuxt.config.js` special-cases ignoring the tree. Drop its
-  Documentation Map row in the same cut. The renderer moves to its own
-  repository first (~/Projects/perigram-video; owner pushes to a remote).
-  Landed 2026-10-25 (655938b35): video/ moved to its own repository —
-  0 tracked files under video/, `nuxt.config.js` video special-case
-  gone, Documentation Map row dropped, renderer at ~/Projects/perigram-video.
-  Untracked build-artifact residue remains in the primary working
-  directory (video/frames, video/out.mp4, video/target,
-  assets/rive/perigram-mark) — owner-local cleanup, deliberately
-  untouched by agents.
-- [x] Remove `packages/mongo`, `packages/nitro`, `packages/vue` — zero
-  consumers repo-wide (reference search over all js/vue/mjs excluding the
-  packages themselves); `packages/vue/README.md` documents exports that do
-  not exist. Same cut cleans `scripts/framework-inspect.js` PACKAGE_NAMES,
-  regenerates `framework.manifest.json` (`npm run framework:write-manifest`),
-  drops `tsconfig.json` path rows, and updates the `.codex` skill reference.
-  Tracked in [packages/TODO.md](./packages/TODO.md).
-  Landed 2026-10-25 (655938b35): folders gone, every reference cleaned,
-  manifest regenerated.
 - [x] Remove `constants/` + `components/UserForm.vue` — the only import of
   `constants/` is `UserForm.vue:36` (`USER_ROLES`, a hardcoded legacy role
   set); `<UserForm` template usage: 0 matches repo-wide.
@@ -266,17 +243,6 @@ archived only on the owner's word.
 
 ### Area documentation deltas (folders without their own TODO)
 
-- [x] `e2e/README.md`: coverage table lists 19 of 23 live specs — add
-  `cassette-profile-editor`, `definitions-pane`, `home-workspace-restore`,
-  `process-designer-getfield`; the default-login prose contradicts
-  `global-setup.js` (fresh identity per run); trim the walkthrough
-  narration; L205 names fixtures vocabulary the file no longer carries.
-- [x] `test-data/README.md` rewrite: 10 of 12 listed factories do not
-  exist, the usage example fails at runtime, `ui-mapping-real.js` and
-  `contextToScenario` are deleted — document the real nine factories
-  (decision below before the rewrite).
-- [x] `test-tools/README.md`: document the two fixture surface plugins
-  e2e consumes.
 - [x] `scripts/README.md`: drop the dead duplicate-key check claim (the
   check does not exist), correct the framework-inspect contract line,
   move the four server/scripts file summaries to
