@@ -11,9 +11,6 @@ import * as processDefinitionsService from '../process-definitions/service.js';
 import * as invitationsService from '../invitations/service.js';
 import { ownerMembership } from '../users/organization-owner.js';
 
-/**
- * Organizations Service - v24 Absolute Final
- */
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   // Bootstrap grant: an account without any organization creates its first

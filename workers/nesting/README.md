@@ -11,7 +11,10 @@ Parent: [workers README](../README.md).
 
 ## Nesting Engine
 The worker integrates with **[jagua-rs](./jagua-rs/README.md)**, a high-performance nesting library written in Rust.
-- The `lbf` binary is executed to perform the nesting.
+- The `lbf` binary is executed to perform the nesting. The image builds it
+  from the submodule; a local run needs `cargo build --release` in
+  `jagua-rs` with the release binary at `lbf-bin` (the `lbf` symlink
+  resolves it).
 
 ## Architecture & Workflow
 1.  **Input**: Receives POST request with items (polygons) and parameters.

@@ -191,7 +191,7 @@ function resolveLineageFact(path, context) {
 function getPrimaryStatus(status) {
   if (typeof status === 'string') return status;
   // Instance documents carry one flat `state` string (SPEC §3/§7); the
-  // legacy v24 Status block resolves to its primary either way.
+  // legacy Status block resolves to its primary either way.
   if (typeof status?.main === 'string') return status.main;
   if (typeof status?.state === 'string') return status.state;
   return status?.primary ?? status?.state?.primary ?? Object.values(status?.active || {}).find(Boolean);

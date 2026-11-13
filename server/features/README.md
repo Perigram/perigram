@@ -1,9 +1,9 @@
-# COMPONENT: Server Features — v24 Entity Modules
+# COMPONENT: Server Features — Entity Modules
 
-Business logic modules following the v24 Service-Repository-Model pattern.
+Business logic modules following the Service-Repository-Model pattern.
 Persisted entity modules are self-contained vertical slices. Capability modules
 that are not entities may live under `server/features/` for now, but they are
-classified separately and are not forced into fake v24 entity files.
+classified separately and are not forced into fake entity files.
 
 Parent: [server](../README.md).
 Target law: [SPEC.md](./SPEC.md).

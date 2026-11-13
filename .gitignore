@@ -62,3 +62,6 @@ data/
 
 # agent session worktrees (nested, poison dev watchers if watched)
 .agent-worktrees/
+
+# compiled nesting solver binary — built in-image from jagua-rs
+workers/nesting/lbf-bin

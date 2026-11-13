@@ -1,4 +1,4 @@
-# COMPONENT: State Machine Engine - v24 Standardized
+# COMPONENT: State Machine Engine
 
 Governs entity lifecycles: transition validation, status snapshots, and
 status-event history.

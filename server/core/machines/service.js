@@ -21,11 +21,7 @@ import { CLASS_COLLECTIONS, evaluate as evaluateExpression } from '~/packages/ct
 import { processEffects } from '../effects/service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 
-/**
- * Unified Status Service - v24 Absolute Final
- * Handles state transitions and audit logging.
- * Architectural Excellence: Strict adherence to defined lifecycles.
- */
+
 export const stateService = {
   /**
    * Change status of an entity

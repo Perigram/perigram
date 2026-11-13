@@ -1,8 +1,4 @@
-/**
- * Database Indexes - v24 Standardized
- * 
- * Defines all indexes for MongoDB collections including the critical Lineage Trace indexes.
- */
+
 
 import { connectDB } from './mongo.js';
 

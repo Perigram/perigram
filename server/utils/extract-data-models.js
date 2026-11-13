@@ -1,8 +1,3 @@
-/**
- * Procedurally extract data models - v24 Absolute Final Version
- * Architecture-aware: Knows about BaseEntity and Standard Blocks.
- * STRICT MODE: Only captures fields explicitly assigned to 'data'.
- */
 
 import fs from 'fs';
 import path from 'path';

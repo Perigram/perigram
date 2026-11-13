@@ -13,10 +13,6 @@ import { hasPermissionGrant } from '#shared/access-control.js';
 import { ensureOwnerMembership, isOwnerMembership, mergeOwnerPermissions } from './organization-owner.js';
 import * as filesService from '../files/service.js';
 
-/**
- * Users Service - v24 Absolute Final
- */
-
 
 export async function register(data, creatorUserId, userOrg, creatorRole, creatorPermissions) {
   if (!data.email || !data.password || !data.name) {

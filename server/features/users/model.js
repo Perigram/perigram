@@ -1,8 +1,6 @@
 import { BaseEntity } from '~/server/core/blocks/index.js';
 import { ensureOwnerMembership } from './organization-owner.js';
-/**
- * User Entity - v24 Absolute Final
- */
+
 export class User extends BaseEntity {
   constructor(raw = {}) {
     super(raw);
