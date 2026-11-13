@@ -3408,6 +3408,10 @@
         "edgeOnRemove": "on remove",
         "palettePackSections": "Plugins",
         "palettePlatformSections": "Platform",
+        "previewTab": "Preview",
+        "previewChannels": "Graph preview",
+        "noPreviewChannels": "Preview channels arrive with installed plugins",
+        "previewChannelUnavailable": "Preview channel unavailable",
         "paletteGroups": {
             "entities": "Types",
             "values": "Values",

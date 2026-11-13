@@ -139,6 +139,20 @@
             }
           }
         },
+        "previewChannels": {
+          "type": "array",
+          "description": "Designer preview channels (SPEC §28): one tab per channel, mounted read-only through the preview surface contract; the surface must be kind 'preview'",
+          "items": {
+            "type": "object",
+            "required": ["id", "surface", "label"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+              "surface": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+              "label": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
         "constructions": {
           "type": "object",
           "description": "Construction modes of the plugin's own types bound to plugin services: typeId -> mode -> plugin-qualified service ref",

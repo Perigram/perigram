@@ -73,6 +73,7 @@ export function parseListing(listing = {}) {
   const exportsList = declarations.exports || [];
   const surfaces = (declarations.surfaces || []).filter(Boolean);
   const previews = (declarations.previews || []).filter(Boolean);
+  const previewChannels = (declarations.previewChannels || []).filter(Boolean);
   const dependencies = (declarations.dependencies || []).filter(Boolean);
   const requires = Array.isArray(listing.requires) ? listing.requires.map(String) : [];
   const pluginId = String(listing.pluginId || '');
@@ -302,6 +303,27 @@ export function parseListing(listing = {}) {
     }
   }
 
+  // Designer preview channels (SPEC §28): one tab per channel — a
+  // plugin whose palette section feeds a channel binds the channel and
+  // serves its preview surface through the same read-only preview mount.
+  // A channel id is globally unique across installs (the tab key).
+  const seenChannelIds = new Set();
+  for (const channel of previewChannels) {
+    if (!/^[a-z0-9-]+$/.test(channel?.id || '')) {
+      throw listingError(`preview channel id must be a slug (got ${JSON.stringify(channel.id)})`);
+    }
+    if (seenChannelIds.has(channel.id)) {
+      throw listingError(`duplicate preview channel id ${channel.id}`);
+    }
+    seenChannelIds.add(channel.id);
+    if (typeof channel.label !== 'string' || !channel.label.trim()) {
+      throw listingError(`preview channel ${channel.id} needs a label string`);
+    }
+    if (surfaceKindOf.get(channel.surface) !== 'preview') {
+      throw listingError(`preview channel ${channel.id} references surface ${channel.surface}, which is not a preview surface`);
+    }
+  }
+
   // Declared runtime dependencies (owner decision 2026-10-17): one flat,
   // license-declared vendor bundle per name, served by this executor.
   const seenDependencyNames = new Set();
@@ -348,7 +370,7 @@ export function parseListing(listing = {}) {
     }
   }
 
-  return { pluginId, types, services, editors, constructions, starterConstructs, exports: exportsList, surfaces, previews, dependencies, requires, visibility, organizations };
+  return { pluginId, types, services, editors, constructions, starterConstructs, exports: exportsList, surfaces, previews, previewChannels, dependencies, requires, visibility, organizations };
 }
 
 // The normalized catalog document the publish API stores and installs
@@ -374,6 +396,7 @@ export function normalizeListing(listing = {}) {
       exports: layer.exports,
       surfaces: layer.surfaces,
       previews: layer.previews,
+      previewChannels: layer.previewChannels,
       dependencies: layer.dependencies
     }
   };

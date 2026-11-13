@@ -111,6 +111,7 @@
               <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
               <Tab value="definitions">{{ $t('processDesigner.definitions') }}</Tab>
               <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
+              <Tab v-if="servedPreviewChannels.length" value="preview">{{ $t('processDesigner.previewTab') }}</Tab>
             </TabList>
             <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="definitions">
@@ -575,6 +576,34 @@
               </div>
             </TabPanel>
 
+            <TabPanel value="preview">
+              <div class="flex flex-col gap-3">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-label">{{ $t('processDesigner.previewChannels') }}</span>
+                  <Button
+                    icon="pi pi-refresh"
+                    size="small"
+                    text
+                    :loading="channelPreviewRunning"
+                    :aria-label="$t('processDesigner.refreshPreview')"
+                    @click="runChannelPreview"
+                  />
+                </div>
+                <Message v-if="channelPreviewError" severity="error">{{ channelPreviewError }}</Message>
+                <template v-if="servedPreviewChannels.length">
+                  <section
+                    v-for="channel in servedPreviewChannels"
+                    :key="channel.id"
+                    class="flex flex-col gap-2"
+                  >
+                    <span class="text-muted text-supporting">{{ channel.label }}</span>
+                    <PreviewChannelMount :channel="channel" :payload="channelPreviewPayload" />
+                  </section>
+                </template>
+                <StateBlock v-else :message="$t('processDesigner.noPreviewChannels')" />
+              </div>
+            </TabPanel>
+
 
           </TabPanels>
         </Tabs>
@@ -675,6 +704,7 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
 import OperationPalette from '~/components/process-designer/OperationPalette.vue';
+import PreviewChannelMount from '~/components/process-designer/PreviewChannelMount.vue';
 import TypeMigrationStepsDialog from '~/components/process-designer/TypeMigrationStepsDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -810,7 +840,8 @@ const {
   loadOrgTypes,
   loadProcessCapabilities,
   persistTreeDeclarations,
-  servedCommands
+  servedCommands,
+  servedPreviewChannels
 } = useProcessDesignerTypes({
   nodes,
   edges,
@@ -989,6 +1020,26 @@ const {
   selectEdge,
   frameNodeIds
 });
+
+// Preview channels (SPEC §28): the whole-graph evaluation a channel tab
+// consumes — the same preview seam the node inspector rides, with no
+// target node (every node evaluates, effects suppressed). The result is
+// the read-only payload handed to each channel mount.
+const channelPreviewPayload = ref(null);
+const channelPreviewRunning = ref(false);
+const channelPreviewError = ref('');
+async function runChannelPreview() {
+  if (!servedPreviewChannels.value.length) return;
+  channelPreviewRunning.value = true;
+  channelPreviewError.value = '';
+  try {
+    channelPreviewPayload.value = await persistence.previewDraft(serializeProcess(), undefined);
+  } catch (error) {
+    channelPreviewError.value = error?.data?.message || error.message;
+  } finally {
+    channelPreviewRunning.value = false;
+  }
+}
 
 const {
   applyState,
