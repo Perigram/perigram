@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "10",
+  "version": "11",
   "requires": [
     "tech-drawing"
   ],
@@ -578,6 +578,87 @@
           "output": {
             "base": "json",
             "kind": "document.report"
+          }
+        }
+      },
+      {
+        "id": "extract-table",
+        "label": "Extract table",
+        "mode": "endpoint",
+        "group": "document-compose",
+        "cache": "deterministic",
+        "render": {
+          "label": "Extract table",
+          "icon": "pi pi-table"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "document": {
+                "base": "json",
+                "kind": "text.flow-document"
+              }
+            }
+          },
+          "output": {
+            "base": "list",
+            "itemType": {
+              "base": "record"
+            }
+          }
+        }
+      },
+      {
+        "id": "render-html",
+        "label": "Render HTML",
+        "mode": "endpoint",
+        "group": "document-compose",
+        "cache": "deterministic",
+        "render": {
+          "label": "Render HTML",
+          "icon": "pi pi-html5"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "report": {
+                "base": "json",
+                "kind": "document.report"
+              }
+            }
+          },
+          "output": {
+            "base": "string"
+          }
+        }
+      },
+      {
+        "id": "render-report-pdf",
+        "label": "Render PDF",
+        "mode": "endpoint",
+        "group": "document-compose",
+        "cache": "deterministic",
+        "render": {
+          "label": "Render PDF",
+          "icon": "pi pi-file-pdf"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "report": {
+                "base": "json",
+                "kind": "document.report"
+              },
+              "name": {
+                "base": "string"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
           }
         }
       }

@@ -3,7 +3,7 @@
 // composition refuses implicit conversions, and the preview surface
 // selects report values by their IR discriminator.
 import { describe, expect, it } from 'vitest';
-import { composeReport, exportMarkdown, parseMarkdown } from './report.js';
+import { composeReport, exportMarkdown, extractTable, parseMarkdown, renderReportHtml, renderReportPdf } from './report.js';
 import { services } from './services.js';
 import { checkSurfaceModule } from '../../packages/plugin-sdk/src/surface-check.js';
 import createReportSurface, { reportsOf } from './surfaces/report-preview.mjs';
@@ -110,6 +110,50 @@ describe('report composition', () => {
     expect(text).toBe('# Title\n');
     const report = await services['compose-report']({ flow: document, rows: [{ x: 1 }] });
     expect(report.type).toBe('document.report');
+  });
+});
+
+describe('report export representations', () => {
+  const report = composeReport({
+    title: 'Materials <Q3>',
+    sectionTitle: 'Takeoff',
+    flow: parseMarkdown('Body with **bold** and <script>alert(1)</script>.'),
+    rows: [{ material: 'aluminium', qty: 12 }]
+  });
+
+  it('extracts the flow document\'s table as row records', () => {
+    const withTable = parseMarkdown('| a | b |\n| --- | --- |\n| 1 | 2 |\n\nno table elsewhere');
+    expect(extractTable(withTable)).toEqual([{ a: '1', b: '2' }]);
+    expect(() => extractTable(parseMarkdown('# no table'))).toThrow('carries no table');
+    expect(() => extractTable({ type: 'other' })).toThrow('text.flow-document');
+  });
+
+  it('renders the report as a standalone HTML document with escaped content', () => {
+    const html = renderReportHtml(report);
+    expect(html).toContain('<!doctype html>');
+    expect(html).toContain('<title>Materials &lt;Q3&gt;</title>');
+    expect(html).toContain('<h2>Takeoff</h2>');
+    expect(html).toContain('<strong>bold</strong>');
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('<th>material</th>');
+    expect(() => renderReportHtml({ type: 'other' })).toThrow('document.report');
+  });
+
+  it('renders the report as a PDF payload through the services map', async () => {
+    const output = await services['render-report-pdf']({ report });
+    expect(output.payload.mime).toBe('application/pdf');
+    expect(output.payload.name).toBe('Materials <Q3>.pdf');
+    const bytes = Buffer.from(output.payload.base64, 'base64');
+    expect(bytes.subarray(0, 4).toString()).toBe('%PDF');
+    expect(bytes.length).toBeGreaterThan(500);
+  });
+
+  it('serves the representations through the services map', async () => {
+    const flow = parseMarkdown('| k | v |\n| --- | --- |\n| x | 1 |');
+    expect(await services['extract-table']({ document: flow })).toEqual([{ k: 'x', v: '1' }]);
+    const html = await services['render-html']({ report });
+    expect(html).toContain('<!doctype html>');
   });
 });
 
