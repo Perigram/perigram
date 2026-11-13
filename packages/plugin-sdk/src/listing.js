@@ -133,6 +133,14 @@ export function parseListing(listing = {}) {
     if (service.group !== undefined && !/^[a-z0-9][a-z0-9-]*$/.test(String(service.group))) {
       throw listingError(`service ${service.id} group must be a palette-section slug (got ${JSON.stringify(service.group)})`);
     }
+    if (service.cache !== undefined) {
+      if (service.cache !== 'deterministic') {
+        throw listingError(`service ${service.id} cache must be 'deterministic' (got ${JSON.stringify(service.cache)})`);
+      }
+      if (service.mode !== 'endpoint') {
+        throw listingError(`service ${service.id} cache is endpoint-only — a claim-mode run parks on the queue and replays through its own task record`);
+      }
+    }
   }
   const serviceIds = new Set(services.map(service => service.id));
   const serviceRefOf = (ref, what) => {

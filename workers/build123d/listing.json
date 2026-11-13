@@ -1,0 +1,88 @@
+{
+  "pluginId": "build123d",
+  "name": "build123d",
+  "description": "Parametric B-Rep CAD as an installable plugin: part types, a parameter bake service, STEP export, and a 3D preview channel for the process designer",
+  "version": "1",
+  "declarations": {
+    "types": [
+      {
+        "id": "b3d-part",
+        "class": "file",
+        "scope": "system",
+        "name": "Part",
+        "fields": {
+          "name": { "base": "string", "identifier": true }
+        },
+        "payload": {
+          "mime": ["application/step", "model/step"],
+          "accept": [".step", ".stp", "application/step"],
+          "maxSize": 52428800,
+          "preview": "none",
+          "creation": ["upload", "fromBake"]
+        },
+        "revisions": "content"
+      },
+      {
+        "id": "b3d-recipe",
+        "class": "item",
+        "scope": "system",
+        "name": "Recipe",
+        "fields": {
+          "name": { "base": "string", "identifier": true },
+          "operation": { "base": "string" },
+          "parameters": { "base": "record", "fields": {} }
+        }
+      }
+    ],
+    "services": [
+      {
+        "id": "bake",
+        "label": "Bake part",
+        "mode": "endpoint",
+        "group": "build123d",
+        "cache": "deterministic",
+        "render": { "label": "Bake part", "icon": "pi pi-cog" },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "operation": { "base": "string" },
+              "parameters": { "base": "record", "fields": {} }
+            }
+          },
+          "output": { "base": "json" }
+        }
+      },
+      {
+        "id": "preview-mesh",
+        "label": "Preview mesh",
+        "mode": "endpoint",
+        "group": "build123d",
+        "cache": "deterministic",
+        "render": { "label": "Preview mesh", "icon": "pi pi-eye" },
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": { "base": "json" }
+        }
+      }
+    ],
+    "surfaces": [
+      {
+        "id": "viewport-preview",
+        "module": "/surfaces/viewport-preview.mjs",
+        "surfaceContract": 1,
+        "kind": "preview"
+      }
+    ],
+    "previewChannels": [
+      { "id": "b3d-viewport", "surface": "viewport-preview", "label": "3D viewport" }
+    ],
+    "constructions": {
+      "b3d-part": {
+        "fromBake": "plugin.build123d.bake"
+      }
+    }
+  }
+}

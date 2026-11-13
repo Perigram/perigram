@@ -160,6 +160,22 @@ services:
     command: node workers/tech-drawing/index.js
     restart: unless-stopped
 
+  # The build123d plugin's executor (SPEC §28 engine-as-plugin vertical):
+  # the box-bake services and the 3D preview-channel surface.
+  build123d-executor:
+    image: node:24-alpine
+    working_dir: /src
+    volumes:
+      - .:/src
+    environment:
+      - BUILD123D_EXECUTOR_PORT=8793
+    ports:
+      - "8793:8793"
+    networks:
+      - perigram-network
+    command: node workers/build123d/index.js
+    restart: unless-stopped
+
 networks:
   perigram-network:
     external: true

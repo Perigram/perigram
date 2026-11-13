@@ -726,7 +726,19 @@ export async function executeConnectorService(command, { parameters, auth = {} }
   // Endpoint mode: call the configured executor URL directly (the
   // nesting-worker shape — self-hosted or cloud-hosted); the JSON body is
   // the service input value and the JSON response is the service output.
+  // A service declaring `cache: 'deterministic'` replays through the
+  // service cache (SPEC §28): the key covers the service identity, the
+  // installed version, and the canonical input — same inputs, same
+  // output, no executor call.
   if (serviceModeOf(service) === 'endpoint') {
+    if (service?.cache === 'deterministic') {
+      const cacheKey = deterministicServiceKey(install, serviceId, parameters);
+      const cached = await repository.findCachedServiceResult(cacheKey);
+      if (cached) return cached.result;
+      const result = await callEndpointService(install, serviceId, parameters);
+      await repository.storeCachedServiceResult(cacheKey, result);
+      return result;
+    }
     return await callEndpointService(install, serviceId, parameters);
   }
 
@@ -739,6 +751,25 @@ export async function executeConnectorService(command, { parameters, auth = {} }
   // The async boundary: the command result carries the enqueued run, so
   // a waiting process invocation parks until the connector completes it.
   return { tasks: [run] };
+}
+
+// One canonical serialization for cache keys: sorted keys at every depth,
+// so structurally equal inputs hash equal.
+function canonicalValue(value) {
+  if (Array.isArray(value)) return value.map(canonicalValue);
+  if (value && typeof value === 'object' && !(value instanceof Date)) {
+    return Object.keys(value).sort().reduce((acc, key) => {
+      acc[key] = canonicalValue(value[key]);
+      return acc;
+    }, {});
+  }
+  return value === undefined ? null : value;
+}
+
+function deterministicServiceKey(install, serviceId, parameters) {
+  return `${install.pluginId}@${install.version}:${serviceId}:${createHash('sha256')
+    .update(JSON.stringify(canonicalValue({ serviceId, parameters: parameters ?? null })))
+    .digest('hex')}`;
 }
 
 export async function taskDefinitionFor(taskId, organizationId) {

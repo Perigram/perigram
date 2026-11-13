@@ -69,6 +69,8 @@ vi.mock('./repository.js', () => ({
   deleteInstall: vi.fn(),
   setConnectorToken: vi.fn(),
   updateInstallSnapshot: vi.fn(),
+  findCachedServiceResult: vi.fn(async () => null),
+  storeCachedServiceResult: vi.fn(),
   updateSettings: vi.fn(),
   listDeclarationsByOrganization: vi.fn(async () => []),
   findDeclarationByTypeId: vi.fn(async () => null),
@@ -861,6 +863,45 @@ describe('endpoint-mode services', () => {
         body: JSON.stringify({ code: 'C-1' })
       }));
     } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('replays a deterministic endpoint service through the service cache (SPEC §28)', async () => {
+    const cachedInstall = {
+      ...endpointInstall,
+      services: [
+        { id: 'match', label: 'Coating match', mode: 'endpoint', cache: 'deterministic', signature: { input: { base: 'json' }, output: { base: 'json' } } }
+      ]
+    };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? cachedInstall : null
+    ));
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ shade: 'satin' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      // First call: executor answers, the result is stored under the
+      // canonical key (structurally equal inputs hash equal).
+      const first = await executeConnectorService(
+        { id: 'plugin.coatings.match', service: 'plugin.coatings' },
+        { parameters: { code: 'C-1' }, auth: AUTH }
+      );
+      expect(first).toEqual({ shade: 'satin' });
+      const [storedKey, storedResult] = repository.storeCachedServiceResult.mock.calls[0];
+      expect(storedKey).toMatch(/^coatings@2:match:[0-9a-f]{64}$/);
+      expect(storedResult).toEqual({ shade: 'satin' });
+
+      // Second call with reordered keys: same canonical key, cache hit,
+      // no executor call.
+      repository.findCachedServiceResult.mockResolvedValueOnce({ _id: storedKey, result: { shade: 'satin' } });
+      const second = await executeConnectorService(
+        { id: 'plugin.coatings.match', service: 'plugin.coatings' },
+        { parameters: { code: 'C-1' } , auth: AUTH }
+      );
+      expect(second).toEqual({ shade: 'satin' });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      repository.findCachedServiceResult.mockResolvedValue(null);
       vi.unstubAllGlobals();
     }
   });

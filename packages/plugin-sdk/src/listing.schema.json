@@ -81,6 +81,7 @@
               "mode": { "enum": ["endpoint", "claim"] },
               "render": { "type": "object" },
               "group": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Process-designer palette section the service drops into (SPEC §8 plugin-tab law); absent falls to the services tab" },
+              "cache": { "const": "deterministic", "description": "Endpoint-only: same canonical input replays the cached output (SPEC §28 artifact contract); the key covers service identity, installed version, and canonical input" },
               "signature": {
                 "type": "object",
                 "required": ["input", "output"],
