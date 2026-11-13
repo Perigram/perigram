@@ -417,7 +417,10 @@ prose flows unframed at the body's
 content measure (`LAYOUT.previewHeroBandFlow`); every other renderable
 mode fills the framed media region (`LAYOUT.previewHeroBandContent`).
 The framed region fills the page's free space — viewport-derived
-height floored at 24rem — and fixed-height card bands carry content
+height floored at 24rem — and carries a reader-resizable grip on record
+pages; bounded hosts (the record peek, Card variants) frame their
+preview at the stepped quiet-band scale instead
+(`LAYOUT.previewEmbedBand`), and fixed-height card bands carry content
 thumbnails — cover-cropped rasters, clipped rows, clamped prose,
 the PDF's painted first page.
 `cardAnatomyFor(typeRecord)` derives a card grid's card layout from the

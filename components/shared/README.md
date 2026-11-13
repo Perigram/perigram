@@ -430,10 +430,11 @@ it — touch hosts keep the click path. Opening another surface (a
 workspace page or instance tab) dismisses the panel. A click on the peek
 body emits
 `open` (nested interactive controls keep their own clicks). The panel is
-a 20rem column riding Aura's own chrome — the preset's popover padding
+a 20rem column capped at 30rem height riding Aura's own chrome — the
+preset's popover padding
 spaces the body from the panel border, media bands frame themselves as
-the framed media region, and the body composes its preview and leading
-facts without a scroll container.
+the bounded band scaled to the panel, and the body composes its preview
+and leading facts without a scroll container.
 
 ### `chip-surface.js`
 The chip recipe home: `CHIP_LABEL_PT` (the truncating label passthrough),

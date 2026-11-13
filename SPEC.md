@@ -1039,8 +1039,9 @@ no content, and its appearance shifts nothing below it.
 
 Arrangement serves readability. A page host keeps its neutral rhythm at
 any composed weight; rhythm tightening belongs to bounded hosts. An
-inert child collection renders its create affordance alone — packed at
-the foot of its surface, with no icon-label-count strip. The record side
+inert child collection renders its section title with its create
+affordances directly beneath it — packed beside its peers at the foot of
+the surface, with no count chip (owner direction 2026-11-13). The record side
 rail is a minor column: a quarter of the record grid when its weight
 earns no explicit span. Relations render on detail surfaces. A record body with a
 single field group renders the group's fields with no group titles.
@@ -1052,7 +1053,9 @@ surfaces the treatment follows the content: prose flows as record
 content at the body's measure, and bounded media (rasters, drawings,
 tables, documents, pages) fit one framed media region that fills the
 page's free space — a page's
-viewer fits the frame's width and scrolls inside. A card's layout follows its
+viewer fits the frame's width and scrolls inside; the framed region on
+a record page is reader-resizable, a grip under the band dragging its
+height (owner direction 2026-11-13). A card's layout follows its
 type's data shape: a visual preview with no card facts renders the
 overlay tile — the preview fills the card and the identifier chip
 rides its corner, status and the row menu float on the media; a
@@ -1150,7 +1153,9 @@ pools included.
 Instance and file chips preview on hover and open on click. Hovering a
 chip with a previewable record raises its peek after a short deliberate
 delay: the compiled record surface in its peek presentation — a bounded
-20rem panel that composes without scrolling: the record name as the
+20rem panel capped at 30rem height that composes without scrolling, its
+preview riding the bounded panel-scaled band (owner direction
+2026-11-13): the record name as the
 lineage trail's last crumb (or its sole crumb when it has no ancestors),
 the state tag, the record's action cluster, the preview, and the body's
 leading fact group. A file chip's peek carries its payload preview and
@@ -1491,7 +1496,9 @@ layout in the view-setup popover.
 
 A page document ends with one empty text block rendered like every other
 block; typing in it appends a fresh empty block. A record document keeps
-its trailing live editor while no block editor holds focus; Enter commits
+its trailing line always mounted while no block editor holds focus —
+the idle placeholder alone, the live engine from the first activation
+(owner direction 2026-11-13); Enter commits
 the text as a block, and Backspace in its empty line resumes the last
 text block. Cursor arrows at a text
 block's visual edge continue in the adjacent text block at its start or
