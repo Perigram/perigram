@@ -769,7 +769,9 @@ handwritten.
 `recordChildSectionKey(region)` keys a record document's child region for
 the overlay order (SPEC §26): `relation:<key>` for a relation-scoped
 child (the same key the relation's inline chip section carries),
-`children:<lineageKey | typeId>` for a lineage-scoped one.
+`children:<lineageKey>:<typeId>` for a lineage-scoped one (one edge key
+may carry several child types; the key stays unique per section),
+`children:<typeId>` for a lineage-less one.
 `composeDocumentSections(declaredKeys, overlay)` applies an instance
 overlay to the document's declared section keys — the storage contract
 and its order law (declared keys append in derivation order when the

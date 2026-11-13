@@ -273,10 +273,12 @@ export function screenWeight(screen = {}) {
 // The section key of a record document's child region (SPEC §26): a
 // relation-scoped child addresses its relation key — the same key the
 // relation's inline chip section would carry, whichever renders it — and
-// a lineage-scoped child addresses its lineage key, else its child type.
+// a lineage-scoped child addresses its lineage key plus its child type
+// (one parent may hold several child types under one edge key), else its
+// child type.
 export function recordChildSectionKey(region = {}) {
   if (region.relationKey) return `relation:${region.relationKey}`;
-  return `children:${region.lineageKey || region.typeId || region.id}`;
+  return `children:${region.lineageKey ? `${region.lineageKey}:${region.typeId || region.id}` : (region.typeId || region.id)}`;
 }
 
 // The record document's section flow under an instance overlay (SPEC

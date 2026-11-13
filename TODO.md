@@ -3148,6 +3148,23 @@ Ordered steps:
   (Project ▸ Queue ▸ designs) by the lintree law; deep leaves are
   reachable by expanding.
 
+  #### Agent Notes (2026-11-13, record child section key)
+
+  Owner report: no create buttons for empty child classes on record
+  pages, despite access. Browser probe on the owner's exact flow (home
+  → sidebar project → pane → queue) reproduced it: the Cutting queue
+  pane showed ONE child section (Queue entry) where the compiled screen
+  composes four. Root cause: `recordChildSectionKey` keyed every
+  lineage-scoped child by its lineage key alone (`children:queueId`),
+  so the four children of one queue edge collapsed to one key in
+  `childRegionByKey` — the record document's section flow (live for
+  every write-granted user through the overlay session, SPEC §26)
+  rendered only the last child and the stubs never entered the flow.
+  The key now composes lineage key + child type
+  (`children:queueId:queue-entry`), pinned by screen.spec and the
+  record-overlay spec; the pane now renders XLSX workbook, Cassette
+  design, Nesting run, and Queue entry with their create buttons.
+
   ### Agent Notes (2026-11-09, cassette designs and queue entries)
 
   Session `agent/cassette-queue-designs-20261109` (worktree

@@ -636,9 +636,12 @@ describe('screen composition', () => {
 describe('record document sections (SPEC §26 overlays)', () => {
   const DECLARED = ['properties', 'editor', 'relation:linked', 'children:t-part'];
 
-  it('keys child regions by relation, lineage key, then child type', () => {
+  it('keys child regions by relation, lineage key plus type, then child type', () => {
     expect(recordChildSectionKey({ relationKey: 'linked' })).toBe('relation:linked');
-    expect(recordChildSectionKey({ lineageKey: 'documents' })).toBe('children:documents');
+    expect(recordChildSectionKey({ lineageKey: 'documents', typeId: 'doc' })).toBe('children:documents:doc');
+    // One edge key carrying several child types keys each section apart.
+    expect(recordChildSectionKey({ lineageKey: 'queueId', typeId: 'xlsx-workbook' }))
+      .not.toBe(recordChildSectionKey({ lineageKey: 'queueId', typeId: 'queue-entry' }));
     expect(recordChildSectionKey({ typeId: 't-part' })).toBe('children:t-part');
   });
 
