@@ -143,7 +143,11 @@ in the plugin's own tab; an ungrouped service falls to the services
 tab, an ungrouped projection stays palette-unlisted); `parseListing`
 rejects a malformed slug, and `group` is mirrored in
 [`src/listing.schema.json`](./src/listing.schema.json) for editors and
-agents authoring listings. An endpoint service may declare
+agents authoring listings. A signature field may declare `kind` — a
+namespaced value slug (`document.report`, `text.flow-document`) that
+gates socket compatibility: a kinded socket accepts its own kind alone,
+an unkinded `json` socket accepts everything, so conversion between
+value kinds stays an explicit graph operation (HAG P1/P4). An endpoint service may declare
 `cache: 'deterministic'` (SPEC §28): the platform replays same-input
 executions through its service cache — the key covers the service
 identity, the installed version, and the canonical input — so the
