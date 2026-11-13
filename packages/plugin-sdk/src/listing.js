@@ -129,6 +129,9 @@ export function parseListing(listing = {}) {
     if (service.mode && !['endpoint', 'claim'].includes(service.mode)) {
       throw listingError(`service ${service.id} mode must be 'endpoint' or 'claim'`);
     }
+    if (service.group !== undefined && !/^[a-z0-9][a-z0-9-]*$/.test(String(service.group))) {
+      throw listingError(`service ${service.id} group must be a palette-section slug (got ${JSON.stringify(service.group)})`);
+    }
   }
   const serviceIds = new Set(services.map(service => service.id));
   const serviceRefOf = (ref, what) => {
@@ -231,6 +234,9 @@ export function parseListing(listing = {}) {
         }
       } else if (resolve.field === undefined) {
         throw listingError(`projection ${type.id}/${projection?.id} needs a field or service resolve (got ${JSON.stringify(resolve)})`);
+      }
+      if (projection.group !== undefined && !/^[a-z0-9][a-z0-9-]*$/.test(String(projection.group))) {
+        throw listingError(`projection ${type.id}/${projection?.id} group must be a palette-section slug (got ${JSON.stringify(projection.group)})`);
       }
     }
   }

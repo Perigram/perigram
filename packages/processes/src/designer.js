@@ -116,10 +116,12 @@ export const TYPE_AUTHORING_PALETTE_ITEMS = Object.freeze([
 
 export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   {
+    source: 'framework',
     id: 'types',
     items: TYPE_AUTHORING_PALETTE_ITEMS
   },
   {
+    source: 'framework',
     id: 'operations',
     items: [
       paletteItem('construct', 'cts.construct'),
@@ -130,6 +132,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     ]
   },
   {
+    source: 'framework',
     id: 'control',
     items: [
       paletteItem('choosePath', 'control.if'),
@@ -142,6 +145,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     ]
   },
   {
+    source: 'framework',
     id: 'instances',
     items: [
       paletteItem('contextEntity', 'cts.read', { preset: { select: 'current' } }),
@@ -163,6 +167,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     ]
   },
   {
+    source: 'framework',
     id: 'values',
     items: [
       paletteItem('literal', 'source.literalItem', { preset: { type: { base: 'string', nullable: false }, access: 'item', value: '' } }),
@@ -193,6 +198,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     ]
   },
   {
+    source: 'framework',
     id: 'listTree',
     items: [
       paletteItem('joinLists', 'collection.concat'),
@@ -812,7 +818,7 @@ export function servicesPaletteGroups(serviceContracts = {}) {
       icon: service.render?.icon || 'pi pi-bolt',
       preset: { operator: service.id }
     }));
-  return items.length ? [{ id: 'services', items }] : [];
+  return items.length ? [{ id: 'services', items, source: 'framework' }] : [];
 }
 
 // Pack-owned palette sections — the plugin-tab law (SPEC §8 palette law):
@@ -828,7 +834,7 @@ export function servicesPaletteGroups(serviceContracts = {}) {
 export function packPaletteGroups(projectionContracts = {}, serviceContracts = {}) {
   const sections = new Map();
   const section = id => {
-    if (!sections.has(id)) sections.set(id, { id, items: [] });
+    if (!sections.has(id)) sections.set(id, { id, items: [], source: 'pack' });
     return sections.get(id);
   };
   const seenProjections = new Set();

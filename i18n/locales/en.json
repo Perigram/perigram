@@ -3406,6 +3406,8 @@
         "declarationClass": "Class",
         "edgeKey": "key",
         "edgeOnRemove": "on remove",
+        "palettePackSections": "Plugins",
+        "palettePlatformSections": "Platform",
         "paletteGroups": {
             "entities": "Types",
             "values": "Values",

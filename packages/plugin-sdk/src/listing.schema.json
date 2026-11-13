@@ -43,7 +43,29 @@
             "properties": {
               "id": { "type": "string", "minLength": 1 },
               "class": { "enum": ["file", "item", "group"] },
-              "name": { "type": "string" }
+              "name": { "type": "string" },
+              "projections": {
+                "type": "array",
+                "description": "SPEC §8 p extract projections; resolve names a stored field path or an endpoint-mode plugin service",
+                "items": {
+                  "type": "object",
+                  "required": ["id"],
+                  "additionalProperties": true,
+                  "properties": {
+                    "id": { "type": "string", "minLength": 1 },
+                    "label": { "type": "string" },
+                    "group": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Process-designer palette section the extract preset drops into (SPEC §8 plugin-tab law); absent stays unlisted" },
+                    "resolve": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "field": { "type": "string" },
+                        "service": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         },
@@ -58,6 +80,7 @@
               "label": { "type": "string" },
               "mode": { "enum": ["endpoint", "claim"] },
               "render": { "type": "object" },
+              "group": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Process-designer palette section the service drops into (SPEC §8 plugin-tab law); absent falls to the services tab" },
               "signature": {
                 "type": "object",
                 "required": ["input", "output"],
