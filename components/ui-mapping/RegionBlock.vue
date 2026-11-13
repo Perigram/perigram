@@ -331,8 +331,17 @@
               v-on="childrenEvents"
               :arrangement="node.childArrangement"
             />
-            <!-- The document's trailing line (SPEC §26): a real inline
-                 engine mount, empty and type-ready for writers. -->
+            <RegionChildren
+              v-if="node.stubRegions?.length && !editorSurface && presentation !== 'peek'"
+              v-bind="childrenProps"
+              v-on="childrenEvents"
+              :regions="node.stubRegions"
+              :arrangement="{ mode: 'stack' }"
+              pack
+            />
+            <!-- The document's trailing line (SPEC §26): always mounted
+                 while no block editor holds focus — the page document ends
+                 with it. -->
             <TrailingTextBlock v-if="recordOverlaySession" :session="recordOverlaySession" />
           </div>
         </template>
@@ -351,15 +360,15 @@
         v-on="childrenEvents"
         :arrangement="node.childArrangement"
       />
+      <RegionChildren
+        v-if="node.stubRegions?.length && presentation !== 'peek'"
+        v-bind="childrenProps"
+        v-on="childrenEvents"
+        :regions="node.stubRegions"
+        :arrangement="{ mode: 'stack' }"
+        pack
+      />
     </template>
-    <RegionChildren
-      v-if="showSurfaces && node.stubRegions?.length && !editorSurface && presentation !== 'peek'"
-      v-bind="childrenProps"
-      v-on="childrenEvents"
-      :regions="node.stubRegions"
-      :arrangement="{ mode: 'stack' }"
-      pack
-    />
     <ViewPickerDialog
       :visible="recordOverlaySession !== null && recordOverlaySession.viewPickerAt !== null"
       @close="recordOverlaySession?.closeViewPicker()"
