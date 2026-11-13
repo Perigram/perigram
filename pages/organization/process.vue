@@ -2667,7 +2667,7 @@ function enrichNodeData(node) {
     kindLabel: isProcessNode ? processNodeDisplayLabel(record) : record.kind,
     summary: processNodeSummary(record),
     purpose: isProcessNode ? processNodeDescription(record) : '',
-    diagnostics: nodeDiagnostics ? nodeDiagnostics(node.id) : null
+    diagnostics: nodeDiagnostics.value?.(node.id) ?? null
   });
 
   if (DECLARATION_NODE_TYPES.includes(node.type)) {
