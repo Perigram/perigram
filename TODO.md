@@ -15,18 +15,23 @@
   designer Preview tab mounting each channel's plugin surface read-only
   (`PreviewChannelMount.vue`) over the whole-graph preview evaluation
   (no target node, effects suppressed).
-- [ ] Node-scoped evaluation errors on the canvas: surface anchored
-  diagnostics per node and port from the existing validation passes.
-- [ ] Content-addressed artifact contract: SHA-256 payload hashing,
-  immutable artifact records with representations (native-source,
-  canonical, preview), deterministic cache keys for pure `s`-species
-  services (definition id + version + canonical params + input
-  hashes), fidelity metadata on service declarations; adopted by the
-  documents and facade executors.
-- [ ] build123d plugin vertical slice: value types, services backed by
-  the plugin's executor, a palette section pre-bound per SPEC §8, one
-  authored graph baking a cassette parameter change through it, one
-  preview channel binding a 3D viewport surface.
+- [ ] WAITING — owner verification: node-scoped canvas diagnostics —
+  anchored validation diagnostics index by node (edge diagnostics mark
+  their endpoints), the faulted card renders the danger border, a
+  header glyph, and its message rows; re-stamped through the one
+  enrichment pass on every validation arrival.
+- [ ] WAITING — owner verification: content-addressed artifact
+  contract — every `uploadFile` stamps `metadata.contentHash`
+  (`sha256:<hex>`, all buckets); endpoint services may declare
+  `cache: 'deterministic'` (listing-validated, endpoint-only) and
+  replay through `plugin_service_cache` keyed on service identity +
+  installed version + canonical input.
+- [ ] WAITING — owner verification: build123d plugin vertical slice —
+  `workers/build123d/` (port 8793, compose `build123d-executor`,
+  built-in listing seed): part/recipe types, the box bake (exact
+  bounds, watertight mesh, spec-verified), `fromBake` construction,
+  the `build123d` palette section, and the `b3d-viewport` preview
+  channel (isometric SVG surface).
 
 ### Agent Notes (2026-11-12, agent/graph-unification-20261112)
 
@@ -93,6 +98,38 @@
   vertical and artifact contract decide the division lines, and the
   repo is already split-shaped (workers are external executors,
   packages are pure and guard-enforced). Recorded as SPEC §29.
+
+### Agent Notes (2026-11-12, agent/spec28-remaining-20261112)
+
+- All three remaining §28 slices landed. Diagnostics: the faulted card
+  channel (`DesignerNodeCard` `faulted` prop, danger border, header
+  glyph, leading message rows) fed by `nodeDiagnostics` in the preview
+  composable; edge diagnostics mark their endpoint nodes; stamped
+  through `enrichNodeData` (`diagnostics` joins `DERIVED_NODE_DATA_KEYS`)
+  and re-stamped on validation arrival.
+- Artifact contract: `contentHash` on every GridFS upload (one home in
+  files service, all buckets); `cache: 'deterministic'` endpoint
+  service declaration (listing-validated, endpoint-only,
+  schema-mirrored) replaying through `plugin_service_cache` with the
+  canonical-input key (spec covers reordered-key equality and
+  single-executor-call). A representations registry was consciously
+  skipped: immutable storage + content addressing + replay cover
+  today's consumers; cross-representation dedup has none yet.
+- build123d vertical: honest minimal engine — the box bake (exact
+  bounds, watertight 12-triangle mesh — spec-verified edge parity)
+  plus preview-mesh, both deterministic-cache-declared; `fromBake`
+  construction (the install gate caught the undeclared mode — fixed by
+  declaring it on the type); the `build123d` palette section; the
+  `b3d-viewport` preview channel rendering every bake output as an
+  orthographic isometric SVG (no runtime dependency). A drafted STEP
+  export with dangling entity references was deleted rather than
+  shipped fake. Executor at :8793 (8792 is tech-drawing's), compose
+  `build123d-executor`, seeded as a built-in listing.
+- Validation: plugin-sdk+plugins+files+cts-types+build123d 136 ✓,
+  process-page SSR smoke ✓, localization/preview composables ✓,
+  check-plugin-deps (5 executors) ✓, check-arch ✓, docs ✓. The
+  ui-mapping design-system and custom-page SSR failures still pre-exist
+  on the merge base (other session's work).
 
 ## Class library and Page class (SPEC §27)
 
