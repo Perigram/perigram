@@ -17,10 +17,8 @@ function appendRelationValue(refs, rawValue, fallbackTypeId = null) {
     return;
   }
 
-  if (typeof rawValue === 'object') {
-    const ref = normalizeRelationRef(rawValue, fallbackTypeId);
-    if (ref) refs.push(ref);
-  }
+  const ref = normalizeRelationRef(rawValue, fallbackTypeId);
+  if (ref) refs.push(ref);
 }
 
 function normalizeRelationRef(value, fallbackTypeId = null) {
