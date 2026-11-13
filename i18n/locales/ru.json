@@ -3408,6 +3408,10 @@
         "edgeOnRemove": "при удалении",
         "palettePackSections": "Плагины",
         "palettePlatformSections": "Платформа",
+        "previewTab": "Предпросмотр",
+        "previewChannels": "Предпросмотр графа",
+        "noPreviewChannels": "Каналы предпросмотра появляются с установленными плагинами",
+        "previewChannelUnavailable": "Канал предпросмотра недоступен",
         "paletteGroups": {
             "entities": "Типы",
             "values": "Значения",

@@ -101,6 +101,8 @@ export async function describeOrganizationTypes(organizationId) {
   // connected, and the loader says so honestly).
   const surfaces = [];
   const previews = [];
+  const previewChannels = [];
+  const seenChannelIds = new Set();
   if (organizationId) {
     const seenEditors = new Set(editors.map(editor => editor.type));
     const seenPreviewTypes = new Set();
@@ -158,6 +160,39 @@ export async function describeOrganizationTypes(organizationId) {
           surfaceContract: surface.surfaceContract
         }));
       }
+      // Designer preview channels (SPEC §28): one designer preview tab
+      // per channel, resolved to the install's module URL beside the
+      // preview bindings. Channel ids are global across installs — a
+      // collision is a composition error.
+      for (const channel of install.declarations?.previewChannels || []) {
+        if (!channel?.id || !channel?.surface || !channel.label) {
+          throw createError({
+            statusCode: 500,
+            message: `installed plugin ${install.pluginId} carries a malformed preview channel: ${JSON.stringify(channel)}`
+          });
+        }
+        const surface = (install.declarations?.surfaces || []).find(entry => entry.id === channel.surface);
+        if (!surface || (surface.kind || 'editor') !== 'preview') {
+          throw createError({
+            statusCode: 500,
+            message: `installed plugin ${install.pluginId} binds preview channel ${channel.id} on surface ${channel.surface}, which it does not declare as a preview surface`
+          });
+        }
+        if (seenChannelIds.has(channel.id)) {
+          throw createError({
+            statusCode: 500,
+            message: `preview channel id ${channel.id} is bound by more than one installed plugin`
+          });
+        }
+        seenChannelIds.add(channel.id);
+        previewChannels.push(Object.freeze({
+          id: channel.id,
+          label: channel.label,
+          surface: channel.surface,
+          url: pluginModuleUrl(install, surface.module),
+          surfaceContract: surface.surfaceContract
+        }));
+      }
       for (const editor of install.declarations?.editors || []) {
         if (!editor?.type || !editor?.surface || !(editor.modes || []).length) {
           throw createError({
@@ -203,7 +238,8 @@ export async function describeOrganizationTypes(organizationId) {
     attachmentKinds,
     editors,
     surfaces,
-    previews
+    previews,
+    previewChannels
   };
 }
 

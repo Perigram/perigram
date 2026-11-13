@@ -38,7 +38,7 @@ export function useProcessDesignerPersistence({ request = $fetch } = {}) {
   function previewDraft(definition, nodeId) {
     return request('/api/process-definitions/preview', {
       method: 'POST',
-      body: { definition, nodeId, trigger: {}, inputs: {} }
+      body: { definition, ...(nodeId ? { nodeId } : {}), trigger: {}, inputs: {} }
     });
   }
 

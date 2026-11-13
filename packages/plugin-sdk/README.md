@@ -143,7 +143,12 @@ in the plugin's own tab; an ungrouped service falls to the services
 tab, an ungrouped projection stays palette-unlisted); `parseListing`
 rejects a malformed slug, and `group` is mirrored in
 [`src/listing.schema.json`](./src/listing.schema.json) for editors and
-agents authoring listings.
+agents authoring listings. `previewChannels`
+(`[{ id, surface, label }]`, SPEC §28) declares the plugin's designer
+preview tabs: each binds a preview-kind surface the designer mounts
+read-only over the graph's preview evaluation — the channel id is a
+globally unique slug and the label is the tab's name; the same schema
+mirror carries it.
 
 ## Executor harnesses
 

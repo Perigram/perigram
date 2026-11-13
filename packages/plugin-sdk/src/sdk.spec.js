@@ -104,14 +104,14 @@ describe('parseListing', () => {
       requires: ['documents']
     });
     expect(Object.keys(normalized.declarations)).toEqual([
-      'types', 'services', 'editors', 'constructions', 'starterConstructs', 'exports', 'surfaces', 'previews', 'dependencies'
+      'types', 'services', 'editors', 'constructions', 'starterConstructs', 'exports', 'surfaces', 'previews', 'previewChannels', 'dependencies'
     ]);
   });
 
   it('keeps the JSON schema in lockstep with the validated fields', () => {
     const declarations = schema.properties.declarations.properties;
     expect(Object.keys(declarations)).toEqual([
-      'types', 'services', 'editors', 'surfaces', 'previews', 'constructions', 'starterConstructs', 'exports', 'dependencies'
+      'types', 'services', 'editors', 'surfaces', 'previews', 'previewChannels', 'constructions', 'starterConstructs', 'exports', 'dependencies'
     ]);
     expect(schema.properties.requires.items.pattern).toBe('^[a-z0-9-]+$');
     expect(schema.properties.visibility.enum).toEqual(['public', 'private']);
@@ -239,6 +239,29 @@ describe('parseListing', () => {
     });
     expect(withProjectionGroup('table-data').types[0].projections[0].group).toBe('table-data');
     expect(() => withProjectionGroup('table data')).toThrow(/palette-section slug/);
+  });
+
+  it('validates designer preview channels (SPEC §28): slug id, label, preview-kind surface', () => {
+    const withChannels = previewChannels => parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        surfaces: [
+          ...fullListing.declarations.surfaces,
+          { id: 'viewport-preview', module: '/surfaces/viewport.mjs', surfaceContract: 1, kind: 'preview' }
+        ],
+        previewChannels
+      }
+    });
+    expect(withChannels([{ id: 'viewport-3d', surface: 'viewport-preview', label: '3D viewport' }]).previewChannels)
+      .toHaveLength(1);
+    expect(() => withChannels([{ surface: 'viewport-preview', label: 'x' }])).toThrow(/channel id must be a slug/);
+    expect(() => withChannels([{ id: '3d', surface: 'viewport-preview' }])).toThrow(/needs a label/);
+    expect(() => withChannels([{ id: '3d', surface: 'coating-editor', label: '3D' }])).toThrow(/not a preview surface/);
+    expect(() => withChannels([
+      { id: '3d', surface: 'viewport-preview', label: 'a' },
+      { id: '3d', surface: 'viewport-preview', label: 'b' }
+    ])).toThrow(/duplicate preview channel id/);
   });
 
   it('validates plugin-delivered surface declarations', () => {

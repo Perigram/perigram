@@ -478,6 +478,19 @@ canonical
 [`screen-contract.js`](../../packages/processes/src/screen-contract.js)
 normalizer and validator.
 
+### Preview (channel tabs)
+
+Installed plugins may declare preview channels (SPEC §28): one designer
+tab per channel, mounted when any channel is served. Each channel
+renders its plugin surface read-only (`PreviewChannelMount.vue`, the
+same contract-1 mount the generic preview slots ride) over the
+whole-graph preview evaluation — the refresh action runs the same
+preview seam as the node output inspector with no target node, so every
+data node evaluates and no effect species executes; the serialized
+result (`{ nodes: { [id]: { outputs, error? } } }`) is the channel's
+payload. A channel that cannot mount (unconfigured executor, refused
+contract) renders its unavailable state beside the other tabs.
+
 ### Inspector anatomy
 
 Per-kind sections in [`inspector/`](./inspector/), pure presentation —
@@ -527,9 +540,10 @@ nodes, which show no inspection action.
 
 ## Structure
 
-9 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `CtsTypeNode.vue`),
+10 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `CtsTypeNode.vue`),
 palette (`OperationPalette.vue`), lanes (`LaneBands.vue`), the loop edge
-(`SelfLoopEdge.vue`), dialogs (`TypeMigrationStepsDialog.vue`,
+(`SelfLoopEdge.vue`), preview channels (`PreviewChannelMount.vue`),
+dialogs (`TypeMigrationStepsDialog.vue`,
 `ApplyMigrationDialog.vue`), and `TypedValueControl.vue` — plus
 `inspector/` (3 SFCs:
 `DeclarationEdgeInspector`, `DeclarationInspector`,

@@ -1599,3 +1599,32 @@ serves its preview surface through the plugin surface contract — or
 built-in (the compiled app preview). Preview surfaces are read-only
 projections of preview-mode evaluation; they author nothing and execute
 no effect species.
+
+## 29. Divide and conquer (owner direction 2026-11-12, sequenced after §28)
+
+The repository splits into independently developed services composing
+actual versions as modules, each deployable separately. The split is a
+program of its own, sequenced after the §28 slices: a split freezes
+contracts, and the preview channels, artifact contract, and build123d
+plugin vertical decide the division lines the split cuts along.
+
+Target shape, in dependency order:
+
+1. `packages/` (cts, processes, core, plugin-sdk) — the pure contract
+   layer, browser-and-node safe, independently tested. The plugin SDK
+   is the composition surface every other unit composes through.
+2. Plugin executors (`workers/*`, the future build123d executor) —
+   already external: endpoint/claim modes, zero platform imports, own
+   vendored runtimes; one repository per engine.
+3. The application last — it keeps the durable-runtime concerns (the
+   connections SSE stream, the scanner that wakes parked runs and
+   deadline edges, task claim queues). Serverless targets (Vercel) fit
+   packages and executors; the application's durable concerns need a
+   connection service and an external scheduler before any such move,
+   and a frontend framework flip is its own decision after the split.
+
+Division lines follow concern separation; communication between units
+is the contracts this repository already owns — the listing/install-pin
+mechanism, the worker protocol, the CTS registry view, and the process
+protocol. Every unit keeps composing through them; no unit grows a
+private copy. Repositories live under github.com/Perigram.
