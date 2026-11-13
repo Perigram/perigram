@@ -127,7 +127,14 @@ endpoint refuses with a configure-it message), claim mode enqueues a
 task run on the claim queue `plugin.<pluginId>@<organizationId>` (the
 whole service input rides one `value` parameter) and returns it as the
 command's async boundary — the process invocation parks until
-completion. The worker endpoints accept the connector token scoped to
+completion. A service declaring `cache: 'deterministic'` (endpoint-only,
+validated by the listing contract) replays through the
+`plugin_service_cache` collection first: the key hashes the service
+identity, the installed version, and the canonical input (sorted keys
+at every depth — structurally equal inputs hit), and a miss stores the
+executor's response, so same-input executions never call the executor
+twice (SPEC §28 artifact contract). The worker endpoints accept the
+connector token scoped to
 that queue only ([tasks](../../core/tasks/README.md)). Uninstall
 deletes the install record, which revokes the token; admins rotate it
 from the Plugins page's connector panel. Authoring and hosting

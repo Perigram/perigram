@@ -264,6 +264,16 @@ describe('parseListing', () => {
     ])).toThrow(/duplicate preview channel id/);
   });
 
+  it('validates the deterministic cache declaration (SPEC §28): endpoint-only, exact value', () => {
+    const withCache = (cache, mode = 'endpoint') => parseListing({
+      ...fullListing,
+      declarations: { ...fullListing.declarations, services: [{ ...fullListing.declarations.services[0], cache, mode }] }
+    });
+    expect(() => withCache('deterministic')).not.toThrow();
+    expect(() => withCache('maybe')).toThrow(/cache must be 'deterministic'/);
+    expect(() => withCache('deterministic', 'claim')).toThrow(/endpoint-only/);
+  });
+
   it('validates plugin-delivered surface declarations', () => {
     const withSurfaces = surfaces => parseListing({
       ...fullListing,

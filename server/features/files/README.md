@@ -18,7 +18,7 @@ Parent: [server/features](../README.md).
 
 | Export | Contract |
 |---|---|
-| `uploadFile(buffer, fileName, metadata, bucket, contentType)` | Stores one file; returns `{ id, filename, url }` with `url = /api/files/download/<id>?bucket=<bucket>`. `metadata.createdAt` is stamped; a non-empty `contentType` is stored on the file. |
+| `uploadFile(buffer, fileName, metadata, bucket, contentType)` | Stores one file; returns `{ id, filename, url }` with `url = /api/files/download/<id>?bucket=<bucket>`. `metadata.createdAt` is stamped, and a non-empty buffer carries `metadata.contentHash` — the payload's `sha256:<hex>` (SPEC §28 artifact contract: every stored file is content-addressed, every bucket). A non-empty `contentType` is stored on the file. |
 | `getFileStream(fileId, bucket)` | Full download stream. |
 | `getFileRangeStream(fileId, bucket, start, endInclusive)` | Range stream for media seeking; the inclusive end maps to GridFS's exclusive `end`. |
 | `findFileMeta(fileId, bucket)` | `{ filename, contentType, length, metadata }` or `null`. |

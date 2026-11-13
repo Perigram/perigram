@@ -7,6 +7,26 @@ import { connectDB } from '~/server/db/mongo';
 
 const CATALOG_COLLECTION = 'plugin_catalog';
 const INSTALLS_COLLECTION = 'plugin_installs';
+const SERVICE_CACHE_COLLECTION = 'plugin_service_cache';
+
+// Deterministic pure-service results (SPEC §28 artifact contract): the
+// cache key hashes the service identity, its install version, and the
+// canonical input value — a hit must reproduce the executor's own output
+// byte-for-byte, so only a service declaring `cache: 'deterministic'`
+// ever lands here.
+export async function findCachedServiceResult(cacheKey) {
+  const db = await connectDB();
+  return await db.collection(SERVICE_CACHE_COLLECTION).findOne({ _id: cacheKey });
+}
+
+export async function storeCachedServiceResult(cacheKey, result) {
+  const db = await connectDB();
+  await db.collection(SERVICE_CACHE_COLLECTION).updateOne(
+    { _id: cacheKey },
+    { $set: { result, cachedAt: new Date() } },
+    { upsert: true }
+  );
+}
 
 export async function listCatalog() {
   const db = await connectDB();

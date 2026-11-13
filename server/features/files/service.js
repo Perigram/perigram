@@ -1,8 +1,15 @@
 import { GridFSBucket } from 'mongodb';
+import { createHash } from 'node:crypto';
 import { connectDB } from '../../db/mongo.js';
 import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
 import * as repository from './repository.js';
+
+// Content addressing (SPEC §28 artifact contract): every stored file
+// carries its SHA-256 in GridFS metadata — one home, every bucket.
+export function contentHash(buffer) {
+  return `sha256:${createHash('sha256').update(buffer).digest('hex')}`;
+}
 
 export async function uploadFile(fileBuffer, fileName, metadata = {}, bucketName = 'uploads', contentType = '') {
   const db = await connectDB();
@@ -11,6 +18,7 @@ export async function uploadFile(fileBuffer, fileName, metadata = {}, bucketName
   const uploadStream = bucket.openUploadStream(fileName, {
     metadata: {
       ...metadata,
+      ...(fileBuffer?.length ? { contentHash: contentHash(fileBuffer) } : {}),
       createdAt: new Date()
     },
     // Stored content type wins inline serving (videos, images); the

@@ -1003,6 +1003,7 @@ const {
   previewDataflow,
   formatPreviewPath,
   formatPreviewItems,
+  nodeDiagnostics,
   focusValidationDiagnostic,
   focusFirstValidationDiagnostic
 } = useProcessDesignerPreview({
@@ -1606,6 +1607,12 @@ watch([declarationPlaneSignature, ctsOrgTypes], () => {
     ctsOrgTypes.value
   );
 }, { immediate: true });
+// Node-scoped diagnostics re-stamp on every validation arrival: the
+// anchored diagnostics of the fresh result land on the faulted cards
+// through the one enrichment pass (SPEC §28).
+watch(nodeDiagnostics, () => {
+  for (const node of nodes.value) enrichNodeData(node);
+});
 const declarationNodeTypes = DECLARATION_NODE_TYPES;
 const selectedDeclarationEdge = computed(() => edges.value.find(edge => edge.id === selectedEdgeId.value && edge.role === 'type') || null);
 
@@ -2612,6 +2619,7 @@ const DERIVED_NODE_DATA_KEYS = [
   'processStatusOptions',
   'processConnectedInputIds',
   'kindLabel',
+  'diagnostics',
   'summary',
   'purpose',
   'inputSpecs',
@@ -2643,7 +2651,8 @@ function enrichNodeData(node) {
     processConnectedInputIds: isProcessNode ? connectedProcessInputIds(node, record) : [],
     kindLabel: isProcessNode ? processNodeDisplayLabel(record) : record.kind,
     summary: processNodeSummary(record),
-    purpose: isProcessNode ? processNodeDescription(record) : ''
+    purpose: isProcessNode ? processNodeDescription(record) : '',
+    diagnostics: nodeDiagnostics ? nodeDiagnostics(node.id) : null
   });
 
   if (DECLARATION_NODE_TYPES.includes(node.type)) {

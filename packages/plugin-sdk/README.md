@@ -143,7 +143,14 @@ in the plugin's own tab; an ungrouped service falls to the services
 tab, an ungrouped projection stays palette-unlisted); `parseListing`
 rejects a malformed slug, and `group` is mirrored in
 [`src/listing.schema.json`](./src/listing.schema.json) for editors and
-agents authoring listings. `previewChannels`
+agents authoring listings. An endpoint service may declare
+`cache: 'deterministic'` (SPEC §28): the platform replays same-input
+executions through its service cache — the key covers the service
+identity, the installed version, and the canonical input — so the
+executor sees each distinct input once; the declaration is a promise
+the service makes about its own output, and a claim-mode service
+refuses it (its run parks on the queue and replays through its own
+task record). `previewChannels`
 (`[{ id, surface, label }]`, SPEC §28) declares the plugin's designer
 preview tabs: each binds a preview-kind surface the designer mounts
 read-only over the graph's preview evaluation — the channel id is a

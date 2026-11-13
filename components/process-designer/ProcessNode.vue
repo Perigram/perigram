@@ -2,7 +2,7 @@
   <!-- One-line literal (SPEC "Node layouts"): no header, no named socket
        rows — type dropdown + value, with the value socket's unnamed
        handle docked at the row's right edge. -->
-  <DesignerNodeCard v-if="isOneLineLiteral" :selected="selected" size="inline" :primary="isOperation" :title="data.purpose || data.summary || ''">
+  <DesignerNodeCard v-if="isOneLineLiteral" :selected="selected" :faulted="faulted" size="inline" :primary="isOperation" :title="data.purpose || data.summary || ''">
     <div class="nodrag nowheel flex items-center gap-1.5" @mousedown.stop @click.stop>
       <Select
         v-if="record.type?.base === 'entityRef'"
@@ -41,12 +41,17 @@
     </div>
   </DesignerNodeCard>
 
-  <DesignerNodeCard v-else :selected="selected" size="lg" :primary="isOperation" :title="data.purpose || data.summary || ''">
+  <DesignerNodeCard v-else :selected="selected" :faulted="faulted" size="lg" :primary="isOperation" :title="data.purpose || data.summary || ''">
     <!-- Label-dominant header: the label is the primary read; the whole
          header row carries the node-spec tooltip (the per-node `?`
-         affordance is gone — quiet-card policy, node UI contract). -->
-    <div v-tooltip.bottom="nodeSpecTooltip" class="flex items-center gap-1.5">
+         affordance is gone — quiet-card policy, node UI contract). A
+         faulted node leads with its diagnostics. -->
+    <div v-tooltip.bottom="faultTooltip" class="flex items-center gap-1.5">
+      <i v-if="faulted" class="pi pi-exclamation-triangle shrink-0 text-status-danger" aria-hidden="true" />
       <strong class="min-w-0 flex-1 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
+    </div>
+    <div v-if="faultMessages" class="mt-1.5 flex flex-col gap-1">
+      <span v-for="message in faultMessages" :key="message" class="text-supporting text-status-danger">{{ message }}</span>
     </div>
 
     <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
@@ -261,6 +266,15 @@ const nodeSpecTooltip = computed(() => {
   }
   return { value: sections.join(' — ') };
 });
+
+// Node-scoped diagnostics (SPEC §28): the card carries its anchored
+// messages — the fault border, the header glyph, and the leading message
+// rows; the socket-spec tooltip stays available on an unfaulted card.
+const faultMessages = computed(() => (Array.isArray(props.data.diagnostics) ? props.data.diagnostics : null));
+const faulted = computed(() => Boolean(faultMessages.value?.length));
+const faultTooltip = computed(() => ({
+  value: [...(faultMessages.value || []), nodeSpecTooltip.value?.value].filter(Boolean).join('\n')
+}));
 const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutputs.value, 'event'));
 const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));
 const operationOptions = computed(() => props.data.processOperationOptions || []);
