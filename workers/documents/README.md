@@ -15,13 +15,20 @@ types ride the generic instance machinery from the install snapshot.
   text-document starter construct (markdown stays visible-by-default
   through the default installs). `requires` names tech-drawing: the
   PDF render construction accepts `dxf-source` sources.
-- Services (`services.js`, endpoint mode): `table-rows`/`table-cells`
+- Services (`services.js`, endpoint mode, the four value services
+  deterministic-cached and palette-wireable in the `table-data`
+  section): `table-rows`/`table-cells`
   (payload → first sheet as header-keyed / positional row records),
-  `text` (payload → string), `csv-text` (rows → CSV text, the wireable
-  composition twin the process palette serves), `fill` (template ref
+  `text` (payload → string), `csv-text` (rows → CSV text) — the
+  extraction trio takes one `payload` field declared `blob`: composed
+  on the process canvas the platform hydrates the payload handle with
+  its bytes (`payloadBase64`), projected the platform sends the
+  instance envelope (`{ typeId, payloadBase64 }`), and one normalizer
+  serves both. `fill` (template ref
   payload + values → filled file payload, dispatched on the template
   kind), and `render-pdf` (source ref payload → rendered PDF payload,
-  dispatched on the source kind).
+  dispatched on the source kind) stay implementation executors for
+  their construction and conversion bindings.
 - Editor surfaces (contract 3 — the capability mount): the markdown
   editor (`surfaces/text-editor.mjs`, milkdown/crepe with every engine
   chrome disabled — remote saves reconcile through the host's

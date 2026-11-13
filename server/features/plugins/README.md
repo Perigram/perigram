@@ -106,7 +106,8 @@ and command are the same plugin-qualified id
 service gating. A service's palette section is its declared listing
 `group` (a slug validated by the listing contract; absent falls to the
 services tab), and the section renders in the designer palette's plugin
-tier with pack provenance. The same services compose
+tier with pack provenance. The documents plugin's `table-data` section
+carries the extraction trio beside the CSV composition. The same services compose
 into the projected command
 table (`projectedDomainsForOrganization`): a service's scalar signature
 fields ride as the command's `input.parameters` — the inputs a run
@@ -127,7 +128,13 @@ endpoint refuses with a configure-it message), claim mode enqueues a
 task run on the claim queue `plugin.<pluginId>@<organizationId>` (the
 whole service input rides one `value` parameter) and returns it as the
 command's async boundary — the process invocation parks until
-completion. A service declaring `cache: 'deterministic'` (endpoint-only,
+completion. A service input field declared with base `blob` receives a
+payload handle `{ fileId, mime, size, name? }` on the wire; the
+endpoint dispatch hydrates the handle with its stored bytes as
+`payloadBase64`, so the executor reaches no storage — the hydration is
+declaration-driven (the service's signature names the field), and the
+deterministic cache keys the raw handle beside it. A service declaring
+`cache: 'deterministic'` (endpoint-only,
 validated by the listing contract) replays through the
 `plugin_service_cache` collection first: the key hashes the service
 identity, the installed version, and the canonical input (sorted keys

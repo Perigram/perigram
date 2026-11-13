@@ -210,8 +210,8 @@ cover declaration items, type-bound constructs, effect species, typed
 instance sources and navigation (generic read presets, bound at configure
 time), values, list/tree algebra, flow, and pack-owned plugin tabs
 (`packPaletteGroups`; a packless service falls back to `servicesPaletteGroups`)
-— a pack's declared data operations (the documents pack's `tableData` tab,
-the facade pack's `facade` tab) surface pre-bound in the pack's own
+— a pack's declared data operations (the documents pack's `table-data`
+tab, the facade pack's `facade` tab) surface pre-bound in the pack's own
 section. Every palette group carries its registration provenance
 (`source: 'pack' | 'framework'`) — declared by the group's projection,
 never inferred from its id or label — and the palette renders the pack

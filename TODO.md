@@ -27,9 +27,15 @@ Slices:
   record, one memoized dispatch per output, claim-mode refusal naming
   the service; runtime scope unchanged); the canvas preview gate
   admits service nodes.
-- [ ] S2 File payloads as graph values — a file instance's payload
+- [x] S2 File payloads as graph values — a file instance's payload
   enters the dataflow as a typed value (content-hash addressed) so
   extraction services compose without construction bindings.
+  Landed 2026-11-13: a service input field declared `blob` receives the
+  payload handle; the endpoint dispatch hydrates it with stored bytes
+  (`payloadBase64`), declaration-driven, cache keyed on the raw handle;
+  the documents extraction trio (`table-rows`/`table-cells`/`text`) is
+  palette-wireable in the `table-data` section with deterministic
+  cache, composing payload → rows → `csv-text` on the canvas.
 - [ ] S3 Typed value contracts on sockets — plugin-declared value kinds
   (flow-document, table dataset) gate connections; conversion stays an
   explicit operation (HAG P1/P4).
@@ -45,6 +51,41 @@ Slices:
   consumers; the preview tab's whole-graph evaluation carries service
   outputs to channel surfaces; a claim-mode service answers the node
   error; runtime execution is unchanged.
+
+- [ ] WAITING — owner verification: S2 — on the canvas, a file
+  instance's payload handle (read `payload` field) wires into the
+  documents extraction services and previews live; the palette
+  `table-data` section lists rows/cells/text beside CSV text; running
+  the composed service hydrates the payload once per distinct handle
+  (deterministic replay).
+
+### Agent Notes (2026-11-13, agent/nodes-payload-values-20261113)
+
+- S2 landed. The blob field is the payload's wire contract (SPEC §3's
+  `{ fileId, mime, size, name }` handle, already a grammar base mapping
+  to the attachmentRef socket): `hydrateBlobParameters` in the plugins
+  feature hydrates declared-blob fields at endpoint dispatch — the one
+  payload-read seam `resolveProjectionValue` and the construction
+  dispatch already share — and the deterministic cache keys the raw
+  handle. Documents listing v8: the extraction trio takes
+  `record { payload: blob }`, outputs typed (`list<record>`/`string`),
+  group renamed `tableData` → `table-data`, `cache: 'deterministic'`
+  on the four value services; the executor normalizes the composed
+  handle and the projection envelope through one `payloadSource`.
+- Defect found and fixed: documents listing v7 was invalid under the
+  group-slug law added with the palette-provenance slice —
+  `perigram-plugin validate` refuses `tableData` on services and
+  projections, so the catalog seed would have failed on the next run.
+  The slug is kebab-cased across the listing and the prose that names
+  the tab; facade, tech-drawing, and build123d listings validate clean.
+- Installed organizations hold v7 pins: the upgrade path is the
+  ordinary Plugins-page diff preview (declaration change only, no
+  stored instance data migrates).
+- Validation: documents services spec 5 ✓ (both dispatch shapes, typed
+  xlsx/csv cells), fill 19 ✓, plugins 66 ✓ (hydration, raw-handle cache
+  key), framework-packages ✓, `perigram-plugin validate` ✓ (all four
+  built-ins), `check-plugin-deps` ✓, `check-arch` ✓, `docs:validate` ✓.
+  The 3 process-definitions failures pre-exist on the merge base.
 
 ### Agent Notes (2026-11-13, agent/nodes-preview-services-20261113)
 
