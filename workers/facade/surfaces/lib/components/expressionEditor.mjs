@@ -2,7 +2,7 @@
 // token-assisted contenteditable over the renderer's expression subset.
 // Created by the designer module with the host-injected context — never
 // imports vue or the component library itself.
-import { resolveOccsAngleExpression, resolveOccsExpression } from '../cassetteV2Renderer.js';
+import { resolveOccsAngleExpression, resolveOccsExpression } from '../../../occs/expressions.js';
 
 export default function createExpressionEditor({ vue, components, locale }) {
   const { h, ref, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
