@@ -957,7 +957,7 @@ describe('weight-driven arrangement', () => {
   });
 
   it('resolves container traits from the measured width over the host profile', () => {
-    expect(resolveContainerTraits({ widthRem: 70, hostKind: 'page' })).toEqual({ width: 'wide', widthRem: 70, height: 'flow', scroll: 'page', density: 1 });
+    expect(resolveContainerTraits({ widthRem: 70, hostKind: 'page' })).toEqual({ hostKind: 'page', width: 'wide', widthRem: 70, height: 'flow', scroll: 'page', density: 1 });
     expect(resolveContainerTraits({ widthRem: 45, hostKind: 'pane' }).width).toBe('medium');
     expect(resolveContainerTraits({ widthRem: 12, hostKind: 'dialog' }).width).toBe('narrow');
     expect(resolveContainerTraits({ widthRem: 70, hostKind: 'pane' }).scroll).toBe('surface');
@@ -976,8 +976,11 @@ describe('weight-driven arrangement', () => {
     // A placement box measures its own width and inherits the host's
     // height/scroll and density unchanged.
     expect(resolveContainerTraits({ widthRem: 24, height: 'bounded', scroll: 'surface', density: 0.75 }))
-      .toEqual({ width: 'narrow', widthRem: 24, height: 'bounded', scroll: 'surface', density: 0.75 });
+      .toEqual({ hostKind: 'page', width: 'narrow', widthRem: 24, height: 'bounded', scroll: 'surface', density: 0.75 });
     expect(resolveContainerTraits({ widthRem: 45, height: 'bounded', scroll: 'surface', density: 1 }).density).toBe(1);
+    // The resolved record names its host: popup-hosted surfaces read it
+    // to keep their bounded presentations.
+    expect(resolveContainerTraits({ hostKind: 'popup' }).hostKind).toBe('popup');
   });
 
   it('derives the rhythm coefficient from host context and screen weight', () => {

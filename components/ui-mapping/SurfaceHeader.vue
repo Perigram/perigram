@@ -104,7 +104,7 @@
              divergence refresh and dirty-marked save render ahead of the
              host entries; an editor that binds nothing renders
              neither. -->
-        <template v-if="chromeApi">
+        <div v-if="chromeGroup" :class="LAYOUT.actionGroup">
           <Button
             v-if="chromeApi.diverged"
             icon="pi pi-refresh"
@@ -127,20 +127,21 @@
             :disabled="!chromeApi.dirty"
             @click="chromeApi.save()"
           />
-        </template>
+        </div>
         <!-- Host-authored cluster entries (the record overlay's save
              affordance, SPEC §26; the custom page's save) render ahead of
              the record's action groups. -->
         <slot name="cluster" />
-        <!-- The cluster groups by control kind — the comments entry,
-             record utilities (the construct re-derive), generated
-             actions, machine transitions — one tight group per kind with
-             hairline dividers between non-empty groups. -->
+        <!-- The cluster groups by control kind — editor chrome, host
+             entries, record utilities (the comments entry, the construct
+             re-derive), generated actions with their overflow ellipsis,
+             the step-up — one tight group per kind, a hairline divider
+             between consecutive non-empty groups. -->
         <span
-          v-if="(chromeApi?.save || $slots.cluster) && (hasActionGroups)"
+          v-if="clusterDivider"
           :class="LAYOUT.actionDivider"
         />
-        <div :class="LAYOUT.actionGroup">
+        <div v-if="utilitiesGroup" :class="LAYOUT.actionGroup">
           <Button
             v-if="recordIdentity"
             icon="pi pi-comments"
@@ -161,10 +162,10 @@
           />
         </div>
         <span
-          v-if="inlineActions.length || overflowActions.length"
+          v-if="generatedDivider"
           :class="LAYOUT.actionDivider"
         />
-        <div v-if="inlineActions.length" :class="LAYOUT.actionGroup">
+        <div v-if="generatedGroup" :class="LAYOUT.actionGroup">
           <ActionButton
             v-for="action in inlineActions"
             :key="action.id"
@@ -172,23 +173,19 @@
             :state-policy="statePolicy"
             @run="$emit('run', action)"
           />
+          <Button
+            v-if="overflowActions.length"
+            icon="pi pi-ellipsis-v"
+            text
+            rounded
+            severity="secondary"
+            :aria-label="$t('uiMapping.moreActions')"
+            @click="event => overflowMenu?.toggle(event)"
+          />
+          <Menu ref="overflowMenu" :model="overflowMenuItems" popup />
         </div>
         <span
-          v-if="inlineActions.length && overflowActions.length"
-          :class="LAYOUT.actionDivider"
-        />
-        <Button
-          v-if="overflowActions.length"
-          icon="pi pi-ellipsis-v"
-          text
-          rounded
-          severity="secondary"
-          :aria-label="$t('uiMapping.moreActions')"
-          @click="event => overflowMenu?.toggle(event)"
-        />
-        <Menu ref="overflowMenu" :model="overflowMenuItems" popup />
-        <span
-          v-if="expandable && (inlineActions.length || overflowActions.length)"
+          v-if="expandDivider"
           :class="LAYOUT.actionDivider"
         />
         <div v-if="expandable" :class="LAYOUT.actionGroup">
@@ -209,7 +206,7 @@
 </template>
 
 <script setup>
-import { computed, inject, ref } from 'vue';
+import { computed, inject, ref, useSlots, Comment } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
@@ -272,6 +269,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['run', 'transition', 'refresh', 'open-instance', 'expand']);
+const slots = useSlots();
 const chromeApi = computed(() => props.chrome?.api || null);
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
 const displayName = computed(() => chromeApi.value?.name
@@ -300,8 +298,11 @@ const nameFieldPt = computed(() => ({
       width: `calc(${titleFieldSize.value}ch + 1.25rem)`,
       maxWidth: '100%',
       background: 'transparent',
-      borderColor: 'transparent',
-      boxShadow: 'none'
+      borderWidth: '0',
+      boxShadow: 'none',
+      // The input occupies the title's own line box, so entering the
+      // rename shifts nothing around it.
+      padding: '0'
     }
   }
 }));
@@ -362,7 +363,27 @@ const manualActions = computed(() => props.actions
 const inlineActions = computed(() => manualActions.value.slice(0, HEADER_ACTIONS_INLINE));
 const overflowActions = computed(() => manualActions.value
   .filter(action => !inlineActions.value.includes(action)));
-const hasActionGroups = computed(() => Boolean(inlineActions.value.length || overflowActions.length || rerunActions.value.length || recordIdentity.value));
+// The cluster's non-empty groups, in render order: editor chrome, host
+// cluster entries, record utilities, generated actions, the step-up. A
+// named slot registered with a dead branch still exists, so its group
+// counts only when it renders a node.
+const hasClusterContent = computed(() => Boolean(slots.cluster?.().some(node => node.type !== Comment)));
+const chromeGroup = computed(() => Boolean(chromeApi.value?.diverged || chromeApi.value?.save));
+const utilitiesGroup = computed(() => Boolean(recordIdentity.value || rerunActions.value.length));
+const generatedGroup = computed(() => Boolean(inlineActions.value.length || overflowActions.value.length));
+// A hairline divider lands between two consecutive non-empty groups and
+// nowhere else — a leading or trailing hairline is stray chrome.
+const leadingGroups = computed(() => {
+  const groups = [chromeGroup.value, hasClusterContent.value];
+  return {
+    utilities: groups.some(Boolean),
+    generated: [...groups, utilitiesGroup.value].some(Boolean),
+    expand: [...groups, utilitiesGroup.value, generatedGroup.value].some(Boolean)
+  };
+});
+const clusterDivider = computed(() => leadingGroups.value.utilities && utilitiesGroup.value);
+const generatedDivider = computed(() => leadingGroups.value.generated && generatedGroup.value);
+const expandDivider = computed(() => leadingGroups.value.expand && props.expandable);
 const statePopover = ref(null);
 const overflowMenu = ref(null);
 const overflowMenuItems = computed(() => overflowActions.value.map(action => {

@@ -8,7 +8,7 @@ import { CadCraftHost } from 'cadcraft';
 export { spotNamesOf } from '../dxf-markers.js';
 
 export default function createSurface({ vue, components, locale, notify }) {
-  const { h, ref, computed, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
+  const { h, ref, computed, reactive, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
   const { Button, InputNumber, InputText, Message } = components;
 
@@ -19,7 +19,11 @@ export default function createSurface({ vue, components, locale, notify }) {
       persistence: { type: Object, default: null },
       // 'read' (the opener holds no write grant) leaves the canvas and
       // the anchor list view-only — no marker authoring, no save.
-      mode: { type: String, default: 'edit' }
+      mode: { type: String, default: 'edit' },
+      // The editor page chrome channel (SPEC §4): the host header owns
+      // the document name and save; the editor binds its document state
+      // into it.
+      pageChrome: { type: Object, default: null }
     },
     setup(props) {
       const loading = ref(true);
@@ -33,12 +37,12 @@ export default function createSurface({ vue, components, locale, notify }) {
       const addName = ref('');
       const addX = ref(0);
       const addY = ref(0);
+      const localTitle = ref('');
       let host = null;
       let disposed = false;
 
       const markers = computed(() => spotMarkersOf(templateText.value));
-      const canSave = computed(() => dirty.value && !loading.value);
-      const editorTitle = computed(() => props.record?.name || props.persistence?.title || t('dxfEditor.editorTitle'));
+      const editorTitle = computed(() => localTitle.value || props.record?.name || props.persistence?.title || t('dxfEditor.editorTitle'));
 
       function fail(error) {
         engineError.value = error?.message || String(error);
@@ -124,6 +128,28 @@ export default function createSurface({ vue, components, locale, notify }) {
         }
       }
 
+      // The header's rename channel: the page header owns the draft; the
+      // editor applies the committed name through the persistence.
+      async function rename(name) {
+        if (!name || name === editorTitle.value) return;
+        try {
+          await props.persistence.rename(props.record, name);
+          localTitle.value = name;
+        } catch (error) {
+          notify({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || String(error), life: 4000 });
+        }
+      }
+
+      // The document chrome hand-off (SPEC §4): the header renders the
+      // name, the dirty-marked save from this binding; the surface below
+      // is the canvas and the anchor list alone.
+      if (props.mode !== 'read') {
+        props.pageChrome?.bind?.(Object.assign(
+          reactive({ name: editorTitle, dirty, saving, diverged: false }),
+          { save, rename }
+        ));
+      }
+
       async function mountEngine() {
         await nextTick();
         if (disposed || !containerRef.value) return;
@@ -190,28 +216,6 @@ export default function createSurface({ vue, components, locale, notify }) {
       ]);
 
       return () => h('div', { class: 'flex h-full min-h-0 flex-1 flex-col gap-3' }, [
-        h('div', { class: 'flex flex-wrap items-center gap-2' }, [
-          h('span', { class: 'text-supporting' }, editorTitle.value),
-          h(Button, {
-            icon: 'pi pi-expand',
-            severity: 'secondary',
-            text: true,
-            rounded: true,
-            size: 'small',
-            'aria-label': t('drawing.resetView'),
-            onClick: () => host?.zoomFit()
-          }),
-          props.mode === 'read'
-            ? null
-            : h(Button, {
-              label: t('common.save'),
-              icon: 'pi pi-check',
-              size: 'small',
-              loading: saving.value,
-              disabled: !canSave.value,
-              onClick: save
-            })
-        ]),
         engineError.value
           ? h(Message, { severity: 'error', closable: false }, { default: () => engineError.value })
           : null,
