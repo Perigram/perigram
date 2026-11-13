@@ -189,6 +189,18 @@
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
           <span class="block truncate text-supporting">{{ row.output.label }}</span>
+          <Button
+            :icon="outputVisible(row.output.id) ? 'pi pi-eye' : 'pi pi-eye-slash'"
+            :class="outputVisible(row.output.id) ? 'text-muted' : 'text-status-info'"
+            text
+            rounded
+            size="small"
+            :aria-label="outputVisible(row.output.id) ? $t('processDesigner.previewOutputHide') : $t('processDesigner.previewOutputShow')"
+            v-tooltip.top="outputVisible(row.output.id) ? $t('processDesigner.previewOutputHide') : $t('processDesigner.previewOutputShow')"
+            class="nodrag !absolute -right-1 top-1/2 -translate-y-1/2"
+            @mousedown.stop
+            @click.stop="togglePreviewOutput(row.output.id)"
+          />
         </div>
       </div>
     </div>
@@ -216,6 +228,7 @@ import { operationKindOf } from '~/packages/cts/src/index.js';
 import { isSecondaryPopulationKind } from '~/utils/processDesignerPopulation.js';
 
 import { computed } from 'vue';
+import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
@@ -317,6 +330,24 @@ const isOneLineLiteral = computed(() => (
 const oneLineOutput = computed(() => (isOneLineLiteral.value ? dataOutputs.value[0] : null));
 function update(updates) {
   props.data.onProcessNodeUpdate?.(updates);
+}
+
+// Per-output preview visibility (SPEC §28): `previewOutputs` on the
+// record selects the outputs the preview channels carry; absent means
+// every output feeds them. The field collapses back to null when the
+// selection covers everything again.
+function outputVisible(id) {
+  const selection = record.value.previewOutputs;
+  return !Array.isArray(selection) || selection.includes(id);
+}
+
+function togglePreviewOutput(id) {
+  const ports = dataOutputs.value.map(output => output.id);
+  const current = ports.filter(outputVisible);
+  const next = current.includes(id)
+    ? current.filter(candidate => candidate !== id)
+    : [...current, id];
+  update({ previewOutputs: ports.every(port => next.includes(port)) ? null : next });
 }
 
 const operationValue = computed(() => (

@@ -766,7 +766,7 @@ import { useProcessDesignerTypes } from '~/composables/useProcessDesignerTypes.j
 import { useProcessDesignerCanvas } from '~/composables/useProcessDesignerCanvas.js';
 import { useProcessDesignerContextPalette } from '~/composables/useProcessDesignerContextPalette.js';
 import { useProcessDesignerApply } from '~/composables/useProcessDesignerApply.js';
-import { useProcessDesignerPreview } from '~/composables/useProcessDesignerPreview.js';
+import { useProcessDesignerPreview, visiblePreviewOutputs } from '~/composables/useProcessDesignerPreview.js';
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 import { useProcessDesignerLiveGraph } from '~/composables/useProcessDesignerLiveGraph.js';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
@@ -1035,7 +1035,8 @@ async function runChannelPreview() {
   channelPreviewRunning.value = true;
   channelPreviewError.value = '';
   try {
-    channelPreviewPayload.value = await persistence.previewDraft(serializeProcess(), undefined);
+    const definition = serializeProcess();
+    channelPreviewPayload.value = visiblePreviewOutputs(await persistence.previewDraft(definition, undefined), definition);
   } catch (error) {
     channelPreviewError.value = error?.data?.message || error.message;
   } finally {

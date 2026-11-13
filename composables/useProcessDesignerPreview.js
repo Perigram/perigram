@@ -3,6 +3,30 @@ import { operationKindOf } from '~/packages/cts/src/index.js';
 import { computed, ref } from 'vue';
 import { formatProcessType } from '~/packages/processes/src/index.js';
 
+// Per-output preview visibility (SPEC §28): a record's authored
+// `previewOutputs` selects the outputs the preview channels carry —
+// absent means every output feeds the channels. Node errors survive the
+// selection so fault states stay whole.
+export function visiblePreviewOutputs(evaluation = {}, definition = {}) {
+  const recordOfNode = new Map(
+    (definition.graph?.nodes || []).map(node => [String(node.id), node.data?.refId || String(node.id)])
+  );
+  const records = definition.processNodes || {};
+  const nodes = {};
+  for (const [id, node] of Object.entries(evaluation.nodes || {})) {
+    const selection = records[recordOfNode.get(String(id)) || '']?.previewOutputs;
+    if (!Array.isArray(selection)) {
+      nodes[id] = node;
+      continue;
+    }
+    nodes[id] = {
+      ...node,
+      outputs: Object.fromEntries(Object.entries(node.outputs || {}).filter(([socketId]) => selection.includes(socketId)))
+    };
+  }
+  return { ...evaluation, nodes };
+}
+
 // Output Preview and Apply-diff display for the process designer. The page
 // remains the composition root: persistence, serialization, selection, and
 // node-port resolution are injected.

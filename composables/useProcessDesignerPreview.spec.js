@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { useProcessDesignerPreview } from './useProcessDesignerPreview.js';
+import { useProcessDesignerPreview, visiblePreviewOutputs } from './useProcessDesignerPreview.js';
 
 // The diagnostic focus contract: a node-anchored diagnostic selects the node
 // and frames it into view; an edge-anchored diagnostic selects the edge and
@@ -85,5 +85,37 @@ describe('useProcessDesignerPreview node support', () => {
   ])('node %j previews: %s', async (record, expected) => {
     const { preview } = await mountPreview({ selectedProcessNode: record });
     expect(preview.selectedNodeSupportsPreview.value).toBe(expected);
+  });
+});
+
+describe('visiblePreviewOutputs', () => {
+  const evaluation = {
+    nodes: {
+      a: { outputs: { result: { branches: [] }, extra: { branches: [] } }, error: 'boom' },
+      b: { outputs: { value: { branches: [] } } }
+    }
+  };
+  const definition = {
+    graph: { nodes: [{ id: 'a', data: { refId: 'r1' } }, { id: 'b', data: { refId: 'r2' } }] },
+    processNodes: { r1: { id: 'r1' }, r2: { id: 'r2' } }
+  };
+
+  it('carries every output when no record selects', () => {
+    expect(visiblePreviewOutputs(evaluation, definition)).toEqual(evaluation);
+  });
+
+  it('selects the authored outputs per record and keeps errors', () => {
+    const selected = visiblePreviewOutputs(evaluation, {
+      ...definition,
+      processNodes: { r1: { id: 'r1', previewOutputs: ['result'] }, r2: { id: 'r2' } }
+    });
+    expect(Object.keys(selected.nodes.a.outputs)).toEqual(['result']);
+    expect(selected.nodes.a.error).toBe('boom');
+    expect(Object.keys(selected.nodes.b.outputs)).toEqual(['value']);
+  });
+
+  it('treats a record-less evaluation node as unselected', () => {
+    const selected = visiblePreviewOutputs({ nodes: { x: { outputs: { value: {} } } } }, definition);
+    expect(Object.keys(selected.nodes.x.outputs)).toEqual(['value']);
   });
 });
