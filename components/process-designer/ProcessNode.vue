@@ -49,6 +49,19 @@
     <div v-tooltip.bottom="faultTooltip" class="flex items-center gap-1.5">
       <i v-if="faulted" class="pi pi-exclamation-triangle shrink-0 text-status-danger" aria-hidden="true" />
       <strong class="min-w-0 flex-1 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
+      <Button
+        v-if="dataOutputs.length"
+        :icon="previewVisible ? 'pi pi-eye' : 'pi pi-eye-slash'"
+        :class="previewVisible ? 'text-muted' : 'text-status-info'"
+        text
+        rounded
+        size="small"
+        class="nodrag shrink-0"
+        :title="previewVisible ? $t('processDesigner.previewNodeHide') : $t('processDesigner.previewNodeShow')"
+        :aria-label="previewVisible ? $t('processDesigner.previewNodeHide') : $t('processDesigner.previewNodeShow')"
+        @mousedown.stop
+        @click.stop="togglePreviewVisible"
+      />
     </div>
     <div v-if="faultMessages" class="mt-1.5 flex flex-col gap-1">
       <span v-for="message in faultMessages" :key="message" class="text-supporting text-status-danger">{{ message }}</span>
@@ -189,18 +202,6 @@
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
           <span class="block truncate text-supporting">{{ row.output.label }}</span>
-          <Button
-            :icon="outputVisible(row.output.id) ? 'pi pi-eye' : 'pi pi-eye-slash'"
-            :class="outputVisible(row.output.id) ? 'text-muted' : 'text-status-info'"
-            text
-            rounded
-            size="small"
-            :aria-label="outputVisible(row.output.id) ? $t('processDesigner.previewOutputHide') : $t('processDesigner.previewOutputShow')"
-            v-tooltip.top="outputVisible(row.output.id) ? $t('processDesigner.previewOutputHide') : $t('processDesigner.previewOutputShow')"
-            class="nodrag !absolute -right-1 top-1/2 -translate-y-1/2"
-            @mousedown.stop
-            @click.stop="togglePreviewOutput(row.output.id)"
-          />
         </div>
       </div>
     </div>
@@ -332,22 +333,13 @@ function update(updates) {
   props.data.onProcessNodeUpdate?.(updates);
 }
 
-// Per-output preview visibility (SPEC §28): `previewOutputs` on the
-// record selects the outputs the preview channels carry; absent means
-// every output feeds them. The field collapses back to null when the
-// selection covers everything again.
-function outputVisible(id) {
-  const selection = record.value.previewOutputs;
-  return !Array.isArray(selection) || selection.includes(id);
-}
+// Per-node preview visibility (SPEC §28): the header eye. An authored
+// `previewVisible: false` removes the node's outputs from the preview
+// channels; visible stays unauthored.
+const previewVisible = computed(() => record.value.previewVisible !== false);
 
-function togglePreviewOutput(id) {
-  const ports = dataOutputs.value.map(output => output.id);
-  const current = ports.filter(outputVisible);
-  const next = current.includes(id)
-    ? current.filter(candidate => candidate !== id)
-    : [...current, id];
-  update({ previewOutputs: ports.every(port => next.includes(port)) ? null : next });
+function togglePreviewVisible() {
+  update({ previewVisible: previewVisible.value ? false : null });
 }
 
 const operationValue = computed(() => (

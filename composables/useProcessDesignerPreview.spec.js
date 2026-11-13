@@ -100,21 +100,30 @@ describe('visiblePreviewOutputs', () => {
     processNodes: { r1: { id: 'r1' }, r2: { id: 'r2' } }
   };
 
-  it('carries every output when no record selects', () => {
+  it('carries every output when no record hides', () => {
     expect(visiblePreviewOutputs(evaluation, definition)).toEqual(evaluation);
   });
 
-  it('selects the authored outputs per record and keeps errors', () => {
+  it('drops a hidden node\'s outputs and keeps its error', () => {
     const selected = visiblePreviewOutputs(evaluation, {
       ...definition,
-      processNodes: { r1: { id: 'r1', previewOutputs: ['result'] }, r2: { id: 'r2' } }
+      processNodes: { r1: { id: 'r1', previewVisible: false }, r2: { id: 'r2' } }
     });
-    expect(Object.keys(selected.nodes.a.outputs)).toEqual(['result']);
+    expect(selected.nodes.a.outputs).toEqual({});
     expect(selected.nodes.a.error).toBe('boom');
     expect(Object.keys(selected.nodes.b.outputs)).toEqual(['value']);
   });
 
-  it('treats a record-less evaluation node as unselected', () => {
+  it('drops a hidden error-less node whole', () => {
+    const selected = visiblePreviewOutputs(evaluation, {
+      ...definition,
+      processNodes: { r1: { id: 'r1' }, r2: { id: 'r2', previewVisible: false } }
+    });
+    expect(selected.nodes.b).toBeUndefined();
+    expect(Object.keys(selected.nodes.a.outputs)).toEqual(['result', 'extra']);
+  });
+
+  it('treats a record-less evaluation node as visible', () => {
     const selected = visiblePreviewOutputs({ nodes: { x: { outputs: { value: {} } } } }, definition);
     expect(Object.keys(selected.nodes.x.outputs)).toEqual(['value']);
   });

@@ -3,10 +3,10 @@ import { operationKindOf } from '~/packages/cts/src/index.js';
 import { computed, ref } from 'vue';
 import { formatProcessType } from '~/packages/processes/src/index.js';
 
-// Per-output preview visibility (SPEC §28): a record's authored
-// `previewOutputs` selects the outputs the preview channels carry —
-// absent means every output feeds the channels. Node errors survive the
-// selection so fault states stay whole.
+// Per-node preview visibility (SPEC §28): a record's authored
+// `previewVisible: false` removes its outputs from the preview
+// channels. A hidden node keeps its error so fault states survive
+// the hiding.
 export function visiblePreviewOutputs(evaluation = {}, definition = {}) {
   const recordOfNode = new Map(
     (definition.graph?.nodes || []).map(node => [String(node.id), node.data?.refId || String(node.id)])
@@ -14,15 +14,11 @@ export function visiblePreviewOutputs(evaluation = {}, definition = {}) {
   const records = definition.processNodes || {};
   const nodes = {};
   for (const [id, node] of Object.entries(evaluation.nodes || {})) {
-    const selection = records[recordOfNode.get(String(id)) || '']?.previewOutputs;
-    if (!Array.isArray(selection)) {
+    if (records[recordOfNode.get(String(id)) || '']?.previewVisible !== false) {
       nodes[id] = node;
-      continue;
+    } else if (node.error) {
+      nodes[id] = { ...node, outputs: {} };
     }
-    nodes[id] = {
-      ...node,
-      outputs: Object.fromEntries(Object.entries(node.outputs || {}).filter(([socketId]) => selection.includes(socketId)))
-    };
   }
   return { ...evaluation, nodes };
 }

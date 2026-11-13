@@ -496,11 +496,11 @@ beside the validation diagnostics. A channel that cannot mount
 (unconfigured executor, refused contract) renders its unavailable state
 beside the other tabs.
 
-Per-output preview visibility rides the record: an authored
-`previewOutputs` selection (`null` or absent selects every output) is
-the eye control on each data-output row, and the channel payload
-carries the selected outputs alone — node errors stay whole so fault
-states survive the selection.
+Preview visibility rides the record per node: the eye on a card's
+header (rendered when the node has data outputs) authors
+`previewVisible` — `false` removes the node's outputs from the channel
+payload, absent or `null` keeps them. A hidden node keeps its error so
+fault states survive the hiding.
 
 ### Inspector anatomy
 
