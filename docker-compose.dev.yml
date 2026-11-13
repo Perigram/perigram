@@ -160,6 +160,22 @@ services:
     command: node workers/tech-drawing/index.js
     restart: unless-stopped
 
+  # The build123d plugin's executor: the discovered op catalog over the
+  # real engine (python + build123d image, repo-mounted code).
+  build123d-executor:
+    build:
+      context: ./workers/build123d
+    working_dir: /src
+    volumes:
+      - .:/src
+    environment:
+      - BUILD123D_EXECUTOR_PORT=8793
+    ports:
+      - "8793:8793"
+    networks:
+      - perigram-network
+    restart: unless-stopped
+
 networks:
   perigram-network:
     external: true

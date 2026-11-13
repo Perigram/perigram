@@ -1,0 +1,2090 @@
+{
+  "pluginId": "build123d",
+  "name": "build123d",
+  "description": "Parametric B-Rep CAD operations discovered from the installed build123d 0.13.0 API: shape constructors, part/sketch operations, and the shape-algebra operators, as deterministic value services",
+  "version": "1",
+  "declarations": {
+    "types": [
+      {
+        "id": "b3d-part",
+        "class": "file",
+        "scope": "system",
+        "name": "Part",
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          }
+        },
+        "payload": {
+          "mime": [
+            "application/step",
+            "model/step"
+          ],
+          "accept": [
+            ".step",
+            ".stp",
+            "application/step"
+          ],
+          "maxSize": 52428800,
+          "preview": "none",
+          "creation": [
+            "upload"
+          ]
+        },
+        "revisions": "content"
+      }
+    ],
+    "services": [
+      {
+        "id": "basepartobject",
+        "label": "BasePartObject",
+        "mode": "endpoint",
+        "group": "build123d-part",
+        "cache": "deterministic",
+        "render": {
+          "label": "BasePartObject",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "part": {
+                "base": "json"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "box",
+        "label": "Box",
+        "mode": "endpoint",
+        "group": "build123d-part",
+        "cache": "deterministic",
+        "render": {
+          "label": "Box",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "length": {
+                "base": "number"
+              },
+              "width": {
+                "base": "number"
+              },
+              "height": {
+                "base": "number"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "cone",
+        "label": "Cone",
+        "mode": "endpoint",
+        "group": "build123d-part",
+        "cache": "deterministic",
+        "render": {
+          "label": "Cone",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "bottom_radius": {
+                "base": "number"
+              },
+              "top_radius": {
+                "base": "number"
+              },
+              "height": {
+                "base": "number"
+              },
+              "arc_size": {
+                "base": "number",
+                "nullable": true,
+                "default": 360
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "convexpolyhedron",
+        "label": "ConvexPolyhedron",
+        "mode": "endpoint",
+        "group": "build123d-part",
+        "cache": "deterministic",
+        "render": {
+          "label": "ConvexPolyhedron",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "points": {
+                "base": "json"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "counterborehole",
+        "label": "CounterBoreHole",
+        "mode": "endpoint",
+        "group": "build123d-part",
+        "cache": "deterministic",
+        "render": {
+          "label": "CounterBoreHole",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "radius": {
+                "base": "number"
+              },
+              "counter_bore_radius": {
+                "base": "number"
+              },
+              "counter_bore_depth": {
+                "base": "number"
+              },
+              "depth": {
+                "base": "number",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "countersinkhole",
+        "label": "CounterSinkHole",
+        "mode": "endpoint",
+        "group": "build123d-part",
+        "cache": "deterministic",
+        "render": {
+          "label": "CounterSinkHole",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "radius": {
+                "base": "number"
+              },
+              "counter_sink_radius": {
+                "base": "number"
+              },
+              "depth": {
+                "base": "number",
+                "nullable": true
+              },
+              "counter_sink_angle": {
+                "base": "number",
+                "nullable": true,
+                "default": 82
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "cylinder",
+        "label": "Cylinder",
+        "mode": "endpoint",
+        "group": "build123d-part",
+        "cache": "deterministic",
+        "render": {
+          "label": "Cylinder",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "radius": {
+                "base": "number"
+              },
+              "height": {
+                "base": "number"
+              },
+              "arc_size": {
+                "base": "number",
+                "nullable": true,
+                "default": 360
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "hole",
+        "label": "Hole",
+        "mode": "endpoint",
+        "group": "build123d-part",
+        "cache": "deterministic",
+        "render": {
+          "label": "Hole",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "radius": {
+                "base": "number"
+              },
+              "depth": {
+                "base": "number",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "sphere",
+        "label": "Sphere",
+        "mode": "endpoint",
+        "group": "build123d-part",
+        "cache": "deterministic",
+        "render": {
+          "label": "Sphere",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "radius": {
+                "base": "number"
+              },
+              "arc_size1": {
+                "base": "number",
+                "nullable": true,
+                "default": -90
+              },
+              "arc_size2": {
+                "base": "number",
+                "nullable": true,
+                "default": 90
+              },
+              "arc_size3": {
+                "base": "number",
+                "nullable": true,
+                "default": 360
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "torus",
+        "label": "Torus",
+        "mode": "endpoint",
+        "group": "build123d-part",
+        "cache": "deterministic",
+        "render": {
+          "label": "Torus",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "major_radius": {
+                "base": "number"
+              },
+              "minor_radius": {
+                "base": "number"
+              },
+              "minor_start_angle": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              },
+              "minor_end_angle": {
+                "base": "number",
+                "nullable": true,
+                "default": 360
+              },
+              "major_angle": {
+                "base": "number",
+                "nullable": true,
+                "default": 360
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "wedge",
+        "label": "Wedge",
+        "mode": "endpoint",
+        "group": "build123d-part",
+        "cache": "deterministic",
+        "render": {
+          "label": "Wedge",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "xsize": {
+                "base": "number"
+              },
+              "ysize": {
+                "base": "number"
+              },
+              "zsize": {
+                "base": "number"
+              },
+              "xmin": {
+                "base": "number"
+              },
+              "zmin": {
+                "base": "number"
+              },
+              "xmax": {
+                "base": "number"
+              },
+              "zmax": {
+                "base": "number"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "basesketchobject",
+        "label": "BaseSketchObject",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "BaseSketchObject",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "obj": {
+                "base": "json"
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "circle",
+        "label": "Circle",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "Circle",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "radius": {
+                "base": "number"
+              },
+              "arc_size": {
+                "base": "number",
+                "nullable": true,
+                "default": 360
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "ellipse",
+        "label": "Ellipse",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "Ellipse",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "x_radius": {
+                "base": "number"
+              },
+              "y_radius": {
+                "base": "number"
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "polygon",
+        "label": "Polygon",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "Polygon",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "rectangle",
+        "label": "Rectangle",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "Rectangle",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "width": {
+                "base": "number"
+              },
+              "height": {
+                "base": "number"
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "rectanglerounded",
+        "label": "RectangleRounded",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "RectangleRounded",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "width": {
+                "base": "number"
+              },
+              "height": {
+                "base": "number"
+              },
+              "radius": {
+                "base": "number"
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "regularpolygon",
+        "label": "RegularPolygon",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "RegularPolygon",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "radius": {
+                "base": "number"
+              },
+              "side_count": {
+                "base": "number"
+              },
+              "major_radius": {
+                "base": "boolean",
+                "nullable": true
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              },
+              "align": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "slotarc",
+        "label": "SlotArc",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "SlotArc",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "arc": {
+                "base": "json"
+              },
+              "height": {
+                "base": "number"
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "slotcentertocenter",
+        "label": "SlotCenterToCenter",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "SlotCenterToCenter",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "center_separation": {
+                "base": "number"
+              },
+              "height": {
+                "base": "number"
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "slotoverall",
+        "label": "SlotOverall",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "SlotOverall",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "width": {
+                "base": "number"
+              },
+              "height": {
+                "base": "number"
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "superellipse",
+        "label": "Superellipse",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "Superellipse",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "width": {
+                "base": "number"
+              },
+              "height": {
+                "base": "number"
+              },
+              "order": {
+                "base": "number",
+                "nullable": true,
+                "default": 4
+              },
+              "point_count": {
+                "base": "number",
+                "nullable": true,
+                "default": 16
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "text",
+        "label": "Text",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "Text",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "txt": {
+                "base": "string"
+              },
+              "font_size": {
+                "base": "number"
+              },
+              "font": {
+                "base": "string",
+                "nullable": true,
+                "default": "Arial"
+              },
+              "text_align": {
+                "base": "json",
+                "nullable": true
+              },
+              "path": {
+                "base": "json",
+                "nullable": true
+              },
+              "position_on_path": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              },
+              "single_line_width": {
+                "base": "number",
+                "nullable": true
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "trapezoid",
+        "label": "Trapezoid",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "Trapezoid",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "width": {
+                "base": "number"
+              },
+              "height": {
+                "base": "number"
+              },
+              "left_side_angle": {
+                "base": "number"
+              },
+              "right_side_angle": {
+                "base": "number",
+                "nullable": true
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "triangle",
+        "label": "Triangle",
+        "mode": "endpoint",
+        "group": "build123d-sketch",
+        "cache": "deterministic",
+        "render": {
+          "label": "Triangle",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "a": {
+                "base": "number",
+                "nullable": true
+              },
+              "b": {
+                "base": "number",
+                "nullable": true
+              },
+              "c": {
+                "base": "number",
+                "nullable": true
+              },
+              "A": {
+                "base": "number",
+                "nullable": true
+              },
+              "B": {
+                "base": "number",
+                "nullable": true
+              },
+              "C": {
+                "base": "number",
+                "nullable": true
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "basecurveobject",
+        "label": "BaseCurveObject",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "BaseCurveObject",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "curve": {
+                "base": "json"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "baselineobject",
+        "label": "BaseLineObject",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "BaseLineObject",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "curve": {
+                "base": "json"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "baseedgeobject",
+        "label": "BaseEdgeObject",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "BaseEdgeObject",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "curve": {
+                "base": "json"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "airfoil",
+        "label": "Airfoil",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "Airfoil",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "airfoil_code": {
+                "base": "string"
+              },
+              "n_points": {
+                "base": "number",
+                "nullable": true,
+                "default": 50
+              },
+              "finite_te": {
+                "base": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "bezier",
+        "label": "Bezier",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "Bezier",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "weights": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "blendcurve",
+        "label": "BlendCurve",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "BlendCurve",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "curve0": {
+                "base": "json"
+              },
+              "curve1": {
+                "base": "json"
+              },
+              "end_points": {
+                "base": "json",
+                "nullable": true
+              },
+              "tangent_scalars": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "bspline",
+        "label": "BSpline",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "BSpline",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "control_points": {
+                "base": "json"
+              },
+              "knots": {
+                "base": "json"
+              },
+              "degree": {
+                "base": "number"
+              },
+              "weights": {
+                "base": "json",
+                "nullable": true
+              },
+              "periodic": {
+                "base": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "constrainedarcs",
+        "label": "ConstrainedArcs",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "ConstrainedArcs",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {}
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "constrainedlines",
+        "label": "ConstrainedLines",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "ConstrainedLines",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {}
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "helix",
+        "label": "Helix",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "Helix",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "pitch": {
+                "base": "number"
+              },
+              "height": {
+                "base": "number"
+              },
+              "radius": {
+                "base": "number"
+              },
+              "cone_angle": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              },
+              "lefthand": {
+                "base": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "line",
+        "label": "Line",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "Line",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {}
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "polyline",
+        "label": "Polyline",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "Polyline",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "close": {
+                "base": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "spline",
+        "label": "Spline",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "Spline",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "tangents": {
+                "base": "json",
+                "nullable": true
+              },
+              "tangent_scalars": {
+                "base": "json",
+                "nullable": true
+              },
+              "periodic": {
+                "base": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "threepointarc",
+        "label": "ThreePointArc",
+        "mode": "endpoint",
+        "group": "build123d-curve",
+        "cache": "deterministic",
+        "render": {
+          "label": "ThreePointArc",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {}
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "bounding-box",
+        "label": "bounding_box",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "bounding_box",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "objects": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "chamfer",
+        "label": "chamfer",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "chamfer",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "objects": {
+                "base": "json"
+              },
+              "length": {
+                "base": "number"
+              },
+              "length2": {
+                "base": "number",
+                "nullable": true
+              },
+              "angle": {
+                "base": "number",
+                "nullable": true
+              },
+              "reference": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "fillet",
+        "label": "fillet",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "fillet",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "objects": {
+                "base": "json"
+              },
+              "radius": {
+                "base": "number"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "mirror",
+        "label": "mirror",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "mirror",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "objects": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "offset",
+        "label": "offset",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "offset",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "objects": {
+                "base": "json",
+                "nullable": true
+              },
+              "amount": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              },
+              "openings": {
+                "base": "json",
+                "nullable": true
+              },
+              "closed": {
+                "base": "boolean",
+                "nullable": true
+              },
+              "min_edge_length": {
+                "base": "number",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "project",
+        "label": "project",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "project",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "target": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "scale",
+        "label": "scale",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "scale",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "objects": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "split",
+        "label": "split",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "split",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "objects": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "sweep",
+        "label": "sweep",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "sweep",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "sections": {
+                "base": "json",
+                "nullable": true
+              },
+              "path": {
+                "base": "json",
+                "nullable": true
+              },
+              "multisection": {
+                "base": "boolean",
+                "nullable": true
+              },
+              "is_frenet": {
+                "base": "boolean",
+                "nullable": true
+              },
+              "binormal": {
+                "base": "json",
+                "nullable": true
+              },
+              "clean": {
+                "base": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "extrude",
+        "label": "extrude",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "extrude",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "to_extrude": {
+                "base": "json",
+                "nullable": true
+              },
+              "amount": {
+                "base": "number",
+                "nullable": true
+              },
+              "target": {
+                "base": "json",
+                "nullable": true
+              },
+              "both": {
+                "base": "boolean",
+                "nullable": true
+              },
+              "taper": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              },
+              "clean": {
+                "base": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "loft",
+        "label": "loft",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "loft",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "sections": {
+                "base": "json",
+                "nullable": true
+              },
+              "ruled": {
+                "base": "boolean",
+                "nullable": true
+              },
+              "clean": {
+                "base": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "revolve",
+        "label": "revolve",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "revolve",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "profiles": {
+                "base": "json",
+                "nullable": true
+              },
+              "revolution_arc": {
+                "base": "number",
+                "nullable": true,
+                "default": 360
+              },
+              "clean": {
+                "base": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "section",
+        "label": "section",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "section",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "obj": {
+                "base": "json",
+                "nullable": true
+              },
+              "height": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              },
+              "clean": {
+                "base": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "thicken",
+        "label": "thicken",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "thicken",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "to_thicken": {
+                "base": "json",
+                "nullable": true
+              },
+              "amount": {
+                "base": "number",
+                "nullable": true
+              },
+              "both": {
+                "base": "boolean",
+                "nullable": true
+              },
+              "clean": {
+                "base": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "full-round",
+        "label": "full_round",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "full_round",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "edge": {
+                "base": "json"
+              },
+              "invert": {
+                "base": "boolean",
+                "nullable": true
+              },
+              "voronoi_point_count": {
+                "base": "number",
+                "nullable": true,
+                "default": 100
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "make-face",
+        "label": "make_face",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "make_face",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "edges": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "make-hull",
+        "label": "make_hull",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "make_hull",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "edges": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "trace",
+        "label": "trace",
+        "mode": "endpoint",
+        "group": "build123d-operations",
+        "cache": "deterministic",
+        "render": {
+          "label": "trace",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "lines": {
+                "base": "json",
+                "nullable": true
+              },
+              "line_width": {
+                "base": "number",
+                "nullable": true,
+                "default": 1
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "arrowhead",
+        "label": "ArrowHead",
+        "mode": "endpoint",
+        "group": "build123d-drafting",
+        "cache": "deterministic",
+        "render": {
+          "label": "ArrowHead",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "size": {
+                "base": "number"
+              },
+              "rotation": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "arrow",
+        "label": "Arrow",
+        "mode": "endpoint",
+        "group": "build123d-drafting",
+        "cache": "deterministic",
+        "render": {
+          "label": "Arrow",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "arrow_size": {
+                "base": "number"
+              },
+              "shaft_path": {
+                "base": "json"
+              },
+              "shaft_width": {
+                "base": "number"
+              },
+              "head_at_start": {
+                "base": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "technicaldrawing",
+        "label": "TechnicalDrawing",
+        "mode": "endpoint",
+        "group": "build123d-drafting",
+        "cache": "deterministic",
+        "render": {
+          "label": "TechnicalDrawing",
+          "icon": "pi pi-box"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "designed_by": {
+                "base": "string",
+                "nullable": true,
+                "default": "build123d"
+              },
+              "title": {
+                "base": "string",
+                "nullable": true,
+                "default": "Title"
+              },
+              "sub_title": {
+                "base": "string",
+                "nullable": true,
+                "default": "Sub Title"
+              },
+              "drawing_number": {
+                "base": "string",
+                "nullable": true,
+                "default": "B3D-1"
+              },
+              "sheet_number": {
+                "base": "number",
+                "nullable": true
+              },
+              "drawing_scale": {
+                "base": "number",
+                "nullable": true,
+                "default": 1
+              },
+              "nominal_text_size": {
+                "base": "number",
+                "nullable": true,
+                "default": 10
+              },
+              "line_width": {
+                "base": "number",
+                "nullable": true,
+                "default": 0.5
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "available-fonts",
+        "label": "available_fonts",
+        "mode": "endpoint",
+        "group": "build123d-text",
+        "cache": "deterministic",
+        "render": {
+          "label": "available_fonts",
+          "icon": "pi pi-cog"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {}
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "union",
+        "label": "Union",
+        "mode": "endpoint",
+        "group": "build123d-algebra",
+        "cache": "deterministic",
+        "render": {
+          "label": "Union",
+          "icon": "pi pi-objects-column"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "shape": {
+                "base": "json"
+              },
+              "other": {
+                "base": "json"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "subtract",
+        "label": "Subtract",
+        "mode": "endpoint",
+        "group": "build123d-algebra",
+        "cache": "deterministic",
+        "render": {
+          "label": "Subtract",
+          "icon": "pi pi-objects-column"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "shape": {
+                "base": "json"
+              },
+              "other": {
+                "base": "json"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "intersect",
+        "label": "Intersect",
+        "mode": "endpoint",
+        "group": "build123d-algebra",
+        "cache": "deterministic",
+        "render": {
+          "label": "Intersect",
+          "icon": "pi pi-objects-column"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "shape": {
+                "base": "json"
+              },
+              "other": {
+                "base": "json"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      }
+    ]
+  }
+}
