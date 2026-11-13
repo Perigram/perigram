@@ -190,6 +190,7 @@ These rules are blocking, not advisory:
   any blocker before committing partial work.
 - Before running any heavyweight command like playwright or npm install, make sure that there
   is enough RAM on a machine. THIS IS A FUCKING MUST!!
+- DO NOT FUCKING INVENT SHIT, INSTEAD FIX EXISTING SHIT! 
 
 ## Documentation Rules
 
