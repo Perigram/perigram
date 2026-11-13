@@ -32,10 +32,16 @@ types ride the generic instance machinery from the install snapshot.
 - Report vertical (`report.js`, palette section `document-compose`,
   deterministic): `parse-markdown` (text → `text.flow-document@1`),
   `export-markdown` (flow document → markdown text), `compose-report`
-  (flow document + row records → `document.report@1`) — the values
+  (flow document + row records → `document.report@1`), `extract-table`
+  (flow document → its table block's row records), `render-html` (report
+  → standalone HTML string, content escaped), and `render-report-pdf`
+  (report → PDF payload — the markdown assembly over the shared pdf
+  writer) — the values
   compose on the canvas and preview through the `report` channel
   (`surfaces/report-preview.mjs`, contract-1 preview surface rendering
-  every `document.report` the whole-graph evaluation carries).
+  every `document.report` the whole-graph evaluation carries). The
+  report IR is the source; HTML, markdown, and PDF are its
+  representations.
 
 ### Document IR contracts
 

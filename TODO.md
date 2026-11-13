@@ -76,9 +76,9 @@ Slices:
   outputs to channel surfaces; a claim-mode service answers the node
   error; runtime execution is unchanged.
 
-- [ ] S4 residual: `render-html` as a graph-facing export service, DOCX
-  and PDF report export targets (HAG §11.2 order), and md-table
-  extraction through `table-rows`-shaped payloads.
+- [ ] S4 residual: DOCX report export for the supported block subset —
+  blocked on a DOCX writer dependency decision (license + runtime
+  check, HAG open decision), owner call.
 - [ ] WAITING — owner verification: S2 — on the canvas, a file
   instance's payload handle (read `payload` field) wires into the
   documents extraction services and previews live; the palette
@@ -103,6 +103,27 @@ Slices:
   that output from the preview channels (the channel tab stops carrying
   it, fault states stay), restores it, and the selection persists with
   the draft through save/reload.
+
+- [ ] WAITING — owner verification: S4 export services —
+  `extract-table` wires a markdown table onto the table operations,
+  `render-html` returns a standalone escaped HTML document, and
+  `render-report-pdf` returns the PDF payload named for the report
+  title; all three kind-gate their report/flow inputs on the canvas.
+
+### Agent Notes (2026-11-13, agent/nodes-report-export-20261113)
+
+- S4 export residual landed (documents v11): `extract-table`
+  (flow-document → first table block's rows), `render-html` (report →
+  standalone HTML, all content escaped), `render-report-pdf` (report →
+  PDF payload through `reportMarkdown` — the markdown assembly over the
+  existing pdf writer, one PDF layout engine). All three deterministic
+  and kind-gated (`text.flow-document` / `document.report`). DOCX stays
+  open as an owner dependency/licensing decision.
+- Validation: report spec 14 ✓ (escape pin, `%PDF` header bytes, table
+  extraction refusals), documents services 5 ✓, fill 19 ✓,
+  framework-packages ✓, `perigram-plugin validate` v11 ✓,
+  `check-plugin-deps` ✓, `check-arch` ✓, `docs:validate` ✓. The 3
+  process-definitions failures pre-exist on the merge base.
 
 ### Agent Notes (2026-11-13, agent/nodes-output-visibility-20261113)
 
