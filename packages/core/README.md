@@ -9,7 +9,7 @@ Parent: [packages README](../README.md).
 ## Public Contract
 
 - DTOs: `BaseEntity`, `Identity`, `Status`, `Lineage`, `Relations`,
-  `Provenance`, `Specs`
+  `Provenance`
 - Canonical block registry: `CANONICAL_ENTITY_BLOCKS` defines the ordered
   framework block vocabulary used by domain definitions and generic design
   tools: `identity`, `origin`, `status`, `lineage`, `relations`, `provenance`,
@@ -17,9 +17,9 @@ Parent: [packages README](../README.md).
 - Canonical block schemas: `CANONICAL_BLOCK_SCHEMAS` defines fixed fields for
   fixed-shape blocks. Open blocks are represented by one whole typed value:
   Lineage is a map of ancestry keys to ids, while Relations, Provenance,
-  Attachments, Data, and Summary are structured objects. Domain entity field
-  inventories must not be unioned into these schemas. Structural fields also
-  declare readable, writable, and constructible authoring capabilities.
+  Specs, Attachments, Data, and Summary are structured objects. Domain entity
+  field inventories must not be unioned into these schemas. Structural fields
+  also declare readable, writable, and constructible authoring capabilities.
   `identity.uid` is readable but never writable or constructible: the owning
   entity service creates stable identity.
 - Registry: `createRegistry()`
@@ -39,7 +39,7 @@ Parent: [packages README](../README.md).
   `createCommandResult`, `createTaskResult`
 - Block helpers: `createIdentity`, `createStatus`, `createStatusState`,
   `normalizeStatusState`, `getPrimaryState`, `getRegionState`,
-  `getStatusRegions`, `createSpecs`, `createData`, `inheritLineage`,
+  `getStatusRegions`, `createData`, `inheritLineage`,
   `createAttachment`
 
 ## Vocabulary
