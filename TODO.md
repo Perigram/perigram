@@ -3034,6 +3034,23 @@ Ordered steps:
   entries. Org1 repair: re-run the script with
   `--org org-6a05940e --apply`.
 
+  #### Agent Notes (2026-11-13, entry design column repair)
+
+  Owner verdict after the 2026-11-12 session: count fixed, the entry's
+  design still "not linked". Browser probe on the live stack found the
+  read-side half: `resolveInstanceRelationRefs` (utils) silently dropped
+  every bare stored id — its dispatch only recursed into
+  `normalizeRelationRef` for objects and array items, never for a
+  top-level string, so the construct boundary's lawful bare-id storage
+  (`fields.design`) rendered as an empty Design cell on tables, detail
+  surfaces, and cards (pinned by `utils/instance-relations.spec.js`).
+  The write path and the dialog were correct all along; the browser
+  probe (queue detail → New → pick design → Create) now lands the entry
+  (`count` scalar, `design` bare id) and the Design column resolves
+  every row's label. The design picker renders the ancestry tree
+  (Project ▸ Queue ▸ designs) by the lintree law; deep leaves are
+  reachable by expanding.
+
   ### Agent Notes (2026-11-09, cassette designs and queue entries)
 
   Session `agent/cassette-queue-designs-20261109` (worktree
