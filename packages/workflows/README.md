@@ -1,6 +1,6 @@
 # COMPONENT: @perigram/workflows
 
-Declarative lifecycle registry and transition validator. This package is persistence-agnostic; application adapters provide entity loading, event writing, authorization, and hooks.
+Declarative lifecycle registry and transition validator. This package is persistence-agnostic; the status runtime owns entity loading, event writing, authorization, and hook dispatch.
 
 Parent: [packages README](../README.md).
 
@@ -20,14 +20,10 @@ validation step for workflow definitions from declared types.
 - `validateTransition(context)`
 - `normalizeLifecycle(lifecycle)`
 - `validateLifecyclePayload(schema, lifecycle)`
-- `validateActorGuard(context)`
-- `createTransitionEngine(adapters)`
+- `hasLifecyclePayload(lifecycle)`
 - `getWorkflowRegions(workflow)`
 - `getWorkflowRegion(workflow, regionId)`
-- `hasLifecyclePayload(lifecycle)`
-- `workflowStateEntries(region)`
 - `resolveWorkflowStatePath(region, state)`
-- `workflowTransitionsForState(region, state)`
 
 ## Workflow Shape
 

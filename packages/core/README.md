@@ -23,17 +23,15 @@ Parent: [packages README](../README.md).
   `identity.uid` is readable but never writable or constructible: the owning
   entity service creates stable identity.
 - Registry: `createRegistry()`
-- Definitions: `defineDomain`, `defineEntity`, `defineWorkflow`,
-  `defineCommand`, `defineTask`, `defineHook`, `defineAttachmentKind`
+- Definitions: `defineDomain`, `defineCommand`, `defineTask`
 - Validators: `validateDomain` plus the per-kind checks
-  `validateInstanceDefinition`, `validateWorkflowDefinition`,
   `validateCommandDefinition`, `validateTaskDefinition`,
-  `validateEventDefinition`, `validateHookDefinition`,
-  `validateEffectDefinition`, `validateAttachmentKindDefinition`;
+  `validateEventDefinition`;
   `normalizeStatusLifecycle`, `normalizeEntityOutputContracts`, and
   `validateResultEntityOutputs` for result entity-output contracts
-- Runtime bindings: `registerInstanceService`, `registerCommandHandler`,
-  `registerTaskExecutor`, `registerHookHandler`, `registerAdapter`
+- Runtime bindings: `registerInstanceService`,
+  `registerInstanceServiceResolver`, `registerCommandHandler`,
+  `registerHookHandler`, `registerProjectionHandler`
 - Result refs: `createInstanceRef`, `normalizeInstanceRef`, `createProvenance`,
   `createAttachmentRef`,
   `createCommandResult`, `createTaskResult`
