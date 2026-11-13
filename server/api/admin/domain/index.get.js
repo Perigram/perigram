@@ -50,15 +50,11 @@ export default defineEventHandler(async (event) => {
       entityCount: (domain?.entities || []).length,
       workflowCount: Object.keys(domain?.workflows || {}).length,
       commandCount: registry.listCommandDefinitions().length,
-      taskCount: registry.listTaskDefinitions().length,
-      hookCount: registry.listHookDefinitions().length,
-      attachmentKindCount: Object.keys(domain?.attachmentKinds || {}).length
+      taskCount: registry.listTaskDefinitions().length
     },
     domain,
     entities: domain?.entities || [],
     workflows: domain?.workflows || {},
-    hooks: Object.fromEntries(registry.listHookDefinitions().map(hook => [hook.id, hook])),
-    attachmentKinds: domain?.attachmentKinds || {},
     processCapabilities: projectEntityProcessCapabilities(domain, bindings),
     // The one service list (mounted packs + installed plugins) and the
     // command definitions — the designer consumes these instead of

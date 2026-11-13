@@ -670,12 +670,6 @@
       "source": "organization",
       "target": "supportMessage",
       "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "workflow_override",
-      "via": "lineage.organizationId"
     }
   ],
   "routes": [

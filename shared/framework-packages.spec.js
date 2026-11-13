@@ -16,19 +16,11 @@ describe('Framework package contracts', () => {
     } = await import('../packages/core/src/index.js');
 
     const registry = createRegistry({ id: 'test' });
-    const definition = registry.defineEntity({
-      type: 'test_entity',
-      collection: 'test_entities',
-      blocks: ['identity', 'lineage', 'status']
-    });
     const entity = new BaseEntity({
       identity: { uid: 'test-1', name: 'Test Entity' },
       lineage: { organizationId: 'org-1' }
     });
 
-    expect(definition.collection).toBe('test_entities');
-    expect(registry.getInstanceDefinition('test_entity')).toEqual(definition);
-    expect(registry.listInstanceDefinitions()).toContainEqual(definition);
     expect(entity.toJSON()).toMatchObject({
       _id: 'test-1',
       identity: { uid: 'test-1', name: 'Test Entity' },
@@ -67,22 +59,9 @@ describe('Framework package contracts', () => {
       input: { entities: [{ name: 'target', type: 'test_entity', required: true }] },
       output: { entities: ['test_entity'] }
     });
-    const attachmentKind = registry.defineAttachmentKind({
-      kind: 'TEST_REPORT',
-      bucket: 'reports',
-      mimeType: 'application/pdf'
-    });
-    const captureKind = registry.defineAttachmentKind({
-      kind: 'TEST_CAPTURE',
-      bucket: 'captures',
-      creation: { mode: 'capture' },
-      editor: { mode: 'text' }
-    });
     const domain = registry.defineDomain({
       id: 'test-domain',
-      entities: [{ type: 'domain_entity', collection: 'domain_entities' }],
-      tasks: {},
-      attachmentKinds: {}
+      tasks: {}
     });
     const handler = async () => createCommandResult({
       commandId: 'runTest',
@@ -93,9 +72,6 @@ describe('Framework package contracts', () => {
     expect(registry.listCommandDefinitions()).toContainEqual(command);
     expect(registry.getTaskDefinition('test.task')).toEqual(task);
     expect(registry.listTaskDefinitions()).toContainEqual(task);
-    expect(registry.getAttachmentKindDefinition('TEST_REPORT')).toEqual(attachmentKind);
-    expect(registry.getAttachmentKindDefinition('TEST_CAPTURE')).toEqual(captureKind);
-    expect(registry.listAttachmentKindDefinitions()).toContainEqual(attachmentKind);
     expect(registry.getDomain('test-domain')).toEqual(domain);
     expect(registry.listDomains()).toContainEqual(domain);
     expect(registry.getCommandHandler('runTest')).toBe(handler);

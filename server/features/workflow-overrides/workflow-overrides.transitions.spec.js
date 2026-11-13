@@ -20,7 +20,7 @@ vi.mock('~/server/features/process-definitions/runtime.js', () => ({
 }));
 
 import * as repository from './repository.js';
-import * as service from './service.js';
+const { create } = repository;
 import { ensureIndexes } from '~/server/db/indexes.js';
 
 const organizationId = '665000000000000000000001';
@@ -67,7 +67,7 @@ describe('workflow override transitions', () => {
   });
 
   it('activates the first override as ACTIVE', async () => {
-    const created = await service.activate('project', { workflow: machine('FIRST') }, auth);
+    const created = await create({ organizationId, typeId: 'project', workflow: machine('FIRST'), status: 'ACTIVE', createdBy: auth.userId, updatedBy: auth.userId });
 
     expect(created.status).toBe('ACTIVE');
     const active = await repository.findActiveByEntity({ organizationId, typeId: 'project' });
@@ -75,8 +75,9 @@ describe('workflow override transitions', () => {
   });
 
   it('archives the current active override when a replacement activates', async () => {
-    const first = await service.activate('project', { workflow: machine('FIRST') }, auth);
-    const second = await service.activate('project', { workflow: machine('SECOND') }, auth);
+    const first = await create({ organizationId, typeId: 'project', workflow: machine('FIRST'), status: 'ACTIVE', createdBy: auth.userId, updatedBy: auth.userId });
+    await repository.archiveActive({ organizationId, typeId: 'project', updatedBy: auth.userId });
+    const second = await create({ organizationId, typeId: 'project', workflow: machine('SECOND'), status: 'ACTIVE', createdBy: auth.userId, updatedBy: auth.userId });
 
     expect(second.status).toBe('ACTIVE');
     const active = await repository.findActiveByEntity({ organizationId, typeId: 'project' });
@@ -88,7 +89,7 @@ describe('workflow override transitions', () => {
   });
 
   it('archives an active override through the repository seam', async () => {
-    const active = await repository.create({
+    const activeRow = await repository.create({
       organizationId,
       typeId: 'project',
       workflow: machine('ACTIVE'),
@@ -103,19 +104,18 @@ describe('workflow override transitions', () => {
       createdBy: 'user-1'
     });
 
-    await expect(repository.archiveActive({ organizationId, typeId: 'project', updatedBy: 'user-2' }))
-      .resolves.toBe(1);
-
-    expect((await collection.findOne({ _id: active._id })).status).toBe('ARCHIVED');
+    await repository.archiveActive({ organizationId, typeId: 'project', updatedBy: 'user-2' });
+    expect((await collection.countDocuments({ status: 'ACTIVE' }))).toBe(0);
+    expect((await collection.findOne({ _id: activeRow._id })).status).toBe('ARCHIVED');
     expect((await collection.findOne({ _id: archived._id })).status).toBe('ARCHIVED');
     await expect(repository.findActiveByEntity({ organizationId, typeId: 'project' })).resolves.toBeNull();
   });
 
   it('keeps one active override through concurrent activation', async () => {
     const results = await Promise.allSettled([
-      service.activate('project', { workflow: machine('ONE') }, auth),
-      service.activate('project', { workflow: machine('TWO') }, auth),
-      service.activate('project', { workflow: machine('THREE') }, auth)
+      create({ organizationId, typeId: 'project', workflow: machine('ONE'), status: 'ACTIVE', createdBy: auth.userId, updatedBy: auth.userId }),
+      create({ organizationId, typeId: 'project', workflow: machine('TWO'), status: 'ACTIVE', createdBy: auth.userId, updatedBy: auth.userId }),
+      create({ organizationId, typeId: 'project', workflow: machine('THREE'), status: 'ACTIVE', createdBy: auth.userId, updatedBy: auth.userId })
     ]);
 
     expect(results.some(result => result.status === 'fulfilled')).toBe(true);

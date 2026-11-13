@@ -222,7 +222,7 @@ export function validateLifecyclePayload(schema, lifecycle = {}, options = {}) {
   return { ok: true };
 }
 
-export function validateActorGuard({ transition, currentStatus, targetState, actorId, role }) {
+function validateActorGuard({ transition, currentStatus, targetState, actorId, role }) {
   if (role === 'SYSTEM') return { ok: true };
 
   const actors = normalizeLifecycle(currentStatus?.lifecycle).actors;
@@ -240,50 +240,10 @@ export function validateActorGuard({ transition, currentStatus, targetState, act
   const hasCapability = requiredCapabilities.some(capability => actorCapabilities.includes(capability));
   return hasCapability ? { ok: true } : { ok: false, reason: 'capability_denied', requiredCapabilities };
 }
-
 function actorAppliesToState(actor, targetState) {
   if (!actor?.userId) return false;
   if (!Array.isArray(actor.states) || actor.states.length === 0) return true;
   return actor.states.includes(targetState) || actor.states.includes('*');
-}
-
-export function createTransitionEngine({ entityStore, eventStore, hooks = {}, authorize = () => true } = {}) {
-  return {
-    async transition({ type, id, targetState, actor, metadata = {} }) {
-      const workflow = getWorkflow(type);
-      const normalized = normalizeWorkflow(workflow);
-      const entity = await entityStore.get(type, id);
-      const role = actor?.role || 'SYSTEM';
-      const region = metadata?.region || normalized.primaryRegion;
-      const validation = validateTransition({
-        workflow: normalized,
-        currentState: getRegionState(entity?.status, region, normalized.regions[region]?.initial),
-        targetState,
-        region,
-        role,
-        actorId: actor?.id,
-        currentStatus: entity?.status,
-        lifecycle: metadata?.lifecycle || {}
-      });
-      if (!validation.ok) return validation;
-      if (!(await authorize({ type, entity, actor, transition: validation.transition }))) {
-        return { ok: false, reason: 'permission_denied' };
-      }
-
-      const event = await eventStore.append({ type, id, from: validation.from, to: targetState, actor, metadata });
-      await entityStore.setStatus(type, id, { state: applyWorkflowTransitionState(entity?.states, normalized, validation.transition || { region }, targetState), userId: actor?.id || 'SYSTEM', metadata, eventId: event?.id || null });
-
-      for (const hook of validation.transition?.hooks || []) {
-        if (hooks[hook.handler]) await hooks[hook.handler]({ type, id, actor, metadata }, hook.params || {});
-      }
-
-      return { ok: true, event };
-    }
-  };
-}
-
-export function workflowStateEntries(region = {}) {
-  return Object.entries(region?.states || {}).map(([path, definition]) => ({ path, definition }));
 }
 
 export function resolveWorkflowStatePath(region = {}, state) {
@@ -295,14 +255,6 @@ export function resolveWorkflowStatePath(region = {}, state) {
   // one canonical dotted path that carries it (nested machines, SPEC §7).
   const matches = Object.keys(states).filter(key => key.endsWith(`.${state}`));
   return matches.length === 1 ? matches[0] : null;
-}
-
-export function workflowTransitionsForState(region = {}, state) {
-  for (const ancestor of activeStatePaths(region, state)) {
-    const transitions = (region.transitions || []).filter(transition => transition.from === ancestor);
-    if (transitions.length) return transitions;
-  }
-  return [];
 }
 
 function selectWorkflowTransition(region, state, targetState, intent = null) {

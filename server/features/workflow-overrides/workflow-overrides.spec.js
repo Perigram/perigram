@@ -1,40 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('./repository.js', () => ({
-  archiveActive: vi.fn(),
-  create: vi.fn(),
-  findActiveByEntity: vi.fn(),
-  findLatestByEntity: vi.fn()
-}));
-
-vi.mock('~/server/runtime/app-registry.js', () => ({
-  getAppRegistry: () => ({
-    getDomain: () => ({
-      workflows: {
-        project: {
-          initial: 'DRAFT',
-          states: { DRAFT: {}, ACTIVE: {} },
-          transitions: [{ from: 'DRAFT', to: 'ACTIVE' }]
-        },
-        drawing: {
-          initial: 'PENDING',
-          states: { PENDING: {}, AVAILABLE: {} },
-          transitions: [{
-            from: 'PENDING',
-            to: 'AVAILABLE',
-            intent: 'drawingFileStored',
-            display: 'hidden',
-            access: { system: true }
-          }]
-        }
-      }
-    }),
-    getInstanceDefinition: (type) => (['project', 'drawing'].includes(type) ? { type, collection: `${type}s` } : null)
-  })
-}));
-
-vi.mock('~/server/core/access/service.js', () => ({
-  assertEntityAccess: vi.fn(() => true)
+  findActiveByEntity: vi.fn()
 }));
 
 vi.mock('~/server/features/process-definitions/runtime.js', () => ({
@@ -57,28 +24,6 @@ const auth = {
 describe('workflow overrides service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('activates a normalized organization-owned workflow override', async () => {
-    repository.create.mockImplementation(async doc => ({ _id: 'override-1', ...doc }));
-
-    const result = await service.activate('project', {
-      workflow: {
-        initial: 'DRAFT',
-        states: { DRAFT: {}, REVIEW: {} },
-        transitions: [{ from: 'DRAFT', to: 'REVIEW' }]
-      }
-    }, auth);
-
-    expect(repository.archiveActive).toHaveBeenCalledWith({
-      organizationId: auth.memberships[0].organizationId,
-      typeId: 'project',
-      updatedBy: 'user-1'
-    });
-    expect(result.typeId).toBe('project');
-    expect(result.status).toBe('ACTIVE');
-    expect(result.workflow.schemaVersion).toBe(2);
-    expect(result.workflow.primaryRegion).toBe('main');
   });
 
   it('resolves active override before default workflow', async () => {

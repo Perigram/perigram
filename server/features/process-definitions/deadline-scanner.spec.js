@@ -80,7 +80,6 @@ describe('deadline scanner', () => {
     con = await MongoClient.connect(mongoServer.getUri());
     db = con.db();
     mockedConnectDB.mockReturnValue(db);
-    getAppRegistry().defineEntity({ type: 'cassette', collection: 'files', feature: 'cassettes' });
   });
 
   afterAll(async () => {
@@ -94,7 +93,25 @@ describe('deadline scanner', () => {
     await db.collection('files').deleteMany({});
     await db.collection('process_definitions').deleteMany({});
     await db.collection('status_events').deleteMany({});
+    await db.collection('cts_types').deleteMany({});
   });
+
+  // The scan target resolves through the declared-type view: seeding the
+  // org type store makes cassette a resolvable file-class type.
+  async function seedCassetteType() {
+    await db.collection('cts_types').insertOne({
+      scope: 'org',
+      organizationId: 'org-1',
+      id: 'cassette',
+      version: 1,
+      class: 'file',
+      fields: { name: { base: 'string' } },
+      states: {},
+      edges: {}
+    });
+    const { invalidateInstanceDeclarations } = await import('~/server/features/instances/service.js');
+    invalidateInstanceDeclarations();
+  }
 
   afterEach(() => {
     vi.restoreAllMocks();
@@ -102,6 +119,7 @@ describe('deadline scanner', () => {
 
   it('moves only overdue instances, as SYSTEM, with the deadline stamp', async () => {
     vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue(deadlineMachine);
+    await seedCassetteType();
     const now = new Date();
     await db.collection('process_definitions').insertOne(activeDefinitionDoc());
     const overdue = flatInstance(new Date(now.getTime() - 72 * 3600 * 1000).toISOString());
@@ -142,6 +160,7 @@ describe('deadline scanner', () => {
 
   it('skips definitions without active compiled workflows', async () => {
     vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue(deadlineMachine);
+    await seedCassetteType();
     const now = new Date();
     await db.collection('process_definitions').insertOne({ ...activeDefinitionDoc(), states: { main: 'DRAFT' } });
     await db.collection('files').insertOne(flatInstance(new Date(now.getTime() - 72 * 3600 * 1000).toISOString()));

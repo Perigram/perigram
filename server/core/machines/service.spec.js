@@ -66,10 +66,6 @@ describe('status service lifecycle payloads', () => {
     con = await MongoClient.connect(mongoServer.getUri());
     db = con.db();
     mockedConnectDB.mockReturnValue(db);
-    // Registry collection metadata for the cassette class: CTS file-class
-    // instances persist in the `files` class collection, and lifecycle
-    // snapshot capture resolves target collections through the registry.
-    getAppRegistry().defineEntity({ type: 'cassette', collection: 'files', feature: 'cassettes' });
   });
 
   afterAll(async () => {
@@ -719,7 +715,7 @@ describe('status service lifecycle payloads', () => {
       roleAssignments: { roleIds: ['role_operator'] },
       memberships: [{
         organizationId: 'org-1',
-        permissions: { queues: 'write', cassettes: 'read' }
+        permissions: { queues: 'write', files: 'read' }
       }]
     };
 
