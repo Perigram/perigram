@@ -1,0 +1,2028 @@
+{
+  "provenance": {
+    "source": "build123d",
+    "version": "0.13.0"
+  },
+  "ops": [
+    {
+      "id": "basepartobject",
+      "kind": "constructor",
+      "label": "BasePartObject",
+      "module": "build123d.objects_part",
+      "target": "build123d.objects_part:BasePartObject",
+      "group": "build123d-part",
+      "params": [
+        {
+          "name": "part",
+          "type": "shape",
+          "required": true
+        }
+      ],
+      "returns": "shape",
+      "summary": "BasePartObject\n\nBase class for all BuildPart objects & operations",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "box",
+      "kind": "constructor",
+      "label": "Box",
+      "module": "build123d.objects_part",
+      "target": "build123d.objects_part:Box",
+      "group": "build123d-part",
+      "params": [
+        {
+          "name": "length",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "width",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": true
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Object: Box\n\nCreate a box defined by length, width, and height.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "cone",
+      "kind": "constructor",
+      "label": "Cone",
+      "module": "build123d.objects_part",
+      "target": "build123d.objects_part:Cone",
+      "group": "build123d-part",
+      "params": [
+        {
+          "name": "bottom_radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "top_radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "arc_size",
+          "type": "number",
+          "required": false,
+          "default": 360
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Object: Cone\n\nCreate a cone defined by bottom radius, top radius, and height.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "convexpolyhedron",
+      "kind": "constructor",
+      "label": "ConvexPolyhedron",
+      "module": "build123d.objects_part",
+      "target": "build123d.objects_part:ConvexPolyhedron",
+      "group": "build123d-part",
+      "params": [
+        {
+          "name": "points",
+          "type": "json",
+          "required": true
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Object: ConvexPolyhedron\n\nCreate a convex solid from the convex hull of the provided points.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "counterborehole",
+      "kind": "constructor",
+      "label": "CounterBoreHole",
+      "module": "build123d.objects_part",
+      "target": "build123d.objects_part:CounterBoreHole",
+      "group": "build123d-part",
+      "params": [
+        {
+          "name": "radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "counter_bore_radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "counter_bore_depth",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "depth",
+          "type": "number",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Operation: Counter Bore Hole\n\nCreate a counter bore hole defined by radius, counter bore radius, counter bore and depth.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "countersinkhole",
+      "kind": "constructor",
+      "label": "CounterSinkHole",
+      "module": "build123d.objects_part",
+      "target": "build123d.objects_part:CounterSinkHole",
+      "group": "build123d-part",
+      "params": [
+        {
+          "name": "radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "counter_sink_radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "depth",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "counter_sink_angle",
+          "type": "number",
+          "required": false,
+          "default": 82
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Operation: Counter Sink Hole\n\nCreate a countersink hole defined by radius, countersink radius, countersink\nangle, and depth.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "cylinder",
+      "kind": "constructor",
+      "label": "Cylinder",
+      "module": "build123d.objects_part",
+      "target": "build123d.objects_part:Cylinder",
+      "group": "build123d-part",
+      "params": [
+        {
+          "name": "radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "arc_size",
+          "type": "number",
+          "required": false,
+          "default": 360
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Object: Cylinder\n\nCreate a cylinder defined by radius and height.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "hole",
+      "kind": "constructor",
+      "label": "Hole",
+      "module": "build123d.objects_part",
+      "target": "build123d.objects_part:Hole",
+      "group": "build123d-part",
+      "params": [
+        {
+          "name": "radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "depth",
+          "type": "number",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Operation: Hole\n\nCreate a hole defined by radius and depth.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "sphere",
+      "kind": "constructor",
+      "label": "Sphere",
+      "module": "build123d.objects_part",
+      "target": "build123d.objects_part:Sphere",
+      "group": "build123d-part",
+      "params": [
+        {
+          "name": "radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "arc_size1",
+          "type": "number",
+          "required": false,
+          "default": -90
+        },
+        {
+          "name": "arc_size2",
+          "type": "number",
+          "required": false,
+          "default": 90
+        },
+        {
+          "name": "arc_size3",
+          "type": "number",
+          "required": false,
+          "default": 360
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Object: Sphere\n\nCreate a sphere defined by a radius.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "torus",
+      "kind": "constructor",
+      "label": "Torus",
+      "module": "build123d.objects_part",
+      "target": "build123d.objects_part:Torus",
+      "group": "build123d-part",
+      "params": [
+        {
+          "name": "major_radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "minor_radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "minor_start_angle",
+          "type": "number",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "minor_end_angle",
+          "type": "number",
+          "required": false,
+          "default": 360
+        },
+        {
+          "name": "major_angle",
+          "type": "number",
+          "required": false,
+          "default": 360
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Object: Torus\n\nCreate a torus defined by major and minor radii.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "wedge",
+      "kind": "constructor",
+      "label": "Wedge",
+      "module": "build123d.objects_part",
+      "target": "build123d.objects_part:Wedge",
+      "group": "build123d-part",
+      "params": [
+        {
+          "name": "xsize",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "ysize",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "zsize",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "xmin",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "zmin",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "xmax",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "zmax",
+          "type": "number",
+          "required": true
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Object: Wedge\n\nCreate a wedge with a near face defined by xsize and z size, a far face defined by\nxmin to xmax and zmin to zmax, and a depth of ysize.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "basesketchobject",
+      "kind": "constructor",
+      "label": "BaseSketchObject",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:BaseSketchObject",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "obj",
+          "type": "shape",
+          "required": true
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "returns": "shape",
+      "summary": "BaseSketchObject\n\nBase class for all BuildSketch objects",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "circle",
+      "kind": "constructor",
+      "label": "Circle",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:Circle",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "arc_size",
+          "type": "number",
+          "required": false,
+          "default": 360.0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Circle\n\nCreate a circle defined by radius.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "ellipse",
+      "kind": "constructor",
+      "label": "Ellipse",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:Ellipse",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "x_radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "y_radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Ellipse\n\nCreate an ellipse defined by x- and y- radii.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "polygon",
+      "kind": "constructor",
+      "label": "Polygon",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:Polygon",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Polygon\n\nCreate a polygon defined by given sequence of points.\n\nNote: the order of the points defines the resulting normal of the Face in Algebra\nmode, where counter-clockwise order creates an upward normal while clockwise order\na downward normal. In Builder mode, the Face is added with an upward normal.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "rectangle",
+      "kind": "constructor",
+      "label": "Rectangle",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:Rectangle",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "width",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Rectangle\n\nCreate a rectangle defined by width and height.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "rectanglerounded",
+      "kind": "constructor",
+      "label": "RectangleRounded",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:RectangleRounded",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "width",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Rectangle Rounded\n\nCreate a rectangle defined by width and height with filleted corners.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "regularpolygon",
+      "kind": "constructor",
+      "label": "RegularPolygon",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:RegularPolygon",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "side_count",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "major_radius",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "align",
+          "type": "json",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Regular Polygon\n\nCreate a regular polygon defined by radius and side count. Use major_radius to define whether\nthe polygon circumscribes (along the vertices) or inscribes (along the sides) the radius circle.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "slotarc",
+      "kind": "constructor",
+      "label": "SlotArc",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:SlotArc",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "arc",
+          "type": "shape",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Slot Arc\n\nCreate a slot defined by a line and height. May be an arc, stright line, spline, etc.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "slotcentertocenter",
+      "kind": "constructor",
+      "label": "SlotCenterToCenter",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:SlotCenterToCenter",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "center_separation",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Slot Center To Center\n\nCreate a slot defined by the distance between the centers of the two end arcs.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "slotoverall",
+      "kind": "constructor",
+      "label": "SlotOverall",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:SlotOverall",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "width",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Slot Overall\n\nCreate a slot defined by the overall width and height.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "superellipse",
+      "kind": "constructor",
+      "label": "Superellipse",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:Superellipse",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "width",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "order",
+          "type": "number",
+          "required": false,
+          "default": 4
+        },
+        {
+          "name": "point_count",
+          "type": "number",
+          "required": false,
+          "default": 16
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Superellipse\n\nCreate an superellipse (\"squircle\") defined by width, height, and order.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "text",
+      "kind": "constructor",
+      "label": "Text",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:Text",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "txt",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "font_size",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "font",
+          "type": "string",
+          "required": false,
+          "default": "Arial"
+        },
+        {
+          "name": "text_align",
+          "type": "json",
+          "required": false
+        },
+        {
+          "name": "path",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "position_on_path",
+          "type": "number",
+          "required": false,
+          "default": 0.0
+        },
+        {
+          "name": "single_line_width",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0.0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Text\n\nCreate text defined by text string and font size.\n\nFonts installed to the system can be specified by name and FontStyle. Fonts with\nsubfamilies not in FontStyle should be specified with the subfamily name, e.g.\n\"Arial Black\". Alternatively, a specific font file can be specified with font_path.\n\nUse `available_fonts()` to list available font names for `font` and FontStyles.\nNote: on Windows, fonts must be installed with \"Install for all users\" to be found\nby name.\n\nNot all fonts have every FontStyle available, however ITALIC and BOLDITALIC will\nstill italicize the font if the respective font file is not available.\n\ntext_align specifies alignment of text inside the bounding box, while align the\naligns the bounding box itself.\n\nOptionally, the Text can be positioned on a non-linear edge or wire with a path and\nposition_on_path.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "trapezoid",
+      "kind": "constructor",
+      "label": "Trapezoid",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:Trapezoid",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "width",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "left_side_angle",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "right_side_angle",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Trapezoid\n\nCreate a trapezoid defined by major width, height, and interior angle(s).",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "triangle",
+      "kind": "constructor",
+      "label": "Triangle",
+      "module": "build123d.objects_sketch",
+      "target": "build123d.objects_sketch:Triangle",
+      "group": "build123d-sketch",
+      "params": [
+        {
+          "name": "a",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "b",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "c",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "A",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "B",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "C",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Triangle\n\nCreate a triangle defined by one side length and any of two other side lengths or interior\nangles. The interior angles are opposite the side with the same designation\n(i.e. side 'a' is opposite angle 'A'). Side 'a' is the bottom side, followed by 'b'\non the right, going counter-clockwise.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "basecurveobject",
+      "kind": "constructor",
+      "label": "BaseCurveObject",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:BaseCurveObject",
+      "group": "build123d-curve",
+      "params": [
+        {
+          "name": "curve",
+          "type": "shape",
+          "required": true
+        }
+      ],
+      "returns": "shape",
+      "summary": "BaseCurveObject specialized for Curve.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "baselineobject",
+      "kind": "constructor",
+      "label": "BaseLineObject",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:BaseLineObject",
+      "group": "build123d-curve",
+      "params": [
+        {
+          "name": "curve",
+          "type": "shape",
+          "required": true
+        }
+      ],
+      "returns": "shape",
+      "summary": "BaseLineObject specialized for Wire.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "baseedgeobject",
+      "kind": "constructor",
+      "label": "BaseEdgeObject",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:BaseEdgeObject",
+      "group": "build123d-curve",
+      "params": [
+        {
+          "name": "curve",
+          "type": "shape",
+          "required": true
+        }
+      ],
+      "returns": "shape",
+      "summary": "BaseEdgeObject specialized for Edge.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "airfoil",
+      "kind": "constructor",
+      "label": "Airfoil",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:Airfoil",
+      "group": "build123d-curve",
+      "params": [
+        {
+          "name": "airfoil_code",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "n_points",
+          "type": "number",
+          "required": false,
+          "default": 50
+        },
+        {
+          "name": "finite_te",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Create an airfoil described by a 4-digit (or fractional) NACA airfoil\n(e.g. '2412' or '2213.323').\n\nThe NACA four-digit wing sections define the airfoil_code by:\n- First digit describing maximum camber as percentage of the chord.\n- Second digit describing the distance of maximum camber from the airfoil leading edge\nin tenths of the chord.\n- Last two digits describing maximum thickness of the airfoil as percent of the chord.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "bezier",
+      "kind": "constructor",
+      "label": "Bezier",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:Bezier",
+      "group": "build123d-curve",
+      "params": [
+        {
+          "name": "weights",
+          "type": "json",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Line Object: Bezier Curve\n\nCreate a non-rational bezier curve defined by a sequence of points and include optional\nweights to create a rational bezier curve. The number of weights must match the number\nof control points.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "blendcurve",
+      "kind": "constructor",
+      "label": "BlendCurve",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:BlendCurve",
+      "group": "build123d-curve",
+      "params": [
+        {
+          "name": "curve0",
+          "type": "shape",
+          "required": true
+        },
+        {
+          "name": "curve1",
+          "type": "shape",
+          "required": true
+        },
+        {
+          "name": "end_points",
+          "type": "json",
+          "required": false
+        },
+        {
+          "name": "tangent_scalars",
+          "type": "json",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Line Object: BlendCurve\n\nCreate a smooth B\u00e9zier-based transition curve between two existing edges.\n\nThe blend is constructed as a cubic (C1) or quintic (C2) B\u00e9zier curve\nwhose control points are determined from the position, first derivative,\nand (for C2) second derivative of the input curves at the chosen endpoints.\nOptional scalar multipliers can be applied to the endpoint tangents to\ncontrol the \"tension\" of the blend.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "bspline",
+      "kind": "constructor",
+      "label": "BSpline",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:BSpline",
+      "group": "build123d-curve",
+      "params": [
+        {
+          "name": "control_points",
+          "type": "json",
+          "required": true
+        },
+        {
+          "name": "knots",
+          "type": "json",
+          "required": true
+        },
+        {
+          "name": "degree",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "weights",
+          "type": "json",
+          "required": false
+        },
+        {
+          "name": "periodic",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Line Object: BSpline\n\nAn exact B-spline edge defined directly from control points and knot data.\n\nBSpline creates an exact B-spline from control points, a knot sequence, and\noptional weights. Control points define the control polygon that pulls the curve,\nbut the curve does not generally pass through them. Knots define the parameter-space\nstructure of the spline: they determine where polynomial spans begin and\nend and how smoothly those spans join. Repeated knot values indicate knot multiplicity.\nFor a spline of degree p, a knot with multiplicity m has continuity\nC^(p-m) at that location, so increasing multiplicity reduces smoothness. Repeating the\nfirst and last knots degree + 1 times creates a clamped spline that\nstarts and ends at the first and last control points. Optional weights create a\nrational B-spline, allowing some control points to pull more strongly than\nothers and enabling exact representation of conic sections.`\n\nUnlike :class:`~build123d.objects_curve.Spline`, which creates an interpolated curve\nthrough a set of points using ``GeomAPI_Interpolate``, ``BSpline`` preserves\nthe supplied spline definition by building the underlying OCCT\n``Geom_BSplineCurve`` from its poles, knot vector, optional weights,\ndegree, and periodic flag.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "constrainedarcs",
+      "kind": "constructor",
+      "label": "ConstrainedArcs",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:ConstrainedArcs",
+      "group": "build123d-curve",
+      "params": [],
+      "returns": "shape",
+      "summary": "Line Object: Arc(s) constrained by other geometric objects.\n\nThe result is always a Curve containing one or more Edges. If you need\nto access Edge-specific properties or methods (such as ``arc_center``),\nextract the edge or edges first::\n\n    result = ConstrainedArcs(...)\n    arc = result.edge()           # extract the Edge\n    center = arc.arc_center       # now Edge methods are available\n\nNote that in Builder mode the ``selector`` parameter must be provided or\nall results will be combined into the BuildLine context. In Algebra mode\nthe selector can be applied as a parameter or in the normal way to the\nConstrainedArcs object. The content of the selector is the same in both cases.\n\nExamples:\n    An arc built from three edge constraints.\n\n    Algebra::\n\n        l4 = PolarLine((0, 0), 4, 60)\n        l5 = PolarLine((0, 0), 4, 40)\n        a3 = CenterArc((0, 0), 4, 0, 90)\n        ex_a3 = (\n            ConstrainedArcs(l4, l5, a3, sagitta=Sagitta.BOTH).edges().sort_by(Edge.length)[0]\n        )\n\n    Builder::\n\n        with BuildLine() as arc_ex3:\n            l4 = PolarLine((0, 0), 4, 60)\n            l5 = PolarLine((0, 0), 4, 40)\n            a3 = CenterArc((0, 0), 4, 0, 90)\n            ex_a3 = ConstrainedArcs(\n                l4,\n                l5,\n                a3,\n                sagitta=Sagitta.BOTH,\n                selector=lambda arcs: arcs.sort_by(Edge.length)[0],\n            )",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "constrainedlines",
+      "kind": "constructor",
+      "label": "ConstrainedLines",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:ConstrainedLines",
+      "group": "build123d-curve",
+      "params": [],
+      "returns": "shape",
+      "summary": "Line Object: Lines(s) constrained by other geometric objects.\n\nThe result is always a Curve containing one or more Edges. If you need\nto access Edge-specific properties or methods (such as ``length``),\nextract the edge or edges first::\n\n    result = ConstrainedLines(...)\n    lines = result.edges()      # extract the Edges\n    length = lines[1].length    # now Edge methods are available\n\nNote that in Builder mode the ``selector`` parameter must be provided or\nall results will be combined into the BuildLine context. In Algebra mode\nthe selector can be applied as a parameter or in the normal way to the\nConstrainedArcs object. The content of the selector is the same in both cases.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "helix",
+      "kind": "constructor",
+      "label": "Helix",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:Helix",
+      "group": "build123d-curve",
+      "params": [
+        {
+          "name": "pitch",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "radius",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "cone_angle",
+          "type": "number",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "lefthand",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Line Object: Helix\n\nCreate a helix defined by pitch, height, and radius. The helix may have a taper\ndefined by cone_angle.\n\nIf cone_angle is not 0, radius is the initial helix radius at center. cone_angle > 0\nincreases the final radius. cone_angle < 0 decreases the final radius.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "line",
+      "kind": "constructor",
+      "label": "Line",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:Line",
+      "group": "build123d-curve",
+      "params": [],
+      "returns": "shape",
+      "summary": "Line Object: Line\n\nCreate a straight line defined by two points.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "polyline",
+      "kind": "constructor",
+      "label": "Polyline",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:Polyline",
+      "group": "build123d-curve",
+      "params": [
+        {
+          "name": "close",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Line Object: Polyline\n\nCreate a sequence of straight lines defined by successive points.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "spline",
+      "kind": "constructor",
+      "label": "Spline",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:Spline",
+      "group": "build123d-curve",
+      "params": [
+        {
+          "name": "tangents",
+          "type": "json",
+          "required": false
+        },
+        {
+          "name": "tangent_scalars",
+          "type": "json",
+          "required": false
+        },
+        {
+          "name": "periodic",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Line Object: Spline\n\nCreate a spline defined by a sequence of points, optionally constrained by tangents.\nTangents and tangent scalars must have length of 2 for only the end points or a length\nof the number of points.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "threepointarc",
+      "kind": "constructor",
+      "label": "ThreePointArc",
+      "module": "build123d.objects_curve",
+      "target": "build123d.objects_curve:ThreePointArc",
+      "group": "build123d-curve",
+      "params": [],
+      "returns": "shape",
+      "summary": "Line Object: Three Point Arc\n\nCreate a circular arc defined by three points.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "bounding-box",
+      "kind": "function",
+      "label": "bounding_box",
+      "module": "build123d.operations_generic",
+      "target": "build123d.operations_generic:bounding_box",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "objects",
+          "type": "shape",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Generic Operation: Add Bounding Box\n\nApplies to: BuildSketch and BuildPart\n\nAdd the 2D or 3D bounding boxes of the object sequence",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "chamfer",
+      "kind": "function",
+      "label": "chamfer",
+      "module": "build123d.operations_generic",
+      "target": "build123d.operations_generic:chamfer",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "objects",
+          "type": "shape",
+          "required": true
+        },
+        {
+          "name": "length",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "length2",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "angle",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "reference",
+          "type": "shape",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Generic Operation: chamfer\n\nApplies to 2 and 3 dimensional objects.\n\nChamfer the given sequence of edges or vertices.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "fillet",
+      "kind": "function",
+      "label": "fillet",
+      "module": "build123d.operations_generic",
+      "target": "build123d.operations_generic:fillet",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "objects",
+          "type": "shape",
+          "required": true
+        },
+        {
+          "name": "radius",
+          "type": "number",
+          "required": true
+        }
+      ],
+      "returns": "shape",
+      "summary": "Generic Operation: fillet\n\nApplies to 2 and 3 dimensional objects.\n\nFillet the given sequence of edges or vertices. Note that vertices on\neither end of an open line will be automatically skipped.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "mirror",
+      "kind": "function",
+      "label": "mirror",
+      "module": "build123d.operations_generic",
+      "target": "build123d.operations_generic:mirror",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "objects",
+          "type": "shape",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Generic Operation: mirror\n\nApplies to 1, 2, and 3 dimensional objects.\n\nMirror a sequence of objects over the given plane.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "offset",
+      "kind": "function",
+      "label": "offset",
+      "module": "build123d.operations_generic",
+      "target": "build123d.operations_generic:offset",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "objects",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "openings",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "closed",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "min_edge_length",
+          "type": "number",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Generic Operation: offset\n\nApplies to 1, 2, and 3 dimensional objects.\n\nOffset the given sequence of Edges, Faces, Compound of Faces, or Solids.\nThe kind parameter controls the shape of the transitions. For Solid\nobjects, the openings parameter allows selected faces to be open, like\na hollow box with no lid.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "project",
+      "kind": "function",
+      "label": "project",
+      "module": "build123d.operations_generic",
+      "target": "build123d.operations_generic:project",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "target",
+          "type": "shape",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Generic Operation: project\n\nApplies to 0, 1, and 2 dimensional objects.\n\nProject the given objects or points onto a BuildLine or BuildSketch workplane in\nthe direction of the normal of that workplane. When projecting onto a\nsketch a Face(s) are generated while Edges are generated for BuildLine.\nWill only use the first if BuildSketch has multiple active workplanes.\nIn algebra mode a workplane must be provided and the output is either\na Face, Curve, Sketch, Compound, or ShapeList[Vector].\n\nNote that only if mode is not Mode.PRIVATE only Faces can be projected into\nBuildSketch and Edge/Wires into BuildLine.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "scale",
+      "kind": "function",
+      "label": "scale",
+      "module": "build123d.operations_generic",
+      "target": "build123d.operations_generic:scale",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "objects",
+          "type": "shape",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Generic Operation: scale\n\nApplies to 1, 2, and 3 dimensional objects.\n\nScale a sequence of objects. Note that when scaling non-uniformly across\nthe three axes, the type of the underlying object may change to bspline from\nline, circle, etc.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "split",
+      "kind": "function",
+      "label": "split",
+      "module": "build123d.operations_generic",
+      "target": "build123d.operations_generic:split",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "objects",
+          "type": "shape",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Generic Operation: split\n\nApplies to 1, 2, and 3 dimensional objects.\n\nBisect object with plane and keep either top, bottom or both.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "sweep",
+      "kind": "function",
+      "label": "sweep",
+      "module": "build123d.operations_generic",
+      "target": "build123d.operations_generic:sweep",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "sections",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "path",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "multisection",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "is_frenet",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "binormal",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "clean",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Generic Operation: sweep\n\nSweep pending 1D or 2D objects along path.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "extrude",
+      "kind": "function",
+      "label": "extrude",
+      "module": "build123d.operations_part",
+      "target": "build123d.operations_part:extrude",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "to_extrude",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "target",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "both",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "taper",
+          "type": "number",
+          "required": false,
+          "default": 0.0
+        },
+        {
+          "name": "clean",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Operation: extrude\n\nExtrude a sketch or face by an amount or until another object.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "loft",
+      "kind": "function",
+      "label": "loft",
+      "module": "build123d.operations_part",
+      "target": "build123d.operations_part:loft",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "sections",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "ruled",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "clean",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Operation: loft\n\nLoft the pending sketches/faces, across all workplanes, into a solid.\n\nFaces may contain inner wires, which are lofted as holes and subtracted from\nthe outer loft. When a face has more than one inner wire, the wires in each\nsubsequent section are matched to the preceding section by choosing the\nassignment with the smallest total distance between wire centers. This\nmakes the result independent of the order in which inner wires are\nreturned, but it is only a geometric heuristic: holes that are close\ntogether, cross paths, or change position significantly may be matched\nincorrectly. All sections must contain the same number of inner wires.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "revolve",
+      "kind": "function",
+      "label": "revolve",
+      "module": "build123d.operations_part",
+      "target": "build123d.operations_part:revolve",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "profiles",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "revolution_arc",
+          "type": "number",
+          "required": false,
+          "default": 360.0
+        },
+        {
+          "name": "clean",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Operation: Revolve\n\nRevolve the profile or pending sketches/face about the given axis.\nNote that the most common use case is when the axis is in the same plane as the\nface to be revolved but this isn't required.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "section",
+      "kind": "function",
+      "label": "section",
+      "module": "build123d.operations_part",
+      "target": "build123d.operations_part:section",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "obj",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": false,
+          "default": 0.0
+        },
+        {
+          "name": "clean",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Operation: section\n\nSlices current part at the given height by section_by or current workplane(s).",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "thicken",
+      "kind": "function",
+      "label": "thicken",
+      "module": "build123d.operations_part",
+      "target": "build123d.operations_part:thicken",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "to_thicken",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "both",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "clean",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Part Operation: thicken\n\nCreate a solid(s) from a potentially non planar face(s) by thickening along the normals.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "full-round",
+      "kind": "function",
+      "label": "full_round",
+      "module": "build123d.operations_sketch",
+      "target": "build123d.operations_sketch:full_round",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "edge",
+          "type": "shape",
+          "required": true
+        },
+        {
+          "name": "invert",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "voronoi_point_count",
+          "type": "number",
+          "required": false,
+          "default": 100
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Operation: full_round\n\nGiven an edge from a Face/Sketch, modify the face by replacing the given edge with the\narc of the Voronoi largest empty circle that will fit within the Face.  This\n\"rounds off\" the end of the object.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "make-face",
+      "kind": "function",
+      "label": "make_face",
+      "module": "build123d.operations_sketch",
+      "target": "build123d.operations_sketch:make_face",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "edges",
+          "type": "shape",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Operation: make_face\n\nCreate a face from the given perimeter edges.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "make-hull",
+      "kind": "function",
+      "label": "make_hull",
+      "module": "build123d.operations_sketch",
+      "target": "build123d.operations_sketch:make_hull",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "edges",
+          "type": "shape",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Operation: make_hull\n\nCreate a face from the convex hull of the given edges",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "trace",
+      "kind": "function",
+      "label": "trace",
+      "module": "build123d.operations_sketch",
+      "target": "build123d.operations_sketch:trace",
+      "group": "build123d-operations",
+      "params": [
+        {
+          "name": "lines",
+          "type": "shape",
+          "required": false
+        },
+        {
+          "name": "line_width",
+          "type": "number",
+          "required": false,
+          "default": 1
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Operation: trace\n\nConvert edges, wires or pending edges into faces by sweeping a perpendicular line along them.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "arrowhead",
+      "kind": "constructor",
+      "label": "ArrowHead",
+      "module": "build123d.drafting",
+      "target": "build123d.drafting:ArrowHead",
+      "group": "build123d-drafting",
+      "params": [
+        {
+          "name": "size",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "rotation",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: ArrowHead",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "arrow",
+      "kind": "constructor",
+      "label": "Arrow",
+      "module": "build123d.drafting",
+      "target": "build123d.drafting:Arrow",
+      "group": "build123d-drafting",
+      "params": [
+        {
+          "name": "arrow_size",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "shaft_path",
+          "type": "shape",
+          "required": true
+        },
+        {
+          "name": "shaft_width",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "head_at_start",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: Arrow with shaft",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "technicaldrawing",
+      "kind": "constructor",
+      "label": "TechnicalDrawing",
+      "module": "build123d.drafting",
+      "target": "build123d.drafting:TechnicalDrawing",
+      "group": "build123d-drafting",
+      "params": [
+        {
+          "name": "designed_by",
+          "type": "string",
+          "required": false,
+          "default": "build123d"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "default": "Title"
+        },
+        {
+          "name": "sub_title",
+          "type": "string",
+          "required": false,
+          "default": "Sub Title"
+        },
+        {
+          "name": "drawing_number",
+          "type": "string",
+          "required": false,
+          "default": "B3D-1"
+        },
+        {
+          "name": "sheet_number",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "drawing_scale",
+          "type": "number",
+          "required": false,
+          "default": 1.0
+        },
+        {
+          "name": "nominal_text_size",
+          "type": "number",
+          "required": false,
+          "default": 10.0
+        },
+        {
+          "name": "line_width",
+          "type": "number",
+          "required": false,
+          "default": 0.5
+        }
+      ],
+      "returns": "shape",
+      "summary": "Sketch Object: TechnicalDrawing\n\nThe border of a technical drawing with external frame and text box.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "available-fonts",
+      "kind": "function",
+      "label": "available_fonts",
+      "module": "build123d.text",
+      "target": "build123d.text:available_fonts",
+      "group": "build123d-text",
+      "params": [],
+      "returns": "value",
+      "summary": "Get available fonts without initializing the font manager on import.",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "union",
+      "kind": "operator",
+      "label": "Union",
+      "module": "build123d.topology.shape_core",
+      "target": "build123d.topology.shape_core:Shape.__add__",
+      "group": "build123d-algebra",
+      "params": [
+        {
+          "name": "shape",
+          "type": "shape",
+          "required": true
+        },
+        {
+          "name": "other",
+          "type": "shape",
+          "required": true
+        }
+      ],
+      "returns": "shape",
+      "summary": "fuse shape to self operator +",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "subtract",
+      "kind": "operator",
+      "label": "Subtract",
+      "module": "build123d.topology.shape_core",
+      "target": "build123d.topology.shape_core:Shape.__sub__",
+      "group": "build123d-algebra",
+      "params": [
+        {
+          "name": "shape",
+          "type": "shape",
+          "required": true
+        },
+        {
+          "name": "other",
+          "type": "shape",
+          "required": true
+        }
+      ],
+      "returns": "shape",
+      "summary": "cut shape from self operator -",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    },
+    {
+      "id": "intersect",
+      "kind": "operator",
+      "label": "Intersect",
+      "module": "build123d.topology.shape_core",
+      "target": "build123d.topology.shape_core:Shape.__and__",
+      "group": "build123d-algebra",
+      "params": [
+        {
+          "name": "shape",
+          "type": "shape",
+          "required": true
+        },
+        {
+          "name": "other",
+          "type": "shape",
+          "required": true
+        }
+      ],
+      "returns": "shape",
+      "summary": "intersect shape with self operator &",
+      "provenance": {
+        "source": "build123d",
+        "version": "0.13.0"
+      }
+    }
+  ],
+  "rejected": [
+    "CenterArc",
+    "DimensionLine",
+    "DoubleTangentArc",
+    "EllipticalCenterArc",
+    "EllipticalStartArc",
+    "ExtensionLine",
+    "FilletPolyline",
+    "HyperbolicCenterArc",
+    "IntersectingLine",
+    "JernArc",
+    "ParabolicCenterArc",
+    "PolarLine",
+    "RadiusArc",
+    "SagittaArc",
+    "SlotCenterPoint",
+    "TangentArc",
+    "add",
+    "draft",
+    "insert",
+    "make_brake_formed",
+    "project_workplane"
+  ],
+  "operatorProtocol": {
+    "__add__": "union",
+    "__sub__": "subtract",
+    "__and__": "intersect"
+  }
+}
