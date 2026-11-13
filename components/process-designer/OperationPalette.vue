@@ -12,28 +12,33 @@
       />
     </div>
     <div class="min-h-0 flex-1 overflow-y-auto p-2">
-      <div v-for="group in filteredGroups" :key="group.id" class="mb-3 flex flex-col gap-1.5 last:mb-0">
-        <span class="px-1 text-muted text-supporting">{{ group.label }}</span>
-        <div class="flex flex-wrap gap-1.5">
-          <Button
-            v-for="item in group.items"
-            :key="item.id"
-            size="small"
-            text
-            class="justify-start bg-subtle"
-            :aria-label="item.label"
-            v-tooltip.right="item.description"
-            @click="emit('pick', item)"
-          >
-            <span
-              class="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full"
-              :class="signalBgClass(item.signal)"
-              aria-hidden="true"
-            ></span>
-            <span class="min-w-0 truncate">{{ item.label }}</span>
-          </Button>
+      <template v-for="tier in tiers" :key="tier.id">
+        <div v-if="tier.groups.length" class="mb-3 text-supporting text-muted">
+          {{ tier.label }}
         </div>
-      </div>
+        <div v-for="group in tier.groups" :key="group.id" class="mb-3 flex flex-col gap-1.5">
+          <span class="px-1 text-muted text-supporting">{{ group.label }}</span>
+          <div class="flex flex-wrap gap-1.5">
+            <Button
+              v-for="item in group.items"
+              :key="item.id"
+              size="small"
+              text
+              class="justify-start bg-subtle"
+              :aria-label="item.label"
+              v-tooltip.right="item.description"
+              @click="emit('pick', item)"
+            >
+              <span
+                class="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full"
+                :class="signalBgClass(item.signal)"
+                aria-hidden="true"
+              ></span>
+              <span class="min-w-0 truncate">{{ item.label }}</span>
+            </Button>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -42,11 +47,15 @@
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { signalBgClass } from '~/utils/processDesignerSignals.js';
 
-// The operation palette for the process designer: searchable groups of
-// chips — small PrimeVue Buttons own hover/focus; no icons. Each group
-// carries a localized label, and every chip's signal dot uses the same
+// The operation palette for the process designer: searchable chips over
+// two provenance tiers — the platform's built-in categories and the
+// plugin sections (palette groups declared `source: 'pack'` by
+// packages/processes' pack-palette projection, SPEC §8 plugin-tab law).
+// Provenance is declared by the registration source and never inferred
+// from ids. Search spans every tier. Each chip's dot uses the same
 // token that stripes the canvas node the chip creates
 // (utils/processDesignerSignals.js is the one map; literal classes only —
 // dynamic strings compile to nothing). Picking emits once; buttons carry
@@ -59,6 +68,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['pick', 'close']);
 
+const { t } = useI18n();
 const query = ref('');
 const filteredGroups = computed(() => {
   const needle = query.value.trim().toLowerCase();
@@ -73,4 +83,16 @@ const filteredGroups = computed(() => {
     }))
     .filter(group => group.items.length);
 });
+const tiers = computed(() => [
+  {
+    id: 'pack',
+    label: t('processDesigner.palettePackSections'),
+    groups: filteredGroups.value.filter(group => group.source === 'pack')
+  },
+  {
+    id: 'framework',
+    label: t('processDesigner.palettePlatformSections'),
+    groups: filteredGroups.value.filter(group => group.source !== 'pack')
+  }
+]);
 </script>

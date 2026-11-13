@@ -3406,6 +3406,8 @@
         "declarationClass": "Класс",
         "edgeKey": "ключ",
         "edgeOnRemove": "при удалении",
+        "palettePackSections": "Плагины",
+        "palettePlatformSections": "Платформа",
         "paletteGroups": {
             "entities": "Типы",
             "values": "Значения",

@@ -1788,38 +1788,21 @@ function compactInstanceSnapshot(type, instance, snapshotPaths = null) {
     // Contract-driven previews (SPEC §4 snapshot facet): a type that
     // declares its snapshot paths keeps exactly those — pack and org
     // declarations alike, no per-type branches in the framework. A type
-    // without the declaration gets the generic compact strip: previews
-    // never carry heavy geometry layers.
+    // without the declaration keeps its fields verbatim: the declaration
+    // owns what a preview carries.
     if (Array.isArray(snapshotPaths)) {
         const kept = {};
         for (const path of snapshotPaths) {
             const value = path.split('.').reduce((cursor, key) => (cursor?.[key] !== undefined ? cursor[key] : undefined), dto);
             if (value === undefined) continue;
-            if (path === 'fields.geometry') kept.geometry = compactGeometrySnapshot(value);
-            else kept[path.slice('fields.'.length)] = value;
+            kept[path.slice('fields.'.length)] = value;
         }
         snapshot.fields = kept;
         return snapshot;
     }
 
-    delete fields.layoutData;
-    delete fields.layerData;
-    delete fields.polygonParts;
-    if (fields.geometry) fields.geometry = compactGeometrySnapshot(fields.geometry);
     snapshot.fields = fields;
     return snapshot;
-}
-
-function compactGeometrySnapshot(geometry = {}) {
-    const compact = pickDefined(geometry, ['preview', 'dxfId', 'dimensions', 'bounds']);
-    return Object.keys(compact).length ? compact : undefined;
-}
-
-function pickDefined(source = {}, keys = []) {
-    return keys.reduce((acc, key) => {
-        if (source[key] !== undefined) acc[key] = source[key];
-        return acc;
-    }, {});
 }
 
 async function resolveConversationParticipantAuth(requesterAuth = {}, participantUserId = null) {

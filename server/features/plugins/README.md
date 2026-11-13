@@ -104,7 +104,9 @@ compiler, and admin domain route resolve), as species records whose id
 and command are the same plugin-qualified id
 `plugin.<pluginId>.<serviceId>`; they obey the same active-process
 service gating. A service's palette section is its declared listing
-`group`, falling back to the install name. The same services compose
+`group` (a slug validated by the listing contract; absent falls to the
+services tab), and the section renders in the designer palette's plugin
+tier with pack provenance. The same services compose
 into the projected command
 table (`projectedDomainsForOrganization`): a service's scalar signature
 fields ride as the command's `input.parameters` — the inputs a run
