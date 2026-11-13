@@ -121,7 +121,7 @@ distinguishes present null from absent field; secrets arrive redacted).
 
 ## Structure
 
-9 SFCs at folder root (canvas nodes, palette, dialogs, TypedValueControl)
+10 SFCs at folder root (canvas nodes, palette, preview channel mount, dialogs, TypedValueControl)
 + `inspector/` (3 SFCs: DeclarationEdgeInspector, DeclarationInspector,
 ProcessNodeInspector).
 Selection, draft persistence, graph sync, connection inference, palette queries, roles, screens,

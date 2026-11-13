@@ -89,6 +89,7 @@ installed plugins' records:
 | Editor bindings | `{ type, surface, modes }` per plugin-declared type — the served half of the type→surface contract ([components/generated](../../../components/generated/README.md) maps surface ids to components) |
 | Surface declarations | `{ id, url, surfaceContract, kind? }` per installed plugin module |
 | Preview bindings | `previews: [{ type, surface, url, surfaceContract }]`, one per type |
+| Preview channels | `previewChannels: [{ id, label, surface, url, surfaceContract }]` per plugin-declared designer preview tab (SPEC §28); channel ids are global across installs — a collision is a composition error |
 
 Editor bindings are file-type contracts: editor surfaces belong to
 `file`-class (payload-bearing) types declared by the same plugin — the
