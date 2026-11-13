@@ -37,6 +37,41 @@
   quarantined in `s`; preview tabs per plugin-declared channel. SPEC §28
   written; implementation slices above. No code changed this session.
 
+### Agent Notes (2026-11-12, agent/spec28-exec-20261112)
+
+- First execution slice landed (42e451820, 91bff7bca): the palette
+  renders two provenance tiers — plugin sections above platform
+  categories, provenance declared by the palette-group projection
+  (`source: 'pack' | 'framework'`) and mirrored in the SDK listing
+  contract; `parseListing` now validates the palette-section `group`
+  slug on services and projections (the registration gap the audit
+  found — it was read but never validated); the SDK README documents
+  the registration contract.
+- Plugin-home audit fixes: deleted the dead facade schemas
+  (`server/schemas/` — zero consumers); the chat snapshot fallback
+  strip no longer hardcodes facade field names in platform code — a
+  type without a declared §4 snapshot facet keeps its fields verbatim
+  (support README updated; support suite green). Audit verdict
+  otherwise: engines live in `workers/*` executors already (facade,
+  documents, tech-drawing carry zero platform imports); palette
+  sections, preview bindings, and surface mounts already register
+  through the listing contract; `docs/PLUGIN_AUTHORING.md` references
+  in `shared/plugin-surfaces.js` and `endpoint-executor.js` dangle —
+  the docs tree was dissolved into the README system (4560e3b6b) and
+  the pointers need re-homing (tracked below).
+- Remaining slices: node-scoped canvas diagnostics surfacing, preview
+  channels (listing key + designer tabs), artifact contract, build123d
+  plugin vertical.
+
+### Agent Notes (2026-11-12, dangling docs pointers)
+
+- `shared/plugin-surfaces.js` and
+  `packages/plugin-sdk/src/endpoint-executor.js` cite
+  `docs/PLUGIN_AUTHORING.md §1a/§executor`; that file dissolved into
+  the README tree in 4560e3b6b. The plugin-authoring shapes should
+  live in the plugin-sdk README (the authoring guide's home) — kept as
+  tracked debt until the SDK authoring-guide slice runs.
+
 ## Class library and Page class (SPEC §27)
 
 - [ ] WAITING — owner verification: registry-owned type lifetime — the
