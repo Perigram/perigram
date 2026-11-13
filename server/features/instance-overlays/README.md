@@ -30,7 +30,7 @@ One `instance_overlays` document per instance, keyed uniquely by
 
 Every block carries a client-authored unique `id`; block ids are the
 overlay's own namespace, distinct from the declared keys by shape
-(`properties`, `editor`, `relation:<key>`, `children:<key>`).
+(`properties`, `editor`, `relation:<key>`, `children:<lineageKey>:<typeId>`).
 
 ### order
 
@@ -39,10 +39,11 @@ The overlay addresses the record document's top-level sections:
 the declared structural open sections riding beneath it), and each
 child/relation section — `relation:<key>` for a relation (the inline chip
 section or its relation-scoped child collection, whichever renders it),
-`children:<key>` for a lineage-scoped child collection (the lineage key,
-else the child type id). The record header, the comments section (SPEC
-§22.17's trailing section), and inert empty-child stubs sit outside the
-order.
+`children:<lineageKey>:<typeId>` for a lineage-scoped child collection
+(one edge key may carry several child types; the key addresses each
+section apart), `children:<typeId>` for a lineage-less child. The record
+header, the comments section (SPEC §22.17's trailing section), and inert
+empty-child stubs sit outside the order.
 
 **Declared content is never deleted by the overlay.** Composition at read
 applies the authored order and keeps every declared section rendering: a
