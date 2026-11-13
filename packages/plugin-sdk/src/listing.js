@@ -141,6 +141,13 @@ export function parseListing(listing = {}) {
         throw listingError(`service ${service.id} cache is endpoint-only — a claim-mode run parks on the queue and replays through its own task record`);
       }
     }
+    for (const descriptor of [service.signature?.input, service.signature?.output]) {
+      for (const field of Object.values(descriptor?.base === 'record' ? descriptor.fields || {} : {})) {
+        if (field?.kind !== undefined && !/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/.test(String(field.kind))) {
+          throw listingError(`service ${service.id} field kind must be a namespaced slug like 'document.report' (got ${JSON.stringify(field.kind)})`);
+        }
+      }
+    }
   }
   const serviceIds = new Set(services.map(service => service.id));
   const serviceRefOf = (ref, what) => {

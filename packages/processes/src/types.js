@@ -91,6 +91,7 @@ export function sanitizeProcessType(type = {}) {
   if (clean.typeId && !ENTITY_TYPE_BASES.has(clean.base)) delete clean.typeId;
   if (clean.accepts && !ENTITY_TYPE_BASES.has(clean.base)) delete clean.accepts;
   if (clean.block && clean.base !== 'block') delete clean.block;
+  if (clean.kind && clean.base !== 'json') delete clean.kind;
   return clean;
 }
 
@@ -114,7 +115,8 @@ export function normalizeProcessType(type = {}) {
     'attachmentKind',
     'eventType',
     'taskType',
-    'capability'
+    'capability',
+    'kind'
   ]) {
     if (type[key]) normalized[key] = String(type[key]);
   }
@@ -192,7 +194,7 @@ export function processTypesCompatible(sourceType, targetType) {
   if (source.base === 'number' && target.base === 'number' && !source.unit && target.unit) {
     return { ok: true, implicit: true, source, target, coercion: 'adoptsUnit' };
   }
-  if (target.base === 'json') {
+  if (target.base === 'json' && !target.kind) {
     return { ok: true, implicit: true, source, target, coercion: 'toJson' };
   }
   // A single value wraps into the array its socket carries (item → list):
@@ -237,6 +239,7 @@ export function formatProcessType(type = {}) {
     || normalized.attachmentKind
     || normalized.eventType
     || normalized.taskType
+    || normalized.kind
     || '';
   const base = qualifier ? `${normalized.base}<${qualifier}>` : normalized.base;
   const unit = normalized.unit ? ` ${normalized.unit}` : '';
@@ -246,7 +249,7 @@ export function formatProcessType(type = {}) {
 
 function sameQualifiedType(source, target) {
   if (source.base !== target.base) return false;
-  for (const qualifier of ['unit', 'enumId', 'schema', 'block', 'opaqueType', 'attachmentKind', 'eventType', 'taskType']) {
+  for (const qualifier of ['unit', 'enumId', 'schema', 'block', 'opaqueType', 'attachmentKind', 'eventType', 'taskType', 'kind']) {
     if (target[qualifier] && source[qualifier] !== target[qualifier]) return false;
   }
   if (['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(source.base)) {
@@ -273,6 +276,9 @@ function validateTypeQualifiers(type) {
   }
   if (type.block && type.base !== 'block') {
     throw new Error(`Process type ${type.base} cannot carry block`);
+  }
+  if (type.kind && type.base !== 'json') {
+    throw new Error(`Process type ${type.base} cannot carry kind`);
   }
   if (type.base === 'array' && !type.itemType) {
     throw new Error('Process array type requires itemType');

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { resolveCtsDefinition } from './graph-protocol.js';
 import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '~/packages/cts/src/index.js';
 import { constructionInputsForContract, createDefinitionAuthoring, compileProcessDefinition, prepareAuthoredDefinition, validateProcessDefinition } from '~/packages/processes/src/index.js';
-import { facadeDomain, facadePackContent } from '../../../../test-tools/facade-plugin.js';
-import documentsListing from '../../../../workers/documents/listing.json' with { type: 'json' };
+import { facadeDomain, facadePackContent } from '../../../test-tools/facade-plugin.js';
+import documentsListing from '../../../workers/documents/listing.json' with { type: 'json' };
 
 // Contract migration (SPEC §20): persisted construction modes the type no
 // longer declares re-bind to the type's current default mode at the

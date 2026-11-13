@@ -87,8 +87,8 @@
                 "required": ["input", "output"],
                 "additionalProperties": true,
                 "properties": {
-                  "input": { "type": "object" },
-                  "output": { "type": "object" }
+                  "input": { "type": "object", "description": "SPEC §8 V-grammar descriptor; record fields may declare kind — a namespaced value slug (e.g. document.report) that gates socket compatibility" },
+                  "output": { "type": "object", "description": "SPEC §8 V-grammar descriptor; fields may declare kind as on the input" }
                 }
               }
             }
