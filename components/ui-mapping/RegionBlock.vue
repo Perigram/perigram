@@ -3,28 +3,30 @@
        set directly beneath (owner direction 2026-11-13) — packed beside
        its peers, with no count chip. A stub with no affordance renders
        nothing. -->
-  <div v-if="stubLine && (createControls.length || linkControls.length)" class="flex w-fit max-w-full flex-col gap-1">
-    <span :class="LAYOUT.sectionTitle">{{ regionLabel }}</span>
-    <div :class="LAYOUT.row">
-      <CreateControl
-        v-for="control in createControls"
-        :key="control.action.id"
-        :action="control.action"
-        :group="control.group"
-        :label="createControlLabel(control)"
-        :state-policy="node.statePolicy"
-        @run="emitRun"
-      />
-      <ActionButton
-        v-for="action in linkControls"
-        :key="`link:${action.id}`"
-        :action="action"
-        :state-policy="node.statePolicy"
-        :label="stubLinkLabel(action)"
-        @run="emitRun"
-      />
+  <template v-if="stubLine">
+    <div v-if="createControls.length || linkControls.length" class="flex w-fit max-w-full flex-col gap-1">
+      <span :class="LAYOUT.sectionTitle">{{ regionLabel }}</span>
+      <div :class="LAYOUT.row">
+        <CreateControl
+          v-for="control in createControls"
+          :key="control.action.id"
+          :action="control.action"
+          :group="control.group"
+          :label="createControlLabel(control)"
+          :state-policy="node.statePolicy"
+          @run="emitRun"
+        />
+        <ActionButton
+          v-for="action in linkControls"
+          :key="`link:${action.id}`"
+          :action="action"
+          :state-policy="node.statePolicy"
+          :label="stubLinkLabel(action)"
+          @run="emitRun"
+        />
+      </div>
     </div>
-  </div>
+  </template>
   <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
     <!-- SPEC §22.15: the header stays one line while the row has room —
          the label and its create set lead, the search and view setup
