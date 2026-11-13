@@ -452,8 +452,10 @@ the full record body mounts it on its dominant content's corner for every
 revision-scoped payload type — the payload preview's corner, or the
 editor band's corner when the editor is the record body (the
 [ui-mapping materialization](../ui-mapping/README.md) owns the
-placement). The trigger states the current version
-(`vN`; the revision list loads at mount) and opens a popover listing the
+placement). The trigger states the current version once the revision
+list resolves it (`vN`; the list loads at mount); a record with no
+minted revisions keeps the neutral history glyph. The trigger opens a
+popover listing the
 record's payload revisions newest-first with the current revision marked;
 the rows come from `GET /api/instance-revisions?typeId&instanceId&scope`
 through the instances store. Each row renders through the shared preview
