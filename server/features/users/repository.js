@@ -1,8 +1,16 @@
 import { connectDB } from '../../db/mongo.js';
-import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { collection } from '../../utils/repository.js';
 
-const COLLECTION = 'users';
+const users = collection('users');
+
+export const findById = users.findById;
+export const findByIds = users.findByIds;
+export const find = users.find;
+export const updateById = users.updateById;
+export const deleteById = users.deleteById;
+export const searchByName = (query, limit = 10) =>
+  users.searchByName(query, 'identity.name', limit);
 
 export async function create(data) {
   const db = await connectDB();
@@ -16,30 +24,15 @@ export async function create(data) {
       ...(passwordHash ? { passwordHash } : {}),
       ...(bot ? { bot } : {})
     },
-    _id: cleanData._id || data._id || new ObjectId()
+    _id: cleanData._id || data._id || undefined
   };
-  await db.collection(COLLECTION).insertOne(doc);
-  return doc;
-}
-
-export async function findById(id) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) });
-}
-
-export async function findByIds(ids = []) {
-  const flexibleIds = ids.map(toFlexibleId).filter(Boolean);
-  if (!flexibleIds.length) return [];
-  const db = await connectDB();
-  return await db.collection(COLLECTION)
-    .find({ _id: { $in: flexibleIds } })
-    .toArray();
+  return users.create(doc);
 }
 
 export async function findByEmail(email) {
   const db = await connectDB();
   const emailLower = email.toLowerCase();
-  return await db.collection(COLLECTION).findOne({
+  return await db.collection('users').findOne({
     $or: [
       { 'data.email': emailLower },
       { 'email': emailLower }
@@ -47,29 +40,9 @@ export async function findByEmail(email) {
   });
 }
 
-export async function find(filter = {}) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION).find(filter).toArray();
-}
-
-export async function searchByName(query, limit = 10) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION)
-    .find({
-      'identity.name': { $regex: escapeRegex(String(query || '')), $options: 'i' }
-    })
-    .sort({ 'identity.name': 1 })
-    .limit(limit)
-    .toArray();
-}
-
-function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 export async function findActiveMembersByOrganization(organizationId) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).find({
+  return await db.collection('users').find({
     'data.memberships': {
       $elemMatch: {
         organizationId: { $in: organizationIdValues(organizationId) },
@@ -81,7 +54,7 @@ export async function findActiveMembersByOrganization(organizationId) {
 
 export async function findActiveOwnersByOrganization(organizationId) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).find({
+  return await db.collection('users').find({
     'data.memberships': {
       $elemMatch: {
         organizationId: { $in: organizationIdValues(organizationId) },
@@ -92,19 +65,9 @@ export async function findActiveOwnersByOrganization(organizationId) {
   }).toArray();
 }
 
-export async function updateById(id, updates) {
-  const db = await connectDB();
-  const { _id, ...clean } = updates;
-  await db.collection(COLLECTION).updateOne(
-    { _id: toFlexibleId(id) }, 
-    { $set: clean }
-  );
-  return await findById(id);
-}
-
 export async function updateLastLogin(id) {
     const db = await connectDB();
-    await db.collection(COLLECTION).updateOne(
+    await db.collection('users').updateOne(
         { _id: toFlexibleId(id) },
         { $set: { 'data.lastLoginAt': new Date() } }
     );
@@ -112,7 +75,7 @@ export async function updateLastLogin(id) {
 
 export async function setMembershipStatus(userId, organizationId, status) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).updateOne(
+  return await db.collection('users').updateOne(
     { _id: toFlexibleId(userId), 'data.memberships.organizationId': toFlexibleId(organizationId) },
     { $set: { 'data.memberships.$.status': status } }
   );
@@ -120,7 +83,7 @@ export async function setMembershipStatus(userId, organizationId, status) {
 
 export async function removeMembership(userId, organizationId) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).updateOne(
+  return await db.collection('users').updateOne(
     { _id: toFlexibleId(userId) },
     { $pull: { 'data.memberships': { organizationId: toFlexibleId(organizationId) } } }
   );
@@ -128,7 +91,7 @@ export async function removeMembership(userId, organizationId) {
 
 export async function addMembership(userId, membership) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).updateOne(
+  return await db.collection('users').updateOne(
     { _id: toFlexibleId(userId) },
     { $push: { 'data.memberships': membership } }
   );
@@ -136,7 +99,7 @@ export async function addMembership(userId, membership) {
 
 export async function updateMembershipPermissions(userId, organizationId, permissions) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).updateOne(
+  return await db.collection('users').updateOne(
     { _id: toFlexibleId(userId), 'data.memberships.organizationId': toFlexibleId(organizationId) },
     { $set: { 'data.memberships.$.permissions': permissions, 'data.permissions': permissions } }
   );
@@ -144,7 +107,7 @@ export async function updateMembershipPermissions(userId, organizationId, permis
 
 export async function updateGlobalPermissions(userId, permissions) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).updateOne(
+  return await db.collection('users').updateOne(
     { _id: toFlexibleId(userId) },
     { $set: { 'data.permissions': permissions } }
   );
@@ -155,13 +118,8 @@ export async function updateAvatar(userId, avatar) {
   const update = avatar
     ? { $set: { 'data.avatar': avatar } }
     : { $unset: { 'data.avatar': '' } };
-  await db.collection(COLLECTION).updateOne({ _id: toFlexibleId(userId) }, update);
+  await db.collection('users').updateOne({ _id: toFlexibleId(userId) }, update);
   return await findById(userId);
-}
-
-export async function deleteById(id) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });
 }
 
 function organizationIdValues(organizationId) {

@@ -41,6 +41,7 @@ import {
 import { getEntityFieldAccessPolicy } from '~/shared/field-access-policies.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { toFlexibleId } from '~/server/utils/objectid.js';
+import { resolveOrganizationId } from '~/server/utils/organization-scope.js';
 import { hasPermissionGrant, normalizePermissionGrants } from '#shared/access-control.js';
 import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
@@ -2379,12 +2380,6 @@ export async function hasProcessDefinitionMembershipAccess(auth = {}, organizati
 function findOrganizationMembership(auth = {}, organizationId) {
   const target = organizationId?.toString();
   return (auth.memberships || []).find(item => item.organizationId?.toString() === target);
-}
-
-function resolveOrganizationId(auth = {}) {
-  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
-  if (!organizationId) throw createError({ statusCode: 403, message: 'Organization membership is required' });
-  return organizationId;
 }
 
 function getDomain() {

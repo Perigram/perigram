@@ -9,6 +9,7 @@
 // ObjectIds from flexible-id writes) through the flexible-id helper.
 import { filterFromFlatFilters } from '#shared/instance-filters/index.js';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { escapeRegex } from '../../utils/repository.js';
 
 export function listQueryFilter(filters = {}, declaredLineageKeys = new Set()) {
   const filter = filterFromFlatFilters(filters, { lineageKeys: declaredLineageKeys });
@@ -57,8 +58,4 @@ function equalityForms(field, value) {
     return flexible === value ? [value] : [value, flexible];
   }
   return [value];
-}
-
-function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

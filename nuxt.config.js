@@ -17,8 +17,7 @@ const perigramAliases = {
 const portableAliases = {
     '#shared': resolveRoot('./shared'),
     '#packages': resolveRoot('./packages'),
-    '#utils': resolveRoot('./utils'),
-    '#services': resolveRoot('./server')
+    '#utils': resolveRoot('./utils')
 }
 const cssDeclarations = tokens => Object.entries(tokens).map(([name, value]) => `${name}:${value}`).join(';')
 const appTokenStyles = `:root{${cssDeclarations(cssVariableTokens)}}.dark-mode{${cssDeclarations(darkCssVariableTokens)}}`

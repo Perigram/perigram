@@ -674,12 +674,6 @@
     {
       "kind": "lineage",
       "source": "organization",
-      "target": "user",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
       "target": "workflow_override",
       "via": "lineage.organizationId"
     }

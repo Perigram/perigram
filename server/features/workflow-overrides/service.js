@@ -3,6 +3,7 @@ import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { normalizeWorkflow } from '#packages/workflows/src/index.js';
+import { resolveOrganizationId } from '~/server/utils/organization-scope.js';
 import { resolveProcessWorkflow, getActiveCompiledProcess } from '~/server/features/process-definitions/runtime.js';
 import * as repository from './repository.js';
 
@@ -89,14 +90,6 @@ function assertWorkflowAdmin({ typeId, organizationId, auth }) {
 
 function typeIdToFeature(typeId) {
   return typeId.replace(/_/g, '-');
-}
-
-function resolveOrganizationId(auth = {}) {
-  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
-  if (!organizationId) {
-    throw createError({ statusCode: 403, message: 'Organization membership is required' });
-  }
-  return organizationId;
 }
 
 function serializeOverride(override) {
