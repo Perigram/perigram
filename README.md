@@ -78,7 +78,6 @@ commands.
 | `documents-executor` | `workers/documents/` | The documents plugin's endpoint-mode executor (table projections, text extraction, CSV composition, template fills and PDF rendering; serves the text/csv editor surfaces and their vendored runtimes as static GETs). |
 | `facade-executor` | `workers/facade/` | The facade plugin's endpoint-mode executor (DXF/OCCS/nesting compute over values; serves the plugin's editor and preview surface modules as static GETs). |
 | `tech-drawing-executor` | `workers/tech-drawing/` | The tech-drawing plugin's executor: serves the DXF placement service, the sketch editor surface module, and its vendored runtime dependencies. |
-| `build123d-executor` | `workers/build123d/` | The build123d plugin's executor (SPEC §28 engine-as-plugin vertical): the box-bake services and the designer 3D preview channel. |
 | `mongo` | Docker image | MongoDB documents and GridFS files. |
 | `livekit` | Docker image (`livekit/livekit-server`, `livekit.dev.yaml`) | Self-hosted WebRTC SFU for voice/video calls; rooms are derived and token-gated by the `livekit` capability module. Call recordings ride an external egress plane (LiveKit + Redis + `livekit/egress` + an S3-compatible bucket) deployed beside whichever server the app targets. |
 
@@ -271,7 +270,6 @@ builds only).
 | Documents plugin (executor + listing) | [workers/documents/README.md](./workers/documents/README.md) |
 | Facade plugin (executor + listing) | [workers/facade/README.md](./workers/facade/README.md) |
 | Tech-drawing plugin (executor + listing) | [workers/tech-drawing/README.md](./workers/tech-drawing/README.md) |
-| build123d plugin (executor + listing) | [workers/build123d/README.md](./workers/build123d/README.md) |
 | Type system (CTS) | [packages/cts/README.md](./packages/cts/README.md) |
 | Process compiler | [packages/processes/README.md](./packages/processes/README.md) |
 | Core package | [packages/core/README.md](./packages/core/README.md) |
