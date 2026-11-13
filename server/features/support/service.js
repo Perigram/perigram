@@ -33,7 +33,7 @@ const ATTACHMENT_AUDIO_EXTENSIONS = {
     'audio/x-wav': 'wav'
 };
 const INSTANCE_OPTION_LOADERS = {
-    user: (auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
+    user: (auth) => usersService.list(auth)
 };
 
 /**
@@ -1410,7 +1410,7 @@ export async function updateConversationPrefs(auth, body = {}) {
 
 async function addReachableUserConversations(conversations, auth) {
     const byKey = new Map(conversations.map(conversation => [conversation.conversationKey, conversation]));
-    const users = await usersService.list(auth.userId, auth.organizationId, auth.role, auth).catch(() => []);
+    const users = await usersService.list(auth).catch(() => []);
     for (const user of users) {
         const dto = user?.toJSON ? user.toJSON() : user;
         const userId = dto?._id?.toString?.() || dto?._id || dto?.id;

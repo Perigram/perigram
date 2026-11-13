@@ -6,5 +6,5 @@ export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const id = event.context.params.id;
   const body = await readBody(event);
-  return await organizationsService.update(id, body, auth.userId, auth.organizationId, auth.role, auth);
+  return await organizationsService.update(id, body, auth);
 });

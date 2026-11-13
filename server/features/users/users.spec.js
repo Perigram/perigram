@@ -231,7 +231,7 @@ describe('User Management & Auth', () => {
       }
     }]);
 
-    const users = await userService.list('user-one', orgId.toString(), null, { organizationId: orgId.toString(), memberships: [] });
+    const users = await userService.list({ userId: 'user-one', organizationId: orgId.toString(), memberships: [] });
 
     expect(users.map(user => user.toJSON().identity.name).sort()).toEqual(['User One', 'User Two']);
   });

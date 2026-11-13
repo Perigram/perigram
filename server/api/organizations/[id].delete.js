@@ -5,5 +5,5 @@ import { requireAuth } from '~/server/utils/permissions';
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const id = event.context.params.id;
-  return await organizationsService.remove(id, auth.userId, auth.organizationId, auth.role, auth);
+  return await organizationsService.remove(id, auth);
 });

@@ -5,6 +5,6 @@ import { requireAuth } from '../../utils/permissions.js';
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const body = await readBody(event);
-  const org = await organizationsService.create(body, auth.userId, auth.organizationId, auth.role, auth);
+  const org = await organizationsService.create(body, auth);
   return org.toJSON();
 });
