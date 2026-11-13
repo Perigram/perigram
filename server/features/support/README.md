@@ -201,9 +201,10 @@ generated-screen access granted. Snapshots are contract-driven (SPEC §4
 those, resolved through the registry view — pack and org declarations
 alike, with per-type branches confined to declarations (the cassette
 declaration carries the thumbnail-critical geometry paths because
-direct-chat inline cards render from the stored snapshot; types without
-the facet get the generic compact strip, and heavy geometry layers stay
-off previews). Message writes drop unsupported or unreadable refs.
+direct-chat inline cards render from the stored snapshot; a type
+without the facet keeps its fields verbatim — what a preview carries
+is the declaration's decision). Message writes drop unsupported or
+unreadable refs.
 Messages may contain only attachments; an empty body is valid as long
 as at least one instance ref survives write-time validation. Agent bots
 attach through the same seam: the chat tool `attach_instances`

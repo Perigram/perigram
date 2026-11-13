@@ -202,7 +202,10 @@ time), values, list/tree algebra, flow, and pack-owned plugin tabs
 (`packPaletteGroups`; a packless service falls back to `servicesPaletteGroups`)
 — a pack's declared data operations (the documents pack's `tableData` tab,
 the facade pack's `facade` tab) surface pre-bound in the pack's own
-section. The `instances` group carries the pinned-entity source: a
+section. Every palette group carries its registration provenance
+(`source: 'pack' | 'framework'`) — declared by the group's projection,
+never inferred from its id or label — and the palette renders the pack
+tiers first. The `instances` group carries the pinned-entity source: a
 `source.literalItem` pre-typed `entityRef` whose value is one authored
 instance pick — the exact-record producer a graph wires into any
 construct's ref sockets (the create dialog drops the supplied row).

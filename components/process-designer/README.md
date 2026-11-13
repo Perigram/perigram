@@ -223,13 +223,16 @@ The pass is the pure `utils/processDesignerArrangement.js`:
 
 The rail palette and the canvas context palette render through one
 component, `OperationPalette.vue` — searchable chip groups with localized
-group labels above wraps of small PrimeVue buttons. Each chip's dot
+group labels above wraps of small PrimeVue buttons, arranged in two
+provenance tiers: plugin sections first (palette groups whose
+registration declares the pack source), then the platform categories.
+Search spans every tier. Each chip's dot
 carries the item's category signal
 (`utils/processDesignerSignals.js` is the single group→signal map; its
 signal classes are literal in the util because Tailwind compiles from
 source text). Search matches the localized job names and descriptions;
 chips carry the operation description on hover. Palette
-membership and grouping are the
+membership, grouping, and provenance are the
 [packages/processes](../../packages/processes/README.md) contract.
 
 Inline authoring:

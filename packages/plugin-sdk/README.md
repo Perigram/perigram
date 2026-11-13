@@ -136,7 +136,14 @@ declared endpoint-mode `service` (`resolve: { service:
 and the service's JSON response is the projection value; `handler`
 resolves are the pack-mount binding and refuse here).
 `parseListing` throws on every violation; `normalizeListing` returns the
-catalog document the publish API stores.
+catalog document the publish API stores. A service or projection may
+declare `group` — a slug naming the process-designer palette section its
+operation drops into (SPEC §8 plugin-tab law: grouped operations render
+in the plugin's own tab; an ungrouped service falls to the services
+tab, an ungrouped projection stays palette-unlisted); `parseListing`
+rejects a malformed slug, and `group` is mirrored in
+[`src/listing.schema.json`](./src/listing.schema.json) for editors and
+agents authoring listings.
 
 ## Executor harnesses
 
