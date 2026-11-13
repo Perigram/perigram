@@ -1,7 +1,7 @@
 # CONTAINER: Workers
 
 The worker tier is the nesting solver and the plugins' executors
-(documents, tech-drawing, facade). The `task_runs` protocol under
+(documents, tech-drawing, facade, build123d). The `task_runs` protocol under
 `/api/tasks/*` is the
 [task runtime's](../server/core/tasks/README.md) contract.
 
@@ -16,6 +16,7 @@ Target law: [SPEC.md](./SPEC.md).
 | facade | Endpoint-mode plugin executor | `workers/facade/index.js` | The facade plugin's compute and surfaces — see [workers/facade](./facade/README.md). |
 | documents | Endpoint-mode plugin executor | `workers/documents/index.js` | The documents plugin's projections and text/csv surfaces — see [workers/documents](./documents/README.md). |
 | tech-drawing | Endpoint-mode plugin executor | `workers/tech-drawing/index.js` | Serves the DXF placement service, the sketch and DXF editor surface modules, and vendored runtimes (the CadCraft browser edition included) — see [workers/tech-drawing](./tech-drawing/README.md). |
+| build123d | Endpoint-mode plugin executor | `workers/build123d/index.js` | The build123d plugin's box-bake services and the designer 3D preview channel — see [workers/build123d](./build123d/README.md). |
 
 ## Docker
 

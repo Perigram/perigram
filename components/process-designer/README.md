@@ -68,10 +68,10 @@ so the canvas stays legible across application themes.
 **Cards**
 
 | Channel | Encodes | Values |
-|---|---|---|
+|---|---|
 | Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation, `inline` = the one-line literal |
 | Card surface | population primacy | the effect species except remove render the primary-tinted surface (`--ck-surface-primary`) — the primary nodes; every other node keeps the plain content surface. One predicate: `utils/processDesignerPopulation.js` |
-| Card border | chrome + selection | the quiet content border for every card; the selected border is the single card state |
+| Card border | chrome + selection + fault | the quiet content border for every card; the selected border is the selection state; the danger border marks a faulted node — one carrying anchored validation diagnostics for itself or a wire at its endpoint (the messages render in the card's leading rows and ride the header tooltip) |
 
 Canvas nodes carry no category accent — the frame is plain; card concern
 rides the label and icon. Effects and state declarations are the primary
