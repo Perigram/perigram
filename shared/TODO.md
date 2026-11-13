@@ -40,6 +40,28 @@
   Landed 2026-10-25: export and its `PERMISSION_TEMPLATES` import deleted; the spec imports `PERMISSION_TEMPLATES` directly from permission-templates.js and passes unchanged.
 - [x] stores/navigation.js:66 → `screen.typeId || screen.typeId` duplicated operand (residue of `entityType || typeId`); collapse to `screen.typeId` (paired with the stores/README sentence item above).
   Landed 2026-10-25: operand collapsed to `screen.typeId || ''`; stores/README.md states the single-`typeId` read.
+- [x] Cut the empty design-system residual vocabulary: `DESIGN_SYSTEM_FIELD_GROUPS`, `getEntityFieldGroups`, the `DESIGN_SYSTEM_CONTRACT` aggregate, the empty `DESIGN_SYSTEM_SURFACES` shim, `getEntitySurfaceContract`, the `fieldPaths`/`ui-fields` manifest validation chain (`validateUiFieldPaths`, `isAllowedFieldPath`, `contractFieldPaths`), and the `fieldGroups`/`surfaces` keys on `DESIGN_SYSTEM_ENTITIES`; `framework.manifest.json` regenerated (fieldPaths rows dropped).
+  Landed 2026-11-13 (session `agent/deslop-20261112`, worktree `.agent-worktrees/deslop-20261112`).
+
+  #### Agent Notes (2026-11-13, residual vocabulary cut)
+
+  Design-system guard repaired in the same cut — on the integration
+  tree it failed four assertions. Spacing/drift offenders now ride the
+  ladder and the scoped-style law: RegionBlock's layout-option icon
+  drops `text-lg` (icons inherit their font size everywhere else);
+  `gap-0.5`/`mt-0.5` half-steps in DocumentSectionShell,
+  OverlayInsertControl, and SurfaceHeader move to ladder step 1; the
+  four type-designer container-grid forms (ClassFieldRow,
+  DescriptorEditor, FieldDeclarationForm, StateDeclarationForm)
+  register as scoped `layout` exceptions with `gap` moved onto the
+  elements as `gap-3`; the OverlayTextBlock placeholder comment is
+  reworded (a `text-` token in prose false-positived the color-alias
+  scanner). The two cts specs import `./index.js` and `./pack/*`
+  directly (the compat directory dissolved earlier in the session
+  branch). Validation: design-system 34, fact-display-vocabulary,
+  framework-packages, cts grammar/projection specs green; SSR smoke
+  27; check-arch, docs:validate, framework:manifest and
+  framework:validate green.
 
 ### Code findings (truth pass 2026-10-24)
 
