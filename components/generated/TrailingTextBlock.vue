@@ -16,12 +16,13 @@
       @request-view="requestView"
     />
     <!-- The idle line is the placeholder alone (owner direction
-         2026-11-13): the engine mounts from the first focus, so the
-         always-on tail costs nothing until it is used. -->
+         2026-11-13), rendered as plain document text exactly where the
+         engine's own placeholder sits: the engine mounts from the first
+         focus, so the always-on tail costs nothing until it is used. -->
     <button
       v-else
       type="button"
-      class="w-full rounded-ui px-3 py-1.5 text-left text-supporting text-muted transition-colors hover:bg-subtle"
+      class="w-full cursor-text text-left text-prose text-muted"
       @click="activate"
       @focus="activate"
     >

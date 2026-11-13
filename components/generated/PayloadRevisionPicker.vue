@@ -2,6 +2,7 @@
   <Button
     v-if="shown"
     :label="versionLabel"
+    :icon="currentNumber == null ? 'pi pi-history' : undefined"
     text
     rounded
     size="small"
@@ -137,10 +138,11 @@ const viewed = ref(null);
 
 const instanceId = computed(() => String(props.entity?._id || props.entity?.id || ''));
 const shown = computed(() => Boolean(props.type?.id && props.type?.payload && props.type?.revisions && instanceId.value));
-// The trigger states the record's current version; the revision list
-// loads at mount so the stamp is live before the popover opens.
+// The trigger states the record's current version once the revision
+// list resolves it; a record with no minted revisions keeps the neutral
+// history glyph — no invented number.
 const currentNumber = computed(() => revisions.value[0]?.data?.number ?? null);
-const versionLabel = computed(() => (currentNumber.value != null ? `v${currentNumber.value}` : 'v…'));
+const versionLabel = computed(() => (currentNumber.value != null ? `v${currentNumber.value}` : ''));
 onMounted(() => { if (shown.value) load(); });
 
 // The frozen payload reference (the wire payload block the revision
