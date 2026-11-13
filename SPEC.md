@@ -1562,3 +1562,40 @@ in place; a `group` class requires at least one child.
 The default page type is a Page class carrying block content. Custom
 pages migrate into Page-class instances with their sections and nesting
 preserved; the sidebar page tree is that instance tree.
+
+## 28. One graph system (owner direction 2026-11-12)
+
+The platform owns exactly one node-graph system:
+[@perigram/processes](./packages/processes/README.md) is the composition
+calculus (CTS SPEC §8) and the process compiler; the process designer is
+its authoring surface. Engines, kernels, and computation backends enter
+exclusively as plugins: their value services and projections surface as
+the pack's palette sections, their editors and previews as plugin
+surfaces. The platform carries no engine code.
+
+The node canvas adopts the build123d-flow interaction model — dock with
+provenance groups (each plugin's sections selectable beside the
+built-ins), search over the full catalog, generated node cards over
+discovered contracts, node-scoped evaluation errors, per-output preview
+visibility. It is a presentation adapter over the existing authoring
+seam (`createDefinitionAuthoring`): every gesture authors species
+records, and the compiled contract stays the product. A second graph
+format, validator, or evaluator is a defect; `NOTES-typesystem-and-nodes.md`
+and `NOTES-templates.md` record decisions this law supersedes.
+
+Scripting is CEL expressions (CTS SPEC §15) inside authored contracts;
+arbitrary user code is quarantined in `s`-species services behind typed
+`V -> V` signatures. The palette carries no Python or JavaScript
+function node.
+
+### Preview tabs
+
+A process definition carries typed preview channels derived from the
+authored graph's outputs. The designer renders one preview surface per
+channel, addressable as tabs: each tab names its channel (3D viewport,
+document preview, resolved table). A channel is plugin-declared — a
+plugin whose palette section feeds a channel binds the channel and
+serves its preview surface through the plugin surface contract — or
+built-in (the compiled app preview). Preview surfaces are read-only
+projections of preview-mode evaluation; they author nothing and execute
+no effect species.

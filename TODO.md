@@ -1,5 +1,42 @@
 # TODO
 
+## One graph system (SPEC §28, owner direction 2026-11-12)
+
+- [ ] Adopt the build123d-flow dock on the process designer canvas:
+  provenance groups with plugin palette sections as selectable
+  categories, full-catalog search, palette placement served by
+  `createProcessDesignerContract` groups.
+- [ ] Node-scoped evaluation errors on the canvas: surface anchored
+  diagnostics per node and port from the existing validation passes.
+- [ ] Typed preview tabs on the designer: one tab per plugin-declared
+  preview channel (3D viewport, document preview, table) beside the
+  built-in compiled preview; preview surfaces mount read-only through
+  the plugin surface contract and evaluate in preview mode with no
+  effect species.
+- [ ] List the preview-channel declaration key in the plugin listing
+  contract (`packages/plugin-sdk`) beside `surfaces`/`previews`.
+- [ ] Content-addressed artifact contract: SHA-256 payload hashing,
+  immutable artifact records with representations (native-source,
+  canonical, preview), deterministic cache keys for pure `s`-species
+  services (definition id + version + canonical params + input
+  hashes), fidelity metadata on service declarations; adopted by the
+  documents and facade executors.
+- [ ] build123d plugin vertical slice: value types, services backed by
+  the plugin's executor, a palette section pre-bound per SPEC §8, one
+  authored graph baking a cassette parameter change through it, one
+  preview channel binding a 3D viewport surface.
+
+### Agent Notes (2026-11-12, agent/graph-unification-20261112)
+
+- Consultation session. Compared `NOTES-typesystem-and-nodes.md`,
+  `NOTES-templates.md` (HAG), and github.com/1suo/build123d-flow against
+  the process graph. Owner direction: keep one graph system — processes
+  owns the calculus; build123d-flow contributes the canvas UX as a
+  presentation adapter over the authoring seam; engines arrive as
+  plugins owning palette sections; scripting stays CEL with user code
+  quarantined in `s`; preview tabs per plugin-declared channel. SPEC §28
+  written; implementation slices above. No code changed this session.
+
 ## Class library and Page class (SPEC §27)
 
 - [ ] WAITING — owner verification: registry-owned type lifetime — the
