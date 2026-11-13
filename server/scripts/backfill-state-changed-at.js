@@ -5,8 +5,7 @@
 // else the doc's updatedAt. Dry-run by default; `--apply` persists.
 // Idempotent: re-running is a no-op.
 import { connectDB } from '../db/mongo.js';
-
-const CLASS_COLLECTIONS = ['files', 'items', 'groups', 'processes'];
+import { CLASS_COLLECTIONS } from '../../packages/cts/src/index.js';
 
 export async function runStateChangedAtBackfill(database, { apply = false } = {}) {
   const db = database || await connectDB();
