@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
     success: true,
     registry: {
       id: registry.id,
-      domainId: 'cnc',
+      domainId: 'framework',
       entityCount: (domain?.entities || []).length,
       workflowCount: Object.keys(domain?.workflows || {}).length,
       commandCount: registry.listCommandDefinitions().length,
