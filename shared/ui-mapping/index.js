@@ -1126,6 +1126,7 @@ export function resolveContainerTraits({
     : profile.width;
   const profileDensity = Number.isFinite(density) ? density : (profile.density ?? 1);
   return Object.freeze({
+    hostKind,
     width,
     widthRem: Number.isFinite(widthRem) ? widthRem : null,
     height: height || profile.height,

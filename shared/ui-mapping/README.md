@@ -578,7 +578,10 @@ maps to the `CONTAINER_WIDTH_STEPS` steps (narrow / medium 40rem / wide
 per host
 kind — the measured box wins over the profile, and a placement box
 overrides height/scroll with the host record's values while measuring its
-own width. Density derives from the host profile alone (bounded hosts —
+own width. The resolved record carries its `hostKind`, so consumers can
+gate host-specific presentations (the record popup's compact document)
+on the box they actually render in. Density derives from the host profile alone
+(bounded hosts —
 panes, popups — ride the compact rhythm; pages and dialogs ride the page
 rhythm); an explicit
 value (a placement box inheriting its host's density) wins over the

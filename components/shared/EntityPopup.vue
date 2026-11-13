@@ -10,7 +10,10 @@
     :show-default-footer="false"
   >
     <template #header>
-      <div class="flex min-w-0 flex-1 items-center gap-2">
+      <!-- The trailing 8px keeps the step-up off the preset's close
+           button: the header row stretches to the dialog edge, so
+           without it the two icon buttons touch. -->
+      <div class="flex min-w-0 flex-1 items-center gap-2 pr-2">
         <!-- The record header renders into the dialog header, so the popup
              carries one title surface and its action cluster. -->
         <div ref="popupHeader" class="min-w-0 flex-1" />

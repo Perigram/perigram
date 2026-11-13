@@ -12,6 +12,7 @@
 import { computed } from 'vue';
 import { useInstancesStore } from '~/stores/instances';
 import { editorMountMode } from '~/components/generated/file-surfaces.js';
+import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 
 // The editor mounted as a page surface (SPEC §4): the file-surface
 // registry's workspace-page mount rendered flush under the unified
@@ -29,10 +30,16 @@ const props = defineProps({
 });
 
 const instances = useInstancesStore();
+const hostContainer = useHostContainerTraits();
 const instanceId = computed(() => String(props.instance?._id || props.instance?.id || ''));
 const wireRecord = computed(() => instances.dtoFor(instances.canonicalTypeKey(props.type?.id), instanceId.value)
   || props.instance);
-const mode = computed(() => (instanceId.value ? editorMountMode(props.type?.id, wireRecord.value) : 'edit'));
+// The popup's editor band carries no chrome channel, so it renders the
+// read presentation; editing opens through the step-up.
+const mode = computed(() => {
+  if (!instanceId.value) return 'edit';
+  return hostContainer.value?.hostKind === 'popup' ? 'read' : editorMountMode(props.type?.id, wireRecord.value);
+});
 const mountProps = computed(() => props.surface.workspacePage?.props?.({
   entity: wireRecord.value,
   instanceId: instanceId.value,

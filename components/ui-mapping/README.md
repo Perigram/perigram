@@ -308,7 +308,9 @@ application.
   over the editor mounted flush (`RecordEditorBody`
   [generated](../generated/README.md) with the editor-page chrome
   channel) — no property rows, trailing sections, stubs, or overlay
-  composition; the popup host keeps the compact document. In the
+  composition; the popup host keeps the compact document, whose editor
+  band mounts read-only (the popup carries no chrome channel; editing
+  opens through the step-up). In the
   `peek` presentation the record keeps the ladder arrangement — the
   wide step's side outcome lays the body beside the weight-earned side
   column, narrower hosts take the children's own step outcome below
@@ -567,11 +569,12 @@ application.
   host-owned leading cluster entries through the `cluster` slot (the
   record overlay's save, SPEC §26; the custom page's save), the
   comments entry, then action groups by
-  control kind with hairline dividers between non-empty groups
-  (`LAYOUT.actionGroup`/`actionDivider`): record utilities — the
+  control kind with hairline dividers between consecutive non-empty
+  groups (`LAYOUT.actionGroup`/`actionDivider`): record utilities — the
   construct re-derive — then at most `HEADER_ACTIONS_INLINE` generated
-  buttons inline — a third and every further action join one popup
-  ellipsis menu with the same localized labels. The comments entry
+  buttons inline with the overflow ellipsis in the same group — a third
+  and every further action join one popup ellipsis menu with the same
+  localized labels — then the step-up. The comments entry
   (SPEC §22.17) renders wherever the header carries a record identity:
   a provided `recordCommentsPanel` channel (the page hosts — routed
   page, pane, workspace page — provide it) opens the record's thread

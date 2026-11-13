@@ -28,7 +28,9 @@ same-origin. Orgs connect the executor through the install's
   CadCraft canvas (the declared `cadcraft` dependency), the
   `{spot:<name>}` anchors list beside it — add (a canvas click picks the
   insertion point into the X/Y form), rename, delete — and every edit
-  re-opens the spliced DXF so the canvas shows the saved truth. Under
+  re-opens the spliced DXF so the canvas shows the saved truth. The
+  document name and save ride the host header through the `pageChrome`
+  channel (SPEC §4). Under
   mount `mode: 'read'` (SPEC §4) the canvas and the anchor rows render
   view-only. The
   canvas reads the layer-normalized copy (`withLayerTable`: every

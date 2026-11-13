@@ -1,9 +1,10 @@
-// Read-only degradation (SPEC §4): mount mode 'read' leaves the DXF
-// canvas and the anchor list view-only — the fit control and the marker
-// rows render, the marker authoring form and save die; the edit mount
-// keeps them.
+// Editor chrome hand-off and read-only degradation (SPEC §4): the
+// surface binds its document state into the host's page-chrome channel
+// (the header owns the name and save); mount mode 'read' leaves the
+// canvas and the anchor list view-only — no marker authoring, no chrome
+// binding; the edit mount keeps them.
 import { describe, it, expect, vi } from 'vitest';
-import { createSSRApp, h, ref, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } from 'vue';
+import { createSSRApp, h, ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
 vi.mock('cadcraft', () => ({ CadCraftHost: class CadCraftHost {} }));
@@ -17,10 +18,9 @@ const ButtonStub = (props, { slots }) => h('button', {
 const InputTextStub = () => h('input', { 'data-input-text': 'true' });
 const InputNumberStub = () => h('input', { 'data-input-number': 'true' });
 const MessageStub = (props, { slots }) => h('div', { 'data-message': String(props.severity || '') }, slots?.default ? slots.default() : null);
-const stub = (props, { slots }) => (slots?.default ? slots.default() : null);
 
 const mountContext = () => ({
-  vue: { h, ref, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent },
+  vue: { h, ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent },
   components: {
     Button: ButtonStub, InputNumber: InputNumberStub, InputText: InputTextStub,
     Message: MessageStub
@@ -36,26 +36,34 @@ const persistence = {
   rename: async () => {}
 };
 
+const chromeChannel = () => reactive({ api: null, bind(next) { this.api = next; } });
+
 describe('dxf-editor surface mount', () => {
-  it('mode read renders the canvas shell and title without authoring or save', async () => {
+  it('mode read renders the canvas shell and anchor list without authoring', async () => {
+    const pageChrome = chromeChannel();
     const surface = surfaceModule.default(mountContext());
-    const app = createSSRApp(surface, { record: { _id: 'dxf-1', name: 'Frame.dxf' }, persistence, mode: 'read' });
+    const app = createSSRApp(surface, { record: { _id: 'dxf-1', name: 'Frame.dxf' }, persistence, mode: 'read', pageChrome });
     const html = await renderToString(app);
-    expect(html).toContain('Frame.dxf');
-    expect(html).toContain('data-button-icon="pi pi-expand"');
+    expect(html).toContain('rounded-panel');
     expect(html).toContain('dxfEditor.markers');
+    expect(html).toContain('common.loading');
     expect(html).not.toContain('data-button-label="common.save"');
     expect(html).not.toContain('data-button-icon="pi pi-trash"');
     expect(html).not.toContain('data-input-text');
     expect(html).not.toContain('data-input-number');
+    expect(pageChrome.api).toBe(null);
   });
 
-  it('edit mode keeps the save control and the marker authoring form', async () => {
+  it('edit mode binds the header chrome and keeps the marker authoring form', async () => {
+    const pageChrome = chromeChannel();
     const surface = surfaceModule.default(mountContext());
-    const app = createSSRApp(surface, { record: { _id: 'dxf-1', name: 'Frame.dxf' }, persistence });
+    const app = createSSRApp(surface, { record: { _id: 'dxf-1', name: 'Frame.dxf' }, persistence, pageChrome });
     const html = await renderToString(app);
-    expect(html).toContain('data-button-label="common.save"');
     expect(html).toContain('data-input-text');
     expect(html).toContain('data-input-number');
+    expect(pageChrome.api?.name).toBe('Frame.dxf');
+    expect(pageChrome.api?.dirty).toBe(false);
+    expect(typeof pageChrome.api?.save).toBe('function');
+    expect(typeof pageChrome.api?.rename).toBe('function');
   });
 });
