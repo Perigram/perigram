@@ -21,7 +21,7 @@ import {
   renderPdfFromWorkbook,
   workbookTemplateTokens
 } from './fill.js';
-import { composeReport, exportMarkdown, parseMarkdown } from './report.js';
+import { composeReport, exportMarkdown, extractTable, parseMarkdown, renderReportHtml, renderReportPdf } from './report.js';
 
 function badRequest(message) {
   const error = new Error(message);
@@ -149,6 +149,13 @@ export const services = {
   'parse-markdown': async ({ text } = {}) => parseMarkdown(text),
   'export-markdown': async ({ document } = {}) => exportMarkdown(document),
   'compose-report': async (input = {}) => composeReport(input),
+  'extract-table': async ({ document } = {}) => extractTable(document),
+  'render-html': async ({ report } = {}) => renderReportHtml(report),
+  'render-report-pdf': async ({ report, name } = {}) => toPayload(
+    await renderReportPdf(report),
+    'application/pdf',
+    `${baseName(name || report?.title || 'report')}.pdf`
+  ),
   // Template fill (SPEC §24): the template ref's payload plus the wired
   // values in, the filled file out as the created record's payload. The
   // operator's typed name (a declared input, data-qualified on the wire)
