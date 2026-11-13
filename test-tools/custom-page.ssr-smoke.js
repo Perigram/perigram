@@ -22,6 +22,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { usePagesStore } from '~/stores/pages';
 import { useViewsStore } from '~/stores/views';
+import { normalizePageDocument } from '#shared/page-document.js';
 import en from '~/i18n/locales/en.json';
 
 globalThis.$fetch = vi.fn(async () => ({}));
@@ -54,9 +55,9 @@ const bootPage = async ({ tab, seed = () => {} } = {}) => {
     { _id: 'pg-2', kind: 'page', name: 'Crew board', parentId: null },
     { _id: 'sec-1', kind: 'section', name: 'Notes', parentId: null }
   ];
-  pages.contents = {
-    'pg-1': '# Walls\n\n- battens\n- cladding',
-    'pg-2': '# Crew\n\n```view\n{"id":"v-1","name":"Wall crew"}\n```'
+  pages.documents = {
+    'pg-1': normalizePageDocument({ blocks: [{ id: 't-1', kind: 'text', text: '# Walls\n\n- battens\n- cladding' }] }),
+    'pg-2': normalizePageDocument({ blocks: [{ id: 't-1', kind: 'text', text: '# Crew' }, { id: 'v-1', kind: 'view', view: { id: 'v-1', name: 'Wall crew', typeId: 't-wall' } }] })
   };
   pages.loaded = true;
   seed(pinia);

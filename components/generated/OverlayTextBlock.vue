@@ -9,7 +9,7 @@
     @keydown.ctrl.enter.stop.prevent="closeEditor"
   >
     <CrepeEditor
-      v-if="session?.writable"
+      v-if="session?.writable && mounted"
       ref="editor"
       class="ck-inline-editor"
       :default-value="block.text"
@@ -29,7 +29,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import CrepeEditor from './CrepeEditor.vue';
 import MarkdownBlocks from './MarkdownBlocks.vue';
 
@@ -45,6 +45,10 @@ const props = defineProps({
 
 const root = ref(null);
 const editor = ref(null);
+// The Crepe engine mounts only in a browser; the server render shows the
+// markdown read face until hydration.
+const mounted = ref(false);
+onMounted(() => { mounted.value = true; });
 const initialBlock = computed(() => (props.session?.initialBlockFor?.(props.block.id) || ''));
 
 function focusEditor() {
