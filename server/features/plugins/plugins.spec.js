@@ -193,6 +193,26 @@ describe('plugin installs', () => {
     repository.listInstallsByOrganization.mockResolvedValue([]);
   });
 
+  it('snapshots declared preview channels into the install (SPEC §28)', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: {
+        ...coatingListing.declarations,
+        surfaces: [
+          { id: 'coating-preview', module: '/surfaces/coating-preview.mjs', surfaceContract: 1, kind: 'preview' }
+        ],
+        previewChannels: [{ id: 'coating-view', surface: 'coating-preview', label: 'Coating view' }]
+      }
+    });
+    await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
+      declarations: expect.objectContaining({
+        previewChannels: [{ id: 'coating-view', surface: 'coating-preview', label: 'Coating view' }]
+      })
+    }));
+    repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
+  });
+
   it('installs with pre-wired endpoints for endpoint-mode services only', async () => {
     repository.findCatalogByPluginId.mockResolvedValue({
       ...coatingListing,
