@@ -2,19 +2,21 @@
 
 ## One graph system (SPEC §28, owner direction 2026-11-12)
 
-- [ ] Adopt the build123d-flow dock on the process designer canvas:
-  provenance groups with plugin palette sections as selectable
-  categories, full-catalog search, palette placement served by
-  `createProcessDesignerContract` groups.
+- [ ] WAITING — owner verification: adopt the build123d-flow dock on the
+  process designer canvas — plugin palette sections render as a
+  provenance tier (Plugins above Platform, source declared by the
+  palette-group projection), full-catalog search spanning both tiers
+  (`OperationPalette.vue`; the `group` slug is validated by
+  `parseListing` and documented in the SDK README).
+- [ ] WAITING — owner verification: typed preview tabs —
+  `previewChannels: [{ id, surface, label }]` in the listing contract
+  (validated, schema-mirrored), resolved bindings served on
+  `GET /api/admin/cts/types` (global channel-id uniqueness), and a
+  designer Preview tab mounting each channel's plugin surface read-only
+  (`PreviewChannelMount.vue`) over the whole-graph preview evaluation
+  (no target node, effects suppressed).
 - [ ] Node-scoped evaluation errors on the canvas: surface anchored
   diagnostics per node and port from the existing validation passes.
-- [ ] Typed preview tabs on the designer: one tab per plugin-declared
-  preview channel (3D viewport, document preview, table) beside the
-  built-in compiled preview; preview surfaces mount read-only through
-  the plugin surface contract and evaluate in preview mode with no
-  effect species.
-- [ ] List the preview-channel declaration key in the plugin listing
-  contract (`packages/plugin-sdk`) beside `surfaces`/`previews`.
 - [ ] Content-addressed artifact contract: SHA-256 payload hashing,
   immutable artifact records with representations (native-source,
   canonical, preview), deterministic cache keys for pure `s`-species
@@ -71,6 +73,26 @@
   the README tree in 4560e3b6b. The plugin-authoring shapes should
   live in the plugin-sdk README (the authoring guide's home) — kept as
   tracked debt until the SDK authoring-guide slice runs.
+
+### Agent Notes (2026-11-12, agent/preview-channels-20261112)
+
+- Preview-channel slice landed (3e898e5ae, e107c8dca): listing key +
+  `parseListing` validation + schema mirror + SDK spec; resolved
+  channel bindings on the served org type view (global id uniqueness,
+  preview-kind surface law); `servedPreviewChannels` in the designer
+  types composable; Preview tab in the designer inspector rendering one
+  read-only `PreviewChannelMount` per channel over the whole-graph
+  preview (`previewDraft` with no target node evaluates every data
+  node, effects suppressed). Validation: plugin-sdk/cts-types/plugins
+  127 ✓, process-page SSR smoke ✓, check-arch ✓, docs ✓. The
+  design-system spec's 3 ui-mapping failures and the custom-page SSR
+  smoke's 2 failures pre-exist on the merge base (another session's
+  in-flight ui-mapping work) — reported, untouched.
+- SPEC-divide-and-conquer reviewed (owner session): sequenced AFTER the
+  remaining §28 slices — the split freezes contracts, the build123d
+  vertical and artifact contract decide the division lines, and the
+  repo is already split-shaped (workers are external executors,
+  packages are pure and guard-enforced). Recorded as SPEC §29.
 
 ## Class library and Page class (SPEC §27)
 
