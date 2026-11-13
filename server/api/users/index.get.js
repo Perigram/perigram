@@ -5,7 +5,7 @@ import { serializeManyForAccess } from '../../utils/entity-redaction.js';
 
 export default defineEventHandler(async (event) => {
   const auth = await requireAuth(event);
-  const users = await usersService.list(auth.userId, auth.organizationId, auth.role, auth);
+  const users = await usersService.list(auth);
   const responseAuth = await usersService.canManageUsersInOrganization(auth, auth.organizationId)
     ? withUsersAdmin(auth)
     : auth;

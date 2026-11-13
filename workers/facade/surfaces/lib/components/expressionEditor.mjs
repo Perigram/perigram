@@ -2,7 +2,7 @@
 // token-assisted contenteditable over the renderer's expression subset.
 // Created by the designer module with the host-injected context — never
 // imports vue or the component library itself.
-import { resolveCassetteV2AngleExpression, resolveCassetteV2Expression } from '../cassetteV2Renderer.js';
+import { resolveOccsAngleExpression, resolveOccsExpression } from '../cassetteV2Renderer.js';
 
 export default function createExpressionEditor({ vue, components, locale }) {
   const { h, ref, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
@@ -77,9 +77,9 @@ export default function createExpressionEditor({ vue, components, locale }) {
         if (!internalText.value.trim()) return t('cassette.v2.expression.empty');
         try {
           if (props.allowAngleSuffix) {
-            resolveCassetteV2AngleExpression(internalText.value, props.parameters);
+            resolveOccsAngleExpression(internalText.value, props.parameters);
           } else {
-            resolveCassetteV2Expression(internalText.value, props.parameters);
+            resolveOccsExpression(internalText.value, props.parameters);
           }
           return '';
         } catch (error) {

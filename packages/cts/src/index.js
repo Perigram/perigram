@@ -35,7 +35,7 @@ export {
 } from './render.js';
 export {
   rowToFieldSchemas
-} from './compat/field-schema-rows.js';
+} from './field-schema-rows.js';
 export {
   renameLegacyTypeKeys, resolveCtsDefinition, checkCtsGraphBindings,
   isCtsGraphDefinition, operationKindOf, resolveCtsRecord,
@@ -43,7 +43,7 @@ export {
   rewriteRetiredWirePaths, orientChildrenEdgesChildFirst, retireStateScopeAuthoring,
   rowRelativeFieldId, normalizeRowRelativeGuard, normalizeRowRelativeFieldRefs,
   rowFieldId
-} from './compat/graph-protocol.js';
+} from './graph-protocol.js';
 export {
   cncTypePack, partyTypes, nestingOperators, packFixtures
 } from './pack/cnc.js';
@@ -52,6 +52,6 @@ export { PAGE_TYPE_ID, pageTypeDeclaration } from './pack/page.js';
 export {
   ctsFieldToProcessType, processTypeToCtsField, isProcessOnlyBase,
   enumRegistryForType, enumRegistryForView, SPECIES_BY_EFFECT_KIND
-} from './compat/process-grammar.js';
-export { checkDeclarationsAgainstCts } from './compat/process-checks.js';
-export { projectDomainFromView, CLASS_COLLECTIONS } from './compat/domain-projection.js';
+} from './process-grammar.js';
+export { checkDeclarationsAgainstCts } from './process-checks.js';
+export { projectDomainFromView, CLASS_COLLECTIONS } from './projection.js';

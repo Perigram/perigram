@@ -8,7 +8,6 @@
 import { connectDB } from '~/server/db/mongo.js';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 import { stateService } from '~/server/core/machines/service.js';
-import { getEntityCollection } from '~/server/runtime/entities.js';
 import { declarationForType } from '~/server/features/instances/service.js';
 import { collectionForClass } from '~/server/features/instances/repository.js';
 import { durationMs } from '#packages/cts/src/index.js';
@@ -80,8 +79,6 @@ export async function scanDueDeadlines(now = new Date()) {
 }
 
 async function collectionForDeadlineScan(typeId, organizationId) {
-  const staticCollection = getEntityCollection(typeId);
-  if (staticCollection) return staticCollection;
   const declaration = await declarationForType(typeId, organizationId);
   return declaration ? collectionForClass(declaration.class) : null;
 }

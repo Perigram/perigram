@@ -1,6 +1,6 @@
 <template>
   <div class="field-declaration-form flex flex-col gap-3">
-    <div class="field-declaration-grid">
+    <div class="field-declaration-grid grid gap-3">
       <div class="flex flex-col gap-1">
         <label class="text-label text-muted">{{ $t('typeCanvas.fieldName') }}</label>
         <div class="flex items-center gap-2">
@@ -65,9 +65,7 @@ const emit = defineEmits(['update:name', 'update:descriptor', 'remove']);
 }
 
 .field-declaration-grid {
-  display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.75rem;
 }
 
 @container (min-width: 28rem) {

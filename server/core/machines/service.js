@@ -16,16 +16,12 @@ import {
 } from '~/packages/workflows/src/index.js';
 import { assertTransitionAccess, hasInstanceAccess } from '../access/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { getEntityCollection, getInstanceDefinition, normalizeTypeId } from '~/server/runtime/entities.js';
+import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { CLASS_COLLECTIONS, evaluate as evaluateExpression } from '~/packages/cts/src/index.js';
 import { processEffects } from '../effects/service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 
-/**
- * Unified Status Service - v24 Absolute Final
- * Handles state transitions and audit logging.
- * Architectural Excellence: Strict adherence to defined lifecycles.
- */
+
 export const stateService = {
   /**
    * Change status of an entity
@@ -965,25 +961,31 @@ async function captureLifecycleSnapshots({ db, entity, typeId, auth, snapshotSch
   for (const [key, definition] of Object.entries(snapshotSchema || {})) {
     if (!definition?.typeId) continue;
     const targetTypeId = normalizeTypeId(definition.typeId);
-    const collection = getEntityCollection(targetTypeId);
-    if (!collection) continue;
     const lineageKey = definition.lineageKey || `${typeId}Id`;
     const instanceId = entity?._id || entity?.identity?.uid;
     const candidates = [instanceId, instanceId?.toString?.()].filter(Boolean);
     const filter = {
+      type: targetTypeId,
       [`lineage.${lineageKey}`]: candidates.length > 1 ? { $in: candidates } : candidates[0]
     };
     const limit = Math.max(1, Math.min(Number(definition.limit || 50), 100));
-    const docs = await db.collection(collection).find(filter).limit(limit).toArray();
-    const entityDefinition = getInstanceDefinition(targetTypeId);
-    const feature = entityDefinition?.feature || entityDefinition?.collection || targetTypeId;
-    const readable = docs.filter(doc => hasInstanceAccess({
-      entity: doc,
-      feature,
-      level: 'read',
-      auth,
-      typeId: targetTypeId
-    }));
+    // Snapshot targets are §3 instances: the target type's class
+    // collection holds them, discriminated by type id, and the class
+    // collection name is the access feature grants compile against.
+    const docs = [];
+    for (const [collectionName, feature] of Object.values(CLASS_COLLECTIONS).map(name => [name, name])) {
+      const found = await db.collection(collectionName).find(filter).limit(limit).toArray();
+      for (const doc of found) docs.push({ doc, feature });
+    }
+    const readable = docs
+      .filter(({ doc, feature }) => hasInstanceAccess({
+        entity: doc,
+        feature,
+        level: 'read',
+        auth,
+        typeId: targetTypeId
+      }))
+      .map(({ doc }) => doc);
     snapshots[key] = {
       capturedAt: new Date(),
       typeId: targetTypeId,
@@ -1144,33 +1146,8 @@ function appendHookEffects(effects, result) {
 async function loadEntityForWorkflow(typeId, targetId, options = {}) {
   const { requireMachine = true, producerOutputId = null } = options;
   const normalizedTypeId = normalizeTypeId(typeId);
-  const collection = getEntityCollection(normalizedTypeId);
 
   const db = await connectDB();
-  if (collection) {
-    const flexId = toFlexibleId(targetId);
-    const entity = await db.collection(collection).findOne({ _id: flexId });
-
-    if (entity) {
-      const organizationId = entity.lineage?.organizationId || entity.origin?.organizationId || entity.organizationId;
-      const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId });
-
-      if (!machine && requireMachine) {
-        throw createError({
-          statusCode: 400,
-          message: `No state machine defined for entity type: ${normalizedTypeId}`
-        });
-      }
-
-      // The write world follows the document, not the lookup path: a §3
-      // instance (typed fields row, flat state) writes flat; a legacy
-      // status-block doc keeps its block.
-      return { entity, machine, collection, flexId, instanceDoc: isFlatInstanceDoc(entity) ? entity : null };
-    }
-    // Dual-world types (a legacy definition beside CTS instances) miss
-    // the static collection when the record was created through the
-    // instance boundary — fall through to the instance search below.
-  }
 
   // CTS-native instances live in per-class collections resolved per call
   // (org-authored types never enter the static registry). Search them the
@@ -1195,7 +1172,13 @@ async function loadEntityForWorkflow(typeId, targetId, options = {}) {
     });
   }
 
-  return { entity: instanceStateView(found.doc), machine, collection: found.collection, flexId: found.doc._id, instanceDoc: found.doc };
+  return {
+    entity: instanceStateView(found.doc),
+    machine,
+    collection: found.collection,
+    flexId: found.doc._id,
+    instanceDoc: isFlatInstanceDoc(found.doc) ? found.doc : null
+  };
 }
 
 // A §3 stored-shape instance: typed row + flat state, no legacy status

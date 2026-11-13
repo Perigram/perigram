@@ -15,7 +15,7 @@
 // by teaching the walker new record kinds, never by loosening checks. Type
 // bindings are positional (typeId/typeId/species-kind `type`), so
 // process-vocabulary descriptor strings are never misread as references.
-import { checkBooleanExpression } from '../expressions.js';
+import { checkBooleanExpression } from './expressions.js';
 
 
 export function checkDeclarationsAgainstCts(processDefinition = {}, registry, organizationId = null) {

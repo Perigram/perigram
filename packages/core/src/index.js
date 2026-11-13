@@ -1,20 +1,13 @@
 export function createRegistry({ id = 'app' } = {}) {
   const domains = new Map();
-  const instanceDefinitions = new Map();
-  const workflowDefinitions = new Map();
   const commandDefinitions = new Map();
   const taskDefinitions = new Map();
   const eventDefinitions = new Map();
-  const hookDefinitions = new Map();
-  const effectDefinitions = new Map();
-  const attachmentKindDefinitions = new Map();
   const instanceServices = new Map();
   const instanceServiceResolvers = [];
   const commandHandlers = new Map();
-  const taskExecutors = new Map();
   const hookHandlers = new Map();
   const projectionHandlers = new Map();
-  const adapters = new Map();
 
   const registry = {
     id,
@@ -22,14 +15,9 @@ export function createRegistry({ id = 'app' } = {}) {
     defineDomain(domain) {
       validateDomain(domain);
       domains.set(domain.id, deepFreeze({ ...domain }));
-      for (const entity of domain.entities || []) registry.defineEntity(entity);
-      for (const [typeId, workflow] of Object.entries(domain.workflows || {})) registry.defineWorkflow({ typeId, ...workflow });
       for (const command of Object.values(domain.commands || {})) registry.defineCommand(command);
       for (const task of Object.values(domain.tasks || {})) registry.defineTask(task);
       for (const event of Object.values(domain.events || {})) registry.defineEvent(event);
-      for (const hook of Object.values(domain.hooks || {})) registry.defineHook(hook);
-      for (const effect of Object.values(domain.effects || {})) registry.defineEffect(effect);
-      for (const kind of Object.values(domain.attachmentKinds || {})) registry.defineAttachmentKind(kind);
       return registry.getDomain(domain.id);
     },
 
@@ -39,34 +27,6 @@ export function createRegistry({ id = 'app' } = {}) {
 
     listDomains() {
       return Array.from(domains.values());
-    },
-
-    defineEntity(definition) {
-      validateInstanceDefinition(definition);
-      instanceDefinitions.set(definition.type, deepFreeze({ ...definition }));
-      return registry.getInstanceDefinition(definition.type);
-    },
-
-    getInstanceDefinition(type) {
-      return instanceDefinitions.get(type) || null;
-    },
-
-    listInstanceDefinitions() {
-      return Array.from(instanceDefinitions.values());
-    },
-
-    defineWorkflow(definition) {
-      validateWorkflowDefinition(definition);
-      workflowDefinitions.set(definition.typeId, deepFreeze({ ...definition }));
-      return registry.getWorkflowDefinition(definition.typeId);
-    },
-
-    getWorkflowDefinition(typeId) {
-      return workflowDefinitions.get(typeId) || null;
-    },
-
-    listWorkflowDefinitions() {
-      return Array.from(workflowDefinitions.values());
     },
 
     defineCommand(definition) {
@@ -135,54 +95,6 @@ export function createRegistry({ id = 'app' } = {}) {
       return Array.from(eventDefinitions.values());
     },
 
-    defineHook(definition) {
-      validateHookDefinition(definition);
-      hookDefinitions.set(definition.id, deepFreeze({ parameters: [], ...definition }));
-      return registry.getHookDefinition(definition.id);
-    },
-
-    getHookDefinition(id) {
-      return hookDefinitions.get(id) || null;
-    },
-
-    listHookDefinitions() {
-      return Array.from(hookDefinitions.values());
-    },
-
-    defineEffect(definition) {
-      validateEffectDefinition(definition);
-      effectDefinitions.set(definition.id, deepFreeze({
-        effects: [],
-        ...definition
-      }));
-      return registry.getEffectDefinition(definition.id);
-    },
-
-    getEffectDefinition(id) {
-      return effectDefinitions.get(id) || null;
-    },
-
-    listEffectDefinitions() {
-      return Array.from(effectDefinitions.values());
-    },
-
-    defineAttachmentKind(definition) {
-      validateAttachmentKindDefinition(definition);
-      attachmentKindDefinitions.set(definition.kind, deepFreeze({
-        preview: { mode: 'download', ...(definition.preview || {}) },
-        ...definition
-      }));
-      return registry.getAttachmentKindDefinition(definition.kind);
-    },
-
-    getAttachmentKindDefinition(kind) {
-      return attachmentKindDefinitions.get(kind) || null;
-    },
-
-    listAttachmentKindDefinitions() {
-      return Array.from(attachmentKindDefinitions.values());
-    },
-
     registerInstanceService(type, service) {
       if (!type) throw new Error('Entity service type is required');
       if (!service?.getById) throw new Error(`Entity service ${type} requires getById`);
@@ -225,17 +137,6 @@ export function createRegistry({ id = 'app' } = {}) {
       return commandHandlers.get(id) || null;
     },
 
-    registerTaskExecutor(id, executor) {
-      if (!id) throw new Error('Task executor id is required');
-      if (typeof executor !== 'function') throw new Error(`Task executor ${id} must be a function`);
-      taskExecutors.set(id, executor);
-      return executor;
-    },
-
-    getTaskExecutor(id) {
-      return taskExecutors.get(id) || null;
-    },
-
     registerHookHandler(id, handler) {
       if (!id) throw new Error('Hook handler id is required');
       if (typeof handler !== 'function') throw new Error(`Hook handler ${id} must be a function`);
@@ -259,20 +160,6 @@ export function createRegistry({ id = 'app' } = {}) {
 
     getProjectionHandler(id) {
       return projectionHandlers.get(id) || null;
-    },
-
-    listHookHandlers() {
-      return Array.from(hookHandlers.entries()).map(([hookId, handler]) => ({ hookId, handler }));
-    },
-
-    registerAdapter(id, adapter) {
-      if (!id) throw new Error('Adapter id is required');
-      adapters.set(id, adapter);
-      return adapter;
-    },
-
-    getAdapter(id) {
-      return adapters.get(id) || null;
     }
   };
 
@@ -324,13 +211,7 @@ export const CANONICAL_BLOCK_SCHEMAS = Object.freeze({
   ]),
   relations: Object.freeze([canonicalBlockField('relations', 'json')]),
   provenance: Object.freeze([canonicalBlockField('provenance', 'json')]),
-  specs: Object.freeze([
-    canonicalBlockField('specs.width', 'number', { unit: 'mm' }),
-    canonicalBlockField('specs.length', 'number', { unit: 'mm' }),
-    canonicalBlockField('specs.area', 'number', { unit: 'm2' }),
-    canonicalBlockField('specs.sheetThickness', 'number', { unit: 'mm' }),
-    canonicalBlockField('specs.foilThickness', 'number', { unit: 'mm' })
-  ]),
+  specs: Object.freeze([canonicalBlockField('specs', 'json')]),
   attachments: Object.freeze([canonicalBlockField('attachments', 'json')]),
   data: Object.freeze([canonicalBlockField('data', 'json')]),
   summary: Object.freeze([canonicalBlockField('summary', 'json')])
@@ -341,6 +222,7 @@ export const CANONICAL_BLOCK_COMPOSITION = Object.freeze({
   relations: Object.freeze({ mode: 'relations', valueBase: 'entityRef' }),
   provenance: Object.freeze({ mode: 'entries', valueBase: 'json' }),
   attachments: Object.freeze({ mode: 'attachments', valueBase: 'attachmentRef' }),
+  specs: Object.freeze({ mode: 'entries', valueBase: 'json' }),
   data: Object.freeze({ mode: 'entries', valueBase: 'json' }),
   summary: Object.freeze({ mode: 'entries', valueBase: 'json' })
 });
@@ -594,26 +476,6 @@ export class Provenance {
   }
 }
 
-export class Specs {
-  constructor(raw = {}) {
-    this.sheetThickness = Number(raw.sheetThickness || 0);
-    this.foilThickness = Number(raw.foilThickness || 0);
-    this.width = Number(raw.width || 0);
-    this.length = Number(raw.length || 0);
-    this.area = Number(raw.area || (this.width * this.length) / 1000000 || 0);
-  }
-
-  toJSON() {
-    return {
-      sheetThickness: this.sheetThickness,
-      foilThickness: this.foilThickness,
-      width: this.width,
-      length: this.length,
-      area: this.area
-    };
-  }
-}
-
 export class BaseEntity {
   constructor(raw = {}) {
     this._id = raw.identity?.uid || raw._id || null;
@@ -642,7 +504,7 @@ export class BaseEntity {
                 : null;
             })()
           : null);
-    this.specs = raw.specs ? new Specs(raw.specs) : null;
+    this.specs = raw.specs && typeof raw.specs === 'object' ? raw.specs : null;
     this.attachments = raw.attachments || {};
     this.data = raw.data || {};
     this.summary = raw.summary || {};
@@ -684,7 +546,7 @@ export class BaseEntity {
             lifecycle: this.status.lifecycle
           }
         : null,
-      specs: this.specs?.toJSON() || null,
+      specs: this.specs || null,
       attachments: this.attachments,
       data: this.data,
       summary: this.summary
@@ -787,24 +649,12 @@ export function createTaskResult({
 
 export const createIdentity = (name, slug = '', serial = '', reference = '', uid = slug || name) => new Identity(uid, name, slug, serial, reference);
 export const createStatus = (state, userId = 'SYSTEM', metadata = {}, eventId = null, lifecycle = {}) => new Status(state, userId, metadata, eventId, null, lifecycle);
-export const createSpecs = (data = {}) => new Specs(data);
 export const createData = (data = {}) => ({ ...data });
 export const inheritLineage = (parent, type, mapId = value => value) => new Lineage(parent?.lineage || {}).add(type, mapId(parent?.identity?.uid || parent?._id));
 export const createAttachment = (kind, fileId, name = '', metadata = {}) => ({ kind, fileId, name, metadata, timestamp: new Date() });
 
 export function validateDomain(domain) {
   if (!domain?.id) throw new Error('Domain requires id');
-}
-
-export function validateInstanceDefinition(definition) {
-  if (!definition?.type) throw new Error('Entity definition requires type');
-}
-
-export function validateWorkflowDefinition(definition) {
-  if (!definition?.typeId) throw new Error('Workflow definition requires typeId');
-  if (!definition?.regions && !definition?.initial) throw new Error(`Workflow ${definition.typeId} requires regions or initial state`);
-  if (definition.regions && typeof definition.regions !== 'object') throw new Error(`Workflow ${definition.typeId} regions must be an object`);
-  if (!definition.regions && (!definition?.states || typeof definition.states !== 'object')) throw new Error(`Workflow ${definition.typeId} requires states`);
 }
 
 export function validateCommandDefinition(definition) {
@@ -821,30 +671,6 @@ export function validateTaskDefinition(definition) {
 
 export function validateEventDefinition(definition) {
   if (!definition?.id) throw new Error('Event definition requires id');
-}
-
-export function validateHookDefinition(definition) {
-  if (!definition?.id) throw new Error('Hook definition requires id');
-}
-
-export function validateEffectDefinition(definition) {
-  if (!definition?.id) throw new Error('Effect definition requires id');
-  if (!definition?.on) throw new Error(`Effect ${definition.id} requires on`);
-}
-
-export function validateAttachmentKindDefinition(definition) {
-  if (!definition?.kind) throw new Error('Attachment kind definition requires kind');
-  const creationMode = definition.creation?.mode || 'workflow';
-  if (!['upload', 'capture', 'editor', 'command', 'workflow'].includes(creationMode)) {
-    throw new Error(`Attachment kind ${definition.kind} has invalid creation mode ${creationMode}`);
-  }
-  if (creationMode === 'command' && !definition.creation?.commandId) {
-    throw new Error(`Attachment kind ${definition.kind} command creation requires commandId`);
-  }
-  const editorMode = definition.editor?.mode || 'none';
-  if (!['none', 'text', 'csv', 'layout', 'sketch'].includes(editorMode)) {
-    throw new Error(`Attachment kind ${definition.kind} has invalid editor mode ${editorMode}`);
-  }
 }
 
 function deepFreeze(value) {

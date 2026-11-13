@@ -11,7 +11,7 @@
       <i class="pi pi-plus" aria-hidden="true" />
     </button>
     <Popover ref="menu">
-      <div class="flex w-52 flex-col gap-0.5 p-1">
+      <div class="flex w-52 flex-col gap-1 p-1">
         <button
           v-for="item in items"
           :key="item.id"

@@ -76,7 +76,7 @@ function projectCard(type, entity, auth) {
 
 async function relatedUsers(auth) {
   try {
-    return await usersService.list(auth.userId, auth.organizationId, auth.role, auth);
+    return await usersService.list(auth);
   } catch {
     return [];
   }

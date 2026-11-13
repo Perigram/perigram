@@ -19,7 +19,6 @@ import {
   cassetteV2LayerPanelRows,
   cassetteV2ProfileSketch,
   cassetteV2SketchFrame,
-  collectCassetteV2ExpressionIdentifiers,
   composeCassetteV2NodiGraph,
   createCassetteV2GraphTree,
   createCassetteV2OccsDocument,
@@ -35,8 +34,6 @@ import {
   normalizeCassetteV2Trapezoid,
   renderCassetteV2ToDrawing,
   renderCassetteV2TreeToDrawing,
-  resolveCassetteV2AngleExpression,
-  resolveCassetteV2Expression,
   resolveCassetteV2FaceSketchRegion,
   setGraphNumberInput,
   updateCassetteV2FaceInstance,
@@ -49,6 +46,11 @@ import {
   normalizeOccsProfileSketch,
   occsProfileFromSketch
 } from '../../occs/profiles.js';
+import {
+  collectOccsExpressionIdentifiers,
+  resolveOccsAngleExpression,
+  resolveOccsExpression
+} from '../../occs/expressions.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
 
 const openChainSketch = (points, parameters = {}) => normalizeOccsProfileSketch({
@@ -1299,10 +1301,10 @@ describe('cassette v2 trapezoid renderer', () => {
     const occs = await createCassetteV2OccsDocument(nextTree);
     const composition = composeCassetteV2NodiGraph(nextTree, graph);
 
-    expect(resolveCassetteV2Expression('B + (R / 2 - 1)', tree.parameters)).toBe(616.5);
-    expect(resolveCassetteV2Expression('sin(30) + cos(60) + tan(45)', tree.parameters)).toBeCloseTo(2);
-    expect(resolveCassetteV2AngleExpression('135deg', tree.parameters)).toBe(135);
-    expect(collectCassetteV2ExpressionIdentifiers('sin(A) + foldAngle')).toEqual(['A', 'foldAngle']);
+    expect(resolveOccsExpression('B + (R / 2 - 1)', tree.parameters)).toBe(616.5);
+    expect(resolveOccsExpression('sin(30) + cos(60) + tan(45)', tree.parameters)).toBeCloseTo(2);
+    expect(resolveOccsAngleExpression('135deg', tree.parameters)).toBe(135);
+    expect(collectOccsExpressionIdentifiers('sin(A) + foldAngle')).toEqual(['A', 'foldAngle']);
     expect(occs.parameters).toMatchObject({
       A: '1200',
       B: '600',

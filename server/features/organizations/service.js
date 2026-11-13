@@ -11,17 +11,15 @@ import * as processDefinitionsService from '../process-definitions/service.js';
 import * as invitationsService from '../invitations/service.js';
 import { ownerMembership } from '../users/organization-owner.js';
 
-/**
- * Organizations Service - v24 Absolute Final
- */
 
-export async function create(data, userId, userOrg, userRole, userPermissions) {
+export async function create(data, auth = {}) {
+  const { userId } = auth;
   // Bootstrap grant: an account without any organization creates its first
   // one here (registration no longer creates organizations); the created
   // owner membership is what unlocks tenant permissions afterwards.
-  const memberships = userPermissions?.memberships || [];
-  const isBootstrap = !userOrg && !memberships.length;
-  const permissions = userPermissions?.effectivePermissions || userPermissions?.permissions || {};
+  const memberships = auth?.memberships || [];
+  const isBootstrap = !auth?.organizationId && !memberships.length;
+  const permissions = resolveAuthPermissions(auth);
   if (!isBootstrap && !hasPermission({ permissions }, 'organizations', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
@@ -97,8 +95,8 @@ export async function getById(uid) {
   return new Organization(raw);
 }
 
-export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const finalFilter = { ...filter, ...getLineageFilter(userPermissions) };
+export async function list(auth = {}, filter = {}) {
+  const finalFilter = { ...filter, ...getLineageFilter(auth) };
   const raws = await repository.find(finalFilter);
   return raws.map(raw => new Organization(raw));
 }
@@ -111,12 +109,12 @@ export async function directorySearch(query, limit = 10) {
   return raws.map(raw => new Organization(raw));
 }
 
-export async function update(uid, updates, userId, userOrg, userRole, userPermissions) {
+export async function update(uid, updates, auth = {}) {
   const raw = await repository.findById(uid);
   if (!raw) throw createError({ statusCode: 404, message: 'Organization not found' });
   const org = new Organization(raw);
   
-  if (!hasPermission({ permissions: resolveAuthPermissions(userPermissions) }, 'organizations', 'write')) {
+  if (!hasPermission({ permissions: resolveAuthPermissions(auth) }, 'organizations', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -148,8 +146,8 @@ export async function updateSettingsSection(organizationId, section, value, auth
   return org.data.settings[section];
 }
 
-export async function remove(uid, userId, userOrg, userRole, userPermissions) {
-  if (!hasPermission({ permissions: resolveAuthPermissions(userPermissions) }, 'organizations', 'admin')) {
+export async function remove(uid, auth = {}) {
+  if (!hasPermission({ permissions: resolveAuthPermissions(auth) }, 'organizations', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return await repository.deleteById(uid);

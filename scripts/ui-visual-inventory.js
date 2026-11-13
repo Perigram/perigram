@@ -10,7 +10,11 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'pages/organization/users.vue': 'layout',
   'pages/organization/partners.vue': 'layout',
   'pages/organization/plugins.vue': 'layout',
-  'components/shared/FactRows.vue': 'layout'
+  'components/shared/FactRows.vue': 'layout',
+  'components/type-designer/ClassFieldRow.vue': 'layout',
+  'components/type-designer/DescriptorEditor.vue': 'layout',
+  'components/type-designer/FieldDeclarationForm.vue': 'layout',
+  'components/type-designer/StateDeclarationForm.vue': 'layout'
 });
 
 export const SCOPED_LAYOUT_PROPERTIES = new Set([

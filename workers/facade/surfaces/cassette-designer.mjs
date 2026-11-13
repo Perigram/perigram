@@ -17,7 +17,7 @@ import {
   cassetteV2AssemblyEntitiesFromDrawing,
   cassetteV2FaceSketchContext,
   cassetteV2SketchFrame,
-  collectCassetteV2ExpressionIdentifiers,
+  collectOccsExpressionIdentifiers,
   renameCassetteV2TreeParameter,
   createCassetteV2GraphTree,
   createCassetteV2OccsDocument,
@@ -31,8 +31,8 @@ import {
   normalizeCassetteV2Profile,
   OCCS_CASSETTE_FACE_ROLES,
   renderCassetteV2TreeToDrawing,
-  resolveCassetteV2AngleExpression,
-  resolveCassetteV2Expression,
+  resolveOccsAngleExpression,
+  resolveOccsExpression,
   resolveCassetteV2FaceSketchRegion,
   updateCassetteV2FaceInstance,
   cassetteV2FaceSketchFromNode,
@@ -147,7 +147,7 @@ const expressionErrorOf = (value, parameters, emptyMessage, allowEmpty = false) 
   const text = String(value ?? '').trim();
   if (!text) return allowEmpty ? '' : emptyMessage;
   try {
-    resolveCassetteV2Expression(text, parameters);
+    resolveOccsExpression(text, parameters);
     return '';
   } catch (error) {
     return error?.message || String(error);
@@ -797,7 +797,7 @@ export default function createSurface({ vue, components, locale, queries, record
         if (selectedNode.value?.parentId) {
           scope.parentEdgeIndex = selectedNode.value.parentEdgeIndex ?? 0;
           try {
-            scope.foldAngle = resolveCassetteV2AngleExpression(selectedNode.value.foldAngle || '90', globalParameters.value);
+            scope.foldAngle = resolveOccsAngleExpression(selectedNode.value.foldAngle || '90', globalParameters.value);
           } catch {
             scope.foldAngle = '';
           }
@@ -866,7 +866,7 @@ export default function createSurface({ vue, components, locale, queries, record
         const used = new Set();
         const addIdentifiers = (value) => {
           try {
-            collectCassetteV2ExpressionIdentifiers(value).forEach(identifier => used.add(identifier));
+            collectOccsExpressionIdentifiers(value).forEach(identifier => used.add(identifier));
           } catch {
             // Incomplete edits are allowed; preview validation handles invalid expressions.
           }
@@ -3140,7 +3140,7 @@ export default function createSurface({ vue, components, locale, queries, record
           const array = relation.pattern;
           const axisCount = (axis = {}) => {
             try {
-              return Math.round(resolveCassetteV2Expression(axis.count ?? '1', globalParameters.value, 1));
+              return Math.round(resolveOccsExpression(axis.count ?? '1', globalParameters.value, 1));
             } catch {
               return null;
             }

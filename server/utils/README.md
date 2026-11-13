@@ -120,6 +120,20 @@ for non-entity system resources.
 | Auth check only, permission later | `requireAuth` |
 | Non-entity resource (system settings) | `hasPermission` |
 | Password login flow | `hashPassword` / `verifyPassword` |
+| Resolve the request's organization | `resolveOrganizationId` (`organization-scope.js`) |
+
+## repository.js
+
+The feature repository floor: `collection(name)` returns the shared
+create/find/findById/findByIds/findOne/updateById/deleteById/searchByName
+object every feature repository composes, `toFlexibleId` on every id
+lookup, ObjectIds minted on create. `escapeRegex` lives here.
+
+## organization-scope.js
+
+`resolveOrganizationId(auth)`: the active organization, else the first
+membership, else HTTP 403. The one tenancy resolution for request-scoped
+services.
 
 ## extract-data-models.js
 

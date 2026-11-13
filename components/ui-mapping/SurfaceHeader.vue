@@ -86,7 +86,7 @@
             text
             size="small"
             severity="secondary"
-            class="mt-0.5 max-w-full self-start truncate p-0 text-supporting"
+            class="mt-1 max-w-full self-start truncate p-0 text-supporting"
             :aria-label="typeLabel"
             @click="classEditorOpen = true"
           />

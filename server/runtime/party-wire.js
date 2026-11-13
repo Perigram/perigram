@@ -61,7 +61,7 @@ export const partyProcessBindings = {
   user: {
     list: async (filters, context = {}) => {
       const roles = await roleIdsByUser(context.organizationId);
-      const users = await usersService.list(context.userId, context.organizationId, context.role, context);
+      const users = await usersService.list(context);
       return users.map(user => wireSlots('user', user, json => ({
         roles: roles.get(String(json._id ?? json.id)) || [],
         bot: Boolean(json.data?.bot),
@@ -82,7 +82,7 @@ export const partyProcessBindings = {
   },
   organization: {
     list: async (filters, context = {}) => (
-      (await organizationsService.list(context.userId, context.organizationId, context.role, context))
+      (await organizationsService.list(context))
         .map(organization => wireSlots('organization', organization))
     ),
     read: async (id, context = {}) => {

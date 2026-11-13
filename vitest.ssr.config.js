@@ -17,8 +17,7 @@ const perigramAliases = {
   '@perigram/mcp': repo('./packages/mcp/src/index.js'),
   '#shared': repo('./shared'),
   '#packages': repo('./packages'),
-  '#utils': repo('./utils'),
-  '#services': repo('./server')
+  '#utils': repo('./utils')
 };
 
 export default defineConfig({

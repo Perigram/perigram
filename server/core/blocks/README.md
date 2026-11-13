@@ -1,6 +1,6 @@
 # COMPONENT: Core Blocks
 
-Canonical class library for all v24 entities: every feature model extends
+Canonical class library for all entities: every feature model extends
 `BaseEntity` and composes these blocks.
 
 Implementation source is `@perigram/core`, imported through the

@@ -53,7 +53,7 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   or editing source SVGs — nothing outside the marked CSS blocks is
   hand-editable (hand-written rules parked inside the markers are deleted
   on rebuild).
-- `check-arch.js`: Architecture guardrail for v24 backend features, API layer
+- `check-arch.js`: Architecture guardrail for backend features, API layer
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
   retired vocabulary, portable-runtime import rules, concrete CNC domain leaks
   in generic modules, concrete
@@ -117,9 +117,6 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   the inventory. Component
   ownership is derived from the domain primitive registry: exact registered
   paths are shared/domain primitives and every other Vue file is derived usage.
-- `migrate-status-state-v2.js` (root): One-shot legacy status migration.
-  Converts string `status.state` / `origin.state` values and `status_events`
-  records to the v2 structured status shape. Supports `--dry-run`.
 - One-shot migrations, seeds, and repair helpers under `server/scripts/`
   (tech-drawing instance migration, §3 tenancy, state-tree flattening,
   CutKit→Perigram rename, call-channel unification, owner admins, and the

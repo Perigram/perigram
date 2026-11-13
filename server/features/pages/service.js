@@ -1,5 +1,6 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '~/server/utils/objectid.js';
+import { resolveOrganizationId } from '~/server/utils/organization-scope.js';
 import { PAGE_TYPE_ID, pageTypeDeclaration } from '~/packages/cts/src/index.js';
 import { normalizePageDocument } from '#shared/page-document.js';
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
@@ -125,14 +126,6 @@ export async function remove(id, auth = {}) {
   await repository.detachChildren(organizationId, page._id);
   await repository.remove(page._id);
   return { success: true };
-}
-
-function resolveOrganizationId(auth = {}) {
-  const organizationId = auth.organizationId;
-  if (!organizationId) {
-    throw createError({ statusCode: 403, message: 'Organization membership is required' });
-  }
-  return organizationId;
 }
 
 async function requireOwnPage(id, organizationId) {

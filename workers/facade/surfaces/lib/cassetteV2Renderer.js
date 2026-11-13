@@ -171,13 +171,9 @@ const numeric = (value, fallback) => {
   return Number.isFinite(next) ? next : fallback;
 };
 
-export const resolveCassetteV2Expression = resolveOccsExpression;
-export const resolveCassetteV2AngleExpression = resolveOccsAngleExpression;
-export const collectCassetteV2ExpressionIdentifiers = collectOccsExpressionIdentifiers;
-export const rewriteCassetteV2ExpressionIdentifiers = rewriteOccsExpressionIdentifiers;
 
 const anchor = (value, fallback, parameters = {}) => {
-  const next = Math.round(resolveCassetteV2Expression(value, parameters, fallback));
+  const next = Math.round(resolveOccsExpression(value, parameters, fallback));
   return next === 1 ? 1 : 0;
 };
 
@@ -198,16 +194,16 @@ const createNodiGraphId = () => {
 export const normalizeCassetteV2Trapezoid = (definition = {}, parameters = {}) => {
   const source = definition.trapezoid || definition.parameters || definition;
   return {
-    defaultLength: Math.max(1, resolveCassetteV2Expression(source.defaultLength, parameters, DEFAULT_CASSETTE_V2_NUMERIC.defaultLength)),
-    height: Math.max(0.1, resolveCassetteV2Expression(source.height, parameters, DEFAULT_CASSETTE_V2_NUMERIC.height)),
-    edgeStart: Math.max(0, resolveCassetteV2Expression(source.edgeStart, parameters, 0)),
-    parentEdgeIndex: Math.max(0, Math.round(resolveCassetteV2Expression(source.parentEdgeIndex, parameters, 0))),
+    defaultLength: Math.max(1, resolveOccsExpression(source.defaultLength, parameters, DEFAULT_CASSETTE_V2_NUMERIC.defaultLength)),
+    height: Math.max(0.1, resolveOccsExpression(source.height, parameters, DEFAULT_CASSETTE_V2_NUMERIC.height)),
+    edgeStart: Math.max(0, resolveOccsExpression(source.edgeStart, parameters, 0)),
+    parentEdgeIndex: Math.max(0, Math.round(resolveOccsExpression(source.parentEdgeIndex, parameters, 0))),
     startAnchor: anchor(source.startAnchor, DEFAULT_CASSETTE_V2_NUMERIC.startAnchor, parameters),
     endAnchor: anchor(source.endAnchor, DEFAULT_CASSETTE_V2_NUMERIC.endAnchor, parameters),
-    baseStartOffset: resolveCassetteV2Expression(source.baseStartOffset, parameters, DEFAULT_CASSETTE_V2_NUMERIC.baseStartOffset),
-    baseEndOffset: resolveCassetteV2Expression(source.baseEndOffset, parameters, DEFAULT_CASSETTE_V2_NUMERIC.baseEndOffset),
-    topStartOffset: resolveCassetteV2Expression(source.topStartOffset, parameters, DEFAULT_CASSETTE_V2_NUMERIC.topStartOffset),
-    topEndOffset: resolveCassetteV2Expression(source.topEndOffset, parameters, DEFAULT_CASSETTE_V2_NUMERIC.topEndOffset)
+    baseStartOffset: resolveOccsExpression(source.baseStartOffset, parameters, DEFAULT_CASSETTE_V2_NUMERIC.baseStartOffset),
+    baseEndOffset: resolveOccsExpression(source.baseEndOffset, parameters, DEFAULT_CASSETTE_V2_NUMERIC.baseEndOffset),
+    topStartOffset: resolveOccsExpression(source.topStartOffset, parameters, DEFAULT_CASSETTE_V2_NUMERIC.topStartOffset),
+    topEndOffset: resolveOccsExpression(source.topEndOffset, parameters, DEFAULT_CASSETTE_V2_NUMERIC.topEndOffset)
   };
 };
 
@@ -856,7 +852,7 @@ const faceEdgeIntervalsForChildren = (tree, parentId, edgeIndex, edgeLength) => 
   return (tree.nodes || [])
     .filter(node => node.parentId === parentId && node.parentEdgeIndex === edgeIndex)
     .map((node) => {
-      const start = Math.max(0, resolveCassetteV2Expression(
+      const start = Math.max(0, resolveOccsExpression(
         node.parameters?.edgeStart,
         nodeExpressionScope(node, parameters),
         0
@@ -864,7 +860,7 @@ const faceEdgeIntervalsForChildren = (tree, parentId, edgeIndex, edgeLength) => 
       const rawWidth = node.parameters?.defaultLength;
       const width = rawWidth === 'inherit' || rawWidth === undefined
         ? Math.max(0, edgeLength - start)
-        : Math.max(0, resolveCassetteV2Expression(rawWidth, nodeExpressionScope(node, parameters), edgeLength - start));
+        : Math.max(0, resolveOccsExpression(rawWidth, nodeExpressionScope(node, parameters), edgeLength - start));
       return { start, end: start + width };
     });
 };
@@ -1563,7 +1559,7 @@ export const renameCassetteV2TreeParameter = (tree = createCassetteV2GraphTree()
   if (Object.prototype.hasOwnProperty.call(parameters, next)) return tree;
 
   const renames = { [source]: next };
-  const rewrite = (value) => rewriteCassetteV2ExpressionIdentifiers(value, renames);
+  const rewrite = (value) => rewriteOccsExpressionIdentifiers(value, renames);
   const rewriteAngle = (value) => {
     const match = typeof value === 'string' ? value.match(/^(.*?)(\s*deg)$/i) : null;
     return match ? `${rewrite(match[1])}${match[2]}` : rewrite(value);
@@ -1682,7 +1678,7 @@ const faceRoleFromNode = (node) => node.role || (node.parentId ? 'return_flange'
 const nodeExpressionScope = (node, parameters = {}) => {
   const scope = nodeParameterScope(parameters);
   if (node?.parentId) {
-    scope.foldAngle = resolveCassetteV2AngleExpression(foldAngleFromNode(node), scope, 90);
+    scope.foldAngle = resolveOccsAngleExpression(foldAngleFromNode(node), scope, 90);
     scope.parentEdgeIndex = Math.max(0, Math.round(numeric(node.parentEdgeIndex, 0)));
   }
   return scope;
@@ -1700,7 +1696,7 @@ const resolvedNodeTrapezoidForGeometry = (node, parameters = {}, parentBoundaryV
   };
   if (node.parentId && shape.defaultLength === 'inherit') {
     const edgeLength = cassetteV2TrapezoidReferenceLength(parentBoundaryVertices, node.parentEdgeIndex);
-    const edgeStart = resolveCassetteV2Expression(shape.edgeStart, nodeExpressionScope(node, parameters), 0);
+    const edgeStart = resolveOccsExpression(shape.edgeStart, nodeExpressionScope(node, parameters), 0);
     if (Number.isFinite(edgeLength)) shape.defaultLength = Math.max(1, edgeLength - edgeStart);
   }
   return normalizeCassetteV2Trapezoid(shape, nodeExpressionScope(node, parameters));
@@ -2512,11 +2508,11 @@ const designerFoldEdgesForTree = (curves = [], tree = createCassetteV2GraphTree(
       // The fold runs on the child's owned interval of the host edge:
       // multiple faces share one edge, each hinges on its own span.
       const scope = nodeExpressionScope(node, parameters);
-      const start = Math.max(0, Math.min(edgeLength, resolveCassetteV2Expression(node.parameters?.edgeStart, scope, 0)));
+      const start = Math.max(0, Math.min(edgeLength, resolveOccsExpression(node.parameters?.edgeStart, scope, 0)));
       const rawWidth = node.parameters?.defaultLength;
       const end = rawWidth === 'inherit' || rawWidth === undefined
         ? edgeLength
-        : Math.max(start, Math.min(edgeLength, start + resolveCassetteV2Expression(rawWidth, scope, edgeLength - start)));
+        : Math.max(start, Math.min(edgeLength, start + resolveOccsExpression(rawWidth, scope, edgeLength - start)));
       const foldStart = pointAlong(vertex, next, start / edgeLength);
       const foldEnd = pointAlong(vertex, next, end / edgeLength);
       const [x1, y1] = toSvgPoint(foldStart);
@@ -2723,7 +2719,7 @@ const hardwarePointsForRelation = (
   errors = null
 ) => {
   const vertices = rawFaceVertices(curve);
-  const resolve = (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback);
+  const resolve = (value, fallback = 0) => resolveOccsExpression(value, parameters, fallback);
   if (relation.pattern) {
     const result = expandFeatureArray({
       vertices,
@@ -2920,7 +2916,7 @@ export const profileEdgeEmbeddingsForTree = (curves = [], tree = createCassetteV
           section: profile.section,
           vertices: contour,
           relation,
-          resolve: (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback)
+          resolve: (value, fallback = 0) => resolveOccsExpression(value, parameters, fallback)
         }),
         relationId: relation.id,
         profileWorkpieceId: relation.sourceWorkpieceId
@@ -3170,7 +3166,7 @@ const profileAxisRotationDegrees = (relation = {}, targetCurve = null) => {
 
 const placeProfileRing = (ring = [], point = [0, 0, 0], relation = {}, axisRotation = 0, scope = {}) => {
   const rotation = axisRotation
-    + resolveCassetteV2AngleExpression(relation.rotation || '0', scope, 0);
+    + resolveOccsAngleExpression(relation.rotation || '0', scope, 0);
   return ring.map((vertex) => {
     const local = mirroredProfileVertex(vertex, relation);
     const placed = rotation
@@ -3808,15 +3804,15 @@ const foldedPreviewBodiesForTree = (tree = createCassetteV2GraphTree(), paramete
         targetFaceId: relation.targetFaceId,
         targetSnap: relation.targetSnap,
         targetSide: relation.targetSide,
-        offsetX: resolveCassetteV2Expression(relation.offsetX, parameters, 0),
-        offsetY: resolveCassetteV2Expression(relation.offsetY, parameters, 0),
-        rotation: resolveCassetteV2AngleExpression(relation.rotation, parameters, 0),
+        offsetX: resolveOccsExpression(relation.offsetX, parameters, 0),
+        offsetY: resolveOccsExpression(relation.offsetY, parameters, 0),
+        rotation: resolveOccsAngleExpression(relation.rotation, parameters, 0),
         mirrorX: Boolean(relation.mirrorX),
         mirrorY: Boolean(relation.mirrorY),
         pattern: relation.pattern ? resolveArrayDefinition(
           relation.pattern,
-          (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback),
-          (value, fallback = 0) => resolveCassetteV2AngleExpression(value, parameters, fallback)
+          (value, fallback = 0) => resolveOccsExpression(value, parameters, fallback),
+          (value, fallback = 0) => resolveOccsAngleExpression(value, parameters, fallback)
         ) : null,
         copyBounds: hardwareCopyBounds(hardware),
         family: hardware.family,
@@ -3863,11 +3859,11 @@ const foldedPreviewForTree = async (curves = [], tree = createCassetteV2GraphTre
         );
         if (edgeLength > 0.001) {
           const scope = nodeExpressionScope(node, parameters);
-          const start = Math.max(0, Math.min(edgeLength, resolveCassetteV2Expression(node.parameters?.edgeStart, scope, 0)));
+          const start = Math.max(0, Math.min(edgeLength, resolveOccsExpression(node.parameters?.edgeStart, scope, 0)));
           const rawWidth = node.parameters?.defaultLength;
           const end = rawWidth === 'inherit' || rawWidth === undefined
             ? edgeLength
-            : Math.max(start, Math.min(edgeLength, start + resolveCassetteV2Expression(rawWidth, scope, edgeLength - start)));
+            : Math.max(start, Math.min(edgeLength, start + resolveOccsExpression(rawWidth, scope, edgeLength - start)));
           childFoldStart = pointAlong(vertex, next, start / edgeLength);
           childFoldEnd = pointAlong(vertex, next, end / edgeLength);
         }
@@ -3880,7 +3876,7 @@ const foldedPreviewForTree = async (curves = [], tree = createCassetteV2GraphTre
         childAttachEdge: node.attachEdge || 'E0',
         childFoldStart,
         childFoldEnd,
-        angle: resolveCassetteV2AngleExpression(foldAngleFromNode(node), parameters, 90)
+        angle: resolveOccsAngleExpression(foldAngleFromNode(node), parameters, 90)
       };
     });
   const joints = options.includeJoints
@@ -3896,11 +3892,11 @@ const foldedPreviewForTree = async (curves = [], tree = createCassetteV2GraphTre
         targetFaceId: relation.targetFaceId,
         targetSnap: relation.targetSnap,
         targetSide: relation.targetSide,
-        offsetX: resolveCassetteV2Expression(relation.offsetX, parameters, 0),
-        offsetY: resolveCassetteV2Expression(relation.offsetY, parameters, 0),
-        sourceOffsetX: resolveCassetteV2Expression(relation.sourceOffsetX, parameters, 0),
-        sourceOffsetY: resolveCassetteV2Expression(relation.sourceOffsetY, parameters, 0),
-        rotation: resolveCassetteV2AngleExpression(relation.rotation, parameters, 0),
+        offsetX: resolveOccsExpression(relation.offsetX, parameters, 0),
+        offsetY: resolveOccsExpression(relation.offsetY, parameters, 0),
+        sourceOffsetX: resolveOccsExpression(relation.sourceOffsetX, parameters, 0),
+        sourceOffsetY: resolveOccsExpression(relation.sourceOffsetY, parameters, 0),
+        rotation: resolveOccsAngleExpression(relation.rotation, parameters, 0),
         driver: relation.driver,
         pattern: relation.pattern
       }))
@@ -4061,7 +4057,7 @@ const placementDimensionAnnotations = (curves = [], tree = createCassetteV2Graph
       binding: relation.pattern.binding,
       copyLength: edgeExtent,
       copyMin: sectionBounds ? -sectionBounds.maxY : 0,
-      resolve: (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback)
+      resolve: (value, fallback = 0) => resolveOccsExpression(value, parameters, fallback)
     });
     alongs = layout.ok ? layout.points.map(point => point.along) : [];
   } else {
@@ -4615,7 +4611,7 @@ const buildCassetteV2LocalTreeCurves = async (sourceTree) => {
 
     if (isCassetteV2SketchFace(node)) {
       const edgeStart = node.parentId
-        ? Math.max(0, resolveCassetteV2Expression(node.parameters?.edgeStart, nodeExpressionScope(node, parameters), 0))
+        ? Math.max(0, resolveOccsExpression(node.parameters?.edgeStart, nodeExpressionScope(node, parameters), 0))
         : 0;
       const shiftedFrame = {
         ...frame,
@@ -4801,17 +4797,17 @@ const buildCassetteV2AssemblyTransforms = (sourceTree, localCurves) => {
       const targetPointLocal = faceSnapPoint(rawFaceVertices(targetCurve), relation.targetSnap);
       const targetPointRotated = rotate2d(targetPointLocal, targetTransform.rotation);
       const offsetRotated = rotate2d([
-        resolveCassetteV2Expression(relation.offsetX, parameters, 0),
-        resolveCassetteV2Expression(relation.offsetY, parameters, 0)
+        resolveOccsExpression(relation.offsetX, parameters, 0),
+        resolveOccsExpression(relation.offsetY, parameters, 0)
       ], targetTransform.rotation);
-      const rotation = numeric(targetTransform.rotation, 0) + resolveCassetteV2AngleExpression(relation.rotation, parameters, 0);
+      const rotation = numeric(targetTransform.rotation, 0) + resolveOccsAngleExpression(relation.rotation, parameters, 0);
       // The self anchor rides its own offset pair (sourceOrigin): the
       // source snap point plus the self offset, rotated into place —
       // symmetric to the host offset on the target snap.
       const sourceSnap = faceSnapPoint(rawFaceVertices(sourceCurve), relation.sourceSnap);
       const sourceSnapRotated = rotate2d([
-        sourceSnap[0] + resolveCassetteV2Expression(relation.sourceOffsetX, parameters, 0),
-        sourceSnap[1] + resolveCassetteV2Expression(relation.sourceOffsetY, parameters, 0)
+        sourceSnap[0] + resolveOccsExpression(relation.sourceOffsetX, parameters, 0),
+        sourceSnap[1] + resolveOccsExpression(relation.sourceOffsetY, parameters, 0)
       ], rotation);
 
       transforms.set(relation.sourceWorkpieceId, {
@@ -4881,7 +4877,7 @@ export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), 
     );
     if (!attachment) return null;
     const edgeStart = node.parentId
-      ? Math.max(0, resolveCassetteV2Expression(node.parameters?.edgeStart, parameters, 0))
+      ? Math.max(0, resolveOccsExpression(node.parameters?.edgeStart, parameters, 0))
       : 0;
     const start = [
       numeric(attachment.start?.[0], 0) + numeric(attachment.direction?.[0], 0) * edgeStart,
@@ -4923,7 +4919,7 @@ export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), 
       section: profile.section,
       vertices: contour,
       relation,
-      resolve: (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback)
+      resolve: (value, fallback = 0) => resolveOccsExpression(value, parameters, fallback)
     });
     if (!embedding.ok || !embedding.frame) return null;
     return {
@@ -4943,7 +4939,7 @@ export const cassetteV2SketchFrame = async (tree = createCassetteV2GraphTree(), 
     rotation: profileAxisRotationDegrees(relation, targetCurve)
       + (relation.pattern
         ? Number(point.rotation) || 0
-        : resolveCassetteV2AngleExpression(relation.rotation || '0', parameters, 0)),
+        : resolveOccsAngleExpression(relation.rotation || '0', parameters, 0)),
     mirrorX: Boolean(relation.pattern ? relation.pattern.item?.mirrorX : relation.mirrorX),
     mirrorY: Boolean(relation.pattern ? relation.pattern.item?.mirrorY : relation.mirrorY),
     parentFace: targetCurve.originalBoundaryVertices
@@ -5198,7 +5194,7 @@ export const cassetteV2FaceSketchContext = async (tree = createCassetteV2GraphTr
     numeric(edgeEndPoint?.[1], 0) - numeric(edgeStartPoint?.[1], 0)
   );
   const frame = cassetteV2FaceAttachmentFrame(boundary, edgeIndex);
-  const edgeStart = resolveCassetteV2Expression(node.parameters?.edgeStart, treeParameters(sourceTree), 0);
+  const edgeStart = resolveOccsExpression(node.parameters?.edgeStart, treeParameters(sourceTree), 0);
   const parentFace = boundary.map((point) => {
     const dx = numeric(point?.[0], 0) - numeric(frame.start[0], 0);
     const dy = numeric(point?.[1], 0) - numeric(frame.start[1], 0);

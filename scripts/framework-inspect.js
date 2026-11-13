@@ -6,10 +6,8 @@ import { frameworkCommandDefinitions } from '../server/core/commands/definitions
 import { frameworkTaskDefinitions } from '../server/core/tasks/definitions.js';
 import {
   DESIGN_SYSTEM_ENTITY_CONTRACTS,
-  DESIGN_SYSTEM_FIELD_GROUPS,
   DESIGN_SYSTEM_GROUPS,
   DESIGN_SYSTEM_PRIMITIVES,
-  DESIGN_SYSTEM_SURFACE_CONTRACTS,
   DESIGN_SYSTEM_VARIANTS
 } from '../utils/design-system-contract.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
@@ -22,12 +20,12 @@ import { extractDataModels } from '../server/utils/extract-data-models.js';
 const viewRegistry = createTypeRegistry({ id: 'framework-manifest-view' });
 for (const declaration of frameworkTypes) viewRegistry.defineType(declaration);
 const projected = projectDomainFromView(viewRegistry, null);
-const cncEntities = projected.entities.map(entity => ({ ...entity, surfaceKey: entity.type }));
-const cncWorkflows = projected.workflows || {};
-const cncDomain = { ui: { endpoints: cncEntities.map(entity => ({ type: entity.type, path: `/api/instances/${entity.party ? entity.type : entity.collection}` })) } };
-const cncCommands = { ...frameworkCommandDefinitions };
-const cncTasks = frameworkTaskDefinitions;
-const cncSummaries = [];
+const viewEntities = projected.entities.map(entity => ({ ...entity, surfaceKey: entity.type }));
+const viewWorkflows = projected.workflows || {};
+const viewDomain = { ui: { endpoints: viewEntities.map(entity => ({ type: entity.type, path: `/api/instances/${entity.party ? entity.type : entity.collection}` })) } };
+const viewCommands = { ...frameworkCommandDefinitions };
+const viewTasks = frameworkTaskDefinitions;
+const viewSummaries = [];
 import {
   createFrameworkManifest,
   summarizeDefinitions,
@@ -53,9 +51,9 @@ const UI_COMPONENT_PATHS = {
   organization: 'components/entities/Organization/OrganizationCard.vue'
 };
 
-const workflows = Object.entries(cncWorkflows).map(([type, workflow]) => ({ type, workflow }));
-const routes = summarizeRoutes(cncDomain.ui.endpoints);
-const collectionToEntity = new Map(cncEntities.map(entity => [entity.collection, entity.type]));
+const workflows = Object.entries(viewWorkflows).map(([type, workflow]) => ({ type, workflow }));
+const routes = summarizeRoutes(viewDomain.ui.endpoints);
+const collectionToEntity = new Map(viewEntities.map(entity => [entity.collection, entity.type]));
 const fieldOrderScore = (name) => {
   if (name === 'identity') return 1;
   if (name === 'origin') return 2;
@@ -77,9 +75,9 @@ const componentInventory = createComponentInventory();
 const manifest = createManifest();
 
 const handlers = createReadOnlyToolHandlers({
-  listEntities: () => cncEntities,
-  getEntity: type => cncEntities.find(entity => entity.type === type || entity.surfaceKey === type) || null,
-  getWorkflow: type => cncWorkflows[type] || null,
+  listEntities: () => viewEntities,
+  getEntity: type => viewEntities.find(entity => entity.type === type || entity.surfaceKey === type) || null,
+  getWorkflow: type => viewWorkflows[type] || null,
   getFrameworkManifest: () => manifest,
   listRoutes: () => routes,
   listUiComponents: () => manifest.designSystem.components,
@@ -103,7 +101,7 @@ const handlers = createReadOnlyToolHandlers({
 
 async function main() {
   if (command === 'list-entities') {
-    print(summarizeDefinitions(cncEntities));
+    print(summarizeDefinitions(viewEntities));
     return;
   }
 
@@ -168,7 +166,7 @@ async function main() {
   }
 
   if (command === 'validate') {
-    const definitionResult = validateDefinitionSet(cncEntities);
+    const definitionResult = validateDefinitionSet(viewEntities);
     const architectureResult = await handlers.validate_architecture();
     const uiResult = await handlers.validate_ui_contracts();
     print({
@@ -224,12 +222,12 @@ async function main() {
 function createManifest() {
   return createFrameworkManifest({
     packages: PACKAGE_NAMES.map(name => ({ name })),
-    entities: cncEntities,
-    frontendEntities: cncDomain.ui.endpoints,
-    workflows: cncWorkflows,
-    summaries: cncSummaries,
-    commands: cncCommands,
-    tasks: cncTasks,
+    entities: viewEntities,
+    frontendEntities: viewDomain.ui.endpoints,
+    workflows: viewWorkflows,
+    summaries: viewSummaries,
+    commands: viewCommands,
+    tasks: viewTasks,
     attachmentKinds: projected.attachmentKinds || {},
     designSystem: {
       variants: DESIGN_SYSTEM_VARIANTS,
@@ -250,25 +248,8 @@ function createManifest() {
 function createComponentInventory() {
   return Object.fromEntries(Object.entries(UI_COMPONENT_PATHS).map(([key, componentPath]) => [
     key,
-    {
-      componentPath,
-      fieldPaths: contractFieldPaths(key)
-    }
+    { componentPath }
   ]));
-}
-
-function contractFieldPaths(key) {
-  const groups = DESIGN_SYSTEM_FIELD_GROUPS[key] || {};
-  const surfaceGroups = Object.values(DESIGN_SYSTEM_SURFACE_CONTRACTS[key]?.surfaces || {})
-    .flatMap(surface => surface.fieldGroups || []);
-
-  return surfaceGroups
-    .flatMap(group => groups[group] || [])
-    .filter(field => field.role !== 'previewSource' && field.display !== 'entityRef' && field.display !== 'entityRefList')
-    .map(field => field.path)
-    .filter(Boolean)
-    .filter((path, index, paths) => paths.indexOf(path) === index)
-    .sort();
 }
 
 function singularizeCollection(collection) {

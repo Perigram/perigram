@@ -7,9 +7,6 @@ Parent: [server/features](../README.md).
 ## Responsibility
 
 - Persists active and archived workflow definitions in `workflow_overrides`.
-- Validates submitted definitions with `@perigram/workflows` normalization before
-  activation.
-- Enforces organization-scoped admin access for the target entity domain.
 - Resolves the active machine for the status engine. Machines are
   graph-derived (SPEC §7): the active compiled process is the lifecycle
   source, an explicit organization override is the escape hatch for types
@@ -21,6 +18,11 @@ Parent: [server/features](../README.md).
   organization override. A type none of these covers resolves to no
   machine, by design.
 
+`resolveActiveWorkflow` is the module's whole public surface; the
+repository owns row writes. A unique partial index on
+`{ status, organizationId, typeId }` with `status = 'ACTIVE'` enforces one
+active override per organization and type.
+
 ## Data Contract
 
 - `organizationId`: tenant that owns the override.
@@ -28,19 +30,6 @@ Parent: [server/features](../README.md).
 - `workflow`: normalized v2 workflow definition.
 - `status`: `ACTIVE` or `ARCHIVED`; resolution reads only `ACTIVE`.
 - `createdBy` / `updatedBy`: authenticated user ids.
-
-## Transitions
-
-| From | Event | To |
-|---|---|---|
-| none | `activate` | `ACTIVE` |
-| `ACTIVE` | `activate` (replaced row) | `ARCHIVED` |
-| `ACTIVE` | `archiveActive` | `ARCHIVED` |
-
-`activate` runs `archiveActive` and inserts the next row in one service
-seam. A unique partial index on `{ status, organizationId, typeId }` with
-`status = 'ACTIVE'` enforces one active override per organization and type;
-a concurrent activation that loses the insert race fails on that index.
 
 ## Related
 

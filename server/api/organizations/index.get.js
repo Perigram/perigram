@@ -7,6 +7,6 @@ export default defineEventHandler(async (event) => {
   const auth = await requireAuth(event);
   const query = getQuery(event);
   
-  const organizations = await organizationsService.list(auth.userId, auth.organizationId, auth.role, auth, query);
+  const organizations = await organizationsService.list(auth, query);
   return serializeManyForAccess('organization', organizations, auth);
 });

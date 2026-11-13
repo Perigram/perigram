@@ -1,5 +1,6 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '~/server/utils/objectid.js';
+import { resolveOrganizationId } from '~/server/utils/organization-scope.js';
 import * as repository from './repository.js';
 
 export async function list(auth = {}, { typeId = null } = {}) {
@@ -63,14 +64,6 @@ export async function remove(id, auth = {}) {
   const view = await requireOwnView(id, organizationId);
   await repository.remove(view._id);
   return { success: true };
-}
-
-function resolveOrganizationId(auth = {}) {
-  const organizationId = auth.organizationId;
-  if (!organizationId) {
-    throw createError({ statusCode: 403, message: 'Organization membership is required' });
-  }
-  return organizationId;
 }
 
 async function requireOwnView(id, organizationId) {

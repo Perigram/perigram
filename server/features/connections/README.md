@@ -3,7 +3,7 @@
 Connections is the canonical realtime layer: one Server-Sent Events stream per
 authenticated browser tab, topic-based publish/subscribe, and organization
 presence derived from the live connection registry. It is a capability module
-like `support` — no Mongo collection, no v24 entity — because nothing here
+like `support` — no Mongo collection, no stored entity — because nothing here
 persists. Feature services stay the persistence source of truth and publish
 through this module when a write should reach connected clients.
 

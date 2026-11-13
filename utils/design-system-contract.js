@@ -1,11 +1,3 @@
-// Field descriptors are declared on the type; the map stays empty as the
-// consumers' import surface.
-export const DESIGN_SYSTEM_FIELD_GROUPS = {};
-
-export function getEntityFieldGroups(entityKey) {
-  return DESIGN_SYSTEM_FIELD_GROUPS[entityKey] || {};
-}
-
 // Surface chrome vocabulary; which groups a surface shows resolves at runtime in `utils/instance-display-contract.js`.
 export const DESIGN_SURFACES = ['inline', 'compact', 'card', 'detail', 'table', 'picker', 'workspace'];
 export const DESIGN_PREVIEW_MODES = ['none', 'icon', 'thumbnail', 'hero', 'canvas', 'attachment'];
@@ -68,11 +60,6 @@ export function createEntitySurfaceContracts(entityContracts = []) {
   }));
 }
 
-export function getEntitySurfaceContract(surfaceContracts, entityKey) {
-  return surfaceContracts?.[entityKey] || null;
-}
-
-
 export const DESIGN_SYSTEM_VARIANTS = ['card', 'compact', 'inline'];
 
 export const DESIGN_SYSTEM_GROUPS = [
@@ -102,7 +89,6 @@ export const DESIGN_SYSTEM_PRIMITIVES = [
   { key: 'StandardDialog', kind: 'layout', componentPath: 'components/shared/StandardDialog.vue', purpose: 'Standard modal shell with footer and responsive sizing.' },
   { key: 'StandardPage', kind: 'layout', componentPath: 'components/shared/StandardPage.vue', purpose: 'Standard page shell with header and breadcrumbs.' }
 ];
-
 
 export const DESIGN_SYSTEM_ENTITY_CONTRACTS = [
   ['entityRevision', 'entity_revision', 'system', 'entities.entityRevision', 'revision', 'createMockEntityRevision', 'hidden', true],
@@ -135,22 +121,6 @@ export function labelKeyForType(typeIdOrKey = '') {
   return ENTITY_CONTRACT_BY_TYPE.get(typeIdOrKey)?.labelKey || '';
 }
 
-export const DESIGN_SYSTEM_CONTRACT = {
-  variants: DESIGN_SYSTEM_VARIANTS,
-  groups: DESIGN_SYSTEM_GROUPS,
-  primitives: DESIGN_SYSTEM_PRIMITIVES,
-  contracts: DESIGN_SYSTEM_ENTITY_CONTRACTS,
-  fieldGroups: DESIGN_SYSTEM_FIELD_GROUPS,
-  surfaces: DESIGN_SYSTEM_SURFACE_CONTRACTS
-};
-
-
-// Per-entity surface chrome contracts died with the legacy domain package
-// that authored them; instance surfaces resolve from the compiled CTS
-// bundle today. The export stays (empty) so design-system consumers keep
-// one import surface until their own cutover removes it.
-export const DESIGN_SYSTEM_SURFACES = {};
-
 export function validateDesignSystemContracts(entries = DESIGN_SYSTEM_ENTITY_CONTRACTS) {
   return entries.flatMap((entry) => {
     const issues = [];
@@ -171,7 +141,6 @@ export function validateDesignSystemContracts(entries = DESIGN_SYSTEM_ENTITY_CON
 export function validateDesignSystemDisplayContracts(entries = DESIGN_SYSTEM_ENTITY_CONTRACTS) {
   return entries.flatMap((entry) => {
     const contract = DESIGN_SYSTEM_SURFACE_CONTRACTS[entry.key];
-    const groups = DESIGN_SYSTEM_FIELD_GROUPS[entry.key] || {};
     const issues = [];
 
     for (const surface of ['inline', 'compact', 'card', 'detail']) {
@@ -183,23 +152,6 @@ export function validateDesignSystemDisplayContracts(entries = DESIGN_SYSTEM_ENT
       if (!DESIGN_DATA_DISPLAYS.includes(definition.dataDisplay || 'grid')) issues.push({ surface, issue: 'invalid data display' });
       if (!DESIGN_RELATION_DISPLAYS.includes(definition.relations || 'none')) issues.push({ surface, issue: 'invalid relation display' });
       if (!DESIGN_ACTION_DISPLAYS.includes(definition.actions || 'none')) issues.push({ surface, issue: 'invalid action display' });
-
-      for (const groupName of definition.fieldGroups || []) {
-        const fields = groups[groupName];
-        if (!fields) {
-          issues.push({ surface, group: groupName, issue: 'missing field group' });
-          continue;
-        }
-
-        for (const field of fields) {
-          const paths = [field.path, ...(field.fallbackPaths || [])].filter(Boolean);
-          for (const path of paths) {
-            if (!findEntityFieldPolicy(entry.typeId, path)) {
-              issues.push({ surface, group: groupName, path, issue: 'field path missing access policy' });
-            }
-          }
-        }
-      }
     }
 
     return issues.map(issue => ({ key: entry.key || 'unknown', ...issue }));

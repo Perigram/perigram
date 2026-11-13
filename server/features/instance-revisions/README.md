@@ -7,7 +7,7 @@ Parent: [server/features](../README.md).
 
 ## Data Contract
 
-Revision records are normal v24 entities with immutable revision metadata under
+Revision records are normal entities with immutable revision metadata under
 `data`:
 
 - `data.source.type`: source entity type, for example `cassette`.

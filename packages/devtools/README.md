@@ -20,7 +20,6 @@ The app-level CLI entrypoint is `scripts/framework-inspect.js`.
 - `summarizeUiPrimitives(primitives)`
 - `createFrameworkManifest(inputs)`
 - `validateFrameworkManifest(inputs)`
-- `validateUiFieldPaths(inputs)`
 - `validateStatusPolicies(inputs)`
 - `validateUiPrimitives(primitives)`
 - `validateWorkflowAccess(workflows)`

@@ -16,19 +16,11 @@ describe('Framework package contracts', () => {
     } = await import('../packages/core/src/index.js');
 
     const registry = createRegistry({ id: 'test' });
-    const definition = registry.defineEntity({
-      type: 'test_entity',
-      collection: 'test_entities',
-      blocks: ['identity', 'lineage', 'status']
-    });
     const entity = new BaseEntity({
       identity: { uid: 'test-1', name: 'Test Entity' },
       lineage: { organizationId: 'org-1' }
     });
 
-    expect(definition.collection).toBe('test_entities');
-    expect(registry.getInstanceDefinition('test_entity')).toEqual(definition);
-    expect(registry.listInstanceDefinitions()).toContainEqual(definition);
     expect(entity.toJSON()).toMatchObject({
       _id: 'test-1',
       identity: { uid: 'test-1', name: 'Test Entity' },
@@ -50,6 +42,7 @@ describe('Framework package contracts', () => {
     ]);
     expect(CANONICAL_BLOCK_SCHEMAS.lineage.map(field => field.path)).toEqual(['lineage']);
     expect(CANONICAL_BLOCK_SCHEMAS.identity.map(field => field.path)).toContain('identity.name');
+    expect(CANONICAL_BLOCK_SCHEMAS.specs.map(field => field.path)).toEqual(['specs']);
 
     const command = registry.defineCommand({
       id: 'runTest',
@@ -66,22 +59,9 @@ describe('Framework package contracts', () => {
       input: { entities: [{ name: 'target', type: 'test_entity', required: true }] },
       output: { entities: ['test_entity'] }
     });
-    const attachmentKind = registry.defineAttachmentKind({
-      kind: 'TEST_REPORT',
-      bucket: 'reports',
-      mimeType: 'application/pdf'
-    });
-    const captureKind = registry.defineAttachmentKind({
-      kind: 'TEST_CAPTURE',
-      bucket: 'captures',
-      creation: { mode: 'capture' },
-      editor: { mode: 'text' }
-    });
     const domain = registry.defineDomain({
       id: 'test-domain',
-      entities: [{ type: 'domain_entity', collection: 'domain_entities' }],
-      tasks: {},
-      attachmentKinds: {}
+      tasks: {}
     });
     const handler = async () => createCommandResult({
       commandId: 'runTest',
@@ -92,9 +72,6 @@ describe('Framework package contracts', () => {
     expect(registry.listCommandDefinitions()).toContainEqual(command);
     expect(registry.getTaskDefinition('test.task')).toEqual(task);
     expect(registry.listTaskDefinitions()).toContainEqual(task);
-    expect(registry.getAttachmentKindDefinition('TEST_REPORT')).toEqual(attachmentKind);
-    expect(registry.getAttachmentKindDefinition('TEST_CAPTURE')).toEqual(captureKind);
-    expect(registry.listAttachmentKindDefinitions()).toContainEqual(attachmentKind);
     expect(registry.getDomain('test-domain')).toEqual(domain);
     expect(registry.listDomains()).toContainEqual(domain);
     expect(registry.getCommandHandler('runTest')).toBe(handler);
@@ -176,7 +153,12 @@ describe('Framework package contracts', () => {
 
   it('exposes the facade plugin listing and read-only MCP handlers', async () => {
     const { facadeFileTypes, facadeServices } = await import('../test-tools/facade-plugin.js');
-    const { DESIGN_SYSTEM_CONTRACT } = await import('../utils/design-system-contract.js');
+    const {
+      DESIGN_SYSTEM_ENTITY_CONTRACTS,
+      DESIGN_SYSTEM_PRIMITIVES,
+      DESIGN_SYSTEM_VARIANTS,
+      DESIGN_SYSTEM_GROUPS
+    } = await import('../utils/design-system-contract.js');
     const { createTypeRegistry, frameworkTypes, projectDomainFromView } = await import('../packages/cts/src/index.js');
     const techDrawingListing = (await import('../workers/tech-drawing/listing.json', { with: { type: 'json' } })).default;
     const techDrawingTypes = techDrawingListing.declarations.types;
@@ -202,10 +184,10 @@ describe('Framework package contracts', () => {
       attachmentKinds: projected.attachmentKinds,
       summaries: [],
       designSystem: {
-        contracts: DESIGN_SYSTEM_CONTRACT.contracts,
-        primitives: DESIGN_SYSTEM_CONTRACT.primitives,
-        variants: DESIGN_SYSTEM_CONTRACT.variants,
-        groups: DESIGN_SYSTEM_CONTRACT.groups,
+        contracts: DESIGN_SYSTEM_ENTITY_CONTRACTS,
+        primitives: DESIGN_SYSTEM_PRIMITIVES,
+        variants: DESIGN_SYSTEM_VARIANTS,
+        groups: DESIGN_SYSTEM_GROUPS,
         componentInventory: {},
         tokens: {}
       },

@@ -9,8 +9,7 @@
 //      `state` string. Append-only status_events history is untouched.
 // Dry-run by default; `--apply` persists. Idempotent: re-running is a no-op.
 import { connectDB } from '../db/mongo.js';
-
-const CLASS_COLLECTIONS = ['files', 'items', 'groups', 'processes'];
+import { CLASS_COLLECTIONS } from '../../packages/cts/src/index.js';
 
 function report() {
   return {

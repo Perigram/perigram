@@ -13,12 +13,8 @@ import { hasPermissionGrant } from '#shared/access-control.js';
 import { ensureOwnerMembership, isOwnerMembership, mergeOwnerPermissions } from './organization-owner.js';
 import * as filesService from '../files/service.js';
 
-/**
- * Users Service - v24 Absolute Final
- */
 
-
-export async function register(data, creatorUserId, userOrg, creatorRole, creatorPermissions) {
+export async function register(data, auth = {}) {
   if (!data.email || !data.password || !data.name) {
     throw createError({ statusCode: 400, message: 'Missing required fields' });
   }
@@ -51,7 +47,7 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
       }
     });
 
-    user.applyStatus('ACTIVE', creatorUserId || 'SYSTEM', { note: 'User registered' });
+    user.applyStatus('ACTIVE', auth.userId || 'SYSTEM', { note: 'User registered' });
 
     const createdRaw = await usersRepository.create(user);
     if (data.organizationId) {
@@ -229,8 +225,7 @@ export async function updatePermissions(userId, newPermissions, updaterAuth = {}
   return { success: true };
 }
 
-export async function list(userId, userOrg, userRole, userPermissions) {
-  const auth = normalizeAuthFromArgs(userId, userOrg, userRole, userPermissions);
+export async function list(auth = {}) {
   const orgIds = uniqueIdValues([
     ...(auth.memberships || []).flatMap(membership => lookupIdValues(membership.organizationId)),
     ...lookupIdValues(auth.organizationId)
@@ -402,15 +397,6 @@ export async function canManageUsersInOrganization(auth = {}, organizationId) {
   if (membership.owner === true) return true;
   if (hasPermissionGrant({ permissions: membership.permissions || {}, feature: 'users', level: 'admin' })) return true;
   return false;
-}
-
-function normalizeAuthFromArgs(userId, organizationId, role, auth = {}) {
-  return {
-    ...auth,
-    userId: auth.userId || userId,
-    organizationId: auth.organizationId || organizationId,
-    memberships: auth.memberships || []
-  };
 }
 
 function findOrganizationMembership(auth = {}, organizationId) {

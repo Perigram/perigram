@@ -2,7 +2,6 @@ import { ObjectId } from 'mongodb';
 
 /**
  * Safely convert value to ObjectId if possible, otherwise return as-is (string)
- * Useful for v24 architecture where some IDs are strings and some are ObjectIds
  *
  * Route params arrive percent-encoded in this Nitro version (`%20`, `%28`,
  * …), so flexible string ids containing characters that need URL encoding

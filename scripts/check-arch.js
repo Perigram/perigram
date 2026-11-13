@@ -1,6 +1,6 @@
 /**
- * Architectural Guardrail Script
- * Verifies that all server features adhere to the v24 Golden Path.
+ * Architecture guard: verifies the backend feature structure against the
+ * features README.
  */
 import fs from 'fs';
 import path from 'path';
@@ -595,7 +595,7 @@ for (const file of [...walkDir('server'), ...walkDir('shared')]) {
 
 console.log('\n--- Verification Summary ---');
 if (errors === 0) {
-  console.log('✅ All features comply with v24 Golden Path.');
+  console.log('✅ Architecture check passed.');
   process.exit(0);
 } else {
   console.error(`❌ Found ${errors} architectural violations.`);

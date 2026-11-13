@@ -44,18 +44,6 @@ export async function processEvents(events = [], context = {}) {
     const normalizedEvent = normalizeDomainEvent(event, context);
     validateDomainEvent(normalizedEvent, registry);
     processed.events.push(normalizedEvent);
-
-    const policies = registry.listEffectDefinitions?.()
-      .filter(policy => policy.on === normalizedEvent.type || policy.on === normalizedEvent.id) || [];
-    for (const policy of policies) {
-      const policyEffects = (policy.effects || []).map(effect => ({ ...effect }));
-      const result = await processEffects(policyEffects, {
-        ...context,
-        event: normalizedEvent,
-        registry
-      });
-      processed = mergeProcessedEffects(processed, result);
-    }
     await publishDomainEvent(normalizedEvent, context.auth || {});
   }
 
@@ -280,8 +268,7 @@ function validateDomainEvent(event, registry) {
   if (!definition) {
     throw createError({ statusCode: 500, message: `Domain event is not declared: ${event.type}` });
   }
-  const hasPolicy = registry.listEffectDefinitions?.().some(policy => policy.on === event.type);
-  if (!hasPolicy && definition.informational !== true) {
+  if (definition.informational !== true) {
     throw createError({ statusCode: 500, message: `Domain event has no effect policy and is not informational: ${event.type}` });
   }
 }

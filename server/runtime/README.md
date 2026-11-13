@@ -9,9 +9,9 @@ facade domain installs per
 organization as the facade plugin; its compute runs in the external
 executor.
 
-`entities.js` resolves entity type aliases and collection names from the
-active registry/domain metadata. Runtime code — status transitions, hooks,
-summary aggregation — resolves names and collections through these helpers.
+`entities.js` canonicalizes type ids: the registry view is the whole
+catalog, so org and pack type ids are their own storage ids and
+canonicalization is string normalization alone.
 
 Parent: [server](../README.md).
 

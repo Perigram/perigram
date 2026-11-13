@@ -15,15 +15,13 @@ vi.mock('../tasks/service.js', () => ({
 
 import { processEvents } from './service.js';
 
-function registry({ events = {}, effects = [], task = null } = {}) {
+function registry({ events = {} } = {}) {
   return {
-    getEventDefinition: id => events[id] || null,
-    listEffectDefinitions: () => effects,
-    getTaskDefinition: id => task && task.id === id ? task : null
+    getEventDefinition: id => events[id] || null
   };
 }
 
-describe('effect runtime event policies', () => {
+describe('effect runtime event validation', () => {
   beforeEach(() => {
     applyIntent.mockClear();
     enqueueTask.mockClear();
@@ -54,42 +52,5 @@ describe('effect runtime event policies', () => {
         }
       })
     })).rejects.toThrow(/no effect policy/);
-  });
-
-  it('executes transition policies by workflow intent', async () => {
-    const result = await processEvents([
-      { type: 'queue.nestingRequested', source: { type: 'queue', id: 'queue-1' } }
-    ], {
-      auth: { userId: 'user-1' },
-      registry: registry({
-        events: {
-          'queue.nestingRequested': { id: 'queue.nestingRequested' }
-        },
-        effects: [{
-          id: 'queue.nestingRequested',
-          on: 'queue.nestingRequested',
-          effects: [{
-            type: 'transition',
-            entity: { type: 'queue', from: 'event.source' },
-            intent: 'requestNesting'
-          }]
-        }]
-      })
-    });
-
-    expect(applyIntent).toHaveBeenCalledWith(
-      'queue',
-      'queue-1',
-      'requestNesting',
-      { userId: 'user-1' },
-      {},
-      {}
-    );
-    expect(result.transitions[0]).toMatchObject({
-      type: 'transition',
-      entity: { type: 'queue', id: 'queue-1' },
-      intent: 'requestNesting',
-      targetState: 'COMPLETE'
-    });
   });
 });
