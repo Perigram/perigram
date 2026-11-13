@@ -18,15 +18,17 @@
     <!-- The idle line is the placeholder alone (owner direction
          2026-11-13), rendered as plain document text exactly where the
          engine's own placeholder sits: the engine mounts from the first
-         focus, so the always-on tail costs nothing until it is used. -->
+         focus, so the always-on tail costs nothing until it is used.
+         The prose role rides an inner span — the preset pins the button
+         element's own font. -->
     <button
       v-else
       type="button"
-      class="w-full cursor-text text-left text-prose text-muted"
+      class="w-full cursor-text text-left"
       @click="activate"
       @focus="activate"
     >
-      {{ t('editors.slashHint') }}
+      <span class="text-prose text-muted">{{ t('editors.slashHint') }}</span>
     </button>
   </div>
 </template>
