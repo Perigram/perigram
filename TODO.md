@@ -28,6 +28,45 @@
   `cache: 'deterministic'` (listing-validated, endpoint-only) and
   replay through `plugin_service_cache` keyed on service identity +
   installed version + canonical input.
+- [ ] WAITING — owner verification: real build123d engine bring-up —
+  `workers/build123d/` introspects the installed build123d API and
+  registers the discovered constructors, operations, and shape-algebra
+  operators as deterministic endpoint services (provenance and palette
+  placement per op, catalog → listing generated, generic dispatch on
+  the real library; python executor :8793, seeded as a built-in
+  listing).
+
+### Agent Notes (2026-11-13, agent/b3d-engine-20261113)
+
+- The real build123d engine bring-up landed. `workers/build123d/`:
+  `discover.py` introspects the installed build123d (0.13.0 on this
+  host) over its semantic modules (`objects_part/sketch/curve`,
+  `operations_*`, `drafting`, `text`) plus the shape-algebra operator
+  protocol (`Shape.__add__`/`__sub__`/`__and__` as
+  union/subtract/intersect) — 64 ops, each carrying provenance
+  (source+version), palette placement (7 sections derived from the
+  discovered module), python target, signature, and doc summary.
+  `generate-listing.mjs` compiles the catalog into `listing.json`
+  (validated through `parseListing`); `dispatch.py` is the one
+  evaluator over the real library (shape values ride STEP base64 +
+  bounds + volume/area; the STEP round trip is spec-verified on real
+  B-Rep: extruded circle = πr²h, union+intersect = sum of operands);
+  `server.py` serves every op at `POST /<op>` (endpoint contract,
+  python:3.14-slim image, dev compose `build123d-executor` :8793).
+  Seeded as a built-in listing beside documents/tech-drawing/facade.
+- Discovery gaps recorded in the catalog's `rejected` list: curve
+  constructors with non-representable required params (JernArc,
+  RadiusArc, TangentArc, … — point/vector-tuple annotations land with a
+  VectorLike→json mapping in a later slice), builder-mode helpers
+  (`add`, `insert`, `project_workplane`), subshape selectors
+  (`chamfer`/`fillet` admit but need Edge/Vertex references the graph
+  cannot address until a member-selection op exists).
+- Stale owner doc found: `workers/SPEC.md` says "Four HTTP processes …
+  three plugin executors" — the tier now counts five (build123d
+  executor added); SPEC is human-write, left for the owner.
+- Validation: worker spec 7 ✓ (live vertical on real engine),
+  `perigram-plugin validate` ✓, `check-plugin-deps` ✓, `check-arch` ✓,
+  `docs:validate` ✓.
 
 ### Agent Notes (2026-11-12, agent/graph-unification-20261112)
 

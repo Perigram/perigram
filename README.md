@@ -78,6 +78,7 @@ commands.
 | `documents-executor` | `workers/documents/` | The documents plugin's endpoint-mode executor (table projections, text extraction, CSV composition, template fills and PDF rendering; serves the text/csv editor surfaces and their vendored runtimes as static GETs). |
 | `facade-executor` | `workers/facade/` | The facade plugin's endpoint-mode executor (DXF/OCCS/nesting compute over values; serves the plugin's editor and preview surface modules as static GETs). |
 | `tech-drawing-executor` | `workers/tech-drawing/` | The tech-drawing plugin's executor: serves the DXF placement service, the sketch editor surface module, and its vendored runtime dependencies. |
+| `build123d-executor` | `workers/build123d/` | The build123d plugin's executor: the op catalog discovered from the installed engine, served as deterministic endpoint value services over a generic dispatch. |
 | `mongo` | Docker image | MongoDB documents and GridFS files. |
 | `livekit` | Docker image (`livekit/livekit-server`, `livekit.dev.yaml`) | Self-hosted WebRTC SFU for voice/video calls; rooms are derived and token-gated by the `livekit` capability module. Call recordings ride an external egress plane (LiveKit + Redis + `livekit/egress` + an S3-compatible bucket) deployed beside whichever server the app targets. |
 
