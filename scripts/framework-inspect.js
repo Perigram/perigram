@@ -6,10 +6,8 @@ import { frameworkCommandDefinitions } from '../server/core/commands/definitions
 import { frameworkTaskDefinitions } from '../server/core/tasks/definitions.js';
 import {
   DESIGN_SYSTEM_ENTITY_CONTRACTS,
-  DESIGN_SYSTEM_FIELD_GROUPS,
   DESIGN_SYSTEM_GROUPS,
   DESIGN_SYSTEM_PRIMITIVES,
-  DESIGN_SYSTEM_SURFACE_CONTRACTS,
   DESIGN_SYSTEM_VARIANTS
 } from '../utils/design-system-contract.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
@@ -250,25 +248,8 @@ function createManifest() {
 function createComponentInventory() {
   return Object.fromEntries(Object.entries(UI_COMPONENT_PATHS).map(([key, componentPath]) => [
     key,
-    {
-      componentPath,
-      fieldPaths: contractFieldPaths(key)
-    }
+    { componentPath }
   ]));
-}
-
-function contractFieldPaths(key) {
-  const groups = DESIGN_SYSTEM_FIELD_GROUPS[key] || {};
-  const surfaceGroups = Object.values(DESIGN_SYSTEM_SURFACE_CONTRACTS[key]?.surfaces || {})
-    .flatMap(surface => surface.fieldGroups || []);
-
-  return surfaceGroups
-    .flatMap(group => groups[group] || [])
-    .filter(field => field.role !== 'previewSource' && field.display !== 'entityRef' && field.display !== 'entityRefList')
-    .map(field => field.path)
-    .filter(Boolean)
-    .filter((path, index, paths) => paths.indexOf(path) === index)
-    .sort();
 }
 
 function singularizeCollection(collection) {

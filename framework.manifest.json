@@ -23,7 +23,6 @@
     "components": [
       {
         "componentPath": null,
-        "fieldPaths": [],
         "group": "system",
         "key": "entityRevision",
         "labelKey": "entities.entityRevision",
@@ -34,7 +33,6 @@
       },
       {
         "componentPath": "components/entities/PenTemplate/PenTemplateCard.vue",
-        "fieldPaths": [],
         "group": "master",
         "key": "penTemplate",
         "labelKey": "entities.penTemplate",
@@ -45,7 +43,6 @@
       },
       {
         "componentPath": "components/entities/LayerStandard/LayerStandardCard.vue",
-        "fieldPaths": [],
         "group": "master",
         "key": "layerStandard",
         "labelKey": "entities.layerStandard",
@@ -56,7 +53,6 @@
       },
       {
         "componentPath": "components/entities/User/UserCard.vue",
-        "fieldPaths": [],
         "group": "system",
         "key": "user",
         "labelKey": "entities.user",
@@ -67,7 +63,6 @@
       },
       {
         "componentPath": "components/entities/Organization/OrganizationCard.vue",
-        "fieldPaths": [],
         "group": "system",
         "key": "organization",
         "labelKey": "entities.organization",

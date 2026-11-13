@@ -122,8 +122,7 @@ export function summarizeUiComponents(contracts = [], componentInventory = {}) {
     propName: contract.propName,
     status: contract.status,
     trace: contract.trace,
-    componentPath: componentInventory[contract.key]?.componentPath || null,
-    fieldPaths: componentInventory[contract.key]?.fieldPaths || []
+    componentPath: componentInventory[contract.key]?.componentPath || null
   }));
 }
 
@@ -134,25 +133,6 @@ export function summarizeUiPrimitives(primitives = []) {
     componentPath: primitive.componentPath,
     purpose: primitive.purpose
   }));
-}
-
-export function validateUiFieldPaths({ components = [], dataModelFields = [] } = {}) {
-  const canonicalFields = new Set(dataModelFields.map(field => `${field.typeId}:${field.name}`));
-  const issues = [];
-
-  for (const component of components) {
-    for (const path of component.fieldPaths || []) {
-      if (isAllowedFieldPath(component.typeId, path, canonicalFields)) continue;
-      issues.push({
-        key: component.key,
-        typeId: component.typeId,
-        path,
-        issue: 'unknown-ui-field-path'
-      });
-    }
-  }
-
-  return issues;
 }
 
 export function validateStatusPolicies({ components = [], workflows = {} } = {}) {
@@ -219,8 +199,7 @@ export function createFrameworkManifest({
       uiPrimitives,
       commands,
       tasks,
-      attachmentKinds,
-      dataModelFields,
+      attachmentKinds
     })
   };
 }
@@ -232,11 +211,9 @@ export function validateFrameworkManifest({
   tasks = {},
   attachmentKinds = {},
   uiComponents = [],
-  uiPrimitives = [],
-  dataModelFields = []
+  uiPrimitives = []
 } = {}) {
   const definitionResult = validateDefinitionSet(entities);
-  const uiFieldIssues = validateUiFieldPaths({ components: uiComponents, dataModelFields });
   const statusIssues = validateStatusPolicies({ components: uiComponents, workflows });
   const workflowAccessIssues = validateWorkflowAccess(workflows);
   const commandIssues = validateCommands(commands);
@@ -245,7 +222,6 @@ export function validateFrameworkManifest({
   const primitiveIssues = validateUiPrimitives(uiPrimitives);
   const issues = [
     ...definitionResult.errors.map(error => ({ area: 'entities', issue: error })),
-    ...uiFieldIssues.map(issue => ({ area: 'ui-fields', ...issue })),
     ...statusIssues.map(issue => ({ area: 'status-policy', ...issue })),
     ...workflowAccessIssues.map(issue => ({ area: 'workflow-access', ...issue })),
     ...commandIssues.map(issue => ({ area: 'commands', ...issue })),
@@ -317,13 +293,4 @@ export function validateDefinitionSet(definitions = []) {
     if (!definition.collection && !definition.party) errors.push(`Entity ${definition.type} missing collection`);
   }
   return { ok: errors.length === 0, errors };
-}
-
-function isAllowedFieldPath(typeId, path, canonicalFields) {
-  const [root] = path.split('.');
-  if (['identity', 'status', 'origin', 'lineage', 'attachments', 'specs', 'summary'].includes(root)) return true;
-
-  if (!path.startsWith('data.')) return false;
-  const dataRoot = path.split('.').slice(0, 2).join('.');
-  return canonicalFields.has(`${typeId}:${dataRoot}`);
 }

@@ -11,7 +11,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, compileClientBundle, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
 import { facadeFileTypes } from '../test-tools/facade-plugin.js';
-import { DESIGN_SYSTEM_FIELD_GROUPS } from '../utils/design-system-contract.js';
 import techDrawingListing from '../workers/tech-drawing/listing.json';
 const techDrawingTypes = techDrawingListing.declarations.types;
 import {
@@ -74,7 +73,7 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     expect(sheetDesign.name).toBe('Sheet design');
     // json -> summary; list of refs -> relations (item-base assignment).
     expect(sheetDesign.sections).toEqual([
-      { id: 'summary', label: null, fields: ['name', 'geometry'] }
+      { id: 'summary', label: null, fields: ['name', 'compositionKey', 'geometry'] }
     ]);
 
     const penTemplate = typeRecordFor(bundle, 'pen-template');
@@ -152,13 +151,7 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
   });
 
 
-  it('keeps the legacy residual map empty', () => {
-    // Live-type audit: everything that once lived in
-    // `DESIGN_SYSTEM_FIELD_GROUPS` rendered entity types retired from
-    // `cncEntities` (project, queue, sheet, remnant, catalog, …) or
-    // master data whose legacy surfaces are gone.
-    expect(Object.keys(DESIGN_SYSTEM_FIELD_GROUPS)).toEqual([]);
-    // An undeclared type resolves no legacy fallback.
+  it('resolves no legacy fallback for an undeclared type', () => {
     const undeclared = resolveInstanceDisplayContract({ typeId: 'queue', surface: 'card' });
     expect(undeclared.surfaceContract.preview).toBe('none');
     expect(instanceFactRows({ typeId: 'queue', typeRecord: null, entity: {} })).toEqual([]);

@@ -20,7 +20,7 @@
         @click="emit('remove')"
       />
     </div>
-    <div class="state-declaration-grid">
+    <div class="state-declaration-grid grid gap-3">
       <div class="flex flex-col gap-1">
         <label class="text-label text-muted">{{ $t('processDesigner.stateSeverity') }}</label>
         <Select
@@ -73,9 +73,7 @@ const severityOptions = stateSeverityOptions(t);
 }
 
 .state-declaration-grid {
-  display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.75rem;
 }
 
 @container (min-width: 24rem) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createTypeRegistry, projectDomainFromView, CLASS_COLLECTIONS } from '../index.js';
-import { cncTypePack } from '../pack/cnc.js';
-import { frameworkTypes } from '../pack/framework.js';
+import { createTypeRegistry, projectDomainFromView, CLASS_COLLECTIONS } from './index.js';
+import { cncTypePack } from './pack/cnc.js';
+import { frameworkTypes } from './pack/framework.js';
 
 // The view fixture: framework party types, the CNC starter pack, and one
 // org-authored type exercising children edges, states, and a payload.

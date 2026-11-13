@@ -100,7 +100,7 @@
                   :aria-pressed="option.active"
                   @click="selectLayoutOption(option)"
                 >
-                  <i :class="[option.icon, 'text-lg']" />
+                  <i :class="option.icon" />
                   <span class="truncate">{{ option.label }}</span>
                 </button>
               </div>

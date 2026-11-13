@@ -4,9 +4,9 @@ import {
   SPECIES_BY_EFFECT_KIND, isProcessOnlyBase
 } from './process-grammar.js';
 import { checkDeclarationsAgainstCts } from './process-checks.js';
-import { createTypeRegistry } from '../index.js';
-import { cncTypePack } from '../pack/cnc.js';
-import { frameworkTypes } from '../pack/framework.js';
+import { createTypeRegistry } from './index.js';
+import { cncTypePack } from './pack/cnc.js';
+import { frameworkTypes } from './pack/framework.js';
 
 function registryWithOrgType() {
   const registry = createTypeRegistry({ id: 'seam' });

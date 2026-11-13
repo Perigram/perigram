@@ -3,7 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import {
   DESIGN_SYSTEM_ENTITY_CONTRACTS,
-  DESIGN_SYSTEM_FIELD_GROUPS,
   DESIGN_SYSTEM_SURFACE_CONTRACTS,
   DESIGN_SYSTEM_VARIANTS,
   DESIGN_SYSTEM_PRIMITIVES,
@@ -619,7 +618,6 @@ describe('Design system manifest', () => {
       }));
     }
 
-    expect(Object.keys(DESIGN_SYSTEM_FIELD_GROUPS)).toEqual([]);
   });
 
   it('keeps entity card fields on the generated derivation, out of component-local path arrays', () => {

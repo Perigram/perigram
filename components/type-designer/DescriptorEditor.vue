@@ -25,7 +25,7 @@
       </label>
     </div>
 
-    <div class="descriptor-qualifiers">
+    <div class="descriptor-qualifiers grid gap-3">
       <div v-if="modelValue.base === 'quantity'" class="flex flex-col gap-1">
         <label class="text-label text-muted">{{ $t('typeCanvas.unit') }}</label>
         <Select :model-value="modelValue.unit" :options="units" size="small" class="w-full" @update:model-value="value => patch({ unit: value })" />
@@ -176,9 +176,7 @@ function removeRecordField(index) {
 
 <style scoped>
 .descriptor-qualifiers {
-  display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.75rem;
 }
 
 @container (min-width: 28rem) {

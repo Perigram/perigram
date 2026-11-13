@@ -153,7 +153,12 @@ describe('Framework package contracts', () => {
 
   it('exposes the facade plugin listing and read-only MCP handlers', async () => {
     const { facadeFileTypes, facadeServices } = await import('../test-tools/facade-plugin.js');
-    const { DESIGN_SYSTEM_CONTRACT } = await import('../utils/design-system-contract.js');
+    const {
+      DESIGN_SYSTEM_ENTITY_CONTRACTS,
+      DESIGN_SYSTEM_PRIMITIVES,
+      DESIGN_SYSTEM_VARIANTS,
+      DESIGN_SYSTEM_GROUPS
+    } = await import('../utils/design-system-contract.js');
     const { createTypeRegistry, frameworkTypes, projectDomainFromView } = await import('../packages/cts/src/index.js');
     const techDrawingListing = (await import('../workers/tech-drawing/listing.json', { with: { type: 'json' } })).default;
     const techDrawingTypes = techDrawingListing.declarations.types;
@@ -179,10 +184,10 @@ describe('Framework package contracts', () => {
       attachmentKinds: projected.attachmentKinds,
       summaries: [],
       designSystem: {
-        contracts: DESIGN_SYSTEM_CONTRACT.contracts,
-        primitives: DESIGN_SYSTEM_CONTRACT.primitives,
-        variants: DESIGN_SYSTEM_CONTRACT.variants,
-        groups: DESIGN_SYSTEM_CONTRACT.groups,
+        contracts: DESIGN_SYSTEM_ENTITY_CONTRACTS,
+        primitives: DESIGN_SYSTEM_PRIMITIVES,
+        variants: DESIGN_SYSTEM_VARIANTS,
+        groups: DESIGN_SYSTEM_GROUPS,
         componentInventory: {},
         tokens: {}
       },

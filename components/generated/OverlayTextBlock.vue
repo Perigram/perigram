@@ -35,8 +35,7 @@ import MarkdownBlocks from './MarkdownBlocks.vue';
 
 const props = defineProps({
   block: { type: Object, required: true },
-  // The final empty text block carries the slash hint; other blocks stay
-  // text-ready without chrome.
+  // Only the final empty text block carries the slash hint.
   placeholder: { type: String, default: '' },
   // The overlay session; a reader mounts the block with no session and
   // no authoring.
