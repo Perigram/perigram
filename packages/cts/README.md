@@ -81,7 +81,7 @@ modules onto its sections.
   [utils/instance-display-contract.js](../../utils/README.md); the UI
   mapping resolvers consume the same record
   ([shared/ui-mapping](../../shared/ui-mapping/README.md)).
-- `compat/domain-projection.js` — the CTS → compiler-domain translator
+- `projection.js` — the CTS → compiler-domain translator
   (SPEC §13), synthesis-only: every authorable type in the view
   synthesizes its entities entry (per-class collection, §13),
   `fieldSchemas` (the §3 stored shape plus row fields as flat
@@ -101,22 +101,22 @@ modules onto its sections.
   framework block vocabulary, and pack service registrations only
   (SPEC §13). Owns the per-class collection map (`CLASS_COLLECTIONS`)
   shared with the instance repository.
-- `compat/field-schema-rows.js` — the row ⇄ field-schema translation
+- `field-schema-rows.js` — the row ⇄ field-schema translation
   the domain projection synthesizes through: row fields mint flat
   `fields.*` paths (SPEC §13), descriptor typing, nested-path
   grouping.
-- `compat/process-grammar.js` — CTS ⇄ `PROCESS_BASE_TYPES` adapter for
+- `process-grammar.js` — CTS ⇄ `PROCESS_BASE_TYPES` adapter for
   the declaration subset (SPEC §2 grammar relation): maps declaration
   descriptors onto the process type grammar and back, reports
   runtime-only bases as unmappable, and derives the enum registry ids
   both sides share. Consumed by `packages/processes` designer and node
   catalog.
-- `compat/process-checks.js` — declaration checks against a registry
+- `process-checks.js` — declaration checks against a registry
   view, run before the process compiler's graph validation: transition
   guards and state `fieldPolicy` lists row-checked against the bound
   type (SPEC §7), with type bindings read positionally so vocabulary
   strings and canvas card kinds are never misread as type references.
-- `compat/graph-protocol.js` — the species graph protocol (SPEC §14):
+- `graph-protocol.js` — the species graph protocol (SPEC §14):
   `resolveCtsDefinition` resolves declaration ids and row paths while
   preserving species kinds, discriminators, socket ids, and graph
   edges; `checkCtsGraphBindings` validates type, field, state,
@@ -164,7 +164,7 @@ the designer through `composables/useProcessDesignerTypes.js`
 `npx vitest run packages/cts` — the acceptance suite covers every
 static rule with passing and failing fixtures, tenancy resolution, the
 diff refusal path, the pack compile, the synthesis projection
-(`compat/domain-projection.spec.js`), and the graph-protocol acceptance
+(`projection.spec.js`), and the graph-protocol acceptance
 gate (resolution preserves species kinds, typed ports, and executable
 behavior through compilation).
 

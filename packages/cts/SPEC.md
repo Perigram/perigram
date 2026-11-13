@@ -607,7 +607,7 @@ The compiler enforces exactly these; each replaces a hand-maintained guard:
 | grammar + validator | — | `packages/cts`: CTS grammar (values, rows, units, expressions); rows compile to JSON Schema validated by Ajv (custom keywords: `Quantity`, `Ref`); `packages/core` carries block DTOs |
 | expressions (guards, predicates, transforms) | — | CEL semantics; a standard CEL engine if it holds up in browser and server, else a small evaluator with exactly §15's rules |
 | compiler (R1–R7, diff, migrations) | — | R1–R6 + the R7 migration gate: `packages/cts` (`registry.compile()`, `diff.js`); graph validation: `packages/processes` |
-| declaration ⇄ process-grammar seam | — | `packages/cts` `compat/process-grammar.js` |
+| declaration ⇄ process-grammar seam | — | `packages/cts` `process-grammar.js` |
 | operator runtime | — | today's command/task machinery, signatures added |
 | CNC vocabulary | seeded type pack + projections/services | the facade plugin's listing is the content |
 
@@ -622,7 +622,7 @@ type's class collection and each declared relation edge adds
 feature derives and (idempotently) applies them when declarations change
 and at process activation.
 
-`projectDomainFromView` (`compat/domain-projection.js`) is the compiler
+`projectDomainFromView` (`projection.js`) is the compiler
 domain's only source: for every type in the view it synthesizes the
 entities entry (per-class collection), workflows (graph-derived at
 compile), field schemas (the §3 stored vocabulary), field access,

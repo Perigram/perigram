@@ -10,8 +10,8 @@
 //   discriminators, socket ids, ports, and graph edges.
 // - checkCtsGraphBindings: declaration-level binding validation (type
 //   exists, state declared, field in row) beside R1-R6.
-import { classMayDeclareChildren } from '../classes.js';
-import { isRowKeyId } from '../rows.js';
+import { classMayDeclareChildren } from './classes.js';
+import { isRowKeyId } from './rows.js';
 const CTS_KIND = Object.freeze({
   construct: 'cts.construct',
   mutate: 'cts.mutate',

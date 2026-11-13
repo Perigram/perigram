@@ -12,8 +12,8 @@
 // This is the single translator between the declaration layer and the
 // process grammar — the designer and the compiler consume only this.
 import { rowToFieldSchemas } from './field-schema-rows.js';
-import { lineageKeyForParent } from '../edges.js';
-import { renderPolicyFor } from '../render.js';
+import { lineageKeyForParent } from './edges.js';
+import { renderPolicyFor } from './render.js';
 
 // Per-class instance collections (SPEC §13): the single home of the
 // storage mapping; the server instance repository imports this map.
