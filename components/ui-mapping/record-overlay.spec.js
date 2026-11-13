@@ -202,7 +202,7 @@ describe('the composed record page (RegionBlock host)', () => {
   it('composes a child collection at its authored position inside the body flow', async () => {
     const html = await renderRecord({
       blocks: [],
-      order: ['children:parts', 'properties', 'editor']
+      order: ['children:parts:t-part', 'properties', 'editor']
     });
     expect(html).toContain('Part one');
     expect(html).toContain('hello');
