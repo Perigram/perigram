@@ -486,8 +486,10 @@ renders its plugin surface read-only (`PreviewChannelMount.vue`, the
 same contract-1 mount the generic preview slots ride) over the
 whole-graph preview evaluation — the evaluation runs when the tab opens
 and re-runs on authoring changes while it stays open (one debounced
-seam), with no target node, so every data node evaluates and no effect
-species executes; the serialized
+seam), with no target node, so every data node evaluates, no effect
+species executes, and an endpoint value service evaluates through its
+connector dispatch (a claim-mode service answers the node error);
+the serialized
 result (`{ nodes: { [id]: { outputs, error? } } }`) is the channel's
 payload, and each node's `error` folds into the canvas fault states
 beside the validation diagnostics. A channel that cannot mount

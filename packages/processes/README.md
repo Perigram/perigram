@@ -147,6 +147,16 @@ prompted inputs. Palette translations are presentation only; generated
 action captions derive from typed declarations. Callers provide the
 current semantic graph directly, protocol version included.
 
+Draft preview evaluates a value service as a data node (SPEC §28): in
+preview scope, with a `previewService(operator, parameters)` channel on
+the evaluation environment, the service's signature inputs resolve from
+the graph into one parameters record (a list field passes its whole
+list), the channel dispatches, and the returned value becomes the
+`result` packet — memoized per output for the pass's fan-out consumers.
+Runtime scope keeps services opaque to the dataflow evaluator: the
+effect executor owns execution there, and downstream reads wait for the
+completed step's outputs.
+
 ## Designer round trip
 
 Process definitions use canonical semantic records as the editing source of

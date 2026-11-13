@@ -665,7 +665,7 @@ graph.
 | `GET /api/process-definitions` | List the organization's definitions. |
 | `POST /api/process-definitions` | Create a definition from current semantic records. |
 | `GET /api/process-definitions/active` | Most recently activated definition (boot convenience). |
-| `POST /api/process-definitions/preview` | Evaluate a draft node preview (`preview`). |
+| `POST /api/process-definitions/preview` | Evaluate a draft node preview (`preview`). An endpoint value service on the draft evaluates through the plugins feature's `invokeEndpointValueService` — the same dispatch and deterministic-cache replay the command runtime uses, with no `command_runs` write; a claim-mode service refuses the preview evaluation naming the service. |
 | `GET /api/process-definitions/:id` | Read one definition. |
 | `PATCH /api/process-definitions/:id` | Save (`update`; identity-only PATCH leaves data untouched). |
 | `DELETE /api/process-definitions/:id` | Remove (`remove`). |

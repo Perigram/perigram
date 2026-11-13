@@ -1,5 +1,74 @@
 # TODO
 
+## Node system rework — artifact composition on the one graph (SPEC §28 + NOTES-templates.md, owner direction 2026-11-13)
+
+One meta-feature (owner ruling this session): the typed artifact
+composition of `NOTES-templates.md` (HAG) delivered through the one
+graph system of SPEC §28 — processes owns the calculus, format
+operations arrive as plugin palette services, previews ride the channel
+tabs; a second graph format, validator, or evaluator is the §28 defect
+law. HAG concepts map onto existing homes:
+
+| HAG concept | Perigram home |
+|---|---|
+| Graph document / DAG evaluator | Process definition + the dataflow evaluator (`packages/processes`), preview scope for live composition |
+| Node definition registry | Operation catalog + plugin listing services (SPEC §8 signatures; palette `group` sections) |
+| Ports with semantic types | Signature-derived data sockets (CTS V-grammar); typed value contracts ride `json` values |
+| Artifacts, immutable + content-addressed | File instances + GridFS `contentHash` (§28 artifact contract); payload revisions |
+| Pure-node cache | `plugin_service_cache` deterministic replay |
+| Import/extract adapters | Plugin endpoint services over payloads (`resolve: { service }` projections; documents/facade executors) |
+| Diagnostics | Anchored validation diagnostics + node fault channel |
+| HTML/preview rendering | Preview channels + preview surfaces |
+
+Slices:
+
+- [x] S1 Live value services in preview — an endpoint value service
+  evaluates as a data node in preview scope (assembled parameters
+  record, one memoized dispatch per output, claim-mode refusal naming
+  the service; runtime scope unchanged); the canvas preview gate
+  admits service nodes.
+- [ ] S2 File payloads as graph values — a file instance's payload
+  enters the dataflow as a typed value (content-hash addressed) so
+  extraction services compose without construction bindings.
+- [ ] S3 Typed value contracts on sockets — plugin-declared value kinds
+  (flow-document, table dataset) gate connections; conversion stays an
+  explicit operation (HAG P1/P4).
+- [ ] S4 Documents vertical as the HAG MVP — markdown → flow document,
+  dataset creation, report composition, HTML render: documents-plugin
+  palette services with record signatures plus a report preview
+  channel (HAG §16 phases 3-4 over the one graph).
+- [ ] S5 Generated node cards over discovered contracts and per-output
+  preview visibility (the §28 canvas remainder).
+
+- [ ] WAITING — owner verification: S1 — a draft carrying an endpoint
+  value service previews its result per node and feeds downstream
+  consumers; the preview tab's whole-graph evaluation carries service
+  outputs to channel surfaces; a claim-mode service answers the node
+  error; runtime execution is unchanged.
+
+### Agent Notes (2026-11-13, agent/nodes-preview-services-20261113)
+
+- S1 landed. `previewProcessDataflow` admits `cts.service` records
+  when the environment carries a `previewService` channel;
+  `evaluateNodeOutput` dispatches once per output (memoized on the
+  preview token context) with list fields passing their whole list;
+  without the channel the old opacity stands (services absent from the
+  preview map). The server's `preview()` wires the channel to the
+  plugins feature's `invokeEndpointValueService` (extracted from
+  `executeConnectorService`'s endpoint branch: same dispatch, same
+  deterministic-cache replay, claim-mode refusal, no `command_runs`
+  write). Canvas: `selectedNodeSupportsPreview` admits service nodes.
+- Specs: orchestration (dispatch, fan-out memoization, opacity outside
+  preview), plugins (preview dispatch + cache replay + claim refusal +
+  unknown-install 404), process-definitions integration (installed
+  service previews end-to-end through the mocked install + fetch),
+  composable gate table. The 3 `process-definitions.spec.js` failures
+  (persisted producer migration, ambiguous sockets, activation
+  fixture) reproduce on the clean merge base — untouched.
+- Validation: orchestration 44 ✓, plugins 64 ✓,
+  process-definitions 47/50 (3 pre-exist on base), composables 10 ✓,
+  `check-arch` ✓, `docs:validate` ✓.
+
 ## One graph system (SPEC §28, owner direction 2026-11-12)
 
 - [ ] WAITING — owner verification: adopt the build123d-flow dock on the
