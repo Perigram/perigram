@@ -17,8 +17,7 @@ import { normalizeListing } from '../../packages/plugin-sdk/src/listing.js';
 const BUILTIN_LISTING_PATHS = [
   'workers/documents/listing.json',
   'workers/tech-drawing/listing.json',
-  'workers/facade/listing.json',
-  'workers/build123d/listing.json'
+  'workers/facade/listing.json'
 ];
 
 const paths = process.argv.slice(2).length ? process.argv.slice(2) : BUILTIN_LISTING_PATHS;

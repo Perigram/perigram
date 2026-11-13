@@ -4,7 +4,7 @@ import { useProcessDesignerPreview } from './useProcessDesignerPreview.js';
 // The diagnostic focus contract: a node-anchored diagnostic selects the node
 // and frames it into view; an edge-anchored diagnostic selects the edge and
 // frames both endpoints; a passing validation never moves the viewport.
-function mountPreview({ nodes = [], edges = [], frameNodeIds } = {}) {
+function mountPreview({ nodes = [], edges = [], frameNodeIds, graphEvaluation } = {}) {
   const selectNode = vi.fn();
   const selectEdge = vi.fn();
   const preview = useProcessDesignerPreview({
@@ -20,7 +20,8 @@ function mountPreview({ nodes = [], edges = [], frameNodeIds } = {}) {
     edges: { value: edges },
     selectNode,
     selectEdge,
-    ...(frameNodeIds ? { frameNodeIds } : {})
+    ...(frameNodeIds ? { frameNodeIds } : {}),
+    ...(graphEvaluation ? { graphEvaluation: { value: graphEvaluation } } : {})
   });
   return { preview, selectNode, selectEdge };
 }
@@ -56,5 +57,19 @@ describe('useProcessDesignerPreview diagnostic focus', () => {
     preview.focusFirstValidationDiagnostic({ ok: false, diagnostics: [{ message: 'no anchors' }] });
 
     expect(frameNodeIds).not.toHaveBeenCalled();
+  });
+
+  it('folds whole-graph evaluation errors into the node diagnostic index (SPEC §28)', () => {
+    const graphEvaluation = {
+      nodes: {
+        good: { outputs: { value: { branches: [] } } },
+        bad: { outputs: {}, error: 'Division by zero' }
+      }
+    };
+    const { preview } = mountPreview({ graphEvaluation });
+
+    expect(preview.nodeDiagnostics.value('bad')).toEqual(['Division by zero']);
+    expect(preview.nodeDiagnostics.value('good')).toBeNull();
+    expect(preview.nodeDiagnostics.value('absent')).toBeNull();
   });
 });

@@ -19,19 +19,15 @@
   anchored validation diagnostics index by node (edge diagnostics mark
   their endpoints), the faulted card renders the danger border, a
   header glyph, and its message rows; re-stamped through the one
-  enrichment pass on every validation arrival.
+  enrichment pass on every validation arrival; whole-graph evaluation
+  errors (the Preview tab's debounced run) fold into the same fault
+  channel.
 - [ ] WAITING — owner verification: content-addressed artifact
   contract — every `uploadFile` stamps `metadata.contentHash`
   (`sha256:<hex>`, all buckets); endpoint services may declare
   `cache: 'deterministic'` (listing-validated, endpoint-only) and
   replay through `plugin_service_cache` keyed on service identity +
   installed version + canonical input.
-- [ ] WAITING — owner verification: build123d plugin vertical slice —
-  `workers/build123d/` (port 8793, compose `build123d-executor`,
-  built-in listing seed): part/recipe types, the box bake (exact
-  bounds, watertight mesh, spec-verified), `fromBake` construction,
-  the `build123d` palette section, and the `b3d-viewport` preview
-  channel (isometric SVG surface).
 
 ### Agent Notes (2026-11-12, agent/graph-unification-20261112)
 
@@ -69,6 +65,24 @@
 - Remaining slices: node-scoped canvas diagnostics surfacing, preview
   channels (listing key + designer tabs), artifact contract, build123d
   plugin vertical.
+
+### Agent Notes (2026-11-12, agent/app-nodes-20261112)
+
+- Owner correction: the build123d plugin vertical (box bake, hardcoded
+  operation switch, `workers/build123d/`) was slop — engine node
+  catalogs arrive parsed from the real library (build123d-flow's
+  discovery model), never hand-authored per operation. The plugin is
+  reverted whole (33b2199be); its WAITING item is void. The real
+  engine bring-up is future work: introspect the installed build123d
+  API and register discovered constructors/operators with provenance
+  and palette placement, behind the same listing/service seams.
+- Nodes-work slice landed instead: whole-graph evaluation errors now
+  fold into the node fault channel — the Preview tab's debounced
+  whole-graph evaluation (runs on tab open, re-runs on authoring
+  changes while open) feeds `nodeDiagnosticIndex` beside anchored
+  validation diagnostics, so an evaluation failure marks its node's
+  card without selecting it. Spec-pinned in
+  `composables/useProcessDesignerPreview.spec.js`.
 
 ### Agent Notes (2026-11-12, dangling docs pointers)
 

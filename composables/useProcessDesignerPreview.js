@@ -19,7 +19,8 @@ export function useProcessDesignerPreview({
   edges,
   selectNode,
   selectEdge,
-  frameNodeIds = () => {}
+  frameNodeIds = () => {},
+  graphEvaluation = { value: null }
 } = {}) {
   const dataflowPreview = ref(null);
   const previewingData = ref(false);
@@ -65,21 +66,27 @@ export function useProcessDesignerPreview({
   const selectedNodePreview = computed(() => selectedNode.value ? dataflowPreview.value?.nodes?.[selectedNode.value.id] || null : null);
 
   // Node-scoped diagnostics (SPEC §28): the anchored diagnostics of the
-  // current validation indexed by node — the canvas marks each faulted
-  // node. Edge-anchored diagnostics mark their endpoint nodes so a wire
-  // problem stays visible on the cards it connects.
+  // current validation plus the whole-graph evaluation's per-node
+  // errors, indexed by node — the canvas marks each faulted node.
+  // Edge-anchored diagnostics mark their endpoint nodes so a wire
+  // problem stays visible on the cards it connects; an evaluation error
+  // names its own node alone (an upstream failure is that node's error).
   const nodeDiagnosticIndex = computed(() => {
     const index = new Map();
+    const add = (nodeId, message) => {
+      const key = String(nodeId);
+      index.set(key, [...(index.get(key) || []), message]);
+    };
     const diagnostics = validation.value?.diagnostics || [];
     const edgeNodeIds = new Map((edges.value || []).map(edge => [String(edge.id), [edge.source, edge.target]]));
     for (const diagnostic of diagnostics) {
       const anchored = [];
       if (diagnostic.nodeId) anchored.push(diagnostic.nodeId);
       if (diagnostic.edgeId) anchored.push(...(edgeNodeIds.get(String(diagnostic.edgeId)) || []));
-      for (const nodeId of anchored) {
-        const key = String(nodeId);
-        index.set(key, [...(index.get(key) || []), diagnostic.message]);
-      }
+      for (const nodeId of anchored) add(nodeId, diagnostic.message);
+    }
+    for (const [nodeId, evaluation] of Object.entries(graphEvaluation.value?.nodes || {})) {
+      if (evaluation?.error) add(nodeId, evaluation.error);
     }
     return index;
   });

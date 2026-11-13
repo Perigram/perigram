@@ -71,7 +71,7 @@ so the canvas stays legible across application themes.
 |---|---|
 | Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation, `inline` = the one-line literal |
 | Card surface | population primacy | the effect species except remove render the primary-tinted surface (`--ck-surface-primary`) — the primary nodes; every other node keeps the plain content surface. One predicate: `utils/processDesignerPopulation.js` |
-| Card border | chrome + selection + fault | the quiet content border for every card; the selected border is the selection state; the danger border marks a faulted node — one carrying anchored validation diagnostics for itself or a wire at its endpoint (the messages render in the card's leading rows and ride the header tooltip) |
+| Card border | chrome + selection + fault | the quiet content border for every card; the selected border is the selection state; the danger border marks a faulted node — one carrying anchored validation diagnostics for itself or a wire at its endpoint, or its own whole-graph evaluation error (the messages render in the card's leading rows and ride the header tooltip) |
 
 Canvas nodes carry no category accent — the frame is plain; card concern
 rides the label and icon. Effects and state declarations are the primary
@@ -484,12 +484,15 @@ Installed plugins may declare preview channels (SPEC §28): one designer
 tab per channel, mounted when any channel is served. Each channel
 renders its plugin surface read-only (`PreviewChannelMount.vue`, the
 same contract-1 mount the generic preview slots ride) over the
-whole-graph preview evaluation — the refresh action runs the same
-preview seam as the node output inspector with no target node, so every
-data node evaluates and no effect species executes; the serialized
+whole-graph preview evaluation — the evaluation runs when the tab opens
+and re-runs on authoring changes while it stays open (one debounced
+seam), with no target node, so every data node evaluates and no effect
+species executes; the serialized
 result (`{ nodes: { [id]: { outputs, error? } } }`) is the channel's
-payload. A channel that cannot mount (unconfigured executor, refused
-contract) renders its unavailable state beside the other tabs.
+payload, and each node's `error` folds into the canvas fault states
+beside the validation diagnostics. A channel that cannot mount
+(unconfigured executor, refused contract) renders its unavailable state
+beside the other tabs.
 
 ### Inspector anatomy
 
