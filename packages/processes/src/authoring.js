@@ -169,6 +169,13 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
     }
     node.icon = iconForProcessNode(node.kind);
+    // The retired per-output preview selection migrates to the per-node
+    // eye: only a fully hidden node stays hidden.
+    if (Array.isArray(node.previewOutputs)) {
+      if (node.previewOutputs.length === 0) node.previewVisible = false;
+      delete node.previewOutputs;
+    }
+    if (node.previewVisible !== false) delete node.previewVisible;
     // Guard field paths heal row-relative in place (SPEC §7/§20): a
     // block-prefixed persisted path is the bare row id.
     if (node.kind === 'cts.transition' && node.guard) {

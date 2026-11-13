@@ -3413,8 +3413,8 @@
     "previewChannels": "Graph preview",
     "noPreviewChannels": "Preview channels arrive with installed plugins",
     "previewChannelUnavailable": "Preview channel unavailable",
-    "previewOutputHide": "Hide from preview",
-    "previewOutputShow": "Show in preview",
+    "previewNodeHide": "Hide from preview",
+    "previewNodeShow": "Show in preview",
     "paletteGroups": {
       "entities": "Types",
       "values": "Values",

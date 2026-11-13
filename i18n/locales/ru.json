@@ -3413,8 +3413,8 @@
     "previewChannels": "Предпросмотр графа",
     "noPreviewChannels": "Каналы предпросмотра появляются с установленными плагинами",
     "previewChannelUnavailable": "Канал предпросмотра недоступен",
-    "previewOutputHide": "Скрыть из предпросмотра",
-    "previewOutputShow": "Показать в предпросмотре",
+    "previewNodeHide": "Скрыть из предпросмотра",
+    "previewNodeShow": "Показать в предпросмотре",
     "paletteGroups": {
       "entities": "Типы",
       "values": "Значения",

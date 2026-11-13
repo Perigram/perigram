@@ -9,6 +9,13 @@ graphs through authored typed bindings, and computed artifacts persist
 into instances procedurally (effects/constructs; value services stay
 pure compute).
 
+- [ ] G0 Canvas interaction model (build123d-flow): the dock — a
+  canvas-top category strip (provenance groups as labels, category
+  chips) opening the popover palette with search over the full catalog;
+  the card headers — `category · kind` label, collapse chevron,
+  description affordance; the per-node header eye landed 2026-11-13.
+  The workspace chrome contract (`components/shared/README.md`) owns
+  the top line today; adopting the dock reopens it.
 - [ ] G1 Graph document type — one platform type (JSON payload, editor
   creation protocol); instance lifecycle through the ordinary instance
   services; the canvas opens a graph instance beside the organization
@@ -25,6 +32,26 @@ pure compute).
 - [ ] G5 Procedural persistence — effects/constructs that write computed
   values into file instances (STEP shape → `b3d-part`, rendered PDF →
   the documents file types); value services stay pure compute.
+
+### Agent Notes (2026-11-13, agent/node-eye-20261113)
+
+- Owner verdict on the build123d-flow migration: nothing of the
+  interaction model runs on the canvas except the eye, misplaced. The
+  original (inspected at src/App.vue and src/components/ApiNode.vue of
+  github.com/1suo/build123d-flow) carries one eye per node in the card
+  header toggling viewer visibility, a canvas-top dock (provenance
+  labels, category chips, popover palette with full-catalog search),
+  collapse chevrons, `category · kind` card headers, and a side
+  viewport panel. The dock WAITING item above records the failed
+  verification; G0 carries the reopened work.
+- Landed this session: the per-node preview eye — the header eye on
+  cards with data outputs authors `previewVisible` (`false` removes the
+  node's outputs from channel payloads; a hidden node keeps its error);
+  the retired per-output `previewOutputs` key migrates at the record
+  seam (`normalizeProcessNodeDefaults`: a selection that hid every
+  output hides the node, any visible output stays visible);
+  `visiblePreviewOutputs` filters per node; locale keys en+ru; SPEC §28
+  and the process-designer README state the per-node law.
 
 ### Agent Notes (2026-11-13, agent/graph-instances-20261113)
 
@@ -136,10 +163,11 @@ Slices:
   with the expected/received diagnostic naming the kind; every unkinded
   json consumer still accepts the kinded values.
 
-- [ ] WAITING — owner verification: S5 — a node's output-row eye hides
-  that output from the preview channels (the channel tab stops carrying
-  it, fault states stay), restores it, and the selection persists with
-  the draft through save/reload.
+- [ ] WAITING — owner verification: the per-node preview eye — a card's
+  header eye (rendered when the node has data outputs) hides the node's
+  outputs from the preview channels and restores them, the node's error
+  survives hiding, and the authored `previewVisible` persists with the
+  draft through save/reload.
 
 - [ ] WAITING — owner verification: S4 export services —
   `extract-table` wires a markdown table onto the table operations,
@@ -277,11 +305,9 @@ Slices:
 ## One graph system (SPEC §28, owner direction 2026-11-12)
 
 - [ ] WAITING — owner verification: adopt the build123d-flow dock on the
-  process designer canvas — plugin palette sections render as a
-  provenance tier (Plugins above Platform, source declared by the
-  palette-group projection), full-catalog search spanning both tiers
-  (`OperationPalette.vue`; the `group` slug is validated by
-  `parseListing` and documented in the SDK README).
+  process designer canvas (owner verification failed 2026-11-13 — the
+  provenance-tier rail palette is not the dock; the work is G0 in the
+  graph-documents program above).
 - [ ] WAITING — owner verification: typed preview tabs —
   `previewChannels: [{ id, surface, label }]` in the listing contract
   (validated, schema-mirrored), resolved bindings served on

@@ -1585,7 +1585,7 @@ surfaces. The platform carries no engine code.
 The node canvas adopts the build123d-flow interaction model — dock with
 provenance groups (each plugin's sections selectable beside the
 built-ins), search over the full catalog, generated node cards over
-discovered contracts, node-scoped evaluation errors, per-output preview
+discovered contracts, node-scoped evaluation errors, per-node preview
 visibility. It is a presentation adapter over the existing authoring
 seam (`createDefinitionAuthoring`): every gesture authors species
 records, and the compiled contract stays the product. A second graph
