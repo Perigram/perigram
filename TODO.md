@@ -61,8 +61,14 @@ Slices:
   dataset creation, report composition, HTML render: documents-plugin
   palette services with record signatures plus a report preview
   channel (HAG §16 phases 3-4 over the one graph).
-- [ ] S5 Generated node cards over discovered contracts and per-output
+- [x] S5 Generated node cards over discovered contracts and per-output
   preview visibility (the §28 canvas remainder).
+  Landed 2026-11-13: the card already renders over the resolved socket
+  contracts (rows, labels, types, inline fallbacks, fault states) — the
+  remainder was the visibility control. Each data-output row carries the
+  eye; the authored `previewOutputs` selection on the record feeds
+  `visiblePreviewOutputs`, which filters the channel payload (absent
+  selects every output; node errors survive).
 
 - [ ] WAITING — owner verification: S1 — a draft carrying an endpoint
   value service previews its result per node and feeds downstream
@@ -92,6 +98,29 @@ Slices:
   document input; a plain string or unkinded json refuses those sockets
   with the expected/received diagnostic naming the kind; every unkinded
   json consumer still accepts the kinded values.
+
+- [ ] WAITING — owner verification: S5 — a node's output-row eye hides
+  that output from the preview channels (the channel tab stops carrying
+  it, fault states stay), restores it, and the selection persists with
+  the draft through save/reload.
+
+### Agent Notes (2026-11-13, agent/nodes-output-visibility-20261113)
+
+- S5 landed. `previewOutputs` is an authored record key (writes through
+  the ordinary `configure` assign, round-trips with the draft);
+  `ProcessNode.vue` renders the eye on data-output rows (muted when
+  visible, info-toned when hidden, icon-only); the page's channel
+  preview filters the evaluation through
+  `visiblePreviewOutputs(evaluation, definition)` before the payload
+  reaches the channel surfaces. Locale keys en+ru.
+- The card-contract half of the §28 sentence needed no code: the cards
+  render generically over the resolved port specs (`record.inputs`/
+  `outputs` from the catalog resolution) — no per-kind card UI exists
+  to replace.
+- Validation: composable spec 17 ✓ (visibility selection, error
+  survival, record-less nodes), localization ✓, design-system ✓,
+  process-page SSR smoke ✓, `check-arch` ✓, `docs:validate` ✓. The 3
+  process-definitions failures pre-exist on the merge base.
 
 ### Agent Notes (2026-11-13, agent/nodes-value-kinds-20261113)
 
