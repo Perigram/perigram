@@ -1,8 +1,9 @@
 <template>
   <!-- An empty child collection renders its section title with its create
        set directly beneath (owner direction 2026-11-13) — packed beside
-       its peers, with no count chip. -->
-  <div v-if="stubLine" :class="[LAYOUT.labeledBlock, 'w-fit max-w-full']">
+       its peers, with no count chip. A stub with no affordance renders
+       nothing. -->
+  <div v-if="stubLine && (createControls.length || linkControls.length)" class="flex w-fit max-w-full flex-col gap-1">
     <span :class="LAYOUT.sectionTitle">{{ regionLabel }}</span>
     <div :class="LAYOUT.row">
       <CreateControl
