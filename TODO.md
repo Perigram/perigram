@@ -1,5 +1,42 @@
 # TODO
 
+## Graph documents — callable graph instances (SPEC §28 amendment, owner direction 2026-11-13)
+
+Composition leaves the process-definition container: a graph is an
+instance of one platform type (semantic records as a JSON payload), the
+same canvas and CTS type system author it wherever it opens, graphs call
+graphs through authored typed bindings, and computed artifacts persist
+into instances procedurally (effects/constructs; value services stay
+pure compute).
+
+- [ ] G1 Graph document type — one platform type (JSON payload, editor
+  creation protocol); instance lifecycle through the ordinary instance
+  services; the canvas opens a graph instance beside the organization
+  process page (the same designer components over the instance payload).
+- [ ] G2 Typed bindings — a graph authors input/output bindings (name,
+  CTS type / value kind); the binding contract validates with the draft.
+- [ ] G3 Graph-as-node — a graph instance referenced in another graph
+  exposes its bindings as the node's sockets; preview evaluation composes
+  graphs through the one dataflow evaluator; a process graph consumes
+  the outputs like any producer.
+- [ ] G4 Shape viewport — the build123d listing declares its preview
+  channel and serves the viewport surface; every evaluated shape previews
+  (per-output visibility already law).
+- [ ] G5 Procedural persistence — effects/constructs that write computed
+  values into file instances (STEP shape → `b3d-part`, rendered PDF →
+  the documents file types); value services stay pure compute.
+
+### Agent Notes (2026-11-13, agent/graph-instances-20261113)
+
+- Session verified the §28 state on `local`: composition is authored on
+  the organization process page alone; the real build123d engine listing
+  (v1, 64 ops) declares no preview channel and no surface (the reverted
+  first plugin carried `b3d-viewport`; the rewrite dropped it);
+  `b3d-part` admits upload creation only; documents cover one-shot
+  compose/render services, with no incremental document-op nodes and no
+  persistence path for computed artifacts. SPEC §28 amended from owner
+  words this session; slices G1–G5 recorded above.
+
 ## Node system rework — artifact composition on the one graph (SPEC §28 + NOTES-templates.md, owner direction 2026-11-13)
 
 One meta-feature (owner ruling this session): the typed artifact
