@@ -447,7 +447,22 @@ still links the folder — filed in the root TODO for the owner.
   depth-0 reload strip rides a permanent 4px lane under the header
   (SPEC §22.9 amended).
 
-#### Agent Notes (2026-10-29)
+#### Agent Notes (2026-11-13)
+
+Session `agent/record-surface-fix-20261113195620` (worktree
+`.agent-worktrees/record-surface-fix-20261113195620`), live-audit fixes
+over the demo org (DOM-geometry probes): the cluster's leading hairline
+rendered with an empty left side everywhere — RegionBlock registers the
+`cluster` slot with a dead `v-if` inside, so the old
+`$slots.cluster` check always passed; the divider law now counts a
+group only when it renders a node (`Comment`-aware slot check), the
+overflow ellipsis joined the generated-actions group (it rode the row's
+gap-2 alone before), and the step-up group gained its divider (the peek
+cluster read `💬 ⤢` with a stray leading hairline and no separator
+before the step-up). The in-place rename input carried PrimeVue's
+padding and border on top of the record-title role (50px box over the
+32px title line — the header jumped on rename); its pt zeroes them so
+the input occupies the title's own line box.
 
 Session `agent/header-look-20261029` (worktree `.agent-wt-look-20261029`),
 on top of the recipe rehoming (`agent/header-system-20261029`). New
@@ -468,7 +483,26 @@ neighbors; SSR smoke 23/23.
   the compact rhythm and arrangement sees its measured width (SPEC
   §22.14).
 
-#### Agent Notes (2026-10-29)
+#### Agent Notes (2026-11-13)
+
+Session `agent/record-surface-fix-20261113195620` (worktree
+`.agent-worktrees/record-surface-fix-20261113195620`): the popup host
+guards in `RegionBlock` were dead — `resolveContainerTraits` never
+returned `hostKind`, so every `hostContainer.value?.hostKind ===
+'popup'` check fell through and the popup rendered the routed-page
+presentations: an editable rename title (measured input in the popup
+header), the editor page branch for editor-bound types, and the record
+overlay session. The traits record now carries its `hostKind`
+(SPEC/README/spec pins updated); the popup title stays read-only, the
+popup renders the compact document with the bounded editor band
+mounting read-only (`RecordEditorBody` floors the mode; editing opens
+through the step-up), and the overlay stays off. The popup header's
+step-up button sat flush against the dialog close (0px gap — the
+flex-1 row stretches to the dialog edge); one ladder step of trailing
+padding separates them. The DXF editor page rendered a second toolbar
+under the unified header with the record name again plus its own Save
+(SPEC §4 violation); the surface binds `pageChrome` and the row is
+gone.
 
 Session `agent/chippeek-20261029` (worktree
 `.agent-wt-chippeek-20261029`). New shared `HoverPeek.vue` (delayed

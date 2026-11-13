@@ -75,6 +75,7 @@ record as plain data.
 
 | Trait | Domain | Meaning |
 |---|---|---|
+| `hostKind` | `page` \| `pane` \| `dialog` \| `popup` | the host profile the record resolved through; host-specific presentations (the record popup's compact document) gate on it |
 | `width` | one step of the width-step table (`narrow` \| `medium` \| `wide`) | the host box's width class, in rem steps named in the layout vocabulary |
 | `height` | `bounded` \| `flow` | a bounded host clips (pane, dialog, popup); a flow host grows (routed page, mobile tab) |
 | `scroll` | `surface` \| `page` | which box scrolls when content overflows |

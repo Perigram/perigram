@@ -347,8 +347,8 @@ contract. It combines two halves:
   in-place name edit, the dirty-marked save, and the divergence refresh
   from it, and the host registers the dirty state on the workspace
   page-dirty registry so pane-close confirms; the documents pack's
-  editors bind it and their own toolbars are gone, designer editors
-  (facade, tech-drawing) keep their docks and render a read-only title.
+  editors and the tech-drawing DXF editor bind it and their own
+  toolbars are gone, designer editors (facade) keep their docks.
   A bound editor page also opens **blank** — `openBlankFileEditor`
   rides the page-open seam with no entity (the create button of an
   editor-protocol type), the blank tab is a singleton entity-less page
