@@ -157,6 +157,14 @@ Runtime scope keeps services opaque to the dataflow evaluator: the
 effect executor owns execution there, and downstream reads wait for the
 completed step's outputs.
 
+Signature fields may declare a value `kind` (a namespaced slug,
+`document.report`): the socket carries it and compatibility gates on
+it — a kinded socket accepts its own kind alone, an unkinded `json`
+socket is the universal acceptor, and the universal `toJson` coercion
+skips kinded targets, so converting between value kinds stays an
+explicit operation the graph shows (the same lattice `entityRef`'s
+typeId already uses).
+
 ## Designer round trip
 
 Process definitions use canonical semantic records as the editing source of

@@ -13,7 +13,9 @@ export function ctsFieldToProcessType(descriptor = {}) {
     case 'boolean': return { base: 'boolean' };
     case 'instant': return { base: 'dateTime' };
     case 'id': return { base: 'id' };
-    case 'json': return { base: 'json' };
+    case 'json': return descriptor.kind
+      ? { base: 'json', kind: String(descriptor.kind) }
+      : { base: 'json' };
     case 'blob': return { base: 'attachmentRef' };
     case 'quantity': return { base: 'number', unit: descriptor.unit };
     case 'ref': {
@@ -48,7 +50,9 @@ export function processTypeToCtsField(type = {}) {
     case 'dateTime': case 'date': return { base: 'instant' };
     case 'duration': return null;
     case 'id': return { base: 'id' };
-    case 'json': return { base: 'json' };
+    case 'json': return type.kind
+      ? { base: 'json', kind: String(type.kind) }
+      : { base: 'json' };
     case 'attachmentRef': return { base: 'blob' };
     case 'enum': return { base: 'enum' };
     case 'entityRef': case 'entity': {

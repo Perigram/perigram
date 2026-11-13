@@ -241,6 +241,22 @@ describe('parseListing', () => {
     expect(() => withProjectionGroup('table data')).toThrow(/palette-section slug/);
   });
 
+  it('validates signature field kinds as namespaced value slugs', () => {
+    const withFieldKind = kind => parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        services: [{
+          ...fullListing.declarations.services[0],
+          signature: { input: { base: 'record', fields: { value: { base: 'json', kind } } }, output: { base: 'json' } }
+        }]
+      }
+    });
+    expect(withFieldKind('document.report').services[0].signature.input.fields.value.kind).toBe('document.report');
+    expect(() => withFieldKind('report')).toThrow(/namespaced slug/);
+    expect(() => withFieldKind('Document.Report')).toThrow(/namespaced slug/);
+  });
+
   it('validates designer preview channels (SPEC §28): slug id, label, preview-kind surface', () => {
     const withChannels = previewChannels => parseListing({
       ...fullListing,

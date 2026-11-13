@@ -38,7 +38,8 @@ describe('grammar adapter (CTS <-> PROCESS_BASE_TYPES)', () => {
       [{ base: 'ref', accepts: ['occs', 'cut-plan'] }, { base: 'entityRef', accepts: ['occs', 'cut-plan'] }],
       [{ base: 'list', itemType: { base: 'number' } }, { base: 'array', itemType: { base: 'number' } }],
       [{ base: 'map', itemType: { base: 'string' } }, { base: 'map', keyType: { base: 'string' }, valueType: { base: 'string' } }],
-      [{ base: 'blob' }, { base: 'attachmentRef' }]
+      [{ base: 'blob' }, { base: 'attachmentRef' }],
+      [{ base: 'json', kind: 'document.report' }, { base: 'json', kind: 'document.report' }]
     ];
     for (const [ctsDescriptor, expectedProcess] of cases) {
       const processType = ctsFieldToProcessType(ctsDescriptor);

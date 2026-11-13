@@ -2,6 +2,31 @@ import { describe, expect, it } from 'vitest';
 import { formatProcessType, normalizeProcessSocket, processType, processTypesCompatible, sanitizeProcessType } from './types.js';
 
 describe('process v4 type algebra', () => {
+  it('gates json sockets by their declared value kind (SPEC §28 value contracts)', () => {
+    const flow = processType('json', { kind: 'text.flow-document' });
+    const report = processType('json', { kind: 'document.report' });
+    const any = processType('json');
+
+    expect(processTypesCompatible(flow, flow)).toMatchObject({ ok: true, implicit: true });
+    expect(processTypesCompatible(flow, any)).toMatchObject({ ok: true, implicit: true });
+    expect(processTypesCompatible(processType('string'), any)).toMatchObject({ ok: true, coercion: 'toJson' });
+    expect(processTypesCompatible(any, flow).ok).toBe(false);
+    expect(processTypesCompatible(processType('string'), flow).ok).toBe(false);
+    expect(processTypesCompatible(flow, report).ok).toBe(false);
+    expect(processTypesCompatible(flow, report).reason).toContain('text.flow-document');
+
+    const flows = processType('array', { itemType: flow });
+    expect(processTypesCompatible(processType('array', { itemType: flow }), flows).ok).toBe(true);
+    expect(processTypesCompatible(processType('array', { itemType: report }), flows).ok).toBe(false);
+    expect(formatProcessType(report)).toBe('json<document.report>');
+  });
+
+  it('keeps kind a json qualifier alone', () => {
+    expect(sanitizeProcessType({ base: 'json', kind: 'document.report' }).kind).toBe('document.report');
+    expect(sanitizeProcessType({ base: 'string', kind: 'document.report' }).kind).toBeUndefined();
+    expect(() => processType('string', { kind: 'document.report' })).toThrow(/cannot carry kind/);
+  });
+
   it('sanitizes stale qualifiers from stored process types', () => {
     const stale = sanitizeProcessType({ base: 'json', shape: 'item', nullable: false, typeId: 'queue' });
     expect(stale.typeId).toBeUndefined();

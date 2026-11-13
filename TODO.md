@@ -47,9 +47,16 @@ Slices:
   whole-graph evaluation carries; the IR contracts live in the
   documents README. Reordered ahead of S3: the typing lands on the
   value kinds this vertical proves.
-- [ ] S3 Typed value contracts on sockets — plugin-declared value kinds
+- [x] S3 Typed value contracts on sockets — plugin-declared value kinds
   (flow-document, table dataset) gate connections; conversion stays an
   explicit operation (HAG P1/P4).
+  Landed 2026-11-13: a signature field may declare `kind` (namespaced
+  value slug, listing-validated and schema-mirrored); the field seam
+  carries it onto the socket and compatibility gates on it — kinded
+  sockets take their own kind, unkinded json stays the universal
+  acceptor, the toJson coercion skips kinded targets; documents v10
+  kinds the report vertical (`text.flow-document`,
+  `document.report`).
 - [ ] S4 Documents vertical as the HAG MVP — markdown → flow document,
   dataset creation, report composition, HTML render: documents-plugin
   palette services with record signatures plus a report preview
@@ -79,6 +86,34 @@ Slices:
   the Preview tab's `report` channel renders the composed report
   read-only; markdown round-trips through the flow-document IR with
   drop diagnostics.
+
+- [ ] WAITING — owner verification: S3 — a `parse-markdown` output
+  wires into `compose-report`'s flow input and `export-markdown`'s
+  document input; a plain string or unkinded json refuses those sockets
+  with the expected/received diagnostic naming the kind; every unkinded
+  json consumer still accepts the kinded values.
+
+### Agent Notes (2026-11-13, agent/nodes-value-kinds-20261113)
+
+- S3 landed. `kind` is a json-only qualifier through the type algebra
+  (`normalize`/`sanitize`/`sameQualifiedType`/`format`, validation
+  refuses it off the json base); the universal `toJson` coercion skips
+  kinded targets, which is the whole gate. `ctsFieldToProcessType` and
+  its reverse carry the qualifier, so listing signatures and CTS field
+  descriptors speak one shape. Documents v10 kinds the report
+  vertical; `compose-report`'s flow input declares `nullable` (the
+  service composes rows alone).
+- Fixed in passing: `packages/cts/src/graph-protocol-construction.spec.js`
+  carried a four-up relative import left by the compat-directory
+  dissolution (744952172) — the file moved one level up and the import
+  stopped resolving; the spec was dead on `local`. Three-up now, 10
+  tests run and pass against the documents listing.
+- Validation: types 8 ✓ (lattice, qualifier law), cts grammar 5 ✓
+  (kind round-trips), sdk 16 ✓ (kind slug law), the full
+  packages/processes + packages/cts + workers/documents +
+  framework-packages sweep 714 ✓, `perigram-plugin validate` v10 ✓,
+  `check-arch` ✓, `docs:validate` ✓. The 3 process-definitions
+  failures pre-exist on the base.
 
 ### Agent Notes (2026-11-13, agent/nodes-report-vertical-20261113)
 
