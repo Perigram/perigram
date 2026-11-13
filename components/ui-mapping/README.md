@@ -432,8 +432,8 @@ application.
   carry the per-instance ellipsis menu (the same run contract the
   cards use) exactly where that row has an applicable action, and
   relation refs normalize through the one app resolver
-  (`resolveInstanceRelationRefs`, the relation's single declared target
-  as the typeless-ref fallback). Rows are surface cards — the
+  (`resolveInstanceRelationRefs`: a bare stored id resolves against the
+  relation's single declared target, ref objects keep their own type). Rows are surface cards — the
   preset paints every row as the content surface with transparent
   internal dividers, the recipe clips the row corners
   (`[clip-path:inset(0_round_var(--p-border-radius-xl))]`, since a row's
