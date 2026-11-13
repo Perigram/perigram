@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-09-26
-updated: 2026-11-06
+updated: 2026-11-13
 ```
 
 This spec is human-write only. 
@@ -1574,8 +1574,10 @@ preserved; the sidebar page tree is that instance tree.
 
 The platform owns exactly one node-graph system:
 [@perigram/processes](./packages/processes/README.md) is the composition
-calculus (CTS SPEC §8) and the process compiler; the process designer is
-its authoring surface. Engines, kernels, and computation backends enter
+calculus (CTS SPEC §8) and the process compiler; one canvas and one type
+system (CTS) author every graph — the process designer page and every
+graph instance mount the same surface (owner direction 2026-11-13).
+Engines, kernels, and computation backends enter
 exclusively as plugins: their value services and projections surface as
 the pack's palette sections, their editors and previews as plugin
 surfaces. The platform carries no engine code.
@@ -1595,9 +1597,31 @@ arbitrary user code is quarantined in `s`-species services behind typed
 `V -> V` signatures. The palette carries no Python or JavaScript
 function node.
 
+### Graph documents are instances (owner direction 2026-11-13)
+
+A graph is a document of one platform type — its semantic records as a
+JSON payload — used like any instance: created, referenced, embedded,
+and passed on wires. A template, process, or file may link a graph as
+its editable background; the linked graph computes, the entity persists.
+
+Graphs call graphs: a graph authors typed input and output bindings, and
+a graph referenced inside another graph is one node exposing those
+bindings as its sockets — a pdf-template generator is a graph whose
+result feeds the next graph. Graph nodes evaluate through the one
+dataflow evaluator in preview scope; a process graph consumes a graph
+node's outputs like any producer output.
+
+The canvas is a live editor: authoring is interacting — parameters
+change, evaluation re-runs, and every value kind with a visual form
+previews in its channel, the shape viewport included.
+
+Persisting a computed artifact into an instance is procedural: effects
+and constructs write values — a rendered PDF, a composed shape — into
+file instances; value services stay pure compute.
+
 ### Preview tabs
 
-A process definition carries typed preview channels derived from the
+A graph document carries typed preview channels derived from the
 authored graph's outputs. The designer renders one preview surface per
 channel, addressable as tabs: each tab names its channel (3D viewport,
 document preview, resolved table). A channel is plugin-declared — a
