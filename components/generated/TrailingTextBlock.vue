@@ -1,6 +1,7 @@
 <template>
   <div v-if="session?.writable && !session.editingBlockId && !session.activeBlockId" class="ck-doc-tail min-h-6">
     <CrepeEditor
+      v-if="activated"
       :key="editorKey"
       ref="editor"
       class="ck-inline-editor"
@@ -14,13 +15,26 @@
       @delete-empty="resumePrevious"
       @request-view="requestView"
     />
+    <!-- The idle line is the placeholder alone (owner direction
+         2026-11-13): the engine mounts from the first focus, so the
+         always-on tail costs nothing until it is used. -->
+    <button
+      v-else
+      type="button"
+      class="w-full rounded-ui px-3 py-1.5 text-left text-supporting text-muted transition-colors hover:bg-subtle"
+      @click="activate"
+      @focus="activate"
+    >
+      {{ t('editors.slashHint') }}
+    </button>
   </div>
 </template>
 
 <script setup>
-// The document's trailing authoring line (SPEC §26): a real inline engine
-// mount at the bottom, empty and type-ready. Committing its text appends
-// a text block and leaves a fresh empty line.
+// The document's trailing authoring line (SPEC §26): always mounted at
+// the page bottom while no block editor holds focus. Idle it is the
+// placeholder; the engine mounts from the first activation, and
+// committing its text appends a text block and leaves a fresh line.
 import { nextTick, onBeforeUnmount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import CrepeEditor from './CrepeEditor.vue';
@@ -33,7 +47,14 @@ const { t } = useI18n();
 const editor = ref(null);
 const draft = ref('');
 const editorKey = ref(0);
+const activated = ref(false);
 const focusAfterCommit = ref(false);
+
+function activate() {
+  if (activated.value) return;
+  activated.value = true;
+  focusAfterCommit.value = true;
+}
 
 function commit(focusNext = false) {
   const text = draft.value.trim();

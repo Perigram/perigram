@@ -109,6 +109,7 @@ let slashMenu = null;
 let editorDiagramClick = null;
 let editorEnterKey = null;
 let loaded = false;
+let disposed = false;
 let applyBlockAt = () => null;
 let editorViewCtx = null;
 let TextSelection = null;
@@ -302,6 +303,9 @@ onMounted(async () => {
     import('../../workers/documents/surfaces/lib/block-vocabulary.mjs'),
     import('../../workers/documents/surfaces/lib/cm-theme.js')
   ]);
+  // A surface unmounted mid-load (navigation) owns nothing anymore: the
+  // engine never mounts on a dead host.
+  if (disposed || !editorHost.value) return;
   await Promise.all([
     import('../../workers/documents/assets/vendor/crepe-theme.css'),
     import('../../workers/documents/assets/text-editor.css')
@@ -370,13 +374,17 @@ onMounted(async () => {
     if (loaded) emit('update', markdownValue());
   }));
   await crepe.create();
+  if (disposed) {
+    crepe.destroy();
+    crepe = null;
+    return;
+  }
   loaded = true;
   if (props.initialBlock && props.initialBlock !== 'paragraph') {
     withView(view => applyBlockAt(props.initialBlock, view));
     emit('update', markdownValue());
   }
-  emit('ready');
-  editorDiagramClick = event => {
+  emit('ready');  editorDiagramClick = event => {
     const instanceRef = event.target?.closest?.('[data-instance-ref]');
     if (instanceRef) return;
     const block = event.target?.closest?.('.milkdown-code-block');
@@ -461,6 +469,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   loaded = false;
+  disposed = true;
   if (editorDiagramClick && editorHost.value) {
     editorHost.value.removeEventListener('click', editorDiagramClick);
     editorDiagramClick = null;

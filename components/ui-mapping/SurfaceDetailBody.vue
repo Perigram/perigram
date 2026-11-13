@@ -44,7 +44,7 @@
       >
         <div v-if="editorSurface" :class="[editorBand, 'relative']">
           <RecordEditorBody :surface="editorSurface" :instance="instance" :type="type" />
-          <div class="absolute right-3 top-3 z-10">
+          <div class="absolute right-2 top-2 z-10">
             <PayloadRevisionPicker
               :entity="instance"
               :type="type"
@@ -52,16 +52,28 @@
           </div>
         </div>
         <div v-else-if="hasPreview" :class="LAYOUT.previewHero" class="relative">
-          <div :class="heroBand">
+          <div :class="heroBand" :style="bandHeightStyle">
             <PreviewBox variant="pane" :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
           </div>
           <!-- The version surface rides the content it versions: its trigger
                sits on the preview's corner. -->
-          <div v-if="variant === 'full'" class="absolute right-3 top-3 z-10">
+          <div v-if="variant === 'full'" class="absolute right-2 top-2 z-10">
             <PayloadRevisionPicker
               :entity="instance"
               :type="type"
             />
+          </div>
+          <!-- A framed preview on the record page is reader-resizable: the
+               grip drags the band's height, the content refits inside. -->
+          <div
+            v-if="bandResizable"
+            :class="LAYOUT.clip"
+            class="flex h-4 cursor-row-resize touch-none items-center justify-center"
+            role="separator"
+            :aria-label="t('uiMapping.resizePreview')"
+            @pointerdown="beginBandResize"
+          >
+            <span class="h-0.5 w-10 rounded-ui bg-content-border" />
           </div>
         </div>
 
@@ -275,6 +287,33 @@ const editorSurface = computed(() => {
   return resolveFileSurface(null, props.type.id);
 });
 const editorBand = LAYOUT.editorBandBounded;
+// A framed preview on the record page is reader-resizable (owner
+// direction 2026-11-13): the grip drags the band's height directly; the
+// unset state keeps the stylesheet's viewport-derived height.
+const FRAMED_BANDS = [LAYOUT.previewHeroBandContent, LAYOUT.previewHeroBandAspect];
+const bandResizable = computed(() => documentBody.value && FRAMED_BANDS.includes(heroBand.value));
+const bandHeight = ref(null);
+const bandHeightStyle = computed(() => (bandHeight.value ? { height: `${bandHeight.value}px` } : undefined));
+function beginBandResize(event) {
+  const handle = event.currentTarget;
+  const band = handle.parentElement?.firstElementChild;
+  if (!band) return;
+  const startY = event.clientY;
+  const startHeight = band.getBoundingClientRect().height;
+  const onMove = moveEvent => {
+    const next = Math.round(startHeight + moveEvent.clientY - startY);
+    bandHeight.value = Math.max(128, Math.min(next, 1440));
+  };
+  const end = () => {
+    handle.removeEventListener('pointermove', onMove);
+    handle.removeEventListener('pointerup', end);
+    handle.removeEventListener('pointercancel', end);
+  };
+  handle.addEventListener('pointermove', onMove);
+  handle.addEventListener('pointerup', end);
+  handle.addEventListener('pointercancel', end);
+  handle.setPointerCapture?.(event.pointerId);
+}
 
 const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);

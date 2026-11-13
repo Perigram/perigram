@@ -293,6 +293,10 @@ export const LAYOUT = Object.freeze({
   // The prose band: record prose flows at the body's measure (real CSS
   // in main.css).
   previewHeroBandFlow: 'ck-preview-hero-band-flow',
+  // The bounded band: Card variants and narrow hosts (the record peek)
+  // frame their preview at the stepped quiet-band scale (real CSS in
+  // main.css).
+  previewEmbedBand: 'ck-preview-embed-band',
   packRow: 'flex flex-wrap items-start gap-6',
   // The reload strip takes no flow slot on collections — appearing and
   // vanishing shift nothing below it. `reloadBar` overlays a collection
@@ -408,7 +412,7 @@ export const LAYOUT_ATOMS = Object.freeze({
   stack: Object.freeze(['stack', 'stackSection', 'stackTight', 'labeledBlock', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
-  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewHeroBandFlow', 'previewBand', 'mediaTile', 'previewSide', 'previewSideRow', 'editorBandBounded']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewHeroBandFlow', 'previewEmbedBand', 'previewBand', 'mediaTile', 'previewSide', 'previewSideRow', 'editorBandBounded']),
   well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack', 'well']),
   tabs: Object.freeze([]),
   placement: Object.freeze([]),

@@ -2,8 +2,11 @@
   <Button
     v-if="shown"
     :label="versionLabel"
-    size="small"
+    text
     rounded
+    size="small"
+    severity="secondary"
+    class="text-supporting"
     :aria-label="$t('revision.pickerLabel')"
     @click="event => revisionsPopover?.toggle(event)"
   />
