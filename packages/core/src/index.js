@@ -324,13 +324,7 @@ export const CANONICAL_BLOCK_SCHEMAS = Object.freeze({
   ]),
   relations: Object.freeze([canonicalBlockField('relations', 'json')]),
   provenance: Object.freeze([canonicalBlockField('provenance', 'json')]),
-  specs: Object.freeze([
-    canonicalBlockField('specs.width', 'number', { unit: 'mm' }),
-    canonicalBlockField('specs.length', 'number', { unit: 'mm' }),
-    canonicalBlockField('specs.area', 'number', { unit: 'm2' }),
-    canonicalBlockField('specs.sheetThickness', 'number', { unit: 'mm' }),
-    canonicalBlockField('specs.foilThickness', 'number', { unit: 'mm' })
-  ]),
+  specs: Object.freeze([canonicalBlockField('specs', 'json')]),
   attachments: Object.freeze([canonicalBlockField('attachments', 'json')]),
   data: Object.freeze([canonicalBlockField('data', 'json')]),
   summary: Object.freeze([canonicalBlockField('summary', 'json')])
@@ -341,6 +335,7 @@ export const CANONICAL_BLOCK_COMPOSITION = Object.freeze({
   relations: Object.freeze({ mode: 'relations', valueBase: 'entityRef' }),
   provenance: Object.freeze({ mode: 'entries', valueBase: 'json' }),
   attachments: Object.freeze({ mode: 'attachments', valueBase: 'attachmentRef' }),
+  specs: Object.freeze({ mode: 'entries', valueBase: 'json' }),
   data: Object.freeze({ mode: 'entries', valueBase: 'json' }),
   summary: Object.freeze({ mode: 'entries', valueBase: 'json' })
 });
@@ -594,26 +589,6 @@ export class Provenance {
   }
 }
 
-export class Specs {
-  constructor(raw = {}) {
-    this.sheetThickness = Number(raw.sheetThickness || 0);
-    this.foilThickness = Number(raw.foilThickness || 0);
-    this.width = Number(raw.width || 0);
-    this.length = Number(raw.length || 0);
-    this.area = Number(raw.area || (this.width * this.length) / 1000000 || 0);
-  }
-
-  toJSON() {
-    return {
-      sheetThickness: this.sheetThickness,
-      foilThickness: this.foilThickness,
-      width: this.width,
-      length: this.length,
-      area: this.area
-    };
-  }
-}
-
 export class BaseEntity {
   constructor(raw = {}) {
     this._id = raw.identity?.uid || raw._id || null;
@@ -642,7 +617,7 @@ export class BaseEntity {
                 : null;
             })()
           : null);
-    this.specs = raw.specs ? new Specs(raw.specs) : null;
+    this.specs = raw.specs && typeof raw.specs === 'object' ? raw.specs : null;
     this.attachments = raw.attachments || {};
     this.data = raw.data || {};
     this.summary = raw.summary || {};
@@ -684,7 +659,7 @@ export class BaseEntity {
             lifecycle: this.status.lifecycle
           }
         : null,
-      specs: this.specs?.toJSON() || null,
+      specs: this.specs || null,
       attachments: this.attachments,
       data: this.data,
       summary: this.summary
@@ -787,7 +762,6 @@ export function createTaskResult({
 
 export const createIdentity = (name, slug = '', serial = '', reference = '', uid = slug || name) => new Identity(uid, name, slug, serial, reference);
 export const createStatus = (state, userId = 'SYSTEM', metadata = {}, eventId = null, lifecycle = {}) => new Status(state, userId, metadata, eventId, null, lifecycle);
-export const createSpecs = (data = {}) => new Specs(data);
 export const createData = (data = {}) => ({ ...data });
 export const inheritLineage = (parent, type, mapId = value => value) => new Lineage(parent?.lineage || {}).add(type, mapId(parent?.identity?.uid || parent?._id));
 export const createAttachment = (kind, fileId, name = '', metadata = {}) => ({ kind, fileId, name, metadata, timestamp: new Date() });

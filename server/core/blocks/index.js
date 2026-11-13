@@ -1,13 +1,6 @@
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
-import {
-  Identity,
-  Status,
-  Lineage,
-  Relations,
-  Provenance,
-  Specs
-} from '#packages/core/src/index.js';
+import { Identity, Status, Lineage } from '#packages/core/src/index.js';
 
 export {
   Identity,
@@ -15,7 +8,6 @@ export {
   Lineage,
   Relations,
   Provenance,
-  Specs,
   BaseEntity,
   createRegistry,
   createAttachmentRef,
@@ -33,14 +25,11 @@ export {
   normalizeStatusState
 } from '#packages/core/src/index.js';
 
-// Factory helpers for clean service code
-export const createIdentity = (name, slug, serial = '', reference = '') => 
+export const createIdentity = (name, slug, serial = '', reference = '') =>
   new Identity(slug || name, name, slug, serial, reference);
 
-export const createStatus = (state, userId, metadata = {}, eventId = null, lifecycle = {}) => 
+export const createStatus = (state, userId, metadata = {}, eventId = null, lifecycle = {}) =>
   new Status(state, userId, metadata, eventId, null, lifecycle);
-
-export const createSpecs = (data) => new Specs(data);
 
 export const inheritLineage = (parent, type) => {
   const uid = parent?.identity?.uid || parent?._id;
@@ -54,3 +43,4 @@ export const createAttachment = (kind, fileId, name = '', metadata = {}) => ({
   metadata,
   timestamp: new Date()
 });
+

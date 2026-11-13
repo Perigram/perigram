@@ -50,6 +50,7 @@ describe('Framework package contracts', () => {
     ]);
     expect(CANONICAL_BLOCK_SCHEMAS.lineage.map(field => field.path)).toEqual(['lineage']);
     expect(CANONICAL_BLOCK_SCHEMAS.identity.map(field => field.path)).toContain('identity.name');
+    expect(CANONICAL_BLOCK_SCHEMAS.specs.map(field => field.path)).toEqual(['specs']);
 
     const command = registry.defineCommand({
       id: 'runTest',
