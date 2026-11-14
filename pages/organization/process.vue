@@ -1,107 +1,50 @@
 <template>
   <StandardPage workspace>
-    <DesignerSurface>
-      <DesignerWorkspace
-        ref="canvasFrame"
-        :document-items="documentDockItems"
-        :canvas-items="canvasDockItems"
-        layout="canvas"
-        class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
-        @mousedown.capture="handleDesignerPointerDown"
-        @focusin="handleDesignerFocus"
-        @wheel.capture="handleDesignerWheel"
-      >
-      <ClientOnly>
-        <VueFlow
-          v-model:nodes="nodes"
-          v-model:edges="edges"
-          class="process-designer-canvas absolute inset-0 h-full w-full"
-          :min-zoom="0.1"
-          :max-zoom="4"
-          :delete-key-code="null"
-          :selection-key-code="true"
-          multi-selection-key-code="Shift"
-          :selection-mode="SelectionMode.Partial"
-          :pan-on-drag="touchPanDrag"
-          pan-activation-key-code="Space"
-          :pan-on-scroll="true"
-          :zoom-on-scroll="false"
-          :zoom-on-pinch="true"
-          :zoom-on-double-click="false"
-          :default-edge-options="defaultEdgeOptions"
-          @node-click="event => selectNode(event.node)"
-          @edge-click="event => selectEdge(event.edge)"
-          @pane-click="clearGraphSelection"
-          @pane-context-menu="openPanePalette"
-          @connect-start="beginSocketConnection"
-          @connect-end="endSocketConnection"
-          @connect="onConnect"
-          @node-drag-stop="onNodeDragStop"
-          @nodes-change="onCanvasNodesChange"
-        >
-          <template #node-ctsType="props"><CtsTypeNode v-bind="props" /></template>
-          <template #node-ctsClass="props"><ClassNode v-bind="props" /></template>
-          <template #node-ctsField="props"><FieldNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
-          <template #node-ctsState="props"><StateNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
-          <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
-          <template #edge-selfloop="props"><SelfLoopEdge v-bind="props" /></template>
-          <template #zoom-pane>
-            <LaneBands
-              :bands="laneBands"
-              :left="laneExtent.left"
-              :right="laneExtent.right"
-            />
-          </template>
-        </VueFlow>
-        <template #fallback><div class="absolute inset-0" /></template>
-      </ClientOnly>
-
-      <!-- Selection speed dial: the quiet-card policy keeps nodes free of
-           per-node chrome, so selection actions float beside the last
-           selected node instead. -->
-      <SpeedDial
-        v-if="selectionDialStyle"
-        :model="selectionDialItems"
-        direction="up-right"
-        :style="selectionDialStyle"
-        class="absolute z-30"
-        button-icon="pi pi-ellipsis-v"
-        :aria-label="$t('processDesigner.selectionActions')"
-        :tooltip-options="{ event: 'hover', position: 'left' }"
-      />
-
-      <div
-        v-if="contextPalette.open"
-        class="absolute z-30 flex max-h-80 w-72 flex-col overflow-hidden rounded-ui bg-content shadow-card"
-        :style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"
-        @mousedown.stop
-        @click.stop
-      >
-        <div class="flex shrink-0 items-center justify-end px-2 pt-2">
-          <Button icon="pi pi-times" severity="secondary" text rounded size="small" :aria-label="$t('processDesigner.closeOperationPalette')" @click="closeContextPalette" />
-        </div>
-        <OperationPalette
-          ref="contextPaletteSearch"
-          :groups="contextPaletteChipGroups"
-          :placeholder="contextPalette.socket ? $t('processDesigner.compatibleOperations') : $t('processDesigner.addOperation')"
-          @pick="addContextNode"
-          @close="closeContextPalette"
+    <GraphCanvas
+      v-model:nodes="nodes"
+      v-model:edges="edges"
+      :bind-frame="instance => { canvasFrame = instance }"
+      :bind-context-palette-search="instance => { contextPaletteSearch = instance }"
+      :document-items="documentDockItems"
+      :canvas-items="canvasDockItems"
+      :touch-pan-drag="touchPanDrag"
+      :default-edge-options="defaultEdgeOptions"
+      :palette-groups="paletteChipGroups"
+      :palette-placeholder="$t('processDesigner.searchOperations')"
+      :context-palette="contextPalette"
+      :context-palette-groups="contextPaletteChipGroups"
+      :empty-message="emptyCanvasMessage"
+      :validation="validation"
+      :validation-diff-lines="validationDiffLines"
+      :selected-graph-nodes="selectedGraphNodes"
+      :selected-node-id="selectedNodeId"
+      :viewport="designerViewport"
+      :frame-selected-nodes="frameSelectedNodes"
+      :delete-graph-selection="deleteGraphSelection"
+      :add-node="addNode"
+      :add-context-node="addContextNode"
+      :close-context-palette="closeContextPalette"
+      :rename-declaration-node="renameDeclarationNode"
+      :handle-designer-pointer-down="handleDesignerPointerDown"
+      :handle-designer-focus="handleDesignerFocus"
+      :handle-designer-wheel="handleDesignerWheel"
+      :select-node="selectNode"
+      :select-edge="selectEdge"
+      :clear-graph-selection="clearGraphSelection"
+      :open-pane-palette="openPanePalette"
+      :begin-socket-connection="beginSocketConnection"
+      :end-socket-connection="endSocketConnection"
+      :on-connect="onConnect"
+      :handle-node-drag-stop="onNodeDragStop"
+      :handle-canvas-nodes-change="onCanvasNodesChange"
+    >
+      <template #lane>
+        <LaneBands
+          :bands="laneBands"
+          :left="laneExtent.left"
+          :right="laneExtent.right"
         />
-        <Message v-if="!contextPaletteChipGroups.length" class="m-2 shrink-0" severity="secondary" size="small">
-          {{ $t('processDesigner.noCompatibleOperations') }}
-        </Message>
-      </div>
-
-      <PaletteDock
-        :groups="paletteChipGroups"
-        :placeholder="$t('processDesigner.searchOperations')"
-        @pick="item => (item.action ? item.action() : addNode(item))"
-      />
-
-      <div v-if="!nodes.length" class="absolute inset-x-4 top-20 z-10 flex justify-center">
-        <StateBlock :message="emptyCanvasMessage" />
-      </div>
-
+      </template>
       <template #inspector>
         <div class="flex h-full min-h-0 flex-col">
           <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
@@ -212,62 +155,50 @@
               </Popover>
             </TabPanel>
             <TabPanel value="inspector">
-              <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
-                <DeclarationInspector
-                  v-if="declarationNodeTypes.includes(selectedNode.type)"
-                  :node="selectedNode"
-                  :type-id-valid="classTypeIdValid"
-                  :diagnostics="classDeclarationDiagnostics"
-                  :type-options="declarationTypeOptions"
-                  :type-anchor-options="typeAnchorOptions"
-                  :identifier-field-options="classIdentifierField.options"
-                  :identifier-field-value="classIdentifierField.value"
-                  @sync="syncNodeData"
-                  @update-name="value => updateClassName(selectedNode, value)"
-                  @update-identifier-field="value => setClassIdentifierField(selectedNode, value)"
-                />
-
-                <ProcessNodeInspector
-                  v-else-if="selectedNode.type === 'processNode'"
-                  :record="selectedProcessNode"
-                  :producer="selectedEntity"
-                  :producer-available="selectedEntityAvailable"
-                  :relation-options-for="relationOptionsForEntity"
-                  :projection-options-for="projectionOptionsForEntity"
-                  :type-id-options="typeIdOptions"
-                  :role-options="roleOptions"
-                  :command-options="commandOptions"
-                  :command-service="selectedCommandService"
-                  :service-principal-options="servicePrincipalOptions"
-                  :guard-field-options="transitionGuardFieldOptions"
-                  :state-policy-target="recordStatePolicyTarget"
-                  :state-field-policy-options="recordStateFieldPolicyOptions"
-                  :construction-modes="constructionModeOptions(nodeTypeId(selectedProcessNode))"
-                  :designer="designer"
-                  :grants="selectedProcessNodeGrants"
-                  :effective-access="selectedProcessNodeEffectiveAccess"
-                  :inputs="processNodeInputs(selectedProcessNode)"
-                  :preview="{
-                    supported: selectedNodeSupportsPreview,
-                    running: previewingData,
-                    state: selectedNodePreview,
-                    outputs: selectedNodePreviewOutputs
-                  }"
-                  :format-preview-path="formatPreviewPath"
-                  :format-preview-items="formatPreviewItems"
-                  @sync="syncNodeData"
-                  @update-grant-level="({ index, level }) => updateSelectedProcessNodeGrantLevel(index, level)"
-                  @update-construction-mode="mode => updateProcessNodeConstructionMode(selectedProcessNode, mode)"
-                  @run-preview="previewDataflow"
-                  @create-command-service="createCommandServiceForSelectedNode"
-                  @remove-command-service="removeSelectedCommandService"
-                />
-              </div>
-              <DeclarationEdgeInspector
-                v-else-if="selectedDeclarationEdge"
-                :edge="selectedDeclarationEdge"
+              <GraphInspector
+                :selected-node="selectedNode"
+                :selected-process-node="selectedProcessNode"
+                :selected-entity="selectedEntity"
+                :selected-entity-available="selectedEntityAvailable"
+                :selected-declaration-edge="selectedDeclarationEdge"
+                :declaration-node-types="declarationNodeTypes"
+                :class-type-id-valid="classTypeIdValid"
+                :class-declaration-diagnostics="classDeclarationDiagnostics"
+                :declaration-type-options="declarationTypeOptions"
+                :type-anchor-options="typeAnchorOptions"
+                :class-identifier-field="classIdentifierField"
+                :relation-options-for-entity="relationOptionsForEntity"
+                :projection-options-for-entity="projectionOptionsForEntity"
+                :type-id-options="typeIdOptions"
+                :role-options="roleOptions"
+                :command-options="commandOptions"
+                :selected-command-service="selectedCommandService"
+                :service-principal-options="servicePrincipalOptions"
+                :transition-guard-field-options="transitionGuardFieldOptions"
+                :record-state-policy-target="recordStatePolicyTarget"
+                :record-state-field-policy-options="recordStateFieldPolicyOptions"
+                :construction-modes="selectedNode?.type === 'processNode' ? constructionModeOptions(nodeTypeId(selectedProcessNode)) : []"
+                :designer="designer"
+                :grants="selectedProcessNodeGrants"
+                :effective-access="selectedProcessNodeEffectiveAccess"
+                :inputs="selectedNode?.type === 'processNode' ? processNodeInputs(selectedProcessNode) : []"
+                :preview="{
+                  supported: selectedNodeSupportsPreview,
+                  running: previewingData,
+                  state: selectedNodePreview,
+                  outputs: selectedNode?.type === 'processNode' ? selectedNodePreviewOutputs : []
+                }"
+                :format-preview-path="formatPreviewPath"
+                :format-preview-items="formatPreviewItems"
+                @sync="syncNodeData"
+                @update-name="value => updateClassName(selectedNode, value)"
+                @update-identifier-field="value => setClassIdentifierField(selectedNode, value)"
+                @update-grant-level="({ index, level }) => updateSelectedProcessNodeGrantLevel(index, level)"
+                @update-construction-mode="mode => updateProcessNodeConstructionMode(selectedProcessNode, mode)"
+                @run-preview="previewDataflow"
+                @create-command-service="createCommandServiceForSelectedNode"
+                @remove-command-service="removeSelectedCommandService"
               />
-              <StateBlock v-else :message="$t('processDesigner.selectNode')" />
             </TabPanel>
 
             <TabPanel value="roles">
@@ -575,34 +506,14 @@
             </TabPanel>
 
             <TabPanel value="preview">
-              <div class="flex flex-col gap-3">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-label">{{ $t('processDesigner.previewChannels') }}</span>
-                  <Button
-                    icon="pi pi-refresh"
-                    size="small"
-                    text
-                    :loading="channelPreviewRunning"
-                    :aria-label="$t('processDesigner.refreshPreview')"
-                    @click="runChannelPreview"
-                  />
-                </div>
-                <Message v-if="channelPreviewError" severity="error">{{ channelPreviewError }}</Message>
-                <template v-if="servedPreviewChannels.length">
-                  <section
-                    v-for="channel in servedPreviewChannels"
-                    :key="channel.id"
-                    class="flex flex-col gap-2"
-                  >
-                    <span class="text-muted text-supporting">{{ channel.label }}</span>
-                    <PreviewChannelMount :channel="channel" :payload="channelPreviewPayload" />
-                  </section>
-                </template>
-                <StateBlock v-else :message="$t('processDesigner.noPreviewChannels')" />
-              </div>
+              <GraphPreviewPanel
+                :channels="servedPreviewChannels"
+                :payload="channelPreviewPayload"
+                :running="channelPreviewRunning"
+                :error="channelPreviewError"
+                @refresh="runChannelPreview"
+              />
             </TabPanel>
-
-
           </TabPanels>
         </Tabs>
 
@@ -623,23 +534,7 @@
         </div>
       </template>
 
-      <div v-if="validation" class="pointer-events-none absolute inset-x-0 bottom-16 z-10 flex justify-center px-4">
-        <div class="pointer-events-auto flex max-w-xl flex-col gap-2">
-          <Message :severity="validation.ok ? 'success' : 'error'">
-            {{ validation.ok ? (validation.message || $t('processDesigner.validationOk')) : validation.errors.join('; ') }}
-          </Message>
-          <Message v-for="warning in validation.warnings || []" :key="warning" severity="warn">{{ warning }}</Message>
-          <Message v-if="validationDiffLines.length" severity="info">
-            <div class="flex flex-col gap-1">
-              <span>{{ $t('processDesigner.applyDiffTitle') }}</span>
-              <span v-for="line in validationDiffLines" :key="line">{{ line }}</span>
-            </div>
-          </Message>
-        </div>
-      </div>
-
-      </DesignerWorkspace>
-    </DesignerSurface>
+    </GraphCanvas>
 
     <StandardDialog v-model:visible="showGrantEditor" :header="$t('processDesigner.editGrantConditions')" size="xl">
       <PermissionEditor :permissions="grantEditorPermissions" :features="permissionFeatureOptions" @save="saveGrantEditor" />
@@ -672,11 +567,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { SelectionMode, VueFlow } from '@vue-flow/core';
-import '@vue-flow/core/dist/style.css';
-import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
-import SpeedDial from 'primevue/speeddial';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Menu from 'primevue/menu';
 import Checkbox from 'primevue/checkbox';
@@ -696,14 +587,12 @@ import Tabs from 'primevue/tabs';
 import Tag from 'primevue/tag';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
-import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
-import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
-import OperationPalette from '~/components/process-designer/OperationPalette.vue';
-import PaletteDock from '~/components/process-designer/PaletteDock.vue';
-import PreviewChannelMount from '~/components/process-designer/PreviewChannelMount.vue';
+import GraphCanvas from '~/components/process-designer/GraphCanvas.vue';
+import GraphInspector from '~/components/process-designer/GraphInspector.vue';
+import GraphPreviewPanel from '~/components/process-designer/GraphPreviewPanel.vue';
 import TypeMigrationStepsDialog from '~/components/process-designer/TypeMigrationStepsDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -719,17 +608,8 @@ import {
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { checkDeclarationsAgainstCts, compileClientBundle } from '~/packages/cts/src/index.js';
-import ProcessNode from '~/components/process-designer/ProcessNode.vue';
-import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
-import SelfLoopEdge from '~/components/process-designer/SelfLoopEdge.vue';
 import LaneBands from '~/components/process-designer/LaneBands.vue';
-import ClassNode from '~/components/type-designer/TypeNode.vue';
-import FieldNode from '~/components/type-designer/FieldNode.vue';
-import StateNode from '~/components/type-designer/StateNode.vue';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
-import ProcessNodeInspector from '~/components/process-designer/inspector/ProcessNodeInspector.vue';
-import DeclarationInspector from '~/components/process-designer/inspector/DeclarationInspector.vue';
-import DeclarationEdgeInspector from '~/components/process-designer/inspector/DeclarationEdgeInspector.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { arrangeProcessGraph, deriveLaneFacts, laneContainerLayout } from '~/utils/processDesignerArrangement.js';
 import { declarationVocabulary } from '~/utils/processDesignerTypeMigrations.js';
@@ -740,7 +620,7 @@ import { useProcessDesignerRoles } from '~/composables/useProcessDesignerRoles.j
 import { useProcessDesignerScreens, withoutKeys } from '~/composables/useProcessDesignerScreens.js';
 import { useProcessDesignerApply } from '~/composables/useProcessDesignerApply.js';
 import { useProcessDesignerGraphSession } from '~/composables/useProcessDesignerGraphSession.js';
-import { visiblePreviewOutputs } from '~/composables/useProcessDesignerPreview.js';
+import { useGraphChannelPreview } from '~/composables/useGraphChannelPreview.js';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
 
 const { t, te } = useI18n();
@@ -761,7 +641,6 @@ const processDefinitions = ref([]);
 const selectedProcessId = ref(null);
 const loadingProcess = ref(false);
 const processLoadError = ref('');
-const channelPreviewPayload = ref(null);
 const creatingDraft = ref(false);
 const savedDraftSignature = ref('');
 const organizationRoles = ref({});
@@ -781,6 +660,19 @@ const draft = ref(null);
 const { compareProcessDefinitions, normalizeProcessList, pickInitialProcess } = useProcessDefinitionCatalog({ definitionToCanvas });
 const persistence = useProcessDesignerPersistence();
 const rolePersistence = useProcessDesignerRoles();
+
+// Preview channels (SPEC §28): the whole-graph evaluation a channel tab
+// consumes — the same preview seam the node inspector rides, with no
+// target node (every node evaluates, effects suppressed). The result is
+// the read-only payload handed to each channel mount and the per-node
+// evaluation errors folded into the canvas fault states.
+const {
+  payload: channelPreviewPayload,
+  running: channelPreviewRunning,
+  error: channelPreviewError,
+  run: runChannelPreview,
+  schedule: scheduleChannelPreview
+} = useGraphChannelPreview({ persistence, serializeProcess: () => serializeProcess() });
 
 // The active organization for the registry view: the draft's lineage when a
 // process is loaded, otherwise the authenticated organization — tree
@@ -960,26 +852,6 @@ const {
   graphEvaluation: channelPreviewPayload,
   seedPlacement: node => seedLaneFacts(node)
 });
-
-// Preview channels (SPEC §28): the whole-graph evaluation a channel tab
-// consumes — the same preview seam the node inspector rides, with no
-// target node (every node evaluates, effects suppressed). The result is
-// the read-only payload handed to each channel mount and the per-node
-// evaluation errors folded into the canvas fault states.
-const channelPreviewRunning = ref(false);
-const channelPreviewError = ref('');
-async function runChannelPreview() {
-  channelPreviewRunning.value = true;
-  channelPreviewError.value = '';
-  try {
-    const definition = serializeProcess();
-    channelPreviewPayload.value = visiblePreviewOutputs(await persistence.previewDraft(definition, undefined), definition);
-  } catch (error) {
-    channelPreviewError.value = error?.data?.message || error.message;
-  } finally {
-    channelPreviewRunning.value = false;
-  }
-}
 
 const {
   applyState,
@@ -1318,35 +1190,6 @@ function tidyCanvas() {
   frameAllNodes();
 }
 
-// Selection speed dial: delete and frame float beside the last selected
-// node while a node selection exists; edge selections keep keyboard
-// delete (an edge has no anchor box to sit beside).
-const selectionDialItems = computed(() => [
-  {
-    icon: 'pi pi-crosshairs',
-    label: t('processDesigner.frameSelection'),
-    command: () => frameSelectedNodes()
-  },
-  {
-    icon: 'pi pi-trash',
-    label: t('common.delete'),
-    command: () => deleteGraphSelection()
-  }
-]);
-const selectionDialStyle = computed(() => {
-  const selected = selectedGraphNodes();
-  const node = (selected.length ? selected[selected.length - 1] : null)
-    || (selectedNodeId.value ? nodes.value.find(candidate => candidate.id === selectedNodeId.value) : null);
-  if (!node?.position) return null;
-  const viewport = designerViewport?.value || { x: 0, y: 0, zoom: 1 };
-  const zoom = Number(viewport.zoom) || 1;
-  const anchorX = Number(node.position.x || 0) * zoom + Number(viewport.x || 0)
-    + Number(node.dimensions?.width || 180) * zoom;
-  const anchorY = Number(node.position.y || 0) * zoom + Number(viewport.y || 0)
-    + Number(node.dimensions?.height || 60) * zoom;
-  return { left: `${Math.round(anchorX + 8)}px`, top: `${Math.round(anchorY - 8)}px` };
-});
-
 const canvasDockItems = computed(() => [
   {
     icon: 'pi pi-eye-slash',
@@ -1487,8 +1330,8 @@ const previewAuthoringSignature = computed(() => JSON.stringify({
   nodes: nodes.value.map(node => [node.id, node.type, node.data]),
   edges: edges.value.map(edge => [edge.id, edge.source, edge.target, edge.sourceHandle, edge.targetHandle, edge.role, edge.label])
 }));
-watch(previewAuthoringSignature, () => { schedulePreviewRecompute(); scheduleChannelPreview(); });
-watch(inspectTab, () => { schedulePreviewRecompute(); scheduleChannelPreview(); });
+watch(previewAuthoringSignature, () => { schedulePreviewRecompute(); scheduleChannelPreview(inspectTab.value === 'preview'); });
+watch(inspectTab, () => { schedulePreviewRecompute(); scheduleChannelPreview(inspectTab.value === 'preview'); });
 
 function schedulePreviewRecompute() {
   if (previewRecomputeTimer) {
@@ -1506,18 +1349,6 @@ function schedulePreviewRecompute() {
   }, 120);
 }
 
-// The whole-graph evaluation (channel payload + node fault errors) rides
-// its own debounce: it runs when the Preview tab opens and re-runs on
-// authoring changes while the tab stays open — one evaluation serves the
-// channel mounts and the faulted cards alike.
-let channelPreviewTimer = null;
-function scheduleChannelPreview() {
-  if (channelPreviewTimer) clearTimeout(channelPreviewTimer);
-  channelPreviewTimer = setTimeout(() => {
-    channelPreviewTimer = null;
-    if (inspectTab.value === 'preview') runChannelPreview();
-  }, 300);
-}
 
 
 onMounted(() => {

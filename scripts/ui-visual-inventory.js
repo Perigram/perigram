@@ -79,7 +79,7 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   ]],
   'components/shared/ChatSupportDialog.vue': ['layout', [":style=\"{ width: 'min(94vw, 25rem)' }\""]],
   'components/calls/CallFloatingWindow.vue': ['data-driven', [':style="windowStyle"']],
-  'pages/organization/process.vue': ['data-driven', [
+  'components/process-designer/GraphCanvas.vue': ['data-driven', [
     ':style="selectionDialStyle"',
     ':style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"'
   ]],

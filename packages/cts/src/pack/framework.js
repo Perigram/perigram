@@ -75,7 +75,7 @@ export const frameworkTypes = [
       mime: ['application/json'],
       accept: ['.json', 'application/json'],
       maxSize: 5242880,
-      creation: ['upload']
+      creation: ['upload', 'editor']
     },
     revisions: 'content',
     fields: { name: { base: 'string', identifier: true } }

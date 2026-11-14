@@ -376,6 +376,14 @@ invariant).
   The process page mounts it over a process definition with lane seeding;
   the graph editor surface mounts it over a `graph-document` payload.
 
+- `useGraphChannelPreview` is the whole-graph preview evaluation the
+  channel tabs ride (SPEC §28): `run()` evaluates the serialized graph
+  with no target node and filters each node's outputs by its authored
+  `previewVisible`, `schedule(active)` debounces one run while the
+  preview tab stays open. The returned `payload` ref is the session's
+  `graphEvaluation` (the canvas fault states read the per-node errors
+  from it).
+
 - `useProcessDesignerLiveGraph` is the realtime evaluation loop: one
   semantic signature over authoring state (nodes minus presentation, edges,
   draft records) re-runs `interpretDeclarationEdges`

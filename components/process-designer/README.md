@@ -2,9 +2,12 @@
 
 The authoring surface for CTS declarations and process graphs: a Vue Flow
 canvas with palette, inspector, lanes, and apply ceremonies, mounted by
-[pages/organization/process.vue](../../pages/organization/process.vue).
-The grammar it renders — palette membership, node/edge species, wire
-legality — is authored through the designer contract owned by
+[pages/organization/process.vue](../../pages/organization/process.vue)
+over a process definition and by
+[`GraphEditorSurface.vue`](./GraphEditorSurface.vue) over a
+`graph-document` payload (SPEC §28 — one canvas law). The grammar it
+renders — palette membership, node/edge species, wire legality — is
+authored through the designer contract owned by
 [packages/processes](../../packages/processes/README.md); this README
 owns the surface: channels, arrangement, gestures. Normative state and
 species contracts live in
@@ -512,6 +515,39 @@ header (rendered when the node has data outputs) authors
 payload, absent or `null` keeps them. A hidden node keeps its error so
 fault states survive the hiding.
 
+### Graph document surface (SPEC §28)
+
+Two mounts, one canvas. `GraphCanvas.vue` owns the canvas presentation —
+the Vue Flow graph with node/edge templates, the palette dock, the
+context palette, the selection speed dial, the empty state, and the
+validation feedback strip — over the session composable's state and
+verbs passed as props (`v-model:nodes`/`v-model:edges`, palette groups,
+gesture handlers). The `lane` slot carries a host's zoom-pane background
+(the process page's lane bands); the `inspector` slot carries the host's
+rail content. Function-ref props (`bindFrame`, `bindContextPaletteSearch`)
+hand the mounted instances to the session's refs — plain ref props would
+unwrap at the host template. `readOnly` renders the canvas alone: the
+palettes, the dial, node dragging, and the pane palette gesture are off.
+
+`GraphInspector.vue` is the node/edge inspector body (pure presentation,
+events back to the host's update/sync entry points); the host owns the
+tab shell around it. `GraphPreviewPanel.vue` renders the channel-tab
+strip over the whole-graph evaluation
+([`useGraphChannelPreview`](../../composables/README.md)).
+
+`GraphEditorSurface.vue` is the graph-document editor mount registered as
+the `graph-editor` file surface
+([generated](../generated/README.md) owns the binding contract). It
+mounts the session over the instance payload: the payload text is the
+serialized graph data object (`serializeProcess()` — the same shape a
+process definition's `data` carries), loaded through
+`loadDocument({ data })` and saved through the instance payload
+transport; a blank first save creates the instance. The header chrome
+channel binds `{ name, dirty, saving, save(), rename() }`; a read grant
+binds the name alone and mounts the canvas read-only. Preview evaluation
+rides the process-definition preview transport; roles load from the
+organization for grant authoring.
+
 ### Inspector anatomy
 
 Per-kind sections in [`inspector/`](./inspector/), pure presentation —
@@ -561,7 +597,10 @@ nodes, which show no inspection action.
 
 ## Structure
 
-11 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `CtsTypeNode.vue`),
+14 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `CtsTypeNode.vue`),
+the shared canvas presentation (`GraphCanvas.vue`), the graph-document
+editor mount (`GraphEditorSurface.vue`), the inspector body
+(`GraphInspector.vue`) and channel-tab strip (`GraphPreviewPanel.vue`),
 the palette dock (`PaletteDock.vue`), the context palette list
 (`OperationPalette.vue`), lanes (`LaneBands.vue`), the loop edge
 (`SelfLoopEdge.vue`), preview channels (`PreviewChannelMount.vue`),

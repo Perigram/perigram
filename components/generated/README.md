@@ -328,7 +328,10 @@ contract. It combines two halves:
   and in which modes. The app-side pack recomposition
   (`packEditorBindings`) remains as the explicit fallback for contexts
   without a fetched view — module-scope evaluation, unit specs, and
-  pre-auth shells.
+  pre-auth shells. The app's own bindings (`frameworkEditorBindings` —
+  `graph-document` → `graph-editor`) ride beside either list, so a
+  fetched plugin view carries them too; a served binding for the same
+  type wins, leaving the type with the plugin's editor.
 - **The fixed surface registry** — surface id → app presentations. Every
   editor surface renders from one `workspacePage` presentation (label
   key, icon, component, props — the props adapter receives the page
@@ -340,7 +343,11 @@ contract. It combines two halves:
   `SurfaceHeader`), and the workspace pane tab a record of the type
   opens when the type resolves no compiled detail screen
   (`EditorPageSurface` — the same header over the same flush editor,
-  entity-bound or blank). The header owns the document chrome through
+  entity-bound or blank). The registry carries the app-owned graph
+  canvas surface `graph-editor`
+  ([process-designer](../process-designer/README.md) owns it); its
+  component resolves lazily so the canvas module tree stays out of the
+  app shell's eager graph. The header owns the document chrome through
   the editor-page chrome channel (`editor-page-chrome.js`): an editor
   module declaring the `pageChrome` prop binds `{ name, dirty, saving,
   diverged, save(), rename(), reload() }`, the header renders the
