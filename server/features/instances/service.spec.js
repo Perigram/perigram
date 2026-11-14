@@ -191,6 +191,17 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.findOneAndUpdate).toHaveBeenCalled();
   });
 
+  it('fails closed when the active workflow cannot be resolved for a field write', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('panel');
+    resolveActiveWorkflow.mockRejectedValueOnce(new Error('workflow store unavailable'));
+
+    await expect(service.processUpdate('507f1f77bcf86cd799439011', {
+      fields: { serial: 'AX-4' }
+    }, 'org-1')).rejects.toThrow(/workflow store unavailable/);
+    expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
   it('writes unrestricted when no state carries a field policy', async () => {
     const coll = stubCollection();
     const service = instanceServiceResolver('panel');
