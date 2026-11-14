@@ -10,11 +10,17 @@ Pyodide + build123d + OCP.wasm in a Web Worker (the build123d-flow
 model), catalog from the engine's own introspection, no executor
 deployment.
 
-- [ ] E1 Listing contract — a listing declares a client engine (entry
+- [x] E1 Listing contract — a listing declares a client engine (entry
   module, pinned runtime) and binds services to it (`mode: 'local'`);
   `parseListing` validates the shape, installs snapshot the engine
   binding, and the connection dialog renders no endpoint fields for an
   engine-only plugin.
+- [ ] WAITING — owner verification: E1 — a listing with
+  `declarations.engine` and `mode: 'local'` services validates and
+  installs; an engine-less listing refuses a local service; an
+  engine-only installed plugin renders neither the settings nor the
+  connector button on the Plugins page; every server dispatch of a
+  local service refuses with the client-engine message.
 - [ ] E2 Self-contained module serving — engine modules and pinned
   runtime assets ship in the published package and serve same-origin
   through the module proxy with no org-configured origin.
@@ -31,6 +37,24 @@ deployment.
   the executor-deployment shape of the 2026-11-13 bring-up.
 - [ ] E6 Shape viewport (G4) — the engine's tessellated meshes feed the
   plugin's preview channel surface.
+
+### Agent Notes (2026-11-14, agent/local-engine-e1-20261114)
+
+- E1 landed. `declarations.engine: { module }` (root-relative entry
+  module, `MODULE_PATH`-validated, schema-mirrored) parses into the
+  layer and the normalized catalog document; a service of
+  `mode: 'local'` requires it (`parseListing` refusal), the mode
+  grammar gains `local`, and `cache` stays endpoint-only. Installs
+  snapshot `engine` beside the declaration layer. `serviceModeOf`
+  learns `local`; `executeConnectorService` and
+  `invokeEndpointValueService` refuse local services (400, client
+  engine / local-mode messages), and endpoint settings for one refuse
+  (`no endpoint applies`). The Plugins page gates the settings button
+  on endpoint services (unchanged) and the connector button now gates
+  on remote services (`mode !== 'local'`) — an engine-only install
+  renders neither.
+- Validation: sdk + plugins specs 110 ✓, SSR smoke 29 ✓, `check-arch`
+  ✓, `docs:validate` ✓, `framework:validate` ✓.
 
 ### Agent Notes (2026-11-14, agent/local-engines-spec-20261114)
 

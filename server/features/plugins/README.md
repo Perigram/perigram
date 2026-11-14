@@ -51,7 +51,8 @@ validation, and the deployment's built-in plugins install through the
 seed scripts ([server/scripts/README.md](../../scripts/README.md))
 writing the same record shape directly. The snapshot carries the full
 declaration layer — types, editors, surfaces, previews, constructions,
-starter constructs, exports.
+starter constructs, exports, and the client engine when the listing
+declares one.
 
 Installs and uninstalls invalidate the instance-declaration cache,
 re-derive instance indexes, and publish the org contract-change event
@@ -90,8 +91,11 @@ A listing may declare `services` — `{ id (slug), label, signature:
 (`mode`: `endpoint` — the platform calls the configured URL with the
 service input and expects the service output as JSON, the
 nesting-worker shape, 60 s budget, optional `authorization: Bearer
-<key>` from the install's `authToken`; or `claim`, the default — the
-executor polls the worker protocol). Installs snapshot them beside the
+<key>` from the install's `authToken`; `claim`, the default — the
+executor polls the worker protocol; or `local` — the service executes
+in the browser through the plugin's declared client engine
+(`declarations.engine`, SPEC §20 client-carried), carries no connection
+surface, and every server dispatch refuses it). Installs snapshot them beside the
 types and mint a `connectorToken`; the Connection settings
 (`GET`/`POST .../plugins/:pluginId/settings`) store per-service
 `endpoints`, the executor API key, and — for plugins that declare
@@ -128,7 +132,8 @@ endpoint refuses with a configure-it message), claim mode enqueues a
 task run on the claim queue `plugin.<pluginId>@<organizationId>` (the
 whole service input rides one `value` parameter) and returns it as the
 command's async boundary — the process invocation parks until
-completion. A service input field declared with base `blob` receives a
+completion. Local mode refuses every server dispatch — the client
+engine owns execution. A service input field declared with base `blob` receives a
 payload handle `{ fileId, mime, size, name? }` on the wire; the
 endpoint dispatch hydrates the handle with its stored bytes as
 `payloadBase64`, so the executor reaches no storage — the hydration is

@@ -94,7 +94,11 @@ the types resolve against, satisfied by an install (never the plugin
 itself); the platform-side gates enforce it. `declarations` carries `types` (CTS grammar,
 non-empty; a type may carry the transient `migrate` steps and
 `renameFrom: <retired id>` — the rename channel upgrades consume,
-never stored on the install pin), `services` (SPEC §8 signatures, `mode` endpoint/claim),
+never stored on the install pin), `services` (SPEC §8 signatures, `mode`
+endpoint/claim/local), `engine` (the plugin's client engine, SPEC §20
+client-carried: `{ module }` — a root-relative entry module the package
+serves; a service of `mode: 'local'` executes in the browser through it
+and requires the declaration),
 `editors` (file-type editor bindings — the bound type must be declared by
 the same plugin with class `file`, one binding per type),
 `surfaces` (plugin-delivered surface modules:
