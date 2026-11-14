@@ -28,6 +28,7 @@ describe('Permissions Utility', () => {
     it('checks create action grants explicitly when requested', async () => {
       const { hasLineagePermission } = await import('./permissions');
       const auth = {
+        memberships: [{ organizationId: 'org-1', permissions: {} }],
         effectivePermissions: {
           projects: [{ level: 'write', actions: { create: true } }]
         }
@@ -36,6 +37,7 @@ describe('Permissions Utility', () => {
 
       expect(hasLineagePermission(auth, project, 'projects', 'write', { action: 'create' })).toBe(true);
       expect(hasLineagePermission({
+        memberships: [{ organizationId: 'org-1', permissions: {} }],
         effectivePermissions: {
           projects: [{ level: 'write', actions: { create: false } }]
         }
