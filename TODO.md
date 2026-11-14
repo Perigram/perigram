@@ -9,13 +9,20 @@ graphs through authored typed bindings, and computed artifacts persist
 into instances procedurally (effects/constructs; value services stay
 pure compute).
 
-- [ ] G0 Canvas interaction model (build123d-flow): the dock — a
+- [x] G0 Canvas interaction model (build123d-flow): the dock — a
   canvas-top category strip (provenance groups as labels, category
   chips) opening the popover palette with search over the full catalog;
-  the card headers — `category · kind` label, collapse chevron,
-  description affordance; the per-node header eye landed 2026-11-13.
-  The workspace chrome contract (`components/shared/README.md`) owns
-  the top line today; adopting the dock reopens it.
+  the card headers — palette section label, collapse chevron, collapsed
+  cards dock their sockets to the card edges; the per-node header eye
+  landed 2026-11-13. The workspace toolbar moved to the bottom line
+  (`components/shared/README.md`), freeing the top for the dock.
+- [ ] WAITING — owner verification: G0 — the dock strip lists plugin
+  sections above platform categories, a chip opens the popover, an
+  empty query lists the section while a query spans the full catalog,
+  picking places the node at the visible center; operation cards carry
+  the section label above the node label, the chevron and H collapse
+  the card with handles docked left/right, and the collapse persists
+  through save/reload.
 - [ ] G1 Graph document type — one platform type (JSON payload, editor
   creation protocol); instance lifecycle through the ordinary instance
   services; the canvas opens a graph instance beside the organization
@@ -32,6 +39,34 @@ pure compute).
 - [ ] G5 Procedural persistence — effects/constructs that write computed
   values into file instances (STEP shape → `b3d-part`, rendered PDF →
   the documents file types); value services stay pure compute.
+
+### Agent Notes (2026-11-14, agent/dock-cards-20261114)
+
+- G0 landed. `PaletteDock.vue`: canvas-top strip (provenance tier
+  labels, one chip per palette section) opening the popover palette —
+  an empty query lists the section, a query spans the full catalog; the
+  palette rail and its panel toggle are gone (the workspace `#palette`
+  slot unused; the inspector rail keeps its toggle), and the workspace
+  toolbar moved to the bottom line (shared chrome law updated). The
+  context palette keeps `OperationPalette.vue` as its list.
+- Operation cards: the header carries the collapse chevron, the palette
+  section label above the node label (`groupLabel` derived in the one
+  enrichment pass; one palette-entry match now feeds the label, the
+  description, and the section), and the eye; a collapsed card folds
+  its body and docks its handles on the card's left/right edges; H
+  collapses the selection; `collapsed` rides canvas node data and
+  round-trips with the draft.
+- Defect found and fixed (blocking the canvas-model spec since
+  3c1766120, 2026-10-28): that change cut the class-scoped state path
+  but left the stale assertion (`state → class declare` wire and
+  `states: 1`) in `useProcessDesignerCanvasModel.spec.js`, and the
+  class card (`TypeNode.vue`) reading dead `fieldCount`/`stateCount`
+  keys the live pass never writes — the class meta counts rendered
+  nowhere. The spec now asserts the field count alone; the card reads
+  the live pass's `fields`; the `states: 0` factory seed is gone.
+- Validation: composables + packages/processes + localization +
+  design-system 712 ✓, full SSR smoke 27 ✓, `check-arch` ✓,
+  `docs:validate` ✓, `framework:validate` ✓.
 
 ### Agent Notes (2026-11-13, agent/node-eye-20261113)
 
