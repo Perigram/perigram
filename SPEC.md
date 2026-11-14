@@ -1695,3 +1695,152 @@ is the contracts this repository already owns — the listing/install-pin
 mechanism, the worker protocol, the CTS registry view, and the process
 protocol. Every unit keeps composing through them; no unit grows a
 private copy. Repositories live under github.com/Perigram.
+
+## 30. Architecture simplification and extraction sequence (2026-11-14)
+
+The repository is simplified before it is divided into independently
+developed and separately deployable units (§29). The purpose is to make
+the existing contracts explicit, remove duplicate ownership, and establish
+small stable boundaries that can be versioned and extracted. Simplification
+does not reverse the target in §29; it prevents accidental complexity from
+being copied into new repositories.
+
+### Objective
+
+Reduce accidental architectural complexity while preserving product
+capabilities and the declared target architecture. Prefer deleting,
+consolidating, or making ownership explicit over adding abstractions.
+Do not rewrite a working subsystem merely to make its structure look
+uniform.
+
+### Conceptual ownership
+
+The platform has five product concerns:
+
+1. **Model** — types, fields, relations, states, constraints, expressions,
+   and validation.
+2. **Data** — instances, files, versions, ownership, and persistence.
+3. **Behavior** — processes, commands, automation, operators, and execution.
+4. **Access** — users, organizations, roles, capabilities, and permissions.
+5. **Interface** — pages, editors, navigation, chat, calls, and generated
+   interfaces.
+
+Plugins extend these concerns; they are not a sixth core domain.
+Workers, queues, APIs, WebSockets, databases, and deployment units are
+implementation and delivery mechanisms, not product domains.
+
+### Architectural rules
+
+- Keep one canonical type and declaration system.
+- Give each piece of data one authoritative owner and each policy one
+  authoritative implementation.
+- Keep pure contracts independent of application frameworks and
+  infrastructure.
+- Use direct module calls by default. Use events only for real asynchronous
+  decoupling; use HTTP for deployed/external boundaries and streams for
+  realtime delivery.
+- Do not introduce a generic abstraction without multiple concrete
+  consumers or a demonstrated extension requirement.
+- Do not add wrapper layers, duplicate registries, parallel schemas,
+  private copies of shared contracts, or service/repository layers that
+  only forward calls.
+- Do not make every feature a service or every directory a package.
+- Keep dependency direction explicit and acyclic.
+- Keep product vocabulary out of infrastructure and organization-specific
+  vocabulary out of the platform core.
+- Preserve the current UI framework unless a measured product or
+  operational requirement justifies a change.
+- Do not introduce a universal event bus, service mesh, database-per-service,
+  or a language rewrite as a simplification exercise.
+- Extract a unit only when its contract, ownership, operational boundary,
+  and independent deployment value are demonstrated. Extraction follows
+  §29 and must not create a second implementation of a contract.
+
+### Canonical ownership to verify
+
+| Concern | Intended owner | Boundary |
+|---|---|---|
+| Type language and declarations | `packages/cts` | Types, fields, references, relations, containment, state declarations, operators, expressions, validation, and evolution. |
+| Entity block DTOs and generic definition helpers | `packages/core` | Retain only concepts distinct from CTS; consolidate overlap rather than maintaining competing model vocabularies. |
+| Process authoring and compilation | `packages/processes` | Consumes CTS declarations; does not define a second type system. |
+| Workflow lifecycle contracts | CTS declarations plus the one lifecycle runtime contract | Resolve overlap among CTS state semantics, `packages/workflows`, and runtime state helpers; do not preserve duplicate state models. |
+| Persistence and execution | Application runtime and feature owners | Runtime composes services; feature modules own their data and write paths. |
+| Authorization | One access authority | Routes, commands, transitions, and features delegate to the same policy implementation. |
+| Transport | API routes and deployed adapters | Transport adapts requests; it does not own business rules. |
+| Plugin integration | Plugin SDK and executor protocol | Keep public extension contracts distinct from internal implementation helpers. |
+| User interface | Vue/Nuxt application | Presentation consumes contracts and services; it does not become a second domain authority. |
+
+This table states intended ownership for the audit. It is not evidence that
+the current implementation already conforms.
+
+### Execution order
+
+1. **Baseline and inventory.** Capture the current test and validation
+   baseline. Map package exports and imports, dependency cycles, aliases,
+   duplicate definitions, authorization paths, persistence ownership and
+   write paths, runtime registries, worker protocols, and documentation
+   contracts. Classify generated and vendored code separately from
+   maintained application code. Record verified facts separately from
+   suspected duplication.
+2. **Consolidate model contracts.** Compare CTS and core DTOs, registries,
+   validators, state helpers, and definitions. Identify one owner for each
+   concept. Write migration steps and tests before removing or moving
+   public contracts. Preserve distinct entity-block behavior where it is
+   not represented by CTS; do not merge by naming similarity alone.
+3. **Consolidate behavior and lifecycle.** Trace state declarations through
+   process authoring, compilation, workflow validation, runtime transitions,
+   persistence, and UI projection. Resolve duplicate state normalization,
+   workflow registries, and transition rules. Preserve the command/business
+   intent boundary and task/retry execution boundary where the code proves
+   they serve different purposes.
+4. **Consolidate runtime composition and access.** Identify the one
+   composition point, service-resolution mechanism, authorization
+   authority, and owner of each persistence write path. Remove forwarding
+   layers and duplicate permission checks only after callers and invariants
+   are covered by tests.
+5. **Simplify implementation and documentation.** Remove dead code,
+   unused packages, duplicate configuration, stale inventories, and
+   obsolete documentation. Keep generated and vendored assets out of
+   application-level complexity counts. Update each owning README and its
+   parent inventory with every boundary change.
+6. **Verify extraction boundaries.** Test package and executor contracts
+   independently, verify browser/Node compatibility where required, and
+   establish versioned interfaces before moving units into separate
+   repositories or deployment targets as described in §29.
+
+### Decision gates
+
+- No source deletion or package merge based only on directory size,
+  naming, or apparent conceptual overlap.
+- No public contract removal until all consumers, compatibility needs,
+  and migration paths are identified.
+- No runtime or authorization rewrite until the existing execution paths
+  and policy invariants are mapped.
+- No extraction while the proposed unit depends on private implementation
+  details or duplicates another unit's contract.
+- Every implementation slice includes focused tests, relevant full-suite
+  verification, architecture checks, and documentation validation.
+- If the baseline is already failing, record the failures before changes;
+  do not attribute them to the simplification work.
+
+### Completion criteria
+
+- Each domain concept has one documented canonical owner.
+- Package dependency direction is explicit, acyclic, and checked.
+- Runtime composition and authorization have one authoritative path each.
+- Persistence ownership and write paths are documented and testable.
+- Package, executor, and application boundaries match the contracts they
+  expose.
+- Dead code and duplicate abstractions are removed only with evidence.
+- README inventories, SPEC, TODO, aliases, and automated guards agree
+  with the implementation.
+- The resulting units can be extracted along §29 boundaries without
+  copying or redefining contracts.
+
+### Non-goals
+
+This work does not itself mandate a UI rewrite, database replacement,
+language rewrite, universal event system, service mesh, or premature
+repository split. It prepares and validates the boundaries required by
+§29; extraction remains a deliberate subsequent step.
+
