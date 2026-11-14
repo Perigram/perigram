@@ -1,3 +1,5 @@
+import { getPrimaryState } from '#packages/core/src/index.js';
+
 export const ACCESS_LEVELS = ['none', 'read', 'write', 'admin'];
 
 export const ACTION_LEVELS = {
@@ -161,7 +163,7 @@ function resolveRuleFact(rule, context) {
   if (fact === 'action') return context.action;
   if (fact === 'typeId') return context.typeId;
   if (fact === 'instanceId') return context.entity?._id || context.entity?.identity?.uid;
-  if (fact === 'primaryState' || fact === 'primaryStatus' || fact === 'status.primary') return getPrimaryStatus(context.entity?.states) || getPrimaryStatus(context.entity?.status);
+  if (fact === 'primaryState' || fact === 'primaryStatus' || fact === 'status.primary') return getPrimaryState(context.entity?.states, null) || getPrimaryState(context.entity?.status, null);
   if (fact === 'transition.from') return context.transition?.from;
   if (fact === 'transition.to') return context.transition?.to;
   if (fact === 'transition.region') return context.transition?.region;
@@ -184,17 +186,8 @@ function resolveLineageFact(path, context) {
 
   if (traitPath === 'id') return lineageEntity?._id || lineageEntity?.identity?.uid || context.entity?.lineage?.[`${type}Id`];
   if (traitPath === 'type') return lineageEntity?.type || lineageEntity?.typeId || lineageEntity?.origin?.type || lineageEntity?.data?.type;
-  if (traitPath === 'status.primary') return getPrimaryStatus(lineageEntity?.states) || getPrimaryStatus(lineageEntity?.status);
+  if (traitPath === 'status.primary') return getPrimaryState(lineageEntity?.states, null) || getPrimaryState(lineageEntity?.status, null);
   return getByPath(lineageEntity, traitPath);
-}
-
-function getPrimaryStatus(status) {
-  if (typeof status === 'string') return status;
-  // Instance documents carry one flat `state` string (SPEC §3/§7); the
-  // legacy Status block resolves to its primary either way.
-  if (typeof status?.main === 'string') return status.main;
-  if (typeof status?.state === 'string') return status.state;
-  return status?.primary ?? status?.state?.primary ?? Object.values(status?.active || {}).find(Boolean);
 }
 
 function compareRuleValues(left, right) {
