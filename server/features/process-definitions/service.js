@@ -1246,8 +1246,16 @@ async function linkCreatedEntityToContextRelation({ action = {}, data = {}, enti
     throw createError({ statusCode: 500, message: `${ownerType} does not support process relation updates` });
   }
   const linkAuth = createRelationLinkExecutionAuth(auth, action, ownerType);
-  const owner = await ownerService.processGetById(ownerId, linkAuth);
-  if (!owner) throw createError({ statusCode: 404, message: `${ownerType} not found` });
+  const ownerResult = await ownerService.processGetById(ownerId, linkAuth);
+  if (!ownerResult) throw createError({ statusCode: 404, message: `${ownerType} not found` });
+  const owner = ownerResult?.toJSON ? ownerResult.toJSON() : ownerResult;
+  assertEntityAccess({
+    entity: owner,
+    typeId: ownerType,
+    feature: resolveInstanceFeature(ownerType),
+    level: 'write',
+    auth: linkAuth
+  });
   const existing = Array.isArray(owner.relations?.[relation.key]) ? owner.relations[relation.key] : [];
   const next = existing.some(ref => ref.type === targetType && String(ref.id) === String(createdId))
     ? existing
@@ -1980,7 +1988,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       organizationId,
       role: auth.role,
       executionAuth,
-      applyTypedBlocks: result => applyTypedConstructionBlocks(record, blockDraft, result, service, auth)
+      applyTypedBlocks: result => applyTypedConstructionBlocks(record, blockDraft, result, service, executionAuth)
     });
     const dto = created?.toJSON ? created.toJSON() : created;
     const targetId = instanceId(dto);
@@ -2142,6 +2150,14 @@ async function applyTypedConstructionBlocks(record = {}, blockDraft = {}, create
   if (!service?.processUpdate) throw new Error(`Entity service cannot apply constructed blocks to ${record.typeId}`);
   const targetId = created._id || created.id;
   if (!targetId) throw new Error(`Created ${record.typeId} has no id`);
+  const createdEntity = created?.toJSON ? created.toJSON() : created;
+  assertEntityAccess({
+    entity: createdEntity,
+    typeId: record.typeId,
+    feature: resolveInstanceFeature(record.typeId),
+    level: 'write',
+    auth
+  });
   const patch = Object.fromEntries(Object.entries(blockDraft).map(([block, value]) => [
     block,
     { ...(created[block] || {}), ...(value || {}) }
