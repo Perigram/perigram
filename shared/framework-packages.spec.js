@@ -36,6 +36,20 @@ describe('Framework package contracts', () => {
       .toEqual(packageNames);
   });
 
+  it('resolves every workspace package through its public entrypoint', async () => {
+    const modules = await Promise.all([
+      import('@perigram/cts'),
+      import('@perigram/core'),
+      import('@perigram/devtools'),
+      import('@perigram/mcp'),
+      import('@perigram/plugin-sdk'),
+      import('@perigram/processes'),
+      import('@perigram/workflows')
+    ]);
+    expect(modules).toHaveLength(7);
+    expect(modules.every(module => module && typeof module === 'object')).toBe(true);
+  });
+
   it('registers entity definitions in @perigram/core', async () => {
     const {
       BaseEntity,
