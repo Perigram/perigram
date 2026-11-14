@@ -3419,6 +3419,8 @@
     "previewChannelUnavailable": "Preview channel unavailable",
     "previewNodeHide": "Hide from preview",
     "previewNodeShow": "Show in preview",
+    "nodeDescription": "Node description",
+    "nodeErrors": "Node errors",
     "paletteDock": "Node palette",
     "paletteNoMatches": "No matching operations",
     "collapseNode": "Collapse node",
