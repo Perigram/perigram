@@ -989,6 +989,23 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
     find.mockRestore();
   });
 
+  it('resolves the delete declaration from the entity organization, not the caller default', async () => {
+    stubPanel({ organizationId: 'org-2' });
+    stubReferrers([]);
+    const types = await import('../cts-types/repository.js');
+    const service = instanceServiceResolver('panel');
+
+    await service.removeForHttp(PANEL_ID, {
+      auth: {
+        userId: 'user-1',
+        memberships: [{ organizationId: 'org-2', permissions: {} }]
+      },
+      organizationId: 'org-1'
+    });
+
+    expect(types.findByTypeId).toHaveBeenCalledWith('org-2', 'panel');
+  });
+
   it('enforces the entity write grant for process deletes', async () => {
     const coll = stubPanel();
     const access = await import('../../core/access/service.js');

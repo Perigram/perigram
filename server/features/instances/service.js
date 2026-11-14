@@ -632,7 +632,7 @@ function instanceService(typeId) {
       if (!doc) {
         throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
       }
-      const targetOrganizationId = organizationId ?? doc.organizationId ?? null;
+      const targetOrganizationId = doc.organizationId ?? organizationId ?? null;
       const declaration = await requireDeclaration(typeId, targetOrganizationId);
       const target = await writeGrantTarget(declaration, targetOrganizationId);
       if (!target || !hasInstanceAccess({ entity: toDto(doc), typeId: target.typeId, feature: target.feature, level: 'write', auth })) {
