@@ -1,4 +1,4 @@
-import { createProcessNodeRecord, PROCESS_NODE_OPERATIONS_BY_KIND as processNodeOperations } from '@perigram/processes/index';
+import { createProcessNodeRecord, PROCESS_NODE_OPERATIONS_BY_KIND as processNodeOperations } from '#packages/processes';
 
 // Node-record factory adapter over the package authoring seam: the record
 // shapes, defaults, and the sync call are the headless authoring contract

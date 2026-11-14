@@ -1,7 +1,7 @@
-import { EFFECT_SPECIES_KINDS } from '@perigram/processes/index';
-import { operationKindOf } from '@perigram/cts/index';
+import { EFFECT_SPECIES_KINDS } from '#packages/processes';
+import { operationKindOf } from '#packages/cts';
 import { computed, ref } from 'vue';
-import { formatProcessType } from '@perigram/processes/index';
+import { formatProcessType } from '#packages/processes';
 import { formatPreviewItem, formatPreviewItems, formatPreviewPath } from '~/utils/processDesignerChannelOutputs.js';
 
 // Per-node preview visibility (SPEC §28): a record's authored

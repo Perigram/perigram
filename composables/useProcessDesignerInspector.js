@@ -1,5 +1,5 @@
 import { computed } from 'vue';
-import { operationKindOf } from '@perigram/cts/index';
+import { operationKindOf } from '#packages/cts';
 import { CONSUMER_SPECIES_KINDS } from '@perigram/processes/node-catalog';
 
 const RECORD_KEYS = Object.freeze({

@@ -9,7 +9,7 @@ import { useProcessDesignerNodeRecords } from '~/composables/useProcessDesignerN
 import { useProcessDesignerNodeSync } from '~/composables/useProcessDesignerNodeSync.js';
 import { useProcessDesignerTypes } from '~/composables/useProcessDesignerTypes.js';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
-import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '@perigram/cts/index';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#packages/cts';
 import { cncTypePack } from '@perigram/cts/pack/cnc';
 import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
 

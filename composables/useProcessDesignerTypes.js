@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue';
-import { compileTreeDeclarations, createProcessDesignerContract } from '@perigram/processes/index';
-import { createTypeRegistry, projectDomainFromView, renderPolicyFor, frameworkTypes } from '@perigram/cts/index';
+import { compileTreeDeclarations, createProcessDesignerContract } from '#packages/processes';
+import { createTypeRegistry, projectDomainFromView, renderPolicyFor, frameworkTypes } from '#packages/cts';
 import { clearTypeMigrationSteps, declarationPostFailure } from '~/utils/processDesignerTypeMigrations.js';
 
 // The CTS declaration layer's lifecycle: the organization's type registry
