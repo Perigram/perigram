@@ -608,12 +608,15 @@ const workspaceSpecifierFiles = [
   ...walkDir('utils'),
   ...walkDir('shared'),
   ...walkDir('server'),
-  ...walkDir('workers')
-].filter(file => /\\.(?:js|ts|vue|mjs)$/.test(file) && !file.endsWith('.spec.js'));
+  ...walkDir('workers'),
+  ...walkDir('test-data'),
+  ...walkDir('packages'),
+  ...walkDir('scripts')
+].filter(file => /\.(?:js|ts|vue|mjs)$/.test(file));
 workspaceSpecifierFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   const relFile = path.relative('.', file);
-  if (/@perigram\/(?:core|cts|processes|plugin-sdk)\/(?:index(?:\.[^'"/]+)?|src)(?:['"/]|$)/.test(content)) {
+  if (/(?:@perigram|#packages)\/(?:core|cts|processes|plugin-sdk)\/(?:index(?:\.[^'"/]+)?|src)(?:['"/]|$)/.test(content)) {
     console.error(`❌ ${relFile} imports a private workspace-package subpath — use the package root or an explicitly exported subpath`);
     errors++;
   }

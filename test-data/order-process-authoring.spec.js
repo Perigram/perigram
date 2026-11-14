@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#packages/cts/src/index.js';
-import { compileTreeDeclarations, validateProcessDefinition } from '#packages/processes/src/index.js';
-import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#packages/cts';
+import { compileTreeDeclarations, validateProcessDefinition } from '#packages/processes';
+import { createDefinitionAuthoring } from '#packages/processes/authoring';
 import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
 import documentsListing from '../workers/documents/listing.json' with { type: 'json' };
 import techDrawingListing from '../workers/tech-drawing/listing.json' with { type: 'json' };

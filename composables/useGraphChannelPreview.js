@@ -1,6 +1,6 @@
 import { getCurrentScope, onScopeDispose, ref } from 'vue';
 import { visiblePreviewOutputs } from '~/composables/useProcessDesignerPreview.js';
-import { previewProcessDataflow, serializeProcessResult } from '@perigram/processes/index';
+import { previewProcessDataflow, serializeProcessResult } from '@perigram/processes';
 import { engineBindingForService, useClientEngines } from '~/composables/useClientEngines.js';
 
 // The whole-graph preview evaluation every channel tab rides (SPEC §28):

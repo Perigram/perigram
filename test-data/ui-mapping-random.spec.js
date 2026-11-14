@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkValue } from '#packages/cts/src/values.js';
+import { checkValue } from '#packages/cts';
 import { composeScreen, buildInstancePool, resolveFieldControl, VARIANTS } from '#shared/ui-mapping/index.js';
 import { generateUiMappingWorld } from './ui-mapping-random.js';
 

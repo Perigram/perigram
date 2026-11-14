@@ -290,7 +290,7 @@ import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { fieldDescriptorSummary } from '~/utils/processDesignerDeclarationEditor.js';
 import { startCaseKey } from '#shared/ui-mapping/index.js';
-import { classMayDeclareChildren, DECLARABLE_CLASSES, rowFieldId } from '@perigram/cts/index';
+import { classMayDeclareChildren, DECLARABLE_CLASSES, rowFieldId } from '@perigram/cts';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },

@@ -1,4 +1,4 @@
-import { PROCESS_DATAFLOW_VERSION } from '#packages/processes/src/index.js';
+import { PROCESS_DATAFLOW_VERSION } from '#packages/processes';
 
 export const PERSISTED_ACCEPTANCE_IDS = Object.freeze({
   organization: 'fixture-org-lineage',
