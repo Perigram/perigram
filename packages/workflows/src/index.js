@@ -1,3 +1,11 @@
+import {
+  getPrimaryState as getCorePrimaryState,
+  getRegionState,
+  normalizeStatusLifecycle
+} from '../../core/src/index.js';
+
+export { getRegionState, normalizeStatusLifecycle as normalizeLifecycle };
+
 const workflows = new Map();
 const STATE_CHILDREN = Symbol('workflow-state-children');
 
@@ -51,16 +59,10 @@ export function getWorkflowRegion(workflow = {}, regionId = 'main') {
 }
 
 export function getPrimaryState(statusOrState, fallback = null) {
-  const state = statusOrState?.state ?? statusOrState;
-  if (typeof state === 'string') return state || fallback;
-  return state?.main ?? (state?.primary || Object.values(state?.active || {}).find(Boolean) || fallback);
+  return getCorePrimaryState(statusOrState, fallback);
 }
 
-export function getRegionState(statusOrState, regionId = 'main', fallback = null) {
-  const state = statusOrState?.state ?? statusOrState;
-  if (typeof state === 'string') return regionId === 'main' ? state : fallback;
-  return state?.active?.[regionId] || state?.regions?.[regionId]?.state || (regionId === 'main' ? getPrimaryState(state, fallback) : fallback);
-}
+
 
 export function createWorkflowState(workflow = {}, overrides = {}) {
   const normalized = normalizeWorkflow(workflow);
@@ -141,14 +143,7 @@ export function validateTransition({ workflow, currentState, currentStatus = nul
   return { ok: true, from, to: enteredTarget, region: regionId, path, transition: transition || null };
 }
 
-export function normalizeLifecycle(lifecycle = {}) {
-  const source = lifecycle && typeof lifecycle === 'object' ? lifecycle : {};
-  return {
-    actors: Array.isArray(source.actors) ? source.actors : [],
-    attachments: source.attachments && typeof source.attachments === 'object' ? source.attachments : {},
-    data: source.data && typeof source.data === 'object' ? source.data : {}
-  };
-}
+
 
 export function hasLifecyclePayload(lifecycle = {}) {
   const normalized = normalizeLifecycle(lifecycle);
