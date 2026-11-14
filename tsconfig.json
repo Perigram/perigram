@@ -22,10 +22,13 @@
       "@@/*": ["./*"],
       "@/*": ["./*"],
       "~~/server/*": ["./server/*"],
+      "@perigram/cts": ["./packages/cts/src/index.js"],
       "@perigram/core": ["./packages/core/src/index.js"],
       "@perigram/workflows": ["./packages/workflows/src/index.js"],
       "@perigram/devtools": ["./packages/devtools/src/index.js"],
-      "@perigram/mcp": ["./packages/mcp/src/index.js"]
+      "@perigram/mcp": ["./packages/mcp/src/index.js"],
+      "@perigram/plugin-sdk": ["./packages/plugin-sdk/src/index.js"],
+      "@perigram/processes": ["./packages/processes/src/index.js"]
     }
   },
   "include": [
