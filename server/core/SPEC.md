@@ -19,7 +19,7 @@ every domain fact through the app registry and stay domain-agnostic.
 
 Parent: [server](../README.md). Consumed contracts:
 [runtime registry](../runtime/README.md), [packages/core](../../packages/core/README.md),
-[packages/workflows](../../packages/workflows/README.md).
+[packages/core](../../packages/core/README.md).
 ## Contracts owned here
 
 ### Command runtime — `commands/`
