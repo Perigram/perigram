@@ -673,7 +673,11 @@ const {
   error: channelPreviewError,
   run: runChannelPreview,
   schedule: scheduleChannelPreview
-} = useGraphChannelPreview({ persistence, serializeProcess: () => serializeProcess() });
+} = useGraphChannelPreview({
+  persistence,
+  serializeProcess: () => serializeProcess(),
+  clientEngines: () => ({ engines: servedClientEngines.value, domain: ctsProjectedDomain() })
+});
 
 // The active organization for the registry view: the draft's lineage when a
 // process is loaded, otherwise the authenticated organization — tree
@@ -702,6 +706,7 @@ const {
   designer,
   ctsRegistry,
   ctsProjectedDomain,
+  servedClientEngines,
   ctsTypeView,
   classNameMap,
   ctsOrgTypes,

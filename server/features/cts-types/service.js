@@ -102,6 +102,7 @@ export async function describeOrganizationTypes(organizationId) {
   const surfaces = [];
   const previews = [];
   const previewChannels = [];
+  const clientEngines = [];
   const seenChannelIds = new Set();
   if (organizationId) {
     const seenEditors = new Set(editors.map(editor => editor.type));
@@ -193,6 +194,18 @@ export async function describeOrganizationTypes(organizationId) {
           surfaceContract: surface.surfaceContract
         }));
       }
+      // Client-carried engines (SPEC §20): the served binding carries the
+      // proxied entry-module URL — the package store serves it — beside
+      // the local-bound service ids, so the browser owns their dispatch.
+      const engine = install.declarations?.engine;
+      if (engine?.module) {
+        clientEngines.push(Object.freeze({
+          pluginId: install.pluginId,
+          version: String(install.version || ''),
+          url: `/api/plugins/${encodeURIComponent(install.pluginId)}/module${engine.module}`,
+          services: (install.services || []).filter(service => service?.mode === 'local').map(service => service.id)
+        }));
+      }
       for (const editor of install.declarations?.editors || []) {
         if (!editor?.type || !editor?.surface || !(editor.modes || []).length) {
           throw createError({
@@ -239,7 +252,8 @@ export async function describeOrganizationTypes(organizationId) {
     editors,
     surfaces,
     previews,
-    previewChannels
+    previewChannels,
+    clientEngines
   };
 }
 

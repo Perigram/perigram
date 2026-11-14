@@ -173,7 +173,8 @@ const graphPersistence = { ...props.persistence, previewDraft: previewTransport.
 
 const channelPreview = useGraphChannelPreview({
   persistence: graphPersistence,
-  serializeProcess: () => serializeProcess()
+  serializeProcess: () => serializeProcess(),
+  clientEngines: () => ({ engines: servedClientEngines.value, domain: ctsProjectedDomain() })
 });
 
 const {
@@ -190,6 +191,8 @@ const {
   loadOrgTypes,
   loadProcessCapabilities,
   servedPreviewChannels,
+  servedClientEngines,
+  ctsProjectedDomain,
   nodeTypeId,
   relationOptionsForEntity,
   projectionOptionsForEntity,

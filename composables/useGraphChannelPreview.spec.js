@@ -23,6 +23,91 @@ function composable(previewDraft) {
   });
 }
 
+describe('client-side evaluation (SPEC §20 client-carried engines)', () => {
+  const engineBinding = {
+    pluginId: 'demo',
+    version: '1',
+    url: '/api/plugins/demo/module/engine/index.mjs',
+    services: ['plugin.demo.echo']
+  };
+  const domain = () => ({
+    serviceContracts: {
+      'plugin.demo.echo': {
+        signature: { input: { base: 'record', fields: { text: { base: 'string' } } }, output: { base: 'string' } }
+      }
+    }
+  });
+
+  function localDefinition(records, edges) {
+    return {
+      id: 'd',
+      dataflowVersion: 4,
+      processNodes: Object.fromEntries(records.map(record => [record.id, record])),
+      graph: {
+        nodes: records.map(record => ({ id: record.id, type: 'processNode', data: { refId: record.id } })),
+        edges
+      }
+    };
+  }
+
+  const echoGraph = () => localDefinition(
+    [
+      { id: 'text', kind: 'source.literalItem', value: 'ping' },
+      { id: 'echo', kind: 'cts.service', operator: 'plugin.demo.echo' }
+    ],
+    [{ id: 'e1', source: 'text', sourceHandle: 'data:value', target: 'echo', targetHandle: 'data:text', role: 'data' }]
+  );
+
+  function channel({ graph = echoGraph(), engines = [engineBinding], previewDraft, loadModule }) {
+    return useGraphChannelPreview({
+      persistence: { previewDraft },
+      serializeProcess: () => graph,
+      clientEngines: () => ({ engines, domain: domain() }),
+      ...(loadModule ? { loadModule } : {})
+    });
+  }
+
+  it('evaluates a local-service graph in the browser through the engine', async () => {
+    const previewDraft = vi.fn();
+    const result = channel({
+      previewDraft,
+      loadModule: async () => ({ default: () => ({ dispatch: async (serviceId, parameters) => `${serviceId}:${parameters.text}` }) })
+    });
+    await result.run();
+    expect(previewDraft).not.toHaveBeenCalled();
+    expect(result.error.value).toBe('');
+    expect(result.payload.value.nodes.echo.outputs.result.branches[0].items).toEqual(['echo:ping']);
+  });
+
+  it('folds an engine dispatch failure into the node error', async () => {
+    const result = channel({
+      loadModule: async () => ({ default: () => ({ dispatch: async () => { throw new Error('engine exploded'); } }) })
+    });
+    await result.run();
+    expect(result.error.value).toBe('');
+    expect(result.payload.value.nodes.echo.error).toContain('engine exploded');
+  });
+
+  it('keeps the server evaluation outside the client gate', async () => {
+    const previewDraft = vi.fn(async () => evaluation());
+    const withConstruct = localDefinition(
+      [
+        { id: 'text', kind: 'source.literalItem', value: 'ping' },
+        { id: 'echo', kind: 'cts.service', operator: 'plugin.demo.echo' },
+        { id: 'make', kind: 'cts.construct', typeId: 'widget' }
+      ],
+      []
+    );
+    await channel({ graph: withConstruct, previewDraft }).run();
+    await channel({ graph: echoGraph(), engines: [], previewDraft }).run();
+    await channel({
+      graph: localDefinition([{ id: 'text', kind: 'source.literalItem', value: 'x' }], []),
+      previewDraft
+    }).run();
+    expect(previewDraft).toHaveBeenCalledTimes(3);
+  });
+});
+
 describe('useGraphChannelPreview', () => {
   it('runs the whole-graph evaluation and filters hidden node outputs', async () => {
     const preview = vi.fn(async () => evaluation());

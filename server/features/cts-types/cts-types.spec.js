@@ -116,6 +116,34 @@ describe('cts type storage', () => {
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
   });
 
+  it('serves installed client engines beside their local service ids', async () => {
+    const installedTypes = [{ id: 'coating', class: 'item', fields: { code: { base: 'string', identifier: true } } }];
+    pluginInstalls.listDeclarationsByOrganization.mockResolvedValue(installedTypes);
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
+      organizationId: ORG,
+      pluginId: 'coatings',
+      version: '2',
+      services: [
+        { id: 'spin', mode: 'local', signature: { input: { base: 'json' }, output: { base: 'json' } } },
+        { id: 'match', label: 'Coating match', signature: { input: { base: 'json' }, output: { base: 'json' } } }
+      ],
+      declarations: {
+        types: installedTypes,
+        engine: { module: '/engine/index.mjs' }
+      }
+    }]);
+    const view = await describeOrganizationTypes(ORG);
+    expect(view.clientEngines).toEqual([
+      {
+        pluginId: 'coatings',
+        version: '2',
+        url: '/api/plugins/coatings/module/engine/index.mjs',
+        services: ['spin']
+      }
+    ]);
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
+  });
+
   it('refuses an installed editor binding the composed view cannot serve', async () => {
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
       organizationId: ORG,

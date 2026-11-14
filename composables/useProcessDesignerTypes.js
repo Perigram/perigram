@@ -26,6 +26,7 @@ export function useProcessDesignerTypes({
   const ctsOrgTypes = ref([]);
   const servedEditors = ref([]);
   const servedPreviewChannels = ref([]);
+  const servedClientEngines = ref([]);
   const servedCommands = ref([]);
   const servedSystemTypes = ref([]);
   const designer = reactive({});
@@ -194,6 +195,7 @@ export function useProcessDesignerTypes({
         servedSystemTypes.value = (response.types || []).filter(type => type.scope === 'system');
         servedEditors.value = response.editors || [];
         servedPreviewChannels.value = response.previewChannels || [];
+        servedClientEngines.value = response.clientEngines || [];
         resetCtsRegistry();
         refreshDesignerFromTypes();
         syncNow();
@@ -310,6 +312,7 @@ export function useProcessDesignerTypes({
     ctsOrgTypes,
     servedCommands,
     servedPreviewChannels,
+    servedClientEngines,
     resetCtsRegistry,
     refreshTreeOverlay,
     refreshDesignerFromTypes,

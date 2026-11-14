@@ -7,7 +7,7 @@ import { describeOrganizationTypes } from '~/server/features/cts-types/service.j
 // by the designer types pane and the language tester.
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
-  const { bundle, attachmentKinds, editors, surfaces, previews, previewChannels } = await describeOrganizationTypes(auth.organizationId);
+  const { bundle, attachmentKinds, editors, surfaces, previews, previewChannels, clientEngines } = await describeOrganizationTypes(auth.organizationId);
   return {
     success: bundle.ok,
     errors: bundle.errors,
