@@ -4,7 +4,7 @@ import { normalizePermissionGrants } from '#shared/access-control.js';
 // Action execution permissions are derived from the compiled action contract.
 // The feature domain is injected so this policy helper does not own domain
 // composition or persistence.
-export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, getEntityFieldAccessPolicy }) {
+export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, getEntityFieldAccessPolicy, getCommandDefinition }) {
   function assertCompiledActionAvailable(actionId, auth = {}) {
     const available = auth.roleAssignments?.actions || [];
     // The assignment manifest carries full action records keyed `id`; the
@@ -64,7 +64,7 @@ export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, g
   
   function commandExecutionGrants(action = {}) {
     if (action.actionKind !== 'runCommand' || !action.commandId) return [];
-    const command = getAppRegistry().getCommandDefinition(action.commandId);
+    const command = getCommandDefinition?.(action.commandId);
     // The command's own permission rows ride beside its executionGrants:
     // the action a user authorized owns every gate its command declares.
     return [...(command?.access?.permissions || []), ...(command?.access?.executionGrants || [])]
