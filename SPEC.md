@@ -1262,7 +1262,6 @@ decisions recorded here first.
 | `packages/cts` | CTS declaration language, type registry, projections |
 | `packages/processes` | process compiler, designer authoring contract |
 | `packages/core` | shared domain kernel |
-| `packages/workflows` | workflow state-machine runtime |
 | `packages/plugin-sdk` | plugin listing contract, authoring SDK, CLI |
 | `packages/devtools`, `packages/mcp` | framework inspection, MCP tooling |
 | `server/runtime` | pack mounts, instance-service resolver |
@@ -1763,7 +1762,7 @@ implementation and delivery mechanisms, not product domains.
 | Type language and declarations | `packages/cts` | Types, fields, references, relations, containment, state declarations, operators, expressions, validation, and evolution. |
 | Entity block DTOs and generic definition helpers | `packages/core` | Retain only concepts distinct from CTS; consolidate overlap rather than maintaining competing model vocabularies. |
 | Process authoring and compilation | `packages/processes` | Consumes CTS declarations; does not define a second type system. |
-| Workflow lifecycle contracts | CTS declarations plus the one lifecycle runtime contract | Resolve overlap among CTS state semantics, `packages/workflows`, and runtime state helpers; do not preserve duplicate state models. |
+| Workflow lifecycle contracts | CTS declarations plus `packages/core` | CTS owns the authored state vocabulary; core owns workflow normalization, region transitions, and lifecycle payload validation. The server machine service owns persistence, access checks, event writes, and hook dispatch. |
 | Persistence and execution | Application runtime and feature owners | Runtime composes services; feature modules own their data and write paths. |
 | Authorization | One access authority | Routes, commands, transitions, and features delegate to the same policy implementation. |
 | Transport | API routes and deployed adapters | Transport adapts requests; it does not own business rules. |

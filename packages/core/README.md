@@ -39,6 +39,10 @@ Parent: [packages README](../README.md).
   `normalizeStatusState`, `getPrimaryState`, `getRegionState`,
   `getStatusRegions`, `createData`, `inheritLineage`,
   `createAttachment`
+- Lifecycle runtime: `normalizeWorkflow`, `getWorkflowRegions`,
+  `getWorkflowRegion`, `createWorkflowState`, `applyWorkflowTransitionState`,
+  `validateTransition`, `validateLifecyclePayload`, `hasLifecyclePayload`,
+  `resolveWorkflowStatePath`
 
 ## Vocabulary
 
@@ -80,9 +84,10 @@ declared lineage slots, entity types, and attachment kinds.
 workflows defined through this kernel; types declared through CTS carry
 their state law in [CTS SPEC §7](../cts/SPEC.md).
 
-Core is the canonical implementation of the shared primary/region state
-readers and lifecycle payload normalization. The workflow package re-exports
-these helpers rather than maintaining parallel implementations.
+Core is the canonical implementation of status readers, lifecycle payload
+normalization, workflow-tree normalization, and transition validation.
+Workflow definitions are supplied by process compilation or the
+workflow-overrides feature; core maintains no mutable global workflow registry.
 
 `BaseEntity.toJSON()` projects the current status block onto the flat wire
 `states` map. Every active workflow axis is emitted as its canonical leaf

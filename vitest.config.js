@@ -2,12 +2,6 @@ import { defineConfig } from 'vitest/config';
 import path from 'path';
 import vue from '@vitejs/plugin-vue';
 
-const perigramAliases = {
-  '@perigram/core': path.resolve(__dirname, './packages/core/src/index.js'),
-  '@perigram/workflows': path.resolve(__dirname, './packages/workflows/src/index.js'),
-  '@perigram/devtools': path.resolve(__dirname, './packages/devtools/src/index.js'),
-  '@perigram/mcp': path.resolve(__dirname, './packages/mcp/src/index.js'),
-};
 const portableAliases = {
   '#shared': path.resolve(__dirname, './shared'),
   '#packages': path.resolve(__dirname, './packages'),
@@ -40,7 +34,6 @@ export default defineConfig({
     alias: {
       '~': path.resolve(__dirname, './'),
       '@': path.resolve(__dirname, './'),
-      ...perigramAliases,
       ...portableAliases
     }
   },
@@ -48,7 +41,6 @@ export default defineConfig({
     alias: {
       '~': path.resolve(__dirname, './'),
       '@': path.resolve(__dirname, './'),
-      ...perigramAliases,
       ...portableAliases
     }
   }

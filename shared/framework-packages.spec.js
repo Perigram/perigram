@@ -133,10 +133,10 @@ describe('Framework package contracts', () => {
     expect(isolated.getHookHandler('isolatedHook')).toBeTruthy();
   });
 
-  it('validates workflow transitions in @perigram/workflows', async () => {
-    const { defineWorkflow, getWorkflow, validateTransition } = await import('../packages/workflows/src/index.js');
+  it('validates workflow transitions in @perigram/core', async () => {
+    const { normalizeWorkflow, validateTransition } = await import('../packages/core/src/index.js');
 
-    const workflow = defineWorkflow('test_entity', {
+    const workflow = normalizeWorkflow({
       initial: 'DRAFT',
       states: { DRAFT: { canUpdateMeta: true }, ACTIVE: {}, CLOSED: { isTerminal: true } },
       transitions: [
@@ -145,7 +145,6 @@ describe('Framework package contracts', () => {
       ]
     });
 
-    expect(getWorkflow('test_entity')).toEqual(workflow);
     expect(validateTransition({ workflow, currentState: 'DRAFT', targetState: 'ACTIVE', role: 'VIEWER' }).ok).toBe(true);
     expect(validateTransition({ workflow, currentState: 'DRAFT', targetState: 'CLOSED', role: 'VIEWER' }).reason).toBe('invalid_transition');
     expect(validateTransition({ workflow, currentState: 'ACTIVE', targetState: 'CLOSED', role: 'VIEWER' }).ok).toBe(true);

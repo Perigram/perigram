@@ -34,4 +34,4 @@ active override per organization and type.
 ## Related
 
 - [server/core/machines](../../core/machines/README.md)
-- [packages/workflows](../../../packages/workflows/README.md)
+- [packages/core](../../../packages/core/README.md)

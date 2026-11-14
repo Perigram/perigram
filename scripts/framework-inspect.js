@@ -34,13 +34,12 @@ import {
   validateDefinitionSet
 } from '../packages/devtools/src/index.js';
 import { createReadOnlyToolHandlers } from '../packages/mcp/src/index.js';
-import { validateTransition } from '../packages/workflows/src/index.js';
+import { validateTransition } from '../packages/core/src/index.js';
 
 const command =  process.argv[2] || 'help';
 const MANIFEST_PATH = 'framework.manifest.json';
 const PACKAGE_NAMES = [
   '@perigram/core',
-  '@perigram/workflows',
   '@perigram/devtools',
   '@perigram/mcp'
 ];

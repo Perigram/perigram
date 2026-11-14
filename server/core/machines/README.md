@@ -84,16 +84,16 @@ graph-derived (SPEC §7): this module resolves them from authored graphs.
   `operation: { kind: 'payload_revision', reason, revision,
   restoredFrom }` — who minted which version, restoring from which.
 
-The reusable workflow API lives in
-[`@perigram/workflows`](../../../packages/workflows/README.md); `service.js`
-is the runtime adapter, delegating transition validation to the package while
-using registered domain definitions, the app's event log, and hook dispatch.
+The reusable lifecycle runtime lives in
+[`@perigram/core`](../../../packages/core/README.md); `service.js` is the
+application adapter that supplies persisted workflow definitions, access
+checks, event writes, and hook dispatch.
 
 Workflow definitions are v2 region machines. Flat lifecycles are represented
 as the `main` region; nested or parallel lifecycles add more regions under
 `workflow.regions`. Entity `status.state` is a structured snapshot, and the
 canonical snapshot shape and workflow definition examples live in
-[`@perigram/workflows`](../../../packages/workflows/README.md).
+[`@perigram/core`](../../../packages/core/README.md).
 
 Use `getPrimaryState(status)` for primary lifecycle reads and
 `getRegionState(status, regionId)` for scoped reads. Flat instance
@@ -217,5 +217,5 @@ configuration errors fail the endpoint so broken hook contracts surface.
 - [server/core/blocks/](../blocks/) (Standard Block classes)
 - [server/utils/objectid.js](../../utils/objectid.js) (Flexible ID handling)
 - [server/runtime/README.md](../../runtime/README.md) (Entity registry helpers)
-- [packages/workflows/README.md](../../../packages/workflows/README.md) (Framework workflow package)
+- [packages/workflows/README.md](../../../packages/core/README.md) (Framework workflow package)
 - [server/core/effects/README.md](../effects/README.md) (Effect processor)

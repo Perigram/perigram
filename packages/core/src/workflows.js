@@ -1,28 +1,4 @@
-import {
-  getPrimaryState as getCorePrimaryState,
-  getRegionState,
-  normalizeStatusLifecycle as normalizeLifecycle
-} from '../../core/src/index.js';
-
-export { getRegionState, normalizeLifecycle };
-
-const workflows = new Map();
-const STATE_CHILDREN = Symbol('workflow-state-children');
-
-export function defineWorkflow(type, workflow) {
-  if (!type) throw new Error('Workflow type is required');
-  const normalized = normalizeWorkflow(workflow);
-  workflows.set(type, Object.freeze({ ...normalized }));
-  return getWorkflow(type);
-}
-
-export function getWorkflow(type) {
-  return workflows.get(type) || null;
-}
-
-export function listWorkflows() {
-  return Array.from(workflows.entries()).map(([type, workflow]) => ({ type, workflow }));
-}
+import { getRegionState, normalizeStatusLifecycle } from './status.js';
 
 export function normalizeWorkflow(workflow = {}) {
   if (!workflow?.initial && !workflow?.regions) {
@@ -57,12 +33,6 @@ export function getWorkflowRegions(workflow = {}) {
 export function getWorkflowRegion(workflow = {}, regionId = 'main') {
   return getWorkflowRegions(workflow)[regionId] || null;
 }
-
-export function getPrimaryState(statusOrState, fallback = null) {
-  return getCorePrimaryState(statusOrState, fallback);
-}
-
-
 
 export function createWorkflowState(workflow = {}, overrides = {}) {
   const normalized = normalizeWorkflow(workflow);
@@ -143,10 +113,8 @@ export function validateTransition({ workflow, currentState, currentStatus = nul
   return { ok: true, from, to: enteredTarget, region: regionId, path, transition: transition || null };
 }
 
-
-
 export function hasLifecyclePayload(lifecycle = {}) {
-  const normalized = normalizeLifecycle(lifecycle);
+  const normalized = normalizeStatusLifecycle(lifecycle);
   return normalized.actors.length > 0 ||
     Object.keys(normalized.attachments).length > 0 ||
     Object.keys(normalized.data).length > 0;
@@ -154,7 +122,7 @@ export function hasLifecyclePayload(lifecycle = {}) {
 
 export function validateLifecyclePayload(schema, lifecycle = {}, options = {}) {
   const { requireRequired = true } = options;
-  const normalized = normalizeLifecycle(lifecycle);
+  const normalized = normalizeStatusLifecycle(lifecycle);
   const hasPayload = hasLifecyclePayload(normalized);
   if (!schema) {
     // Actors are assignment facts (they ride states without a lifecycle
@@ -220,7 +188,7 @@ export function validateLifecyclePayload(schema, lifecycle = {}, options = {}) {
 function validateActorGuard({ transition, currentStatus, targetState, actorId, role }) {
   if (role === 'SYSTEM') return { ok: true };
 
-  const actors = normalizeLifecycle(currentStatus?.lifecycle).actors;
+  const actors = normalizeStatusLifecycle(currentStatus?.lifecycle).actors;
   const matchingAssignments = actors.filter(actor => actorAppliesToState(actor, targetState));
   if (matchingAssignments.length > 0 && !matchingAssignments.some(actor => actor.userId === actorId)) {
     return { ok: false, reason: 'actor_denied' };
@@ -310,7 +278,6 @@ function flattenStates(states = {}, prefix = [], flat = {}, ancestors = new Set(
     const nextAncestors = new Set(ancestors).add(value);
     const normalizedDefinition = { ...definition, path };
     if (children && typeof children === 'object') {
-      Object.defineProperty(normalizedDefinition, STATE_CHILDREN, { value: children });
     }
     flat[canonicalPath] = normalizedDefinition;
     if (children && typeof children === 'object') {

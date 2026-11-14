@@ -1,16 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  getPrimaryState as getCorePrimaryState,
-  getRegionState as getCoreRegionState,
-  normalizeStatusLifecycle
-} from '../../core/src/index.js';
-import {
   applyWorkflowTransitionState,
   createWorkflowState,
   getPrimaryState,
   getRegionState,
-  normalizeLifecycle,
+  normalizeStatusLifecycle,
   normalizeWorkflow,
   resolveWorkflowStatePath,
   validateLifecyclePayload,
@@ -53,16 +48,23 @@ const workflow = {
   }
 };
 
-describe('shared lifecycle helpers', () => {
-  it('reuses core region reads and lifecycle normalization', () => {
-    expect(getRegionState).toBe(getCoreRegionState);
-    expect(normalizeLifecycle).toBe(normalizeStatusLifecycle);
+describe('shared status helpers', () => {
+  it('normalizes lifecycle facts through the canonical status contract', () => {
+    expect(normalizeStatusLifecycle({
+      actors: [{ userId: 'u1' }],
+      attachments: { proof: ['file-1'] },
+      data: { snapshots: { child: { count: 1 } } }
+    })).toEqual({
+      actors: [{ userId: 'u1' }],
+      attachments: { proof: ['file-1'] },
+      data: { snapshots: { child: { count: 1 } } }
+    });
   });
 
-  it('uses the core primary-state reader with the workflow null fallback', () => {
-    const state = { active: { main: 'READY' } };
-    expect(getPrimaryState(state)).toBe(getCorePrimaryState(state, null));
-    expect(getPrimaryState(null)).toBeNull();
+  it('keeps the core primary-state fallback explicit', () => {
+    expect(getPrimaryState({ active: { main: 'READY' } })).toBe('READY');
+    expect(getPrimaryState(null)).toBe('UNKNOWN');
+    expect(getPrimaryState(null, null)).toBeNull();
   });
 });
 

@@ -7,13 +7,6 @@ const resolveRoot = (path) => fileURLToPath(new URL(path, import.meta.url))
 const devHmrHost = process.env.NUXT_DEV_HMR_HOST || undefined
 const devHmrProtocol = process.env.NUXT_DEV_HMR_PROTOCOL || 'ws'
 const devHmrClientPort = Number(process.env.NUXT_DEV_HMR_CLIENT_PORT || 3000)
-const perigramAliases = {
-    '@perigram/core': resolveRoot('./packages/core/src/index.js'),
-    '@perigram/workflows': resolveRoot('./packages/workflows/src/index.js'),
-    '@perigram/devtools': resolveRoot('./packages/devtools/src/index.js'),
-    '@perigram/mcp': resolveRoot('./packages/mcp/src/index.js'),
-    '@perigram/processes': resolveRoot('./packages/processes/src/index.js')
-}
 const portableAliases = {
     '#shared': resolveRoot('./shared'),
     '#packages': resolveRoot('./packages'),
@@ -53,7 +46,6 @@ export default defineNuxtConfig({
     },
 
     alias: {
-        ...perigramAliases,
         ...portableAliases
     },
 
@@ -157,7 +149,6 @@ export default defineNuxtConfig({
         },
         resolve: {
             alias: {
-                ...perigramAliases,
                 ...portableAliases
             }
         },
@@ -362,7 +353,6 @@ export default defineNuxtConfig({
             ignored: [DEV_WATCH_IGNORE]
         },
         alias: {
-            ...perigramAliases,
             ...portableAliases
         },
         routeRules: {
