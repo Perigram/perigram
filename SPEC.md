@@ -1839,10 +1839,16 @@ the current implementation already conforms.
   not close the cross-feature persistence write-path audit.
 - Process-definition service decomposition: status projection helpers now
   live in `status-metadata.js`; action execution authorization derivation
-  lives in `action-execution-auth.js` with domain and policy dependencies
-  injected by the service. These are internal server modules, not independent
-  packages or extraction-ready deployment units. Their import and focused
-  test verification is tracked by the current staging CI run.
+  lives in `action-execution-auth.js` with domain, policy, and command-definition
+  lookup dependencies injected by the service. Command execution grants are
+  covered by a focused test that verifies both the action's run grant and the
+  command's declared permission/execution grants. The registry lookup is lazy
+  through the service's existing composition dependency, avoiding a direct
+  app-registry import in the helper and the previously observed import cycle.
+  These are internal server modules, not independent packages or
+  extraction-ready deployment units. CI status for direct staging pushes is
+  not exposed by the connected workflow-run lookup, so the focused test change
+  is committed but not represented as CI-verified here.
 - Authorization audit progress: process-role transition shortcuts now check
   entity organization scope; generic HTTP instance lists and process-graph
   entity queries apply compiled read grants; process deletes route through
