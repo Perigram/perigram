@@ -1857,6 +1857,10 @@ the current implementation already conforms.
   `loadManagedOrganization` guard as role/settings management, enforcing that
   the target id matches the caller's active organization before repository
   access. Focused regression tests cover cross-tenant update/delete denial.
+  Instance lineage construction now derives one effective organization scope
+  from the explicit context or draft and rejects tenant-owned parents when
+  the child is unscoped, closing the null-scope bypass in the parent check.
+  A focused regression test verifies rejection before insert.
   These are targeted boundary fixes, not completion of the
   route/command/transition/feature call-graph audit.
 - Current staging CI runs `43621806498` and `43622023230` continue to show
