@@ -1877,7 +1877,16 @@ the current implementation already conforms.
   connector cannot trigger even tenant-specific task-definition lookup. This
   closes the cancel endpoint's prior gap where connector credentials were
   accepted without any run ownership check. A service-level regression covers
-  cross-queue cancel.
+  cross-queue cancel. Process-action continuations are correlated by the
+  task-run id created by the command dispatch; the parked continuation retains
+  the original action actor, definition snapshot, and invocation snapshot.
+  Worker completion reaches that callback only after task claim-token and
+  connector-queue checks, and resumed effects use the retained actor rather
+  than connector credentials. No cross-tenant actor substitution was found in
+  this path. The continuation map is intentionally process-local and is lost
+  on restart; this is an availability/durability limitation already specified
+  in §19, not an authorization boundary. The audit remains scoped to the
+  inspected command-task path, not every process entry point.
   This closes a gap where a command with no `access.permissions` entries
   could receive a foreign-tenant entity by ID and proceed without a scope
   check. Regression coverage exercises that no-permission command case.
