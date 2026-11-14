@@ -1801,6 +1801,19 @@ or that the pre-simplification baseline has been captured.
   module now binds the imported core normalizer locally; the subsequent
   full-suite run no longer reports workflow or machine-service lifecycle
   failures.
+- The package parity and public-entrypoint contract tests pass at commit
+  `3730c38` (Actions run `43610514413`). `npm ci` also passed after removing
+  the stale lockfile workspace record. That run reported 245/256 test files
+  and 2,665/2,682 tests passing; SSR passed 9/9 files and 29/29 tests, and
+  architecture, framework, docs, and plugin checks passed. The remaining 17
+  test failures are in 11 files and are still unclassified against the
+  pre-simplification head.
+- Source inspection confirms the intended downward package edges in the
+  inspected implementation: `processes` consumes CTS and workflow contracts
+  and the core entity-block contract; `workflows` consumes core's shared
+  status/lifecycle helpers. No reverse dependency was found in the CTS/core
+  public entrypoints inspected. A complete all-module import scan remains
+  part of the inventory, so this is not yet a complete dependency-cycle proof.
 - The current lifecycle ownership is more specific than the earlier broad
   overlap hypothesis: `packages/core` owns persisted status normalization,
   primary/region readers, and lifecycle-payload normalization;
