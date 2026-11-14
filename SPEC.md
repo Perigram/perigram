@@ -1862,6 +1862,12 @@ the current implementation already conforms.
   upload/storage adapters, background workers, and the remaining API routes
   still require a separate write-owner inventory. No code change was warranted
   by this scan.
+- State-machine event-record decomposition: status ledger envelope creation,
+  actor/principal classification, and lifecycle evidence projection now live
+  in the pure `event-records.js` module. The service retains orchestration and
+  re-exports the existing `buildEventActor` API for compatibility. Focused
+  tests cover ledger shape, optional source omission, principal classification,
+  and evidence normalization; event schema and runtime behavior are unchanged.
 - State-machine persistence extraction: status-ledger inserts and entity
   status updates now pass through `server/core/machines/repository.js`.
   The service retains workflow resolution, authorization, validation,

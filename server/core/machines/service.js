@@ -1,5 +1,7 @@
 import { connectDB } from '../../db/mongo.js';
 import * as machineRepository from './repository.js';
+import { buildStatusEventRecord, buildEventActor, buildEventEvidence } from './event-records.js';
+export { buildEventActor } from './event-records.js';
 import { ObjectId } from 'mongodb';
 import { createStatus } from '../../core/blocks/index.js';
 import { toFlexibleId } from '../../utils/objectid.js';
@@ -628,25 +630,6 @@ function persistableStatusMetadata(metadata = {}) {
   return persisted;
 }
 
-function buildStatusEventRecord({ eventId, targetId, targetType, fromState, toState, fromStatePrimary, toStatePrimary, region, statusData, actor, operation, evidence, source = null }) {
-  return {
-    _id: eventId,
-    targetId,
-    targetType,
-    fromState,
-    toState,
-    fromStatePrimary,
-    toStatePrimary,
-    region,
-    status: statusData,
-    actor,
-    operation,
-    evidence,
-    ...(source ? { source } : {}),
-    timestamp: new Date()
-  };
-}
-
 // Field-level changes ride the same audit trail as transitions (SPEC UI):
 // who changed which field, from what value to what. The record carries the
 // instance's current state on both ends — a field edit never moves the
@@ -703,29 +686,6 @@ export async function appendPayloadRevisionEvent(typeId, targetId, { reason = nu
   });
   await machineRepository.insertStatusEvent(db, record);
   return record;
-}
-
-export function buildEventActor(auth = {}, actorId) {
-  const label = auth?.name || auth?.label || null;
-  return {
-    id: actorId,
-    ...(label ? { label } : {}),
-    principalType: resolveEventPrincipalType(actorId, auth)
-  };
-}
-
-function resolveEventPrincipalType(actorId, auth = {}) {
-  if (auth?.system === true || actorId === 'SYSTEM') return 'SYSTEM';
-  return /^(service|principal)_/.test(String(actorId)) ? 'service' : 'user';
-}
-
-function buildEventEvidence(metadata = {}, lifecycle = {}) {
-  const normalized = normalizeStatusLifecycle(lifecycle);
-  return {
-    description: metadata?.note || metadata?.description || null,
-    attachments: normalized.attachments,
-    lifecycle: normalized
-  };
 }
 
 function normalizeTransitionContext(input = {}) {
