@@ -1778,9 +1778,11 @@ the current implementation already conforms.
    baseline. Map package exports and imports, dependency cycles, aliases,
    duplicate definitions, authorization paths, persistence ownership and
    write paths, runtime registries, worker protocols, and documentation
-   contracts. Classify generated and vendored code separately from
-   maintained application code. Record verified facts separately from
-   suspected duplication.
+   contracts. Reconcile the workspace package map with §29's four-package
+   extraction target; `devtools` and `mcp` are moved to application tooling,
+   not extracted as additional contract packages. Classify generated and
+   vendored code separately from maintained application code. Record
+   verified facts separately from suspected duplication.
 2. **Consolidate model contracts.** Compare CTS and core DTOs, registries,
    validators, state helpers, and definitions. Identify one owner for each
    concept. Write migration steps and tests before removing or moving
@@ -1799,9 +1801,12 @@ the current implementation already conforms.
    are covered by tests.
 5. **Simplify implementation and documentation.** Remove dead code,
    unused packages, duplicate configuration, stale inventories, and
-   obsolete documentation. Keep generated and vendored assets out of
-   application-level complexity counts. Update each owning README and its
-   parent inventory with every boundary change.
+   obsolete documentation. Move framework inspection helpers from
+   `packages/devtools` to `scripts/` and MCP handlers from `packages/mcp`
+   to the application transport layer, leaving the four contract packages
+   named in §29. Keep generated and vendored assets out of application-level
+   complexity counts. Update each owning README and its parent inventory
+   with every boundary change.
 6. **Verify extraction boundaries.** Test package and executor contracts
    independently, verify browser/Node compatibility where required, and
    establish versioned interfaces before moving units into separate

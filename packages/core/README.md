@@ -1,8 +1,9 @@
 # COMPONENT: @perigram/core
 
-Framework-neutral contract kernel. It owns canonical entity block DTOs, isolated
-registries, domain definition helpers, and normalized result helpers. It must not
-import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
+Framework-neutral contract kernel. It owns canonical entity block DTOs,
+status and workflow lifecycle helpers, isolated registries, domain definition
+helpers, and normalized result helpers. It must not import Vue, Nuxt, MongoDB,
+workers, or CNC-specific code.
 
 Parent: [packages README](../README.md).
 
