@@ -1594,6 +1594,40 @@ describe('current process-definition service contract', () => {
     expect(processDelete).toHaveBeenCalledWith('queue-1', expect.objectContaining({ organizationId: 'org-acceptance', effectivePermissions: expect.any(Object) }));
   });
 
+  it('refuses process writes when the persisted target belongs to another organization', async () => {
+    const processUpdate = vi.fn();
+    const processDelete = vi.fn();
+    const processGetById = vi.fn(async () => ({
+      _id: 'foreign-1',
+      type: 'sheet',
+      lineage: { organizationId: 'org-foreign' }
+    }));
+    getAppRegistry.mockReturnValue({
+      getInstanceService: type => type === 'sheet'
+        ? { processGetById, processUpdate, processDelete, processCapabilities: { delete: true } }
+        : organizationService
+    });
+    const forgedInput = {
+      type: 'sheet', id: 'foreign-1',
+      lineage: { organizationId: 'org-acceptance' }
+    };
+
+    await expect(performDurableEffect({
+      kind: 'cts.mutate',
+      record: { kind: 'cts.mutate', typeId: 'sheet', access: { level: 'write' } },
+      inputs: { entity: forgedInput, 'fields.serial': 'SH-99' }
+    }, relationAuth(), {})).rejects.toMatchObject({ statusCode: 403 });
+    await expect(performDurableEffect({
+      kind: 'cts.remove',
+      record: { kind: 'cts.remove', typeId: 'sheet', access: { level: 'write' } },
+      inputs: { entity: forgedInput }
+    }, relationAuth(), {})).rejects.toMatchObject({ statusCode: 403 });
+
+    expect(processGetById).toHaveBeenCalledTimes(2);
+    expect(processUpdate).not.toHaveBeenCalled();
+    expect(processDelete).not.toHaveBeenCalled();
+  });
+
   it('denies archive and hard delete when runtime capabilities do not allow them', async () => {
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === 'sheet_design'
