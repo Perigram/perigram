@@ -171,8 +171,8 @@ export const stateService = {
     }
     const { entity, machine: loadedMachine, instanceDoc } = loaded;
     const primaryState = entity.states
-      ? getPrimaryState(entity.states, loadedMachine ? normalizeWorkflow(loadedMachine).initial : undefined)
-      : getPrimaryState(entity.status, undefined);
+      ? getPrimaryState(entity.states, loadedMachine ? normalizeWorkflow(loadedMachine).initial : null)
+      : getPrimaryState(entity.status, null);
     if (!loadedMachine) {
       // No machine, still process-driven: compiled process actions surface
       // without one (the graph owns the vocabulary, not a registry machine).
@@ -1001,7 +1001,7 @@ function snapshotEntityRef(entity = {}) {
   return {
     id: entity._id?.toString?.() || entity._id || entity.identity?.uid || '',
     label: entity.identity?.name || entity.identity?.slug || entity.identity?.uid || entity._id?.toString?.() || '',
-    status: getPrimaryState(entity.states ?? entity.status ?? entity.state)
+    status: getPrimaryState(entity.states ?? entity.status ?? entity.state, null)
   };
 }
 
