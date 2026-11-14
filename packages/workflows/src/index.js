@@ -1,10 +1,10 @@
 import {
   getPrimaryState as getCorePrimaryState,
   getRegionState,
-  normalizeStatusLifecycle
+  normalizeStatusLifecycle as normalizeLifecycle
 } from '../../core/src/index.js';
 
-export { getRegionState, normalizeStatusLifecycle as normalizeLifecycle };
+export { getRegionState, normalizeLifecycle };
 
 const workflows = new Map();
 const STATE_CHILDREN = Symbol('workflow-state-children');
