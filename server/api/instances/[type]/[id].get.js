@@ -1,4 +1,6 @@
 import { requireAuth } from '~/server/utils/permissions';
+import { assertEntityAccess } from '~/server/core/access/service.js';
+import { declarationForType, writeGrantTarget } from '~/server/features/instances/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 
 // Generic instance read transport (SPEC §13): single instance by id through
@@ -20,5 +22,11 @@ export default defineEventHandler(async (event) => {
   if (!item) {
     throw createError({ statusCode: 404, statusMessage: `${typeId} ${id} not found` });
   }
+  const declaration = await declarationForType(typeId, organizationId);
+  if (!declaration) throw createError({ statusCode: 404, message: `no declaration for type ${typeId}` });
+  const target = await writeGrantTarget(declaration, organizationId);
+  if (!target) throw createError({ statusCode: 403, message: 'Permission denied' });
+  const entity = item?.toJSON ? item.toJSON() : item;
+  assertEntityAccess({ entity, typeId, feature: target.feature, level: 'read', auth });
   return item;
 });
