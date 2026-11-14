@@ -51,10 +51,10 @@ export function processSocketColor(port = {}) {
   return `var(--ck-signal-${processSocketTone(port)})`;
 }
 
-// Handle paint: the payload-family color on the one uniform filled
-// circle. Every socket renders the same mark; a manual trigger is simply
-// an event socket with no wire attached.
+// Handle paint (C4): the payload-family color rides the
+// `--socket-color` custom property — the handle draws its marker and
+// hover glow from it. Every socket renders the same mark; a manual
+// trigger is simply an event socket with no wire attached.
 export function processSocketHandleStyle(port = {}) {
-  const color = processSocketColor(port);
-  return { backgroundColor: color, borderColor: color };
+  return { '--socket-color': processSocketColor(port) };
 }

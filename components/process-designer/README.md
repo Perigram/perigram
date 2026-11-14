@@ -50,7 +50,7 @@ by construction. A handle renders only while its port spec exists.
 | Channel | Encodes | Values |
 |---|---|---|
 | Socket color | transported payload family | reference (instances, typed references, lists — one tone), structure (declared type bindings), quantity, decision (including status), temporal, external, effect, projection, data; events use the primary accent |
-| Socket mark | the connection point | one uniform filled circle for every socket; color is the only socket channel |
+| Socket mark | the connection point | one uniform filled dot for every socket; color is the only socket channel — the handle is a generous target whose dot grows and rings in its color on hover |
 | Wire line style | cargo | solid = instances, dashed = values, dotted = events (the one wire family allowed color, `var(--p-primary-color)`); declaration bindings keep the demuted structure-dashed family (`--ck-signal-structure-muted`) as the second association layer |
 | Wire geometry | chrome | bezier; the self-referencing children wire renders as one elliptical arc around the card; wires carry no markers — direction reads from handle position |
 | Handle position | direction | left = input/target, right = output/source |
@@ -74,7 +74,7 @@ so the canvas stays legible across application themes.
 |---|---|
 | Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation, `inline` = the one-line literal |
 | Card surface | population primacy | the effect species except remove render the primary-tinted surface (`--ck-surface-primary`) — the primary nodes; every other node keeps the plain content surface. One predicate: `utils/processDesignerPopulation.js` |
-| Card border | chrome + selection + fault | the quiet content border for every card; the selected border is the selection state; the danger border marks a faulted node — one carrying anchored validation diagnostics for itself or a wire at its endpoint, or its own whole-graph evaluation error (the messages render in the card's leading rows and ride the header tooltip) |
+| Card border | chrome + selection + fault | the quiet content border for every card; the selected border is the selection state; the danger border marks a faulted node — one carrying anchored validation diagnostics for itself or a wire at its endpoint, or its own whole-graph evaluation error (the messages render in the header's fault popover) |
 
 Canvas nodes carry no category accent — the frame is plain; card concern
 rides the label and icon. Effects and state declarations are the primary
@@ -89,16 +89,17 @@ serialization).
 ### Card anatomy
 
 Top to bottom: the header (on operation cards: collapse chevron, the
-palette section label above the node label, the per-node preview eye on
-cards with data outputs), inline
+palette section label above the node label, the node-description
+affordance, the fault popover on faulted cards, the per-node preview
+eye on cards with data outputs), inline
 configuration (only species that author values in place), the socket rail
 (labeled rows, inputs left / outputs right, every handle centered on the
 outer node rail — socket labels render on every expanded node: a socket
 without its name is unreadable chrome), and the event section (effects
-only). A collapsed card folds the body away and docks its handles on the
-header's left/right edges (left = input, right = output, names on the
-handle tooltips); the collapse state rides the canvas node data and
-persists with the draft.
+only). A collapsed card folds to its title with every socket at a
+distinct position — inputs on the top rail, outputs on the bottom rail,
+the name centered between (names on the handle tooltips); the collapse
+state rides the canvas node data and persists with the draft.
 Sections separate by spacing alone (`mt-2`/`mt-3`, row `py-1.5`);
 separator lines would form a third visual system competing with stripes
 and wires while encoding nothing. Socket rows are one-sided by

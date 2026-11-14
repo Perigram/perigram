@@ -3419,6 +3419,8 @@
     "previewChannelUnavailable": "Канал предпросмотра недоступен",
     "previewNodeHide": "Скрыть из предпросмотра",
     "previewNodeShow": "Показать в предпросмотре",
+    "nodeDescription": "Описание узла",
+    "nodeErrors": "Ошибки узла",
     "paletteDock": "Палитра узлов",
     "paletteNoMatches": "Нет подходящих операций",
     "collapseNode": "Свернуть узел",

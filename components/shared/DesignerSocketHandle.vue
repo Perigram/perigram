@@ -1,8 +1,8 @@
 <template>
   <Handle
     :id="handleId || mintProcessSocketHandle(socket)"
-    :type="side === 'left' ? 'target' : 'source'"
-    :position="side === 'left' ? Position.Left : Position.Right"
+    :type="targetSide ? 'target' : 'source'"
+    :position="side === 'left' ? Position.Left : side === 'right' ? Position.Right : side === 'top' ? Position.Top : Position.Bottom"
     :class="handleClass"
     :style="processSocketHandleStyle(socket)"
     :aria-label="title || socket.label || ''"
@@ -33,8 +33,18 @@ const props = defineProps({
   title: { type: String, default: '' }
 });
 
+const targetSide = computed(() => props.side === 'left' || props.side === 'top');
+
+const verticalSide = computed(() => props.side === 'top' || props.side === 'bottom');
+
 const handleClass = computed(() => [
-  '!top-1/2 !h-3 !w-3 !-translate-y-1/2 !rounded-full',
-  props.side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
+  'designer-socket-handle',
+  verticalSide.value
+    ? '!left-1/2 !h-[22px] !w-[26px] !-translate-x-1/2'
+    : '!top-1/2 !h-[26px] !w-[22px] !-translate-y-1/2',
+  props.side === 'left' ? '!left-0 !-translate-x-1/2'
+    : props.side === 'right' ? '!right-0 !translate-x-1/2'
+      : props.side === 'top' ? '!top-0 !-translate-y-1/2'
+        : '!bottom-0 !translate-y-1/2'
 ]);
 </script>

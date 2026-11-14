@@ -55,13 +55,39 @@
         @mousedown.stop
         @click.stop="toggleCollapsed"
       />
-      <div v-tooltip.bottom="faultTooltip" class="min-w-0 flex-1">
+      <div v-tooltip.bottom="nodeSpecTooltip" class="min-w-0 flex-1">
         <div v-if="data.groupLabel" class="truncate text-supporting text-muted">{{ data.groupLabel }}</div>
-        <div class="flex items-center gap-1.5">
-          <i v-if="faulted" class="pi pi-exclamation-triangle shrink-0 text-status-danger" aria-hidden="true" />
-          <strong class="min-w-0 flex-1 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
-        </div>
+        <strong class="block min-w-0 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
       </div>
+      <Button
+        v-if="nodeSpecTooltip.value"
+        icon="pi pi-info-circle"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        class="nodrag shrink-0"
+        :aria-label="$t('processDesigner.nodeDescription')"
+        @mousedown.stop
+        @click.stop
+      />
+      <Button
+        v-if="faulted"
+        icon="pi pi-exclamation-circle"
+        text
+        rounded
+        size="small"
+        severity="danger"
+        class="nodrag shrink-0"
+        :aria-label="$t('processDesigner.nodeErrors')"
+        @mousedown.stop
+        @click.stop="errorPopover?.toggle($event)"
+      />
+      <Popover ref="errorPopover" append-to="body">
+        <div class="flex max-w-22rem flex-col gap-1 text-supporting text-status-danger">
+          <span v-for="message in faultMessages" :key="message" class="overflow-wrap-anywhere">{{ message }}</span>
+        </div>
+      </Popover>
       <Button
         v-if="dataOutputs.length"
         :icon="previewVisible ? 'pi pi-eye' : 'pi pi-eye-slash'"
@@ -76,29 +102,27 @@
         @click.stop="togglePreviewVisible"
       />
     </div>
-    <div v-if="faultMessages && !collapsed" class="mt-1.5 flex flex-col gap-1">
-      <span v-for="message in faultMessages" :key="message" class="text-supporting text-status-danger">{{ message }}</span>
-    </div>
 
-    <!-- Collapsed (§28 interaction model): the body folds away and the
-         sockets ride the card's left/right edges, keeping the canvas
-         channel vocabulary (left = input, right = output). -->
-    <div v-if="collapsed" class="-mx-2 mt-1 flex items-stretch justify-between gap-4 py-0.5">
-      <div class="flex flex-col items-start gap-1 py-0.5 pl-1">
+    <!-- Collapsed (§28 canvas rethinking): the card folds to its title
+         with every socket at a distinct position — inputs on the top
+         rail, outputs on the bottom rail, the name centered between. -->
+    <div v-if="collapsed" class="mt-1 flex flex-col items-center gap-1 py-0.5">
+      <div class="flex items-center gap-1.5">
         <DesignerSocketHandle
           v-for="input in collapseInputs"
           :key="`ci-${input.id}`"
           :socket="input"
-          side="left"
+          side="top"
           :title="socketTitle(input)"
         />
       </div>
-      <div class="flex flex-col items-end gap-1 py-0.5 pr-1">
+      <div class="max-w-44 truncate text-label" :title="data.kindLabel || record.kind">{{ data.kindLabel || record.kind }}</div>
+      <div class="flex items-center gap-1.5">
         <DesignerSocketHandle
           v-for="output in collapseOutputs"
           :key="`co-${output.id}`"
           :socket="output"
-          side="right"
+          side="bottom"
           :title="socketTitle(output)"
         />
       </div>
@@ -265,9 +289,10 @@
 import { operationKindOf } from '~/packages/cts/src/index.js';
 import { isSecondaryPopulationKind } from '~/utils/processDesignerPopulation.js';
 
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
+import Popover from 'primevue/popover';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
 import { useI18n } from 'vue-i18n';
@@ -323,9 +348,7 @@ const nodeSpecTooltip = computed(() => {
 // rows; the socket-spec tooltip stays available on an unfaulted card.
 const faultMessages = computed(() => (Array.isArray(props.data.diagnostics) ? props.data.diagnostics : null));
 const faulted = computed(() => Boolean(faultMessages.value?.length));
-const faultTooltip = computed(() => ({
-  value: [...(faultMessages.value || []), nodeSpecTooltip.value?.value].filter(Boolean).join('\n')
-}));
+const errorPopover = ref(null);
 const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutputs.value, 'event'));
 // The collapsed card's edge sockets: every socket, data and event alike.
 const collapseInputs = computed(() => [...dataInputs.value, ...eventInputs.value]);
