@@ -1868,6 +1868,11 @@ the current implementation already conforms.
   are refused before the record is even loaded. This closes an implementation
   gap where the lower-level patch mapper accepted fields its own transport
   contract explicitly excluded.
+  Command execution now also checks the organization scope of every loaded
+  entity reference before evaluating optional feature permission clauses.
+  This closes a gap where a command with no `access.permissions` entries
+  could receive a foreign-tenant entity by ID and proceed without a scope
+  check. Regression coverage exercises that no-permission command case.
   These are targeted boundary fixes, not completion of the
   route/command/transition/feature call-graph audit.
 - Current staging CI runs `43621806498` and `43622023230` continue to show
