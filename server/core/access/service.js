@@ -17,6 +17,10 @@ export function assertCommandAccess({ command, action = command, entities = {}, 
   if (isSystemAuth(auth) && access.system === true) return true;
 
   const entityList = Object.values(entities).filter(Boolean);
+  // Entity refs are resolved before command execution; even commands with no
+  // feature-specific permission clauses must not operate on another tenant's
+  // records merely because the caller supplied their id.
+  for (const entity of entityList) assertEntityOrganizationScope(entity, auth);
   const lineageEntity = entityList.find(entity => entity?.lineage) || entityList[0];
   for (const requirement of access.permissions || []) {
     if (!hasInstanceAccess({
