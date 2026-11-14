@@ -34,7 +34,7 @@ describe('process action execution authorization', () => {
 
   it('derives command grants from the command access contract', () => {
     const commandHelpers = createActionExecutionAuthHelpers({
-      getDomain: () => ({ entities: [], fieldAccess: {} }),
+      getDomain: () => ({ entities: [{ type: 'work_item', feature: 'work-items' }], fieldAccess: {} }),
       normalizeTypeId: value => String(value || '').trim().toLowerCase(),
       getEntityFieldAccessPolicy: () => null,
       getCommandDefinition: id => id === 'close-work-item' ? ({ access: { permissions: [
