@@ -110,6 +110,11 @@ function createEffectDefinition(typeId, mode) {
 }
 
 describe('application entity service bindings (resolver world, SPEC §13/§21)', () => {
+  it('composes the application registry once and reuses the same instance', () => {
+    const registry = getAppRegistry();
+    expect(getAppRegistry()).toBe(registry);
+  });
+
   it('serves the framework five explicitly and everything else through the resolver', () => {
     resetAppRegistryForTests();
     const registry = getAppRegistry();

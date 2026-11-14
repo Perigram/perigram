@@ -125,7 +125,7 @@ export function createRegistry({ id = 'app' } = {}) {
     // instance services.
     registerInstanceServiceResolver(resolver) {
       if (typeof resolver !== 'function') throw new Error('Entity service resolver must be a function');
-      instanceServiceResolvers.push(resolver);
+      if (!instanceServiceResolvers.includes(resolver)) instanceServiceResolvers.push(resolver);
       return registry;
     },
 

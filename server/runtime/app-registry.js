@@ -19,10 +19,7 @@ import { frameworkTaskDefinitions } from '~/server/core/tasks/definitions.js';
 let appRegistry = null;
 
 export function getAppRegistry() {
-  if (appRegistry) {
-    registerAppBindings(appRegistry);
-    return appRegistry;
-  }
+  if (appRegistry) return appRegistry;
 
   const registry = createRegistry({ id: 'perigram-app' });
 
