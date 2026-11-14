@@ -12,6 +12,7 @@ import * as entityEventService from '~/server/features/instance-events/service.j
 import { exportersForOrganization, invokeEndpointValueService } from '../plugins/service.js';
 import { declarationForType, writeGrantTarget } from '../instances/service.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
+import { getEntityFieldAccessPolicy } from '~/shared/field-access-policies.js';
 import {
   compileProcessDefinition,
   constructionInputsForContract,
@@ -1451,7 +1452,7 @@ const {
   createActionExecutionAuth,
   createRelationLinkExecutionAuth,
   resolveInstanceFeature
-} = createActionExecutionAuthHelpers({ getDomain });
+} = createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, getEntityFieldAccessPolicy });
 
 function pickMutationData(data = {}, action = {}, entities = {}) {
   const fields = action.mutation?.fields || [];
