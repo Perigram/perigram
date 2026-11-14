@@ -33,14 +33,12 @@ const classOf = computed(() => props.data.class || 'file');
 const scope = computed(() => props.data.scope || 'org');
 const version = computed(() => props.data.version || 1);
 const editor = computed(() => props.data.editor || null);
-const fieldCount = computed(() => Number(props.data.fieldCount) || 0);
-const stateCount = computed(() => Number(props.data.stateCount) || 0);
+const fieldCount = computed(() => Number(props.data.fields) || 0);
 const metaTooltip = computed(() => ({
   value: [
     scope.value === 'system' ? `v${version.value}` : null,
     editor.value,
-    fieldCount.value ? `${fieldCount.value} fields` : null,
-    stateCount.value ? `${stateCount.value} states` : null
+    fieldCount.value ? `${fieldCount.value} fields` : null
   ].filter(Boolean).join(' · ') || label.value
 }));
 const inputSpec = computed(() => props.data.inputSpecs?.[0] || {});

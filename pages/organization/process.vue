@@ -92,17 +92,15 @@
         </Message>
       </div>
 
-      <div v-if="!nodes.length" class="absolute inset-x-4 top-8 z-10 flex justify-center">
+      <PaletteDock
+        :groups="paletteChipGroups"
+        :placeholder="$t('processDesigner.searchOperations')"
+        @pick="item => (item.action ? item.action() : addNode(item))"
+      />
+
+      <div v-if="!nodes.length" class="absolute inset-x-4 top-20 z-10 flex justify-center">
         <StateBlock :message="emptyCanvasMessage" />
       </div>
-
-      <template #palette>
-        <OperationPalette
-          :groups="paletteChipGroups"
-          :placeholder="$t('processDesigner.searchOperations')"
-          @pick="item => (item.action ? item.action() : addNode(item))"
-        />
-      </template>
 
       <template #inspector>
         <div class="flex h-full min-h-0 flex-col">
@@ -704,6 +702,7 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
 import OperationPalette from '~/components/process-designer/OperationPalette.vue';
+import PaletteDock from '~/components/process-designer/PaletteDock.vue';
 import PreviewChannelMount from '~/components/process-designer/PreviewChannelMount.vue';
 import TypeMigrationStepsDialog from '~/components/process-designer/TypeMigrationStepsDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
@@ -881,6 +880,7 @@ const {
   processTypeIdOptions,
   processNodeSummary,
   processNodeDisplayLabel,
+  processNodeGroupLabel,
   processNodeDescription,
   connectedProcessInputIds,
   syncEffectTriggerMode,
@@ -2402,7 +2402,7 @@ function addNode(item, position = nextNodePosition()) {
       data: {
         refId: id,
         ...(type === 'ctsClass'
-          ? { typeId: suggestTreeTypeId(), name: '', class: classOf || 'file', scope: 'tree', label: '', payload: null, fields: 0, states: 0 }
+          ? { typeId: suggestTreeTypeId(), name: '', class: classOf || 'file', scope: 'tree', label: '', payload: null, fields: 0 }
           : type === 'ctsType'
             ? { typeId: '', label: '' }
             : type === 'ctsField'
@@ -2634,6 +2634,7 @@ const DERIVED_NODE_DATA_KEYS = [
   'processStatusOptions',
   'processConnectedInputIds',
   'kindLabel',
+  'groupLabel',
   'diagnostics',
   'summary',
   'purpose',
@@ -2665,6 +2666,7 @@ function enrichNodeData(node) {
     processStatusOptions: isProcessNode ? processWorkflowPaths(record) : [],
     processConnectedInputIds: isProcessNode ? connectedProcessInputIds(node, record) : [],
     kindLabel: isProcessNode ? processNodeDisplayLabel(record) : record.kind,
+    groupLabel: isProcessNode ? paletteGroupLabel(processNodeGroupLabel(record)) : '',
     summary: processNodeSummary(record),
     purpose: isProcessNode ? processNodeDescription(record) : '',
     diagnostics: nodeDiagnostics.value?.(node.id) ?? null

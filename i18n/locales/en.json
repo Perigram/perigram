@@ -3415,6 +3415,10 @@
     "previewChannelUnavailable": "Preview channel unavailable",
     "previewNodeHide": "Hide from preview",
     "previewNodeShow": "Show in preview",
+    "paletteDock": "Node palette",
+    "paletteNoMatches": "No matching operations",
+    "collapseNode": "Collapse node",
+    "expandNode": "Expand node",
     "paletteGroups": {
       "entities": "Types",
       "values": "Values",

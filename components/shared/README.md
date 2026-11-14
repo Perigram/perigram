@@ -159,7 +159,8 @@ without collapse controls, aggregate show/hide commands, or count badges.
 a full canvas, such as process design.
 
 Toolbar commands split by concern into one floating PrimeVue `Toolbar`
-top-centered over the canvas. The **start group** carries the panel toggles
+bottom-centered over the canvas. The **start group** carries the panel
+toggles
 plus document operations (`document-items` prop, grouped
 view/file/commit-last: open/load, rename, save/save-as, then destructive
 and utility items); the **end group** carries canvas and content commands
@@ -169,11 +170,11 @@ plus frame selection on graph canvases), undo/redo where the editor owns a
 history, and content operations with the destructive
 item last in its group; DrawingCanvas hides its internal zoom cluster in
 designer mode and exposes the commands for the toolbar instead. The
-toolbar floats inside a full-width positioned wrapper on the exact top
+toolbar floats inside a full-width positioned wrapper on the exact bottom
 line of the panel rails with the same 12px canvas inset; the wrapper
 passes pointer events through its empty sides so it never blocks canvas
 interaction. Document identity (the edited item's display name) rides the
-same top line through the `toolbar` slot, left-anchored and truncated
+same bottom line through the `toolbar` slot, left-anchored and truncated
 beside the centered command toolbar. Popups toggle on click and close on
 confirm, selection, or outside click — pickers and rename prompts use
 `Popover`.

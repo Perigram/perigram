@@ -180,19 +180,18 @@ function createCanvas() {
 describe('canvas lifecycle invariants', () => {
   it('keeps every node and record through declaration authoring, wiring, renaming, and deletion', async () => {
     const canvas = createCanvas();
-    const cls = canvas.addDeclarationNode('ctsClass', { typeId: 'panel', class: 'item', fields: 0, states: 0 });
+    const cls = canvas.addDeclarationNode('ctsClass', { typeId: 'panel', class: 'item', fields: 0 });
     const field = canvas.addDeclarationNode('ctsField', { typeId: null, name: 'design', descriptor: { base: 'ref', accepts: [] } });
-    const state = canvas.addDeclarationNode('ctsState', { typeId: null, value: 'raw', initial: true, terminal: false });
+    const state = canvas.addDeclarationNode('ctsState', { typeId: null, value: 'raw' });
     await canvas.settle();
 
     expect(canvas.connect(field.id, cls.id, 'output:field', 'input:declare')).toBe(true);
-    expect(canvas.connect(state.id, cls.id, 'output:state', 'input:declare')).toBe(true);
     await canvas.settle();
     expect(field.data.typeId).toBe('panel');
-    expect(cls.data).toMatchObject({ fields: 1, states: 1 });
+    expect(cls.data).toMatchObject({ fields: 1 });
 
     // a second class wired as the ref target derives accepts
-    const target = canvas.addDeclarationNode('ctsClass', { typeId: 'plate', class: 'item', fields: 0, states: 0 });
+    const target = canvas.addDeclarationNode('ctsClass', { typeId: 'plate', class: 'item', fields: 0 });
     expect(canvas.connect(target.id, field.id, 'output:type', 'input:targets')).toBe(true);
     await canvas.settle();
     expect(field.data.descriptor.accepts).toEqual(['plate']);
@@ -249,7 +248,7 @@ describe('canvas lifecycle invariants', () => {
 
   it('a class rename with a bound construct re-binds without losing the node', async () => {
     const canvas = createCanvas();
-    const cls = canvas.addDeclarationNode('ctsClass', { typeId: 'panel', class: 'item', fields: 0, states: 0 });
+    const cls = canvas.addDeclarationNode('ctsClass', { typeId: 'panel', class: 'item', fields: 0 });
     const construct = canvas.addProcessNode('cts.construct', { typeId: '', construction: { mode: 'genericCreate' } });
     await canvas.settle();
 

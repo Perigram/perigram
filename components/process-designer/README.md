@@ -85,11 +85,17 @@ serialization).
 
 ### Card anatomy
 
-Top to bottom: the header (neutral icon chip + label), inline
+Top to bottom: the header (on operation cards: collapse chevron, the
+palette section label above the node label, the per-node preview eye on
+cards with data outputs), inline
 configuration (only species that author values in place), the socket rail
 (labeled rows, inputs left / outputs right, every handle centered on the
-outer node rail — socket labels render on every node: a socket without
-its name is unreadable chrome), and the event section (effects only).
+outer node rail — socket labels render on every expanded node: a socket
+without its name is unreadable chrome), and the event section (effects
+only). A collapsed card folds the body away and docks its handles on the
+header's left/right edges (left = input, right = output, names on the
+handle tooltips); the collapse state rides the canvas node data and
+persists with the draft.
 Sections separate by spacing alone (`mt-2`/`mt-3`, row `py-1.5`);
 separator lines would form a third visual system competing with stripes
 and wires while encoding nothing. Socket rows are one-sided by
@@ -99,7 +105,7 @@ opposite cell.
 The card header's hover/focus tooltip carries the node's socket contract
 (`Expects`/`Outputs`: name — type · access · optional) computed from the
 real ports, with the class-card meta rows (scope version tag, editor tag,
-field/state counts). Socket labels stay concise — the exact element
+field counts). Socket labels stay concise — the exact element
 type, access, qualifier, and description are available on hover and to
 assistive technology. Resolved input/output contracts are shown by the
 labelled socket rails and hover/focus metadata; the inspector does not
@@ -215,23 +221,26 @@ The pass is the pure `utils/processDesignerArrangement.js`:
   one primary border only. Socket handles render at a compact 12px with
   an invisible grab pad; wire weight runs 1.5–2.5px with its cargo
   family. Home frames the graph,
-  Numpad Decimal frames the selection; zoom spans 0.1x–4x, and the live
+  Numpad Decimal frames the selection; H collapses the selected
+  operation cards (collapse wins while any selected card stands open);
+  zoom spans 0.1x–4x, and the live
   viewport persists with the graph. While a node selection exists, a
   PrimeVue `SpeedDial` floats beside the last selected node (anchored
   through the canvas viewport transform) carrying delete and frame
   selection; edge selections keep the keyboard bindings.
 
-The rail palette and the canvas context palette render through one
-component, `OperationPalette.vue` — searchable chip groups with localized
-group labels above wraps of small PrimeVue buttons, arranged in two
-provenance tiers: plugin sections first (palette groups whose
-registration declares the pack source), then the platform categories.
-Search spans every tier. Each chip's dot
+The palette is the canvas-top dock (`PaletteDock.vue`): provenance tiers
+as labels — plugin sections first (palette groups whose registration
+declares the pack source), then the platform categories — with one chip
+per palette section opening the popover palette. An empty query lists
+the active section; a query searches the full catalog. Each row's dot
 carries the item's category signal
 (`utils/processDesignerSignals.js` is the single group→signal map; its
 signal classes are literal in the util because Tailwind compiles from
 source text). Search matches the localized job names and descriptions;
-chips carry the operation description on hover. Palette
+rows carry the operation description on hover. The socket-filtered
+context palette (right-click, wire drop) renders its list through
+`OperationPalette.vue`. Palette
 membership, grouping, and provenance are the
 [packages/processes](../../packages/processes/README.md) contract.
 
@@ -341,10 +350,11 @@ declaration records in the draft; APPLY posts the compiled declarations
 before compiling the process graph.
 
 Chrome: the canvas uses its own token-backed work surface behind the
-shared `DesignerWorkspace` rails
-([components/shared](../shared/README.md)). Palette and inspector are
-non-modal overlay drawer rails the toolbar toggles own — canvas clicks
-keep them open, and canvas Escape clears graph selection. The floating
+shared `DesignerWorkspace` chrome
+([components/shared](../shared/README.md)). The palette is the
+canvas-top dock inside the canvas slot; the inspector is a non-modal
+overlay drawer rail the toolbar toggle owns — canvas clicks keep it
+open, and canvas Escape clears graph selection. The floating
 PrimeVue `Toolbar` (shared `DesignerWorkspace` chrome) owns the process
 lifecycle in its document group (New Draft, Save, Apply) and the view
 controls in its canvas group (zoom out/in, frame all, frame selection,
@@ -551,8 +561,9 @@ nodes, which show no inspection action.
 
 ## Structure
 
-10 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `CtsTypeNode.vue`),
-palette (`OperationPalette.vue`), lanes (`LaneBands.vue`), the loop edge
+11 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `CtsTypeNode.vue`),
+the palette dock (`PaletteDock.vue`), the context palette list
+(`OperationPalette.vue`), lanes (`LaneBands.vue`), the loop edge
 (`SelfLoopEdge.vue`), preview channels (`PreviewChannelMount.vue`),
 dialogs (`TypeMigrationStepsDialog.vue`,
 `ApplyMigrationDialog.vue`), and `TypedValueControl.vue` — plus

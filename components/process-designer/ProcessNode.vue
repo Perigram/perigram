@@ -42,13 +42,26 @@
   </DesignerNodeCard>
 
   <DesignerNodeCard v-else :selected="selected" :faulted="faulted" size="lg" :primary="isOperation" :title="data.purpose || data.summary || ''">
-    <!-- Label-dominant header: the label is the primary read; the whole
-         header row carries the node-spec tooltip (the per-node `?`
-         affordance is gone — quiet-card policy, node UI contract). A
-         faulted node leads with its diagnostics. -->
-    <div v-tooltip.bottom="faultTooltip" class="flex items-center gap-1.5">
-      <i v-if="faulted" class="pi pi-exclamation-triangle shrink-0 text-status-danger" aria-hidden="true" />
-      <strong class="min-w-0 flex-1 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
+    <div class="flex items-center gap-1.5">
+      <Button
+        :icon="collapsed ? 'pi pi-chevron-right' : 'pi pi-chevron-down'"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        class="nodrag -ml-1.5 shrink-0"
+        :title="collapsed ? $t('processDesigner.expandNode') : $t('processDesigner.collapseNode')"
+        :aria-label="collapsed ? $t('processDesigner.expandNode') : $t('processDesigner.collapseNode')"
+        @mousedown.stop
+        @click.stop="toggleCollapsed"
+      />
+      <div v-tooltip.bottom="faultTooltip" class="min-w-0 flex-1">
+        <div v-if="data.groupLabel" class="truncate text-supporting text-muted">{{ data.groupLabel }}</div>
+        <div class="flex items-center gap-1.5">
+          <i v-if="faulted" class="pi pi-exclamation-triangle shrink-0 text-status-danger" aria-hidden="true" />
+          <strong class="min-w-0 flex-1 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
+        </div>
+      </div>
       <Button
         v-if="dataOutputs.length"
         :icon="previewVisible ? 'pi pi-eye' : 'pi pi-eye-slash'"
@@ -56,18 +69,42 @@
         text
         rounded
         size="small"
-        class="nodrag shrink-0"
+        class="nodrag -mr-1.5 shrink-0"
         :title="previewVisible ? $t('processDesigner.previewNodeHide') : $t('processDesigner.previewNodeShow')"
         :aria-label="previewVisible ? $t('processDesigner.previewNodeHide') : $t('processDesigner.previewNodeShow')"
         @mousedown.stop
         @click.stop="togglePreviewVisible"
       />
     </div>
-    <div v-if="faultMessages" class="mt-1.5 flex flex-col gap-1">
+    <div v-if="faultMessages && !collapsed" class="mt-1.5 flex flex-col gap-1">
       <span v-for="message in faultMessages" :key="message" class="text-supporting text-status-danger">{{ message }}</span>
     </div>
 
-    <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
+    <!-- Collapsed (§28 interaction model): the body folds away and the
+         sockets ride the card's left/right edges, keeping the canvas
+         channel vocabulary (left = input, right = output). -->
+    <div v-if="collapsed" class="-mx-2 mt-1 flex items-stretch justify-between gap-4 py-0.5">
+      <div class="flex flex-col items-start gap-1 py-0.5 pl-1">
+        <DesignerSocketHandle
+          v-for="input in collapseInputs"
+          :key="`ci-${input.id}`"
+          :socket="input"
+          side="left"
+          :title="socketTitle(input)"
+        />
+      </div>
+      <div class="flex flex-col items-end gap-1 py-0.5 pr-1">
+        <DesignerSocketHandle
+          v-for="output in collapseOutputs"
+          :key="`co-${output.id}`"
+          :socket="output"
+          side="right"
+          :title="socketTitle(output)"
+        />
+      </div>
+    </div>
+
+    <div v-if="hasInlineConfiguration && !collapsed" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
       <!-- One-row literal: type dropdown + value (SPEC "Node layouts");
            multiline data (list/tree) wraps below at the node's max
            width. -->
@@ -180,7 +217,7 @@
       />
     </div>
 
-    <div v-if="socketRows.length" class="-mx-2.5 mt-2 flex flex-col">
+    <div v-if="socketRows.length && !collapsed" class="-mx-2.5 mt-2 flex flex-col">
       <!-- One-sided rows render without their empty opposite cell; row
            labels ALWAYS render — quiet cards keep their sockets named
            (owner corrective 2026-09-28, node UI contract). -->
@@ -209,7 +246,7 @@
     <!-- The event section renders an effect's event sockets as ordinary
          socket rows (node UI contract): wired or manual reads from
          whether a wire is attached. -->
-    <div v-if="eventSocketRows.length" class="-mx-2.5 mt-3">
+    <div v-if="eventSocketRows.length && !collapsed" class="-mx-2.5 mt-3">
       <div v-for="row in eventSocketRows" :key="row.key" class="flex min-h-7 items-center gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
@@ -290,6 +327,14 @@ const faultTooltip = computed(() => ({
   value: [...(faultMessages.value || []), nodeSpecTooltip.value?.value].filter(Boolean).join('\n')
 }));
 const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutputs.value, 'event'));
+// The collapsed card's edge sockets: every socket, data and event alike.
+const collapseInputs = computed(() => [...dataInputs.value, ...eventInputs.value]);
+const collapseOutputs = computed(() => [...dataOutputs.value, ...eventOutputs.value]);
+const collapsed = computed(() => Boolean(props.data.collapsed));
+
+function toggleCollapsed() {
+  props.data.collapsed = !collapsed.value;
+}
 const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));
 const operationOptions = computed(() => props.data.processOperationOptions || []);
 const showTypeEditor = computed(() => opKind.value.startsWith('source.literal'));
