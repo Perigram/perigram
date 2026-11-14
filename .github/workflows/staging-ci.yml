@@ -1,0 +1,59 @@
+name: Staging CI
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/staging'
+    runs-on: self-hosted
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out staging
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        id: dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run complete Vitest suite
+        if: ${{ always() && steps.dependencies.outcome == 'success' }}
+        run: npx vitest run
+
+      - name: Run SSR smoke tests
+        if: ${{ always() && steps.dependencies.outcome == 'success' }}
+        run: npx vitest run --config vitest.ssr.config.js
+
+      - name: Check architecture
+        if: ${{ always() && steps.dependencies.outcome == 'success' }}
+        run: node scripts/check-arch.js
+
+      - name: Validate framework declarations
+        if: ${{ always() && steps.dependencies.outcome == 'success' }}
+        run: npm run framework:validate
+
+      - name: Validate documentation
+        if: ${{ always() && steps.dependencies.outcome == 'success' }}
+        run: npm run docs:validate
+
+      - name: Check plugin executor dependencies
+        if: ${{ always() && steps.dependencies.outcome == 'success' }}
+        run: npm run plugin-deps:check
