@@ -1,4 +1,4 @@
-import { FIELD_BASES, UNITS } from '@perigram/cts/index';
+import { FIELD_BASES, UNITS } from '#packages/cts';
 
 export const descriptorBaseOptions = FIELD_BASES.map(base => ({ label: base, value: base }));
 

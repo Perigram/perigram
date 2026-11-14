@@ -14,8 +14,8 @@ import {
   processSocketsCompatible,
   compileTreeDeclarations,
   PROCESS_DATAFLOW_VERSION
-} from '@perigram/processes/index';
-import { normalizeType, operationKindOf } from '@perigram/cts/index';
+} from '#packages/processes';
+import { normalizeType, operationKindOf } from '#packages/cts';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
 import { signalForPaletteGroup } from '~/utils/processDesignerSignals.js';
 import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';

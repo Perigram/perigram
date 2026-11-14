@@ -23,7 +23,7 @@
 // no specs).
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
-import { mintProcessSocketHandle } from '@perigram/processes/index';
+import { mintProcessSocketHandle } from '#packages/processes';
 import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({

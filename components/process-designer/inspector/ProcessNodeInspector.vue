@@ -311,8 +311,8 @@
 // events, relations). Pure presentation over the selected record — every
 // mutation is an event back to the page's single update/sync entry point.
 import { computed } from 'vue';
-import { operationKindOf, typeIdOf } from '@perigram/cts/index';
-import { EFFECT_SPECIES_KINDS } from '@perigram/processes/index';
+import { operationKindOf, typeIdOf } from '#packages/cts';
+import { EFFECT_SPECIES_KINDS } from '#packages/processes';
 import Button from 'primevue/button';
 import DatePicker from 'primevue/datepicker';
 import InputNumber from 'primevue/inputnumber';

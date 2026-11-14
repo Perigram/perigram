@@ -26,7 +26,7 @@
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import Select from '~/components/shared/InstanceSelect.vue';
-import { ON_REMOVE } from '@perigram/cts/index';
+import { ON_REMOVE } from '#packages/cts';
 
 defineProps({
   edge: { type: Object, required: true }
