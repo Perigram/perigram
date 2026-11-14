@@ -181,6 +181,32 @@ describe('access engine', () => {
     expect(hasLineagePermission(scopedAuth, project.lineage, 'projects', 'read')).toBe(false);
   });
 
+  it('keeps process-role transitions inside the active organization', () => {
+    const transition = { from: 'DRAFT', to: 'READY', processRoleIds: ['role_operator'] };
+    const scopedAuth = {
+      userId: 'operator-1',
+      organizationId: 'org-1',
+      memberships: [{ organizationId: 'org-1', permissions: {} }],
+      roleAssignments: { roleIds: ['role_operator'] }
+    };
+
+    expect(() => assertTransitionAccess({
+      transition,
+      entity: { lineage: { organizationId: 'org-1' } },
+      auth: scopedAuth
+    })).not.toThrow();
+    expect(() => assertTransitionAccess({
+      transition,
+      entity: { lineage: { organizationId: 'org-2' } },
+      auth: scopedAuth
+    })).toThrow(/organization scope/);
+    expect(() => assertTransitionAccess({
+      transition,
+      entity: { lineage: { organizationId: 'org-1' } },
+      auth: { ...scopedAuth, organizationId: null, memberships: [] }
+    })).toThrow(/organization scope/);
+  });
+
   it('supports transition-scoped grants', () => {
     const transition = { from: 'PRODUCED', to: 'MILLED', access: { permissions: [{ feature: 'projects', level: 'write' }] } };
     const scopedAuth = {

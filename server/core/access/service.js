@@ -37,6 +37,7 @@ export function assertTransitionAccess({ transition, entity, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
   const access = transition?.access || {};
   if (isSystemAuth(auth) && access.system === true) return true;
+  assertEntityOrganizationScope(entity, auth);
 
   const processRoleIds = access.processRoleIds || transition?.processRoleIds || [];
   if (processRoleIds.length) {
@@ -65,6 +66,20 @@ export function assertTransitionAccess({ transition, entity, auth }) {
   // no role or permission grants names the system actor alone.
   if (access.system === true && !(access.permissions || []).length) {
     throw createError({ statusCode: 403, message: 'Permission denied for system-only transition' });
+  }
+  return true;
+}
+
+function assertEntityOrganizationScope(entity = {}, auth = {}) {
+  const organizationId = (entity?.organizationId ?? entity?.lineage?.organizationId ?? entity?.origin?.organizationId)?.toString();
+  if (!organizationId) return true;
+
+  const activeOrganizationId = auth.organizationId?.toString();
+  if (activeOrganizationId && activeOrganizationId !== organizationId) {
+    throw createError({ statusCode: 403, message: 'Permission denied for organization scope' });
+  }
+  if (!activeOrganizationId && !(auth.memberships || []).some(item => item.organizationId?.toString() === organizationId)) {
+    throw createError({ statusCode: 403, message: 'Permission denied for organization scope' });
   }
   return true;
 }
