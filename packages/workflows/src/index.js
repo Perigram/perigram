@@ -1,10 +1,8 @@
 import {
   getPrimaryState as getCorePrimaryState,
   getRegionState,
-  normalizeStatusLifecycle
+  normalizeStatusLifecycle as normalizeLifecycle
 } from '../../core/src/index.js';
-
-const normalizeLifecycle = normalizeStatusLifecycle;
 
 export { getRegionState, normalizeLifecycle };
 
