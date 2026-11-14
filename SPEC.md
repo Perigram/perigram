@@ -1874,10 +1874,10 @@ the current implementation already conforms.
   connector's derived queue identity into the task service and reject runs
   whose `workerType` belongs to another connector/org. The service performs
   this check before resolving the run's task definition, so a mismatched
-  connector cannot trigger even tenant-specific task-definition lookup. This
-  closes the cancel endpoint's prior gap where connector credentials were
-  accepted without any run ownership check. A service-level regression covers
-  cross-queue cancel. Process-action continuations are correlated by the
+  connector cannot trigger even tenant-specific task-definition lookup. The
+  HTTP cancel endpoint is operator-only: connector credentials are rejected
+  there because cancellation is not part of the connector protocol exposed
+  by `connectorInfo`. A service-level regression covers cross-queue cancel. Process-action continuations are correlated by the
   task-run id created by the command dispatch; the parked continuation retains
   the original action actor, definition snapshot, and invocation snapshot.
   Worker completion reaches that callback only after task claim-token and
