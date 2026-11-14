@@ -35,6 +35,10 @@ jobs:
         id: dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Inventory application package consumers
+        if: ${{ always() && steps.dependencies.outcome == 'success' }}
+        run: node scripts/report-package-consumers.js
+
       - name: Reject retired workflow package references
         if: ${{ always() && steps.dependencies.outcome == 'success' }}
         run: |
