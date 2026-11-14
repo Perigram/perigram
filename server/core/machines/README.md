@@ -222,5 +222,5 @@ configuration errors fail the endpoint so broken hook contracts surface.
 - [server/core/blocks/](../blocks/) (Standard Block classes)
 - [server/utils/objectid.js](../../utils/objectid.js) (Flexible ID handling)
 - [server/runtime/README.md](../../runtime/README.md) (Entity registry helpers)
-- [packages/workflows/README.md](../../../packages/core/README.md) (Framework workflow package)
+- [packages/core/README.md](../../../packages/core/README.md) (Core lifecycle runtime)
 - [server/core/effects/README.md](../effects/README.md) (Effect processor)
