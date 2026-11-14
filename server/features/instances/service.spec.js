@@ -220,6 +220,23 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.findOneAndUpdate).toHaveBeenCalled();
   });
 
+  it('refuses structural edge writes through the generic HTTP patch boundary', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('pdf-document');
+
+    await expect(service.patch('507f1f77bcf86cd799439011', {
+      lineage: { projectId: 'foreign-project' }
+    }, { organizationId: 'org-1', auth: { organizationId: 'org-1' } }))
+      .rejects.toMatchObject({ statusCode: 400 });
+    await expect(service.patch('507f1f77bcf86cd799439011', {
+      relations: { attachments: [{ type: 'pdf-document', id: 'foreign-record' }] }
+    }, { organizationId: 'org-1', auth: { organizationId: 'org-1' } }))
+      .rejects.toMatchObject({ statusCode: 400 });
+
+    expect(coll.findOne).not.toHaveBeenCalled();
+    expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
   it('maps wire patch paths to §3 field writes', async () => {
     const coll = stubCollection();
     coll.findOneAndUpdate.mockResolvedValue({ _id: '507f1f77bcf86cd799439011', type: 'pdf-document', typeVersion: 1, fields: { name: 'Renamed' }, states: { main: 'active' }, lineage: {} });
