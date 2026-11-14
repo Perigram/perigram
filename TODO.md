@@ -29,19 +29,54 @@ deployment.
   module proxy serves it same-origin to an org member (JS dependencies
   rewritten, binaries untouched, `ETag`/304) with no connection
   configured; a missing path answers 404; retract deletes the assets.
-- [ ] E3 Browser engine runtime — the engine loader (Web Worker), the
-  Pyodide bootstrap (checksum-pinned runtime, micropip wheel install,
-  IndexedDB persistence), and the dispatch contract
-  (`op id + parameters -> output`).
-- [ ] E4 Client-side preview dispatch — the one evaluator's preview
-  service channel dispatches local-engine services in the browser;
-  endpoint/claim services keep the server dispatch.
+- [x] E3a Platform engine loader (owner direction 2026-11-14:
+  platform-level code only, nothing build123d-direct) — the engine
+  module contract (`createEngine() -> { dispatch(serviceId,
+  parameters) }`), the served engine bindings on the org view
+  (`clientEngines`: plugin, version, proxied module URL, local service
+  ids), and the browser loader (`useClientEngines`).
+- [x] E4 Client-side preview dispatch — a graph whose service nodes all
+  bind served client engines evaluates in the browser through the one
+  evaluator (`previewProcessDataflow` client-hosted, the engine loader
+  as its preview service channel); graphs with endpoint services or
+  `cts.*` species keep the server evaluation.
+- [ ] E3b Engine bootstrap (plugin-owned, sequenced after the platform
+  slices) — the runtime itself: worker bootstrap, pinned interpreter,
+  wheel install, storage persistence — shipped as package assets by the
+  engine plugin that needs them.
+- [ ] WAITING — owner verification: E3a + E4 — an installed engine
+  plugin serves its binding on the org view; a graph composing a local
+  service previews in the browser (no server preview round-trip), a
+  dispatch failure folds into the node error, and graphs with endpoint
+  services keep the server path.
 - [ ] E5 build123d plugin conversion — the listing carries the
   discovered op catalog and the engine; the python executor
   (`workers/build123d`, its dev compose service) retires. Supersedes
-  the executor-deployment shape of the 2026-11-13 bring-up.
+  the executor-deployment shape of the 2026-11-13 bring-up. Sequenced
+  after E3b (owner direction 2026-11-14: platform-level code first).
 - [ ] E6 Shape viewport (G4) — the engine's tessellated meshes feed the
   plugin's preview channel surface.
+
+### Agent Notes (2026-11-14, agent/local-engine-e3a-20261114)
+
+- E3a + E4 landed, platform-level only per owner direction (no
+  build123d work). The engine module contract: default export
+  `createEngine() -> { dispatch(serviceId, parameters) }`; the org
+  view serves `clientEngines: [{ pluginId, version, url, services }]`
+  (the module proxy URL resolves against the pinned version's package
+  store); `useClientEngines` loads each binding once per version
+  (failed loads forgotten and recorded). `useGraphChannelPreview`
+  evaluates a graph client-side when every `cts.service` node's
+  operator has a served binding and no other record is a `cts.*`
+  species — the one evaluator (`previewProcessDataflow` +
+  `serializeProcessResult` from the pure package) hosts in the browser
+  over the projected domain with the loader as its preview service
+  channel; every other graph keeps `previewDraft`. The server-side
+  lowering adapter stays server-side: the designer's serialized draft
+  already speaks the current species vocabulary.
+- E3 re-sliced: E3a (platform loader) landed here; E3b (the runtime
+  bootstrap — interpreter, wheels, storage) is plugin-owned and
+  sequenced with the engine plugin that ships it.
 
 ### Agent Notes (2026-11-14, agent/local-engine-e2-20261114)
 

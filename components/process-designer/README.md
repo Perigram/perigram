@@ -497,7 +497,11 @@ The preview tab always renders. The built-in outputs channel comes
 first: `GraphOutputsChannel.vue` over `graphOutputEntries`
 ([utils](../../utils/README.md)) lists every visible evaluated output
 under its card labels — section and node, socket label and type, branch
-paths, sampled items — and a hidden node's error alone. Installed
+paths, sampled items — and a hidden node's error alone. A graph whose
+service nodes all bind served client engines evaluates in the browser
+(SPEC §20): the evaluator hosts client-side with the engine loader as
+its service channel, so local-service graphs preview with zero server
+round-trips. Installed
 plugins declare further channels (SPEC §28): each renders its plugin
 surface read-only (`PreviewChannelMount.vue`, the
 same contract-1 mount the generic preview slots ride) over the

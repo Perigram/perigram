@@ -380,9 +380,22 @@ invariant).
   channel tabs ride (SPEC §28): `run()` evaluates the serialized graph
   with no target node and filters each node's outputs by its authored
   `previewVisible`, `schedule(active)` debounces one run while the
-  preview tab stays open. The returned `payload` ref is the session's
-  `graphEvaluation` (the canvas fault states read the per-node errors
-  from it).
+  preview tab stays open. A graph whose service nodes all bind served
+  client engines — and whose other nodes are pure value species —
+  evaluates in the browser (SPEC §20): the one evaluator
+  (`previewProcessDataflow`) hosts client-side over the projected
+  domain with the engine loader as its preview service channel; every
+  other graph keeps the server evaluation. The returned `payload` ref
+  is the session's `graphEvaluation` (the canvas fault states read the
+  per-node errors from it).
+
+- `useClientEngines` loads served client-engine bindings (SPEC §20):
+  each binding's entry module loads once per installed version and its
+  default-exported `createEngine()` factory provides
+  `dispatch(serviceId, parameters)`; `bindingForService` resolves a
+  plugin-qualified command id to its binding and `dispatchService`
+  routes the dispatch (a failed load is forgotten and recorded in
+  `errors`).
 
 - `useProcessDesignerLiveGraph` is the realtime evaluation loop: one
   semantic signature over authoring state (nodes minus presentation, edges,
