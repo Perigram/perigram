@@ -5,5 +5,9 @@
   "private": true,
   "exports": {
     ".": "./src/index.js"
+  },
+  "dependencies": {
+    "@perigram/core": "0.1.0",
+    "@perigram/cts": "0.1.0"
   }
 }

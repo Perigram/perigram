@@ -1,6 +1,6 @@
 import { resolveCatalogNodePorts } from './node-catalog.js';
 import { CONSUMER_SPECIES_KINDS, PRODUCER_ORIGIN_SPECIES_KINDS } from './node-catalog.js';
-import { operationKindOf } from '../../cts/src/index.js';
+import { operationKindOf } from '@perigram/cts';
 
 // The v4 input vocabulary of this one-shot migration: it reads persisted
 // pre-species records, so the retired spellings are local data here beside

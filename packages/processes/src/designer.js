@@ -1,10 +1,10 @@
-import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
+import { CANONICAL_ENTITY_BLOCKS } from '@perigram/core';
 import { PRODUCER_ORIGIN_SPECIES_KINDS, TYPE_BOUND_SPECIES, carriesTypePin } from './node-catalog.js';
-import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords, rowFieldId } from '../../cts/src/index.js';
+import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords, rowFieldId } from '@perigram/cts';
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
 export { operationKindOf };
-import { resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition, classMayDeclareChildren, rowRelativeFieldId } from '../../cts/src/index.js';
+import { resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition, classMayDeclareChildren, rowRelativeFieldId } from '@perigram/cts';
 import { processType } from './types.js';
 
 // The one trigger-mode derivation: the wire wins; an unwired entry with an

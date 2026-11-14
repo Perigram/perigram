@@ -1,4 +1,4 @@
-import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
+import { CANONICAL_ENTITY_BLOCKS } from '@perigram/core';
 import { PROCESS_PROTOCOL_VERSION, processTypesCompatible, formatProcessType } from './types.js';
 
 const HANDLE_PREFIXES = ['input:', 'output:', 'data:', 'control:'];

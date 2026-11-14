@@ -5,7 +5,7 @@
 // gate the canvas applies). The designer page is a presentation adapter
 // over this module. A palette item that cannot be dropped, configured,
 // and round-tripped through this seam is a defect (authoring.spec.js).
-import { operationKindOf, typeIdOf, setTypeBinding, normalizeRowRelativeGuard } from '../../cts/src/index.js';
+import { operationKindOf, typeIdOf, setTypeBinding, normalizeRowRelativeGuard } from '@perigram/cts';
 import { PROCESS_OPERATION_REGISTRY } from './operations.js';
 import {
   createProcessDesignerContract,

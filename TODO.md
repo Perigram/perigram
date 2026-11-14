@@ -24,9 +24,10 @@ from remaining proof and verification.
   registration is idempotent; cover both behaviors with tests.
 - [x] Record the verified CI baseline and distinguish existing test failures
   from regressions in SPEC §30.
-- [ ] Map all application consumers of package internals and replace
-  transitional sibling-relative imports with public package imports when
-  workspace/extraction tooling supports versioned dependencies.
+- [x] Convert package-internal cross-imports to public package names and
+  declare the `processes` → (`core`, `cts`) versioned workspace dependencies.
+- [ ] Map application consumers of package internals and replace their
+  transitional source-path imports as part of extraction preparation.
 - [ ] Complete the route/command/transition/feature authorization call graph
   and trace every feature persistence write path end-to-end.
 - [ ] Verify package/executor contracts independently, including browser/

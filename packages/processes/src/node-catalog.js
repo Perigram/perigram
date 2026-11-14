@@ -1,7 +1,7 @@
 import { mapDomainInputType, normalizeProcessSocket, processType } from './types.js';
 
 import { PROCESS_OPERATION_REGISTRY, CONVERT_UNIT_FACTORS, processOperation } from './operations.js';
-import { typeIdOf, ctsFieldToProcessType } from '../../cts/src/index.js';
+import { typeIdOf, ctsFieldToProcessType } from '@perigram/cts';
 
 const DATA = 'data';
 const CONTROL = 'control';

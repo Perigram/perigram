@@ -1,4 +1,4 @@
-import { normalizeRowRelativeFieldRefs, orientChildrenEdgesChildFirst } from '../../cts/src/index.js';
+import { normalizeRowRelativeFieldRefs, orientChildrenEdgesChildFirst } from '@perigram/cts';
 
 const CANVAS_RECORD_KEYS = {
   entity: 'producerOutputs',

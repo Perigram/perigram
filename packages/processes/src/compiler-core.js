@@ -1,5 +1,5 @@
-import { operationKindOf, durationMs } from '../../cts/src/index.js';
-import { normalizeWorkflow, resolveWorkflowStatePath } from '../../core/src/index.js';
+import { operationKindOf, durationMs } from '@perigram/cts';
+import { normalizeWorkflow, resolveWorkflowStatePath } from '@perigram/core';
 import {
   generatedScreenRoute,
   HOME_SCREEN_ROUTE,

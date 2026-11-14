@@ -26,6 +26,12 @@ describe('Framework package contracts', () => {
       expect(manifest.exports?.['.'], name).toBe('./src/index.js');
     }
 
+    const processManifest = JSON.parse(readFileSync('packages/processes/package.json', 'utf8'));
+    expect(processManifest.dependencies).toEqual({
+      '@perigram/core': '0.1.0',
+      '@perigram/cts': '0.1.0'
+    });
+
     const lockfile = JSON.parse(readFileSync('package-lock.json', 'utf8'));
     const lockPackages = Object.entries(lockfile.packages)
       .filter(([path, manifest]) => path.startsWith('packages/') && manifest.name)

@@ -31,13 +31,15 @@ layer beneath it.
 ### Dependency direction law
 
 - The application consumes packages; packages import no application code.
-- Packages compose only downward through public barrels: `processes` may import `cts`; every package may import `core`; `cts` and
-  `core` import no sibling.
-- Cross-package imports are sibling-relative (`../../cts/src/index.js`).
-  Application code reaches packages through Nuxt root aliases
-  (`~/packages/<pkg>/src/index.js`) or portable `#packages/<pkg>/src/index.js`
-  imports. These source-path imports are transitional; separate-repository
-  extraction must replace them with declared, versioned package dependencies.
+- Packages compose only downward through public barrels: `processes` depends
+  on `@perigram/cts` and `@perigram/core`; `cts`, `core`, and `plugin-sdk`
+  have no sibling dependencies.
+- Internal package code imports siblings by package name, and the `processes`
+  manifest declares exact compatible workspace versions. Application code
+  still reaches packages through Nuxt root aliases (`~/packages/<pkg>/src/index.js`)
+  or portable `#packages/<pkg>/src/index.js` imports. Those app source-path
+  imports are transitional; extraction must replace them with declared,
+  versioned package dependencies.
 - App surfaces receive the species and operation vocabulary through
   `@perigram/processes` re-exports — the single vocabulary seam.
 

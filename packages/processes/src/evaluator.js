@@ -17,7 +17,7 @@ import {
   transposeDataPacket,
   treeStats
 } from './data-tree.js';
-import { operationKindOf } from '../../cts/src/index.js';
+import { operationKindOf } from '@perigram/cts';
 import { MAKE_LIST_INPUTS } from './node-catalog.js';
 import { PROCESS_OPERATION_REGISTRY, CONVERT_UNIT_FACTORS, processOperation, runProcessOperation, stableKey } from './operations.js';
 import { isMissingField, missingFieldMarker } from './missing-field.js';

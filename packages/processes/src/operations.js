@@ -5,7 +5,7 @@
 // authoring defaults derive from this table; nothing else restates
 // operation lists. `base: 'configured'` defers the socket type to the
 // node's authored type.
-import { durationMs } from '../../cts/src/index.js';
+import { durationMs } from '@perigram/cts';
 import { isMissingField } from './missing-field.js';
 import { solveDataTrees } from './data-tree.js';
 

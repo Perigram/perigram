@@ -1818,9 +1818,11 @@ the current implementation already conforms.
   feature repository/run-store boundaries; workflow overrides use their
   repository; generic instances use the instances repository. The complete
   feature write-path audit remains open.
-- Application consumers still use transitional source-relative imports
-  between packages. The internal package graph is acyclic, but versioned
-  public-package imports and browser/Node extraction contracts remain open.
+- Process compiler modules now import `@perigram/cts` and `@perigram/core`
+  through public package exports; `packages/processes/package.json` declares
+  exact compatible versions and the lockfile records both workspace links.
+  Application consumers still use transitional source-relative imports.
+  Browser/Node extraction contracts remain open.
 ### Execution order
 
 1. **Baseline and inventory.** Capture the current test and validation
