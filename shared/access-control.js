@@ -207,3 +207,18 @@ function getByPath(source, path) {
   if (!source || !path) return undefined;
   return String(path).split('.').filter(Boolean).reduce((value, key) => value?.[key], source);
 }
+
+
+/**
+ * Resolves the permission source shared by server authorization and client
+ * field redaction. An explicitly compiled grant set (including {}) is
+ * authoritative; otherwise use the active entity membership before legacy
+ * top-level or embedded user grants.
+ */
+export function resolveEffectivePermissions(auth = {}, membership = null) {
+  return auth.effectivePermissions
+    ?? membership?.permissions
+    ?? auth.permissions
+    ?? auth.data?.permissions
+    ?? {};
+}

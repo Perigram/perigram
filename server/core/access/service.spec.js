@@ -46,6 +46,19 @@ describe('access engine', () => {
     })).toBe(false);
   });
 
+  it('uses the same membership-before-legacy permission fallback as field redaction', () => {
+    expect(hasInstanceAccess({
+      entity,
+      feature: 'queues',
+      level: 'write',
+      auth: {
+        userId: 'u-membership',
+        permissions: { queues: 'none' },
+        memberships: [{ organizationId: 'org-1', permissions: { queues: 'write' } }]
+      }
+    })).toBe(true);
+  });
+
   it('denies missing org membership or insufficient permission level', () => {
     expect(hasInstanceAccess({ entity, feature: 'queues', level: 'admin', auth })).toBe(false);
     expect(hasInstanceAccess({

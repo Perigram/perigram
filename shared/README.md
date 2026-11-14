@@ -16,7 +16,10 @@ imported through server modules that Nitro externalizes.
 ## Core Files
 - `access-control.js`: Shared permission grant evaluator for feature levels,
   UI actions, entity lineage scopes, workflow-transition scopes, and optional
-  logical grant rules.
+  logical grant rules. `resolveEffectivePermissions` defines the one source
+  precedence: compiled process grants, active entity membership grants, then
+  legacy top-level or embedded user grants; an explicit empty compiled set
+  remains authoritative.
 - `plugin-surfaces.js`: The plugin-delivered editor surface contract versions
   the platform can mount (SPEC §20). The server
   install/upgrade gates and the client loader read

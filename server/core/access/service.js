@@ -1,6 +1,6 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { actionToLevel, hasPermissionGrant } from '#shared/access-control.js';
+import { actionToLevel, hasPermissionGrant, resolveEffectivePermissions } from '#shared/access-control.js';
 import { isPublicReadEntity } from '#shared/public-entities.js';
 
 export function assertEntityAccess({ entity, typeId, feature = typeId, level = 'read', action = null, auth }) {
@@ -99,7 +99,7 @@ export function hasInstanceAccess({ entity, feature, level = 'read', action = nu
 }
 
 export function getEffectivePermissions(auth = {}, membership = null) {
-  return auth.effectivePermissions || membership?.permissions || auth.permissions || {};
+  return resolveEffectivePermissions(auth, membership);
 }
 
 function isSystemAuth(auth = {}) {

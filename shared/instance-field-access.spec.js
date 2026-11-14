@@ -170,6 +170,18 @@ describe('entity field access', () => {
     expect(redacted.data.internalNotes).toBeUndefined();
   });
 
+  it('uses membership grants before legacy top-level permissions when no process grants exist', () => {
+    const visible = redactEntityForAccess(organization, 'organization', {
+      organizationId: 'org-1',
+      permissions: { organizations: 'none' },
+      memberships: [{
+        organizationId: 'org-1',
+        permissions: { organizations: 'read' }
+      }]
+    });
+    expect(visible.data.email).toBe('ops@facade.example');
+  });
+
   it('uses active process permissions and field policies for redaction', () => {
     const redacted = redactEntityForAccess(organization, 'organization', {
       organizationId: 'org-1',
