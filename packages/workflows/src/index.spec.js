@@ -299,65 +299,6 @@ describe('recursive workflow state trees', () => {
   });
 });
 
-describe('recursive workflow state trees', () => {
-  it('normalizes to exact full paths without local child aliases or collisions', () => {
-    const region = normalizeWorkflow(nestedWorkflow).regions.main;
-    expect(region.initial).toBe('PRODUCTION');
-    expect(region.states['PRODUCTION']).toMatchObject({ path: ['PRODUCTION'] });
-    expect(region.states['PRODUCTION.cutting']).toMatchObject({ path: ['PRODUCTION', 'cutting'] });
-    expect(region.states.cutting).toMatchObject({ path: ['cutting'] });
-    expect(region.states.queued).toBeUndefined();
-    expect(region.states.cutting.path).toEqual(['cutting']);
-  });
-
-  it('enters a targeted parent as a leaf instead of auto-descending', () => {
-    const state = createWorkflowState(nestedWorkflow);
-    expect(state.primary).toBe('PRODUCTION');
-    expect(state.regions.main.path).toEqual(['PRODUCTION']);
-
-    const moved = applyWorkflowTransitionState(
-      state,
-      nestedWorkflow,
-      { region: 'main', from: 'PRODUCTION', to: 'PRODUCTION' },
-      'PRODUCTION'
-    );
-    expect(moved.primary).toBe('PRODUCTION');
-    expect(moved.active.qa).toBe('OPEN');
-  });
-
-  it('selects the most-specific active ancestor transition', () => {
-    const result = validateTransition({
-      workflow: nestedWorkflow,
-      currentState: 'PRODUCTION.cutting',
-      targetState: 'FAILED',
-      region: 'main',
-      role: 'EDITOR'
-    });
-    expect(result).toMatchObject({ ok: true, from: 'PRODUCTION.cutting', to: 'FAILED' });
-
-    const shadowed = validateTransition({
-      workflow: nestedWorkflow,
-      currentState: 'PRODUCTION.cutting',
-      targetState: 'cutting',
-      region: 'main',
-      role: 'EDITOR'
-    });
-    expect(shadowed).toMatchObject({ ok: false, reason: 'invalid_transition' });
-  });
-
-  it('preserves every untouched axis while moving one nested leaf', () => {
-    const state = createWorkflowState(nestedWorkflow, { active: { qa: 'APPROVED' } });
-    const next = applyWorkflowTransitionState(
-      state,
-      nestedWorkflow,
-      { region: 'main', from: 'PRODUCTION', to: 'PRODUCTION.cutting' },
-      'PRODUCTION.cutting'
-    );
-    expect(next.active).toEqual({ main: 'PRODUCTION.cutting', qa: 'APPROVED' });
-    expect(next.primary).toBe('PRODUCTION.cutting');
-  });
-});
-
 it('resolves a parent name to its region entry after a normalize round trip', () => {
   const compiled = JSON.parse(JSON.stringify(normalizeWorkflow(nestedWorkflow)));
   const region = normalizeWorkflow(compiled).regions.main;
