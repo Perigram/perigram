@@ -9,7 +9,7 @@
 // titles and glyphs resolve through the one resolvers
 // (`titleFor`/`iconFor`), and the legacy residual fact channel is gone.
 import { describe, expect, it } from 'vitest';
-import { createTypeRegistry, compileClientBundle, frameworkTypes, projectDomainFromView } from '@perigram/cts/index';
+import { createTypeRegistry, compileClientBundle, frameworkTypes, projectDomainFromView } from '#packages/cts';
 import { facadeFileTypes } from '../test-tools/facade-plugin.js';
 import techDrawingListing from '../workers/tech-drawing/listing.json';
 const techDrawingTypes = techDrawingListing.declarations.types;

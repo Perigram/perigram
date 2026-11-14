@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { ref } from 'vue';
-import { definitionToCanvas, compileProcessDefinition, redundantAuthoredScreens } from '@perigram/processes/index';
+import { definitionToCanvas, compileProcessDefinition, redundantAuthoredScreens } from '#packages/processes';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
 import { useProcessDesignerPersistence } from '~/composables/useProcessDesignerPersistence.js';

@@ -12,8 +12,8 @@ import {
   compileTreeDeclarations,
   createProcessNodeRecord,
   normalizeDesignerAccess
-} from '@perigram/processes/index';
-import { normalizeType } from '@perigram/cts/index';
+} from '#packages/processes';
+import { normalizeType } from '#packages/cts';
 import { mintId } from './processDesignerIdentity.js';
 
 // A definition stations a type's declaration when its draft graph carries

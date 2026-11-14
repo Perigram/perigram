@@ -3,7 +3,7 @@
 // died with the one-item-per-operation tooltip cut.
 import { describe, it, expect } from 'vitest';
 import { socketSpecLine } from '../composables/useNodeSpec.js';
-import { formatProcessType } from '@perigram/processes/index';
+import { formatProcessType } from '#packages/processes';
 
 describe('node spec tooltip', () => {
   it('socket lines carry type, access, and optionality', () => {

@@ -1,7 +1,7 @@
 // Palette label resolution: localized job names/descriptions with a
 // humanized-kind fallback. Shared by the palette filter, node cards, and
 // the sync pass's display labels so one item has one label everywhere.
-import { humanizeNodeLabel } from '@perigram/processes/index';
+import { humanizeNodeLabel } from '#packages/processes';
 
 export function createPaletteText({ t, te }) {
   function paletteLabel(item) {

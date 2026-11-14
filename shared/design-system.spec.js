@@ -22,7 +22,7 @@ import { facadeFileTypes } from '../test-tools/facade-plugin.js';
 import { CONTAINER_WIDTH_STEPS } from './ui-mapping/tables.js';
 // Declaration-owned lifecycles replace the deleted legacy workflow table:
 // one registry view projection derives entities and workflows.
-import { createTypeRegistry, frameworkTypes as ctsFrameworkTypes, projectDomainFromView } from '@perigram/cts/index';
+import { createTypeRegistry, frameworkTypes as ctsFrameworkTypes, projectDomainFromView } from '#packages/cts';
 import techDrawingListing from '../workers/tech-drawing/listing.json';
 const techDrawingTypes = techDrawingListing.declarations.types;
 const viewRegistry = createTypeRegistry({ id: 'design-system-view' });
@@ -30,7 +30,7 @@ for (const declaration of [...ctsFrameworkTypes, ...techDrawingTypes, ...facadeF
 // Machines are graph-compiled at runtime (SPEC §7: the projection carries
 // no workflows); for status-source assertions the declared state trees
 // normalize into the same machine shape the compiler emits.
-const { normalizeWorkflow } = await import('@perigram/core/index');
+const { normalizeWorkflow } = await import('#packages/core');
 const declaredWorkflows = [...ctsFrameworkTypes, ...techDrawingTypes, ...facadeFileTypes]
   .filter(declaration => declaration.states && Object.keys(declaration.states).length);
 // Declaration transitions fold into their axis region, the same fold the
@@ -45,8 +45,8 @@ const cncWorkflows = Object.fromEntries(declaredWorkflows.map(declaration => {
   ]));
   return [declaration.id, normalizeWorkflow({ regions })];
 }));
-import { frameworkTypes } from '@perigram/cts/index';
-import { normalizeType, renderPolicyFor } from '@perigram/cts/index';
+import { frameworkTypes } from '#packages/cts';
+import { normalizeType, renderPolicyFor } from '#packages/cts';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { resolveInstanceRelationRefs } from '../utils/instance-relations.js';
 import {
