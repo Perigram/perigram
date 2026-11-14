@@ -1935,6 +1935,16 @@ the current implementation already conforms.
   check. Regression coverage exercises that no-permission command case.
   These are targeted boundary fixes, not completion of the
   route/command/transition/feature call-graph audit.
+- Verification after the state-machine persistence extraction: CI run
+  `43635464304` completed with the same full-suite result — 13 failed files /
+  19 failed tests, 248 passed files / 2,692 passed tests (2,711 total).
+  `server/core/machines/service.spec.js` passed all 22 tests, including the
+  existing lifecycle/event persistence cases; SSR smoke tests passed 29/29,
+  architecture checks, framework validation, documentation validation, and
+  plugin dependency checks all passed. The Vitest failures are in the same
+  unrelated UI, app-registry, agent-bots, instances, and process-definition
+  areas already seen on earlier staging runs; do not treat this as a green
+  full-suite result or as proof of baseline causality.
 - Current staging CI runs `43621806498` and `43622023230` continue to show
   the same 13 failing Vitest files / 19 failing tests recorded as baseline
   debt. SSR smoke tests, architecture checks, framework declaration
