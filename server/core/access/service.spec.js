@@ -59,6 +59,20 @@ describe('access engine', () => {
     })).toBe(true);
   });
 
+  it('denies origin-scoped entities outside the active organization', () => {
+    expect(hasInstanceAccess({
+      entity: { origin: { organizationId: 'org-2' } },
+      feature: 'queues',
+      level: 'write',
+      auth: {
+        userId: 'u-origin',
+        organizationId: 'org-1',
+        effectivePermissions: { queues: 'admin' },
+        memberships: [{ organizationId: 'org-1', permissions: { queues: 'admin' } }]
+      }
+    })).toBe(false);
+  });
+
   it('does not let global effective grants substitute for organization membership', () => {
     expect(hasInstanceAccess({
       entity,
