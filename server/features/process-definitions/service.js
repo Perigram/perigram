@@ -45,11 +45,10 @@ import {
   getEntityFieldSchema,
   getEntityFieldSchemas
 } from './system-view.js';
-import { getEntityFieldAccessPolicy } from '~/shared/field-access-policies.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 import { resolveOrganizationId } from '~/server/utils/organization-scope.js';
-import { hasPermissionGrant, normalizePermissionGrants } from '#shared/access-control.js';
+import { hasPermissionGrant } from '#shared/access-control.js';
 import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
 import { normalizeLegacyProcessActions } from './action-migration.js';
