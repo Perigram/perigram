@@ -1874,12 +1874,15 @@ the current implementation already conforms.
 - API mutation route scan: all 103 mutation routes were checked for direct
   Mongo mutation methods and direct DB/collection acquisition; none found.
   This covers route source only, not indirect repository/helper behavior.
-- Verification caveat for the status projection extraction: CI run
-  `43636879813` exposed a missing-export mistake in the new pure module,
-  causing its six focused tests and existing machine-service tests to fail.
-  The helpers were exported in the follow-up commit; that corrective run was
-  cancelled by the subsequent access fix before completing. Do not count the
-  extraction as verified until a fresh run completes.
+- Verification after the status projection export correction and origin
+  scope fix: CI run `43637154851` passed machine service tests (22/22),
+  status projection tests (6/6), event record tests (3/3), and access tests
+  (14/14). Full Vitest completed with 12 failed files / 18 failed tests and
+  251 passed files / 2,703 passed tests (2,721 total). SSR smoke tests passed
+  29/29; package inventory, architecture, framework, docs, and plugin
+  dependency checks passed. The remaining failures are in the same unrelated
+  UI, app-registry, agent-bots, instances, and process-definition groups.
+  This is not a green full-suite result.
 - State projection decomposition: pure persistence/engine shape adapters
   now live in `server/core/machines/status-projection.js`: metadata filtering,
   legacy state-axis filtering, flat instance-state writes, primary-region
