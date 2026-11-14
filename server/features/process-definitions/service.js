@@ -36,6 +36,7 @@ import {
   processTransitionContext,
   actionStatusDisplayMetadata
 } from './status-metadata.js';
+import { createActionExecutionAuthHelpers } from './action-execution-auth.js';
 
 import { persistRun, persistEvent, markEventDispatched } from './run-store.js';
 import {
@@ -1445,143 +1446,13 @@ function applyProcessState(process, primary, userId, note) {
   process.applyStatus(createStatusState(primary), userId || 'SYSTEM', { note });
 }
 
-function assertCompiledActionAvailable(actionId, auth = {}) {
-  const available = auth.roleAssignments?.actions || [];
-  // The assignment manifest carries full action records keyed `id`; the
-  // lean exposure shape used `actionId`. Both identify the same action.
-  if (!available.some(action => (action.actionId ?? action.id) === actionId)) {
-    throw createError({ statusCode: 403, message: `Action ${actionId} is not available to the current process role` });
-  }
-}
-
-function resolveActionTypeId(action = {}) {
-  return normalizeTypeId(action.typeId || action.inputs?.find(input => input.typeId)?.typeId || '');
-}
-
-function getInstanceServiceForAction(action = {}) {
-  const typeId = resolveActionTypeId(action);
-  if (!typeId) throw createError({ statusCode: 400, message: `Action ${action.id} has no entity type` });
-  const service = getAppRegistry().getInstanceService(typeId);
-  if (!service) throw createError({ statusCode: 500, message: `Entity service missing for ${typeId}` });
-  return service;
-}
-
-function createActionExecutionAuth(auth = {}, action = {}, { relationContracts = null } = {}) {
-  const feature = resolveActionFeature(action);
-  const permissions = {
-    ...(auth.effectivePermissions || {})
-  };
-  if (feature) {
-    appendExecutionGrant(permissions, feature, {
-      level: action.access?.level || 'write',
-      actions: executionActionsForAction(action)
-    });
-  }
-  for (const grant of commandExecutionGrants(action)) {
-    appendExecutionGrant(permissions, grant.feature, {
-      level: grant.level || 'read',
-      actions: grant.actions || { view: true }
-    });
-  }
-  for (const source of constructionSourceGrants(action, relationContracts)) {
-    appendExecutionGrant(permissions, source.feature, {
-      level: source.level,
-      actions: source.actions
-    });
-  }
-  return {
-    ...auth,
-    effectivePermissions: permissions
-  };
-}
-
-function createRelationLinkExecutionAuth(auth = {}, action = {}, ownerType = '') {
-  const executionAuth = createActionExecutionAuth(auth, action);
-  const permissions = {
-    ...(executionAuth.effectivePermissions || {})
-  };
-  appendExecutionGrant(permissions, resolveInstanceFeature(ownerType), {
-    level: 'write',
-    actions: { update: true, edit: true }
-  });
-  return {
-    ...executionAuth,
-    effectivePermissions: permissions
-  };
-}
-
-function commandExecutionGrants(action = {}) {
-  if (action.actionKind !== 'runCommand' || !action.commandId) return [];
-  const command = getAppRegistry().getCommandDefinition(action.commandId);
-  // The command's own permission rows ride beside its executionGrants:
-  // the action a user authorized owns every gate its command declares.
-  return [...(command?.access?.permissions || []), ...(command?.access?.executionGrants || [])]
-    .filter(grant => grant?.feature)
-    .map(grant => ({ level: grant.level || 'read', actions: grant.actions || { view: true }, feature: grant.feature }));
-}
-
-function executionActionsForAction(action = {}) {
-  if (action.actionKind === 'runCommand') return { run: true };
-  if (action.actionKind === 'updateEntity') return { update: true, edit: true };
-  if (action.actionKind === 'archiveEntity') return { update: true, edit: true, archive: true };
-  if (action.actionKind === 'deleteEntity') return { delete: true };
-  return { create: true };
-}
-
-function appendExecutionGrant(permissions, feature, grant) {
-  if (!feature) return;
-  permissions[feature] = [
-    ...normalizePermissionGrants(permissions[feature]),
-    grant
-  ];
-}
-
-function constructionSourceGrants(action = {}, relationContracts = null) {
-  const sources = [];
-  if (action.parentTypeId) {
-    sources.push({ typeId: action.parentTypeId, level: 'read', actions: { view: true } });
-  }
-  // Declared relation targets are the action's own validated inputs: the
-  // execution auth grants their read, or the write fails against the very
-  // target check the action itself runs. At the effect boundary the
-  // contracts arrive resolved (the authored record carries no compiled
-  // mutation); compiled-action callers keep reading their own.
-  for (const contract of [...(relationContracts || []), ...(action.mutation?.relationContracts || [])]) {
-    sources.push({ typeId: contract.targetType, level: 'read', actions: { view: true } });
-  }
-  for (const field of [
-    ...(action.construction?.inputs || []),
-    ...(action.inputPolicy?.fields || []),
-    ...(action.inputs || [])
-  ]) {
-    if (field?.typeId && (field.type === 'entity' || field.kind === 'entity' || field.relationKey || field.id === 'parent')) {
-      sources.push({ typeId: field.typeId, level: field.access?.level || 'read', actions: { view: true } });
-    }
-  }
-  const seen = new Set();
-  return sources.flatMap(source => {
-    const feature = resolveInstanceFeature(source.typeId);
-    const key = `${feature}:${source.level}`;
-    if (!feature || seen.has(key)) return [];
-    seen.add(key);
-    return [{ ...source, feature }];
-  });
-}
-
-function resolveActionFeature(action = {}) {
-  return resolveInstanceFeature(resolveActionTypeId(action));
-}
-
-function resolveInstanceFeature(typeId = '') {
-  typeId = normalizeTypeId(typeId);
-  const domain = getDomain();
-  const entity = (domain?.entities || []).find(item => item.type === typeId);
-  const fieldPolicy = getEntityFieldAccessPolicy(typeId) || domain?.fieldAccess?.[typeId];
-  if (fieldPolicy?.feature) return fieldPolicy.feature;
-  if (entity?.feature) return entity.feature;
-  if (entity?.collection) return entity.collection;
-  return typeId;
-}
+const {
+  assertCompiledActionAvailable,
+  resolveActionTypeId,
+  createActionExecutionAuth,
+  createRelationLinkExecutionAuth,
+  resolveInstanceFeature
+} = createActionExecutionAuthHelpers({ getDomain });
 
 function pickMutationData(data = {}, action = {}, entities = {}) {
   const fields = action.mutation?.fields || [];
