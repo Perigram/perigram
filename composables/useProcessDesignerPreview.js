@@ -2,6 +2,7 @@ import { EFFECT_SPECIES_KINDS } from '~/packages/processes/src/index.js';
 import { operationKindOf } from '~/packages/cts/src/index.js';
 import { computed, ref } from 'vue';
 import { formatProcessType } from '~/packages/processes/src/index.js';
+import { formatPreviewItem, formatPreviewItems, formatPreviewPath } from '~/utils/processDesignerChannelOutputs.js';
 
 // Per-node preview visibility (SPEC §28): a record's authored
 // `previewVisible: false` removes its outputs from the preview
@@ -145,22 +146,6 @@ export function useProcessDesignerPreview({
     } finally {
       previewingData.value = false;
     }
-  }
-
-  function formatPreviewPath(path = []) {
-    return `{${path.join(';')}}`;
-  }
-
-  function formatPreviewItem(item) {
-    if (item && typeof item === 'object' && !Array.isArray(item) && item.missing === true) {
-      const path = Array.isArray(item.path) ? item.path.join('.') : String(item.path ?? '');
-      return `missing(${path})`;
-    }
-    return JSON.stringify(item);
-  }
-
-  function formatPreviewItems(items = []) {
-    return items.map(formatPreviewItem).join(', ');
   }
 
   // Apply focus: the first structured diagnostic with a graph anchor selects

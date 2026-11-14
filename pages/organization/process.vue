@@ -52,7 +52,7 @@
               <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
               <Tab value="definitions">{{ $t('processDesigner.definitions') }}</Tab>
               <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
-              <Tab v-if="servedPreviewChannels.length" value="preview">{{ $t('processDesigner.previewTab') }}</Tab>
+              <Tab value="preview">{{ $t('processDesigner.previewTab') }}</Tab>
             </TabList>
             <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="definitions">
@@ -509,6 +509,7 @@
               <GraphPreviewPanel
                 :channels="servedPreviewChannels"
                 :payload="channelPreviewPayload"
+                :nodes="nodes"
                 :running="channelPreviewRunning"
                 :error="channelPreviewError"
                 @refresh="runChannelPreview"

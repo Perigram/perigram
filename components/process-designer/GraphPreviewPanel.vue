@@ -12,32 +12,31 @@
       />
     </div>
     <Message v-if="error" severity="error">{{ error }}</Message>
-    <template v-if="channels.length">
-      <section
-        v-for="channel in channels"
-        :key="channel.id"
-        class="flex flex-col gap-2"
-      >
-        <span class="text-muted text-supporting">{{ channel.label }}</span>
-        <PreviewChannelMount :channel="channel" :payload="payload" />
-      </section>
-    </template>
-    <StateBlock v-else :message="$t('processDesigner.noPreviewChannels')" />
+    <section class="flex flex-col gap-2">
+      <span class="text-muted text-supporting">{{ $t('processDesigner.previewOutputsChannel') }}</span>
+      <GraphOutputsChannel :payload="payload" :nodes="nodes" />
+    </section>
+    <section v-for="channel in channels" :key="channel.id" class="flex flex-col gap-2">
+      <span class="text-muted text-supporting">{{ channel.label }}</span>
+      <PreviewChannelMount :channel="channel" :payload="payload" />
+    </section>
   </div>
 </template>
 
 <script setup>
 import Button from 'primevue/button';
 import Message from 'primevue/message';
+import GraphOutputsChannel from '~/components/process-designer/GraphOutputsChannel.vue';
 import PreviewChannelMount from '~/components/process-designer/PreviewChannelMount.vue';
-import StateBlock from '~/components/shared/StateBlock.vue';
 
-// The channel-tab strip (SPEC §28 preview tabs): one read-only channel
-// mount per served channel over the whole-graph evaluation the host
-// hands in; the refresh control re-runs that evaluation.
+// The channel-tab strip (SPEC §28 preview tabs): the built-in outputs
+// channel first, then one read-only channel mount per served channel,
+// all over the whole-graph evaluation the host hands in; the refresh
+// control re-runs that evaluation.
 defineProps({
   channels: { type: Array, default: () => [] },
   payload: { type: Object, default: null },
+  nodes: { type: Array, default: () => [] },
   running: { type: Boolean, default: false },
   error: { type: String, default: '' }
 });

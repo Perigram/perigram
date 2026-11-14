@@ -45,7 +45,7 @@
           <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
             <TabList>
               <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
-              <Tab v-if="servedPreviewChannels.length" value="preview">{{ $t('processDesigner.previewTab') }}</Tab>
+              <Tab value="preview">{{ $t('processDesigner.previewTab') }}</Tab>
             </TabList>
             <TabPanels class="min-h-0 flex-1 overflow-y-auto">
               <TabPanel value="inspector">
@@ -93,6 +93,7 @@
                 <GraphPreviewPanel
                   :channels="servedPreviewChannels"
                   :payload="channelPreview.payload.value"
+                  :nodes="nodes"
                   :running="channelPreview.running.value"
                   :error="channelPreview.error.value"
                   @refresh="channelPreview.run"
