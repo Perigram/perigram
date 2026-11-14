@@ -13,7 +13,7 @@
 // Bundle records derive their display policy exactly the way
 // `compileClientBundle()` does (`renderPolicyFor` over the authored
 // declaration).
-import { renderPolicyFor } from '#packages/cts/src/index.js';
+import { renderPolicyFor } from '#packages/cts';
 
 function mulberry32(seed) {
   let a = seed >>> 0;

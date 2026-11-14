@@ -12,7 +12,7 @@
 // Bundle records derive exactly the way `compileClientBundle()` does:
 // authored name/glyph/field labels plus the derived display policy
 // (`renderPolicyFor` over the declaration-shaped record).
-import { renderPolicyFor } from '#packages/cts/src/index.js';
+import { renderPolicyFor } from '#packages/cts';
 
 const ORGANIZATION_ID = 'org-fixture-4';
 

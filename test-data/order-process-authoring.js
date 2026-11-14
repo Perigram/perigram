@@ -5,7 +5,7 @@
 // configure + port-gated wires. The pack spec (unit, faked persistence)
 // and the live e2e both compose through this module — one composition,
 // two proofs.
-import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
+import { createDefinitionAuthoring } from '#packages/processes/authoring';
 
 export const ORDER_LINEAGE_KEY = 'facadeOrderId';
 

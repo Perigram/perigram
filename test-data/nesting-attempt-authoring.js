@@ -2,7 +2,7 @@
 // the attempt's designs, the result patched onto the attempt, and sheet
 // designs constructed from the solved layouts (fromLayout). Shared by the
 // e2e; mirrors what organizations compose over the facade vocabulary.
-import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
+import { createDefinitionAuthoring } from '#packages/processes/authoring';
 
 export function composeNestingAttemptTree(authoring) {
   authoring.declareClass({ id: 'attemptClass', typeId: 'nesting-attempt', class: 'item', name: 'Nesting attempt' });
