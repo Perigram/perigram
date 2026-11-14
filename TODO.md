@@ -1,5 +1,56 @@
 # TODO
 
+## Node editor UI rethink (SPEC §28 amendment, owner direction 2026-11-14)
+
+The canvas model follows the evolved build123d-flow UI (re-checked
+2026-11-14): cards are socket manifests with authoring in a floating
+inspector that shows live values; collapsed cards rail their sockets
+top/bottom around a centered name; chrome floats over a fullscreen
+canvas; sockets are generous targets with hover glow.
+
+- [ ] C1 Socket-manifest cards — the card body carries labeled socket
+  rows (type, connection state) alone; inline typed editors leave the
+  card; the header keeps collapse, description (tooltip affordance),
+  error (popover), and the eye; collapse docks sockets on top/bottom
+  rails around the centered name; card width is content-sized.
+- [ ] C2 Floating inspector with live values — the inspector floats
+  over the canvas: unconnected sockets author through typed controls
+  (structured values via a code dialog), connected inputs and all
+  outputs display their live evaluation from the channel payload; the
+  per-node Inspect action and the inline fallback editor law retire.
+- [ ] C3 Floating canvas chrome — the category strip (provenance
+  labels, category chips) and the tool cluster ride floating
+  translucent bars over a fullscreen canvas; the graph editor mount
+  adopts it first, the process page keeps its process plane.
+- [ ] C4 Socket presentation — generous hit targets, hover grow + glow
+  in the payload-family color, type hints on the rows.
+- [ ] C5 Node glyphs — a monochrome masked glyph per catalog entry
+  (engine op icon set + in-house dataflow glyphs) in palette rows and
+  card headers.
+- [ ] C6 Canvas status — evaluation/engine state as a floating status
+  chip over the canvas (dot + label + count), with the activity
+  surface a toggle away.
+
+### Agent Notes (2026-11-14, agent/canvas-rethink-20261114)
+
+- Study session (live app + component source: App.vue, ApiNode.vue,
+  NodeInspector.vue, DataValue.vue, ViewportStatus.vue, style.css).
+  The model moved past what G0 copied: inputs left the cards ("node
+  inputs are edited in the inspector"), collapsed cards became
+  Blender-style top/bottom socket rails around a centered title,
+  chrome became floating translucent bars (canvas-topbar with
+  provenance-grouped category strip + canvas-bottom-dock), the
+  inspector floats and shows live values (DataValue trees for
+  connected inputs and outputs), sockets grew 22×26 hit targets with
+  color-glow hover, and a viewport status bar (dot + label + visible
+  count + activity log) surfaced runtime state. Screenshots of both
+  apps' current states: /tmp/opencode/b3dflow-01-boot.png,
+  /tmp/opencode/client-engine-preview.png.
+- build123d-flow's own style.css is accreted patch eras (three
+  generations of collapsed-header rules overriding each other, dead
+  inline-input rules left after inputs moved to the inspector) — the
+  model is adopted, the file is written once clean.
+
 ## Local engines — client-side plugin execution (SPEC §20 "Client-carried", owner direction 2026-11-14)
 
 A plugin may carry its engine in the package: the engine runs in the

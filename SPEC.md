@@ -1605,6 +1605,27 @@ records, and the compiled contract stays the product. A second graph
 format, validator, or evaluator is a defect; `NOTES-typesystem-and-nodes.md`
 and `NOTES-templates.md` record decisions this law supersedes.
 
+The canvas rethinking (owner direction 2026-11-14, after re-checking
+the evolved build123d-flow UI) sharpens that model:
+
+- Cards are socket manifests: labeled socket rows with type and
+  connection state; parameter authoring lives in the inspector — typed
+  controls per socket kind, structured values through a code dialog.
+  Cards carry the collapse, description, error, and visibility
+  affordances alone.
+- The inspector floats over the canvas and shows live values: a
+  connected input displays the value arriving on its wire; an output
+  displays its preview evaluation. Authored fallbacks, socket
+  inspection, and evaluation results are one surface.
+- A collapsed card keeps every socket at a distinct position: inputs
+  on the top rail, outputs on the bottom rail, the name centered
+  between them.
+- Canvas chrome floats over a fullscreen canvas: the category strip
+  (provenance groups as labels, functional categories as chips) and
+  the tool cluster ride translucent bars.
+- Sockets are generous hit targets in their payload-family color; hover
+  grows the marker with a glow ring.
+
 Scripting is CEL expressions (CTS SPEC §15) inside authored contracts;
 arbitrary user code is quarantined in `s`-species services behind typed
 `V -> V` signatures. The palette carries no Python or JavaScript
