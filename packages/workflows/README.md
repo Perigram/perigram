@@ -25,6 +25,12 @@ validation step for workflow definitions from declared types.
 - `getWorkflowRegion(workflow, regionId)`
 - `resolveWorkflowStatePath(region, state)`
 
+The package re-exports `getRegionState` and `normalizeLifecycle` from
+[`@perigram/core`](../core/README.md). Its `getPrimaryState` adapter uses
+the same core reader with a `null` default; the canonical state readers and
+lifecycle payload normalizer live in core. Workflow-tree normalization,
+transition selection, and transition validation remain owned here.
+
 ## Workflow Shape
 
 Workflows use the v2 region contract. Regions are independent lifecycle
