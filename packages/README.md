@@ -24,4 +24,4 @@ The committed [framework.manifest.json](../framework.manifest.json) is the read-
 
 Packages stay domain-agnostic; the facade domain is the installable plugin under `workers/facade`.
 
-Nuxt, Nitro, Vite, and Vitest define `@perigram/*` aliases for tool/test contexts. Runtime app code uses Nuxt root aliases such as `~/packages/core/src/index.js`; avoid deep relative paths from server files because Nuxt dev output is executed from `.nuxt/dev`.
+Nuxt, Nitro, Vite, Vitest, and TypeScript define the same `@perigram/*` aliases for tool/test contexts. Runtime app code uses Nuxt root aliases such as `~/packages/core/src/index.js`; avoid deep relative paths from server files because Nuxt dev output is executed from `.nuxt/dev`.
