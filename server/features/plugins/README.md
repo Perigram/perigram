@@ -31,10 +31,16 @@ write transports authorize the type's records by the parent's grant
 `POST /api/plugins/catalog` (operator token) and retracting rides
 `DELETE /api/plugins/catalog/:pluginId` (the same token; refused while
 any organization still holds an install — a retracted listing would
-strand installed pins) — the
+strand installed pins; the package assets go with it) — the
 [@perigram/plugin-sdk](../../../packages/plugin-sdk/README.md) CLI
 wraps it (`perigram-plugin publish`); the listing contract is validated
 by the SDK's `parseListing`, the same parser the install gate runs.
+A client-carried package (SPEC §20) publishes its engine modules and
+runtime files beside the listing:
+`PUT /api/plugins/catalog/:pluginId/assets/**?version=<v>` (the same
+operator token, raw body, `Content-Type` stored with the asset) keys
+each asset as `pluginId/version/path` in the `plugin_assets` GridFS
+bucket.
 
 ### Installs
 
@@ -203,7 +209,11 @@ docker-internal executor host), so the modules load same-origin through
 the proxy: `GET /api/plugins/:pluginId/module/**` streams the path from
 the install's endpoint origin server-side (`fetchSurfaceModule` here;
 GET only, paths resolve strictly under the origin, `..` refused).
-Access mirrors the served type view: any member of an organization
+An install that declares the client engine serves every module path
+from the platform-stored package assets of its pinned version — the
+install carries no origin, and a path the package does not carry
+answers 404. Access mirrors the served type view: any member of an
+organization
 holding the install. Every module load revalidates against the
 executor: responses carry `private, no-cache` and an `ETag`, and an
 unchanged body answers `304` — an executor update still reaches the
@@ -275,7 +285,8 @@ the cascade refuses the whole removal).
 | Route | Access | Action |
 |---|---|---|
 | `GET /api/plugins/catalog` | authenticated | List catalog listings (a private listing only for members of its owning orgs). |
-| `GET /api/plugins/:pluginId/module/**` | member (org holding the install) | Surface module proxy: stream the module path from the install's endpoint origin (same-origin browser loading). |
+| `GET /api/plugins/:pluginId/module/**` | member (org holding the install) | Surface module proxy: stream the module path from the install's endpoint origin, or from the platform-stored package for an engine install (same-origin browser loading). |
+| `PUT /api/plugins/catalog/:pluginId/assets/**?version=` | operator token | Store one client-carried package asset (`pluginId/version/path`) for the module proxy to serve. |
 | `POST /api/plugins/catalog` | platform operator (`x-operator-token`) | Publish/upsert a listing (validated by the SDK contract). |
 | `DELETE /api/plugins/catalog/:pluginId` | platform operator (`x-operator-token`) | Retract a listing (refused while installs exist). |
 | `GET /api/organizations/:id/plugins` | member (`organizations:read`) | List installed plugins. |

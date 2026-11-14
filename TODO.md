@@ -21,9 +21,14 @@ deployment.
   engine-only installed plugin renders neither the settings nor the
   connector button on the Plugins page; every server dispatch of a
   local service refuses with the client-engine message.
-- [ ] E2 Self-contained module serving — engine modules and pinned
+- [x] E2 Self-contained module serving — engine modules and pinned
   runtime assets ship in the published package and serve same-origin
   through the module proxy with no org-configured origin.
+- [ ] WAITING — owner verification: E2 — an operator `PUT` of an engine
+  asset keys it `pluginId/version/path`; an installed engine plugin's
+  module proxy serves it same-origin to an org member (JS dependencies
+  rewritten, binaries untouched, `ETag`/304) with no connection
+  configured; a missing path answers 404; retract deletes the assets.
 - [ ] E3 Browser engine runtime — the engine loader (Web Worker), the
   Pyodide bootstrap (checksum-pinned runtime, micropip wheel install,
   IndexedDB persistence), and the dispatch contract
@@ -37,6 +42,25 @@ deployment.
   the executor-deployment shape of the 2026-11-13 bring-up.
 - [ ] E6 Shape viewport (G4) — the engine's tessellated meshes feed the
   plugin's preview channel surface.
+
+### Agent Notes (2026-11-14, agent/local-engine-e2-20261114)
+
+- E2 landed. `plugin_assets` GridFS bucket (filename
+  `pluginId/version/path`, metadata for retraction) with repository
+  store/find/read/delete over the shared
+  [files](./server/features/files/README.md) bucket helpers
+  (`findFileMetaByFilename`, `listFileMetasWhere` added there; the
+  extension map gains `.js`/`.mjs`/`.wasm`). `PUT
+  /api/plugins/catalog/:pluginId/assets/**?version=` (operator token,
+  raw body, stored content type) publishes assets after the listing
+  exists; retraction deletes them with the listing. The module proxy
+  serves an engine install's paths from the pinned version's assets —
+  JS dependency rewrite and ETag/304 preserved, binaries untouched —
+  and 404s a path the package does not carry. The operator gate is one
+  home now (`requirePlatformOperator` in server utils), shared by both
+  catalog routes.
+- Validation: plugins + files specs 77 ✓, `check-arch` ✓,
+  `docs:validate` ✓, `framework:validate` ✓.
 
 ### Agent Notes (2026-11-14, agent/local-engine-e1-20261114)
 

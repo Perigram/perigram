@@ -22,6 +22,8 @@ Parent: [server/features](../README.md).
 | `getFileStream(fileId, bucket)` | Full download stream. |
 | `getFileRangeStream(fileId, bucket, start, endInclusive)` | Range stream for media seeking; the inclusive end maps to GridFS's exclusive `end`. |
 | `findFileMeta(fileId, bucket)` | `{ filename, contentType, length, metadata }` or `null`. |
+| `findFileMetaByFilename(filename, bucket)` | Same shape plus `id`, resolved by GridFS filename; `null` when absent. |
+| `listFileMetasWhere(bucket, filter)` | Every file meta matching a GridFS filter, each `{ id, filename, contentType, length, metadata }` — retraction-style cleanup over a bucket. |
 | `getFileBuffer(fileId, bucket)` | Whole file as one `Buffer`. |
 | `deleteFile(fileId, bucket)` | Deletes; a missing file is a no-op. |
 | `contentTypeForFile({ filename, contentType, metadata })` | Resolution order: stored `contentType`, then `metadata.mimeType`, then the filename-extension map, then `application/octet-stream`. Sniffed and octet-stream values lose to the extension map so declared previews render inline. |
