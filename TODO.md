@@ -13,6 +13,17 @@ canvas; sockets are generous targets with hover glow.
   card; the header keeps collapse, description (tooltip affordance),
   error (popover), and the eye; collapse docks sockets on top/bottom
   rails around the centered name; card width is content-sized.
+  Landed 2026-11-14: the presentation half — fault popover,
+  description affordance, Blender-style top/bottom collapse rails
+  around the centered name (content width was already law). Remaining:
+  the authoring displacement — inline typed editors and inline
+  configuration leave the card for the inspector (C2's typed controls).
+- [x] C4 Socket presentation — generous hit targets, hover grow + glow
+  in the payload-family color, type hints on the rows. Landed
+  2026-11-14: the handle is a 22×26 transparent target with the
+  payload-family dot drawn by the design system
+  (`--socket-color`), growing and ringing on hover; the handle
+  primitive gains top/bottom sides for the collapse rails.
 - [ ] C2 Floating inspector with live values — the inspector floats
   over the canvas: unconnected sockets author through typed controls
   (structured values via a code dialog), connected inputs and all
@@ -22,8 +33,6 @@ canvas; sockets are generous targets with hover glow.
   labels, category chips) and the tool cluster ride floating
   translucent bars over a fullscreen canvas; the graph editor mount
   adopts it first, the process page keeps its process plane.
-- [ ] C4 Socket presentation — generous hit targets, hover grow + glow
-  in the payload-family color, type hints on the rows.
 - [ ] C5 Node glyphs — a monochrome masked glyph per catalog entry
   (engine op icon set + in-house dataflow glyphs) in palette rows and
   card headers.
