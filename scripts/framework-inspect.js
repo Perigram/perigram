@@ -39,10 +39,13 @@ import { validateTransition } from '../packages/workflows/src/index.js';
 const command =  process.argv[2] || 'help';
 const MANIFEST_PATH = 'framework.manifest.json';
 const PACKAGE_NAMES = [
+  '@perigram/cts',
   '@perigram/core',
-  '@perigram/workflows',
   '@perigram/devtools',
-  '@perigram/mcp'
+  '@perigram/mcp',
+  '@perigram/plugin-sdk',
+  '@perigram/processes',
+  '@perigram/workflows',
 ];
 const UI_COMPONENT_PATHS = {
   penTemplate: 'components/entities/PenTemplate/PenTemplateCard.vue',
