@@ -3415,6 +3415,10 @@
     "previewChannelUnavailable": "Канал предпросмотра недоступен",
     "previewNodeHide": "Скрыть из предпросмотра",
     "previewNodeShow": "Показать в предпросмотре",
+    "paletteDock": "Палитра узлов",
+    "paletteNoMatches": "Нет подходящих операций",
+    "collapseNode": "Свернуть узел",
+    "expandNode": "Развернуть узел",
     "paletteGroups": {
       "entities": "Типы",
       "values": "Значения",

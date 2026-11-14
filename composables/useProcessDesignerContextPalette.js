@@ -57,7 +57,7 @@ export function useProcessDesignerContextPalette({
   function openContextPalette(event, socket) {
     const rect = canvasFrame.value?.getBoundingClientRect?.();
     const point = clientPoint(event);
-    const x = Math.max(8, Math.min((rect?.width || 1200) - DESIGNER_DRAWER_WIDTHS.palette, point.x - (rect?.left || 0)));
+    const x = Math.max(8, Math.min((rect?.width || 1200) - DESIGNER_DRAWER_WIDTHS.contextPopover, point.x - (rect?.left || 0)));
     const y = Math.max(8, Math.min((rect?.height || 720) - 336, point.y - (rect?.top || 0)));
     contextPalette.value = {
       open: true,

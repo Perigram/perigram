@@ -1,16 +1,16 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useVueFlow } from '@vue-flow/core';
 
-// The designer side drawers' widths (px) — the placement and context-palette
-// math both offset by the same chrome, so the numbers live in one place.
-export const DESIGNER_DRAWER_WIDTHS = Object.freeze({ palette: 304, inspector: 432 });
+// The inspector rail and the context-palette popover widths (px) — the
+// node-placement center and the popover clamp share them.
+export const DESIGNER_DRAWER_WIDTHS = Object.freeze({ inspector: 432, contextPopover: 304 });
 
 // Canvas viewport and interaction: zoom/frame controls, ctrl-wheel zoom at
-// the pointer, keyboard shortcuts (select-all, delete, frame, escape), and
-// coarse-pointer pan defaults. Node placement owns the nearest-unoccupied
-// grid position around the visible viewport center between the side
-// drawers. The page supplies selection/deletion boundaries and the edge
-// decorator; the composable self-registers its listeners.
+// the pointer, keyboard shortcuts (select-all, delete, frame, collapse,
+// escape), and coarse-pointer pan defaults. Node placement owns the
+// nearest-unoccupied grid position around the visible viewport center left
+// of the inspector rail. The page supplies selection/deletion boundaries
+// and the edge decorator; the composable self-registers its listeners.
 export function useProcessDesignerCanvas({
   nodes,
   edges,
@@ -128,6 +128,19 @@ export function useProcessDesignerCanvas({
       selectedEdgeId.value = null;
       return;
     }
+    if (event.key.toLowerCase() === 'h' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      // H collapses the selected operation cards (the §28 interaction
+      // model): collapse wins while any selected card stands open.
+      const selected = nodes.value.filter(node => node.selected && node.type === 'processNode');
+      if (!selected.length) return;
+      event.preventDefault();
+      const collapse = selected.some(node => !node.data?.collapsed);
+      for (const node of selected) {
+        node.data = node.data || {};
+        node.data.collapsed = collapse;
+      }
+      return;
+    }
     if (event.key === 'Escape') clearGraphSelection();
   }
 
@@ -136,18 +149,16 @@ export function useProcessDesignerCanvas({
     return target?.isContentEditable || ['input', 'textarea', 'select'].includes(tagName);
   }
 
-  // The visible center between the palette and inspector drawers; a newly
-  // dropped node lands near it without covering an existing node or its
-  // socket hit targets.
+  // The visible center left of the inspector rail (the palette dock spans
+  // the top); a newly dropped node lands near it without covering an
+  // existing node or its socket hit targets.
   function activeViewportCenter() {
     const viewport = getViewport?.() || draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 };
     const zoom = Number(viewport.zoom) || 1;
     const rect = canvasFrame.value?.getBoundingClientRect?.();
     const width = rect?.width || 1200;
     const height = rect?.height || 720;
-    const visibleLeft = DESIGNER_DRAWER_WIDTHS.palette;
-    const visibleRight = DESIGNER_DRAWER_WIDTHS.inspector;
-    const visibleCenter = visibleLeft + Math.max(0, width - visibleLeft - visibleRight) / 2;
+    const visibleCenter = Math.max(0, width - DESIGNER_DRAWER_WIDTHS.inspector) / 2;
     return {
       x: Math.round((visibleCenter - Number(viewport.x || 0)) / zoom - 128),
       y: Math.round((height / 2 - Number(viewport.y || 0)) / zoom - 80)

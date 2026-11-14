@@ -56,7 +56,7 @@
     <div
       v-if="hasToolbarItems || $slots.toolbar"
       data-designer-toolbar
-      class="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-3"
+      class="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center px-3"
     >
       <Toolbar :aria-label="$t('designer.toolbar')" class="pointer-events-auto max-w-full overflow-x-auto p-1 gap-1">
         <template #start>

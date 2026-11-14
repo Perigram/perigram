@@ -166,29 +166,38 @@ export function useProcessDesignerNodeSync({
     ].filter(Boolean).join(' · ');
   }
 
-  function processNodeDisplayLabel(node = {}) {
-    // `record.label` is the kind sentinel (the sync pass keeps
-    // `label === kind`), not authored display data — the palette item and
-    // the node definition are the only label sources.
+  // The node's palette entry (item + its group): the one match the card's
+  // label, description, and header category all read, so a node renders
+  // one identity. Service nodes identify by their bound operator — a
+  // kind-only match would collapse every service in a section onto the
+  // first item.
+  function paletteEntryForNode(node = {}) {
     const boundType = nodeTypeId(node);
-    const items = designer.paletteGroups.flatMap(group => group.items)
-      .filter(candidate => candidate.kind === node.kind)
-      .filter(candidate => !candidate.preset?.typeId || candidate.preset.typeId === boundType);
-    // Service nodes identify by their bound operator — a kind-only match
-    // would collapse every service in a section onto the first item.
-    const item = items.find(candidate => candidate.preset?.operator && candidate.preset.operator === node.operator)
-      || items.find(candidate => candidate.preset?.select && candidate.preset.select === node.select)
-      || items[0];
-    if (item) return paletteLabel(item);
+    const candidates = designer.paletteGroups
+      .flatMap(group => group.items.map(item => ({ group, item })))
+      .filter(({ item }) => item.kind === node.kind)
+      .filter(({ item }) => !item.preset?.typeId || item.preset.typeId === boundType);
+    return candidates.find(({ item }) => item.preset?.operator && item.preset.operator === node.operator)
+      || candidates.find(({ item }) => item.preset?.select && item.preset.select === node.select)
+      || candidates[0] || null;
+  }
+
+  function processNodeDisplayLabel(node = {}) {
+    // `record.label` is the kind sentinel the sync pass keeps, so the
+    // palette item and the node definition are the only label sources.
+    const entry = paletteEntryForNode(node);
+    if (entry) return paletteLabel(entry.item);
     const definition = getProcessNodeDefinition(node.kind);
     return definition ? humanizeNodeLabel(definition.label || node.kind) : humanizeNodeLabel(node.kind || '');
   }
 
+  function processNodeGroupLabel(node = {}) {
+    return paletteEntryForNode(node)?.group?.id || '';
+  }
+
   function processNodeDescription(node = {}) {
-    const item = designer.paletteGroups.flatMap(group => group.items)
-      .find(candidate => candidate.kind === node.kind
-        && (!candidate.preset?.operator || !node.operator || candidate.preset.operator === node.operator));
-    return item ? paletteDescription(item) : '';
+    const entry = paletteEntryForNode(node);
+    return entry ? paletteDescription(entry.item) : '';
   }
 
 
@@ -250,6 +259,7 @@ export function useProcessDesignerNodeSync({
     processTypeIdOptions,
     processNodeSummary,
     processNodeDisplayLabel,
+    processNodeGroupLabel,
     processNodeDescription,
     connectedProcessInputIds,
     syncEffectTriggerMode,

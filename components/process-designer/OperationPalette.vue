@@ -50,18 +50,15 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { signalBgClass } from '~/utils/processDesignerSignals.js';
 
-// The operation palette for the process designer: searchable chips over
-// two provenance tiers — the platform's built-in categories and the
-// plugin sections (palette groups declared `source: 'pack'` by
-// packages/processes' pack-palette projection, SPEC §8 plugin-tab law).
-// Provenance is declared by the registration source and never inferred
-// from ids. Search spans every tier. Each chip's dot uses the same
-// token that stripes the canvas node the chip creates
-// (utils/processDesignerSignals.js is the one map; literal classes only —
-// dynamic strings compile to nothing). Picking emits once; buttons carry
-// no selection state, so repeat picks are plain clicks. `groups` carry
-// precomputed localized `label`s (the filter matches them) and per-item
-// `description`s for the chip tooltip.
+// The context palette's list (right-click, wire drop): searchable chips
+// over two provenance tiers — the platform's built-in categories and
+// the plugin sections (palette groups declared `source: 'pack'` by
+// packages/processes' pack-palette projection). Search spans every
+// tier. Each chip's dot uses the same token that stripes the canvas
+// node the chip creates (utils/processDesignerSignals.js is the one
+// map; literal classes only — dynamic strings compile to nothing).
+// `groups` carry precomputed localized `label`s (the filter matches
+// them) and per-item `description`s for the chip tooltip.
 const props = defineProps({
   groups: { type: Array, default: () => [] },
   placeholder: { type: String, default: '' }
