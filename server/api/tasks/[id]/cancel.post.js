@@ -1,6 +1,6 @@
 import { createError, readBody } from 'h3';
 import { cancelTaskRun } from '~/server/core/tasks/service.js';
-import { requireWorkerAccess, connectorWorkerType } from '~/server/core/tasks/worker-auth.js';
+import { requireWorkerAccess } from '~/server/core/tasks/worker-auth.js';
 
 export default defineEventHandler(async (event) => {
   const scope = await requireWorkerAccess(event);
@@ -9,8 +9,7 @@ export default defineEventHandler(async (event) => {
   if (scope.scope === 'connector') {
     throw createError({ statusCode: 403, message: 'Connector tokens cannot cancel task runs' });
   }
-  const workerType = null;
   const body = await readBody(event);
-  const run = await cancelTaskRun(event.context.params.id, body?.reason || 'Cancelled by worker API', { workerType });
+  const run = await cancelTaskRun(event.context.params.id, body?.reason || 'Cancelled by worker API');
   return { success: true, run };
 });
