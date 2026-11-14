@@ -2,27 +2,29 @@
 
 ## Architecture simplification (SPEC §30, active 2026-11-14)
 
-Execution authority: [SPEC §30](./SPEC.md). This evidence-led sequence
-replaces the unbounded all-lines-at-once audit as the active architecture
-work plan; old findings remain historical until re-verified against the
-current tree.
+Execution authority: [SPEC §30](./SPEC.md). This sequence tracks the
+four-package contract workspace and separates completed source changes
+from remaining proof and verification.
 
-- [x] Restore the plan after the staging force-push and record the verified
-  test/inventory snapshot in SPEC §30.
-- [x] Align the seven workspace package aliases across Nuxt, Vitest, SSR,
-  TypeScript, the framework inspector, and the committed manifest; add
-  parity and public-entrypoint tests.
-- [x] Add the missing `@perigram/processes` root export and remove the stale
-  `@perigram/domain-cnc` lockfile record.
-- [ ] Complete the package import/export consumer graph and verify cycles.
-- [ ] Finish the CTS/core/process contract comparison and assign one owner
-  per concept without merging distinct declaration and runtime grammars.
-- [ ] Trace lifecycle declarations through compilation, transition
-  validation, persistence, and UI projection; remove only proven duplicates.
-- [ ] Map authorization and persistence write paths to one authority each.
-- [ ] Audit runtime composition, registries, worker protocols, and adapters.
-- [ ] Execute dead-code and documentation cuts with focused tests and full
-  verification; then validate extraction boundaries from SPEC §29.
+- [x] Capture and restore the architecture plan after the staging force-push.
+- [x] Reduce the workspace from seven packages to the four §29 contract
+  packages; move inspection and MCP implementation helpers into app tooling.
+- [x] Move workflow lifecycle contracts into `@perigram/core`; keep CTS
+  declarations and process runtime socket grammar distinct.
+- [x] Centralize effective permission precedence in `shared/access-control.js`
+  and delegate server access, field redaction, and the legacy adapter.
+- [x] Update package inventories, framework inspection, docs, and the
+  retired-workflow package-reference guard.
+- [x] Record the verified CI baseline and distinguish existing test failures
+  from regressions in SPEC §30.
+- [ ] Add/finish the complete import/export consumer graph and automated
+  acyclic dependency check for the four packages.
+- [ ] Trace runtime composition, authorization call sites, and persistence
+  write paths end-to-end; document each authoritative owner.
+- [ ] Verify package/executor contracts independently, including browser/
+  Node compatibility and versioned extraction interfaces under §29.
+- [ ] Triage the 19 pre-existing Vitest failures separately and establish a
+  clean full-suite gate before declaring the repository fully green.
 
 ## Internal-address scrub of tracked files (owner direction 2026-11-14)
 

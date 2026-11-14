@@ -475,7 +475,7 @@ itself is the canonical projection in
 [packages/processes](../../../packages/processes/README.md).
 
 Entity lifecycle profiles and action nodes compile directly into
-normalized `@perigram/workflows` v2 machines. Runtime status resolution
+normalized core workflow v2 machines. Runtime status resolution
 uses the active process workflow before organization overrides and
 domain defaults, so action-only process graphs still define the statuses
 and transitions exposed by the status runtime. Authenticated runtime

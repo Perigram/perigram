@@ -18,6 +18,10 @@ Parent: [server/features](../README.md).
   organization override. A type none of these covers resolves to no
   machine, by design.
 
+Workflow normalization and transition semantics are owned by
+[`@perigram/core`](../../../packages/core/README.md); this feature owns only
+organization-scoped persistence and resolution.
+
 `resolveActiveWorkflow` is the module's whole public surface; the
 repository owns row writes. A unique partial index on
 `{ status, organizationId, typeId }` with `status = 'ACTIVE'` enforces one
@@ -34,4 +38,4 @@ active override per organization and type.
 ## Related
 
 - [server/core/machines](../../core/machines/README.md)
-- [packages/workflows](../../../packages/workflows/README.md)
+- [packages/core](../../../packages/core/README.md)

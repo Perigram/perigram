@@ -99,7 +99,7 @@ export function hasInstanceAccess({ entity, feature, level = 'read', action = nu
 }
 
 export function getEffectivePermissions(auth = {}, membership = null) {
-  return resolveEffectivePermissions(auth, membership);
+  return resolveEffectivePermissions(auth, membership) || {};
 }
 
 function isSystemAuth(auth = {}) {

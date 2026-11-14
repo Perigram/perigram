@@ -30,7 +30,7 @@ for (const declaration of [...ctsFrameworkTypes, ...techDrawingTypes, ...facadeF
 // Machines are graph-compiled at runtime (SPEC §7: the projection carries
 // no workflows); for status-source assertions the declared state trees
 // normalize into the same machine shape the compiler emits.
-const { normalizeWorkflow } = await import('../packages/workflows/src/index.js');
+const { normalizeWorkflow } = await import('../packages/core/src/index.js');
 const declaredWorkflows = [...ctsFrameworkTypes, ...techDrawingTypes, ...facadeFileTypes]
   .filter(declaration => declaration.states && Object.keys(declaration.states).length);
 // Declaration transitions fold into their axis region, the same fold the

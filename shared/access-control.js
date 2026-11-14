@@ -1,4 +1,15 @@
+import { getPrimaryState } from '#packages/core/src/index.js';
+
 export const ACCESS_LEVELS = ['none', 'read', 'write', 'admin'];
+
+/**
+ * Resolve the grant set for one authorization context.
+ * Active process grants override membership grants; membership grants override
+ * legacy user-level grants. Callers may supply their own legacy fallback.
+ */
+export function resolveEffectivePermissions(auth = {}, membership = null) {
+  return auth.effectivePermissions ?? membership?.permissions ?? auth.permissions ?? null;
+}
 
 export const ACTION_LEVELS = {
   view: 'read',
@@ -161,7 +172,7 @@ function resolveRuleFact(rule, context) {
   if (fact === 'action') return context.action;
   if (fact === 'typeId') return context.typeId;
   if (fact === 'instanceId') return context.entity?._id || context.entity?.identity?.uid;
-  if (fact === 'primaryState' || fact === 'primaryStatus' || fact === 'status.primary') return getPrimaryStatus(context.entity?.states) || getPrimaryStatus(context.entity?.status);
+  if (fact === 'primaryState' || fact === 'primaryStatus' || fact === 'status.primary') return getPrimaryState(context.entity?.states, null) || getPrimaryState(context.entity?.status, null);
   if (fact === 'transition.from') return context.transition?.from;
   if (fact === 'transition.to') return context.transition?.to;
   if (fact === 'transition.region') return context.transition?.region;
@@ -184,17 +195,8 @@ function resolveLineageFact(path, context) {
 
   if (traitPath === 'id') return lineageEntity?._id || lineageEntity?.identity?.uid || context.entity?.lineage?.[`${type}Id`];
   if (traitPath === 'type') return lineageEntity?.type || lineageEntity?.typeId || lineageEntity?.origin?.type || lineageEntity?.data?.type;
-  if (traitPath === 'status.primary') return getPrimaryStatus(lineageEntity?.states) || getPrimaryStatus(lineageEntity?.status);
+  if (traitPath === 'status.primary') return getPrimaryState(lineageEntity?.states, null) || getPrimaryState(lineageEntity?.status, null);
   return getByPath(lineageEntity, traitPath);
-}
-
-function getPrimaryStatus(status) {
-  if (typeof status === 'string') return status;
-  // Instance documents carry one flat `state` string (SPEC §3/§7); the
-  // legacy Status block resolves to its primary either way.
-  if (typeof status?.main === 'string') return status.main;
-  if (typeof status?.state === 'string') return status.state;
-  return status?.primary ?? status?.state?.primary ?? Object.values(status?.active || {}).find(Boolean);
 }
 
 function compareRuleValues(left, right) {
@@ -206,19 +208,4 @@ function compareRuleValues(left, right) {
 function getByPath(source, path) {
   if (!source || !path) return undefined;
   return String(path).split('.').filter(Boolean).reduce((value, key) => value?.[key], source);
-}
-
-
-/**
- * Resolves the permission source shared by server authorization and client
- * field redaction. An explicitly compiled grant set (including {}) is
- * authoritative; otherwise use the active entity membership before legacy
- * top-level or embedded user grants.
- */
-export function resolveEffectivePermissions(auth = {}, membership = null) {
-  return auth.effectivePermissions
-    ?? membership?.permissions
-    ?? auth.permissions
-    ?? auth.data?.permissions
-    ?? {};
 }

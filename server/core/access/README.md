@@ -69,12 +69,12 @@ the admin workbench can submit custom permission grants for a single run.
 
 When the active organization has an active process definition, auth middleware
 adds `effectivePermissions` compiled from the user's process role assignments.
-The evaluator consumes those grants before membership permissions. Both the
-server access engine and shared client field redaction use the same resolver:
-compiled process grants, active entity membership grants, then legacy
-top-level or embedded user grants. An explicit empty compiled grant set denies
-rather than falling back. Process roles compile into the same grant shape
-documented here.
+The precedence is shared with client-side field redaction through
+`resolveEffectivePermissions()` in
+[`shared/access-control.js`](../../../shared/README.md): active process grants,
+then the entity's organization membership grants, then legacy user-level grants.
+The evaluator consumes those grants before membership permissions. Process
+roles compile into the same grant shape documented here.
 Process Designer and Team preview that shape through the shared typed grant
 builder and assignment preview. Decisions use this evaluator with concrete
 entity, status, action, transition, and lineage context; screen layout never

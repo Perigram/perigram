@@ -9,11 +9,11 @@ import {
   getPrimaryState,
   getRegionState,
   getWorkflowRegion,
-  normalizeLifecycle,
+  normalizeStatusLifecycle,
   normalizeWorkflow,
   resolveWorkflowStatePath,
   validateTransition
-} from '~/packages/workflows/src/index.js';
+} from '~/packages/core/src/index.js';
 import { assertTransitionAccess, hasInstanceAccess } from '../access/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
@@ -80,7 +80,7 @@ export const stateService = {
     const actorId = (typeof actor === 'object' ? actor.userId : actor) || 'SYSTEM';
     const eventId = new ObjectId();
     const stateMetadata = mergeStatusDisplayMetadata(persistableStatusMetadata(metadata), region.states[enteredTarget]);
-    const initialLifecycle = normalizeLifecycle();
+    const initialLifecycle = normalizeStatusLifecycle();
     const status = createStatus(
       createWorkflowState(normalizedMachine, { active: { [regionId]: enteredTarget }, primary: statusPrimaryForRegion(normalizedMachine, regionId, enteredTarget) }),
       actorId,
@@ -171,8 +171,8 @@ export const stateService = {
     }
     const { entity, machine: loadedMachine, instanceDoc } = loaded;
     const primaryState = entity.states
-      ? getPrimaryState(entity.states, loadedMachine ? normalizeWorkflow(loadedMachine).initial : undefined)
-      : getPrimaryState(entity.status, undefined);
+      ? getPrimaryState(entity.states, loadedMachine ? normalizeWorkflow(loadedMachine).initial : null)
+      : getPrimaryState(entity.status, null);
     if (!loadedMachine) {
       // No machine, still process-driven: compiled process actions surface
       // without one (the graph owns the vocabulary, not a registry machine).
@@ -185,7 +185,7 @@ export const stateService = {
       return { typeId: normalizedTypeId, targetId, state: entity.states || entity.state || null, primaryState, actions };
     }
     const normalizedMachine = normalizeWorkflow(loadedMachine);
-    const lifecycle = entity.status?.lifecycle || normalizeLifecycle();
+    const lifecycle = entity.status?.lifecycle || normalizeStatusLifecycle();
     const actions = [];
 
     for (const [regionId, region] of Object.entries(normalizedMachine.regions || {})) {
@@ -328,7 +328,7 @@ async function resolveIntentTransition({
     role: auth.role,
     actorId: auth.userId,
     currentStatus: entity.status,
-    lifecycle: entity.status?.lifecycle || normalizeLifecycle(),
+    lifecycle: entity.status?.lifecycle || normalizeStatusLifecycle(),
     requireLifecyclePayload: false
   });
   if (!validation.ok) {
@@ -748,7 +748,7 @@ function resolveEventPrincipalType(actorId, auth = {}) {
 }
 
 function buildEventEvidence(metadata = {}, lifecycle = {}) {
-  const normalized = normalizeLifecycle(lifecycle);
+  const normalized = normalizeStatusLifecycle(lifecycle);
   return {
     description: metadata?.note || metadata?.description || null,
     attachments: normalized.attachments,
@@ -764,7 +764,7 @@ function normalizeTransitionContext(input = {}) {
   if (input && typeof input === 'object' && ('metadata' in input || 'lifecycle' in input)) {
     return {
       metadata: input.metadata && typeof input.metadata === 'object' ? input.metadata : {},
-      lifecycle: normalizeLifecycle(input.lifecycle),
+      lifecycle: normalizeStatusLifecycle(input.lifecycle),
       ...invocation,
       producerOutputId: input.producerOutputId || null,
       region: input.region || input.machineRegion || input.machine,
@@ -775,7 +775,7 @@ function normalizeTransitionContext(input = {}) {
   const { intent: _invokedIntent, source: _declaredSource, ...metadata } = input && typeof input === 'object' ? input : {};
   return {
     metadata,
-    lifecycle: normalizeLifecycle(),
+    lifecycle: normalizeStatusLifecycle(),
     ...invocation,
     producerOutputId: input?.producerOutputId || null,
     region: input?.region || input?.machineRegion || input?.machine,
@@ -840,7 +840,7 @@ function normalizeAuthContext(userId, userRole, metadata = {}) {
 }
 
 async function prepareStatusEvidence({ db, entity, typeId, auth, eventId, lifecycle = {}, schema = null }) {
-  const normalized = normalizeLifecycle(lifecycle);
+  const normalized = normalizeStatusLifecycle(lifecycle);
   if (!schema) return { lifecycle: normalized, entityAttachmentSet: {} };
 
   const attachments = normalizeLifecycleAttachmentRefs({
@@ -1001,13 +1001,13 @@ function snapshotEntityRef(entity = {}) {
   return {
     id: entity._id?.toString?.() || entity._id || entity.identity?.uid || '',
     label: entity.identity?.name || entity.identity?.slug || entity.identity?.uid || entity._id?.toString?.() || '',
-    status: getPrimaryState(entity.states ?? entity.status ?? entity.state)
+    status: getPrimaryState(entity.states ?? entity.status ?? entity.state, null)
   };
 }
 
 function mergeLifecycle(current = {}, next = {}) {
-  const currentLifecycle = normalizeLifecycle(current);
-  const nextLifecycle = normalizeLifecycle(next);
+  const currentLifecycle = normalizeStatusLifecycle(current);
+  const nextLifecycle = normalizeStatusLifecycle(next);
 
   return {
     actors: nextLifecycle.actors.length > 0 ? nextLifecycle.actors : currentLifecycle.actors,

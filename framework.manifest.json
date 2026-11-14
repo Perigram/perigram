@@ -660,25 +660,16 @@
   "name": "perigram-framework",
   "packages": [
     {
-      "name": "@perigram/cts"
-    },
-    {
       "name": "@perigram/core"
     },
     {
-      "name": "@perigram/devtools"
-    },
-    {
-      "name": "@perigram/mcp"
+      "name": "@perigram/cts"
     },
     {
       "name": "@perigram/plugin-sdk"
     },
     {
       "name": "@perigram/processes"
-    },
-    {
-      "name": "@perigram/workflows"
     }
   ],
   "relationships": [

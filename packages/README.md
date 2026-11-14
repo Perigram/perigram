@@ -6,10 +6,7 @@ Internal npm workspace packages: the domain-agnostic industrial workflow framewo
 
 | Package | Role |
 |---|---|
-| [`@perigram/core`](./core/README.md) | Entity blocks, explicit registries, command/task/hook/attachment contracts |
-| [`@perigram/workflows`](./workflows/README.md) | Declarative workflow registry and transition validation |
-| [`@perigram/devtools`](./devtools/README.md) | Architecture/data-model inspection helpers |
-| [`@perigram/mcp`](./mcp/README.md) | Read-only MCP tool handlers for schema/workflow/manifest inspection |
+| [`@perigram/core`](./core/README.md) | Entity blocks, status and workflow lifecycle runtime, explicit registries, command/task/hook/attachment contracts |
 | [`@perigram/processes`](./processes/README.md) | Organization process definition normalization, validation, and compilation |
 | [`@perigram/cts`](./cts/README.md) | Perigram Type System: value universe, type declarations, classes, edges, states, operators, expressions, diffing, tenancy (see its `SPEC.md`) |
 | [`@perigram/plugin-sdk`](./plugin-sdk/README.md) | Plugin authoring SDK: listing contract (with JSON schema), executor harnesses, API client, and the `perigram-plugin` CLI |
@@ -24,4 +21,4 @@ The committed [framework.manifest.json](../framework.manifest.json) is the read-
 
 Packages stay domain-agnostic; the facade domain is the installable plugin under `workers/facade`.
 
-Nuxt, Nitro, Vite, Vitest, and TypeScript define the same `@perigram/*` aliases for tool/test contexts. Runtime app code uses Nuxt root aliases such as `~/packages/core/src/index.js`; avoid deep relative paths from server files because Nuxt dev output is executed from `.nuxt/dev`.
+Application code currently reaches workspace packages through Nuxt root aliases (`~/packages/<pkg>/src/index.js`) or portable `#packages/<pkg>/src/index.js` imports. These are source-path boundaries, not independently versioned package imports; §29 extraction must replace them with declared package dependencies and public exports.

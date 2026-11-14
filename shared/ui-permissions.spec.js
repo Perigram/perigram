@@ -87,6 +87,41 @@ describe('UI Permission Matrix', () => {
             })).toBe(false);
         });
 
+        it('reads primary state through the canonical helper for flat and legacy records', () => {
+            const permissions = {
+                projects: {
+                    level: 'read',
+                    rule: { fact: 'status.primary', equals: 'ACTIVE' }
+                }
+            };
+
+            expect(hasPermissionGrant({
+                permissions,
+                feature: 'projects',
+                entity: { states: { main: 'ACTIVE' } }
+            })).toBe(true);
+
+            expect(hasPermissionGrant({
+                permissions,
+                feature: 'projects',
+                entity: {
+                    status: {
+                        state: {
+                            schemaVersion: 2,
+                            primary: 'ACTIVE',
+                            active: { main: 'ACTIVE' }
+                        }
+                    }
+                }
+            })).toBe(true);
+
+            expect(hasPermissionGrant({
+                permissions,
+                feature: 'projects',
+                entity: { states: { main: 'CLOSED' } }
+            })).toBe(false);
+        });
+
         it('enforces compiled lineage-key grant scopes', () => {
             const permissions = {
                 queues: { level: 'write', scope: { warehouseId: 'warehouse-a' } }

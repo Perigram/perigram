@@ -1,5 +1,5 @@
 import { operationKindOf, durationMs } from '../../cts/src/index.js';
-import { normalizeWorkflow, resolveWorkflowStatePath } from '../../workflows/src/index.js';
+import { normalizeWorkflow, resolveWorkflowStatePath } from '../../core/src/index.js';
 import {
   generatedScreenRoute,
   HOME_SCREEN_ROUTE,

@@ -19,7 +19,7 @@ every domain fact through the app registry and stay domain-agnostic.
 
 Parent: [server](../README.md). Consumed contracts:
 [runtime registry](../runtime/README.md), [packages/core](../../packages/core/README.md),
-[packages/workflows](../../packages/workflows/README.md).
+[packages/core](../../packages/core/README.md).
 ## Contracts owned here
 
 ### Command runtime — `commands/`
@@ -80,7 +80,7 @@ creation (`No state machine defined for entity type`).
 | Display | Workflow-state `label`/`color`/`severity`/`icon` merge into `status.metadata.display`; caller-provided fields win. |
 | Creation | `setInitialStateForOrganization` validates the target state in the active workflow, writes snapshot + history, skips transition validation; process create actions call it after the entity service creates the record. Business callers use `applyIntent(typeId, id, intent, auth, metadata)`; raw `transition(...)` serves the status API adapter and focused tests. |
 | Hooks | Handlers register via `registry.registerHookHandler`, instance-service hooks as fallback; parameter contracts belong to the declaring domain; the engine validates required and unknown parameters. |
-| Delegation | Transition validation delegates to [packages/workflows](../../packages/workflows/README.md); canonical snapshot and region shapes live there. |
+| Delegation | Transition validation delegates to [packages/core](../../packages/core/README.md); canonical snapshot and region shapes live there. |
 
 ### Effect runtime — `effects/`
 

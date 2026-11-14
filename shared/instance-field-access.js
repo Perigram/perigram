@@ -20,7 +20,7 @@ export function getActivePermissionsFromAuth(auth = {}, entity = null) {
     ? (auth.memberships || []).find(item => item.organizationId?.toString?.() === activeOrgId.toString())
     : (auth.memberships || [])[0];
 
-  return resolveEffectivePermissions(auth, membership);
+  return resolveEffectivePermissions(auth, membership) ?? auth.data?.permissions ?? {};
 }
 
 export function normalizeFieldDescriptor(field) {

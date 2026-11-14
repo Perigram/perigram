@@ -10,14 +10,7 @@ import vue from '@vitejs/plugin-vue';
 const repo = (p) => path.resolve(__dirname, p);
 const stubs = repo('./test-tools/nuxt-app-stubs.mjs');
 
-const perigramAliases = {
-  '@perigram/cts': repo('./packages/cts/src/index.js'),
-  '@perigram/core': repo('./packages/core/src/index.js'),
-  '@perigram/workflows': repo('./packages/workflows/src/index.js'),
-  '@perigram/devtools': repo('./packages/devtools/src/index.js'),
-  '@perigram/mcp': repo('./packages/mcp/src/index.js'),
-  '@perigram/plugin-sdk': repo('./packages/plugin-sdk/src/index.js'),
-  '@perigram/processes': repo('./packages/processes/src/index.js'),
+const portableAliases = {
   '#shared': repo('./shared'),
   '#packages': repo('./packages'),
   '#utils': repo('./utils')
@@ -34,7 +27,7 @@ export default defineConfig({
       '@': repo('./'),
       '#app': stubs,
       '#imports': stubs,
-      ...perigramAliases
+      ...portableAliases
     }
   }
 });

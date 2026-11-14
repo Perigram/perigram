@@ -16,10 +16,12 @@ imported through server modules that Nitro externalizes.
 ## Core Files
 - `access-control.js`: Shared permission grant evaluator for feature levels,
   UI actions, entity lineage scopes, workflow-transition scopes, and optional
-  logical grant rules. `resolveEffectivePermissions` defines the one source
-  precedence: compiled process grants, active entity membership grants, then
-  legacy top-level or embedded user grants; an explicit empty compiled set
-  remains authoritative.
+  logical grant rules. `resolveEffectivePermissions()` centralizes active
+  process → organization membership → legacy user grant precedence for server
+  checks and client-side field redaction.
+  Primary-status facts use the canonical `getPrimaryState()` reader from
+  [`@perigram/core`](../packages/core/README.md); access evaluation does not
+  maintain a parallel status projection.
 - `plugin-surfaces.js`: The plugin-delivered editor surface contract versions
   the platform can mount (SPEC §20). The server
   install/upgrade gates and the client loader read

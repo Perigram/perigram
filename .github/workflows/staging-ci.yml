@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - staging
+      - agent/architecture-simplification-20261114
   workflow_dispatch:
 
 permissions:
@@ -15,12 +16,12 @@ concurrency:
 
 jobs:
   verify:
-    if: github.ref == 'refs/heads/staging'
+    if: github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/agent/architecture-simplification-20261114'
     runs-on: self-hosted
     timeout-minutes: 90
 
     steps:
-      - name: Check out staging
+      - name: Check out source branch
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -33,6 +34,14 @@ jobs:
       - name: Install dependencies
         id: dependencies
         run: npm ci --no-audit --no-fund
+
+      - name: Reject retired workflow package references
+        if: ${{ always() && steps.dependencies.outcome == 'success' }}
+        run: |
+          if git grep -nE 'packages/(workflows|devtools|mcp)/src|@perigram/(workflows|devtools|mcp)' -- '*.js' '*.mjs' '*.ts' '*.vue' '*.md' '*.json' ':!**/TODO.md' ':!**/TODO.md_archive'; then
+            echo "Retired workflow package references remain."
+            exit 1
+          fi
 
       - name: Run complete Vitest suite
         if: ${{ always() && steps.dependencies.outcome == 'success' }}

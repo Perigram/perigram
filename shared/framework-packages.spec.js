@@ -3,51 +3,36 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 describe('Framework package contracts', () => {
-  it('keeps package exports, aliases, and manifest inventory in sync', () => {
-    const packageNames = readdirSync('packages', { withFileTypes: true })
+  it('keeps only the four contract packages named in SPEC §29', () => {
+    const packageDirs = readdirSync('packages', { withFileTypes: true })
       .filter(entry => entry.isDirectory())
-      .map(entry => JSON.parse(readFileSync(`packages/${entry.name}/package.json`, 'utf8')).name)
+      .map(entry => entry.name)
       .sort();
+    expect(packageDirs).toEqual(['core', 'cts', 'plugin-sdk', 'processes']);
 
-    const aliasNames = file => {
-      const source = readFileSync(file, 'utf8');
-      const block = source.match(/const perigramAliases = \{([\s\S]*?)\}\s*;?/);
-      expect(block, file).not.toBeNull();
-      return [...block[1].matchAll(/['"](@perigram\/[^'"]+)['"]\s*:/g)]
-        .map(match => match[1])
-        .sort();
-    };
+    const packageNames = packageDirs.map(name =>
+      JSON.parse(readFileSync(`packages/${name}/package.json`, 'utf8')).name
+    ).sort();
+    expect(packageNames).toEqual([
+      '@perigram/core',
+      '@perigram/cts',
+      '@perigram/plugin-sdk',
+      '@perigram/processes'
+    ]);
 
-    for (const file of ['nuxt.config.js', 'vitest.config.js', 'vitest.ssr.config.js']) {
-      expect(aliasNames(file), file).toEqual(packageNames);
+    for (const name of packageDirs) {
+      const manifest = JSON.parse(readFileSync(`packages/${name}/package.json`, 'utf8'));
+      expect(manifest.exports?.['.'], name).toBe('./src/index.js');
     }
 
-    const tsconfig = JSON.parse(readFileSync('tsconfig.json', 'utf8'));
-    expect(Object.keys(tsconfig.compilerOptions.paths).filter(name => name.startsWith('@perigram/')).sort())
+    const frameworkManifest = JSON.parse(readFileSync('framework.manifest.json', 'utf8'));
+    expect(frameworkManifest.packages.map(item => item.name).sort()).toEqual(packageNames);
+
+    const inspector = readFileSync('scripts/framework-inspect.js', 'utf8');
+    const declared = inspector.match(/const PACKAGE_NAMES = \[([\s\S]*?)\];/);
+    expect(declared).not.toBeNull();
+    expect([...declared[1].matchAll(/'(@perigram\/[^']+)'/g)].map(match => match[1]).sort())
       .toEqual(packageNames);
-
-    const manifest = JSON.parse(readFileSync('framework.manifest.json', 'utf8'));
-    expect(manifest.packages.map(item => item.name).sort()).toEqual(packageNames);
-
-    const inspect = readFileSync('scripts/framework-inspect.js', 'utf8');
-    const packageList = inspect.match(/const PACKAGE_NAMES = \[([\s\S]*?)\];/);
-    expect(packageList).not.toBeNull();
-    expect([...packageList[1].matchAll(/'(@perigram\/[^']+)'/g)].map(match => match[1]).sort())
-      .toEqual(packageNames);
-  });
-
-  it('resolves every workspace package through its public entrypoint', async () => {
-    const modules = await Promise.all([
-      import('@perigram/cts'),
-      import('@perigram/core'),
-      import('@perigram/devtools'),
-      import('@perigram/mcp'),
-      import('@perigram/plugin-sdk'),
-      import('@perigram/processes'),
-      import('@perigram/workflows')
-    ]);
-    expect(modules).toHaveLength(7);
-    expect(modules.every(module => module && typeof module === 'object')).toBe(true);
   });
 
   it('registers entity definitions in @perigram/core', async () => {
@@ -180,10 +165,10 @@ describe('Framework package contracts', () => {
     expect(isolated.getHookHandler('isolatedHook')).toBeTruthy();
   });
 
-  it('validates workflow transitions in @perigram/workflows', async () => {
-    const { defineWorkflow, getWorkflow, validateTransition } = await import('../packages/workflows/src/index.js');
+  it('validates workflow transitions in @perigram/core', async () => {
+    const { normalizeWorkflow, validateTransition } = await import('../packages/core/src/index.js');
 
-    const workflow = defineWorkflow('test_entity', {
+    const workflow = normalizeWorkflow({
       initial: 'DRAFT',
       states: { DRAFT: { canUpdateMeta: true }, ACTIVE: {}, CLOSED: { isTerminal: true } },
       transitions: [
@@ -192,7 +177,6 @@ describe('Framework package contracts', () => {
       ]
     });
 
-    expect(getWorkflow('test_entity')).toEqual(workflow);
     expect(validateTransition({ workflow, currentState: 'DRAFT', targetState: 'ACTIVE', role: 'VIEWER' }).ok).toBe(true);
     expect(validateTransition({ workflow, currentState: 'DRAFT', targetState: 'CLOSED', role: 'VIEWER' }).reason).toBe('invalid_transition');
     expect(validateTransition({ workflow, currentState: 'ACTIVE', targetState: 'CLOSED', role: 'VIEWER' }).ok).toBe(true);
@@ -209,8 +193,8 @@ describe('Framework package contracts', () => {
     const { createTypeRegistry, frameworkTypes, projectDomainFromView } = await import('../packages/cts/src/index.js');
     const techDrawingListing = (await import('../workers/tech-drawing/listing.json', { with: { type: 'json' } })).default;
     const techDrawingTypes = techDrawingListing.declarations.types;
-    const { createReadOnlyToolHandlers } = await import('../packages/mcp/src/index.js');
-    const { createFrameworkManifest, summarizeRoutes, summarizeSummaries, validateUiPrimitives } = await import('../packages/devtools/src/index.js');
+    const { createReadOnlyToolHandlers } = await import('../scripts/mcp-handlers.js');
+    const { createFrameworkManifest, summarizeRoutes, summarizeSummaries, validateUiPrimitives } = await import('../scripts/framework-inspect-lib.js');
 
     // The registry view is the domain catalog (one source): entities and
     // workflows project from the mounted declarations.

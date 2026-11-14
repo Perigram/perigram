@@ -1262,7 +1262,6 @@ decisions recorded here first.
 | `packages/cts` | CTS declaration language, type registry, projections |
 | `packages/processes` | process compiler, designer authoring contract |
 | `packages/core` | shared domain kernel |
-| `packages/workflows` | workflow state-machine runtime |
 | `packages/plugin-sdk` | plugin listing contract, authoring SDK, CLI |
 | `packages/devtools`, `packages/mcp` | framework inspection, MCP tooling |
 | `server/runtime` | pack mounts, instance-service resolver |
@@ -1762,8 +1761,8 @@ implementation and delivery mechanisms, not product domains.
 |---|---|---|
 | Type language and declarations | `packages/cts` | Types, fields, references, relations, containment, state declarations, operators, expressions, validation, and evolution. |
 | Entity block DTOs and generic definition helpers | `packages/core` | Retain only concepts distinct from CTS; consolidate overlap rather than maintaining competing model vocabularies. |
-| Process authoring and compilation | `packages/processes` | Consumes CTS declarations. Its richer socket/dataflow grammar is a separate runtime wire algebra, explicitly adapted to CTS field types; it does not own stored type declarations. |
-| Workflow lifecycle contracts | CTS declarations plus the one lifecycle runtime contract | Resolve overlap among CTS state semantics, `packages/workflows`, and runtime state helpers; do not preserve duplicate state models. |
+| Process authoring and compilation | `packages/processes` | Consumes CTS declarations; does not define a second type system. |
+| Workflow lifecycle contracts | CTS declarations plus `packages/core` | CTS owns the authored state vocabulary; core owns workflow normalization, region transitions, and lifecycle payload validation. The server machine service owns persistence, access checks, event writes, and hook dispatch. |
 | Persistence and execution | Application runtime and feature owners | Runtime composes services; feature modules own their data and write paths. |
 | Authorization | One access authority | Routes, commands, transitions, and features delegate to the same policy implementation. |
 | Transport | API routes and deployed adapters | Transport adapts requests; it does not own business rules. |
@@ -1773,74 +1772,51 @@ implementation and delivery mechanisms, not product domains.
 This table states intended ownership for the audit. It is not evidence that
 the current implementation already conforms.
 
-### Verified baseline and inventory findings (2026-11-14)
+### Verified implementation findings (2026-11-14)
 
-This is a dated evidence snapshot, not a claim that the full suite is clean
-or that the pre-simplification baseline has been captured.
-
-- The workspace contains seven package directories: `core`, `cts`, `devtools`,
-  `mcp`, `plugin-sdk`, `processes`, and `workflows`. The lockfile also
-  contained an extraneous `@perigram/domain-cnc` workspace record with no
-  corresponding package directory; that stale record has been removed.
-- `@perigram/processes` had no `exports` map while the other workspace
-  packages exposed their root barrel. Its root export is now declared.
-- Nuxt, Vitest, SSR Vitest, TypeScript, the framework-inspection package
-  inventory, and `framework.manifest.json` previously disagreed about which
-  packages existed. They now list the same seven package names. A
-  package-contract test checks this parity and resolves each public
-  workspace entrypoint.
-- A full-suite run at `c1fe85f` (Actions run `43609867626`) reported
-  243/256 test files and 2,661/2,680 tests passing. SSR (9 files / 29 tests),
-  architecture, framework declarations, documentation, and plugin dependency
-  checks passed. The 19 remaining test failures across 13 files have not yet
-  been compared with the pre-simplification head, so they must not be called
-  baseline failures.
-- The preceding run at `3d106a0` had 47 failing tests, including a concrete
-  `normalizeLifecycle is not defined` regression in the workflow module. The
-  cause was a re-export alias used as though it created a local binding. The
-  module now binds the imported core normalizer locally; the subsequent
-  full-suite run no longer reports workflow or machine-service lifecycle
-  failures.
-- The package parity and public-entrypoint contract tests pass at commit
-  `3730c38` (Actions run `43610514413`). `npm ci` also passed after removing
-  the stale lockfile workspace record. That run reported 245/256 test files
-  and 2,665/2,682 tests passing; SSR passed 9/9 files and 29/29 tests, and
-  architecture, framework, docs, and plugin checks passed. The remaining 17
-  test failures are in 11 files and are still unclassified against the
-  pre-simplification head.
-- The model-contract comparison does not justify merging core, CTS, and
-  process types. Core's canonical entity blocks and DTOs describe the stored
-  entity envelope; CTS describes declared types and row fields; the process
-  grammar describes runtime sockets/dataflow (including runtime-only bases
-  such as `taskRef`, `error`, and `void`). `packages/cts/src/process-grammar.js`
-  is the explicit adapter between CTS field descriptors and process socket
-  types. CTS SPEC explicitly states that the runtime grammar is richer and
-  does not replace the declaration value grammar. Keep these contracts
-  distinct; consolidate only duplicate helpers within a layer.
-- Source inspection confirms the intended downward package edges in the
-  inspected implementation: `processes` consumes CTS and workflow contracts
-  and the core entity-block contract; `workflows` consumes core's shared
-  status/lifecycle helpers. No reverse dependency was found in the CTS/core
-  public entrypoints inspected. A complete all-module import scan remains
-  part of the inventory, so this is not yet a complete dependency-cycle proof.
-- The current lifecycle ownership is more specific than the earlier broad
-  overlap hypothesis: `packages/core` owns persisted status normalization,
-  primary/region readers, and lifecycle-payload normalization;
-  `packages/workflows` owns workflow-tree normalization, transition
-  selection, and transition validation while re-exporting the shared core
-  readers; `packages/cts` owns the separate flat state-declaration vocabulary
-  and policy. These are related layers, not automatically duplicate
-  implementations. Further consolidation requires tracing callers and
-  contracts before moving code.
+- The pre-simplification workspace had seven packages. The resulting
+  contract workspace is the four packages required by §29: `cts`, `core`,
+  `plugin-sdk`, and `processes`. Framework inspection moved to `scripts/`,
+  MCP handlers moved to the application transport layer, and workflow
+  contracts moved into `core`; the three redundant package manifests and
+  package directories are retired.
+- `packages/core/src/status.js` is the owner of persisted status
+  normalization, primary/region readers, and lifecycle-payload
+  normalization. `packages/core/src/workflows.js` owns workflow-tree
+  normalization, region state creation, transition application, and
+  lifecycle/transition validation. `server/core/machines/service.js`
+  remains the application boundary for persistence, authorization, event
+  writes, and hook dispatch.
+- CTS continues to own the authored type/state declaration language.
+  Process socket/dataflow types remain a distinct runtime grammar with an
+  explicit CTS adapter; they are not a competing stored type system.
+- `shared/access-control.js` owns grant evaluation and active-permission
+  precedence. The server access engine, field redaction, and legacy
+  system-resource adapter delegate to that shared resolver. This
+  consolidates effective-grant selection; the complete route/command/
+  feature call graph still requires a separate audit.
+- The branch CI run `43609523983` passed dependency installation, the
+  retired-workflow-reference guard, SSR smoke tests (9/9), architecture
+  checks, framework declaration validation, documentation validation,
+  and plugin dependency checks. Vitest reported 13 failing files and 19
+  failing tests. The same 13 files / 19 tests failed in post-lifecycle-fix
+  staging run `43609867626`; the branch has two additional passing tests.
+  These failures are recorded as pre-existing baseline failures, not as
+  evidence that this refactor is complete or that the full suite is green.
+- Runtime composition and persistence write ownership have not yet been
+  proven end-to-end. Those remain open verification work, as do complete
+  package import-cycle and extraction-compatibility checks.
 ### Execution order
 
 1. **Baseline and inventory.** Capture the current test and validation
    baseline. Map package exports and imports, dependency cycles, aliases,
    duplicate definitions, authorization paths, persistence ownership and
    write paths, runtime registries, worker protocols, and documentation
-   contracts. Classify generated and vendored code separately from
-   maintained application code. Record verified facts separately from
-   suspected duplication.
+   contracts. Reconcile the workspace package map with §29's four-package
+   extraction target; `devtools` and `mcp` are moved to application tooling,
+   not extracted as additional contract packages. Classify generated and
+   vendored code separately from maintained application code. Record
+   verified facts separately from suspected duplication.
 2. **Consolidate model contracts.** Compare CTS and core DTOs, registries,
    validators, state helpers, and definitions. Identify one owner for each
    concept. Write migration steps and tests before removing or moving
@@ -1859,9 +1835,12 @@ or that the pre-simplification baseline has been captured.
    are covered by tests.
 5. **Simplify implementation and documentation.** Remove dead code,
    unused packages, duplicate configuration, stale inventories, and
-   obsolete documentation. Keep generated and vendored assets out of
-   application-level complexity counts. Update each owning README and its
-   parent inventory with every boundary change.
+   obsolete documentation. Move framework inspection helpers from
+   `packages/devtools` to `scripts/` and MCP handlers from `packages/mcp`
+   to the application transport layer, leaving the four contract packages
+   named in §29. Keep generated and vendored assets out of application-level
+   complexity counts. Update each owning README and its parent inventory
+   with every boundary change.
 6. **Verify extraction boundaries.** Test package and executor contracts
    independently, verify browser/Node compatibility where required, and
    establish versioned interfaces before moving units into separate

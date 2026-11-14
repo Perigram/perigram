@@ -1,6 +1,6 @@
 # CODE: Server Utilities — Auth & Permissions API
 
-Utility functions for authentication and multi-tenant permission enforcement. Used in all API routes and services.
+Request-facing authentication and permission adapters. The authorization decision lives in [the access engine](../core/access/README.md); these utilities expose HTTP auth, lineage-filter, and compatibility wrappers to routes.
 
 Parent: [server](../README.md).
 
@@ -56,7 +56,7 @@ const user = requireAuth(event);
 ```
 
 ### `hasLineagePermission(user, lineage, typeId, level, options?)` → `boolean`
-Checks if user has the required access level for an entity based on its `lineage.organizationId`.
+Delegates to the centralized access engine for the entity's `lineage.organizationId` and active organization.
 
 ```js
 // typeId: 'projects' | 'queues' | 'sheets' | 'material-piles' | ...
@@ -105,8 +105,8 @@ Argon2 password hashing.
 JWT signing/verification (15min expiry). Tokens carry only `userId` — permissions fetched fresh from DB on each request.
 
 ### `hasPermission(user, entity, requiredLevel)` → `boolean`
-Checks explicit `user.permissions[entity]`. Different from lineage-based — use
-for non-entity system resources.
+Checks non-entity system resources. It uses the same shared active-grant
+precedence as the access engine, without entity membership or lineage checks.
 
 ---
 
