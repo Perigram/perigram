@@ -68,12 +68,7 @@ function fieldChangesFromPatch(patch = {}, current = {}) {
 // document is read only when some state carries a facet.
 async function assertStateEditableFields(typeId, organizationId, collection, id, fieldIds) {
   if (!fieldIds.length || !organizationId) return;
-  let workflow = null;
-  try {
-    workflow = await resolveActiveWorkflow({ typeId, organizationId });
-  } catch {
-    return;
-  }
+  const workflow = await resolveActiveWorkflow({ typeId, organizationId });
   const states = workflow?.states || {};
   if (!Object.values(states).some(state => state?.fieldPolicy)) return;
   const doc = await repository.findInstance(collection, id, typeId);
