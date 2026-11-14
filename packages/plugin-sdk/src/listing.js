@@ -6,7 +6,7 @@
 //
 // A listing carries beside its types:
 // - `services` — SPEC §8 V-grammar signatures bound to external executors
-//   (endpoint/claim mode);
+//   (endpoint/claim mode) or to the plugin's client engine (local mode);
 // - `editors` — file-type editor bindings (the same records packs declare);
 // - `constructions` — construction modes of the plugin's own types bound to
 //   plugin services: `{ '<typeId>': { '<mode>': '<service ref>' } }`;
@@ -22,6 +22,9 @@
 // - `previews` — preview bindings `[{ type, surface }]`: the plugin's
 //   types whose preview slots mount the bound preview surface (one per
 //   type, the surface must be kind `preview`);
+// - `engine` — the plugin's client engine (SPEC §20 client-carried):
+//   `{ module }`, a root-relative entry module the package serves; a
+//   service of `mode: 'local'` executes in the browser through it;
 // - `requires` — pack or plugin ids the plugin's types resolve against:
 //   a requirement is satisfied by a mounted pack or an installed plugin
 //   (owner decision 2026-10-17 — plugin-on-plugin requires);
@@ -75,6 +78,13 @@ export function parseListing(listing = {}) {
   const previews = (declarations.previews || []).filter(Boolean);
   const previewChannels = (declarations.previewChannels || []).filter(Boolean);
   const dependencies = (declarations.dependencies || []).filter(Boolean);
+  const engine = declarations.engine || null;
+  if (engine !== null && (!engine?.module || typeof engine.module !== 'string')) {
+    throw listingError(`engine needs a module path string (got ${JSON.stringify(engine?.module)})`);
+  }
+  if (engine !== null && !MODULE_PATH.test(engine.module)) {
+    throw listingError(`engine module must be a root-relative .js/.mjs path the package serves (got ${JSON.stringify(engine.module)})`);
+  }
   const requires = Array.isArray(listing.requires) ? listing.requires.map(String) : [];
   const pluginId = String(listing.pluginId || '');
   const visibility = listing.visibility === 'private' ? 'private' : 'public';
@@ -127,8 +137,11 @@ export function parseListing(listing = {}) {
     if (!service.signature?.input || !service.signature?.output) {
       throw listingError(`service ${service.id} needs a signature with input and output`);
     }
-    if (service.mode && !['endpoint', 'claim'].includes(service.mode)) {
-      throw listingError(`service ${service.id} mode must be 'endpoint' or 'claim'`);
+    if (service.mode && !['endpoint', 'claim', 'local'].includes(service.mode)) {
+      throw listingError(`service ${service.id} mode must be 'endpoint', 'claim', or 'local'`);
+    }
+    if (service.mode === 'local' && !engine) {
+      throw listingError(`service ${service.id} runs in the client engine — the listing must declare one`);
     }
     if (service.group !== undefined && !/^[a-z0-9][a-z0-9-]*$/.test(String(service.group))) {
       throw listingError(`service ${service.id} group must be a palette-section slug (got ${JSON.stringify(service.group)})`);
@@ -138,7 +151,7 @@ export function parseListing(listing = {}) {
         throw listingError(`service ${service.id} cache must be 'deterministic' (got ${JSON.stringify(service.cache)})`);
       }
       if (service.mode !== 'endpoint') {
-        throw listingError(`service ${service.id} cache is endpoint-only — a claim-mode run parks on the queue and replays through its own task record`);
+        throw listingError(`service ${service.id} cache is endpoint-only — ${service.mode || 'claim'} runs replay through their own boundary`);
       }
     }
     for (const descriptor of [service.signature?.input, service.signature?.output]) {
@@ -385,7 +398,7 @@ export function parseListing(listing = {}) {
     }
   }
 
-  return { pluginId, types, services, editors, constructions, starterConstructs, exports: exportsList, surfaces, previews, previewChannels, dependencies, requires, visibility, organizations };
+  return { pluginId, types, services, editors, constructions, starterConstructs, exports: exportsList, surfaces, previews, previewChannels, dependencies, engine, requires, visibility, organizations };
 }
 
 // The normalized catalog document the publish API stores and installs
@@ -412,7 +425,8 @@ export function normalizeListing(listing = {}) {
       surfaces: layer.surfaces,
       previews: layer.previews,
       previewChannels: layer.previewChannels,
-      dependencies: layer.dependencies
+      dependencies: layer.dependencies,
+      ...(layer.engine ? { engine: layer.engine } : {})
     }
   };
 }

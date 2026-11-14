@@ -41,7 +41,7 @@
                     @click="openUpgrade(data)"
                   />
                   <Button
-                    v-if="data.services.length"
+                    v-if="hasRemoteServices(data)"
                     icon="pi pi-key"
                     :aria-label="$t('plugins.connector')"
                     severity="secondary"
@@ -421,6 +421,10 @@ async function confirmInstall() {
 
 function hasEndpointServices(item) {
   return (item.services || []).some(service => service.mode === 'endpoint');
+}
+
+function hasRemoteServices(item) {
+  return (item.services || []).some(service => service.mode !== 'local');
 }
 
 async function openSettings(item) {

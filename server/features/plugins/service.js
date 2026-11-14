@@ -111,7 +111,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
     throw createError({ statusCode: 409, message: 'Plugin already installed' });
   }
   const layer = parseListingOr400(listing);
-  const { types, services, editors, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, requires } = layer;
+  const { types, services, editors, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, engine, requires } = layer;
   assertInstallableDependencies(dependencies);
   // Surface modules target a mount-contract major; an unsupported one
   // refuses at the gate — never a runtime half-mount (SPEC §Plugin
@@ -172,7 +172,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
     pluginId: String(listing.pluginId),
     name: listing.name || listing.pluginId,
     version: listing.version || '1',
-    declarations: { types, editors, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, previews: layer.previews, previewChannels: layer.previewChannels },
+    declarations: { types, editors, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, previews: layer.previews, previewChannels: layer.previewChannels, ...(engine ? { engine } : {}) },
     services,
     requires,
     endpoints: configuredEndpoints,
@@ -337,7 +337,9 @@ function mintConnectorToken() {
 // protocol) ---
 
 export function serviceModeOf(service = {}) {
-  return service.mode === 'endpoint' ? 'endpoint' : 'claim';
+  if (service.mode === 'endpoint') return 'endpoint';
+  if (service.mode === 'local') return 'local';
+  return 'claim';
 }
 
 // Declared runtime dependencies (owner decision 2026-10-17): the license
@@ -467,7 +469,7 @@ function configuredEndpointsFor(services = [], endpoints = {}) {
       throw createError({ statusCode: 400, message: `Unknown service ${serviceId}` });
     }
     if (serviceModeOf(service) !== 'endpoint') {
-      throw createError({ statusCode: 400, message: `Service ${serviceId} executes through the worker claim protocol — no endpoint applies` });
+      throw createError({ statusCode: 400, message: `Service ${serviceId} is ${serviceModeOf(service)} mode — no endpoint applies` });
     }
     if (url) {
       const parsed = String(url);
@@ -723,6 +725,10 @@ export async function executeConnectorService(command, { parameters, auth = {} }
   const serviceId = command.id.match(PLUGIN_COMMAND_PATTERN)[2];
   const service = (install.services || []).find(item => item.id === serviceId);
 
+  if (serviceModeOf(service) === 'local') {
+    throw createError({ statusCode: 400, message: `Service ${serviceId} runs in the client engine — server execution does not apply` });
+  }
+
   // Endpoint mode: call the configured executor URL directly (the
   // nesting-worker shape — self-hosted or cloud-hosted); the JSON body is
   // the service input value and the JSON response is the service output.
@@ -758,7 +764,7 @@ export async function invokeEndpointValueService(commandId, parameters, auth = {
   const serviceId = commandId.match(PLUGIN_COMMAND_PATTERN)[2];
   const service = (install.services || []).find(item => item.id === serviceId);
   if (serviceModeOf(service) !== 'endpoint') {
-    throw createError({ statusCode: 400, message: `Service ${serviceId} executes through the worker claim protocol — preview evaluates endpoint services only` });
+    throw createError({ statusCode: 400, message: `Service ${serviceId} is ${serviceModeOf(service)} mode — server preview evaluates endpoint services only` });
   }
   if (service?.cache === 'deterministic') {
     // The cache keys the raw parameters: a blob field's handle names

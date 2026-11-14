@@ -213,6 +213,23 @@ describe('plugin installs', () => {
     repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
   });
 
+  it('snapshots the client engine beside local-mode services (SPEC §20)', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: {
+        ...coatingListing.declarations,
+        engine: { module: '/engine/index.mjs' },
+        services: [{ id: 'spin', label: 'Spin', mode: 'local', signature: { input: { base: 'json' }, output: { base: 'json' } } }]
+      }
+    });
+    await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
+      declarations: expect.objectContaining({ engine: { module: '/engine/index.mjs' } }),
+      services: [expect.objectContaining({ id: 'spin', mode: 'local' })]
+    }));
+    repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
+  });
+
   it('installs with pre-wired endpoints for endpoint-mode services only', async () => {
     repository.findCatalogByPluginId.mockResolvedValue({
       ...coatingListing,
@@ -236,7 +253,7 @@ describe('plugin installs', () => {
       organizationId: ORG,
       pluginId: 'coatings',
       endpoints: { poll: 'http://127.0.0.1:8787/poll' }
-    })).rejects.toThrow(/executes through the worker claim protocol/);
+    })).rejects.toThrow(/no endpoint applies/);
     await expect(installFromCatalog({
       organizationId: ORG,
       pluginId: 'coatings',
@@ -985,7 +1002,26 @@ describe('endpoint-mode services', () => {
         : null
     ));
     await expect(invokeEndpointValueService('plugin.coatings.poll', {}, AUTH))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('claim protocol') });
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('claim mode') });
+  });
+
+  it('refuses every server dispatch of a client-engine service', async () => {
+    const localInstall = {
+      ...coatingInstall,
+      services: [{ id: 'spin', label: 'Spin', mode: 'local', signature: { input: { base: 'json' }, output: { base: 'json' } } }],
+      declarations: { ...coatingInstall.declarations, engine: { module: '/engine/index.mjs' } }
+    };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? localInstall : null
+    ));
+    await expect(executeConnectorService({ id: 'plugin.coatings.spin' }, { parameters: {}, auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('client engine') });
+    await expect(invokeEndpointValueService('plugin.coatings.spin', {}, AUTH))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('local mode') });
+    await expect(updateSettings({ organizationId: ORG, pluginId: 'coatings', endpoints: { spin: 'https://example.org/service' }, auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('no endpoint applies') });
+    const settings = await settingsFor({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(settings.services.every(service => service.mode === 'local')).toBe(true);
   });
 
   it('404s a preview dispatch of an uninstalled service', async () => {

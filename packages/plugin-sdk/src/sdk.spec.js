@@ -111,8 +111,9 @@ describe('parseListing', () => {
   it('keeps the JSON schema in lockstep with the validated fields', () => {
     const declarations = schema.properties.declarations.properties;
     expect(Object.keys(declarations)).toEqual([
-      'types', 'services', 'editors', 'surfaces', 'previews', 'previewChannels', 'constructions', 'starterConstructs', 'exports', 'dependencies'
+      'types', 'services', 'editors', 'engine', 'surfaces', 'previews', 'previewChannels', 'constructions', 'starterConstructs', 'exports', 'dependencies'
     ]);
+    expect(declarations.engine.properties.module.pattern).toBe('^/[a-z0-9/_-]+\\.m?js$');
     expect(schema.properties.requires.items.pattern).toBe('^[a-z0-9-]+$');
     expect(schema.properties.visibility.enum).toEqual(['public', 'private']);
   });
@@ -278,6 +279,29 @@ describe('parseListing', () => {
       { id: '3d', surface: 'viewport-preview', label: 'a' },
       { id: '3d', surface: 'viewport-preview', label: 'b' }
     ])).toThrow(/duplicate preview channel id/);
+  });
+
+  it('validates client-engine declarations (SPEC §20 client-carried)', () => {
+    const localService = { id: 'spin', mode: 'local', signature: { input: { base: 'json' }, output: { base: 'json' } } };
+    const withEngine = (engine, service = localService) => parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        ...(engine !== undefined ? { engine } : {}),
+        services: [service]
+      }
+    });
+    expect(withEngine({ module: '/engine/index.mjs' }).engine).toEqual({ module: '/engine/index.mjs' });
+    expect(() => withEngine(undefined)).toThrow(/must declare one/);
+    expect(() => withEngine({ module: 'engine/index.mjs' })).toThrow(/root-relative/);
+    expect(() => withEngine({ module: '/engine/index.mjs' }, { ...localService, cache: 'deterministic' }))
+      .toThrow(/cache is endpoint-only/);
+    expect(() => withEngine(null, { ...localService, mode: 'browser' })).toThrow(/'endpoint', 'claim', or 'local'/);
+    expect(parseListing(fullListing).engine).toBe(null);
+    expect(normalizeListing({
+      ...fullListing,
+      declarations: { ...fullListing.declarations, engine: { module: '/engine/index.mjs' }, services: [localService] }
+    }).declarations.engine).toEqual({ module: '/engine/index.mjs' });
   });
 
   it('validates the deterministic cache declaration (SPEC §28): endpoint-only, exact value', () => {
