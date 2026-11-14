@@ -946,7 +946,7 @@ describe('current process-definition service contract', () => {
     });
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === 'machine'
-        ? { processUpdate }
+        ? { processGetById: async () => machine, processUpdate }
         : type === 'organization' ? organizationService : null
     });
     const restoreMachineRegistry = mockMachineRegistry();
@@ -997,7 +997,7 @@ describe('current process-definition service contract', () => {
     });
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === 'machine'
-        ? { processUpdate }
+        ? { processGetById: async () => machine, processUpdate }
         : type === 'organization' ? organizationService : null
     });
     stateService.transitionWithResult.mockImplementation(async ({ targetState }) => {
@@ -1299,7 +1299,7 @@ describe('current process-definition service contract', () => {
     const processUpdate = vi.fn(async (id, patch) => ({ ...machine, data: { ...machine.data, ...patch } }));
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === 'machine'
-        ? { processUpdate }
+        ? { processGetById: async () => machine, processUpdate }
         : type === 'organization' ? organizationService : null
     });
     stateService.transitionWithResult.mockRejectedValueOnce(
@@ -1367,7 +1367,7 @@ describe('current process-definition service contract', () => {
     });
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === 'machine'
-        ? { processUpdate }
+        ? { processGetById: async () => machine, processUpdate }
         : type === 'organization' ? organizationService : null
     });
     const data = {
@@ -1574,7 +1574,7 @@ describe('current process-definition service contract', () => {
     const processDelete = vi.fn().mockResolvedValue({ success: true });
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === 'queue'
-        ? { processCapabilities: { archive: true, delete: true }, processDelete }
+        ? { processCapabilities: { archive: true, delete: true }, processGetById: async () => ({ _id: 'queue-1', lineage: { organizationId: 'org-acceptance' } }), processDelete }
         : organizationService
     });
     stateService.transitionWithResult.mockResolvedValue({ entity: { _id: 'queue-1', states: { main: 'ARCHIVED' } } });
@@ -1591,7 +1591,7 @@ describe('current process-definition service contract', () => {
       record: { kind: 'cts.remove', typeId: 'queue' },
       inputs: { entity: { type: 'queue', id: 'queue-1' } }
     }, adminAuth())).resolves.toEqual({ success: true });
-    expect(processDelete).toHaveBeenCalledWith('queue-1', adminAuth());
+    expect(processDelete).toHaveBeenCalledWith('queue-1', expect.objectContaining({ organizationId: 'org-acceptance', effectivePermissions: expect.any(Object) }));
   });
 
   it('denies archive and hard delete when runtime capabilities do not allow them', async () => {
@@ -1617,7 +1617,7 @@ describe('current process-definition service contract', () => {
     const processUpdate = vi.fn(async (id, patch) => ({ _id: id, ...patch }));
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === 'sheet'
-        ? { processGetById: vi.fn(), processUpdate, processCapabilities: { processUpdate: true } }
+        ? { processGetById: async () => ({ _id: 'sheet-1', lineage: { organizationId: 'org-acceptance' } }), processUpdate, processCapabilities: { processUpdate: true } }
         : organizationService
     });
 

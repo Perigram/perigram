@@ -1853,6 +1853,16 @@ function effectEntityTarget(value, typeId) {
   return null;
 }
 
+async function loadProcessEffectEntity(service, typeId, target, auth) {
+  if (!service?.processGetById) {
+    throw createError({ statusCode: 500, message: `Entity service cannot authorize process writes for ${typeId}` });
+  }
+  const result = await service.processGetById(target.id, auth);
+  const entity = result?.toJSON ? result.toJSON() : result;
+  if (!entity) throw createError({ statusCode: 404, message: `${typeId} ${target.id} not found` });
+  return entity;
+}
+
 export async function performDurableEffect({ kind, record, inputs }, auth, processData = {}, domain = getDomain()) {
   // Species records execute their own kinds here: the durable branches are
   // keyed on the species while the record keeps its discriminator and
@@ -1983,6 +1993,15 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   const target = effectEntityTarget(inputs.entity, typeId);
   if (!target?.id) throw new Error(`${kind} requires an entity reference`);
   if (operation === 'cts.mutate') {
+    const executionAuth = createActionExecutionAuth(auth, { ...record, actionKind: 'updateEntity' }, { relationContracts });
+    const entity = await loadProcessEffectEntity(service, typeId, target, executionAuth);
+    assertEntityAccess({
+      entity,
+      typeId,
+      feature: resolveInstanceFeature(typeId),
+      level: 'write',
+      auth: executionAuth
+    });
     // Field schemas resolve against the projected view first — org/pack
     // types live there; legacy types not in the view keep the legacy
     // tables until their surfaces are deleted.
@@ -2001,12 +2020,12 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       const patch = wirePatchFromChanges(persistedChanges);
       const relationValues = declaredRelationValues(inputs.relations, relationContracts);
       if (Object.keys(relationValues).length) patch.relations = { ...(patch.relations || {}), ...relationValues };
-      const normalizedPatch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, auth);
+      const normalizedPatch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, executionAuth);
       const result = await stateService.transitionWithResult({
         typeId,
         targetId: target.id,
         targetState: typeof statusChange.value === 'string' ? statusChange.value : statusChange.value?.id,
-        auth,
+        auth: executionAuth,
         context: effectTransitionContext(record, inputs),
         patch: Object.keys(normalizedPatch).length ? normalizedPatch : null
       });
@@ -2015,9 +2034,9 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     const patch = wirePatchFromChanges(persistedChanges);
     const relationValues = declaredRelationValues(inputs.relations, relationContracts);
     if (Object.keys(relationValues).length) patch.relations = { ...(patch.relations || {}), ...relationValues };
-    const normalizedPatch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, auth);
+    const normalizedPatch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, executionAuth);
     if (!service.processUpdate) throw new Error(`Entity service cannot update ${typeId}`);
-    return await service.processUpdate(target.id, normalizedPatch, auth);
+    return await service.processUpdate(target.id, normalizedPatch, executionAuth);
   }
   if (operation === 'cts.transition' && record.archiveIntent) {
     const result = await stateService.transitionWithResult({
@@ -2058,8 +2077,17 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   }
   if (operation === 'cts.remove') {
     if (!service.processDelete) throw new Error(`Entity service cannot delete ${typeId}`);
-    const deleted = await service.processDelete(target.id, auth);
-    await publishActionEntityEvent(auth, typeId, { _id: target.id }, 'deleted', 'process-delete');
+    const executionAuth = createActionExecutionAuth(auth, { ...record, actionKind: 'deleteEntity' });
+    const entity = await loadProcessEffectEntity(service, typeId, target, executionAuth);
+    assertEntityAccess({
+      entity,
+      typeId,
+      feature: resolveInstanceFeature(typeId),
+      level: 'write',
+      auth: executionAuth
+    });
+    const deleted = await service.processDelete(target.id, executionAuth);
+    await publishActionEntityEvent(executionAuth, typeId, { _id: target.id }, 'deleted', 'process-delete');
     return deleted;
   }
   throw new Error(`Unsupported process effect ${kind}`);
