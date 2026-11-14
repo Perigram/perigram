@@ -214,6 +214,14 @@ describe('access engine', () => {
       entity: { lineage: { organizationId: 'org-1' } },
       auth: { ...scopedAuth, organizationId: null, memberships: [] }
     })).toThrow(/organization scope/);
+
+    // Role IDs are organization-scoped. A role assignment without an
+    // organization-bearing target must never authorize a transition.
+    expect(() => assertTransitionAccess({
+      transition,
+      entity: { _id: 'unscoped-entity' },
+      auth: scopedAuth
+    })).toThrow(/organization scope required/);
   });
 
   it('supports transition-scoped grants', () => {
