@@ -142,6 +142,21 @@ describe('task run transitions', () => {
     expect(failActionFromTask).toHaveBeenCalledTimes(1);
   });
 
+  it('prevents a connector worker from cancelling another connector queue run', async () => {
+    definitions.set('compute', taskDefinition());
+    const run = await service.enqueueTask('compute', {}, {}, { workerType: 'plugin.alpha@org-1' });
+
+    await expect(service.cancelTaskRun(run._id, 'foreign cancel', {
+      workerType: 'plugin.beta@org-2'
+    })).rejects.toMatchObject({ statusCode: 403 });
+    expect((await repository.findById(run._id)).status).toBe('QUEUED');
+
+    const cancelled = await service.cancelTaskRun(run._id, 'own queue cancel', {
+      workerType: 'plugin.alpha@org-1'
+    });
+    expect(cancelled.status).toBe('CANCELLED');
+  });
+
   it('retries only from the failed or retry-wait statuses', async () => {
     definitions.set('compute', taskDefinition());
     await service.enqueueTask('compute');
