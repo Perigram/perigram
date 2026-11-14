@@ -1813,8 +1813,8 @@ the current implementation already conforms.
   Both contracts have focused tests. The generic app registry is the sole
   composition point described in `server/runtime/README.md`.
 - Persistence has distinct, explicit owners rather than one universal
-  repository: machine status snapshots and `status_events` are written at
-  `server/core/machines/service.js`; process definitions and runs use their
+  repository: machine status snapshots and `status_events` are written through
+  `server/core/machines/repository.js`; process definitions and runs use their
   feature repository/run-store boundaries; workflow overrides use their
   repository; generic instances use the instances repository. The complete
   feature write-path audit remains open.
@@ -1857,11 +1857,11 @@ the current implementation already conforms.
   The scan covers the API route layer only, not all server entry points or
   indirect calls hidden behind imported helpers. This is evidence of a service
   layer delegation convention,
-  not proof that every persistence write is
-  centralized: repositories, core services (including task/run stores),
-  upload/storage adapters, background workers, and the remaining API routes
-  still require a separate write-owner inventory. No code change was warranted
-  by this scan.
+  not proof that every persistence write is centralized: repositories, core
+  services (including task/run stores), upload/storage adapters, and background
+  workers still require a complete write-owner inventory. API routes have no
+  direct writes in this scan, but their indirect persistence owners have not
+  all been traced. No code change was warranted by this scan.
 - Authorization call-graph audit finding: `hasInstanceAccess()` previously
   enforced tenant scope from top-level `organizationId` and legacy
   `lineage.organizationId`, while the shared
@@ -1871,9 +1871,6 @@ the current implementation already conforms.
   the tenant comparison. Fixed by aligning the scope projection and added a
   regression test with a foreign-origin entity and otherwise-admin grants.
   Public catalogue read bypass remains intentionally evaluated first.
-- API mutation route scan: all 103 mutation routes were checked for direct
-  Mongo mutation methods and direct DB/collection acquisition; none found.
-  This covers route source only, not indirect repository/helper behavior.
 - Verification after the status projection export correction and origin
   scope fix: CI run `43637154851` passed machine service tests (22/22),
   status projection tests (6/6), event record tests (3/3), and access tests
