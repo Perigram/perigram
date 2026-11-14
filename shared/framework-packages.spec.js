@@ -49,6 +49,17 @@ describe('Framework package contracts', () => {
       .toEqual(packageNames);
   });
 
+  it('resolves each contract package through its public export map', async () => {
+    const modules = await Promise.all([
+      import('@perigram/cts'),
+      import('@perigram/core'),
+      import('@perigram/plugin-sdk'),
+      import('@perigram/processes')
+    ]);
+    expect(modules).toHaveLength(4);
+    expect(modules.every(module => module && typeof module === 'object')).toBe(true);
+  });
+
   it('keeps the four-package dependency graph acyclic and one-way', () => {
     const packageDirs = ['cts', 'core', 'plugin-sdk', 'processes'];
     const graph = Object.fromEntries(packageDirs.map(name => [name, new Set()]));
