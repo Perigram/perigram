@@ -406,7 +406,7 @@ async function lineageWithDerivedChain(draft = {}, organizationId = null) {
     const parentId = String(parentRef);
     const parent = await repository.findInstanceAnywhere(parentId, null);
     if (!parent) continue;
-    if (parent.organizationId && organizationId && String(parent.organizationId) !== String(organizationId)) {
+    if (parent.organizationId && String(parent.organizationId) !== String(organizationId ?? '')) {
       throw createError({ statusCode: 400, message: `Lineage parent ${parentId} belongs to another organization` });
     }
     Object.assign(chain, parent.lineage || {});
@@ -455,12 +455,13 @@ function instanceService(typeId) {
     const provenance = provenanceFromWire(draft);
     const now = new Date().toISOString();
     const state = typeof draft.state === 'string' && draft.state ? draft.state : null;
-    const lineage = await lineageWithDerivedChain(draft, organizationId);
+    const effectiveOrganizationId = organizationId ?? draft.organizationId ?? null;
+    const lineage = await lineageWithDerivedChain(draft, effectiveOrganizationId);
     const doc = {
       _id: new ObjectId(),
       type: typeId,
       typeVersion: declaration.version || 1,
-      organizationId: organizationId ?? draft.organizationId ?? null,
+      organizationId: effectiveOrganizationId,
       name: draft.name ?? null,
       fields: { ...(draft.fields || {}) },
       state,
