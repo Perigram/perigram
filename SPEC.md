@@ -1824,9 +1824,12 @@ the current implementation already conforms.
   The latest application-consumer inventory records 175 public package
   imports (processes 67, CTS 81, core 14, plugin SDK 13), with zero
   relative-source-path or legacy root-alias imports. The inventory now fails
-  CI if either form reappears. Public export maps cover the consumed
-  submodules, and the root manifest declares all four workspace packages at
-  exact `0.1.0` versions. The manifests remain `private: true`, so this is
+  CI if either form reappears. The obsolete catch-all `#packages/*` source
+  alias has been removed from the root import map, leaving only explicit
+  named package aliases so consumers cannot bypass package export maps via
+  arbitrary source paths. Public export maps cover the consumed submodules,
+  and the root manifest declares all four workspace packages at exact
+  `0.1.0` versions. The manifests remain `private: true`, so this is
   a verified workspace boundary, not yet an independently publishable
   extraction. Browser/Node compatibility and versioned external interfaces
   remain open.
