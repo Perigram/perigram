@@ -1630,9 +1630,11 @@ channel, addressable as tabs: each tab names its channel (3D viewport,
 document preview, resolved table). A channel is plugin-declared — a
 plugin whose palette section feeds a channel binds the channel and
 serves its preview surface through the plugin surface contract — or
-built-in (the compiled app preview). Preview surfaces are read-only
-projections of preview-mode evaluation; they author nothing and execute
-no effect species.
+built-in: the outputs channel (owner direction 2026-11-14) renders
+every visible evaluated output of the preview evaluation, labeled by its
+node and socket, and the compiled app preview. Preview surfaces are
+read-only projections of preview-mode evaluation; they author nothing
+and execute no effect species.
 
 ## 29. Divide and conquer (owner direction 2026-11-12, sequenced after §28)
 

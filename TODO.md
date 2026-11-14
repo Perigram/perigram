@@ -72,6 +72,34 @@ pure compute).
 - [ ] G5 Procedural persistence — effects/constructs that write computed
   values into file instances (STEP shape → `b3d-part`, rendered PDF →
   the documents file types); value services stay pure compute.
+- [x] Built-in outputs channel (owner direction 2026-11-14: graphs must
+  show what they produce) — the preview tab always renders, carrying the
+  platform channel that lists every visible evaluated output (node and
+  socket labels, branch paths, sampled items) beside the served plugin
+  channels.
+- [ ] WAITING — owner verification: built-in outputs channel — the
+  preview tab opens on any graph (no plugin channels installed), every
+  visible node's outputs render under their card labels, the eye removes
+  a node's outputs from the channel while keeping its error, and a
+  plugin channel (documents `report`) sections beside it.
+
+### Agent Notes (2026-11-14, agent/outputs-channel-20261114)
+
+- The built-in outputs channel landed. `GraphPreviewPanel.vue` renders
+  the platform channel first (`GraphOutputsChannel.vue`) beside the
+  served plugin channels; both hosts (the process page and the graph
+  editor surface) render the preview tab unconditionally and pass the
+  live canvas nodes. `utils/processDesignerChannelOutputs.js` is the one
+  preview-display home: the branch/value formatters
+  (`useProcessDesignerPreview` re-exports them unchanged) and the pure
+  `graphOutputEntries` derivation over the whole-graph channel payload —
+  labels from the enriched node data (`groupLabel`, `kindLabel`, port
+  specs). Locale keys en+ru (`previewOutputsChannel`,
+  `noPreviewOutputs`; `noPreviewChannels` removed with its empty state).
+- SPEC §28 "Preview tabs" amended with the outputs channel.
+- Validation: utils + composables + localization 121 ✓, SSR smoke 29 ✓,
+  framework-packages + design-system 39 ✓, `check-arch` ✓, `docs:validate`
+  ✓, `framework:validate` ✓.
 
 ### Agent Notes (2026-11-14, agent/graph-editor-20261114)
 

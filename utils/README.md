@@ -33,6 +33,11 @@ Parent: [root README](../README.md).
 - `processDesignerCommandPorts.js`: Pure projection of a domain command
   contract into the handle-shaped port rows the runCommand inspector panel
   renders; consumes no designer state.
+- `processDesignerChannelOutputs.js`: Pure preview-output display: the
+  branch/value formatters every output surface shares and the built-in
+  outputs channel's `graphOutputEntries` derivation over a whole-graph
+  channel payload (SPEC §28); the channel strip lives in
+  [components/process-designer](../components/process-designer/README.md).
 - `processDesignerDefinitionRecords.js`: Pure factories for the
   definition-plane service and socket records (Roles tab surfaces); the
   process-node record factories stay with the designer node-sync family.

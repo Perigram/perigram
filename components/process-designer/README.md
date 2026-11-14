@@ -493,9 +493,13 @@ normalizer and validator.
 
 ### Preview (channel tabs)
 
-Installed plugins may declare preview channels (SPEC §28): one designer
-tab per channel, mounted when any channel is served. Each channel
-renders its plugin surface read-only (`PreviewChannelMount.vue`, the
+The preview tab always renders. The built-in outputs channel comes
+first: `GraphOutputsChannel.vue` over `graphOutputEntries`
+([utils](../../utils/README.md)) lists every visible evaluated output
+under its card labels — section and node, socket label and type, branch
+paths, sampled items — and a hidden node's error alone. Installed
+plugins declare further channels (SPEC §28): each renders its plugin
+surface read-only (`PreviewChannelMount.vue`, the
 same contract-1 mount the generic preview slots ride) over the
 whole-graph preview evaluation — the evaluation runs when the tab opens
 and re-runs on authoring changes while it stays open (one debounced
@@ -503,9 +507,9 @@ seam), with no target node, so every data node evaluates, no effect
 species executes, and an endpoint value service evaluates through its
 connector dispatch (a claim-mode service answers the node error);
 the serialized
-result (`{ nodes: { [id]: { outputs, error? } } }`) is the channel's
+result (`{ nodes: { [id]: { outputs, error? } } }`) is every channel's
 payload, and each node's `error` folds into the canvas fault states
-beside the validation diagnostics. A channel that cannot mount
+beside the validation diagnostics. A plugin channel that cannot mount
 (unconfigured executor, refused contract) renders its unavailable state
 beside the other tabs.
 
@@ -597,10 +601,11 @@ nodes, which show no inspection action.
 
 ## Structure
 
-14 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `CtsTypeNode.vue`),
+15 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `CtsTypeNode.vue`),
 the shared canvas presentation (`GraphCanvas.vue`), the graph-document
 editor mount (`GraphEditorSurface.vue`), the inspector body
 (`GraphInspector.vue`) and channel-tab strip (`GraphPreviewPanel.vue`),
+the built-in outputs channel (`GraphOutputsChannel.vue`),
 the palette dock (`PaletteDock.vue`), the context palette list
 (`OperationPalette.vue`), lanes (`LaneBands.vue`), the loop edge
 (`SelfLoopEdge.vue`), preview channels (`PreviewChannelMount.vue`),
