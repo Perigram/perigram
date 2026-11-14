@@ -1860,6 +1860,17 @@ the current implementation already conforms.
   upload/storage adapters, background workers, and the remaining API routes
   still require a separate write-owner inventory. No code change was warranted
   by this scan.
+- Core persistence ownership scan: `commands/repository.js` owns writes to
+  `command_runs`, and `tasks/repository.js` owns writes to `task_runs`;
+  their corresponding command/task services contain no direct Mongo mutation
+  calls. Two deliberate exceptions surfaced: `idempotency/service.js`
+  inserts idempotency records directly, and `machines/service.js` performs
+  status-event inserts plus entity status updates in its workflow transition
+  paths. The latter is a substantial service/repository boundary candidate
+  (1,221-line state-machine service with eight direct mutation sites); it
+  needs a behavior-preserving extraction with transaction and event-order
+  tests, not a mechanical move. The core scan is limited to the listed
+  `server/core` modules and does not yet cover all server workers/adapters.
 - Process-definition service decomposition: status projection helpers now
   live in `status-metadata.js`; action execution authorization derivation
   lives in `action-execution-auth.js` with domain, policy, and command-definition
