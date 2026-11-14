@@ -1,5 +1,32 @@
 # TODO
 
+## Internal-address scrub of tracked files (owner direction 2026-11-14)
+
+Target law: [deploy/SPEC.md](./deploy/SPEC.md). The GitHub public
+mirror ([Perigram/perigram](https://github.com/Perigram/perigram),
+branch `staging`) already ships the sanitized snapshot; the canonical
+tree still carries the addresses until the pipeline consumes secrets.
+
+- [ ] Owner creates the Forgejo repository secrets (`NUXT_MONGODB_URI`,
+  npm proxy endpoints, service base URLs) in the Forgejo UI.
+- [ ] `.forgejo/workflows/deploy.yml` reads those values from secrets.
+- [ ] Dockerfiles (root, nesting, plugin-executor, seed) take proxy
+  and registry endpoints as runner-supplied build arguments.
+- [ ] Concrete endpoint values move from deploy/README.md,
+  k8s/README.md, server/features/livekit/README.md, docs/ops, and
+  TODO.md_archive to an external infra runbook outside the repo;
+  READMEs link it.
+- [ ] Re-export the sanitized snapshot to the GitHub mirror after the
+  canonical scrub lands on `staging`.
+
+### Agent Notes
+
+- 2026-11-14 — Mirror pushed: github.com/Perigram/perigram, public
+  (private creation is blocked by the GitHub trade-controls
+  restriction on the account), single orphan commit `c04933a2e` from
+  `staging` at `3231aeb8b`; 14 internal literals mapped to
+  documentation placeholders across 13 files; git history excluded.
+
 ## Node editor UI rethink (SPEC §28 amendment, owner direction 2026-11-14)
 
 The canvas model follows the evolved build123d-flow UI (re-checked
