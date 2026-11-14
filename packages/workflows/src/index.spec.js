@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyWorkflowTransitionState, createWorkflowState, getPrimaryState, getRegionState, normalizeWorkflow, resolveWorkflowStatePath, validateLifecyclePayload, validateTransition } from './index.js';
+import {
+  getPrimaryState as getCorePrimaryState,
+  getRegionState as getCoreRegionState,
+  normalizeStatusLifecycle
+} from '../../core/src/index.js';
+import {
+  applyWorkflowTransitionState,
+  createWorkflowState,
+  getPrimaryState,
+  getRegionState,
+  normalizeLifecycle,
+  normalizeWorkflow,
+  resolveWorkflowStatePath,
+  validateLifecyclePayload,
+  validateTransition
+} from './index.js';
 
 const workflow = {
   schemaVersion: 2,
@@ -37,6 +52,19 @@ const workflow = {
     }
   }
 };
+
+describe('shared lifecycle helpers', () => {
+  it('reuses core region reads and lifecycle normalization', () => {
+    expect(getRegionState).toBe(getCoreRegionState);
+    expect(normalizeLifecycle).toBe(normalizeStatusLifecycle);
+  });
+
+  it('uses the core primary-state reader with the workflow null fallback', () => {
+    const state = { active: { main: 'READY' } };
+    expect(getPrimaryState(state)).toBe(getCorePrimaryState(state, null));
+    expect(getPrimaryState(null)).toBeNull();
+  });
+});
 
 describe('workflow transition validation', () => {
   it('accepts declared transitions without app role policy', () => {
