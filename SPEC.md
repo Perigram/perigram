@@ -1845,6 +1845,21 @@ the current implementation already conforms.
   orchestrates lifecycle and execution but contains no direct Mongo write
   calls. This verifies the process-definition feature boundary only; it does
   not close the cross-feature persistence write-path audit.
+- Cross-feature persistence service-layer audit (scoped): inspected all 27
+  feature `service.js` modules present in the staging tree (plus the feature
+  template) for direct Mongo mutation calls (`insertOne/Many`, `updateOne/Many`,
+  `replaceOne`, `deleteOne/Many`, `findOneAndUpdate/Delete`, and
+  `bulkWrite`). None were found in those service modules; the services appear
+  to delegate persistence through their repository or domain-specific
+  persistence helpers. Also spot-checked eight mutation routes spanning auth
+  organization switching/joining, file uploads/upload sessions, and
+  organization update/delete; no direct Mongo mutation calls or collection
+  acquisition appeared in those route files. This is evidence of a service
+  layer delegation convention, not proof that every persistence write is
+  centralized: repositories, core services (including task/run stores),
+  upload/storage adapters, background workers, and the remaining API routes
+  still require a separate write-owner inventory. No code change was warranted
+  by this scan.
 - Process-definition service decomposition: status projection helpers now
   live in `status-metadata.js`; action execution authorization derivation
   lives in `action-execution-auth.js` with domain, policy, and command-definition
