@@ -38,7 +38,11 @@ export function useGraphChannelPreview({ persistence, serializeProcess, clientEn
   }
 
   async function evaluateClientSide(definition, domain) {
-    return serializeProcessResult(await previewProcessDataflow(definition, {}, {
+    // The same serialization boundary the server preview crosses: the
+    // serialized draft carries reactive proxies the browser's
+    // structuredClone refuses.
+    const plain = JSON.parse(JSON.stringify(definition));
+    return serializeProcessResult(await previewProcessDataflow(plain, {}, {
       previewLimit: 100,
       domain,
       previewService: (operatorId, parameters) => loader.dispatchService(operatorId, parameters),
