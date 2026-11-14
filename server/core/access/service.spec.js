@@ -140,6 +140,20 @@ describe('access engine', () => {
     expect(() => assertCommandAccess({ command, entities: { queue: entity }, auth })).toThrow(/files:write/);
   });
 
+  it('scopes every command entity reference even without feature permission clauses', () => {
+    const command = { access: {} };
+    expect(() => assertCommandAccess({
+      command,
+      entities: { source: { _id: 'foreign', organizationId: 'org-2' } },
+      auth: { ...auth, organizationId: 'org-1' }
+    })).toThrow(/organization scope/);
+    expect(() => assertCommandAccess({
+      command,
+      entities: { source: { _id: 'unscoped' } },
+      auth
+    })).not.toThrow();
+  });
+
   it('supports instance-scoped permission grants', () => {
     const scopedEntity = { _id: 'cassette-a', lineage: { organizationId: 'org-1' } };
     const scopedAuth = {
