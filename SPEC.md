@@ -1851,12 +1851,12 @@ the current implementation already conforms.
   `replaceOne`, `deleteOne/Many`, `findOneAndUpdate/Delete`, and
   `bulkWrite`). None were found in those service modules; the services appear
   to delegate persistence through their repository or domain-specific
-  persistence helpers. Also spot-checked 17 distinct mutation routes
-  spanning auth registration/org membership, invitation acceptance, file
-  uploads/upload sessions, organization update/delete, instance create/delete,
-  instance-event creation, CTS type administration, and page creation; no
-  direct Mongo mutation calls or collection acquisition appeared in those
-  route files. This is evidence of a service layer delegation convention,
+  persistence helpers. Also scanned all 103 API mutation routes
+  (`.post.js`, `.put.js`, `.patch.js`, and `.delete.js`) for direct Mongo
+  mutation calls and direct database/collection acquisition; none were found.
+  The scan covers the API route layer only, not all server entry points or
+  indirect calls hidden behind imported helpers. This is evidence of a service
+  layer delegation convention,
   not proof that every persistence write is
   centralized: repositories, core services (including task/run stores),
   upload/storage adapters, background workers, and the remaining API routes
