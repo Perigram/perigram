@@ -291,7 +291,10 @@
           </PlacementBox>
         </div>
         <template v-else>
-          <div class="flex min-w-0 flex-col gap-2">
+          <!-- The document flow rides the section step (SPEC §22.9): the
+               body's sections, the appended collection sections, and the
+               trailing line are document blocks on one rhythm. -->
+          <div :class="spacing ? spacing.screenRoot : LAYOUT.stackSection" class="min-w-0 flex flex-col">
             <SurfaceBody
               v-bind="bodyProps"
               variant="full"
@@ -325,6 +328,9 @@
                 </DocumentSectionShell>
               </template>
             </SurfaceBody>
+            <!-- The appended collection sections (children when no overlay
+                 composes them into the flow, the empty stubs) render on the
+                 same document rhythm. -->
             <RegionChildren
               v-if="node.childRegions.length && !documentComposing && presentation !== 'peek'"
               v-bind="childrenProps"
