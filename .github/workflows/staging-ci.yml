@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - staging
-      - agent/architecture-simplification-20261114
   workflow_dispatch:
 
 permissions:
@@ -16,7 +15,6 @@ concurrency:
 
 jobs:
   verify:
-    if: github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/agent/architecture-simplification-20261114'
     runs-on: self-hosted
     timeout-minutes: 90
 
