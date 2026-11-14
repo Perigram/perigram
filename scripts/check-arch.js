@@ -4,7 +4,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { frameworkTypes } from '../packages/cts/src/index.js';
+import { frameworkTypes } from '@perigram/cts';
 import { frameworkCommandDefinitions, frameworkEventDefinitions } from '../server/core/commands/definitions.js';
 import { frameworkTaskDefinitions } from '../server/core/tasks/definitions.js';
 
