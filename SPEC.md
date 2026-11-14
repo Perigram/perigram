@@ -1870,6 +1870,11 @@ the current implementation already conforms.
   contract explicitly excluded.
   Command execution now also checks the organization scope of every loaded
   entity reference before evaluating optional feature permission clauses.
+  Task worker mutations (complete, fail, heartbeat, cancel) now carry the
+  connector's derived queue identity into the task service and reject runs
+  whose `workerType` belongs to another connector/org. This closes the cancel
+  endpoint's prior gap where connector credentials were accepted without any
+  run ownership check. A service-level regression covers cross-queue cancel.
   This closes a gap where a command with no `access.permissions` entries
   could receive a foreign-tenant entity by ID and proceed without a scope
   check. Regression coverage exercises that no-permission command case.
