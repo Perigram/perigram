@@ -1,10 +1,10 @@
 import RemoteEditorSurface from '~/components/generated/RemoteEditorSurface.vue';
 import EditorPageSurface from '~/components/generated/EditorPageSurface.vue';
+import { defineAsyncComponent, unref } from 'vue';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { useRegistryStore } from '~/stores/registry';
-import { unref } from 'vue';
 import { isGeneratedSurfaceAction, isCreateAction } from '~/utils/action-visibility.js';
 import { createdEntity } from '~/utils/instance-run-results.js';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
@@ -30,7 +30,25 @@ import { instancePayloadFileUrl } from './file-preview-contract.js';
  * as. A bound editor page also opens **blank** —
  * `openBlankFileEditor`.
  */
-export const fileSurfaceRegistry = {};
+export const fileSurfaceRegistry = {
+  // The graph canvas session over a graph-document payload (SPEC §28):
+  // the same surface the process designer page mounts. Resolves
+  // lazily — the canvas module tree stays out of the app shell's
+  // eager graph.
+  'graph-editor': {
+    workspacePage: {
+      labelKey: 'processDesigner.graphDocument',
+      icon: 'pi pi-share-alt',
+      component: defineAsyncComponent(() => import('~/components/process-designer/GraphEditorSurface.vue')),
+      props: ({ entity, typeId }) => ({
+        record: entity || null,
+        typeId,
+        persistence: instancePayloadPersistence(entity, typeId, 'application/json'),
+        mode: editorMountMode(typeId, entity)
+      })
+    }
+  }
+};
 
 /**
  * The one write-grant check every editor mount and payload-version
@@ -192,6 +210,14 @@ export function validateEditorBindings(bindings = [], registry = fileSurfaceRegi
 // always-mounted pack types.
 export const packEditorBindings = validateEditorBindings([]);
 
+// The app's own editor bindings — types whose editor surface lives in
+// the local registry, beside the served plugin bindings. Merged under
+// the served list in `activeEditorBindings` so a fetched organization
+// type view (which carries only plugin bindings) never shadows them.
+export const frameworkEditorBindings = validateEditorBindings([
+  { type: 'graph-document', surface: 'graph-editor', modes: ['edit'] }
+]);
+
 // Served-list default (editor-binding guard): when the app has fetched
 // the organization type view, the served editor list is the authoritative
 // binding source, read through the `useFileTypeView` cache. The pack
@@ -199,18 +225,22 @@ export const packEditorBindings = validateEditorBindings([]);
 // fetched view — module-scope evaluation, unit specs, and pre-auth
 // shells. A loaded-but-empty served list also falls back: today every
 // served editor comes from the mounted packs or installed plugins, so
-// empty can only mean "nothing fetched for this context". The served
+// empty can only mean "nothing fetched for this context". The app's own
+// bindings ride beside either list (a served binding for the same type
+// wins — the plugin layer owns it). The served
 // surface declarations follow the same law: plugin-delivered surface
 // modules resolve beside the local registry (owner decision 2026-10-11).
 function activeEditorBindings() {
+  let served = packEditorBindings;
   try {
     const view = useFileTypeView();
     const editors = unref(view.editors);
-    if (unref(view.loaded) && Array.isArray(editors) && editors.length) return editors;
+    if (unref(view.loaded) && Array.isArray(editors) && editors.length) served = editors;
   } catch {
     // No active Pinia/app context (module scope, unit specs).
   }
-  return packEditorBindings;
+  const servedTypes = new Set(served.map(binding => binding?.type));
+  return [...served, ...frameworkEditorBindings.filter(binding => !servedTypes.has(binding.type))];
 }
 
 function activeSurfaceDeclarations() {

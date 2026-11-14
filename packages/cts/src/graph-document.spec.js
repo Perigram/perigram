@@ -12,7 +12,7 @@ describe('graph-document framework type', () => {
     expect(graphDocument).toMatchObject({
       class: 'file',
       scope: 'system',
-      payload: { mime: ['application/json'], creation: ['upload'] },
+      payload: { mime: ['application/json'], creation: ['upload', 'editor'] },
       fields: { name: { base: 'string', identifier: true } }
     });
     expect(graphDocument.framework).toBeUndefined();
@@ -27,6 +27,11 @@ describe('graph-document framework type', () => {
     const entity = (domain.entities || []).find(entry => entry.type === 'graph-document');
     expect(entity).toMatchObject({ label: 'Graph', meta: false });
     expect(domain.attachmentKinds['graph-document']).toMatchObject({ kind: 'graph-document', mimeType: 'application/json' });
+    // Upload stays the default protocol (the attachment kind's creation
+    // mode reads the first entry); the editor protocol offers the blank
+    // editor create beside it.
+    expect(domain.construction['graph-document'].modes).toEqual(['upload', 'editor']);
+    expect(domain.construction['graph-document'].modeInputs.editor).toEqual([]);
   });
 
   it('accepts JSON payloads and refuses others through the payload traits', () => {

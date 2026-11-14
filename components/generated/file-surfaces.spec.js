@@ -5,6 +5,7 @@ import {
   editorMountMode,
   fileSurfaceRegistry,
   fileWorkspacePages,
+  frameworkEditorBindings,
   instancePayloadFileUrl,
   instancePayloadPersistence,
   packEditorBindings,
@@ -13,9 +14,10 @@ import {
   validateEditorBindings
 } from './file-surfaces.js';
 
-// The served editor layer (the plugins' listings): every file editor is
-// plugin-delivered now (documents, tech-drawing, facade — owner decision
-// 2026-10-17); the local registry and the pack fallback are empty.
+// The served editor layer (the plugins' listings): every served file
+// editor is plugin-delivered (documents, tech-drawing, facade — owner
+// decision 2026-10-17); the pack fallback stays empty and the local
+// registry carries the app-owned graph editor alone.
 const servedSurfaces = [
   { id: 'text-editor', url: 'http://127.0.0.1:8791/surfaces/text-editor.mjs', surfaceContract: 3 },
   { id: 'csv-editor', url: 'http://127.0.0.1:8791/surfaces/csv-editor.mjs', surfaceContract: 3 },
@@ -36,10 +38,28 @@ describe('file surface registry', () => {
   // store, so every test runs against a fresh pinia.
   beforeEach(() => setActivePinia(createPinia()));
 
-  it('carries no local pack registrations — every editor is plugin-delivered', () => {
-    expect(fileSurfaceRegistry).toEqual({});
+  it('registers the app-owned graph editor beside the empty pack fallback', () => {
+    // Every served editor is plugin-delivered; the local registry
+    // carries the platform's own graph canvas surface (SPEC §28).
+    expect(Object.keys(fileSurfaceRegistry)).toEqual(['graph-editor']);
+    expect(fileSurfaceRegistry['graph-editor'].workspacePage.labelKey).toBe('processDesigner.graphDocument');
     expect(packEditorBindings).toEqual([]);
+    expect(frameworkEditorBindings).toEqual([{ type: 'graph-document', surface: 'graph-editor', modes: ['edit'] }]);
     expect(validateEditorBindings([])).toEqual([]);
+  });
+
+  it('resolves the graph-document editor page and its mount props', async () => {
+    const { useAuthStore } = await import('~/stores/auth');
+    const authStore = useAuthStore();
+    authStore.user = { permissions: { 'graph-document': 'write' } };
+    const surface = resolveFileSurface(frameworkEditorBindings, 'graph-document', []);
+    expect(surface.remote).toBeUndefined();
+    expect(surface.workspacePage.component).toBeTruthy();
+    const props = surface.workspacePage.props({ entity: { _id: 'g-1', name: 'Fixture graph' }, typeId: 'graph-document' }, 'graph-document');
+    expect(props).toMatchObject({ record: { _id: 'g-1' }, typeId: 'graph-document', mode: 'edit' });
+    expect(props.persistence.typeId).toBe('graph-document');
+    const pages = fileWorkspacePages(frameworkEditorBindings, []);
+    expect(pages.map(page => page.id)).toContain('graph-editor');
   });
 
   it('rejects editor bindings whose surface id is absent from the registry', () => {
