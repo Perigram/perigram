@@ -85,6 +85,25 @@ pure compute).
 
 ### Agent Notes (2026-11-14, agent/outputs-channel-20261114)
 
+- Live dogfood (dev stack, e2e org): with zero plugin channels the
+  preview tab renders on the process designer and a Current time node's
+  output renders under its card labels (value · dateTime · branch/item
+  counts · sampled value); the eye empties the channel to the
+  no-visible-outputs state and restores it. After upgrading Documents
+  5→11 the served `report` channel sections beside Outputs in its
+  unavailable state — this org's plugin connection is unconfigured
+  (`url: null`), the connector setup is an owner action. A stale dev
+  chunk after the merge (`useAuthStore is not defined` on the process
+  page) cleared on recompile.
+- Defect found in the pass and fixed (`fix: session exports the
+  context-palette connect handlers the canvas requires`): the G1b
+  extraction destructured `beginSocketConnection`/
+  `endSocketConnection` from the canvas composable — they live in the
+  context-palette composable — so every GraphCanvas mount warned and the
+  wire-drop palette lost its handlers. Pinned by
+  `useProcessDesignerGraphSession.spec.js` and live-verified: zero prop
+  warnings, and dragging a value output onto empty canvas opens the
+  socket-filtered palette.
 - The built-in outputs channel landed. `GraphPreviewPanel.vue` renders
   the platform channel first (`GraphOutputsChannel.vue`) beside the
   served plugin channels; both hosts (the process page and the graph
