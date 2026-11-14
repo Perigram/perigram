@@ -1,4 +1,5 @@
 import { connectDB } from '~/server/db/mongo';
+import { findFileMetaByFilename, getFileBuffer, listFileMetasWhere, uploadFile, deleteFile } from '../files/service.js';
 
 // Catalog listings are platform-published (the central-catalog decision,
 // SPEC §Plugin marketplace); installs are per-org pinned snapshots of the
@@ -8,6 +9,42 @@ import { connectDB } from '~/server/db/mongo';
 const CATALOG_COLLECTION = 'plugin_catalog';
 const INSTALLS_COLLECTION = 'plugin_installs';
 const SERVICE_CACHE_COLLECTION = 'plugin_service_cache';
+
+// Client-carried packages (SPEC §20): a plugin's engine modules and
+// runtime assets ship in the `plugin_assets` GridFS bucket, keyed
+// `pluginId/version/path` — the filename is the lookup key and the
+// metadata carries the pieces for retraction cleanup.
+export const PLUGIN_ASSETS_BUCKET = 'plugin_assets';
+
+const assetFilename = (pluginId, version, path) => `${pluginId}/${version}/${path}`;
+
+export async function storePluginAsset({ pluginId, version, path, buffer, contentType = '' }) {
+  const filename = assetFilename(pluginId, version, path);
+  const existing = await findFileMetaByFilename(filename, PLUGIN_ASSETS_BUCKET);
+  if (existing) await deleteFile(existing.id, PLUGIN_ASSETS_BUCKET);
+  const stored = await uploadFile(buffer, filename, { pluginId, version, path }, PLUGIN_ASSETS_BUCKET, contentType);
+  return { pluginId, version, path, id: stored.id, bytes: buffer.length };
+}
+
+export async function findPluginAssetMeta(pluginId, version, path) {
+  const meta = await findFileMetaByFilename(assetFilename(pluginId, version, path), PLUGIN_ASSETS_BUCKET);
+  if (!meta) return null;
+  return {
+    id: meta.id,
+    contentType: meta.contentType || meta.metadata?.mimeType || '',
+    contentHash: meta.metadata?.contentHash || ''
+  };
+}
+
+export async function readPluginAsset(assetMeta) {
+  return await getFileBuffer(assetMeta.id, PLUGIN_ASSETS_BUCKET);
+}
+
+export async function deletePluginAssets(pluginId) {
+  const metas = await listFileMetasWhere(PLUGIN_ASSETS_BUCKET, { 'metadata.pluginId': String(pluginId) });
+  for (const meta of metas) await deleteFile(meta.id, PLUGIN_ASSETS_BUCKET);
+  return metas.length;
+}
 
 // Deterministic pure-service results (SPEC §28 artifact contract): the
 // cache key hashes the service identity, its install version, and the

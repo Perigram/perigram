@@ -77,8 +77,10 @@ const EXTENSION_CONTENT_TYPES = Object.freeze({
   '.gltf': 'model/gltf+json',
   '.jpeg': 'image/jpeg',
   '.jpg': 'image/jpeg',
+  '.js': 'text/javascript',
   '.json': 'application/json',
   '.md': 'text/markdown',
+  '.mjs': 'text/javascript',
   '.mp4': 'video/mp4',
   '.occs': 'application/perigram+occs',
   '.pdf': 'application/pdf',
@@ -94,6 +96,7 @@ const EXTENSION_CONTENT_TYPES = Object.freeze({
   '.ogg': 'audio/ogg',
   '.opus': 'audio/ogg',
   '.wav': 'audio/wav',
+  '.wasm': 'application/wasm',
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 });
 
@@ -109,6 +112,34 @@ export async function findFileMeta(fileId, bucketName = 'uploads') {
     length: Number(doc.length) || 0,
     metadata: doc.metadata || {}
   };
+}
+
+export async function findFileMetaByFilename(filename, bucketName = 'uploads') {
+  const db = await connectDB();
+  const bucket = new GridFSBucket(db, { bucketName });
+  const files = await bucket.find({ filename: String(filename || '') }).limit(1).toArray();
+  const doc = files[0] || null;
+  if (!doc) return null;
+  return {
+    id: doc._id.toString(),
+    filename: String(doc.filename || ''),
+    contentType: String(doc.contentType || ''),
+    length: Number(doc.length) || 0,
+    metadata: doc.metadata || {}
+  };
+}
+
+export async function listFileMetasWhere(bucketName = 'uploads', filter = {}) {
+  const db = await connectDB();
+  const bucket = new GridFSBucket(db, { bucketName });
+  const docs = await bucket.find(filter).toArray();
+  return docs.map(doc => ({
+    id: doc._id.toString(),
+    filename: String(doc.filename || ''),
+    contentType: String(doc.contentType || ''),
+    length: Number(doc.length) || 0,
+    metadata: doc.metadata || {}
+  }));
 }
 
 export function contentTypeForFile({ filename = '', contentType = '', metadata = {} } = {}) {

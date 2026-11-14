@@ -71,6 +71,10 @@ vi.mock('./repository.js', () => ({
   updateInstallSnapshot: vi.fn(),
   findCachedServiceResult: vi.fn(async () => null),
   storeCachedServiceResult: vi.fn(),
+  storePluginAsset: vi.fn(async ({ pluginId, version, path }) => ({ pluginId, version, path, id: 'asset-1', bytes: 1 })),
+  findPluginAssetMeta: vi.fn(async () => null),
+  readPluginAsset: vi.fn(async () => Buffer.alloc(0)),
+  deletePluginAssets: vi.fn(async () => 0),
   updateSettings: vi.fn(),
   listDeclarationsByOrganization: vi.fn(async () => []),
   findDeclarationByTypeId: vi.fn(async () => null),
@@ -83,7 +87,7 @@ import {
   install, installFromCatalog, uninstall, listInstalled, listCatalog, servicesForOrganization,
   projectedServicesForOrganization, projectedDomainsForOrganization, commandDefinitionFor, executeConnectorService, invokeEndpointValueService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
-  retractListing, settingsFor, updateSettings,
+  retractListing, settingsFor, updateSettings, publishPluginAsset,
   fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview
 } from './service.js';
 import { enqueueTask } from '../../core/tasks/service.js';
@@ -559,8 +563,36 @@ describe('plugin installs', () => {
     repository.countInstallsByPluginId.mockResolvedValueOnce(0);
     await expect(retractListing('coatings')).resolves.toMatchObject({ pluginId: 'coatings', retracted: true });
     expect(repository.deleteCatalogListing).toHaveBeenCalledWith('coatings');
+    expect(repository.deletePluginAssets).toHaveBeenCalledWith('coatings');
 
     await expect(retractListing('missing')).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  it('publishes a package asset keyed by plugin and version', async () => {
+    repository.findCatalogByPluginId.mockResolvedValueOnce(coatingListing);
+    await publishPluginAsset({
+      pluginId: 'coatings',
+      version: '2',
+      path: 'engine/index.mjs',
+      body: Buffer.from('export {}'),
+      contentType: 'text/javascript'
+    });
+    expect(repository.storePluginAsset).toHaveBeenCalledWith(expect.objectContaining({
+      pluginId: 'coatings',
+      version: '2',
+      path: 'engine/index.mjs',
+      contentType: 'text/javascript'
+    }));
+
+    await expect(publishPluginAsset({ pluginId: 'ghost', version: '2', path: 'engine/index.mjs', body: Buffer.from('x') }))
+      .rejects.toMatchObject({ statusCode: 404 });
+    await expect(publishPluginAsset({ pluginId: 'coatings', version: '', path: 'engine/index.mjs', body: Buffer.from('x') }))
+      .rejects.toMatchObject({ statusCode: 400 });
+    await expect(publishPluginAsset({ pluginId: 'coatings', version: '2', path: '../etc/passwd', body: Buffer.from('x') }))
+      .rejects.toMatchObject({ statusCode: 400 });
+    await expect(publishPluginAsset({ pluginId: 'coatings', version: '2', path: 'engine/index.mjs', body: Buffer.alloc(0) }))
+      .rejects.toMatchObject({ statusCode: 400 });
+    expect(repository.storePluginAsset).toHaveBeenCalledTimes(1);
   });
 
 });
@@ -1298,6 +1330,85 @@ describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
         auth: AUTH
       })).rejects.toMatchObject({ statusCode: 400 });
     }
+  });
+
+  it('serves an engine install\'s modules from the platform-stored package', async () => {
+    const engineInstall = {
+      ...moduleInstall,
+      version: '2',
+      endpoints: {},
+      declarations: {
+        ...moduleInstall.declarations,
+        engine: { module: '/engine/index.mjs' },
+        dependencies: [
+          { name: 'three', version: '0.170.0', module: '/assets/vendor/three.mjs', license: 'MIT' }
+        ]
+      }
+    };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? engineInstall : null
+    ));
+    repository.findPluginAssetMeta.mockResolvedValue({ id: 'asset-1', contentType: 'text/javascript', contentHash: 'sha256:abc' });
+    repository.readPluginAsset.mockResolvedValue(Buffer.from("import * as THREE from 'three';\nexport default null;\n"));
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const module = await fetchSurfaceModule({
+        organizationId: ORG,
+        pluginId: 'coatings',
+        modulePath: '/engine/index.mjs',
+        auth: AUTH
+      });
+      expect(repository.findPluginAssetMeta).toHaveBeenCalledWith('coatings', '2', 'engine/index.mjs');
+      expect(module.contentType).toBe('text/javascript');
+      expect(module.body.toString()).toContain(`import * as THREE from '/api/plugins/coatings/module/assets/vendor/three.mjs'`);
+      expect(module.etag).toBeTruthy();
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('serves a packaged binary asset untouched under its stored type', async () => {
+    const engineInstall = {
+      ...moduleInstall,
+      version: '2',
+      endpoints: {},
+      declarations: { ...moduleInstall.declarations, engine: { module: '/engine/index.mjs' } }
+    };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? engineInstall : null
+    ));
+    const bytes = Buffer.from([0, 1, 2, 3]);
+    repository.findPluginAssetMeta.mockResolvedValue({ id: 'asset-2', contentType: 'application/wasm', contentHash: 'sha256:def' });
+    repository.readPluginAsset.mockResolvedValue(bytes);
+    const module = await fetchSurfaceModule({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      modulePath: '/engine/runtime/core.wasm',
+      auth: AUTH
+    });
+    expect(module.contentType).toBe('application/wasm');
+    expect(module.body.equals(bytes)).toBe(true);
+  });
+
+  it('404s a packaged path the package does not carry', async () => {
+    const engineInstall = {
+      ...moduleInstall,
+      version: '2',
+      endpoints: {},
+      declarations: { ...moduleInstall.declarations, engine: { module: '/engine/index.mjs' } }
+    };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? engineInstall : null
+    ));
+    repository.findPluginAssetMeta.mockResolvedValue(null);
+    await expect(fetchSurfaceModule({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      modulePath: '/engine/missing.mjs',
+      auth: AUTH
+    })).rejects.toMatchObject({ statusCode: 404, message: expect.stringContaining('package does not carry') });
   });
 
   it('rewrites declared bare imports to the plugin\'s proxied vendor scope', async () => {

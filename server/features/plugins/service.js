@@ -53,6 +53,36 @@ export async function publishListing(listing = {}) {
   return serializeListing(normalized);
 }
 
+// A client-carried package asset (SPEC §20): engine modules and pinned
+// runtime files ship beside the listing, keyed by plugin id and version.
+// Operator-gated at the route; the listing must already exist.
+export async function publishPluginAsset({ pluginId = '', version = '', path = '', body, contentType = '' } = {}) {
+  if (!/^[a-z0-9-]+$/.test(pluginId)) {
+    throw createError({ statusCode: 400, message: 'pluginId must be a slug' });
+  }
+  if (!String(version).trim()) {
+    throw createError({ statusCode: 400, message: 'A version query parameter keys the asset to its package' });
+  }
+  const segments = String(path || '').split('/')
+    .map(segment => { try { return decodeURIComponent(segment); } catch { return null; } })
+    .filter(Boolean);
+  if (!segments.length || segments.some(segment => segment === '.' || segment === '..' || /[\\/]/.test(segment))) {
+    throw createError({ statusCode: 400, message: 'Invalid asset path' });
+  }
+  if (!body?.length) {
+    throw createError({ statusCode: 400, message: 'Asset body is empty' });
+  }
+  const listing = await repository.findCatalogByPluginId(pluginId);
+  if (!listing) throw createError({ statusCode: 404, message: 'Plugin not found' });
+  return await repository.storePluginAsset({
+    pluginId,
+    version: String(version),
+    path: segments.join('/'),
+    buffer: Buffer.from(body),
+    contentType: contentType || 'application/octet-stream'
+  });
+}
+
 // Retract a catalog listing (operator action): installed organizations
 // keep their pinned snapshots, but the listing leaves the Available
 // panel and no new install can target it. Refuses while any
@@ -76,6 +106,7 @@ export async function retractListing(pluginId = '') {
     });
   }
   await repository.deleteCatalogListing(pluginId);
+  await repository.deletePluginAssets(pluginId);
   return { pluginId: String(pluginId), retracted: true };
 }
 
@@ -380,14 +411,32 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
   assertSameOrganization(organizationId, auth);
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin not installed' });
-  const origin = endpointOriginOf(install);
-  if (!origin) throw createError({ statusCode: 503, message: `Plugin ${pluginId} has no connected executor endpoint` });
   const segments = String(modulePath || '').split('/')
     .map(segment => { try { return decodeURIComponent(segment); } catch { return null; } })
     .filter(Boolean);
   if (!segments.length || segments.some(segment => segment === '.' || segment === '..' || /[\\/]/.test(segment))) {
     throw createError({ statusCode: 400, message: 'Invalid module path' });
   }
+
+  // A client-carried package (SPEC §20) serves every module path from
+  // the platform-stored assets of the installed version.
+  if (install.declarations?.engine) {
+    const asset = await repository.findPluginAssetMeta(pluginId, install.version, segments.join('/'));
+    if (!asset) throw createError({ statusCode: 404, message: `Plugin ${pluginId} package does not carry ${segments.join('/')}` });
+    const isJsModule = /\.[cm]?js$/.test(segments[segments.length - 1] || '');
+    const raw = await repository.readPluginAsset(asset);
+    const body = isJsModule
+      ? Buffer.from(rewriteDeclaredImports(raw.toString('utf8'), pluginId, install.declarations?.dependencies || []), 'utf8')
+      : raw;
+    return {
+      contentType: asset.contentType || 'application/octet-stream',
+      body,
+      etag: `"${createHash('sha1').update(body).digest('hex')}"`
+    };
+  }
+
+  const origin = endpointOriginOf(install);
+  if (!origin) throw createError({ statusCode: 503, message: `Plugin ${pluginId} has no connected executor endpoint` });
   const url = `${origin}/${segments.map(encodeURIComponent).join('/')}`;
   let response;
   try {

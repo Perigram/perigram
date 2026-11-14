@@ -1,4 +1,4 @@
-import { createError } from 'h3';
+import { createError, getHeader } from 'h3';
 import { createLineageFilter, hasInstanceAccess } from '../core/access/service.js';
 
 export function requireAuth(event) {
@@ -6,6 +6,20 @@ export function requireAuth(event) {
     throw createError({ statusCode: 401, message: 'Authentication required' });
   }
   return event.context.auth;
+}
+
+// Platform-side publishing (SPEC §Plugin marketplace: the catalog is
+// platform-published; orgs never write it): the deployment's
+// PLATFORM_OPERATOR_TOKEN, the same shape the worker endpoints give
+// WORKER_TOKEN.
+export function requirePlatformOperator(event) {
+  const expected = process.env.PLATFORM_OPERATOR_TOKEN || process.env.NUXT_PLATFORM_OPERATOR_TOKEN;
+  if (!expected) {
+    throw createError({ statusCode: 503, message: 'Plugin publishing is not configured — set PLATFORM_OPERATOR_TOKEN' });
+  }
+  if (getHeader(event, 'x-operator-token') !== expected) {
+    throw createError({ statusCode: 401, message: 'Invalid operator token' });
+  }
 }
 
 /**
