@@ -22,7 +22,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStateHistory } from '~/composables/useStateHistory';
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState';
-import { getPrimaryState } from '@perigram/core';
+import { getPrimaryState } from '#packages/core';
 
 const props = defineProps({
   instance: { type: Object, default: null },

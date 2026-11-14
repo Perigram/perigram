@@ -613,7 +613,7 @@ const workspaceSpecifierFiles = [
 workspaceSpecifierFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   const relFile = path.relative('.', file);
-  if (/@perigram\/(?:core|cts|processes|plugin-sdk)\/(?:index|src)(?:['"/]|$)/.test(content)) {
+  if (/@perigram\/(?:core|cts|processes|plugin-sdk)\/(?:index(?:\.[^'"/]+)?|src)(?:['"/]|$)/.test(content)) {
     console.error(`❌ ${relFile} imports a private workspace-package subpath — use the package root or an explicitly exported subpath`);
     errors++;
   }
