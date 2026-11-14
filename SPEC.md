@@ -1830,6 +1830,19 @@ the current implementation already conforms.
   a verified workspace boundary, not yet an independently publishable
   extraction. Browser/Node compatibility and versioned external interfaces
   remain open.
+- Process-definition persistence audit: within this feature, CRUD writes to
+  `process_definitions` are centralized in `repository.js`; durable execution
+  snapshots and event-ledger writes to `process_executions` and
+  `process_events` are centralized in `run-store.js`. The feature service
+  orchestrates lifecycle and execution but contains no direct Mongo write
+  calls. This verifies the process-definition feature boundary only; it does
+  not close the cross-feature persistence write-path audit.
+- Process-definition service decomposition: status projection helpers now
+  live in `status-metadata.js`; action execution authorization derivation
+  lives in `action-execution-auth.js` with domain and policy dependencies
+  injected by the service. These are internal server modules, not independent
+  packages or extraction-ready deployment units. Their import and focused
+  test verification is tracked by the current staging CI run.
 - Authorization audit progress: process-role transition shortcuts now check
   entity organization scope; generic HTTP instance lists and process-graph
   entity queries apply compiled read grants; process deletes route through
