@@ -1,13 +1,10 @@
 import { createError } from 'h3';
-import { normalizeTypeId } from '~/server/runtime/entities.js';
-import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { getEntityFieldAccessPolicy } from '~/shared/field-access-policies.js';
 import { normalizePermissionGrants } from '#shared/access-control.js';
 
 // Action execution permissions are derived from the compiled action contract.
 // The feature domain is injected so this policy helper does not own domain
 // composition or persistence.
-export function createActionExecutionAuthHelpers({ getDomain }) {
+export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, getEntityFieldAccessPolicy }) {
   function assertCompiledActionAvailable(actionId, auth = {}) {
     const available = auth.roleAssignments?.actions || [];
     // The assignment manifest carries full action records keyed `id`; the
@@ -19,14 +16,6 @@ export function createActionExecutionAuthHelpers({ getDomain }) {
   
   function resolveActionTypeId(action = {}) {
     return normalizeTypeId(action.typeId || action.inputs?.find(input => input.typeId)?.typeId || '');
-  }
-  
-  function getInstanceServiceForAction(action = {}) {
-    const typeId = resolveActionTypeId(action);
-    if (!typeId) throw createError({ statusCode: 400, message: `Action ${action.id} has no entity type` });
-    const service = getAppRegistry().getInstanceService(typeId);
-    if (!service) throw createError({ statusCode: 500, message: `Entity service missing for ${typeId}` });
-    return service;
   }
   
   function createActionExecutionAuth(auth = {}, action = {}, { relationContracts = null } = {}) {
