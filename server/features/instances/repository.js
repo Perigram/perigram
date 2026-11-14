@@ -1,6 +1,6 @@
 import { connectDB } from '~/server/db/mongo';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
+import { CLASS_COLLECTIONS } from '#packages/cts';
 
 // Per-class instance collections (SPEC §13) — the map's single home is
 // @perigram/cts (`domain-projection.js`); this repository consumes it.

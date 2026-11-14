@@ -8,8 +8,8 @@ import * as webSearchService from '~/server/features/web-search/service.js';
 import * as filesService from '~/server/features/files/service.js';
 import { readAttachmentContent } from './attachment-read.js';
 import { buildPrincipalAuth } from './service.js';
-import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY, parseProcessSocketHandleId, resolveCatalogNodePorts } from '~/packages/processes/src/index.js';
-import { FIELD_BASES } from '~/packages/cts/src/index.js';
+import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY, parseProcessSocketHandleId, resolveCatalogNodePorts } from '#packages/processes';
+import { FIELD_BASES } from '#packages/cts';
 import { iconFontGlyphs } from '#shared/icon-fonts.js';
 
 /**

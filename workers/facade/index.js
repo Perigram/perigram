@@ -4,7 +4,7 @@
 // (or the org configures a reverse proxy for cloud hosting). Pure compute
 // over values — see services.js. Runs with the repo's node_modules when
 // compose-mounted, or its own install when extracted.
-import { createEndpointExecutor } from '../../packages/plugin-sdk/src/endpoint-executor.js';
+import { createEndpointExecutor } from '@perigram/plugin-sdk/endpoint-executor';
 import { services } from './services.js';
 import { fileURLToPath } from 'node:url';
 

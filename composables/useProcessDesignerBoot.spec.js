@@ -14,9 +14,9 @@ import {
   definitionToCanvas,
   PROCESS_DATAFLOW_VERSION,
   createProcessDesignerContract
-} from '~/packages/processes/src/index.js';
-import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '~/packages/cts/src/index.js';
-import { cncTypePack } from '~/packages/cts/src/pack/cnc.js';
+} from '@perigram/processes/index';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '@perigram/cts/index';
+import { cncTypePack } from '@perigram/cts/pack/cnc';
 import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 

@@ -1,4 +1,4 @@
-import { getPrimaryState } from '#packages/core/src/index.js';
+import { getPrimaryState } from '#packages/core';
 
 export const ACCESS_LEVELS = ['none', 'read', 'write', 'admin'];
 

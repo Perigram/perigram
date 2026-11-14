@@ -28,7 +28,11 @@ function inspect(file) {
     let packageName = null;
     let kind = null;
 
-    if (specifier.startsWith('@perigram/')) {
+    const publicPackageAlias = specifier.match(/^#packages\/(core|cts|processes|plugin-sdk)(?:\/(?!src\/).*)?$/);
+    if (publicPackageAlias) {
+      packageName = publicPackageAlias[1];
+      kind = 'package-name';
+    } else if (specifier.startsWith('@perigram/')) {
       packageName = specifier.slice('@perigram/'.length).split('/')[0];
       kind = 'package-name';
     } else {

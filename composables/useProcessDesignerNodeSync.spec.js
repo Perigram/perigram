@@ -9,8 +9,8 @@ import { useProcessDesignerNodeRecords } from '~/composables/useProcessDesignerN
 import { useProcessDesignerNodeSync } from '~/composables/useProcessDesignerNodeSync.js';
 import { useProcessDesignerTypes } from '~/composables/useProcessDesignerTypes.js';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
-import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '~/packages/cts/src/index.js';
-import { cncTypePack } from '~/packages/cts/src/pack/cnc.js';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '@perigram/cts/index';
+import { cncTypePack } from '@perigram/cts/pack/cnc';
 import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
 
 const registry = createTypeRegistry({ id: 'node-sync-spec' });

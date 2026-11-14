@@ -90,7 +90,7 @@ describe('Framework package contracts', () => {
       import('@perigram/cts/pack/framework'),
       import('@perigram/plugin-sdk/surface-check')
     ]);
-    expect(modules).toHaveLength(4);
+    expect(modules).toHaveLength(14);
     expect(modules.every(module => module && typeof module === 'object')).toBe(true);
   });
 
@@ -151,7 +151,7 @@ describe('Framework package contracts', () => {
       createProvenance,
       createCommandResult,
       createTaskResult
-    } = await import('../packages/core/src/index.js');
+    } = await import('@perigram/core');
 
     const registry = createRegistry({ id: 'test' });
     const entity = new BaseEntity({
@@ -272,7 +272,7 @@ describe('Framework package contracts', () => {
   });
 
   it('validates workflow transitions in @perigram/core', async () => {
-    const { normalizeWorkflow, validateTransition } = await import('../packages/core/src/index.js');
+    const { normalizeWorkflow, validateTransition } = await import('@perigram/core');
 
     const workflow = normalizeWorkflow({
       initial: 'DRAFT',
@@ -296,7 +296,7 @@ describe('Framework package contracts', () => {
       DESIGN_SYSTEM_VARIANTS,
       DESIGN_SYSTEM_GROUPS
     } = await import('../utils/design-system-contract.js');
-    const { createTypeRegistry, frameworkTypes, projectDomainFromView } = await import('../packages/cts/src/index.js');
+    const { createTypeRegistry, frameworkTypes, projectDomainFromView } = await import('@perigram/cts');
     const techDrawingListing = (await import('../workers/tech-drawing/listing.json', { with: { type: 'json' } })).default;
     const techDrawingTypes = techDrawingListing.declarations.types;
     const { createReadOnlyToolHandlers } = await import('../scripts/mcp-handlers.js');

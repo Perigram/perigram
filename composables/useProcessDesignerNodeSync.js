@@ -1,5 +1,5 @@
 import { computed } from 'vue';
-import { operationKindOf, typeIdOf, setTypeBinding } from '~/packages/cts/src/index.js';
+import { operationKindOf, typeIdOf, setTypeBinding } from '@perigram/cts/index';
 import {
   EFFECT_SPECIES_KINDS,
   createProcessRecordSync,
@@ -9,7 +9,7 @@ import {
   humanizeNodeLabel,
   parseProcessSocketHandleId,
   processSocketsCompatible
-} from '~/packages/processes/src/index.js';
+} from '@perigram/processes/index';
 
 // The node-sync adapter: record-level derivation lives in the package
 // authoring seam (`createProcessRecordSync` — the same pipeline headless

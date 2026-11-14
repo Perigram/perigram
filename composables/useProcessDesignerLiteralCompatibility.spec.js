@@ -7,9 +7,9 @@
 // species surface and the value algebra drift apart at the socket boundary.
 import { describe, expect, it } from 'vitest';
 import { ref } from 'vue';
-import { createTypeRegistry, projectDomainFromView } from '~/packages/cts/src/index.js';
-import { resolveCatalogNodePorts, processSocketsCompatible } from '~/packages/processes/src/index.js';
-import { processType } from '~/packages/processes/src/types.js';
+import { createTypeRegistry, projectDomainFromView } from '@perigram/cts/index';
+import { resolveCatalogNodePorts, processSocketsCompatible } from '@perigram/processes/index';
+import { processType } from '@perigram/processes/types';
 import { useProcessDesignerNodeRecords } from '~/composables/useProcessDesignerNodeRecords.js';
 import { useProcessDesignerNodeSync } from '~/composables/useProcessDesignerNodeSync.js';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';

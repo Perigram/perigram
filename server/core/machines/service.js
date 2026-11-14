@@ -13,11 +13,11 @@ import {
   normalizeWorkflow,
   resolveWorkflowStatePath,
   validateTransition
-} from '~/packages/core/src/index.js';
+} from '#packages/core';
 import { assertTransitionAccess, hasInstanceAccess } from '../access/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
-import { CLASS_COLLECTIONS, evaluate as evaluateExpression } from '~/packages/cts/src/index.js';
+import { CLASS_COLLECTIONS, evaluate as evaluateExpression } from '#packages/cts';
 import { processEffects } from '../effects/service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 

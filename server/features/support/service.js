@@ -5,7 +5,7 @@ import * as transcriptionService from '~/server/features/transcription/service.j
 import { resolveProcessAuth } from '~/server/features/process-definitions/runtime.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { declarationForType } from '~/server/features/instances/service.js';
-import { lineageKeyForParent, payloadAccepts } from '~/packages/cts/src/index.js';
+import { lineageKeyForParent, payloadAccepts } from '#packages/cts';
 import * as connectionsService from '~/server/features/connections/service.js';
 import { actionToLevel, levelAtLeast, normalizePermissionGrants } from '#shared/access-control.js';
 import { createIdentity, createStatus } from '../../core/blocks/index.js';

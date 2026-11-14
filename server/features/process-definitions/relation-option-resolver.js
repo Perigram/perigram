@@ -1,4 +1,4 @@
-import { normalizeInstanceRef } from '~/packages/core/src/index.js';
+import { normalizeInstanceRef } from '#packages/core';
 import { resolveRelationOptionPath, resolveRelationOptionScope } from './relation-options.js';
 import { filterByRelationDomain } from '#shared/relation-domain.js';
 

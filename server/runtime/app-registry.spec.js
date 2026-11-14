@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createProcessDesignerContract, projectEntityProcessCapabilities, validateProcessDefinition } from '~/packages/processes/src/index.js';
-import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '~/packages/cts/src/index.js';
+import { createProcessDesignerContract, projectEntityProcessCapabilities, validateProcessDefinition } from '@perigram/processes/index';
+import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '@perigram/cts/index';
 import { facadePackContent, facadeDomain } from '../../test-tools/facade-plugin.js';
 import { getAppRegistry, resetAppRegistryForTests } from './app-registry.js';
 import { performDurableEffect } from '~/server/features/process-definitions/service.js';

@@ -10,7 +10,7 @@ import {
   DESIGN_SYSTEM_PRIMITIVES,
   DESIGN_SYSTEM_VARIANTS
 } from '../utils/design-system-contract.js';
-import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '@perigram/cts';
 import { extractDataModels } from '../server/utils/extract-data-models.js';
 
 // The registry view is the domain catalog (one source): entities and
@@ -34,7 +34,7 @@ import {
   validateDefinitionSet
 } from './framework-inspect-lib.js';
 import { createReadOnlyToolHandlers } from './mcp-handlers.js';
-import { validateTransition } from '../packages/core/src/index.js';
+import { validateTransition } from '@perigram/core';
 
 const command =  process.argv[2] || 'help';
 const MANIFEST_PATH = 'framework.manifest.json';

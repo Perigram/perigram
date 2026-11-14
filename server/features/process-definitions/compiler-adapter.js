@@ -6,10 +6,10 @@ import {
   validateProcessDefinition,
   validateRequiredInputAvailability,
   validateLineageBindingResolution
-} from '~/packages/processes/src/index.js';
+} from '#packages/processes';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { prepareAuthoredDefinition } from '~/packages/processes/src/index.js';
-import { CLASS_COLLECTIONS, createTypeRegistry, declarationsFromCtsRecords, orientChildrenEdgesChildFirst, projectDomainFromView } from '~/packages/cts/src/index.js';
+import { prepareAuthoredDefinition } from '#packages/processes';
+import { CLASS_COLLECTIONS, createTypeRegistry, declarationsFromCtsRecords, orientChildrenEdgesChildFirst, projectDomainFromView } from '#packages/cts';
 
 // A draft carries its own declarations: `ctsTypes` records author types
 // in-tree and only land in the registry at APPLY (SAVE persists the tree

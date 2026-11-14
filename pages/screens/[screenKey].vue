@@ -44,7 +44,7 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { usePageBack } from '~/composables/usePageBack.js';
 import { resolveDefaultHomeScreen, screenByKey } from '~/utils/process-navigation.js';
-import { HOME_SCREEN_ROUTE } from '~/packages/processes/src/screen-contract.js';
+import { HOME_SCREEN_ROUTE } from '@perigram/processes/screen-contract';
 
 definePageMeta({
   layout: 'app',

@@ -10,7 +10,7 @@ import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSel
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 import { useProcessDesignerLiveGraph } from '~/composables/useProcessDesignerLiveGraph.js';
 import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
-import { declarationWireLegality, declarationNodePorts } from '~/packages/processes/src/designer.js';
+import { declarationWireLegality, declarationNodePorts } from '@perigram/processes/designer';
 
 function createCanvas() {
   const nodes = ref([]);

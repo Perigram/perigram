@@ -46,7 +46,7 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
-import { creationModeLabel } from '~/packages/processes/src/ui-contract-projection.js';
+import { creationModeLabel } from '@perigram/processes/ui-contract-projection';
 import { createdEntity } from '~/utils/instance-run-results.js';
 import { uploadCreateAccept, uploadCreatePayloadReference } from '~/components/ui-mapping/upload-create.js';
 import { useInstancesStore } from '~/stores/instances';

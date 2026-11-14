@@ -20,7 +20,7 @@
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { connectDB } from '../db/mongo.js';
-import { normalizeListing } from '../../packages/plugin-sdk/src/listing.js';
+import { normalizeListing } from '#packages/plugin-sdk/listing';
 
 const surfaceOrigin = process.env.TECH_DRAWING_EXECUTOR_URL || 'http://tech-drawing-executor:8792';
 const listingPath = process.argv[2] || 'workers/tech-drawing/listing.json';

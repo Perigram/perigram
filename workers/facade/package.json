@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "dxf-parser": "^1.1.2",
-    "h3": "^1.15.11"
+    "h3": "^1.15.11",
+    "@perigram/plugin-sdk": "file:../../packages/plugin-sdk"
   }
 }

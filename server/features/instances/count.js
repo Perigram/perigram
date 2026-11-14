@@ -4,7 +4,7 @@
 // total). Scans the per-class collections by type discriminator.
 import { connectDB } from '~/server/db/mongo';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
+import { CLASS_COLLECTIONS } from '#packages/cts';
 
 export async function countInstancesOfType(typeId, organizationId) {
   if (!typeId) return 0;

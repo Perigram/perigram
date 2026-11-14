@@ -7,7 +7,7 @@
 // @perigram/cts diff.js (canonical contract: this feature's README).
 import { connectDB } from '~/server/db/mongo';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { evaluate } from '~/packages/cts/src/index.js';
+import { evaluate } from '#packages/cts';
 import { collectionForClass } from './repository.js';
 import * as entityEventService from '../instance-events/service.js';
 

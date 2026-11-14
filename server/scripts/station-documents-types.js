@@ -1,9 +1,9 @@
 import { connectDB } from '../db/mongo.js';
 import { randomBytes } from 'node:crypto';
-import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../../packages/cts/src/index.js';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#packages/cts';
 import documentsListing from '../../workers/documents/listing.json' with { type: 'json' };
 import techDrawingListing from '../../workers/tech-drawing/listing.json' with { type: 'json' };
-import { createDefinitionAuthoring } from '../../packages/processes/src/authoring.js';
+import { createDefinitionAuthoring } from '#packages/processes/authoring';
 
 /**
  * Stations the mounted packs' starter constructs (the documents pack's

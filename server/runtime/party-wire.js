@@ -6,7 +6,7 @@
 import { createError } from 'h3';
 import * as usersService from '../features/users/service.js';
 import * as organizationsService from '../features/organizations/service.js';
-import { frameworkTypes } from '#packages/cts/src/index.js';
+import { frameworkTypes } from '#packages/cts';
 
 const versionById = new Map(frameworkTypes.map(type => [type.id, type.version]));
 

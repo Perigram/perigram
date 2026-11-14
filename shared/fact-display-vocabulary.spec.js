@@ -9,7 +9,7 @@
 // titles and glyphs resolve through the one resolvers
 // (`titleFor`/`iconFor`), and the legacy residual fact channel is gone.
 import { describe, expect, it } from 'vitest';
-import { createTypeRegistry, compileClientBundle, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
+import { createTypeRegistry, compileClientBundle, frameworkTypes, projectDomainFromView } from '@perigram/cts/index';
 import { facadeFileTypes } from '../test-tools/facade-plugin.js';
 import techDrawingListing from '../workers/tech-drawing/listing.json';
 const techDrawingTypes = techDrawingListing.declarations.types;
@@ -20,7 +20,7 @@ import { instanceFactRows } from '../utils/fact-rows.js';
 import { registerDeclarationFieldAccess, filterEntityFields } from './instance-field-access.js';
 import { decorateDataValue } from '../utils/data-display.js';
 import { titleFor, iconFor, fieldLabel } from '../shared/ui-mapping/index.js';
-import { applyFieldDisplayRole, compileTreeDeclarations } from '../packages/processes/src/designer.js';
+import { applyFieldDisplayRole, compileTreeDeclarations } from '@perigram/processes/designer';
 
 // The served org view: framework + mounted packs (documents omitted here —
 // same composition as server/packs/declarations.js for the types under test).

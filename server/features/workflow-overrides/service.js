@@ -1,6 +1,6 @@
 import { createError } from 'h3';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
-import { normalizeWorkflow } from '#packages/core/src/index.js';
+import { normalizeWorkflow } from '#packages/core';
 import { resolveProcessWorkflow, getActiveCompiledProcess } from '~/server/features/process-definitions/runtime.js';
 import * as repository from './repository.js';
 

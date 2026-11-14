@@ -1,4 +1,4 @@
-import { resolveRoleAssignmentAccess } from '#packages/processes/src/index.js';
+import { resolveRoleAssignmentAccess } from '#packages/processes';
 import { hasPermissionGrant, normalizePermissionGrants } from './access-control.js';
 import { canDisplayEntityField, getActiveEntityFieldPolicyEntries } from './instance-field-access.js';
 

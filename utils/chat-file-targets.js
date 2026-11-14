@@ -4,7 +4,7 @@
 // children whose payload traits and `upload` creation protocol accept a
 // given file. The server re-validates every send — this is only the early
 // check that gates the composer's file input.
-import { payloadAccepts } from '~/packages/cts/src/index.js';
+import { payloadAccepts } from '@perigram/cts/index';
 
 const legacySpelling = (value) => String(value || '').replace(/_/g, '-').toLowerCase();
 

@@ -8,7 +8,7 @@
 //   node server/scripts/migrate-instance-tenancy.js          # dry-run counts
 //   node server/scripts/migrate-instance-tenancy.js --apply  # persist
 import { connectDB } from '../db/mongo.js';
-import { CLASS_COLLECTIONS } from '../../packages/cts/src/index.js';
+import { CLASS_COLLECTIONS } from '#packages/cts';
 
 export async function migrateInstanceTenancy(db, { apply = process.argv.includes('--apply') } = {}) {
   const summary = {};

@@ -7,7 +7,7 @@ import { createError } from 'h3';
 import * as repository from './repository.js';
 import {
   createTypeRegistry, compileClientBundle, frameworkTypes, planTypeMigration
-} from '~/packages/cts/src/index.js';
+} from '#packages/cts';
 import { isSupportedSurfaceContract, pluginModuleUrl } from '#shared/plugin-surfaces.js';
 import * as pluginInstalls from '../plugins/repository.js';
 

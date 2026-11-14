@@ -22,7 +22,7 @@
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { connectDB } from '../db/mongo.js';
-import { normalizeListing } from '../../packages/plugin-sdk/src/listing.js';
+import { normalizeListing } from '#packages/plugin-sdk/listing';
 
 const SERVICE_REWRITES = {
   'documents.csvText': 'plugin.documents.csv-text'

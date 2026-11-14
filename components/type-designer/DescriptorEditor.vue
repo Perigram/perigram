@@ -117,7 +117,7 @@ import InputText from 'primevue/inputtext';
 import MultiSelect from 'primevue/multiselect';
 import Select from 'primevue/select';
 import Message from 'primevue/message';
-import { describeType, UNITS, UNLINK_POLICIES } from '~/packages/cts/src/index.js';
+import { describeType, UNITS, UNLINK_POLICIES } from '@perigram/cts/index';
 import DescriptorBaseControl from '~/components/type-designer/DescriptorBaseControl.vue';
 
 const props = defineProps({

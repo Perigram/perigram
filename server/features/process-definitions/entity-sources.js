@@ -1,4 +1,4 @@
-import { normalizeInstanceRef } from '~/packages/core/src/index.js';
+import { normalizeInstanceRef } from '#packages/core';
 
 export async function processParentEntity(containment = [], resolveEntity, entity, typeId) {
   const relation = containment.find(item => sameTypeId(item.childType, typeId));

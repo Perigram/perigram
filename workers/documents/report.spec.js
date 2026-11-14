@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { composeReport, exportMarkdown, extractTable, parseMarkdown, renderReportHtml, renderReportPdf } from './report.js';
 import { services } from './services.js';
-import { checkSurfaceModule } from '../../packages/plugin-sdk/src/surface-check.js';
+import { checkSurfaceModule } from '@perigram/plugin-sdk/surface-check';
 import createReportSurface, { reportsOf } from './surfaces/report-preview.mjs';
 
 const SOURCE = [

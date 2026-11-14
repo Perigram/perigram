@@ -3,7 +3,7 @@
 // python3 lacks build123d — the catalog and listing still guard).
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { parseListing } from '../../packages/plugin-sdk/src/listing.js';
+import { parseListing } from '@perigram/plugin-sdk/listing';
 import catalog from './catalog.json' with { type: 'json' };
 import listing from './listing.json' with { type: 'json' };
 

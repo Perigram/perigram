@@ -3,7 +3,7 @@
 // client picker — the same expression filters what pickers offer and what
 // writes accept. Row convention matches transition guards: `{ value }` is
 // the target instance's stored row.
-import { evaluate } from '#packages/cts/src/index.js';
+import { evaluate } from '#packages/cts';
 
 export function relationDomainRow(entity = {}) {
   if (entity?.fields && typeof entity.fields === 'object') return entity.fields;

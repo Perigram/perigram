@@ -4,7 +4,7 @@ import {
   compileTreeDeclarations,
   interpretDeclarationEdges,
   normalizeDesignerAccess
-} from '#packages/processes/src/index.js';
+} from '@perigram/processes/index';
 import { mintId } from './processDesignerIdentity.js';
 import {
   declarationDiagnostics,

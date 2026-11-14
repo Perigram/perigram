@@ -1,4 +1,4 @@
-import { rowFieldId } from '~/packages/cts/src/index.js';
+import { rowFieldId } from '@perigram/cts/index';
 
 // The type-migration authoring seam (CTS SPEC §11/§14): the apply flow's
 // structured refusal (`data.plan` from the cts-types gate) becomes

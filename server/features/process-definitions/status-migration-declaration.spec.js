@@ -17,7 +17,7 @@ vi.mock('../plugins/repository.js', () => ({
     findInstallByConnectorToken: vi.fn(async () => null)
 }));
 vi.mock('../cts-types/service.js', async () => {
-    const cts = await import('~/packages/cts/src/index.js');
+    const cts = await import('@perigram/cts/index');
     const registry = cts.createTypeRegistry({ id: 'spec-cts' });
     for (const declaration of cts.frameworkTypes) registry.defineType(declaration);
     return { compileRegistryForOrganization: vi.fn(async () => registry) };
@@ -42,7 +42,7 @@ vi.mock('~/server/core/machines/service.js', async (importOriginal) => {
 vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
 vi.mock('~/server/features/instance-revisions/service.js', () => ({ getById: vi.fn() }));
 
-import { createDefinitionAuthoring } from '~/packages/processes/src/authoring.js';
+import { createDefinitionAuthoring } from '@perigram/processes/authoring';
 import * as processRepository from './repository.js';
 import { applyAuthoringSteps, declareStatusMappings } from './service.js';
 

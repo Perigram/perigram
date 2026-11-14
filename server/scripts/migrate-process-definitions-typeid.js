@@ -6,7 +6,7 @@
 // (graph-protocol `renameLegacyTypeKeys`), so this script persists what
 // hydration already normalizes — run with APPLY=1 to write.
 import { connectDB } from '../db/mongo.js';
-import { renameLegacyTypeKeys } from '../../packages/cts/src/index.js';
+import { renameLegacyTypeKeys } from '#packages/cts';
 
 const apply = process.env.APPLY === '1';
 

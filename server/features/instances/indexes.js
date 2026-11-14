@@ -3,7 +3,7 @@
 // a hand-mirrored list. `deriveInstanceIndexes` is pure over the view;
 // `ensureInstanceIndexes` applies every definition idempotently.
 import { connectDB } from '~/server/db/mongo';
-import { CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
+import { CLASS_COLLECTIONS } from '#packages/cts';
 
 function indexEntry(collection, keys) {
   return { collection, keys };

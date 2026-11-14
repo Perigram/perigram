@@ -7,6 +7,6 @@ definePageMeta({
   middleware: 'auth'
 });
 
-import { HOME_SCREEN_ROUTE } from '~/packages/processes/src/screen-contract.js';
+import { HOME_SCREEN_ROUTE } from '@perigram/processes/screen-contract';
 await navigateTo(HOME_SCREEN_ROUTE, { replace: true });
 </script>

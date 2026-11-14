@@ -1,5 +1,8 @@
 {
   "name": "@perigram/tech-drawing-executor",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@perigram/plugin-sdk": "file:../../packages/plugin-sdk"
+  }
 }

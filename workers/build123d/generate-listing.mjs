@@ -4,7 +4,7 @@
 // The listing validates through the SDK's parseListing before it is
 // written, so a catalog that cannot register refuses loudly.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { parseListing } from '../../packages/plugin-sdk/src/listing.js';
+import { parseListing } from '@perigram/plugin-sdk/listing';
 
 const catalog = JSON.parse(readFileSync(new URL('./catalog.json', import.meta.url), 'utf8'));
 const version = catalog.provenance.version;

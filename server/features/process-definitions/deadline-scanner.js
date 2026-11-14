@@ -10,7 +10,7 @@ import { toFlexibleId } from '~/server/utils/objectid.js';
 import { stateService } from '~/server/core/machines/service.js';
 import { declarationForType } from '~/server/features/instances/service.js';
 import { collectionForClass } from '~/server/features/instances/repository.js';
-import { durationMs } from '#packages/cts/src/index.js';
+import { durationMs } from '#packages/cts';
 
 const BATCH_LIMIT = 200;
 

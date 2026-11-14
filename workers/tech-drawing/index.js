@@ -5,7 +5,7 @@
 // and DXF editor surface modules (and their vendored runtime
 // dependencies) as static GETs — the platform's module proxy streams
 // them to browsers same-origin.
-import { createEndpointExecutor } from '../../packages/plugin-sdk/src/endpoint-executor.js';
+import { createEndpointExecutor } from '@perigram/plugin-sdk/endpoint-executor';
 import { services } from './services.js';
 import { fileURLToPath } from 'node:url';
 

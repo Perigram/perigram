@@ -1,10 +1,10 @@
 import { requireAuth } from '~/server/utils/permissions';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { projectDomainFromView } from '~/packages/cts/src/index.js';
+import { projectDomainFromView } from '#packages/cts';
 import { projectedDomainsForOrganization } from '~/server/features/plugins/service.js';
 import { projectedServicesForOrganization } from '~/server/features/plugins/service.js';
 import { compileRegistryForOrganization } from '~/server/features/cts-types/service.js';
-import { projectEntityProcessCapabilities } from '~/packages/processes/src/index.js';
+import { projectEntityProcessCapabilities } from '#packages/processes';
 
 function resolveOrganizationId(auth = {}) {
   return auth.organizationId || auth.memberships?.[0]?.organizationId || null;

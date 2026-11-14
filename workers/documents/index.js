@@ -5,7 +5,7 @@
 // see services.js (table decomposition, text extraction, CSV
 // composition). Surface modules and their vendored runtimes serve as
 // static GETs beside the services.
-import { createEndpointExecutor } from '../../packages/plugin-sdk/src/endpoint-executor.js';
+import { createEndpointExecutor } from '@perigram/plugin-sdk/endpoint-executor';
 import { services } from './services.js';
 import { fileURLToPath } from 'node:url';
 

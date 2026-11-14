@@ -1,6 +1,6 @@
 import { computed } from 'vue';
-import { operationKindOf } from '~/packages/cts/src/index.js';
-import { CONSUMER_SPECIES_KINDS } from '~/packages/processes/src/node-catalog.js';
+import { operationKindOf } from '@perigram/cts/index';
+import { CONSUMER_SPECIES_KINDS } from '@perigram/processes/node-catalog';
 
 const RECORD_KEYS = Object.freeze({
   processNode: 'processNodes',

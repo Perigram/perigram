@@ -1,4 +1,4 @@
-import { CLASS_COLLECTIONS } from '#packages/cts/src/index.js';
+import { CLASS_COLLECTIONS } from '#packages/cts';
 
 const COMMON_READ_FIELDS = [
   '_id',

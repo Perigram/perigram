@@ -36,8 +36,8 @@ vi.mock('../plugins/repository.js', () => ({
     findInstallByConnectorToken: vi.fn(async () => null)
 }));
 vi.mock('../cts-types/service.js', async () => {
-    const cts = await import('~/packages/cts/src/index.js');
-    const pack = await import('~/packages/cts/src/pack/cnc.js');
+    const cts = await import('@perigram/cts/index');
+    const pack = await import('@perigram/cts/pack/cnc');
     const domainPack = await import('../../../test-tools/facade-plugin.js');
     const registry = cts.createTypeRegistry({ id: 'spec-cts' });
     for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack, ...domainPack.facadeFileTypes]) {

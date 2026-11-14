@@ -33,7 +33,7 @@ import Button from 'primevue/button';
 import InputGroup from 'primevue/inputgroup';
 import Select from 'primevue/select';
 import { resolveActionButton } from '#shared/ui-mapping/index.js';
-import { creationModeLabel } from '~/packages/processes/src/ui-contract-projection.js';
+import { creationModeLabel } from '@perigram/processes/ui-contract-projection';
 import { generatedCreateLabel } from '~/utils/generated-labels.js';
 import ActionButton from './ActionButton.vue';
 

@@ -5,12 +5,12 @@ import {
   resolveEffectiveAccess,
   resolveNavigation,
   resolveScreens
-} from '~/packages/processes/src/index.js';
+} from '#packages/processes';
 import { projectedDomainsForOrganization } from '~/server/features/plugins/service.js';
 import { projectedServicesForOrganization, exportersForOrganization } from '~/server/features/plugins/service.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
-import { compileClientBundle, projectDomainFromView } from '~/packages/cts/src/index.js';
-import { projectManifestAction, projectUiAction, projectUiScreen } from '~/packages/processes/src/ui-contract-projection.js';
+import { compileClientBundle, projectDomainFromView } from '#packages/cts';
+import { projectManifestAction, projectUiAction, projectUiScreen } from '#packages/processes/ui-contract-projection';
 import * as repository from './repository.js';
 import { mergeActiveDefinitions } from './compiler-adapter.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';

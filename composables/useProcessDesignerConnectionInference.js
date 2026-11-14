@@ -1,4 +1,4 @@
-import { propagateConnectionType } from '~/packages/processes/src/index.js';
+import { propagateConnectionType } from '@perigram/processes/index';
 
 export function useProcessDesignerConnectionInference({ nodes, draft, resolveOutputs, portForHandle, syncProcessNode }) {
   function inferGenericNodeTypeFromConnection(connection = {}) {

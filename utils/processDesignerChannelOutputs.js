@@ -1,4 +1,4 @@
-import { formatProcessType } from '~/packages/processes/src/index.js';
+import { formatProcessType } from '@perigram/processes/index';
 
 // Pure preview-output display (SPEC §28): the branch/value formatters
 // every output surface shares, and the built-in outputs channel's entry

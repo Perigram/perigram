@@ -202,7 +202,7 @@
     import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
     import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js'
     import { resolveDefaultHomeScreen, resolveProcessEntryRoute, screenByKey } from '~/utils/process-navigation.js'
-    import { HOME_SCREEN_ROUTE } from '~/packages/processes/src/screen-contract.js'
+    import { HOME_SCREEN_ROUTE } from '@perigram/processes/screen-contract'
     import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js'
     import { useThemeMode } from '~/composables/useThemeMode.js'
 

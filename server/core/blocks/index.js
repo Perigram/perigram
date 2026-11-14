@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { Identity, Status, Lineage } from '#packages/core/src/index.js';
+import { Identity, Status, Lineage } from '#packages/core';
 
 export {
   Identity,
@@ -23,7 +23,7 @@ export {
   getRegionState,
   getStatusRegions,
   normalizeStatusState
-} from '#packages/core/src/index.js';
+} from '#packages/core';
 
 export const createIdentity = (name, slug, serial = '', reference = '') =>
   new Identity(slug || name, name, slug, serial, reference);

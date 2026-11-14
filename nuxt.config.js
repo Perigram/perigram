@@ -9,7 +9,6 @@ const devHmrProtocol = process.env.NUXT_DEV_HMR_PROTOCOL || 'ws'
 const devHmrClientPort = Number(process.env.NUXT_DEV_HMR_CLIENT_PORT || 3000)
 const portableAliases = {
     '#shared': resolveRoot('./shared'),
-    '#packages': resolveRoot('./packages'),
     '#utils': resolveRoot('./utils')
 }
 const cssDeclarations = tokens => Object.entries(tokens).map(([name, value]) => `${name}:${value}`).join(';')

@@ -1,7 +1,7 @@
 import { createError } from 'h3';
 import standardSlugify from 'standard-slugify';
 import { ObjectId } from 'mongodb';
-import { normalizeInstanceRef } from '~/packages/core/src/index.js';
+import { normalizeInstanceRef } from '#packages/core';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { executeCommand } from '~/server/core/commands/service.js';
 import { createStatusState } from '~/server/core/blocks/index.js';
@@ -29,8 +29,8 @@ import {
   authoredSocketDefault,
   isDataTree,
   packetValue
-} from '~/packages/processes/src/index.js';
-import { createDefinitionAuthoring, collapseEffectAccessGrants, emptyAuthoredDocument, graphEdgeSocketProblems, graphIntegrityProblems } from '~/packages/processes/src/authoring.js';
+} from '#packages/processes';
+import { createDefinitionAuthoring, collapseEffectAccessGrants, emptyAuthoredDocument, graphEdgeSocketProblems, graphIntegrityProblems } from '#packages/processes/authoring';
 import { persistRun, persistEvent, markEventDispatched } from './run-store.js';
 import {
   getBlockFieldSchema,
@@ -50,7 +50,7 @@ import { compileActiveProcessRuntime, getActiveMergedDataForOrganization } from 
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
-import { operationKindOf, projectDomainFromView, orientChildrenEdgesChildFirst, rewriteRetiredWirePaths, retireStateScopeAuthoring } from '~/packages/cts/src/index.js';
+import { operationKindOf, projectDomainFromView, orientChildrenEdgesChildFirst, rewriteRetiredWirePaths, retireStateScopeAuthoring } from '#packages/cts';
 import { withinRelationDomain } from '#shared/relation-domain.js';
 import { projectedDomainsForOrganization, projectedServicesForOrganization, starterConstructsForOrganization, resolveProjectionValue } from '~/server/features/plugins/service.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
@@ -69,7 +69,7 @@ import {
   tryAcceptGraphProtocol,
   validateActivatableProcess
 } from './compiler-adapter.js';
-import { compileTreeDeclarations, createProcessRun, advanceProcessRun, migrateProducerOutputIdentities } from '~/packages/processes/src/index.js';
+import { compileTreeDeclarations, createProcessRun, advanceProcessRun, migrateProducerOutputIdentities } from '#packages/processes';
 import {
   processChildEntities,
   processParentEntity,

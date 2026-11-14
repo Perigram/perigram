@@ -318,7 +318,7 @@ import { useInstancesStore } from '~/stores/instances';
 import { useDirectoryUserSearch } from '~/composables/useDirectoryUserSearch.js';
 import { useRegistryStore } from '~/stores/registry';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
-import { discoverAssignmentBindingRequirements } from '~/packages/processes/src/index.js';
+import { discoverAssignmentBindingRequirements } from '@perigram/processes/index';
 import { previewAssignmentAccess } from '~/shared/assignment-access-preview.js';
 
 definePageMeta({

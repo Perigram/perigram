@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref, watchEffect } from 'vue';
 import { useAuthStore } from './auth';
-import { createTypeRegistry, projectDomainFromView } from '~/packages/cts/src/index.js';
+import { createTypeRegistry, projectDomainFromView } from '@perigram/cts/index';
 import { registerDeclarationFieldAccess } from '#shared/instance-field-access.js';
 
 // The compiled CTS client bundle as first-class client state. The bundle is

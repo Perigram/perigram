@@ -15,14 +15,14 @@ import { instanceServiceResolver, invalidateInstanceDeclarations } from '../inst
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
-import { planTypeMigration } from '~/packages/cts/src/index.js';
+import { planTypeMigration } from '#packages/cts';
 import { findTypeReferences } from '../process-definitions/service.js';
 import { applyTypeRename } from './type-rename.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask } from '../../core/tasks/service.js';
 import * as filesService from '../files/service.js';
-import { parseListing, normalizeListing } from '#packages/plugin-sdk/src/listing.js';
+import { parseListing, normalizeListing } from '#packages/plugin-sdk/listing';
 import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-surfaces.js';
 
 // Connector command ids: plugin.<pluginId>.<serviceId>; the install's

@@ -174,7 +174,7 @@ import Select from '~/components/shared/InstanceSelect.vue';
 import FieldDeclarationForm from '~/components/type-designer/FieldDeclarationForm.vue';
 import StateDeclarationForm from '~/components/type-designer/StateDeclarationForm.vue';
 import GlyphSelect from '~/components/type-designer/GlyphSelect.vue';
-import { DECLARABLE_CLASSES, CREATION_PROTOCOLS } from '~/packages/cts/src/index.js';
+import { DECLARABLE_CLASSES, CREATION_PROTOCOLS } from '@perigram/cts/index';
 import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({

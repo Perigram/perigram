@@ -8,7 +8,7 @@
 // authored a producer output must also delete the producer-output record.
 import { describe, expect, it } from 'vitest';
 import { ref } from 'vue';
-import { interpretDeclarationEdges } from '~/packages/processes/src/designer.js';
+import { interpretDeclarationEdges } from '@perigram/processes/designer';
 import { useProcessDesignerLiveGraph } from '~/composables/useProcessDesignerLiveGraph.js';
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 

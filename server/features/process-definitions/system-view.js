@@ -4,7 +4,7 @@
 // catalog (org-authored types resolve through the async ctsProjectedDomain
 // paths; these lookups serve the system vocabulary the runtimes and
 // catalog contexts read synchronously).
-import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '~/packages/cts/src/index.js';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#packages/cts';
 
 let viewCache = null;
 let blockSchemaByPath = null;

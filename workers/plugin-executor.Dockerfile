@@ -12,12 +12,12 @@ WORKDIR /app
 ENV HTTP_PROXY=http://192.168.0.100:12334 \
     HTTPS_PROXY=http://192.168.0.100:12334 \
     NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.77.0.0/16
+COPY packages/plugin-sdk ./packages/plugin-sdk
 COPY workers/${PLUGIN}/package.json ./workers/${PLUGIN}/package.json
 WORKDIR /app/workers/${PLUGIN}
 RUN npm install --omit=dev
 ENV HTTP_PROXY= HTTPS_PROXY=
 WORKDIR /app
-COPY packages/plugin-sdk ./packages/plugin-sdk
 COPY workers/${PLUGIN} ./workers/${PLUGIN}
 WORKDIR /app/workers/${PLUGIN}
 CMD ["node", "index.js"]

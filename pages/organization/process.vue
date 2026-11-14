@@ -600,7 +600,7 @@ import TypeMigrationStepsDialog from '~/components/process-designer/TypeMigratio
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import PermissionEditor from '~/components/PermissionEditor.vue';
-import { projectUiAction } from '~/packages/processes/src/ui-contract-projection.js';
+import { projectUiAction } from '@perigram/processes/ui-contract-projection';
 import {
   canvasToDefinition,
   compileProcessDefinition,
@@ -608,9 +608,9 @@ import {
   normalizeDesignerAccess,
   prepareAuthoredDefinition,
   PROCESS_DATAFLOW_VERSION
-} from '~/packages/processes/src/index.js';
-import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
-import { checkDeclarationsAgainstCts, compileClientBundle } from '~/packages/cts/src/index.js';
+} from '@perigram/processes/index';
+import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '@perigram/processes/screen-contract';
+import { checkDeclarationsAgainstCts, compileClientBundle } from '@perigram/cts/index';
 import LaneBands from '~/components/process-designer/LaneBands.vue';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';

@@ -11,8 +11,8 @@ import { useProcessDesignerNodeSync } from '~/composables/useProcessDesignerNode
 import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
 import { useProcessDesignerTypes } from '~/composables/useProcessDesignerTypes.js';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
-import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '~/packages/cts/src/index.js';
-import { cncTypePack } from '~/packages/cts/src/pack/cnc.js';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '@perigram/cts/index';
+import { cncTypePack } from '@perigram/cts/pack/cnc';
 import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
 
 const registry = createTypeRegistry({ id: 'repro' });
@@ -94,7 +94,7 @@ describe('palette placement flow', () => {
 
   it('socket spec lines tolerate every species record', async () => {
     const { socketSpecLine } = await import('~/composables/useNodeSpec.js');
-    const { formatProcessType } = await import('~/packages/processes/src/index.js');
+    const { formatProcessType } = await import('@perigram/processes/index');
     draft.value = { data: { processNodes: {}, producerOutputs: {} } };
     for (const item of Object.values(presets)) {
       const { record } = placeNode(item, `spec_${item.kind}`);

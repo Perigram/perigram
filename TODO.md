@@ -26,7 +26,7 @@ from remaining proof and verification.
   from regressions in SPEC §30.
 - [x] Convert package-internal cross-imports to public package names and
   declare the `processes` → (`core`, `cts`) versioned workspace dependencies.
-- [ ] Replace the 165 inventoried application source-path imports with
+- [ ] Replace the 160 inventoried application source-path imports with
   package-name imports through the declared public export maps; then pin the
   zero-source-path invariant in CI.
 - [ ] Complete the route/command/transition/feature authorization call graph

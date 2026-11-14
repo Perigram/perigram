@@ -1,5 +1,5 @@
 import { computed, watch } from 'vue';
-import { interpretDeclarationEdges } from '~/packages/processes/src/designer.js';
+import { interpretDeclarationEdges } from '@perigram/processes/designer';
 
 // The designer's live evaluation loop. Authoring state (canvas nodes minus
 // presentation, edges, draft records) folds into one semantic signature;

@@ -3,7 +3,7 @@
 // bindings. Bare-id refs stay as they are — the record keeps its id
 // through the rename.
 import { connectDB } from '~/server/db/mongo';
-import { CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
+import { CLASS_COLLECTIONS } from '#packages/cts';
 
 function rewriteRefs(value, from, to, state) {
   if (Array.isArray(value)) {

@@ -1,5 +1,5 @@
 import { isDetailScreenTemplate } from '~/utils/action-visibility.js';
-import { HOME_SCREEN_ROUTE } from '~/packages/processes/src/screen-contract.js';
+import { HOME_SCREEN_ROUTE } from '@perigram/processes/screen-contract';
 
 import {
   actionToLevel,

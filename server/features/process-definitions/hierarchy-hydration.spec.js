@@ -47,8 +47,8 @@ vi.mock('../plugins/repository.js', () => ({
   findInstallByConnectorToken: vi.fn(async () => null)
 }));
 vi.mock('../cts-types/service.js', async () => {
-  const cts = await import('~/packages/cts/src/index.js');
-  const pack = await import('~/packages/cts/src/pack/cnc.js');
+  const cts = await import('@perigram/cts/index');
+  const pack = await import('@perigram/cts/pack/cnc');
   const registry = cts.createTypeRegistry({ id: 'spec-cts-org' });
   for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack]) {
     registry.defineType(declaration);
@@ -68,7 +68,7 @@ vi.mock('~/server/runtime/app-registry.js', () => ({
 
 import * as repository from './repository.js';
 import { resolveProcessAuth } from './runtime.js';
-import { PROCESS_DATAFLOW_VERSION } from '#packages/processes/src/index.js';
+import { PROCESS_DATAFLOW_VERSION } from '@perigram/processes/index';
 
 function orgHierarchyProcess() {
   const producer = (nodeId, typeId) => ({

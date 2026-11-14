@@ -12,7 +12,7 @@
 // so a broken listing refuses loudly instead of entering the catalog.
 import { readFileSync } from 'node:fs';
 import { connectDB } from '../db/mongo.js';
-import { normalizeListing } from '../../packages/plugin-sdk/src/listing.js';
+import { normalizeListing } from '#packages/plugin-sdk/listing';
 
 const BUILTIN_LISTING_PATHS = [
   'workers/documents/listing.json',

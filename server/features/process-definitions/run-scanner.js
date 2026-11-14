@@ -2,7 +2,7 @@
 // authored time, fires due entry schedules, and delivers undispatched
 // events — one sweep, the deadline-scanner's shape.
 import { connectDB } from '~/server/db/mongo.js';
-import { durationMs } from '#packages/cts/src/index.js';
+import { durationMs } from '#packages/cts';
 import { findDueWakeRuns, findLastScheduleFire, findPendingEvents, markEventDispatched, markEventFailed } from './run-store.js';
 import { resumeParkedRun, runDefinitionEntry } from './service.js';
 

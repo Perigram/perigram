@@ -4,6 +4,14 @@
   "type": "module",
   "imports": {
     "#shared/*": "./shared/*",
+    "#packages/core": "@perigram/core",
+    "#packages/core/*": "@perigram/core/*",
+    "#packages/cts": "@perigram/cts",
+    "#packages/cts/*": "@perigram/cts/*",
+    "#packages/processes": "@perigram/processes",
+    "#packages/processes/*": "@perigram/processes/*",
+    "#packages/plugin-sdk": "@perigram/plugin-sdk",
+    "#packages/plugin-sdk/*": "@perigram/plugin-sdk/*",
     "#packages/*": "./packages/*",
     "#utils/*": "./utils/*",
     "#test-data/*": "./test-data/*"

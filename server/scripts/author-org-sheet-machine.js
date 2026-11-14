@@ -10,8 +10,8 @@
 // Without --apply the script prints the plan and makes no writes.
 import { randomBytes } from 'node:crypto';
 import { connectDB } from '../db/mongo.js';
-import { createTypeRegistry, projectDomainFromView } from '../../packages/cts/src/index.js';
-import { createDefinitionAuthoring } from '../../packages/processes/src/authoring.js';
+import { createTypeRegistry, projectDomainFromView } from '#packages/cts';
+import { createDefinitionAuthoring } from '#packages/processes/authoring';
 import facadeListing from '../../workers/facade/listing.json' with { type: 'json' };
 
 const APP = process.env.APP_URL || 'http://localhost:3000';

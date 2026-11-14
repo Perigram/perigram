@@ -2,7 +2,7 @@ import { labelKeyForType } from '~/utils/design-system-contract.js';
 import { typeLabelFor } from '#shared/ui-mapping/index.js';
 import { useRegistryStore } from '~/stores/registry';
 import { isCreateAction, isRelationLinkAction, isRelationUnlinkAction, isUpdateAction } from '~/utils/action-visibility.js';
-import { creationModeLabel } from '~/packages/processes/src/ui-contract-projection.js';
+import { creationModeLabel } from '@perigram/processes/ui-contract-projection';
 
 // The app binding of the one type-label chain (`typeLabelFor`,
 // shared/ui-mapping; canonical contract in its README). The registry

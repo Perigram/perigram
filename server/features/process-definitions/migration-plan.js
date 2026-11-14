@@ -1,6 +1,6 @@
 // Canonical contract: README §Migration gate and plan.
 import { createError } from 'h3';
-import { primaryStates } from '~/packages/processes/src/index.js';
+import { primaryStates } from '#packages/processes';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { stateService } from '~/server/core/machines/service.js';
 import * as entityEventService from '../instance-events/service.js';

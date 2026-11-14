@@ -221,7 +221,7 @@ import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { openInstanceChat } from '~/utils/instance-chat.js';
 import { useAuthStore } from '~/stores/auth';
-import { PAGE_TYPE_ID } from '~/packages/cts/src/index.js';
+import { PAGE_TYPE_ID } from '@perigram/cts/index';
 import ActionButton from './ActionButton.vue';
 import TraceChain from '../shared/links/TraceChain.vue';
 import BackControl from '../shared/BackControl.vue';

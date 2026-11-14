@@ -1,7 +1,7 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 import { resolveOrganizationId } from '~/server/utils/organization-scope.js';
-import { PAGE_TYPE_ID, pageTypeDeclaration } from '~/packages/cts/src/index.js';
+import { PAGE_TYPE_ID, pageTypeDeclaration } from '#packages/cts';
 import { normalizePageDocument } from '#shared/page-document.js';
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
 import * as repository from './repository.js';
