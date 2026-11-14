@@ -1,6 +1,6 @@
 import { defineEventHandler, getHeader, getRouterParam, readRawBody, getQuery } from 'h3';
 import { requirePlatformOperator } from '~/server/utils/permissions';
-import * as pluginsService from '../../../../features/plugins/service.js';
+import * as pluginsService from '../../../../../features/plugins/service.js';
 
 // A client-carried package asset (SPEC §20): the operator PUTs the
 // engine's modules and runtime files beside the listing, keyed by the
