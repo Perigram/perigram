@@ -8,10 +8,10 @@ import { describe, it, expect } from 'vitest';
 import {
   createTypeRegistry, projectDomainFromView,
   resolveCtsDefinition, checkCtsGraphBindings
-} from '@perigram/cts/index';
+} from '#packages/cts';
 import { cncTypePack } from '@perigram/cts/pack/cnc';
 import { frameworkTypes } from '@perigram/cts/pack/framework';
-import { compileProcessDefinition, PROCESS_DATAFLOW_VERSION } from '@perigram/processes/index';
+import { compileProcessDefinition, PROCESS_DATAFLOW_VERSION } from '#packages/processes';
 function registry() {
   const view = createTypeRegistry({ id: 'v5-acceptance' });
   for (const declaration of [...frameworkTypes, ...cncTypePack]) {

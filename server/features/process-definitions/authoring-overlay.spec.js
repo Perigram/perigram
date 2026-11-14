@@ -18,7 +18,7 @@ vi.mock('../plugins/repository.js', () => ({
     findInstallByConnectorToken: vi.fn(async () => null)
 }));
 vi.mock('../cts-types/service.js', async () => {
-    const cts = await import('@perigram/cts/index');
+    const cts = await import('#packages/cts');
     const registry = cts.createTypeRegistry({ id: 'spec-cts' });
     for (const declaration of cts.frameworkTypes) registry.defineType(declaration);
     return { compileRegistryForOrganization: vi.fn(async () => registry) };
