@@ -27,17 +27,25 @@ pure compute).
   (JSON payload, upload creation, content revisions) compiles in every
   registry view and projects as an authorable instance; graph documents
   are creatable, referenceable, and payload-carrying today.
-- [ ] G1b Canvas session extraction — the shared graph core moves from
+- [x] G1b Canvas session extraction — the shared graph core moves from
   `pages/organization/process.vue` into one session composable (nodes,
   records, enrichment, sync, decorators, connect, placement, palettes,
   declaration diagnostics; the declaration-factory literal deduped out
   of the page and the spec harnesses); the process page consumes it
-  unchanged in behavior.
+  unchanged in behavior. Landed 2026-11-14:
+  `composables/useProcessDesignerGraphSession.js` — the page composes it
+  with lane seeding and the process plane stays page-owned; behavior
+  guarded by the full suites and the process-page SSR smoke (the page
+  carries no unit spec of its own).
 - [ ] G1c Graph editor surface — the session composable mounts inside
   the platform file-surface registry (`fileSurfaceRegistry` plus the
   `graph-document` editor binding, creation protocol 'editor'), with
   payload load/save through `instancePayloadPersistence` and the
   workspace editor chrome (blank open, write-grant mode).
+- [ ] WAITING — owner verification: G1b — the process designer behaves
+  as before over the session composable: authoring, wiring, live
+  re-binding, palettes, diagnostics, save/apply all stand (full suites
+  814 ✓, SSR smoke 27 ✓ on the session refactor).
 - [ ] WAITING — owner verification: G1a — a `graph-document` instance
   creates from its class collection with an uploaded JSON payload, keeps
   content revisions per payload save, and serves as a ref target for
@@ -54,6 +62,28 @@ pure compute).
 - [ ] G5 Procedural persistence — effects/constructs that write computed
   values into file instances (STEP shape → `b3d-part`, rendered PDF →
   the documents file types); value services stay pure compute.
+
+### Agent Notes (2026-11-14, agent/graph-session-20261114)
+
+- G1b landed. `composables/useProcessDesignerGraphSession.js`: the
+  canvas authoring core (graph state, records, sync/enrichment, wire
+  legality and decoration, placement, palettes, declaration
+  diagnostics, inspector seams) with the host injecting the draft ref,
+  roles, activeOrganizationId, preview persistence, the filtered
+  graph-evaluation ref, and a placement seed. The process page
+  (3320 → ~2130 lines) composes the session with lane seeding and keeps
+  the process plane (definitions lifecycle, lanes/grants, roles,
+  screens, apply ceremony, reconcile). No template change — every
+  binding resolves from the session destructure.
+- The session reproduces the page's ordering contracts: the
+  late-bound sync wrapper, hoisted authoring functions, and the
+  diagnostics re-stamp watcher; `loadDocument` carries the host's
+  `seedNodes`/`onLoaded` hooks (the page seeds lane facts and takes its
+  baselines there).
+- Validation: composables + processes + cts + localization +
+  design-system 814 ✓, full SSR smoke 27 ✓, `check-arch` ✓,
+  `docs:validate` ✓. The page keeps no unit spec of its own (as
+  before); G1c's surface will exercise the session a second time.
 
 ### Agent Notes (2026-11-14, agent/graph-doc-type-20261114)
 

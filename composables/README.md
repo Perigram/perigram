@@ -367,6 +367,15 @@ rubber-band (`useProcessDesignerCanvasModel.spec.js` drives the full
 lifecycle — declaration authoring, wiring, renames, deletions — against this
 invariant).
 
+- `useProcessDesignerGraphSession` is the canvas authoring core every graph
+  document mounts (SPEC §28): nodes/edges/records, the record sync and
+  `enrichNodeData` passes, wire legality and decoration, placement, the
+  palettes, declaration diagnostics, and the inspector seams, with the host
+  injecting `draft` (the document ref), `roles`, `activeOrganizationId`,
+  `persistence` (`previewDraft`), `graphEvaluation`, and a placement seed.
+  The process page mounts it over a process definition with lane seeding;
+  the graph editor surface mounts it over a `graph-document` payload.
+
 - `useProcessDesignerLiveGraph` is the realtime evaluation loop: one
   semantic signature over authoring state (nodes minus presentation, edges,
   draft records) re-runs `interpretDeclarationEdges`

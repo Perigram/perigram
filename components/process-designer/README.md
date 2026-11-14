@@ -578,6 +578,10 @@ connection inference, palette queries, roles, screens, and panel state
 live in the focused `useProcessDesigner*` composables; pure projections
 in `utils/processDesigner*.js`:
 
+- `useProcessDesignerGraphSession` — the canvas authoring core
+  ([composables](../../composables/README.md) owns the contract): the
+  page composes it and owns the process plane — the definitions
+  lifecycle, lanes, roles, screens, and the Apply ceremony — around it.
 - `useProcessDesignerTypes` — the CTS registry generation, the projected
   designer contract, and the live tree overlay (one registry per overlay
   signature; APPLY persists declarations through
