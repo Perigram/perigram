@@ -110,13 +110,7 @@ export async function directorySearch(query, limit = 10) {
 }
 
 export async function update(uid, updates, auth = {}) {
-  const raw = await repository.findById(uid);
-  if (!raw) throw createError({ statusCode: 404, message: 'Organization not found' });
-  const org = new Organization(raw);
-  
-  if (!hasPermission({ permissions: resolveAuthPermissions(auth) }, 'organizations', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
+  const org = await loadManagedOrganization(uid, auth, 'write');
 
   if (updates.name) org.identity.name = updates.name;
   org.data = { ...org.data, ...(updates.data || {}) };
@@ -147,9 +141,7 @@ export async function updateSettingsSection(organizationId, section, value, auth
 }
 
 export async function remove(uid, auth = {}) {
-  if (!hasPermission({ permissions: resolveAuthPermissions(auth) }, 'organizations', 'admin')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
+  await loadManagedOrganization(uid, auth, 'admin');
   return await repository.deleteById(uid);
 }
 
