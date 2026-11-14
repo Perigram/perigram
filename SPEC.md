@@ -1762,7 +1762,7 @@ implementation and delivery mechanisms, not product domains.
 |---|---|---|
 | Type language and declarations | `packages/cts` | Types, fields, references, relations, containment, state declarations, operators, expressions, validation, and evolution. |
 | Entity block DTOs and generic definition helpers | `packages/core` | Retain only concepts distinct from CTS; consolidate overlap rather than maintaining competing model vocabularies. |
-| Process authoring and compilation | `packages/processes` | Consumes CTS declarations; does not define a second type system. |
+| Process authoring and compilation | `packages/processes` | Consumes CTS declarations. Its richer socket/dataflow grammar is a separate runtime wire algebra, explicitly adapted to CTS field types; it does not own stored type declarations. |
 | Workflow lifecycle contracts | CTS declarations plus the one lifecycle runtime contract | Resolve overlap among CTS state semantics, `packages/workflows`, and runtime state helpers; do not preserve duplicate state models. |
 | Persistence and execution | Application runtime and feature owners | Runtime composes services; feature modules own their data and write paths. |
 | Authorization | One access authority | Routes, commands, transitions, and features delegate to the same policy implementation. |
@@ -1808,6 +1808,15 @@ or that the pre-simplification baseline has been captured.
   architecture, framework, docs, and plugin checks passed. The remaining 17
   test failures are in 11 files and are still unclassified against the
   pre-simplification head.
+- The model-contract comparison does not justify merging core, CTS, and
+  process types. Core's canonical entity blocks and DTOs describe the stored
+  entity envelope; CTS describes declared types and row fields; the process
+  grammar describes runtime sockets/dataflow (including runtime-only bases
+  such as `taskRef`, `error`, and `void`). `packages/cts/src/process-grammar.js`
+  is the explicit adapter between CTS field descriptors and process socket
+  types. CTS SPEC explicitly states that the runtime grammar is richer and
+  does not replace the declaration value grammar. Keep these contracts
+  distinct; consolidate only duplicate helpers within a layer.
 - Source inspection confirms the intended downward package edges in the
   inspected implementation: `processes` consumes CTS and workflow contracts
   and the core entity-block contract; `workflows` consumes core's shared
