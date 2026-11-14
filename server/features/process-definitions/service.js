@@ -1041,6 +1041,20 @@ async function resolveManualRelationMutation(typeId, targetId, mutation = {}, ac
   const targetValue = getByPath(mutation, `relations.${key}`);
   const targetRef = normalizeRelationRef(targetValue, contract?.targetTypes);
   await assertRelationTargetAvailable(targetRef, contract, auth);
+  // Unlink-with-delete is a second write against the related entity, not
+  // implied by the owner's relation-edit grant. Authorize it before the
+  // owner patch so a denied delete cannot leave a half-applied unlink.
+  if (contract?.operation === 'unlink' && contract.unlink === 'delete') {
+    const targetService = getAppRegistry().getInstanceService(targetRef.type);
+    const targetEntity = await loadProcessEffectEntity(targetService, targetRef.type, targetRef, auth);
+    assertEntityAccess({
+      entity: targetEntity,
+      typeId: targetRef.type,
+      feature: resolveInstanceFeature(targetRef.type),
+      level: 'write',
+      auth
+    });
+  }
   const replacementRef = mutation.relationReplaces
     ? normalizeRelationRef(mutation.relationReplaces, contract?.targetTypes)
     : null;
