@@ -196,14 +196,17 @@ export async function describeOrganizationTypes(organizationId) {
       }
       // Client-carried engines (SPEC §20): the served binding carries the
       // proxied entry-module URL — the package store serves it — beside
-      // the local-bound service ids, so the browser owns their dispatch.
+      // the plugin-qualified ids of its local services (the ids graphs
+      // reference), so the browser owns their dispatch.
       const engine = install.declarations?.engine;
       if (engine?.module) {
         clientEngines.push(Object.freeze({
           pluginId: install.pluginId,
           version: String(install.version || ''),
           url: `/api/plugins/${encodeURIComponent(install.pluginId)}/module${engine.module}`,
-          services: (install.services || []).filter(service => service?.mode === 'local').map(service => service.id)
+          services: (install.services || [])
+            .filter(service => service?.mode === 'local')
+            .map(service => `plugin.${install.pluginId}.${service.id}`)
         }));
       }
       for (const editor of install.declarations?.editors || []) {

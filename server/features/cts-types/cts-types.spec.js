@@ -138,7 +138,7 @@ describe('cts type storage', () => {
         pluginId: 'coatings',
         version: '2',
         url: '/api/plugins/coatings/module/engine/index.mjs',
-        services: ['spin']
+        services: ['plugin.coatings.spin']
       }
     ]);
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
