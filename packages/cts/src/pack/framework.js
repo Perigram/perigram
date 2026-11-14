@@ -60,5 +60,24 @@ export const frameworkTypes = [
     name: 'Process definition',
     glyph: 'pi pi-sitemap',
     fields: { name: { base: 'string', identifier: true } }
+  },
+  // The graph document (SPEC §28): an authored graph as an ordinary
+  // instance — a JSON payload of semantic records, content-addressed by
+  // the files contract, referenceable and embeddable like any file.
+  {
+    id: 'graph-document',
+    class: 'file',
+    scope: 'system',
+    version: 1,
+    name: 'Graph',
+    glyph: 'pi pi-share-alt',
+    payload: {
+      mime: ['application/json'],
+      accept: ['.json', 'application/json'],
+      maxSize: 5242880,
+      creation: ['upload']
+    },
+    revisions: 'content',
+    fields: { name: { base: 'string', identifier: true } }
   }
 ];

@@ -1,5 +1,14 @@
 {
-  "attachmentKinds": [],
+  "attachmentKinds": [
+    {
+      "key": "graph-document",
+      "kind": "graph-document",
+      "mimeType": "application/json",
+      "preview": {
+        "mode": "download"
+      }
+    }
+  ],
   "commands": [
     {
       "action": "generate",
@@ -621,6 +630,16 @@
   "entities": [
     {
       "blocks": [
+        "fields",
+        "lineage",
+        "relations"
+      ],
+      "collection": "files",
+      "lineage": {},
+      "type": "graph-document"
+    },
+    {
+      "blocks": [
         "fields"
       ],
       "collection": null,
@@ -668,6 +687,11 @@
     }
   ],
   "routes": [
+    {
+      "list": null,
+      "single": null,
+      "type": "graph-document"
+    },
     {
       "list": null,
       "single": null,
