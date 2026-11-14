@@ -12,7 +12,6 @@
     "#packages/processes/*": "@perigram/processes/*",
     "#packages/plugin-sdk": "@perigram/plugin-sdk",
     "#packages/plugin-sdk/*": "@perigram/plugin-sdk/*",
-    "#packages/*": "./packages/*",
     "#utils/*": "./utils/*",
     "#test-data/*": "./test-data/*"
   },
