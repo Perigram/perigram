@@ -538,7 +538,7 @@ describe('status service lifecycle payloads', () => {
         main: {
           initial: 'new',
           states: { new: {}, active: {} },
-          transitions: [{ from: 'new', to: 'active', intent: 'activate' }]
+          transitions: [{ from: 'new', to: 'active', intent: 'activate', access: { system: true } }]
         }
       }
     });
