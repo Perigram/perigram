@@ -1862,6 +1862,13 @@ the current implementation already conforms.
   upload/storage adapters, background workers, and the remaining API routes
   still require a separate write-owner inventory. No code change was warranted
   by this scan.
+- State projection decomposition: pure persistence/engine shape adapters
+  now live in `server/core/machines/status-projection.js`: metadata filtering,
+  legacy state-axis filtering, flat instance-state writes, primary-region
+  selection, display metadata merge, and stored-instance engine views. The
+  service imports these helpers; no workflow orchestration or I/O moved.
+  Focused tests cover legacy and flat shapes, evidence filtering, metadata
+  precedence, and primary-region behavior.
 - State-machine event-record decomposition: status ledger envelope creation,
   actor/principal classification, and lifecycle evidence projection now live
   in the pure `event-records.js` module. The service retains orchestration and
@@ -1943,6 +1950,14 @@ the current implementation already conforms.
   check. Regression coverage exercises that no-permission command case.
   These are targeted boundary fixes, not completion of the
   route/command/transition/feature call-graph audit.
+- CI for status event-record decomposition (`5db8b57`): focused machine
+  tests passed (22/22) and event-record tests passed (3/3). Full Vitest run
+  completed with 12 failed files / 18 failed tests and 250 passed files /
+  2,696 passed tests (2,714 total); SSR smoke tests passed 29/29, with
+  architecture, framework, docs, and plugin-dependency checks passing. The
+  failed test groups remain in unrelated UI, app-registry, agent-bots,
+  instances, and process-definition areas; this is not a green full-suite
+  result and does not establish baseline causality.
 - Verification after the state-machine persistence extraction: CI run
   `43635464304` completed with the same full-suite result — 13 failed files /
   19 failed tests, 248 passed files / 2,692 passed tests (2,711 total).
