@@ -37,9 +37,9 @@ export function assertTransitionAccess({ transition, entity, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
   const access = transition?.access || {};
   if (isSystemAuth(auth) && access.system === true) return true;
-  assertEntityOrganizationScope(entity, auth);
 
   const processRoleIds = access.processRoleIds || transition?.processRoleIds || [];
+  assertEntityOrganizationScope(entity, auth, { required: processRoleIds.length > 0 });
   if (processRoleIds.length) {
     const assignedRoleIds = auth.roleAssignments?.roleIds || [];
     const hasRequiredRole = assignedRoleIds.some(roleId => processRoleIds.includes(roleId));
@@ -70,9 +70,12 @@ export function assertTransitionAccess({ transition, entity, auth }) {
   return true;
 }
 
-function assertEntityOrganizationScope(entity = {}, auth = {}) {
+function assertEntityOrganizationScope(entity = {}, auth = {}, { required = false } = {}) {
   const organizationId = (entity?.organizationId ?? entity?.lineage?.organizationId ?? entity?.origin?.organizationId)?.toString();
-  if (!organizationId) return true;
+  if (!organizationId) {
+    if (required) throw createError({ statusCode: 403, message: 'Permission denied: organization scope required' });
+    return true;
+  }
 
   const activeOrganizationId = auth.organizationId?.toString();
   if (activeOrganizationId && activeOrganizationId !== organizationId) {
