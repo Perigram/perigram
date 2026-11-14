@@ -1,7 +1,9 @@
 {
   "name": "@perigram/processes",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "main": "./src/index.js",
-  "private": true
+  "private": true,
+  "exports": {
+    ".": "./src/index.js"
+  }
 }
