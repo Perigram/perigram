@@ -1773,6 +1773,43 @@ implementation and delivery mechanisms, not product domains.
 This table states intended ownership for the audit. It is not evidence that
 the current implementation already conforms.
 
+### Verified baseline and inventory findings (2026-11-14)
+
+This is a dated evidence snapshot, not a claim that the full suite is clean
+or that the pre-simplification baseline has been captured.
+
+- The workspace contains seven package directories: `core`, `cts`, `devtools`,
+  `mcp`, `plugin-sdk`, `processes`, and `workflows`. The lockfile also
+  contained an extraneous `@perigram/domain-cnc` workspace record with no
+  corresponding package directory; that stale record has been removed.
+- `@perigram/processes` had no `exports` map while the other workspace
+  packages exposed their root barrel. Its root export is now declared.
+- Nuxt, Vitest, SSR Vitest, TypeScript, the framework-inspection package
+  inventory, and `framework.manifest.json` previously disagreed about which
+  packages existed. They now list the same seven package names. A
+  package-contract test checks this parity and resolves each public
+  workspace entrypoint.
+- A full-suite run at `c1fe85f` (Actions run `43609867626`) reported
+  243/256 test files and 2,661/2,680 tests passing. SSR (9 files / 29 tests),
+  architecture, framework declarations, documentation, and plugin dependency
+  checks passed. The 19 remaining test failures across 13 files have not yet
+  been compared with the pre-simplification head, so they must not be called
+  baseline failures.
+- The preceding run at `3d106a0` had 47 failing tests, including a concrete
+  `normalizeLifecycle is not defined` regression in the workflow module. The
+  cause was a re-export alias used as though it created a local binding. The
+  module now binds the imported core normalizer locally; the subsequent
+  full-suite run no longer reports workflow or machine-service lifecycle
+  failures.
+- The current lifecycle ownership is more specific than the earlier broad
+  overlap hypothesis: `packages/core` owns persisted status normalization,
+  primary/region readers, and lifecycle-payload normalization;
+  `packages/workflows` owns workflow-tree normalization, transition
+  selection, and transition validation while re-exporting the shared core
+  readers; `packages/cts` owns the separate flat state-declaration vocabulary
+  and policy. These are related layers, not automatically duplicate
+  implementations. Further consolidation requires tracing callers and
+  contracts before moving code.
 ### Execution order
 
 1. **Baseline and inventory.** Capture the current test and validation
