@@ -35,6 +35,18 @@ jobs:
         id: dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Inventory package consumers and state helpers
+        if: ${{ always() && steps.dependencies.outcome == 'success' }}
+        run: |
+          echo '=== Bare @perigram imports ==='
+          git grep -nE "from ['\"]@perigram/|import\\(['\"]@perigram/" -- '*.js' '*.mjs' '*.ts' '*.vue' | grep -v '/vendor/' || true
+          echo '=== Package entrypoint references ==='
+          git grep -nE 'packages/(core|cts|processes|workflows)/src/index|#packages/(core|cts|processes|workflows)|@perigram/(core|cts|processes|workflows)' -- '*.js' '*.mjs' '*.ts' '*.vue' | grep -v '/vendor/' || true
+          echo '=== State helper references ==='
+          git grep -nE '\\b(getPrimaryState|getRegionState|normalizeStatusLifecycle|normalizeLifecycle|getPrimaryStatus)\\b' -- '*.js' '*.mjs' '*.ts' '*.vue' | grep -v '/vendor/' || true
+          echo '=== Workspace package manifests ==='
+          for file in packages/*/package.json; do node -e "const p=require('./$file'); console.log(JSON.stringify({name:p.name,version:p.version,private:p.private,exports:p.exports,dependencies:p.dependencies||{} }))"; done
+
       - name: Run complete Vitest suite
         if: ${{ always() && steps.dependencies.outcome == 'success' }}
         run: npx vitest run
