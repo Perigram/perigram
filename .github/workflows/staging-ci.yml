@@ -38,7 +38,7 @@ jobs:
       - name: Reject retired workflow package references
         if: ${{ always() && steps.dependencies.outcome == 'success' }}
         run: |
-          if git grep -nE 'packages/workflows|workflows/src/index.js|@perigram/workflows' -- '*.js' '*.mjs' '*.ts' '*.vue' '*.md' '*.json' ':!**/TODO.md' ':!**/TODO.md_archive'; then
+          if git grep -nE 'packages/(workflows|devtools|mcp)/src|@perigram/(workflows|devtools|mcp)' -- '*.js' '*.mjs' '*.ts' '*.vue' '*.md' '*.json' ':!**/TODO.md' ':!**/TODO.md_archive'; then
             echo "Retired workflow package references remain."
             exit 1
           fi

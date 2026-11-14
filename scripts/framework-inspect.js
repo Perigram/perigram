@@ -32,16 +32,17 @@ import {
   summarizeRoutes,
   summarizeWorkflows,
   validateDefinitionSet
-} from '../packages/devtools/src/index.js';
-import { createReadOnlyToolHandlers } from '../packages/mcp/src/index.js';
+} from './framework-inspect-lib.js';
+import { createReadOnlyToolHandlers } from './mcp-handlers.js';
 import { validateTransition } from '../packages/core/src/index.js';
 
 const command =  process.argv[2] || 'help';
 const MANIFEST_PATH = 'framework.manifest.json';
 const PACKAGE_NAMES = [
   '@perigram/core',
-  '@perigram/devtools',
-  '@perigram/mcp'
+  '@perigram/cts',
+  '@perigram/plugin-sdk',
+  '@perigram/processes'
 ];
 const UI_COMPONENT_PATHS = {
   penTemplate: 'components/entities/PenTemplate/PenTemplateCard.vue',

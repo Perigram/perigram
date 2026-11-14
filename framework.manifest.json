@@ -663,10 +663,13 @@
       "name": "@perigram/core"
     },
     {
-      "name": "@perigram/devtools"
+      "name": "@perigram/cts"
     },
     {
-      "name": "@perigram/mcp"
+      "name": "@perigram/plugin-sdk"
+    },
+    {
+      "name": "@perigram/processes"
     }
   ],
   "relationships": [

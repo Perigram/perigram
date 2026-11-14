@@ -11,9 +11,8 @@ updated: 2026-11-14
 
 `packages/` is the platform's framework library layer: the declaration
 language, process compiler, domain kernel (including lifecycle runtime),
-and plugin authoring. `devtools` and `mcp` remain temporary internal tooling
-packages; they are not part of the §29 extraction target and move to the
-application/tooling layer in the cleanup phase. The application consumes
+and plugin authoring. Framework inspection and MCP transport are application
+tooling under `scripts/`, not domain packages. The application consumes
 packages; packages carry zero application knowledge. The repository shape is owned by
 the [root SPEC](../SPEC.md) §23; this SPEC owns the package
 layer beneath it.
@@ -28,8 +27,6 @@ layer beneath it.
 | `@perigram/processes` | process compiler, designer authoring contract | [processes SPEC](./processes/SPEC.md) |
 | `@perigram/core` | shared domain kernel: canonical blocks, status/workflow lifecycle runtime, explicit registries, command/task/hook/attachment contracts, definition validation | [core README](./core/README.md) |
 | `@perigram/plugin-sdk` | plugin listing contract with JSON schema, executor harnesses, API client, `perigram-plugin` CLI | [plugin-sdk README](./plugin-sdk/README.md) |
-| `@perigram/devtools` | framework inspection, manifest assembly (`createFrameworkManifest`) | [devtools README](./devtools/README.md) |
-| `@perigram/mcp` | read-only MCP tool handlers over the framework surface | [mcp README](./mcp/README.md) |
 
 ### Dependency direction law
 
@@ -62,15 +59,14 @@ represented in that manifest, not the npm workspace package map.
 `npm run framework:write-manifest` regenerates the file. Workspace package
 changes update the package map; manifest metadata changes update
 `PACKAGE_NAMES` and the generated manifest. The workspace package map is
-currently six entries; §29's extraction target is the four contract packages
-(`cts`, `processes`, `core`, and `plugin-sdk`).
+four entries: `cts`, `processes`, `core`, and `plugin-sdk`.
 
 ## Structure
 
 One folder per package: `src/index.js` is the public barrel, specs sit
 beside the modules they pin, and each package README documents its contracts
 and links back here. `cts` and `processes` carry `SPEC.md` law; the
-tooling packages are documented by README alone.
+the plugin SDK is documented by README alone.
 
 ## Laws
 
@@ -82,6 +78,6 @@ tooling packages are documented by README alone.
 
 ## End state
 
-The workspace holds exactly the six packages of the map; every package
+The workspace holds exactly the four packages of the map; every package
 export has a consumer. The manifest is a curated inspection projection, not
 a duplicate of the workspace inventory.

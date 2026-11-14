@@ -96,6 +96,8 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   links (the contract neighborhood for task scoping). Walking and link
   parsing import from `check-docs.js`, so the map and the guard share one
   tree definition.
+- `framework-inspect-lib.js`: pure read-only projections and validators used by the framework inspection CLI; this is app tooling, not an independently reusable framework package.
+- `mcp-handlers.js`: read-only MCP transport handlers used by the local inspection smoke command; this is an application adapter, not a framework package.
 - `framework-inspect.js`: builds `framework.manifest.json` from the live
   framework declarations. `npm run framework:write-manifest` writes the
   committed copy, `npm run framework:manifest` checks it, `npm run
