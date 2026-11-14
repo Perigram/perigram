@@ -45,6 +45,17 @@ deployment.
 
 ### Agent Notes (2026-11-14, agent/local-engine-e2-20261114)
 
+- Live dogfood (dev stack, operator-published throwaway package):
+  listing v3 + `PUT` of a 42-byte `engine/index.mjs` stored under
+  `engine-demo/3/engine/index.mjs`; after install the module proxy
+  served it same-origin to an org member (200, `text/javascript`,
+  byte-exact body, ETag, If-None-Match → 304), a missing path answered
+  404, and the install configured nothing. Uninstalled and retracted
+  after the pass.
+- Defect found in the live pass and fixed (`fix: asset route resolves
+  the plugins service at its nesting depth`): the new route's relative
+  import was one level short — no spec loads API routes, so only the
+  live request surfaced it (nitro 500, RollupError).
 - E2 landed. `plugin_assets` GridFS bucket (filename
   `pluginId/version/path`, metadata for retraction) with repository
   store/find/read/delete over the shared
