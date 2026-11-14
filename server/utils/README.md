@@ -105,8 +105,8 @@ Argon2 password hashing.
 JWT signing/verification (15min expiry). Tokens carry only `userId` — permissions fetched fresh from DB on each request.
 
 ### `hasPermission(user, entity, requiredLevel)` → `boolean`
-Checks explicit `user.permissions[entity]`. Different from lineage-based — use
-for non-entity system resources.
+Checks non-entity system resources. It uses the same shared active-grant
+precedence as the access engine, without entity membership or lineage checks.
 
 ---
 
