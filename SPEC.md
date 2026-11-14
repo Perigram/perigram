@@ -1862,6 +1862,24 @@ the current implementation already conforms.
   upload/storage adapters, background workers, and the remaining API routes
   still require a separate write-owner inventory. No code change was warranted
   by this scan.
+- Authorization call-graph audit finding: `hasInstanceAccess()` previously
+  enforced tenant scope from top-level `organizationId` and legacy
+  `lineage.organizationId`, while the shared
+  `assertEntityOrganizationScope()` also recognized
+  `origin.organizationId`. An origin-scoped entity passed directly through
+  entity permission checks could therefore reach permission evaluation without
+  the tenant comparison. Fixed by aligning the scope projection and added a
+  regression test with a foreign-origin entity and otherwise-admin grants.
+  Public catalogue read bypass remains intentionally evaluated first.
+- API mutation route scan: all 103 mutation routes were checked for direct
+  Mongo mutation methods and direct DB/collection acquisition; none found.
+  This covers route source only, not indirect repository/helper behavior.
+- Verification caveat for the status projection extraction: CI run
+  `43636879813` exposed a missing-export mistake in the new pure module,
+  causing its six focused tests and existing machine-service tests to fail.
+  The helpers were exported in the follow-up commit; that corrective run was
+  cancelled by the subsequent access fix before completing. Do not count the
+  extraction as verified until a fresh run completes.
 - State projection decomposition: pure persistence/engine shape adapters
   now live in `server/core/machines/status-projection.js`: metadata filtering,
   legacy state-axis filtering, flat instance-state writes, primary-region
