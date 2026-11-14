@@ -37,11 +37,21 @@ pure compute).
   with lane seeding and the process plane stays page-owned; behavior
   guarded by the full suites and the process-page SSR smoke (the page
   carries no unit spec of its own).
-- [ ] G1c Graph editor surface — the session composable mounts inside
+- [x] G1c Graph editor surface — the session composable mounts inside
   the platform file-surface registry (`fileSurfaceRegistry` plus the
   `graph-document` editor binding, creation protocol 'editor'), with
   payload load/save through `instancePayloadPersistence` and the
-  workspace editor chrome (blank open, write-grant mode).
+  workspace editor chrome (blank open, write-grant mode). Landed
+  2026-11-14: `components/process-designer/GraphEditorSurface.vue`
+  registered as surface id `graph-editor`; the canvas presentation
+  (`GraphCanvas.vue`), inspector body (`GraphInspector.vue`), and
+  channel-tab strip (`GraphPreviewPanel.vue`) extract from the process
+  page, which keeps its process plane unchanged in behavior.
+- [ ] WAITING — owner verification: G1c — a `graph-document` opens as
+  the graph canvas editor (pane tab and record document), authors and
+  saves its payload with revisions, the create button opens the blank
+  editor whose first save creates the instance, and a read grant
+  renders the canvas alone.
 - [ ] WAITING — owner verification: G1b — the process designer behaves
   as before over the session composable: authoring, wiring, live
   re-binding, palettes, diagnostics, save/apply all stand (full suites
@@ -62,6 +72,56 @@ pure compute).
 - [ ] G5 Procedural persistence — effects/constructs that write computed
   values into file instances (STEP shape → `b3d-part`, rendered PDF →
   the documents file types); value services stay pure compute.
+
+### Agent Notes (2026-11-14, agent/graph-editor-20261114)
+
+- G1c landed. `components/generated/file-surfaces.js`: the registry
+  carries `graph-editor` (lazy `GraphEditorSurface.vue`, label
+  `processDesigner.graphDocument`, mount props `record`/`persistence`
+  (`instancePayloadPersistence`, `application/json`)/`mode`
+  (`editorMountMode`)); `frameworkEditorBindings` binds
+  `graph-document` → `graph-editor` and `activeEditorBindings()` merges
+  it beside the served plugin list (a served binding for the same type
+  wins).
+- The canvas presentation moved out of the page:
+  `GraphCanvas.vue` (VueFlow templates, dock, context palette, selection
+  dial, empty/validation states; `lane` and `inspector` slots; function
+  refs hand the frame and the palette-search instances to the session),
+  `GraphInspector.vue` (the node/edge inspector body), and
+  `GraphPreviewPanel.vue` over the new
+  `composables/useGraphChannelPreview.js` (the whole-graph evaluation,
+  `previewVisible` filtering, one debounced schedule). The process page
+  (2125 → 1958 lines) keeps the definitions/roles/screens tabs, lanes,
+  and apply ceremony; the inline-style exception entry moved with the
+  dial/context markup into `GraphCanvas.vue`
+  (`scripts/ui-visual-inventory.js`).
+- `GraphEditorSurface.vue` loads the payload as the graph data object
+  (`serializeProcess()` shape, `loadDocument({ data })`; blank/missing
+  payload seeds an empty graph; unreadable JSON renders the
+  `processDesigner.invalidGraphPayload` state), saves through the
+  instance payload transport (blank first save creates), binds the
+  header chrome `{ name, dirty, saving, save, rename }` (name alone in
+  read mode, canvas read-only), loads organization roles for grant
+  authoring, and rides the process-definition preview transport for
+  node/channel preview.
+- `graph-document` creation protocols: `['upload', 'editor']` — upload
+  stays the default (`attachmentKinds` creation mode reads the first
+  entry), the editor protocol offers the blank editor create
+  (`RefRowActions`) with no prompted rows
+  (`graph-document.spec.js` pins the construction contract).
+- Known scaffold gap (pre-existing, G1a): the blank first save runs the
+  type's compiled construct (`runBlankFileConstruct`), so an
+  organization whose active process authors no `graph-document`
+  construct gets the create error until one is authored — the starter
+  constructs own that seam (`starterConstructsForOrganization`).
+- Validation: file-surfaces + graph-document + channel-preview specs,
+  composables/processes/cts 779 ✓, components/generated 58 ✓,
+  SSR smoke 29 ✓ (process page + new graph editor surface smoke),
+  design-system 37 ✓, `check-arch` ✓, `docs:validate` ✓,
+  `framework:validate` ✓. Full non-e2e run matches the base checkout's
+  failure set (server suites, sidebar, region-header, generated labels —
+  all pre-existing); the icon-font glyph spec additionally needs a
+  `node_modules` symlink in a bare worktree.
 
 ### Agent Notes (2026-11-14, agent/graph-session-20261114)
 
