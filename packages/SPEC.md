@@ -41,7 +41,8 @@ layer beneath it.
   Application code reaches packages through Nuxt root aliases
   (`~/packages/<pkg>/src/index.js`) because Nitro dev output executes from
   `.nuxt/dev`; `@perigram/*` aliases in `nuxt.config.js`, `vitest.config.js`,
-  `vitest.ssr.config.js`, and `tsconfig.json` serve tool and test contexts.
+  `vitest.ssr.config.js`, and `tsconfig.json` must match the seven package
+  manifests exactly; a contract test guards parity.
 - App surfaces receive the species and operation vocabulary through
   `@perigram/processes` re-exports — the single vocabulary seam.
 
