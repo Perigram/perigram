@@ -1831,8 +1831,13 @@ the current implementation already conforms.
   and the root manifest declares all four workspace packages at exact
   `0.1.0` versions. The manifests remain `private: true`, so this is
   a verified workspace boundary, not yet an independently publishable
-  extraction. Browser/Node compatibility and versioned external interfaces
-  remain open.
+  extraction. A focused SDK review confirms `listing.js` is pure and
+  browser-compatible, while `vendor.js`, `surface-check.js`, `cli.js`, and
+  `endpoint-executor.js` use Node built-ins; because the root SDK barrel
+  re-exports Node-bound modules, browser consumers must use the dedicated
+  `./listing` entry rather than the package root. This is a scoped finding,
+  not a completed compatibility audit of all package modules. Browser/Node
+  compatibility and versioned external interfaces remain open.
 - Process-definition persistence audit: within this feature, CRUD writes to
   `process_definitions` are centralized in `repository.js`; durable execution
   snapshots and event-ledger writes to `process_executions` and
