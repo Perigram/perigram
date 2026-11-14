@@ -26,15 +26,28 @@ from remaining proof and verification.
   from regressions in SPEC §30.
 - [x] Convert package-internal cross-imports to public package names and
   declare the `processes` → (`core`, `cts`) versioned workspace dependencies.
-- [ ] Replace the 160 inventoried application source-path imports with
-  package-name imports through the declared public export maps; then pin the
-  zero-source-path invariant in CI.
+- [x] Replace the 175 inventoried application imports with public
+  package specifiers through the declared export maps. The latest inventory
+  records 175 package-name imports (processes 67, CTS 81, core 14,
+  plugin SDK 13) and zero relative-source-path/root-alias imports.
+- [x] Pin the zero-source-path invariant in CI: the package-consumer
+  inventory now fails on any source-path or legacy root-alias import.
 - [ ] Complete the route/command/transition/feature authorization call graph
   and trace every feature persistence write path end-to-end.
+  Progress: process-role transitions now enforce organization scope;
+  generic HTTP and process-graph lists enforce read grants; process deletes
+  route through the entity write gate and derive the declaration from the
+  record's organization. Remaining route, command, transition, payload,
+  relation, and scheduled-run paths still need end-to-end verification.
 - [ ] Verify package/executor contracts independently, including browser/
   Node compatibility and versioned extraction interfaces under §29.
+  Current workspace manifests remain private and expose ESM entry points;
+  independent publication/extraction is not yet verified.
 - [ ] Triage the 19 pre-existing Vitest failures separately and establish a
   clean full-suite gate before declaring the repository fully green.
+  Runs 43621806498 and 43622023230 still report 13 failing files / 19 tests;
+  SSR, architecture, framework declarations, docs, and plugin dependency
+  checks pass.
 
 ## Internal-address scrub of tracked files (owner direction 2026-11-14)
 

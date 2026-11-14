@@ -1818,16 +1818,29 @@ the current implementation already conforms.
   feature repository/run-store boundaries; workflow overrides use their
   repository; generic instances use the instances repository. The complete
   feature write-path audit remains open.
-- Process compiler modules now import `@perigram/cts` and `@perigram/core`
+- Process compiler modules import `@perigram/cts` and `@perigram/core`
   through public package exports; `packages/processes/package.json` declares
   exact compatible versions and the lockfile records both workspace links.
-  The application-consumer inventory at `636a294` found 165 imports
-  across the four packages (processes 60, CTS 79, core 14, plugin SDK 12).
-  Public export maps now cover the app's consumed submodules, and the root
-  manifest declares all four workspace packages at exact `0.1.0` versions.
-  A source-path import guard rejects application imports into package source.
-  The migration is being applied and will be verified in CI. Browser/Node
-  extraction contracts remain open.
+  The latest application-consumer inventory records 175 public package
+  imports (processes 67, CTS 81, core 14, plugin SDK 13), with zero
+  relative-source-path or legacy root-alias imports. The inventory now fails
+  CI if either form reappears. Public export maps cover the consumed
+  submodules, and the root manifest declares all four workspace packages at
+  exact `0.1.0` versions. The manifests remain `private: true`, so this is
+  a verified workspace boundary, not yet an independently publishable
+  extraction. Browser/Node compatibility and versioned external interfaces
+  remain open.
+- Authorization audit progress: process-role transition shortcuts now check
+  entity organization scope; generic HTTP instance lists and process-graph
+  entity queries apply compiled read grants; process deletes route through
+  the entity write gate and resolve the declaration using the entity's own
+  organization. These are targeted boundary fixes, not completion of the
+  route/command/transition/feature call-graph audit.
+- Current staging CI runs `43621806498` and `43622023230` continue to show
+  the same 13 failing Vitest files / 19 failing tests recorded as baseline
+  debt. SSR smoke tests, architecture checks, framework declaration
+  validation, documentation validation, and plugin executor dependency
+  checks pass on those commits. The repository is not yet fully green.
 ### Execution order
 
 1. **Baseline and inventory.** Capture the current test and validation

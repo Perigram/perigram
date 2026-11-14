@@ -71,9 +71,19 @@ for (const root of roots) walk(resolve(root));
 hits.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
 const summary = Object.groupBy ? Object.groupBy(hits, item => item.package) :
   hits.reduce((groups, item) => ((groups[item.package] ||= []).push(item), groups), {});
+const sourcePathImports = hits.filter(item => item.kind !== 'package-name');
 console.log(JSON.stringify({
   roots,
   totalImports: hits.length,
   byPackage: Object.fromEntries(Object.entries(summary).map(([name, items]) => [name, items.length])),
+  sourcePathImports: sourcePathImports.length,
   imports: hits
 }, null, 2));
+
+if (sourcePathImports.length) {
+  console.error('Package consumers must use public package specifiers; source-path and root-alias imports are forbidden.');
+  for (const item of sourcePathImports) {
+    console.error(`  ${item.file}:${item.line} [${item.kind}] ${item.specifier}`);
+  }
+  process.exitCode = 1;
+}
