@@ -59,6 +59,24 @@ deployment.
 
 ### Agent Notes (2026-11-14, agent/local-engine-e3a-20261114)
 
+- Live dogfood (dev stack, a pure-JS stub engine — no build123d):
+  operator-published `engine-demo` v4 with a packaged
+  `engine/index.mjs` (`createEngine` + `dispatch`); after install the
+  org view served the binding, the plugin's "Engine demo" palette
+  section carried its service, and a one-node graph (authored `text`
+  fallback) evaluated IN THE BROWSER in the Preview tab — the Outputs
+  channel rendered `result · string · "engine:ping"` with the engine
+  module loaded from the package store. Uninstalled and retracted.
+- Three defects the live pass caught and fixed (all invisible to the
+  suites): the served type view destructured `clientEngines` but never
+  returned it (`fix: the served type view returns clientEngines`);
+  the binding listed bare service ids while graphs reference
+  plugin-qualified operators (`fix: engine bindings carry
+  plugin-qualified service ids`); and the browser's structuredClone
+  refuses the draft's reactive proxies — client evaluation crosses the
+  draft through the JSON boundary, the same boundary the server
+  preview POST always crossed (`fix: client evaluation crosses the
+  draft through the JSON boundary`).
 - E3a + E4 landed, platform-level only per owner direction (no
   build123d work). The engine module contract: default export
   `createEngine() -> { dispatch(serviceId, parameters) }`; the org
