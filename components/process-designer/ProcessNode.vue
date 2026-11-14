@@ -286,7 +286,7 @@
 </template>
 
 <script setup>
-import { operationKindOf } from '@perigram/cts/index';
+import { operationKindOf } from '@perigram/cts';
 import { isSecondaryPopulationKind } from '~/utils/processDesignerPopulation.js';
 
 import { computed, ref } from 'vue';
@@ -300,7 +300,7 @@ import {
   CAST_BASES,
   CONVERT_UNITS,
   EFFECT_SPECIES_KINDS,
-  MAPPED_MUTATION_SPECIES_KINDS, formatProcessType } from '@perigram/processes/index';
+  MAPPED_MUTATION_SPECIES_KINDS, formatProcessType } from '@perigram/processes';
 import { socketSpecLine } from '~/composables/useNodeSpec.js';
 import DesignerNodeCard from '~/components/shared/DesignerNodeCard.vue';
 import DesignerSocketHandle from '~/components/shared/DesignerSocketHandle.vue';

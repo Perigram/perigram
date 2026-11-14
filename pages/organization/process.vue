@@ -608,9 +608,9 @@ import {
   normalizeDesignerAccess,
   prepareAuthoredDefinition,
   PROCESS_DATAFLOW_VERSION
-} from '@perigram/processes/index';
+} from '@perigram/processes';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '@perigram/processes/screen-contract';
-import { checkDeclarationsAgainstCts, compileClientBundle } from '@perigram/cts/index';
+import { checkDeclarationsAgainstCts, compileClientBundle } from '@perigram/cts';
 import LaneBands from '~/components/process-designer/LaneBands.vue';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
