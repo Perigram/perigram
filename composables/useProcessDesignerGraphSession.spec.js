@@ -1,0 +1,34 @@
+import { describe, expect, it } from 'vitest';
+import { ref } from 'vue';
+import { useProcessDesignerGraphSession } from './useProcessDesignerGraphSession.js';
+
+function createSession() {
+  return useProcessDesignerGraphSession({
+    t: key => key,
+    te: () => true,
+    toast: { add: () => {} },
+    draft: ref(null),
+    roles: () => ({}),
+    activeOrganizationId: () => null,
+    persistence: {}
+  });
+}
+
+describe('useProcessDesignerGraphSession', () => {
+  // GraphCanvas declares the connect handlers as required Function props —
+  // a session export that misses its source composable breaks the
+  // wire-drop palette on every host.
+  it('exports the canvas connect handlers as functions', () => {
+    const session = createSession();
+    expect(typeof session.beginSocketConnection).toBe('function');
+    expect(typeof session.endSocketConnection).toBe('function');
+  });
+
+  it('exports the preview and palette seams every host mounts', () => {
+    const session = createSession();
+    expect(typeof session.serializeProcess).toBe('function');
+    expect(typeof session.loadDocument).toBe('function');
+    expect(typeof session.onConnect).toBe('function');
+    expect(typeof session.addContextNode).toBe('function');
+  });
+});

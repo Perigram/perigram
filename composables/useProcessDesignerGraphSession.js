@@ -199,8 +199,6 @@ export function useProcessDesignerGraphSession({
     handleDesignerPointerDown,
     handleDesignerFocus,
     handleDesignerWheel,
-    beginSocketConnection,
-    endSocketConnection,
     clientPoint,
     clientToGraphPosition,
     nextNodePosition,
@@ -262,7 +260,9 @@ export function useProcessDesignerGraphSession({
     closeContextPalette,
     contextItemCompatible,
     addContextNode,
-    contextPaletteSearch
+    contextPaletteSearch,
+    beginSocketConnection,
+    endSocketConnection
   } = useProcessDesignerContextPalette({
     nodes,
     draft,
