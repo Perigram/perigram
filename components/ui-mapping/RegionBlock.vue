@@ -603,17 +603,16 @@ async function saveOverlay() {
   }
 }
 
-// The standalone list region sits on the section rhythm; embedded ones
-// (side columns, tabs) stack tight.
+// A collection's title bar binds to its collection at the tight step
+// (owner direction 2026-11-14): the section separation above carries the
+// block boundary.
 // A list with nothing to show renders at content width — a dead
 // collection is a compact stub, never a screen-wide banner.
 const listWidth = computed(() => (props.node.surfaceKind === 'list'
   && !props.node.instances.length
   && state.value !== 'loading'
   ? 'w-fit max-w-full' : 'w-full'));
-const listStack = computed(() => (props.embedded
-  ? (spacing ? spacing.stackTight : LAYOUT.stackTight)
-  : (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[Math.min(props.node.level, 2)] || 'stack'])));
+const listStack = computed(() => (spacing ? spacing.stackTight : LAYOUT.stackTight));
 const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[Math.min(props.node.level, 2)] || 'stack']));
 
 // The containment cross-cut flag: an unscoped list of a type someone's
