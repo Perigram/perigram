@@ -1,4 +1,4 @@
-function processStatusMetadata(action = {}, note = '', processData = {}) {
+export function processStatusMetadata(action = {}, note = '', processData = {}) {
   const display = actionStatusDisplayMetadata(action, processData);
   return {
     note,
@@ -7,7 +7,7 @@ function processStatusMetadata(action = {}, note = '', processData = {}) {
   };
 }
 
-function processTransitionContext(action = {}, data = {}, processData = {}) {
+export function processTransitionContext(action = {}, data = {}, processData = {}) {
   const source = data?.stateMeta || data?.context || {};
   const display = actionStatusDisplayMetadata(action, processData);
   if (!display) return source;
@@ -26,7 +26,7 @@ function processTransitionContext(action = {}, data = {}, processData = {}) {
   };
 }
 
-function actionStatusDisplayMetadata(action = {}, processData = {}) {
+export function actionStatusDisplayMetadata(action = {}, processData = {}) {
   return statusDisplayMetadata({
     ...stateDefinitionForAction(action, processData),
     ...(action.state || {})
