@@ -960,6 +960,24 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
     find.mockRestore();
   });
 
+  it('enforces the entity write grant for process deletes', async () => {
+    const coll = stubPanel();
+    const access = await import('../../core/access/service.js');
+    access.hasInstanceAccess.mockReturnValueOnce(false);
+    const service = instanceServiceResolver('panel');
+
+    await expect(service.processDelete(PANEL_ID, {
+      userId: 'user-1',
+      organizationId: 'org-1'
+    })).rejects.toMatchObject({ statusCode: 403 });
+
+    expect(access.hasInstanceAccess).toHaveBeenCalledWith(expect.objectContaining({
+      typeId: 'panel',
+      level: 'write'
+    }));
+    expect(coll.deleteOne).not.toHaveBeenCalled();
+  });
+
   it('removes through the HTTP transport gate and sweeps before the delete', async () => {
     const coll = stubPanel();
     const find = stubReferrers({

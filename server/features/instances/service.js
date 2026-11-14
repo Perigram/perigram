@@ -625,13 +625,16 @@ function instanceService(typeId) {
     // record death behind the same write gate the patch transport
     // takes — the loaded entity against the compiled grant.
     async removeForHttp(id, { auth = null, organizationId = null } = {}) {
-      const declaration = await requireDeclaration(typeId, organizationId);
-      const collection = repository.collectionForClass(declaration.class);
-      const doc = await repository.findInstance(collection, id, typeId);
+      // Resolve the record before the declaration: process callers may carry
+      // memberships without an active organization, while the record itself
+      // determines which organization's declaration and grant apply.
+      const doc = await repository.findInstanceAnywhere(id, typeId);
       if (!doc) {
         throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
       }
-      const target = await writeGrantTarget(declaration, organizationId);
+      const targetOrganizationId = organizationId ?? doc.organizationId ?? null;
+      const declaration = await requireDeclaration(typeId, targetOrganizationId);
+      const target = await writeGrantTarget(declaration, targetOrganizationId);
       if (!target || !hasInstanceAccess({ entity: toDto(doc), typeId: target.typeId, feature: target.feature, level: 'write', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
@@ -806,7 +809,10 @@ function instanceService(typeId) {
       if (!declaration) return null;
       return toDto(await repository.findInstance(repository.collectionForClass(declaration.class), id, typeId), declaration);
     },
-    processDelete: (id, auth) => instanceService(typeId).remove(id, { actor: auth?.userId || null, organizationId: auth?.organizationId || null }),
+    processDelete: (id, auth) => instanceService(typeId).removeForHttp(id, {
+      auth,
+      organizationId: auth?.organizationId || null
+    }),
     processCapabilities: {
       create: staticCreateModes.length > 0,
       createModes: staticCreateModes,
