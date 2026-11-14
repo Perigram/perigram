@@ -573,6 +573,15 @@ function instanceService(typeId) {
     // feature (a write requires a compiled grant — fail-closed), exactly
     // like the payload replacement transport.
     async patch(id, patch = {}, { auth = null, organizationId = null } = {}) {
+      // Structural edges have dedicated link/unlink boundaries that validate
+      // declared edge shape, target scope, and relation domains. The generic
+      // field-patch transport must never write them around those checks.
+      if (patch.lineage !== undefined || patch.relations !== undefined) {
+        throw createError({
+          statusCode: 400,
+          message: 'Lineage and relations must be changed through their dedicated link/unlink operations'
+        });
+      }
       const declaration = await requireDeclaration(typeId, organizationId);
       const collection = repository.collectionForClass(declaration.class);
       const doc = await repository.findInstance(collection, id, typeId);
