@@ -1452,7 +1452,12 @@ const {
   createActionExecutionAuth,
   createRelationLinkExecutionAuth,
   resolveInstanceFeature
-} = createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, getEntityFieldAccessPolicy });
+} = createActionExecutionAuthHelpers({
+  getDomain,
+  normalizeTypeId,
+  getEntityFieldAccessPolicy,
+  getCommandDefinition: commandId => getAppRegistry().getCommandDefinition(commandId)
+});
 
 function pickMutationData(data = {}, action = {}, entities = {}) {
   const fields = action.mutation?.fields || [];
