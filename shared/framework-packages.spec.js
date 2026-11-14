@@ -11,9 +11,9 @@ describe('Framework package contracts', () => {
 
     const aliasNames = file => {
       const source = readFileSync(file, 'utf8');
-      const block = source.match(/const perigramAliases = \\{([\\s\\S]*?)\\};/);
+      const block = source.match(/const perigramAliases = \{([\s\S]*?)\};/);
       expect(block, file).not.toBeNull();
-      return [...block[1].matchAll(/['"](@perigram\\/[^'"]+)['"]\\s*:/g)]
+      return [...block[1].matchAll(/['"](@perigram\/[^'"]+)['"]\s*:/g)]
         .map(match => match[1])
         .sort();
     };
@@ -30,9 +30,9 @@ describe('Framework package contracts', () => {
     expect(manifest.packages.map(item => item.name).sort()).toEqual(packageNames);
 
     const inspect = readFileSync('scripts/framework-inspect.js', 'utf8');
-    const packageList = inspect.match(/const PACKAGE_NAMES = \\[([\\s\\S]*?)\\];/);
+    const packageList = inspect.match(/const PACKAGE_NAMES = \[([\s\S]*?)\];/);
     expect(packageList).not.toBeNull();
-    expect([...packageList[1].matchAll(/'(@perigram\\/[^']+)'/g)].map(match => match[1]).sort())
+    expect([...packageList[1].matchAll(/'(@perigram\/[^']+)'/g)].map(match => match[1]).sort())
       .toEqual(packageNames);
   });
 
