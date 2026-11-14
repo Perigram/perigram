@@ -1,5 +1,7 @@
 # COMPONENT: Deploy Tooling
 
+Target law: [SPEC.md](./SPEC.md).
+
 The CI deploy runs as a Forgejo Action on the self-hosted runner (poseidon,
 label `deploy`). The CI deploy **is the public app** at
 `perigram.sodalab.pro`; hera keeps the data plane (MongoDB, LiveKit).
