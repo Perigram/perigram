@@ -1851,9 +1851,13 @@ the current implementation already conforms.
   is committed but not represented as CI-verified here.
 - Authorization audit progress: process-role transition shortcuts now check
   entity organization scope; generic HTTP instance lists and process-graph
-  entity queries apply compiled read grants; process deletes route through
-  the entity write gate and resolve the declaration using the entity's own
-  organization. These are targeted boundary fixes, not completion of the
+  entity queries apply compiled read grants; process deletes route through the
+  entity write gate and resolve the declaration using the entity's own
+  organization. Organization update and delete now use the same
+  `loadManagedOrganization` guard as role/settings management, enforcing that
+  the target id matches the caller's active organization before repository
+  access. Focused regression tests cover cross-tenant update/delete denial.
+  These are targeted boundary fixes, not completion of the
   route/command/transition/feature call-graph audit.
 - Current staging CI runs `43621806498` and `43622023230` continue to show
   the same 13 failing Vitest files / 19 failing tests recorded as baseline
