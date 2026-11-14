@@ -86,6 +86,27 @@ export function useProcessDesignerPreview({
 
   const selectedNodePreview = computed(() => selectedNode.value ? dataflowPreview.value?.nodes?.[selectedNode.value.id] || null : null);
 
+  // C2 live values (SPEC §28 canvas rethinking): the whole-graph channel
+  // evaluation (`graphEvaluation`) is the selected node's live state —
+  // outputs render in the inspector the moment the evaluation lands,
+  // without a per-node run.
+  const selectedChannelNode = computed(() => selectedNode.value
+    ? graphEvaluation.value?.nodes?.[selectedNode.value.id] || null
+    : null);
+  const selectedChannelOutputs = computed(() => {
+    const outputs = selectedChannelNode.value?.outputs || {};
+    const ports = processNodeOutputs(selectedProcessNode.value || {});
+    return Object.entries(outputs).map(([id, tree]) => {
+      const port = ports.find(item => item.id === id);
+      return {
+        id,
+        label: port?.label || id,
+        type: port?.type ? formatProcessType(port.type) : '',
+        tree
+      };
+    });
+  });
+
   // Node-scoped diagnostics (SPEC §28): the anchored diagnostics of the
   // current validation plus the whole-graph evaluation's per-node
   // errors, indexed by node — the canvas marks each faulted node.
@@ -180,6 +201,8 @@ export function useProcessDesignerPreview({
     previewingData,
     validationDiffLines,
     selectedNodePreview,
+    selectedChannelNode,
+    selectedChannelOutputs,
     selectedNodeSupportsPreview,
     selectedNodePreviewOutputs,
     nodeDiagnosticIndex,

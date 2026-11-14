@@ -258,6 +258,8 @@ const {
   previewingData,
   selectedNodePreview,
   selectedNodePreviewOutputs,
+  selectedChannelNode,
+  selectedChannelOutputs,
   previewDataflow,
   formatPreviewPath,
   formatPreviewItems
@@ -275,9 +277,11 @@ const {
 const selectedConstructionModes = computed(() => (selectedNode.value?.type === 'processNode' ? constructionModeOptions(nodeTypeId(selectedProcessNode.value)) : []));
 const inspectorPreview = computed(() => ({
   supported: selectedNodeSupportsPreview.value,
-  running: previewingData.value,
-  state: selectedNodePreview.value,
-  outputs: selectedNode.value?.type === 'processNode' ? selectedNodePreviewOutputs.value : []
+  running: previewingData.value || channelPreview.running.value,
+  state: selectedChannelNode.value || selectedNodePreview.value,
+  outputs: selectedNode.value?.type === 'processNode'
+    ? (selectedChannelOutputs.value.length ? selectedChannelOutputs.value : selectedNodePreviewOutputs.value)
+    : []
 }));
 const isDirty = computed(() => !readOnly.value && Boolean(draft.value) && designerSignature() !== savedSignature.value);
 
@@ -426,8 +430,10 @@ const authoringSignature = computed(() => JSON.stringify({
   nodes: nodes.value.map(node => [node.id, node.type, node.data]),
   edges: edges.value.map(edge => [edge.id, edge.source, edge.target, edge.sourceHandle, edge.targetHandle, edge.role, edge.label])
 }));
-watch(authoringSignature, () => channelPreview.schedule(inspectTab.value === 'preview'));
-watch(inspectTab, () => channelPreview.schedule(inspectTab.value === 'preview'));
+// C2 live values: the channel evaluation runs while the inspector or the
+// preview tab is open — the selected node's outputs render live in both.
+watch(authoringSignature, () => channelPreview.schedule(['inspector', 'preview'].includes(inspectTab.value)));
+watch(inspectTab, () => channelPreview.schedule(['inspector', 'preview'].includes(inspectTab.value)));
 
 onMounted(async () => {
   loadProcessCapabilities();

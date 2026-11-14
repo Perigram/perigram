@@ -4,13 +4,13 @@ import { useProcessDesignerPreview, visiblePreviewOutputs } from './useProcessDe
 // The diagnostic focus contract: a node-anchored diagnostic selects the node
 // and frames it into view; an edge-anchored diagnostic selects the edge and
 // frames both endpoints; a passing validation never moves the viewport.
-function mountPreview({ nodes = [], edges = [], frameNodeIds, graphEvaluation, selectedProcessNode } = {}) {
+function mountPreview({ nodes = [], edges = [], frameNodeIds, graphEvaluation, selectedProcessNode, selectedNode: selected = null } = {}) {
   const selectNode = vi.fn();
   const selectEdge = vi.fn();
   const preview = useProcessDesignerPreview({
     t: key => key,
     validation: { value: null },
-    selectedNode: { value: null },
+    selectedNode: { value: selected },
     selectedNodeId: { value: null },
     selectedProcessNode: { value: selectedProcessNode || null },
     processNodeOutputs: () => [],
@@ -71,6 +71,23 @@ describe('useProcessDesignerPreview diagnostic focus', () => {
     expect(preview.nodeDiagnostics.value('bad')).toEqual(['Division by zero']);
     expect(preview.nodeDiagnostics.value('good')).toBeNull();
     expect(preview.nodeDiagnostics.value('absent')).toBeNull();
+  });
+
+  it('derives the selected node\'s live channel state and outputs (C2 live values)', () => {
+    const graphEvaluation = {
+      nodes: {
+        good: { outputs: { value: { branchCount: 1, itemCount: 1, branches: [{ path: [], items: [7] }] } } }
+      }
+    };
+    const { preview } = mountPreview({
+      graphEvaluation,
+      selectedNode: { id: 'good', type: 'processNode' },
+      selectedProcessNode: { kind: 'source.literalItem' }
+    });
+    expect(preview.selectedChannelNode.value).toEqual(graphEvaluation.nodes.good);
+    expect(preview.selectedChannelOutputs.value).toEqual([
+      { id: 'value', label: 'value', type: expect.any(String), tree: graphEvaluation.nodes.good.outputs.value }
+    ]);
   });
 });
 

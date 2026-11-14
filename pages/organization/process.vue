@@ -184,9 +184,11 @@
                 :inputs="selectedNode?.type === 'processNode' ? processNodeInputs(selectedProcessNode) : []"
                 :preview="{
                   supported: selectedNodeSupportsPreview,
-                  running: previewingData,
-                  state: selectedNodePreview,
-                  outputs: selectedNode?.type === 'processNode' ? selectedNodePreviewOutputs : []
+                  running: previewingData || channelPreviewRunning,
+                  state: selectedChannelNode || selectedNodePreview,
+                  outputs: selectedNode?.type === 'processNode'
+                    ? (selectedChannelOutputs.length ? selectedChannelOutputs : selectedNodePreviewOutputs)
+                    : []
                 }"
                 :format-preview-path="formatPreviewPath"
                 :format-preview-items="formatPreviewItems"
@@ -841,6 +843,8 @@ const {
   selectedNodePreview,
   selectedNodeSupportsPreview,
   selectedNodePreviewOutputs,
+  selectedChannelNode,
+  selectedChannelOutputs,
   previewDataflow,
   formatPreviewPath,
   formatPreviewItems,
@@ -1336,8 +1340,8 @@ const previewAuthoringSignature = computed(() => JSON.stringify({
   nodes: nodes.value.map(node => [node.id, node.type, node.data]),
   edges: edges.value.map(edge => [edge.id, edge.source, edge.target, edge.sourceHandle, edge.targetHandle, edge.role, edge.label])
 }));
-watch(previewAuthoringSignature, () => { schedulePreviewRecompute(); scheduleChannelPreview(inspectTab.value === 'preview'); });
-watch(inspectTab, () => { schedulePreviewRecompute(); scheduleChannelPreview(inspectTab.value === 'preview'); });
+watch(previewAuthoringSignature, () => { schedulePreviewRecompute(); scheduleChannelPreview(['inspector', 'preview'].includes(inspectTab.value)); });
+watch(inspectTab, () => { schedulePreviewRecompute(); scheduleChannelPreview(['inspector', 'preview'].includes(inspectTab.value)); });
 
 function schedulePreviewRecompute() {
   if (previewRecomputeTimer) {
