@@ -106,6 +106,7 @@ export function hasInstanceAccess({ entity, feature, level = 'read', action = nu
   const orgId = (entity?.organizationId ?? entity?.lineage?.organizationId)?.toString();
   const activeOrgId = auth.organizationId?.toString();
   if (orgId && activeOrgId && orgId !== activeOrgId) return false;
+  if (orgId && !activeOrgId && !(auth.memberships || []).some(item => item.organizationId?.toString() === orgId)) return false;
   const membership = orgId
     ? (auth.memberships || []).find(item => item.organizationId?.toString() === orgId)
     : (auth.memberships || [])[0];

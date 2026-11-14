@@ -59,6 +59,15 @@ describe('access engine', () => {
     })).toBe(true);
   });
 
+  it('does not let global effective grants substitute for organization membership', () => {
+    expect(hasInstanceAccess({
+      entity,
+      feature: 'queues',
+      level: 'read',
+      auth: { effectivePermissions: { queues: 'admin' }, memberships: [] }
+    })).toBe(false);
+  });
+
   it('denies missing org membership or insufficient permission level', () => {
     expect(hasInstanceAccess({ entity, feature: 'queues', level: 'admin', auth })).toBe(false);
     expect(hasInstanceAccess({
