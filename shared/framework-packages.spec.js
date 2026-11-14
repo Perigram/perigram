@@ -11,7 +11,7 @@ describe('Framework package contracts', () => {
 
     const aliasNames = file => {
       const source = readFileSync(file, 'utf8');
-      const block = source.match(/const perigramAliases = \{([\s\S]*?)\};/);
+      const block = source.match(/const perigramAliases = \{([\s\S]*?)\}\s*;?/);
       expect(block, file).not.toBeNull();
       return [...block[1].matchAll(/['"](@perigram\/[^'"]+)['"]\s*:/g)]
         .map(match => match[1])
