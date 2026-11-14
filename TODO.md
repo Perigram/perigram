@@ -1,5 +1,29 @@
 # TODO
 
+## Architecture simplification (SPEC §30, active 2026-11-14)
+
+Execution authority: [SPEC §30](./SPEC.md). This evidence-led sequence
+replaces the unbounded all-lines-at-once audit as the active architecture
+work plan; old findings remain historical until re-verified against the
+current tree.
+
+- [x] Restore the plan after the staging force-push and record the verified
+  test/inventory snapshot in SPEC §30.
+- [x] Align the seven workspace package aliases across Nuxt, Vitest, SSR,
+  TypeScript, the framework inspector, and the committed manifest; add
+  parity and public-entrypoint tests.
+- [x] Add the missing `@perigram/processes` root export and remove the stale
+  `@perigram/domain-cnc` lockfile record.
+- [ ] Complete the package import/export consumer graph and verify cycles.
+- [ ] Finish the CTS/core/process contract comparison and assign one owner
+  per concept without merging distinct declaration and runtime grammars.
+- [ ] Trace lifecycle declarations through compilation, transition
+  validation, persistence, and UI projection; remove only proven duplicates.
+- [ ] Map authorization and persistence write paths to one authority each.
+- [ ] Audit runtime composition, registries, worker protocols, and adapters.
+- [ ] Execute dead-code and documentation cuts with focused tests and full
+  verification; then validate extraction boundaries from SPEC §29.
+
 ## Internal-address scrub of tracked files (owner direction 2026-11-14)
 
 Target law: [deploy/SPEC.md](./deploy/SPEC.md). The GitHub public
@@ -1311,6 +1335,8 @@ URLs, `/home` is the live route, review-3 checked line 18 only);
 guards, E2E rewrites, SPEC numbering, 8 owner decisions.
 
 ## Exhaustive first-party code audit (owner direction 2026-10-25)
+
+Status: superseded as an execution plan by [Architecture simplification, SPEC §30](./SPEC.md). The open unbounded line-by-line sweep is not the active sequence; any historical finding must be re-verified against the current tree before action.
 
 Scope: every first-party line read once — one deep pass per component
 folder (~30 folders, ~177k lines; vendored bundles excluded). The
