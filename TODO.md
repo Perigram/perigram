@@ -56,6 +56,13 @@ canvas; sockets are generous targets with hover glow.
   (structured values via a code dialog), connected inputs and all
   outputs display their live evaluation from the channel payload; the
   per-node Inspect action and the inline fallback editor law retire.
+  Landed 2026-11-14 (live-values half): the inspector's output section
+  renders live from the whole-graph channel evaluation — the run is
+  scheduled while the inspector is open beside the preview tab, the
+  selected node's channel state and port-labeled outputs feed the
+  existing output section, and the on-demand Inspect stays as the
+  explicit re-run. Remaining: the authoring displacement (C1's other
+  half rides here) and the floating overlay (with C3).
 - [ ] C3 Floating canvas chrome — the category strip (provenance
   labels, category chips) and the tool cluster ride floating
   translucent bars over a fullscreen canvas; the graph editor mount

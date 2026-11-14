@@ -595,10 +595,12 @@ every mutation is an event back to the page's update/sync entry points.
   error until a field is picked).
 - `DeclarationEdgeInspector.vue` — typed edge integrity.
 
-Pure and read nodes expose the on-demand Output data inspector: it
-evaluates the selected node and its upstream data dependencies, then
-renders each output with its declared socket type beside branch paths,
-sampled values, and branch/item counts. Sampled items distinguish a
+Pure and read nodes expose the Output data inspector: each output with
+its declared socket type beside branch paths, sampled values, and
+branch/item counts, rendered live from the whole-graph channel
+evaluation while the inspector (or preview tab) is open — the Inspect
+control re-runs the node's own evaluation on demand. Sampled items
+distinguish a
 present `null` from a missing field (`missing(<path>)`, the serialized
 missing-field tag); secret or opaque values arrive already redacted by
 the preview boundary. Preview execution suppresses effects and control
