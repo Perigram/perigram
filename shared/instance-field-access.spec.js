@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canDisplayEntityField,
   filterEntityFields,
+  getActivePermissionsFromAuth,
   redactEntityForAccess,
   registerDeclarationFieldAccess
 } from './instance-field-access.js';
@@ -53,6 +54,33 @@ const assistant = {
 };
 
 describe('entity field access', () => {
+  it('uses the same active-process, membership, then legacy grant precedence as the server', () => {
+    const auth = {
+      organizationId: 'org-1',
+      permissions: { organizations: 'admin' },
+      memberships: [
+        { organizationId: 'org-1', permissions: { organizations: 'read' } },
+        { organizationId: 'org-2', permissions: { organizations: 'write' } }
+      ]
+    };
+
+    expect(getActivePermissionsFromAuth(auth, {
+      lineage: { organizationId: 'org-1' }
+    })).toEqual({ organizations: 'read' });
+
+    expect(getActivePermissionsFromAuth({
+      ...auth,
+      effectivePermissions: { organizations: 'none' }
+    }, {
+      lineage: { organizationId: 'org-1' }
+    })).toEqual({ organizations: 'none' });
+
+    expect(getActivePermissionsFromAuth({
+      permissions: null,
+      data: { permissions: { organizations: 'write' } }
+    })).toEqual({ organizations: 'write' });
+  });
+
   it('denies fields without a registered entity policy', () => {
     expect(canDisplayEntityField({
       permissions: { organizations: 'admin' },

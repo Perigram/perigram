@@ -1,7 +1,8 @@
 import {
   ACCESS_LEVELS,
   hasPermissionGrant,
-  levelAtLeast
+  levelAtLeast,
+  resolveEffectivePermissions
 } from '#shared/access-control.js';
 import {
   getEntityFieldAccessPolicy,
@@ -13,16 +14,13 @@ const POLICY_LEVELS = ['read', 'write', 'admin'];
 
 export function getActivePermissionsFromAuth(auth = {}, entity = null) {
   if (!auth) return {};
-  if (auth.effectivePermissions) return auth.effectivePermissions;
-  if (auth.permissions) return auth.permissions;
-
   const entityOrgId = entity?.lineage?.organizationId?.toString?.() || entity?.lineage?.organizationId;
   const activeOrgId = entityOrgId || auth.organizationId?.toString?.() || auth.organizationId;
   const membership = activeOrgId
     ? (auth.memberships || []).find(item => item.organizationId?.toString?.() === activeOrgId.toString())
     : (auth.memberships || [])[0];
 
-  return membership?.permissions || auth.data?.permissions || {};
+  return resolveEffectivePermissions(auth, membership) ?? auth.data?.permissions ?? {};
 }
 
 export function normalizeFieldDescriptor(field) {

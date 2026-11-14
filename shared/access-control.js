@@ -2,6 +2,15 @@ import { getPrimaryState } from '#packages/core/src/index.js';
 
 export const ACCESS_LEVELS = ['none', 'read', 'write', 'admin'];
 
+/**
+ * Resolve the grant set for one authorization context.
+ * Active process grants override membership grants; membership grants override
+ * legacy user-level grants. Callers may supply their own legacy fallback.
+ */
+export function resolveEffectivePermissions(auth = {}, membership = null) {
+  return auth.effectivePermissions ?? membership?.permissions ?? auth.permissions ?? null;
+}
+
 export const ACTION_LEVELS = {
   view: 'read',
   read: 'read',
