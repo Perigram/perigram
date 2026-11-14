@@ -84,10 +84,11 @@ export async function runClaimedTaskRun(run, executor, task = getTaskDefinition(
   }
 }
 
-export async function heartbeatTaskRun(id, claimToken, { leaseMs = 60000 } = {}) {
+export async function heartbeatTaskRun(id, claimToken, { leaseMs = 60000, workerType = null } = {}) {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
   const task = await resolveTaskDefinitionFor(run);
+  assertWorkerRunScope(run, workerType);
   requireClaim(run, claimToken);
   return await repository.updateClaimedById(id, claimToken, {
     status: task?.status?.running || 'RUNNING',
@@ -96,10 +97,11 @@ export async function heartbeatTaskRun(id, claimToken, { leaseMs = 60000 } = {})
   }, task?.status?.running || 'RUNNING');
 }
 
-export async function completeTaskRun(id, result = {}, claimToken = null) {
+export async function completeTaskRun(id, result = {}, claimToken = null, { workerType = null } = {}) {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
   const task = await resolveTaskDefinitionFor(run);
+  assertWorkerRunScope(run, workerType);
   if (isTerminalStatus(task, run.status)) return run;
   requireClaim(run, claimToken);
   requireRunning(run, task);
@@ -136,10 +138,11 @@ export async function completeTaskRun(id, result = {}, claimToken = null) {
   return updated;
 }
 
-export async function failTaskRun(id, error, claimToken = null) {
+export async function failTaskRun(id, error, claimToken = null, { workerType = null } = {}) {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
   const task = await resolveTaskDefinitionFor(run);
+  assertWorkerRunScope(run, workerType);
   if (isTerminalStatus(task, run.status)) return run;
   requireClaim(run, claimToken);
   requireRunning(run, task);
@@ -183,10 +186,11 @@ export async function failTaskRun(id, error, claimToken = null) {
   return updated;
 }
 
-export async function cancelTaskRun(id, reason = 'Cancelled') {
+export async function cancelTaskRun(id, reason = 'Cancelled', { workerType = null } = {}) {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
   const task = await resolveTaskDefinitionFor(run);
+  assertWorkerRunScope(run, workerType);
   if (isTerminalStatus(task, run.status)) return run;
   const updated = await repository.updateById(id, {
     status: task?.status?.cancelled || 'CANCELLED',
@@ -275,6 +279,13 @@ async function notifyProcessTaskOutcome({ taskRunId, status, output = null, erro
     }
   } catch (error) {
     console.error(`[Task ${taskRunId}] Process action continuation failed:`, error.message);
+  }
+}
+
+
+function assertWorkerRunScope(run, workerType) {
+  if (workerType && run.workerType !== workerType) {
+    throw createError({ statusCode: 403, message: 'Connector cannot access this task run' });
   }
 }
 
