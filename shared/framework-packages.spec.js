@@ -26,6 +26,13 @@ describe('Framework package contracts', () => {
       expect(manifest.exports?.['.'], name).toBe('./src/index.js');
     }
 
+    const lockfile = JSON.parse(readFileSync('package-lock.json', 'utf8'));
+    const lockPackages = Object.entries(lockfile.packages)
+      .filter(([path, manifest]) => path.startsWith('packages/') && manifest.name)
+      .map(([, manifest]) => manifest.name)
+      .sort();
+    expect(lockPackages).toEqual(packageNames);
+
     const frameworkManifest = JSON.parse(readFileSync('framework.manifest.json', 'utf8'));
     expect(frameworkManifest.packages.map(item => item.name).sort()).toEqual(packageNames);
 
