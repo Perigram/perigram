@@ -1,8 +1,41 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 describe('Framework package contracts', () => {
+  it('keeps package exports, aliases, and manifest inventory in sync', () => {
+    const packageNames = readdirSync('packages', { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(entry => JSON.parse(readFileSync(`packages/${entry.name}/package.json`, 'utf8')).name)
+      .sort();
+
+    const aliasNames = file => {
+      const source = readFileSync(file, 'utf8');
+      const block = source.match(/const perigramAliases = \\{([\\s\\S]*?)\\};/);
+      expect(block, file).not.toBeNull();
+      return [...block[1].matchAll(/['"](@perigram\\/[^'"]+)['"]\\s*:/g)]
+        .map(match => match[1])
+        .sort();
+    };
+
+    for (const file of ['nuxt.config.js', 'vitest.config.js', 'vitest.ssr.config.js']) {
+      expect(aliasNames(file), file).toEqual(packageNames);
+    }
+
+    const tsconfig = JSON.parse(readFileSync('tsconfig.json', 'utf8'));
+    expect(Object.keys(tsconfig.compilerOptions.paths).filter(name => name.startsWith('@perigram/')).sort())
+      .toEqual(packageNames);
+
+    const manifest = JSON.parse(readFileSync('framework.manifest.json', 'utf8'));
+    expect(manifest.packages.map(item => item.name).sort()).toEqual(packageNames);
+
+    const inspect = readFileSync('scripts/framework-inspect.js', 'utf8');
+    const packageList = inspect.match(/const PACKAGE_NAMES = \\[([\\s\\S]*?)\\];/);
+    expect(packageList).not.toBeNull();
+    expect([...packageList[1].matchAll(/'(@perigram\\/[^']+)'/g)].map(match => match[1]).sort())
+      .toEqual(packageNames);
+  });
+
   it('registers entity definitions in @perigram/core', async () => {
     const {
       BaseEntity,
