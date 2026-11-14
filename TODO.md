@@ -53,6 +53,14 @@ deployment.
   on endpoint services (unchanged) and the connector button now gates
   on remote services (`mode !== 'local'`) — an engine-only install
   renders neither.
+- Live dogfood (dev stack, operator-published throwaway listing):
+  `engine-demo` v2 (one type + `engine` + one `mode: 'local'` service)
+  installs through the consent dialog and its installed row carries
+  Remove alone — no settings, no connector, no token — while the
+  documents/tech-drawing rows keep theirs. The install gate's trial
+  composition refused a first listing whose type lacked the identifier
+  field, exactly as the registry law demands. Uninstalled and
+  retracted after the pass.
 - Validation: sdk + plugins specs 110 ✓, SSR smoke 29 ✓, `check-arch`
   ✓, `docs:validate` ✓, `framework:validate` ✓.
 
