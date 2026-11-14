@@ -1,5 +1,5 @@
 <template>
-  <div v-if="d" :class="d.stack">
+  <div v-if="d" :class="d.screenRoot">
     <!-- The record document's section flow (SPEC §22.17, §26): the body's
          own sections render in the composed order — the property block
          (the declared scalar facts as compact property rows, collapsed to
