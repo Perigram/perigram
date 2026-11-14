@@ -1,5 +1,5 @@
 import { requireAuth } from '~/server/utils/permissions';
-import { assertEntityAccess, hasInstanceAccess } from '~/server/core/access/service.js';
+import { hasInstanceAccess } from '~/server/core/access/service.js';
 import { declarationForType, writeGrantTarget } from '~/server/features/instances/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 
@@ -27,9 +27,6 @@ export default defineEventHandler(async (event) => {
   if (!declaration) throw createError({ statusCode: 404, statusMessage: `no declaration for type ${typeId}` });
   const target = await writeGrantTarget(declaration, organizationId);
   if (!target) throw createError({ statusCode: 403, statusMessage: 'Permission denied' });
-  if (organizationId) {
-    assertEntityAccess({ entity: { lineage: { organizationId } }, typeId, feature: target.feature, level: 'read', auth });
-  }
   const items = await service.processList(query, { auth, userId: auth.userId, organizationId });
   return (items || []).filter(item => hasInstanceAccess({
     entity: item?.toJSON ? item.toJSON() : item,
