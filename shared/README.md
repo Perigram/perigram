@@ -17,6 +17,9 @@ imported through server modules that Nitro externalizes.
 - `access-control.js`: Shared permission grant evaluator for feature levels,
   UI actions, entity lineage scopes, workflow-transition scopes, and optional
   logical grant rules.
+  Primary-status facts use the canonical `getPrimaryState()` reader from
+  [`@perigram/core`](../packages/core/README.md); access evaluation does not
+  maintain a parallel status projection.
 - `plugin-surfaces.js`: The plugin-delivered editor surface contract versions
   the platform can mount (SPEC §20). The server
   install/upgrade gates and the client loader read
