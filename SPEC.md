@@ -704,6 +704,16 @@ API endpoint per endpoint-mode service and the executor API key. The
 marketplace catalog itself stays platform-side (no separate deployment);
 server-side services are separate processes by design.
 
+**Client-carried** (owner direction 2026-11-14): a plugin may carry its
+engine in the package — the engine runs in the browser and its services
+evaluate locally, in the same Web Worker isolation the engine declares.
+Install is self-contained: connection settings configure only services
+that call remote systems, and a plugin whose services all run client-side
+carries no connection surface. The build123d plugin is this shape — the
+Python engine and geometry kernel run in WebAssembly in the browser, the
+catalog derives from the engine's own introspection, and the plugin
+deploys nothing.
+
 A third-party plugin is declarations plus connectors — never in-process code:
 
 - **Declarations** (types now; processes/screens as the exchange grows) install

@@ -1,5 +1,49 @@
 # TODO
 
+## Local engines — client-side plugin execution (SPEC §20 "Client-carried", owner direction 2026-11-14)
+
+A plugin may carry its engine in the package: the engine runs in the
+browser, its services evaluate locally, and install is self-contained —
+no endpoints, no origins, no keys. Connection settings exist only for
+services that call remote systems. The build123d plugin is the first:
+Pyodide + build123d + OCP.wasm in a Web Worker (the build123d-flow
+model), catalog from the engine's own introspection, no executor
+deployment.
+
+- [ ] E1 Listing contract — a listing declares a client engine (entry
+  module, pinned runtime) and binds services to it (`mode: 'local'`);
+  `parseListing` validates the shape, installs snapshot the engine
+  binding, and the connection dialog renders no endpoint fields for an
+  engine-only plugin.
+- [ ] E2 Self-contained module serving — engine modules and pinned
+  runtime assets ship in the published package and serve same-origin
+  through the module proxy with no org-configured origin.
+- [ ] E3 Browser engine runtime — the engine loader (Web Worker), the
+  Pyodide bootstrap (checksum-pinned runtime, micropip wheel install,
+  IndexedDB persistence), and the dispatch contract
+  (`op id + parameters -> output`).
+- [ ] E4 Client-side preview dispatch — the one evaluator's preview
+  service channel dispatches local-engine services in the browser;
+  endpoint/claim services keep the server dispatch.
+- [ ] E5 build123d plugin conversion — the listing carries the
+  discovered op catalog and the engine; the python executor
+  (`workers/build123d`, its dev compose service) retires. Supersedes
+  the executor-deployment shape of the 2026-11-13 bring-up.
+- [ ] E6 Shape viewport (G4) — the engine's tessellated meshes feed the
+  plugin's preview channel surface.
+
+### Agent Notes (2026-11-14, agent/local-engines-spec-20261114)
+
+- Owner direction recorded after live inspection: the build123d
+  Connection dialog renders one endpoint URL field per discovered op
+  (64 fields) because every op registers as an endpoint-mode service —
+  the per-service connection model (born on documents, 6 services)
+  degenerates on engine plugins. In build123d-flow the engine is
+  client-side (Pyodide worker, OCP.wasm, catalog via Python
+  introspection, "no required Python server"); plugins like this must
+  be all-included on install. SPEC §20 amended with the client-carried
+  hosting mode; slices E1–E6 recorded above.
+
 ## Graph documents — callable graph instances (SPEC §28 amendment, owner direction 2026-11-13)
 
 Composition leaves the process-definition container: a graph is an
