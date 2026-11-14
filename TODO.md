@@ -23,10 +23,25 @@ pure compute).
   the section label above the node label, the chevron and H collapse
   the card with handles docked left/right, and the collapse persists
   through save/reload.
-- [ ] G1 Graph document type — one platform type (JSON payload, editor
-  creation protocol); instance lifecycle through the ordinary instance
-  services; the canvas opens a graph instance beside the organization
-  process page (the same designer components over the instance payload).
+- [x] G1a Graph document type — the platform `graph-document` file type
+  (JSON payload, upload creation, content revisions) compiles in every
+  registry view and projects as an authorable instance; graph documents
+  are creatable, referenceable, and payload-carrying today.
+- [ ] G1b Canvas session extraction — the shared graph core moves from
+  `pages/organization/process.vue` into one session composable (nodes,
+  records, enrichment, sync, decorators, connect, placement, palettes,
+  declaration diagnostics; the declaration-factory literal deduped out
+  of the page and the spec harnesses); the process page consumes it
+  unchanged in behavior.
+- [ ] G1c Graph editor surface — the session composable mounts inside
+  the platform file-surface registry (`fileSurfaceRegistry` plus the
+  `graph-document` editor binding, creation protocol 'editor'), with
+  payload load/save through `instancePayloadPersistence` and the
+  workspace editor chrome (blank open, write-grant mode).
+- [ ] WAITING — owner verification: G1a — a `graph-document` instance
+  creates from its class collection with an uploaded JSON payload, keeps
+  content revisions per payload save, and serves as a ref target for
+  other types' fields.
 - [ ] G2 Typed bindings — a graph authors input/output bindings (name,
   CTS type / value kind); the binding contract validates with the draft.
 - [ ] G3 Graph-as-node — a graph instance referenced in another graph
@@ -39,6 +54,22 @@ pure compute).
 - [ ] G5 Procedural persistence — effects/constructs that write computed
   values into file instances (STEP shape → `b3d-part`, rendered PDF →
   the documents file types); value services stay pure compute.
+
+### Agent Notes (2026-11-14, agent/graph-doc-type-20261114)
+
+- G1a landed. `graph-document` joins `frameworkTypes`
+  (packages/cts/src/pack/framework.js) as an authorable system file
+  type: JSON payload (5 MiB cap, upload creation), content revisions,
+  `name` identifier. Spec `packages/cts/src/graph-document.spec.js`
+  pins the declaration shape, the clean compile with an authorable
+  projection, and the payload acceptance lattice.
+- G1 scoped into G1a (landed) / G1b (canvas session extraction from
+  the process page — the shared core is ~900 lines interwoven with
+  process-plane code; moving it verbatim into one session composable
+  is its own session) / G1c (the editor surface over the platform
+  file-surface registry; `editorSurfacePersistence` and
+  `instancePayloadPersistence` already cover load/save, blank-open,
+  and write-grant mode, so G1c is surface + binding alone).
 
 ### Agent Notes (2026-11-14, agent/dock-cards-20261114)
 
