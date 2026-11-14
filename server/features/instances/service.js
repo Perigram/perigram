@@ -803,7 +803,23 @@ function instanceService(typeId) {
     },
 
     // -- process bindings --
-    processList: (filters, auth) => instanceService(typeId).list(filters, auth.userId, auth.organizationId),
+    processList: async (filters, auth = {}) => {
+      // Process graph queries are an entity-read surface too: tenant
+      // filtering in the repository is necessary but does not replace the
+      // compiled feature grant applied by the HTTP list transport.
+      const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+      const declaration = await requireDeclaration(typeId, organizationId);
+      const target = await writeGrantTarget(declaration, organizationId);
+      if (!target) throw createError({ statusCode: 403, message: 'Permission denied' });
+      const items = await instanceService(typeId).list(filters, auth.userId, organizationId);
+      return (items || []).filter(item => hasInstanceAccess({
+        entity: item?.toJSON ? item.toJSON() : item,
+        typeId: target.typeId,
+        feature: target.feature,
+        level: 'read',
+        auth
+      }));
+    },
     processGetById: async (id, auth) => {
       const declaration = await declarationFor(typeId, auth.organizationId);
       if (!declaration) return null;

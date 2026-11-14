@@ -299,6 +299,35 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.find.mock.calls[0][0].type).toBe('panel');
   });
 
+  it('filters process entity queries through the compiled read grant', async () => {
+    const coll = stubCollection();
+    coll.find.mockReturnValue({
+      sort: () => ({
+        limit: () => ({
+          toArray: async () => [{ _id: 'panel-1', type: 'panel', organizationId: 'org-1' }]
+        })
+      })
+    });
+    const access = await import('../../core/access/service.js');
+    access.hasInstanceAccess.mockReturnValueOnce(false);
+    const service = instanceServiceResolver('panel');
+
+    const items = await service.processList({}, {
+      userId: 'user-1',
+      memberships: [{ organizationId: 'org-1', permissions: {} }]
+    });
+
+    expect(items).toEqual([]);
+    expect(access.hasInstanceAccess).toHaveBeenCalledWith(expect.objectContaining({
+      typeId: 'panel',
+      level: 'read'
+    }));
+    expect(coll.find.mock.calls[0][0].$or).toEqual([
+      { organizationId: 'org-1' },
+      { organizationId: null }
+    ]);
+  });
+
   it('admits the system catalog beside org rows and serves pack types', async () => {
     const coll = stubCollection();
     // documents pack type resolves through the composed static map
