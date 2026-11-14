@@ -1860,6 +1860,15 @@ the current implementation already conforms.
   upload/storage adapters, background workers, and the remaining API routes
   still require a separate write-owner inventory. No code change was warranted
   by this scan.
+- State-machine persistence extraction: status-ledger inserts and entity
+  status updates now pass through `server/core/machines/repository.js`.
+  The service retains workflow resolution, authorization, validation,
+  transition hooks, and orchestration; the repository owns the Mongo mutation
+  calls and the existing optional transaction that atomically appends the
+  event and updates the entity. The caller supplies its existing DB handle,
+  preserving the same connection and session behavior. Initial-state writes
+  and field/payload audit-event appends use the same adapter. This is a
+  persistence-boundary extraction, not a change to event schema or ordering.
 - Core persistence ownership scan: `commands/repository.js` owns writes to
   `command_runs`, and `tasks/repository.js` owns writes to `task_runs`;
   their corresponding command/task services contain no direct Mongo mutation

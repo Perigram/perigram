@@ -1,4 +1,5 @@
 import { connectDB } from '../../db/mongo.js';
+import * as machineRepository from './repository.js';
 import { ObjectId } from 'mongodb';
 import { createStatus } from '../../core/blocks/index.js';
 import { toFlexibleId } from '../../utils/objectid.js';
@@ -90,7 +91,7 @@ export const stateService = {
     );
     const statusData = JSON.parse(JSON.stringify(status));
     const db = await connectDB();
-    await db.collection('status_events').insertOne(buildStatusEventRecord({
+    await machineRepository.insertStatusEvent(db, buildStatusEventRecord({
       eventId,
       targetId: flexId,
       targetType: normalizedTypeId,
@@ -105,7 +106,7 @@ export const stateService = {
       evidence: buildEventEvidence(stateMetadata, initialLifecycle),
       source: metadata?.source ?? null
     }));
-    await db.collection(collection).updateOne(
+    await machineRepository.updateEntityStatus(db, collection,
       { _id: flexId },
       instanceDoc
         ? { $set: { ...instanceStateSetFromStatus(statusData), updatedAt: new Date().toISOString() } }
@@ -562,7 +563,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
         ...evidence.entityAttachmentSet,
         ...(options.entityPatch || {})
       };
-    await writeStatusEventAndEntitySnapshot({
+    await machineRepository.writeStatusEventAndEntitySnapshot({
       db,
       collection,
       targetId: flexId,
@@ -598,35 +599,6 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
     };
 }
 
-async function writeStatusEventAndEntitySnapshot({ db, collection, targetId, eventRecord, entitySet, preferTransaction = false }) {
-  if (preferTransaction) {
-    if (!db.client?.startSession) {
-      throw createError({ statusCode: 500, message: 'MongoDB transactions are required for combined entity updates' });
-    }
-    const session = db.client.startSession();
-    try {
-      await session.withTransaction(async () => {
-        await db.collection('status_events').insertOne(eventRecord, { session });
-        const result = await db.collection(collection).updateOne({ _id: targetId }, { $set: entitySet }, { session });
-        if (result.matchedCount !== 1) {
-          throw createError({ statusCode: 404, message: 'Status target not found during combined entity update' });
-        }
-      });
-      return;
-    } finally {
-      await session.endSession();
-    }
-  }
-
-  await db.collection('status_events').insertOne(eventRecord);
-  const result = await db.collection(collection).updateOne(
-    { _id: targetId },
-    { $set: entitySet }
-  );
-  if (result.matchedCount !== 1) {
-    throw createError({ statusCode: 404, message: 'Status target not found during entity status update' });
-  }
-}
 
 export function createTransitionAuth(userId, userRoleOrAuth, userPermissions = {}) {
   if (userRoleOrAuth && typeof userRoleOrAuth === 'object') {
@@ -698,7 +670,7 @@ export async function appendFieldChangeEvent(typeId, targetId, { changes = [], a
     operation: { kind: 'field_change', changes: effective },
     evidence: buildEventEvidence({}, {})
   });
-  await db.collection('status_events').insertOne(record);
+  await machineRepository.insertStatusEvent(db, record);
   return record;
 }
 
@@ -729,7 +701,7 @@ export async function appendPayloadRevisionEvent(typeId, targetId, { reason = nu
     },
     evidence: buildEventEvidence({}, {})
   });
-  await db.collection('status_events').insertOne(record);
+  await machineRepository.insertStatusEvent(db, record);
   return record;
 }
 
