@@ -125,7 +125,7 @@ import { useProcessDesignerGraphSession } from '~/composables/useProcessDesigner
 import { useProcessDesignerPersistence } from '~/composables/useProcessDesignerPersistence.js';
 import { useProcessDesignerRoles } from '~/composables/useProcessDesignerRoles.js';
 import { useGraphChannelPreview } from '~/composables/useGraphChannelPreview.js';
-import { canvasToDefinition, PROCESS_DATAFLOW_VERSION } from '@perigram/processes/index';
+import { canvasToDefinition, PROCESS_DATAFLOW_VERSION } from '@perigram/processes';
 
 // The graph editor surface (SPEC §28): the graph canvas session mounted
 // over a `graph-document` payload — the same authoring core the process

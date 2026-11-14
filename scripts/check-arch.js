@@ -596,6 +596,29 @@ for (const file of [...walkDir('server'), ...walkDir('shared')]) {
   }
 }
 
+
+console.log('\n--- Workspace package export specifiers ---');
+// Package roots are exported as "."; "/index" and private source paths are
+// not public subpaths and fail in Vite/Nitro even when workspace links exist.
+const workspaceSpecifierFiles = [
+  ...walkDir('components'),
+  ...walkDir('composables'),
+  ...walkDir('pages'),
+  ...walkDir('stores'),
+  ...walkDir('utils'),
+  ...walkDir('shared'),
+  ...walkDir('server'),
+  ...walkDir('workers')
+].filter(file => /\\.(?:js|ts|vue|mjs)$/.test(file) && !file.endsWith('.spec.js'));
+workspaceSpecifierFiles.forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  const relFile = path.relative('.', file);
+  if (/@perigram\\/(?:core|cts|processes|plugin-sdk)\\/(?:index|src)(?:['"/]|$)/.test(content)) {
+    console.error(`❌ ${relFile} imports a private workspace-package subpath — use the package root or an explicitly exported subpath`);
+    errors++;
+  }
+});
+
 console.log('\n--- Verification Summary ---');
 if (errors === 0) {
   console.log('✅ Architecture check passed.');
