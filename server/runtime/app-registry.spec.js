@@ -264,17 +264,21 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
   it('resolves process reads for pack types through the per-class collections', async () => {
     resetAppRegistryForTests();
     vi.clearAllMocks();
-    const find = vi.mocked(instanceRepository.findInstance).mockResolvedValue({ _id: 'cassette-9', type: 'cassette' });
+    const find = vi.mocked(instanceRepository.findInstanceAnywhere).mockResolvedValue({
+      _id: 'cassette-9',
+      type: 'cassette',
+      organizationId: 'org-1'
+    });
     const auth = {
       userId: 'user-1',
       organizationId: 'org-1',
       role: 'member',
-      effectivePermissions: {}
+      effectivePermissions: { files: 'read', items: 'read', groups: 'read' }
     };
 
     const entity = await getAppRegistry().getInstanceService('cassette').processGetById('cassette-9', auth);
 
     expect(entity).toMatchObject({ _id: 'cassette-9', type: 'cassette' });
-    expect(find).toHaveBeenCalledWith('files', 'cassette-9', 'cassette');
+    expect(find).toHaveBeenCalledWith('cassette-9', 'cassette');
   });
 });

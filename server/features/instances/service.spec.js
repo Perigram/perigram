@@ -299,6 +299,34 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.find.mock.calls[0][0].type).toBe('panel');
   });
 
+  it('filters process entity lookups through the compiled read grant', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockResolvedValue({
+      _id: 'panel-1',
+      type: 'panel',
+      organizationId: 'org-1',
+      fields: { serial: 'P-1' }
+    });
+    const access = await import('../../core/access/service.js');
+    access.hasInstanceAccess.mockReturnValueOnce(false);
+    const service = instanceServiceResolver('panel');
+    const auth = {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      memberships: [{ organizationId: 'org-1', permissions: {} }]
+    };
+
+    await expect(service.processGetById('panel-1', auth)).rejects.toMatchObject({
+      statusCode: 403,
+      message: 'Permission denied'
+    });
+    expect(access.hasInstanceAccess).toHaveBeenCalledWith(expect.objectContaining({
+      typeId: 'panel',
+      level: 'read',
+      auth
+    }));
+  });
+
   it('filters process entity queries through the compiled read grant', async () => {
     const coll = stubCollection();
     coll.find.mockReturnValue({

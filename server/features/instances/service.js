@@ -820,10 +820,24 @@ function instanceService(typeId) {
         auth
       }));
     },
-    processGetById: async (id, auth) => {
-      const declaration = await declarationFor(typeId, auth.organizationId);
+    processGetById: async (id, auth = {}) => {
+      const doc = await repository.findInstanceAnywhere(id, typeId);
+      if (!doc) return null;
+      const organizationId = doc.organizationId ?? auth.organizationId ?? null;
+      const declaration = await declarationFor(typeId, organizationId);
       if (!declaration) return null;
-      return toDto(await repository.findInstance(repository.collectionForClass(declaration.class), id, typeId), declaration);
+      const target = await writeGrantTarget(declaration, organizationId);
+      const entity = toDto(doc, declaration);
+      if (!target || !hasInstanceAccess({
+        entity,
+        typeId: target.typeId,
+        feature: target.feature,
+        level: 'read',
+        auth
+      })) {
+        throw createError({ statusCode: 403, message: 'Permission denied' });
+      }
+      return entity;
     },
     processDelete: (id, auth) => instanceService(typeId).removeForHttp(id, {
       auth,
