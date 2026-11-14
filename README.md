@@ -121,6 +121,19 @@ The `vitest.ssr.config.js` run mounts real pages through
 [`test-tools/`](./test-tools/README.md)) — it guards against template
 bindings that script-only checks cannot see.
 
+
+### CI
+
+The `Staging CI` workflow runs on the self-hosted GitHub Actions runner
+when `staging` is updated and can also be started manually from the Actions
+tab. It installs the locked npm dependencies, then runs the complete Vitest
+suite, SSR smoke tests, architecture check, framework validation,
+documentation validation, and plugin executor dependency check. Verification
+steps continue after individual failures so one run reports the full baseline.
+It does not run on pull requests, so untrusted PR code is not sent to the
+self-hosted machine. The runner needs Node.js 22 and network access for npm
+dependency installation.
+
 Worker endpoints require matching `WORKER_TOKEN` on app and workers;
 the dev compose defaults it to `perigram-dev-worker`. Data
 migrations live in their canonical home,
