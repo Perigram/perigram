@@ -1803,6 +1803,10 @@ the current implementation already conforms.
   staging run `43609867626`; the branch has two additional passing tests.
   These failures are recorded as pre-existing baseline failures, not as
   evidence that this refactor is complete or that the full suite is green.
+- The maintained package source graph was scanned at the merge commit:
+  `processes` imports `core` and `cts`; `core`, `cts`, and `plugin-sdk` have
+  no cross-package source imports. A contract test now asserts this exact
+  one-way graph, including relative imports and package aliases.
 - Runtime composition and persistence write ownership have not yet been
   proven end-to-end. Those remain open verification work, as do complete
   package import-cycle and extraction-compatibility checks.

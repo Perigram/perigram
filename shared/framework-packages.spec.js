@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 describe('Framework package contracts', () => {
@@ -33,6 +34,46 @@ describe('Framework package contracts', () => {
     expect(declared).not.toBeNull();
     expect([...declared[1].matchAll(/'(@perigram\/[^']+)'/g)].map(match => match[1]).sort())
       .toEqual(packageNames);
+  });
+
+  it('keeps the four-package dependency graph acyclic and one-way', () => {
+    const packageDirs = ['cts', 'core', 'plugin-sdk', 'processes'];
+    const graph = Object.fromEntries(packageDirs.map(name => [name, new Set()]));
+
+    const walk = directory => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+      const path = resolve(directory, entry.name);
+      if (entry.isDirectory()) return walk(path);
+      return entry.isFile() && path.endsWith('.js') ? [path] : [];
+    });
+
+    for (const owner of packageDirs) {
+      for (const file of walk(resolve('packages', owner, 'src'))) {
+        const source = readFileSync(file, 'utf8');
+        const specifiers = [...source.matchAll(/(?:from\s*|import\s*(?:\(\s*)?)['"]([^'"]+)['"]/g)]
+          .map(match => match[1]);
+
+        for (const specifier of specifiers) {
+          let target = null;
+          if (specifier.startsWith('@perigram/')) {
+            target = specifier.slice('@perigram/'.length).split('/')[0];
+          } else if (specifier.startsWith('#packages/')) {
+            target = specifier.slice('#packages/'.length).split('/')[0];
+          } else if (specifier.startsWith('.')) {
+            const resolved = resolve(dirname(file), specifier);
+            target = resolved.match(/[/\\]packages[/\\]([^/\\]+)[/\\]/)?.[1] || null;
+          }
+          if (target && target !== owner && graph[owner]) graph[owner].add(target);
+        }
+      }
+    }
+
+    expect(Object.fromEntries(Object.entries(graph).map(([name, targets]) => [name, [...targets].sort()])))
+      .toEqual({
+        cts: [],
+        core: [],
+        'plugin-sdk': [],
+        processes: ['core', 'cts']
+      });
   });
 
   it('registers entity definitions in @perigram/core', async () => {
