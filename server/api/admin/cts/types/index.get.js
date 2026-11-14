@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
     surfaces,
     previews,
     previewChannels,
+    clientEngines,
     types: bundle.types
   };
 });
