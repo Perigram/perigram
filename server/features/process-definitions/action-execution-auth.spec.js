@@ -47,7 +47,10 @@ describe('process action execution authorization', () => {
       typeId: 'work_item', actionKind: 'runCommand', commandId: 'close-work-item'
     });
     expect(result.effectivePermissions).toEqual({
-      'work-items': [{ level: 'write', actions: { update: true } }],
+      'work-items': [
+        { level: 'write', actions: { run: true } },
+        { level: 'write', actions: { update: true } }
+      ],
       'audit-log': [{ level: 'read', actions: { view: true } }]
     });
   });
