@@ -2,9 +2,11 @@
 
 Builds the explicit application registry used by backend runtimes.
 
-`app-registry.js` creates one `createRegistry()` instance and registers the
-framework entity services, command handlers, and the workflow hook handler
-seam. Backend runtimes resolve domain services through this registry. The
+`app-registry.js` creates one `createRegistry()` instance exactly once and
+registers the framework entity services, command handlers, and the workflow
+hook handler seam. Repeated `getAppRegistry()` calls return that instance
+without re-registering the generic instance resolver. Backend runtimes resolve
+domain services through this registry. The
 facade domain installs per
 organization as the facade plugin; its compute runs in the external
 executor.

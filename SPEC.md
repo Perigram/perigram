@@ -1807,9 +1807,20 @@ the current implementation already conforms.
   `processes` imports `core` and `cts`; `core`, `cts`, and `plugin-sdk` have
   no cross-package source imports. A contract test now asserts this exact
   one-way graph, including relative imports and package aliases.
-- Runtime composition and persistence write ownership have not yet been
-  proven end-to-end. Those remain open verification work, as do complete
-  package import-cycle and extraction-compatibility checks.
+- `getAppRegistry()` now composes the application registry only once;
+  repeated calls no longer re-register the generic instance resolver. The
+  core registry also deduplicates repeated registration of the same resolver.
+  Both contracts have focused tests. The generic app registry is the sole
+  composition point described in `server/runtime/README.md`.
+- Persistence has distinct, explicit owners rather than one universal
+  repository: machine status snapshots and `status_events` are written at
+  `server/core/machines/service.js`; process definitions and runs use their
+  feature repository/run-store boundaries; workflow overrides use their
+  repository; generic instances use the instances repository. The complete
+  feature write-path audit remains open.
+- Application consumers still use transitional source-relative imports
+  between packages. The internal package graph is acyclic, but versioned
+  public-package imports and browser/Node extraction contracts remain open.
 ### Execution order
 
 1. **Baseline and inventory.** Capture the current test and validation

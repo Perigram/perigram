@@ -15,12 +15,20 @@ from remaining proof and verification.
   and delegate server access, field redaction, and the legacy adapter.
 - [x] Update package inventories, framework inspection, docs, and the
   retired-workflow package-reference guard.
+- [x] Remove the stale `@perigram/domain-cnc` lockfile entry; align the
+  processes package version, root export, and workspace lockfile.
+- [x] Scan all maintained package source imports and enforce the acyclic
+  direction: `processes` → (`core`, `cts`); no sibling edges from the
+  other three contract packages.
+- [x] Ensure application registry composition happens once and resolver
+  registration is idempotent; cover both behaviors with tests.
 - [x] Record the verified CI baseline and distinguish existing test failures
   from regressions in SPEC §30.
-- [ ] Add/finish the complete import/export consumer graph and automated
-  acyclic dependency check for the four packages.
-- [ ] Trace runtime composition, authorization call sites, and persistence
-  write paths end-to-end; document each authoritative owner.
+- [ ] Map all application consumers of package internals and replace
+  transitional sibling-relative imports with public package imports when
+  workspace/extraction tooling supports versioned dependencies.
+- [ ] Complete the route/command/transition/feature authorization call graph
+  and trace every feature persistence write path end-to-end.
 - [ ] Verify package/executor contracts independently, including browser/
   Node compatibility and versioned extraction interfaces under §29.
 - [ ] Triage the 19 pre-existing Vitest failures separately and establish a
