@@ -452,7 +452,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
   it('refuses tenant-owned lineage parents when the child has no organization scope', async () => {
     const coll = stubCollection();
     coll.findOne.mockResolvedValue({ _id: 'tenant-parent', type: 'bin', organizationId: 'org-1', lineage: {} });
-    const service = instanceServiceResolver('label');
+    const service = instanceServiceResolver('pdf-document');
 
     await expect(service.create({ lineage: { binId: 'tenant-parent' } }, 'user-1', null))
       .rejects.toMatchObject({ statusCode: 400 });
