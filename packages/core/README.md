@@ -80,6 +80,10 @@ declared lineage slots, entity types, and attachment kinds.
 workflows defined through this kernel; types declared through CTS carry
 their state law in [CTS SPEC §7](../cts/SPEC.md).
 
+Core is the canonical implementation of the shared primary/region state
+readers and lifecycle payload normalization. The workflow package re-exports
+these helpers rather than maintaining parallel implementations.
+
 `BaseEntity.toJSON()` projects the current status block onto the flat wire
 `states` map. Every active workflow axis is emitted as its canonical leaf
 path; `main` is only the primary-axis convention, not the sole state slot.
