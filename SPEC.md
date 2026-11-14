@@ -1861,6 +1861,13 @@ the current implementation already conforms.
   from the explicit context or draft and rejects tenant-owned parents when
   the child is unscoped, closing the null-scope bypass in the parent check.
   A focused regression test verifies rejection before insert.
+  The generic HTTP instance patch transport now rejects `lineage` and
+  `relations` writes: those structural edges must pass through their dedicated
+  link/unlink operations, where declared edge shape, target organization, and
+  relation-domain checks belong. Regression coverage verifies both payloads
+  are refused before the record is even loaded. This closes an implementation
+  gap where the lower-level patch mapper accepted fields its own transport
+  contract explicitly excluded.
   These are targeted boundary fixes, not completion of the
   route/command/transition/feature call-graph audit.
 - Current staging CI runs `43621806498` and `43622023230` continue to show
