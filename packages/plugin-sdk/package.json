@@ -10,7 +10,8 @@
     "./endpoint-executor": "./src/endpoint-executor.js",
     "./claim-executor": "./src/claim-executor.js",
     "./api-client": "./src/api-client.js",
-    "./listing.schema.json": "./src/listing.schema.json"
+    "./listing.schema.json": "./src/listing.schema.json",
+    "./surface-check": "./src/surface-check.js"
   },
   "bin": {
     "perigram-plugin": "./bin/perigram-plugin.js"

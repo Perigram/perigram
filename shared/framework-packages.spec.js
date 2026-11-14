@@ -26,6 +26,30 @@ describe('Framework package contracts', () => {
       expect(manifest.exports?.['.'], name).toBe('./src/index.js');
     }
 
+    const rootManifest = JSON.parse(readFileSync('package.json', 'utf8'));
+    expect(rootManifest.dependencies).toMatchObject({
+      '@perigram/core': '0.1.0',
+      '@perigram/cts': '0.1.0',
+      '@perigram/plugin-sdk': '0.1.0',
+      '@perigram/processes': '0.1.0'
+    });
+
+    expect(JSON.parse(readFileSync('packages/processes/package.json', 'utf8')).exports).toMatchObject({
+      './authoring': './src/authoring.js',
+      './compiler-core': './src/compiler-core.js',
+      './designer': './src/designer.js',
+      './node-catalog': './src/node-catalog.js',
+      './screen-contract': './src/screen-contract.js',
+      './types': './src/types.js',
+      './ui-contract-projection': './src/ui-contract-projection.js'
+    });
+    expect(JSON.parse(readFileSync('packages/cts/package.json', 'utf8')).exports).toMatchObject({
+      './pack/cnc': './src/pack/cnc.js',
+      './pack/framework': './src/pack/framework.js'
+    });
+    expect(JSON.parse(readFileSync('packages/plugin-sdk/package.json', 'utf8')).exports)
+      .toMatchObject({ './surface-check': './src/surface-check.js' });
+
     const processManifest = JSON.parse(readFileSync('packages/processes/package.json', 'utf8'));
     expect(processManifest.dependencies).toEqual({
       '@perigram/core': '0.1.0',
@@ -54,7 +78,17 @@ describe('Framework package contracts', () => {
       import('@perigram/cts'),
       import('@perigram/core'),
       import('@perigram/plugin-sdk'),
-      import('@perigram/processes')
+      import('@perigram/processes'),
+      import('@perigram/processes/authoring'),
+      import('@perigram/processes/compiler-core'),
+      import('@perigram/processes/designer'),
+      import('@perigram/processes/node-catalog'),
+      import('@perigram/processes/screen-contract'),
+      import('@perigram/processes/types'),
+      import('@perigram/processes/ui-contract-projection'),
+      import('@perigram/cts/pack/cnc'),
+      import('@perigram/cts/pack/framework'),
+      import('@perigram/plugin-sdk/surface-check')
     ]);
     expect(modules).toHaveLength(4);
     expect(modules.every(module => module && typeof module === 'object')).toBe(true);
@@ -98,6 +132,13 @@ describe('Framework package contracts', () => {
         'plugin-sdk': [],
         processes: ['core', 'cts']
       });
+  });
+
+  it('keeps application imports on public package exports, not source paths', () => {
+    const result = spawnSync(process.execPath, ['scripts/report-package-consumers.js'], { encoding: 'utf8' });
+    expect(result.status).toBe(0);
+    const report = JSON.parse(result.stdout);
+    expect(report.imports.filter(item => item.kind !== 'package-name')).toEqual([]);
   });
 
   it('registers entity definitions in @perigram/core', async () => {

@@ -1821,8 +1821,13 @@ the current implementation already conforms.
 - Process compiler modules now import `@perigram/cts` and `@perigram/core`
   through public package exports; `packages/processes/package.json` declares
   exact compatible versions and the lockfile records both workspace links.
-  Application consumers still use transitional source-relative imports.
-  Browser/Node extraction contracts remain open.
+  The application-consumer inventory at `636a294` found 165 imports
+  across the four packages (processes 60, CTS 79, core 14, plugin SDK 12).
+  Public export maps now cover the app's consumed submodules, and the root
+  manifest declares all four workspace packages at exact `0.1.0` versions.
+  A source-path import guard rejects application imports into package source.
+  The migration is being applied and will be verified in CI. Browser/Node
+  extraction contracts remain open.
 ### Execution order
 
 1. **Baseline and inventory.** Capture the current test and validation

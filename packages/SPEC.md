@@ -35,11 +35,11 @@ layer beneath it.
   on `@perigram/cts` and `@perigram/core`; `cts`, `core`, and `plugin-sdk`
   have no sibling dependencies.
 - Internal package code imports siblings by package name, and the `processes`
-  manifest declares exact compatible workspace versions. Application code
-  still reaches packages through Nuxt root aliases (`~/packages/<pkg>/src/index.js`)
-  or portable `#packages/<pkg>/src/index.js` imports. Those app source-path
-  imports are transitional; extraction must replace them with declared,
-  versioned package dependencies.
+  manifest declares exact compatible workspace versions. The root application
+  declares all four packages as exact workspace dependencies. Application
+  imports use package names and explicit public subpaths; source-path imports
+  into `packages/*/src` are forbidden and guarded by the framework package
+  contract test. The export maps are the extraction boundary.
 - App surfaces receive the species and operation vocabulary through
   `@perigram/processes` re-exports — the single vocabulary seam.
 

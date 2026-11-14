@@ -4,7 +4,14 @@
   "type": "module",
   "private": true,
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./authoring": "./src/authoring.js",
+    "./compiler-core": "./src/compiler-core.js",
+    "./designer": "./src/designer.js",
+    "./node-catalog": "./src/node-catalog.js",
+    "./screen-contract": "./src/screen-contract.js",
+    "./types": "./src/types.js",
+    "./ui-contract-projection": "./src/ui-contract-projection.js"
   },
   "dependencies": {
     "@perigram/core": "0.1.0",

@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./pack/cnc": "./src/pack/cnc.js",
+    "./pack/framework": "./src/pack/framework.js"
   }
 }
