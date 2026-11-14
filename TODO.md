@@ -114,6 +114,18 @@ pure compute).
   organization whose active process authors no `graph-document`
   construct gets the create error until one is authored — the starter
   constructs own that seam (`starterConstructsForOrganization`).
+- Live dogfood (2026-11-14, dev stack, fresh org): blank editor opens
+  from the Graph collection's create (editor protocol), a palette node
+  authors and syncs its inspector, the first save creates the instance,
+  names it ("First graph"), and persists the payload as the serialized
+  graph; reopening from the collection reloads the graph clean. The
+  same pass caught and fixed a G1b defect the suites could not see:
+  `useProcessDesignerGraphSession` imported `compileTreeDeclarations`
+  from the cts barrel (it lives in the processes barrel) — Vite's dev
+  ESM link throws on the missing export, killing every session mount
+  (process page and graph surface alike), while Vitest's transform
+  resolves it to `undefined` and no spec drives the declaration
+  diagnostic path with class nodes (fix `048a617b6`).
 - Validation: file-surfaces + graph-document + channel-preview specs,
   composables/processes/cts 779 ✓, components/generated 58 ✓,
   SSR smoke 29 ✓ (process page + new graph editor surface smoke),
