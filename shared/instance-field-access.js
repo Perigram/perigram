@@ -25,7 +25,8 @@ export function getActivePermissionsFromAuth(auth = {}, entity = null, typeId = 
     ?? entity?.origin?.organizationId;
   const entityOrgId = rawEntityOrgId?.toString?.() || rawEntityOrgId || null;
   const activeOrgId = auth.organizationId?.toString?.() || auth.organizationId || null;
-  const memberships = (auth.memberships || []).filter(isActiveMembership);
+  const allMemberships = auth.memberships || [];
+  const memberships = allMemberships.filter(isActiveMembership);
   // User records can belong to several organizations. For their field
   // projection, prefer the caller's active organization when the target
   // user is a member there; otherwise use the first shared membership.
