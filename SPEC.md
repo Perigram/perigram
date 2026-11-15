@@ -2121,4 +2121,15 @@ repository split. It prepares and validates the boundaries required by
   extraction and its shared-helper export correction, passed Vitest and all
   listed verification steps; its workflow was still finalizing when this
   SPEC update was prepared.
-
+- Authorization follow-up (2026-11-15): the authenticated organization
+  detail route fetched an arbitrary organization id and relied on field
+  redaction without first enforcing the active-organization/read-permission
+  gate used by organization settings and mutations. Added the explicit
+  `getManagedById` feature boundary and routed `GET /organizations/:id`
+  through it; directory cards retain their deliberately smaller cross-tenant
+  projection. Regression tests cover foreign-tenant denial before repository
+  access, missing read grants, and the permitted active-tenant path. The
+  plugin catalog retraction route also now delegates its operator credential
+  check to the shared `requirePlatformOperator` authority instead of
+  maintaining a second copy of the token policy. CI for these latest commits
+  is pending; these changes are not yet represented as test-verified.
