@@ -5,8 +5,13 @@ ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG NO_PROXY=localhost,127.0.0.1
 
-RUN apt-get update && apt-get install -y \
-    python3 python3-pip python3-dev build-essential libssl-dev && \
+# Use HTTPS for Debian mirrors: some build networks block or time out on
+# the HTTP mirror endpoint, which otherwise leaves apt with empty package indexes.
+RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+      sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
+    fi && \
+    apt-get update && apt-get install -y --no-install-recommends \
+      python3 python3-pip python3-dev build-essential libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
