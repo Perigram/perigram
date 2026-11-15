@@ -27,8 +27,8 @@ import { compileActiveProcessRuntime, resolveCompiledProducerOutputWorkflow } fr
 
 const compiled = {
   producerOutputs: {
-    'create:entity': { typeId: 'cassette', workflow: { primaryRegion: 'main' } },
-    'import:entity': { typeId: 'cassette', workflow: { primaryRegion: 'imported' } }
+    'create:entity': { typeId: 'cassette-design', workflow: { primaryRegion: 'main' } },
+    'import:entity': { typeId: 'cassette-design', workflow: { primaryRegion: 'imported' } }
   },
 };
 
@@ -42,7 +42,7 @@ describe('process workflow resolution', () => {
         [id]: {
           id,
           kind: 'cts.construct',
-          typeId: 'cassette',
+          typeId: 'cassette-design',
           construction: { mode: 'genericCreate', inputs: [] },
           trigger: { mode: 'manual' }
         }
@@ -54,12 +54,12 @@ describe('process workflow resolution', () => {
     expect(result.producerOutputs[`${id}:result`]).toMatchObject({
       nodeId: id,
       outputSocketId: 'result',
-      typeId: 'cassette'
+      typeId: 'cassette-design'
     });
   });
 
   it('requires the authoritative producer output identity', () => {
-    expect(() => resolveCompiledProducerOutputWorkflow({ compiled, typeId: 'cassette' }))
+    expect(() => resolveCompiledProducerOutputWorkflow({ compiled, typeId: 'cassette-design' }))
       .toThrow('producerOutputId is required');
   });
 
@@ -67,7 +67,7 @@ describe('process workflow resolution', () => {
     expect(resolveCompiledProducerOutputWorkflow({
       compiled,
       producerOutputId: 'create:entity',
-      typeId: 'cassette'
+      typeId: 'cassette-design'
     })).toEqual({ primaryRegion: 'main' });
 
     expect(() => resolveCompiledProducerOutputWorkflow({
@@ -81,12 +81,12 @@ describe('process workflow resolution', () => {
     expect(resolveCompiledProducerOutputWorkflow({
       compiled,
       producerOutputId: 'import:entity',
-      typeId: 'cassette'
+      typeId: 'cassette-design'
     })).toEqual({ primaryRegion: 'imported' });
 
     expect(() => resolveCompiledProducerOutputWorkflow({
       compiled,
-      typeId: 'cassette'
+      typeId: 'cassette-design'
     })).toThrow('producerOutputId is required');
   });
 });

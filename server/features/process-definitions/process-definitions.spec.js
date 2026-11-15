@@ -296,7 +296,7 @@ describe('current process-definition service contract', () => {
       producerOutputId,
       nodeId: 'create_cassette',
       outputSocketId: 'result',
-      typeId: 'cassette'
+      typeId: 'cassette-design'
     });
     expect(saved.data).not.toHaveProperty('entityProfiles');
 
@@ -824,17 +824,15 @@ describe('current process-definition service contract', () => {
     delete authored.producerOutputs[node.producerOutputId];
     delete node.producerOutputId;
     node.outputs = [
-      { id: 'result', type: { base: 'entity', typeId: 'cassette' } },
-      { id: 'alternate', type: { base: 'entity', typeId: 'cassette' } }
+      { id: 'result', type: { base: 'entity', typeId: 'cassette-design' } },
+      { id: 'alternate', type: { base: 'entity', typeId: 'cassette-design' } }
     ];
     processRepository.findById.mockResolvedValue(draftRecord(authored));
 
-    await expect(update('process-draft', { data: authored }, adminAuth())).rejects.toMatchObject({
-      statusCode: 400,
-      message: expect.stringContaining(
-        'Process node create_cassette requires one cassette producer output; candidates: create_cassette:alternate (cassette), create_cassette:result (cassette)'
-      )
-    });
+    await expect(update('process-draft', { data: authored }, adminAuth())).rejects.toMatchObject({ statusCode: 400 });
+    await expect(update('process-draft', { data: authored }, adminAuth())).rejects.toThrow(
+      'Process node create_cassette requires one cassette-design producer output; candidates: create_cassette:alternate (cassette-design), create_cassette:result (cassette-design)'
+    );
     expect(processRepository.updateById).not.toHaveBeenCalled();
   });
 
@@ -847,12 +845,12 @@ describe('current process-definition service contract', () => {
 
     expect(result.states.main).toBe('ACTIVE');
     expect(result.data.migrations.state).toBe('none');
-    // The compiled machine is graph-derived (SPEC §7): the fixture's state
-    // records seed the vocabulary, the construct's state default is the
-    // initial, and transitions come from transition nodes (none here).
+    // The compiled machine is graph-derived (SPEC §7): only state tokens
+    // connected to the producer seed its vocabulary. This fixture has no
+    // state-entry wires, so the construct's state default is the sole state.
     const region = result.data.compiled.producerOutputs['create_cassette:result'].workflow.regions.main;
     expect(region.initial).toBe('ACTIVE');
-    expect(Object.keys(region.states).sort()).toEqual(['ACTIVE', 'ARCHIVED']);
+    expect(Object.keys(region.states).sort()).toEqual(['ACTIVE']);
     expect(region.transitions).toEqual([]);
     // Additive activation: no organization pointer is written — the active
     // set is queried from the definitions collection.

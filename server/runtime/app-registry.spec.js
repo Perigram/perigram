@@ -181,7 +181,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
   it('dispatches a generic create effect through the generic instance service', async () => {
     resetAppRegistryForTests();
     vi.clearAllMocks();
-    const insert = vi.mocked(instanceRepository.insertInstance).mockResolvedValue({ _id: 'cassette-1', type: 'cassette' });
+    const insert = vi.mocked(instanceRepository.insertInstance).mockResolvedValue({ _id: 'cassette-1', type: 'cassette-design' });
     const publish = vi.spyOn(entityEventService, 'publishEntityChanged');
     const auth = {
       userId: 'user-1',
@@ -210,7 +210,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     expect(insert.mock.calls[0][0]).toBe('files');
     // §3 stored shape: tenancy lives in the top-level organizationId slot;
     // lineage holds pure tree edges only (organizationId is stripped).
-    expect(insert.mock.calls[0][1]).toMatchObject({ type: 'cassette', organizationId: 'org-1' });
+    expect(insert.mock.calls[0][1]).toMatchObject({ type: 'cassette-design', organizationId: 'org-1' });
     expect(insert.mock.calls[0][1].lineage).not.toHaveProperty('organizationId');
     expect(publish).toHaveBeenCalledWith(auth, {
       type: 'cassette',
@@ -276,9 +276,9 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
       effectivePermissions: { files: 'read', items: 'read', groups: 'read' }
     };
 
-    const entity = await getAppRegistry().getInstanceService('cassette').processGetById('cassette-9', auth);
+    const entity = await getAppRegistry().getInstanceService('cassette-design').processGetById('cassette-9', auth);
 
     expect(entity).toMatchObject({ _id: 'cassette-9', type: 'cassette' });
-    expect(find).toHaveBeenCalledWith('cassette-9', 'cassette');
+    expect(find).toHaveBeenCalledWith('cassette-9', 'cassette-design');
   });
 });

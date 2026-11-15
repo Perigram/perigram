@@ -173,12 +173,12 @@ describe('process runtime auth hydration', () => {
     });
 
     // Effective permissions key on the per-class collection feature
-    // (cassette is a file-class type: 'files').
+    // (cassette-design is a file-class type: 'files').
     expect(auth.effectivePermissions.files).toEqual(expect.arrayContaining([
       expect.objectContaining({ level: 'write' })
     ]));
     expect(auth.screens).toEqual(expect.arrayContaining([
-      expect.objectContaining({ typeId: 'cassette' })
+      expect.objectContaining({ typeId: 'cassette-design' })
     ]));
     expect(auth.roleAssignments.roleIds).toEqual([PERSISTED_ACCEPTANCE_IDS.role]);
     // The generator payload rides with hydration: bundle types and projected
