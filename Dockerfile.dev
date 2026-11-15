@@ -13,7 +13,7 @@ ARG no_proxy
 # bundle is a BuildKit secret, never part of the build context or image history.
 # Use it for the bootstrap apt request, then install it as the system bundle so
 # npm and later build steps trust the same proxy certificate chain.
-RUN --mount=type=secret,id=host_ca_bundle,target=/tmp/host-ca-bundle.crt,required=false \
+RUN --mount=type=secret,id=host_ca_bundle,target=/tmp/host-ca-bundle.crt,required=false,mode=0444 \
     if [ -s /tmp/host-ca-bundle.crt ]; then \
       if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
         sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
