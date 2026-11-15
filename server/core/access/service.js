@@ -46,7 +46,7 @@ export function assertTransitionAccess({ transition, entity, auth }) {
   // Every lifecycle transition is a write. Organization-less system rows
   // remain read-only to ordinary members, even when their feature grant is
   // broad; only the system actor may cross this boundary.
-  assertEntityOrganizationScope(entity, auth, { required: processRoleIds.length > 0 || !isSystemAuth(auth) });
+  assertEntityOrganizationScope(entity, auth, { required: processRoleIds.length > 0 || !isSystemAuth(auth) || !access.system });
   if (processRoleIds.length) {
     const assignedRoleIds = auth.roleAssignments?.roleIds || [];
     const hasRequiredRole = assignedRoleIds.some(roleId => processRoleIds.includes(roleId));

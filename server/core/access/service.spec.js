@@ -299,6 +299,12 @@ describe('access engine', () => {
     })).toThrow(/organization scope required/);
 
     expect(() => assertTransitionAccess({
+      transition: { from: 'DRAFT', to: 'READY' },
+      entity: systemRecord,
+      auth: { userId: 'SYSTEM', system: true }
+    })).toThrow(/organization scope required/);
+
+    expect(() => assertTransitionAccess({
       transition: { from: 'DRAFT', to: 'READY', access: { system: true } },
       entity: systemRecord,
       auth: { userId: 'SYSTEM', system: true }
