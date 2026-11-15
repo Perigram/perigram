@@ -4,6 +4,7 @@ import { createError } from 'h3';
 import { CLASS_COLLECTIONS } from '#packages/cts';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { instanceStateView } from './status-projection.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 
 export async function loadEntityForWorkflow(typeId, targetId, options = {}) {
@@ -35,7 +36,7 @@ export async function loadEntityForWorkflow(typeId, targetId, options = {}) {
     throw createError({ statusCode: 404, message: normalizedTypeId + ' not found (ID: ' + targetId + ')' });
   }
   const organizationFilter = organizationId == null ? {} : {
-    [organizationPath]: { $in: [new ObjectId(String(organizationId)), String(organizationId)] }
+    [organizationPath]: { $in: [toFlexibleId(organizationId), String(organizationId)] }
   };
   const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId });
 
