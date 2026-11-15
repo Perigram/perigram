@@ -36,7 +36,8 @@ export function getActivePermissionsFromAuth(auth = {}, entity = null, typeId = 
       targetUserOrgIds.has(item?.organizationId?.toString?.() || String(item?.organizationId || ''))
     )
     : null;
-  const targetOrgId = sharedUserMembership?.organizationId || entityOrgId || activeOrgId;
+  const rawTargetOrgId = sharedUserMembership?.organizationId ?? entityOrgId ?? activeOrgId;
+  const targetOrgId = rawTargetOrgId?.toString?.() || rawTargetOrgId || null;
   const membership = targetOrgId
     ? memberships.find(item => item.organizationId?.toString?.() === targetOrgId.toString())
     : memberships[0];
