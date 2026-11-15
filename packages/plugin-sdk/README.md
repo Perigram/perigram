@@ -2,10 +2,12 @@
 
 The plugin authoring toolkit (SPEC §20): the listing
 contract, both executor harnesses, the platform API client, and the
-`perigram-plugin` CLI. Zero dependencies — Node's globals only. The
-platform's install gate and publish API import the same `parseListing`, so
-a listing that validates here is publishable and installable there; the
-contract home is this package, mirrored as
+`perigram-plugin` CLI. It has no third-party runtime dependencies.
+The listing parser is pure and runs in Node and browsers; executor,
+surface-check, vendor, and CLI modules use Node built-ins. The platform's
+install gate and publish API import the same `parseListing`, so a listing
+that validates here is publishable and installable there; the contract
+home is this package, mirrored as
 [`src/listing.schema.json`](./src/listing.schema.json) for editors and
 tooling.
 
@@ -39,6 +41,19 @@ Acceptance is one clean loop through install → execute → upgrade →
 uninstall: the install gate (type-id no-shadowing, clean compile,
 claimable attachment kinds, required packs enabled), the upgrade preview,
 and the uninstall drain gate all refuse loudly.
+
+## Runtime entry points
+
+| Entry | Runtime | Contract |
+|---|---|---|
+| `@perigram/plugin-sdk/listing` | Node and browser | Pure `parseListing` / `normalizeListing`; safe for client-side listing validation. |
+| `@perigram/plugin-sdk` | Node.js | Node-bound barrel that re-exports executor and surface-check modules; do not import it into browser bundles. |
+| `@perigram/plugin-sdk/endpoint-executor`, `./claim-executor`, `./api-client`, `./surface-check` | Node.js | Server/executor and authoring helpers. |
+| `perigram-plugin` | Node.js CLI | Package bin entry; not a browser API. |
+
+The package export map is the supported boundary. Browser consumers import
+the dedicated `./listing` entry rather than reaching into `src/` or
+importing the Node-bound root barrel.
 
 ## Surface mount contracts
 
