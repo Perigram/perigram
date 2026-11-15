@@ -19,7 +19,7 @@ services:
       extra_hosts:
         - "host.docker.internal:host-gateway"
     ports:
-      - "3000:3000"
+      - "${PERIGRAM_DEV_APP_PORT:-3001}:3000"
     volumes:
       - .:/src
       - /src/node_modules
@@ -46,7 +46,7 @@ services:
       - HTTPS_PROXY=${HTTPS_PROXY:-}
       - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,10.0.0.0/8,172.16.0.0/12}
       - NUXT_DEV_HMR_PROTOCOL=${NUXT_DEV_HMR_PROTOCOL:-ws}
-      - NUXT_DEV_HMR_CLIENT_PORT=${NUXT_DEV_HMR_CLIENT_PORT:-3000}
+      - NUXT_DEV_HMR_CLIENT_PORT=${NUXT_DEV_HMR_CLIENT_PORT:-${PERIGRAM_DEV_APP_PORT:-3001}}
       - CONFIG_BOT_CHAT_MODEL=${CONFIG_BOT_CHAT_MODEL:-qwen3:4b}
       - CONFIG_BOT_EMBED_MODEL=${CONFIG_BOT_EMBED_MODEL:-bge-m3}
       - CONFIG_BOT_CORTEX_PATH=${CONFIG_BOT_CORTEX_PATH:-/opt/perigram-cortex}
