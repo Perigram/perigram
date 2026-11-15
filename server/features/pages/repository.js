@@ -86,7 +86,7 @@ export async function migrateDocuments(organizationId) {
   for (const row of rows) {
     const document = blocksFromMarkdown(row.fields?.content || '');
     await db.collection(COLLECTION).updateOne(
-      { _id: row._id },
+      { _id: row._id, type: TYPE, organizationId: orgFilter(organizationId) },
       {
         $set: {
           'fields.blocks': document.blocks,
