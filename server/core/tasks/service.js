@@ -105,15 +105,25 @@ export async function completeTaskRun(id, result = {}, claimToken = null, { work
   if (isTerminalStatus(task, run.status)) return run;
   requireClaim(run, claimToken);
   requireRunning(run, task);
-  const output = createTaskResult({ taskId: run.taskId, ...result, raw: result });
+  // Connector task completions are opaque plugin values. Their worker
+  // must not be able to turn JSON keys into platform-owned effects/events.
+  const connectorTask = String(task?.service || '').startsWith('plugin.')
+    || String(run.workerType || '').startsWith('plugin.');
+  const output = createTaskResult(connectorTask
+    ? { taskId: run.taskId, data: result?.data ?? result, raw: result }
+    : { taskId: run.taskId, ...result, raw: result });
   const effectContext = {
     auth: run.auth || {},
     task,
     run,
     registry: getAppRegistry()
   };
-  const processedEvents = await processEvents(output.events || [], effectContext);
-  const processedEffects = await processEffects(output.effects || [], effectContext);
+  const processedEvents = connectorTask
+    ? { events: [], entities: [], tasks: [], transitions: [], attachments: [] }
+    : await processEvents(output.events || [], effectContext);
+  const processedEffects = connectorTask
+    ? { entities: [], tasks: [], transitions: [], events: [], attachments: [] }
+    : await processEffects(output.effects || [], effectContext);
   output.events = processedEvents.events;
   output.effects = mergeProcessedEffects(processedEvents, processedEffects);
 

@@ -87,6 +87,38 @@ describe('task run transitions', () => {
     await db.dropDatabase();
   });
 
+  it('keeps connector task completions as values and never executes worker-supplied effects', async () => {
+    const workerType = 'plugin.docs@org-1';
+    definitions.set('plugin.docs.generate', taskDefinition({
+      id: 'plugin.docs.generate',
+      service: 'plugin.docs',
+      executor: { workerType },
+      output: {}
+    }));
+    const run = await service.enqueueTask('plugin.docs.generate', {}, {
+      userId: 'user-1',
+      organizationId: 'org-1'
+    }, { workerType });
+    const claimed = await service.claimTask({ taskId: run.taskId, workerType });
+    const workerValue = {
+      data: { documentId: 'doc-1', title: 'Generated' },
+      effects: [{ type: 'createEntity', entity: { type: 'project' }, data: { name: 'Injected' } }],
+      events: [{ type: 'forged.event' }]
+    };
+
+    const completed = await service.completeTaskRun(claimed._id, workerValue, claimed.claimToken, { workerType });
+
+    expect(completed.output.data).toEqual(workerValue.data);
+    expect(completed.output.effects).toEqual(emptyProcessed());
+    expect(processEffectsMock).not.toHaveBeenCalled();
+    expect(processEventsMock).not.toHaveBeenCalled();
+    expect(continueActionFromTask).toHaveBeenCalledWith({
+      taskRunId: String(claimed._id),
+      status: 'SUCCEEDED',
+      output: completed.output
+    });
+  });
+
   it('applies a duplicate completion as a no-op before effects run again', async () => {
     definitions.set('compute', taskDefinition());
     await service.enqueueTask('compute');
