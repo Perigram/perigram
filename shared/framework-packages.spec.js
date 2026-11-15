@@ -80,7 +80,6 @@ describe('Framework package contracts', () => {
       import('@perigram/plugin-sdk'),
       import('@perigram/processes'),
       import('@perigram/processes/authoring'),
-      import('@perigram/processes/compiler-core'),
       import('@perigram/processes/designer'),
       import('@perigram/processes/node-catalog'),
       import('@perigram/processes/screen-contract'),
@@ -90,7 +89,7 @@ describe('Framework package contracts', () => {
       import('@perigram/cts/pack/framework'),
       import('@perigram/plugin-sdk/surface-check')
     ]);
-    expect(modules).toHaveLength(14);
+    expect(modules).toHaveLength(13);
     expect(modules.every(module => module && typeof module === 'object')).toBe(true);
   });
 
