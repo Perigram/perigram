@@ -38,13 +38,22 @@ from remaining proof and verification.
 - [x] Move screen inference, parent/child region composition, screen merging,
   and navigation implementation out of the process compiler core into
   `screen-compilation.js`; update its consumers and module inventories.
+- [x] Separate process construction normalization, action caption/state
+  projection, and graph/legacy-action normalization from `compiler-core.js`
+  into focused modules; preserve the compiler barrel API and add focused tests.
 - [ ] Complete the route/command/transition/feature authorization call graph
   and trace every feature persistence write path end-to-end.
   Progress: process-role transitions now enforce organization scope;
   generic HTTP and process-graph lists enforce read grants; process deletes
   route through the entity write gate and derive the declaration from the
-  record's organization. Remaining route, command, transition, payload,
-  relation, and scheduled-run paths still need end-to-end verification.
+  record's organization. Organization detail reads use the managed-organization
+  gate. Field projection no longer accepts inactive caller/target memberships;
+  auth hydration derives tenant context and grants from active memberships
+  only, organization switching requires active membership, and user-admin
+  recovery rejects stale compiled grants when a membership is explicitly
+  inactive. These are focused fixes, not completion of the route/command/
+  transition/payload/relation/scheduled-run audit; those paths still need
+  end-to-end verification.
 - [ ] Verify package/executor contracts independently, including browser/
   Node compatibility and versioned extraction interfaces under §29.
   Current workspace manifests remain private and expose ESM entry points;
