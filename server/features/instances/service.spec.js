@@ -351,6 +351,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(access.hasInstanceAccess).toHaveBeenCalledWith(expect.objectContaining({
       typeId: 'panel',
       level: 'read',
+      action: 'view',
       auth
     }));
   });
@@ -495,7 +496,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     // The gate asked for the PARENT's grant (files feature, gallery type),
     // not memo's own class collection — inheritance across classes.
     expect(hasInstanceAccess).toHaveBeenLastCalledWith(
-      expect.objectContaining({ typeId: 'gallery', feature: 'files', level: 'write' })
+      expect.objectContaining({ typeId: 'gallery', feature: 'files', level: 'write', action: 'create' })
     );
   });
 });
@@ -1094,7 +1095,8 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
 
     expect(access.hasInstanceAccess).toHaveBeenCalledWith(expect.objectContaining({
       typeId: 'panel',
-      level: 'write'
+      level: 'write',
+      action: 'delete'
     }));
     expect(coll.deleteOne).not.toHaveBeenCalled();
   });

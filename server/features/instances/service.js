@@ -599,7 +599,7 @@ function instanceService(typeId) {
       }
       const current = toDto(doc);
       const target = await writeGrantTarget(declaration, organizationId);
-      if (!target || !hasInstanceAccess({ entity: current, typeId: target.typeId, feature: target.feature, level: 'write', auth })) {
+      if (!target || !hasInstanceAccess({ entity: current, typeId: target.typeId, feature: target.feature, level: 'write', action: 'update', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
       const updated = await this.processUpdate(id, patch, organizationId);
@@ -629,7 +629,7 @@ function instanceService(typeId) {
       const declaration = await requireDeclaration(typeId, targetOrganizationId);
       const target = await writeGrantTarget(declaration, targetOrganizationId);
       const scopeEntity = targetOrganizationId ? { lineage: { organizationId: targetOrganizationId } } : null;
-      if (!target || !hasInstanceAccess({ entity: scopeEntity, typeId: target.typeId, feature: target.feature, level: 'write', auth })) {
+      if (!target || !hasInstanceAccess({ entity: scopeEntity, typeId: target.typeId, feature: target.feature, level: 'write', action: 'create', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
       return await createValidated(draft, declaration, auth?.userId || null, targetOrganizationId);
@@ -649,7 +649,7 @@ function instanceService(typeId) {
       const targetOrganizationId = doc.organizationId ?? organizationId ?? null;
       const declaration = await requireDeclaration(typeId, targetOrganizationId);
       const target = await writeGrantTarget(declaration, targetOrganizationId);
-      if (!target || !hasInstanceAccess({ entity: toDto(doc), typeId: target.typeId, feature: target.feature, level: 'write', auth })) {
+      if (!target || !hasInstanceAccess({ entity: toDto(doc), typeId: target.typeId, feature: target.feature, level: 'write', action: 'delete', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
       return await this.remove(id, { actor: auth?.userId || null, organizationId: doc.organizationId ?? null });
@@ -692,7 +692,7 @@ function instanceService(typeId) {
       }
       const current = toDto(doc);
       const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
-      if (!hasInstanceAccess({ entity: current, typeId: typeId, feature, level: 'write', auth: auth || null })) {
+      if (!hasInstanceAccess({ entity: current, typeId: typeId, feature, level: 'write', action: 'update', auth: auth || null })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
       const stored = await filesService.uploadFile(buffer, filename || 'payload', {
@@ -744,7 +744,7 @@ function instanceService(typeId) {
       }
       const current = toDto(doc);
       const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
-      if (!hasInstanceAccess({ entity: current, typeId: typeId, feature, level: 'write', auth: auth || null })) {
+      if (!hasInstanceAccess({ entity: current, typeId: typeId, feature, level: 'write', action: 'update', auth: auth || null })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
       const revision = await instanceRevisionsService.getById(revisionId, userId, auth?.role ?? null, auth || null);
@@ -791,7 +791,7 @@ function instanceService(typeId) {
       }
       const current = toDto(doc);
       const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
-      if (!hasInstanceAccess({ entity: current, typeId: typeId, feature, level: 'write', auth: auth || null })) {
+      if (!hasInstanceAccess({ entity: current, typeId: typeId, feature, level: 'write', action: 'update', auth: auth || null })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
       const stored = storedConstructionDraft(current, declaration, mode);
@@ -831,6 +831,7 @@ function instanceService(typeId) {
         typeId: target.typeId,
         feature: target.feature,
         level: 'read',
+        action: 'view',
         auth
       }));
     },
@@ -847,6 +848,7 @@ function instanceService(typeId) {
         typeId: target.typeId,
         feature: target.feature,
         level: 'read',
+        action: 'view',
         auth
       })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });

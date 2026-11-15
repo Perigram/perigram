@@ -6,9 +6,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { MongoClient } from 'mongodb';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-const { mockedConnectDB, mockedHasInstanceAccess, instancesById } = vi.hoisted(() => ({
+const { mockedConnectDB, mockedHasInstanceAccess, mockedProcessGetById, instancesById } = vi.hoisted(() => ({
   mockedConnectDB: vi.fn(),
   mockedHasInstanceAccess: vi.fn(() => true),
+  mockedProcessGetById: vi.fn(),
   instancesById: new Map()
 }));
 
@@ -25,7 +26,7 @@ vi.mock('h3', () => ({
 vi.mock('../../runtime/app-registry.js', () => ({
   getAppRegistry: () => ({
     getInstanceService: typeId => (instancesById.has(`${typeId}:*`)
-      ? { processGetById: async id => instancesById.get(`${typeId}:${id}`) || null }
+      ? { processGetById: (id, auth) => mockedProcessGetById(typeId, id, auth) }
       : null)
   })
 }));
@@ -74,6 +75,7 @@ describe('instance overlays', () => {
     instancesById.set(`${TYPE}:*`, true);
     instancesById.set(`${TYPE}:i-1`, OWN_RECORD);
     mockedHasInstanceAccess.mockReturnValue(true);
+    mockedProcessGetById.mockImplementation(async (typeId, id) => instancesById.get(`${typeId}:${id}`) || null);
   });
 
   const OVERLAY = {
@@ -83,6 +85,17 @@ describe('instance overlays', () => {
     ],
     order: ['properties', 'b1', 'relation:linked', 'editor', 'b2']
   };
+
+  it('loads the backing instance with the caller auth and separates update from delete grants', async () => {
+    const auth = memberOf(ORG_A);
+    await overlaysService.upsert(TYPE, 'i-1', OVERLAY, auth);
+    expect(mockedProcessGetById).toHaveBeenCalledWith(TYPE, 'i-1', auth);
+    expect(mockedHasInstanceAccess).toHaveBeenLastCalledWith(expect.objectContaining({ action: 'update' }));
+
+    mockedHasInstanceAccess.mockImplementation(({ action }) => action === 'update');
+    await expect(overlaysService.remove(TYPE, 'i-1', auth)).rejects.toMatchObject({ statusCode: 403 });
+    expect(mockedHasInstanceAccess).toHaveBeenLastCalledWith(expect.objectContaining({ action: 'delete' }));
+  });
 
   it('refuses every operation without an active organization', async () => {
     const auth = { userId: 'user-1', organizationId: null };

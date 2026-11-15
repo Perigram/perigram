@@ -18,8 +18,8 @@ export async function getOverlay(typeId, instanceId, auth = {}) {
 // replaces the stored shape. No granular block operations exist.
 export async function upsert(typeId, instanceId, { blocks, order } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
-  const { entity, declaration } = await requireOwnInstance(typeId, instanceId, organizationId);
-  await requireWriteGrant(declaration, entity, organizationId, auth);
+  const { entity, declaration } = await requireOwnInstance(typeId, instanceId, auth);
+  await requireWriteGrant(declaration, entity, organizationId, auth, 'update');
   const normalizedBlocks = normalizeBlocks(blocks);
   const normalizedOrder = normalizeOrder(order);
   const row = await repository.upsert({
@@ -36,7 +36,7 @@ export async function upsert(typeId, instanceId, { blocks, order } = {}, auth = 
 export async function remove(typeId, instanceId, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   const { entity, declaration } = await requireOwnInstance(typeId, instanceId, organizationId);
-  await requireWriteGrant(declaration, entity, organizationId, auth);
+  await requireWriteGrant(declaration, entity, organizationId, auth, 'delete');
   const row = await repository.findByKey(organizationId, typeId, instanceId);
   if (!row) {
     throw createError({ statusCode: 404, message: 'Overlay not found' });
@@ -57,7 +57,8 @@ function resolveOrganizationId(auth = {}) {
 // the overlay is presentation data over a record that must exist in the
 // caller's organization — a foreign or missing record answers 404 before
 // any grant evaluation.
-async function requireOwnInstance(typeId, instanceId, organizationId) {
+async function requireOwnInstance(typeId, instanceId, auth) {
+  const organizationId = resolveOrganizationId(auth);
   const declaration = await declarationForType(typeId, organizationId).catch(() => null);
   if (!declaration) {
     throw createError({ statusCode: 404, message: `Unknown type ${typeId}` });
@@ -80,9 +81,9 @@ async function requireOwnInstance(typeId, instanceId, organizationId) {
 // feature resolves through the declaration (`access.inherits`, else the
 // class collection) and the shared evaluator decides against the loaded
 // instance — fail-closed, exactly like the instance patch transport.
-async function requireWriteGrant(declaration, entity, organizationId, auth) {
+async function requireWriteGrant(declaration, entity, organizationId, auth, action = 'update') {
   const target = await writeGrantTarget(declaration, organizationId);
-  if (!target || !hasInstanceAccess({ entity, typeId: target.typeId, feature: target.feature, level: 'write', auth })) {
+  if (!target || !hasInstanceAccess({ entity, typeId: target.typeId, feature: target.feature, level: 'write', action, auth })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 }
