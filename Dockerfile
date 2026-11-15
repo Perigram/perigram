@@ -2,7 +2,11 @@ ARG NODE_VERSION=24.15.0
 
 FROM node:${NODE_VERSION}-slim as base
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl python3 python3-pip \
+# Prefer HTTPS Debian mirrors; plain HTTP can time out on restricted build networks.
+RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+      sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
+    fi && \
+    apt-get update && apt-get install -y --no-install-recommends curl python3 python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 ARG PORT=3000
