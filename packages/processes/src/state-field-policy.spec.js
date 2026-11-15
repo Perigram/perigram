@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, projectDomainFromView } from '../../cts/src/index.js';
 import { normalizeStateFieldPolicy } from './designer.js';
-import { compileProcessDefinition } from './compiler-core.js';
+import { compileProcessDefinition } from './index.js';
 
 describe('normalizeStateFieldPolicy', () => {
   it('keeps authored lists (empty list included) and drops everything else', () => {

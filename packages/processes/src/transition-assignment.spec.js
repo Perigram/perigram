@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../../cts/src/index.js';
 import { resolveCatalogNodePorts } from './node-catalog.js';
-import { compileProcessDefinition } from './compiler-core.js';
+import { compileProcessDefinition } from './index.js';
 
 describe('transition actors socket', () => {
   it('carries a user-typed list input beside entity, note, and state', () => {

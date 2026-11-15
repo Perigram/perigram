@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../../cts/src/index.js';
-import { compileProcessDefinition } from './compiler-core.js';
+import { compileProcessDefinition } from './index.js';
 
 // Machine vocabulary seeding (SPEC §7): state records seed the machines of
 // their type's producers. A scoped record binds by its authored typeId; an

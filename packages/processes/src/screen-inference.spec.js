@@ -2,8 +2,7 @@
 // flags authored screens that are projection-equal to the station
 // inferScreensFromRoleGrants would emit; validation blocks Apply on hits.
 import { describe, expect, it } from 'vitest';
-import { compileProcessDefinition, redundantAuthoredScreens, validateProcessDefinition } from './index.js';
-import { compileScreens } from './compiler-core.js';
+import { compileProcessDefinition, compileScreens, redundantAuthoredScreens, validateProcessDefinition } from './index.js';
 
 const domain = {
   entities: [
