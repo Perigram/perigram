@@ -317,6 +317,19 @@ describe('User Management & Auth', () => {
     expect(auth.memberships).toEqual([]);
   });
 
+  it('does not carry a stale tenant permission snapshot into an orgless auth context', () => {
+    const user = new User({
+      _id: new ObjectId(),
+      identity: { uid: 'orgless-auth', name: 'Orgless Auth' },
+      data: { permissions: { organizations: 'admin', users: 'admin' }, memberships: [] }
+    });
+
+    const auth = userService.buildAuthContext(user);
+    expect(auth.organizationId).toBeNull();
+    expect(auth.permissions).toEqual({});
+    expect(auth.memberships).toEqual([]);
+  });
+
   it('does not expand preset labels into permissions when loading users', () => {
     const orgId = new ObjectId();
     const user = new User({

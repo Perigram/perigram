@@ -126,9 +126,6 @@ export function buildAuthContext(user) {
   const activeMembership = memberships.find(membership => (
     membership.organizationId?.toString?.() === currentOrganizationId
   )) || memberships[0] || null;
-  const hasInactiveMemberships = allMemberships.some(membership => (
-    membership.status && membership.status !== 'active'
-  ));
   return {
     userId: user.id,
     name: user.identity?.name || '',
@@ -138,9 +135,9 @@ export function buildAuthContext(user) {
     // keep a removed/pending tenant active in a still-valid login session.
     organizationId: activeMembership?.organizationId?.toString?.() || null,
     role: user.role,
-    permissions: activeMembership
-      ? activeMembership.permissions || {}
-      : (hasInactiveMemberships ? {} : user.permissions),
+    // Stored user-level permissions are a stale tenant snapshot, never a
+    // platform grant. Without an active membership there are no tenant grants.
+    permissions: activeMembership?.permissions || {},
     memberships,
     restrictedTo: user.restrictedTo
   };
