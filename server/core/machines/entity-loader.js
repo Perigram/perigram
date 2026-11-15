@@ -25,7 +25,18 @@ export async function loadEntityForWorkflow(typeId, targetId, options = {}) {
     });
   }
 
+  const organizationPath = found.doc.lineage?.organizationId != null
+    ? 'lineage.organizationId'
+    : found.doc.origin?.organizationId != null
+      ? 'origin.organizationId'
+      : 'organizationId';
   const organizationId = found.doc.lineage?.organizationId || found.doc.origin?.organizationId || found.doc.organizationId;
+  if (options.expectedOrganizationId != null && String(organizationId) !== String(options.expectedOrganizationId)) {
+    throw createError({ statusCode: 404, message: normalizedTypeId + ' not found (ID: ' + targetId + ')' });
+  }
+  const organizationFilter = organizationId == null ? {} : {
+    [organizationPath]: { $in: [new ObjectId(String(organizationId)), String(organizationId)] }
+  };
   const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId });
 
   if (!machine && requireMachine) {
@@ -40,6 +51,7 @@ export async function loadEntityForWorkflow(typeId, targetId, options = {}) {
     machine,
     collection: found.collection,
     flexId: found.doc._id,
+    organizationFilter,
     instanceDoc: isFlatInstanceDoc(found.doc) ? found.doc : null
   };
 }
