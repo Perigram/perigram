@@ -452,6 +452,30 @@ describe('status service lifecycle payloads', () => {
     expect(queue.status.state.primary).toBe('Создано');
   });
 
+  it('refuses initial-state writes when the requested organization does not own the target', async () => {
+    const id = new ObjectId();
+    await db.collection('groups').insertOne({
+      type: 'project',
+      _id: id,
+      identity: { uid: id.toString(), name: 'Foreign project' },
+      lineage: { organizationId: 'org-2' },
+      state: 'DRAFT'
+    });
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
+      initial: 'NEW',
+      states: { NEW: {} },
+      transitions: []
+    });
+
+    await expect(statusService.setInitialStateForOrganization(
+      'project', id.toString(), 'NEW', 'org-1', { userId: 'system', system: true }
+    )).rejects.toMatchObject({ statusCode: 404 });
+
+    const entity = await db.collection('groups').findOne({ _id: id });
+    expect(entity.state).toBe('DRAFT');
+    expect(await db.collection('status_events').countDocuments({ targetId: id })).toBe(0);
+  });
+
   it('records actor, operation, and evidence first-class on transition events', async () => {
     const id = new ObjectId();
     await db.collection('items').insertOne({
