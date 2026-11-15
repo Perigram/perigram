@@ -48,6 +48,15 @@ export function getActivePermissionsFromAuth(auth = {}, entity = null, typeId = 
   const membership = targetOrgId
     ? memberships.find(item => item.organizationId?.toString?.() === targetOrgId.toString())
     : memberships[0];
+  const inactiveCallerMembership = targetOrgId && allMemberships.some(item => (
+    item.organizationId?.toString?.() === targetOrgId.toString() && !isActiveMembership(item)
+  ));
+  const inactiveTargetUserMembership = targetUserOrgIds && targetOrgId
+    && (entity?.data?.memberships || []).some(item => (
+      (item?.organizationId?.toString?.() || String(item?.organizationId || '')) === targetOrgId.toString()
+      && !isActiveMembership(item)
+    ));
+  if (inactiveCallerMembership || inactiveTargetUserMembership) return {};
 
   // Effective permissions are compiled for the active organization. Never
   // reuse that projection when redacting an entity owned by another tenant:
