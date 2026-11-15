@@ -106,7 +106,6 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-    entrypoint: ["/bin/sh", "-ec"]
     command: >-
       mongo --host mongo --port 27017 admin --quiet --eval
       'try { rs.status(); print("Mongo replica set already initialized"); }
