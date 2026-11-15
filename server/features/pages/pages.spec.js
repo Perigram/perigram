@@ -93,12 +93,19 @@ describe('pages', () => {
   });
 
   it('keeps page repository writes tenant-scoped even if the caller passes a foreign id', async () => {
-    const foreign = await seedPage(ORG_B, { name: 'Protected' });
-    const changed = await pagesRepository.update(foreign, { name: 'Tampered' }, ORG_A);
+    const foreignId = new ObjectId();
+    await db.collection('items').insertOne({
+      _id: foreignId,
+      type: 'page',
+      organizationId: ORG_B,
+      fields: { name: 'Protected' },
+      lineage: {}
+    });
+    const changed = await pagesRepository.update(foreignId.toString(), { name: 'Tampered' }, ORG_A);
     expect(changed).toBeNull();
-    await pagesRepository.remove(foreign, ORG_A);
-    const stillThere = await db.collection('items').findOne({ _id: new ObjectId(foreign), type: 'page' });
-    expect(stillThere).not.toBeNull();
+    await pagesRepository.remove(foreignId.toString(), ORG_A);
+    const stillThere = await db.collection('items').findOne({ _id: foreignId, type: 'page' });
+    expect(stillThere).toMatchObject({ organizationId: ORG_B, fields: { name: 'Protected' } });
   });
 
   it('refuses a move that would create a cycle', async () => {
