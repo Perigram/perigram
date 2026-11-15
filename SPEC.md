@@ -2089,6 +2089,15 @@ repository split. It prepares and validates the boundaries required by
   `compiler-core.js`; the role-assignment/access read projection now has a
   real `access.js` implementation module. The compiler implementation
   itself remains a large, coupled module and further decomposition is open.
+- Process screen compilation extraction (2026-11-15): moved the screen
+  projection/inference, role/type station derivation, child-region composition,
+  screen merge, and navigation helpers out of `compiler-core.js` into
+  `screen-compilation.js`. The extraction moved 468 source lines and reduced
+  `compiler-core.js` by 463 lines (from 2,900 to 2,432 lines); screen-specific
+  consumers in access compilation and redundancy analysis now import from the
+  owning module. A first CI pass caught two private helpers that needed to be
+  explicitly exported from the shared compiler core; the correction passed the
+  complete Vitest suite and the architecture/SSR/framework/docs/plugin checks.
 - The machine application adapter now delegates entity loading,
   transition-context/evidence normalization, and hook dispatch to
   `entity-loader.js`, `transition-context.js`, and `transition-hooks.js`.
@@ -2104,11 +2113,12 @@ repository split. It prepares and validates the boundaries required by
   verifies that completion is not reported. The focused task service suite
   passed (8/8); machine service tests passed (22/22); process compiler API
   tests passed (103/103).
-- Verification on staging: SSR smoke tests and architecture, framework,
-  documentation, and plugin-dependency checks pass. The latest complete
-  Vitest run is still not green (14 failed files / 20 failed tests, 249
-  passed files / 2,702 passed tests); the failures remain concentrated in
-  UI, app-registry, instance, agent-bot, and process-definition tests. One
-  additional UI failure appeared versus the preceding 13-file / 19-test
-  run, so it is not being dismissed as baseline without further diagnosis.
+- Full-suite debt was cleared on staging. CI run `43687117806`
+  completed successfully: 264/264 Vitest files and 2,726/2,726 tests passed;
+  SSR smoke tests, architecture checks, framework declaration validation,
+  documentation validation, and plugin executor dependency checks also
+  passed. Follow-up run `43687533702`, which includes the screen-compilation
+  extraction and its shared-helper export correction, passed Vitest and all
+  listed verification steps; its workflow was still finalizing when this
+  SPEC update was prepared.
 

@@ -32,6 +32,12 @@ from remaining proof and verification.
   plugin SDK 13) and zero relative-source-path/root-alias imports.
 - [x] Pin the zero-source-path invariant in CI: the package-consumer
   inventory now fails on any source-path or legacy root-alias import.
+- [x] Split the core package barrel into focused entity DTO, registry, and
+  result-contract modules; document the distinct ownership in
+  `packages/core/README.md`.
+- [x] Move screen inference, parent/child region composition, screen merging,
+  and navigation implementation out of the process compiler core into
+  `screen-compilation.js`; update its consumers and module inventories.
 - [ ] Complete the route/command/transition/feature authorization call graph
   and trace every feature persistence write path end-to-end.
   Progress: process-role transitions now enforce organization scope;
@@ -43,11 +49,11 @@ from remaining proof and verification.
   Node compatibility and versioned extraction interfaces under §29.
   Current workspace manifests remain private and expose ESM entry points;
   independent publication/extraction is not yet verified.
-- [ ] Triage the 19 pre-existing Vitest failures separately and establish a
-  clean full-suite gate before declaring the repository fully green.
-  Runs 43621806498 and 43622023230 still report 13 failing files / 19 tests;
-  SSR, architecture, framework declarations, docs, and plugin dependency
-  checks pass.
+- [x] Triage the accumulated Vitest failures and establish a clean full-suite
+  gate. CI run 43687117806 passed all 264 test files / 2,726 tests; SSR,
+  architecture, framework declarations, docs, and plugin dependency checks
+  also passed. Follow-up screen-compilation run 43687533702 passed Vitest and
+  all verification steps after correcting two shared-helper exports.
 
 ## Internal-address scrub of tracked files (owner direction 2026-11-14)
 

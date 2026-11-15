@@ -290,13 +290,20 @@ a party type.
 
 ## Compiler and validation seams
 
-Compiler entry points are separated by responsibility: `normalization.js`,
-`validation.js`, `action-compilation.js`, `screen-compilation.js`,
-`access-compilation.js`, and `hierarchy-projection.js` define the supported
-package boundaries; `index.js` is only the public barrel, and runtime/UI
-consumers import these boundaries. The compiler turns current species
-records into runtime contracts for access, screens, navigation, declared
-workflow overlays, field policy, actions, services, and sockets.
+Compiler implementation is separated by responsibility:
+`normalization.js` owns authored process-definition normalization;
+`validation.js` orchestrates diagnostics; `workflow-compilation.js` owns
+lifecycle and per-output workflow compilation; `screen-compilation.js` owns
+screen projection and inference, child-region composition, screen merging,
+and navigation; `screen-analysis.js` detects redundant authored screens;
+`access-compilation.js` owns role/assignment access compilation; and
+`access.js` owns role-assignment resolution and access projection.
+`compiler-core.js` retains shared compiler primitives and the remaining
+non-screen compilation algorithms. `index.js` is the public barrel — there
+are no forwarding-only modules presented as architecture boundaries.
+The compiler turns current species records into runtime contracts for access,
+screens, navigation, declared workflow overlays, field policy, actions,
+services, and sockets.
 
 `prepareAuthoredDefinition` resolves CTS ids and declared row paths through
 `@perigram/cts` `resolveCtsDefinition` (canonical contract:
