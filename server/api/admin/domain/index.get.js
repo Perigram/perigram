@@ -1,4 +1,4 @@
-import { requireAuth } from '~/server/utils/permissions';
+import { requireLineagePermission } from '~/server/utils/permissions';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { projectDomainFromView } from '#packages/cts';
 import { projectedDomainsForOrganization } from '~/server/features/plugins/service.js';
@@ -11,7 +11,7 @@ function resolveOrganizationId(auth = {}) {
 }
 
 export default defineEventHandler(async (event) => {
-  const auth = requireAuth(event);
+  const auth = requireLineagePermission(event, { organizationId: event.context.auth?.organizationId }, 'organizations', 'read');
   const registry = getAppRegistry();
 
   // The domain served here is the caller's projected registry view — the
