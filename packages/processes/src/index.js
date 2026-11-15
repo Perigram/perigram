@@ -6,10 +6,9 @@ export {
   compileAssignmentAccess,
   compileHomeScreenForAssignment,
   compileScreens,
-  detectRedundantScreens,
-  redundantAuthoredScreens,
   compileActions
 } from './compiler-core.js';
+export { detectRedundantScreens, redundantAuthoredScreens } from './screen-analysis.js';
 export {
   validateProcessDefinition,
   validateRequiredInputAvailability,

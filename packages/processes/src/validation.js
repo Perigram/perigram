@@ -13,6 +13,7 @@ import {
 } from './node-catalog.js';
 import { isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForTypeId } from './hierarchy-utils.js';
+import { redundantAuthoredScreens } from './screen-analysis.js';
 
 import {
   effectKindOf,
@@ -27,7 +28,6 @@ import {
   compileActionAccessWindows,
   outputSocketId,
   normalizeRoleCatalog,
-  redundantAuthoredScreens,
   validateAction,
   validateEffectCapabilities,
   validateProcessNode,

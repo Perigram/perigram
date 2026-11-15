@@ -2420,7 +2420,7 @@ function withCompiledLineage(source = {}, screen = {}, lineageBindings = []) {
   return { ...source, lineageBindings: lineageBindings.map(binding => ({ ...binding })) };
 }
 
-function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, producerOutputs = {}, actions = {}, graph = {}, lineageBindings = [] } = {}) {
+export function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, producerOutputs = {}, actions = {}, graph = {}, lineageBindings = [] } = {}) {
   const inferred = {};
   const graphContext = buildActionGraphContext({ actions, graph });
   // Authored stations are per-kind deltas: an authored typeList or
@@ -2542,59 +2542,7 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
 // `normalizeScreenContract`, and equivalence covers exactly the fields
 // inference sets — any authored customization (label, route, bindings,
 // extra sources/regions) makes the screen NOT redundant.
-export function redundantAuthoredScreens(process = {}, domain = {}, compiledRoles = {}, lineageBindings = []) {
-  const authored = process.screens || {};
-  if (!Object.keys(authored).length || !Object.keys(compiledRoles || {}).length) return [];
-  const pureInferred = inferScreensFromRoleGrants({
-    screens: {},
-    roles: compiledRoles,
-    domain,
-    producerOutputs: process.producerOutputs || {},
-    actions: process.actions || {},
-    graph: process.graph || {},
-    lineageBindings
-  });
-  const inferredByKey = new Map();
-  for (const candidate of Object.values(pureInferred)) {
-    const roleId = candidate.roleIds?.[0];
-    if (!roleId || !candidate.typeId) continue;
-    inferredByKey.set(
-      `${roleId}:${candidate.typeId}:${candidate.template}`,
-      projectScreenForInferenceEquivalence(normalizeScreenContract(candidate))
-    );
-  }
-  const redundant = [];
-  const seen = new Set();
-  for (const [id, screen] of Object.entries(authored)) {
-    if (!screen || typeof screen !== 'object') continue;
-    const normalized = normalizeScreenContract(screen);
-    const roleIds = normalized.roleIds?.length ? normalized.roleIds : Object.keys(compiledRoles);
-    for (const roleId of roleIds) {
-      const key = `${roleId}:${normalized.typeId}:${normalized.template}`;
-      const inferredProjection = inferredByKey.get(key);
-      if (!inferredProjection || seen.has(id)) continue;
-      const projection = projectScreenForInferenceEquivalence({ ...normalized, roleIds: [roleId] });
-      if (canonicalJson(projection) === canonicalJson(inferredProjection)) {
-        seen.add(id);
-        redundant.push({ id, roleId, typeId: normalized.typeId, template: normalized.template });
-      }
-    }
-  }
-  return redundant;
-}
-
-// Script-facing wrapper: the same detection over a raw definition and
-// the organization role catalog, without a prior validation pass (the
-// sweep must run on definitions whose slop would fail validation).
-export function detectRedundantScreens(definition = {}, domain = {}, roles = {}) {
-  const process = normalizeProcessDefinition(definition, domain);
-  const lineageBindings = compileLineageBindings(process, domain);
-  const organizationRoles = normalizeRoleCatalog(roles);
-  const compiledRoles = compileRoles(process, domain, organizationRoles, lineageBindings);
-  return redundantAuthoredScreens(process, domain, compiledRoles, lineageBindings);
-}
-
-function projectScreenForInferenceEquivalence(screen = {}) {
+export function projectScreenForInferenceEquivalence(screen = {}) {
   return {
     label: screen.label ?? null,
     kind: screen.kind ?? null,
@@ -2615,7 +2563,7 @@ function projectScreenForInferenceEquivalence(screen = {}) {
 // while any JSON-persisted authored record drops them — null and absent
 // are the same projection, and only non-null differences distinguish an
 // override from inference slop.
-function canonicalJson(value) {
+export function canonicalJson(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
   if (value && typeof value === 'object') {
     return `{${Object.keys(value).sort().filter(key => value[key] !== null && value[key] !== undefined).map(key => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
