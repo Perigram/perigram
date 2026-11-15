@@ -108,12 +108,14 @@ services:
         condition: service_healthy
     command: >-
       mongo --host mongo --port 27017 admin --quiet --eval
-      'var status = null;
-      try { status = rs.status(); print("Mongo replica set already initialized"); }
-      catch (error) {
+      'var status = rs.status();
+      if (!status || status.ok !== 1) {
+        print("Mongo replica set is not initialized; initiating it");
         var result = rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongo:27017"}]});
         if (result.ok !== 1) throw new Error(tojson(result));
         print("Mongo replica set initialized");
+      } else {
+        print("Mongo replica set already initialized");
       }
       var config = rs.conf();
       if (config.members.length !== 1 || config.members[0].host !== "mongo:27017") {
