@@ -6,6 +6,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
+      network: host
+      entitlements:
+        - network.host
       args:
         HTTP_PROXY: ${DOCKER_BUILD_HTTP_PROXY:-${HTTP_PROXY:-${http_proxy:-}}}
         HTTPS_PROXY: ${DOCKER_BUILD_HTTPS_PROXY:-${HTTPS_PROXY:-${https_proxy:-}}}
@@ -128,6 +131,9 @@ services:
     build:
       context: .
       dockerfile: workers/nesting/Dockerfile
+      network: host
+      entitlements:
+        - network.host
       args:
         HTTP_PROXY: ${DOCKER_BUILD_HTTP_PROXY:-${HTTP_PROXY:-${http_proxy:-}}}
         HTTPS_PROXY: ${DOCKER_BUILD_HTTPS_PROXY:-${HTTPS_PROXY:-${https_proxy:-}}}
@@ -206,6 +212,9 @@ services:
   build123d-executor:
     build:
       context: ./workers/build123d
+      network: host
+      entitlements:
+        - network.host
       args:
         HTTP_PROXY: ${DOCKER_BUILD_HTTP_PROXY:-${HTTP_PROXY:-${http_proxy:-}}}
         HTTPS_PROXY: ${DOCKER_BUILD_HTTPS_PROXY:-${HTTPS_PROXY:-${https_proxy:-}}}
