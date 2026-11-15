@@ -7,6 +7,6 @@ export default defineEventHandler(async (event) => {
         return;
     }
     const endpoint = getQuery(event).endpoint;
-    await removeSubscription(endpoint);
+    await removeSubscription(endpoint, auth);
     return { removed: Boolean(endpoint) };
 });

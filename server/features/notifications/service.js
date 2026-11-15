@@ -83,7 +83,8 @@ export async function saveSubscription(auth, subscription = {}) {
     });
 }
 
-export async function removeSubscription(endpoint) {
+export async function removeSubscription(endpoint, auth = {}) {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Authentication required' });
     if (!endpoint) return;
-    await repository.removeByEndpoint(endpoint);
+    await repository.removeByEndpoint(endpoint, auth.userId);
 }

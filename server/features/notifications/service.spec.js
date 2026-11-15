@@ -13,7 +13,7 @@ vi.mock('./repository.js', () => ({
 }));
 
 import webpush from 'web-push';
-import { configurePush, pushConfiguration, notificationFromEvent, notifyUser } from './service.js';
+import { configurePush, pushConfiguration, notificationFromEvent, notifyUser, removeSubscription } from './service.js';
 import { findByUser, removeByEndpoint } from './repository.js';
 
 describe('notifications service', () => {
@@ -60,6 +60,12 @@ describe('notifications service', () => {
         expect(result.sent).toBe(1);
         expect(webpush.sendNotification).toHaveBeenCalledTimes(2);
         expect(removeByEndpoint).toHaveBeenCalledWith('b');
+    });
+
+    it('removes only the authenticated user subscription', async () => {
+        await removeSubscription('endpoint-1', { userId: 'user-1' });
+        expect(removeByEndpoint).toHaveBeenCalledWith('endpoint-1', 'user-1');
+        await expect(removeSubscription('endpoint-2')).rejects.toMatchObject({ statusCode: 401 });
     });
 
     it('sends nothing when push is unconfigured or the event is not notifiable', async () => {

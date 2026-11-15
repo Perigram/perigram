@@ -25,7 +25,9 @@ export async function upsert({ userId, endpoint, keys }) {
     return doc;
 }
 
-export async function removeByEndpoint(endpoint) {
+export async function removeByEndpoint(endpoint, userId = null) {
     const db = await connectDB();
-    await db.collection(COLLECTION).deleteOne({ endpoint });
+    const filter = { endpoint };
+    if (userId) filter.userId = String(userId);
+    await db.collection(COLLECTION).deleteOne(filter);
 }
