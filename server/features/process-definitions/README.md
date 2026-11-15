@@ -689,3 +689,8 @@ graph.
 - [core/machines](../../core/machines/README.md) — status runtime and stamps
 - [server/runtime](../../runtime/README.md) — app registry, service adapters, capability records
 - [packages/processes](../../../packages/processes/README.md) — compiler and evaluator semantics
+
+
+## Destructive action access
+
+A compiled `cts.remove` action is a hard delete and requires an admin-level `delete` grant on the target feature. A write-level update grant is not sufficient. The runtime adapter repeats the same action check before persistence.

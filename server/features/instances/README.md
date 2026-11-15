@@ -271,3 +271,8 @@ slot. A source type without a revision scope (a payload-less geometry
 record) stores `{ type, id }`; the ref field is written either way. A
 stored pin re-reads the frozen revision bytes (a missing pin refuses); a
 ref with no pin follows the source's current payload.
+
+
+## Action-specific gates
+
+HTTP create, patch, and delete use the corresponding `create`, `update`, and `delete` action. Reads use `view`. The shared access contract maps `delete` to admin level; a generic write grant cannot delete. Payload replace, restore, and rederive use `update`.

@@ -1595,7 +1595,7 @@ describe('current process-definition service contract', () => {
 
     await expect(performDurableEffect({
       kind: 'cts.remove',
-      record: { kind: 'cts.remove', typeId: 'queue' },
+      record: { kind: 'cts.remove', typeId: 'queue', access: { level: 'admin' } },
       inputs: { entity: { type: 'queue', id: 'queue-1' } }
     }, adminAuth(), {}, processTestDomain)).resolves.toEqual({ success: true });
     expect(processDelete).toHaveBeenCalledWith('queue-1', expect.objectContaining({ organizationId: 'org-acceptance', effectivePermissions: expect.any(Object) }));

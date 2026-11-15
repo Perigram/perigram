@@ -97,3 +97,8 @@ added to the user's persisted role permissions.
 - [State machine engine](../machines/README.md)
 - [Server features](../../features/README.md)
 - [Shared contracts](../../../shared/README.md)
+
+
+## Action levels
+
+Instance transports and process effects pass explicit actions to the access engine: `view` is read, `create` and `update` are write, and `delete` is admin. When a grant has an `actions` map, only explicitly enabled actions are allowed; a broad level without an action map retains its level semantics.

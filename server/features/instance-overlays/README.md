@@ -83,3 +83,6 @@ Service seam: `getOverlay`, `upsert`, `remove`.
 - [The composed record page](../../../components/ui-mapping/README.md) — the document composition that applies the order and renders the blocks.
 - [The views feature](../views/README.md) — the saved lenses a view block embeds.
 - [The pages feature](../pages/README.md) — the custom pages carrying the same block vocabulary.
+
+
+Overlay upsert uses the backing feature's `update` action; removal uses `delete` (admin-level). Both require the caller's `view` access to the backing instance.
