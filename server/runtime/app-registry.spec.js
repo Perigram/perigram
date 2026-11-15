@@ -266,7 +266,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     vi.clearAllMocks();
     const find = vi.mocked(instanceRepository.findInstanceAnywhere).mockResolvedValue({
       _id: 'cassette-9',
-      type: 'cassette',
+      type: 'cassette-design',
       organizationId: 'org-1'
     });
     const auth = {
@@ -278,7 +278,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
 
     const entity = await getAppRegistry().getInstanceService('cassette-design').processGetById('cassette-9', auth);
 
-    expect(entity).toMatchObject({ _id: 'cassette-9', type: 'cassette' });
+    expect(entity).toMatchObject({ _id: 'cassette-9', type: 'cassette-design' });
     expect(find).toHaveBeenCalledWith('cassette-9', 'cassette-design');
   });
 });
