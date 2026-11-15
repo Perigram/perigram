@@ -33,7 +33,7 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
   });
 
   try {
-    const entities = await loadCommandEntities(registry, command, normalizedInput.entities || {});
+    const entities = await loadCommandEntities(registry, command, normalizedInput.entities || {}, auth);
     const processServiceState = await assertProcessServiceAvailable(commandId, auth);
     await billingService.assertSufficientServiceTokens({
       organizationId: resolveOrganizationId(auth),
@@ -171,7 +171,7 @@ export async function recoverAbandonedCommandRuns({ staleAfterMs = 15 * 60 * 100
   return { abandoned };
 }
 
-async function loadCommandEntities(registry, command, refs) {
+async function loadCommandEntities(registry, command, refs, auth = {}) {
   const loaded = {};
   for (const input of command.input?.entities || []) {
     const id = refs[input.name] || refs[input.type];
@@ -179,8 +179,8 @@ async function loadCommandEntities(registry, command, refs) {
     if (!id) continue;
 
     const service = registry.getInstanceService(input.type);
-    if (!service?.getById) throw createError({ statusCode: 500, message: `Entity service missing for ${input.type}` });
-    const entity = await service.getById(id);
+    if (!service?.processGetById) throw createError({ statusCode: 500, message: `Entity service cannot authorize reads for ${input.type}` });
+    const entity = await service.processGetById(id, auth);
     if (!entity) throw createError({ statusCode: 404, message: `${input.type} not found` });
     loaded[input.name] = entity;
   }
@@ -196,8 +196,8 @@ async function loadCommandEntities(registry, command, refs) {
     }
 
     const service = registry.getInstanceService(type);
-    if (!service?.getById) throw createError({ statusCode: 500, message: `Entity service missing for ${type}` });
-    const entity = await service.getById(id);
+    if (!service?.processGetById) throw createError({ statusCode: 500, message: `Entity service cannot authorize reads for ${type}` });
+    const entity = await service.processGetById(id, auth);
     if (!entity) throw createError({ statusCode: 404, message: `${type} not found` });
     loaded[input.name] = entity;
   }

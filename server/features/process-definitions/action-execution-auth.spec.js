@@ -33,6 +33,17 @@ describe('process action execution authorization', () => {
     expect(helpers.resolveInstanceFeature('unknown_type')).toBe('unknown_type');
   });
 
+  it('derives source read grants from a process command action input', () => {
+    const result = helpers.createActionExecutionAuth({}, {
+      actionKind: 'runCommand',
+      commandId: 'generateAttachment',
+      inputs: [{ id: 'source', type: 'entity', typeId: 'work_item' }]
+    });
+    expect(result.effectivePermissions).toEqual({
+      'work-items': [{ level: 'read', actions: { view: true } }]
+    });
+  });
+
   it('derives command grants from the command access contract', () => {
     const commandHelpers = createActionExecutionAuthHelpers({
       getDomain: () => ({ entities: [{ type: 'work_item', feature: 'work-items' }], fieldAccess: {} }),

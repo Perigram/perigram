@@ -4,6 +4,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 
 const {
   definitions,
+  instanceServices,
   handler,
   processEventsMock,
   processEffectsMock,
@@ -11,6 +12,7 @@ const {
   mockedConnectDB
 } = vi.hoisted(() => ({
   definitions: new Map(),
+  instanceServices: new Map(),
   handler: vi.fn(),
   processEventsMock: vi.fn(),
   processEffectsMock: vi.fn(),
@@ -24,7 +26,7 @@ vi.mock('../../runtime/app-registry.js', () => ({
   getAppRegistry: () => ({
     getCommandDefinition: id => definitions.get(id) || null,
     getCommandHandler: () => handler,
-    getInstanceService: () => null,
+    getInstanceService: type => instanceServices.get(type) || null,
     listCommandDefinitions: () => [...definitions.values()]
   })
 }));
@@ -76,6 +78,7 @@ describe('command run transitions', () => {
 
   beforeEach(async () => {
     definitions.clear();
+    instanceServices.clear();
     definitions.set('run_thing', {
       id: 'run_thing',
       service: 'thing',
@@ -88,6 +91,30 @@ describe('command run transitions', () => {
     processEffectsMock.mockReset().mockResolvedValue(emptyProcessed());
     resolveProcessCommandService.mockReset().mockResolvedValue({ processActive: false, gated: false, service: null });
     await db.dropDatabase();
+  });
+
+  it('authorizes each entity input through its process read boundary before invoking the handler', async () => {
+    const readEntity = vi.fn(async (id, passedAuth) => {
+      expect(id).toBe('private-1');
+      expect(passedAuth).toBe(auth);
+      throw Object.assign(new Error('Permission denied'), { statusCode: 403 });
+    });
+    instanceServices.set('thing', { processGetById: readEntity });
+    definitions.set('read_thing', {
+      id: 'read_thing',
+      service: 'thing',
+      action: 'read',
+      input: { entities: [{ name: 'source', type: 'thing', required: true }], parameters: [] },
+      output: {},
+      access: { permissions: [] }
+    });
+
+    await expect(service.executeCommand('read_thing', {
+      entities: { source: 'private-1' }
+    }, auth)).rejects.toMatchObject({ statusCode: 403 });
+
+    expect(readEntity).toHaveBeenCalledTimes(1);
+    expect(handler).not.toHaveBeenCalled();
   });
 
   it('settles a successful command run as SUCCEEDED with a finish stamp', async () => {

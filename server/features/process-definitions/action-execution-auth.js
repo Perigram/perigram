@@ -15,6 +15,7 @@ export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, g
   }
   
   function resolveActionTypeId(action = {}) {
+    if (action.actionKind === 'runCommand') return normalizeTypeId(action.typeId || '');
     return normalizeTypeId(action.typeId || action.inputs?.find(input => input.typeId)?.typeId || '');
   }
   
