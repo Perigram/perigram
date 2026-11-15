@@ -324,4 +324,53 @@ describe('entity field access', () => {
     expect(redacted.data.bot).toEqual({ createdAt: '2026-10-17T00:00:00.000Z' });
     expect(redacted.data.permissions).toBeUndefined();
   });
+  it('does not use suspended memberships to reveal tenant fields', () => {
+    const auth = {
+      organizationId: 'org-1',
+      effectivePermissions: { organizations: 'admin' },
+      memberships: [
+        { organizationId: 'org-1', status: 'active', permissions: { organizations: 'admin' } },
+        { organizationId: 'org-2', status: 'suspended', permissions: { organizations: 'admin' } }
+      ]
+    };
+    const otherOrganization = {
+      _id: 'org-2',
+      identity: { name: 'Suspended tenant' },
+      lineage: { organizationId: 'org-2' },
+      data: { email: 'private@example.com' }
+    };
+
+    expect(getActivePermissionsFromAuth(auth, otherOrganization)).toEqual({});
+    expect(redactEntityForAccess(otherOrganization, 'organization', auth)).toEqual({});
+  });
+
+  it('does not treat suspended shared memberships as user-field access', () => {
+    const targetUser = {
+      _id: 'user-suspended',
+      identity: { name: 'Suspended colleague' },
+      lineage: { organizationId: 'org-1' },
+      data: {
+        email: 'private@example.com',
+        memberships: [{ organizationId: 'org-1', status: 'suspended' }]
+      }
+    };
+    const auth = {
+      organizationId: 'org-1',
+      memberships: [{ organizationId: 'org-1', status: 'suspended', permissions: { users: 'admin' } }],
+      effectivePermissions: { users: 'admin' }
+    };
+
+    expect(getActivePermissionsFromAuth(auth, targetUser, 'user')).toEqual({});
+    expect(redactEntityForAccess(targetUser, 'user', auth)).toEqual({});
+  });
+
+  it('keeps legacy memberships without status active for compatibility', () => {
+    const auth = {
+      organizationId: 'org-1',
+      memberships: [{ organizationId: 'org-1', permissions: { organizations: 'read' } }]
+    };
+    expect(getActivePermissionsFromAuth(auth, { organizationId: 'org-1' }))
+      .toEqual({ organizations: 'read' });
+  });
+
 });

@@ -12,6 +12,12 @@ import { isPublicReadEntity } from './public-entities.js';
 
 const POLICY_LEVELS = ['read', 'write', 'admin'];
 
+// Legacy memberships without a status predate approval state and remain
+// active; an explicit non-active status must never contribute field grants.
+function isActiveMembership(membership = {}) {
+  return !membership.status || membership.status === 'active';
+}
+
 export function getActivePermissionsFromAuth(auth = {}, entity = null, typeId = '') {
   if (!auth) return {};
   const rawEntityOrgId = entity?.organizationId
@@ -19,12 +25,12 @@ export function getActivePermissionsFromAuth(auth = {}, entity = null, typeId = 
     ?? entity?.origin?.organizationId;
   const entityOrgId = rawEntityOrgId?.toString?.() || rawEntityOrgId || null;
   const activeOrgId = auth.organizationId?.toString?.() || auth.organizationId || null;
-  const memberships = auth.memberships || [];
+  const memberships = (auth.memberships || []).filter(isActiveMembership);
   // User records can belong to several organizations. For their field
   // projection, prefer the caller's active organization when the target
   // user is a member there; otherwise use the first shared membership.
   const targetUserOrgIds = normalizeFieldAccessTypeId(typeId) === 'user'
-    ? new Set((entity?.data?.memberships || []).map(item =>
+    ? new Set((entity?.data?.memberships || []).filter(isActiveMembership).map(item =>
       item?.organizationId?.toString?.() || String(item?.organizationId || '')
     ))
     : null;
