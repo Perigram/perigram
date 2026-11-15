@@ -131,6 +131,8 @@ owns the durable representation; services authorize and orchestrate writes.
 | Plugin catalog, installs, assets, and service cache | `features/plugins/repository.js` | Platform-operator credential for catalog publishing; organization administrators for installs/settings/upgrades |
 | Billing accounts, invoices, payments, and ledger | `features/billing/repository.js` | Organization read/admin gates; payment-provider callbacks are verified before synchronization |
 | Support messages, groups, read state, preferences, and transcripts | `features/support/repository.js` | Support service conversation-context and participant/admin checks |
+| LiveKit call-recording lifecycle | `features/livekit/repository.js` | Authenticated room/recording operations; signed LiveKit webhook for provider completion/failure |
+| Global system settings | `features/system-settings/repository.js` | Trusted internal configuration writers; no user-facing settings mutation route |
 | Notification subscriptions | `features/notifications/repository.js` | Authenticated user owns the subscription endpoint |
 | Process definitions | `features/process-definitions/repository.js`; durable process runs/events use `features/process-definitions/run-store.js` | Process-definition read/write/admin gates; run/event writes occur through the process runtime and scanner |
 | Workflow overrides | `features/workflow-overrides/repository.js` | Machine-resolution persistence seam; currently read by the machine engine |
@@ -142,6 +144,10 @@ instance repository owns ordinary entity CRUD; and the files service owns
 GridFS streams while its repository owns resumable-session documents. The
 pages repository owns the Page type's migration and member-authored document
 operations over the shared `items` collection.
+
+Instance-event and connection fanout are intentionally in-memory (bounded
+recent-event buffer plus live subscribers), not durable persistence; durable
+process execution events are owned by the process run store.
 
 `features/states/repository.js` is a compatibility adapter only: it performs
 no database access. The users collection is written through the users
