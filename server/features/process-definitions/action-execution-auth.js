@@ -45,6 +45,18 @@ export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, g
         actions: source.actions
       });
     }
+    // An authored unlink-delete relation action is the authorization
+    // boundary for deleting its accepted target. Carry that narrow grant
+    // into the effect context; the target service still reloads and scopes
+    // the actual record before deleting it.
+    if (action.relationMutation?.operation === 'unlink' && action.relationMutation?.unlink === 'delete') {
+      for (const targetTypeId of [].concat(action.relationMutation.targetTypes || [])) {
+        appendExecutionGrant(permissions, resolveFeature(targetTypeId), {
+          level: 'admin',
+          actions: { view: true, delete: true }
+        });
+      }
+    }
     return {
       ...auth,
       effectivePermissions: permissions

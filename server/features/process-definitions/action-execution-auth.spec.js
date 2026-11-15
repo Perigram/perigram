@@ -102,6 +102,43 @@ describe('process action execution authorization', () => {
     })).not.toThrow();
   });
 
+  it('grants only the accepted target delete capability for unlink-delete actions', () => {
+    const auth = helpers.createActionExecutionAuth({
+      userId: 'u1',
+      organizationId: 'org-1',
+      memberships: [{ organizationId: 'org-1', permissions: {} }]
+    }, {
+      id: 'unlink-work-item',
+      typeId: 'owner',
+      actionKind: 'updateEntity',
+      relationMutation: {
+        operation: 'unlink',
+        unlink: 'delete',
+        targetTypes: ['work_item']
+      }
+    });
+
+    expect(auth.effectivePermissions['work-items']).toEqual([
+      { level: 'admin', actions: { view: true, delete: true } }
+    ]);
+    expect(() => assertEntityAccess({
+      entity: { organizationId: 'org-1' },
+      typeId: 'work_item',
+      feature: 'work-items',
+      level: 'write',
+      action: 'delete',
+      auth
+    })).not.toThrow();
+    expect(() => assertEntityAccess({
+      entity: { organizationId: 'org-1' },
+      typeId: 'work_item',
+      feature: 'work-items',
+      level: 'write',
+      action: 'update',
+      auth
+    })).toThrow(/Permission denied/);
+  });
+
   it('derives the minimum permission level from the action kind', () => {
     const baseAuth = {
       userId: 'u1',
