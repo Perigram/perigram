@@ -43,7 +43,7 @@ from remaining proof and verification.
   into focused modules; preserve the compiler barrel API and add focused tests.
 - [ ] Complete the route/command/transition/feature authorization call graph
   and trace every feature persistence write path end-to-end.
-  Progress: revision detail, list, and frozen-file endpoints now resolve each source through the ordinary instance read boundary, applying its compiled read grant in addition to revision tenant scope (commit `bfcb594`). Regression coverage for the shared source gate is added in `server/utils/revision-access.spec.js`; CI execution remains pending. Process-role transitions now enforce organization scope;
+  Progress: revision detail, list, and frozen-file endpoints now resolve each source through the ordinary instance read boundary, applying its compiled read grant in addition to revision tenant scope (commit `bfcb594`). Regression coverage for the shared source gate is added in `server/utils/revision-access.spec.js`; CI execution remains pending. Construction replay now also validates that a supplied revision pin belongs to the already-authorized source type/id and declared revision scope before reading frozen bytes (commit `5e391bc`); regression coverage added in `server/features/instances/construction-services.spec.js`. Process-role transitions now enforce organization scope;
   generic HTTP and process-graph lists enforce read grants; process deletes
   route through the entity write gate and derive the declaration from the
   record's organization. Organization detail reads use the managed-organization

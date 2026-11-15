@@ -2180,3 +2180,11 @@ repository split. It prepares and validates the boundaries required by
   read grant as well as the revision's tenant scope, preventing revision
   snapshots from becoming a weaker visibility path than their source records.
   Shared source-gate regression tests were added; CI execution is pending.
+
+- Construction revision-pin authorization follow-up (2026-11-15): a replayed
+  construction input now verifies that its revision belongs to the already
+  authorized source entity and the source declaration's revision scope before
+  reading the frozen attachment. This prevents a caller from substituting a
+  different revision id after the ordinary source read has succeeded. A
+  regression test covers the cross-source pin refusal; staging CI run
+  43737785898 is pending.
