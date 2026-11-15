@@ -77,12 +77,12 @@ from remaining proof and verification.
     checks also passed.
   - Still open: trace all direct service imports/callers, internal process
     effects, scheduled scanners, webhooks, and bootstrap writers end-to-end;
-    verify specialized Page writes and machine status snapshots against the
-    generic items persistence boundary. Resolved the workflow-overrides
-    mismatch: removed unused create/archive/latest repository helpers and
-    documented the collection as a read-only legacy fallback. Page writes
-    remain owned by the Page repository over `items`; lifecycle snapshots
-    remain an explicit machine-repository cross-cutting write.
+    reconcile the workflow-overrides repository's tested create/archive
+    contract with its read-only public service (there is no current service
+    caller); verify specialized Page writes and machine status snapshots
+    against the generic items persistence boundary. Page writes remain owned
+    by the Page repository over `items`; lifecycle snapshots remain an
+    explicit machine-repository cross-cutting write.
 - [ ] Verify package/executor contracts independently, including browser/
   Node compatibility and versioned extraction interfaces under §29.
   Current workspace manifests remain private and expose ESM entry points;
