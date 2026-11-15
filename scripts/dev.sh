@@ -77,8 +77,8 @@ case "$command" in
     fi
     ensure_network
     mkdir -p "$ROOT/.local/cortex"
-    compose build --allow network.host
-    compose up -d
+    docker buildx bake --allow network.host -f "$COMPOSE_FILE"
+    compose up -d --no-build
     compose ps
     echo
     echo "Perigram is starting at http://localhost:3000"
@@ -97,8 +97,8 @@ case "$command" in
     ;;
   app|deps)
     ensure_network
-    compose build --allow network.host app
-    compose up -d --no-deps --force-recreate app
+    docker buildx bake --allow network.host -f "$COMPOSE_FILE" app
+    compose up -d --no-build --no-deps --force-recreate app
     ;;
   shell)
     compose exec app sh
