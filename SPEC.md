@@ -2155,3 +2155,11 @@ repository split. It prepares and validates the boundaries required by
   coverage verifies read-vs-admin field projection and denies projection
   without a target-tenant membership. Latest staging CI is queued without an
   assigned job; this fix is not yet represented as test-verified.
+- Multi-organization user redaction (2026-11-15): user records can carry
+  several organization memberships while their lineage names only one
+  primary/current organization. The field projection now selects the
+  caller's shared membership (preferring the caller's active organization)
+  for user DTOs, rather than hiding a valid team member because their primary
+  lineage points elsewhere. Regression coverage exercises a target user
+  whose primary org differs from the caller's active shared org. This is part
+  of the tenant-scoped redaction fix; CI remains queued without a runner job.

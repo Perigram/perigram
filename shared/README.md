@@ -20,7 +20,10 @@ imported through server modules that Nitro externalizes.
   process → organization membership → legacy user grant precedence for server
   checks and client-side field redaction. Process-effective grants are bound
   to the active organization; redaction of an entity in another tenant uses
-  only that tenant's membership grant, or no grant.
+  only that tenant's membership grant, or no grant. For multi-organization
+  user records, the caller's shared membership (active organization first)
+  selects the user-field projection; the user's primary lineage organization
+  does not hide a membership shared with the caller.
   Primary-status facts use the canonical `getPrimaryState()` reader from
   [`@perigram/core`](../packages/core/README.md); access evaluation does not
   maintain a parallel status projection.
