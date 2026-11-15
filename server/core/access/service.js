@@ -4,7 +4,10 @@ import { actionToLevel, hasPermissionGrant, resolveEffectivePermissions } from '
 import { isPublicReadEntity } from '#shared/public-entities.js';
 
 export function assertEntityAccess({ entity, typeId, feature = typeId, level = 'read', action = null, auth }) {
-  if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
+  const publicRead = level === 'read' && isPublicReadEntity({ entity, typeId, feature });
+  if (!hasPrincipal(auth) && !publicRead) {
+    throw createError({ statusCode: 401, message: 'Authentication required' });
+  }
   if (!hasInstanceAccess({ entity, feature, level, action, auth, typeId })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
@@ -41,7 +44,7 @@ export function assertCommandAccess({ command, action = command, entities = {}, 
 }
 
 export function assertTransitionAccess({ transition, entity, auth }) {
-  if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
+  if (!hasPrincipal(auth)) throw createError({ statusCode: 401, message: 'Authentication required' });
   const access = transition?.access || {};
   if (isSystemAuth(auth) && access.system === true) return true;
 
@@ -114,7 +117,7 @@ export function hasInstanceAccess({ entity, feature, level = 'read', action = nu
   if (!feature) return false;
   const requiredLevel = action ? actionToLevel(action, level) : level;
   if (requiredLevel === 'read' && isPublicReadEntity({ entity, typeId, feature })) return true;
-  if (!auth) return false;
+  if (!hasPrincipal(auth)) return false;
 
   // Tenant ownership can travel top-level on the §3 DTO, inside legacy
   // lineage, or on imported/origin-linked records. Apply the same precedence
@@ -137,6 +140,10 @@ export function hasInstanceAccess({ entity, feature, level = 'read', action = nu
 
 export function getEffectivePermissions(auth = {}, membership = null) {
   return resolveEffectivePermissions(auth, membership) || {};
+}
+
+function hasPrincipal(auth = {}) {
+  return Boolean(auth.userId) || isSystemAuth(auth);
 }
 
 function isSystemAuth(auth = {}) {

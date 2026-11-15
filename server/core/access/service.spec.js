@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { assertCommandAccess, assertTransitionAccess, createLineageFilter, hasInstanceAccess } from './service.js';
+import { assertCommandAccess, assertEntityAccess, assertTransitionAccess, createLineageFilter, hasInstanceAccess } from './service.js';
 import { hasLineagePermission } from '../../utils/permissions.js';
 
 vi.mock('h3', () => ({
@@ -94,6 +94,7 @@ describe('access engine', () => {
 
   it('scopes collection filters and entity access to the active organization', () => {
     const multiOrgAuth = {
+      userId: 'multi-org-user',
       organizationId: 'org-1',
       effectivePermissions: { queues: 'admin' },
       memberships: [
@@ -153,6 +154,31 @@ describe('access engine', () => {
       entities: {},
       auth: { system: true }
     })).not.toThrow();
+  });
+
+  it('rejects permission-shaped contexts that have no authenticated principal', () => {
+    const forgedContext = {
+      organizationId: 'org-1',
+      effectivePermissions: { queues: 'admin' },
+      memberships: [{ organizationId: 'org-1', permissions: { queues: 'admin' } }]
+    };
+    expect(hasInstanceAccess({
+      entity,
+      feature: 'queues',
+      level: 'write',
+      auth: forgedContext
+    })).toBe(false);
+    expect(() => assertEntityAccess({
+      entity,
+      feature: 'queues',
+      level: 'write',
+      auth: forgedContext
+    })).toThrow(/Authentication required/);
+    expect(() => assertTransitionAccess({
+      transition: { from: 'DRAFT', to: 'READY' },
+      entity,
+      auth: forgedContext
+    })).toThrow(/Authentication required/);
   });
 
   it('checks command requirements before handler execution', () => {
