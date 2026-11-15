@@ -14,6 +14,7 @@ import {
 import { isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForTypeId } from './hierarchy-utils.js';
 import { redundantAuthoredScreens } from './screen-analysis.js';
+import { compileLifecycle, stateNestingPairs } from './workflow-compilation.js';
 
 import {
   effectKindOf,
@@ -21,8 +22,6 @@ import {
   normalizeProcessDefinition,
   requiredEffectCapability,
   compileLineageBindings,
-  compileLifecycle,
-  stateNestingPairs,
   actionTypeId,
   compileRoles,
   compileActionAccessWindows,
