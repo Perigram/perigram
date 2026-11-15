@@ -55,6 +55,30 @@ from remaining proof and verification.
   inactive. These are focused fixes, not completion of the route/command/
   transition/payload/relation/scheduled-run audit; those paths still need
   end-to-end verification.
+  Follow-up authorization and persistence pass (2026-11-15):
+  - Inventory-scanned all 103 mutating API handlers and 69 GET handlers.
+    Non-user-auth routes were classified as explicit public auth/invitation/
+    configuration surfaces, worker credentials, platform-operator credentials,
+    signed provider callbacks, or the MCP service's own authentication. This
+    closes the route inventory pass, not the internal service call graph.
+  - Closed concrete gaps: party records are read-only in the process runtime
+    (SPEC §2); plugin endpoint values and connector task completions cannot
+    smuggle platform effects/events; realtime subscription sync now verifies
+    connection ownership against the authenticated principal; agent-run stop
+    now checks the support conversation context before cancellation.
+  - Centralized user-membership writes in users/repository.js; the
+    organizations repository no longer writes the users collection.
+  - Centralized status_events persistence in core/machines/repository.js;
+    features/states/repository.js is now a compatibility adapter. Added
+    persistence-owner map and explicit cross-cutting exceptions in
+    server/features/README.md.
+  - Full Vitest last passed on 09798d8 (269 files / 2,788 tests). Subsequent
+    persistence-owner changes are awaiting their own green CI run.
+  - Still open: trace all direct service imports/callers, internal process
+    effects, scheduled scanners, webhooks, and bootstrap writers end-to-end;
+    reconcile the unused create/archive helpers in workflow-overrides with
+    its read-only public service; verify the specialized Page writes and
+    machine status snapshots against the generic items persistence boundary.
 - [ ] Verify package/executor contracts independently, including browser/
   Node compatibility and versioned extraction interfaces under §29.
   Current workspace manifests remain private and expose ESM entry points;
