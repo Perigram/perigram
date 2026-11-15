@@ -1,3 +1,5 @@
+import { createError } from 'h3';
+
 /**
  * Connections capability module: one canonical realtime layer for the app.
  *
@@ -127,9 +129,11 @@ export async function unregisterConnection(connectionId) {
  * requested list is filtered through topic admission. Idempotent — clients
  * call it after every (re)connect to resynchronize their subscriptions.
  */
-export async function syncTopics(connectionId, requested = []) {
+export async function syncTopics(connectionId, requested = [], auth = {}) {
     const conn = connections.get(connectionId);
-    if (!conn) return { subscribed: [] };
+    if (!conn || String(conn.userId) !== String(auth.userId || '')) {
+        throw createError({ statusCode: 403, message: 'Connection does not belong to the authenticated user' });
+    }
     conn.topics = new Set(topicDefaults(conn.auth));
     for (const topic of requested) {
         // eslint-disable-next-line no-await-in-loop

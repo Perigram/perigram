@@ -58,7 +58,7 @@ describe('connections gateway registry', () => {
             auth: userAuth('u2', 'org1'),
             push: data => events.push(['outside', JSON.parse(data)])
         });
-        await syncTopics(inside.id, ['conversation:support:u1']);
+        await syncTopics(inside.id, ['conversation:support:u1'], userAuth('u1', 'org1'));
 
         publish('conversation:support:u1', { type: 'message', message: { _id: 'm1' } });
 
@@ -78,12 +78,20 @@ describe('connections gateway registry', () => {
             'org:org2',
             'admin-support',
             'conversation:support:u1'
-        ]);
+        ], userAuth('u2', 'org2'));
         expect(result.subscribed).toEqual(['user:u2', 'org:org2']);
 
         const admin = await openConnection(userAuth('admin', 'org1', true));
-        const adminResult = await syncTopics(admin.id, ['admin-support']);
+        const adminResult = await syncTopics(admin.id, ['admin-support'], userAuth('admin', 'org1', true));
         expect(adminResult.subscribed).toContain('admin-support');
+    });
+
+    it('rejects subscription changes from a different authenticated user', async () => {
+        const victim = await openConnection(userAuth('victim', 'org1'));
+        await expect(syncTopics(victim.id, ['admin-support'], userAuth('attacker', 'org1', true)))
+            .rejects.toMatchObject({ statusCode: 403 });
+        expect((await syncTopics(victim.id, [], userAuth('victim', 'org1'))).subscribed)
+            .toEqual(['user:victim', 'org:org1']);
     });
 
     it('delegates conversation admission to the registered authorizer', async () => {
@@ -91,8 +99,8 @@ describe('connections gateway registry', () => {
         registerTopicAuthorizer('conversation:', authorize);
         const allowed = await openConnection(userAuth('u1', 'org1'));
         const denied = await openConnection(userAuth('u2', 'org1'));
-        expect((await syncTopics(allowed.id, ['conversation:direct:u1:u2'])).subscribed).toContain('conversation:direct:u1:u2');
-        expect((await syncTopics(denied.id, ['conversation:direct:u1:u2'])).subscribed).not.toContain('conversation:direct:u1:u2');
+        expect((await syncTopics(allowed.id, ['conversation:direct:u1:u2'], userAuth('u1', 'org1'))).subscribed).toContain('conversation:direct:u1:u2');
+        expect((await syncTopics(denied.id, ['conversation:direct:u1:u2'], userAuth('u2', 'org1'))).subscribed).not.toContain('conversation:direct:u1:u2');
         expect(authorize).toHaveBeenCalled();
     });
 
@@ -101,7 +109,7 @@ describe('connections gateway registry', () => {
             throw new Error('forbidden');
         }));
         const conn = await openConnection(userAuth('u1', 'org1'));
-        const result = await syncTopics(conn.id, ['conversation:support:u1']);
+        const result = await syncTopics(conn.id, ['conversation:support:u1'], userAuth('u1', 'org1'));
         expect(result.subscribed).not.toContain('conversation:support:u1');
     });
 

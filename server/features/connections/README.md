@@ -23,7 +23,7 @@ Parent: [server/features](../README.md).
 - `registerConnection({ auth, push })` subscribes the defaults
   `user:<userId>` and `org:<organizationId>` and broadcasts a presence
   snapshot to the organization topic. `unregisterConnection` mirrors it.
-- `syncTopics(connectionId, requested)` replaces the requested topic set;
+- `syncTopics(connectionId, requested, auth)` replaces the requested topic set only when the supplied authenticated principal owns the connection;
   defaults always survive and every requested topic passes admission:
   - `user:<userId>` — self only.
   - `org:<orgId>` — the connection's own organization.
@@ -81,7 +81,7 @@ Support chat is the first consumer:
 | Endpoint | Responsibility |
 |---|---|
 | `GET /api/connections/events` | Authenticated SSE stream: registers the connection, answers a `ready` event (`connectionId`, `topics`, `presence`), heartbeats every 30 s, unregisters on close. |
-| `POST /api/connections/subscriptions` | `{ connectionId, topics }` → replaces the requested topic set through `syncTopics` (403 when the connection belongs to another user). |
+| `POST /api/connections/subscriptions` | `{ connectionId, topics }` → replaces the requested topic set through an ownership-checked `syncTopics` call (403 when the connection belongs to another user). |
 
 ## Related
 

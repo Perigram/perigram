@@ -15,12 +15,6 @@ export default defineEventHandler(async (event) => {
         return { error: 'connectionId is required' }
     }
 
-    const owned = connectionsService.connectionTopics(connectionId)
-    if (!owned.some(topic => topic === `user:${auth.userId}`)) {
-        setResponseStatus(event, 403)
-        return { error: 'Connection does not belong to the authenticated user' }
-    }
-
-    const result = await connectionsService.syncTopics(connectionId, requestedTopics)
+    const result = await connectionsService.syncTopics(connectionId, requestedTopics, auth)
     return { subscribed: result.subscribed }
 })
