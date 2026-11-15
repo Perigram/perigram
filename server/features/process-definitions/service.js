@@ -678,7 +678,6 @@ export async function resumeParkedRun(record) {
     lineage: { organizationId: record.organizationId },
     data: record.definitionData
   };
-  const domain = await getProjectedDomain(record.organizationId);
   const storedActor = record.run?.context?.actor;
   const organizationId = String(record.organizationId || '');
   let auth;
@@ -713,6 +712,7 @@ export async function resumeParkedRun(record) {
     }
     auth = await resolveProcessAuth({ ...currentAuth, organizationId });
   }
+  const domain = await getProjectedDomain(record.organizationId);
   const base = manualRunEnvironment(definitionLike, auth, domain);
   const resumed = await resumeProcessRun(record.run, record.definitionData, { output: {} }, {
     catalogContext: base.catalogContext,
