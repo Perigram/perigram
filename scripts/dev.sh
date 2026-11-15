@@ -7,31 +7,6 @@ NETWORK="perigram-network"
 
 cd "$ROOT"
 
-# Host-network BuildKit steps can use a proxy bound to 127.0.0.1.
-# Normalize the former host.docker.internal form for host-network builds.
-for variable in DOCKER_BUILD_HTTP_PROXY DOCKER_BUILD_HTTPS_PROXY; do
-  value="${!variable:-}"
-  if [[ -z "$value" ]]; then
-    fallback="HTTP_PROXY"
-    [[ "$variable" == "DOCKER_BUILD_HTTPS_PROXY" ]] && fallback="HTTPS_PROXY"
-    value="${!fallback:-}"
-  fi
-  if [[ "$value" == *"://host.docker.internal:"* ]]; then
-    value="${value//host.docker.internal/127.0.0.1}"
-    printf -v "$variable" '%s' "$value"
-    export "$variable"
-  fi
-done
-
-# The app image needs the host trust bundle when a proxy intercepts TLS.
-# Override this path when the proxy CA is installed in a separate bundle.
-export DOCKER_BUILD_CA_BUNDLE="${DOCKER_BUILD_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}"
-if [[ ! -s "$DOCKER_BUILD_CA_BUNDLE" ]]; then
-  echo "CA bundle not found: $DOCKER_BUILD_CA_BUNDLE" >&2
-  echo "Set DOCKER_BUILD_CA_BUNDLE to a PEM bundle trusted by the host." >&2
-  exit 1
-fi
-
 compose() {
   docker compose --project-directory "$ROOT" -f "$COMPOSE_FILE" "$@"
 }
@@ -53,8 +28,7 @@ Commands:
   logs [service]      Follow logs
   ps                  Show service status
   restart [service]   Restart one service or the whole stack
-  app                 Build/recreate only the app (keep dependencies running)
-  deps                Alias for app
+  deps                Rebuild/recreate app after package dependency changes
   shell               Open a shell in the app container
   mongo               Open the Mongo shell
   exec <command...>   Run a command in the app container
@@ -86,8 +60,7 @@ case "$command" in
     fi
     ensure_network
     mkdir -p "$ROOT/.local/cortex"
-    docker buildx bake --allow network.host --allow "fs.read=$DOCKER_BUILD_CA_BUNDLE" -f "$COMPOSE_FILE"
-    compose up -d --no-build
+    compose up -d --build
     compose ps
     echo
     echo "Perigram is starting at http://localhost:3000"
@@ -104,10 +77,10 @@ case "$command" in
   restart)
     compose restart "$@"
     ;;
-  app|deps)
+  deps)
     ensure_network
-    docker buildx bake --allow network.host --allow "fs.read=$DOCKER_BUILD_CA_BUNDLE" -f "$COMPOSE_FILE" app
-    compose up -d --no-build --no-deps --force-recreate app
+    compose build app
+    compose up -d --no-deps --force-recreate app
     ;;
   shell)
     compose exec app sh
