@@ -135,7 +135,7 @@ owns the durable representation; services authorize and orchestrate writes.
 | Global system settings | `features/system-settings/repository.js` | Trusted internal configuration writers; no user-facing settings mutation route |
 | Notification subscriptions | `features/notifications/repository.js` | Authenticated user owns the subscription endpoint |
 | Process definitions | `features/process-definitions/repository.js`; durable process runs/events use `features/process-definitions/run-store.js` | Process-definition read/write/admin gates; run/event writes occur through the process runtime and scanner |
-| Workflow overrides | `features/workflow-overrides/repository.js` | Machine-resolution persistence seam; currently read by the machine engine |
+| Legacy workflow overrides | `features/workflow-overrides/repository.js` | Read-only fallback for machine resolution; no application write path |
 | Upload sessions/chunks | `features/files/repository.js` | Session owner is checked on every read, append, and completion |
 
 Two deliberate cross-cutting adapters remain distinct: the machine repository

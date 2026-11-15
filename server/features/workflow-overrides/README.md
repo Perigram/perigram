@@ -6,7 +6,7 @@ Parent: [server/features](../README.md).
 
 ## Responsibility
 
-- Persists active and archived workflow definitions in `workflow_overrides`.
+- Reads legacy active organization overrides from `workflow_overrides`; application code has no write path for this collection.
 - Resolves the active machine for the status engine. Machines are
   graph-derived (SPEC §7): the active compiled process is the lifecycle
   source, an explicit organization override is the escape hatch for types
@@ -22,10 +22,11 @@ Workflow normalization and transition semantics are owned by
 [`@perigram/core`](../../../packages/core/README.md); this feature owns only
 organization-scoped persistence and resolution.
 
-`resolveActiveWorkflow` is the module's whole public surface; the
-repository owns row writes. A unique partial index on
-`{ status, organizationId, typeId }` with `status = 'ACTIVE'` enforces one
-active override per organization and type.
+`resolveActiveWorkflow` is the module's whole public surface. The repository
+exposes only the legacy active-row lookup; create/archive helpers were
+removed because there is no authorized management surface. Existing rows are
+read as a compatibility fallback, while the active process graph remains the
+primary lifecycle source.
 
 ## Data Contract
 
