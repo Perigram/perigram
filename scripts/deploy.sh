@@ -47,7 +47,7 @@ build_args=(
 )
 
 echo "Pulling base images..."
-for image in node:24.15.0-slim rust:1.83 python:3.11-slim node:24-alpine; do
+for image in node:24.15.0-slim rust:1.83 python:3.11-slim python:3.14-slim node:24-alpine; do
   retry docker pull "$image" || echo "WARN: pull $image failed; build may still resolve it"
 done
 
@@ -67,11 +67,14 @@ retry docker build --network=host "${build_args[@]}" \
   --build-arg PLUGIN=tech-drawing -t perigram-executor-tech-drawing:staging \
   -f workers/plugin-executor.Dockerfile .
 retry docker build --network=host "${build_args[@]}" \
+  -t perigram-build123d-executor:staging -f workers/build123d/Dockerfile workers/build123d
+retry docker build --network=host "${build_args[@]}" \
   -t perigram-seed:staging -f deploy/seed.Dockerfile .
 
 echo "Starting plugin executor plane..."
 docker rm -f perigram-nesting perigram-facade-executor \
-  perigram-documents-executor perigram-tech-drawing-executor >/dev/null 2>&1 || true
+  perigram-documents-executor perigram-tech-drawing-executor \
+  perigram-build123d-executor >/dev/null 2>&1 || true
 docker run -d --name perigram-nesting --restart unless-stopped \
   --network host perigram-nesting:staging
 docker run -d --name perigram-facade-executor --restart unless-stopped \
@@ -84,6 +87,9 @@ docker run -d --name perigram-documents-executor --restart unless-stopped \
 docker run -d --name perigram-tech-drawing-executor --restart unless-stopped \
   --network host -e TECH_DRAWING_EXECUTOR_PORT=8792 \
   perigram-executor-tech-drawing:staging
+docker run -d --name perigram-build123d-executor --restart unless-stopped \
+  --network host -e BUILD123D_EXECUTOR_PORT=8793 \
+  perigram-build123d-executor:staging
 
 echo "Checking plugin executor plane..."
 docker run --rm --network host perigram:staging sh -ec '
@@ -96,6 +102,13 @@ docker run --rm --network host perigram:staging sh -ec '
     done
     echo ":$port ready"
   done
+  attempt=0
+  until curl -fsS -o /dev/null http://127.0.0.1:8793/health; do
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge 15 ]; then echo "build123d executor did not answer on :8793" >&2; exit 1; fi
+    sleep 2
+  done
+  echo ":8793 ready"
 '
 
 echo "Publishing plugin catalog and applying idempotent installs..."
@@ -104,6 +117,7 @@ docker run --rm --network host \
   -e FACADE_EXECUTOR_URL=http://127.0.0.1:8790 \
   -e DOCUMENTS_EXECUTOR_URL=http://127.0.0.1:8791 \
   -e TECH_DRAWING_EXECUTOR_URL=http://127.0.0.1:8792 \
+  -e BUILD123D_EXECUTOR_URL=http://127.0.0.1:8793 \
   perigram-seed:staging sh -ec '
     node server/scripts/seed-plugin-catalog.js &&
     node server/scripts/migrate-facade-pack-to-plugin.js &&
@@ -128,6 +142,7 @@ docker run -d --name perigram-staging --restart unless-stopped \
   -e FACADE_EXECUTOR_URL=http://127.0.0.1:8790 \
   -e DOCUMENTS_EXECUTOR_URL=http://127.0.0.1:8791 \
   -e TECH_DRAWING_EXECUTOR_URL=http://127.0.0.1:8792 \
+  -e BUILD123D_EXECUTOR_URL=http://127.0.0.1:8793 \
   -e "LIVEKIT_PUBLIC_URL=$LIVEKIT_PUBLIC_URL" \
   -e "LIVEKIT_INTERNAL_URL=$LIVEKIT_INTERNAL_URL" \
   -e "LIVEKIT_API_KEY=$LIVEKIT_API_KEY" \

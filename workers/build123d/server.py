@@ -47,6 +47,9 @@ class Executor(BaseHTTPRequestHandler):
         self.respond(200, result)
 
     def do_GET(self):
+        if self.path.rstrip("/") == "/health":
+            self.respond(200, {"status": "ok", "services": len(OPS)})
+            return
         self.fail(405, "services answer POST only")
 
     def respond(self, status, payload):
