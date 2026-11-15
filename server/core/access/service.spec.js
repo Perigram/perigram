@@ -141,6 +141,20 @@ describe('access engine', () => {
     })).toBe(false);
   });
 
+  it('requires a real user or system principal even when a command declares no permission clauses', () => {
+    expect(() => assertCommandAccess({
+      command: { access: {} },
+      entities: {},
+      auth: {}
+    })).toThrow(/Authentication required/);
+
+    expect(() => assertCommandAccess({
+      command: { access: { system: true } },
+      entities: {},
+      auth: { system: true }
+    })).not.toThrow();
+  });
+
   it('checks command requirements before handler execution', () => {
     const command = {
       access: {

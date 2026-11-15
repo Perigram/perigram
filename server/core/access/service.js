@@ -12,7 +12,9 @@ export function assertEntityAccess({ entity, typeId, feature = typeId, level = '
 }
 
 export function assertCommandAccess({ command, action = command, entities = {}, auth }) {
-  if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
+  if (!auth?.userId && !isSystemAuth(auth)) {
+    throw createError({ statusCode: 401, message: 'Authentication required' });
+  }
   const access = action?.access || {};
   if (isSystemAuth(auth) && access.system === true) return true;
 
