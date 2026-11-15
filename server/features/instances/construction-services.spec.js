@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
+const { mockedHasInstanceAccess } = vi.hoisted(() => ({
+  mockedHasInstanceAccess: vi.fn(() => true)
+}));
+
 vi.mock('~/server/db/mongo', () => ({ connectDB: vi.fn() }));
 vi.mock('../files/service.js', () => ({
   uploadFile: vi.fn(async (buffer, filename) => ({ id: `stored-${filename}`, filename, url: '#' })),

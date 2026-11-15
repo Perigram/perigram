@@ -19,8 +19,9 @@ export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, g
     return normalizeTypeId(action.typeId || action.inputs?.find(input => input.typeId)?.typeId || '');
   }
   
-  function createActionExecutionAuth(auth = {}, action = {}, { relationContracts = null } = {}) {
-    const feature = resolveActionFeature(action);
+  function createActionExecutionAuth(auth = {}, action = {}, { relationContracts = null, featureForType = null, featureOverride = null } = {}) {
+    const resolveFeature = featureForType || resolveInstanceFeature;
+    const feature = featureOverride || resolveFeature(resolveActionTypeId(action));
     const permissions = {
       ...(auth.effectivePermissions || {})
     };
@@ -36,7 +37,7 @@ export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, g
         actions: grant.actions || { view: true }
       });
     }
-    for (const source of constructionSourceGrants(action, relationContracts)) {
+    for (const source of constructionSourceGrants(action, relationContracts, resolveFeature)) {
       appendExecutionGrant(permissions, source.feature, {
         level: source.level,
         actions: source.actions
@@ -89,7 +90,7 @@ export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, g
     ];
   }
   
-  function constructionSourceGrants(action = {}, relationContracts = null) {
+  function constructionSourceGrants(action = {}, relationContracts = null, resolveFeature = resolveInstanceFeature) {
     const sources = [];
     if (action.parentTypeId) {
       sources.push({ typeId: action.parentTypeId, level: 'read', actions: { view: true } });
@@ -113,7 +114,7 @@ export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, g
     }
     const seen = new Set();
     return sources.flatMap(source => {
-      const feature = resolveInstanceFeature(source.typeId);
+      const feature = resolveFeature(source.typeId);
       const key = `${feature}:${source.level}`;
       if (!feature || seen.has(key)) return [];
       seen.add(key);

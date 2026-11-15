@@ -1642,7 +1642,17 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
         inputs: effectConstructionInputs(record, domain)
       }
     };
-    const executionAuth = createActionExecutionAuth(auth, actionForAuth, { relationContracts });
+    const featureForType = sourceTypeId => {
+      const normalized = normalizeTypeId(sourceTypeId);
+      const entity = (domain?.entities || []).find(item => item.type === normalized);
+      const fieldPolicy = getEntityFieldAccessPolicy(normalized) || domain?.fieldAccess?.[normalized];
+      return fieldPolicy?.feature || entity?.feature || entity?.collection || resolveInstanceFeature(normalized);
+    };
+    const executionAuth = createActionExecutionAuth(auth, actionForAuth, {
+      relationContracts,
+      featureForType,
+      featureOverride: writeTarget.feature
+    });
     assertEntityAccess({
       entity: { organizationId },
       typeId: writeTarget.typeId,
