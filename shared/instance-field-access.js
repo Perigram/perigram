@@ -12,22 +12,39 @@ import { isPublicReadEntity } from './public-entities.js';
 
 const POLICY_LEVELS = ['read', 'write', 'admin'];
 
-export function getActivePermissionsFromAuth(auth = {}, entity = null) {
+export function getActivePermissionsFromAuth(auth = {}, entity = null, typeId = '') {
   if (!auth) return {};
   const rawEntityOrgId = entity?.organizationId
     ?? entity?.lineage?.organizationId
     ?? entity?.origin?.organizationId;
   const entityOrgId = rawEntityOrgId?.toString?.() || rawEntityOrgId || null;
   const activeOrgId = auth.organizationId?.toString?.() || auth.organizationId || null;
-  const targetOrgId = entityOrgId || activeOrgId;
+  const memberships = auth.memberships || [];
+  // User records can belong to several organizations. For their field
+  // projection, prefer the caller's active organization when the target
+  // user is a member there; otherwise use the first shared membership.
+  const targetUserOrgIds = normalizeFieldAccessTypeId(typeId) === 'user'
+    ? new Set((entity?.data?.memberships || []).map(item =>
+      item?.organizationId?.toString?.() || String(item?.organizationId || '')
+    ))
+    : null;
+  const sharedUserMembership = targetUserOrgIds
+    ? memberships.find(item => (
+      (item?.organizationId?.toString?.() || String(item?.organizationId || '')) === activeOrgId
+      && targetUserOrgIds.has(activeOrgId)
+    )) || memberships.find(item =>
+      targetUserOrgIds.has(item?.organizationId?.toString?.() || String(item?.organizationId || ''))
+    )
+    : null;
+  const targetOrgId = sharedUserMembership?.organizationId || entityOrgId || activeOrgId;
   const membership = targetOrgId
-    ? (auth.memberships || []).find(item => item.organizationId?.toString?.() === targetOrgId.toString())
-    : (auth.memberships || [])[0];
+    ? memberships.find(item => item.organizationId?.toString?.() === targetOrgId.toString())
+    : memberships[0];
 
   // Effective permissions are compiled for the active organization. Never
   // reuse that projection when redacting an entity owned by another tenant:
   // use that tenant's own membership grant, or no grant at all.
-  if (entityOrgId && entityOrgId !== activeOrgId) {
+  if (targetOrgId && targetOrgId !== activeOrgId) {
     return membership?.permissions || {};
   }
 
@@ -139,7 +156,7 @@ export function canDisplayEntityField({
   if (!policy) return false;
 
   const activePermissions = auth
-    ? getActivePermissionsFromAuth(auth, entity)
+    ? getActivePermissionsFromAuth(auth, entity, typeId)
     : permissions;
 
   if ((descriptor.level || policy.level) === 'read' && isPublicReadEntity({
@@ -175,7 +192,7 @@ export function filterEntityFields({
 
 export function allowedEntityFieldPolicies({ typeId, permissions = {}, auth = null, entity = null } = {}) {
   const activePermissions = auth
-    ? getActivePermissionsFromAuth(auth, entity)
+    ? getActivePermissionsFromAuth(auth, entity, typeId)
     : permissions;
 
   return getActiveEntityFieldPolicyEntries(typeId, auth).filter(entry =>

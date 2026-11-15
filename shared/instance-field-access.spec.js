@@ -121,6 +121,33 @@ describe('entity field access', () => {
     })).toEqual({});
   });
 
+  it('projects multi-organization user fields through the caller shared membership', () => {
+    const targetUser = {
+      _id: 'user-2',
+      identity: { name: 'Multi-org member' },
+      lineage: { organizationId: 'org-1' },
+      data: {
+        email: 'member@example.com',
+        memberships: [
+          { organizationId: 'org-1' },
+          { organizationId: 'org-2' }
+        ]
+      }
+    };
+    const auth = {
+      organizationId: 'org-2',
+      effectivePermissions: { users: 'read' },
+      memberships: [
+        { organizationId: 'org-2', permissions: { users: 'read' } }
+      ]
+    };
+
+    const redacted = redactEntityForAccess(targetUser, 'user', auth);
+    expect(redacted.identity.name).toBe('Multi-org member');
+    expect(redacted.data.email).toBe('member@example.com');
+    expect(redacted.data.memberships.map(item => item.organizationId)).toEqual(['org-1', 'org-2']);
+  });
+
   it('resolves top-level and origin organization ownership before field grants', () => {
     const auth = {
       organizationId: 'org-1',
