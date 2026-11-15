@@ -1724,7 +1724,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       organizationId,
       role: auth.role,
       executionAuth,
-      applyTypedBlocks: result => applyTypedConstructionBlocks(record, blockDraft, result, service, executionAuth)
+      applyTypedBlocks: result => applyTypedConstructionBlocks(record, blockDraft, result, service, executionAuth, writeTarget.feature)
     });
     const dto = created?.toJSON ? created.toJSON() : created;
     const targetId = instanceId(dto);
@@ -1883,25 +1883,33 @@ export function effectTransitionContext(record = {}, inputs = {}) {
   };
 }
 
-async function applyTypedConstructionBlocks(record = {}, blockDraft = {}, created = null, service = null, auth = {}) {
+async function applyTypedConstructionBlocks(record = {}, blockDraft = {}, created = null, service = null, auth = {}, feature = null) {
   if (!created || !Object.keys(blockDraft).length) return created;
   if (!service?.processUpdate) throw new Error(`Entity service cannot apply constructed blocks to ${record.typeId}`);
   const targetId = created._id || created.id;
   if (!targetId) throw new Error(`Created ${record.typeId} has no id`);
   const createdEntity = created?.toJSON ? created.toJSON() : created;
+  // A construct action's grant is deliberately create-only. Applying its
+  // typed block values is a separate update operation on the newly created
+  // entity, so derive that narrowly at this internal boundary rather than
+  // widening every construct action's execution grant.
+  const updateAuth = createActionExecutionAuth(auth, {
+    ...record,
+    actionKind: 'updateEntity'
+  }, { featureOverride: feature || resolveInstanceFeature(record.typeId) });
   assertEntityAccess({
     entity: createdEntity,
     typeId: record.typeId,
-    feature: resolveInstanceFeature(record.typeId),
+    feature: feature || resolveInstanceFeature(record.typeId),
     level: 'write',
     action: 'update',
-    auth
+    auth: updateAuth
   });
   const patch = Object.fromEntries(Object.entries(blockDraft).map(([block, value]) => [
     block,
     { ...(created[block] || {}), ...(value || {}) }
   ]));
-  return await service.processUpdate(targetId, patch, auth);
+  return await service.processUpdate(targetId, patch, updateAuth);
 }
 
 async function commandEffectPayload(commandId, inputs = {}, auth = {}) {
