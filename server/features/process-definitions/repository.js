@@ -24,6 +24,23 @@ export async function find(filter = {}) {
   return await db.collection(COLLECTION).find(filter).sort({ 'identity.name': 1 }).toArray();
 }
 
+// Active definitions subscribed to one organization's event stream. The scanner
+// consumes this read through the feature repository rather than owning Mongo access.
+export async function findActiveForEventOrganization(organizationId) {
+  const db = await connectDB();
+  return db.collection(COLLECTION).find({
+    'lineage.organizationId': toFlexibleId(organizationId),
+    'states.main': 'ACTIVE'
+  }).toArray();
+}
+
+// Schedules are organization-owned but have no single triggering organization;
+// the scanner enumerates active definitions and scopes each run to its owner.
+export async function findAllActive() {
+  const db = await connectDB();
+  return db.collection(COLLECTION).find({ 'states.main': 'ACTIVE' }).toArray();
+}
+
 export async function findActiveSetByOrganization(organizationId) {
   const db = await connectDB();
   return await db.collection(COLLECTION).find({
