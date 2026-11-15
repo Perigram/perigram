@@ -137,6 +137,28 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     }
   });
 
+  it('keeps party services read-only in the process runtime (SPEC §2)', () => {
+    resetAppRegistryForTests();
+    const registry = getAppRegistry();
+
+    for (const type of ['organization', 'user']) {
+      const service = registry.getInstanceService(type);
+      expect(service.processCapabilities).toMatchObject({
+        processUpdate: false,
+        delete: false,
+        archive: false
+      });
+      expect(service.processUpdate).toBeUndefined();
+      expect(service.processDelete).toBeNull();
+      expect(service.remove).toBeUndefined();
+      expect(service.update).toBeUndefined();
+      expect(service.create).toBeUndefined();
+      expect(service.processGetById).toBeTypeOf('function');
+      expect(service.processList).toBeTypeOf('function');
+    }
+    expect(registry.getInstanceService('organization').getProcessConfiguration).toBeTypeOf('function');
+  });
+
   it('exposes one canonical processDelete adapter exactly for hard-delete-capable services', () => {
     resetAppRegistryForTests();
     const registry = getAppRegistry();

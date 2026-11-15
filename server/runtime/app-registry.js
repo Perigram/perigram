@@ -54,14 +54,12 @@ const frameworkProcessReads = {
 
 const frameworkProcessCapabilities = {
   entity_revision: { processUpdate: false, delete: false, archive: false },
-  organization: { processUpdate: true, delete: true, archive: false },
+  organization: { processUpdate: false, delete: false, archive: false },
   process_definition: { processUpdate: false, delete: false, archive: true },
-  user: { processUpdate: true, delete: true, archive: false }
+  user: { processUpdate: false, delete: false, archive: false }
 };
 
-const frameworkDeleteAdapters = {
-  user: service => async (id, auth = {}) => service.remove(id, auth)
-};
+const frameworkDeleteAdapters = {};
 
 const frameworkCommandHandlers = {
   generateAttachment
@@ -110,14 +108,28 @@ function registerServiceSet(registry, {
     const read = processReads[type];
     if (!list) throw new Error(`Entity service ${type} requires an explicit processList binding`);
     if (!read) throw new Error(`Entity service ${type} requires an explicit processGetById binding`);
-    const constructionHandlersResolved = resolveConstructionHandlers(type, service, constructionHandlers, modeHandlers);
+    // Parties are readable process principals, never mutation targets
+    // (SPEC §2). Expose only their read/configuration methods to the process
+    // runtime; feature routes retain the full service for authorized writes.
+    const processService = processReadOnlyService(type, service);
+    const constructionHandlersResolved = resolveConstructionHandlers(type, processService, constructionHandlers, modeHandlers);
     const capabilities = buildProcessCapabilities(type, constructionHandlersResolved, domain, processCapabilities[type]);
     const processDelete = capabilities.delete
-      ? createProcessDelete(type, service, read, deleteAdapters)
+      ? createProcessDelete(type, processService, read, deleteAdapters)
       : null;
-    verifyProcessCapabilities(type, service, constructionHandlersResolved, capabilities, processDelete, domain);
-    registry.registerInstanceService(type, { ...service, processList: list, processGetById: read, processDelete, processCapabilities: capabilities, constructionHandlers: constructionHandlersResolved });
+    verifyProcessCapabilities(type, processService, constructionHandlersResolved, capabilities, processDelete, domain);
+    registry.registerInstanceService(type, { ...processService, processList: list, processGetById: read, processDelete, processCapabilities: capabilities, constructionHandlers: constructionHandlersResolved });
   }
+}
+
+function processReadOnlyService(type, service) {
+  if (type !== 'organization' && type !== 'user') return service;
+  return {
+    ...(typeof service.getById === 'function' ? { getById: service.getById } : {}),
+    ...(typeof service.getProcessConfiguration === 'function'
+      ? { getProcessConfiguration: service.getProcessConfiguration }
+      : {})
+  };
 }
 
 function resolveConstructionHandlers(type, service, handlersByType, modeHandlers) {

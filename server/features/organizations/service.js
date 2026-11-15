@@ -1,5 +1,4 @@
 import * as repository from './repository.js';
-import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createError } from 'h3';
 import { hasPermission, resolveAuthPermissions } from '../../utils/auth-helpers.js';
 import { getLineageFilter } from '../../utils/permissions.js';
@@ -292,9 +291,4 @@ function assertUniqueRoleLabel(roles, label, exceptRoleId = null) {
   const duplicate = Object.entries(roles).some(([roleId, role]) => roleId !== exceptRoleId && role.label.toLowerCase() === label.toLowerCase());
   if (duplicate) throw createError({ statusCode: 409, message: 'Role label already exists' });
 }
-
-export const processUpdate = createProcessUpdateHandler({
-  typeId: 'organization',
-  repository,
-  Model: Organization
-});
+\n

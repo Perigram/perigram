@@ -1,6 +1,5 @@
 import * as usersRepository from './repository.js';
 import * as sessionsRepository from '../sessions/repository.js';
-import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { hashPassword, verifyPassword, generateSession, generateAccessToken } from '../../utils/auth-helpers.js';
 import { createError } from 'h3';
 import { User } from './model.js';
@@ -325,26 +324,7 @@ export async function removeAvatar(uid, auth = {}) {
   if (fileId) await filesService.deleteFile(fileId, 'avatars');
   return { success: true };
 }
-
-export async function update(uid, updates, userId, userRole) {
-  const raw = await usersRepository.findById(uid);
-  if (!raw) throw createError({ statusCode: 404, message: 'User not found' });
-  const user = new User(raw);
-
-  if (updates.name) user.identity.name = updates.name;
-  user.data = { ...user.data, ...(updates.data || {}) };
-
-  await usersRepository.updateById(uid, user);
-  const updatedRaw = await usersRepository.findById(uid);
-  return new User(updatedRaw);
-}
-
-export const processUpdate = createProcessUpdateHandler({
-  typeId: 'user',
-  repository: usersRepository,
-  Model: User
-});
-
+\n
 export async function remove(uid, deleterAuth = {}) {
   const userRaw = await usersRepository.findById(uid);
   if (!userRaw) throw createError({ statusCode: 404, message: 'User not found' });
