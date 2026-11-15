@@ -171,8 +171,11 @@ async function relationEdgesFor(typeId, organizationId = null) {
 async function declarationFor(typeId, organizationId = null) {
   const cacheKey = organizationId ? `${typeId}@${organizationId}` : typeId;
   if (declarationCache.has(cacheKey)) return declarationCache.get(cacheKey);
-  let declaration = staticTypes.get(typeId) || null;
-  if (!declaration && organizationId) {
+  let declaration = null;
+  // Organization-authored declarations override framework/pack records
+  // with the same id. Resolve the tenant's view first; static fallback is
+  // only valid when that organization has no declaration.
+  if (organizationId) {
     try {
       declaration = await pluginInstalls.findDeclarationByTypeId(organizationId, typeId);
     } catch {
@@ -186,6 +189,7 @@ async function declarationFor(typeId, organizationId = null) {
       }
     }
   }
+  if (!declaration) declaration = staticTypes.get(typeId) || null;
   declarationCache.set(cacheKey, declaration);
   return declaration;
 }
