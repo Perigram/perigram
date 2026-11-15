@@ -1633,7 +1633,12 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     const relationValues = declaredRelationValues(inputs.relations, relationContracts);
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
     const organizationId = resolveOrganizationId(auth);
-    const declaration = await declarationForType(typeId, organizationId);
+    let declaration = null;
+    try {
+      declaration = await declarationForType(typeId, organizationId);
+    } catch (error) {
+      if (error?.statusCode !== 404 && !String(error?.message || '').includes(`Unknown type ${typeId}`)) throw error;
+    }
     const domainEntity = (domain?.entities || []).find(entity => entity.type === normalizeTypeId(typeId));
     // Some framework pack entities are projected into the process domain
     // before they have an org CTS declaration. They still use the same

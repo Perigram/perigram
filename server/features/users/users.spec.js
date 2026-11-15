@@ -57,6 +57,7 @@ describe('User Management & Auth', () => {
     vi.clearAllMocks();
     await db.collection('users').deleteMany({});
     await db.collection('organizations').deleteMany({});
+    await db.collection('process_definitions').deleteMany({});
   });
 
   it('stores avatar metadata behind a derived user avatar URL', async () => {
