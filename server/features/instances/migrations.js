@@ -101,7 +101,7 @@ export async function applyTypeMigrationSteps({
   for (const { childType, childCollection, lineageKey } of detachWalks) {
     for await (const doc of repository.iterateChildrenWithLineageKey(childCollection, childType, organizationId, lineageKey)) {
       try {
-        const update = await repository.detachMigratedLineageKey(childCollection, doc._id, lineageKey);
+        const update = await repository.detachMigratedLineageKey(childCollection, doc._id, childType, organizationId, lineageKey);
         if (update?.modifiedCount) {
           await entityEventService.publishEntityChanged(
             { userId: actor || 'SYSTEM', organizationId: String(organizationId) },
@@ -125,7 +125,7 @@ export async function applyTypeMigrationSteps({
       for (const [axis, state] of Object.entries(stateChanges)) {
         set[`states.${axis}`] = state;
       }
-      await repository.updateMigratedInstance(collection, doc._id, set);
+      await repository.updateMigratedInstance(collection, doc._id, declaration.id, organizationId, set);
       await entityEventService.publishEntityChanged(
         { userId: actor || 'SYSTEM', organizationId: String(organizationId) },
         { type: declaration.id, id: String(doc._id), change: 'updated', reason: 'type-migration' }
