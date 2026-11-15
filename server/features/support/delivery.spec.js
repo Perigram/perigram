@@ -81,7 +81,7 @@ describe('support realtime delivery over the connections layer', () => {
       push: data => events.push(JSON.parse(data))
     });
 
-    const subscription = await connectionsService.syncTopics(registration.id, ['conversation:support:user-a']);
+    const subscription = await connectionsService.syncTopics(registration.id, ['conversation:support:user-a'], auth);
     expect(subscription.subscribed).toContain('conversation:support:user-a');
 
     const message = await supportService.sendUserMessage(auth, { message: 'hello' });
@@ -104,7 +104,7 @@ describe('support realtime delivery over the connections layer', () => {
       auth: { userId: 'user-b', organizationId: 'org-1' },
       push: () => {}
     });
-    const subscription = await connectionsService.syncTopics(outsider.id, ['conversation:support:user-a']);
+    const subscription = await connectionsService.syncTopics(outsider.id, ['conversation:support:user-a'], { userId: 'user-b', organizationId: 'org-1' });
     expect(subscription.subscribed).not.toContain('conversation:support:user-a');
     await connectionsService.unregisterConnection(outsider.id);
   });
@@ -117,7 +117,7 @@ describe('support realtime delivery over the connections layer', () => {
       auth,
       push: data => events.push(JSON.parse(data))
     });
-    await connectionsService.syncTopics(registration.id, ['conversation:support:user-a']);
+    await connectionsService.syncTopics(registration.id, ['conversation:support:user-a'], auth);
 
     await supportService.notifyTyping(auth, 'support:user-a');
 
