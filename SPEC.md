@@ -2173,3 +2173,10 @@ repository split. It prepares and validates the boundaries required by
   absent. Existing revision access tests were retained and extended with
   top-level ownership propagation, foreign-origin denial, and query-scope
   coverage. CI remains queued without an assigned job.
+
+- Revision visibility authorization follow-up (2026-11-15): revision detail,
+  list, and frozen-file routes now resolve each revision's source through the
+  ordinary generic-instance read boundary. This applies the source's compiled
+  read grant as well as the revision's tenant scope, preventing revision
+  snapshots from becoming a weaker visibility path than their source records.
+  Shared source-gate regression tests were added; CI execution is pending.
