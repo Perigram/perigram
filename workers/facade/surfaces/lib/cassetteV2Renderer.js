@@ -2822,34 +2822,6 @@ const projectOnContour = (vertices = [], point = [0, 0]) => {
   return best ? { point: best.projected, insertAt: best.insertAt } : null;
 };
 
-// Splits a closed contour at two break points into the two open chains
-// between them (A→B and B→A along the contour). Null when the projection
-// is degenerate.
-const splitContourAtBreaks = (vertices = [], first = [0, 0], second = [0, 0]) => {
-  const ring = withoutClosingVertex(vertices).map(vertex => (
-    [numeric(vertex?.[0], 0), numeric(vertex?.[1], 0), 0]
-  ));
-  if (ring.length < 3) return null;
-  const a = projectOnContour(ring, first);
-  const b = projectOnContour(ring, second);
-  if (!a || !b) return null;
-  let split = [...ring];
-  for (const cut of [a, b].sort((left, right) => right.insertAt - left.insertAt)) {
-    if (cut.insertAt >= split.length) split.push(cut.point);
-    else split.splice(cut.insertAt, 0, cut.point);
-  }
-  const indexA = split.findIndex(vertex => vertex === a.point);
-  const indexB = split.findIndex(vertex => vertex === b.point);
-  if (indexA < 0 || indexB < 0 || indexA === indexB) return null;
-  const forward = indexA < indexB
-    ? split.slice(indexA, indexB + 1)
-    : [...split.slice(indexA), ...split.slice(0, indexB + 1)];
-  const backward = indexA < indexB
-    ? [...split.slice(indexB), ...split.slice(0, indexA + 1)]
-    : split.slice(indexB, indexA + 1);
-  return [forward, backward];
-};
-
 // The open-profile edge embeddings for a tree (owner law, 2026-10-15):
 // every open profile attached through a relation places by its array
 // settings alone — the profile's start and end anchors lie ON the bound

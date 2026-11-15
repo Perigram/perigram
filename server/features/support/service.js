@@ -1408,35 +1408,6 @@ export async function updateConversationPrefs(auth, body = {}) {
     };
 }
 
-async function addReachableUserConversations(conversations, auth) {
-    const byKey = new Map(conversations.map(conversation => [conversation.conversationKey, conversation]));
-    const users = await usersService.list(auth).catch(() => []);
-    for (const user of users) {
-        const dto = user?.toJSON ? user.toJSON() : user;
-        const userId = dto?._id?.toString?.() || dto?._id || dto?.id;
-        if (!userId || userId === auth.userId) continue;
-        const conversationKey = directConversationKey(auth.userId, userId);
-        if (byKey.has(conversationKey)) continue;
-        byKey.set(conversationKey, {
-            conversationKey,
-            conversationKind: 'direct',
-            participants: [auth.userId, userId].sort(),
-            lastMessage: '',
-            instanceRefs: [],
-            timestamp: null,
-            unreadCount: 0,
-            participant: dto
-        });
-    }
-    return Array.from(byKey.values())
-        .sort((left, right) => {
-            if (!left.timestamp && !right.timestamp) return conversationLabel(left).localeCompare(conversationLabel(right));
-            if (!left.timestamp) return 1;
-            if (!right.timestamp) return -1;
-            return new Date(right.timestamp) - new Date(left.timestamp);
-        });
-}
-
 function normalizeParticipants(message) {
     if (Array.isArray(message.participants) && message.participants.length) {
         return message.participants.map(item => item?.toString?.() || item).filter(Boolean);
