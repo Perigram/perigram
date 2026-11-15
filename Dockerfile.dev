@@ -1,5 +1,5 @@
 # Development Dockerfile with hot reload
-FROM node:20.19.0-slim
+FROM node:24.15.0-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl python3 python3-pip \
     && rm -rf /var/lib/apt/lists/*

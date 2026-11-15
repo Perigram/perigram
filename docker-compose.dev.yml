@@ -12,7 +12,7 @@ services:
     volumes:
       - .:/src
       - /src/node_modules
-      - ${CONFIG_BOT_CORTEX_HOST_PATH:-/home/isuo/Documents/perigram-cortex}:/opt/perigram-cortex:ro
+      - ${CONFIG_BOT_CORTEX_HOST_PATH:-./.local/cortex}:/opt/perigram-cortex:ro
     environment:
       - MONGODB_URI=mongodb://mongo:27017/perigram_dev
       - NODE_ENV=development
@@ -20,6 +20,9 @@ services:
       - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
       - PLATFORM_OPERATOR_TOKEN=${PLATFORM_OPERATOR_TOKEN:-perigram-dev-operator}
       - FACADE_EXECUTOR_URL=${FACADE_EXECUTOR_URL:-http://facade-executor:8790}
+      - DOCUMENTS_EXECUTOR_URL=${DOCUMENTS_EXECUTOR_URL:-http://documents-executor:8791}
+      - TECH_DRAWING_EXECUTOR_URL=${TECH_DRAWING_EXECUTOR_URL:-http://tech-drawing-executor:8792}
+      - BUILD123D_EXECUTOR_URL=${BUILD123D_EXECUTOR_URL:-http://build123d-executor:8793}
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
       - LIVEKIT_PUBLIC_URL=${LIVEKIT_PUBLIC_URL:-ws://localhost:7880}
       - LIVEKIT_INTERNAL_URL=${LIVEKIT_INTERNAL_URL:-ws://livekit:7880}
@@ -52,8 +55,10 @@ services:
       - MEETINGS_LLM_MODEL=${MEETINGS_LLM_MODEL:-}
       - MEETINGS_LLM_API_KEY=${MEETINGS_LLM_API_KEY:-}
     depends_on:
-      - mongo
-      - livekit
+      mongo-init:
+        condition: service_completed_successfully
+      livekit:
+        condition: service_started
     networks:
       - perigram-network
     extra_hosts:
@@ -87,11 +92,28 @@ services:
       - perigram-network
     restart: always
     healthcheck:
-      test: ["CMD", "mongo", "--quiet", "--eval", "try { db.adminCommand('ismaster').ok } catch (e) { 0 }"]
+      test: ["CMD", "mongo", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 20s
+
+  mongo-init:
+    image: mongo:4.4
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - perigram-network
+    entrypoint: ["/bin/sh", "-ec"]
+    command: >-
+      mongo --host mongo:27017 --quiet --eval
+      'try { rs.status(); print("Mongo replica set already initialized"); }
+      catch (error) {
+        var result = rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongo:27017"}]});
+        if (result.ok !== 1) throw new Error(tojson(result));
+        print("Mongo replica set initialized");
+      }'
 
   nesting-worker:
     build:
@@ -100,7 +122,8 @@ services:
     environment:
       - MONGO_URI=mongodb://mongo:27017/perigram_dev
     depends_on:
-      - mongo
+      mongo-init:
+        condition: service_completed_successfully
     networks:
       - perigram-network
     restart: unless-stopped

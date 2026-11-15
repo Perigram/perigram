@@ -65,3 +65,6 @@ data/
 
 # compiled nesting solver binary — built in-image from jagua-rs
 workers/nesting/lbf-bin
+
+# Local development-only mounts
+.local/
