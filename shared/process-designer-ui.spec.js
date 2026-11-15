@@ -1,14 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { ref } from 'vue';
-import { definitionToCanvas, compileProcessDefinition, redundantAuthoredScreens } from '#packages/processes';
+import { definitionToCanvas, compileProcessDefinition, redundantAuthoredScreens, compileScreens } from '#packages/processes';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
 import { useProcessDesignerPersistence } from '~/composables/useProcessDesignerPersistence.js';
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
 import { useProcessDesignerScreens } from '~/composables/useProcessDesignerScreens.js';
-import { compileScreens } from '@perigram/processes/compiler-core';
 import { normalizeScreenContract, validateScreenContract } from '@perigram/processes/screen-contract';
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 

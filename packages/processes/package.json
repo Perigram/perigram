@@ -6,7 +6,6 @@
   "exports": {
     ".": "./src/index.js",
     "./authoring": "./src/authoring.js",
-    "./compiler-core": "./src/compiler-core.js",
     "./designer": "./src/designer.js",
     "./node-catalog": "./src/node-catalog.js",
     "./screen-contract": "./src/screen-contract.js",
