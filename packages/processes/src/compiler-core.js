@@ -18,7 +18,6 @@ import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForTypeId, mergedHierarchyBindings } from './hierarchy-utils.js';
 import { actionTargetState, displayActionLabel } from './action-labels.js';
 import { normalizeRecord } from './graph-normalization.js';
-import { entityLabelOf } from './action-labels.js';
 import {
   constructionContract,
   normalizeConstruction,
@@ -300,6 +299,12 @@ export function compileLineageBindings(process = {}, domain = {}) {
   return [...unique.values()];
 }
 
+// Lifecycle machines are authored data only (SPEC §7: graph-derived at
+// compile, never invented): the draft's state records seed the vocabulary,
+// compiled actions contribute transitions, and a producer whose type has no
+// authored vocabulary compiles NO machine — instances of such types are
+// stateless and creation writes no status. There is no synthesized CREATED
+// lifecycle: a state nobody declared is not vocabulary.
 export function workflowTransitionSources(actionId, action = {}, typeId = '', graphContext, actionWindows) {
   const sources = [];
   const edges = graphContext.incomingByActionId.get(actionId) || [];

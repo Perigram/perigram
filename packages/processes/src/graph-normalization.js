@@ -99,9 +99,3 @@ function normalizeActionRecord(action = {}) {
   };
 }
 
-// Lifecycle machines are authored data only (SPEC §7: graph-derived at
-// compile, never invented): the draft's state records seed the vocabulary,
-// compiled actions contribute transitions, and a producer whose type has no
-// authored vocabulary compiles NO machine — instances of such types are
-// stateless and creation writes no status. There is no synthesized CREATED
-// lifecycle: a state nobody declared is not vocabulary.
