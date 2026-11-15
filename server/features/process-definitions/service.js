@@ -1569,6 +1569,12 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   // keyed on the species while the record keeps its discriminator and
   // authored state reference intact.
   const operation = operationKindOf(record || {}) || kind;
+  const featureForType = sourceTypeId => {
+    const normalized = normalizeTypeId(sourceTypeId);
+    const entity = (domain?.entities || []).find(item => item.type === normalized);
+    const fieldPolicy = getEntityFieldAccessPolicy(normalized) || domain?.fieldAccess?.[normalized];
+    return fieldPolicy?.feature || entity?.feature || entity?.collection || resolveInstanceFeature(normalized);
+  };
   if (operation === 'cts.emit') {
     const type = String(inputs.type ?? '');
     if (!type) throw new Error('Emit effect requires an event type');
@@ -1599,7 +1605,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
           actionKind: 'runCommand',
           commandId: record.commandId,
           access: command.access
-        })
+        }, { featureForType })
       : auth;
     const commandResult = await executeCommand(record.commandId, await commandEffectPayload(record.commandId, inputs, auth), commandAuth);
     // The value boundary (SPEC §8 s species): a cts.service's declared
@@ -1652,12 +1658,6 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
         ...(record.construction || {}),
         inputs: effectConstructionInputs(record, domain)
       }
-    };
-    const featureForType = sourceTypeId => {
-      const normalized = normalizeTypeId(sourceTypeId);
-      const entity = (domain?.entities || []).find(item => item.type === normalized);
-      const fieldPolicy = getEntityFieldAccessPolicy(normalized) || domain?.fieldAccess?.[normalized];
-      return fieldPolicy?.feature || entity?.feature || entity?.collection || resolveInstanceFeature(normalized);
     };
     const executionAuth = createActionExecutionAuth(auth, actionForAuth, {
       relationContracts,
