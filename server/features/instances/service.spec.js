@@ -1069,7 +1069,7 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
       organizationId: 'org-1'
     });
 
-    expect(types.findByTypeId).toHaveBeenCalledWith('org-2', 'panel');
+    expect(pluginInstalls.findDeclarationByTypeId).toHaveBeenCalledWith('org-2', 'panel');
   });
 
   it('enforces the entity write grant for process deletes', async () => {
