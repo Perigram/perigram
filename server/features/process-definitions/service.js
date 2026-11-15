@@ -1059,6 +1059,7 @@ async function resolveManualRelationMutation(typeId, targetId, mutation = {}, ac
       typeId: targetRef.type,
       feature: resolveInstanceFeature(targetRef.type),
       level: 'write',
+      action: 'delete',
       auth
     });
   }
@@ -1756,6 +1757,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       typeId,
       feature: resolveInstanceFeature(typeId),
       level: 'write',
+      action: 'update',
       auth: executionAuth
     });
     // Field schemas resolve against the projected view first — org/pack
@@ -1840,6 +1842,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       typeId,
       feature: resolveInstanceFeature(typeId),
       level: 'write',
+      action: 'delete',
       auth: executionAuth
     });
     const deleted = await service.processDelete(target.id, executionAuth);
