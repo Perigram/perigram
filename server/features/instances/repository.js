@@ -91,3 +91,43 @@ export async function findOverdueInstances(collection, typeId, organizationId, s
     ]
   }).project({ _id: 1 }).limit(limit).toArray();
 }
+
+
+// Type migrations are feature-owned orchestration over instance storage.
+// Keep cursor creation and mutation mechanics here, while the migration
+// service owns the transform, event publication, and resumability policy.
+export async function* iterateInstancesForTypeMigration(collection, typeId, organizationId, toVersion) {
+  const db = await connectDB();
+  const cursor = db.collection(collection).find({
+    type: typeId,
+    organizationId: toFlexibleId(organizationId),
+    typeVersion: { $ne: toVersion }
+  });
+  for await (const doc of cursor) yield doc;
+}
+
+export async function* iterateChildrenWithLineageKey(collection, childType, organizationId, lineageKey) {
+  const db = await connectDB();
+  const cursor = db.collection(collection).find({
+    type: childType,
+    organizationId: toFlexibleId(organizationId),
+    [`lineage.${lineageKey}`]: { $exists: true }
+  });
+  for await (const doc of cursor) yield doc;
+}
+
+export async function detachMigratedLineageKey(collection, id, lineageKey) {
+  const db = await connectDB();
+  return db.collection(collection).updateOne(
+    { _id: toFlexibleId(id) },
+    { $unset: { [`lineage.${lineageKey}`]: '' }, $set: { updatedAt: new Date().toISOString() } }
+  );
+}
+
+export async function updateMigratedInstance(collection, id, set) {
+  const db = await connectDB();
+  return db.collection(collection).updateOne(
+    { _id: toFlexibleId(id) },
+    { $set: set }
+  );
+}
