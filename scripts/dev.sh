@@ -86,7 +86,7 @@ case "$command" in
     fi
     ensure_network
     mkdir -p "$ROOT/.local/cortex"
-    docker buildx bake --allow network.host -f "$COMPOSE_FILE"
+    docker buildx bake --allow network.host --allow "fs.read=$DOCKER_BUILD_CA_BUNDLE" -f "$COMPOSE_FILE"
     compose up -d --no-build
     compose ps
     echo
@@ -106,7 +106,7 @@ case "$command" in
     ;;
   app|deps)
     ensure_network
-    docker buildx bake --allow network.host -f "$COMPOSE_FILE" app
+    docker buildx bake --allow network.host --allow "fs.read=$DOCKER_BUILD_CA_BUNDLE" -f "$COMPOSE_FILE" app
     compose up -d --no-build --no-deps --force-recreate app
     ;;
   shell)

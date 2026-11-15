@@ -10,18 +10,21 @@ ARG https_proxy
 ARG no_proxy
 
 # Trust the host's CA bundle for TLS-inspecting development proxies. The
-# bundle is mounted as a BuildKit secret and copied into the image trust store;
-# it is never included in the build context or stored in image history.
+# bundle is a BuildKit secret, never part of the build context or image history.
+# Use it for the bootstrap apt request, then install it as the system bundle so
+# npm and later build steps trust the same proxy certificate chain.
 RUN --mount=type=secret,id=host_ca_bundle,target=/tmp/host-ca-bundle.crt,required=false \
     if [ -s /tmp/host-ca-bundle.crt ]; then \
-      cat /tmp/host-ca-bundle.crt >> /etc/ssl/certs/ca-certificates.crt; \
+      if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+        sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
+      fi && \
+      apt-get -o Acquire::https::CAInfo=/tmp/host-ca-bundle.crt update && \
+      apt-get -o Acquire::https::CAInfo=/tmp/host-ca-bundle.crt install -y --no-install-recommends ca-certificates curl python3 python3-pip && \
+      install -m 0644 /tmp/host-ca-bundle.crt /etc/ssl/certs/ca-certificates.crt; \
+    else \
+      apt-get update && apt-get install -y --no-install-recommends ca-certificates curl python3 python3-pip; \
     fi && \
-    if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
-      sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
-    fi && \
-    apt-get update && apt-get install -y --no-install-recommends curl python3 python3-pip \
-    && rm -rf /var/lib/apt/lists/*
-
+    rm -rf /var/lib/apt/lists/*
 # Node must use the system trust store too (for npm and local tooling).
 ENV NODE_USE_SYSTEM_CA=1
 
