@@ -26,6 +26,15 @@ export async function find(filter = {}) {
 
 // Active definitions subscribed to one organization's event stream. The scanner
 // consumes this read through the feature repository rather than owning Mongo access.
+/** Active definitions with activation-compiled producer outputs for deadline scans. */
+export async function findActiveWithCompiledProducerOutputs() {
+  const db = await connectDB();
+  return db.collection(COLLECTION)
+    .find({ 'states.main': 'ACTIVE', 'data.compiled.producerOutputs': { $exists: true } })
+    .project({ 'lineage.organizationId': 1, 'data.compiled.producerOutputs': 1 })
+    .toArray();
+}
+
 export async function findActiveForEventOrganization(organizationId) {
   const db = await connectDB();
   return db.collection(COLLECTION).find({
