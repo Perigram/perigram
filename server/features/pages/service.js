@@ -115,7 +115,7 @@ export async function update(id, { name, parentId, blocks, order } = {}, auth = 
     }
     changes.parentId = toFlexibleId(await resolvedParentId(id, parentId, organizationId));
   }
-  const updated = await repository.update(id, changes);
+  const updated = await repository.update(id, changes, organizationId);
   return repository.serializeFull(updated);
 }
 
@@ -124,7 +124,7 @@ export async function remove(id, auth = {}) {
   await preparePages(organizationId, auth.userId);
   const page = await requireOwnPage(id, organizationId);
   await repository.detachChildren(organizationId, page._id);
-  await repository.remove(page._id);
+  await repository.remove(page._id, organizationId);
   return { success: true };
 }
 
