@@ -325,7 +325,12 @@ async function resolveRefValue(instanceServiceResolver, declarationForType, inpu
   if (input.spot != null) value.spot = input.spot;
   // The stored ref shape: `{ type, id }` with the revision when the
   // source type scopes one — a revisionless reference still stores.
-  const pin = { type: typeId, id: String(instance._id ?? input.id), ...(revisionId ? { revision: revisionId } : {}) };
+  // A plain reference is not a revision pin. Only revision-scoped
+  // source types participate in the version fabric; otherwise no pin
+  // record is written to the constructed entity's provenance.
+  const pin = scope
+    ? { type: typeId, id: String(instance._id ?? input.id), ...(revisionId ? { revision: revisionId } : {}) }
+    : null;
   return { value, pin };
 }
 
