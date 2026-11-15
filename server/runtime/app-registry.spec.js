@@ -3,6 +3,7 @@ import { createProcessDesignerContract, projectEntityProcessCapabilities, valida
 import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '#packages/cts';
 import { facadePackContent, facadeDomain } from '../../test-tools/facade-plugin.js';
 import { getAppRegistry, resetAppRegistryForTests } from './app-registry.js';
+import { partyProcessBindings } from './party-wire.js';
 import { performDurableEffect } from '~/server/features/process-definitions/service.js';
 
 vi.mock('~/server/features/plugins/repository.js', () => ({
@@ -153,7 +154,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
       expect(service.remove).toBeUndefined();
       expect(service.update).toBeUndefined();
       expect(service.create).toBeUndefined();
-      expect(service.getById).toBeUndefined();
+      expect(service.getById).toBe(partyProcessBindings[type].read);
       expect(service.processGetById).toBeTypeOf('function');
       expect(service.processList).toBeTypeOf('function');
     }

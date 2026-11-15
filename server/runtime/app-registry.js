@@ -124,7 +124,9 @@ function registerServiceSet(registry, {
 
 function processReadOnlyService(type, service) {
   if (type !== 'organization' && type !== 'user') return service;
+  const guardedRead = partyProcessBindings[type]?.read;
   return {
+    ...(typeof guardedRead === 'function' ? { getById: guardedRead } : {}),
     ...(typeof service.getProcessConfiguration === 'function'
       ? { getProcessConfiguration: service.getProcessConfiguration }
       : {})
