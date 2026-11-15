@@ -105,6 +105,50 @@ services must not self-register through hidden globals.
 - **organization billing**: prepaid service tokens are organization-owned;
   [billing](./billing/README.md) owns the token-cost contract.
 
+## Persistence Ownership
+
+Persistence follows the owning capability, not the API route that happens to
+trigger a write. The repository (or explicitly documented storage adapter)
+owns the durable representation; services authorize and orchestrate writes.
+
+| Durable data | Persistence owner | Write authority / entry path |
+|---|---|---|
+| Typed instances in per-class collections | `features/instances/repository.js` | Generic instance transports and process effects, both gated by the compiled instance access engine |
+| Lifecycle snapshots and `status_events` | `core/machines/repository.js` | Machine transition/initialization boundary; legacy `features/states/repository.js` delegates to this owner |
+| Command runs | `core/commands/repository.js` | Command service after command access and process-service gates |
+| Task runs | `core/tasks/repository.js` | Task service; HTTP worker endpoints require worker credentials |
+| Idempotency keys | `core/idempotency/repository.js` | Idempotency middleware/service |
+| Agent subscriptions and agent runs | `features/agent-bots/repository.js` | Agent-bot service after organization capability and conversation-participant checks |
+| Organization records and role assignments | `features/organizations/repository.js` | Organization service after active-tenant permission checks |
+| User records and memberships | `features/users/repository.js` | User service; membership writes are owned by the users repository |
+| Sessions | `features/sessions/repository.js` | Authenticated session lifecycle; logout revokes the presented session |
+| Avatars and file blobs | `features/files/service.js` (GridFS storage adapter) | Authenticated upload transports and trusted internal payload/attachment writers |
+| Invitations | `features/invitations/repository.js` | Invitation service; administrators create/revoke, invitees consume token or targeted invitations |
+| CTS declarations | `features/cts-types/repository.js` | Organization-admin CTS routes; pages may seed its fixed Page declaration |
+| Instance overlays and revisions | `features/instance-overlays/repository.js`, `features/instance-revisions/repository.js` | Overlay/source-instance grants and revision source-read gates |
+| Pages and saved views | `features/pages/repository.js`, `features/views/repository.js` | Active-organization membership, as specified by each feature README |
+| Partnerships | `features/partnerships/repository.js` | Active-organization administrators on both sides of the partnership lifecycle |
+| Plugin catalog, installs, assets, and service cache | `features/plugins/repository.js` | Platform-operator credential for catalog publishing; organization administrators for installs/settings/upgrades |
+| Billing accounts, invoices, payments, and ledger | `features/billing/repository.js` | Organization read/admin gates; payment-provider callbacks are verified before synchronization |
+| Support messages, groups, read state, preferences, and transcripts | `features/support/repository.js` | Support service conversation-context and participant/admin checks |
+| Notification subscriptions | `features/notifications/repository.js` | Authenticated user owns the subscription endpoint |
+| Process definitions | `features/process-definitions/repository.js`; durable process runs/events use `features/process-definitions/run-store.js` | Process-definition read/write/admin gates; run/event writes occur through the process runtime and scanner |
+| Workflow overrides | `features/workflow-overrides/repository.js` | Machine-resolution persistence seam; currently read by the machine engine |
+| Upload sessions/chunks | `features/files/repository.js` | Session owner is checked on every read, append, and completion |
+
+Two deliberate cross-cutting adapters remain distinct: the machine repository
+writes lifecycle snapshots into the relevant entity collection, while the
+instance repository owns ordinary entity CRUD; and the files service owns
+GridFS streams while its repository owns resumable-session documents. The
+pages repository owns the Page type's migration and member-authored document
+operations over the shared `items` collection.
+
+`features/states/repository.js` is a compatibility adapter only: it performs
+no database access. The users collection is written through the users
+repository; organization role assignments remain in the organizations
+repository. The process run store is an explicit persistence adapter, not a
+second generic process-definition repository.
+
 ## Related
 
 - [server/core/blocks/README.md](../core/blocks/README.md) — Block class API
