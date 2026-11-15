@@ -14,6 +14,8 @@ cd perigram
 
 The first run initializes submodules, builds the app and worker images, starts MongoDB, initializes its replica set, and starts LiveKit and the plugin executors. Open [http://localhost:3000](http://localhost:3000).
 
+The development stack uses its own Compose project (`perigram-dev`), project-scoped containers, network, and MongoDB volume. It can run alongside other Compose projects without reusing their containers or networks. MongoDB is published on `127.0.0.1:27018` for optional host access; LiveKit is published on ports `17880`–`17882`. The app and services communicate over the private Compose network. The app remains available on port `3000`.
+
 If package downloads fail during image builds on a network that requires a host-local proxy, configure a proxy endpoint reachable from Docker's build network. Compose forwards `DOCKER_BUILD_HTTP_PROXY`, `DOCKER_BUILD_HTTPS_PROXY`, and `DOCKER_BUILD_NO_PROXY` as build-only arguments (the usual `HTTP_PROXY`/`HTTPS_PROXY` and lowercase shell variables are accepted as fallbacks). On Linux, a proxy bound only to `127.0.0.1` is not reachable from build containers: configure the proxy to listen on the Docker bridge interface (or another host-reachable interface), then use `host.docker.internal` as its host. For example, with a proxy listening on host port 2081:
 
 ```sh
