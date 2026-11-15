@@ -686,9 +686,11 @@ const emitRun = (action, context) => emit('run', action, context);
 // collapses to the bare "New"; a create for another type keeps its type
 // caption. The empty stub line renders the create alone and keeps the
 // full caption.
-const createControlLabel = control => (control.action.typeId === props.node.typeId
-  ? localizedLabel({ te, t }, 'uiMapping.new', 'New')
-  : null);
+const createControlLabel = control => (stubLine.value
+  ? generatedActionLabel(control.action, control.action.id, { t, te })
+  : control.action.typeId === props.node.typeId
+    ? localizedLabel({ te, t }, 'uiMapping.new', 'New')
+    : null);
 const bodyEvents = {
   run: emitRun,
   'inline-change': inlineChange,
