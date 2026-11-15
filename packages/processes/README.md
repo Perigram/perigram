@@ -303,6 +303,8 @@ screen projection and inference, child-region composition, screen merging,
 and navigation; `screen-analysis.js` detects redundant authored screens;
 `access-compilation.js` owns role/assignment access compilation; and
 `access.js` owns role-assignment resolution and access projection.
+`action-labels.js` owns action target-state resolution and user-facing action
+captions; `type-labels.js` owns the domain type-label lookup.
 `compiler-core.js` retains shared compiler primitives and the remaining
 non-screen compilation algorithms. `index.js` is the public barrel — there
 are no forwarding-only modules presented as architecture boundaries.
