@@ -108,7 +108,7 @@ services:
         condition: service_healthy
     entrypoint: ["/bin/sh", "-ec"]
     command: >-
-      mongo "mongodb://mongo:27017/admin" --quiet --eval
+      mongo --host mongo --port 27017 admin --quiet --eval
       'try { rs.status(); print("Mongo replica set already initialized"); }
       catch (error) {
         var result = rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongo:27017"}]});
