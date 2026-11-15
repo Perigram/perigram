@@ -51,16 +51,18 @@ active flag.
 | `pending` | organization admin rejects | membership removed |
 | `active` | member removal | membership removed |
 
-Only `pending` membership blocks tenant access. Rejection removes the
-membership and the organization role assignment; the invitation keeps its own
-terminal state.
+Only `active` memberships enter the request auth context or permit an
+organization switch. `pending` and any other explicit non-active status grant
+no tenant access; legacy memberships with no status remain active for
+compatibility. Rejection removes the membership and the organization role
+assignment; the invitation keeps its own terminal state.
 
 ## Authentication Flow
 1. Login → `usersService.login(email, password)`
 2. Verify → `argon2.verify(user.data.passwordHash, password)`
 3. Session → `sessionsRepository.create({ sessionId, userId, ... })`
 4. Token → `generateAccessToken(userId)` (JWT, 15m)
-5. Middleware → `server/middleware/auth.js` populates `event.context.auth`
+5. Middleware → `server/middleware/auth.js` populates `event.context.auth` from active memberships only; a stale lineage pointer cannot preserve access to a pending or inactive tenant.
 
 ## User administration
 
