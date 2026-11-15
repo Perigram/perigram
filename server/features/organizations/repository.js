@@ -1,3 +1,4 @@
+import { connectDB } from '~/server/db/mongo';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { collection } from '../../utils/repository.js';
 
