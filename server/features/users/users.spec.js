@@ -164,12 +164,12 @@ describe('User Management & Auth', () => {
       password: 'password123',
       name: 'Managed Member',
       organizationId: organization.id,
-      roleIds: ['role_worker']
+      roleIds: ['role_admin']
     }, auth);
 
     expect(created.memberships.some(membership => String(membership.organizationId) === String(organization.id))).toBe(true);
     const rawOrganization = await db.collection('organizations').findOne({ _id: new ObjectId(organization.id) });
-    expect(rawOrganization.data.roleAssignments[String(created.id)].roleIds).toEqual(['role_worker']);
+    expect(rawOrganization.data.roleAssignments[String(created.id)].roleIds).toEqual(['role_admin']);
   });
 
   it('should allow login after registration', async () => {
