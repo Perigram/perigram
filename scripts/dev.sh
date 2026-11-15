@@ -69,7 +69,6 @@ case "$command" in
     compose restart "$@"
     ;;
   deps)
-    ensure_network
     compose build app
     compose up -d --no-deps --force-recreate app
     ;;
