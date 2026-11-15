@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import jwt from 'jsonwebtoken';
 import { createError } from 'h3';
 import { hasPermissionGrant } from '#shared/access-control.js';
@@ -480,9 +480,17 @@ export function verifyWebhookAuthorization(header = '', rawBody = '') {
     } catch {
         throw createError({ statusCode: 401, message: 'Invalid webhook token' });
     }
-    if (decoded.sha256 && rawBody) {
-        const hash = createHash('sha256').update(rawBody).digest('base64');
-        if (hash !== decoded.sha256) throw createError({ statusCode: 401, message: 'Webhook body hash mismatch' });
+    // A valid JWT signature authenticates the issuer, but the body hash
+    // binds that signature to this exact webhook payload. Do not treat the
+    // claim or body as optional: doing so accepts signed, unbound payloads.
+    if (typeof decoded.sha256 !== 'string' || !rawBody) {
+        throw createError({ statusCode: 401, message: 'Webhook body hash is required' });
+    }
+    const hash = createHash('sha256').update(rawBody).digest('base64');
+    const actual = Buffer.from(hash);
+    const expected = Buffer.from(decoded.sha256);
+    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
+        throw createError({ statusCode: 401, message: 'Webhook body hash mismatch' });
     }
     return decoded;
 }
