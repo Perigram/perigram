@@ -75,7 +75,7 @@ vi.mock('../cts-types/repository.js', () => ({
   ))
 }));
 
-import { instanceServiceResolver } from './service.js';
+import { instanceServiceResolver, invalidateInstanceDeclarations } from './service.js';
 import * as revisionService from '../instance-revisions/service.js';
 import * as pluginsService from '../plugins/service.js';
 import * as repository from './repository.js';
@@ -1056,9 +1056,9 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
   });
 
   it('resolves the delete declaration from the entity organization, not the caller default', async () => {
+    invalidateInstanceDeclarations('org-2');
     stubPanel({ organizationId: 'org-2' });
     stubReferrers([]);
-    const types = await import('../cts-types/repository.js');
     const service = instanceServiceResolver('panel');
 
     await service.removeForHttp(PANEL_ID, {
