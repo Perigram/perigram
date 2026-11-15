@@ -16,8 +16,19 @@ import { projectUiAction, projectUiContractChannels, creationModeLabel } from '.
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForTypeId, mergedHierarchyBindings } from './hierarchy-utils.js';
-import { constructionContract, normalizeConstruction, resolveParentRevision, compiledInputPolicy } from './construction-compilation.js';
-export { constructionContract, normalizeConstruction, resolveParentRevision, normalizeActionInputPolicy, compiledInputPolicy } from './construction-compilation.js';
+import {
+  constructionContract,
+  normalizeConstruction,
+  resolveParentRevision,
+  compiledInputPolicy
+} from './construction-compilation.js';
+export {
+  constructionContract,
+  normalizeConstruction,
+  resolveParentRevision,
+  normalizeActionInputPolicy,
+  compiledInputPolicy
+} from './construction-compilation.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };

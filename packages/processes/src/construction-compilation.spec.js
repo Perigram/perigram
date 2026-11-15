@@ -64,6 +64,7 @@ describe('construction compilation', () => {
       mode: 'genericCreate',
       inputs: [
         { id: 'name', path: 'fields.name', prompt: true },
+        { id: 'customer', path: 'fields.customer', prompt: false },
         { id: 'lineage.organization', path: 'lineage.organizationId', prompt: true }
       ]
     }, 'project', domain);
