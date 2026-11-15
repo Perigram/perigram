@@ -27,6 +27,7 @@ export function assertCommandAccess({ command, action = command, entities = {}, 
       entity: lineageEntity,
       feature: requirement.feature,
       level: requirement.level || 'read',
+      action: requirement.action,
       auth,
       typeId: requirement.typeId,
       context: { lineageEntities: entities }
@@ -61,6 +62,7 @@ export function assertTransitionAccess({ transition, entity, auth }) {
       entity,
       feature: requirement.feature,
       level: requirement.level || 'read',
+      action: requirement.action,
       auth,
       typeId: requirement.typeId,
       transition

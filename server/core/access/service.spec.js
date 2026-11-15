@@ -311,6 +311,33 @@ describe('access engine', () => {
     })).not.toThrow();
   });
 
+  it('honors action-specific command and transition requirements', () => {
+    const scopedEntity = { _id: 'item-1', type: 'panel', organizationId: 'org-1', lineage: { organizationId: 'org-1' } };
+    const updateOnlyAuth = {
+      userId: 'u1',
+      organizationId: 'org-1',
+      effectivePermissions: {
+        items: [{ level: 'write', actions: { update: true } }]
+      }
+    };
+
+    expect(() => assertCommandAccess({
+      command: { access: { permissions: [{ feature: 'items', level: 'write', action: 'delete' }] } },
+      entities: { target: scopedEntity },
+      auth: updateOnlyAuth
+    })).toThrow(/Permission denied/);
+
+    expect(() => assertTransitionAccess({
+      transition: {
+        from: 'DRAFT',
+        to: 'READY',
+        access: { permissions: [{ feature: 'items', level: 'write', action: 'delete' }] }
+      },
+      entity: scopedEntity,
+      auth: updateOnlyAuth
+    })).toThrow(/Permission denied/);
+  });
+
   it('supports transition-scoped grants', () => {
     const transition = { from: 'PRODUCED', to: 'MILLED', access: { permissions: [{ feature: 'projects', level: 'write' }] } };
     const scopedAuth = {
