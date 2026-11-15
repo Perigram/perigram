@@ -42,7 +42,7 @@ export async function register(data, auth = {}) {
     }
 
     const user = new User({
-      identity: { uid: `user-${new ObjectId().toString().substring(0, 8)}`, name: data.name },
+      identity: { uid: `user-${new ObjectId().toString()}`, name: data.name },
       data: {
         email: data.email.toLowerCase(),
         passwordHash,
@@ -91,7 +91,7 @@ export async function registerBot({ name, organizationId, email = null } = {}, c
   }
   const organization = await organizationsRepository.findById(organizationId);
   if (!organization) throw createError({ statusCode: 404, message: 'Organization not found' });
-  const uid = `user-${new ObjectId().toString().substring(0, 8)}`;
+  const uid = `user-${new ObjectId().toString()}`;
   const botEmail = String(email || `${uid}@bots.perigram.internal`).toLowerCase();
   const existing = await usersRepository.findByEmail(botEmail);
   if (existing) throw createError({ statusCode: 409, message: 'Bot identity collision, retry' });

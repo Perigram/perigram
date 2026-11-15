@@ -114,7 +114,7 @@ describe('process action execution authorization', () => {
 
     expect(result.effectivePermissions).toEqual({
       existing: [{ level: 'read', actions: { view: true } }],
-      'work-items': [{ level: 'write', actions: { update: true, edit: true } }]
+      'work-items': [{ level: 'write', actions: { view: true, update: true, edit: true } }]
     });
   });
 });

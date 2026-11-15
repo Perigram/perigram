@@ -76,9 +76,9 @@ export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, g
   
   function executionActionsForAction(action = {}) {
     if (action.actionKind === 'runCommand') return { run: true };
-    if (action.actionKind === 'updateEntity') return { update: true, edit: true };
-    if (action.actionKind === 'archiveEntity') return { update: true, edit: true, archive: true };
-    if (action.actionKind === 'deleteEntity') return { delete: true };
+    if (action.actionKind === 'updateEntity') return { view: true, update: true, edit: true };
+    if (action.actionKind === 'archiveEntity') return { view: true, update: true, edit: true, archive: true };
+    if (action.actionKind === 'deleteEntity') return { view: true, delete: true };
     return { create: true };
   }
   

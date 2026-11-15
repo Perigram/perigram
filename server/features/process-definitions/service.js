@@ -1751,12 +1751,12 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   const target = effectEntityTarget(inputs.entity, typeId);
   if (!target?.id) throw new Error(`${kind} requires an entity reference`);
   if (operation === 'cts.mutate') {
-    const executionAuth = createActionExecutionAuth(auth, { ...record, actionKind: 'updateEntity' }, { relationContracts });
+    const executionAuth = createActionExecutionAuth(auth, { ...record, actionKind: 'updateEntity' }, { relationContracts, featureForType });
     const entity = await loadProcessEffectEntity(service, typeId, target, executionAuth);
     assertEntityAccess({
       entity,
       typeId,
-      feature: resolveInstanceFeature(typeId),
+      feature: featureForType(typeId),
       level: 'write',
       action: 'update',
       auth: executionAuth
@@ -1836,12 +1836,12 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   }
   if (operation === 'cts.remove') {
     if (!service.processDelete) throw new Error(`Entity service cannot delete ${typeId}`);
-    const executionAuth = createActionExecutionAuth(auth, { ...record, actionKind: 'deleteEntity' });
+    const executionAuth = createActionExecutionAuth(auth, { ...record, actionKind: 'deleteEntity' }, { featureForType });
     const entity = await loadProcessEffectEntity(service, typeId, target, executionAuth);
     assertEntityAccess({
       entity,
       typeId,
-      feature: resolveInstanceFeature(typeId),
+      feature: featureForType(typeId),
       level: 'write',
       action: 'delete',
       auth: executionAuth

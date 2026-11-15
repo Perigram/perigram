@@ -28,6 +28,14 @@ import { createTypeRegistry, frameworkTypes } from '#packages/cts';
 import { cncTypePack } from '@perigram/cts/pack/cnc';
 import { createPersistedAcceptanceFixture, PERSISTED_ACCEPTANCE_IDS } from '~/test-data/persisted-acceptance.js';
 
+const processTestDomain = {
+  entities: [
+    { id: 'queue', type: 'queue', class: 'process', collection: 'processes' },
+    { id: 'project', type: 'project', class: 'group', collection: 'groups' }
+  ]
+};
+
+
 vi.mock('../plugins/repository.js', () => ({
   listDisabledPacks: vi.fn(async () => []),
   enablePack: vi.fn(),
@@ -1462,7 +1470,7 @@ describe('current process-definition service contract', () => {
         blocks: []
       },
       inputs: { 'states.main': 'READY' }
-    }, adminAuth());
+    }, adminAuth(), {}, processTestDomain);
 
     expect(stateService.setInitialStateForOrganization).toHaveBeenCalledWith(
       'queue', 'queue-1', 'READY', 'org-acceptance', 'admin', expect.objectContaining({ producerOutputId: 'create:result' })
@@ -1495,7 +1503,7 @@ describe('current process-definition service contract', () => {
         blocks: []
       },
       inputs: {}
-    }, adminAuth());
+    }, adminAuth(), {}, processTestDomain);
 
     await createEffect('create_a', 'PLANNED');
     await createEffect('create_b', 'SURVEYING');
@@ -1582,14 +1590,14 @@ describe('current process-definition service contract', () => {
       kind: 'cts.transition',
       record: { kind: 'cts.transition', typeId: 'queue', archiveIntent: 'archiveQueue' },
       inputs: { entity: { type: 'queue', id: 'queue-1' } }
-    }, adminAuth())).resolves.toMatchObject({ _id: 'queue-1' });
+    }, adminAuth(), {}, processTestDomain)).resolves.toMatchObject({ _id: 'queue-1' });
     expect(stateService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({ intent: 'archiveQueue' }));
 
     await expect(performDurableEffect({
       kind: 'cts.remove',
       record: { kind: 'cts.remove', typeId: 'queue' },
       inputs: { entity: { type: 'queue', id: 'queue-1' } }
-    }, adminAuth())).resolves.toEqual({ success: true });
+    }, adminAuth(), {}, processTestDomain)).resolves.toEqual({ success: true });
     expect(processDelete).toHaveBeenCalledWith('queue-1', expect.objectContaining({ organizationId: 'org-acceptance', effectivePermissions: expect.any(Object) }));
   });
 
