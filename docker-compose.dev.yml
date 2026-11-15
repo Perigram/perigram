@@ -9,6 +9,8 @@ services:
       network: host
       entitlements:
         - network.host
+      secrets:
+        - source: host_ca_bundle
       args:
         HTTP_PROXY: ${DOCKER_BUILD_HTTP_PROXY:-${HTTP_PROXY:-${http_proxy:-}}}
         HTTPS_PROXY: ${DOCKER_BUILD_HTTPS_PROXY:-${HTTPS_PROXY:-${https_proxy:-}}}
@@ -234,6 +236,10 @@ services:
     networks:
       - perigram-network
     restart: unless-stopped
+
+secrets:
+  host_ca_bundle:
+    file: ${DOCKER_BUILD_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}
 
 networks:
   perigram-network:

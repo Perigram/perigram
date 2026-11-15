@@ -23,6 +23,15 @@ for variable in DOCKER_BUILD_HTTP_PROXY DOCKER_BUILD_HTTPS_PROXY; do
   fi
 done
 
+# The app image needs the host trust bundle when a proxy intercepts TLS.
+# Override this path when the proxy CA is installed in a separate bundle.
+export DOCKER_BUILD_CA_BUNDLE="${DOCKER_BUILD_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}"
+if [[ ! -s "$DOCKER_BUILD_CA_BUNDLE" ]]; then
+  echo "CA bundle not found: $DOCKER_BUILD_CA_BUNDLE" >&2
+  echo "Set DOCKER_BUILD_CA_BUNDLE to a PEM bundle trusted by the host." >&2
+  exit 1
+fi
+
 compose() {
   docker compose --project-directory "$ROOT" -f "$COMPOSE_FILE" "$@"
 }

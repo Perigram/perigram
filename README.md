@@ -22,7 +22,9 @@ export DOCKER_BUILD_HTTPS_PROXY=http://127.0.0.1:2081
 ./scripts/dev.sh up
 ```
 
-The `DOCKER_BUILD_HTTP_PROXY`, `DOCKER_BUILD_HTTPS_PROXY`, and `DOCKER_BUILD_NO_PROXY` values are passed only as build arguments, not saved in resulting images. The usual `HTTP_PROXY`/`HTTPS_PROXY` variables are accepted as fallbacks. The dev script converts the older `host.docker.internal` proxy hostname to `127.0.0.1` for host-network builds. Host networking applies only to image build steps; running services remain on the project Docker network. Keep proxy credentials in your local environment, not in `.env` or the repository.
+The `DOCKER_BUILD_HTTP_PROXY`, `DOCKER_BUILD_HTTPS_PROXY`, and `DOCKER_BUILD_NO_PROXY` values are passed only as build arguments, not saved in resulting images. The usual `HTTP_PROXY`/`HTTPS_PROXY` variables are accepted as fallbacks. The dev script converts the older `host.docker.internal` proxy hostname to `127.0.0.1` for host-network builds. Host networking applies only to image build steps; running services remain on the project Docker network.
+
+If the proxy inspects HTTPS traffic (for example, it presents certificates signed by a local proxy CA), the app build also needs that CA in the host trust bundle. By default the script passes `/etc/ssl/certs/ca-certificates.crt` to BuildKit as a secret and adds it to the development image trust store. If your proxy CA is in a separate PEM bundle, set `DOCKER_BUILD_CA_BUNDLE=/path/to/ca-bundle.pem` before running the script. The bundle is not copied into the repository or build context. Keep proxy credentials in your local environment, not in `.env` or the repository.
 
 MongoDB data survives `down` and normal restarts. To delete the local database and start clean, run `./scripts/dev.sh reset --yes`.
 
