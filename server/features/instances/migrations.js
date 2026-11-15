@@ -80,7 +80,7 @@ export async function applyTypeMigrationSteps({
   if (!declaration.id || !organizationId || toVersion == null) {
     throw new Error('type migration requires declaration id, organizationId, and toVersion');
   }
-  const collection = collectionForClass(declaration.class);
+  const collection = repository.collectionForClass(declaration.class);
   const counts = {};
   const failures = [];
 
