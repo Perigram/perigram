@@ -94,6 +94,8 @@ function isGenericActionLabel(label = '', action = {}) {
   const normalized = label.trim().toLowerCase();
   const statusValues = [action.state?.from, action.state?.to].filter(Boolean).map(value => String(value).toLowerCase());
   const genericWords = [
+    'создать сущность',
+    'создать',
     'create',
     'status',
     'service',
