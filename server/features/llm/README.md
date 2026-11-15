@@ -119,10 +119,10 @@ kind, provider, base URL, optional key; chat profiles an optional
 [organizations](../organizations/README.md)
 `readSettingsSection`/`updateSettingsSection`). Keys never travel: reads
 report `apiKeySet` and a key-free resolved projection; saves keep an
-omitted key and clear on empty string. `POST /api/llm/test` runs one real
+omitted key and clear on empty string. `POST /api/llm/test` requires `organizations:read` and runs one real
 completion round against one saved chat profile (or the resolved default
 route) and reports `{ ok, provider?, model?, reason? }` on failure.
-`POST /api/llm/models` probes one endpoint's model listing —
+`POST /api/llm/models` requires `organizations:write` and probes one endpoint's model listing —
 `{ provider, baseUrl, apiKey }` on the body, or a saved `profileId` —
 through `listEndpointModels`.
 

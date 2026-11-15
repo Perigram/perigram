@@ -50,7 +50,7 @@ search tool on any surface).
 - `isWebSearchAvailable(organizationId)` → boolean shorthand.
 - `webSearch({ organizationId, query, maxResults })` → `{ provider, results: [{ title, url, snippet }] }` — results capped at ten, filtered to rows carrying a title or url. Throws 503 when unresolved, 502 when the endpoint is unreachable, answers non-2xx, or returns no JSON.
 - `readWebSearchSettings(auth)` / `saveWebSearchSettings(auth, payload)` → the settings read/write behind `GET/PUT /api/web-search/settings` (gated by [organizations](../organizations/README.md) `readSettingsSection`/`updateSettingsSection`).
-- `testWebSearch(auth)` → `{ ok, provider?, results?, reason? }` — one real search round for the models screen's connection test (`POST /api/web-search/test`).
+- `POST /api/web-search/test` requires `organizations:read`. `testWebSearch(auth)` → `{ ok, provider?, results?, reason? }` — one real search round for the models screen's connection test (`POST /api/web-search/test`).
 
 ## Related
 
