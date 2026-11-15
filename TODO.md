@@ -47,7 +47,8 @@ from remaining proof and verification.
   generic HTTP and process-graph lists enforce read grants; process deletes
   route through the entity write gate and derive the declaration from the
   record's organization. Organization detail reads use the managed-organization
-  gate. Field projection no longer accepts inactive caller/target memberships;
+  gate. Field projection no longer accepts inactive caller memberships while
+  preserving pending-member visibility for active tenant administrators;
   auth hydration derives tenant context and grants from active memberships
   only, organization switching requires active membership, and user-admin
   recovery rejects stale compiled grants when a membership is explicitly
