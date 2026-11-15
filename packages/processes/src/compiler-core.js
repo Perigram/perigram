@@ -12,10 +12,12 @@ import {
 import { CONSUMER_SPECIES_KINDS, EFFECT_SPECIES_KINDS, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { normalizeStateFieldPolicy } from './designer.js';
 import { normalizeDesignerAccess } from './authoring.js';
-import { projectUiAction, projectUiContractChannels, creationModeLabel } from './ui-contract-projection.js';
+import { projectUiAction, projectUiContractChannels } from './ui-contract-projection.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForTypeId, mergedHierarchyBindings } from './hierarchy-utils.js';
+import { actionTargetState, displayActionLabel } from './action-labels.js';
+import { entityLabelOf } from './type-labels.js';
 import {
   constructionContract,
   normalizeConstruction,
@@ -29,6 +31,9 @@ export {
   normalizeActionInputPolicy,
   compiledInputPolicy
 } from './construction-compilation.js';
+
+export { actionTargetState, displayActionLabel } from './action-labels.js';
+export { entityLabelOf } from './type-labels.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -1155,10 +1160,6 @@ export function parentRelationForChild(childTypeId = '', parentTypeId = '', line
   return { childType: binding.childTypeId, parentType: binding.parentTypeId, lineageKey: binding.lineageKey };
 }
 
-export function entityLabelOf(domain = {}, typeId = '') {
-  return (domain.entities || []).find(entity => entity.type === typeId)?.label || null;
-}
-
 export function compileFieldPolicies(producerOutputs = {}, domain = {}) {
   const policies = {};
   for (const profile of Object.values(producerOutputs)) {
@@ -1380,16 +1381,6 @@ export function wiringArrivalState(actionId, action = {}, typeId = '', graphCont
   return sources.length === 1 ? sources[0].status : '';
 }
 
-export function actionTargetState(action = {}, process = {}) {
-  const stateRef = action.stateRef;
-  const referenced = stateRef ? process.stateDefinitions?.[stateRef] : null;
-  return referenced?.stateId
-    || action.state?.to
-    || action.access?.stateTo
-    || action.outputs?.find(output => output.status)?.status
-    || '';
-}
-
 function stateDefinitionMetadata(definition = {}) {
   if (!definition) return {};
   return {
@@ -1449,75 +1440,6 @@ export function compileProcessNodes(processNodes = {}) {
     inputs: Array.isArray(node.inputs) ? node.inputs.map(input => ({ ...input })) : [],
     outputs: Array.isArray(node.outputs) ? node.outputs.map(output => ({ ...output })) : []
   }]));
-}
-
-export function displayActionLabel(action = {}, id = '', process = {}, domain = {}) {
-  const explicit = String(action.label || '').trim();
-  if (explicit && !isGenericActionLabel(explicit, action.actionKind)) return explicit;
-
-  const typeId = action.typeId
-    || action.inputs?.find(input => input.typeId)?.typeId
-    || action.outputs?.find(output => output.typeId)?.typeId
-    || '';
-  if ((action.actionKind || 'createEntity') === 'createEntity') {
-    // The create caption names the target class plus a distinguishing
-    // construction mode; the initial state is process machinery the surface
-    // reveals after creation, never button copy.
-    const modeLabel = creationModeLabel(action.construction?.mode);
-    return ['Create', typeIdLabel(domain, typeId), modeLabel && `from ${modeLabel}`]
-      .filter(Boolean).join(' ');
-  }
-  if (action.actionKind === 'updateEntity') {
-    if (actionTargetState(action, process)) return stateTargetLabel(action, process) || ['Move', typeIdLabel(domain, typeId), action.state?.to].filter(Boolean).join(' ');
-    return ['Update', typeIdLabel(domain, typeId)].filter(Boolean).join(' ');
-  }
-  if (action.actionKind === 'deleteEntity') {
-    return ['Delete', typeIdLabel(domain, typeId)].filter(Boolean).join(' ');
-  }
-  if (action.actionKind === 'runCommand') {
-    return ['Run', serviceRenderLabel(domain, action.commandId) || action.commandId].filter(Boolean).join(' ');
-  }
-  if (action.actionKind === 'sendToOrganization') {
-    return ['Send', typeIdLabel(domain, typeId)].filter(Boolean).join(' ');
-  }
-  return action.actionKind || id;
-}
-
-function stateTargetLabel(action = {}, process = {}) {
-  const referenced = action.stateRef ? process.stateDefinitions?.[action.stateRef] : null;
-  return referenced?.label
-    || referenced?.stateId
-    || action.state?.label
-    || action.state?.to
-    || action.access?.stateTo
-    || action.outputs?.find(output => output.status)?.status
-    || '';
-}
-
-// A plugin service's declared render label — the authored caption source
-// for its run action (a raw command id never reaches a button).
-function serviceRenderLabel(domain = {}, commandId = '') {
-  return domain.serviceContracts?.[commandId]?.render?.label || '';
-}
-
-function isGenericActionLabel(label, actionKind = '') {
-  const normalized = label.trim().toLowerCase();
-  // Raw node-kind strings the designer saves as default labels are
-  // machinery vocabulary, not captions — every species spelling (v5
-  // included: a caption that is just the record's kind derives from the
-  // action kind below.
-  const generic = new Set([
-    'create', 'status', 'service', 'update', 'send', 'action',
-    'cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove',
-    'cts.read', 'cts.field', 'cts.command', 'cts.service', 'cts.conversion',
-    actionKind?.toLowerCase?.()
-  ].filter(Boolean));
-  return generic.has(normalized);
-}
-
-function typeIdLabel(domain = {}, typeId = '') {
-  if (!typeId) return '';
-  return entityLabelOf(domain, typeId) || typeId.replace(/_/g, ' ');
 }
 
 export function normalizeActionAccess(access = {}) {
