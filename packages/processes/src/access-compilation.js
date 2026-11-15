@@ -2,11 +2,6 @@ import {
   exposureFieldsOf,
   compileHomeScreenForAssignment,
   compileGrantForAssignment,
-  screenAppliesToRole,
-  compileScreenForAssignment,
-  mergeCompiledScreen,
-  screenToNavigation,
-  dedupeNavigation,
   requirementHasAuthoredGrant,
   actionTypeId,
   workflowDropsNoOp,
@@ -28,7 +23,7 @@ import {
   normalizeActionAccess,
   emptyAssignmentAccess
 } from './compiler-core.js';
-import { compileScreens } from './screen-compilation.js';
+import { compileScreens, screenAppliesToRole, compileScreenForAssignment, mergeCompiledScreen, screenToNavigation, dedupeNavigation } from './screen-compilation.js';
 import { projectUiAction } from './ui-contract-projection.js';
 
 export function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {}, actions = {}, lineageBindings = [], domain = {} } = {}) {

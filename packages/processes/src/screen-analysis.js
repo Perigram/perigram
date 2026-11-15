@@ -1,12 +1,10 @@
 import { normalizeScreenContract } from './screen-contract.js';
 import { normalizeProcessDefinition } from './normalization.js';
-import { inferScreensFromRoleGrants } from './screen-compilation.js';
+import { inferScreensFromRoleGrants, projectScreenForInferenceEquivalence, canonicalJson } from './screen-compilation.js';
 import { compileRoles } from './access-compilation.js';
 import {
   compileLineageBindings,
   normalizeRoleCatalog,
-  projectScreenForInferenceEquivalence,
-  canonicalJson
 } from './compiler-core.js';
 
 export function redundantAuthoredScreens(process = {}, domain = {}, compiledRoles = {}, lineageBindings = []) {
