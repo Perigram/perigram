@@ -5,10 +5,8 @@
 // documents, so an interrupted migration resumes by re-posting the same
 // declaration. The step language and coverage rules live in
 // @perigram/cts diff.js (canonical contract: this feature's README).
-import { connectDB } from '~/server/db/mongo';
-import { toFlexibleId } from '../../utils/objectid.js';
 import { evaluate } from '#packages/cts';
-import { collectionForClass } from './repository.js';
+import * as repository from './repository.js';
 import * as entityEventService from '../instance-events/service.js';
 
 // Pure transform: one document through all steps in one pass. Returns the
@@ -83,7 +81,6 @@ export async function applyTypeMigrationSteps({
     throw new Error('type migration requires declaration id, organizationId, and toVersion');
   }
   const collection = collectionForClass(declaration.class);
-  const db = await connectDB();
   const counts = {};
   const failures = [];
 
@@ -102,17 +99,9 @@ export async function applyTypeMigrationSteps({
     }
   }
   for (const { childType, childCollection, lineageKey } of detachWalks) {
-    const cursor = db.collection(childCollection).find({
-      type: childType,
-      organizationId: toFlexibleId(organizationId),
-      [`lineage.${lineageKey}`]: { $exists: true }
-    });
-    for await (const doc of cursor) {
+    for await (const doc of repository.iterateChildrenWithLineageKey(childCollection, childType, organizationId, lineageKey)) {
       try {
-        const update = await db.collection(childCollection).updateOne(
-          { _id: doc._id },
-          { $unset: { [`lineage.${lineageKey}`]: '' }, $set: { updatedAt: new Date().toISOString() } }
-        );
+        const update = await repository.detachMigratedLineageKey(childCollection, doc._id, lineageKey);
         if (update?.modifiedCount) {
           await entityEventService.publishEntityChanged(
             { userId: actor || 'SYSTEM', organizationId: String(organizationId) },
@@ -128,12 +117,7 @@ export async function applyTypeMigrationSteps({
 
   // Behind documents only: finished documents carry the new stamp, so the
   // scan itself is the resume filter.
-  const cursor = db.collection(collection).find({
-    type: declaration.id,
-    organizationId: toFlexibleId(organizationId),
-    typeVersion: { $ne: toVersion }
-  });
-  for await (const doc of cursor) {
+  for await (const doc of repository.iterateInstancesForTypeMigration(collection, declaration.id, organizationId, toVersion)) {
     try {
       const { fields, lineage, stateChanges, applied } = transformInstanceForSteps(doc, steps);
       const set = { fields, typeVersion: toVersion, updatedAt: new Date().toISOString() };
@@ -141,7 +125,7 @@ export async function applyTypeMigrationSteps({
       for (const [axis, state] of Object.entries(stateChanges)) {
         set[`states.${axis}`] = state;
       }
-      await db.collection(collection).updateOne({ _id: doc._id }, { $set: set });
+      await repository.updateMigratedInstance(collection, doc._id, set);
       await entityEventService.publishEntityChanged(
         { userId: actor || 'SYSTEM', organizationId: String(organizationId) },
         { type: declaration.id, id: String(doc._id), change: 'updated', reason: 'type-migration' }
