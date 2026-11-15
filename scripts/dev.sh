@@ -51,7 +51,10 @@ case "$command" in
       git -C "$ROOT" submodule update --init --recursive
     fi
     mkdir -p "$ROOT/.local/cortex"
-    compose up -d --build
+    # BuildKit otherwise sees a host-loopback proxy (for example 127.0.0.1:2081)
+    # as its own loopback. Build with host networking so host proxy settings work.
+    docker buildx bake -f "$COMPOSE_FILE" --allow network.host --set '*.network=host'
+    compose up -d --no-build
     compose ps
 
     app_id="$(compose ps -q app)"
@@ -99,8 +102,8 @@ case "$command" in
     compose restart "$@"
     ;;
   deps)
-    compose build app
-    compose up -d --no-deps --force-recreate app
+    docker buildx bake -f "$COMPOSE_FILE" --allow network.host --set app.network=host app
+    compose up -d --no-build --no-deps --force-recreate app
     ;;
   shell)
     compose exec app sh
