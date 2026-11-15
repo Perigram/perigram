@@ -273,6 +273,50 @@ describe('User Management & Auth', () => {
     )).rejects.toMatchObject({ statusCode: 403 });
   });
 
+  it('hydrates auth from active membership rather than a stale suspended tenant', () => {
+    const suspendedOrg = new ObjectId();
+    const activeOrg = new ObjectId();
+    const user = new User({
+      _id: new ObjectId(),
+      identity: { uid: 'multi-org-auth', name: 'Multi Org Auth' },
+      lineage: { organizationId: suspendedOrg },
+      data: {
+        permissions: { organizations: 'admin' },
+        memberships: [
+          { organizationId: suspendedOrg, status: 'suspended', permissions: { organizations: 'admin' } },
+          { organizationId: activeOrg, status: 'active', permissions: { organizations: 'read' } }
+        ]
+      }
+    });
+
+    const auth = userService.buildAuthContext(user);
+    expect(auth.organizationId).toBe(activeOrg.toString());
+    expect(auth.permissions).toEqual({ organizations: 'read' });
+    expect(auth.memberships.map(item => item.organizationId.toString())).toEqual([activeOrg.toString()]);
+  });
+
+  it('removes tenant context and stale grants when every membership is inactive', () => {
+    const organizationId = new ObjectId();
+    const user = new User({
+      _id: new ObjectId(),
+      identity: { uid: 'pending-auth', name: 'Pending Auth' },
+      lineage: { organizationId },
+      data: {
+        permissions: { organizations: 'admin', users: 'admin' },
+        memberships: [{
+          organizationId,
+          status: 'pending',
+          permissions: { organizations: 'admin', users: 'admin' }
+        }]
+      }
+    });
+
+    const auth = userService.buildAuthContext(user);
+    expect(auth.organizationId).toBeNull();
+    expect(auth.permissions).toEqual({});
+    expect(auth.memberships).toEqual([]);
+  });
+
   it('does not expand preset labels into permissions when loading users', () => {
     const orgId = new ObjectId();
     const user = new User({

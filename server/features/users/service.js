@@ -118,15 +118,30 @@ export async function registerBot({ name, organizationId, email = null } = {}, c
  */
 export function buildAuthContext(user) {
   const userDto = user.toJSON();
+  const allMemberships = user.memberships || [];
+  const memberships = allMemberships.filter(membership => (
+    !membership.status || membership.status === 'active'
+  ));
+  const currentOrganizationId = user.organizationId?.toString() || null;
+  const activeMembership = memberships.find(membership => (
+    membership.organizationId?.toString?.() === currentOrganizationId
+  )) || memberships[0] || null;
+  const hasInactiveMemberships = allMemberships.some(membership => (
+    membership.status && membership.status !== 'active'
+  ));
   return {
     userId: user.id,
     name: user.identity?.name || '',
     email: user.data?.email || '',
     avatarUrl: userDto.data?.avatarUrl || null,
-    organizationId: user.organizationId?.toString() || null,
+    // Membership state is authoritative: a stale lineage pointer cannot
+    // keep a removed/pending tenant active in a still-valid login session.
+    organizationId: activeMembership?.organizationId?.toString?.() || null,
     role: user.role,
-    permissions: user.permissions,
-    memberships: user.memberships || [],
+    permissions: activeMembership
+      ? activeMembership.permissions || {}
+      : (hasInactiveMemberships ? {} : user.permissions),
+    memberships,
     restrictedTo: user.restrictedTo
   };
 }
