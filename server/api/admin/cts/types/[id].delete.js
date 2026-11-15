@@ -1,4 +1,4 @@
-import { requireAuth } from '~/server/utils/permissions';
+import { requireLineagePermission } from '~/server/utils/permissions';
 import { removeType } from '~/server/features/cts-types/service.js';
 
 // Removes an org-authored type declaration. System types (compiled from
@@ -6,7 +6,7 @@ import { removeType } from '~/server/features/cts-types/service.js';
 // binding processes refuses with 409 + the blast radius; `?abandon=true`
 // confirms the abandonment ceremony (SPEC §19).
 export default defineEventHandler(async (event) => {
-  const auth = requireAuth(event);
+  const auth = requireLineagePermission(event, { organizationId: event.context.auth?.organizationId }, 'organizations', 'admin');
   const id = getRouterParam(event, 'id');
   const abandon = String(getQuery(event).abandon || '') === 'true';
   const result = await removeType(id, {

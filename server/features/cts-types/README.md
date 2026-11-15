@@ -103,6 +103,13 @@ surface must be the install's own preview-kind surface; the client's
 preview slots mount them read-only (see
 [components/generated](../../../components/generated/README.md)).
 
+## Access
+
+Authoring, evolving, and removing organization type declarations requires
+`organizations:admin`; reading the compiled organization registry requires
+`organizations:read`. The API routes enforce these grants, not just the
+designer screen.
+
 ## API
 
 `GET /api/admin/cts/types` — merged org view (the class library, the

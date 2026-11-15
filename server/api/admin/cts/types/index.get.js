@@ -1,4 +1,4 @@
-import { requireAuth } from '~/server/utils/permissions';
+import { requireLineagePermission } from '~/server/utils/permissions';
 import { describeOrganizationTypes } from '~/server/features/cts-types/service.js';
 
 // Compiled CTS view of one organization: system types (strangler-converted
@@ -6,7 +6,7 @@ import { describeOrganizationTypes } from '~/server/features/cts-types/service.j
 // payload-trait data, pack editor bindings, and compile diagnostics. Read
 // by the designer types pane and the language tester.
 export default defineEventHandler(async (event) => {
-  const auth = requireAuth(event);
+  const auth = requireLineagePermission(event, { organizationId: event.context.auth?.organizationId }, 'organizations', 'read');
   const { bundle, attachmentKinds, editors, surfaces, previews, previewChannels, clientEngines } = await describeOrganizationTypes(auth.organizationId);
   return {
     success: bundle.ok,

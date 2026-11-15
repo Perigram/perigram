@@ -24,6 +24,34 @@ describe('Permissions Utility', () => {
     });
   });
 
+  describe('requireLineagePermission', () => {
+    it('requires the requested organization grant before a feature route proceeds', async () => {
+      const { requireLineagePermission } = await import('./permissions');
+      const auth = {
+        userId: 'u1',
+        organizationId: 'org-1',
+        memberships: [{
+          organizationId: 'org-1',
+          permissions: { organizations: { level: 'admin' } }
+        }]
+      };
+      const event = { context: { auth } };
+
+      expect(requireLineagePermission(event, { organizationId: 'org-1' }, 'organizations', 'admin')).toBe(auth);
+      expect(() => requireLineagePermission({
+        context: {
+          auth: {
+            ...auth,
+            memberships: [{
+              organizationId: 'org-1',
+              permissions: { organizations: { level: 'read' } }
+            }]
+          }
+        }
+      }, { organizationId: 'org-1' }, 'organizations', 'admin')).toThrow(/Permission denied/);
+    });
+  });
+
   describe('hasLineagePermission', () => {
     it('checks create action grants explicitly when requested', async () => {
       const { hasLineagePermission } = await import('./permissions');
