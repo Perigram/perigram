@@ -46,7 +46,11 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
     if (!handler && command.plugin) {
       const { executeConnectorService } = await import('../../features/plugins/service.js');
       // Handlers receive one payload ({ command, parameters, auth }).
-      handler = payload => executeConnectorService(payload.command, { parameters: payload.parameters, auth: payload.auth });
+      handler = payload => executeConnectorService(payload.command, {
+        parameters: payload.parameters,
+        auth: payload.auth,
+        valueOnly: true
+      });
     }
     if (!handler) throw createError({ statusCode: 500, message: `Command handler not registered: ${commandId}` });
 
@@ -57,10 +61,14 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
       data: parameters,
       auth
     }) || {};
+    // Plugin endpoint responses are opaque values, not platform command
+    // envelopes. Never let an executor response manufacture effects,
+    // events, entity writes, or task dispatches by returning matching keys.
+    const isPluginValue = command.plugin === true && rawResult?.__perigramPluginValue === true;
     const result = createCommandResult({
       commandId,
-      ...rawResult,
-      raw: rawResult
+      ...(isPluginValue ? {} : rawResult),
+      raw: isPluginValue ? rawResult.value : rawResult
     });
     const effectContext = {
       auth,

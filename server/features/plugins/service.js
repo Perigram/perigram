@@ -765,7 +765,7 @@ export async function commandDefinitionFor(commandId, auth = {}) {
 // ./executor-payload.js; re-exported for the service-module surface.
 export { executorPayload } from './executor-payload.js';
 
-export async function executeConnectorService(command, { parameters, auth = {} } = {}) {
+export async function executeConnectorService(command, { parameters, auth = {}, valueOnly = false } = {}) {
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
   const install = await installForCommand(command.id, organizationId);
   if (!install) {
@@ -786,7 +786,10 @@ export async function executeConnectorService(command, { parameters, auth = {} }
   // installed version, and the canonical input — same inputs, same
   // output, no executor call.
   if (serviceModeOf(service) === 'endpoint') {
-    return await invokeEndpointValueService(command.id, parameters, auth);
+    const value = await invokeEndpointValueService(command.id, parameters, auth);
+    // The command runner consumes this private envelope to keep plugin
+    // values separate from platform-owned CommandResult control fields.
+    return valueOnly ? { __perigramPluginValue: true, value } : value;
   }
 
   const run = await enqueueTask(command.id, {

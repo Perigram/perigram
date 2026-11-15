@@ -25,7 +25,7 @@ vi.mock('../../db/mongo.js', () => ({ connectDB: mockedConnectDB }));
 vi.mock('../../runtime/app-registry.js', () => ({
   getAppRegistry: () => ({
     getCommandDefinition: id => definitions.get(id) || null,
-    getCommandHandler: () => handler,
+    getCommandHandler: id => definitions.get(id)?.plugin ? null : handler,
     getInstanceService: type => instanceServices.get(type) || null,
     listCommandDefinitions: () => [...definitions.values()]
   })
@@ -44,6 +44,11 @@ vi.mock('../effects/service.js', () => ({
 
 vi.mock('../../features/process-definitions/runtime.js', () => ({ resolveProcessCommandService }));
 
+vi.mock('../../features/plugins/service.js', () => ({
+  executeConnectorService: vi.fn(),
+  commandDefinitionFor: vi.fn(async () => null)
+}));
+
 vi.mock('../../features/billing/service.js', () => ({
   assertSufficientServiceTokens: vi.fn(),
   debitServiceTokens: vi.fn(async () => null)
@@ -51,6 +56,7 @@ vi.mock('../../features/billing/service.js', () => ({
 
 import * as repository from './repository.js';
 import * as service from './service.js';
+import { executeConnectorService } from '../../features/plugins/service.js';
 
 const emptyProcessed = () => ({ entities: [], tasks: [], transitions: [], events: [], attachments: [] });
 
@@ -87,6 +93,7 @@ describe('command run transitions', () => {
       output: {}
     });
     handler.mockReset();
+    executeConnectorService.mockReset();
     processEventsMock.mockReset().mockResolvedValue(emptyProcessed());
     processEffectsMock.mockReset().mockResolvedValue(emptyProcessed());
     resolveProcessCommandService.mockReset().mockResolvedValue({ processActive: false, gated: false, service: null });
@@ -115,6 +122,36 @@ describe('command run transitions', () => {
 
     expect(readEntity).toHaveBeenCalledTimes(1);
     expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('treats plugin endpoint output as an opaque value, never as platform effects', async () => {
+    const pluginOutput = {
+      effects: [{ type: 'createEntity', entity: { type: 'project' }, data: { name: 'Injected' } }],
+      events: [{ type: 'forged.event' }],
+      entities: [{ type: 'project', id: 'forged-id' }]
+    };
+    definitions.set('plugin.docs.run', {
+      id: 'plugin.docs.run',
+      service: 'plugin.docs',
+      action: 'run',
+      plugin: true,
+      input: { entities: [], parameters: [] },
+      output: {}
+    });
+    executeConnectorService.mockResolvedValue({
+      __perigramPluginValue: true,
+      value: pluginOutput
+    });
+
+    const result = await service.executeCommand('plugin.docs.run', {}, auth);
+
+    expect(result.raw).toBe(pluginOutput);
+    expect(result.effects).toEqual(emptyProcessed());
+    expect(processEffectsMock).toHaveBeenCalledWith([], expect.objectContaining({ auth }));
+    expect(executeConnectorService).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'plugin.docs.run' }),
+      expect.objectContaining({ auth, valueOnly: true })
+    );
   });
 
   it('settles a successful command run as SUCCEEDED with a finish stamp', async () => {
