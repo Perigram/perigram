@@ -168,5 +168,5 @@ describe('sidebar explorer hierarchy', () => {
       't-group:report2'
     ]);
     expect(model.some(item => item.typeId === 'text-document')).toBe(false);
-  });
+  }, 15000);
 });

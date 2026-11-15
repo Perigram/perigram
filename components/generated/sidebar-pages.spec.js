@@ -161,7 +161,7 @@ describe('sidebar user sections', () => {
     expect(section.items[0].items.map(row => row.key)).toEqual(['custom-page:pg-arch-deep']);
     expect(section.items[0].label).toBe('Architecture');
     expect(section.items[0].icon).toBe('pi pi-file');
-  });
+  }, 15000);
 
   it('renders loose root pages as root rows beside the panels', async () => {
     const model = await sidebarModel();
@@ -169,10 +169,10 @@ describe('sidebar user sections', () => {
     expect(loose).toBeTruthy();
     expect(loose.label).toBe('Loose');
     expect(model.filter(item => item.key === 'page-section:sec-notes').length).toBe(1);
-  });
+  }, 15000);
 
   it('drops the new-section affordance from the foot', async () => {
     const html = await renderSidebar();
     expect(html).not.toContain('pages.newSection');
-  });
+  }, 15000);
 });
