@@ -1232,62 +1232,6 @@ async function queryProcessGraphEntities(typeId, filters = {}, auth = {}) {
   return (entities || []).map(entity => entity?.toJSON ? entity.toJSON() : entity);
 }
 
-async function linkCreatedEntityToContextRelation({ action = {}, data = {}, entities = {}, created = null, auth = {} } = {}) {
-  const link = data?.linkCreatedTo;
-  if (!link || typeof link !== 'object') return null;
-  const ownerType = normalizeTypeId(link.ownerType || '');
-  const targetType = resolveActionTypeId(action);
-  const relation = (getDomain().relations || []).find(item => (
-    normalizeTypeId(item.ownerType) === ownerType
-    && item.key === link.relationKey
-    && normalizeTypeId(item.targetType) === targetType
-    && item.cardinality === 'many'
-  ));
-  if (!relation) throw createError({ statusCode: 400, message: `${ownerType}.${link.relationKey || ''} is not a declared ${targetType} relation` });
-  const ownerId = entityInputId(entities[ownerType]);
-  const createdId = entityInputId(created);
-  if (!ownerId) throw createError({ statusCode: 400, message: `${ownerType} context is required to link the created entity` });
-  if (!createdId) throw createError({ statusCode: 500, message: `Created ${targetType} has no id` });
-  const ownerService = getAppRegistry().getInstanceService(ownerType);
-  if (!ownerService?.processGetById || !ownerService?.processUpdate) {
-    throw createError({ statusCode: 500, message: `${ownerType} does not support process relation updates` });
-  }
-  const linkAuth = createRelationLinkExecutionAuth(auth, action, ownerType);
-  const ownerResult = await ownerService.processGetById(ownerId, linkAuth);
-  if (!ownerResult) throw createError({ statusCode: 404, message: `${ownerType} not found` });
-  const owner = ownerResult?.toJSON ? ownerResult.toJSON() : ownerResult;
-  assertEntityAccess({
-    entity: owner,
-    typeId: ownerType,
-    feature: resolveInstanceFeature(ownerType),
-    level: 'write',
-    auth: linkAuth
-  });
-  const existing = Array.isArray(owner.relations?.[relation.key]) ? owner.relations[relation.key] : [];
-  const next = existing.some(ref => ref.type === targetType && String(ref.id) === String(createdId))
-    ? existing
-    : [...existing, { type: targetType, id: createdId }];
-  const patch = { relations: { [relation.key]: next } };
-  if (relation.association?.path) {
-    const associations = getByPath(owner, relation.association.path);
-    const currentAssociations = Array.isArray(associations) ? associations : [];
-    if (!currentAssociations.some(item => String(item?.id) === String(createdId))) {
-      patch[relation.association.path] = [
-        ...currentAssociations,
-        {
-          ...(relation.association.defaults || {}),
-          type: targetType,
-          typeId: targetType,
-          id: createdId
-        }
-      ];
-    }
-  }
-  const updated = await ownerService.processUpdate(ownerId, patch, linkAuth);
-  await publishActionEntityEvent(auth, ownerType, updated || { _id: ownerId }, 'updated', 'process-created-relation-link');
-  return updated;
-}
-
 function entityInputId(value) {
   if (!value) return null;
   if (typeof value !== 'object') return value;
@@ -1299,60 +1243,6 @@ function entityInputId(value) {
   return value.id || value._id || null;
 }
 
-async function applyProcessOutputStatuses({ actionId, result = {}, processData = {}, organizationId, auth = {} } = {}) {
-  const statusesByTypeId = commandOutputStatusMap(actionId, processData);
-  if (!statusesByTypeId.size) return;
-  for (const entityRef of result.entities || []) {
-    const typeId = normalizeTypeId(entityRef.type || entityRef.typeId || '');
-    const stateTargets = statusesByTypeId.get(typeId) || [];
-    if (stateTargets.length > 1) {
-      throw new Error(`Process command action ${actionId} has ambiguous status outputs for ${typeId}`);
-    }
-    const stateTarget = stateTargets[0];
-    const targetState = stateTarget?.targetState;
-    const targetId = entityRef.id || entityRef._id;
-    if (!typeId || !targetState || !targetId) continue;
-    await stateService.setInitialStateForOrganization(
-      typeId,
-      targetId,
-      targetState,
-      organizationId,
-      auth.userId,
-      {
-        source: { kind: 'process-run', actionId },
-        ...processStatusMetadata({
-          typeId,
-          producerOutputId: stateTarget.producerOutputId,
-          state: { to: targetState }
-        }, `Created by process command action ${actionId}`, processData)
-      }
-    );
-    await entityEventService.publishEntityChanged(auth, {
-      type: typeId,
-      id: targetId,
-      change: 'updated',
-      reason: 'process-command-output-status'
-    });
-  }
-}
-
-async function publishStatusResultEvents(auth, typeId, targetId, result = {}, reason = 'process-status-action') {
-  await entityEventService.publishEntityChanged(auth, {
-    type: typeId,
-    id: result.entity?._id || targetId,
-    change: 'updated',
-    reason
-  });
-  for (const changed of normalizedEffectEntities(result.effects)) {
-    await entityEventService.publishEntityChanged(auth, {
-      type: changed.type,
-      id: changed.id || changed.entity?._id,
-      change: 'updated',
-      reason: `${reason}-effect`
-    });
-  }
-}
-
 async function publishActionEntityEvent(auth, typeId, entity, change, reason) {
   await entityEventService.publishEntityChanged(auth, {
     type: typeId,
@@ -1360,12 +1250,6 @@ async function publishActionEntityEvent(auth, typeId, entity, change, reason) {
     change,
     reason
   });
-}
-
-function normalizedEffectEntities(effects) {
-  if (!effects) return [];
-  if (Array.isArray(effects)) return effects.flatMap(effect => effect?.entities || []);
-  return effects.entities || [];
 }
 
 function instanceId(entity = {}) {
@@ -1376,38 +1260,6 @@ function hasAsyncOutputBoundary(result = {}) {
   return (result.tasks || []).length > 0
     || (result.raw?.tasks || []).length > 0
     || [...(result.jobs || []), ...(result.raw?.jobs || [])].some(job => ['task_run', 'task'].includes(job?.type));
-}
-
-function commandOutputStatusMap(actionId, processData = {}) {
-  const sourceNodeIds = new Set([String(actionId)]);
-  const actionIdByNodeId = new Map();
-  for (const node of processData.graph?.nodes || []) {
-    if (node.type && node.type !== 'action') continue;
-    const nodeActionId = String(node.data?.refId || node.id || '');
-    const nodeId = String(node.id || '');
-    if (!nodeActionId || !nodeId) continue;
-    actionIdByNodeId.set(nodeId, nodeActionId);
-    if (nodeActionId === String(actionId)) sourceNodeIds.add(nodeId);
-  }
-  const map = new Map();
-  for (const edge of processData.graph?.edges || []) {
-    if (!sourceNodeIds.has(String(edge.source))) continue;
-    const targetActionId = actionIdByNodeId.get(String(edge.target)) || String(edge.target);
-    const targetAction = targetActionId ? processData.actions?.[targetActionId] : null;
-    if (targetAction?.actionKind !== 'updateEntity' || !(targetAction.state?.to || targetAction.access?.stateTo)) continue;
-    const typeId = normalizeTypeId(
-      targetAction.typeId
-      || targetAction.inputs?.find(input => input.typeId)?.typeId
-      || String(edge.sourceHandle || '').replace(/^output:/, '')
-    );
-    const targetState = targetAction.state?.to || targetAction.access?.stateTo;
-    if (typeId && targetState) {
-      const targets = map.get(typeId) || [];
-      targets.push({ targetState, producerOutputId: targetAction.producerOutputId || null });
-      map.set(typeId, targets);
-    }
-  }
-  return map;
 }
 
 export async function getByIdInternal(id) {
@@ -2149,23 +2001,6 @@ function relationInputValue(supplied) {
 // Field sockets spell row paths as `fields.<path>` (the catalog's socket
 // vocabulary — inputDefaults, compiled mutation.fields, the manifest's
 // input policy); the row/schema layer and stored patches speak the bare
-// path. One spelling per concern, but both ADDRESS the same field: the
-// effect boundary accepts either, so a wired-or-prompted `fields.done`
-// writes row `done`.
-function normalizeFieldSocketInputs(inputs = {}, schemas = []) {
-    if (!inputs || typeof inputs !== 'object' || !Array.isArray(schemas)) return inputs;
-    let mapped = null;
-    for (const schema of schemas) {
-        if (!schema?.path || schema.path.startsWith('fields.')) continue;
-        const socket = `fields.${schema.path}`;
-        if (!Object.hasOwn(inputs, socket) || Object.hasOwn(inputs, schema.path)) continue;
-        if (!mapped) mapped = { ...inputs };
-        mapped[schema.path] = mapped[socket];
-        delete mapped[socket];
-    }
-    return mapped || inputs;
-}
-
 // Effect inputs arrive as data packets (the orchestration's one wire
 // shape); a stored patch speaks scalars. Unwrap once, here.
 function unwrapEffectInput(value, field = {}) {

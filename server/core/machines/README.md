@@ -7,13 +7,22 @@ Parent: [server](../../README.md).
 
 ## Architecture
 
-The engine is `service.js` plus the hook dispatch contract. Machines are
-graph-derived (SPEC §7): this module resolves them from authored graphs.
+The engine is an application adapter composed from focused modules. Machines
+are graph-derived (SPEC §7): the service resolves them from authored graphs.
 
 The pure workflow contract — normalization, region-state transitions, and
 lifecycle payload validation — lives in [`@perigram/core`](../../../packages/core/README.md).
 This service is the application adapter: it supplies persisted definitions,
 access checks, event writes, and hook dispatch.
+
+### Module ownership
+
+- **`service.js`**: transition orchestration, authorization ordering, event/write sequencing.
+- **`entity-loader.js`**: resolves the typed instance document, collection, and active workflow.
+- **`transition-context.js`**: normalizes actor/context data and prepares lifecycle evidence, attachment refs, and readable snapshots.
+- **`transition-hooks.js`**: validates declared hook parameters and dispatches before/after hooks.
+- **`repository.js`**: owns status-event inserts and entity status writes.
+- **`event-records.js`** and **`status-projection.js`**: own event envelopes and stored/display state-shape adapters.
 
 ### 1. State Machine Engine
 

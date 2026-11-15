@@ -1,7 +1,18 @@
 import { connectDB } from '../../db/mongo.js';
+import {
+  normalizeTransitionContext,
+  normalizeTransitionScope,
+  normalizeAuthContext,
+  prepareStatusEvidence,
+  validateStatusMetadataPayload,
+  mergeLifecycle
+} from './transition-context.js';
+import { assertTransitionPreflight, isConfigurationError, runTransitionHooks, validateHookParams } from './transition-hooks.js';
+import { loadEntityForWorkflow } from './entity-loader.js';
+export { createTransitionAuth } from './transition-context.js';
 import * as machineRepository from './repository.js';
 import { buildStatusEventRecord, buildEventActor, buildEventEvidence } from './event-records.js';
-import { persistableStatusMetadata, storedStateAxes, instanceStateSetFromStatus, statusPrimaryForRegion, mergeStatusDisplayMetadata, instanceStateView } from './status-projection.js';
+import { persistableStatusMetadata, storedStateAxes, instanceStateSetFromStatus, statusPrimaryForRegion, mergeStatusDisplayMetadata } from './status-projection.js';
 export { buildEventActor } from './event-records.js';
 import { ObjectId } from 'mongodb';
 import { createStatus } from '../../core/blocks/index.js';
@@ -18,10 +29,10 @@ import {
   resolveWorkflowStatePath,
   validateTransition
 } from '#packages/core';
-import { assertTransitionAccess, hasInstanceAccess } from '../access/service.js';
+import { assertTransitionAccess } from '../access/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
-import { CLASS_COLLECTIONS, evaluate as evaluateExpression } from '#packages/cts';
+import { evaluate as evaluateExpression } from '#packages/cts';
 import { processEffects } from '../effects/service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 
@@ -603,29 +614,6 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
 }
 
 
-export function createTransitionAuth(userId, userRoleOrAuth, userPermissions = {}) {
-  if (userRoleOrAuth && typeof userRoleOrAuth === 'object') {
-    return {
-      ...userRoleOrAuth,
-      userId: userRoleOrAuth.userId || userId,
-      memberships: userRoleOrAuth.memberships || userPermissions?.memberships || [],
-      effectivePermissions: userRoleOrAuth.effectivePermissions || userPermissions?.effectivePermissions || null,
-      permissions: userRoleOrAuth.permissions || userPermissions?.permissions || {}
-    };
-  }
-
-  const system = userRoleOrAuth === 'SYSTEM' || userPermissions?.system === true || (!userId && !userRoleOrAuth);
-  return {
-    userId,
-    system,
-    role: system ? 'SYSTEM' : userRoleOrAuth || userPermissions?.role || null,
-    organizationId: userPermissions?.organizationId,
-    memberships: userPermissions?.memberships || [],
-    effectivePermissions: userPermissions?.effectivePermissions || null,
-    permissions: userPermissions?.permissions || {}
-  };
-}
-
 // Field-level changes ride the same audit trail as transitions (SPEC UI):
 // who changed which field, from what value to what. The record carries the
 // instance's current state on both ends — a field edit never moves the
@@ -682,350 +670,6 @@ export async function appendPayloadRevisionEvent(typeId, targetId, { reason = nu
   });
   await machineRepository.insertStatusEvent(db, record);
   return record;
-}
-
-function normalizeTransitionContext(input = {}) {
-  const invocation = {
-    intent: input?.intent || null,
-    source: input?.source ?? null
-  };
-  if (input && typeof input === 'object' && ('metadata' in input || 'lifecycle' in input)) {
-    return {
-      metadata: input.metadata && typeof input.metadata === 'object' ? input.metadata : {},
-      lifecycle: normalizeStatusLifecycle(input.lifecycle),
-      ...invocation,
-      producerOutputId: input.producerOutputId || null,
-      region: input.region || input.machineRegion || input.machine,
-      path: Array.isArray(input.path) ? input.path : null
-    };
-  }
-
-  const { intent: _invokedIntent, source: _declaredSource, ...metadata } = input && typeof input === 'object' ? input : {};
-  return {
-    metadata,
-    lifecycle: normalizeStatusLifecycle(),
-    ...invocation,
-    producerOutputId: input?.producerOutputId || null,
-    region: input?.region || input?.machineRegion || input?.machine,
-    path: Array.isArray(input?.path) ? input.path : null
-  };
-}
-
-function normalizeTransitionScope(context = {}) {
-  return {
-    region: context?.region || context?.metadata?.region || context?.machineRegion || context?.machine || null,
-    path: Array.isArray(context?.path) ? context.path : null
-  };
-}
-
-function normalizeAuthContext(userId, userRole, metadata = {}) {
-  if (userRole && typeof userRole === 'object') return createTransitionAuth(userId, userRole, metadata);
-  if (metadata.auth && typeof metadata.auth === 'object') return createTransitionAuth(userId, metadata.auth, metadata);
-  return createTransitionAuth(userId, userRole, metadata);
-}
-
-async function prepareStatusEvidence({ db, entity, typeId, auth, eventId, lifecycle = {}, schema = null }) {
-  const normalized = normalizeStatusLifecycle(lifecycle);
-  if (!schema) return { lifecycle: normalized, entityAttachmentSet: {} };
-
-  const attachments = normalizeLifecycleAttachmentRefs({
-    lifecycleAttachments: normalized.attachments,
-    schemaAttachments: schema.attachments || {},
-    eventId
-  });
-  const snapshots = await captureLifecycleSnapshots({
-    db,
-    entity,
-    typeId,
-    auth,
-    snapshotSchema: schema.snapshots || {}
-  });
-  const data = {
-    ...normalized.data,
-    ...(Object.keys(snapshots).length
-      ? { snapshots: { ...(normalized.data.snapshots || {}), ...snapshots } }
-      : {})
-  };
-
-  return {
-    lifecycle: {
-      ...normalized,
-      attachments: attachments.lifecycleAttachments,
-      data
-    },
-    entityAttachmentSet: attachments.entityAttachmentSet
-  };
-}
-
-function validateStatusMetadataPayload(metadata = {}, lifecycleSchema = null) {
-  const description = lifecycleSchema?.description;
-  if (!description?.required) return;
-  const note = metadata?.note || metadata?.description;
-  if (!String(note || '').trim()) {
-    throw createError({
-      statusCode: 400,
-      message: 'Status description is required for this transition'
-    });
-  }
-}
-
-function normalizeLifecycleAttachmentRefs({ lifecycleAttachments = {}, schemaAttachments = {}, eventId }) {
-  const entityAttachmentSet = {};
-  const nextAttachments = {};
-
-  for (const [slot, value] of Object.entries(lifecycleAttachments || {})) {
-    const slotSchema = schemaAttachments[slot] || {};
-    if (Array.isArray(value)) {
-      nextAttachments[slot] = value.map((item, index) => normalizeLifecycleAttachmentRef({
-        slot,
-        slotSchema,
-        item,
-        eventId,
-        index,
-        entityAttachmentSet
-      })).filter(Boolean);
-      continue;
-    }
-
-    const normalized = normalizeLifecycleAttachmentRef({
-      slot,
-      slotSchema,
-      item: value,
-      eventId,
-      index: null,
-      entityAttachmentSet
-    });
-    if (normalized) nextAttachments[slot] = normalized;
-  }
-
-  return { lifecycleAttachments: nextAttachments, entityAttachmentSet };
-}
-
-function normalizeLifecycleAttachmentRef({ slot, slotSchema = {}, item = {}, eventId, index = null, entityAttachmentSet }) {
-  if (!item || typeof item !== 'object') return null;
-  const fileId = item.fileId || item.id;
-  if (!fileId) return item;
-  const attachmentKey = item.attachmentKey || ['status', slot, eventId?.toString(), index]
-    .filter(value => value !== null && value !== undefined)
-    .map(mongoSafeAttachmentKeyPart)
-    .join('_');
-  const bucketName = item.bucketName || item.bucket || 'uploads';
-  const name = item.name || item.filename || '';
-  const kind = item.kind || slotSchema.kind || slot;
-  entityAttachmentSet[`attachments.${attachmentKey}`] = {
-    kind,
-    fileId: toFlexibleId(fileId),
-    name,
-    metadata: {
-      ...(item.metadata || {}),
-      bucketName,
-      statusEventId: eventId?.toString(),
-      slot
-    },
-    timestamp: new Date(),
-    bucketName,
-    url: item.url || `/api/files/download/${fileId}?bucket=${bucketName}`
-  };
-
-  return {
-    attachmentKey,
-    fileId: fileId?.toString?.() || fileId,
-    bucketName,
-    kind,
-    name,
-    url: item.url || `/api/files/download/${fileId}?bucket=${bucketName}`
-  };
-}
-
-function mongoSafeAttachmentKeyPart(value) {
-  return String(value || '').replace(/[^a-zA-Z0-9_-]+/g, '_');
-}
-
-async function captureLifecycleSnapshots({ db, entity, typeId, auth, snapshotSchema = {} }) {
-  const snapshots = {};
-  for (const [key, definition] of Object.entries(snapshotSchema || {})) {
-    if (!definition?.typeId) continue;
-    const targetTypeId = normalizeTypeId(definition.typeId);
-    const lineageKey = definition.lineageKey || `${typeId}Id`;
-    const instanceId = entity?._id || entity?.identity?.uid;
-    const candidates = [instanceId, instanceId?.toString?.()].filter(Boolean);
-    const filter = {
-      type: targetTypeId,
-      [`lineage.${lineageKey}`]: candidates.length > 1 ? { $in: candidates } : candidates[0]
-    };
-    const limit = Math.max(1, Math.min(Number(definition.limit || 50), 100));
-    // Snapshot targets are §3 instances: the target type's class
-    // collection holds them, discriminated by type id, and the class
-    // collection name is the access feature grants compile against.
-    const docs = [];
-    for (const [collectionName, feature] of Object.values(CLASS_COLLECTIONS).map(name => [name, name])) {
-      const found = await db.collection(collectionName).find(filter).limit(limit).toArray();
-      for (const doc of found) docs.push({ doc, feature });
-    }
-    const readable = docs
-      .filter(({ doc, feature }) => hasInstanceAccess({
-        entity: doc,
-        feature,
-        level: 'read',
-        auth,
-        typeId: targetTypeId
-      }))
-      .map(({ doc }) => doc);
-    snapshots[key] = {
-      capturedAt: new Date(),
-      typeId: targetTypeId,
-      lineageKey,
-      count: readable.length,
-      refs: readable.map(snapshotEntityRef)
-    };
-  }
-  return snapshots;
-}
-
-function snapshotEntityRef(entity = {}) {
-  return {
-    id: entity._id?.toString?.() || entity._id || entity.identity?.uid || '',
-    label: entity.identity?.name || entity.identity?.slug || entity.identity?.uid || entity._id?.toString?.() || '',
-    status: getPrimaryState(entity.states ?? entity.status ?? entity.state, null)
-  };
-}
-
-function mergeLifecycle(current = {}, next = {}) {
-  const currentLifecycle = normalizeStatusLifecycle(current);
-  const nextLifecycle = normalizeStatusLifecycle(next);
-
-  return {
-    actors: nextLifecycle.actors.length > 0 ? nextLifecycle.actors : currentLifecycle.actors,
-    attachments: {
-      ...currentLifecycle.attachments,
-      ...nextLifecycle.attachments
-    },
-    data: {
-      ...currentLifecycle.data,
-      ...nextLifecycle.data
-    }
-  };
-}
-
-// Hook contracts live in whichever registered domain declares them (a
-// pack mounting `hookHandlers` declares them beside its domain); the
-// engine owns no handler names.
-function findHookContract(handler) {
-  for (const domain of getAppRegistry().listDomains()) {
-    const contract = domain?.hooks?.[handler];
-    if (contract) return contract;
-  }
-  return null;
-}
-
-function validateHookParams(hookConfig = {}) {
-  const contract = findHookContract(hookConfig.handler);
-  if (!contract) throw createError({ statusCode: 500, message: `Hook contract missing for ${hookConfig.handler}` });
-
-  const params = hookConfig.params || {};
-  const fields = contract.parameters || [];
-  const names = new Set(fields.map(field => field.name));
-  for (const field of fields) {
-    if (field.required && (params[field.name] === undefined || params[field.name] === null || params[field.name] === '')) {
-      throw createError({ statusCode: 500, message: `Hook ${hookConfig.handler} requires parameter ${field.name}` });
-    }
-  }
-  for (const key of Object.keys(params)) {
-    if (!names.has(key)) throw createError({ statusCode: 500, message: `Hook ${hookConfig.handler} has unknown parameter ${key}` });
-  }
-}
-
-async function assertTransitionPreflight({ transition, entity, targetId, targetType, currentState, auth }) {
-  const hasBeforeHooks = (transition?.hooks || []).some(hook => (hook.phase || 'after') === 'before');
-  if (!hasBeforeHooks) return;
-
-  const actorId = auth.userId || 'SYSTEM';
-  await runTransitionHooks(
-    transition,
-    'before',
-    {
-      targetId: toFlexibleId(targetId),
-      targetType,
-      fromState: currentState,
-      toState: transition.to,
-      userId: actorId,
-      userRole: auth.role,
-      auth,
-      lineage: entity.lineage,
-      entity,
-      dryRun: true
-    },
-    { collectEffects: false, log: false }
-  );
-}
-
-function isConfigurationError(error) {
-  const statusCode = Number(error?.statusCode || error?.status || 0);
-  return !statusCode || statusCode >= 500;
-}
-
-async function runTransitionHooks(transition, phase, context, options = {}) {
-  const effects = [];
-  const registry = getAppRegistry();
-  const { collectEffects = true, log = true } = options;
-
-  for (const hookConfig of transition?.hooks || []) {
-    const hookPhase = hookConfig.phase || 'after';
-    if (hookPhase !== phase) continue;
-
-    validateHookParams(hookConfig);
-    const hookFn = resolveHookHandler(registry, context.targetType, hookConfig.handler);
-    if (!hookFn) {
-      console.warn(`[Status Engine] Hook "${hookConfig.handler}" not found in core or ${context.targetType} service.`);
-      continue;
-    }
-
-    const runHook = async () => {
-      if (log) console.log(`[Status Engine] Executing hook ${hookConfig.handler} for ${context.targetType} ${context.targetId}`);
-      const result = await hookFn(context, hookConfig.params || {});
-      if (collectEffects) appendHookEffects(effects, result);
-    };
-
-    if (phase === 'before' || isSynchronousHook(hookConfig)) {
-      await runHook();
-    } else {
-      runHook().catch(err => {
-        console.error(`[Status Engine] Hook ${hookConfig.handler} failed:`, err.message);
-      });
-    }
-  }
-
-  return effects;
-}
-
-function resolveHookHandler(registry, typeId, handler) {
-  const hookFn = registry.getHookHandler(handler);
-  if (hookFn) return hookFn;
-
-  const service = registry.getInstanceService(typeId);
-  return service?.hooks?.[handler] || null;
-}
-
-function isSynchronousHook(hookConfig = {}) {
-  const contract = findHookContract(hookConfig.handler);
-  return hookConfig.mode === 'sync' || hookConfig.blocking === true || contract?.mode === 'sync';
-}
-
-function appendHookEffects(effects, result) {
-  if (!result) return;
-  if (Array.isArray(result)) {
-    effects.push(...result.filter(Boolean));
-    return;
-  }
-  if (Array.isArray(result.effects)) {
-    effects.push(...result.effects.filter(Boolean));
-  }
-  if (Array.isArray(result.entities)) {
-    effects.push(...result.entities.filter(Boolean).map(entity => ({ type: 'relatedEntity', entity })));
-  }
-  if (result.type || result.kind || result.intent || result.targetState) {
-    effects.push(result);
-  }
 }
 
 async function loadEntityForWorkflow(typeId, targetId, options = {}) {

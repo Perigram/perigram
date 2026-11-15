@@ -2409,20 +2409,6 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
   return roles;
 }
 
-function workflowDeclaresEdge(workflow, from, to) {
-  if (!workflow) return true;
-  const region = workflow.regions?.[workflow.primaryRegion]
-    || Object.values(workflow.regions || {})[0]
-    || null;
-  if (!region || !to) return true;
-  const fromPath = resolveWorkflowStatePath(region, from || region.initial) || (from || region.initial);
-  const toPath = resolveWorkflowStatePath(region, to) || to;
-  return (region.transitions || []).some(transition => (
-    transition.from === fromPath
-    && (resolveWorkflowStatePath(region, transition.to) || transition.to) === toPath
-  ));
-}
-
 // Entering a state lands on its initial child, so a status action whose
 // arrival leaf equals its target leaf moves nowhere: it is a no-op, not a
 // transition, and belongs to neither the execution channel nor the manifest.
@@ -4631,59 +4617,6 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors, p
     });
   } catch (error) {
     errors.push(`Process node ${nodeId} has invalid sockets: ${error.message}`);
-  }
-}
-
-function validateOpenBlockEntries(nodeId, node, composition, entities, domain, errors) {
-  const entries = Array.isArray(node.entries) ? node.entries : [];
-  if (!entries.length) {
-    errors.push(`Process node ${nodeId} must define at least one block entry`);
-    return;
-  }
-  const ids = new Set();
-  const keys = new Set();
-  for (const entry of entries) {
-    if (!entry?.id || ids.has(entry.id)) errors.push(`Process node ${nodeId} has a missing or duplicate entry id`);
-    ids.add(entry?.id);
-    if (['ancestors', 'relations'].includes(composition.mode)) {
-      if (!entry.typeId || !entities.has(entry.typeId)) {
-        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} must select an entity type`);
-      }
-    }
-    const key = String(entry.key || '').trim();
-    if (!key || keys.has(key)) errors.push(`Process node ${nodeId} has a missing or duplicate entry key`);
-    keys.add(key);
-    if (composition.mode === 'relations' && entry.attachmentKinds?.length) {
-      const kinds = new Map(Object.values(domain.attachmentKinds || {}).map(kind => [kind.kind || kind.id, kind]));
-      const targetHasAttachmentKinds = Object.values(domain.attachmentKinds || {}).some(kind => (
-        (Array.isArray(kind.typeIds) ? kind.typeIds.includes(entry.typeId) : true)
-        && ['upload', 'capture', 'editor'].includes(kind.creation?.mode)
-      ));
-      if (!targetHasAttachmentKinds) {
-        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} can create upload targets only for entities with user-creatable attachment kinds`);
-      }
-      if (!entry.attachmentKinds?.length) {
-        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} must select an upload attachment kind`);
-      }
-      for (const kind of entry.attachmentKinds || []) {
-        if (!kinds.has(kind) || !['upload', 'capture', 'editor'].includes(kinds.get(kind)?.creation?.mode)) {
-          errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} creator requires a user-creatable attachment kind`);
-        }
-      }
-    }
-    if (composition.mode === 'entries') {
-      try {
-        normalizeProcessType(sanitizeProcessType(entry.type));
-      } catch (error) {
-        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} has invalid type: ${error.message}`);
-      }
-    }
-    if (composition.mode === 'attachments') {
-      const kinds = new Set(Object.values(domain.attachmentKinds || {}).map(kind => kind.kind || kind.id));
-      if (!entry.attachmentKind || !kinds.has(entry.attachmentKind)) {
-        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} must select a declared attachment kind`);
-      }
-    }
   }
 }
 
