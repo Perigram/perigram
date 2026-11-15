@@ -252,6 +252,59 @@ describe('access engine', () => {
     })).toThrow(/organization scope required/);
   });
 
+  it('keeps organization-less system records read-only to ordinary members', () => {
+    const systemRecord = {
+      _id: 'catalog-item',
+      organizationId: null,
+      lineage: { scope: 'system' }
+    };
+    const organizationAdmin = {
+      userId: 'org-admin',
+      organizationId: 'org-1',
+      memberships: [{
+        organizationId: 'org-1',
+        permissions: { items: 'admin' }
+      }]
+    };
+
+    expect(hasInstanceAccess({
+      entity: systemRecord,
+      feature: 'items',
+      level: 'read',
+      auth: organizationAdmin
+    })).toBe(true);
+    expect(hasInstanceAccess({
+      entity: systemRecord,
+      feature: 'items',
+      level: 'write',
+      auth: organizationAdmin
+    })).toBe(false);
+    expect(hasInstanceAccess({
+      entity: systemRecord,
+      feature: 'items',
+      level: 'admin',
+      auth: organizationAdmin
+    })).toBe(false);
+
+    expect(() => assertTransitionAccess({
+      transition: { from: 'DRAFT', to: 'READY' },
+      entity: systemRecord,
+      auth: organizationAdmin
+    })).toThrow(/organization scope required/);
+
+    expect(() => assertTransitionAccess({
+      transition: { from: 'DRAFT', to: 'READY', access: { system: true } },
+      entity: systemRecord,
+      auth: organizationAdmin
+    })).toThrow(/organization scope required/);
+
+    expect(() => assertTransitionAccess({
+      transition: { from: 'DRAFT', to: 'READY', access: { system: true } },
+      entity: systemRecord,
+      auth: { userId: 'SYSTEM', system: true }
+    })).not.toThrow();
+  });
+
   it('supports transition-scoped grants', () => {
     const transition = { from: 'PRODUCED', to: 'MILLED', access: { permissions: [{ feature: 'projects', level: 'write' }] } };
     const scopedAuth = {

@@ -43,7 +43,10 @@ export function assertTransitionAccess({ transition, entity, auth }) {
   if (isSystemAuth(auth) && access.system === true) return true;
 
   const processRoleIds = access.processRoleIds || transition?.processRoleIds || [];
-  assertEntityOrganizationScope(entity, auth, { required: processRoleIds.length > 0 });
+  // Every lifecycle transition is a write. Organization-less system rows
+  // remain read-only to ordinary members, even when their feature grant is
+  // broad; only the system actor may cross this boundary.
+  assertEntityOrganizationScope(entity, auth, { required: processRoleIds.length > 0 || !isSystemAuth(auth) });
   if (processRoleIds.length) {
     const assignedRoleIds = auth.roleAssignments?.roleIds || [];
     const hasRequiredRole = assignedRoleIds.some(roleId => processRoleIds.includes(roleId));
@@ -112,6 +115,10 @@ export function hasInstanceAccess({ entity, feature, level = 'read', action = nu
   // as assertEntityOrganizationScope so permission grants cannot bypass the
   // origin organization boundary.
   const orgId = (entity?.organizationId ?? entity?.lineage?.organizationId ?? entity?.origin?.organizationId)?.toString();
+  // System catalogue rows (organizationId: null) are shared read surfaces,
+  // never organization write targets. Seed/admin maintenance uses the
+  // explicit system actor; an org grant cannot turn a global row writable.
+  if (!orgId && requiredLevel !== 'read' && !isSystemAuth(auth)) return false;
   const activeOrgId = auth.organizationId?.toString();
   if (orgId && activeOrgId && orgId !== activeOrgId) return false;
   if (orgId && !activeOrgId && !(auth.memberships || []).some(item => item.organizationId?.toString() === orgId)) return false;

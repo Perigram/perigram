@@ -17,7 +17,7 @@ Parent: [server](../../README.md).
   membership-derived filtering only for legacy auth contexts that do not carry
   an active organization id.
 
-Access is derived from membership permission grants and entity lineage.
+Organization-less system records are read-only to ordinary members: even a broad organization grant cannot mutate or transition a system catalogue row. Only explicit system-actor maintenance can write those records. Access is otherwise derived from membership permission grants and entity lineage.
 Ordinary entity access is isolated to `auth.organizationId`: an entity from a
 different membership cannot consume the active organization's compiled
 `effectivePermissions`. Collection services use the same active organization
