@@ -65,6 +65,12 @@ the runtime defaults to the uppercase spelling. The terminal kinds are
 - The lease is the recovery rule for running; the retry backoff returns a
   retry-wait run to the queue.
 
+## Access
+
+The admin task-run listing is organization-scoped and requires
+`organizations:admin`. Worker claim/complete routes remain separately
+authenticated by the configured worker or connector token.
+
 ## API
 
 - `GET /api/admin/tasks`

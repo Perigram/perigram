@@ -157,6 +157,23 @@ describe('task run transitions', () => {
     expect(cancelled.status).toBe('CANCELLED');
   });
 
+  it('scopes admin task-run history to the requested organization', async () => {
+    await repository.create({
+      taskId: 'task-one',
+      auth: { userId: 'u1', organizationId: 'org-a' },
+      status: 'SUCCEEDED'
+    });
+    await repository.create({
+      taskId: 'task-one',
+      auth: { userId: 'u2', organizationId: 'org-b' },
+      status: 'SUCCEEDED'
+    });
+
+    const runs = await service.listTaskRuns({ organizationId: 'org-a' });
+    expect(runs).toHaveLength(1);
+    expect(runs[0].auth.organizationId).toBe('org-a');
+  });
+
   it('retries only from the failed or retry-wait statuses', async () => {
     definitions.set('compute', taskDefinition());
     await service.enqueueTask('compute');

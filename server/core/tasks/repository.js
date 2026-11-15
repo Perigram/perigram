@@ -133,7 +133,11 @@ export async function updateClaimedById(id, claimToken, update, claimedStatus = 
 
 export async function list(filter = {}) {
   const db = await connectDB();
-  const { limit = 50, ...query } = filter;
+  const { limit = 50, organizationId, ...query } = filter;
+  if (organizationId) {
+    const id = toFlexibleId(organizationId);
+    query['auth.organizationId'] = { $in: [...new Set([id, String(organizationId)])] };
+  }
   for (const key of Object.keys(query)) {
     if (query[key] === undefined || query[key] === null || query[key] === '') delete query[key];
   }
