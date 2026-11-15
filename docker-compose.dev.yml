@@ -74,6 +74,13 @@ services:
       - "host.docker.internal:host-gateway"
     command: sh -c 'npm run dev -- --host 0.0.0.0 $( [ "$NUXT_DEV_HTTPS" = "true" ] && echo --https )'
     restart: unless-stopped
+    # Readiness includes the application's MongoDB ping, not just a live Node process.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/api/service/health >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
 
   livekit:
     image: livekit/livekit-server:latest

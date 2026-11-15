@@ -53,8 +53,38 @@ case "$command" in
     mkdir -p "$ROOT/.local/cortex"
     compose up -d --build
     compose ps
-    echo
-    echo "Perigram is starting at http://localhost:${PERIGRAM_DEV_APP_PORT:-3001}"
+
+    app_id="$(compose ps -q app)"
+    if [[ -z "$app_id" ]]; then
+      echo "The app container was not created." >&2
+      compose logs --no-color --tail=100 app >&2 || true
+      exit 1
+    fi
+
+    echo "Waiting for the app and its database health check..."
+    deadline=$((SECONDS + 180))
+    while ((SECONDS < deadline)); do
+      health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$app_id" 2>/dev/null || true)"
+      case "$health" in
+        healthy)
+          echo
+          echo "Perigram is ready at http://localhost:${PERIGRAM_DEV_APP_PORT:-3001}"
+          exit 0
+          ;;
+        unhealthy|exited|dead)
+          echo "The app did not become healthy (container state: $health)." >&2
+          compose ps >&2
+          compose logs --no-color --tail=100 app >&2 || true
+          exit 1
+          ;;
+      esac
+      sleep 2
+    done
+
+    echo "Timed out waiting for application readiness after 180 seconds." >&2
+    compose ps >&2
+    compose logs --no-color --tail=100 app >&2 || true
+    exit 1
     ;;
   down|stop)
     compose down
