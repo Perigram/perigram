@@ -81,6 +81,59 @@ describe('entity field access', () => {
     })).toEqual({ organizations: 'write' });
   });
 
+  it('does not reuse active-organization effective grants when redacting another tenant', () => {
+    const auth = {
+      organizationId: 'org-1',
+      effectivePermissions: { organizations: 'admin' },
+      memberships: [
+        { organizationId: 'org-1', permissions: { organizations: 'admin' } },
+        { organizationId: 'org-2', permissions: { organizations: 'read' } }
+      ]
+    };
+    const otherOrganization = {
+      _id: 'org-2',
+      identity: { uid: 'o-2', name: 'Other Organization' },
+      lineage: { organizationId: 'org-2' },
+      data: {
+        email: 'public-contact@example.com',
+        phone: '+1 555 0101',
+        address: 'Private address',
+        internalNotes: 'Private notes'
+      }
+    };
+
+    expect(getActivePermissionsFromAuth(auth, otherOrganization))
+      .toEqual({ organizations: 'read' });
+    const redacted = redactEntityForAccess(otherOrganization, 'organization', auth);
+    expect(redacted).toMatchObject({
+      _id: 'org-2',
+      identity: { name: 'Other Organization' },
+      data: {
+        email: 'public-contact@example.com',
+        phone: '+1 555 0101'
+      }
+    });
+    expect(redacted.data.address).toBeUndefined();
+    expect(redacted.data.internalNotes).toBeUndefined();
+    expect(redactEntityForAccess(otherOrganization, 'organization', {
+      ...auth,
+      memberships: auth.memberships.filter(item => item.organizationId === 'org-1')
+    })).toEqual({});
+  });
+
+  it('resolves top-level and origin organization ownership before field grants', () => {
+    const auth = {
+      organizationId: 'org-1',
+      effectivePermissions: { organizations: 'admin' },
+      memberships: [{ organizationId: 'org-2', permissions: { organizations: 'read' } }]
+    };
+
+    expect(getActivePermissionsFromAuth(auth, { organizationId: 'org-2' }))
+      .toEqual({ organizations: 'read' });
+    expect(getActivePermissionsFromAuth(auth, { origin: { organizationId: 'org-2' } }))
+      .toEqual({ organizations: 'read' });
+  });
+
   it('denies fields without a registered entity policy', () => {
     expect(canDisplayEntityField({
       permissions: { organizations: 'admin' },

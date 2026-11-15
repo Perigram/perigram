@@ -14,11 +14,22 @@ const POLICY_LEVELS = ['read', 'write', 'admin'];
 
 export function getActivePermissionsFromAuth(auth = {}, entity = null) {
   if (!auth) return {};
-  const entityOrgId = entity?.lineage?.organizationId?.toString?.() || entity?.lineage?.organizationId;
-  const activeOrgId = entityOrgId || auth.organizationId?.toString?.() || auth.organizationId;
-  const membership = activeOrgId
-    ? (auth.memberships || []).find(item => item.organizationId?.toString?.() === activeOrgId.toString())
+  const rawEntityOrgId = entity?.organizationId
+    ?? entity?.lineage?.organizationId
+    ?? entity?.origin?.organizationId;
+  const entityOrgId = rawEntityOrgId?.toString?.() || rawEntityOrgId || null;
+  const activeOrgId = auth.organizationId?.toString?.() || auth.organizationId || null;
+  const targetOrgId = entityOrgId || activeOrgId;
+  const membership = targetOrgId
+    ? (auth.memberships || []).find(item => item.organizationId?.toString?.() === targetOrgId.toString())
     : (auth.memberships || [])[0];
+
+  // Effective permissions are compiled for the active organization. Never
+  // reuse that projection when redacting an entity owned by another tenant:
+  // use that tenant's own membership grant, or no grant at all.
+  if (entityOrgId && entityOrgId !== activeOrgId) {
+    return membership?.permissions || {};
+  }
 
   return resolveEffectivePermissions(auth, membership) ?? auth.data?.permissions ?? {};
 }
