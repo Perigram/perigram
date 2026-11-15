@@ -116,6 +116,62 @@ describe('User Management & Auth', () => {
     expect(raw.data.passwordHash).toBe('hashed_password');
   });
 
+  it('does not let an ordinary member create a user inside an organization', async () => {
+    const owner = await userService.register({
+      email: 'org-owner@example.com',
+      password: 'password123',
+      name: 'Org Owner'
+    });
+    const organization = await organizationService.createInitialForUser(owner.id, {
+      name: 'Protected Organization',
+      type: 'Contractor'
+    });
+
+    await expect(userService.register({
+      email: 'injected@example.com',
+      password: 'password123',
+      name: 'Injected User',
+      organizationId: organization.id,
+      roleIds: ['role_admin']
+    }, {
+      userId: 'ordinary-member',
+      organizationId: organization.id,
+      memberships: [{
+        organizationId: organization.id,
+        permissions: { users: { level: 'read' } },
+        status: 'active'
+      }]
+    })).rejects.toMatchObject({ statusCode: 403 });
+
+    expect(await userService.findUserByEmail('injected@example.com')).toBeNull();
+  });
+
+  it('allows a user administrator to create an organization member with assigned roles', async () => {
+    const owner = await userService.register({
+      email: 'org-admin@example.com',
+      password: 'password123',
+      name: 'Org Admin'
+    });
+    const organization = await organizationService.createInitialForUser(owner.id, {
+      name: 'Managed Organization',
+      type: 'Contractor'
+    });
+    const refreshedOwner = await userService.getById(owner.id);
+    const auth = userService.buildAuthContext(refreshedOwner);
+
+    const created = await userService.register({
+      email: 'managed-member@example.com',
+      password: 'password123',
+      name: 'Managed Member',
+      organizationId: organization.id,
+      roleIds: ['role_worker']
+    }, auth);
+
+    expect(created.memberships.some(membership => String(membership.organizationId) === String(organization.id))).toBe(true);
+    const rawOrganization = await db.collection('organizations').findOne({ _id: new ObjectId(organization.id) });
+    expect(rawOrganization.data.roleAssignments[String(created.id)].roleIds).toEqual(['role_worker']);
+  });
+
   it('should allow login after registration', async () => {
     await userService.register({
       email: 'login@example.com',

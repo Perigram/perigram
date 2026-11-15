@@ -62,6 +62,13 @@ terminal state.
 4. Token → `generateAccessToken(userId)` (JWT, 15m)
 5. Middleware → `server/middleware/auth.js` populates `event.context.auth`
 
+## User administration
+
+`POST /api/users` creates an organization member and requires the active
+organization's `users:admin` grant. The service repeats that check before
+creating a membership or assigning process roles; callers cannot supply an
+arbitrary organization id or role assignment.
+
 ## Public Signup
 `POST /api/auth/register` creates a password-backed user from credentials
 only — name, email, and password. The account starts orgless: orgless

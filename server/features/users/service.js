@@ -22,6 +22,9 @@ export async function register(data, auth = {}) {
   try {
     const existing = await usersRepository.findByEmail(data.email.toLowerCase());
     if (existing) throw createError({ statusCode: 409, message: 'Email already registered' });
+    if (data.organizationId && !await canManageUsersInOrganization(auth, data.organizationId)) {
+      throw createError({ statusCode: 403, message: 'Forbidden' });
+    }
     const organization = data.organizationId ? await organizationsRepository.findById(data.organizationId) : null;
     const roleIds = [...new Set(Array.isArray(data.roleIds) ? data.roleIds : [])];
     if (data.organizationId && !organization) throw createError({ statusCode: 404, message: 'Organization not found' });
