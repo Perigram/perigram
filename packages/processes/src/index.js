@@ -1,17 +1,26 @@
 export {
+  PROCESS_SCHEMA_VERSION,
+  normalizeProcessDefinition,
+  requiredEffectCapability,
+  validateProcessDefinition,
+  validateRequiredInputAvailability,
+  validateLineageBindingResolution,
   compileProcessDefinition,
+  compileLineageBindings,
+  compileAssignmentAccess,
+  resolveEffectiveAccess,
+  resolveNavigation,
+  resolveRoleAssignmentAccess,
+  resolveScreens,
+  compileHomeScreenForAssignment,
+  compileScreens,
   detectRedundantScreens,
-  redundantAuthoredScreens
+  redundantAuthoredScreens,
+  compileActions
 } from './compiler-core.js';
-export * from './normalization.js';
-export * from './validation.js';
-export * from './action-compilation.js';
-export * from './screen-compilation.js';
 export * from './screen-contract.js';
 export * from './contract-diff.js';
-export * from './access-compilation.js';
 export * from './assignment-bindings.js';
-export * from './hierarchy-projection.js';
 export {
   canvasToDefinition,
   definitionToCanvas,
