@@ -1,5 +1,5 @@
 import { createError } from 'h3';
-import { normalizePermissionGrants } from '#shared/access-control.js';
+import { actionToLevel, normalizePermissionGrants } from '#shared/access-control.js';
 
 // Action execution permissions are derived from the compiled action contract.
 // The feature domain is injected so this policy helper does not own domain
@@ -26,9 +26,11 @@ export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, g
       ...(auth.effectivePermissions || {})
     };
     if (feature) {
+      const actions = executionActionsForAction(action);
+      const primaryAction = Object.keys(actions).find(name => !['view', 'edit'].includes(name)) || 'create';
       appendExecutionGrant(permissions, feature, {
-        level: action.access?.level || 'write',
-        actions: executionActionsForAction(action)
+        level: action.access?.level || actionToLevel(primaryAction, 'write'),
+        actions
       });
     }
     for (const grant of commandExecutionGrants(action)) {

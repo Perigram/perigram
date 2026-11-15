@@ -102,6 +102,45 @@ describe('process action execution authorization', () => {
     })).not.toThrow();
   });
 
+  it('derives the minimum permission level from the action kind', () => {
+    const baseAuth = {
+      userId: 'u1',
+      organizationId: 'org-1',
+      memberships: [{ organizationId: 'org-1', permissions: {} }]
+    };
+    const deleteExecution = helpers.createActionExecutionAuth(baseAuth, {
+      id: 'delete-work-item',
+      typeId: 'work_item',
+      actionKind: 'deleteEntity'
+    });
+    expect(deleteExecution.effectivePermissions['work-items']).toEqual([
+      { level: 'admin', actions: { view: true, delete: true } }
+    ]);
+    expect(() => assertEntityAccess({
+      entity: { organizationId: 'org-1' },
+      typeId: 'work_item',
+      feature: 'work-items',
+      level: 'write',
+      action: 'delete',
+      auth: deleteExecution
+    })).not.toThrow();
+
+    const downgraded = helpers.createActionExecutionAuth(baseAuth, {
+      id: 'delete-work-item',
+      typeId: 'work_item',
+      actionKind: 'deleteEntity',
+      access: { level: 'write' }
+    });
+    expect(() => assertEntityAccess({
+      entity: { organizationId: 'org-1' },
+      typeId: 'work_item',
+      feature: 'work-items',
+      level: 'write',
+      action: 'delete',
+      auth: downgraded
+    })).toThrow(/Permission denied/);
+  });
+
   it('derives mutation grants from the action kind without widening unrelated permissions', () => {
     const result = helpers.createActionExecutionAuth({
       effectivePermissions: { existing: [{ level: 'read', actions: { view: true } }] }
