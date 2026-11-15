@@ -15,6 +15,7 @@ import {
   resolveProcessGraphEntity,
   evaluateDefinitionDataflow,
   resumeParkedRun,
+  resolveRunActor,
   update,
   validate
 } from './service.js';
@@ -118,6 +119,43 @@ describe('current process-definition service contract', () => {
       getInstanceService: type => type === 'organization' ? organizationService : null,
       getCommandDefinition: () => null
     });
+  });
+
+  it('accepts only explicit system actors for scheduled-run resumes', async () => {
+    await expect(resolveRunActor({
+      userId: 'SYSTEM',
+      system: true,
+      organizationId: 'org-1',
+      memberships: []
+    }, 'org-1')).resolves.toMatchObject({
+      userId: 'SYSTEM',
+      system: true,
+      organizationId: 'org-1'
+    });
+    await expect(resolveRunActor({
+      userId: 'SYSTEM',
+      system: true,
+      organizationId: 'org-2',
+      memberships: []
+    }, 'org-1')).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it('rehydrates user-run permissions from current active membership', async () => {
+    const getUser = vi.spyOn(usersService, 'getById').mockResolvedValue({ id: 'user-1' });
+    const buildAuth = vi.spyOn(usersService, 'buildAuthContext').mockReturnValue({
+      userId: 'user-1',
+      memberships: []
+    });
+    try {
+      await expect(resolveRunActor({
+        userId: 'user-1',
+        organizationId: 'org-1'
+      }, 'org-1')).rejects.toMatchObject({ statusCode: 403 });
+      expect(getUser).toHaveBeenCalledWith('user-1');
+    } finally {
+      getUser.mockRestore();
+      buildAuth.mockRestore();
+    }
   });
 
   it('fails closed when a parked run has no stored actor instead of resuming as SYSTEM', async () => {

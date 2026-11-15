@@ -50,7 +50,7 @@ import { resolveOrganizationId } from '~/server/utils/organization-scope.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
-import { compileActiveProcessRuntime, getActiveMergedDataForOrganization } from './runtime.js';
+import { compileActiveProcessRuntime, getActiveMergedDataForOrganization, resolveProcessAuth } from './runtime.js';
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
@@ -672,52 +672,60 @@ function parkingEnvironment(runnableDefinition, base) {
   });
 }
 
+export async function resolveRunActor(storedActor, organizationId) {
+  const runOrganizationId = String(organizationId || '');
+  if (storedActor?.userId === 'SYSTEM' && storedActor?.system === true) {
+    if (storedActor.organizationId && runOrganizationId
+      && String(storedActor.organizationId) !== runOrganizationId) {
+      throw createError({ statusCode: 403, message: 'Parked run actor organization does not match its definition' });
+    }
+    return {
+      ...storedActor,
+      organizationId: storedActor.organizationId || runOrganizationId || null
+    };
+  }
+
+  if (!storedActor?.userId) {
+    throw createError({ statusCode: 401, message: 'Parked process run has no authenticated actor' });
+  }
+  if (!runOrganizationId) {
+    throw createError({ statusCode: 403, message: 'Parked user run has no organization scope' });
+  }
+  if (storedActor.organizationId && String(storedActor.organizationId) !== runOrganizationId) {
+    throw createError({ statusCode: 403, message: 'Parked run actor organization does not match its definition' });
+  }
+
+  const user = await usersService.getById(storedActor.userId);
+  if (!user) throw createError({ statusCode: 401, message: 'Parked run actor no longer exists' });
+  const currentAuth = usersService.buildAuthContext(user);
+  const activeMembership = currentAuth.memberships?.find(
+    membership => String(membership.organizationId) === runOrganizationId
+  );
+  if (!activeMembership) {
+    throw createError({ statusCode: 403, message: 'Parked run actor is no longer an active organization member' });
+  }
+  return await resolveProcessAuth({ ...currentAuth, organizationId: runOrganizationId });
+}
+
 export async function resumeParkedRun(record) {
   const definitionLike = {
     _id: record.definitionId,
     lineage: { organizationId: record.organizationId },
     data: record.definitionData
   };
-  const storedActor = record.run?.context?.actor;
-  const organizationId = String(record.organizationId || '');
-  let auth;
-
-  // A parked run resumes under its original principal, not an implicit
-  // SYSTEM fallback. User permissions are rehydrated so revoked memberships
-  // and stale process grants cannot survive the Wait Until boundary.
-  if (storedActor?.userId === 'SYSTEM' && storedActor?.system === true) {
-    if (storedActor.organizationId && organizationId
-      && String(storedActor.organizationId) !== organizationId) {
-      throw createError({ statusCode: 403, message: 'Parked run actor organization does not match its definition' });
-    }
-    auth = { ...storedActor, organizationId: storedActor.organizationId || organizationId || null };
-  } else {
-    if (!storedActor?.userId) {
-      throw createError({ statusCode: 401, message: 'Parked process run has no authenticated actor' });
-    }
-    if (!organizationId) {
-      throw createError({ statusCode: 403, message: 'Parked user run has no organization scope' });
-    }
-    if (storedActor.organizationId && String(storedActor.organizationId) !== organizationId) {
-      throw createError({ statusCode: 403, message: 'Parked run actor organization does not match its definition' });
-    }
-    const user = await usersService.getById(storedActor.userId);
-    if (!user) throw createError({ statusCode: 401, message: 'Parked run actor no longer exists' });
-    const currentAuth = usersService.buildAuthContext(user);
-    const activeMembership = currentAuth.memberships?.find(
-      membership => String(membership.organizationId) === organizationId
-    );
-    if (!activeMembership) {
-      throw createError({ statusCode: 403, message: 'Parked run actor is no longer an active organization member' });
-    }
-    auth = await resolveProcessAuth({ ...currentAuth, organizationId });
-  }
+  // Rehydrate the persisted actor; never fall back to SYSTEM for malformed
+  // or stale user runs.
+  const auth = await resolveRunActor(record.run?.context?.actor, record.organizationId);
   const domain = await getProjectedDomain(record.organizationId);
   const base = manualRunEnvironment(definitionLike, auth, domain);
-  const resumed = await resumeProcessRun(record.run, record.definitionData, { output: {} }, {
+  const resumedRun = {
+    ...record.run,
+    context: { ...(record.run?.context || {}), actor: auth }
+  };
+  const resumed = await resumeProcessRun(resumedRun, record.definitionData, { output: {} }, {
     catalogContext: base.catalogContext,
     domain,
-    data: base.data(record.run)
+    data: base.data(resumedRun)
   });
   const settled = await advanceToBoundary(resumed, record.definitionData, parkingEnvironment(definitionLike, base));
   await persistRun(definitionLike, settled, { kind: record.kind, nodeId: record.nodeId });
@@ -755,17 +763,23 @@ export async function continueActionFromTask({ taskRunId, taskResult = {} } = {}
   if (!continuation) return { applied: false, reason: 'uncorrelated' };
   pendingActionContinuations.delete(key);
   const { run, definition, actor, snapshot } = continuation;
-  const domain = await getProjectedDomain(actor.organizationId ?? null);
-  const resumed = await resumeProcessRun(run, definition.data, {
+  const organizationId = actor.organizationId ?? definition.lineage?.organizationId ?? null;
+  const executionAuth = await resolveRunActor(actor, organizationId);
+  const domain = await getProjectedDomain(organizationId);
+  const resumedRun = {
+    ...run,
+    context: { ...(run?.context || {}), actor: executionAuth }
+  };
+  const resumed = await resumeProcessRun(resumedRun, definition.data, {
     output: projectedCompletionOutput(snapshot, taskResult)
   }, {
     catalogContext: catalogContextFromDefinition(definition.data, domain),
     domain,
-    data: processDataEnvironment(actor, run, domain)
+    data: processDataEnvironment(executionAuth, resumedRun, domain)
   });
   await advanceToBoundary(resumed, definition.data, current => ({
-    ...manualRunEnvironment(definition, actor, domain),
-    data: processDataEnvironment(actor, current, domain)
+    ...manualRunEnvironment(definition, executionAuth, domain),
+    data: processDataEnvironment(executionAuth, current, domain)
   }));
   return { applied: true };
 }
@@ -805,6 +819,7 @@ function assertManualRunHasNoMutationFailures(run) {
 function buildRunActor(auth, organizationId) {
   return {
     userId: auth.userId,
+    system: auth.system === true || auth.userId === 'SYSTEM',
     organizationId,
     role: auth.role,
     isAdmin: Boolean(auth.isAdmin),
