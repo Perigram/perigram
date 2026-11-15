@@ -55,6 +55,9 @@ fi
 
 case "$command" in
   up|start)
+    if git -C "$ROOT" rev-parse --show-toplevel >/dev/null 2>&1; then
+      git -C "$ROOT" submodule update --init --recursive
+    fi
     ensure_network
     mkdir -p "$ROOT/.local/cortex"
     compose up -d --build
