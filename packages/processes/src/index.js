@@ -8,16 +8,18 @@ export {
   compileProcessDefinition,
   compileLineageBindings,
   compileAssignmentAccess,
-  resolveEffectiveAccess,
-  resolveNavigation,
-  resolveRoleAssignmentAccess,
-  resolveScreens,
   compileHomeScreenForAssignment,
   compileScreens,
   detectRedundantScreens,
   redundantAuthoredScreens,
   compileActions
 } from './compiler-core.js';
+export {
+  resolveRoleAssignmentAccess,
+  resolveEffectiveAccess,
+  resolveNavigation,
+  resolveScreens
+} from './access.js';
 export * from './screen-contract.js';
 export * from './contract-diff.js';
 export * from './assignment-bindings.js';

@@ -1583,30 +1583,6 @@ export function compileLineageBindings(process = {}, domain = {}) {
   return [...unique.values()];
 }
 
-export function resolveRoleAssignmentAccess({ compiled, assignment, domain = {} } = {}) {
-  if (!assignment || (assignment.status && assignment.status !== 'active')) return emptyAssignmentAccess();
-  return compileAssignmentAccess({
-    assignment,
-    roles: compiled?.roles || {},
-    screens: compiled?.screens || {},
-    actions: compiled?.actions || {},
-    lineageBindings: compiled?.lineageBindings || [],
-    domain
-  });
-}
-
-export function resolveEffectiveAccess({ access } = {}) {
-  return access?.permissions || {};
-}
-
-export function resolveNavigation({ access } = {}) {
-  return access?.navigation || [];
-}
-
-export function resolveScreens({ access } = {}) {
-  return access?.screens || [];
-}
-
 function normalizeGraph(graph = {}) {
   return {
     nodes: Array.isArray(graph.nodes) ? graph.nodes.map(normalizeNode) : [],
@@ -3035,7 +3011,7 @@ function normalizeRoleCatalog(roles = {}) {
   }]));
 }
 
-function emptyAssignmentAccess() {
+export function emptyAssignmentAccess() {
   return { roleIds: [], bindings: {}, permissions: {}, screens: [], navigation: [], actions: [], incompleteBindings: [] };
 }
 

@@ -42,7 +42,7 @@ CTS declaration records and designer authoring in; runtime contracts out. The se
 
 | Aspect | Law |
 |---|---|
-| Boundaries | `compiler-core.js` owns normalization, validation, hierarchy binding, action/access compilation, and screen compilation; `screen-contract.js` and `contract-diff.js` own the separately reusable screen contract and diff. The public barrel exports the compiler API directly; forwarding-only files are not treated as module boundaries. `prepareAuthoredDefinition` resolves ids and row paths through CTS `resolveCtsDefinition` plus declaration checks. |
+| Boundaries | `compiler-core.js` owns normalization, validation, hierarchy binding, and compilation; `access.js` owns role-assignment resolution and access projection; `screen-contract.js` and `contract-diff.js` own the separately reusable screen contract and diff. The public barrel exports the compiler API directly; forwarding-only files are not treated as module boundaries. `prepareAuthoredDefinition` resolves ids and row paths through CTS `resolveCtsDefinition` plus declaration checks. |
 | Diagnostics | `validateProcessDefinition` returns `{ errors, diagnostics }`; each diagnostic anchors `{ message, nodeId?, edgeId?, socketId?, producerOutputId? }`, named by humanized catalog label + canvas id (an authored label wins). Inspect-only warnings report values that reach no effect species. |
 | Required inputs | Activation runs `validateLineageBindingResolution` and `validateRequiredInputAvailability`; a required input is satisfied by a connected value, an authored `inputDefaults` fallback, a domain default, a manual prompt (manual actions only), or the run context (manual actions only); `null`/missing satisfies nothing; emptiness follows the input kind (scalar, collection, attachment). |
 | Apply diff | `diffProcessContracts(previous, next)` is pure over compiled outputs: actions, screens, role grants, per-type CRUD, producer workflow changes, field-policy sections, `removedInstanceStates`. The stored `compiled` snapshot is inspection-only; hydration and manual execution compile the current graph at access time. |
@@ -135,6 +135,7 @@ CTS declaration records and designer authoring in; runtime contracts out. The se
 | `types.js`, `node-catalog.js`, `operations.js`, `ports.js` | protocol, catalog, operation registry, socket handles |
 | `authoring.js`, `designer.js` | authoring seam; declaration-tree compilation (`compileTreeDeclarations`) |
 | `compiler-core.js` | normalize → validate → compile pipeline and compiled contract generation |
+| `access.js` | role-assignment access resolution and read projections |
 | `screen-contract.js`, `ui-contract-projection.js`, `assignment-bindings.js`, `contract-diff.js` | screen contract, manifest projection, binding discovery, Apply diff |
 | `evaluator.js`, `data-tree.js`, `orchestration.js` | dataflow evaluation, packet-tree solver, control plane |
 | `transpiler.js`, `missing-field.js`, `migration-v4.js`, `migration-producer-identities.js`, `capabilities.js`, `algebra.js`, `hierarchy-utils.js`, `test-support.js` | round trip, missing marker, persisted rewrites, helpers, fixtures |
