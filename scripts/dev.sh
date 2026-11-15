@@ -70,6 +70,8 @@ case "$command" in
       health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$app_id" 2>/dev/null || true)"
       case "$health" in
         healthy)
+          echo "Seeding the built-in plugin catalog..."
+          compose exec -T app node server/scripts/seed-plugin-catalog.js
           echo
           echo "Perigram is ready at http://localhost:${PERIGRAM_DEV_APP_PORT:-3001}"
           exit 0
