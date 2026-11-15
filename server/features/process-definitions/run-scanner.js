@@ -1,7 +1,7 @@
 // The process run scanner: wakes runs parked on a Wait Until at their
 // authored time, fires due entry schedules, and delivers undispatched
 // events — one sweep, the deadline-scanner's shape.
-import { connectDB } from '~/server/db/mongo.js';
+import * as repository from './repository.js';
 import { durationMs } from '#packages/cts';
 import { findDueWakeRuns, findLastScheduleFire, findPendingEvents, markEventDispatched, markEventFailed } from './run-store.js';
 import { resumeParkedRun, runDefinitionEntry } from './service.js';
@@ -13,10 +13,7 @@ const BATCH_LIMIT = 50;
 // executes once, the event record riding the run trigger (the
 // `eventPayload` source reads it).
 export async function dispatchEventToSubscribers(event) {
-  const db = await connectDB();
-  const definitions = await db.collection('process_definitions')
-    .find({ 'states.main': 'ACTIVE', 'lineage.organizationId': event.organizationId })
-    .toArray();
+  const definitions = await repository.findActiveForEventOrganization(event.organizationId);
   let started = 0;
   for (const definition of definitions) {
     for (const node of Object.values(definition.data?.processNodes || {})) {
@@ -64,10 +61,7 @@ export async function scanDueProcessRuns(now = new Date()) {
 // no run exists for the entry; an `interval` fires when the last run has
 // aged past the duration (missed ticks collapse into one fire).
 async function scanDueSchedules(now) {
-  const db = await connectDB();
-  const definitions = await db.collection('process_definitions')
-    .find({ 'states.main': 'ACTIVE' })
-    .toArray();
+  const definitions = await repository.findAllActive();
   let fired = 0;
   let failed = 0;
   for (const definition of definitions) {
