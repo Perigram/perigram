@@ -1,12 +1,9 @@
 # Stage 1: Build the Rust binary
 FROM rust:1.83 AS builder
 
-ARG BUILD_HTTP_PROXY
-ARG BUILD_HTTPS_PROXY
-ARG BUILD_NO_PROXY=localhost,127.0.0.1
-ENV HTTP_PROXY=${BUILD_HTTP_PROXY} \
-    HTTPS_PROXY=${BUILD_HTTPS_PROXY} \
-    NO_PROXY=${BUILD_NO_PROXY}
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY=localhost,127.0.0.1
 
 RUN apt-get update && apt-get install -y \
     python3 python3-pip python3-dev build-essential libssl-dev && \
@@ -23,12 +20,9 @@ RUN cargo build --release
 # Stage 2: Create the final runtime image
 FROM python:3.11-slim
 
-ARG BUILD_HTTP_PROXY
-ARG BUILD_HTTPS_PROXY
-ARG BUILD_NO_PROXY=localhost,127.0.0.1
-ENV HTTP_PROXY=${BUILD_HTTP_PROXY} \
-    HTTPS_PROXY=${BUILD_HTTPS_PROXY} \
-    NO_PROXY=${BUILD_NO_PROXY}
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY=localhost,127.0.0.1
 
 # Create a non-root user
 RUN groupadd -r appuser && useradd -m -r -g appuser appuser
@@ -40,7 +34,6 @@ RUN pip install --upgrade pip
 # Copy requirements from local context
 COPY workers/nesting/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-ENV HTTP_PROXY= HTTPS_PROXY= NO_PROXY=
 
 # Copy the built lbf binary
 COPY --from=builder /app/workers/nesting/jagua-rs/target/release/lbf /usr/local/bin/lbf

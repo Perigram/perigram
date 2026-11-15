@@ -13,12 +13,9 @@ WORKDIR /src
 FROM base as build
 
 COPY --link package.json package-lock.json ./
-ARG BUILD_HTTP_PROXY
-ARG BUILD_HTTPS_PROXY
-ARG BUILD_NO_PROXY=localhost,127.0.0.1
-ENV HTTP_PROXY=${BUILD_HTTP_PROXY} \
-    HTTPS_PROXY=${BUILD_HTTPS_PROXY} \
-    NO_PROXY=${BUILD_NO_PROXY}
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY=localhost,127.0.0.1
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
 RUN npm ci
 
@@ -32,6 +29,10 @@ ENV PORT=$PORT
 ENV HOST=0.0.0.0
 ENV NODE_ENV=production
 ENV NUXT_PUBLIC_GIT_COMMIT_SHA=$GIT_COMMIT_SHA
+
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY=localhost,127.0.0.1
 
 # Install python dependencies for local scripts (DXF generation)
 COPY workers/nesting/requirements.txt /tmp/requirements.txt

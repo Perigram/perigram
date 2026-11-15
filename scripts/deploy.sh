@@ -41,9 +41,9 @@ retry() {
 }
 
 build_args=(
-  --build-arg "BUILD_HTTP_PROXY=$BUILD_HTTP_PROXY"
-  --build-arg "BUILD_HTTPS_PROXY=$BUILD_HTTPS_PROXY"
-  --build-arg "BUILD_NO_PROXY=$BUILD_NO_PROXY"
+  --build-arg "HTTP_PROXY=$BUILD_HTTP_PROXY"
+  --build-arg "HTTPS_PROXY=$BUILD_HTTPS_PROXY"
+  --build-arg "NO_PROXY=$BUILD_NO_PROXY"
 )
 
 echo "Pulling base images..."
@@ -152,7 +152,7 @@ echo "Verifying the deployed build..."
 attempt=0
 while ! REF="$(docker run --rm --network host perigram:staging \
     sh -c "curl -fsS -m 5 http://127.0.0.1:3001/" \
-    | grep -oE '/_nuxt/[A-Za-z0-9._-]+\.js' | sort -u | head -3)" || [[ -z "$REF" ]]; do
+    | grep -oE '/_nuxt/[A-Za-z0-9._-]+\.js' | sort -u | sed -n '1,3p')" || [[ -z "$REF" ]]; do
   attempt=$((attempt + 1))
   if ((attempt >= 15)); then
     echo "The app did not serve Nuxt chunks on :3001" >&2
