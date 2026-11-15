@@ -165,12 +165,16 @@ async function storeExecutorPayload(typeId, draft, file, context, organizationId
 }
 
 function serviceAuth(context = {}) {
-  return context.executionAuth || context.auth || {
+  return context.executionAuth || {
     userId: context.userId,
     organizationId: context.organizationId,
     role: context.role,
     memberships: []
   };
+}
+
+function sourceReadAuth(context = {}) {
+  return context.executionAuth || context.auth || serviceAuth(context);
 }
 
 async function buildServiceInput(typeId, mode, draft, context, organizationId) {
@@ -214,7 +218,7 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
     if (fieldDef?.base === 'ref') {
       const input = refInputOf(draftData[field]);
       if (input) {
-        const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, acceptedTypesOf(fieldDef), field, organizationId, serviceAuth(context));
+        const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, acceptedTypesOf(fieldDef), field, organizationId, sourceReadAuth(context));
         refs[field] = resolved.value;
         if (resolved.pin) pins[field] = resolved.pin;
       }
@@ -229,7 +233,7 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
         refs[field] = [];
         pins[field] = [];
         for (const input of inputs) {
-          const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, acceptedTypesOf(fieldDef.itemType), field, organizationId, serviceAuth(context));
+          const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, acceptedTypesOf(fieldDef.itemType), field, organizationId, sourceReadAuth(context));
           refs[field].push(resolved.value);
           if (resolved.pin) pins[field].push(resolved.pin);
         }

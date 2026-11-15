@@ -1622,6 +1622,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
     const organizationId = resolveOrganizationId(auth);
     const declaration = await declarationForType(typeId, organizationId);
+    if (!declaration) throw createError({ statusCode: 404, message: `Unknown type ${typeId}` });
     const writeTarget = await writeGrantTarget(declaration, organizationId);
     if (!writeTarget) throw createError({ statusCode: 403, message: 'Permission denied' });
     // A construct is a create write, not merely an assigned action. Its
