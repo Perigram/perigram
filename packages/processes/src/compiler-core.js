@@ -17,7 +17,7 @@ import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, pr
 import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForTypeId, mergedHierarchyBindings } from './hierarchy-utils.js';
 import { actionTargetState, displayActionLabel } from './action-labels.js';
-import { entityLabelOf } from './type-labels.js';
+import { entityLabelOf } from './action-labels.js';
 import {
   constructionContract,
   normalizeConstruction,
@@ -33,7 +33,7 @@ export {
 } from './construction-compilation.js';
 
 export { actionTargetState, displayActionLabel } from './action-labels.js';
-export { entityLabelOf } from './type-labels.js';
+export { entityLabelOf } from './action-labels.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };

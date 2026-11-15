@@ -1,5 +1,8 @@
 import { creationModeLabel } from './ui-contract-projection.js';
-import { entityLabelOf } from './type-labels.js';
+
+export function entityLabelOf(domain = {}, typeId = '') {
+  return (domain.entities || []).find(entity => entity.type === typeId)?.label || null;
+}
 
 export function actionTargetState(action = {}, process = {}) {
   const stateRef = action.stateRef;
