@@ -54,7 +54,7 @@ case "$command" in
     compose up -d --build
     compose ps
     echo
-    echo "Perigram is starting at http://localhost:3000"
+    echo "Perigram is starting at http://localhost:${PERIGRAM_DEV_APP_PORT:-3001}"
     ;;
   down|stop)
     compose down
