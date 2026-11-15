@@ -72,8 +72,9 @@ from remaining proof and verification.
     features/states/repository.js is now a compatibility adapter. Added
     persistence-owner map and explicit cross-cutting exceptions in
     server/features/README.md.
-  - Full Vitest last passed on 09798d8 (269 files / 2,788 tests). Subsequent
-    persistence-owner changes are awaiting their own green CI run.
+  - Full Vitest passed on 4c2efd8 (270 files / 2,791 tests); SSR smoke,
+    architecture, framework declaration, documentation, and plugin dependency
+    checks also passed.
   - Still open: trace all direct service imports/callers, internal process
     effects, scheduled scanners, webhooks, and bootstrap writers end-to-end;
     reconcile the unused create/archive helpers in workflow-overrides with
