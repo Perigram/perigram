@@ -93,6 +93,16 @@ export async function getById(uid) {
   return new Organization(raw);
 }
 
+/**
+ * Authenticated organization detail reads use the same active-tenant and
+ * feature-permission gate as settings and mutations. Directory cards use
+ * getById directly because they intentionally expose a smaller cross-tenant
+ * projection rather than the organization record.
+ */
+export async function getManagedById(organizationId, auth = {}) {
+  return await loadManagedOrganization(organizationId, auth, 'read');
+}
+
 export async function list(auth = {}, filter = {}) {
   const finalFilter = { ...filter, ...getLineageFilter(auth) };
   const raws = await repository.find(finalFilter);
