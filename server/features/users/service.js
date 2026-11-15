@@ -183,7 +183,9 @@ export async function switchOrganization(userId, organizationId) {
   if (!user) throw createError({ statusCode: 404, message: 'User not found' });
 
   const membership = user.memberships.find(m => m.organizationId.toString() === organizationId.toString());
-  if (!membership) throw createError({ statusCode: 403, message: 'User is not a member of this organization' });
+  if (!membership || (membership.status && membership.status !== 'active')) {
+    throw createError({ statusCode: 403, message: 'User is not an active member of this organization' });
+  }
 
   user.lineage.organizationId = toFlexibleId(organizationId);
   user.data.permissions = membership.owner ? mergeOwnerPermissions(membership.permissions || {}) : membership.permissions;

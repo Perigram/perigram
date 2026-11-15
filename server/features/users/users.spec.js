@@ -235,6 +235,44 @@ describe('User Management & Auth', () => {
     expect(updatedUser.toJSON().data.role).toBeUndefined();
   });
 
+  it('rejects switching into an organization with a suspended membership', async () => {
+    const organizationId = new ObjectId();
+    const user = await db.collection('users').insertOne({
+      identity: { uid: 'suspended-multi-org-user', name: 'Suspended User' },
+      lineage: { organizationId: new ObjectId() },
+      data: {
+        memberships: [{
+          organizationId,
+          permissions: { organizations: 'admin' },
+          status: 'suspended'
+        }]
+      }
+    });
+
+    await expect(userService.switchOrganization(
+      user.insertedId.toString(),
+      organizationId.toString()
+    )).rejects.toMatchObject({ statusCode: 403 });
+    const unchanged = await db.collection('users').findOne({ _id: user.insertedId });
+    expect(unchanged.lineage.organizationId.toString()).not.toBe(organizationId.toString());
+  });
+
+  it('rejects switching into an organization with a pending membership', async () => {
+    const organizationId = new ObjectId();
+    const user = await db.collection('users').insertOne({
+      identity: { uid: 'pending-multi-org-user', name: 'Pending User' },
+      lineage: { organizationId: new ObjectId() },
+      data: {
+        memberships: [{ organizationId, permissions: {}, status: 'pending' }]
+      }
+    });
+
+    await expect(userService.switchOrganization(
+      user.insertedId.toString(),
+      organizationId.toString()
+    )).rejects.toMatchObject({ statusCode: 403 });
+  });
+
   it('does not expand preset labels into permissions when loading users', () => {
     const orgId = new ObjectId();
     const user = new User({
