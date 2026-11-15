@@ -1573,7 +1573,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     const normalized = normalizeTypeId(sourceTypeId);
     const entity = (domain?.entities || []).find(item => item.id === normalized || item.type === normalized);
     const fieldPolicy = getEntityFieldAccessPolicy(normalized) || domain?.fieldAccess?.[normalized];
-    return fieldPolicy?.feature || entity?.feature || entity?.collection || resolveInstanceFeature(normalized);
+    return fieldPolicy?.feature || entity?.feature || entity?.collection || resolveInstanceFeature(normalized, domain);
   };
   if (operation === 'cts.emit') {
     const type = String(inputs.type ?? '');
@@ -1649,7 +1649,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       : domainEntity
         ? {
             typeId: normalizeTypeId(typeId),
-            feature: domainEntity.feature || domainEntity.collection || normalizeTypeId(typeId)
+            feature: domainEntity.feature || domainEntity.collection || resolveInstanceFeature(typeId, domain)
           }
         : null;
     if (!writeTarget) throw createError({ statusCode: 404, message: `Unknown type ${typeId}` });
