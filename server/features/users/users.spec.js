@@ -169,7 +169,7 @@ describe('User Management & Auth', () => {
     }, auth);
 
     expect(created.memberships.some(membership => String(membership.organizationId) === String(organization.id))).toBe(true);
-    const rawOrganization = await db.collection('organizations').findOne({ _id: new ObjectId(organization.id) });
+    const rawOrganization = await db.collection('organizations').findOne({ _id: organization.id });
     expect(rawOrganization.data.roleAssignments[String(created.id)].roleIds).toEqual(['role_admin']);
   });
 
