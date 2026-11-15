@@ -18,7 +18,9 @@ imported through server modules that Nitro externalizes.
   UI actions, entity lineage scopes, workflow-transition scopes, and optional
   logical grant rules. `resolveEffectivePermissions()` centralizes active
   process → organization membership → legacy user grant precedence for server
-  checks and client-side field redaction.
+  checks and client-side field redaction. Process-effective grants are bound
+  to the active organization; redaction of an entity in another tenant uses
+  only that tenant's membership grant, or no grant.
   Primary-status facts use the canonical `getPrimaryState()` reader from
   [`@perigram/core`](../packages/core/README.md); access evaluation does not
   maintain a parallel status projection.

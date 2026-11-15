@@ -2143,3 +2143,15 @@ repository split. It prepares and validates the boundaries required by
   non-create policies. The package README records the ownership split. The
   latest staging CI run is queued without an assigned job, so this extraction
   is not yet represented as test-verified.
+- Field-redaction tenant boundary fix (2026-11-15): shared DTO redaction
+  previously selected a target entity's membership but still preferred
+  `auth.effectivePermissions`, which is compiled for the active organization.
+  A user's active-tenant grants could therefore redact records from another
+  tenant as though the user held the same grants there. The resolver now
+  applies effective process grants only to the active tenant; foreign-tenant
+  entities use their matching membership's stored grants or no grants.
+  Ownership resolution now recognizes top-level, lineage, and origin
+  organization ids consistently with the server access engine. Regression
+  coverage verifies read-vs-admin field projection and denies projection
+  without a target-tenant membership. Latest staging CI is queued without an
+  assigned job; this fix is not yet represented as test-verified.
