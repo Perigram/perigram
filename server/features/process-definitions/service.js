@@ -1571,7 +1571,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   const operation = operationKindOf(record || {}) || kind;
   const featureForType = sourceTypeId => {
     const normalized = normalizeTypeId(sourceTypeId);
-    const entity = (domain?.entities || []).find(item => item.type === normalized);
+    const entity = (domain?.entities || []).find(item => item.id === normalized || item.type === normalized);
     const fieldPolicy = getEntityFieldAccessPolicy(normalized) || domain?.fieldAccess?.[normalized];
     return fieldPolicy?.feature || entity?.feature || entity?.collection || resolveInstanceFeature(normalized);
   };
@@ -1639,7 +1639,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     } catch (error) {
       if (error?.statusCode !== 404 && !String(error?.message || '').includes(`Unknown type ${typeId}`)) throw error;
     }
-    const domainEntity = (domain?.entities || []).find(entity => entity.type === normalizeTypeId(typeId));
+    const domainEntity = (domain?.entities || []).find(entity => entity.id === normalizeTypeId(typeId) || entity.type === normalizeTypeId(typeId));
     // Some framework pack entities are projected into the process domain
     // before they have an org CTS declaration. They still use the same
     // collection-level write gate; only declared inheritance needs the CTS
