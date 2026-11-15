@@ -21,4 +21,8 @@ The committed [framework.manifest.json](../framework.manifest.json) is the read-
 
 Packages stay domain-agnostic; the facade domain is the installable plugin under `workers/facade`.
 
-Application code currently reaches workspace packages through Nuxt root aliases (`~/packages/<pkg>/src/index.js`) or portable `#packages/<pkg>/src/index.js` imports. These are source-path boundaries, not independently versioned package imports; §29 extraction must replace them with declared package dependencies and public exports.
+All four packages are npm workspaces at the exact version `0.1.0`. Application, server, and worker consumers use declared package names and package export maps; the maintained-consumer inventory enforces zero relative source-path imports and zero legacy root-alias imports.
+
+The maintained source dependency graph is one-way: `@perigram/processes` depends on `@perigram/core` and `@perigram/cts`; `core`, `cts`, and `plugin-sdk` have no cross-package source imports. The package graph is checked in CI.
+
+Each package manifest remains `private: true`. These are explicit internal workspace boundaries, not yet independently publishable or extraction-ready packages. Before extraction, verify package and executor contracts independently, including browser/Node entry compatibility and versioned external interfaces, as required by [SPEC §29–30](../SPEC.md).
