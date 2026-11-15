@@ -10,7 +10,10 @@ ARG http_proxy
 ARG https_proxy
 ARG no_proxy
 
-RUN pip install --no-cache-dir build123d==0.13.0
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgl1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir build123d==0.13.0
 
 WORKDIR /src
 COPY . /src/workers/build123d
