@@ -5512,6 +5512,13 @@ work list; each task names the owner seam and the desired machine.
   complete/fail, cancel, retry, lease reclaim, and a definition that
   renames status values. Evidence: `server/core/tasks/service.js:8,72-180`,
   `repository.js:34-65`; desired machine SPEC §25.
+- [ ] Task completion concurrency: two completion requests carrying the
+  same still-valid claim can both pass the initial read and execute
+  `processEvents`/`processEffects` before either wins the final
+  `updateClaimedById` compare-and-set. The final state is protected, but
+  side effects are not. Define a durable idempotent effect/outbox protocol
+  with crash recovery before claiming concurrent completion is exactly-once;
+  a short-lived in-memory lock or a completion flag alone is insufficient.
 - [x] `server/core/commands`: add orphan recovery for `RUNNING`. A
   startup sweep, or the command lease chosen below, marks stale runs
   `FAILED` with `abandoned` context and a finish stamp. Add transition
