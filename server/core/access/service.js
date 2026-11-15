@@ -5,7 +5,7 @@ import { isPublicReadEntity } from '#shared/public-entities.js';
 
 export function assertEntityAccess({ entity, typeId, feature = typeId, level = 'read', action = null, auth }) {
   const publicRead = level === 'read' && isPublicReadEntity({ entity, typeId, feature });
-  if (!hasPrincipal(auth) && !publicRead) {
+  if (!auth || (!hasPrincipal(auth) && !publicRead)) {
     throw createError({ statusCode: 401, message: 'Authentication required' });
   }
   if (!hasInstanceAccess({ entity, feature, level, action, auth, typeId })) {
@@ -143,9 +143,9 @@ export function getEffectivePermissions(auth = {}, membership = null) {
 }
 
 function hasPrincipal(auth = {}) {
-  return Boolean(auth.userId) || isSystemAuth(auth);
+  return Boolean(auth?.userId) || isSystemAuth(auth);
 }
 
 function isSystemAuth(auth = {}) {
-  return auth.system === true || auth.userId === 'SYSTEM';
+  return auth?.system === true || auth?.userId === 'SYSTEM';
 }
