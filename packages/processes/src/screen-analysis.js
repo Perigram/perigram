@@ -1,6 +1,6 @@
 import { normalizeScreenContract } from './screen-contract.js';
+import { normalizeProcessDefinition } from './normalization.js';
 import {
-  normalizeProcessDefinition,
   compileLineageBindings,
   normalizeRoleCatalog,
   compileRoles,

@@ -1,3 +1,4 @@
+import { normalizeProcessDefinition } from './normalization.js';
 import { operationKindOf } from '@perigram/cts';
 import { validateScreenContract } from './screen-contract.js';
 import {
@@ -19,7 +20,6 @@ import { compileLifecycle, stateNestingPairs } from './workflow-compilation.js';
 import {
   effectKindOf,
   isEffectRecord,
-  normalizeProcessDefinition,
   requiredEffectCapability,
   compileLineageBindings,
   actionTypeId,

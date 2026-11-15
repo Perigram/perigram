@@ -135,6 +135,7 @@ CTS declaration records and designer authoring in; runtime contracts out. The se
 | `types.js`, `node-catalog.js`, `operations.js`, `ports.js` | protocol, catalog, operation registry, socket handles |
 | `authoring.js`, `designer.js` | authoring seam; declaration-tree compilation (`compileTreeDeclarations`) |
 | `compiler.js` | top-level normalize → validate → compile orchestration |
+| `normalization.js` | process-definition and node/input normalization |
 | `validation.js` | process, input, and lineage validation |
 | `workflow-compilation.js` | lifecycle normalization and workflow compilation |
 | `compiler-core.js` | normalization and compiler algorithms, plus compiled contract generation |

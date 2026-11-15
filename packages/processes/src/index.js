@@ -1,6 +1,5 @@
 export {
   PROCESS_SCHEMA_VERSION,
-  normalizeProcessDefinition,
   requiredEffectCapability,
   compileLineageBindings,
   compileAssignmentAccess,
@@ -8,6 +7,7 @@ export {
   compileScreens,
   compileActions
 } from './compiler-core.js';
+export { normalizeProcessDefinition } from './normalization.js';
 export { detectRedundantScreens, redundantAuthoredScreens } from './screen-analysis.js';
 export {
   validateProcessDefinition,
