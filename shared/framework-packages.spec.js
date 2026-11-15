@@ -36,7 +36,6 @@ describe('Framework package contracts', () => {
 
     expect(JSON.parse(readFileSync('packages/processes/package.json', 'utf8')).exports).toMatchObject({
       './authoring': './src/authoring.js',
-      './compiler-core': './src/compiler-core.js',
       './designer': './src/designer.js',
       './node-catalog': './src/node-catalog.js',
       './screen-contract': './src/screen-contract.js',

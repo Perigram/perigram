@@ -11,7 +11,9 @@ const messages = {
   'generatedScreen.actions.run': 'Run',
   'generatedScreen.actions.send': 'Send',
   'uiMapping.types.cassette': 'Cassette',
-  'uiMapping.types.sheet-design': 'Sheet design'
+  'uiMapping.types.sheet-design': 'Sheet design',
+  'uiMapping.createCaption': ({ type }) => `New ${type}`,
+  'uiMapping.createCaptionFromMode': ({ type, mode }) => `New ${type} from ${mode}`
 };
 
 const i18n = {
@@ -27,19 +29,19 @@ describe('generated labels', () => {
     expect(generatedScreenLabel({ typeId: 'sheet_design', label: 'Монтажник sheet_design' }, i18n)).toBe('Sheet design');
   });
 
-  it('does not include create verbs or raw status values in generated action labels', () => {
+  it('uses procedural create captions and hides raw status values', () => {
     expect(generatedActionLabel({
       actionKind: 'createInstance',
       typeId: 'cassette',
       state: { to: 'NEW' },
       label: 'Create'
-    }, '', i18n)).toBe('Cassette');
+    }, '', i18n)).toBe('New Cassette');
 
     expect(generatedActionLabel({
       actionKind: 'createInstance',
       typeId: 'cassette',
       label: 'Создать сущность'
-    }, '', i18n)).toBe('Cassette');
+    }, '', i18n)).toBe('New Cassette');
 
     expect(generatedActionLabel({
       actionKind: 'updateInstance',
@@ -65,7 +67,7 @@ describe('generated labels', () => {
       actionKind: 'createInstance',
       typeId: 'cassette',
       label: 'Create cassette NEW'
-    }, '', i18n)).toBe('Cassette');
+    }, '', i18n)).toBe('New Cassette');
 
     expect(generatedActionLabel({
       actionKind: 'link',
@@ -96,7 +98,7 @@ describe('generated labels', () => {
       actionKind: 'createInstance',
       typeId: 't-k3x9fj2mqa',
       label: 'Create t-k3x9fj2mqa new'
-    }, '', i18n)).toBe('Job Ticket');
+    }, '', i18n)).toBe('New Job Ticket');
 
     // Without a bundle entry the unnamed placeholder stays — humanized
     // raw ids never render.
