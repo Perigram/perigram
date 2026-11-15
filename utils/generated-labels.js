@@ -60,6 +60,7 @@ export function generatedCreateLabel(action = {}, { t, te, includeMode = true } 
   const mode = creationModeLabel(action.construction?.mode);
   const baseName = registryTypeRecord(actionTypeOf(action))?.name || '';
   const generic = !authored
+    || isGenericActionLabel(authored, action)
     || authored === `New ${baseName}`
     || authored === `New ${baseName} from ${mode}`;
   if (!generic) return authored;
