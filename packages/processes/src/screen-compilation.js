@@ -1,4 +1,5 @@
 import { normalizeScreenContract } from './screen-contract.js';
+import { mergedHierarchyBindings } from './hierarchy-utils.js';
 import {
   withCompiledLineage,
   buildActionGraphContext,

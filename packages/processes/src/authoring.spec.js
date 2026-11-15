@@ -11,7 +11,7 @@ import {
   graphEdgeSocketProblems,
   graphIntegrityProblems
 } from './authoring.js';
-import { validateProcessDefinition } from './compiler-core.js';
+import { validateProcessDefinition } from './validation.js';
 import { validateRoundTrip } from './transpiler.js';
 import { compileTreeDeclarations } from './designer.js';
 import { createTypeRegistry, projectDomainFromView, frameworkTypes, resolveCtsDefinition, checkCtsGraphBindings, rowFieldId } from '../../cts/src/index.js';
