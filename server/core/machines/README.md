@@ -21,7 +21,7 @@ access checks, event writes, and hook dispatch.
 - **`entity-loader.js`**: resolves the typed instance document, collection, and active workflow.
 - **`transition-context.js`**: normalizes actor/context data and prepares lifecycle evidence, attachment refs, and readable snapshots.
 - **`transition-hooks.js`**: validates declared hook parameters and dispatches before/after hooks.
-- **`repository.js`**: owns status-event inserts and entity status writes.
+- **`repository.js`**: the sole owner of `status_events` inserts/reads and entity status writes; legacy state-history callers delegate here through a compatibility adapter.
 - **`event-records.js`** and **`status-projection.js`**: own event envelopes and stored/display state-shape adapters.
 
 ### 1. State Machine Engine

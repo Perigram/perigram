@@ -1,6 +1,6 @@
 # COMPONENT: States
 
-Centralized state management and audit logging system for all system entities.
+Legacy lifecycle status projection and history service. The canonical `status_events` persistence owner is `server/core/machines/repository.js`; this feature's repository module is only a compatibility adapter.
 
 Parent: [server/features](../README.md).
 
