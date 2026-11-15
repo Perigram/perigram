@@ -126,10 +126,10 @@ export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, g
     return resolveInstanceFeature(resolveActionTypeId(action));
   }
   
-  function resolveInstanceFeature(typeId = '') {
+  function resolveInstanceFeature(typeId = '', domainOverride = null) {
     typeId = normalizeTypeId(typeId);
-    const domain = getDomain();
-    const entity = (domain?.entities || []).find(item => item.type === typeId);
+    const domain = domainOverride || getDomain();
+    const entity = (domain?.entities || []).find(item => item.id === typeId || item.type === typeId);
     const fieldPolicy = getEntityFieldAccessPolicy(typeId) || domain?.fieldAccess?.[typeId];
     if (fieldPolicy?.feature) return fieldPolicy.feature;
     if (entity?.feature) return entity.feature;
