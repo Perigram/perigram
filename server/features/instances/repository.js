@@ -71,3 +71,23 @@ export async function findInstancesByFilter(collection, filter = {}) {
   const db = await connectDB();
   return await db.collection(collection).find(filter).toArray();
 }
+
+
+// Bounded deadline scan for one declared type and organization. The scanner
+// owns scheduling policy; this repository owns collection/query mechanics.
+export async function findOverdueInstances(collection, typeId, organizationId, statePath, cutoff, limit = 200) {
+  const db = await connectDB();
+  const orgId = toFlexibleId(organizationId);
+  return db.collection(collection).find({
+    type: typeId,
+    $and: [
+      { $or: [{ organizationId: orgId }, { 'lineage.organizationId': orgId }] },
+      {
+        $or: [
+          { state: statePath, stateChangedAt: { $lt: cutoff.toISOString() } },
+          { 'status.state.primary': statePath, 'status.timestamp': { $lt: cutoff } }
+        ]
+      }
+    ]
+  }).project({ _id: 1 }).limit(limit).toArray();
+}
