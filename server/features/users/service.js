@@ -324,7 +324,7 @@ export async function removeAvatar(uid, auth = {}) {
   if (fileId) await filesService.deleteFile(fileId, 'avatars');
   return { success: true };
 }
-\n
+
 export async function remove(uid, deleterAuth = {}) {
   const userRaw = await usersRepository.findById(uid);
   if (!userRaw) throw createError({ statusCode: 404, message: 'User not found' });

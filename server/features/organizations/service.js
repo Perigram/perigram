@@ -291,4 +291,3 @@ function assertUniqueRoleLabel(roles, label, exceptRoleId = null) {
   const duplicate = Object.entries(roles).some(([roleId, role]) => roleId !== exceptRoleId && role.label.toLowerCase() === label.toLowerCase());
   if (duplicate) throw createError({ statusCode: 409, message: 'Role label already exists' });
 }
-\n
