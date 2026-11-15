@@ -52,7 +52,10 @@ export function revisionIdentity(typeId, instanceId, scope, number) {
 // system revisions (no organization) admitted beside org rows.
 function canReadRevision(userPermissions, revision) {
   if (!userPermissions) return true;
-  const orgId = (revision?.lineage?.organizationId ?? revision?.organizationId)?.toString?.() || null;
+  const rawOrgId = revision?.organizationId
+    ?? revision?.lineage?.organizationId
+    ?? revision?.origin?.organizationId;
+  const orgId = rawOrgId?.toString?.() || null;
   if (!orgId) return true;
   const activeOrgId = userPermissions.organizationId?.toString?.() || null;
   return Boolean(activeOrgId) && orgId === activeOrgId;
@@ -116,6 +119,9 @@ export async function ensureForEntitySnapshot({
     ...(origin ? { origin, status: origin } : {}),
     lineage: {
       ...(entity.lineage || {}),
+      ...((entity.organizationId ?? entity.lineage?.organizationId ?? entity.origin?.organizationId)
+        ? { organizationId: toFlexibleId(entity.organizationId ?? entity.lineage?.organizationId ?? entity.origin?.organizationId) }
+        : {}),
       [`${typeId}Id`]: instanceId
     },
     attachments,
@@ -180,8 +186,24 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   // The read scope mirrors the source records' list law: own-org rows
   // with system rows (no organization) admitted beside them.
   const activeOrgId = userPermissions?.organizationId?.toString?.() || null;
+  const orgValues = activeOrgId
+    ? [...new Map([toFlexibleId(activeOrgId), activeOrgId].map(value => [String(value), value])).values()]
+    : [];
   const orgScope = activeOrgId
-    ? { $or: [{ 'lineage.organizationId': toFlexibleId(activeOrgId) }, { 'lineage.organizationId': null }] }
+    ? {
+        $or: [
+          { 'lineage.organizationId': { $in: orgValues } },
+          { organizationId: { $in: orgValues } },
+          { 'origin.organizationId': { $in: orgValues } },
+          {
+            $and: [
+              { 'lineage.organizationId': null },
+              { organizationId: null },
+              { 'origin.organizationId': null }
+            ]
+          }
+        ]
+      }
     : {};
   const processed = { ...filter };
   if (processed.instanceId) {

@@ -41,6 +41,12 @@ workflow; with no registered workflow a revision carries no status. An
 organization process remains free to register its own active revision
 workflow.
 
+A revision always inherits its source's organization from the source's
+top-level `organizationId`, lineage, or origin. The stored revision lineage
+therefore preserves tenant ownership even when the source DTO carries
+organization scope outside its lineage block; organization-less revisions
+remain the deliberate system-wide case.
+
 ## Workflows
 
 - `ensureForEntitySnapshot()` creates or reuses a revision from canonical scoped
