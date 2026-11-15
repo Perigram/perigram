@@ -12,7 +12,7 @@ vi.mock('../instance-revisions/service.js', () => ({
   pinnedRevisionFile: vi.fn()
 }));
 vi.mock('../../core/access/service.js', () => ({
-  hasInstanceAccess: vi.fn(() => true)
+  hasInstanceAccess: mockedHasInstanceAccess
 }));
 vi.mock('../plugins/repository.js', () => ({
   listDeclarationsByOrganization: vi.fn(async () => []),
@@ -103,6 +103,7 @@ function executorOutput(output) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockedHasInstanceAccess.mockReturnValue(true);
   executeConnectorService.mockReset();
   connectDB.mockResolvedValue(db);
 });
@@ -248,6 +249,24 @@ describe('service-backed construction executor payloads (SPEC §24)', () => {
     expect(call.parameters.refs.parts.map(part => part.name)).toEqual(['frame', 'logo']);
     expect(call.parameters.refs.parts.every(part => part.payloadBase64 === b64('uploaded'))).toBe(true);
     expect(merged.payload.fileId).toBe('stored-Site plan.dxf');
+  });
+
+  it('does not resolve same-organization construction refs without a read grant', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockImplementation(query => String(query._id) === 't1'
+      ? { _id: 't1', type: 'drawing', organizationId: 'org-1', name: 'Private template', data: {}, payload: { fileId: 'f-t', mime: 'application/dxf' } }
+      : null);
+    mockedHasInstanceAccess.mockReturnValue(false);
+
+    await expect(applyConstructionService('drawing', 'place', {
+      name: 'Site plan',
+      data: { template: 't1' }
+    }, {
+      ...CONTEXT,
+      executionAuth: { userId: 'u1', organizationId: 'org-1', memberships: [] }
+    })).rejects.toMatchObject({ statusCode: 403 });
+    expect(executeConnectorService).not.toHaveBeenCalled();
+    expect(filesService.getFileBuffer).not.toHaveBeenCalled();
   });
 
   it('refuses a list-of-ref item none of the accepted types serves', async () => {

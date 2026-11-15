@@ -1620,7 +1620,30 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     let blockDraft = processBlockInputRecord(record, inputs);
     const relationValues = declaredRelationValues(inputs.relations, relationContracts);
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
-    const executionAuth = createActionExecutionAuth(auth, record, { relationContracts });
+    const organizationId = resolveOrganizationId(auth);
+    const declaration = await declarationForType(typeId, organizationId);
+    const writeTarget = await writeGrantTarget(declaration, organizationId);
+    if (!writeTarget) throw createError({ statusCode: 403, message: 'Permission denied' });
+    // A construct is a create write, not merely an assigned action. Its
+    // request-local grant must pass the same create/action-level gate as
+    // every other instance writer before construction work or persistence.
+    const actionForAuth = {
+      ...record,
+      typeId: writeTarget.typeId,
+      construction: {
+        ...(record.construction || {}),
+        inputs: effectConstructionInputs(record, domain)
+      }
+    };
+    const executionAuth = createActionExecutionAuth(auth, actionForAuth, { relationContracts });
+    assertEntityAccess({
+      entity: { organizationId },
+      typeId: writeTarget.typeId,
+      feature: writeTarget.feature,
+      level: 'write',
+      action: 'create',
+      auth: executionAuth
+    });
     // Relation values arrive on two channels — the block socket and the
     // construct-addressable `relations.*` construction inputs — and both
     // normalize through the same declared-edge contract, so the stored
@@ -1661,7 +1684,6 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     if (typeof handler !== 'function') {
       throw new Error(`No registered handler for construction mode ${mode || '(none)'} on ${typeId}`);
     }
-    const organizationId = resolveOrganizationId(auth);
     const created = await handler(draft, {
       userId: auth.userId,
       organizationId,

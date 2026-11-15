@@ -165,7 +165,7 @@ async function storeExecutorPayload(typeId, draft, file, context, organizationId
 }
 
 function serviceAuth(context = {}) {
-  return context.executionAuth || {
+  return context.executionAuth || context.auth || {
     userId: context.userId,
     organizationId: context.organizationId,
     role: context.role,
@@ -214,7 +214,7 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
     if (fieldDef?.base === 'ref') {
       const input = refInputOf(draftData[field]);
       if (input) {
-        const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, acceptedTypesOf(fieldDef), field, organizationId);
+        const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, acceptedTypesOf(fieldDef), field, organizationId, serviceAuth(context));
         refs[field] = resolved.value;
         if (resolved.pin) pins[field] = resolved.pin;
       }
@@ -229,7 +229,7 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
         refs[field] = [];
         pins[field] = [];
         for (const input of inputs) {
-          const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, acceptedTypesOf(fieldDef.itemType), field, organizationId);
+          const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, acceptedTypesOf(fieldDef.itemType), field, organizationId, serviceAuth(context));
           refs[field].push(resolved.value);
           if (resolved.pin) pins[field].push(resolved.pin);
         }
@@ -292,10 +292,20 @@ function acceptedTypesOf(fieldDef) {
   return Array.isArray(fieldDef.accepts) ? fieldDef.accepts : [];
 }
 
-async function resolveRefValue(instanceServiceResolver, declarationForType, input, accepted, field, organizationId) {
+async function resolveRefValue(instanceServiceResolver, declarationForType, input, accepted, field, organizationId, auth = {}) {
   let instance = null;
   for (const acceptedType of accepted) {
-    instance = await instanceServiceResolver(acceptedType).getById(input.id).catch(() => null);
+    const service = instanceServiceResolver(acceptedType);
+    if (typeof service?.processGetById !== 'function') {
+      throw createError({ statusCode: 500, message: `Entity service cannot authorize construction input ${acceptedType}` });
+    }
+    try {
+      instance = await service.processGetById(input.id, auth);
+    } catch (error) {
+      // A missing candidate lets the declared union try its next type;
+      // permission failures must not be disguised as a missing reference.
+      if (error?.statusCode !== 404) throw error;
+    }
     if (instance) break;
   }
   if (!instance) {

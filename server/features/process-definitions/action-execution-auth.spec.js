@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createActionExecutionAuthHelpers } from './action-execution-auth.js';
+import { assertEntityAccess } from '../../core/access/service.js';
 
 describe('process action execution authorization', () => {
   const helpers = createActionExecutionAuthHelpers({
@@ -53,6 +54,41 @@ describe('process action execution authorization', () => {
       ],
       'audit-log': [{ level: 'read', actions: { view: true } }]
     });
+  });
+
+  it('does not let a read-level construct action pass the create write gate', () => {
+    const baseAuth = {
+      userId: 'u1',
+      organizationId: 'org-1',
+      memberships: [{ organizationId: 'org-1', permissions: {} }]
+    };
+    const readExecution = helpers.createActionExecutionAuth(baseAuth, {
+      id: 'construct-work-item',
+      typeId: 'work_item',
+      access: { level: 'read' }
+    });
+    expect(() => assertEntityAccess({
+      entity: { organizationId: 'org-1' },
+      typeId: 'work_item',
+      feature: 'work-items',
+      level: 'write',
+      action: 'create',
+      auth: readExecution
+    })).toThrow(/Permission denied/);
+
+    const writeExecution = helpers.createActionExecutionAuth(baseAuth, {
+      id: 'construct-work-item',
+      typeId: 'work_item',
+      access: { level: 'write' }
+    });
+    expect(() => assertEntityAccess({
+      entity: { organizationId: 'org-1' },
+      typeId: 'work_item',
+      feature: 'work-items',
+      level: 'write',
+      action: 'create',
+      auth: writeExecution
+    })).not.toThrow();
   });
 
   it('derives mutation grants from the action kind without widening unrelated permissions', () => {
