@@ -35,7 +35,7 @@ export async function upsert(typeId, instanceId, { blocks, order } = {}, auth = 
 
 export async function remove(typeId, instanceId, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
-  const { entity, declaration } = await requireOwnInstance(typeId, instanceId, organizationId);
+  const { entity, declaration } = await requireOwnInstance(typeId, instanceId, auth);
   await requireWriteGrant(declaration, entity, organizationId, auth, 'delete');
   const row = await repository.findByKey(organizationId, typeId, instanceId);
   if (!row) {
@@ -65,7 +65,7 @@ async function requireOwnInstance(typeId, instanceId, auth) {
   }
   const service = getAppRegistry().getInstanceService(typeId);
   const entity = service?.processGetById
-    ? await service.processGetById(instanceId, { organizationId })
+    ? await service.processGetById(instanceId, auth)
     : null;
   if (!entity) {
     throw createError({ statusCode: 404, message: `${typeId} ${instanceId} not found` });

@@ -476,6 +476,11 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(dto.name).toBe('Hanger 40x20');
 
     const { hasInstanceAccess } = await import('../../core/access/service.js');
+    expect(hasInstanceAccess).toHaveBeenLastCalledWith(expect.objectContaining({
+      typeId: 'label',
+      level: 'write',
+      action: 'create'
+    }));
     hasInstanceAccess.mockReturnValueOnce(false);
     await expect(service.createForHttp(
       { name: 'Nope', fields: {} },
@@ -620,6 +625,12 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
     const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
     expect(set.payload).toMatchObject({ fileId: 'stored-table.csv', mime: 'text/csv' });
     expect(dto.payload.fileId).toBe('stored-table.csv');
+    const { hasInstanceAccess } = await import('../../core/access/service.js');
+    expect(hasInstanceAccess).toHaveBeenLastCalledWith(expect.objectContaining({
+      typeId: 'csv-table',
+      level: 'write',
+      action: 'update'
+    }));
   });
 
   it('refuses types without a revision scope or payload traits', async () => {
