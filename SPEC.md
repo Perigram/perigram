@@ -2079,3 +2079,36 @@ repository split. It prepares and validates the boundaries required by
   persistence-owner inventory: imported helpers, non-service modules,
   storage providers, background workers, and indirect writes still require
   tracing. No code change was warranted by this pass.
+
+- Follow-up implementation (2026-11-15): `packages/core/src/index.js` is now
+  a public barrel over focused `registry.js`, `entities.js`, and
+  `results.js` modules, alongside the existing `status.js` and
+  `workflows.js`. The core package README records the module ownership.
+- The process compiler public barrel no longer routes through six
+  forwarding-only modules. Its API is exported directly from
+  `compiler-core.js`; the role-assignment/access read projection now has a
+  real `access.js` implementation module. The compiler implementation
+  itself remains a large, coupled module and further decomposition is open.
+- The machine application adapter now delegates entity loading,
+  transition-context/evidence normalization, and hook dispatch to
+  `entity-loader.js`, `transition-context.js`, and `transition-hooks.js`.
+  `service.js` retains transition orchestration and write ordering; its
+  README records the ownership split.
+- Static private-reference scans removed eight unreferenced helpers from
+  inspected modules: two in the process compiler, four in the process
+  definition service, one in support, and one in the cassette renderer
+  (289 source lines total). This is a scoped static scan, not proof that all
+  dead code across the repository has been found.
+- Task-run claim updates now reject a lost claim when MongoDB matches no
+  document; a regression test steals the claim during effect processing and
+  verifies that completion is not reported. The focused task service suite
+  passed (8/8); machine service tests passed (22/22); process compiler API
+  tests passed (103/103).
+- Verification on staging: SSR smoke tests and architecture, framework,
+  documentation, and plugin-dependency checks pass. The latest complete
+  Vitest run is still not green (14 failed files / 20 failed tests, 249
+  passed files / 2,702 passed tests); the failures remain concentrated in
+  UI, app-registry, instance, agent-bot, and process-definition tests. One
+  additional UI failure appeared versus the preceding 13-file / 19-test
+  run, so it is not being dismissed as baseline without further diagnosis.
+
