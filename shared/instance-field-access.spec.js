@@ -344,6 +344,27 @@ describe('entity field access', () => {
     expect(redactEntityForAccess(otherOrganization, 'organization', auth)).toEqual({});
   });
 
+  it('keeps pending member details visible to an active organization administrator', () => {
+    const pendingUser = {
+      _id: 'user-pending',
+      identity: { name: 'Pending Colleague' },
+      lineage: { organizationId: 'org-1' },
+      data: {
+        email: 'pending@example.com',
+        memberships: [{ organizationId: 'org-1', status: 'pending' }]
+      }
+    };
+    const auth = {
+      organizationId: 'org-1',
+      effectivePermissions: { users: 'admin' },
+      memberships: [{ organizationId: 'org-1', status: 'active', permissions: { users: 'admin' } }]
+    };
+
+    const redacted = redactEntityForAccess(pendingUser, 'user', auth);
+    expect(redacted.identity.name).toBe('Pending Colleague');
+    expect(redacted.data.email).toBe('pending@example.com');
+  });
+
   it('does not treat suspended shared memberships as user-field access', () => {
     const targetUser = {
       _id: 'user-suspended',

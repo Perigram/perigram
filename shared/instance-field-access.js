@@ -31,7 +31,7 @@ export function getActivePermissionsFromAuth(auth = {}, entity = null, typeId = 
   // projection, prefer the caller's active organization when the target
   // user is a member there; otherwise use the first shared membership.
   const targetUserOrgIds = normalizeFieldAccessTypeId(typeId) === 'user'
-    ? new Set((entity?.data?.memberships || []).filter(isActiveMembership).map(item =>
+    ? new Set((entity?.data?.memberships || []).map(item =>
       item?.organizationId?.toString?.() || String(item?.organizationId || '')
     ))
     : null;
@@ -51,12 +51,7 @@ export function getActivePermissionsFromAuth(auth = {}, entity = null, typeId = 
   const inactiveCallerMembership = targetOrgId && allMemberships.some(item => (
     item.organizationId?.toString?.() === targetOrgId.toString() && !isActiveMembership(item)
   ));
-  const inactiveTargetUserMembership = targetUserOrgIds && targetOrgId
-    && (entity?.data?.memberships || []).some(item => (
-      (item?.organizationId?.toString?.() || String(item?.organizationId || '')) === targetOrgId.toString()
-      && !isActiveMembership(item)
-    ));
-  if (inactiveCallerMembership || inactiveTargetUserMembership) return {};
+  if (inactiveCallerMembership) return {};
 
   // Effective permissions are compiled for the active organization. Never
   // reuse that projection when redacting an entity owned by another tenant:
