@@ -5,7 +5,6 @@ export {
   validateProcessDefinition,
   validateRequiredInputAvailability,
   validateLineageBindingResolution,
-  compileProcessDefinition,
   compileLineageBindings,
   compileAssignmentAccess,
   compileHomeScreenForAssignment,
@@ -14,6 +13,7 @@ export {
   redundantAuthoredScreens,
   compileActions
 } from './compiler-core.js';
+export { compileProcessDefinition } from './compiler.js';
 export {
   resolveRoleAssignmentAccess,
   resolveEffectiveAccess,

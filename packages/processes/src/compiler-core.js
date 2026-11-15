@@ -1397,60 +1397,6 @@ export function validateLineageBindingResolution(process = {}, domain = {}) {
   return errors;
 }
 
-export function compileProcessDefinition(definition = {}, domain = {}, { roles = {} } = {}) {
-  const organizationRoles = normalizeRoleCatalog(roles);
-  const validation = validateProcessDefinition(definition, domain, { roles: organizationRoles });
-  if (!validation.ok) {
-    const error = new Error(validation.errors.join('; '));
-    error.validation = validation;
-    throw error;
-  }
-
-  const process = validation.definition;
-  const lineageBindings = compileLineageBindings(process, domain);
-  const workflows = compileWorkflows(process, domain, lineageBindings);
-  const workflowByType = {};
-  for (const [producerOutputId, workflow] of Object.entries(workflows)) {
-    const typeId = process.producerOutputs?.[producerOutputId]?.typeId;
-    if (typeId && !workflowByType[typeId]) workflowByType[typeId] = workflow;
-  }
-  const compiledRoles = compileRoles(process, domain, organizationRoles, lineageBindings, workflows);
-  const compiledScreens = compileScreens(process, domain, compiledRoles, lineageBindings);
-  const fieldPolicies = compileFieldPolicies(process.producerOutputs, domain);
-  // The compiled machine is the authority on the execution channel too: a
-  // status-mutating action whose edge the machine dropped is not part of
-  // the contract, so no surface renders it and the run API resolves none.
-  const compiledActions = Object.fromEntries(Object.entries(compileActions(process.actions, process, domain, lineageBindings))
-    .filter(([, action]) => action.actionKind !== 'updateEntity'
-      || !action.state?.to
-      || !workflowDropsNoOp(workflowByType[action.typeId], action.state.from, action.state.to)));
-  const producerOutputs = Object.fromEntries(Object.entries(process.producerOutputs).map(([producerOutputId, output]) => [producerOutputId, {
-    ...output,
-    producerOutputId,
-    workflow: workflows[producerOutputId],
-    fieldPolicy: fieldPolicies[producerOutputId],
-    actions: Object.values(compiledActions).filter(action => action.producerOutputId === producerOutputId),
-    lineageBindings: lineageBindings.filter(binding => binding.producerOutputId === producerOutputId)
-  }]));
-
-  return {
-    schemaVersion: PROCESS_SCHEMA_VERSION,
-    activatedAt: new Date().toISOString(),
-    roles: compiledRoles,
-    servicePrincipals: process.servicePrincipals,
-    producerOutputs,
-    actions: compiledActions,
-    stateDefinitions: compileStatusDefinitions(process.stateDefinitions),
-    valueInputs: compileValueInputs(process.valueInputs),
-    processNodes: compileProcessNodes(process.processNodes),
-    services: compileServices(process.services),
-    sockets: compileSockets(process.sockets),
-    screens: projectUiContractChannels({ screens: compiledScreens }).screens,
-    lineageBindings,
-    warnings: validation.warnings
-  };
-}
-
 export function compileLineageBindings(process = {}, domain = {}) {
   const bindings = [];
   const processNodes = process.processNodes || {};
@@ -1767,7 +1713,7 @@ function stateCanonicalPath(region = {}, value = '') {
   return entry ? entry.path.join('.') : '';
 }
 
-function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
+export function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
   const workflows = {};
   const actionWindows = compileActionAccessWindows(process, domain, lineageBindings);
   const graphContext = buildActionGraphContext(process);
@@ -2276,7 +2222,7 @@ function topLevelHomeSections(screens = [], hierarchy = []) {
   return [...sectionsByType.values()].filter(section => !childTypes.has(section.typeId));
 }
 
-function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineageBindings = [], workflows = {}) {
+export function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineageBindings = [], workflows = {}) {
   const graphContext = buildActionGraphContext(process);
   const workflowByType = {};
   for (const [producerOutputId, workflow] of Object.entries(workflows || {})) {
@@ -2388,7 +2334,7 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
 // Entering a state lands on its initial child, so a status action whose
 // arrival leaf equals its target leaf moves nowhere: it is a no-op, not a
 // transition, and belongs to neither the execution channel nor the manifest.
-function workflowDropsNoOp(workflow, from, to) {
+export function workflowDropsNoOp(workflow, from, to) {
   if (!workflow || !to) return false;
   const region = workflow.regions?.[workflow.primaryRegion]
     || Object.values(workflow.regions || {})[0]
@@ -3004,7 +2950,7 @@ function replacePlaceholders(value, bindings, incomplete) {
   });
 }
 
-function normalizeRoleCatalog(roles = {}) {
+export function normalizeRoleCatalog(roles = {}) {
   return Object.fromEntries(Object.entries(normalizeRecord(roles)).map(([roleId, role]) => [roleId, {
     id: role.id || roleId,
     label: role.label || role.id || roleId
@@ -3701,7 +3647,7 @@ function dedupeNavigation(items = []) {
   return [...byKey.values()];
 }
 
-function compileFieldPolicies(producerOutputs = {}, domain = {}) {
+export function compileFieldPolicies(producerOutputs = {}, domain = {}) {
   const policies = {};
   for (const profile of Object.values(producerOutputs)) {
     policies[profile.producerOutputId] = {
@@ -3716,7 +3662,7 @@ function compileFieldPolicies(producerOutputs = {}, domain = {}) {
   return policies;
 }
 
-function compileServices(services = {}) {
+export function compileServices(services = {}) {
   return Object.fromEntries(Object.entries(services).map(([id, service]) => [id, {
     id: service.id || id,
     enabled: true,
@@ -3743,7 +3689,7 @@ function compileServiceBilling(billing = {}) {
   };
 }
 
-function compileSockets(sockets = {}) {
+export function compileSockets(sockets = {}) {
   return Object.fromEntries(Object.entries(sockets).map(([id, socket]) => [id, {
     id: socket.id || id,
     label: socket.label || socket.id || id,
@@ -3942,7 +3888,7 @@ function stateDefinitionMetadata(definition = {}) {
   };
 }
 
-function compileStatusDefinitions(stateDefinitions = {}) {
+export function compileStatusDefinitions(stateDefinitions = {}) {
   return Object.fromEntries(Object.entries(stateDefinitions).map(([id, definition]) => [id, {
     id: definition.id || id,
     typeId: definition.typeId || '',
@@ -3957,7 +3903,7 @@ function compileStatusDefinitions(stateDefinitions = {}) {
   }]));
 }
 
-function compileValueInputs(valueInputs = {}) {
+export function compileValueInputs(valueInputs = {}) {
   return Object.fromEntries(Object.entries(valueInputs).map(([id, input]) => [id, {
     id: input.id || id,
     label: input.label || input.id || id,
@@ -3968,7 +3914,7 @@ function compileValueInputs(valueInputs = {}) {
   }]));
 }
 
-function compileProcessNodes(processNodes = {}) {
+export function compileProcessNodes(processNodes = {}) {
   return Object.fromEntries(Object.entries(processNodes).map(([id, node]) => [id, {
     id: node.id || id,
     label: node.label || node.kind || id,
