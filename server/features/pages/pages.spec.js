@@ -24,6 +24,7 @@ vi.mock('h3', () => ({
 }));
 
 import * as pagesService from './service.js';
+import * as pagesRepository from './repository.js';
 
 const ORG_A = 'org-a';
 const ORG_B = 'org-b';
@@ -93,9 +94,9 @@ describe('pages', () => {
 
   it('keeps page repository writes tenant-scoped even if the caller passes a foreign id', async () => {
     const foreign = await seedPage(ORG_B, { name: 'Protected' });
-    const changed = await pagesService.update(foreign, { name: 'Tampered' }, memberOf(ORG_A));
+    const changed = await pagesRepository.update(foreign, { name: 'Tampered' }, ORG_A);
     expect(changed).toBeNull();
-    await pagesService.remove(foreign, memberOf(ORG_A));
+    await pagesRepository.remove(foreign, ORG_A);
     const stillThere = await db.collection('items').findOne({ _id: new ObjectId(foreign), type: 'page' });
     expect(stillThere).not.toBeNull();
   });
