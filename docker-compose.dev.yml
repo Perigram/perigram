@@ -5,6 +5,7 @@ name: perigram-dev
 
 services:
   app:
+    image: perigram-app:latest
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -116,6 +117,7 @@ services:
       }'
 
   nesting-worker:
+    image: perigram-nesting-worker:latest
     build:
       context: .
       dockerfile: workers/nesting/Dockerfile
@@ -184,6 +186,7 @@ services:
   # The build123d plugin's executor: the discovered op catalog over the
   # real engine (python + build123d image, repo-mounted code).
   build123d-executor:
+    image: perigram-build123d-executor:latest
     build:
       context: ./workers/build123d
       args:
