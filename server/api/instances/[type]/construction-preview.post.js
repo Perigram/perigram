@@ -25,7 +25,8 @@ export default defineEventHandler(async (event) => {
   return await previewConstructionService(typeId, mode, body?.draft || {}, {
     userId: auth.userId,
     organizationId,
-    role: auth.role
+    role: auth.role,
+    auth
   }).then(result => {
     // An unbound mode is a quiet nothing-to-preview, never a failed read.
     if (result) return result;
