@@ -153,6 +153,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
       expect(service.remove).toBeUndefined();
       expect(service.update).toBeUndefined();
       expect(service.create).toBeUndefined();
+      expect(service.getById).toBeUndefined();
       expect(service.processGetById).toBeTypeOf('function');
       expect(service.processList).toBeTypeOf('function');
     }

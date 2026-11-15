@@ -125,7 +125,6 @@ function registerServiceSet(registry, {
 function processReadOnlyService(type, service) {
   if (type !== 'organization' && type !== 'user') return service;
   return {
-    ...(typeof service.getById === 'function' ? { getById: service.getById } : {}),
     ...(typeof service.getProcessConfiguration === 'function'
       ? { getProcessConfiguration: service.getProcessConfiguration }
       : {})
