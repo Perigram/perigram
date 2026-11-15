@@ -33,7 +33,7 @@ Routes are grouped into sub-directories corresponding to features:
   and revision restore (`POST /api/instances/:type/:id/restore-revision`,
   [instances feature](../features/instances/README.md)).
 - `files/`: Shared file transport — `POST /api/files/upload` and
-  `GET /api/files/download/:id` for instance payloads and attachments.
+  `GET /api/files/download/:id` for instance payloads and attachments; downloads require authentication and enforce the file's organization/uploader scope.
   Downloads serve HTTP byte ranges (`Range` → `206` + `Content-Range`,
   single ranges; unparseable or unsatisfiable ranges degrade to the full
   `200` body) because media playback and seeking refuse range-less

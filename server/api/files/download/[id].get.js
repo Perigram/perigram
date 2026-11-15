@@ -1,4 +1,5 @@
 import { createError, sendStream, getQuery, getRequestHeader, setResponseHeaders, setResponseStatus, defineEventHandler } from 'h3';
+import { requireAuth } from '../../../utils/permissions.js';
 import * as filesService from '../../../features/files/service.js';
 
 // Inline-first serving: declared previews (SVG documents, PDFs, images,
@@ -10,12 +11,14 @@ import * as filesService from '../../../features/files/service.js';
 // refuse to play at all without range support; unparseable or
 // unsatisfiable ranges degrade to the full 200 body.
 export default defineEventHandler(async (event) => {
+  const auth = await requireAuth(event);
   const id = event.context.params.id;
   const query = getQuery(event);
-  const bucket = query.bucket || 'uploads';
+  const bucket = filesService.publicFileBucket(query.bucket);
 
   const meta = await filesService.findFileMeta(id, bucket);
   if (!meta) throw createError({ statusCode: 404, message: 'File not found' });
+  filesService.assertFileReadAccess(meta.metadata, auth);
   const contentType = filesService.contentTypeForFile(meta);
   // Header values carry Latin-1 bytes only: a non-ASCII filename rides the
   // RFC 6266 filename* parameter, with a stripped-ASCII fallback.

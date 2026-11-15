@@ -120,3 +120,40 @@ describe('resumable upload sessions', () => {
       .rejects.toMatchObject({ statusCode: 410 });
   });
 });
+
+describe('HTTP file access policy', () => {
+  it('requires an authenticated principal for every file read', () => {
+    expect(() => filesService.assertFileReadAccess({}, null))
+      .toThrow(/Authentication required/);
+  });
+
+  it('scopes organization files to the active organization or a matching membership', () => {
+    const metadata = { organizationId: 'org-a', userId: 'u1' };
+    expect(filesService.assertFileReadAccess(metadata, {
+      userId: 'u1', organizationId: 'org-a'
+    })).toBe(true);
+    expect(filesService.assertFileReadAccess(metadata, {
+      userId: 'u2', memberships: [{ organizationId: 'org-a' }]
+    })).toBe(true);
+    expect(() => filesService.assertFileReadAccess(metadata, {
+      userId: 'u1', organizationId: 'org-b',
+      memberships: [{ organizationId: 'org-a' }]
+    })).toThrow(/File not found/);
+    expect(() => filesService.assertFileReadAccess(metadata, {
+      userId: 'u2', memberships: [{ organizationId: 'org-b' }]
+    })).toThrow(/File not found/);
+  });
+
+  it('keeps unscoped user uploads private while allowing unowned system files', () => {
+    expect(filesService.assertFileReadAccess({ userId: 'u1' }, { userId: 'u1' })).toBe(true);
+    expect(() => filesService.assertFileReadAccess({ userId: 'u1' }, { userId: 'u2' }))
+      .toThrow(/File not found/);
+    expect(filesService.assertFileReadAccess({}, { userId: 'u2' })).toBe(true);
+  });
+
+  it('exposes only the two documented HTTP buckets', () => {
+    expect(filesService.publicFileBucket(undefined)).toBe('uploads');
+    expect(filesService.publicFileBucket('files')).toBe('files');
+    expect(() => filesService.publicFileBucket('private')).toThrow(/Unsupported file bucket/);
+  });
+});

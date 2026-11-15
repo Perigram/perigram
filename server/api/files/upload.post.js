@@ -3,8 +3,7 @@ import { requireAuth } from '../../utils/permissions.js';
 import * as filesService from '../../features/files/service.js';
 
 export default defineEventHandler(async (event) => {
-  requireAuth(event);
-  const auth = event.context.auth;
+  const auth = await requireAuth(event);
 
   const formData = await readMultipartFormData(event);
   if (!formData) {
@@ -16,7 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'No file uploaded' });
   }
 
-  const bucket = getQuery(event).bucket || 'uploads';
+  const bucket = filesService.publicFileBucket(getQuery(event).bucket);
 
   return await filesService.uploadFile(
     file.data,

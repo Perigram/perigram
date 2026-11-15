@@ -14,6 +14,15 @@ Parent: [server/features](../README.md).
   (byte ranges, RFC 6266 disposition filenames) is owned by
   [server/api](../../api/README.md).
 
+## Access
+
+HTTP downloads require an authenticated principal. Organization-owned files
+are readable only in their owning active organization (or through a matching
+membership when no organization is active); unscoped user uploads are private
+to their uploader. Unowned system files are readable by authenticated users.
+GridFS ids are not bearer credentials. The HTTP transport exposes only the
+`uploads` and `files` buckets.
+
 ## GridFS contract
 
 | Export | Contract |

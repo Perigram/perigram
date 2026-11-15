@@ -11,6 +11,43 @@ export function contentHash(buffer) {
   return `sha256:${createHash('sha256').update(buffer).digest('hex')}`;
 }
 
+const HTTP_FILE_BUCKETS = new Set(['uploads', 'files']);
+
+export function publicFileBucket(value, fallback = 'uploads') {
+  if (value == null || value === '') return fallback;
+  if (typeof value !== 'string' || !HTTP_FILE_BUCKETS.has(value)) {
+    throw createError({ statusCode: 400, message: 'Unsupported file bucket' });
+  }
+  return value;
+}
+
+// GridFS ids are references, not bearer credentials. Files carrying an
+// organization belong to that organization; unscoped user uploads belong
+// to their uploader; only explicitly unowned system files are shared.
+export function assertFileReadAccess(metadata = {}, auth = {}) {
+  if (!auth?.userId) {
+    throw createError({ statusCode: 401, message: 'Authentication required' });
+  }
+  const fileOrganizationId = metadata.organizationId?.toString?.() || null;
+  if (fileOrganizationId) {
+    const activeOrganizationId = auth.organizationId?.toString?.() || null;
+    const isMember = (auth.memberships || []).some(
+      membership => membership.organizationId?.toString?.() === fileOrganizationId
+    );
+    if (activeOrganizationId
+      ? activeOrganizationId !== fileOrganizationId
+      : !isMember) {
+      throw createError({ statusCode: 404, message: 'File not found' });
+    }
+    return true;
+  }
+  const ownerId = metadata.userId?.toString?.() || null;
+  if (ownerId && ownerId !== String(auth.userId)) {
+    throw createError({ statusCode: 404, message: 'File not found' });
+  }
+  return true;
+}
+
 export async function uploadFile(fileBuffer, fileName, metadata = {}, bucketName = 'uploads', contentType = '') {
   const db = await connectDB();
   const bucket = new GridFSBucket(db, { bucketName });
