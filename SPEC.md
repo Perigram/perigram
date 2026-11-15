@@ -2163,3 +2163,13 @@ repository split. It prepares and validates the boundaries required by
   lineage points elsewhere. Regression coverage exercises a target user
   whose primary org differs from the caller's active shared org. This is part
   of the tenant-scoped redaction fix; CI remains queued without a runner job.
+- Revision tenant-scope correction (2026-11-15): revision creation previously
+  copied only `entity.lineage`, although instance DTOs carry ownership in
+  top-level `organizationId`. Those snapshots could be stored as
+  organization-less and admitted by the system-revision read path. Revision
+  creation now normalizes top-level, lineage, and origin ownership into
+  revision lineage; direct reads recognize all three legacy owner slots; list
+  queries include those owner slots and admit a system row only when all are
+  absent. Existing revision access tests were retained and extended with
+  top-level ownership propagation, foreign-origin denial, and query-scope
+  coverage. CI remains queued without an assigned job.
