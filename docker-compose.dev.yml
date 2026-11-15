@@ -148,7 +148,6 @@ services:
     environment:
       - FACADE_EXECUTOR_PORT=8790
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
-    ports:
     depends_on:
       - nesting-worker
     command: node workers/facade/index.js
@@ -164,7 +163,6 @@ services:
       - .:/src
     environment:
       - DOCUMENTS_EXECUTOR_PORT=8791
-    ports:
     command: node workers/documents/index.js
     restart: unless-stopped
 
@@ -179,7 +177,6 @@ services:
       - .:/src
     environment:
       - TECH_DRAWING_EXECUTOR_PORT=8792
-    ports:
     command: node workers/tech-drawing/index.js
     restart: unless-stopped
 
@@ -203,7 +200,6 @@ services:
       - .:/src
     environment:
       - BUILD123D_EXECUTOR_PORT=8793
-    ports:
     restart: unless-stopped
 
 volumes:
