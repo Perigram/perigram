@@ -2066,4 +2066,16 @@ This work does not itself mandate a UI rewrite, database replacement,
 language rewrite, universal event system, service mesh, or premature
 repository split. It prepares and validates the boundaries required by
 §29; extraction remains a deliberate subsequent step.
-
+- Follow-up persistence scan across the current staging tree: inspected the
+  direct Mongo mutation surface in the core access, command, effect, event,
+  idempotency, task, and machine services, plus the feature service modules
+  for agent bots, billing, connections, CTS types, directory, files,
+  instance events/overlays/revisions/instances, invitations, LiveKit, LLM,
+  meetings, notifications, organizations, pages, partnerships, plugins,
+  process definitions, states, support, system settings, transcription,
+  users, views, web search, and workflow overrides. No direct Mongo mutation
+  calls were found in those services other than the already documented
+  idempotency record insert. This is a static call-site scan, not a complete
+  persistence-owner inventory: imported helpers, non-service modules,
+  storage providers, background workers, and indirect writes still require
+  tracing. No code change was warranted by this pass.
