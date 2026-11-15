@@ -114,8 +114,7 @@ describe('task run transitions', () => {
     expect(processEventsMock).not.toHaveBeenCalled();
     expect(continueActionFromTask).toHaveBeenCalledWith({
       taskRunId: String(claimed._id),
-      status: 'SUCCEEDED',
-      output: completed.output
+      taskResult: completed.output
     });
   });
 
