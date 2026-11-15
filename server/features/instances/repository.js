@@ -116,18 +116,18 @@ export async function* iterateChildrenWithLineageKey(collection, childType, orga
   for await (const doc of cursor) yield doc;
 }
 
-export async function detachMigratedLineageKey(collection, id, lineageKey) {
+export async function detachMigratedLineageKey(collection, id, childType, organizationId, lineageKey) {
   const db = await connectDB();
   return db.collection(collection).updateOne(
-    { _id: toFlexibleId(id) },
+    { _id: toFlexibleId(id), type: childType, organizationId: toFlexibleId(organizationId) },
     { $unset: { [`lineage.${lineageKey}`]: '' }, $set: { updatedAt: new Date().toISOString() } }
   );
 }
 
-export async function updateMigratedInstance(collection, id, set) {
+export async function updateMigratedInstance(collection, id, typeId, organizationId, set) {
   const db = await connectDB();
   return db.collection(collection).updateOne(
-    { _id: toFlexibleId(id) },
+    { _id: toFlexibleId(id), type: typeId, organizationId: toFlexibleId(organizationId) },
     { $set: set }
   );
 }
