@@ -54,9 +54,11 @@ export function assertTransitionAccess({ transition, entity, auth }) {
     if (!hasRequiredRole) {
       throw createError({ statusCode: 403, message: 'Permission denied for process transition role' });
     }
-    return true;
   }
 
+  // A process role and feature permissions are independent constraints.
+  // Having the assigned role must not short-circuit additional transition
+  // permission clauses.
   for (const requirement of access.permissions || []) {
     if (!hasInstanceAccess({
       entity,

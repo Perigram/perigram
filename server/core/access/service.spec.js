@@ -311,6 +311,37 @@ describe('access engine', () => {
     })).not.toThrow();
   });
 
+  it('requires both the assigned process role and every declared feature permission', () => {
+    const transition = {
+      from: 'DRAFT',
+      to: 'READY',
+      processRoleIds: ['role_operator'],
+      access: { permissions: [{ feature: 'queues', level: 'write', action: 'update' }] }
+    };
+    const entity = { _id: 'queue-1', lineage: { organizationId: 'org-1' } };
+    const roleOnly = {
+      userId: 'operator-1',
+      organizationId: 'org-1',
+      memberships: [{ organizationId: 'org-1', permissions: {} }],
+      roleAssignments: { roleIds: ['role_operator'] }
+    };
+
+    expect(() => assertTransitionAccess({ transition, entity, auth: roleOnly })).toThrow(/queues:write/);
+    expect(() => assertTransitionAccess({
+      transition,
+      entity,
+      auth: {
+        ...roleOnly,
+        effectivePermissions: { queues: [{ level: 'write', actions: { update: true } }] }
+      }
+    })).not.toThrow();
+    expect(() => assertTransitionAccess({
+      transition,
+      entity,
+      auth: { ...roleOnly, roleAssignments: { roleIds: ['role_other'] }, effectivePermissions: { queues: 'admin' } }
+    })).toThrow(/process transition role/);
+  });
+
   it('honors action-specific command and transition requirements', () => {
     const scopedEntity = { _id: 'item-1', type: 'panel', organizationId: 'org-1', lineage: { organizationId: 'org-1' } };
     const updateOnlyAuth = {
