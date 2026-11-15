@@ -203,6 +203,9 @@ describe('livekit call rooms', () => {
         const token = jwt.sign({ iss: 'devkey', sha256: createHash('sha256').update(body).digest('base64') }, 'devsecret');
         expect(() => verifyWebhookAuthorization(`Bearer ${token}`, body)).not.toThrow();
         expect(() => verifyWebhookAuthorization(`Bearer ${token}`, body + 'tampered')).toThrow();
+        expect(() => verifyWebhookAuthorization(`Bearer ${token}`, '')).toThrow();
+        const unboundToken = jwt.sign({ iss: 'devkey' }, 'devsecret');
+        expect(() => verifyWebhookAuthorization(`Bearer ${unboundToken}`, body)).toThrow();
         expect(() => verifyWebhookAuthorization('', body)).toThrow();
     });
 
