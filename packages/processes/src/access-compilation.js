@@ -29,6 +29,7 @@ import {
   emptyAssignmentAccess
 } from './compiler-core.js';
 import { compileScreens } from './screen-compilation.js';
+import { projectUiAction } from './ui-contract-projection.js';
 
 export function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {}, actions = {}, lineageBindings = [], domain = {} } = {}) {
   const permissions = {};

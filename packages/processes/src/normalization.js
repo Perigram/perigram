@@ -44,6 +44,8 @@ function isMappedMutation(record = {}) {
 }
 
 import {
+  PROCESS_SCHEMA_VERSION,
+  isEffectRecord,
   normalizeGraph,
   normalizeRecord,
   normalizeActions,
