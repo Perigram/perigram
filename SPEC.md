@@ -1902,17 +1902,16 @@ the current implementation already conforms.
   preserving the same connection and session behavior. Initial-state writes
   and field/payload audit-event appends use the same adapter. This is a
   persistence-boundary extraction, not a change to event schema or ordering.
-- Core persistence ownership scan: `commands/repository.js` owns writes to
-  `command_runs`, and `tasks/repository.js` owns writes to `task_runs`;
-  their corresponding command/task services contain no direct Mongo mutation
-  calls. Two deliberate exceptions surfaced: `idempotency/service.js`
-  inserts idempotency records directly, and `machines/service.js` performs
-  status-event inserts plus entity status updates in its workflow transition
-  paths. The latter is a substantial service/repository boundary candidate
-  (1,221-line state-machine service with eight direct mutation sites); it
-  needs a behavior-preserving extraction with transaction and event-order
-  tests, not a mechanical move. The core scan is limited to the listed
-  `server/core` modules and does not yet cover all server workers/adapters.
+- Core persistence ownership scan (superseded by the follow-up extraction):
+  `commands/repository.js` owns writes to `command_runs`,
+  `tasks/repository.js` owns writes to `task_runs`,
+  `idempotency/repository.js` owns inserts into `idempotency_keys`, and
+  `machines/repository.js` owns status-event inserts and entity status
+  updates. The command, task, idempotency, and machine services contain no
+  direct Mongo mutation calls in the current tree. The machine repository
+  preserves the caller's DB/session and the existing event/entity write
+  ordering. The scan remains limited to the listed `server/core` modules
+  and does not cover every worker or storage adapter.
 - Process-definition service decomposition: status projection helpers now
   live in `status-metadata.js`; action execution authorization derivation
   lives in `action-execution-auth.js` with domain, policy, and command-definition
@@ -2074,12 +2073,12 @@ repository split. It prepares and validates the boundaries required by
   meetings, notifications, organizations, pages, partnerships, plugins,
   process definitions, states, support, system settings, transcription,
   users, views, web search, and workflow overrides. No direct Mongo mutation
-  calls were found in those services other than the already documented
-  idempotency record insert. This is a static call-site scan, not a complete
-  persistence-owner inventory: imported helpers, non-service modules,
-  storage providers, background workers, and indirect writes still require
-  tracing. No code change was warranted by this pass.
-
+  calls were found in those service modules. The idempotency service delegates
+  its insert to `idempotency/repository.js`; the machine service delegates
+  status-event and entity-status writes to `machines/repository.js`.
+  This is a static call-site scan, not a complete persistence-owner
+  inventory: imported helpers, non-service modules, storage providers,
+  background workers, and indirect writes still require tracing.
 - Follow-up implementation (2026-11-15): `packages/core/src/index.js` is now
   a public barrel over focused `registry.js`, `entities.js`, and
   `results.js` modules, alongside the existing `status.js` and
