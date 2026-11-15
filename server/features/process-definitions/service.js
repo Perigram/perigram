@@ -819,7 +819,7 @@ function assertManualRunHasNoMutationFailures(run) {
 function buildRunActor(auth, organizationId) {
   return {
     userId: auth.userId,
-    system: auth.system === true || auth.userId === 'SYSTEM',
+    ...(auth.system === true || auth.userId === 'SYSTEM' ? { system: true } : {}),
     organizationId,
     role: auth.role,
     isAdmin: Boolean(auth.isAdmin),
