@@ -2188,3 +2188,9 @@ repository split. It prepares and validates the boundaries required by
   different revision id after the ordinary source read has succeeded. A
   regression test covers the cross-source pin refusal; staging CI run
   43737785898 is pending.
+
+- Construction-preview principal propagation (2026-11-15): the preview route
+  now passes the authenticated request context into construction input
+  resolution. This ensures preview source references use the caller's compiled
+  read grants, matching the create path, rather than a synthetic empty-membership
+  context.
