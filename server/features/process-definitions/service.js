@@ -943,6 +943,7 @@ export async function projectEntityThroughSocket({ socketId, instanceId, targetO
     typeId: socket.typeId,
     feature: socket.feature || domainEntity?.collection || `${socket.typeId}s`,
     level: 'read',
+    action: 'view',
     auth
   });
 
@@ -1893,6 +1894,7 @@ async function applyTypedConstructionBlocks(record = {}, blockDraft = {}, create
     typeId: record.typeId,
     feature: resolveInstanceFeature(record.typeId),
     level: 'write',
+    action: 'update',
     auth
   });
   const patch = Object.fromEntries(Object.entries(blockDraft).map(([block, value]) => [
