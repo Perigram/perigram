@@ -139,6 +139,25 @@ describe('command run transitions', () => {
     expect(run[0].finishedAt).toBeInstanceOf(Date);
   });
 
+  it('scopes command-run history to the requested organization', async () => {
+    await repository.create({
+      commandId: 'run_thing',
+      status: 'SUCCEEDED',
+      auth: { userId: 'u1', organizationId: 'org-a' },
+      createdAt: new Date()
+    });
+    await repository.create({
+      commandId: 'run_thing',
+      status: 'SUCCEEDED',
+      auth: { userId: 'u2', organizationId: 'org-b' },
+      createdAt: new Date()
+    });
+
+    const runs = await service.listCommandRuns({ organizationId: 'org-a' });
+    expect(runs).toHaveLength(1);
+    expect(runs[0].auth.organizationId).toBe('org-a');
+  });
+
   it('marks a stale RUNNING run FAILED with abandoned context at startup', async () => {
     const stale = await repository.create({
       commandId: 'run_thing',

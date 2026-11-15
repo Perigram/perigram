@@ -1,9 +1,9 @@
-import { readBody } from 'h3';
-import { requireAuth } from '~/server/utils/permissions';
+import { createError, readBody } from 'h3';
+import { requireLineagePermission } from '~/server/utils/permissions';
 import { executeCommand } from '~/server/core/commands/service.js';
 
 export default defineEventHandler(async (event) => {
-  const auth = requireAuth(event);
+  const auth = requireLineagePermission(event, { organizationId: event.context.auth?.organizationId }, 'organizations', 'admin');
   const body = await readBody(event);
   const result = await executeCommand(event.context.params.id, body, createCommandAuth(auth, body.testAccess));
   return {
@@ -14,16 +14,14 @@ export default defineEventHandler(async (event) => {
 
 function createCommandAuth(auth, testAccess) {
   if (!testAccess?.enabled) return auth;
-  const organizationId = testAccess.organizationId || auth.organizationId || auth.memberships?.[0]?.organizationId;
-  if (!organizationId) return auth;
+  const organizationId = testAccess.organizationId || auth.organizationId;
+  if (!organizationId || String(organizationId) !== String(auth.organizationId)) {
+    throw createError({ statusCode: 403, message: 'Test access is limited to the active organization' });
+  }
 
   const permissions = testAccess.permissions && typeof testAccess.permissions === 'object'
     ? testAccess.permissions
     : {};
-  const sourceMemberships = Array.isArray(testAccess.memberships) && testAccess.memberships.length > 0
-    ? testAccess.memberships
-    : auth.memberships || [];
-  const memberships = sourceMemberships.filter(membership => membership.organizationId?.toString() !== organizationId.toString());
 
   return {
     ...auth,
@@ -31,7 +29,6 @@ function createCommandAuth(auth, testAccess) {
     organizationId,
     role: testAccess.role || auth.role,
     memberships: [
-      ...memberships,
       { organizationId, permissions, status: 'active' }
     ],
     permissions,

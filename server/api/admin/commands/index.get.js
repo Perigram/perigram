@@ -1,8 +1,8 @@
-import { requireAuth } from '~/server/utils/permissions';
+import { requireLineagePermission } from '~/server/utils/permissions';
 import { listCommands } from '~/server/core/commands/service.js';
 
 export default defineEventHandler((event) => {
-  requireAuth(event);
+  requireLineagePermission(event, { organizationId: event.context.auth?.organizationId }, 'organizations', 'admin');
   const commands = listCommands().map(command => ({ ...command, kind: 'command', runnable: true }));
   return {
     success: true,

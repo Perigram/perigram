@@ -41,9 +41,13 @@ export async function abandonRunning({ error, finishedAt, startedBefore }) {
   return result.modifiedCount;
 }
 
-export async function list({ commandId, limit = 50 } = {}) {
+export async function list({ commandId, organizationId, limit = 50 } = {}) {
   const db = await connectDB();
   const filter = commandId ? { commandId } : {};
+  if (organizationId) {
+    const id = toFlexibleId(organizationId);
+    filter['auth.organizationId'] = { $in: [...new Set([id, String(organizationId)])] };
+  }
   return db.collection(COLLECTION)
     .find(filter)
     .sort({ createdAt: -1 })
