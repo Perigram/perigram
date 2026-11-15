@@ -1,11 +1,6 @@
 import { operationKindOf, durationMs } from '@perigram/cts';
 import { normalizeWorkflow, resolveWorkflowStatePath } from '@perigram/core';
-import {
-  HOME_SCREEN_ROUTE,
-  generatedScreenRoute,
-  normalizeScreenContract,
-  validateScreenContract
-} from './screen-contract.js';
+import { HOME_SCREEN_ROUTE } from './screen-contract.js';
 import {
   PROCESS_SCALAR_KINDS,
   PROCESS_DATAFLOW_VERSION,
@@ -20,7 +15,7 @@ import { normalizeDesignerAccess } from './authoring.js';
 import { projectUiAction, projectUiContractChannels, creationModeLabel } from './ui-contract-projection.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
-import { normalizeHandle, lineageKeyForTypeId, lineageRelationsForParent, mergedHierarchyBindings } from './hierarchy-utils.js';
+import { normalizeHandle, lineageKeyForTypeId, mergedHierarchyBindings } from './hierarchy-utils.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -1098,7 +1093,7 @@ export function compileGrantForAssignment(grant = {}, assignment = {}) {
   return { grant: serialized, incomplete };
 }
 
-function replacePlaceholders(value, bindings, incomplete) {
+export function replacePlaceholders(value, bindings, incomplete) {
   if (Array.isArray(value)) {
     for (let index = 0; index < value.length; index += 1) {
       value[index] = replacePlaceholders(value[index], bindings, incomplete);
@@ -1137,7 +1132,7 @@ export function emptyAssignmentAccess() {
   return { roleIds: [], bindings: {}, permissions: {}, screens: [], navigation: [], actions: [], incompleteBindings: [] };
 }
 
-function parentRelationForChild(childTypeId = '', parentTypeId = '', lineageBindings = []) {
+export function parentRelationForChild(childTypeId = '', parentTypeId = '', lineageBindings = []) {
   const binding = lineageBindings.find(binding =>
     binding.childTypeId === childTypeId
     && (!parentTypeId || binding.parentTypeId === parentTypeId)
