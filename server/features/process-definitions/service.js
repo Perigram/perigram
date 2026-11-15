@@ -1628,9 +1628,20 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
     const organizationId = resolveOrganizationId(auth);
     const declaration = await declarationForType(typeId, organizationId);
-    if (!declaration) throw createError({ statusCode: 404, message: `Unknown type ${typeId}` });
-    const writeTarget = await writeGrantTarget(declaration, organizationId);
-    if (!writeTarget) throw createError({ statusCode: 403, message: 'Permission denied' });
+    const domainEntity = (domain?.entities || []).find(entity => entity.type === normalizeTypeId(typeId));
+    // Some framework pack entities are projected into the process domain
+    // before they have an org CTS declaration. They still use the same
+    // collection-level write gate; only declared inheritance needs the CTS
+    // declaration path.
+    const writeTarget = declaration
+      ? await writeGrantTarget(declaration, organizationId)
+      : domainEntity
+        ? {
+            typeId: normalizeTypeId(typeId),
+            feature: domainEntity.feature || domainEntity.collection || normalizeTypeId(typeId)
+          }
+        : null;
+    if (!writeTarget) throw createError({ statusCode: 404, message: `Unknown type ${typeId}` });
     // A construct is a create write, not merely an assigned action. Its
     // request-local grant must pass the same create/action-level gate as
     // every other instance writer before construction work or persistence.
