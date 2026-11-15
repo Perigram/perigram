@@ -3,19 +3,11 @@ set -Eeuo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$ROOT/docker-compose.dev.yml"
-NETWORK="perigram-network"
 
 cd "$ROOT"
 
 compose() {
   docker compose --project-directory "$ROOT" -f "$COMPOSE_FILE" "$@"
-}
-
-ensure_network() {
-  if ! docker network inspect "$NETWORK" >/dev/null 2>&1; then
-    docker network create "$NETWORK" >/dev/null
-    echo "Created Docker network: $NETWORK"
-  fi
 }
 
 usage() {
@@ -58,7 +50,6 @@ case "$command" in
     if git -C "$ROOT" rev-parse --show-toplevel >/dev/null 2>&1; then
       git -C "$ROOT" submodule update --init --recursive
     fi
-    ensure_network
     mkdir -p "$ROOT/.local/cortex"
     compose up -d --build
     compose ps
