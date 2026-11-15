@@ -340,6 +340,19 @@ describe('User Management & Auth', () => {
     expect(user.memberships[0].permissions.files).toBe('none');
   });
 
+  it('does not let compiled user-admin grants override an inactive membership', async () => {
+    const orgId = new ObjectId();
+    expect(await userService.canManageUsersInOrganization({
+      organizationId: orgId,
+      effectivePermissions: { users: 'admin' },
+      memberships: [{
+        organizationId: orgId,
+        status: 'pending',
+        permissions: { users: 'admin' }
+      }]
+    }, orgId)).toBe(false);
+  });
+
   it('does not treat membership role labels as user-management grants', async () => {
     const orgId = new ObjectId();
 

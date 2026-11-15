@@ -407,6 +407,10 @@ function uniqueIdValues(values) {
 
 export async function canManageUsersInOrganization(auth = {}, organizationId) {
   if (!organizationId) return false;
+  const membership = findOrganizationMembership(auth, organizationId);
+  // A compiled grant must not outlive an explicitly inactive tenant
+  // membership (e.g. a stale server-side auth object).
+  if (membership?.status && membership.status !== 'active') return false;
   if (hasInstanceAccess({
     entity: { lineage: { organizationId } },
     feature: 'users',
@@ -414,8 +418,7 @@ export async function canManageUsersInOrganization(auth = {}, organizationId) {
     auth
   })) return true;
 
-  const membership = findOrganizationMembership(auth, organizationId);
-  if (!membership || membership.status !== 'active') return false;
+  if (!membership) return false;
   if (membership.owner === true) return true;
   if (hasPermissionGrant({ permissions: membership.permissions || {}, feature: 'users', level: 'admin' })) return true;
   return false;
