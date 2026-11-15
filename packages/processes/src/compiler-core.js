@@ -17,7 +17,6 @@ import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, pr
 import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForTypeId, mergedHierarchyBindings } from './hierarchy-utils.js';
 import { actionTargetState, displayActionLabel } from './action-labels.js';
-import { normalizeGraph, normalizeRecord, normalizeActions } from './graph-normalization.js';
 import { entityLabelOf } from './action-labels.js';
 import {
   constructionContract,
