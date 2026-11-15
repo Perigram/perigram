@@ -1,4 +1,5 @@
 import { normalizeProcessDefinition } from './normalization.js';
+import { validateAction, validateEffectCapabilities, validateProcessNode, validateDataflowEdges, validateProcessNodeConnections, validateFieldList } from './validation-rules.js';
 import { operationKindOf } from '@perigram/cts';
 import { validateScreenContract } from './screen-contract.js';
 import {
@@ -27,14 +28,8 @@ import {
   compileActionAccessWindows,
   outputSocketId,
   normalizeRoleCatalog,
-  validateAction,
-  validateEffectCapabilities,
-  validateProcessNode,
-  validateDataflowEdges,
   catalogContext,
   catalogPortForHandle,
-  validateProcessNodeConnections,
-  validateFieldList,
   resolveSourceProducerOutputId,
   declaredLineageInput,
   declaredAncestorTypeId
