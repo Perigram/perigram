@@ -49,6 +49,7 @@ import { toFlexibleId } from '~/server/utils/objectid.js';
 import { resolveOrganizationId } from '~/server/utils/organization-scope.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { ProcessDefinition } from './model.js';
+import * as usersService from '../users/service.js';
 import * as repository from './repository.js';
 import { compileActiveProcessRuntime, getActiveMergedDataForOrganization, resolveProcessAuth } from './runtime.js';
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
