@@ -33,6 +33,7 @@ export default defineEventHandler(async (event) => {
     typeId: target.typeId,
     feature: target.feature,
     level: 'read',
+    action: 'view',
     auth
   }));
 });

@@ -27,6 +27,6 @@ export default defineEventHandler(async (event) => {
   const target = await writeGrantTarget(declaration, organizationId);
   if (!target) throw createError({ statusCode: 403, message: 'Permission denied' });
   const entity = item?.toJSON ? item.toJSON() : item;
-  assertEntityAccess({ entity, typeId, feature: target.feature, level: 'read', auth });
+  assertEntityAccess({ entity, typeId, feature: target.feature, level: 'read', action: 'view', auth });
   return item;
 });
