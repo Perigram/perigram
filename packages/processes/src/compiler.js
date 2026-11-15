@@ -1,7 +1,6 @@
 import {
   PROCESS_SCHEMA_VERSION,
   normalizeRoleCatalog,
-  validateProcessDefinition,
   compileLineageBindings,
   compileWorkflows,
   compileRoles,
@@ -15,6 +14,7 @@ import {
   compileServices,
   compileSockets
 } from './compiler-core.js';
+import { validateProcessDefinition } from './validation.js';
 import { projectUiContractChannels } from './ui-contract-projection.js';
 
 export function compileProcessDefinition(definition = {}, domain = {}, { roles = {} } = {}) {

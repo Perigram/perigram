@@ -2,9 +2,6 @@ export {
   PROCESS_SCHEMA_VERSION,
   normalizeProcessDefinition,
   requiredEffectCapability,
-  validateProcessDefinition,
-  validateRequiredInputAvailability,
-  validateLineageBindingResolution,
   compileLineageBindings,
   compileAssignmentAccess,
   compileHomeScreenForAssignment,
@@ -13,6 +10,11 @@ export {
   redundantAuthoredScreens,
   compileActions
 } from './compiler-core.js';
+export {
+  validateProcessDefinition,
+  validateRequiredInputAvailability,
+  validateLineageBindingResolution
+} from './validation.js';
 export { compileProcessDefinition } from './compiler.js';
 export {
   resolveRoleAssignmentAccess,
