@@ -120,8 +120,8 @@ committed files.
 - `components/`, `pages/`, `composables/`, `stores/` — Nuxt application.
 - `e2e/`, `test-data/`, `test-tools/` — test suites and fixtures.
 
-- `k8s/README.md` — production cluster and infrastructure contract.
-- `.codex/README.md` — repository-local Codex agent assets and conventions.
+- [Cluster infrastructure contract](./k8s/README.md).
+- [Repository-local Codex agent assets](./.codex/README.md).
 
 Subsystem contracts live beside their code in the relevant `README.md`.
 Start with [the package map](./packages/README.md), [server overview](./server/README.md),
