@@ -2132,3 +2132,14 @@ repository split. It prepares and validates the boundaries required by
   check to the shared `requirePlatformOperator` authority instead of
   maintaining a second copy of the token policy. CI for these latest commits
   is pending; these changes are not yet represented as test-verified.
+- Process compiler construction extraction (2026-11-15): moved construction
+  contract lookup, mode/input normalization, parent-revision normalization,
+  and authored prompt-policy merging into the pure
+  `packages/processes/src/construction-compilation.js` module. The compiler
+  retains compatibility exports; `node-catalog.js` remains the sole owner
+  of mode/edge socket derivation. This moved 159 lines out of
+  `compiler-core.js` (1,757 to 1,598 lines), with focused tests for contract
+  selection, stale-input removal, prompt deduplication, revision scopes, and
+  non-create policies. The package README records the ownership split. The
+  latest staging CI run is queued without an assigned job, so this extraction
+  is not yet represented as test-verified.
