@@ -829,8 +829,9 @@ describe('current process-definition service contract', () => {
     ];
     processRepository.findById.mockResolvedValue(draftRecord(authored));
 
-    await expect(update('process-draft', { data: authored }, adminAuth())).rejects.toMatchObject({ statusCode: 400 });
-    await expect(update('process-draft', { data: authored }, adminAuth())).rejects.toThrow(
+    const updatePromise = update('process-draft', { data: authored }, adminAuth());
+    await expect(updatePromise).rejects.toMatchObject({ statusCode: 400 });
+    await expect(updatePromise).rejects.toThrow(
       'Process node create_cassette requires one cassette-design producer output; candidates: create_cassette:alternate (cassette-design), create_cassette:result (cassette-design)'
     );
     expect(processRepository.updateById).not.toHaveBeenCalled();

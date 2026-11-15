@@ -197,14 +197,14 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
       record: {
         id: 'n1',
         kind: 'cts.construct',
-        typeId: 'cassette',
+        typeId: 'cassette-design',
         construction: { mode: 'editor' }
       },
       inputs: {}
     }, auth, {}, projectedDomain());
 
     expect(result._id).toBeTypeOf('string');
-    expect(result.type).toBe('cassette');
+    expect(result.type).toBe('cassette-design');
     expect(insert).toHaveBeenCalledTimes(1);
     // per-class collection (SPEC §13) with the type id as discriminator
     expect(insert.mock.calls[0][0]).toBe('files');
@@ -213,7 +213,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     expect(insert.mock.calls[0][1]).toMatchObject({ type: 'cassette-design', organizationId: 'org-1' });
     expect(insert.mock.calls[0][1].lineage).not.toHaveProperty('organizationId');
     expect(publish).toHaveBeenCalledWith(auth, {
-      type: 'cassette',
+      type: 'cassette-design',
       id: result._id,
       change: 'created',
       reason: 'process-create'

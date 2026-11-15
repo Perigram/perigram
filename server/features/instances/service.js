@@ -190,7 +190,12 @@ async function declarationFor(typeId, organizationId = null) {
     }
   }
   if (!declaration) declaration = staticTypes.get(typeId) || null;
-  declarationCache.set(cacheKey, declaration);
+  // Do not memoize a static fallback under a tenant key: a declaration
+  // added to that organization later must take precedence on the next
+  // resolution, rather than being hidden by the stale fallback.
+  if (!organizationId || declaration !== staticTypes.get(typeId)) {
+    declarationCache.set(cacheKey, declaration);
+  }
   return declaration;
 }
 

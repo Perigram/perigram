@@ -74,7 +74,7 @@ describe('process workflow resolution', () => {
       compiled,
       producerOutputId: 'create:entity',
       typeId: 'queue'
-    })).toThrow('emits cassette, not queue');
+    })).toThrow('emits cassette-design, not queue');
   });
 
   it('resolves the exact same-type producer among candidates and never falls back to the first', () => {
