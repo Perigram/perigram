@@ -94,7 +94,7 @@ describe('process run scanner', () => {
   it('resumes a parked run whose wakeAt has passed', async () => {
     const definition = definitionDoc();
     await persistRun(definition,
-      { id: 'run-parked', status: 'waiting', wakeAt: '2026-10-27T09:00:00Z', createdAt: '2026-10-27T08:59:00Z', updatedAt: '2026-10-27T08:59:00Z' });
+      { id: 'run-parked', status: 'waiting', wakeAt: '2026-10-27T09:00:00Z', createdAt: '2026-10-27T08:59:00Z', updatedAt: '2026-10-27T08:59:00Z', context: { actor: { userId: 'SYSTEM', system: true, organizationId: 'org-1', memberships: [] } } });
     const summary = await scanDueProcessRuns(new Date('2026-10-27T10:00:30Z'));
     expect(summary.wakes).toBe(1);
     expect(resumedRuns).toEqual(['run-parked']);

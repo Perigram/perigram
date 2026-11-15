@@ -679,9 +679,40 @@ export async function resumeParkedRun(record) {
     data: record.definitionData
   };
   const domain = await getProjectedDomain(record.organizationId);
-  const auth = record.run?.context?.actor
-    ? { ...record.run.context.actor }
-    : { userId: 'SYSTEM', system: true, memberships: [] };
+  const storedActor = record.run?.context?.actor;
+  const organizationId = String(record.organizationId || '');
+  let auth;
+
+  // A parked run resumes under its original principal, not an implicit
+  // SYSTEM fallback. User permissions are rehydrated so revoked memberships
+  // and stale process grants cannot survive the Wait Until boundary.
+  if (storedActor?.userId === 'SYSTEM' && storedActor?.system === true) {
+    if (storedActor.organizationId && organizationId
+      && String(storedActor.organizationId) !== organizationId) {
+      throw createError({ statusCode: 403, message: 'Parked run actor organization does not match its definition' });
+    }
+    auth = { ...storedActor, organizationId: storedActor.organizationId || organizationId || null };
+  } else {
+    if (!storedActor?.userId) {
+      throw createError({ statusCode: 401, message: 'Parked process run has no authenticated actor' });
+    }
+    if (!organizationId) {
+      throw createError({ statusCode: 403, message: 'Parked user run has no organization scope' });
+    }
+    if (storedActor.organizationId && String(storedActor.organizationId) !== organizationId) {
+      throw createError({ statusCode: 403, message: 'Parked run actor organization does not match its definition' });
+    }
+    const user = await usersService.getById(storedActor.userId);
+    if (!user) throw createError({ statusCode: 401, message: 'Parked run actor no longer exists' });
+    const currentAuth = usersService.buildAuthContext(user);
+    const activeMembership = currentAuth.memberships?.find(
+      membership => String(membership.organizationId) === organizationId
+    );
+    if (!activeMembership) {
+      throw createError({ statusCode: 403, message: 'Parked run actor is no longer an active organization member' });
+    }
+    auth = await resolveProcessAuth({ ...currentAuth, organizationId });
+  }
   const base = manualRunEnvironment(definitionLike, auth, domain);
   const resumed = await resumeProcessRun(record.run, record.definitionData, { output: {} }, {
     catalogContext: base.catalogContext,

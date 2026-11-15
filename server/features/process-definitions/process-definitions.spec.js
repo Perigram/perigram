@@ -14,10 +14,12 @@ import {
   preview,
   resolveProcessGraphEntity,
   evaluateDefinitionDataflow,
+  resumeParkedRun,
   update,
   validate
 } from './service.js';
 import * as processRepository from './repository.js';
+import * as usersService from '../users/service.js';
 import * as pluginsRepository from '../plugins/repository.js';
 import * as ctsTypes from '../cts-types/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -116,6 +118,37 @@ describe('current process-definition service contract', () => {
       getInstanceService: type => type === 'organization' ? organizationService : null,
       getCommandDefinition: () => null
     });
+  });
+
+  it('fails closed when a parked run has no stored actor instead of resuming as SYSTEM', async () => {
+    await expect(resumeParkedRun({
+      _id: 'parked-no-actor',
+      definitionId: 'process-1',
+      organizationId: 'org-1',
+      definitionData: {},
+      run: { context: {} }
+    })).rejects.toMatchObject({ statusCode: 401 });
+  });
+
+  it('refuses to resume a user run after its organization membership is revoked', async () => {
+    const getUser = vi.spyOn(usersService, 'getById').mockResolvedValue({ id: 'user-1' });
+    const buildAuth = vi.spyOn(usersService, 'buildAuthContext').mockReturnValue({
+      userId: 'user-1',
+      memberships: []
+    });
+    try {
+      await expect(resumeParkedRun({
+        _id: 'parked-revoked',
+        definitionId: 'process-1',
+        organizationId: 'org-1',
+        definitionData: {},
+        run: { context: { actor: { userId: 'user-1', organizationId: 'org-1' } } }
+      })).rejects.toMatchObject({ statusCode: 403 });
+      expect(getUser).toHaveBeenCalledWith('user-1');
+    } finally {
+      getUser.mockRestore();
+      buildAuth.mockRestore();
+    }
   });
 
   it('reads entities through registered process adapters with the complete auth context', async () => {
