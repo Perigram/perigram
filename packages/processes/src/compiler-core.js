@@ -428,81 +428,13 @@ export function actionTypeId(action = {}) {
 // and type aliases, parent context, prompt policy, and relation mutation.
 // Colliding keys the UI contract owns (actionKind, construction, fields,
 // label, status, typeId, trigger, access, relation) are stripped here.
-function exposureFieldsOf(action = {}) {
+export function exposureFieldsOf(action = {}) {
   const {
     actionKind: _actionKind, construction: _construction, fields: _fields,
     label: _label, status: _status, typeId: _typeId, trigger: _trigger,
     access: _access, relation: _relation, ...exposure
   } = action;
   return exposure;
-}
-
-export function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {}, actions = {}, lineageBindings = [], domain = {} } = {}) {
-  const permissions = {};
-  const screenMap = new Map();
-  const actionMap = new Map();
-  const incompleteBindings = [];
-  const roleIds = assignment.roleIds || [];
-  for (const roleId of roleIds) {
-    const role = roles[roleId];
-    if (!role) continue;
-    for (const grant of role.grants || []) {
-      const compiledGrant = compileGrantForAssignment(grant, assignment);
-      if (compiledGrant.incomplete.length) {
-        incompleteBindings.push(...compiledGrant.incomplete.map(binding => ({ roleId, feature: grant.feature, binding })));
-        continue;
-      }
-      permissions[grant.feature] ||= [];
-      permissions[grant.feature].push(compiledGrant.grant);
-    }
-    for (const action of role.actions || []) {
-      // The manifest action entry is the projected UI contract record; the
-      // rich exposure window (status from, feature, contracts) stays in the
-      // roles channel for grant derivation and the run API. Its non-projected
-      // fields (actionId, typeId, parent context, input policy,
-      // relation mutation) ride along under their legacy keys so the legacy
-      // renderer surfaces and the server manifest consumers keep working;
-      // the projected keys stay authoritative.
-      const projected = projectUiAction(action);
-      const actionId = action.actionId || action.id;
-      const existing = actionMap.get(actionId) || {};
-      actionMap.set(actionId, {
-        ...existing,
-        ...(projected || { ...action, id: actionId }),
-        ...exposureFieldsOf(action),
-        sourceRoleIds: [...new Set([...(existing.sourceRoleIds || []), roleId])]
-      });
-    }
-  }
-  for (const screen of Object.values(screens)) {
-    const sourceRoleIds = roleIds.filter(roleId => screenAppliesToRole(screen, roleId));
-    if (!sourceRoleIds.length) continue;
-    for (const roleId of sourceRoleIds) {
-      const compiledScreen = compileScreenForAssignment(screen, assignment, roleId);
-      if (compiledScreen.incomplete.length) {
-        incompleteBindings.push(...compiledScreen.incomplete.map(binding => ({ roleId, screenId: screen.id, binding })));
-        continue;
-      }
-      if (![screen.required, ...(screen.sources || []).map(source => source.required)].every(required => requirementHasAuthoredGrant(required, permissions))) continue;
-      mergeCompiledScreen(screenMap, compiledScreen.screen);
-    }
-  }
-  const screensList = [...screenMap.values()];
-  const homeScreen = compileHomeScreenForAssignment({ assignment, screens: screensList, lineageBindings, domain });
-  const userScreens = homeScreen ? [homeScreen, ...screensList] : screensList;
-  // Detail screens stay paired with their list screen: they open by entity
-  // context and never appear as duplicate top-level destinations.
-  const screenNavigation = userScreens
-    .filter(screen => screen.placement !== 'detail')
-    .map(screenToNavigation);
-  return {
-    roleIds,
-    permissions,
-    navigation: dedupeNavigation(screenNavigation),
-    screens: userScreens,
-    actions: [...actionMap.values()],
-    incompleteBindings
-  };
 }
 
 export function compileHomeScreenForAssignment({ assignment = {}, screens = [], lineageBindings = [], domain = {} } = {}) {
@@ -577,118 +509,6 @@ function topLevelHomeSections(screens = [], hierarchy = []) {
   return [...sectionsByType.values()].filter(section => !childTypes.has(section.typeId));
 }
 
-export function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineageBindings = [], workflows = {}) {
-  const graphContext = buildActionGraphContext(process);
-  const workflowByType = {};
-  for (const [producerOutputId, workflow] of Object.entries(workflows || {})) {
-    const typeId = process.producerOutputs?.[producerOutputId]?.typeId;
-    if (typeId && !workflowByType[typeId]) workflowByType[typeId] = workflow;
-  }
-  const roles = Object.fromEntries(Object.entries(organizationRoles).map(([roleId, role]) => [roleId, {
-    id: role.id || roleId,
-    label: role.label || role.id || roleId,
-    grants: Array.isArray(process.roleGrants?.[roleId]) ? [...process.roleGrants[roleId]] : [],
-    actions: []
-  }]));
-  for (const profile of Object.values(process.producerOutputs || {})) {
-    const feature = resolveEntityFeature(domain, profile.typeId);
-    for (const level of ['read', 'write', 'admin']) {
-      for (const roleId of profile.allowedRoles?.[level] || []) {
-        if (!roles[roleId]) continue;
-        roles[roleId].grants ||= [];
-        // The authored entity type rides on the grant so screen inference
-        // resolves the type the graph actually produces; the feature alone
-        // cannot distinguish types sharing one collection (org file-class
-        // types all project onto one shared collection).
-        upsertGrant(roles[roleId].grants, { feature, level, ...(profile.typeId ? { typeId: profile.typeId } : {}) });
-      }
-    }
-  }
-  const actionWindows = compileActionAccessWindows(process, domain, lineageBindings);
-  for (const [actionId, action] of Object.entries(process.actions || {})) {
-    const access = normalizeActionAccess(action.access);
-    const actionWindow = actionWindows.get(actionId);
-    const actionTypeId = action.typeId || action.inputs?.find(input => input.typeId)?.typeId || actionWindow?.outputs?.[0]?.typeId || '';
-    for (const grant of actionWindow?.grants || []) {
-      for (const roleId of grant.roleIds || []) {
-        if (!roles[roleId]) continue;
-        roles[roleId].grants ||= [];
-        upsertGrant(roles[roleId].grants, actionTypeId ? { ...grant, typeId: actionTypeId } : grant);
-      }
-    }
-    if ((action.trigger?.mode || 'manual') !== 'manual') continue;
-    const exposedRoleIds = actionExposureRoleIds(action, access, actionWindow);
-    for (const roleId of exposedRoleIds) {
-      if (!roles[roleId]) continue;
-      const feature = exposedActionFeature(action, actionWindow, access, domain);
-      const parentTypeId = effectiveActionParentTypeId(action, graphContext.parentIncomingByActionId.get(actionId), lineageBindings);
-      const resolvedTypeId = action.typeId || action.inputs?.find(input => input.typeId)?.typeId || actionWindow?.outputs?.[0]?.typeId || null;
-      const exposedAction = resolvedTypeId && !action.typeId ? { ...action, typeId: resolvedTypeId } : action;
-      if (action.relationMutation?.creator?.typeId) {
-        const creatorScope = actionWindow?.grants
-          ?.find(grant => grant.roleIds?.includes(roleId))?.scope;
-        upsertGrant(roles[roleId].grants, {
-          feature: resolveEntityFeature(domain, action.relationMutation.creator.typeId),
-          level: 'write',
-          ...(creatorScope ? { scope: creatorScope } : {})
-        });
-      }
-      if (action.relationMutation?.operation === 'link') {
-        // Entry-level contract: the link reads any accepted target type of
-        // the relation entry, so each accepted type's feature is granted.
-        for (const targetTypeId of [].concat(action.relationMutation.targetTypes || [])) {
-          upsertGrant(roles[roleId].grants, {
-            feature: resolveEntityFeature(domain, targetTypeId),
-            level: 'read'
-          });
-        }
-      }
-      const inputs = actionInputsForExposure(exposedAction, parentTypeId, domain).map(input => (
-        input.id === 'entity' && !input.typeId && resolvedTypeId ? { ...input, typeId: resolvedTypeId } : input
-      ));
-      const outputs = action.outputs || [];
-      const exposureState = actionStatusForExposure(
-        action,
-        actionWindow,
-        access,
-        process,
-        wiringArrivalState(actionId, exposedAction, resolvedTypeId, graphContext, actionWindows)
-      );
-      // The machine is the authority: a status-mutating action whose edge
-      // the machine did not declare (a no-op arrival-to-target pair) is not
-      // exposed, so no surface offers a transition execution would refuse.
-      if ((action.actionKind || 'createEntity') === 'updateEntity' && exposureState.to
-        && workflowDropsNoOp(workflowByType[resolvedTypeId], exposureState.from, exposureState.to)) {
-        continue;
-      }
-      roles[roleId].actions.push({
-        actionId: action.id || actionId,
-        label: displayActionLabel(action, actionId, process, domain),
-        level: 'run',
-        actionKind: action.actionKind || 'createEntity',
-        commandId: action.commandId || null,
-        feature,
-        typeId: resolvedTypeId,
-        parentTypeId: parentTypeId || null,
-        parentRevision: resolveParentRevision(action.parentRevision, parentTypeId, domain),
-        state: exposureState,
-        relationMutation: action.relationMutation || null,
-        construction: (action.actionKind || 'createEntity') === 'createEntity'
-          ? normalizeConstruction(action.construction, action.typeId, domain)
-          : null,
-        inputPolicy: compiledInputPolicy(action, domain),
-        inputs,
-        outputs,
-        contracts: compileActionEntityContracts(exposedAction, inputs, outputs, actionWindow, domain)
-      });
-    }
-  }
-  return roles;
-}
-
-// Entering a state lands on its initial child, so a status action whose
-// arrival leaf equals its target leaf moves nowhere: it is a no-op, not a
-// transition, and belongs to neither the execution channel nor the manifest.
 export function workflowDropsNoOp(workflow, from, to) {
   if (!workflow || !to) return false;
   const region = workflow.regions?.[workflow.primaryRegion]
@@ -700,7 +520,7 @@ export function workflowDropsNoOp(workflow, from, to) {
   return Boolean(fromPath) && fromPath === toPath;
 }
 
-function exposedActionFeature(action = {}, actionWindow = null, access = {}, domain = {}) {
+export function exposedActionFeature(action = {}, actionWindow = null, access = {}, domain = {}) {
   const kind = action.actionKind || 'createEntity';
   if (kind === 'runCommand' && actionWindow?.input?.feature) {
     return actionWindow.input.feature;
@@ -712,7 +532,7 @@ function exposedActionFeature(action = {}, actionWindow = null, access = {}, dom
 // belongs to: they receive the surfaced action and the status-scoped grant
 // for the resulting state. Executability derived from the input window only
 // fills in when the action declares no roles of its own.
-function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
+export function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
   const kind = action.actionKind || 'createEntity';
   const explicitGrants = access.grants?.length ? access.grants : grantsFromRoleIds(access.roleIds || [], access.level);
   const explicit = explicitGrants
@@ -753,7 +573,7 @@ function executableRoleIdsForWindow(window = null, access = {}) {
     .filter(Boolean);
 }
 
-function actionStatusForExposure(action = {}, actionWindow = null, access = {}, process = {}, wiredFrom = '') {
+export function actionStatusForExposure(action = {}, actionWindow = null, access = {}, process = {}, wiredFrom = '') {
   // The exposed/manifest action carries the same wiring arrival as the
   // execution channel: compileActionStatus derives `from` from the same
   // wiring fact the machine edge and the compiled action use. The action
@@ -791,7 +611,7 @@ function grantFromAction(action = {}, access = {}, domain = {}) {
   return grant;
 }
 
-function upsertGrant(grants, next) {
+export function upsertGrant(grants, next) {
   const normalized = normalizeCompiledGrant(next);
   const existing = grants.find(grant => grantKey(grant) === grantKey(normalized));
   if (!existing) {
@@ -1070,7 +890,7 @@ function outputHandleId(action = {}, kind = '') {
   return `output:${id || Math.max(index, 0)}`;
 }
 
-function effectiveActionParentTypeId(action = {}, incoming = null, lineageBindings = []) {
+export function effectiveActionParentTypeId(action = {}, incoming = null, lineageBindings = []) {
   const typeId = action.typeId || action.outputs?.find(output => output.typeId)?.typeId || '';
   const compiledParents = [...new Set(lineageBindings
     .filter(binding => binding.childTypeId === typeId && binding.parentTypeId)
@@ -1093,7 +913,7 @@ function parentSupportedByLineage(lineageBindings = [], typeId = '', parentType 
   return Boolean(parentRelationForChild(typeId, parentType, lineageBindings));
 }
 
-function actionInputsForExposure(action = {}, parentTypeId = '', domain = {}) {
+export function actionInputsForExposure(action = {}, parentTypeId = '', domain = {}) {
   if (action.actionKind === 'runCommand') {
     return commandActionInputs(domain.commands?.[action.commandId] || {});
   }
@@ -1256,7 +1076,7 @@ function mergeGrantRules(left, right) {
   return { all: [left, right] };
 }
 
-function resolveEntityFeature(domain = {}, typeId) {
+export function resolveEntityFeature(domain = {}, typeId) {
   const entity = (domain.entities || []).find(item => item.type === typeId);
   if (entity?.collection) return entity.collection;
   const fieldPolicy = getFieldPolicy(domain.fieldAccess || {}, typeId);
@@ -1631,11 +1451,11 @@ export function featureFromTypeId(domain = {}, typeId) {
   return resolveEntityFeature(domain, typeId);
 }
 
-function screenAppliesToRole(screen = {}, roleId) {
+export function screenAppliesToRole(screen = {}, roleId) {
   return !screen.roleIds?.length || screen.roleIds.includes(roleId);
 }
 
-function compileScreenForAssignment(screen = {}, assignment = {}, roleId = null) {
+export function compileScreenForAssignment(screen = {}, assignment = {}, roleId = null) {
   const incomplete = [];
   const scoped = JSON.parse(JSON.stringify({
     id: screen.id,
@@ -1671,7 +1491,7 @@ function makeScreenKey(screen = {}) {
   return [screen.id, ...(scopeValues.length ? scopeValues : [screen.route])].filter(Boolean).map(String).join(':');
 }
 
-function mergeCompiledScreen(screenMap, screen) {
+export function mergeCompiledScreen(screenMap, screen) {
   const mergeKey = screenMergeKey(screen);
   screen.screenKey = mergeKey;
   screen.route = generatedScreenRoute(mergeKey);
@@ -1774,7 +1594,7 @@ function dedupeObjects(items = []) {
   return result;
 }
 
-function screenToNavigation(screen = {}) {
+export function screenToNavigation(screen = {}) {
   return {
     id: screen.screenKey || screen.id,
     route: screen.route,
@@ -1784,7 +1604,7 @@ function screenToNavigation(screen = {}) {
   };
 }
 
-function dedupeNavigation(items = []) {
+export function dedupeNavigation(items = []) {
   const byKey = new Map();
   for (const item of items) {
     if (!item?.route) continue;
@@ -1931,7 +1751,7 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
   }));
 }
 
-function compileActionEntityContracts(action = {}, inputs = [], outputs = [], actionWindow = null, domain = {}) {
+export function compileActionEntityContracts(action = {}, inputs = [], outputs = [], actionWindow = null, domain = {}) {
   const inputContracts = inputs
     .filter(input => input.typeId)
     .map(input => ({
@@ -2009,7 +1829,7 @@ export function declaredTransitionSources(actionId, action = {}, typeId = '', gr
 // buttons), exactly like an update's transition window. The machine-edge
 // derivation (declaredTransitionSources) stays update-only — deletes
 // author no machine edges.
-function wiringArrivalState(actionId, action = {}, typeId = '', graphContext, actionWindows) {
+export function wiringArrivalState(actionId, action = {}, typeId = '', graphContext, actionWindows) {
   const sources = workflowTransitionSources(actionId, action, typeId, graphContext, actionWindows);
   return sources.length === 1 ? sources[0].status : '';
 }
@@ -2164,7 +1984,7 @@ function normalizeConstructionInput(input = {}, domain = {}) {
   };
 }
 
-function resolveParentRevision(parentRevision = {}, parentTypeId = '', domain = {}) {
+export function resolveParentRevision(parentRevision = {}, parentTypeId = '', domain = {}) {
   const contract = domain.revisions?.[parentTypeId] || {};
   const scopes = Array.isArray(contract.scopes) ? contract.scopes : [];
   const requestedScope = parentRevision.scope || contract.defaultScope || scopes[0] || '';
@@ -2237,13 +2057,13 @@ export function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, 
   };
 }
 
-function compiledInputPolicy(action = {}, domain = {}) {
+export function compiledInputPolicy(action = {}, domain = {}) {
   return (action.actionKind || 'createEntity') === 'createEntity'
     ? normalizeActionInputPolicy(action.inputPolicy, action.construction, action.typeId, domain)
     : normalizeInputPolicy(action.inputPolicy);
 }
 
-function displayActionLabel(action = {}, id = '', process = {}, domain = {}) {
+export function displayActionLabel(action = {}, id = '', process = {}, domain = {}) {
   const explicit = String(action.label || '').trim();
   if (explicit && !isGenericActionLabel(explicit, action.actionKind)) return explicit;
 
@@ -2330,7 +2150,7 @@ export function normalizeActionAccess(access = {}) {
   };
 }
 
-function requirementHasAuthoredGrant(required = null, permissions = {}) {
+export function requirementHasAuthoredGrant(required = null, permissions = {}) {
   if (!required?.feature) return true;
   const requiredLevel = normalizeAccessLevel(required.level || 'read');
   return (permissions[required.feature] || []).some(grant => {

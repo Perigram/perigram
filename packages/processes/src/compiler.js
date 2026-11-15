@@ -2,7 +2,6 @@ import {
   PROCESS_SCHEMA_VERSION,
   normalizeRoleCatalog,
   compileLineageBindings,
-  compileRoles,
   compileFieldPolicies,
   compileActions,
   workflowDropsNoOp,
@@ -15,6 +14,7 @@ import {
 import { validateProcessDefinition } from './validation.js';
 import { compileWorkflows } from './workflow-compilation.js';
 import { compileScreens } from './screen-compilation.js';
+import { compileRoles } from './access-compilation.js';
 import { projectUiContractChannels } from './ui-contract-projection.js';
 
 export function compileProcessDefinition(definition = {}, domain = {}, { roles = {} } = {}) {

@@ -1,4 +1,5 @@
-import { compileAssignmentAccess, emptyAssignmentAccess } from './compiler-core.js';
+import { emptyAssignmentAccess } from './compiler-core.js';
+import { compileAssignmentAccess } from './access-compilation.js';
 
 export function resolveRoleAssignmentAccess({ compiled, assignment, domain = {} } = {}) {
   if (!assignment || (assignment.status && assignment.status !== 'active')) return emptyAssignmentAccess();

@@ -2,10 +2,10 @@ export {
   PROCESS_SCHEMA_VERSION,
   requiredEffectCapability,
   compileLineageBindings,
-  compileAssignmentAccess,
   compileHomeScreenForAssignment,
   compileActions
 } from './compiler-core.js';
+export { compileAssignmentAccess } from './access-compilation.js';
 export { compileScreens } from './screen-compilation.js';
 export { normalizeProcessDefinition } from './normalization.js';
 export { detectRedundantScreens, redundantAuthoredScreens } from './screen-analysis.js';
