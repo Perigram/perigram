@@ -3,6 +3,13 @@
 # catalog against a newer build123d bumps this pin in the same change.
 FROM python:3.14-slim
 
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+
 RUN pip install --no-cache-dir build123d==0.13.0
 
 WORKDIR /src

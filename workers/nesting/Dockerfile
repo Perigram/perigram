@@ -3,7 +3,10 @@ FROM rust:1.83 AS builder
 
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
-ARG NO_PROXY=localhost,127.0.0.1
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
 
 # Use HTTPS for Debian mirrors: some build networks block or time out on
 # the HTTP mirror endpoint, which otherwise leaves apt with empty package indexes.
@@ -27,7 +30,10 @@ FROM python:3.11-slim
 
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
-ARG NO_PROXY=localhost,127.0.0.1
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
 
 # Create a non-root user
 RUN groupadd -r appuser && useradd -m -r -g appuser appuser

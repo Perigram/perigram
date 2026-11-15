@@ -2,6 +2,13 @@ ARG NODE_VERSION=24.15.0
 
 FROM node:${NODE_VERSION}-slim as base
 
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+
 # Prefer HTTPS Debian mirrors; plain HTTP can time out on restricted build networks.
 RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
       sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
@@ -19,7 +26,10 @@ FROM base as build
 COPY --link package.json package-lock.json ./
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
-ARG NO_PROXY=localhost,127.0.0.1
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
 RUN npm ci
 
@@ -36,7 +46,10 @@ ENV NUXT_PUBLIC_GIT_COMMIT_SHA=$GIT_COMMIT_SHA
 
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
-ARG NO_PROXY=localhost,127.0.0.1
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
 
 # Install python dependencies for local scripts (DXF generation)
 COPY workers/nesting/requirements.txt /tmp/requirements.txt

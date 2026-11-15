@@ -1,6 +1,14 @@
 # Development Dockerfile with hot reload
 FROM node:24.15.0-slim
 
+# Build proxy settings are supplied by Compose as build args (never ENV).
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+
 # Prefer HTTPS Debian mirrors; plain HTTP can time out on restricted build networks.
 RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
       sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \

@@ -14,6 +14,16 @@ cd perigram
 
 The first run initializes submodules, builds the app and worker images, starts MongoDB, initializes its replica set, and starts LiveKit and the plugin executors. Open [http://localhost:3000](http://localhost:3000).
 
+If package downloads fail during image builds on a network that requires a host-local proxy, configure a proxy endpoint reachable from Docker's build network. Compose forwards `DOCKER_BUILD_HTTP_PROXY`, `DOCKER_BUILD_HTTPS_PROXY`, and `DOCKER_BUILD_NO_PROXY` as build-only arguments (the usual `HTTP_PROXY`/`HTTPS_PROXY` and lowercase shell variables are accepted as fallbacks). On Linux, a proxy bound only to `127.0.0.1` is not reachable from build containers: configure the proxy to listen on the Docker bridge interface (or another host-reachable interface), then use `host.docker.internal` as its host. For example, with a proxy listening on host port 2081:
+
+```sh
+export DOCKER_BUILD_HTTP_PROXY=http://host.docker.internal:2081
+export DOCKER_BUILD_HTTPS_PROXY=http://host.docker.internal:2081
+./scripts/dev.sh up
+```
+
+Do not expose a proxy listener to untrusted networks. Keep proxy credentials in your local environment; do not commit them to `.env` or the repository. Build proxy arguments are not persisted as image environment variables.
+
 MongoDB data survives `down` and normal restarts. To delete the local database and start clean, run `./scripts/dev.sh reset --yes`.
 
 | Command | Purpose |
