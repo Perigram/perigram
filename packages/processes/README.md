@@ -126,6 +126,11 @@ among the construct action's context entity and that entity's ancestors
 over the declared containment; explicit input data and typed entity context
 take priority.
 
+Compiler-side construction normalization lives in `src/construction-compilation.js`;
+`node-catalog.js` remains the owner of mode and edge socket derivation. The
+compiler merges authored prompts with that declaration contract without
+maintaining a second input vocabulary.
+
 ### Services
 
 Services expose registered V→V signatures — a service node is an effect
