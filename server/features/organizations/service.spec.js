@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { findById, hasPermission } = vi.hoisted(() => ({
+const { findById, create, addMembership, hasPermission, createActiveEmptyProcess, ownerMembership } = vi.hoisted(() => ({
   findById: vi.fn(),
-  hasPermission: vi.fn()
+  create: vi.fn(),
+  addMembership: vi.fn(),
+  hasPermission: vi.fn(),
+  createActiveEmptyProcess: vi.fn(),
+  ownerMembership: vi.fn(() => ({ owner: true, status: 'active' }))
 }));
 
-vi.mock('./repository.js', () => ({ findById }));
+vi.mock('./repository.js', () => ({ findById, create }));
+vi.mock('../users/repository.js', () => ({ addMembership }));
 vi.mock('../../utils/auth-helpers.js', () => ({
   hasPermission,
   resolveAuthPermissions: vi.fn(auth => auth.effectivePermissions || auth.permissions || {})
@@ -13,14 +18,14 @@ vi.mock('../../utils/auth-helpers.js', () => ({
 vi.mock('../_template/process-update-handler.js', () => ({
   createProcessUpdateHandler: vi.fn(() => vi.fn())
 }));
-vi.mock('../process-definitions/service.js', () => ({}));
+vi.mock('../process-definitions/service.js', () => ({ createActiveEmptyProcess }));
 vi.mock('../invitations/service.js', () => ({}));
-vi.mock('../users/organization-owner.js', () => ({ ownerMembership: vi.fn() }));
+vi.mock('../users/organization-owner.js', () => ({ ownerMembership }));
 vi.mock('h3', () => ({
   createError: vi.fn(details => Object.assign(new Error(details.message), details))
 }));
 
-import { getManagedById } from './service.js';
+import { create as createOrganization, getManagedById } from './service.js';
 
 describe('organization detail access', () => {
   beforeEach(() => {
@@ -31,6 +36,29 @@ describe('organization detail access', () => {
       data: {}
     });
     hasPermission.mockReturnValue(true);
+  });
+
+  it('writes the new owner membership through the users persistence owner', async () => {
+    create.mockResolvedValue({
+      _id: 'org-1',
+      identity: { uid: 'org-one', name: 'Organization One' },
+      data: {}
+    });
+
+    await createOrganization({ name: 'Organization One' }, {
+      userId: 'user-1',
+      memberships: []
+    });
+
+    expect(addMembership).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ owner: true, status: 'active' }),
+      { activeOrganizationId: 'org-1' }
+    );
+    expect(createActiveEmptyProcess).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      actorId: 'user-1'
+    });
   });
 
   it('rejects a detail read outside the active organization before repository access', async () => {

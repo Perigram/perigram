@@ -89,11 +89,15 @@ export async function removeMembership(userId, organizationId) {
   );
 }
 
-export async function addMembership(userId, membership) {
+export async function addMembership(userId, membership, { activeOrganizationId = null } = {}) {
   const db = await connectDB();
+  const update = { $push: { 'data.memberships': membership } };
+  if (activeOrganizationId != null) {
+    update.$set = { 'lineage.organizationId': toFlexibleId(activeOrganizationId) };
+  }
   return await db.collection('users').updateOne(
     { _id: toFlexibleId(userId) },
-    { $push: { 'data.memberships': membership } }
+    update
   );
 }
 

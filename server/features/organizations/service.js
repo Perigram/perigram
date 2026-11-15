@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import * as usersRepository from '../users/repository.js';
 import { createError } from 'h3';
 import { hasPermission, resolveAuthPermissions } from '../../utils/auth-helpers.js';
 import { getLineageFilter } from '../../utils/permissions.js';
@@ -48,7 +49,7 @@ export async function create(data, auth = {}) {
     organizationId: createdRaw._id,
   });
 
-  await repository.addUserMembership(userId, membership, { organizationId: createdRaw._id });
+  await usersRepository.addMembership(userId, membership, { activeOrganizationId: createdRaw._id });
 
   return new Organization(createdRaw);
 }
@@ -79,9 +80,9 @@ export async function createInitialForUser(userId, data = {}) {
     actorId: userId
   });
 
-  await repository.addUserMembership(userId, ownerMembership({
+  await usersRepository.addMembership(userId, ownerMembership({
     organizationId: createdRaw._id
-  }), { organizationId: createdRaw._id });
+  }), { activeOrganizationId: createdRaw._id });
 
   return new Organization(createdRaw);
 }

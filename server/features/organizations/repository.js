@@ -1,4 +1,3 @@
-import { connectDB } from '~/server/db/mongo';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { collection } from '../../utils/repository.js';
 
@@ -12,19 +11,6 @@ export const updateById = organizations.updateById;
 export const deleteById = organizations.deleteById;
 export const searchByName = (query, limit = 10) =>
   organizations.searchByName(query, 'identity.name', limit);
-
-export async function addUserMembership(userId, membership, { organizationId }) {
-  const db = await connectDB();
-  return await db.collection('users').updateOne(
-    { _id: toFlexibleId(userId) },
-    {
-      $push: { 'data.memberships': membership },
-      $set: {
-        'lineage.organizationId': organizationId
-      }
-    }
-  );
-}
 
 export async function setRoleAssignment(organizationId, userId, assignment) {
   const db = await connectDB();
