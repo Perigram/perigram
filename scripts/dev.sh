@@ -7,15 +7,6 @@ NETWORK="perigram-network"
 
 cd "$ROOT"
 
-if ! command -v docker >/dev/null 2>&1; then
-  echo "Docker is required. Install Docker Engine and Compose v2 first." >&2
-  exit 1
-fi
-if ! docker compose version >/dev/null 2>&1; then
-  echo "Docker Compose v2 is required (docker compose)." >&2
-  exit 1
-fi
-
 compose() {
   docker compose --project-directory "$ROOT" -f "$COMPOSE_FILE" "$@"
 }
@@ -47,6 +38,20 @@ HELP
 
 command="${1:-help}"
 shift || true
+
+if [[ "$command" == "help" || "$command" == "-h" || "$command" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "Docker is required. Install Docker Engine and Compose v2 first." >&2
+  exit 1
+fi
+if ! docker compose version >/dev/null 2>&1; then
+  echo "Docker Compose v2 is required (docker compose)." >&2
+  exit 1
+fi
 
 case "$command" in
   up|start)

@@ -33,6 +33,19 @@ jobs:
         id: dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Validate operational scripts
+        run: |
+          bash -n scripts/dev.sh scripts/deploy.sh
+          ./scripts/dev.sh --help
+          if ./scripts/deploy.sh >/tmp/deploy-check.log 2>&1; then
+            echo "deploy.sh unexpectedly accepted an empty environment" >&2
+            exit 1
+          else
+            status=$?
+            [ "$status" -eq 2 ] || { cat /tmp/deploy-check.log; exit "$status"; }
+            grep -q "Missing deployment configuration" /tmp/deploy-check.log
+          fi
+
       - name: Inventory application package consumers
         if: ${{ always() && steps.dependencies.outcome == 'success' }}
         run: node scripts/report-package-consumers.js
