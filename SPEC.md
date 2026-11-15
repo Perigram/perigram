@@ -2194,3 +2194,10 @@ repository split. It prepares and validates the boundaries required by
   resolution. This ensures preview source references use the caller's compiled
   read grants, matching the create path, rather than a synthetic empty-membership
   context.
+
+- Plugin command-result boundary (2026-11-15): endpoint plugin responses are
+  now carried as opaque command values. Their JSON keys cannot be interpreted
+  as platform-owned command effects/events/entities/tasks, closing a path where
+  an executor could request platform persistence operations through its return
+  value. A command-service regression verifies the plugin value remains raw and
+  no effect dispatch occurs.
