@@ -6,17 +6,18 @@
 # the repo root with --build-arg PLUGIN=<dir> -f workers/plugin-executor.Dockerfile.
 FROM node:24-alpine
 ARG PLUGIN
+ARG BUILD_HTTP_PROXY
+ARG BUILD_HTTPS_PROXY
+ARG BUILD_NO_PROXY=localhost,127.0.0.1
 WORKDIR /app
-# CI: registry.npmjs.org is provider-blocked on runner hosts (the root
-# Dockerfile's LAN relay pattern); LAN ranges stay direct.
-ENV HTTP_PROXY=http://192.168.0.100:12334 \
-    HTTPS_PROXY=http://192.168.0.100:12334 \
-    NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.77.0.0/16
+ENV HTTP_PROXY=${BUILD_HTTP_PROXY} \
+    HTTPS_PROXY=${BUILD_HTTPS_PROXY} \
+    NO_PROXY=${BUILD_NO_PROXY}
 COPY packages/plugin-sdk ./packages/plugin-sdk
 COPY workers/${PLUGIN}/package.json ./workers/${PLUGIN}/package.json
 WORKDIR /app/workers/${PLUGIN}
 RUN npm install --omit=dev
-ENV HTTP_PROXY= HTTPS_PROXY=
+ENV HTTP_PROXY= HTTPS_PROXY= NO_PROXY=
 WORKDIR /app
 COPY workers/${PLUGIN} ./workers/${PLUGIN}
 WORKDIR /app/workers/${PLUGIN}

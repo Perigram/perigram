@@ -13,12 +13,12 @@ WORKDIR /src
 FROM base as build
 
 COPY --link package.json package-lock.json ./
-# CI: registry.npmjs.org is provider-blocked on runner hosts (Штаб coordination
-# 2026-09-27); build-time fetches go through the LAN hiddify relay. forgejo and
-# LAN/NetBird ranges stay direct via NO_PROXY.
-ENV HTTP_PROXY=http://192.168.0.100:12334 \
-    HTTPS_PROXY=http://192.168.0.100:12334 \
-    NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.77.0.0/16
+ARG BUILD_HTTP_PROXY
+ARG BUILD_HTTPS_PROXY
+ARG BUILD_NO_PROXY=localhost,127.0.0.1
+ENV HTTP_PROXY=${BUILD_HTTP_PROXY} \
+    HTTPS_PROXY=${BUILD_HTTPS_PROXY} \
+    NO_PROXY=${BUILD_NO_PROXY}
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
 RUN npm ci
 

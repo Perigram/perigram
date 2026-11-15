@@ -3,12 +3,15 @@
 # tree: the scripts, the db client, the zero-dep SDK, and the mongodb
 # driver — nothing else).
 FROM node:24-alpine
-ENV HTTP_PROXY=http://192.168.0.100:12334 \
-    HTTPS_PROXY=http://192.168.0.100:12334 \
-    NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.77.0.0/16
+ARG BUILD_HTTP_PROXY
+ARG BUILD_HTTPS_PROXY
+ARG BUILD_NO_PROXY=localhost,127.0.0.1
+ENV HTTP_PROXY=${BUILD_HTTP_PROXY} \
+    HTTPS_PROXY=${BUILD_HTTPS_PROXY} \
+    NO_PROXY=${BUILD_NO_PROXY}
 WORKDIR /app
 RUN npm install --silent mongodb winston
-ENV HTTP_PROXY= HTTPS_PROXY=
+ENV HTTP_PROXY= HTTPS_PROXY= NO_PROXY=
 RUN printf '{ "type": "module" }' > package.json
 COPY server/scripts ./server/scripts
 COPY server/db ./server/db

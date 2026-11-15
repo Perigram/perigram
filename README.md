@@ -77,29 +77,37 @@ Production deployment is automated by
 `staging` starts the Forgejo deployment workflow; there is no separate
 `DEPLOYMENT.md` runbook or manual `docker run` sequence.
 
-Before enabling the workflow, the operator must:
+Before the first deploy, the operator must:
 
-1. Provide the production MongoDB database and URI, LiveKit server, recording
-   egress (Redis + LiveKit Egress + S3-compatible storage), public DNS and TLS
-   reverse proxy.
-2. Register a self-hosted Forgejo Actions runner with the `deploy` label and
-   Docker daemon access. It must be able to reach the production data-plane
-   services and pull the required base images.
-3. Add these repository secrets in **Forgejo → Repository → Settings → Actions
+1. Provision production MongoDB, LiveKit, recording egress (Redis + LiveKit
+   Egress + S3-compatible storage), public DNS and the TLS reverse proxy.
+2. Register a self-hosted Forgejo Actions runner with the `deploy` label,
+   Docker daemon access, and network access to the production services.
+3. Add the required values under **Forgejo → Repository → Settings → Actions
    → Secrets**:
-   - `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET`
-   - `GARAGE_ACCESS_KEY` and `GARAGE_SECRET_KEY`
-   - `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (optional; web push stays
-     disabled until both are set).
-4. Verify the production endpoints and service addresses in the deploy
-   workflow match the provisioned infrastructure, then push the intended
-   release to `staging`.
 
-The workflow builds the app and plugin executor images, updates the plugin
-catalog/installs, replaces the running app, and checks that the served Nuxt
-assets belong to the new build. A failed image build leaves the currently
-running app untouched. Keep production credentials in Forgejo secrets, never
-in `.env` files committed to the repository.
+   | Secret | Purpose |
+   |---|---|
+   | `NUXT_MONGODB_URI` | Production MongoDB connection string |
+   | `BASE_URL` | Public application origin |
+   | `LIVEKIT_PUBLIC_URL` / `LIVEKIT_INTERNAL_URL` | Browser and server LiveKit addresses |
+   | `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | LiveKit credentials |
+   | `BUILD_HTTP_PROXY` / `BUILD_HTTPS_PROXY` / `BUILD_NO_PROXY` | Optional build-network proxy settings |
+   | `TRANSCRIPTION_PROVIDER` / `TRANSCRIPTION_LOCAL_BASE_URL` | Optional transcription service |
+   | `MEETINGS_LLM_BASE_URL` / `MEETINGS_LLM_MODEL` | Optional meeting-summary model |
+   | `LIVEKIT_RECORDINGS_S3_ENDPOINT` / `LIVEKIT_RECORDINGS_S3_BUCKET` / `LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT` | Optional recording storage endpoints |
+   | `GARAGE_ACCESS_KEY` / `GARAGE_SECRET_KEY` | Recording storage credentials |
+   | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Optional web-push keys |
+
+4. Push the intended release to `staging`. The workflow calls
+   [`scripts/deploy.sh`](./scripts/deploy.sh); it builds the images, updates
+   the plugin catalog/installs, rolls out the app and verifies that the served
+   Nuxt assets belong to the new build.
+
+Optional integrations can be left empty; their features remain disabled.
+Build proxy values are needed only when the runner cannot reach package
+registries directly. Keep all credentials in Forgejo secrets, never in
+committed files.
 
 ## Project map
 

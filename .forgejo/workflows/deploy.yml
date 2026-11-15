@@ -10,177 +10,38 @@ jobs:
       options: --add-host forgejo.sodalab.pro:192.168.0.15
     steps:
       - name: tools
-        run: apk add --no-cache git
+        run: apk add --no-cache bash git
       - name: checkout
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_HTTP_PROXY: ${{ secrets.BUILD_HTTP_PROXY }}
+          BUILD_HTTPS_PROXY: ${{ secrets.BUILD_HTTPS_PROXY }}
         run: |
           git clone --depth 1 --branch "$GITHUB_REF_NAME" \
             "https://x-access-token:${TOKEN}@forgejo.sodalab.pro/perigram/perigram.git" .
-          # The nesting solver is a pinned submodule (jagua-rs) — the
-          # shallow clone skips it, and github is provider-blocked on the
-          # runner, so the fetch rides the LAN relay.
-          git -c http.proxy=http://192.168.0.100:12334 \
-              -c https.proxy=http://192.168.0.100:12334 \
+          git -c http.proxy="${BUILD_HTTP_PROXY:-}" \
+              -c https.proxy="${BUILD_HTTPS_PROXY:-}" \
               submodule update --init --depth 1 workers/nesting/jagua-rs
-      - name: pull base images
-        # Registry egress from the runner is DPI-flaky (the same class the
-        # npm layer's LAN relay covers): warm the daemon's store with
-        # retries so base-image resolution survives a blocked window.
-        run: |
-          retry() { i=0; while [ $i -lt 5 ]; do "$@" && return 0; i=$((i+1)); echo "attempt $i failed" >&2; sleep $((i*10)); done; "$@"; }
-          for image in node:24.15.0-slim rust:1.83 python:3.11-slim node:24-alpine; do
-            retry docker pull "$image" || echo "WARN: pull $image kept failing; the build retry may still resolve it"
-          done
-      - name: build image
-        run: |
-          retry() { i=0; while [ $i -lt 5 ]; do "$@" && return 0; i=$((i+1)); echo "attempt $i failed" >&2; sleep $((i*10)); done; "$@"; }
-          retry docker build --network=host --build-arg PORT=3001 --build-arg GIT_COMMIT_SHA="$GITHUB_SHA" -t perigram:staging .
-      - name: build nesting worker image
-        run: |
-          retry() { i=0; while [ $i -lt 5 ]; do "$@" && return 0; i=$((i+1)); echo "attempt $i failed" >&2; sleep $((i*10)); done; "$@"; }
-          retry docker build --network=host -t perigram-nesting:staging -f workers/nesting/Dockerfile .
-      - name: build plugin executor images
-        # Each plugin executor as its own image (its dependency install
-        # beside the zero-dep SDK — the extracted hosting form).
-        run: |
-          retry() { i=0; while [ $i -lt 5 ]; do "$@" && return 0; i=$((i+1)); echo "attempt $i failed" >&2; sleep $((i*10)); done; "$@"; }
-          retry docker build --network=host -t perigram-executor-facade:staging --build-arg PLUGIN=facade -f workers/plugin-executor.Dockerfile .
-          retry docker build --network=host -t perigram-executor-documents:staging --build-arg PLUGIN=documents -f workers/plugin-executor.Dockerfile .
-          retry docker build --network=host -t perigram-executor-tech-drawing:staging --build-arg PLUGIN=tech-drawing -f workers/plugin-executor.Dockerfile .
-      - name: plugin executor stack
-        # The plugins host beside the app: the nesting solver (the facade
-        # executor's HTTP dependency) and the three plugin executors,
-        # re-created per deploy. The app (host-networked) reaches them on
-        # 127.0.0.1:879x.
-        run: |
-          docker rm -f perigram-nesting perigram-facade-executor perigram-documents-executor perigram-tech-drawing-executor || true
-          docker run -d --name perigram-nesting --restart unless-stopped \
-            --network host \
-            perigram-nesting:staging
-          docker run -d --name perigram-facade-executor --restart unless-stopped \
-            --network host \
-            -e FACADE_EXECUTOR_PORT=8790 \
-            -e NESTING_WORKER_URL=http://127.0.0.1:8000/nest \
-            perigram-executor-facade:staging
-          docker run -d --name perigram-documents-executor --restart unless-stopped \
-            --network host \
-            -e DOCUMENTS_EXECUTOR_PORT=8791 \
-            perigram-executor-documents:staging
-          docker run -d --name perigram-tech-drawing-executor --restart unless-stopped \
-            --network host \
-            -e TECH_DRAWING_EXECUTOR_PORT=8792 \
-            perigram-executor-tech-drawing:staging
-      - name: probe the executor plane
-        # The job container sits on the runner bridge; the executors sit on
-        # the host network. Probe through the host daemon with the image
-        # this pipeline just built.
-        run: |
-          docker run --rm --network host perigram:staging sh -c '
-            for port in 8000 8790 8791 8792; do
-              n=0
-              until curl -s -o /dev/null "http://127.0.0.1:$port/"; do
-                n=$((n+1))
-                if [ $n -ge 15 ]; then echo ":$port never answered" >&2; exit 1; fi
-                sleep 2
-              done
-              echo ":$port answered"
-            done'
-      - name: seed catalog and ensure builtin installs
-        # The built-in listings publish and every organization gets the
-        # three plugins installed (idempotent — existing installs skip;
-        # legacy service nodes rewrite where they persist). Installs write
-        # directly: plain node, no Nuxt aliases.
-        # The seed/migrate scripts import the mongodb driver, the app
-        # image is a slim runtime, and the runner's workspace cannot be
-        # bind-mounted into sibling containers — the seed ships as its
-        # own image (deploy/seed.Dockerfile).
-        run: |
-          docker build --network=host -t perigram-seed:staging -f deploy/seed.Dockerfile .
-          docker run --rm --network host \
-            -e NUXT_MONGODB_URI="mongodb://192.168.0.248:27017/cutkit?directConnection=true" \
-            -e FACADE_EXECUTOR_URL=http://127.0.0.1:8790 \
-            -e DOCUMENTS_EXECUTOR_URL=http://127.0.0.1:8791 \
-            -e TECH_DRAWING_EXECUTOR_URL=http://127.0.0.1:8792 \
-            perigram-seed:staging sh -c "node server/scripts/seed-plugin-catalog.js \
-              && node server/scripts/migrate-facade-pack-to-plugin.js \
-              && node server/scripts/migrate-tech-drawing-pack-to-plugin.js \
-              && node server/scripts/migrate-documents-pack-to-plugin.js"
-      - name: redeploy container
+      - name: deploy
         env:
-          NUXT_VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
-          NUXT_VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          BUILD_HTTP_PROXY: ${{ secrets.BUILD_HTTP_PROXY }}
+          BUILD_HTTPS_PROXY: ${{ secrets.BUILD_HTTPS_PROXY }}
+          BUILD_NO_PROXY: ${{ secrets.BUILD_NO_PROXY }}
+          NUXT_MONGODB_URI: ${{ secrets.NUXT_MONGODB_URI }}
+          BASE_URL: ${{ secrets.BASE_URL }}
+          LIVEKIT_PUBLIC_URL: ${{ secrets.LIVEKIT_PUBLIC_URL }}
+          LIVEKIT_INTERNAL_URL: ${{ secrets.LIVEKIT_INTERNAL_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          TRANSCRIPTION_PROVIDER: ${{ secrets.TRANSCRIPTION_PROVIDER }}
+          TRANSCRIPTION_LOCAL_BASE_URL: ${{ secrets.TRANSCRIPTION_LOCAL_BASE_URL }}
+          MEETINGS_LLM_BASE_URL: ${{ secrets.MEETINGS_LLM_BASE_URL }}
+          MEETINGS_LLM_MODEL: ${{ secrets.MEETINGS_LLM_MODEL }}
+          LIVEKIT_RECORDINGS_S3_ENDPOINT: ${{ secrets.LIVEKIT_RECORDINGS_S3_ENDPOINT }}
+          LIVEKIT_RECORDINGS_S3_BUCKET: ${{ secrets.LIVEKIT_RECORDINGS_S3_BUCKET }}
+          LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT: ${{ secrets.LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT }}
           GARAGE_ACCESS_KEY: ${{ secrets.GARAGE_ACCESS_KEY }}
           GARAGE_SECRET_KEY: ${{ secrets.GARAGE_SECRET_KEY }}
-        run: |
-          docker rm -f perigram-staging || true
-          # Port pre-flight: after removing perigram-staging nothing may
-          # answer on :3001 — a listener here is a squatter (an orphan
-          # container or host process) that would crash-loop the
-          # replacement and keep serving its own build. The job container
-          # sits on the runner bridge; probe through a host-networked
-          # container (the app image ships curl).
-          if docker run --rm --network host perigram:staging \
-              sh -c 'curl -s -m 2 -o /dev/null http://127.0.0.1:3001/'; then
-            echo "port 3001 still answers after removing perigram-staging — another process holds it (docker ps -a | grep -i peri; ss -ltnp | grep 3001)" >&2
-            exit 1
-          fi
-          docker run -d --name perigram-staging --restart unless-stopped \
-            --network=host \
-            -e NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true \
-            -e BASE_URL=https://perigram.sodalab.pro \
-            -e NUXT_PUBLIC_BASE_URL=https://perigram.sodalab.pro \
-            -e FACADE_EXECUTOR_URL=http://127.0.0.1:8790 \
-            -e DOCUMENTS_EXECUTOR_URL=http://127.0.0.1:8791 \
-            -e TECH_DRAWING_EXECUTOR_URL=http://127.0.0.1:8792 \
-            -e LIVEKIT_PUBLIC_URL=wss://perigram.sodalab.pro/livekit \
-            -e LIVEKIT_INTERNAL_URL=ws://192.168.0.15:7880 \
-            -e LIVEKIT_API_KEY \
-            -e LIVEKIT_API_SECRET \
-            -e TRANSCRIPTION_PROVIDER=local \
-            -e TRANSCRIPTION_LOCAL_BASE_URL=http://192.168.0.15:31135/v1 \
-            -e MEETINGS_LLM_BASE_URL=http://192.168.0.15:31136/v1 \
-            -e MEETINGS_LLM_MODEL=qwen3:4b \
-            -e LIVEKIT_RECORDINGS_S3_ENDPOINT=https://perigram.sodalab.pro/recordings \
-            -e LIVEKIT_RECORDINGS_S3_BUCKET=livekit-egress \
-            -e LIVEKIT_RECORDINGS_S3_ACCESS_KEY="$GARAGE_ACCESS_KEY" \
-            -e LIVEKIT_RECORDINGS_S3_SECRET_KEY="$GARAGE_SECRET_KEY" \
-            -e LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT=http://127.0.0.1:8333 \
-            -e NUXT_VAPID_PUBLIC_KEY \
-            -e NUXT_VAPID_PRIVATE_KEY \
-            perigram:staging
-      - name: verify the served app is this build
-        # A squatted :3001 or a crash-looped container serves an earlier
-        # build while every other check stays green: every chunk the
-        # served document references must exist in the image this
-        # pipeline built (chunk names are content-hashed per build). The
-        # job container sits on the runner bridge — probes ride a
-        # host-networked container (the app image ships curl).
-        run: |
-          [ -n "$(docker ps --filter name=perigram-staging --filter status=running -q)" ] \
-            || { echo "perigram-staging is not running" >&2; exit 1; }
-          n=0
-          until REF=$(docker run --rm --network host perigram:staging \
-              sh -c "curl -s -m 5 http://127.0.0.1:3001/" \
-              | grep -oE '/_nuxt/[A-Za-z0-9._-]+\.js' | sort -u | head -3) && [ -n "$REF" ]; do
-            n=$((n+1))
-            if [ $n -ge 15 ]; then
-              echo "app never served _nuxt chunks" >&2
-              exit 1
-            fi
-            sleep 2
-          done
-          IMG=$(docker run --rm --entrypoint sh perigram:staging \
-            -c "ls /src/.output/public/_nuxt/")
-          miss=0
-          while read -r f; do
-            echo "$IMG" | grep -qx "${f#/_nuxt/}" \
-              || { echo "served $f not in built image — :3001 serves a different build" >&2; miss=1; }
-          done <<< "$REF"
-          if [ "$miss" -eq 0 ]; then
-            echo "served app matches the built image"
-          else
-            exit 1
-          fi
+          NUXT_VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          NUXT_VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+        run: ./scripts/deploy.sh
