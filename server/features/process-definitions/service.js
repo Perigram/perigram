@@ -1028,17 +1028,36 @@ async function executeCompiledRelationMutationAction({ action, actionId, instanc
     executionAuth
   );
   const { relationReplaces, ...relationPatch } = mutation;
-  const updated = await persistProcessEntityPatch(typeId, targetId, relationPatch, executionAuth);
-  await publishActionEntityEvent(auth, typeId, updated || { _id: targetId }, 'updated', 'process-relation-update');
   const contract = action.relationMutation;
+  let unlinkTarget = null;
   if (contract?.operation === 'unlink' && contract.unlink === 'delete') {
     const unlinkedRef = normalizeRelationRef(getByPath(selectedMutation, `relations.${contract.key}`), contract.targetTypes);
     const targetService = getAppRegistry().getInstanceService(unlinkedRef.type);
-    if (!targetService?.processDelete) {
+    if (!targetService?.processGetById || !targetService?.processDelete) {
       throw createError({ statusCode: 400, message: `Entity service cannot delete ${unlinkedRef.type}` });
     }
-    await targetService.processDelete(unlinkedRef.id, executionAuth);
-    await publishActionEntityEvent(executionAuth, unlinkedRef.type, { _id: unlinkedRef.id }, 'deleted', 'relation-unlink-delete');
+    // Authorize and scope the destructive target before persisting the
+    // owner's unlink. Otherwise a denied/missing target leaves a half-
+    // applied relation mutation.
+    const targetEntity = await targetService.processGetById(unlinkedRef.id, executionAuth);
+    if (!targetEntity) {
+      throw createError({ statusCode: 404, message: `${unlinkedRef.type} ${unlinkedRef.id} not found` });
+    }
+    assertEntityAccess({
+      entity: targetEntity?.toJSON ? targetEntity.toJSON() : targetEntity,
+      typeId: unlinkedRef.type,
+      feature: resolveInstanceFeature(unlinkedRef.type),
+      level: 'write',
+      action: 'delete',
+      auth: executionAuth
+    });
+    unlinkTarget = { ref: unlinkedRef, service: targetService };
+  }
+  const updated = await persistProcessEntityPatch(typeId, targetId, relationPatch, executionAuth);
+  await publishActionEntityEvent(auth, typeId, updated || { _id: targetId }, 'updated', 'process-relation-update');
+  if (unlinkTarget) {
+    await unlinkTarget.service.processDelete(unlinkTarget.ref.id, executionAuth);
+    await publishActionEntityEvent(executionAuth, unlinkTarget.ref.type, { _id: unlinkTarget.ref.id }, 'deleted', 'relation-unlink-delete');
   }
   return updated;
 }
