@@ -13,6 +13,7 @@ vi.mock('../files/service.js', () => ({
 vi.mock('../instance-revisions/service.js', () => ({
   ensureForEntitySnapshot: vi.fn(async () => ({ _id: 'rev-1', data: { number: 1, contentHash: 'sha256:x' } })),
   getCurrentForEntity: vi.fn(),
+  getById: vi.fn(),
   pinnedRevisionFile: vi.fn()
 }));
 vi.mock('../../core/access/service.js', () => ({
@@ -402,6 +403,7 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
       organizationId === 'org-1' ? { drawing: { place: 'plugin.td.place-dxf' }, sheetd: { place: 'plugin.td.place-dxf' } } : {}
     ));
     revisionService.getCurrentForEntity.mockResolvedValue({ _id: 'rev-9' });
+    revisionService.getById.mockReset();
     revisionService.pinnedRevisionFile.mockResolvedValue(null);
   });
 
@@ -461,8 +463,11 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
     expect(merged.fields.parts).toEqual([{ type: 'dxftpl', id: 'p1', revision: 'rev-9' }]);
   });
 
-  it('reads a stored pin against the frozen revision bytes', async () => {
+  it('reads a stored pin against the frozen revision bytes only when it belongs to the authorized source', async () => {
     stubStored();
+    revisionService.getById.mockResolvedValue({
+      data: { source: { type: 'dxftpl', id: 't1' }, scope: 'geometry' }
+    });
     revisionService.pinnedRevisionFile.mockResolvedValue({ fileId: 'f-rev3', bucket: 'files', mime: 'application/dxf', name: 'old.dxf' });
     filesService.getFileBuffer.mockImplementation(async fileId => Buffer.from(fileId === 'f-rev3' ? 'frozen' : 'uploaded'));
     executorOutput({ data: { geometry: { ok: true } } });
@@ -478,8 +483,26 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
     expect(merged.fields.template).toEqual({ type: 'dxftpl', id: 't1', revision: 'rev-3' });
   });
 
+  it('refuses a revision pin from a different source before reading its frozen bytes', async () => {
+    stubStored();
+    revisionService.getById.mockResolvedValue({
+      data: { source: { type: 'dxftpl', id: 'another-source' }, scope: 'geometry' }
+    });
+
+    await expect(applyConstructionService('sheetd', 'place', {
+      name: 'Re-run',
+      data: { template: { type: 'dxftpl', id: 't1', revision: 'foreign-revision' } }
+    }, CONTEXT)).rejects.toMatchObject({ statusCode: 400 });
+
+    expect(revisionService.pinnedRevisionFile).not.toHaveBeenCalled();
+    expect(filesService.getFileBuffer).not.toHaveBeenCalled();
+  });
+
   it('refuses a stored pin whose revision is gone', async () => {
     stubStored();
+    revisionService.getById.mockResolvedValue({
+      data: { source: { type: 'dxftpl', id: 't1' }, scope: 'geometry' }
+    });
     revisionService.pinnedRevisionFile.mockResolvedValue(null);
 
     await expect(applyConstructionService('sheetd', 'place', {

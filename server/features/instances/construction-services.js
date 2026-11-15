@@ -334,6 +334,19 @@ async function resolveRefValue(instanceServiceResolver, declarationForType, inpu
     const current = await getCurrentForEntity(typeId, instance._id ?? input.id, scope).catch(() => null);
     revisionId = current?._id ? String(current._id) : null;
   }
+  if (input.revision) {
+    if (!scope) {
+      throw createError({ statusCode: 400, message: `Construction input ${field} pins a revision for a type without a revision scope` });
+    }
+    const { getById } = await import('../instance-revisions/service.js');
+    const revision = await getById(input.revision, auth?.userId, auth?.role ?? null, auth || null);
+    const source = revision?.data?.source || {};
+    if (String(source.type || '') !== String(typeId)
+      || String(source.id || '') !== String(instance._id ?? input.id)
+      || String(revision?.data?.scope || '') !== String(scope)) {
+      throw createError({ statusCode: 400, message: `Pinned revision ${input.revision} does not belong to construction input ${field}` });
+    }
+  }
   const value = await referencedValue(instance, input.revision || null);
   if (revisionId) value.revision = revisionId;
   if (input.spot != null) value.spot = input.spot;
