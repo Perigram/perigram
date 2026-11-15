@@ -91,6 +91,15 @@ describe('pages', () => {
     await expect(pagesService.remove(foreign, auth)).rejects.toMatchObject({ statusCode: 404 });
   });
 
+  it('keeps page repository writes tenant-scoped even if the caller passes a foreign id', async () => {
+    const foreign = await seedPage(ORG_B, { name: 'Protected' });
+    const changed = await pagesService.update(foreign, { name: 'Tampered' }, memberOf(ORG_A));
+    expect(changed).toBeNull();
+    await pagesService.remove(foreign, memberOf(ORG_A));
+    const stillThere = await db.collection('items').findOne({ _id: new ObjectId(foreign), type: 'page' });
+    expect(stillThere).not.toBeNull();
+  });
+
   it('refuses a move that would create a cycle', async () => {
     const parent = await seedPage(ORG_A, { name: 'Parent' });
     const child = await seedPage(ORG_A, { name: 'Child', parentId: parent });
