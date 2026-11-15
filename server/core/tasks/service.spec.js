@@ -176,6 +176,28 @@ describe('task run transitions', () => {
     await expect(service.retryTaskRun(claimed._id)).rejects.toMatchObject({ statusCode: 409 });
   });
 
+  it('rejects completion if the worker loses its claim while effects are processing', async () => {
+    definitions.set('compute', taskDefinition());
+    await service.enqueueTask('compute');
+    const claimed = await service.claimTask({ taskId: 'compute' });
+
+    processEffectsMock.mockImplementationOnce(async () => {
+      await repository.updateById(claimed._id, {
+        claimToken: 'replacement-worker-token',
+        workerId: 'replacement-worker'
+      });
+      return emptyProcessed();
+    });
+
+    await expect(service.completeTaskRun(claimed._id, {}, claimed.claimToken))
+      .rejects.toMatchObject({ statusCode: 409, message: 'Task run claim was lost' });
+
+    const current = await repository.findById(claimed._id);
+    expect(current.status).toBe('RUNNING');
+    expect(current.claimToken).toBe('replacement-worker-token');
+    expect(continueActionFromTask).not.toHaveBeenCalled();
+  });
+
   it('reclaims an expired lease and rejects the previous claim token', async () => {
     definitions.set('compute', taskDefinition());
     await service.enqueueTask('compute');

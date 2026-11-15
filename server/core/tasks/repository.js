@@ -119,10 +119,15 @@ export async function updateById(id, update) {
 
 export async function updateClaimedById(id, claimToken, update, claimedStatus = 'RUNNING') {
   const db = await connectDB();
-  await db.collection(COLLECTION).updateOne(
+  const result = await db.collection(COLLECTION).updateOne(
     { _id: id instanceof ObjectId ? id : toFlexibleId(id), claimToken, status: claimedStatus },
     { $set: { ...update, updatedAt: new Date() } }
   );
+  if (result.matchedCount !== 1) {
+    const error = new Error('Task run claim was lost');
+    error.statusCode = 409;
+    throw error;
+  }
   return await findById(id);
 }
 
