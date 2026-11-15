@@ -1,17 +1,28 @@
 import { defineEventHandler, getQuery } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
 import * as revisionService from '~/server/features/instance-revisions/service';
+import { assertRevisionSourceReadable } from '~/server/utils/revision-access.js';
 
-// Revision listing (SPEC §24): the service owns the read scope (the
-// source records' org-scope law) and the DTO serializes like the records
-// — the stored document verbatim.
+// Revision listing is constrained by each source entity's read grant;
+// tenant filtering alone is not sufficient for restricted records.
 export default defineEventHandler(async (event) => {
   const auth = await requireAuth(event);
-  return await revisionService.list(
+  const revisions = await revisionService.list(
     auth.userId,
     auth.organizationId,
     auth.role,
     auth,
     getQuery(event)
   );
+  const readable = [];
+  for (const revision of revisions) {
+    try {
+      await assertRevisionSourceReadable(revision, auth);
+      readable.push(revision);
+    } catch (error) {
+      if ([403, 404].includes(error?.statusCode)) continue;
+      throw error;
+    }
+  }
+  return readable;
 });

@@ -2,10 +2,12 @@ import { createError, defineEventHandler, getRouterParam, setResponseHeaders } f
 import { requireAuth } from '~/server/utils/permissions.js';
 import * as filesService from '~/server/features/files/service.js';
 import * as revisionService from '~/server/features/instance-revisions/service.js';
+import { assertRevisionSourceReadable } from '~/server/utils/revision-access.js';
 
 export default defineEventHandler(async event => {
   const auth = await requireAuth(event);
   const revision = await revisionService.getById(getRouterParam(event, 'id'), auth.userId, auth.role, auth);
+  await assertRevisionSourceReadable(revision, auth);
   const file = revision.attachments?.primary;
   if (!file?.fileId) throw createError({ statusCode: 404, message: 'Revision has no file attached' });
   setResponseHeaders(event, {

@@ -61,22 +61,24 @@ remain the deliberate system-wide case.
   derived entities, such as revision provenance for cassette geometry
   revisions.
 - Sheet designs declare the same `geometry` scope; the type carries no
-payload, so layout edits persist as field patches and no path writes a
-sheet-design revision.
+  payload, so layout edits persist as field patches and no path writes a
+  sheet-design revision.
 
 Revisions are immutable after creation; per-source deletion
-(`removeForEntity`) rides the owning feature's cascade. Revision reads
-follow their source records' read law: the revision's lineage
-organization admits the caller (an organization-less revision reads
-anywhere, like a system record); anything else refuses.
+(`removeForEntity`) rides the owning feature's cascade. Revision reads are
+not an independent visibility domain: the revision's tenant scope is checked,
+then each single-revision, list, and file response resolves the source through
+the ordinary instance read boundary. Thus both tenant ownership and the
+source's compiled read grant apply; organization-less source rows are visible
+only where the ordinary source read policy permits them.
 
 ## API
 
 | Endpoint | Responsibility |
 |---|---|
-| `GET /api/instance-revisions` | List revisions (filters `typeId`, `instanceId`, `scope`), org-scoped with system rows admitted. |
-| `GET /api/instance-revisions/:id` | One revision DTO. |
-| `GET /api/instance-revisions/:id/file` | Streams the revision's primary GridFS attachment (404 when it has none). |
+| `GET /api/instance-revisions` | List revisions visible through each source record's read grant. |
+| `GET /api/instance-revisions/:id` | One revision DTO, gated by its source record. |
+| `GET /api/instance-revisions/:id/file` | Streams the revision's primary GridFS attachment after source authorization. |
 
 Revision DTOs serialize like their source records (owner decision
 2026-10-11): the stored document verbatim, org-scoped by the service —
@@ -88,5 +90,3 @@ instances transport:
 ([instances](../instances/README.md)).
 
 ## Related
-
-- [facade plugin](../../../workers/facade/README.md) — cassette geometry revisions and the sheet-design editor.
