@@ -4,9 +4,9 @@ export {
   compileLineageBindings,
   compileAssignmentAccess,
   compileHomeScreenForAssignment,
-  compileScreens,
   compileActions
 } from './compiler-core.js';
+export { compileScreens } from './screen-compilation.js';
 export { normalizeProcessDefinition } from './normalization.js';
 export { detectRedundantScreens, redundantAuthoredScreens } from './screen-analysis.js';
 export {

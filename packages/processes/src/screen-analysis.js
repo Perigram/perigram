@@ -1,10 +1,10 @@
 import { normalizeScreenContract } from './screen-contract.js';
 import { normalizeProcessDefinition } from './normalization.js';
+import { inferScreensFromRoleGrants } from './screen-compilation.js';
 import {
   compileLineageBindings,
   normalizeRoleCatalog,
   compileRoles,
-  inferScreensFromRoleGrants,
   projectScreenForInferenceEquivalence,
   canonicalJson
 } from './compiler-core.js';

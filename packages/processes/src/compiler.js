@@ -3,7 +3,6 @@ import {
   normalizeRoleCatalog,
   compileLineageBindings,
   compileRoles,
-  compileScreens,
   compileFieldPolicies,
   compileActions,
   workflowDropsNoOp,
@@ -15,6 +14,7 @@ import {
 } from './compiler-core.js';
 import { validateProcessDefinition } from './validation.js';
 import { compileWorkflows } from './workflow-compilation.js';
+import { compileScreens } from './screen-compilation.js';
 import { projectUiContractChannels } from './ui-contract-projection.js';
 
 export function compileProcessDefinition(definition = {}, domain = {}, { roles = {} } = {}) {
