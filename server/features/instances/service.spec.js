@@ -1057,8 +1057,15 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
 
   it('resolves the delete declaration from the entity organization, not the caller default', async () => {
     invalidateInstanceDeclarations('org-2');
-    stubPanel({ organizationId: 'org-2' });
+    const coll = stubPanel({ organizationId: 'org-2' });
     stubReferrers([]);
+    const findEntity = vi.spyOn(repository, 'findInstanceAnywhere').mockResolvedValue({
+      _id: PANEL_ID,
+      type: 'panel',
+      organizationId: 'org-2',
+      fields: { serial: 'P-7' },
+      lineage: {}
+    });
     const service = instanceServiceResolver('panel');
 
     await service.removeForHttp(PANEL_ID, {
@@ -1070,6 +1077,7 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
     });
 
     expect(pluginInstalls.findDeclarationByTypeId).toHaveBeenCalledWith('org-2', 'panel');
+    findEntity.mockRestore();
   });
 
   it('enforces the entity write grant for process deletes', async () => {
