@@ -73,4 +73,6 @@ Optional integrations can remain unset. Keep credentials in Forgejo secrets, nev
 - `components/`, `pages/`, `composables/`, `stores/` — Nuxt application.
 - `e2e/`, `test-data/`, `test-tools/` — tests and fixtures.
 
+Start with the [package overview](./packages/README.md), [server overview](./server/README.md), and [worker overview](./workers/README.md). The [cluster infrastructure contract](./k8s/README.md) and [repository agent assets](./.codex/README.md) document their respective areas.
+
 Subsystem-specific contracts live in the `README.md` beside their code.
