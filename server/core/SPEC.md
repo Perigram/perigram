@@ -95,6 +95,8 @@ declared table, then crosses the seam in-process.
 
 ### Idempotency — `idempotency/`
 
+`service.js` owns replay lookup/registration orchestration; `repository.js` owns all Mongo reads and inserts for `idempotency_keys`. The unique `key` index is the final duplicate-registration arbiter.
+
 `Idempotency-Key` on mutating `/api/**` requests; the middleware pre-check
 short-circuits replays with `200 { duplicate: true, firstSeenAt }`;
 registration happens on the Nitro `beforeResponse` hook for 2xx
@@ -134,7 +136,7 @@ canonical in [packages/core](../../packages/core/README.md).
 | `machines/` | transition boundary, status snapshots, `status_events` stamps, hook dispatch. |
 | `effects/` | seven-kind effect processor, event validation, dispatch seam. |
 | `access/` | authorization assertions over the shared evaluator. |
-| `idempotency/` | replay dedupe service. |
+| `idempotency/` | replay dedupe service and idempotency-key repository. |
 | `blocks/` | block import surface and server factories. |
 
 ## Laws

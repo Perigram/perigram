@@ -25,7 +25,8 @@ Parent: [server](../../README.md).
 
 ## Files
 
-- `service.js` - Mongo lookup/registration for `idempotency_keys`.
+- `service.js` - replay-key orchestration used by middleware and the response hook.
+- `repository.js` - Mongo lookup/registration for `idempotency_keys`; the unique index resolves duplicate registrations.
 - `../middleware/idempotency.js` - request pre-check and short-circuit.
 - `../plugins/idempotency.js` - success registration hook.
 
