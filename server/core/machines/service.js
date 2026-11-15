@@ -84,13 +84,14 @@ export const stateService = {
         message: `State ${targetState} is not defined for ${normalizedTypeId}`
       });
     }
-    const { collection, flexId, instanceDoc } = await loadEntityForWorkflow(normalizedTypeId, targetId, {
+    const { collection, flexId, organizationFilter, instanceDoc } = await loadEntityForWorkflow(normalizedTypeId, targetId, {
       // The machine is already resolved above; the load only needs the
       // document and its collection. Requiring a machine here would fail
       // CTS-native types, whose workflows resolve exclusively through the
       // producer output passed above.
       requireMachine: false,
-      producerOutputId: metadata.producerOutputId
+      producerOutputId: metadata.producerOutputId,
+      expectedOrganizationId: organizationId
     });
     const actorId = (typeof actor === 'object' ? actor.userId : actor) || 'SYSTEM';
     const eventId = new ObjectId();
@@ -121,7 +122,7 @@ export const stateService = {
       source: metadata?.source ?? null
     }));
     await machineRepository.updateEntityStatus(db, collection,
-      { _id: flexId },
+      { _id: flexId, ...organizationFilter },
       instanceDoc
         ? { $set: { ...instanceStateSetFromStatus(statusData), updatedAt: new Date().toISOString() } }
         : { $set: { status: statusData } }
