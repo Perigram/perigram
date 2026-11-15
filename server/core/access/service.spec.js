@@ -168,6 +168,36 @@ describe('access engine', () => {
     })).not.toThrow();
   });
 
+  it('matches organization-scoped grants against canonical stored and origin tenancy slots', () => {
+    const scopedAuth = {
+      userId: 'u-org-scope',
+      organizationId: 'org-1',
+      effectivePermissions: {
+        items: [{ level: 'write', scope: { organizationId: 'org-1' } }]
+      },
+      memberships: [{ organizationId: 'org-1', permissions: {} }]
+    };
+
+    for (const scopedEntity of [
+      { _id: 'item-top-level', organizationId: 'org-1', lineage: {} },
+      { _id: 'item-origin', origin: { organizationId: 'org-1' }, lineage: {} }
+    ]) {
+      expect(hasInstanceAccess({
+        entity: scopedEntity,
+        feature: 'items',
+        level: 'write',
+        auth: scopedAuth
+      })).toBe(true);
+    }
+
+    expect(hasInstanceAccess({
+      entity: { _id: 'item-foreign', organizationId: 'org-2', lineage: {} },
+      feature: 'items',
+      level: 'write',
+      auth: scopedAuth
+    })).toBe(false);
+  });
+
   it('supports instance-scoped permission grants', () => {
     const scopedEntity = { _id: 'cassette-a', lineage: { organizationId: 'org-1' } };
     const scopedAuth = {

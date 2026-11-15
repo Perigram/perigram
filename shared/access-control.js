@@ -123,8 +123,9 @@ function scopeMatches(scope = {}, entity = null, typeId = null) {
   if (scope.typeIds && typeId && !scope.typeIds.includes(typeId)) return false;
 
   const lineage = entity?.lineage || {};
+  const organizationId = entity?.organizationId ?? lineage.organizationId ?? entity?.origin?.organizationId;
   const instanceId = entity?._id || entity?.identity?.uid;
-  return idScopeMatches(scope, 'organizationId', lineage.organizationId)
+  return idScopeMatches(scope, 'organizationId', organizationId)
     && idScopeMatches(scope, 'instanceId', instanceId);
 }
 
