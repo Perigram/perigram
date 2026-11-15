@@ -45,6 +45,21 @@ Parent: [packages README](../README.md).
   `validateTransition`, `validateLifecyclePayload`, `hasLifecyclePayload`,
   `resolveWorkflowStatePath`
 
+## Internal module boundaries
+
+The public barrel is intentionally a compatibility surface; implementation
+ownership is split by contract:
+
+- `registry.js` owns in-memory domain/command/task/event registries and
+  definition validation.
+- `entities.js` owns canonical entity-block DTOs, structural block schemas,
+  entity references, and entity construction helpers.
+- `results.js` owns normalized command/task results and declared entity-output
+  contract validation.
+- `status.js` and `workflows.js` own status and workflow lifecycle logic.
+
+Keep new behavior in its owning module rather than extending the barrel.
+
 ## Vocabulary
 
 | Term | Definition |
