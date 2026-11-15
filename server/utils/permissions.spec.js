@@ -8,7 +8,8 @@ vi.mock('h3', () => ({
     const error = new Error(err.message);
     error.statusCode = err.statusCode;
     return error;
-  })
+  }),
+  getHeader: vi.fn((event, name) => event.node?.req?.headers?.[name.toLowerCase()])
 }));
 
 describe('Permissions Utility', () => {
@@ -21,6 +22,43 @@ describe('Permissions Utility', () => {
     it('should throw 401 if auth context is missing', () => {
       const event = { context: {} };
       expect(() => requireAuth(event)).toThrow(/Authentication required/);
+    });
+  });
+
+
+  describe('requirePlatformOperator', () => {
+    it('accepts the configured operator token', async () => {
+      const { requirePlatformOperator } = await import('./permissions');
+      const previous = process.env.PLATFORM_OPERATOR_TOKEN;
+      process.env.PLATFORM_OPERATOR_TOKEN = 'operator-secret';
+      try {
+        expect(() => requirePlatformOperator({
+          node: { req: { headers: { 'x-operator-token': 'operator-secret' } } }
+        })).not.toThrow();
+      } finally {
+        if (previous === undefined) delete process.env.PLATFORM_OPERATOR_TOKEN;
+        else process.env.PLATFORM_OPERATOR_TOKEN = previous;
+      }
+    });
+
+    it('rejects missing configuration and invalid credentials', async () => {
+      const { requirePlatformOperator } = await import('./permissions');
+      const previous = process.env.PLATFORM_OPERATOR_TOKEN;
+      const previousNuxt = process.env.NUXT_PLATFORM_OPERATOR_TOKEN;
+      delete process.env.PLATFORM_OPERATOR_TOKEN;
+      delete process.env.NUXT_PLATFORM_OPERATOR_TOKEN;
+      try {
+        expect(() => requirePlatformOperator({ node: { req: { headers: {} } } }))
+          .toThrow(/Plugin publishing is not configured/);
+        process.env.PLATFORM_OPERATOR_TOKEN = 'operator-secret';
+        expect(() => requirePlatformOperator({ node: { req: { headers: { 'x-operator-token': 'wrong' } } } }))
+          .toThrow(/Invalid operator token/);
+      } finally {
+        if (previous === undefined) delete process.env.PLATFORM_OPERATOR_TOKEN;
+        else process.env.PLATFORM_OPERATOR_TOKEN = previous;
+        if (previousNuxt === undefined) delete process.env.NUXT_PLATFORM_OPERATOR_TOKEN;
+        else process.env.NUXT_PLATFORM_OPERATOR_TOKEN = previousNuxt;
+      }
     });
   });
 

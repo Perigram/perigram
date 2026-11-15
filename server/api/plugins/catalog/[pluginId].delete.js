@@ -1,4 +1,5 @@
-import { defineEventHandler, createError, getHeader } from 'h3';
+import { defineEventHandler } from 'h3';
+import { requirePlatformOperator } from '../../../utils/permissions.js';
 import * as pluginsService from '../../../features/plugins/service.js';
 
 // Retract a catalog listing (the publish route's counterpart, same
@@ -7,13 +8,7 @@ import * as pluginsService from '../../../features/plugins/service.js';
 // without an upgrade path). Installed pins are snapshots, so a retracted
 // and later re-published listing re-becomes upgradeable normally.
 export default defineEventHandler(async (event) => {
-  const expected = process.env.PLATFORM_OPERATOR_TOKEN || process.env.NUXT_PLATFORM_OPERATOR_TOKEN;
-  if (!expected) {
-    throw createError({ statusCode: 503, message: 'Plugin publishing is not configured — set PLATFORM_OPERATOR_TOKEN' });
-  }
-  if (getHeader(event, 'x-operator-token') !== expected) {
-    throw createError({ statusCode: 401, message: 'Invalid operator token' });
-  }
+  requirePlatformOperator(event);
   const pluginId = event.context.params?.pluginId;
   return await pluginsService.retractListing(pluginId);
 });
