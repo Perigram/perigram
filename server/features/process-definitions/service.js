@@ -33,9 +33,7 @@ import {
 } from '#packages/processes';
 import { createDefinitionAuthoring, collapseEffectAccessGrants, emptyAuthoredDocument, graphEdgeSocketProblems, graphIntegrityProblems } from '#packages/processes/authoring';
 import {
-  processStatusMetadata,
-  processTransitionContext,
-  actionStatusDisplayMetadata
+  processStatusMetadata
 } from './status-metadata.js';
 import { createActionExecutionAuthHelpers } from './action-execution-auth.js';
 
@@ -52,7 +50,6 @@ import { resolveOrganizationId } from '~/server/utils/organization-scope.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
-import { normalizeLegacyProcessActions } from './action-migration.js';
 import { compileActiveProcessRuntime, getActiveMergedDataForOrganization } from './runtime.js';
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';

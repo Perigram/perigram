@@ -8,7 +8,7 @@ import * as repository from './repository.js';
 import {
   createTypeRegistry, compileClientBundle, frameworkTypes, planTypeMigration
 } from '#packages/cts';
-import { isSupportedSurfaceContract, pluginModuleUrl } from '#shared/plugin-surfaces.js';
+import { pluginModuleUrl } from '#shared/plugin-surfaces.js';
 import * as pluginInstalls from '../plugins/repository.js';
 
 import { invalidateInstanceDeclarations } from '../instances/service.js';

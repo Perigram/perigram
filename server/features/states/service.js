@@ -2,10 +2,8 @@
  * Status Service - CENTRALIZED STATUS LOGIC
  */
 
-import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
-import { isValidStatus, getValidStatuses, getDefaultStatus } from './types.js';
-import { createError } from 'h3';
+import { getDefaultStatus } from './types.js';
 import * as repository from './repository.js';
 import * as usersRepository from '../users/repository.js';
 import { getPrimaryState, normalizeStatusState } from '~/server/core/blocks/index.js';
