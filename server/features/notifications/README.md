@@ -36,6 +36,12 @@ All notifications derive from the canonical
   endpoints, and every other send failure logs with its status code
   (network errors included).
 
+## Access
+
+Subscription removal is scoped to the authenticated user. Internal dead-endpoint
+cleanup may remove a stale endpoint globally after the push provider confirms
+that it is gone.
+
 ## API
 
 - `GET /api/notifications/config` — `{ enabled, publicKey }` for the client
@@ -56,8 +62,7 @@ into a server-known subscription, so clients that consented while the
 server ran without VAPID keys converge once push becomes available,
 and it exposes the server's push availability (`pushAvailable`,
 refreshed whenever the settings popup opens) so the toggle surfaces
-in-tab-only delivery when the server runs without VAPID keys (runbook:
-deploy README, Configuration). `plugins/notifications.client.js`
+in-tab-only delivery when the server runs without VAPID keys (configuration: the root README's Production deployment section). `plugins/notifications.client.js`
 derives the three notification kinds from the connections stream and
 plays the ring/ping sounds from `utils/notification-sounds.js`. The
 profile preferences tab exposes the enable toggle; permission is

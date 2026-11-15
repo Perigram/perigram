@@ -1,3 +1,4 @@
+import { createError } from 'h3';
 import webpush from 'web-push';
 import * as repository from './repository.js';
 let configured = null;
