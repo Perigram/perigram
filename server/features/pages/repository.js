@@ -150,7 +150,7 @@ export async function create(data) {
   return doc._id;
 }
 
-export async function update(id, changes) {
+export async function update(id, changes, organizationId) {
   const db = await connectDB();
   const set = { updatedAt: new Date() };
   const unset = {};
@@ -165,7 +165,7 @@ export async function update(id, changes) {
     else unset['lineage.pageId'] = '';
   }
   return db.collection(COLLECTION).findOneAndUpdate(
-    { _id: toFlexibleId(id), type: TYPE },
+    { _id: toFlexibleId(id), type: TYPE, organizationId: orgFilter(organizationId) },
     { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) },
     { returnDocument: 'after' }
   );
@@ -183,7 +183,7 @@ export async function detachChildren(organizationId, parentId) {
   );
 }
 
-export async function remove(id) {
+export async function remove(id, organizationId) {
   const db = await connectDB();
-  await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id), type: TYPE });
+  await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id), type: TYPE, organizationId: orgFilter(organizationId) });
 }
