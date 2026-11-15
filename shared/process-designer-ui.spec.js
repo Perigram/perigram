@@ -25,13 +25,15 @@ describe('process designer interaction boundaries', () => {
   });
 
   it('wires the live evaluation loop after every composable its sync pass reads', () => {
-    const designer = readFileSync(new URL('../pages/organization/process.vue', import.meta.url), 'utf8');
-    const engine = designer.indexOf('useProcessDesignerLiveGraph({');
-    const preview = designer.indexOf('useProcessDesignerPreview({');
+    const graphSession = readFileSync(new URL('../composables/useProcessDesignerGraphSession.js', import.meta.url), 'utf8');
+    const sync = graphSession.indexOf('useProcessDesignerNodeSync({');
+    const preview = graphSession.indexOf('useProcessDesignerPreview({');
+    const engine = graphSession.indexOf('useProcessDesignerLiveGraph({');
 
-    expect(engine).toBeGreaterThan(-1);
-    // the engine's watcher runs its first pass immediately, so any binding
-    // the sync pass touches must already be initialized
+    expect(sync).toBeGreaterThan(-1);
+    expect(preview).toBeGreaterThan(sync);
+    // The live watcher runs its first pass immediately; all record and
+    // preview bindings it reads must already exist.
     expect(engine).toBeGreaterThan(preview);
   });
 
