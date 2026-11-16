@@ -80,7 +80,8 @@ export function useGraphDocumentSession({ t, providers = [] }) {
   registerProcessProceduralNodes(registry);
   const processResolver = createProcessProceduralNodeResolver();
   const processExecutor = createProcessProceduralExecutor();
-  const providerExecutors = new Map([[PROCESS_PROCEDURAL_PROVIDER, processExecutor]]);\n  const providerPreviewRenderers = new Map();
+  const providerExecutors = new Map([[PROCESS_PROCEDURAL_PROVIDER, processExecutor]]);
+  const providerPreviewRenderers = new Map();
 
   const groupLabels = {
     source: t('processDesigner.graphSources'),
@@ -529,6 +530,9 @@ export function useGraphDocumentSession({ t, providers = [] }) {
   for (const contribution of providers) {
     const provider = normalizeNodeProvider(contribution);
     for (const definition of provider.definitions) registerProvider(definition, provider.execute);
+    for (const [rendererId, renderer] of Object.entries(provider.previewRenderers)) {
+      providerPreviewRenderers.set(`${provider.provider}:${rendererId}`, renderer);
+    }
   }
 
   function openPanePalette(event) {

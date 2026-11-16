@@ -64,7 +64,9 @@
           :error="previewError"
           :running="previewRunning"
           :graph="graphDocument"
-          :input-bindings="inputBindings"\n          :preview-renderers="previewRenderers"\n          :node-definitions="nodeDefinitions"
+          :input-bindings="inputBindings"
+          :preview-renderers="previewRenderers"
+          :node-definitions="nodeDefinitions"
           @refresh="refreshPreview"
           @update-input-binding="setGraphInputBinding"
         />
