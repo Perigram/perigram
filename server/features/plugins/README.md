@@ -105,7 +105,12 @@ The worker loads the exact organization-owned package version in a restricted
 Deno subprocess and requests declared capabilities through authenticated task
 routes. The server runtime currently executes JavaScript packages. It rehydrates the
 run actor from the current membership before package delivery and every
-capability call, so revoked membership or grants take effect on the next call. Provider-level external integrations use
+capability call, so revoked membership or grants take effect on the next call.
+The capability adapter in `capabilities.js` checks the installed version,
+runtime target, operation declaration, and capability allowlist before
+calling the host's authorized instance or file services. Browser calls use
+the authenticated organization plugin capability route and are read-only;
+server calls use the claimed task route and may invoke declared writes. Provider-level external integrations use
 explicit connection records and server-held credentials. Legacy endpoint
 and claim service modes remain migration inputs while existing plugins
 move to managed execution. Local package operations carry no per-function

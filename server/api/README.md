@@ -81,8 +81,10 @@ Routes are grouped into sub-directories corresponding to features:
   succeeds.
 - `tasks/`: Worker task queue protocol for claim, heartbeat, complete,
   fail, and cancel. Managed plugin workers also read pinned package assets
-  and invoke declared host capabilities through the task claim boundary
-  (see [core/tasks](../core/tasks/README.md) and
+  and invoke declared server capabilities through the task claim boundary
+  (see [core/tasks](../core/tasks/README.md)).
+- `organizations/:id/plugins/:pluginId/capability`: authenticated,
+  read-only host capabilities for browser Worker operations (see
   [plugins](../features/plugins/README.md)).
 - `admin/commands/` and `admin/tasks/`: Authenticated command/task definition
   and run listings (`command_runs`, `task_runs`). `admin/cts/` serves the
