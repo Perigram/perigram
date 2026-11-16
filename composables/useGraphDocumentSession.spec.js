@@ -26,6 +26,48 @@ describe('useGraphDocumentSession', () => {
     expect(session.serializeGraph()).toEqual(graph);
   });
 
+  it('executes the core CTS query node through the injected authorized data capability', async () => {
+    const calls = [];
+    const session = useGraphDocumentSession({
+      t: key => key,
+      queryOrganizationData: async query => {
+        calls.push(query);
+        return {
+          items: [{ _id: 'part-1', type: 'part', fields: { code: 'A' } }],
+          count: 1,
+          readSet: {
+            consistency: 'sequence-bracketed',
+            organizationSequenceStart: 8,
+            organizationSequenceEnd: 8,
+            instances: [{ typeId: 'part', instanceId: 'part-1', updatedAt: '2026-11-16T10:00:00Z', typeVersion: 2 }],
+            relations: [],
+            queries: [{ typeId: 'part', query: { limit: 50 }, resultIds: ['part-1'], observedTotal: 1, sequence: 8 }]
+          }
+        };
+      }
+    });
+    const queryItem = session.paletteGroups.value
+      .flatMap(group => group.items)
+      .find(item => item.operation?.id === 'query.instances');
+    expect(queryItem).toBeTruthy();
+    const node = session.addNode(queryItem, { x: 0, y: 0 });
+    session.updateNodeConfig(node.id, { typeId: 'part', limit: 50 });
+    const result = await session.refreshPreview();
+
+    expect(calls).toEqual([{ typeId: 'part', limit: 50, filters: {} }]);
+    expect(result.nodeOutputs[node.id]).toEqual({
+      items: [{ _id: 'part-1', type: 'part', fields: { code: 'A' } }],
+      count: 1
+    });
+    expect(session.executionRecord.value.readSet).toMatchObject({
+      consistency: 'sequence-bracketed',
+      organizationSequenceStart: 8,
+      organizationSequenceEnd: 8,
+      instances: [{ typeId: 'part', instanceId: 'part-1', typeVersion: 2 }],
+      queries: [{ typeId: 'part', resultIds: ['part-1'], sequence: 8 }]
+    });
+  });
+
   it('composes an independently registered plugin provider into the palette and preview runtime', async () => {
     const definition = {
       provider: 'plugin.example',
