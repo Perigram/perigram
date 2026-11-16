@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
 import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder } from '#packages/core';
-import { withOrganizationChangeSequence } from '../instances/service.js';
+import { withOrganizationChangeSequence } from '../instances/index.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '../files/service.js';
 import * as pagesService from '../pages/service.js';

@@ -26,7 +26,7 @@ vi.mock('../pages/service.js', () => ({
   bakeFile: mocks.bakeFile,
   retractBakedFile: mocks.retractBakedFile
 }));
-vi.mock('../instances/service.js', () => ({
+vi.mock('../instances/index.js', () => ({
   withOrganizationChangeSequence: mocks.withOrganizationChangeSequence
 }));
 

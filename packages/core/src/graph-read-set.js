@@ -12,14 +12,8 @@ const EMPTY_READ_SET = Object.freeze({
 // graphs. Data adapters call these methods after their authorized read;
 // the core never infers a database snapshot that the adapter did not obtain.
 export function createGraphReadSetRecorder(initial = {}) {
-  const snapshot = {
-    consistency: ['snapshot', 'sequence-bracketed', 'unverified'].includes(initial.consistency)
-      ? initial.consistency
-      : 'unverified',
-    snapshotId: initial.snapshotId == null ? null : String(initial.snapshotId),
-    organizationSequenceStart: finiteSequence(initial.organizationSequenceStart),
-    organizationSequenceEnd: finiteSequence(initial.organizationSequenceEnd)
-  };
+  const snapshot = normalizeBoundary(initial);
+  let consistencyObserved = hasBoundaryDeclaration(initial);
   const instances = new Map();
   const relations = new Map();
   const queries = new Map();
@@ -35,7 +29,7 @@ export function createGraphReadSetRecorder(initial = {}) {
       typeVersion: Number.isInteger(read.typeVersion) ? read.typeVersion : null,
       organizationId: optionalString(read.organizationId)
     };
-    instances.set(`${typeId}:${instanceId}`, entry);
+    instances.set(stableJson(entry), entry);
     return entry;
   }
 
@@ -48,18 +42,21 @@ export function createGraphReadSetRecorder(initial = {}) {
       targetId: requiredString(read.targetId, 'relation targetId'),
       revision: optionalString(read.revision)
     };
-    relations.set([
-      entry.sourceTypeId, entry.sourceId, entry.key, entry.targetTypeId, entry.targetId
-    ].join(':'), entry);
+    relations.set(stableJson(entry), entry);
     return entry;
   }
 
   function recordQuery(read = {}) {
     const typeId = requiredString(read.typeId, 'query typeId');
     const query = cloneJson(read.query || {});
-    const resultIds = Array.isArray(read.resultIds)
-      ? [...new Set(read.resultIds.map(value => requiredString(value, 'query result id')))].sort()
-      : [];
+    const resultIds = [];
+    const seenResultIds = new Set();
+    for (const value of Array.isArray(read.resultIds) ? read.resultIds : []) {
+      const id = requiredString(value, 'query result id');
+      if (seenResultIds.has(id)) continue;
+      seenResultIds.add(id);
+      resultIds.push(id);
+    }
     const entry = {
       typeId,
       organizationId: optionalString(read.organizationId),
@@ -68,23 +65,47 @@ export function createGraphReadSetRecorder(initial = {}) {
       observedTotal: Number.isInteger(read.observedTotal) && read.observedTotal >= 0 ? read.observedTotal : null,
       sequence: finiteSequence(read.sequence)
     };
-    const key = stableJson({ typeId, organizationId: entry.organizationId, query });
-    queries.set(key, entry);
+    const observationKey = stableJson({
+      typeId,
+      organizationId: entry.organizationId,
+      query,
+      sequence: entry.sequence
+    });
+    for (const previous of queries.values()) {
+      const previousKey = stableJson({
+        typeId: previous.typeId,
+        organizationId: previous.organizationId,
+        query: previous.query,
+        sequence: previous.sequence
+      });
+      if (previousKey === observationKey
+        && (stableJson(previous.resultIds) !== stableJson(entry.resultIds)
+          || previous.observedTotal !== entry.observedTotal)) {
+        downgradeConsistency();
+      }
+    }
+    queries.set(stableJson(entry), entry);
     return entry;
   }
 
   function setConsistency(next = {}) {
-    if (next.consistency && ['snapshot', 'sequence-bracketed', 'unverified'].includes(next.consistency)) {
-      snapshot.consistency = next.consistency;
+    if (!hasBoundaryDeclaration(next)) return toJSON();
+    const candidate = normalizeBoundary(next);
+    if (!consistencyObserved) {
+      Object.assign(snapshot, candidate);
+      consistencyObserved = true;
+      return toJSON();
     }
-    if (Object.hasOwn(next, 'snapshotId')) snapshot.snapshotId = optionalString(next.snapshotId);
-    if (Object.hasOwn(next, 'organizationSequenceStart')) {
-      snapshot.organizationSequenceStart = finiteSequence(next.organizationSequenceStart);
-    }
-    if (Object.hasOwn(next, 'organizationSequenceEnd')) {
-      snapshot.organizationSequenceEnd = finiteSequence(next.organizationSequenceEnd);
-    }
+    if (stableJson(snapshot) !== stableJson(candidate)) downgradeConsistency();
     return toJSON();
+  }
+
+  function downgradeConsistency() {
+    snapshot.consistency = 'unverified';
+    snapshot.snapshotId = null;
+    snapshot.organizationSequenceStart = null;
+    snapshot.organizationSequenceEnd = null;
+    consistencyObserved = true;
   }
 
   function toJSON() {
@@ -101,6 +122,33 @@ export function createGraphReadSetRecorder(initial = {}) {
 
 export function emptyGraphReadSet() {
   return cloneJson(EMPTY_READ_SET);
+}
+
+function hasBoundaryDeclaration(value = {}) {
+  return ['consistency', 'snapshotId', 'organizationSequenceStart', 'organizationSequenceEnd']
+    .some(key => Object.hasOwn(value, key));
+}
+
+function normalizeBoundary(value = {}) {
+  let consistency = ['snapshot', 'sequence-bracketed', 'unverified'].includes(value.consistency)
+    ? value.consistency
+    : 'unverified';
+  let snapshotId = optionalString(value.snapshotId);
+  let organizationSequenceStart = finiteSequence(value.organizationSequenceStart);
+  let organizationSequenceEnd = finiteSequence(value.organizationSequenceEnd);
+  if (consistency === 'snapshot' && !snapshotId) consistency = 'unverified';
+  if (consistency === 'sequence-bracketed'
+    && (organizationSequenceStart === null
+      || organizationSequenceEnd === null
+      || organizationSequenceStart !== organizationSequenceEnd)) {
+    consistency = 'unverified';
+  }
+  if (consistency === 'unverified') {
+    snapshotId = null;
+    organizationSequenceStart = null;
+    organizationSequenceEnd = null;
+  }
+  return { consistency, snapshotId, organizationSequenceStart, organizationSequenceEnd };
 }
 
 function requiredString(value, label) {
