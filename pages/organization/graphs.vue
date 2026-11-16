@@ -189,6 +189,13 @@ const persistence = {
     await loadDocuments();
     return updated;
   },
+  async recordExecution(record) {
+    if (!activeRecordId.value) return null;
+    return await $fetch('/api/graph-executions', {
+      method: 'POST',
+      body: { graphDocumentInstanceId: activeRecordId.value, record }
+    });
+  },
   async rename(name) {
     if (!activeRecordId.value) return { name };
     const updated = await $fetch(`/api/instances/graph-document/${encodeURIComponent(activeRecordId.value)}`, {
