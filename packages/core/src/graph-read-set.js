@@ -31,6 +31,8 @@ export function createGraphReadSetRecorder(initial = {}) {
       typeId,
       instanceId,
       revision: optionalString(read.revision),
+      updatedAt: optionalString(read.updatedAt),
+      typeVersion: Number.isInteger(read.typeVersion) ? read.typeVersion : null,
       organizationId: optionalString(read.organizationId)
     };
     instances.set(`${typeId}:${instanceId}`, entry);
