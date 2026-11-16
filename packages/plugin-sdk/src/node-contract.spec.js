@@ -49,6 +49,13 @@ describe('provider-neutral node contract', () => {
     );
   });
 
+  it('requires non-empty semantic descriptors for every port', () => {
+    const candidate = definition({
+      inputs: [{ id: 'source', semantic: {} }]
+    });
+    expect(validateNodeDefinition(candidate).map(problem => problem.code)).toContain('missing-semantic');
+  });
+
   it('rejects missing provider identity, version, and execution classification', () => {
     const candidate = definition({ provider: '', version: '', execution: { kind: 'unknown' } });
     expect(validateNodeDefinition(candidate).map(problem => problem.code)).toEqual(
