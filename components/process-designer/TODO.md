@@ -109,9 +109,29 @@ provenance-citations + palette-home decisions.
   from the exact graph revision carried by the selected immutable payload.
   Graph identity remains distinct from its storage-instance identity
   (SPEC §28.2).
-- [ ] Remaining: discover and place reusable graphs directly from the
-  palette; browse historical graph revisions and explicitly update an
-  existing invocation pin.
+- [x] Browse historical graph revisions and explicitly update an existing
+  invocation pin: revision choices come from the source-scoped immutable
+  `entity_revision` records and hydration reads the selected frozen file.
+- [x] Provide a dedicated organization graph-document workspace with a
+  first-save creation boundary, revisioned payload replacement, and a
+  process-designer navigation entry.
+- [x] Move graph preview into the independent workspace support rail;
+  add output selection, generic text/JSON/table/document viewers, and
+  provider-declared specialized renderer mounting.
+- [x] Support provider-neutral node contributions in the editor session:
+  validate provider ownership, register pure executors and preview
+  renderers, and project every registered provider into its own palette
+  group.
+- [x] Support typed multi-wire fan-in for list, tuple, tree, and map ports
+  in the procedural preview evaluator; preserve one-wire list packets.
+- [ ] Remaining: place saved graphs directly from the dedicated **Use Graph**
+  palette group, and load installed plugin engine contributions from the
+  organization plugin runtime rather than requiring the host to pass a
+  `nodeProviders` contribution.
+- [ ] Remaining: replace the current JSON/text/table/document preview
+  fallbacks with the complete generic representation viewers (including
+  images and 2D/3D scenes) and integrate existing plugin preview-surface
+  channels for arbitrary graph outputs.
 
 ### Agent Notes (2026-10-25)
 

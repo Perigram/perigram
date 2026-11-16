@@ -5,7 +5,8 @@ canvas with palette, inspector, lanes, and apply ceremonies, mounted by
 [pages/organization/process.vue](../../pages/organization/process.vue)
 over a process definition and by
 [`GraphEditorSurface.vue`](./GraphEditorSurface.vue) over a
-`graph-document` payload (SPEC §28 — one canvas law). The grammar it
+`graph-document` payload from the dedicated
+[organization graph workspace](../../pages/organization/graphs.vue) (SPEC §28 — one canvas law). The grammar it
 renders — palette membership, node/edge species, wire legality — is
 authored through the designer contract owned by
 [packages/processes](../../packages/processes/README.md); this README
@@ -683,3 +684,16 @@ in `utils/processDesigner*.js`:
   type-migration refusal payloads:
   [server/features/cts-types](../../server/features/cts-types/README.md).
 - Parent: [components](../README.md); its [SPEC](../SPEC.md).
+
+
+The graph-document workspace keeps procedural graph authoring separate
+from process-definition lifecycle. Its inspector authors graph nodes and
+public interfaces; the support rail is a separate preview workspace with
+output selection, generic representations, and optional provider-owned
+read-only renderers. The graph session accepts validated provider
+contributions from the host (the `nodeProviders` prop) and keeps operation
+identity, executor ownership, and preview renderer identity
+provider-qualified. Stored graph documents are ordinary CTS
+`graph-document` instances; every payload save is an immutable content
+revision, and Use Graph pins a chosen revision rather than following the
+latest payload.

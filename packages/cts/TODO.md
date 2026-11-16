@@ -151,3 +151,23 @@ provenance line went with it. check-docs: the package's homing entries
 clear (repo debt 26→17); the remaining blocking broken link
 (`workers/nesting/README.md` → `./jagua-rs/README.md`) is pre-existing
 and outside this wave. `npx vitest run packages/cts` green.
+
+
+### Generalized constraint expression substrate (2026-11-16)
+
+- [x] Add finite `exists`/`all`/`none`/`one` quantifiers and
+  `count`/`sum`/`min`/`max` aggregates to the declarative expression
+  evaluator, including deterministic empty-collection semantics.
+- [x] Add explicit authorized collection-resolver hooks for related,
+  children, and descendants traversal; cap collection cardinality and
+  evaluation steps.
+- [x] Extend the shared boolean AST checker for nested bound variables and
+  quantifier bodies while keeping map/filter comprehensions out of boolean
+  guard vocabulary.
+- [ ] Add statically typed relation/containment resolution against compiled
+  declarations, not merely a non-empty relation key.
+- [ ] Add authored permanent constraints to CTS declarations and enforce
+  them at every authoritative create/update/import/transition boundary.
+- [ ] Add concurrency-safe unique/cardinality/aggregate enforcement using
+  transactions, unique indexes, or conditional/serialized writes. The AST
+  evaluator alone is not an enforcement guarantee.
