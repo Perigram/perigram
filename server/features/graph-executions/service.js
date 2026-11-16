@@ -69,30 +69,53 @@ export async function queryOrganizationData(query = {}, auth = {}) {
   if (!filters || typeof filters !== 'object' || Array.isArray(filters)) {
     throw createError({ statusCode: 400, message: 'Graph query filters must be an object' });
   }
-  const limit = boundedQueryInteger(query.limit, 50, 1, 200, 'limit');
-  const offset = boundedQueryInteger(query.offset, 0, 0, 10000, 'offset');
-  const sortBy = query.sortBy == null ? 'createdAt' : String(query.sortBy);
-  const sortDirection = query.sortDirection == null ? 'desc' : String(query.sortDirection);
-  if (!['asc', 'desc'].includes(sortDirection)) {
-    throw createError({ statusCode: 400, message: 'Graph query sortDirection must be asc or desc' });
+  const instanceId = query.instanceId == null ? '' : String(query.instanceId).trim();
+  if (instanceId.length > 256) throw createError({ statusCode: 400, message: 'Graph query instanceId is too long' });
+  if (instanceId && Object.keys(filters).length) {
+    throw createError({ statusCode: 400, message: 'Exact-instance graph queries cannot also specify filters' });
   }
   const projection = normalizeProjection(query.projection);
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
   const instanceService = getAppRegistry().getInstanceService(typeId);
-  if (!instanceService || typeof instanceService.processList !== 'function') {
+  if (!instanceService) {
     throw createError({ statusCode: 404, message: 'CTS instance query service is unavailable' });
   }
 
-  const queryShape = { typeId, filters, sortBy, sortDirection, limit, offset, projection };
-  const { value: items, boundary } = await withOrganizationChangeSequence(
-    organizationId,
-    () => instanceService.processList({
+  let queryShape;
+  let read;
+  if (instanceId) {
+    if (typeof instanceService.processGetById !== 'function') {
+      throw createError({ statusCode: 404, message: 'CTS instance detail query service is unavailable' });
+    }
+    queryShape = { typeId, instanceId, projection };
+    read = async () => {
+      const item = await instanceService.processGetById(instanceId, auth);
+      return item ? [item] : [];
+    };
+  } else {
+    if (typeof instanceService.processList !== 'function') {
+      throw createError({ statusCode: 404, message: 'CTS instance list query service is unavailable' });
+    }
+    const limit = boundedQueryInteger(query.limit, 50, 1, 200, 'limit');
+    const offset = boundedQueryInteger(query.offset, 0, 0, 10000, 'offset');
+    const sortBy = query.sortBy == null ? 'createdAt' : String(query.sortBy);
+    const sortDirection = query.sortDirection == null ? 'desc' : String(query.sortDirection);
+    if (!['asc', 'desc'].includes(sortDirection)) {
+      throw createError({ statusCode: 400, message: 'Graph query sortDirection must be asc or desc' });
+    }
+    queryShape = { typeId, filters, sortBy, sortDirection, limit, offset, projection };
+    read = () => instanceService.processList({
       ...filters,
       sortBy,
       sortDirection,
       limit,
       offset
-    }, auth),
+    }, auth);
+  }
+
+  const { value: items, boundary } = await withOrganizationChangeSequence(
+    organizationId,
+    read,
     { retries: 2 }
   );
   const recorder = createGraphReadSetRecorder(boundary);

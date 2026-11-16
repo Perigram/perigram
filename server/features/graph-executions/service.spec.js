@@ -79,7 +79,7 @@ describe('graph execution service', () => {
   };
   const executionService = { create: vi.fn() };
   const graphService = { processGetById: vi.fn() };
-  const dataService = { processList: vi.fn() };
+  const dataService = { processList: vi.fn(), processGetById: vi.fn() };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -89,6 +89,7 @@ describe('graph execution service', () => {
       getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : dataService
     });
     dataService.processList.mockResolvedValue([{ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }]);
+    dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));
     mocks.withOrganizationChangeSequence.mockImplementation(async (_organizationId, read) => ({
       value: await read(),
       boundary: { consistency: 'sequence-bracketed', snapshotId: null, organizationSequenceStart: 4, organizationSequenceEnd: 4 }
@@ -128,6 +129,28 @@ describe('graph execution service', () => {
       instances: [{ typeId: 'part', instanceId: 'item-1', typeVersion: 2 }],
       queries: [{ typeId: 'part', resultIds: ['item-1'], observedTotal: 1, sequence: 4 }]
     });
+  });
+
+  it('selects one exact CTS instance through its authorized detail read boundary', async () => {
+    const result = await graphExecutionsService.queryOrganizationData({
+      typeId: 'part',
+      instanceId: 'item-1',
+      projection: ['fields.code']
+    }, auth);
+    expect(dataService.processGetById).toHaveBeenCalledWith('item-1', auth);
+    expect(dataService.processList).not.toHaveBeenCalled();
+    expect(result.items).toEqual([expect.objectContaining({
+      _id: 'item-1',
+      type: 'part',
+      fields: { code: 'A' }
+    })]);
+    expect(result.readSet.queries).toEqual([expect.objectContaining({
+      typeId: 'part',
+      query: { typeId: 'part', instanceId: 'item-1', projection: ['fields.code'] },
+      resultIds: ['item-1'],
+      observedTotal: 1,
+      sequence: 4
+    })]);
   });
 
   it('records an execution only against the exact authorized saved graph revision', async () => {

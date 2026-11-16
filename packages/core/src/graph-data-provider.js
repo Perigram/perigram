@@ -44,6 +44,7 @@ export function createCoreGraphDataProvider() {
       required: ['typeId'],
       properties: {
         typeId: { type: 'string' },
+        instanceId: { type: 'string', maxLength: 256 },
         sortBy: { type: 'string' },
         sortDirection: { type: 'string', enum: ['asc', 'desc'] },
         limit: { type: 'integer', minimum: 1, maximum: 200 },
