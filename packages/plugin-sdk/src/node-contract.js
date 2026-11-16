@@ -151,7 +151,9 @@ export function normalizeNodeProvider(source = {}) {
   }
   for (const definition of definitions) {
     const rendererId = definition.preview?.renderer;
-    if (rendererId && typeof previewRenderers[rendererId] !== 'function') {
+    const renderer = previewRenderers[rendererId];
+    if (rendererId && typeof renderer !== 'function'
+      && !isPreviewSurfaceId(renderer) && !isPreviewSurface(renderer)) {
       throw new Error(`Node definition ${definition.id} declares missing preview renderer ${rendererId}`);
     }
   }
