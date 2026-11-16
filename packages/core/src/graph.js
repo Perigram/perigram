@@ -1,6 +1,7 @@
 const FORMAT = 'perigram.graph';
 export const GRAPH_DOCUMENT_FORMAT = FORMAT;
 export const GRAPH_DOCUMENT_VERSION = 1;
+export const CORE_GRAPH_PROVIDER = 'perigram.core';
 export const GRAPH_INPUT_OPERATION = 'perigram.core.graph-input';
 export const GRAPH_OUTPUT_OPERATION = 'perigram.core.graph-output';
 export const GRAPH_INVOKE_OPERATION = 'perigram.core.use-graph';
@@ -11,7 +12,7 @@ const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 export function normalizeGraphDocument(source = {}) {
   if (!isRecord(source)) throw new Error('Graph document must be an object');
   const document = {
-    format: FORMAT,
+    format: String(source.format || FORMAT),
     version: Number(source.version || GRAPH_DOCUMENT_VERSION),
     id: requiredString(source.id, 'Graph id'),
     revision: requiredString(source.revision, 'Graph revision'),
@@ -40,6 +41,7 @@ export function validateGraphDocument(source) {
     return [{ code: 'invalid-document', path: '$', message: error.message }];
   }
 
+  if (graph.format !== FORMAT) problems.push(problem('unsupported-format', 'format', `Unsupported graph format ${graph.format}`));
   if (graph.version !== GRAPH_DOCUMENT_VERSION) {
     problems.push(problem('unsupported-version', 'version', `Unsupported graph document version ${graph.version}`));
   }
@@ -50,6 +52,8 @@ export function validateGraphDocument(source) {
   validateInterface(graph.interface.outputs, 'interface.outputs', problems);
 
   const nodeIds = new Set();
+  const inputBoundaries = new Map();
+  const outputBoundaries = new Map();
   for (let index = 0; index < graph.nodes.length; index += 1) {
     const node = graph.nodes[index];
     const path = `nodes[${index}]`;
@@ -60,11 +64,39 @@ export function validateGraphDocument(source) {
       problems.push(problem('invalid-operation', `${path}.operation`, 'Node operation requires provider, id, and pinned version'));
     }
     if (!isJsonValue(node.config)) problems.push(problem('invalid-config', `${path}.config`, 'Node config must be JSON-compatible'));
+    if ([GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION, GRAPH_INVOKE_OPERATION].includes(node.operation.id)
+      && node.operation.provider !== CORE_GRAPH_PROVIDER) {
+      problems.push(problem('invalid-core-operation-provider', `${path}.operation.provider`, 'Built-in graph boundary and invocation operations must use the perigram.core provider'));
+    }
+    if (node.operation.id === GRAPH_INPUT_OPERATION || node.operation.id === GRAPH_OUTPUT_OPERATION) {
+      const collection = node.operation.id === GRAPH_INPUT_OPERATION ? inputBoundaries : outputBoundaries;
+      const interfaceId = node.config.interfaceId;
+      if (typeof interfaceId !== 'string' || !interfaceId) {
+        problems.push(problem('missing-interface-binding', `${path}.config.interfaceId`, 'Graph boundary node requires an interfaceId'));
+      } else if (collection.has(interfaceId)) {
+        problems.push(problem('duplicate-interface-binding', `${path}.config.interfaceId`, `Multiple boundary nodes reference interface port ${interfaceId}`));
+      } else {
+        collection.set(interfaceId, node.id);
+      }
+    }
     if (node.operation.id === GRAPH_INVOKE_OPERATION) {
       if (!node.config.graphId || !node.config.revision) {
         problems.push(problem('unpinned-subgraph', `${path}.config`, 'Use Graph must reference an exact graph id and immutable revision'));
       }
     }
+  }
+
+  for (const port of graph.interface.inputs) {
+    if (!inputBoundaries.has(port.id)) problems.push(problem('missing-input-boundary', 'interface.inputs', `Graph input ${port.id} has no Graph Input node`));
+  }
+  for (const port of graph.interface.outputs) {
+    if (!outputBoundaries.has(port.id)) problems.push(problem('missing-output-boundary', 'interface.outputs', `Graph output ${port.id} has no Graph Output node`));
+  }
+  for (const id of inputBoundaries.keys()) {
+    if (!graph.interface.inputs.some(port => port.id === id)) problems.push(problem('unknown-input-boundary', 'nodes', `Graph Input node references undeclared input ${id}`));
+  }
+  for (const id of outputBoundaries.keys()) {
+    if (!graph.interface.outputs.some(port => port.id === id)) problems.push(problem('unknown-output-boundary', 'nodes', `Graph Output node references undeclared output ${id}`));
   }
 
   const edgeIds = new Set();
