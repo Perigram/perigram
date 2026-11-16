@@ -24,7 +24,7 @@ class FakeWorker {
   }
 }
 
-const binding = { pluginId: 'demo', version: '3' };
+const binding = { organizationId: 'org-1', pluginId: 'demo', version: '3' };
 const runtime = { id: 'javascript', version: '1', entryUrl: '/api/plugins/demo/module/runtime.mjs' };
 const execution = { targets: ['browser'], capabilities: [] };
 

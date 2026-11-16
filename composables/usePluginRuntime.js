@@ -8,7 +8,7 @@ export function usePluginRuntime({
   let invocationSequence = 0;
 
   function runtimeKey(binding, runtime) {
-    return `${binding.pluginId}@${binding.version}:${runtime.id}@${runtime.version}`;
+    return `${binding.organizationId}:${binding.pluginId}@${binding.version}:${runtime.id}@${runtime.version}`;
   }
 
   function createRuntime(binding, runtime) {
@@ -24,7 +24,10 @@ export function usePluginRuntime({
     });
 
     function rejectPending(error) {
-      for (const request of pending.values()) request.reject(error);
+      for (const request of pending.values()) {
+        request.signal?.removeEventListener('abort', request.abort);
+        request.reject(error);
+      }
       pending.clear();
     }
 
@@ -53,6 +56,7 @@ export function usePluginRuntime({
             throw new Error(`Capability ${message.name} is unavailable in this host`);
           }
           const value = await handler(message.input, {
+            organizationId: binding.organizationId,
             pluginId: binding.pluginId,
             version: binding.version,
             operationId: request.operationId,
@@ -130,7 +134,7 @@ export function usePluginRuntime({
   }
 
   async function execute(binding, runtime, operationId, input, options = {}) {
-    if (!binding?.pluginId || !binding?.version) throw new Error('Plugin runtime binding requires pluginId and version');
+    if (!binding?.organizationId || !binding?.pluginId || !binding?.version) throw new Error('Plugin runtime binding requires organizationId, pluginId, and version');
     const instance = runtimeFor(binding, runtime);
     try {
       return await instance.invoke(operationId, input, options);
