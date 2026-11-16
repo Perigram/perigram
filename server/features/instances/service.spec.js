@@ -765,7 +765,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     const service = instanceServiceResolver('pdf-document');
 
     const dto = await service.create(
-      { name: 'Scoped', lineage: {} },
+      { name: 'Scoped', lineage: { organizationId: 'spoofed-org' } },
       'user-1',
       'org-1'
     );
