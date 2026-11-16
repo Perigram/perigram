@@ -274,7 +274,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
       lineage: { binId: 'missing-bin' }
     }, 'org-1')).rejects.toMatchObject({ statusCode: 400 });
 
-    expect(coll.updateOne).not.toHaveBeenCalled();
+    expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
   it('rejects undeclared relation writes through the process update boundary', async () => {
@@ -742,16 +742,16 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     const service = instanceServiceResolver('pdf-document');
 
     const dto = await service.create(
-      { name: 'Scoped', lineage: { projectId: 'p-1' } },
+      { name: 'Scoped', lineage: {} },
       'user-1',
       'org-1'
     );
 
     const stored = coll.insertOne.mock.calls[0][0];
     expect(stored.organizationId).toBe('org-1');
-    expect(stored.lineage).toEqual({ projectId: 'p-1' });
+    expect(stored.lineage).toEqual({});
     expect(dto.organizationId).toBe('org-1');
-    expect(dto.lineage).toEqual({ projectId: 'p-1' });
+    expect(dto.lineage).toEqual({});
   });
 
   it('derives the lineage chain from referenced parents; authored axes win', async () => {
