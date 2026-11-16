@@ -554,6 +554,11 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   all records, verify semantics and authorization, then remove the old
   runtime format.
 
+### Agent Notes (2026-11-16, CTS relation write validation)
+
+- Explicit relation edges now normalize `cardinality` to `one | many` (default `many`). Generic instance creates and internal relation updates validate declared relation slots, typed targets, cardinality shape, duplicate refs, same-organization/system tenancy, and target-domain `where` predicates. Nested relation/containment predicates use the bounded async CTS evaluator and a recursion guard. Generic HTTP PATCH still refuses structural relation writes; this validation protects internal construct/process paths that do write them.
+- Added regression coverage for invalid cardinality, disallowed target types, cross-organization targets, undeclared relation slots, target-domain rejection, and trusted executor-output fields versus caller-supplied undeclared fields. The latest workflow's full Vitest, SSR, architecture, framework, docs, operational-script, and plugin-dependency steps all passed; cleanup was still running when recorded.
+
 ### Agent Notes (2026-11-16, deployment migration wiring)
 
 - `scripts/deploy.sh` now runs the instance-revision backfill and organization-owned plugin-asset migration after the updated app starts. It runs them from the standalone `perigram-seed` image, whose dependency closure now includes the CTS package import map, server DB/utils/features, MongoDB, Winston, and H3; this avoids relying on Nuxt aliases or source trees absent from the app runtime image. The deploy script's executable mode remains `100755`.

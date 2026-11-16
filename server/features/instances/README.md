@@ -181,7 +181,10 @@ Parent: [server/features](../README.md).
   records (the facade plugin's profile library writes ride it). The
   construct boundary keeps its own `create` with execution auth;
   framework feature types keep their feature create routes (no
-  `createForHttp`, the generic route 404s for them).
+  `createForHttp`, the generic route 404s for them). Draft fields must be
+  declared. A bound construction executor may add only the exact field keys
+  returned by its service output; those keys travel through a private
+  in-process marker, while caller-supplied undeclared fields remain rejected.
 - Remove transport (`DELETE /api/instances/:type/:id`): the record death
   behind the same write gate `patch` takes (`removeForHttp` loads the
   entity and checks the compiled grant — fail-closed), completing the
