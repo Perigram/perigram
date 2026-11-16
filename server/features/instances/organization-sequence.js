@@ -18,24 +18,55 @@ async function collection() {
   return db.collection(COLLECTION);
 }
 
-export async function beginOrganizationChange(organizationId) {
+export async function beginOrganizationChange(organizationId, { session = null, expectedSequence = null } = {}) {
   if (!organizationId) return null;
   const token = randomUUID();
   const now = new Date().toISOString();
-  await (await collection()).findOneAndUpdate(
-    { organizationId: String(organizationId) },
-    {
-      $inc: { pendingCount: 1 },
-      $addToSet: { pendingOperations: token },
-      $set: { updatedAt: now },
-      $setOnInsert: {
+  const target = await collection();
+  const update = {
+    $inc: { pendingCount: 1 },
+    $addToSet: { pendingOperations: token },
+    $set: { updatedAt: now },
+    $setOnInsert: {
+      organizationId: String(organizationId),
+      sequence: 0,
+      createdAt: now
+    }
+  };
+  const options = { upsert: true, returnDocument: 'after', ...(session ? { session } : {}) };
+  if (expectedSequence != null) {
+    await target.updateOne(
+      { organizationId: String(organizationId) },
+      { $setOnInsert: {
         organizationId: String(organizationId),
         sequence: 0,
+        pendingCount: 0,
         createdAt: now
-      }
-    },
-    { upsert: true, returnDocument: 'after' }
-  );
+      } },
+      { upsert: true, ...(session ? { session } : {}) }
+    );
+    const reserved = await target.findOneAndUpdate(
+      {
+        organizationId: String(organizationId),
+        sequence: Number(expectedSequence),
+        pendingCount: 0
+      },
+      update,
+      { ...options, upsert: false }
+    );
+    if (!reserved) {
+      const error = new Error('Organization data changed after graph preview');
+      error.statusCode = 409;
+      error.code = 'STALE_ORGANIZATION_READ';
+      throw error;
+    }
+  } else {
+    await target.findOneAndUpdate(
+      { organizationId: String(organizationId) },
+      update,
+      options
+    );
+  }
   return token;
 }
 
@@ -44,7 +75,8 @@ export async function completeOrganizationChange(organizationId, token, {
   typeId = null,
   instanceId = null,
   paths = [],
-  actorId = null
+  actorId = null,
+  session = null
 } = {}) {
   if (!organizationId || !token) return null;
   const now = new Date().toISOString();
@@ -65,13 +97,13 @@ export async function completeOrganizationChange(organizationId, token, {
         }
       }
     },
-    { returnDocument: 'after' }
+    { returnDocument: 'after', ...(session ? { session } : {}) }
   );
   if (!result) throw new Error('Organization change reservation is no longer pending');
   return Number(result.sequence || 0);
 }
 
-export async function cancelOrganizationChange(organizationId, token) {
+export async function cancelOrganizationChange(organizationId, token, { session = null } = {}) {
   if (!organizationId || !token) return null;
   const result = await (await collection()).findOneAndUpdate(
     { organizationId: String(organizationId), pendingOperations: token },
@@ -80,26 +112,26 @@ export async function cancelOrganizationChange(organizationId, token) {
       $pull: { pendingOperations: token },
       $set: { updatedAt: new Date().toISOString() }
     },
-    { returnDocument: 'after' }
+    { returnDocument: 'after', ...(session ? { session } : {}) }
   );
   return Number(result?.sequence || 0);
 }
 
-export async function runOrganizationChange(organizationId, metadata, mutate) {
+export async function runOrganizationChange(organizationId, metadata, mutate, { session = null, expectedSequence = null } = {}) {
   if (typeof mutate !== 'function') throw new TypeError('A mutation callback is required');
   if (!organizationId) return await mutate();
-  const token = await beginOrganizationChange(organizationId);
+  const token = await beginOrganizationChange(organizationId, { session, expectedSequence });
   let value;
   try {
     value = await mutate();
   } catch (error) {
-    await cancelOrganizationChange(organizationId, token);
+    await cancelOrganizationChange(organizationId, token, { session });
     throw error;
   }
   // If completion fails, leave the reservation pending. Readers then fail
   // closed instead of claiming a consistent boundary around an unsequenced
   // committed mutation.
-  await completeOrganizationChange(organizationId, token, metadata);
+  await completeOrganizationChange(organizationId, token, { ...metadata, session });
   return value;
 }
 
