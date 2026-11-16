@@ -19,6 +19,7 @@ import { listQueryFilter } from './filters.js';
 import * as filesService from '../files/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import * as entityEventService from '../instance-events/service.js';
+import { recordOrganizationChange } from './organization-sequence.js';
 import { hasInstanceAccess } from '../../core/access/service.js';
 import { appendFieldChangeEvent, appendPayloadRevisionEvent, buildEventActor } from '../../core/machines/service.js';
 import { resolveActiveWorkflow } from '../workflow-overrides/service.js';
@@ -484,6 +485,13 @@ function instanceService(typeId) {
     };
     await repository.insertInstance(repository.collectionForClass(declaration.class), doc);
     await recordPayloadRevision(typeId, doc, declaration, payload, userId, 'created');
+    await recordOrganizationChange(effectiveOrganizationId, {
+      kind: 'instance-created',
+      typeId,
+      instanceId: String(doc._id),
+      paths: ['fields', 'lineage', 'relations', 'payload', 'provenance'],
+      actorId: userId
+    });
     return toDto(doc);
   }
 
@@ -575,6 +583,15 @@ function instanceService(typeId) {
         }
       }
       const updated = await repository.updateInstanceFields(collection, id, set);
+      if (updated && Object.keys(set).length) {
+        await recordOrganizationChange(organizationId, {
+          kind: 'instance-updated',
+          typeId,
+          instanceId: String(updated._id || id),
+          paths: Object.keys(set),
+          actorId: context?.userId || null
+        });
+      }
       return toDto(updated);
     },
 
@@ -669,7 +686,17 @@ function instanceService(typeId) {
       if (doc) {
         await sweepRelationRefs({ typeId, id: String(doc._id), organizationId: doc.organizationId ?? null }, actor);
       }
-      return await repository.deleteInstance(collection, id);
+      const removed = await repository.deleteInstance(collection, id);
+      if (removed) {
+        await recordOrganizationChange(doc?.organizationId ?? organizationId, {
+          kind: 'instance-deleted',
+          typeId,
+          instanceId: String(id),
+          paths: ['instance'],
+          actorId: actor
+        });
+      }
+      return removed;
     },
 
     // Payload replacement — the editor concern SPEC §3 names. Requires a
@@ -720,6 +747,13 @@ function instanceService(typeId) {
         if (!updated) {
           throw createError({ statusCode: 409, message: `${typeId} ${id} changed before its payload was saved` });
         }
+        await recordOrganizationChange(organizationId, {
+          kind: 'instance-payload-replaced',
+          typeId,
+          instanceId: String(updated._id || id),
+          paths: ['payload'],
+          actorId: userId
+        });
         return toDto(updated);
       } catch (error) {
         await filesService.deleteFile(stored.id, PAYLOAD_BUCKET).catch(() => {});
