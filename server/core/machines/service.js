@@ -435,7 +435,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
     const auth = normalizeAuthContext(userId, userRole, transitionContext.metadata);
     const actorId = auth.userId || userId || 'SYSTEM';
     const db = await connectDB();
-    const { entity, machine, collection, flexId, instanceDoc } = await loadEntityForWorkflow(normalizedTypeId, targetId, { producerOutputId: transitionContext.producerOutputId });
+    const { entity, machine, collection, flexId, organizationFilter, instanceDoc } = await loadEntityForWorkflow(normalizedTypeId, targetId, { producerOutputId: transitionContext.producerOutputId });
 
     const normalizedMachine = normalizeWorkflow(machine);
     const transitionScope = normalizeTransitionScope(transitionContext);
@@ -584,6 +584,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       targetId: flexId,
       eventRecord,
       entitySet,
+      entityFilter: organizationFilter,
       preferTransaction: Boolean(options.entityPatch && Object.keys(options.entityPatch).length)
     });
 
