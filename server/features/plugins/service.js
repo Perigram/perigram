@@ -221,6 +221,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
       requires,
       endpoints: configuredEndpoints,
       packageAssets,
+      assetStorage: { kind: 'organization', materializedAt: new Date() },
       ...(configuredSurfaceOrigin ? { surfaceOrigin: configuredSurfaceOrigin } : {}),
       connectorToken: services.some(service => serviceModeOf(service) === 'claim') ? mintConnectorToken() : null
     });

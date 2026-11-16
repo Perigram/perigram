@@ -225,7 +225,7 @@ export async function updateInstallSnapshot(organizationId, pluginId, { version,
   const db = await connectDB();
   await db.collection(INSTALLS_COLLECTION).updateOne(
     { organizationId: String(organizationId), pluginId: String(pluginId) },
-    { $set: { version, declarations, services: services || [], requires, ...(endpoints ? { endpoints } : {}), ...(packageAssets ? { packageAssets } : {}), upgradedAt: new Date() } }
+    { $set: { version, declarations, services: services || [], requires, ...(endpoints ? { endpoints } : {}), ...(packageAssets ? { packageAssets, assetStorage: { kind: 'organization', materializedAt: new Date() } } : {}), upgradedAt: new Date() } }
   );
 }
 
