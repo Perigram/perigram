@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluate, checkBooleanExpression, MAX_COLLECTION_ITEMS } from './expressions.js';
+import { evaluate, evaluateAsync, checkBooleanExpression, MAX_COLLECTION_ITEMS } from './expressions.js';
 
 describe('generalized finite constraint expressions', () => {
   it('supports nested relation traversal with quantifiers', () => {
@@ -48,6 +48,26 @@ describe('generalized finite constraint expressions', () => {
     expect(evaluate({ op: 'sum', list, var: 'n', body: { op: 'var', name: 'n' } }, scope)).toBe(10);
     expect(evaluate({ op: 'min', list, var: 'n', body: { op: 'var', name: 'n' } }, scope)).toBe(1);
     expect(evaluate({ op: 'max', list, var: 'n', body: { op: 'var', name: 'n' } }, scope)).toBe(4);
+  });
+
+  it('evaluates nested predicates with asynchronous authorized resolvers', async () => {
+    const ast = {
+      op: 'exists',
+      list: { op: 'related', key: 'invoices' },
+      var: 'invoice',
+      body: { op: 'gt', args: [
+        { op: 'field', of: { op: 'var', name: 'invoice' }, path: ['amount'] },
+        { op: 'lit', value: 10 }
+      ] }
+    };
+    await expect(evaluateAsync(ast, { value: { id: 'account-1' } }, {
+      steps: 1000,
+      resolveRelation: async () => [{ amount: 12 }, { amount: 2 }]
+    })).resolves.toBe(true);
+    await expect(evaluateAsync(ast, { value: { id: 'account-1' } }, {
+      steps: 1000,
+      resolveRelation: async () => [{ amount: 2 }]
+    })).resolves.toBe(false);
   });
 
   it('bounds collection cardinality before quantification and aggregation', () => {

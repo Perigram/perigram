@@ -22,13 +22,13 @@ export {
   OPERATOR_SPECIES, normalizeOperator
 } from './operators.js';
 export {
-  evaluate, checkMatch, checkBooleanExpression, checkTypedBooleanExpression, MAX_STEPS, MAX_COLLECTION_ITEMS
+  evaluate, evaluateAsync, checkMatch, checkBooleanExpression, checkTypedBooleanExpression, MAX_STEPS, MAX_COLLECTION_ITEMS
 } from './expressions.js';
 export {
   diffTypes, requireCompatible, normalizeMigrateSteps, planTypeMigration
 } from './diff.js';
 export {
-  normalizeType, createTypeRegistry, validateInstance, schemaFor, CREATION_PROTOCOLS
+  normalizeType, createTypeRegistry, validateInstance, validateConstraints, schemaFor, CREATION_PROTOCOLS
 } from './registry.js';
 export {
   renderPolicyFor, compileClientBundle

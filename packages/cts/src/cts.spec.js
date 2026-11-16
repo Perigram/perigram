@@ -4,7 +4,7 @@ import {
   rowToSchema, checkFields,
   createTypeRegistry, validateInstance, schemaFor, normalizeType,
   diffTypes, requireCompatible, normalizeMigrateSteps, planTypeMigration,
-  evaluate, checkMatch, checkValue,
+  evaluate, checkMatch, checkValue, validateConstraints,
   normalizeOperator,
   renderPolicyFor, compileClientBundle,
   cncTypePack, partyTypes, frameworkTypes, nestingOperators, packFixtures,
@@ -157,6 +157,46 @@ describe('typed edges (R2)', () => {
 });
 
 describe('class obligations (R6)', () => {
+  it('normalizes, type-checks, and asynchronously evaluates authored instance constraints', async () => {
+    const registry = createTypeRegistry();
+    registry.defineType({
+      id: 'invoice', class: 'item', scope: 'system',
+      fields: { code: { base: 'string', identifier: true }, amount: { base: 'number' } }
+    });
+    registry.defineType({
+      id: 'account', class: 'item', scope: 'system',
+      fields: {
+        code: { base: 'string', identifier: true },
+        invoices: { base: 'list', itemType: { base: 'ref', accepts: ['invoice'] } }
+      },
+      constraints: [{
+        id: 'positive-invoice-total',
+        message: 'Invoice total must be positive',
+        expression: {
+          op: 'gt',
+          args: [
+            {
+              op: 'sum',
+              list: { op: 'related', key: 'invoices' },
+              var: 'invoice',
+              body: { op: 'field', of: { op: 'var', name: 'invoice' }, path: ['amount'] }
+            },
+            { op: 'lit', value: 0 }
+          ]
+        }
+      }]
+    });
+    const compiled = registry.compile();
+    expect(compiled.errors.filter(error => error.includes('type account: constraints'))).toEqual([]);
+    const type = registry.getType('account');
+    await expect(validateConstraints(type, { _id: 'a-1', type: 'account' }, {
+      resolveRelation: async () => [{ fields: { amount: 4 } }, { fields: { amount: 6 } }]
+    })).resolves.toEqual([]);
+    await expect(validateConstraints(type, { _id: 'a-1', type: 'account' }, {
+      resolveRelation: async () => [{ fields: { amount: -4 } }]
+    })).resolves.toEqual(['constraint positive-invoice-total: Invoice total must be positive']);
+  });
+
   it('enforces presets', () => {
     const registry = packRegistry();
     // Items carry no state obligation (SPEC §7): state vocabularies are

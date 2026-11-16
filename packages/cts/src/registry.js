@@ -6,7 +6,7 @@ import { checkClassObligations } from './classes.js';
 import { normalizeOperator, OPERATOR_SPECIES_BY_LETTER } from './operators.js';
 import { describeType } from './values.js';
 import { requireCompatible, normalizeMigrateSteps } from './diff.js';
-import { checkTypedBooleanExpression } from './expressions.js';
+import { checkTypedBooleanExpression, evaluateAsync, MAX_STEPS } from './expressions.js';
 import { normalizeStateVocabulary } from './states.js';
 
 // Payload traits (SPEC §4): the payload declaration carries the accepted
@@ -100,6 +100,38 @@ function adoptName(declaration, scope) {
     || (scope === 'org' ? null : startCase(declaration.id));
 }
 
+function normalizeConstraints(constraints = [], typeId = '') {
+  if (!Array.isArray(constraints) || constraints.length > 100) throw new Error(`type ${typeId}: constraints must be an array of at most 100 entries`);
+  const seen = new Set();
+  return Object.freeze(constraints.map((constraint, index) => {
+    const id = String(constraint?.id || '').trim();
+    if (!/^[a-z][a-z0-9-]{0,63}$/.test(id)) throw new Error(`type ${typeId}: constraint ${index} requires a kebab-case id`);
+    if (seen.has(id)) throw new Error(`type ${typeId}: duplicate constraint id ${id}`);
+    seen.add(id);
+    if (constraint.scope != null && constraint.scope !== 'instance') throw new Error(`type ${typeId}: constraint ${id} currently supports instance scope only`);
+    if (!constraint.expression || typeof constraint.expression !== 'object' || Array.isArray(constraint.expression)) throw new Error(`type ${typeId}: constraint ${id} requires an expression AST`);
+    return Object.freeze({
+      id,
+      scope: 'instance',
+      expression: Object.freeze(structuredClone(constraint.expression)),
+      ...(constraint.message ? { message: String(constraint.message) } : {})
+    });
+  }));
+}
+
+export async function validateConstraints(type, instance, resolvers = {}) {
+  const errors = [];
+  for (const constraint of type?.constraints || []) {
+    try {
+      const valid = await evaluateAsync(constraint.expression, { value: instance }, { steps: MAX_STEPS, ...resolvers });
+      if (valid !== true) errors.push(`constraint ${constraint.id}: ${constraint.message || 'predicate did not hold'}`);
+    } catch (error) {
+      errors.push(`constraint ${constraint.id}: ${error?.message || String(error)}`);
+    }
+  }
+  return errors;
+}
+
 export function normalizeType(declaration = {}) {
   if (!declaration.id || !/^[a-z][a-z0-9-]*$/.test(declaration.id)) {
     throw new Error('type id must be kebab-case');
@@ -171,6 +203,7 @@ export function normalizeType(declaration = {}) {
     // or pack handler id). Validated at the authoring boundary like every
     // other facet.
     ...(declaration.projections?.length ? { projections: normalizeProjections(declaration.projections, declaration.id) } : {}),
+    ...(declaration.constraints?.length ? { constraints: normalizeConstraints(declaration.constraints, declaration.id) } : {}),
     // Declared migration steps (SPEC §11) ride the declaration through to
     // the R7 gate and the stored record; normalization validates the step
     // language at the authoring boundary.
@@ -318,6 +351,13 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
       errors.push(...checkRefTargets(type, view));
       errors.push(...checkChildrenDeclared(type, view));
       errors.push(...checkRelationDomains(type, view));
+      for (const constraint of type.constraints || []) {
+        errors.push(...checkTypedBooleanExpression(constraint.expression, {
+          rootType: type,
+          types: view,
+          path: `type ${type.id}: constraints.${constraint.id}`
+        }));
+      }
       errors.push(...checkRelationUnlinkPolicy(type));
     }
     errors.push(...checkLineageAcyclic(view));

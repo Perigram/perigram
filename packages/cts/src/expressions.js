@@ -155,6 +155,134 @@ export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
 }
 
 // Exhaustiveness checked at compile time against the variant descriptor.
+// Async twin for authoritative server validation. Collection resolvers may
+// perform organization-scoped database reads; finite limits and short-circuit
+// semantics are identical to the synchronous preview evaluator.
+export async function evaluateAsync(ast, scope = {}, budget = { steps: MAX_STEPS }) {
+  budget.steps = Number.isFinite(budget.steps) ? budget.steps : MAX_STEPS;
+  spend(budget, ast);
+  const run = (node, nested = scope) => evaluateAsync(node, nested, budget);
+  switch (ast?.op) {
+    case 'lit': return ast.value;
+    case 'var':
+      if (!(ast.name in scope)) throw new Error(`unbound variable ${ast.name}`);
+      return scope[ast.name];
+    case 'field': {
+      let current = ast.of ? await run(ast.of) : scope;
+      for (const key of ast.path || []) {
+        if (current == null) return null;
+        if (typeof current !== 'object') throw new Error(`field ${key}: not navigable`);
+        current = current[key];
+      }
+      return current;
+    }
+    case 'eq': return deepEqual(await run(ast.args[0]), await run(ast.args[1]));
+    case 'ne': return !deepEqual(await run(ast.args[0]), await run(ast.args[1]));
+    case 'in': {
+      const member = await run(ast.args[0]);
+      return finiteList(await run(ast.args[1]), 'in').some(item => deepEqual(item, member));
+    }
+    case 'lt': case 'lte': case 'gt': case 'gte': {
+      const a = await run(ast.args[0]);
+      const b = await run(ast.args[1]);
+      if (isQuantity(a) || isQuantity(b)) {
+        const unified = unify(a, b);
+        return compare(unified.a.value, unified.b.value, ast.op);
+      }
+      return compare(a, b, ast.op);
+    }
+    case 'and': return Boolean(await run(ast.args[0])) && Boolean(await run(ast.args[1]));
+    case 'or': return Boolean(await run(ast.args[0])) || Boolean(await run(ast.args[1]));
+    case 'not': return !Boolean(await run(ast.arg));
+    case 'add': case 'sub': case 'mul': case 'div': {
+      const a = await run(ast.args[0]);
+      const b = await run(ast.args[1]);
+      if (isQuantity(a) || isQuantity(b)) {
+        const unified = unify(a, b);
+        const value = arithmetic(unified.a.value, unified.b.value, ast.op);
+        if (unified.a.unit === 'currency' && !Number.isInteger(value)) throw new Error('currency arithmetic must stay in integer minor units');
+        return { value, unit: unified.a.unit };
+      }
+      return arithmetic(a, b, ast.op);
+    }
+    case 'related': case 'children': case 'descendants': {
+      const owner = ast.of ? await run(ast.of) : scope.value;
+      const resolver = ast.op === 'related' ? budget.resolveRelation
+        : ast.op === 'children' ? budget.resolveChildren : budget.resolveDescendants;
+      if (typeof resolver !== 'function') throw new Error(`${ast.op} requires an authorized collection resolver`);
+      const resolved = ast.op === 'related'
+        ? await resolver(owner, String(ast.key || ''), scope)
+        : await resolver(owner, scope);
+      return finiteList(resolved, ast.op);
+    }
+    case 'exists': case 'all': case 'none': case 'one': {
+      const list = finiteList(await run(ast.list), ast.op);
+      const variable = String(ast.var || '');
+      if (!variable) throw new Error(`${ast.op} requires a bound variable`);
+      let matches = 0;
+      for (const item of list) {
+        const matched = Boolean(await run(ast.body, { ...scope, [variable]: item }));
+        if (matched) matches += 1;
+        if (ast.op === 'exists' && matched) return true;
+        if (ast.op === 'all' && !matched) return false;
+        if (ast.op === 'none' && matched) return false;
+        if (ast.op === 'one' && matches > 1) return false;
+      }
+      if (ast.op === 'exists') return false;
+      if (ast.op === 'all' || ast.op === 'none') return true;
+      return matches === 1;
+    }
+    case 'count': case 'sum': case 'min': case 'max': {
+      const list = finiteList(await run(ast.list), ast.op);
+      if (ast.op === 'count' && ast.body == null) return list.length;
+      const variable = String(ast.var || '');
+      if (!variable) throw new Error(`${ast.op} requires a bound variable`);
+      const values = [];
+      for (const item of list) values.push(await run(ast.body, { ...scope, [variable]: item }));
+      if (ast.op === 'count') return values.filter(Boolean).length;
+      if (!values.length) return ast.op === 'sum' ? 0 : null;
+      if (ast.op === 'sum') return values.slice(1).reduce((total, value) => {
+        if (isQuantity(total) || isQuantity(value)) {
+          const unified = unify(total, value);
+          return { value: unified.a.value + unified.b.value, unit: unified.a.unit };
+        }
+        if (typeof total !== 'number' || typeof value !== 'number') throw new Error('sum requires numeric values');
+        return total + value;
+      }, values[0]);
+      let selected = values[0];
+      for (const value of values.slice(1)) {
+        if (isQuantity(selected) || isQuantity(value)) {
+          const unified = unify(selected, value);
+          if ((ast.op === 'min' && unified.b.value < unified.a.value) || (ast.op === 'max' && unified.b.value > unified.a.value)) selected = value;
+        } else {
+          if (typeof selected !== typeof value || !['number', 'string'].includes(typeof value)) throw new Error(`${ast.op} requires comparable homogeneous values`);
+          if ((ast.op === 'min' && value < selected) || (ast.op === 'max' && value > selected)) selected = value;
+        }
+      }
+      return selected;
+    }
+    case 'map': {
+      const list = finiteList(await run(ast.list), 'map');
+      const result = [];
+      for (const item of list) result.push(await run(ast.body, { ...scope, [ast.var]: item }));
+      return result;
+    }
+    case 'filter': {
+      const list = finiteList(await run(ast.list), 'filter');
+      const result = [];
+      for (const item of list) if (await run(ast.body, { ...scope, [ast.var]: item })) result.push(item);
+      return result;
+    }
+    case 'match': {
+      const subject = await run(ast.expr);
+      const tag = subject?.tag;
+      if (!(tag in (ast.arms || {}))) throw new Error(`match not exhaustive: no arm for ${tag}`);
+      return await run(ast.arms[tag]);
+    }
+    default: throw new Error(`unknown expression op ${ast?.op}`);
+  }
+}
+
 export function checkMatch(ast, variantDescriptor) {
   if (ast?.op !== 'match') return [];
   const arms = Object.keys(ast.arms || {});
