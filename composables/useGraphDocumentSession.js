@@ -29,7 +29,17 @@ const operation = (id, version = '1') => ({
   version
 });
 
-const stableId = prefix => mintId(prefix).replaceAll('_', '-');\nconst isJsonValue = (value, seen = new Set()) => {\n  if (value === null || ['string', 'boolean'].includes(typeof value)) return true;\n  if (typeof value === 'number') return Number.isFinite(value);\n  if (typeof value !== 'object' || seen.has(value)) return false;\n  if (!Array.isArray(value) && Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) return false;\n  seen.add(value);\n  const valid = (Array.isArray(value) ? value : Object.values(value)).every(item => isJsonValue(item, seen));\n  seen.delete(value);\n  return valid;\n};
+const stableId = prefix => mintId(prefix).replaceAll('_', '-');
+const isJsonValue = (value, seen = new Set()) => {
+  if (value === null || ['string', 'boolean'].includes(typeof value)) return true;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value !== 'object' || seen.has(value)) return false;
+  if (!Array.isArray(value) && Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) return false;
+  seen.add(value);
+  const valid = (Array.isArray(value) ? value : Object.values(value)).every(item => isJsonValue(item, seen));
+  seen.delete(value);
+  return valid;
+};
 const defaultContract = Object.freeze({
   shape: 'item',
   semantic: { base: 'json' }
@@ -559,7 +569,8 @@ export function useGraphDocumentSession({ t }) {
     contextPaletteChipGroups,
     contextPalette,
     contextPaletteSearch,
-    selectedNode: selection.selectedNode,\n    selectedBoundaryDeclaration,
+    selectedNode: selection.selectedNode,
+    selectedBoundaryDeclaration,
     selectedNodeId: selection.selectedNodeId,
     selectedGraphNodes,
     selectedGraphEdges,
@@ -588,7 +599,8 @@ export function useGraphDocumentSession({ t }) {
     selectEdge: selection.selectEdge,
     clearGraphSelection: selection.clearGraphSelection,
     updateNodeConfig,
-    updateBoundaryLabel,\n    updateBoundaryDeclaration,
+    updateBoundaryLabel,
+    updateBoundaryDeclaration,
     renameDeclarationNode: () => {},
     loadDocument,
     loadEmpty,
