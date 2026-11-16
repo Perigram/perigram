@@ -12,7 +12,7 @@
       <label class="text-supporting text-muted" for="graph-document-source">{{ $t('processDesigner.graphDocumentSource') }}</label>
       <InstanceSelect
         id="graph-document-source"
-        v-model="selectedGraphId"
+        :model-value="selectedGraphId"
         @update:model-value="selectGraphDocument"
         :options="graphDocuments"
         option-label="name"

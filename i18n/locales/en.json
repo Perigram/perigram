@@ -3494,6 +3494,8 @@
     "graphDocumentSource": "Stored graph document",
     "graphRevision": "Graph revision",
     "selectGraphRevision": "Select a revision",
+    "previewRepresentations": "Preview representations",
+    "openGraphArtifact": "Open artifact",
     "selectGraphDocument": "Select a graph",
     "pinGraphRevision": "Pin selected revision",
     "graphPinned": "Graph revision pinned",

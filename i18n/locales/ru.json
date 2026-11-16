@@ -3494,6 +3494,8 @@
     "graphDocumentSource": "Сохранённый граф",
     "graphRevision": "Версия графа",
     "selectGraphRevision": "Выберите версию",
+    "previewRepresentations": "Представления результата",
+    "openGraphArtifact": "Открыть файл",
     "selectGraphDocument": "Выберите граф",
     "pinGraphRevision": "Закрепить выбранную версию",
     "graphPinned": "Версия графа закреплена",
