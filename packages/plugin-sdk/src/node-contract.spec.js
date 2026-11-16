@@ -59,6 +59,17 @@ describe('provider-neutral node contract', () => {
     expect(Object.isFrozen(normalized.inputs[0].semantic)).toBe(true);
   });
 
+  it('preserves runtime and target declarations for managed provider execution', () => {
+    const normalized = normalizeNodeDefinition(definition({
+      execution: { kind: 'pure', runtime: 'javascript', targets: ['browser', 'server'], deterministic: true }
+    }));
+    expect(normalized.execution).toMatchObject({ runtime: 'javascript', targets: ['browser', 'server'] });
+    expect(validateNodeDefinition(definition({ execution: { kind: 'pure', runtime: 'Bad Runtime', targets: ['browser'] } }))
+      .map(problem => problem.code)).toContain('invalid-runtime');
+    expect(validateNodeDefinition(definition({ execution: { kind: 'pure', runtime: 'javascript' } }))
+      .map(problem => problem.code)).toContain('missing-targets');
+  });
+
   it('accepts existing stable camel-case operation and port ids', () => {
     const candidate = definition({
       id: 'source.literalItem',

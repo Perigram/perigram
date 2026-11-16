@@ -42,6 +42,26 @@ describe('usePluginRuntime', () => {
     expect(worker.terminated).toBe(true);
   });
 
+  it('loads provider declarations and routes provider execution through Worker RPC', async () => {
+    const worker = new FakeWorker();
+    const pluginRuntime = usePluginRuntime({
+      createWorker: () => worker,
+      loadModule: async () => ({
+        createProviders: () => [{
+          provider: 'plugin.demo',
+          definitions: [{
+            provider: 'plugin.demo', id: 'math.double', version: '1', inputs: [], outputs: [],
+            execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] }
+          }]
+        }]
+      })
+    });
+    const [provider] = await pluginRuntime.loadProviders(binding, runtime);
+    expect(provider.provider).toBe('plugin.demo');
+    await expect(provider.execute({ id: 'math.double', execution }, { input: 2 }))
+      .resolves.toEqual({ operationId: 'math.double', input: { input: 2 } });
+  });
+
   it('refuses operations without browser support', async () => {
     const pluginRuntime = usePluginRuntime({ createWorker: () => new FakeWorker() });
     await expect(pluginRuntime.execute(binding, runtime, 'server-only', {}, {

@@ -224,7 +224,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
       endpoints: configuredEndpoints,
       packageAssets,
       ...(configuredSurfaceOrigin ? { surfaceOrigin: configuredSurfaceOrigin } : {}),
-      connectorToken: mintConnectorToken()
+      connectorToken: services.some(service => serviceModeOf(service) === 'claim') ? mintConnectorToken() : null
     });
       invalidateInstanceDeclarations(String(organizationId));
     });
@@ -402,6 +402,7 @@ function mintConnectorToken() {
 // protocol) ---
 
 export function serviceModeOf(service = {}) {
+  if (service.execution) return 'managed';
   if (service.mode === 'endpoint') return 'endpoint';
   if (service.mode === 'local') return 'local';
   return 'claim';
@@ -533,11 +534,12 @@ export async function settingsFor({ organizationId, pluginId, auth = {} }) {
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
   const endpoints = install.endpoints || {};
+  const packageOwned = Number(install.packageAssets?.count) > 0;
   return {
     pluginId: install.pluginId,
     authToken: install.authToken || null,
-    surfaceOrigin: install.surfaceOrigin || null,
-    surfaces: (install.declarations?.surfaces || []).length > 0,
+    surfaceOrigin: packageOwned ? null : (install.surfaceOrigin || null),
+    surfaces: !packageOwned && (install.declarations?.surfaces || []).length > 0,
     services: (install.services || []).map(service => ({
       id: service.id,
       label: serviceSummary(service).label,
@@ -815,7 +817,10 @@ export async function executeConnectorService(command, { parameters, auth = {}, 
   const service = (install.services || []).find(item => item.id === serviceId);
 
   if (serviceModeOf(service) === 'local') {
-    throw createError({ statusCode: 400, message: `Service ${serviceId} runs in the client engine — server execution does not apply` });
+    throw createError({ statusCode: 400, message: `Service ${serviceId} runs in the transitional client engine — server execution does not apply` });
+  }
+  if (serviceModeOf(service) === 'managed') {
+    throw createError({ statusCode: 503, message: `Managed runtime execution for ${serviceId} is not available yet` });
   }
 
   // Endpoint mode: call the configured executor URL directly (the
@@ -986,6 +991,9 @@ export async function connectorInfo({ organizationId, pluginId, auth = {} }) {
   assertOrganizationPermission(auth, 'admin');
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
+  if (!(install.services || []).some(service => serviceModeOf(service) === 'claim')) {
+    throw createError({ statusCode: 409, message: 'This plugin has no external claim-mode services' });
+  }
   return {
     pluginId: install.pluginId,
     token: install.connectorToken || null,
@@ -1005,6 +1013,9 @@ export async function regenerateConnectorToken({ organizationId, pluginId, auth 
   assertOrganizationPermission(auth, 'admin');
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
+  if (!(install.services || []).some(service => serviceModeOf(service) === 'claim')) {
+    throw createError({ statusCode: 409, message: 'This plugin has no external claim-mode services' });
+  }
   const token = mintConnectorToken();
   await repository.setConnectorToken(organizationId, pluginId, token);
   return { pluginId: install.pluginId, token };
