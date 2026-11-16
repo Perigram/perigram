@@ -15,7 +15,7 @@ One `items` document of type `page` per page or section:
 |---|---|
 | `organizationId` | Owning organization (flexible id). |
 | `fields.name` | String, the Page identifier; may be empty. |
-| `fields.blocks` | Ordered block records: `{ id, kind: 'text', text }` or `{ id, kind: 'view', view }`; sections carry an empty list. |
+| `fields.blocks` | Ordered block records: `{ id, kind: 'text', text }`, `{ id, kind: 'view', view }`, or `{ id, kind: 'file', file }`; sections carry an empty list. File blocks point to immutable `files`-bucket blobs by id and keep a safe page-relative path plus revision history. |
 | `fields.order` | Block ids in document order. |
 | `fields.section` | Boolean; sections are `true`, pages `false`. |
 | `fields.classTypeId` | Optional class binding; a class page is the one page bound to that organization class. |
@@ -81,7 +81,8 @@ Service seam: `listTree`, `getById`, `create`, `update`, `remove`.
 | `GET /api/pages` | The organization's rows in the tree projection, `createdAt` ascending. |
 | `POST /api/pages` | Create (`{ kind?, name?, parentId?, classTypeId?, blocks?, order? }`, org member). |
 | `GET /api/pages/:id` | One full page (`blocks` and `order` included). |
-| `PATCH /api/pages/:id` | Rename / move / save the block document (`{ name?, parentId?, blocks?, order? }`, any subset). |
+| `PATCH /api/pages/:id` | Rename / move / save the block document (`{ name?, parentId?, blocks?, order? }`, any subset); removing file blocks retracts page-owned blobs that no longer have references. |
+| `POST /api/pages/:id/files` | Attach a baked file to this exact page at a validated relative path, with explicit conflict policy (`fail`, `create-revision`, admin-only `replace`, or `create-distinct-name`); GridFS bytes and page document references are updated with a compare-and-swap write. |
 | `DELETE /api/pages/:id` | Delete; children become roots. |
 
 ## Related
@@ -89,3 +90,7 @@ Service seam: `listTree`, `getById`, `create`, `update`, `remove`.
 - [The page surface](../../../components/generated/README.md) — the workspace page that authors these documents
 - [The block vocabulary](../../../workers/documents/README.md) — the authoring grammar that surface mounts
 - [packages/cts](../../../packages/cts/README.md) — the Page declaration
+
+## Baked page files
+
+A file block is a page-owned artifact reference, not a path on the application host. Its logical path is relative to the exact Page id and rejects absolute paths, traversal segments, backslashes, control characters, empty segments, and paths longer than 240 characters. The blob is stored in the organization-scoped `files` bucket with SHA-256 content addressing and provenance metadata (graph identity/revision, execution id, and output id). A path collision must select an explicit policy: fail, append an immutable file revision, replace (organization admin only), or generate a distinct sibling name. Page writes use an `updatedAt` compare-and-swap; a race removes the just-uploaded blob and returns 409. Removing a file block or page retracts its page-owned current and historical blobs.
