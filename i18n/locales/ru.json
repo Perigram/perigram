@@ -3482,7 +3482,9 @@
     "unknownNode": "Недоступный узел",
     "graphComposition": "Композиция графов",
     "useGraph": "Использовать граф",
-    "useGraphDescription": "Вызвать закреплённую ревизию другого графа"
+    "useGraphDescription": "Вызвать закреплённую ревизию другого графа",
+    "graphInputValues": "Входы графа",
+    "applyGraphInput": "Применить вход"
   },
   "generatedScreen": {
     "home": "Главная",
