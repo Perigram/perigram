@@ -81,7 +81,7 @@ describe('graph execution service', () => {
   };
   const executionService = { create: vi.fn() };
   const graphService = { processGetById: vi.fn() };
-  const dataService = { processList: vi.fn(), processGetById: vi.fn() };
+  const dataService = { processList: vi.fn(), processGetById: vi.fn(), patch: vi.fn() };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -92,6 +92,7 @@ describe('graph execution service', () => {
     });
     dataService.processList.mockResolvedValue([{ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }]);
     dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));
+    dataService.patch.mockResolvedValue({ _id: 'item-1', type: 'part', revision: 4, fields: { status: 'approved' } });
     mocks.withOrganizationChangeSequence.mockImplementation(async (_organizationId, read) => ({
       value: await read(),
       boundary: { consistency: 'sequence-bracketed', snapshotId: null, organizationSequenceStart: 4, organizationSequenceEnd: 4 }

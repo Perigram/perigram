@@ -10,6 +10,7 @@ Parent: [server features](../README.md).
 - The submitted graph identity and revision must match the saved payload.
 - Execution envelopes use the hidden append-only `graph-execution` CTS type through the generic instance persistence service.
 - Page-file Bake validates the saved source revision, writes bytes through the [pages feature](../pages/README.md), and records the resulting file reference and destination in a `procedural-bake` execution.
+- Commit applies one exact-instance CTS field/name patch from a successful preview. Its read set must contain exactly the target instance at the proposal's expected revision; optional queries must be exact reads of that same instance. The generic instance service rechecks the caller's write grant and revision at the write boundary. Multi-object and relation commits remain unsupported.
 - Export returns a selected output as an authenticated download and records a `procedural-export` execution with filename, MIME type, size, output, and source-execution provenance.
 - Before Bake or Export, the feature re-reads the saved graph document and every consumed instance/relation dependency. Query-backed previews require the recorded organization sequence to remain unchanged; deleted, revised, or re-linked dependencies fail with `409` instead of materializing stale output.
 - Bake destinations identify a Page id and a validated page-relative path. The page service owns conflict policy, revision history, GridFS metadata, and compare-and-swap page updates.
@@ -50,7 +51,7 @@ and relation commits remain gated on transactionally validated write sets.
 |---|---|
 | `POST /api/graph-executions/query` | Execute a bounded, authorized CTS instance query and return its read-set evidence. |
 | `POST /api/graph-executions` | Record a validated execution envelope against its saved graph revision. |
-| `POST /api/graph-executions/bake` | Materialize a selected output to an exact Page path and record the artifact provenance. |
+| `POST /api/graph-executions/commit` | Apply one authorized, exact-instance proposal with an expected revision and record its result. |\n| `POST /api/graph-executions/bake` | Materialize a selected output to an exact Page path and record the artifact provenance. |
 | `POST /api/graph-executions/export` | Return a selected output as a download and record export provenance. |
 
 The canonical execution envelope lives in [@perigram/core](../../../packages/core/README.md). The Page file destination contract lives in [pages](../pages/README.md).

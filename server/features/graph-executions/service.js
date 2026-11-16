@@ -365,6 +365,89 @@ export async function recordExecution({ graphDocumentInstanceId, record: value }
   return await persistRecord(record, graphDocument, organizationId, auth);
 }
 
+
+export async function commitProposal({ graphDocumentInstanceId, record: value, proposal = {} } = {}, auth = {}) {
+  const preview = parseRecord(value);
+  if (preview.profile !== 'procedural-preview' || preview.status !== 'succeeded') {
+    throw createError({ statusCode: 409, message: 'Commit requires a successful procedural preview' });
+  }
+  if (proposal.kind !== 'cts.instance.patch' || proposal.conflictPolicy !== 'fail') {
+    throw createError({ statusCode: 400, message: 'Commit supports only fail-on-conflict CTS instance patches' });
+  }
+  const typeId = String(proposal.typeId || '').trim();
+  const instanceId = String(proposal.instanceId || '').trim();
+  const expectedRevision = proposal.expectedRevision == null ? '' : String(proposal.expectedRevision);
+  const patch = proposal.patch;
+  if (!typeId || !instanceId || !expectedRevision || !patch || typeof patch !== 'object' || Array.isArray(patch)) {
+    throw createError({ statusCode: 400, message: 'Commit proposal requires a type, instance, expected revision, and patch' });
+  }
+  if (Object.keys(patch).some(key => !['name', 'fields'].includes(key))
+    || (patch.fields != null && (typeof patch.fields !== 'object' || Array.isArray(patch.fields)))
+    || (!Object.hasOwn(patch, 'name') && !Object.hasOwn(patch, 'fields'))
+    || (patch.fields && Object.keys(patch.fields).length === 0 && !Object.hasOwn(patch, 'name'))) {
+    throw createError({ statusCode: 400, message: 'Commit patch supports only a name and declared fields' });
+  }
+
+  const instances = preview.readSet?.instances || [];
+  const relations = preview.readSet?.relations || [];
+  const queries = preview.readSet?.queries || [];
+  if (instances.length !== 1 || relations.length !== 0) {
+    throw stalePreviewError('Commit requires a read set containing exactly the target instance and no relation dependencies');
+  }
+  const dependency = instances[0];
+  if (String(dependency.typeId) !== typeId || String(dependency.instanceId) !== instanceId
+    || dependency.revision == null || String(dependency.revision) !== expectedRevision) {
+    throw stalePreviewError('Commit proposal does not match the preview instance revision');
+  }
+  if (queries.some(query => String(query.typeId) !== typeId
+    || String(query.query?.instanceId || '') !== instanceId
+    || query.resultIds?.length !== 1
+    || String(query.resultIds[0]) !== instanceId)) {
+    throw stalePreviewError('Commit permits only exact-instance query observations for its target');
+  }
+
+  const { graphDocument, graph, organizationId } = await sourceFor(graphDocumentInstanceId, preview, auth);
+  await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument);
+  const instanceService = getAppRegistry().getInstanceService(typeId);
+  if (typeof instanceService?.patch !== 'function') {
+    throw createError({ statusCode: 404, message: 'CTS instance write service is unavailable' });
+  }
+  const updated = await instanceService.patch(instanceId, patch, {
+    auth,
+    organizationId,
+    expectedRevision
+  });
+
+  const timestamp = new Date().toISOString();
+  const commitId = randomUUID();
+  const commitRecord = createGraphExecutionRecord({
+    ...preview,
+    id: commitId,
+    profile: 'procedural-commit',
+    status: 'succeeded',
+    startedAt: timestamp,
+    completedAt: timestamp,
+    artifacts: [...(preview.artifacts || []), {
+      kind: 'cts.instance',
+      typeId,
+      instanceId,
+      revision: updated?.revision == null ? null : String(updated.revision),
+      sourceExecutionId: preview.id,
+      conflictPolicy: 'fail'
+    }]
+  });
+  try {
+    const execution = await persistRecord(commitRecord, graphDocument, organizationId, auth);
+    return { instance: updated, execution };
+  } catch (error) {
+    throw createError({
+      statusCode: 500,
+      message: 'CTS proposal was committed but its execution evidence could not be persisted',
+      data: { instanceId, typeId, revision: updated?.revision ?? null, cause: error.message }
+    });
+  }
+}
+
 export async function bakeOutput({ graphDocumentInstanceId, record: value, outputId, destination = {} } = {}, auth = {}) {
   const preview = parseRecord(value);
   if (preview.profile !== 'procedural-preview' || preview.status !== 'succeeded') {
