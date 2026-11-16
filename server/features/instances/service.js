@@ -734,6 +734,10 @@ function instanceService(typeId) {
         const currentDoc = await repository.findInstance(collection, id, typeId);
         if (!currentDoc) throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
         expectedUpdatedAt = currentDoc.updatedAt;
+        if (context?.expectedRevision != null
+          && (currentDoc.revision == null || String(currentDoc.revision) !== String(context.expectedRevision))) {
+          throw createError({ statusCode: 409, message: `${typeId} ${id} changed after the graph proposal was evaluated` });
+        }
         const current = toDto(currentDoc);
         const candidate = {
           ...current,
@@ -826,7 +830,8 @@ function instanceService(typeId) {
       const updated = await this.processUpdate(id, patch, {
         organizationId,
         userId: auth?.userId || null,
-        expectedUpdatedAt: doc.updatedAt
+        expectedUpdatedAt: doc.updatedAt,
+        expectedRevision
       });
       // Field edits drop into the state record (SPEC UI): the audit trail
       // carries who changed which field, from what to what, beside the
