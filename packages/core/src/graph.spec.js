@@ -3,6 +3,7 @@ import {
   GRAPH_DOCUMENT_FORMAT,
   GRAPH_DOCUMENT_VERSION,
   GRAPH_INPUT_OPERATION,
+  GRAPH_OUTPUT_OPERATION,
   GRAPH_INVOKE_OPERATION,
   assertValidGraphDocument,
   normalizeGraphDocument,
@@ -21,9 +22,13 @@ const validGraph = () => ({
   },
   nodes: [
     { id: 'input-1', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'source' } },
-    { id: 'format-1', operation: { provider: 'plugin.documents', id: 'document.compose', version: '3' }, config: { template: 'brief' }, position: { x: 20, y: 40 } }
+    { id: 'format-1', operation: { provider: 'plugin.documents', id: 'document.compose', version: '3' }, config: { template: 'brief' }, position: { x: 20, y: 40 } },
+    { id: 'output-1', operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' }, config: { interfaceId: 'document' } }
   ],
-  edges: [{ id: 'edge-1', source: { node: 'input-1', port: 'value' }, target: { node: 'format-1', port: 'source' } }]
+  edges: [
+    { id: 'edge-1', source: { node: 'input-1', port: 'value' }, target: { node: 'format-1', port: 'source' } },
+    { id: 'edge-2', source: { node: 'format-1', port: 'document' }, target: { node: 'output-1', port: 'value' } }
+  ]
 });
 
 describe('canonical graph document', () => {
