@@ -95,6 +95,12 @@ describe('canonical graph document', () => {
     expect(validateGraphDocument(graph)[0].code).toBe('invalid-document');
   });
 
+  it('requires semantic and transport contracts on public interface ports', () => {
+    const graph = validGraph();
+    graph.interface.inputs[0].contract = { shape: 'item' };
+    expect(validateGraphDocument(graph)[0].code).toBe('invalid-document');
+  });
+
   it('does not mutate authored input', () => {
     const graph = validGraph();
     const before = JSON.stringify(graph);
