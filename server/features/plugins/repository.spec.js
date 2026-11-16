@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createHash } from 'node:crypto';
 
 const mocks = vi.hoisted(() => ({
   findFileMetaByFilename: vi.fn(),
@@ -14,7 +15,7 @@ import { materializePluginAssets, ORG_PLUGIN_ASSETS_BUCKET, PLUGIN_ASSETS_BUCKET
 
 describe('organization-owned plugin asset materialization', () => {
   const sourceBytes = Buffer.from('export default 42;');
-  const digest = 'sha256:' + (await import('node:crypto')).createHash('sha256').update(sourceBytes).digest('hex');
+  const digest = 'sha256:' + createHash('sha256').update(sourceBytes).digest('hex');
 
   beforeEach(() => {
     vi.clearAllMocks();
