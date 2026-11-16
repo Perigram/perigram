@@ -197,6 +197,27 @@ export async function update(id, changes, organizationId) {
   );
 }
 
+export async function updatePageDocumentIfUnchanged(id, organizationId, expectedUpdatedAt, document) {
+  const db = await connectDB();
+  const filter = {
+    _id: toFlexibleId(id),
+    type: TYPE,
+    organizationId: orgFilter(organizationId),
+    ...(expectedUpdatedAt ? { updatedAt: expectedUpdatedAt } : { updatedAt: { $exists: false } })
+  };
+  return await db.collection(COLLECTION).findOneAndUpdate(
+    filter,
+    {
+      $set: {
+        'fields.blocks': document.blocks,
+        'fields.order': document.order,
+        updatedAt: new Date()
+      }
+    },
+    { returnDocument: 'after' }
+  );
+}
+
 export async function detachChildren(organizationId, parentId) {
   const db = await connectDB();
   await db.collection(COLLECTION).updateMany(
