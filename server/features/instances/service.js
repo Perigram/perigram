@@ -969,7 +969,10 @@ function instanceService(typeId) {
           // Tenancy is immutable after construct: the wire projection's
           // organizationId key is deliberately not a writable edge.
           if (key === 'organizationId') continue;
-          if (value !== undefined) set[`lineage.${key}`] = value;
+          if (value !== undefined) {
+            const parentId = value && typeof value === 'object' ? value.id ?? value._id : value;
+            set[`lineage.${key}`] = parentId;
+          }
         }
       }
       // Payload and provenance are construct-time records (SPEC §3): the
