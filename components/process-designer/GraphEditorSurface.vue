@@ -435,6 +435,7 @@ async function saveGraphDocument() {
     persisted.value = Boolean(instanceId);
     if (updated?.name) recordName.value = updated.name;
     savedSignature.value = designerSignature();
+    await refreshPreviewAndRecord();
     toast.add({ severity: 'success', summary: t('processDesigner.saved'), life: 2400 });
   } catch (error) {
     toast.add({
