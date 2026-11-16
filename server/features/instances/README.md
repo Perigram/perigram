@@ -160,7 +160,8 @@ Parent: [server/features](../README.md).
   fail-closed). This is the generated detail surfaces' inline-edit
   persistence path; the process effect boundary keeps its own
   `processUpdate` with execution auth. Both paths land in `processUpdate`,
-  which rejects field ids absent from the resolved CTS declaration and
+  which rejects field ids absent from the resolved CTS declaration, validates
+  changed relation slots against declared targets/cardinality/domain, and
   enforces the current state's field policy (CTS SPEC §7 `fieldPolicy`): when the
   resolved workflow declares `visible`/`editable` whitelists for the
   instance's state, row-field writes outside them fail with 409. The

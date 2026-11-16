@@ -11,7 +11,7 @@
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, mimeMatches, validateConstraints, MAX_COLLECTION_ITEMS } from '#packages/cts';
+import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, mimeMatches, validateConstraints, evaluateAsync, MAX_COLLECTION_ITEMS } from '#packages/cts';
 import * as typeStore from '../cts-types/repository.js';
 import * as pluginInstalls from '../plugins/repository.js';
 import * as repository from './repository.js';
@@ -432,20 +432,41 @@ async function constraintResolversFor(organizationId) {
     const accepted = edge?.types || field?.accepts || field?.itemType?.accepts || [];
     const slot = owner?.relations?.[key] ?? owner?.fields?.[key];
     if (slot == null) return [];
+    const cardinality = edge?.cardinality || (field?.base === 'list' ? 'many' : 'one');
+    if (cardinality === 'many' && !Array.isArray(slot)) {
+      throw new Error(`relation ${key} requires a list of references`);
+    }
+    if (cardinality === 'one' && Array.isArray(slot)) {
+      throw new Error(`relation ${key} accepts exactly one reference`);
+    }
     const refs = Array.isArray(slot) ? slot : [slot];
     const resolved = [];
+    const seen = new Set();
     for (const ref of refs) {
       const id = typeof ref === 'string' ? ref : ref?.id ?? ref?._id;
-      const types = ref?.type ? [String(ref.type)] : accepted;
-      if (id == null || !types.length) {
+      const refType = typeof ref === 'object' && ref
+        ? String(ref.type || '')
+        : '';
+      const declaredTypes = accepted.filter(type => type !== '*');
+      if (id == null || !accepted.length) {
         throw new Error(`relation ${key} has no resolvable typed reference`);
       }
-      let target = null;
-      for (const targetType of types) {
-        target = await loadTarget(targetType, String(id));
-        if (target) break;
+      if (refType && !accepted.includes('*') && !accepted.includes(refType)) {
+        throw new Error(`relation ${key} does not accept target type ${refType}`);
       }
+      if (!refType && (accepted.includes('*') || declaredTypes.length !== 1)) {
+        throw new Error(`relation ${key} requires an explicit target type`);
+      }
+      const targetType = refType || declaredTypes[0];
+      const identity = `${targetType}:${String(id)}`;
+      if (seen.has(identity)) throw new Error(`relation ${key} contains a duplicate reference`);
+      seen.add(identity);
+      const target = await loadTarget(targetType, String(id));
       if (!target) throw new Error(`relation ${key} target ${String(id)} is missing or outside the organization`);
+      const where = edge?.where ?? field?.where ?? field?.itemType?.where;
+      if (where != null && await evaluateAsync(where, { value: target }) !== true) {
+        throw new Error(`relation ${key} target ${String(id)} is outside its declared domain`);
+      }
       resolved.push(target);
       if (resolved.length > MAX_COLLECTION_ITEMS) throw new Error('relation collection item limit exceeded');
     }
@@ -499,6 +520,26 @@ async function constraintResolversFor(organizationId) {
   }
 
   return { resolveRelation, resolveChildren, resolveDescendants };
+}
+
+async function assertDeclaredRelationSlots(declaration, instance, organizationId, keys = []) {
+  const declared = new Set(Object.keys(declaration?.edges?.relations || {}));
+  for (const [fieldId, field] of Object.entries(declaration?.fields || {})) {
+    if (field?.base === 'ref' || (field?.base === 'list' && field?.itemType?.base === 'ref')) {
+      declared.add(fieldId);
+    }
+  }
+  const resolvers = await constraintResolversFor(organizationId);
+  for (const key of keys) {
+    if (!declared.has(key)) {
+      throw createError({ statusCode: 400, message: `Relation ${key} is not declared for ${declaration.id}` });
+    }
+    try {
+      await resolvers.resolveRelation(instance, key);
+    } catch (error) {
+      throw createError({ statusCode: 400, message: error?.message || `Relation ${key} is invalid` });
+    }
+  }
 }
 
 async function assertPermanentConstraints(declaration, instance, organizationId) {
@@ -617,6 +658,18 @@ function instanceService(typeId) {
     const now = new Date().toISOString();
     const state = typeof draft.state === 'string' && draft.state ? draft.state : null;
     const effectiveOrganizationId = organizationId ?? draft.organizationId ?? null;
+    if (draft.fields != null && (typeof draft.fields !== 'object' || Array.isArray(draft.fields))) {
+      throw createError({ statusCode: 400, message: 'Instance fields must be an object' });
+    }
+    if (draft.relations != null && (typeof draft.relations !== 'object' || Array.isArray(draft.relations))) {
+      throw createError({ statusCode: 400, message: 'Instance relations must be an object' });
+    }
+    const unknownFields = Object.keys(draft.fields || {}).filter(fieldId =>
+      !Object.hasOwn(declaration.fields || {}, fieldId)
+    );
+    if (unknownFields.length) {
+      throw createError({ statusCode: 400, message: 'Fields ' + unknownFields.join(', ') + ' are not declared for ' + typeId });
+    }
     const lineage = await lineageWithDerivedChain(draft, effectiveOrganizationId);
     const doc = {
       _id: new ObjectId(),
@@ -635,6 +688,12 @@ function instanceService(typeId) {
       createdAt: now,
       updatedAt: now
     };
+    const relationKeys = new Set(Object.keys(doc.relations || {}));
+    for (const [fieldId, field] of Object.entries(declaration.fields || {})) {
+      if ((field?.base === 'ref' || (field?.base === 'list' && field?.itemType?.base === 'ref'))
+        && Object.hasOwn(doc.fields || {}, fieldId)) relationKeys.add(fieldId);
+    }
+    await assertDeclaredRelationSlots(declaration, doc, effectiveOrganizationId, [...relationKeys]);
     await assertPermanentConstraints(declaration, toDto(doc), effectiveOrganizationId);
     await runOrganizationChange(effectiveOrganizationId, {
       kind: 'instance-created',
@@ -728,7 +787,24 @@ function instanceService(typeId) {
           message: 'Fields ' + unknownFields.join(', ') + ' are not declared for ' + typeId
         });
       }
+      if (patch.relations != null && (typeof patch.relations !== 'object' || Array.isArray(patch.relations))) {
+        throw createError({ statusCode: 400, message: 'Instance relations patch must be an object' });
+      }
       const collection = repository.collectionForClass(declaration.class);
+      const relationKeys = new Set(Object.keys(patch.relations || {}));
+      for (const [fieldId, field] of Object.entries(declaration.fields || {})) {
+        if ((field?.base === 'ref' || (field?.base === 'list' && field?.itemType?.base === 'ref'))
+          && Object.hasOwn(patch.fields || {}, fieldId)) relationKeys.add(fieldId);
+      }
+      if (relationKeys.size) {
+        const candidate = {
+          type: typeId,
+          organizationId,
+          fields: patch.fields || {},
+          relations: patch.relations || {}
+        };
+        await assertDeclaredRelationSlots(declaration, candidate, organizationId, [...relationKeys]);
+      }
       // Wire patches speak the stored shape. Lifecycle is deliberately
       // absent: transitions and initial-state writes belong to the status
       // runtime.

@@ -196,6 +196,30 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(dto.specs).toBeUndefined();
   });
 
+  it('validates relation cardinality and accepted target types before create', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('project');
+
+    await expect(service.create({
+      relations: { panels: { type: 'panel', id: 'panel-1' } }
+    }, 'user-1', 'org-1')).rejects.toMatchObject({ statusCode: 400 });
+    await expect(service.create({
+      relations: { panels: [{ type: 'invoice', id: 'invoice-1' }] }
+    }, 'user-1', 'org-1')).rejects.toMatchObject({ statusCode: 400 });
+
+    expect(coll.insertOne).not.toHaveBeenCalled();
+  });
+
+  it('rejects undeclared relation writes through the process update boundary', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('project');
+
+    await expect(service.processUpdate('project-1', {
+      relations: { unknown: { type: 'panel', id: 'panel-1' } }
+    }, 'org-1')).rejects.toMatchObject({ statusCode: 400 });
+    expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
   it('rejects creates and updates that violate typed asynchronous instance constraints', async () => {
     const coll = stubCollection();
     const invoice = {
