@@ -420,8 +420,9 @@ async function constraintResolversFor(organizationId) {
     if (!declaration?.class) return null;
     const doc = await repository.findInstance(repository.collectionForClass(declaration.class), id, typeId);
     if (!doc) return null;
-    if (doc.organizationId != null && organizationId != null
-      && String(doc.organizationId) !== String(organizationId)) return null;
+    const targetOrganizationId = doc.organizationId == null ? null : String(doc.organizationId);
+    const sourceOrganizationId = organizationId == null ? null : String(organizationId);
+    if (targetOrganizationId !== null && targetOrganizationId !== sourceOrganizationId) return null;
     return constraintValue(toDto(doc));
   }
 

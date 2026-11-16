@@ -210,6 +210,26 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.insertOne).not.toHaveBeenCalled();
   });
 
+  it('refuses relation targets owned by another organization', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockResolvedValue({
+      _id: 'panel-1',
+      type: 'panel',
+      typeVersion: 2,
+      organizationId: 'org-2',
+      fields: { serial: 'SH-1' },
+      lineage: {},
+      relations: {}
+    });
+    const service = instanceServiceResolver('project');
+
+    await expect(service.create({
+      relations: { panels: [{ type: 'panel', id: 'panel-1' }] }
+    }, 'user-1', 'org-1')).rejects.toMatchObject({ statusCode: 400 });
+
+    expect(coll.insertOne).not.toHaveBeenCalled();
+  });
+
   it('rejects undeclared relation writes through the process update boundary', async () => {
     const coll = stubCollection();
     const service = instanceServiceResolver('project');
