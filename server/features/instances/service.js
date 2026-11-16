@@ -682,12 +682,15 @@ async function lineageWithDerivedChain(draft = {}, organizationId = null, childT
     }
   }
   const chain = {};
+  const directEntries = [];
+  const inheritedEntries = [];
   for (const [key, parentRef] of Object.entries(authored)) {
     if (key === 'organizationId' || parentRef == null || parentRef === '') continue;
+    if (parentsByKey.has(key)) directEntries.push([key, parentRef]);
+    else inheritedEntries.push([key, parentRef]);
+  }
+  for (const [key, parentRef] of directEntries) {
     const parentTypes = parentsByKey.get(key);
-    if (!parentTypes?.size) {
-      throw createError({ statusCode: 400, message: `Lineage key ${key} is not declared for child type ${childTypeId || 'unknown'}` });
-    }
     const parentId = String(parentRef);
     let parent = null;
     for (const parentType of parentTypes) {
@@ -710,6 +713,11 @@ async function lineageWithDerivedChain(draft = {}, organizationId = null, childT
       throw createError({ statusCode: 400, message: `Lineage key ${key} parent ${parentId} is missing or outside the organization` });
     }
     Object.assign(chain, parent.lineage || {});
+  }
+  for (const [key] of inheritedEntries) {
+    if (!Object.hasOwn(chain, key)) {
+      throw createError({ statusCode: 400, message: `Lineage key ${key} is not declared for child type ${childTypeId || 'unknown'}` });
+    }
   }
   return { ...chain, ...authored };
 }
