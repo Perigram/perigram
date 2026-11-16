@@ -12,6 +12,7 @@ export * from './entities.js';
 export * from './results.js';
 export {
   GRAPH_DOCUMENT_FORMAT,
+  CORE_GRAPH_PROVIDER,
   GRAPH_DOCUMENT_VERSION,
   GRAPH_INPUT_OPERATION,
   GRAPH_OUTPUT_OPERATION,
