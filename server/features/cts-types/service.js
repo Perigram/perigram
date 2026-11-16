@@ -412,8 +412,11 @@ export async function removeType(typeId, { organizationId, actor = null, abandon
     typeId: String(typeId),
     paths: ['declaration'],
     actorId: actor
-  }, () => repository.deleteByTypeId(organizationId, typeId));
-  invalidateInstanceDeclarations(String(organizationId));
+  }, async () => {
+    const result = await repository.deleteByTypeId(organizationId, typeId);
+    invalidateInstanceDeclarations(String(organizationId));
+    return result;
+  });
   // A removed type may have been the last declaring an edge index.
   const after = await compileRegistryForOrganization(organizationId);
   await ensureInstanceIndexes(after.resolveView(organizationId));
