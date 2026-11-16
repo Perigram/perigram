@@ -144,7 +144,7 @@ inspector that shows live values; collapsed cards rail their sockets
 top/bottom around a centered name; chrome floats over a fullscreen
 canvas; sockets are generous targets with hover glow.
 
-- [ ] C1 Socket-manifest cards — the card body carries labeled socket
+- [x] C1 Socket-manifest cards — the card body carries labeled socket
   rows (type, connection state) alone; inline typed editors leave the
   card; the header keeps collapse, description (tooltip affordance),
   error (popover), and the eye; collapse docks sockets on top/bottom
