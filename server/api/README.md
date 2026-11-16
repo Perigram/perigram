@@ -28,9 +28,10 @@ Routes are grouped into sub-directories corresponding to features:
 - `commands/`: Authenticated execution route for declared domain commands such
   as `generateAttachment`.
 - `graph-executions/`: `POST /api/graph-executions` records an immutable
-  execution envelope against an authorized source graph document; graph
-  identity must match the source document. Execution rows use the hidden
-  append-only `graph-execution` CTS type.
+  execution envelope against the exact saved graph revision;
+  `POST /api/graph-executions/bake` materializes one selected output to an
+  explicitly selected Page and relative path. Both routes delegate to the
+  [graph-executions feature](../features/graph-executions/README.md).
 - `instances/`: The generic per-type instance transport (`/api/instances/:type`
   and `/api/instances/:type/:id`) serving every pack and org-authored type
   through the CTS instance machinery, including typed payload upload/download

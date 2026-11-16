@@ -26,6 +26,7 @@ Parent: [root README](../README.md).
 | Agent bots | [server/features/agent-bots/](./features/agent-bots/README.md) | Bot members, the shared agent tool catalog, the MCP transport, and the chat bot runtime. |
 | LLM | [server/features/llm/](./features/llm/README.md) | Per-organization chat completions over a selectable provider table (Ollama, Anthropic Messages, OpenAI-shaped local servers). |
 | Entity event bus | [server/features/instance-events/](./features/instance-events/README.md) | Authenticated in-memory SSE invalidation bus for cross-device entity updates. |
+| Graph executions | [server/features/graph-executions/](./features/graph-executions/README.md) | Authorized execution records and page-file Bake orchestration. |
 
 ## Golden Path
 
