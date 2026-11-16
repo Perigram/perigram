@@ -91,8 +91,13 @@ from remaining proof and verification.
     `running` flag prevents overlap only inside one process; multiple app
     instances can resume the same run or deliver the same event concurrently.
     A failure after some event subscribers have started also leaves the event
-    pending, so a retry can start those subscribers again. Define durable
-    leases and per-subscriber idempotency/recovery before claiming exactly-once
+    pending, so a retry can start those subscribers again. The process
+    orchestrator already creates a per-step `idempotencyKey`, but the durable
+    effect boundary drops it: `executeDurableEffect` forwards the request to
+    `performDurableEffect`, whose argument destructuring consumes only
+    `kind`, `record`, and `inputs`; command dispatch has no idempotency
+    contract. Define durable leases, per-subscriber delivery records, and
+    effect/command idempotency with crash recovery before claiming exactly-once
     process-run or event delivery.
 - [ ] Verify package/executor contracts independently, including browser/
   Node compatibility and versioned extraction interfaces under §29.
