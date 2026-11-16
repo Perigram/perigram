@@ -118,6 +118,9 @@ export async function update(id, { name, parentId, blocks, order } = {}, auth = 
     changes.parentId = toFlexibleId(await resolvedParentId(id, parentId, organizationId));
   }
   const updated = await repository.update(id, changes, organizationId);
+  if (blocks !== undefined || order !== undefined) {
+    await prunePageFiles(page._id, document, organizationId);
+  }
   return repository.serializeFull(updated);
 }
 
@@ -222,6 +225,24 @@ export async function bakeFile({
   };
 }
 
+async function prunePageFiles(pageId, document, organizationId) {
+  const referenced = new Set();
+  for (const block of document?.blocks || []) {
+    if (block?.kind !== 'file' || !block.file) continue;
+    if (block.file.fileId) referenced.add(String(block.file.fileId));
+    for (const revision of block.file.history || []) {
+      if (revision?.fileId) referenced.add(String(revision.fileId));
+    }
+  }
+  const owned = await filesService.listFileMetasWhere('files', {
+    'metadata.pageId': String(pageId),
+    'metadata.organizationId': organizationId
+  });
+  await Promise.all(owned
+    .filter(file => !referenced.has(String(file.id)))
+    .map(file => filesService.deleteFile(file.id, 'files')));
+}
+
 function distinctPageFilePath(path, occupied) {
   const slash = path.lastIndexOf('/');
   const directory = slash >= 0 ? path.slice(0, slash + 1) : '';
@@ -242,6 +263,7 @@ export async function remove(id, auth = {}) {
   const page = await requireOwnPage(id, organizationId);
   await repository.detachChildren(organizationId, page._id);
   await repository.remove(page._id, organizationId);
+  await prunePageFiles(page._id, { blocks: [], order: [] }, organizationId);
   return { success: true };
 }
 
