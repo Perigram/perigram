@@ -36,6 +36,19 @@ describe('managed plugin host capabilities', () => {
       operationId: 'write', name: 'organization.instances.update', input: {}, target: 'browser', auth
     })).rejects.toMatchObject({ statusCode: 403 });
   });
+  it('forwards an expected instance revision to the authoritative update boundary', async () => {
+    const patch = vi.fn(async () => ({ _id: 'item-1', revision: 5 }));
+    getInstanceService.mockReturnValue({ patch });
+    await invokePluginCapability({
+      organizationId: 'org-1', pluginId: 'demo', version: '4', runtimeId: 'javascript',
+      operationId: 'write', name: 'organization.instances.update',
+      input: { typeId: 'records', instanceId: 'item-1', patch: { fields: { name: 'Updated' } }, expectedRevision: 4 },
+      target: 'server', auth
+    });
+    expect(patch).toHaveBeenCalledWith('item-1', { fields: { name: 'Updated' } }, {
+      auth, organizationId: 'org-1', expectedRevision: 4
+    });
+  });
   it('refuses capabilities absent from the operation declaration', async () => {
     await expect(invokePluginCapability({
       organizationId: 'org-1', pluginId: 'demo', version: '4', runtimeId: 'javascript',
