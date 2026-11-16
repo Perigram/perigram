@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
+import { connectDB } from '~/server/db/mongo';
 import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder } from '#packages/core';
 import { withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -37,7 +38,43 @@ async function sourceFor(instanceId, record, auth) {
   return { graphDocument, graph, organizationId: graphDocument.organizationId || auth.organizationId || null };
 }
 
-async function persistRecord(record, graphDocument, organizationId, auth) {
+async function withMongoWriteTransaction(callback) {
+  const db = await connectDB();
+  const client = db.client;
+  if (!client?.startSession) {
+    throw createError({ statusCode: 503, message: 'Atomic graph commits require MongoDB transaction support' });
+  }
+  const session = client.startSession();
+  try {
+    let value;
+    await session.withTransaction(async () => {
+      value = await callback(session);
+      return value;
+    }, {
+      readConcern: { level: 'snapshot' },
+      writeConcern: { w: 'majority' },
+      readPreference: 'primary'
+    });
+    return value;
+  } catch (error) {
+    if ([20, 303].includes(Number(error?.code))
+      || ['IllegalOperation', 'OperationNotSupportedInTransaction'].includes(error?.codeName)
+      || /transactions are not supported|transaction numbers are only allowed on a replica set/i.test(error?.message || '')) {
+      throw createError({ statusCode: 503, message: 'Atomic graph commits require MongoDB transaction support' });
+    }
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+}
+
+function expectedSequenceForReadSet(readSet) {
+  const start = readSet?.organizationSequenceStart;
+  const end = readSet?.organizationSequenceEnd;
+  return Number.isSafeInteger(start) && start >= 0 && start === end ? end : null;
+}
+
+async function persistRecord(record, graphDocument, organizationId, auth, session = null) {
   return await getAppRegistry().getInstanceService('graph-execution').create({
     name: `Execution ${record.id}`,
     fields: {
@@ -58,7 +95,7 @@ async function persistRecord(record, graphDocument, organizationId, auth) {
       readSet: record.readSet,
       artifacts: record.artifacts
     }
-  }, auth.userId, organizationId);
+  }, auth.userId, organizationId, { session });
 }
 
 
@@ -77,7 +114,7 @@ function relationContains(value, targetTypeId, targetId) {
   });
 }
 
-async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, sourceGraphDocument) {
+async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, sourceGraphDocument, { session = null } = {}) {
   const instances = Array.isArray(readSet.instances) ? readSet.instances : [];
   const relations = Array.isArray(readSet.relations) ? readSet.relations : [];
   const queries = Array.isArray(readSet.queries) ? readSet.queries : [];
@@ -98,7 +135,7 @@ async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, s
   const validate = async () => {
     const registry = getAppRegistry();
     const graphService = registry.getInstanceService('graph-document');
-    const currentGraphDocument = await graphService?.processGetById?.(String(sourceGraphDocument._id), auth);
+    const currentGraphDocument = await graphService?.processGetById?.(String(sourceGraphDocument._id), auth, { session });
     if (!currentGraphDocument
       || String(currentGraphDocument.fields?.graphId || '') !== String(sourceGraphDocument.fields?.graphId || '')
       || String(currentGraphDocument.payload?.fileId || '') !== String(sourceGraphDocument.payload?.fileId || '')
@@ -116,7 +153,7 @@ async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, s
       if (typeof instanceService?.processGetById !== 'function') {
         throw stalePreviewError('A graph data dependency can no longer be read');
       }
-      const current = await instanceService.processGetById(instanceId, auth);
+      const current = await instanceService.processGetById(instanceId, auth, { session });
       if (!current) throw stalePreviewError('A graph data dependency was deleted');
       cache.set(key, current);
       return current;
