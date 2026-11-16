@@ -3,7 +3,6 @@ import {
   GRAPH_OUTPUT_OPERATION,
   evaluateProceduralGraph
 } from '@perigram/core';
-import { createNodeProviderRegistry } from '@perigram/plugin-sdk';
 import {
   createProcessProceduralExecutor,
   createProcessProceduralNodeDefinition,
@@ -15,7 +14,18 @@ import {
 describe('process procedural provider adapter', () => {
 
   it('registers only preview-safe process nodes in the shared provider registry', () => {
-    const registry = createNodeProviderRegistry();
+    const definitions = new Map();
+    const registry = {
+      register(definition) {
+        const key = `${definition.provider}/${definition.id}@${definition.version}`;
+        if (definitions.has(key)) throw new Error(`duplicate ${key}`);
+        definitions.set(key, definition);
+        return definition;
+      },
+      resolve(provider, id, version) {
+        return definitions.get(`${provider}/${id}@${version}`) || null;
+      }
+    };
     const registered = registerProcessProceduralNodes(registry);
     expect(registered.length).toBeGreaterThan(0);
     expect(registry.resolve(PROCESS_PROCEDURAL_PROVIDER, 'collection.count', PROCESS_PROCEDURAL_VERSION)).toMatchObject({
