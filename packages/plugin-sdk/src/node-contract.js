@@ -25,6 +25,8 @@ export function normalizeNodeDefinition(source = {}) {
     outputs: (source.outputs || []).map(normalizePort),
     execution: {
       kind: source.execution.kind,
+      ...(source.execution.runtime ? { runtime: source.execution.runtime } : {}),
+      ...(source.execution.targets ? { targets: [...source.execution.targets] } : {}),
       capabilities: [...new Set(source.execution.capabilities || [])].sort(),
       deterministic: source.execution.deterministic === true,
       idempotent: source.execution.idempotent === true
@@ -63,6 +65,22 @@ export function validateNodeDefinition(source) {
       else if (!isJsonValue(port.semantic)) problems.push(issue('invalid-semantic', `${path}.semantic`, 'Semantic descriptor must be JSON-compatible'));
       if (Object.hasOwn(port, 'default') && !isJsonValue(port.default)) problems.push(issue('invalid-default', `${path}.default`, 'Port default must be JSON-compatible'));
     }
+  }
+  if (source.execution?.runtime != null && !/^[a-z0-9-]+$/.test(String(source.execution.runtime))) {
+    problems.push(issue('invalid-runtime', 'execution.runtime', 'Runtime id must be a stable lowercase slug'));
+  }
+  if (source.execution?.targets != null) {
+    if (!Array.isArray(source.execution.targets) || !source.execution.targets.length
+      || source.execution.targets.some(target => !['browser', 'server'].includes(target))
+      || new Set(source.execution.targets).size !== source.execution.targets.length) {
+      problems.push(issue('invalid-targets', 'execution.targets', 'Execution targets must be a non-empty unique subset of browser and server'));
+    }
+  }
+  if (source.execution?.runtime != null && source.execution?.targets == null) {
+    problems.push(issue('missing-targets', 'execution.targets', 'A runtime-bound node must declare its execution targets'));
+  }
+  if (source.execution?.runtime == null && source.execution?.targets != null) {
+    problems.push(issue('missing-runtime', 'execution.runtime', 'Execution targets require a declared runtime id'));
   }
   if (source.execution && !Array.isArray(source.execution.capabilities || [])) {
     problems.push(issue('invalid-capabilities', 'execution.capabilities', 'Execution capabilities must be an array'));

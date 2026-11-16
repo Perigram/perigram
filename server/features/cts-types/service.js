@@ -104,6 +104,7 @@ export async function describeOrganizationTypes(organizationId) {
   const previews = [];
   const previewChannels = [];
   const clientEngines = [];
+  const clientRuntimes = [];
   const seenChannelIds = new Set();
   if (organizationId) {
     const seenEditors = new Set(editors.map(editor => editor.type));
@@ -210,6 +211,19 @@ export async function describeOrganizationTypes(organizationId) {
             .map(service => `plugin.${install.pluginId}.${service.id}`)
         }));
       }
+      for (const runtime of install.declarations?.runtimes || []) {
+        if (runtime.language !== 'javascript' || !runtime.targets?.includes('browser')) continue;
+        const entryUrl = pluginModuleUrl(install, runtime.entry);
+        if (!entryUrl) {
+          throw createError({ statusCode: 500, message: `installed plugin ${install.pluginId} runtime ${runtime.id} has no served package entry` });
+        }
+        clientRuntimes.push(Object.freeze({
+          organizationId: String(organizationId),
+          pluginId: install.pluginId,
+          version: String(install.version || ''),
+          runtime: Object.freeze({ ...runtime, entryUrl })
+        }));
+      }
       for (const editor of install.declarations?.editors || []) {
         if (!editor?.type || !editor?.surface || !(editor.modes || []).length) {
           throw createError({
@@ -257,7 +271,8 @@ export async function describeOrganizationTypes(organizationId) {
     surfaces,
     previews,
     previewChannels,
-    clientEngines
+    clientEngines,
+    clientRuntimes
   };
 }
 

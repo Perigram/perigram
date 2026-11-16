@@ -1,7 +1,8 @@
 import { ref } from 'vue';
 
 export function usePluginRuntime({
-  createWorker = () => new Worker(new URL('./plugin-runtime.worker.js', import.meta.url), { type: 'module' })
+  createWorker = () => new Worker(new URL('./plugin-runtime.worker.js', import.meta.url), { type: 'module' }),
+  loadModule = url => import(/* @vite-ignore */ url)
 } = {}) {
   const errors = ref({});
   const runtimes = new Map();
@@ -144,10 +145,45 @@ export function usePluginRuntime({
     }
   }
 
+  async function loadProviders(binding, runtime, { capabilities = {} } = {}) {
+    if (!binding?.organizationId || !binding?.pluginId || !binding?.version) {
+      throw new Error('Plugin runtime binding requires organizationId, pluginId, and version');
+    }
+    if (!runtime?.targets?.includes('browser')) return [];
+    const module = await loadModule(runtime.entryUrl);
+    const createProviders = module.createProviders;
+    const contributions = typeof createProviders === 'function'
+      ? await createProviders()
+      : (module.nodeProviders || []);
+    if (!Array.isArray(contributions)) throw new Error(`Runtime ${runtime.id} nodeProviders must be an array`);
+    return contributions.map(contribution => {
+      if (!Array.isArray(contribution.definitions) || !contribution.definitions.length) {
+        throw new Error(`Runtime ${runtime.id} provider ${contribution.provider} requires definitions`);
+      }
+      for (const definition of contribution.definitions) {
+        if (definition.execution?.runtime !== runtime.id || !definition.execution?.targets?.includes('browser')) {
+          throw new Error(`Node ${definition.id} must declare runtime ${runtime.id} and browser execution support`);
+        }
+      }
+      return {
+        provider: contribution.provider,
+        definitions: contribution.definitions,
+        previewRenderers: contribution.previewRenderers || {},
+        execute: (definition, invocation) => execute(
+          binding,
+          runtime,
+          definition.id,
+          invocation,
+          { execution: definition.execution, capabilities }
+        )
+      };
+    });
+  }
+
   function dispose() {
     for (const runtime of runtimes.values()) runtime.dispose();
     runtimes.clear();
   }
 
-  return { errors, execute, dispose };
+  return { errors, execute, loadProviders, dispose };
 }

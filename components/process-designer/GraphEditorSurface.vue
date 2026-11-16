@@ -85,7 +85,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -96,6 +96,7 @@ import { useGraphDocumentSession } from '~/composables/useGraphDocumentSession.j
 import { mintId } from '~/utils/processDesignerIdentity.js';
 import { assertValidGraphDocument } from '@perigram/core';
 import { useClientEngines } from '~/composables/useClientEngines.js';
+import { usePluginRuntime } from '~/composables/usePluginRuntime.js';
 
 const props = defineProps({
   record: { type: Object, default: null },
@@ -120,6 +121,8 @@ const inspectTab = ref('inspector');
 const graphDocuments = ref([]);
 const clientEngineBindings = ref([]);
 const clientEngines = useClientEngines({ engines: clientEngineBindings });
+const clientRuntimeBindings = ref([]);
+const pluginRuntime = usePluginRuntime();
 const graphDocumentsLoading = ref(false);
 const graphDocumentsError = ref('');
 const graphPreviewChannels = ref([]);
@@ -289,6 +292,7 @@ async function loadGraphProviders() {
   try {
     const view = await $fetch('/api/admin/cts/types');
     clientEngineBindings.value = Array.isArray(view?.clientEngines) ? view.clientEngines : [];
+    clientRuntimeBindings.value = Array.isArray(view?.clientRuntimes) ? view.clientRuntimes : [];
     graphPreviewChannels.value = Array.isArray(view?.previewChannels) ? view.previewChannels : [];
     const results = await Promise.allSettled(clientEngineBindings.value.map(async binding => {
       const engine = await clientEngines.engineFor(binding);
@@ -296,7 +300,11 @@ async function loadGraphProviders() {
       if (!Array.isArray(engine.nodeProviders)) throw new Error(`Engine ${binding.pluginId} nodeProviders must be an array`);
       for (const contribution of engine.nodeProviders) registerNodeProvider(contribution, binding.pluginId);
     }));
-    const failures = results.filter(result => result.status === 'rejected');
+    const runtimeResults = await Promise.allSettled(clientRuntimeBindings.value.map(async binding => {
+      const contributions = await pluginRuntime.loadProviders(binding, binding.runtime);
+      for (const contribution of contributions) registerNodeProvider(contribution, binding.pluginId);
+    }));
+    const failures = [...results, ...runtimeResults].filter(result => result.status === 'rejected');
     if (failures.length) {
       graphDocumentsError.value = [graphDocumentsError.value, failures.map(result => result.reason?.message || String(result.reason)).join('; ')].filter(Boolean).join(' · ');
     }
@@ -304,6 +312,8 @@ async function loadGraphProviders() {
     graphDocumentsError.value = [graphDocumentsError.value, error?.data?.message || error?.message || String(error)].filter(Boolean).join(' · ');
   }
 }
+
+onBeforeUnmount(() => pluginRuntime.dispose());
 
 async function loadGraphRevisions(graphId) {
   graphRevisions.value = [];

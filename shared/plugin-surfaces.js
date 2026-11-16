@@ -82,7 +82,10 @@ export function endpointOriginOf(install) {
 // surface origin is connected; the client loader renders the
 // connect-the-executor state then.
 export function pluginModuleUrl(install, modulePath) {
-  return endpointOriginOf(install)
+  const packageOwned = Number(install?.packageAssets?.count) > 0
+    || Boolean(install?.declarations?.engine)
+    || Boolean(install?.declarations?.runtimes?.length);
+  return packageOwned || endpointOriginOf(install)
     ? `/api/plugins/${encodeURIComponent(install.pluginId)}/module${modulePath}`
     : null;
 }

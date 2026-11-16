@@ -143,7 +143,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
     throw createError({ statusCode: 409, message: 'Plugin already installed' });
   }
   const layer = parseListingOr400(listing);
-  const { types, services, editors, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, engine, requires } = layer;
+  const { types, services, editors, constructions, starterConstructs, dependencies, runtimes, exports: exportBindings, surfaces, engine, requires } = layer;
   assertInstallableDependencies(dependencies);
   // Surface modules target a mount-contract major; an unsupported one
   // refuses at the gate — never a runtime half-mount (SPEC §Plugin
@@ -209,12 +209,16 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
       actorId: null
     }, async () => {
       packageAssets = await repository.materializePluginAssets(organizationId, listing.pluginId, listing.version || '1');
+      for (const runtime of runtimes) {
+        const asset = await repository.findOrganizationPluginAssetMeta(organizationId, listing.pluginId, listing.version || '1', runtime.entry.replace(/^\\//, ''));
+        if (!asset) throw createError({ statusCode: 400, message: `Runtime ${runtime.id} entry ${runtime.entry} is missing from the published package assets` });
+      }
       await repository.createInstall({
         organizationId: String(organizationId),
       pluginId: String(listing.pluginId),
       name: listing.name || listing.pluginId,
       version: listing.version || '1',
-      declarations: { types, editors, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, previews: layer.previews, previewChannels: layer.previewChannels, ...(engine ? { engine } : {}) },
+      declarations: { types, editors, constructions, starterConstructs, dependencies, runtimes, exports: exportBindings, surfaces, previews: layer.previews, previewChannels: layer.previewChannels, ...(engine ? { engine } : {}) },
       services,
       requires,
       endpoints: configuredEndpoints,
@@ -451,7 +455,7 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
   // Installed package assets are organization data. The global catalog
   // remains the distribution source; installed reads resolve the caller's
   // materialized organization/version copy.
-  if (Number(install.packageAssets?.count) > 0 || install.declarations?.engine) {
+  if (Number(install.packageAssets?.count) > 0 || install.declarations?.engine || install.declarations?.runtimes?.length) {
     const organizationOwned = Number(install.packageAssets?.count) > 0;
     const asset = organizationOwned
       ? await repository.findOrganizationPluginAssetMeta(organizationId, pluginId, install.version, segments.join('/'))
@@ -1101,6 +1105,7 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
         constructions: layer.constructions,
         starterConstructs: layer.starterConstructs,
         dependencies: layer.dependencies,
+        runtimes: layer.runtimes,
         exports: layer.exports,
         surfaces: layer.surfaces,
         previews: layer.previews,
