@@ -68,7 +68,7 @@ export async function materializePluginAssets(organizationId, pluginId, version)
       // Hash the bytes actually copied, not publisher-supplied metadata. The
       // installed manifest is later checked against the bytes on every read.
       const buffer = await getFileBuffer(source.id, PLUGIN_ASSETS_BUCKET);
-      const contentHash = createHash('sha256').update(buffer).digest('hex');
+      const contentHash = `sha256:${createHash('sha256').update(buffer).digest('hex')}`;
       if (existing && String(existing.metadata?.contentHash || '') === contentHash) {
         copied.push({ path, contentHash, bytes: existing.length });
         continue;
