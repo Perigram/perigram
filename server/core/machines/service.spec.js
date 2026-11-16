@@ -525,6 +525,7 @@ describe('status service lifecycle payloads', () => {
       _id: id,
       type: 'e2e-note',
       typeVersion: 1,
+      revision: 1,
       organizationId: 'org-1',
       name: 'Note',
       fields: { name: 'Note' },
@@ -664,6 +665,7 @@ describe('status service lifecycle payloads', () => {
 
     const entity = await db.collection('items').findOne({ _id: id });
     expect(entity.state).toBe('new');
+    expect(entity.revision).toBe(2);
     expect(entity).not.toHaveProperty('status');
   });
 
@@ -856,6 +858,7 @@ describe('status service lifecycle payloads', () => {
     });
     entity = await db.collection('items').findOne({ _id: id });
     expect(entity.state).toBe('active');
+    expect(entity.revision).toBe(3);
     expect(await db.collection('status_events').countDocuments({ targetId: id })).toBe(2);
 
     // The read path sees the written state: active -> new is invalid.

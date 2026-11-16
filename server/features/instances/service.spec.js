@@ -946,7 +946,7 @@ describe('version fabric (SPEC §24)', () => {
     expect(call.scope).toBe('content');
     expect(call.reason).toBe('created');
     expect(call.content.fileId).toBe('file-1');
-    expect(coll.insertOne).toHaveBeenCalled();
+    expect(coll.insertOne).toHaveBeenCalledWith(expect.objectContaining({ revision: 1 }));
   });
 
   it('re-runs the construct over stored inputs and patches fields, payload, and provenance', async () => {
@@ -990,6 +990,7 @@ describe('version fabric (SPEC §24)', () => {
       }),
       expect.any(Function)
     );
+    expect(coll.findOneAndUpdate.mock.calls[0][1].$inc).toEqual({ revision: 1 });
     expect(patch.fields.pages).toBe(2);
     expect(patch.provenance.op).toBe('cts.construct:fill:fill');
     expect(patch.payload.fileId).toBe('stored-Filled report.pdf');

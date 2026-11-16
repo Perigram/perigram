@@ -404,9 +404,10 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   execution provenance, and destination.
 - [ ] G6 Organization-data consistency — bounded typed CTS queries now
   support exact-instance detail reads and sequence-bracketed execution read
-  sets. Remaining: durable per-instance revisions, consistent database
-  snapshots where supported, and pre-commit validation of affected data
-  and relations.
+  sets. The per-instance revision token and dry-run/apply backfill are
+  implemented. Remaining: run the backfill, use consistent database
+  snapshots where supported, and validate affected data and relations
+  before Commit.
 - [ ] G7 Constraints — the typed boolean AST now checks nested
   relation/containment traversal, finite quantifiers, aggregate result types,
   and boolean predicate results. Enforcement covers generic creation,

@@ -60,6 +60,28 @@ describe('machine status persistence owner', () => {
     );
   });
 
+  it('increments the per-instance revision in the status snapshot write', async () => {
+    collection.updateOne.mockResolvedValue({ matchedCount: 1 });
+    const db = { collection: vi.fn(() => collection) };
+    await repository.writeStatusEventAndEntitySnapshot({
+      db,
+      collection: 'items',
+      targetId: 'instance-1',
+      eventRecord: { _id: 'event-2' },
+      entitySet: { state: 'ACTIVE', updatedAt: '2026-11-16T10:00:00.000Z' },
+      entityFilter: { updatedAt: '2026-11-16T09:00:00.000Z' },
+      incrementRevision: true
+    });
+    expect(collection.updateOne).toHaveBeenCalledWith(
+      { _id: 'instance-1', updatedAt: '2026-11-16T09:00:00.000Z' },
+      {
+        $set: { state: 'ACTIVE', updatedAt: '2026-11-16T10:00:00.000Z' },
+        $inc: { revision: 1 }
+      },
+      {}
+    );
+  });
+
   it('owns the shared status-event history reads', async () => {
     const cursor = {
       sort: vi.fn().mockReturnThis(),

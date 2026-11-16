@@ -70,7 +70,8 @@ export async function writeStatusEventAndEntitySnapshot({
   eventRecord,
   entitySet,
   entityFilter = {},
-  preferTransaction = false
+  preferTransaction = false,
+  incrementRevision = false
 }) {
   if (preferTransaction) {
     if (!db.client?.startSession) {
@@ -84,7 +85,10 @@ export async function writeStatusEventAndEntitySnapshot({
           db,
           collection,
           { _id: targetId, ...entityFilter },
-          { $set: entitySet },
+          {
+            $set: entitySet,
+            ...(incrementRevision ? { $inc: { revision: 1 } } : {})
+          },
           { session }
         );
         if (result.matchedCount !== 1) {
@@ -102,7 +106,10 @@ export async function writeStatusEventAndEntitySnapshot({
     db,
     collection,
     { _id: targetId, ...entityFilter },
-    { $set: entitySet }
+    {
+      $set: entitySet,
+      ...(incrementRevision ? { $inc: { revision: 1 } } : {})
+    }
   );
   if (result.matchedCount !== 1) {
     throw createError({ statusCode: 404, message: 'Status target not found during entity status update' });

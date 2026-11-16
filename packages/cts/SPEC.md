@@ -117,6 +117,7 @@ entity := {
   organizationId: Id                -- tenancy slot; immutable at construct
   type:           TypeId            -- assigned at construct, immutable
   typeVersion:    Number            -- version of T's row it conforms to (§11)
+  revision:       Number            -- monotonic per-instance data revision
   fields:         T.row             -- the type's product, instantiated
   lineage:        { key -> Ref }    -- tree edges (containment), from child
   relations:      { key -> Ref | [Ref] }   -- peer edges

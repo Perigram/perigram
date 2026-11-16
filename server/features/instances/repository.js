@@ -22,8 +22,12 @@ function orgFilter(organizationId) {
 
 export async function insertInstance(collection, doc) {
   const db = await connectDB();
-  await db.collection(collection).insertOne(doc);
-  return doc;
+  const stored = {
+    ...doc,
+    revision: Number.isSafeInteger(doc?.revision) && doc.revision > 0 ? doc.revision : 1
+  };
+  await db.collection(collection).insertOne(stored);
+  return stored;
 }
 
 export async function listInstances(collection, typeId, organizationId, limit = 200, filter = {}, {
@@ -64,7 +68,10 @@ export async function updateInstanceFields(collection, id, set, options = {}) {
   }
   return await db.collection(collection).findOneAndUpdate(
     filter,
-    { $set: { ...set, updatedAt: new Date().toISOString() } },
+    {
+      $set: { ...set, updatedAt: new Date().toISOString() },
+      $inc: { revision: 1 }
+    },
     { returnDocument: 'after' }
   );
 }
@@ -129,7 +136,11 @@ export async function detachMigratedLineageKey(collection, id, childType, organi
   const db = await connectDB();
   return db.collection(collection).updateOne(
     { _id: toFlexibleId(id), type: childType, organizationId: toFlexibleId(organizationId) },
-    { $unset: { [`lineage.${lineageKey}`]: '' }, $set: { updatedAt: new Date().toISOString() } }
+    {
+      $unset: { [`lineage.${lineageKey}`]: '' },
+      $set: { updatedAt: new Date().toISOString() },
+      $inc: { revision: 1 }
+    }
   );
 }
 
@@ -137,6 +148,6 @@ export async function updateMigratedInstance(collection, id, typeId, organizatio
   const db = await connectDB();
   return db.collection(collection).updateOne(
     { _id: toFlexibleId(id), type: typeId, organizationId: toFlexibleId(organizationId) },
-    { $set: set }
+    { $set: set, $inc: { revision: 1 } }
   );
 }

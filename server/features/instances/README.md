@@ -294,3 +294,11 @@ compare the source `updatedAt` at write time and reserve the organization
 change sequence around the mutation. The `validateCandidate` service seam
 also serves flat CTS lifecycle transitions; their status event and entity
 snapshot commit together against the loaded `updatedAt` value.
+
+## Instance revisions
+
+Every stored CTS instance carries a numeric `revision` independent of
+`typeVersion` and payload content-history revisions. Creation starts at 1;
+field, payload, migration, lineage, and flat lifecycle writes increment it.
+Existing per-class documents adopt baseline revision 1 through
+`server/scripts/backfill-instance-revisions.js` (dry-run by default).

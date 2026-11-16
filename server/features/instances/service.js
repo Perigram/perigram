@@ -271,6 +271,7 @@ function toDto(doc) {
     _id: String(doc._id),
     type: doc.type,
     typeVersion: doc.typeVersion,
+    revision: Number.isSafeInteger(doc.revision) ? doc.revision : null,
     organizationId: doc.organizationId ?? null,
     name: doc.name ?? null,
     fields: { ...(doc.fields || {}) },

@@ -158,7 +158,7 @@ function normalizeProjection(value) {
   if (!Array.isArray(value) || value.length > 50) {
     throw createError({ statusCode: 400, message: 'Graph query projection must be an array of at most 50 paths' });
   }
-  const allowed = /^(?:_id|type|typeVersion|organizationId|name|state|createdAt|updatedAt|payload|provenance|fields\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*|lineage\.[A-Za-z0-9_-]+|relations\.[A-Za-z0-9_-]+)$/;
+  const allowed = /^(?:_id|type|typeVersion|revision|organizationId|name|state|createdAt|updatedAt|payload|provenance|fields\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*|lineage\.[A-Za-z0-9_-]+|relations\.[A-Za-z0-9_-]+)$/;
   const paths = [...new Set(value.map(String))];
   if (paths.some(path => !allowed.test(path) || path.split('.').some(part => ['__proto__', 'prototype', 'constructor'].includes(part)))) {
     throw createError({ statusCode: 400, message: 'Graph query projection contains an unsupported path' });
@@ -169,7 +169,7 @@ function normalizeProjection(value) {
 function projectGraphQueryItem(item, projection) {
   if (!projection) return item;
   const result = {};
-  for (const key of ['_id', 'type', 'typeVersion', 'organizationId']) {
+  for (const key of ['_id', 'type', 'typeVersion', 'revision', 'organizationId']) {
     if (item?.[key] !== undefined) result[key] = item[key];
   }
   for (const path of projection) {

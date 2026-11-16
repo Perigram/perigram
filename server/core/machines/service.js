@@ -145,7 +145,8 @@ export const stateService = {
               : instanceDoc.updatedAt
           } : {})
         },
-        preferTransaction: Boolean(instanceDoc)
+        preferTransaction: Boolean(instanceDoc),
+        incrementRevision: Boolean(instanceDoc)
       });
     });
     return statusData;
@@ -626,7 +627,8 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
             : instanceDoc.updatedAt
         } : {})
       },
-      preferTransaction: Boolean(instanceDoc || (options.entityPatch && Object.keys(options.entityPatch).length))
+      preferTransaction: Boolean(instanceDoc || (options.entityPatch && Object.keys(options.entityPatch).length)),
+      incrementRevision: Boolean(instanceDoc)
     }));
 
     const afterEffects = await runTransitionHooks(
