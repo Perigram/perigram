@@ -73,8 +73,11 @@
           :preview-renderers="previewRenderers"
           :node-definitions="nodeDefinitions"
           :channels="graphPreviewChannels"
+          :can-bake-to-saved-graph="persisted && !isDirty"
+          :baking="bakingOutput"
           @refresh="refreshPreviewAndRecord"
           @update-input-binding="setGraphInputBinding"
+          @bake="bakeGraphOutput"
         />
       </template>
     </GraphCanvas>
@@ -109,6 +112,8 @@ const readOnly = computed(() => props.mode === 'read');
 const loading = ref(true);
 const loadError = ref('');
 const saving = ref(false);
+const persisted = ref(Boolean(props.record?._id || props.record?.id));
+const bakingOutput = ref(false);
 const recordName = ref(props.record?.name || '');
 const savedSignature = ref('');
 const inspectTab = ref('inspector');
@@ -369,6 +374,43 @@ async function refreshPreviewAndRecord() {
   return result;
 }
 
+async function bakeGraphOutput({ outputId, pageId, path, conflictPolicy, execution } = {}) {
+  if (bakingOutput.value || readOnly.value || !persisted.value || isDirty.value) return;
+  if (typeof props.persistence.bakeFile !== 'function') {
+    toast.add({ severity: 'error', summary: t('processDesigner.bakeOutput'), detail: t('processDesigner.bakeUnavailable'), life: 5000 });
+    return;
+  }
+  bakingOutput.value = true;
+  try {
+    const result = await props.persistence.bakeFile({
+      graphDocumentInstanceId: instanceId,
+      record: execution,
+      outputId,
+      destination: {
+        type: 'page-file',
+        pageId,
+        path,
+        conflictPolicy
+      }
+    });
+    toast.add({
+      severity: 'success',
+      summary: t('processDesigner.bakeOutput'),
+      detail: result?.file?.path || path,
+      life: 4000
+    });
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: t('processDesigner.bakeOutput'),
+      detail: error?.data?.message || error?.message || String(error),
+      life: 6000
+    });
+  } finally {
+    bakingOutput.value = false;
+  }
+}
+
 async function saveGraphDocument() {
   if (saving.value || readOnly.value) return;
   if (!validation.value.ok) {
@@ -390,6 +432,7 @@ async function saveGraphDocument() {
       `${name}.json`
     );
     instanceId = String(updated?._id || updated?.id || instanceId);
+    persisted.value = Boolean(instanceId);
     if (updated?.name) recordName.value = updated.name;
     savedSignature.value = designerSignature();
     toast.add({ severity: 'success', summary: t('processDesigner.saved'), life: 2400 });
