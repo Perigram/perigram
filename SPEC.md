@@ -1582,413 +1582,527 @@ The default page type is a Page class carrying block content. Custom
 pages migrate into Page-class instances with their sections and nesting
 preserved; the sidebar page tree is that instance tree.
 
-## 28. Unified node graph system (owner direction 2026-11-16)
+## 28. Unified node graph system (owner direction 2026-11-16; decisions 2026-11-16)
 
-Perigram has one unified node-graph system. A node graph is a first-class,
-organization-owned data object and an interpreted program. It is not a
-process-only editor, a CAD-only definition, a document template format, or
-a plugin-specific workflow. One graph may combine core nodes, application
-data operations, and nodes supplied by multiple plugins on one canvas.
+Perigram has one unified node-graph system. A graph is a first-class,
+organization-owned, versioned program. One canvas can combine platform
+nodes, organization-data operations, and nodes supplied by multiple
+plugins. Graphs are useful first as Grasshopper-style procedural programs:
+compose values and operations, inspect intermediate outputs, preview
+results, and explicitly Bake selected outputs. Process/workflow behavior
+will move onto this foundation only after the procedural system is proven.
 
 The graph definition is independent of the data and runtime context against
-which it is evaluated. Its public inputs bind to organization data,
-documents, files, engine resources, or explicit user input at execution
-time. The same graph can therefore serve as a reusable document template,
-procedural model, organization-data transformation, automation, or process.
+which it is evaluated. Public inputs bind to organization data, documents,
+files, engine resources, or explicit user input at execution time. A graph
+may therefore serve as a procedural model, document transformation,
+organization-data query, or—after process integration—an automation or
+workflow definition.
 
 ### 28.1 Ownership and provider boundary
 
-The platform owns the graph contract and shared mechanisms:
+Extend the existing package owners; do not create a new graph package as
+part of this work.
 
-- Canonical graph representation, identity, revisions, validation, and
-  migration.
-- Node-definition contract and unified registry.
-- Port transport shapes, semantic descriptors, compatibility, and
-  explicit conversion contracts.
-- Graph planning, evaluation coordination, diagnostics, execution records,
-  and effect/materialization boundaries.
-- Generic preview protocol, built-in viewers, and host preview workspace.
-- Generic artifact, destination, and provenance contracts.
+- `packages/core` owns the platform graph document contract and graph
+  mechanics: canonical graph JSON, graph identity/revisions, validation,
+  planning, evaluation coordination, execution records, generic output
+  references, and the Evaluate/Preview/Commit/Bake lifecycle.
+- `packages/plugin-sdk` owns the provider-facing, kernel-neutral node
+  contract: operation and port declarations, semantic descriptors,
+  compatibility/conversion declarations, capability/effect metadata,
+  provider registration, and preview-renderer contribution contracts.
+  It is the composition surface through which core nodes and plugins
+  publish normalized node definitions.
+- `packages/cts` owns organization type declarations, typed data access,
+  relation/containment semantics, constraints, organization data revisions,
+  and authoritative persistence invariants.
+- `packages/processes` owns process-specific authoring and durable
+  orchestration semantics: workflow lifecycle, role grants, event entry,
+  control-token scheduling, task boundaries, and durable effects. It
+  consumes the shared graph and SDK contracts after the procedural
+  foundation is proven; it does not own a competing universal graph model.
 
-Core nodes are platform-provided operations over Perigram data and
-universal values: primitives, math, strings, dates, records, collections,
-lists, trees, control flow, and generic document/data operations whose
-semantics are genuinely platform-neutral.
+These are ownership assignments within existing packages, not a request
+to extract new packages or move code prematurely. Reuse and reconcile the
+existing provider-neutral node model in `packages/processes/SPEC.md`
+and the existing plugin SDK/executor/preview contracts. There must be one
+authoritative definition of each shared contract; any temporary source
+location is documented and removed when the contract is re-homed.
 
-Domain-specific implementations belong to plugins. CAD, BIM, analytics,
-specialized document formats, and computational engines are plugin
-capabilities, including first-party plugins shipped by Perigram. The
-platform must not acquire domain-engine dependencies merely because a
-first-party plugin exists. A plugin owns its native execution, provider
-values, specialized conversions, and domain-specific representations.
+Core nodes cover genuinely platform-neutral values and operations:
+primitives, math, strings, dates, records, collections, lists, trees,
+generic data queries, and graph-boundary operations. Domain-specific
+implementations belong to plugins. CAD, BIM, analytics, specialized
+document formats, and computational engines are plugin capabilities,
+including first-party plugins. The platform must not acquire domain-engine
+dependencies because a first-party plugin exists.
 
-The existing plugin SDK and executor protocol are extended; no competing
-plugin registration or execution mechanism is introduced. Plugins declare
-stable provider-qualified node identities, independent node-definition
-versions, input/output contracts, configuration schemas, required
-capabilities, execution/effect semantics, runtime bindings, documentation,
-and optional declarative presentation and preview contributions.
+Plugins declare stable provider-qualified operation identities,
+independent node-definition versions, input/output contracts,
+configuration schemas, required capabilities, execution/effect semantics,
+runtime bindings, documentation, and optional declarative presentation
+and preview contributions. Provider-native callables, values, runtimes,
+and remote endpoints remain provider-owned.
 
-The graph editor consumes normalized definitions. It does not contain
-provider-specific execution logic or one-off node components. Node cards
-are socket manifests; authoring controls and structured values live in the
-inspector or appropriate editor surfaces and derive from contracts plus
-declarative hints. Unknown or unavailable providers do not destroy authored
-nodes: graphs retain their identity, configuration, and connections and
-show actionable unavailable-provider diagnostics.
+The editor consumes normalized definitions. It contains no provider-specific
+execution logic or one-off node components. Node cards are socket
+manifests; authoring controls and structured values derive from contracts
+and declarative hints. Unknown or unavailable providers do not destroy
+authored nodes: identity, configuration, and connections remain inspectable
+with actionable diagnostics.
 
-### 28.2 Graph object, JSON format, and revisions
+### 28.2 Graph object, canonical JSON, and revisions
 
-A graph is a first-class Perigram resource, provisionally the nodeGraph
-type. It has stable identity, organization ownership, metadata, and an
-authored revision. Its canonical definition is versioned JSON. The graph
-record stores authored program structure, not evaluated runtime values,
-native engine objects, credentials, or executable plugin source.
+A graph is a first-class Perigram resource, provisionally the `nodeGraph`
+type. It has stable identity, organization ownership, metadata, a public
+interface, and authored revisions. Its canonical definition is versioned
+JSON. It stores program structure, not evaluated runtime values, native
+engine objects, credentials, or executable plugin source.
 
-The format versions independently from node definitions, provider
-releases, and semantic schema versions. Persisted nodes identify operations
-by stable provider-qualified ID and pinned definition version. Graph
-migrations are explicit and preserve unknown node payloads where possible.
+The graph format versions independently from node definitions, provider
+releases, and semantic schema versions. Each persisted node identifies its
+operation by stable provider-qualified ID and pinned node-definition
+version. Migrations are explicit and preserve unknown provider payloads
+where possible.
 
-Graph object identity, authored graph revision, and graph execution identity
-are distinct:
+Keep these identities distinct:
+- Graph identity: the long-lived saved program.
+- Graph revision: one immutable authored definition.
+- Execution identity: one run of one graph revision with specific input
+  bindings, authorization context, provider/runtime versions, and data
+  consistency boundary.
 
-- A graph object is the saved reusable program.
-- A graph revision is a specific authored definition.
-- An execution is one evaluation of one graph revision with its input
-  bindings, authorization context, runtime/provider versions, and data
-  snapshot.
-
-Execution records and large outputs are stored separately from the graph
-definition. Graph outputs and large/native values are represented by
-execution-scoped references or artifacts, not embedded into the graph JSON.
-Graphs may reference and invoke other graphs through declared public input
-and output bindings; a referenced graph appears as a node with those
-bindings as its ports.
+Execution records and large outputs live separately from graph definitions.
+Large/native values are represented by scoped output references or artifacts,
+not embedded in graph JSON.
 
 ### 28.3 Semantic contracts and values
 
-The system uses open-world, gradual semantic contracts, not a closed
-universal type enum. Transport shape and semantic meaning are independent.
+Use open-world, gradual semantic contracts, not a closed universal type
+enum. Transport shape and semantic meaning are independent.
 
 Transport shape describes item, list, tree, map, tuple, and stream
 organization, together with access, mapping, alignment, and cardinality.
-Semantic descriptors describe primitive meaning, nominal provider-qualified
-identity, structural schema, units, constraints, entity identity,
-representation kind, and optionality. Opaque provider values remain opaque;
-the platform must not assume arbitrary values can be inspected, cloned,
-serialized, or transferred between runtimes.
+Semantic descriptors describe primitive meaning, nominal
+provider-qualified identity, structural schema, units, constraints, entity
+identity, representation kind, and optionality. Opaque provider values
+remain opaque: the platform must not assume arbitrary values can be
+inspected, cloned, serialized, or transferred between runtimes.
 
 Compatibility is a relation whose result distinguishes exact compatibility,
 safe coercion, conditional/runtime validation, explicit conversion required,
-and incompatibility. Results carry reasons and required conversions.
-Generic rules belong to the platform only where they are genuinely
-domain-neutral. Domain conversions and compatibility rules belong to
-registered semantic providers. Lossy or meaning-changing conversions are
-explicit graph operations and disclose fidelity consequences.
+and incompatibility. Results include reasons and required conversions.
+Generic rules belong to the platform only when genuinely domain-neutral.
+Domain conversions and compatibility rules belong to registered semantic
+providers. Lossy or meaning-changing conversions are explicit graph
+operations and disclose fidelity consequences.
 
 Application object types, representation types, and engine-native runtime
-types remain distinct. A Perigram entity, a document representation, a
-B-Rep solid, a mesh, an IFC entity, and a table row do not become one
-universal object type. Provider-native values may pass through the graph
-as opaque handles or artifact references under declared lifetime and
-capability rules.
+types remain distinct. A Perigram entity, document representation, B-Rep
+solid, mesh, IFC entity, and table row do not become one universal object
+type. Provider-native values pass through the graph as opaque handles or
+artifact references under declared lifetime and capability rules.
 
-### 28.4 Registry, node interface, and preview declarations
+### 28.4 Registry, node interface, palette, and preview
 
-The unified registry combines core definitions, platform/domain definitions,
-and plugin-contributed definitions. Stable operation and port identifiers
-are independent of labels, component names, and palette placement.
-Discovery may use static declarations or provider introspection, but its
-normalized result is validated and versioned.
+The unified registry combines platform and plugin-contributed definitions.
+Stable operation and port identifiers are independent of labels, component
+names, and palette placement. Discovery may use static declarations or
+provider introspection; its normalized result is validated and versioned.
 
 The editor derives cards, sockets, inspectors, defaults, parameter
 controls, structured editors, and diagnostics from normalized contracts
-and optional declarative presentation hints. The canvas does not host
+and declarative presentation hints. The canvas does not host
 provider-specific authoring or execution code.
 
-Every output may declare one or more preview representations. A plugin may
-provide a specialized renderer and its versioned renderer contract; the
+The palette has distinct semantic groups for platform values and
+operations, data/query operations, flow/collection operations, installed
+plugin contributions, and reusable graphs. Reusable graph invocations
+appear under a dedicated **Use Graph** (or **Graphs**) palette group,
+separate from ordinary operation nodes and plugin categories. The group
+supports finding a saved graph and placing an invocation node; it is not
+a second registry of copied node implementations.
+
+Every output may expose one or more preview representations. A plugin
+may provide a specialized renderer and versioned renderer contract; the
 platform provides generic viewers for supported representations, including
-text/Markdown, JSON/records, trees, tabular data, images, and documents.
-Standardized 2D/3D scene representations may use host-provided viewers;
-native CAD/BIM representations may require a plugin renderer. A plugin
-renderer receives scoped, read-only output references and declared
+text/Markdown, JSON/records, trees, tables, images, and documents.
+Standardized 2D/3D scene representations use host-provided viewers where
+possible; native CAD/BIM representations may require a plugin renderer.
+A renderer receives scoped, read-only output references and declared
 capabilities, not arbitrary write access to graph state or organization
-data.
+data. Read-only references alone are not a sandbox: renderer execution
+must also be capability-restricted.
 
-The preview workspace is a distinct surface, not an inspector subsection.
-It presents an output selector and tabs for available representations or
-graph-level diagnostics. Tabs represent views/channels, not plugin
-identities. The host owns tab navigation, layout, loading, errors, and
-empty states; providers supply renderers. Multiple viewers may inspect
-the same output. Preview interactions such as selection or highlighting use
-an explicit optional interaction contract and remain separate from
-persistent authoring or mutation.
+The preview workspace is distinct from the inspector. It presents an
+output selector and tabs for available representations or graph-level
+diagnostics. Tabs represent views/channels, not plugin identities. The
+host owns navigation, layout, loading, errors, and empty states; providers
+supply renderers. Multiple viewers may inspect the same output. Optional
+selection/highlighting interactions use an explicit interaction contract
+and never mutate persistent data.
 
-The existing plugin preview-surface and preview-channel mechanisms are
-the starting point and must be generalized to arbitrary graph outputs.
-Do not create a parallel preview system. Replace the current process
-inspector preview with the dedicated preview workspace.
+Generalize the existing plugin preview-surface and preview-channel
+mechanisms to arbitrary graph outputs; do not create a parallel preview
+system. The dedicated preview workspace replaces the current
+process-inspector preview.
 
-### 28.5 Evaluation, preview, effects, and execution records
+### 28.5 Reusable subgraphs and graph interfaces
 
-Graph evaluation does not imply persistent application writes. Execution
-semantics are declared independently of node family and presentation:
+Reusable subgraphs are part of the initial graph architecture, not a later
+composition feature. Every graph declares a versioned public interface
+consisting of named, stable input and output identifiers, semantic and
+transport contracts, required/optional status, defaults where appropriate,
+and documentation.
 
-- Pure computation.
-- External or persistent-data read.
-- Stateful resource/engine operation.
-- Proposal of persistent changes.
-- Authorized commit/write.
-- External effect.
-- Control-flow operation, including iteration, branching, joining, and
-  waiting.
+The graph canvas has explicit **Graph Input** and **Graph Output** boundary
+nodes:
+- A Graph Input node exposes one declared public input inside the graph.
+  Its value enters the graph from the invocation node's matching input.
+- A Graph Output node publishes a selected internal value as one declared
+  public output. Its output contract is checked against the interface.
+- Interface edits are graph-revision changes. Renaming labels does not
+  change stable identifiers; changing a contract is versioned and validated
+  against callers.
 
-The graph runtime coordinates validation, dependency planning, evaluation,
+The **Use Graph** palette entry creates a graph-invocation node that
+references a specific graph identity and an explicit immutable graph
+revision. Its sockets derive from that revision's public interface. It
+does not copy or inline the child graph's nodes into the caller's authored
+canvas. Updating to a newer child revision is an explicit caller edit and
+validation, never an automatic floating reference.
+
+Graph invocation executes the pinned child revision with explicit input
+bindings and returns its declared outputs. Execution records preserve the
+parent/child graph identities, pinned revisions, invocation node, input
+references, and output references. Errors and diagnostics retain their
+child-node origin while being surfaced at the invocation boundary.
+
+The initial architecture treats graph dependencies as a directed acyclic
+graph: direct and transitive recursive invocation is rejected with a
+cycle diagnostic. This avoids undefined recursion, unbounded evaluation,
+and ambiguous version resolution. A child graph may itself invoke other
+pinned graphs. Each invocation is an explicit execution boundary; runtime
+may optimize evaluation but must preserve observable semantics and
+provenance.
+
+A subgraph's effect and capability requirements are visible in its
+declared execution manifest and validated in the caller's context. It
+cannot hide writes or external effects behind a reusable node. Preview
+does not commit child proposals or run irreversible effects. Subgraphs
+share the caller's authorization context but never gain authority from
+being referenced; every data read and write is re-authorized at its
+authoritative service boundary.
+
+### 28.6 Evaluation, preview, execution profiles, and records
+
+Evaluation does not imply persistent application writes. Execution semantics
+are declared independently of node family and presentation: pure
+computation, external/persistent-data read, stateful engine operation,
+proposal of persistent changes, authorized commit/write, external effect,
+and control flow (iteration, branching, joining, waiting).
+
+The procedural graph runtime is the first execution profile. It evaluates
+data dependencies, collection/tree mapping, and bounded control flow,
+coordinates provider dispatch, and produces inspectable transient outputs.
+It is optimized for Grasshopper-style composition and incremental preview.
+It must not inherit process-specific durable task scheduling merely to
+support ordinary procedural evaluation.
+
+Durable process orchestration is a separate execution profile to be
+integrated later. It may share graph JSON, node contracts, semantic
+compatibility, diagnostics, provider dispatch, and output/provenance
+envelopes, but retains its own control-token scheduling, durable waits,
+task boundaries, event triggering, retries, and lifecycle semantics.
+One graph language does not imply one universal scheduler or evaluator.
+The process profile is not migrated until the procedural profile and
+materialization contracts pass their acceptance slices.
+
+The runtime coordinates validation, dependency planning, evaluation,
 provider dispatch, diagnostics, and execution records. Providers execute
-their own operations and enforce provider-owned runtime guarantees.
-Authorization for Perigram data access and writes remains at authoritative
-application service boundaries; graph wiring or plugin declarations
-do not grant access.
+their own operations and enforce provider-owned guarantees. Authorization
+for Perigram reads and writes remains at authoritative application service
+boundaries; graph wiring and plugin declarations grant no access.
 
 The lifecycle is explicit:
-
-1. Evaluate the graph against bound inputs and an identified data/runtime
+1. Evaluate a graph against bound inputs and an identified data/runtime
    context.
-2. Preview transient outputs, proposed changes, and diagnostics.
-3. Validate schemas, type constraints, authorization, object versions,
+2. Preview transient outputs, proposals, and diagnostics.
+3. Validate schemas, constraints, authorization, object versions,
    relationship invariants, and commit preconditions.
-4. Explicitly apply approved changes or materialize selected outputs.
+4. Explicitly Commit approved changes to existing authoritative objects,
+   or Bake selected outputs to explicit destinations.
 5. Record execution status, provenance, resulting object/artifact
    references, and failures.
 
 Ordinary preview must not execute commit or irreversible external-effect
-nodes. Such operations require an explicit execution policy, authorization,
-and suitable idempotency/recovery semantics. Re-evaluation must not
-silently repeat irreversible effects. Caching is version-aware and
-restricted by declared purity, input identity, data revisions, semantic
-schema versions, provider/runtime versions, and external resource
-freshness. Effects are not ordinary cached computations.
+nodes. Such operations require explicit execution policy, authorization,
+and idempotency/recovery semantics. Re-evaluation must not silently repeat
+irreversible effects. Caching is version-aware and restricted by declared
+purity, input identity, data consistency boundary, semantic schema
+versions, provider/runtime versions, and external resource freshness.
+Effects are not ordinary cached computations.
 
-### 28.6 Apply, Bake, and artifact destinations
+### 28.7 Commit, Bake, and artifact destinations
 
-Apply and Bake are distinct explicit materialization operations.
+Use **Commit** for persisting an approved proposal against existing
+authoritative state. Use **Bake** for materializing a computed output as
+a persistent object, representation, or artifact. Keep **Export** for a
+download/external result that is not attached to an application object.
+Do not overload the existing process-definition meaning of Apply with
+graph output persistence.
 
-Apply commits a proposed change to an existing Perigram object or other
-authoritative application state, subject to the relevant write service,
-authorization, validation, revision preconditions, and conflict policy.
+Commit invokes the relevant write service with authorization, validation,
+revision preconditions, and conflict policy. It is explicit and auditable.
 
-Bake materializes a computed graph output as a persistent object,
-representation, or artifact. Bake does not mean "save somewhere" without
-a typed destination. It must identify both the destination owner/scope
-and the logical location within that scope. It may target, for example:
-
+Bake never means "save somewhere" without a typed destination. It
+identifies both destination owner/scope and logical location within it.
+Supported destination forms include:
 - A file associated with an explicitly identified Page.
-- A file/representation attached to an explicitly identified instance
+- A file/representation attached to an explicitly identified CTS instance
   through a declared attachment field or relation.
 - A newly created instance of an explicitly selected CTS type.
-- An export/download result that is not attached to an application object.
+- A standalone export/download result.
 
-A page-file destination requires the exact page identity. An
+A page-file destination requires the exact Page identity. An
 instance-attachment destination requires the exact target instance and
-declared attachment location. No destination may be inferred from the
-currently open page, chat, inspector, or UI context.
+declared attachment location. No destination is inferred from the
+currently open page, chat, inspector, or UI context. A logical file path
+is namespace-relative within the identified destination; it is not an
+operating-system path and does not replace CTS instance selection or
+relationship traversal. The destination contract defines path
+normalization, collision handling, revision policy, and rename/move/delete
+behavior. Conflict policies (create revision, authorized replacement,
+fail, or create distinct name) are explicit and auditable.
 
-A logical file path is a namespace-relative path within the identified
-destination; it is not an operating-system path and is not a substitute
-for CTS instance selection or relationship traversal. The destination
-contract defines path normalization, collision handling, revision policy,
-and rename/move/delete behavior. Conflict policies include explicit
-create-revision, replace-under-authorized-revision-policy, fail, or
-create-distinct-name behavior; the selected policy must be declared and
-auditable.
-
-Files and other artifacts have stable application identity and metadata;
-large binary/native payloads live in artifact/object storage. A file
-payload is a capability/representation of an application object, not
-necessarily a separate fundamental class identity. Page-file ownership
-and instance attachments are explicit relationships. Baking records
-graph ID, graph revision, execution ID, source node/output, source input
-references and revisions, provider/operation versions, and the actor.
+Files and artifacts have stable application identity and metadata; large
+binary/native payloads live in artifact/object storage. A file payload is
+a capability/representation of an application object, not necessarily a
+separate fundamental class identity. Page-file ownership and instance
+attachments are explicit relationships. Bake records graph ID/revision,
+execution ID, source node/output, source input references and revisions,
+provider/operation versions, destination, conflict policy, and actor.
 Materialization is never implicit merely because an output has a preview.
 
-Existing file-template fill/render constructions remain supported during
-migration, but their computation should be expressible through graph
-operations and the common evaluation/materialization contract. They must
-not become a second graph or artifact execution model.
+Existing file-template fill/render constructions remain supported until
+their behavior is migrated to graph operations and this common
+evaluation/materialization contract. They must not become a second graph
+or artifact execution model.
 
-### 28.7 Organization data queries and revisions
+### 28.8 Organization data queries, revisions, and consistency
 
-CTS remains the authoritative organization data model. The graph system
-queries and transforms CTS instances; it does not create a second
-application object database or private class hierarchy.
+CTS is the authoritative organization data model. Graphs query and
+transform CTS instances; they do not create a second object database or
+private class hierarchy.
 
-Core application-data nodes provide a consistent query language over
-declared CTS types, fields, relations, containment, states, and provenance.
-The query vocabulary includes type-scoped query, field and relationship
-filters, deterministic sorting, pagination/selection, first/last/take/skip,
-field reads, relation traversal, child/descendant traversal, count/exists,
-distinct/grouping, and provenance/revision reads. Filters support the
-declared CTS value and relationship semantics, not only scalar equality.
-All queries are organization-scoped by default and use the authoritative
-read authorization boundary. A graph cannot broaden access by constructing
-an arbitrary query.
+Core data nodes provide typed queries over declared CTS types, fields,
+relations, containment, states, and provenance. The query vocabulary
+includes type-scoped queries, field/relation filters, deterministic sort,
+pagination and selection, first/last/take/skip, field projection, relation
+and child/descendant traversal, count/exists, distinct/grouping, and
+revision/provenance reads. Queries are organization-scoped by default
+and use the authoritative read-authorization boundary.
 
-Selection is deterministic. For example, "last created instance" means
-sort by the declared creation timestamp descending, apply a stable
-identity tie-breaker, and take one; it never relies on database return
-order. Query plans and result metadata disclose the data snapshot and
-ordering semantics.
+Selection is deterministic. "Last created instance" means sort by the
+declared creation timestamp descending, apply a stable identity tie-break,
+and take one; it never relies on database return order. Query plans
+disclose snapshot and ordering semantics.
 
-Organization data revision is distinct from type revision and individual
-instance revision. Type revision versions a CTS declaration; instance
-revision versions one object; organization data revision identifies a
-consistent organization-wide change boundary/snapshot. The system defines
-a revision/change-sequence mechanism that permits repeatable graph reads
-and stale-write detection without requiring a full database copy for every
-change. Each relevant execution records the organization data revision
-or equivalent snapshot boundary against which it evaluated. Commit checks
-the versions/preconditions of affected objects and relationships against
-current authoritative state and reports conflicts rather than silently
-overwriting concurrent changes.
+Distinguish type revision, instance revision, organization change
+sequence, database snapshot, and execution read set:
+- Type revision versions a CTS declaration.
+- Instance revision versions one object.
+- Organization change sequence tracks relevant organization mutations
+  (creates, updates, deletes, relation/containment changes, and schema
+  changes) for invalidation and change detection; it is not by itself a
+  historical database snapshot.
+- Database snapshot is the consistent storage view used by an execution
+  where the database supports it.
+- Execution read set records the exact instances, revisions, relations,
+  and query/range dependencies actually consumed, including the query
+  semantics and ordering needed to interpret the result.
 
-The organization revision mechanism must account for creates, updates,
-deletes, relation/containment changes, and schema changes. Retention,
-snapshotting, and historical query guarantees are explicit; the system
-must not claim arbitrary historical reconstruction unless the storage
-implementation can provide it.
+Use a consistent database snapshot where supported, record the execution
+read set, and validate affected data and relationship preconditions before
+Commit. Where snapshot reads are unavailable, define an explicit
+consistent-read fallback (for example, change-sequence bracketing plus
+read-set verification/retry); never claim snapshot isolation that storage
+does not provide. Commit rejects or reports stale dependencies rather
+than silently overwriting concurrent changes. Long-running executions
+must not hold database transactions open; they retain a snapshot/read-set
+boundary and validate at commit. Historical reconstruction is promised
+only where retained storage versions can actually provide it.
 
-### 28.8 CTS class, field, relation, and constraint generalization
+### 28.9 CTS classes, capabilities, and generalized constraints
 
 CTS remains the sole owner of organization type declarations and
-authoritative data invariants. The graph system consumes CTS descriptors
-and invokes CTS/application services; it does not define a competing
-schema language.
+authoritative data invariants. Treat classes primarily as presets/default
+bundles, not as the only place where unrelated behavior is encoded.
+Move payload/representation, revision and replacement policy, lifecycle,
+editor/preview binding, and physical storage behavior into independent,
+composable capabilities wherever the existing data model and migration
+allow. A class preset may supply a conventional combination of
+capabilities, but capabilities—not a hardcoded class name—own behavior.
+Preserve current class identities and data behavior until explicit
+migration and consumer verification are complete; do not conflate this
+architectural direction with permission to perform a blind data rewrite.
 
-The current class presets (party, file, item, group, process) and storage
-routing are reviewed as compatibility presets, not assumed to be the
-permanent ontology of all application objects. Separate:
-domain identity; payload and representation capabilities; revision and
-replacement policy; lifecycle; editor/preview bindings; and physical
-storage strategy. A file-like payload must not by itself force a distinct
-domain identity or collection. Existing class names and storage behavior
-remain compatible until explicit migration and data conversion are
-implemented and verified.
+Fields remain typed and versioned, with validation, defaults, nullability,
+nested structures, collections, and references. Relations declare
+source/target types, cardinality, and target-domain constraints.
+Containment remains distinct from ordinary relations because it carries
+ownership/hierarchy and lifecycle/integrity semantics.
 
-CTS field declarations must support consistent typed access, validation,
-defaults, nullability, nested structures, collections, references, and
-versioned evolution. Relation declarations must express source/target
-types, cardinality, and target-domain constraints. Containment and ordinary
-relations remain distinct: containment defines ownership/hierarchy and
-its lifecycle/integrity rules; a relation defines a domain association.
+Design the generalized CTS constraint language up front as one typed,
+composable expression model used for declarations and authoritative
+validation. It must express:
+- Scalar and structural field predicates, type/state predicates, and
+  logical composition.
+- Nested relation traversal and child/descendant traversal with scoped
+  bindings.
+- Quantifiers over finite related collections: exists/any, all, none,
+  and exactly-one/one.
+- Cardinality and aggregate expressions, including count and comparisons;
+  typed sum/min/max and other aggregates where the value domain defines
+  them.
+- Uniqueness and cross-instance constraints, with explicit scope and
+  equality semantics.
+- Nested combinations of traversal, quantification, and aggregates, e.g.
+  an A has exactly one related B, and that B has more than one child C.
 
-The constraint model is generalized beyond predicates over a single
-target row. It supports field predicates, type/state predicates, relation
-traversal, child/descendant predicates, existence/non-existence,
-uniqueness, cardinality, quantified conditions, and aggregate predicates
-such as child counts. Constraints may combine these expressions with
-logical operators and scoped references.
+The language is declarative, typed, total, and statically validated.
+Quantification and aggregates range over finite, authorization-scoped
+collections. It is not a general-purpose programming language: no
+arbitrary recursion, unbounded loops, dynamic code, or provider-executed
+constraint expressions. Define complexity/resource limits and deterministic
+evaluation semantics. This keeps the language expressive without making
+constraint checking undecidable or unbounded.
 
-For example, a relation from class A to exactly one class B may require
-that the selected B have more than one child of class C. The declaration
-must express both the relation cardinality and the target's aggregate
-child predicate. The syntax is to be defined in CTS; the example is a
-required capability, not a prescribed YAML grammar.
+Separate permanent CTS invariants from graph-specific query/selection
+predicates. Invariants are enforced at every authoritative write boundary
+(API, plugin, process, import, and graph), never only in the canvas.
+Define concurrency guarantees for aggregate, uniqueness, and cardinality
+constraints: enforcement must use an appropriate transaction/isolation,
+unique index, or serialized/conditional write strategy so simultaneous
+writes cannot both pass based on stale reads. The contract states which
+guarantee applies to each constraint class.
 
-Distinguish permanent CTS type invariants from graph-specific query or
-selection predicates. A graph-specific filter does not silently become a
-domain invariant. Type invariants are enforced at every authoritative
-write boundary, including API, plugin, process, import, and graph writes;
-the canvas is not the enforcement boundary. Constraint evaluation must
-define transaction/concurrency behavior so aggregate and uniqueness
-constraints cannot be bypassed by simultaneous writes.
+### 28.10 Pages, typed references, Wiki embeds, and backlinks
 
-### 28.9 Pages, instance links, and Wiki composition
+Pages, files, graphs, and other domain objects remain distinct instances.
+A Page is not a file; a file is not a page. Page content references or
+embeds authoritative instances without copying their data.
 
-Pages, files, graphs, and other domain objects remain distinct application
-instances with their own capabilities and relationships. A Page is not a
-file, and a file is not a page. Page content may reference or embed
-instances without copying their authoritative data.
-
-The page model supports distinct relationship forms:
-
+The linking model includes:
 - Page containment for page hierarchy/navigation.
-- Typed page references to other pages or arbitrary CTS instances.
-- Live embeds that render the current authorized instance projection.
-- Pinned historical references for citations to a particular instance
-  revision.
-- Collection embeds backed by a saved query or graph output, not a
-  copied authoritative list.
-- Reverse-reference/backlink discovery.
+- Typed references from pages to pages or arbitrary CTS instances.
+- Live embeds that render the current authorized projection.
+- Pinned embeds/references to a specific retained instance revision.
+- Collection embeds backed by a saved query or a graph output.
+- Backlinks/reverse-reference discovery.
 
-Inline mentions, links, embeds, and collection views use stable typed
-references (type ID, instance ID, and optional pinned revision) and a
-declared presentation mode. The referenced instance remains authoritative.
-Page containment, page-to-instance reference, and instance-to-instance
-CTS relations are separate relationships and must not be conflated.
-Reference resolution obeys ordinary read authorization; deleted or
-inaccessible targets render an explicit broken/unavailable state rather
-than leaking data. Backlinks and reference indexes are derived/rebuildable
-and do not become a second source of truth.
+A typed reference carries stable type and instance identity plus an
+optional pinned revision. Live references resolve the current authorized
+projection. Pinned references resolve the specified retained revision
+and fail explicitly if that revision is unavailable; they never silently
+fall forward to current data. Collection embeds identify a saved query or
+graph identity and pinned definition revision, plus explicit parameters
+and refresh/live-versus-pinned result policy. A pinned graph definition
+does not imply a frozen result set unless the data snapshot is also
+retained; distinguish pinned computation from pinned results.
 
-This generalizes the existing Page blocks, page lineage, instance
-mentions, and class-page collection views into a coherent linking system
-suitable for Wiki-like navigation and embedding.
+Reference resolution obeys normal read authorization. Deleted or
+inaccessible targets render an explicit broken/unavailable state without
+leaking data. Backlinks and reference indexes are derived and rebuildable,
+not a second source of truth. Page containment, page-to-instance reference,
+and instance-to-instance CTS relations remain distinct.
 
-### 28.10 Process integration and migration
+This generalizes existing Page blocks, lineage, instance mentions, and
+class-page collection views into a coherent Wiki-like linking and embedding
+system.
 
-The existing process system is migrated onto the unified graph contracts;
-it is not discarded or allowed to remain a parallel graph format,
-registry, evaluator, or canvas. Preserve process-specific semantics:
-CTS construction/mutation/transition/removal, workflow lifecycle,
-lineage, authorization, role grants, event-triggered execution, task
-orchestration, and durable effect behavior remain domain/application
-responsibilities layered on shared graph mechanics.
+### 28.11 Process integration and one-time migration
 
-Existing process graphs and plugin declarations receive explicit
-format/contract migrations. The shared graph package must not import
-Vue/Nuxt, MongoDB, CTS implementation internals, or any specific domain
-engine. CTS integration is through public descriptors and application
-service boundaries. Plugin SDK preview surfaces/channels and executor
-protocol are generalized rather than duplicated.
+Process integration follows—not precedes—the procedural graph foundation.
+First prove the shared graph contract, procedural evaluator, plugin
+provider boundary, preview workspace, subgraph invocation, and Commit/Bake
+materialization with real vertical slices. Then migrate process semantics
+onto the shared graph representation and contracts while retaining a
+separate durable-process execution profile.
 
-### 28.11 Delivery sequence and acceptance
+The migration is a one-time cutover of all stored process graphs and
+related persisted graph records to the canonical format. It is not a
+permanent dual-format runtime and not a gradual compatibility mode:
+1. Inventory every persisted graph-bearing record and classify its format.
+2. Implement a deterministic migration from each known stored format,
+   including node/port identities, edges, configuration, revisions, and
+   references.
+3. Run a dry-run/report and validate migrated definitions against the
+   new schema, provider contracts, and process-specific invariants.
+4. Back up or otherwise preserve a recoverable pre-migration state.
+5. Perform a controlled all-record cutover; unmigratable records block
+   completion and require explicit repair rather than silent dropping.
+6. Verify counts, identities, graph connectivity, authored semantics,
+   authorization bindings, and executable behavior against migration
+   fixtures and representative real records.
+7. Only after successful verification, remove old-format readers,
+   writers, fallback paths, and obsolete schemas.
 
-Implementation proceeds in evidence-led slices:
+After cutover, the canonical graph format is the only persisted and
+runtime graph format. Migration tooling may remain as an offline,
+one-time administrative utility if needed; old-format runtime support
+does not remain. Process-specific control tokens, durable task execution,
+workflow lifecycle, role grants, event triggering, retries, and effects
+remain process-profile concerns, not universal procedural scheduler rules.
 
-1. Audit current graph/process, CTS, instance query/revision, Page/link,
-   file/artifact, plugin registration, executor, and preview contracts.
-   Record existing behavior and migration risks before replacing it.
-2. Define and test graph JSON, graph identity/revisions, node definitions,
-   semantic ports, provider registration, and execution records.
-3. Generalize the existing plugin registry/executor and preview channel
-   contracts; add built-in viewers and the dedicated preview workspace.
-4. Define the common value/artifact reference and Apply/Bake destination
-   contracts, including exact page/instance ownership and logical paths.
-5. Define CTS query expressions, organization data revision/snapshot
-   semantics, and generalized relationship/aggregate constraints.
-6. Generalize Page references, embeds, backlinks, and collection views.
-7. Migrate existing process nodes and graphs to shared contracts without
-   regressing lifecycle, authorization, or execution behavior.
-8. Prove the system with at least two heterogeneous vertical slices:
-   a document graph that previews and explicitly saves/attaches an output,
-   and a plugin-provided geometry graph that previews in a 3D viewer and
-   explicitly bakes an output to a declared destination.
+### 28.12 Delivery sequence and acceptance
 
-Acceptance requires one canvas and graph format for core and plugin nodes;
-unknown plugins remain safely inspectable; preview is read-only; query
-results are organization-scoped and deterministic; evaluations record
-their data snapshot; commits detect stale writes; CTS invariants are
-enforced outside the editor; Bake always has an explicit destination;
-page/file/instance references preserve ownership and provenance; and
-legacy process behavior survives migration.
+Implementation proceeds in this order:
 
-The governing principle is one graph language and execution contract,
-not one universal domain model. Plugins own specialized domain behavior;
-CTS owns organization data truth; pages link to instances; graph outputs
-remain transient until explicitly applied or baked.
+1. Audit existing package ownership and contracts. Reconcile the current
+   provider-neutral process node model with the plugin SDK contract and
+   place shared ownership in the existing packages named in §28.1.
+2. Define canonical graph JSON, identity/revisions, public graph
+   interfaces, Graph Input/Output nodes, pinned Use Graph invocation,
+   dependency-cycle validation, semantic ports, and diagnostics.
+3. Implement the procedural execution profile and unified provider
+   registry, starting with platform value/list/tree/data nodes and
+   multiple plugin providers.
+4. Generalize plugin preview contributions and build the dedicated
+   preview workspace with generic viewers and at least one specialized
+   plugin renderer.
+5. Implement output references, Commit/Bake/Export, explicit destination
+   contracts, provenance, and exact Page/instance targeting.
+6. Implement CTS organization queries, snapshot/read-set consistency,
+   the generalized constraint AST/evaluator, and concurrency-safe
+   authoritative enforcement.
+7. Implement typed Page references, live/pinned embeds, backlinks, and
+   saved-query/graph-output collection embeds.
+8. Prove end-to-end procedural slices: a document/data graph that queries
+   organization data, previews, and Bakes to an exact Page/instance
+   destination; and a plugin geometry graph that previews in a 3D viewer,
+   invokes a pinned reusable subgraph, and Bakes to an explicit CTS
+   destination.
+9. Only after those slices pass, migrate all stored process graphs in the
+   one-time cutover described in §28.11 and integrate the durable-process
+   execution profile.
 
+Acceptance requires one canonical graph format and shared node contract;
+a procedural runtime independent of process durability; mixed core/plugin
+graphs; typed graph interfaces and pinned acyclic subgraphs; safe
+unavailable-provider diagnostics; read-only capability-restricted preview;
+explicit and provenance-bearing Commit/Bake destinations; deterministic
+organization queries with snapshot/read-set semantics; concurrency-safe
+CTS invariants; typed live/pinned Wiki references and rebuildable backlinks;
+and a verified all-record process migration with no old-format runtime
+fallback.
+
+The governing principle is one graph language and shared provider contract,
+not one universal scheduler or domain model. CTS owns organization data
+truth; plugins own specialized operations; Pages link to authoritative
+instances; subgraphs are version-pinned programs; graph outputs remain
+transient until explicitly committed or baked.
 ## 29. Divide and conquer (owner direction 2026-11-12, sequenced after §28)
 
 The repository splits into independently developed services composing
