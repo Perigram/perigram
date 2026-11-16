@@ -89,7 +89,7 @@ const isBoundary = computed(() => [
 ].includes(props.node?.data?.operation?.id));
 
 watch(
-  [() => props.node?.id, () => props.boundaryDeclaration],
+  [() => props.node?.id, () => props.node?.data?.config?.graphId, () => props.boundaryDeclaration],
   () => {
     configText.value = JSON.stringify(props.node?.data?.config || {}, null, 2);
     configError.value = '';
