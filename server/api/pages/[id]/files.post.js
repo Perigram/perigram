@@ -20,7 +20,6 @@ export default defineEventHandler(async event => {
     path: body.path,
     buffer,
     mimeType: body.mimeType,
-    conflictPolicy: body.conflictPolicy,
-    provenance: body.provenance
+    conflictPolicy: body.conflictPolicy
   }, auth);
 });
