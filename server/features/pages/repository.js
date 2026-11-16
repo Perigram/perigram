@@ -154,7 +154,7 @@ export async function create(data) {
   const name = data.name || '';
   const section = data.kind === 'section';
   const doc = {
-    _id: new ObjectId(),
+    _id: data.id ? toFlexibleId(data.id) : new ObjectId(),
     type: TYPE,
     typeVersion: 2,
     organizationId: toFlexibleId(data.organizationId),
