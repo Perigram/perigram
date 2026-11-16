@@ -77,6 +77,10 @@ the session) proceeds and records the abandonment — instance/binder
 counts, actor, timestamp — on the org contract-change event and in
 the response (root SPEC §15 abandoned data, promoted to a gate).
 
+### Organization data sequence
+
+Successful `defineType` and `removeType` writes advance the organization's durable data sequence through [instances](../instances/README.md#organization-change-sequence). A graph read captures this sequence beside the compiled registry view, so declaration changes invalidate a read set alongside instance, relation, and collection changes.
+
 ### Client bundle
 
 `describeOrganizationTypes` returns the compiled client bundle plus the
