@@ -67,6 +67,12 @@ boundary node. Use Graph nodes pin an immutable graph revision.
   invocation provenance, read sets, and artifact references. Construction
   validates JSON values before cloning so serialization cannot erase invalid
   `undefined`, non-finite, or non-JSON values.
+- `createGraphReadSetRecorder` captures deduplicated instance, relation, and
+  query/range dependencies across parent and pinned child evaluations. It
+  records a consistency label and optional snapshot/change-sequence boundary;
+  the default is explicitly `unverified` until an authoritative data adapter
+  supplies stronger evidence. Read providers record dependencies only after
+  their authorized read completes.
 - Preview accepts pure and read node definitions; effect, proposal, commit,
   stateful, and control operations are refused by the evaluator.
 
