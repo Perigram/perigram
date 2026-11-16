@@ -369,6 +369,36 @@ export function useGraphDocumentSession({ t }) {
       : node);
   }
 
+  function hydrateGraphInvocation(nodeId, source) {
+    const graph = assertValidGraphDocument(source);
+    const node = nodes.value.find(item => item.id === nodeId);
+    if (node?.data?.operation?.id !== GRAPH_INVOKE_OPERATION) {
+      throw new Error('Selected node is not a Use Graph node');
+    }
+    node.data.config = {
+      ...node.data.config,
+      graphId: graph.id,
+      revision: graph.revision,
+      interface: {
+        inputs: graph.interface.inputs.map(port => ({
+          id: port.id,
+          label: port.label,
+          contract: structuredClone(port.contract),
+          required: port.required,
+          ...(Object.hasOwn(port, 'default') ? { default: structuredClone(port.default) } : {})
+        })),
+        outputs: graph.interface.outputs.map(port => ({
+          id: port.id,
+          label: port.label,
+          contract: structuredClone(port.contract),
+          required: port.required
+        }))
+      }
+    };
+    nodes.value = nodes.value.map(item => item.id === nodeId ? enrichNode(item) : item);
+    return node.data.config;
+  }
+
   function updateBoundaryDeclaration(nodeId, declaration) {
     if (nodeId && typeof nodeId === 'object') ({ nodeId, declaration } = nodeId);
     const node = nodes.value.find(item => item.id === nodeId);
@@ -600,7 +630,7 @@ export function useGraphDocumentSession({ t }) {
     clearGraphSelection: selection.clearGraphSelection,
     updateNodeConfig,
     updateBoundaryLabel,
-    updateBoundaryDeclaration,
+    updateBoundaryDeclaration,\n    hydrateGraphInvocation,
     renameDeclarationNode: () => {},
     loadDocument,
     loadEmpty,
