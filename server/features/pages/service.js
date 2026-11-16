@@ -9,7 +9,6 @@ import * as filesService from '../files/service.js';
 import { runOrganizationChange } from '../instances/index.js';
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
 import * as repository from './repository.js';
-import { runOrganizationChange } from '../instances/organization-sequence.js';
 
 const KINDS = new Set(['page', 'section']);
 const ensuredPageTypes = new Set();
