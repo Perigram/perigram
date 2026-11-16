@@ -660,22 +660,54 @@ export { writeGrantTarget };
 // contributes its own lineage; authored axes win over derived ones
 // (canonical law: this feature's README). A parent in another
 // organization refuses.
-async function lineageWithDerivedChain(draft = {}, organizationId = null) {
+async function lineageWithDerivedChain(draft = {}, organizationId = null, childTypeId = null) {
   const wire = draft.lineage && typeof draft.lineage === 'object' ? draft.lineage : {};
   // The stored lineage is pure tree edges: ref objects (`{ type, id }`)
   // scalarize to ids at this boundary.
   const authored = {};
   for (const [key, value] of Object.entries(wire)) {
-    authored[key] = value && typeof value === 'object' ? value.id : value;
+    authored[key] = value && typeof value === 'object' ? value.id ?? value._id : value;
+  }
+  const declarations = organizationId
+    ? await overlayDeclarationsFor(organizationId)
+    : [...staticTypes.values()];
+  const parentsByKey = new Map();
+  for (const parentDeclaration of declarations) {
+    for (const [edgeKey, edge] of Object.entries(parentDeclaration?.edges?.children || {})) {
+      const lineageKey = edge?.lineageKey || lineageKeyForParent(parentDeclaration.id) || edgeKey;
+      if (childTypeId && !(edge?.types || []).includes(childTypeId)) continue;
+      const parentTypes = parentsByKey.get(lineageKey) || new Set();
+      parentTypes.add(parentDeclaration.id);
+      parentsByKey.set(lineageKey, parentTypes);
+    }
   }
   const chain = {};
   for (const [key, parentRef] of Object.entries(authored)) {
     if (key === 'organizationId' || parentRef == null || parentRef === '') continue;
+    const parentTypes = parentsByKey.get(key);
+    if (!parentTypes?.size) {
+      throw createError({ statusCode: 400, message: `Lineage key ${key} is not declared for child type ${childTypeId || 'unknown'}` });
+    }
     const parentId = String(parentRef);
-    const parent = await repository.findInstanceAnywhere(parentId, null);
-    if (!parent) continue;
-    if (parent.organizationId && String(parent.organizationId) !== String(organizationId ?? '')) {
-      throw createError({ statusCode: 400, message: `Lineage parent ${parentId} belongs to another organization` });
+    let parent = null;
+    for (const parentType of parentTypes) {
+      const declaration = declarations.find(item => item.id === parentType)
+        || await declarationFor(parentType, organizationId);
+      if (!declaration?.class) continue;
+      const candidate = await repository.findInstance(
+        repository.collectionForClass(declaration.class),
+        parentId,
+        parentType
+      );
+      if (!candidate) continue;
+      const parentOrganizationId = candidate.organizationId == null ? null : String(candidate.organizationId);
+      const childOrganizationId = organizationId == null ? null : String(organizationId);
+      if (parentOrganizationId !== null && parentOrganizationId !== childOrganizationId) continue;
+      parent = candidate;
+      break;
+    }
+    if (!parent) {
+      throw createError({ statusCode: 400, message: `Lineage key ${key} parent ${parentId} is missing or outside the organization` });
     }
     Object.assign(chain, parent.lineage || {});
   }
@@ -744,7 +776,7 @@ function instanceService(typeId) {
     if (unknownFields.length) {
       throw createError({ statusCode: 400, message: 'Fields ' + unknownFields.join(', ') + ' are not declared for ' + typeId });
     }
-    const lineage = await lineageWithDerivedChain(draft, effectiveOrganizationId);
+    const lineage = await lineageWithDerivedChain(draft, effectiveOrganizationId, typeId);
     const doc = {
       _id: new ObjectId(),
       type: typeId,
