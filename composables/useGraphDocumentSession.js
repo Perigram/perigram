@@ -554,7 +554,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
               revision: node.config?.revision || node.config?.graphRevision
             }))
         },
-        readSet: { instances: [], relations: [], queries: [] },
+        readSet: result.readSet,
         artifacts: []
       });
       previewResult.value = result;
@@ -582,7 +582,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
                 revision: node.config?.revision || node.config?.graphRevision
               }))
             },
-            readSet: { instances: [], relations: [], queries: [] },
+            readSet: error.readSet || { instances: [], relations: [], queries: [] },
             artifacts: []
           });
         } catch {
