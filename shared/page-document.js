@@ -20,7 +20,7 @@ export function fileRefOfBlock(block = {}) {
 export function normalizePageFilePath(value) {
   const path = String(value || '').trim();
   if (!path || path.length > 240 || path.startsWith('/') || path.includes('\\')
-    || /[\\u0000-\\u001f\\u007f]/.test(path)) return '';
+    || /[\u0000-\u001f\u007f]/.test(path)) return '';
   const segments = path.split('/');
   if (segments.some(segment => !segment || segment === '.' || segment === '..')) return '';
   return path;
@@ -31,7 +31,7 @@ export function normalizePageDocument(document = {}) {
   const blocks = source
     .filter(block => block && typeof block === 'object' && (block.kind === 'text' || block.kind === 'view' || block.kind === 'file'))
     .map(block => {
-      const id = String(block.id || createBlockId(block.kind === 'view' ? 'v' : 't'));
+      const id = String(block.id || createBlockId(block.kind === 'view' ? 'v' : block.kind === 'file' ? 'f' : 't'));
       if (block.kind === 'view') {
         const view = viewRefOfBlock(block) || {};
         return {
