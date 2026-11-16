@@ -39,7 +39,7 @@ describe('useGraphDocumentSession', () => {
       targetHandle: 'value'
     });
     const inputId = session.graphDocument.value.interface.inputs[0].id;
-    session.setGraphInputBinding(inputId, { message: 'hello' });
+    session.setGraphInputBinding({ portId: inputId, value: { message: 'hello' } });
 
     const result = await session.refreshPreview();
 
