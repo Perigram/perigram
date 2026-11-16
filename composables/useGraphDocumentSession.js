@@ -363,6 +363,7 @@ export function useGraphDocumentSession({ t }) {
 
   function loadDocument(source) {
     const graph = assertValidGraphDocument(source);
+    inputBindings.value = {};
     graphDocument.value = graph;
     nodes.value = graph.nodes.map(node => enrichNode({
       id: node.id,
