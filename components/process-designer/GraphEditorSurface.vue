@@ -201,6 +201,11 @@ const canvasItems = computed(() => [
 const isDirty = computed(() => !readOnly.value
   && Boolean(graphDocument.value)
   && designerSignature() !== savedSignature.value);
+const canBakeToSavedGraph = computed(() => Boolean(
+  persisted.value && !isDirty.value
+  && executionRecord.value?.graph?.id === graphDocument.value.id
+  && executionRecord.value?.graph?.revision === graphDocument.value.revision
+));
 
 const canvasStatus = computed(() => {
   const evaluatedNodes = Object.keys(previewResult.value?.nodeOutputs || {});

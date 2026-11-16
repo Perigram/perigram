@@ -76,7 +76,7 @@
         </svg>
         <component
           :is="rendererForOutput"
-          v-if="activeView === 'plugin' && rendererForOutput"
+          v-else-if="activeView === 'plugin' && rendererForOutput"
           :value="selectedValue"
           :output="selectedOutput"
         />
@@ -306,12 +306,20 @@ async function submitBake() {
 onMounted(async () => {
   try {
     const response = await $fetch('/api/pages');
-    pageOptions.value = (Array.isArray(response?.pages) ? response.pages : [])
-      .filter(page => page?.kind === 'page' && page?._id)
-      .map(page => ({
-        _id: String(page._id),
-        label: `${page.name || t('pages.page')} · ${String(page._id).slice(-6)}`
-      }));
+    const pages = (Array.isArray(response?.pages) ? response.pages : [])
+      .filter(page => page?.kind === 'page' && page?._id);
+    const byId = new Map(pages.map(page => [String(page._id), page]));
+    pageOptions.value = pages.map(page => {
+      const parts = [];
+      const seen = new Set();
+      let current = page;
+      while (current && !seen.has(String(current._id))) {
+        seen.add(String(current._id));
+        parts.unshift(String(current.name || t('pages.page')));
+        current = current.parentId ? byId.get(String(current.parentId)) : null;
+      }
+      return { _id: String(page._id), label: `${parts.join(' / ')} · ${String(page._id)}` };
+    });
   } catch {
     pageOptions.value = [];
   }
