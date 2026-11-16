@@ -196,6 +196,12 @@ const persistence = {
       body: { graphDocumentInstanceId: activeRecordId.value, record }
     });
   },
+  async bakeFile({ graphDocumentInstanceId, record, outputId, destination }) {
+    return await $fetch('/api/graph-bakes', {
+      method: 'POST',
+      body: { graphDocumentInstanceId, record, outputId, destination }
+    });
+  },
   async rename(name) {
     if (!activeRecordId.value) return { name };
     const updated = await $fetch(`/api/instances/graph-document/${encodeURIComponent(activeRecordId.value)}`, {
