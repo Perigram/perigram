@@ -1,5 +1,24 @@
 # CONTAINER: build123d Plugin Executor
 
+> **Transitional legacy implementation (owner direction 2026-11-16).**
+> This endpoint executor and its per-operation endpoint listing are not the
+> target architecture. New development must follow SPEC §20 local-first
+> organization plugins: package assets are installed as organization data,
+> and build123d executes in the browser through Pyodide/OCP.wasm. Do not add
+> new executor endpoints, endpoint settings, or deployment dependencies.
+>
+> The intended upstream implementation is
+> [1suo/build123d-flow](https://github.com/1suo/build123d-flow). As checked
+> on 2026-11-16, main is
+> `3c62677065016ae166f50a176130b127ca35ef12` (package version `0.1.0`),
+> using build123d `0.13.0`, Pyodide `314.0.7`, and OCP.wasm
+> `8.0.1.1.post202609241841`. It is an early standalone app; integrate its
+> graph/editor/runtime components into a Perigram plugin package rather
+> than embedding its app shell. Its latest commit removed the test suite,
+> so restore browser-runtime, discovery, geometry, export, and graph
+> regression tests before production integration.
+
+
 The build123d engine as an installable plugin (SPEC §28): the op
 catalog is parsed from the installed build123d library by
 introspection, every op registers as a deterministic endpoint value

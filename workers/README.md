@@ -1,7 +1,9 @@
 # CONTAINER: Workers
 
-The worker tier is the nesting solver and the plugins' executors
-(documents, tech-drawing, facade, build123d). The `task_runs` protocol
+The worker tier currently contains the nesting solver and transitional
+plugin executors. Under SPEC §20 (owner direction 2026-11-16), documents
+and build123d are migrating to organization-owned frontend packages; their
+executor containers are temporary and must not be expanded. The `task_runs` protocol
 under `/api/tasks/*` is the
 [task runtime's](../server/core/tasks/README.md) contract.
 
@@ -16,7 +18,7 @@ Target law: [SPEC.md](./SPEC.md).
 | facade | Endpoint-mode plugin executor | `workers/facade/index.js` | The facade plugin's compute and surfaces — see [workers/facade](./facade/README.md). |
 | documents | Endpoint-mode plugin executor | `workers/documents/index.js` | The documents plugin's projections and text/csv surfaces — see [workers/documents](./documents/README.md). |
 | tech-drawing | Endpoint-mode plugin executor | `workers/tech-drawing/index.js` | Serves the DXF placement service, the sketch and DXF editor surface modules, and vendored runtimes (the CadCraft browser edition included) — see [workers/tech-drawing](./tech-drawing/README.md). |
-| build123d | Endpoint-mode plugin executor | `workers/build123d/server.py` | The build123d engine's discovered op catalog as deterministic value services, dispatched generically on the real library — see [workers/build123d](./build123d/README.md). |
+| build123d (transitional) | Legacy endpoint-mode executor — retire after browser package migration | `workers/build123d/server.py` | Existing compatibility executor only. Target: browser Pyodide/OCP.wasm runtime derived from [1suo/build123d-flow](https://github.com/1suo/build123d-flow) — see [workers/build123d](./build123d/README.md) and SPEC §20. |
 
 ## Docker
 
