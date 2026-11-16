@@ -3482,7 +3482,9 @@
     "unknownNode": "Unavailable node",
     "graphComposition": "Graph composition",
     "useGraph": "Use Graph",
-    "useGraphDescription": "Invoke a pinned revision of another graph"
+    "useGraphDescription": "Invoke a pinned revision of another graph",
+    "graphInputValues": "Graph inputs",
+    "applyGraphInput": "Apply input"
   },
   "generatedScreen": {
     "home": "Home",
