@@ -156,6 +156,58 @@ describe('pages', () => {
     expect(read).toMatchObject({ name: 'Notes', blocks, order: ['b1'], parentId: section._id });
   });
 
+  it('migrates legacy pages without deleting their source when an item ID belongs to another tenant', async () => {
+    const id = new ObjectId();
+    await db.collection('pages').insertOne({
+      _id: id,
+      organizationId: ORG_A,
+      kind: 'page',
+      name: 'Legacy source',
+      content: 'Keep me',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    await db.collection('items').insertOne({
+      _id: id,
+      type: 'page',
+      organizationId: ORG_B,
+      fields: { name: 'Foreign owner' },
+      lineage: {}
+    });
+
+    await pagesRepository.migrateLegacy(ORG_A);
+
+    expect(await db.collection('items').findOne({ _id: id })).toMatchObject({
+      type: 'page',
+      organizationId: ORG_B,
+      fields: { name: 'Foreign owner' }
+    });
+    expect(await db.collection('pages').findOne({ _id: id, organizationId: ORG_A }))
+      .toMatchObject({ name: 'Legacy source', content: 'Keep me' });
+  });
+
+  it('deletes a legacy source only after its canonical page is present', async () => {
+    const id = new ObjectId();
+    await db.collection('pages').insertOne({
+      _id: id,
+      organizationId: ORG_A,
+      kind: 'page',
+      name: 'Migrated',
+      content: 'Legacy body',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    await pagesRepository.migrateLegacy(ORG_A);
+
+    expect(await db.collection('items').findOne({ _id: id })).toMatchObject({
+      type: 'page',
+      organizationId: ORG_A,
+      fields: { name: 'Migrated', content: 'Legacy body' }
+    });
+    expect(await db.collection('pages').findOne({ _id: id })).toBeNull();
+  });
+
   it('migrates legacy markdown content into ordered blocks', async () => {
     const page = await seedPage(ORG_A, {
       name: 'Legacy',
