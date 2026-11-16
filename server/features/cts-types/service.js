@@ -4,6 +4,7 @@
 // them per SPEC §4 (no shadowing), and redefinition goes through the
 // refuse-on-breaking diff (SPEC §11).
 import { createError } from 'h3';
+import { runOrganizationChange } from '../instances/organization-sequence.js';
 import * as repository from './repository.js';
 import {
   createTypeRegistry, compileClientBundle, frameworkTypes, planTypeMigration
@@ -261,7 +262,18 @@ export async function describeOrganizationTypes(organizationId) {
   };
 }
 
-export async function defineType(declaration = {}, { organizationId, actor = null } = {}) {
+export async function defineType(declaration = {}, options = {}) {
+  const actor = options.actor ?? null;
+  const actorId = actor && typeof actor === 'object' ? (actor.userId || actor.id || actor._id || null) : actor;
+  return await runOrganizationChange(options.organizationId, {
+    kind: 'type-defined',
+    typeId: String(declaration?.id || ''),
+    paths: ['declaration'],
+    actorId
+  }, () => defineTypeInternal(declaration, options));
+}
+
+async function defineTypeInternal(declaration = {}, { organizationId, actor = null } = {}) {
   if (!organizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
   const orgDeclaration = {
     ...declaration,
@@ -383,7 +395,18 @@ export async function defineType(declaration = {}, { organizationId, actor = nul
   return stored;
 }
 
-export async function removeType(typeId, { organizationId, actor = null, abandon = false } = {}) {
+export async function removeType(typeId, options = {}) {
+  const actor = options.actor ?? null;
+  const actorId = actor && typeof actor === 'object' ? (actor.userId || actor.id || actor._id || null) : actor;
+  return await runOrganizationChange(options.organizationId, {
+    kind: 'type-removed',
+    typeId: String(typeId || ''),
+    paths: ['declaration'],
+    actorId
+  }, () => removeTypeInternal(typeId, options));
+}
+
+async function removeTypeInternal(typeId, { organizationId, actor = null, abandon = false } = {}) {
   if (!organizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
   const registry = await compileRegistryForOrganization(organizationId);
   const type = registry.getType(String(typeId), organizationId);
