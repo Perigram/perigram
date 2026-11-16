@@ -94,15 +94,15 @@ installed plugins' records:
 | Surface declarations | `{ id, url, surfaceContract, kind? }` per installed plugin module |
 | Preview bindings | `previews: [{ type, surface, url, surfaceContract }]`, one per type |
 | Preview channels | `previewChannels: [{ id, label, surface, url, surfaceContract }]` per plugin-declared designer preview tab (SPEC §28); channel ids are global across installs — a collision is a composition error |
+| Client runtimes | `clientRuntimes: [{ organizationId, pluginId, version, runtime, services }]` for browser-capable JavaScript runtimes and operations |
 
 Editor bindings are file-type contracts: editor surfaces belong to
 `file`-class (payload-bearing) types declared by the same plugin — the
 SDK's listing contract enforces it. Each surface record's module URL is
 the app's same-origin plugin-module proxy path
-(`/api/plugins/:pluginId/module<module>` — the plugins feature streams
-it from the install's endpoint origin server-side); connection settings
-stay server-side, and an unconfigured endpoint serves `url: null` (the
-client loader renders the connect-the-executor state). The bound preview
+(`/api/plugins/:pluginId/module<module>`). Organization-owned installed
+package assets serve this route first; a legacy endpoint origin remains a
+migration fallback for packages whose assets have not been materialized. The bound preview
 surface must be the install's own preview-kind surface; the client's
 preview slots mount them read-only (see
 [components/generated](../../../components/generated/README.md)).
@@ -119,7 +119,7 @@ designer screen.
 `GET /api/admin/cts/types` — merged org view (the class library, the
 designer types pane, and the process designer's registry read this):
 compiled types, diagnostics, attachment kinds, pack editor bindings, and
-installed plugin surface declarations. `POST /api/admin/cts/types` —
+installed plugin surface declarations and browser runtime bindings. `POST /api/admin/cts/types` —
 author/evolve a declaration. `DELETE /api/admin/cts/types/:id` — remove an
 org type through the removal ceremony.
 

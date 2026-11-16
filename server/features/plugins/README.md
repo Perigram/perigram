@@ -2,10 +2,10 @@
 
 Plugin marketplace consumer contracts (SPEC §20): a
 platform-published central catalog, per-organization installs pinning a
-declaration snapshot, and the install/uninstall gates. A third-party
-plugin is **declarations plus connectors**: the plugin's types compose
-into the organization's registry view exactly like pack types, and its
-service connectors bind external executors through the worker
+declaration snapshot, and the install/uninstall gates. A plugin is a versioned package of declarations, runtime modules, and
+surfaces. Organization installs pin the package assets and execution
+metadata; Perigram supplies browser Workers and managed server runtime
+capacity. Provider-level integrations carry the external connector
 protocol.
 
 Parent: [server/features](../README.md).
@@ -17,7 +17,7 @@ Parent: [server/features](../README.md).
 `plugin_catalog` holds one listing per `pluginId` —
 `{ pluginId, name, description, version, visibility?, organizations?,
 requires?, declarations: { types, services, editors, surfaces,
-previews, constructions, exports } }`.
+previews, constructions, exports, runtimes } }`.
 Publishing is platform-operator-only. A listing may be
 `visibility: 'private'` with owning `organizations` ids — the catalog
 route serves it only to members of those orgs (the operator scopes
@@ -35,8 +35,8 @@ strand installed pins; the package assets go with it) — the
 [@perigram/plugin-sdk](../../../packages/plugin-sdk/README.md) CLI
 wraps it (`perigram-plugin publish`); the listing contract is validated
 by the SDK's `parseListing`, the same parser the install gate runs.
-A client-carried package (SPEC §20) publishes its engine modules and
-runtime files beside the listing:
+A runtime package (SPEC §20) publishes its entry modules, surfaces, and
+declared runtime assets beside the listing:
 `PUT /api/plugins/catalog/:pluginId/assets/**?version=<v>` (the same
 operator token, raw body, `Content-Type` stored with the asset) keys
 each release asset as `pluginId/version/path` in the catalog's
@@ -59,10 +59,9 @@ core: the route wrapper only adds caller authority, `endpoints`/
 `surfaceOrigin` pre-wire connection settings under the settings-save
 validation, and the deployment's built-in plugins install through the
 seed scripts ([server/scripts/README.md](../../scripts/README.md))
-writing the same record shape directly. The snapshot carries the full
-declaration layer — types, editors, surfaces, previews, constructions,
-starter constructs, exports, and the client engine when the listing
-declares one.
+writing the same record shape directly. The snapshot carries the full declaration layer — types, editors,
+surfaces, previews, constructions, starter constructs, exports, runtime
+declarations, and any transitional client engine declaration.
 
 Install, upgrade, and uninstall mutations run inside the
 organization change-sequence boundary. Each completed mutation invalidates
@@ -97,21 +96,16 @@ construction table (`projectedDomainsForOrganization`).
 
 ### Connector services
 
-A listing may declare `services` — `{ id (slug), label, signature:
-{ input, output }, render, mode }` records in the SPEC §8 V grammar
-(`mode`: `endpoint` — the platform calls the configured URL with the
-service input and expects the service output as JSON, the
-nesting-worker shape, 60 s budget, optional `authorization: Bearer
-<key>` from the install's `authToken`; `claim`, the default — the
-executor polls the worker protocol; or `local` — the service executes
-in the browser through the plugin's declared client engine
-(`declarations.engine`, SPEC §20 client-carried), carries no connection
-surface, and every server dispatch refuses it). Installs snapshot them beside the
-types and mint a `connectorToken`; the Connection settings
-(`GET`/`POST .../plugins/:pluginId/settings`) store per-service
-`endpoints`, the executor API key, and — for plugins that declare
-surfaces but no endpoint services — the `surfaceOrigin` the module
-proxy loads modules from.
+A service may declare managed `execution: { runtime, targets, kind,
+capabilities, deterministic?, idempotent? }`. The runtime id resolves to
+an installed package runtime; target declarations constrain browser and
+server placement; kind follows the graph execution vocabulary. Managed
+services run through Perigram's runtime adapters and receive organization
+capabilities through the host. Provider-level external integrations use
+explicit connection records and server-held credentials. Legacy endpoint
+and claim service modes remain migration inputs while existing plugins
+move to managed execution. Local package operations carry no per-function
+endpoint or API-key settings.
 
 Installed services compose into the projected domain's service list
 (`projectedServicesForOrganization` — the one list the designer,
@@ -138,13 +132,12 @@ cannot feed, so it stays out of the palette and the operator domain
 while remaining fully dispatchable through its construction,
 conversion, or export binding and the connector path.
 
-Executing one dispatches by mode: endpoint mode calls the URL (missing
-endpoint refuses with a configure-it message), claim mode enqueues a
-task run on the claim queue `plugin.<pluginId>@<organizationId>` (the
-whole service input rides one `value` parameter) and returns it as the
-command's async boundary — the process invocation parks until
-completion. Local mode refuses every server dispatch — the client
-engine owns execution. A service input field declared with base `blob` receives a
+Executing a managed service dispatches through the platform runtime
+scheduler. Browser-capable pure operations may preview in a dedicated
+Worker; server execution validates graph inputs, capability grants, and
+read evidence before committing durable effects. Legacy endpoint and
+claim services continue through their explicit integration adapters
+while their packages migrate. A service input field declared with base `blob` receives a
 payload handle `{ fileId, mime, size, name? }` on the wire; the
 endpoint dispatch hydrates the handle with its stored bytes as
 `payloadBase64`, so the executor reaches no storage — the hydration is

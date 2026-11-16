@@ -28,10 +28,9 @@ imported through server modules that Nitro externalizes.
   [`@perigram/core`](../packages/core/README.md); access evaluation does not
   maintain a parallel status projection.
 - `plugin-surfaces.js`: The plugin-delivered editor surface contract versions
-  the platform can mount (SPEC §20). The server
-  install/upgrade gates and the client loader read
-  the same supported set — an unsupported surface contract refuses at the
-  gate, never as a runtime half-mount.
+  the platform can mount (SPEC §20), plus the same-origin module URL resolver.
+  Installed organization package assets are the primary source; explicit
+  external integration origins remain a migration fallback.
 - `permission-templates.js`: Access presets that expand into copied membership
   permission grants when a preset is assigned. Runtime checks consume the
   decomposed grants and do not branch on verbal preset labels.
