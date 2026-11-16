@@ -15,8 +15,10 @@ const SERVICE_CACHE_COLLECTION = 'plugin_service_cache';
 // `pluginId/version/path` — the filename is the lookup key and the
 // metadata carries the pieces for retraction cleanup.
 export const PLUGIN_ASSETS_BUCKET = 'plugin_assets';
+export const ORG_PLUGIN_ASSETS_BUCKET = 'org_plugin_assets';
 
 const assetFilename = (pluginId, version, path) => `${pluginId}/${version}/${path}`;
+const organizationAssetFilename = (organizationId, pluginId, version, path) => `${organizationId}/${pluginId}/${version}/${path}`;
 
 export async function storePluginAsset({ pluginId, version, path, buffer, contentType = '' }) {
   const filename = assetFilename(pluginId, version, path);
@@ -43,6 +45,71 @@ export async function readPluginAsset(assetMeta) {
 export async function deletePluginAssets(pluginId) {
   const metas = await listFileMetasWhere(PLUGIN_ASSETS_BUCKET, { 'metadata.pluginId': String(pluginId) });
   for (const meta of metas) await deleteFile(meta.id, PLUGIN_ASSETS_BUCKET);
+  return metas.length;
+}
+
+// Installed package assets are organization data (SPEC §20, owner
+// direction 2026-11-16). Catalog assets remain the distribution source;
+// install materializes the pinned release into an organization-scoped
+// bucket so runtime reads do not depend on a publisher/executor origin.
+export async function materializePluginAssets(organizationId, pluginId, version) {
+  const sourceMetas = await listFileMetasWhere(PLUGIN_ASSETS_BUCKET, {
+    'metadata.pluginId': String(pluginId),
+    'metadata.version': String(version)
+  });
+  const copied = [];
+  try {
+    for (const source of sourceMetas) {
+      const path = String(source.metadata?.path || '');
+      if (!path) continue;
+      const filename = organizationAssetFilename(organizationId, pluginId, version, path);
+      const existing = await findFileMetaByFilename(filename, ORG_PLUGIN_ASSETS_BUCKET);
+      const sourceHash = String(source.metadata?.contentHash || '');
+      if (existing && String(existing.metadata?.contentHash || '') === sourceHash) {
+        copied.push({ path, contentHash: sourceHash, bytes: existing.length });
+        continue;
+      }
+      if (existing) await deleteFile(existing.id, ORG_PLUGIN_ASSETS_BUCKET);
+      const buffer = await getFileBuffer(source.id, PLUGIN_ASSETS_BUCKET);
+      await uploadFile(buffer, filename, {
+        organizationId: String(organizationId),
+        pluginId: String(pluginId),
+        version: String(version),
+        path,
+        sourceContentHash: sourceHash
+      }, ORG_PLUGIN_ASSETS_BUCKET, source.contentType || '');
+      copied.push({ path, contentHash: sourceHash, bytes: buffer.length });
+    }
+    return { count: copied.length, assets: copied };
+  } catch (error) {
+    await deleteOrganizationPluginAssets(organizationId, pluginId, version);
+    throw error;
+  }
+}
+
+export async function findOrganizationPluginAssetMeta(organizationId, pluginId, version, path) {
+  const filename = organizationAssetFilename(organizationId, pluginId, version, path);
+  const meta = await findFileMetaByFilename(filename, ORG_PLUGIN_ASSETS_BUCKET);
+  if (!meta) return null;
+  return {
+    id: meta.id,
+    contentType: meta.contentType || meta.metadata?.mimeType || '',
+    contentHash: meta.metadata?.contentHash || ''
+  };
+}
+
+export async function readOrganizationPluginAsset(assetMeta) {
+  return await getFileBuffer(assetMeta.id, ORG_PLUGIN_ASSETS_BUCKET);
+}
+
+export async function deleteOrganizationPluginAssets(organizationId, pluginId, version = null) {
+  const filter = {
+    'metadata.organizationId': String(organizationId),
+    'metadata.pluginId': String(pluginId)
+  };
+  if (version != null) filter['metadata.version'] = String(version);
+  const metas = await listFileMetasWhere(ORG_PLUGIN_ASSETS_BUCKET, filter);
+  for (const meta of metas) await deleteFile(meta.id, ORG_PLUGIN_ASSETS_BUCKET);
   return metas.length;
 }
 
@@ -151,11 +218,11 @@ export async function deleteInstall(organizationId, pluginId) {
 // Upgrade apply: replace the pinned snapshot (declarations, services,
 // pack requirements, and the inherited endpoint wiring are the pin; the
 // connector token survives).
-export async function updateInstallSnapshot(organizationId, pluginId, { version, declarations, services, requires = [], endpoints = null }) {
+export async function updateInstallSnapshot(organizationId, pluginId, { version, declarations, services, requires = [], endpoints = null, packageAssets = null }) {
   const db = await connectDB();
   await db.collection(INSTALLS_COLLECTION).updateOne(
     { organizationId: String(organizationId), pluginId: String(pluginId) },
-    { $set: { version, declarations, services: services || [], requires, ...(endpoints ? { endpoints } : {}), upgradedAt: new Date() } }
+    { $set: { version, declarations, services: services || [], requires, ...(endpoints ? { endpoints } : {}), ...(packageAssets ? { packageAssets } : {}), upgradedAt: new Date() } }
   );
 }
 

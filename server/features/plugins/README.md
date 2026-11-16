@@ -39,14 +39,18 @@ A client-carried package (SPEC §20) publishes its engine modules and
 runtime files beside the listing:
 `PUT /api/plugins/catalog/:pluginId/assets/**?version=<v>` (the same
 operator token, raw body, `Content-Type` stored with the asset) keys
-each asset as `pluginId/version/path` in the `plugin_assets` GridFS
-bucket.
+each release asset as `pluginId/version/path` in the catalog's
+`plugin_assets` GridFS bucket. Installing a release materializes its
+assets into the installing organization's `org_plugin_assets` bucket,
+keyed by `organizationId/pluginId/version/path`, with content hashes
+pinned in the install's `packageAssets` manifest. The catalog copy is
+distribution data; the installed copy is organization data.
 
 ### Installs
 
 `plugin_installs` holds one per organization+plugin —
 `{ organizationId, pluginId, name, version, declarations, services,
-requires, endpoints, connectorToken, installedAt }`. The install
+requires, endpoints, packageAssets, connectorToken, installedAt }`. The install
 **snapshots** the listing's declarations: the pinned version is the
 data, so catalog changes reach an installed organization only through
 the explicit upgrade flow ([Upgrades](#upgrades)). Every install write
@@ -286,7 +290,7 @@ the cascade refuses the whole removal).
 | Route | Access | Action |
 |---|---|---|
 | `GET /api/plugins/catalog` | authenticated | List catalog listings (a private listing only for members of its owning orgs). |
-| `GET /api/plugins/:pluginId/module/**` | member (org holding the install) | Surface module proxy: stream the module path from the install's endpoint origin, or from the platform-stored package for an engine install (same-origin browser loading). |
+| `GET /api/plugins/:pluginId/module/**` | member (org holding the install) | Surface module proxy: stream the module path from the install's endpoint origin, or from the installing organization's materialized package for a packaged install (the catalog copy remains a migration fallback for pre-materialization pins) (same-origin browser loading). |
 | `PUT /api/plugins/catalog/:pluginId/assets/**?version=` | operator token | Store one client-carried package asset (`pluginId/version/path`) for the module proxy to serve. |
 | `POST /api/plugins/catalog` | platform operator (`x-operator-token`) | Publish/upsert a listing (validated by the SDK contract). |
 | `DELETE /api/plugins/catalog/:pluginId` | platform operator (`x-operator-token`) | Retract a listing (refused while installs exist). |

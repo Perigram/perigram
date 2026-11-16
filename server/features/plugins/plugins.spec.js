@@ -76,6 +76,10 @@ vi.mock('./repository.js', () => ({
   findPluginAssetMeta: vi.fn(async () => null),
   readPluginAsset: vi.fn(async () => Buffer.alloc(0)),
   deletePluginAssets: vi.fn(async () => 0),
+  materializePluginAssets: vi.fn(async () => ({ count: 0, assets: [] })),
+  findOrganizationPluginAssetMeta: vi.fn(async () => null),
+  readOrganizationPluginAsset: vi.fn(async () => Buffer.alloc(0)),
+  deleteOrganizationPluginAssets: vi.fn(async () => 0),
   updateSettings: vi.fn(),
   listDeclarationsByOrganization: vi.fn(async () => []),
   findDeclarationByTypeId: vi.fn(async () => null),
@@ -158,6 +162,15 @@ describe('plugin installs', () => {
       .rejects.toMatchObject({ message: expect.stringContaining('pluginId') });
     expect(repository.upsertCatalogListing).not.toHaveBeenCalled();
   });
+  it('materializes the pinned package into organization-owned data on install', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
+    const packageAssets = { count: 2, assets: [{ path: 'engine.mjs', contentHash: 'sha256:abc', bytes: 42 }] };
+    repository.materializePluginAssets.mockResolvedValue(packageAssets);
+    await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(repository.materializePluginAssets).toHaveBeenCalledWith(ORG, 'coatings', '2');
+    expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({ packageAssets }));
+  });
+
   it('installs a pinned declaration snapshot', async () => {
     repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
     const result = await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
@@ -1338,6 +1351,7 @@ describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
       ...moduleInstall,
       version: '2',
       endpoints: {},
+      packageAssets: { count: 1, assets: [{ path: 'engine/index.mjs', contentHash: 'sha256:abc', bytes: 42 }] },
       declarations: {
         ...moduleInstall.declarations,
         engine: { module: '/engine/index.mjs' },
@@ -1360,7 +1374,7 @@ describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
         modulePath: '/engine/index.mjs',
         auth: AUTH
       });
-      expect(repository.findPluginAssetMeta).toHaveBeenCalledWith('coatings', '2', 'engine/index.mjs');
+      expect(repository.findOrganizationPluginAssetMeta).toHaveBeenCalledWith(ORG, 'coatings', '2', 'engine/index.mjs');
       expect(module.contentType).toBe('text/javascript');
       expect(module.body.toString()).toContain(`import * as THREE from '/api/plugins/coatings/module/assets/vendor/three.mjs'`);
       expect(module.etag).toBeTruthy();

@@ -199,13 +199,16 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
 
   const configuredEndpoints = configuredEndpointsFor(services, endpoints);
   const configuredSurfaceOrigin = configuredSurfaceOriginFor(surfaces, surfaceOrigin);
-  await runOrganizationChange(organizationId, {
+  let packageAssets = null;
+  try {
+    await runOrganizationChange(organizationId, {
     kind: 'plugin-installed',
     typeId: null,
     instanceId: String(listing.pluginId),
     paths: ['plugin-declarations', 'plugin-services'],
     actorId: null
   }, async () => {
+    packageAssets = await repository.materializePluginAssets(organizationId, listing.pluginId, listing.version || '1');
     await repository.createInstall({
       organizationId: String(organizationId),
       pluginId: String(listing.pluginId),
@@ -215,11 +218,18 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
       services,
       requires,
       endpoints: configuredEndpoints,
+      packageAssets,
       ...(configuredSurfaceOrigin ? { surfaceOrigin: configuredSurfaceOrigin } : {}),
       connectorToken: mintConnectorToken()
     });
     invalidateInstanceDeclarations(String(organizationId));
-  });
+    });
+  } catch (error) {
+    if (packageAssets?.count) {
+      await repository.deleteOrganizationPluginAssets(organizationId, listing.pluginId, listing.version || '1').catch(() => {});
+    }
+    throw error;
+  }
   await ensureInstanceIndexes(registry.resolveView(organizationId));
   publishOrgContractChanged(String(organizationId), 'registry', {
     pluginId: String(listing.pluginId),
@@ -331,6 +341,9 @@ export async function uninstall({ organizationId, pluginId, cascade = false, aut
     }
     invalidateInstanceDeclarations(String(organizationId));
   });
+  for (const id of removing) {
+    await repository.deleteOrganizationPluginAssets(organizationId, id);
+  }
   const after = await compileRegistryForOrganization(organizationId);
   await ensureInstanceIndexes(after.resolveView(organizationId));
   publishOrgContractChanged(String(organizationId), 'registry', {
@@ -435,13 +448,19 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
     throw createError({ statusCode: 400, message: 'Invalid module path' });
   }
 
-  // A client-carried package (SPEC §20) serves every module path from
-  // the platform-stored assets of the installed version.
-  if (install.declarations?.engine) {
-    const asset = await repository.findPluginAssetMeta(pluginId, install.version, segments.join('/'));
+  // Installed package assets are organization data. The global catalog
+  // remains the distribution source; installed reads resolve the caller's
+  // materialized organization/version copy.
+  if (Number(install.packageAssets?.count) > 0 || install.declarations?.engine) {
+    const organizationOwned = Number(install.packageAssets?.count) > 0;
+    const asset = organizationOwned
+      ? await repository.findOrganizationPluginAssetMeta(organizationId, pluginId, install.version, segments.join('/'))
+      : await repository.findPluginAssetMeta(pluginId, install.version, segments.join('/'));
     if (!asset) throw createError({ statusCode: 404, message: `Plugin ${pluginId} package does not carry ${segments.join('/')}` });
-    const isJsModule = /\.[cm]?js$/.test(segments[segments.length - 1] || '');
-    const raw = await repository.readPluginAsset(asset);
+    const isJsModule = /\\.[cm]?js$/.test(segments[segments.length - 1] || '');
+    const raw = organizationOwned
+      ? await repository.readOrganizationPluginAsset(asset)
+      : await repository.readPluginAsset(asset);
     const body = isJsModule
       ? Buffer.from(rewriteDeclaredImports(raw.toString('utf8'), pluginId, install.declarations?.dependencies || []), 'utf8')
       : raw;
@@ -1065,6 +1084,7 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
     throw createError({ statusCode: 400, message: introduced.join('; ') });
   }
 
+  const packageAssets = await repository.materializePluginAssets(organizationId, pluginId, listing.version);
   let migrationError = null;
   await runOrganizationChange(organizationId, {
     kind: 'plugin-upgraded',
@@ -1088,7 +1108,8 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
       },
       services: layer.services,
       requires: layer.requires,
-      endpoints: upgradedEndpointsFor(install, layer.services)
+      endpoints: upgradedEndpointsFor(install, layer.services),
+      packageAssets
     });
     invalidateInstanceDeclarations(String(organizationId));
     try {

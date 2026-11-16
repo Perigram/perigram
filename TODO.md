@@ -16,6 +16,12 @@ migrations.
   immutable versioned assets with content digests on install/upgrade,
   authorize reads by organization membership, and remove package data only
   through the existing uninstall drain gate.
+  Progress (2026-11-16): new installs and upgrades materialize the catalog
+  release into an organization-scoped GridFS bucket; the install pin records
+  its asset manifest, module reads resolve that copy, and uninstall cleanup
+  runs only after the drain gate. Existing pins still need a one-time
+  materialization migration; the old catalog lookup remains only until that
+  migration is applied.
 - [ ] Execute local plugin compute and node providers in the isolated browser
   runtime; keep surface modules on the data-only host mount and expose only
   explicit authorized capabilities.
