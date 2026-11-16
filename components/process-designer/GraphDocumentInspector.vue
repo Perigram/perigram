@@ -41,9 +41,9 @@ import { GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
 const props = defineProps({
   node: { type: Object, default: null }
 });
-const emit = defineEmits(['update-config', 'update-boundary-label']);
+const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration']);
 const configText = ref('{}');
-const configError = ref('');
+const configError = ref('');\nconst declarationText = ref('{}');\nconst declarationError = ref('');
 const label = ref('');
 
 const isBoundary = computed(() => [
@@ -55,7 +55,7 @@ watch(() => props.node?.id, () => {
   configText.value = JSON.stringify(props.node?.data?.config || {}, null, 2);
   configError.value = '';
   label.value = props.node?.data?.label || '';
-}, { immediate: true });
+}, { immediate: true });\n\nwatch(() => props.boundaryDeclaration, declaration => {\n  if (!isBoundary.value) return;\n  declarationText.value = JSON.stringify({\n    contract: declaration?.contract || { shape: 'item', semantic: { base: 'json' } },\n    required: declaration?.required !== false,\n    ...(Object.hasOwn(declaration || {}, 'default') ? { default: declaration.default } : {})\n  }, null, 2);\n}, { deep: true });
 
 function applyConfig() {
   try {
@@ -68,7 +68,7 @@ function applyConfig() {
   }
 }
 
-function applyLabel() {
+function applyDeclaration() {\n  try {\n    const declaration = JSON.parse(declarationText.value || '{}');\n    if (!declaration || typeof declaration !== 'object' || Array.isArray(declaration)) throw new Error('Declaration must be a JSON object');\n    emit('update-boundary-declaration', { nodeId: props.node.id, declaration });\n    declarationError.value = '';\n  } catch (error) {\n    declarationError.value = error.message;\n  }\n}\n\nfunction applyLabel() {
   emit('update-boundary-label', { nodeId: props.node.id, label: label.value });
 }
 </script>

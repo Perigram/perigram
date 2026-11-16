@@ -29,7 +29,7 @@ const operation = (id, version = '1') => ({
   version
 });
 
-const stableId = prefix => mintId(prefix).replaceAll('_', '-');
+const stableId = prefix => mintId(prefix).replaceAll('_', '-');\nconst isJsonValue = (value, seen = new Set()) => {\n  if (value === null || ['string', 'boolean'].includes(typeof value)) return true;\n  if (typeof value === 'number') return Number.isFinite(value);\n  if (typeof value !== 'object' || seen.has(value)) return false;\n  if (!Array.isArray(value) && Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) return false;\n  seen.add(value);\n  const valid = (Array.isArray(value) ? value : Object.values(value)).every(item => isJsonValue(item, seen));\n  seen.delete(value);\n  return valid;\n};
 const defaultContract = Object.freeze({
   shape: 'item',
   semantic: { base: 'json' }
@@ -252,6 +252,18 @@ export function useGraphDocumentSession({ t }) {
     syncEdges
   });
 
+  const selectedBoundaryDeclaration = computed(() => {
+    const node = selection.selectedNode.value;
+    const operationId = node?.data?.operation?.id;
+    const collection = operationId === GRAPH_INPUT_OPERATION
+      ? graphDocument.value.interface.inputs
+      : operationId === GRAPH_OUTPUT_OPERATION
+        ? graphDocument.value.interface.outputs
+        : null;
+    const interfaceId = node?.data?.config?.interfaceId;
+    return collection?.find(port => port.id === interfaceId) || null;
+  });
+
   const selectedGraphNodes = () => nodes.value.filter(node => node.selected);
   const selectedGraphEdges = () => edges.value.filter(edge => edge.selected);
   function deleteGraphSelection() {
@@ -345,6 +357,34 @@ export function useGraphDocumentSession({ t }) {
     nodes.value = nodes.value.map(node => node.id === nodeId
       ? enrichNode({ ...node, data: { ...node.data, config, error: '' } })
       : node);
+  }
+
+  function updateBoundaryDeclaration(nodeId, declaration) {
+    if (nodeId && typeof nodeId === 'object') ({ nodeId, declaration } = nodeId);
+    const node = nodes.value.find(item => item.id === nodeId);
+    const operationId = node?.data?.operation?.id;
+    const collection = operationId === GRAPH_INPUT_OPERATION
+      ? graphDocument.value.interface.inputs
+      : operationId === GRAPH_OUTPUT_OPERATION
+        ? graphDocument.value.interface.outputs
+        : null;
+    const port = collection?.find(item => item.id === node?.data?.config?.interfaceId);
+    if (!port || !declaration || typeof declaration !== 'object' || Array.isArray(declaration)) return;
+    const contract = declaration.contract;
+    if (!contract || typeof contract !== 'object' || Array.isArray(contract)
+      || !['item', 'list', 'tree', 'map', 'tuple', 'stream'].includes(contract.shape)
+      || !contract.semantic || typeof contract.semantic !== 'object' || Array.isArray(contract.semantic)
+      || !Object.keys(contract.semantic).length) {
+      throw new Error('A declaration requires a supported shape and a non-empty semantic descriptor');
+    }
+    if (Object.hasOwn(declaration, 'default') && !isJsonValue(declaration.default)) {
+      throw new Error('The default value must be JSON-compatible');
+    }
+    port.contract = structuredClone(contract);
+    port.required = declaration.required !== false;
+    if (Object.hasOwn(declaration, 'default')) port.default = structuredClone(declaration.default);
+    else delete port.default;
+    nodes.value = nodes.value.map(item => item.id === nodeId ? enrichNode(item) : item);
   }
 
   function updateBoundaryLabel(nodeId, label) {
@@ -519,7 +559,7 @@ export function useGraphDocumentSession({ t }) {
     contextPaletteChipGroups,
     contextPalette,
     contextPaletteSearch,
-    selectedNode: selection.selectedNode,
+    selectedNode: selection.selectedNode,\n    selectedBoundaryDeclaration,
     selectedNodeId: selection.selectedNodeId,
     selectedGraphNodes,
     selectedGraphEdges,
@@ -548,7 +588,7 @@ export function useGraphDocumentSession({ t }) {
     selectEdge: selection.selectEdge,
     clearGraphSelection: selection.clearGraphSelection,
     updateNodeConfig,
-    updateBoundaryLabel,
+    updateBoundaryLabel,\n    updateBoundaryDeclaration,
     renameDeclarationNode: () => {},
     loadDocument,
     loadEmpty,
