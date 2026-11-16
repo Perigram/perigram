@@ -37,7 +37,7 @@ jobs:
         run: |
           bash -n scripts/dev.sh scripts/deploy.sh
           ./scripts/dev.sh --help
-          if ./scripts/deploy.sh >/tmp/deploy-check.log 2>&1; then
+          if env -i PATH="$PATH" ./scripts/deploy.sh >/tmp/deploy-check.log 2>&1; then
             echo "deploy.sh unexpectedly accepted an empty environment" >&2
             exit 1
           else
