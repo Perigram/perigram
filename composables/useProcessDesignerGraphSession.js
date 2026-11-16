@@ -227,15 +227,11 @@ export function useProcessDesignerGraphSession({
   });
 
   const {
-    dataflowPreview,
-    previewingData,
     validationDiffLines,
-    selectedNodePreview,
     selectedNodeSupportsPreview,
-    selectedNodePreviewOutputs,
     selectedChannelNode,
+    selectedChannelInputs,
     selectedChannelOutputs,
-    previewDataflow,
     formatPreviewPath,
     formatPreviewItems,
     nodeDiagnostics,
@@ -245,11 +241,9 @@ export function useProcessDesignerGraphSession({
     t,
     validation,
     selectedNode,
-    selectedNodeId,
     selectedProcessNode,
+    processNodeInputs,
     processNodeOutputs,
-    persistence,
-    serializeProcess: () => serializeProcess(),
     nodes,
     edges,
     selectNode,
@@ -1078,7 +1072,6 @@ export function useProcessDesignerGraphSession({
   }
 
   function syncNodeData() {
-    dataflowPreview.value = null;
     // live tree first: ports, palette, and options below resolve against the
     // overlay registry, so field/state wiring is visible immediately
     refreshTreeOverlay();
@@ -1565,16 +1558,12 @@ export function useProcessDesignerGraphSession({
     selectedProcessNodeGrants,
     selectedProcessNodeEffectiveAccess,
     updateSelectedProcessNodeGrantLevel,
-    // preview
-    dataflowPreview,
-    previewingData,
+    // whole-graph channel preview
     validationDiffLines,
-    selectedNodePreview,
     selectedNodeSupportsPreview,
-    selectedNodePreviewOutputs,
     selectedChannelNode,
+    selectedChannelInputs,
     selectedChannelOutputs,
-    previewDataflow,
     formatPreviewPath,
     formatPreviewItems,
     nodeDiagnostics,

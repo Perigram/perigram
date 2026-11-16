@@ -42,7 +42,6 @@
       @sync="$emit('sync')"
       @update-grant-level="payload => $emit('update-grant-level', payload)"
       @update-construction-mode="mode => $emit('update-construction-mode', mode)"
-      @run-preview="$emit('run-preview')"
       @create-command-service="$emit('create-command-service')"
       @remove-command-service="$emit('remove-command-service')"
     />
@@ -93,7 +92,7 @@ defineProps({
   inputs: { type: Array, default: () => [] },
   operationOptions: { type: Array, default: () => [] },
   statusOptions: { type: Array, default: () => [] },
-  preview: { type: Object, default: null },
+  preview: { type: Object, default: () => ({ supported: false, running: false, state: null, inputs: [], outputs: [], error: '' }) },
   formatPreviewPath: { type: Function, required: true },
   formatPreviewItems: { type: Function, required: true }
 });
@@ -104,7 +103,6 @@ defineEmits([
   'update-identifier-field',
   'update-grant-level',
   'update-construction-mode',
-  'run-preview',
   'create-command-service',
   'remove-command-service'
 ]);

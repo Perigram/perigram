@@ -985,6 +985,30 @@ describe('durable process orchestration', () => {
     }));
   });
 
+  it('includes resolved connected inputs for effects without executing them', async () => {
+    const serviceContext = () => ({
+      domain: {
+        serviceContracts: {
+          'plugin.docs.echo': {
+            signature: {
+              input: { base: 'record', fields: { text: { base: 'string' } } },
+              output: { base: 'string' }
+            }
+          }
+        }
+      }
+    });
+    const definition = process([
+      { id: 'text', kind: 'source.literalItem', value: 'connected value' },
+      { id: 'echo', kind: 'cts.service', operator: 'plugin.docs.echo' }
+    ], ['text', 'echo'], [data('text', 'echo', 'text')]);
+
+    const result = await previewProcessDataflow(definition, {}, { catalogContext: serviceContext });
+
+    expect(result.nodes.echo.inputs.text.branches[0].items).toEqual(['connected value']);
+    expect(result.nodes.echo.outputs).toBeUndefined();
+  });
+
   it('previews pure/read data without executing effects', async () => {
     const definition = process([
       { id: 'entities', kind: 'cts.read', select: 'all', typeId: 'queue' },
@@ -1000,7 +1024,8 @@ describe('durable process orchestration', () => {
       data: { queryEntities: async () => [{ _id: 'q1' }, { _id: 'q2' }] }
     });
     expect(result.nodes.count.outputs.value.branches[0].items).toEqual([2]);
-    expect(result.nodes.effect).toBeUndefined();
+    expect(result.nodes.effect).toMatchObject({ inputs: {} });
+    expect(result.nodes.effect.outputs).toBeUndefined();
     expect(executeEffect).not.toHaveBeenCalled();
   });
 
@@ -1077,13 +1102,26 @@ describe('durable process orchestration', () => {
     expect(result.nodes.two.outputs.value.branches[0].items).toEqual(['2pong']);
   });
 
-  it('keeps service nodes opaque outside preview scope', async () => {
+  it('does not execute service nodes outside preview scope but still exposes their inputs', async () => {
+    const serviceContext = () => ({
+      domain: {
+        serviceContracts: {
+          'plugin.docs.echo': {
+            signature: {
+              input: { base: 'record', fields: { text: { base: 'string' } } },
+              output: { base: 'string' }
+            }
+          }
+        }
+      }
+    });
     const definition = process([
       { id: 'text', kind: 'source.literalItem', value: 'ping' },
       { id: 'echo', kind: 'cts.service', operator: 'plugin.docs.echo', trigger: { mode: 'manual' } }
     ], ['text', 'echo'], [data('text', 'echo', 'text')]);
-    const result = await previewProcessDataflow(definition, {}, { catalogContext: () => ({}) });
-    expect(result.nodes.echo).toBeUndefined();
+    const result = await previewProcessDataflow(definition, {}, { catalogContext: serviceContext });
+    expect(result.nodes.echo.inputs.text.branches[0].items).toEqual(['ping']);
+    expect(result.nodes.echo.outputs).toBeUndefined();
   });
 
   it('keeps missing fields distinct from present nulls in preview', async () => {

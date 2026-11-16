@@ -86,7 +86,6 @@
                   @update-identifier-field="value => setClassIdentifierField(selectedNode, value)"
                   @update-grant-level="({ index, level }) => updateSelectedProcessNodeGrantLevel(index, level)"
                   @update-construction-mode="value => updateProcessNodeConstructionMode(selectedProcessNode, value)"
-                  @run-preview="previewDataflow"
                   @create-command-service="createCommandServiceForSelectedNode"
                   @remove-command-service="removeSelectedCommandService"
                 />
@@ -258,12 +257,9 @@ const {
   updateSelectedProcessNodeGrantLevel,
   validationDiffLines,
   selectedNodeSupportsPreview,
-  previewingData,
-  selectedNodePreview,
-  selectedNodePreviewOutputs,
   selectedChannelNode,
+  selectedChannelInputs,
   selectedChannelOutputs,
-  previewDataflow,
   formatPreviewPath,
   formatPreviewItems
 } = useProcessDesignerGraphSession({
@@ -289,11 +285,11 @@ const selectedProcessNodeInputs = computed(() => {
 });
 const inspectorPreview = computed(() => ({
   supported: selectedNodeSupportsPreview.value,
-  running: previewingData.value || channelPreview.running.value,
-  state: selectedChannelNode.value || selectedNodePreview.value,
-  outputs: selectedNode.value?.type === 'processNode'
-    ? (selectedChannelOutputs.value.length ? selectedChannelOutputs.value : selectedNodePreviewOutputs.value)
-    : []
+  running: channelPreview.running.value,
+  state: selectedChannelNode.value,
+  inputs: selectedNode.value?.type === 'processNode' ? selectedChannelInputs.value : [],
+  outputs: selectedNode.value?.type === 'processNode' ? selectedChannelOutputs.value : [],
+  error: channelPreview.error.value
 }));
 const isDirty = computed(() => !readOnly.value && Boolean(draft.value) && designerSignature() !== savedSignature.value);
 
@@ -443,7 +439,7 @@ const authoringSignature = computed(() => JSON.stringify({
   edges: edges.value.map(edge => [edge.id, edge.source, edge.target, edge.sourceHandle, edge.targetHandle, edge.role, edge.label])
 }));
 // C2 live values: the channel evaluation runs while the inspector or the
-// preview tab is open — the selected node's outputs render live in both.
+// preview tab is open — the selected node's inputs and outputs render live in both.
 watch(authoringSignature, () => channelPreview.schedule(['inspector', 'preview'].includes(inspectTab.value)));
 watch(inspectTab, () => channelPreview.schedule(['inspector', 'preview'].includes(inspectTab.value)));
 

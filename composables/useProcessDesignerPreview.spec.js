@@ -76,7 +76,10 @@ describe('useProcessDesignerPreview diagnostic focus', () => {
   it('derives the selected node\'s live channel state and outputs (C2 live values)', () => {
     const graphEvaluation = {
       nodes: {
-        good: { outputs: { value: { branchCount: 1, itemCount: 1, branches: [{ path: [], items: [7] }] } } }
+        good: {
+          inputs: { name: { branchCount: 1, itemCount: 1, branches: [{ path: [], items: ['Ada'] }] } },
+          outputs: { value: { branchCount: 1, itemCount: 1, branches: [{ path: [], items: [7] }] } }
+        }
       }
     };
     const { preview } = mountPreview({
@@ -85,6 +88,9 @@ describe('useProcessDesignerPreview diagnostic focus', () => {
       selectedProcessNode: { kind: 'source.literalItem' }
     });
     expect(preview.selectedChannelNode.value).toEqual(graphEvaluation.nodes.good);
+    expect(preview.selectedChannelInputs.value).toEqual([
+      { id: 'name', label: 'Name', type: expect.any(String), tree: graphEvaluation.nodes.good.inputs.name }
+    ]);
     expect(preview.selectedChannelOutputs.value).toEqual([
       { id: 'value', label: 'value', type: expect.any(String), tree: graphEvaluation.nodes.good.outputs.value }
     ]);
@@ -96,7 +102,7 @@ describe('useProcessDesignerPreview node support', () => {
     [{ kind: 'cts.service' }, true],
     [{ kind: 'cts.read' }, true],
     [{ kind: 'value.format' }, true],
-    [{ kind: 'cts.mutate' }, false],
+    [{ kind: 'cts.mutate' }, true],
     [{ kind: 'control.forEach' }, false],
     [{}, false]
   ])('node %j previews: %s', async (record, expected) => {
@@ -129,6 +135,24 @@ describe('visiblePreviewOutputs', () => {
     expect(selected.nodes.a.outputs).toEqual({});
     expect(selected.nodes.a.error).toBe('boom');
     expect(Object.keys(selected.nodes.b.outputs)).toEqual(['value']);
+  });
+
+  it('keeps hidden node inputs available while hiding its outputs', () => {
+    const selected = visiblePreviewOutputs({
+      nodes: {
+        hidden: {
+          inputs: { value: { branches: [{ path: [], items: ['input'] }] } },
+          outputs: { value: { branches: [{ path: [], items: ['output'] }] } }
+        }
+      }
+    }, {
+      ...definition,
+      graph: { nodes: [{ id: 'hidden', data: { refId: 'r1' } }] },
+      processNodes: { r1: { id: 'r1', previewVisible: false } }
+    });
+
+    expect(selected.nodes.hidden.inputs.value.branches[0].items).toEqual(['input']);
+    expect(selected.nodes.hidden.outputs).toEqual({});
   });
 
   it('drops a hidden error-less node whole', () => {

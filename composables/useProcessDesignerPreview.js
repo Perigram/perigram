@@ -1,6 +1,5 @@
-import { EFFECT_SPECIES_KINDS } from '#packages/processes';
 import { operationKindOf } from '#packages/cts';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { formatProcessType } from '#packages/processes';
 import { formatPreviewItem, formatPreviewItems, formatPreviewPath } from '~/utils/processDesignerChannelOutputs.js';
 
@@ -17,7 +16,7 @@ export function visiblePreviewOutputs(evaluation = {}, definition = {}) {
   for (const [id, node] of Object.entries(evaluation.nodes || {})) {
     if (records[recordOfNode.get(String(id)) || '']?.previewVisible !== false) {
       nodes[id] = node;
-    } else if (node.error) {
+    } else if (node.error || Object.keys(node.inputs || {}).length) {
       nodes[id] = { ...node, outputs: {} };
     }
   }
@@ -31,11 +30,9 @@ export function useProcessDesignerPreview({
   t,
   validation,
   selectedNode,
-  selectedNodeId,
   selectedProcessNode,
-  processNodeOutputs,
-  persistence,
-  serializeProcess,
+  processNodeInputs = () => [],
+  processNodeOutputs = () => [],
   nodes,
   edges,
   selectNode,
@@ -43,9 +40,6 @@ export function useProcessDesignerPreview({
   frameNodeIds = () => {},
   graphEvaluation = { value: null }
 } = {}) {
-  const dataflowPreview = ref(null);
-  const previewingData = ref(false);
-
   const validationDiffLines = computed(() => {
     const diff = validation.value?.diff;
     if (!diff) return [];
@@ -84,15 +78,26 @@ export function useProcessDesignerPreview({
     return lines;
   });
 
-  const selectedNodePreview = computed(() => selectedNode.value ? dataflowPreview.value?.nodes?.[selectedNode.value.id] || null : null);
-
   // C2 live values (SPEC §28 canvas rethinking): the whole-graph channel
   // evaluation (`graphEvaluation`) is the selected node's live state —
-  // outputs render in the inspector the moment the evaluation lands,
+  // inputs and outputs render in the inspector the moment the evaluation lands,
   // without a per-node run.
   const selectedChannelNode = computed(() => selectedNode.value
     ? graphEvaluation.value?.nodes?.[selectedNode.value.id] || null
     : null);
+  const selectedChannelInputs = computed(() => {
+    const inputs = selectedChannelNode.value?.inputs || {};
+    const ports = processNodeInputs(selectedProcessNode.value || {});
+    return Object.entries(inputs).map(([id, tree]) => {
+      const port = ports.find(item => item.id === id);
+      return {
+        id,
+        label: port?.label || id,
+        type: port?.type ? formatProcessType(port.type) : '',
+        tree
+      };
+    });
+  });
   const selectedChannelOutputs = computed(() => {
     const outputs = selectedChannelNode.value?.outputs || {};
     const ports = processNodeOutputs(selectedProcessNode.value || {});
@@ -139,36 +144,8 @@ export function useProcessDesignerPreview({
   });
   const selectedNodeSupportsPreview = computed(() => {
     const kind = operationKindOf(selectedProcessNode.value || {});
-    if (kind === 'cts.service') return true;
-    return Boolean(kind && !EFFECT_SPECIES_KINDS.has(kind) && !kind.startsWith('control.'));
+    return Boolean(kind && !kind.startsWith('control.'));
   });
-  const selectedNodePreviewOutputs = computed(() => {
-    const outputs = selectedNodePreview.value?.outputs || {};
-    const ports = processNodeOutputs(selectedProcessNode.value || {});
-    return Object.entries(outputs).map(([id, tree]) => {
-      const port = ports.find(item => item.id === id);
-      return {
-        id,
-        label: port?.label || id,
-        type: port?.type ? formatProcessType(port.type) : '',
-        tree
-      };
-    });
-  });
-
-  async function previewDataflow() {
-    if (!selectedNodeSupportsPreview.value) return;
-    previewingData.value = true;
-    try {
-      const definition = serializeProcess();
-      dataflowPreview.value = await persistence.previewDraft(definition, selectedNodeId.value);
-    } catch (error) {
-      dataflowPreview.value = { nodes: { [selectedNodeId.value]: { error: error?.data?.message || error.message } } };
-    } finally {
-      previewingData.value = false;
-    }
-  }
-
   // Apply focus: the first structured diagnostic with a graph anchor selects
   // the responsible node or edge and frames it into view, so the author
   // lands on the exact element even in a large graph.
@@ -197,17 +174,13 @@ export function useProcessDesignerPreview({
   }
 
   return {
-    dataflowPreview,
-    previewingData,
     validationDiffLines,
-    selectedNodePreview,
     selectedChannelNode,
+    selectedChannelInputs,
     selectedChannelOutputs,
     selectedNodeSupportsPreview,
-    selectedNodePreviewOutputs,
     nodeDiagnosticIndex,
     nodeDiagnostics,
-    previewDataflow,
     formatPreviewPath,
     formatPreviewItem,
     formatPreviewItems,

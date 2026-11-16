@@ -154,7 +154,8 @@ canvas; sockets are generous targets with hover glow.
   (content width was already law). Completed 2026-11-16: typed fallback
   editors and inline operation/literal configuration have been removed
   from cards; authoring lives in the inspector. A source-boundary test
-  prevents those controls from returning.
+  in `components/process-designer/ProcessNode.spec.js` prevents those
+  controls from returning.
 - [x] C4 Socket presentation — generous hit targets, hover grow + glow
   in the payload-family color, type hints on the rows. Landed
   2026-11-14: the handle is a 22×26 transparent target with the
@@ -166,13 +167,12 @@ canvas; sockets are generous targets with hover glow.
   (structured values via a code dialog), connected inputs and all
   outputs display their live evaluation from the channel payload; the
   per-node Inspect action and the inline fallback editor law retire.
-  Landed 2026-11-14 (live-values half): the inspector's output section
-  renders live from the whole-graph channel evaluation — the run is
-  scheduled while the inspector is open beside the preview tab, the
-  selected node's channel state and port-labeled outputs feed the
-  existing output section, and the on-demand Inspect stays as the
-  explicit re-run. Authoring displacement is complete under C1;
-  remaining: render the inspector as a floating overlay (with C3).
+  Landed 2026-11-16: connected input values and outputs now render from
+  the whole-graph channel payload; preview resolves effect inputs without
+  executing effects; structured JSON values open in a code dialog; the
+  per-node Inspect/re-run action is retired. Authoring displacement is
+  complete under C1. Remaining: render the inspector as a floating overlay
+  (with C3).
 - [ ] C3 Floating canvas chrome — the category strip (provenance
   labels, category chips) and the tool cluster ride floating
   translucent bars over a fullscreen canvas; the graph editor mount

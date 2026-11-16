@@ -55,13 +55,12 @@
           :placeholder="$t('processDesigner.inlineValue')"
           @update:model-value="value => { record.value = value; emit('sync'); }"
         />
-        <Textarea
+        <TypedValueControl
           v-else
-          :model-value="literalStructureDisplay"
-          class="w-full"
-          rows="3"
-          auto-resize
-          @update:model-value="updateLiteralStructure"
+          base="json"
+          :model-value="record.value"
+          :placeholder="$t('processDesigner.inlineValue')"
+          @update:model-value="value => { record.value = value; emit('sync'); }"
         />
       </div>
       <div v-if="isCast" class="flex flex-col gap-1">
@@ -233,12 +232,31 @@
     </Panel>
     <div v-if="preview.supported" class="flex flex-col gap-2">
       <div class="flex items-center justify-between gap-2">
-        <label>{{ $t('processDesigner.outputPreview') }}</label>
-        <Button icon="pi pi-refresh" :label="$t('processDesigner.refreshPreview')" size="small" text :loading="preview.running" @click="$emit('run-preview')" />
+        <label>{{ $t('processDesigner.liveInputs') }}</label>
+        <span v-if="preview.running" class="text-muted">{{ $t('processDesigner.previewRunning') }}</span>
       </div>
-      <Message v-if="preview.state?.error" severity="error">{{ preview.state.error }}</Message>
+      <Message v-if="preview.error || preview.state?.error" severity="error">{{ preview.error || preview.state?.error }}</Message>
       <Message v-else-if="!preview.state" severity="secondary">{{ $t('processDesigner.previewHint') }}</Message>
       <div v-else class="flex flex-col gap-2">
+        <section v-for="input in preview.inputs" :key="input.id" class="rounded-ui bg-subtle p-2 text-supporting">
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <span class="flex min-w-0 items-baseline gap-2">
+              <strong class="truncate">{{ input.label }}</strong>
+              <span v-if="input.type" class="shrink-0 text-muted">{{ input.type }}</span>
+            </span>
+            <span class="text-muted">{{ $t('processDesigner.previewCounts', { branches: input.tree.branchCount, items: input.tree.itemCount }) }}</span>
+          </div>
+          <div v-for="branch in input.tree.branches" :key="branch.path.join(';')" class="mb-1 flex gap-2 last:mb-0">
+            <code class="shrink-0 text-muted">{{ formatPreviewPath(branch.path) }}</code>
+            <code class="min-w-0 flex-1 whitespace-pre-wrap break-all">{{ formatPreviewItems(branch.items) }}</code>
+          </div>
+          <div v-if="input.tree.truncated" class="mt-1 text-muted">{{ $t('processDesigner.previewTruncated') }}</div>
+        </section>
+      </div>
+      <div class="flex items-center justify-between gap-2">
+        <label>{{ $t('processDesigner.outputPreview') }}</label>
+      </div>
+      <div v-if="preview.outputs?.length" class="flex flex-col gap-2">
         <section v-for="output in preview.outputs" :key="output.id" class="rounded-ui bg-subtle p-2 text-supporting">
           <div class="mb-2 flex items-center justify-between gap-2">
             <span class="flex min-w-0 items-baseline gap-2">
@@ -435,7 +453,6 @@ import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Panel from 'primevue/panel';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Tag from 'primevue/tag';
-import Textarea from 'primevue/textarea';
 import TypedValueControl from '~/components/process-designer/TypedValueControl.vue';
 import { useI18n } from 'vue-i18n';
 
@@ -467,7 +484,7 @@ const props = defineProps({
   inputs: { type: Array, default: () => [] },
   operationOptions: { type: Array, default: () => [] },
   statusOptions: { type: Array, default: () => [] },
-  preview: { type: Object, default: () => ({ supported: false, running: false, state: null, outputs: [] }) },
+  preview: { type: Object, default: () => ({ supported: false, running: false, state: null, inputs: [], outputs: [], error: '' }) },
   formatPreviewPath: { type: Function, required: true },
   formatPreviewItems: { type: Function, required: true }
 });
@@ -476,7 +493,6 @@ const emit = defineEmits([
   'sync',
   'update-grant-level',
   'update-construction-mode',
-  'run-preview',
   'create-command-service',
   'remove-command-service'
 ]);
@@ -504,12 +520,6 @@ const editableInputs = computed(() => props.inputs.filter(input => (
   && ['string', 'id', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'status', 'entityRef'].includes(input.base)
   && (input.access === 'item' || (input.access === 'list' && MAPPED_MUTATION_SPECIES_KINDS.has(op.value)))
 )));
-const literalStructureDisplay = computed(() => (
-  typeof props.record.value === 'string'
-    ? props.record.value
-    : JSON.stringify(props.record.value, null, 2)
-));
-
 function inputDefault(id) {
   const value = props.record.inputDefaults?.[id];
   return value?.branches ? value.branches[0]?.items?.[0] : value;
@@ -546,14 +556,6 @@ function setLiteralBase(base) {
 function setLiteralTypeId(value) {
   props.record.typeId = value || '';
   props.record.type = { ...(props.record.type || {}), typeId: value || '' };
-  emit('sync');
-}
-function updateLiteralStructure(value) {
-  try {
-    props.record.value = JSON.parse(value);
-  } catch {
-    props.record.value = value;
-  }
   emit('sync');
 }
 

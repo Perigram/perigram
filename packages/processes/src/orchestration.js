@@ -64,8 +64,28 @@ export async function previewProcessDataflow(definition, sample = {}, environmen
     if (!record || record.kind.startsWith('control.')) continue;
     if (isEffectRecord(record) && !(record.kind === 'cts.service' && typeof environment.previewService === 'function')) continue;
     const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
+    const inputs = {};
     const outputs = {};
     let error = null;
+    try {
+      const resolvedInputs = await resolveNodeInputs(process, node, run, environment, tokenContext);
+      for (const [id, tree] of Object.entries(resolvedInputs)) {
+        inputs[id] = previewTree(tree, environment.previewLimit);
+      }
+    } catch (cause) {
+      error ||= cause.message;
+    }
+
+    // Effects are never executed by preview, but their resolved data inputs
+    // are still useful authoring feedback. Value services opt into preview
+    // only when the host explicitly supplies the preview service channel.
+    const previewServiceAvailable = record.kind === 'cts.service'
+      && typeof environment.previewService === 'function';
+    if (isEffectRecord(record) && !previewServiceAvailable) {
+      nodes[node.id] = { inputs, ...(error ? { error } : {}) };
+      continue;
+    }
+
     for (const port of ports.outputs.filter(item => item.role === 'data')) {
       try {
         const tree = await evaluateNodeOutput(process, node.id, port.id, run, environment, tokenContext, new Set());
@@ -74,7 +94,7 @@ export async function previewProcessDataflow(definition, sample = {}, environmen
         error ||= cause.message;
       }
     }
-    nodes[node.id] = { outputs, ...(error ? { error } : {}) };
+    nodes[node.id] = { inputs, outputs, ...(error ? { error } : {}) };
   }
   return { nodes };
 }
