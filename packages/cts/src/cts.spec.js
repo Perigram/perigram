@@ -250,7 +250,7 @@ describe('class obligations (R6)', () => {
       }
     });
     expect(registry.compile().errors).toContainEqual(
-      expect.stringMatching(/bad-nested-predicate: fields.owner where \\(target account\\): exists body must be boolean, got number/));
+      expect.stringMatching(/bad-nested-predicate: fields.owner where \(target account\): exists body must be boolean, got number/));
 
     registry.defineType({
       id: 'bad-root-predicate', class: 'item', scope: 'system',
@@ -258,7 +258,7 @@ describe('class obligations (R6)', () => {
         code: { base: 'string', identifier: true }, owner: { base: 'ref', accepts: ['user'], where: { op: 'lit', value: 7 } } }
     });
     expect(registry.compile().errors).toContainEqual(
-      expect.stringMatching(/bad-root-predicate: fields.owner where \\(target user\\): predicate must be boolean, got number/));
+      expect.stringMatching(/bad-root-predicate: fields.owner where \(target user\): predicate must be boolean, got number/));
 
     registry.defineType({
       id: 'bad-typed-order', class: 'item', scope: 'system',
