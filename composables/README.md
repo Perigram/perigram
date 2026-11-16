@@ -45,10 +45,15 @@ version and declared runtime version. `execute(binding, runtime, operationId,
 input, options)` dispatches only operations declaring browser support.
 `loadProviders(binding, runtime)` reads structured-cloneable provider
 metadata returned by the Worker and wraps provider execution with Worker RPC.
-Each invocation supplies its declared capability allowlist; host handlers
-run on the main thread and receive the plugin, version, operation, and
-cancellation context. Browser capability calls use the authenticated
-read-only organization capability route. `dispose()` terminates the composable's workers.
+A provider's `previewRenderers` map binds renderer ids to the install's
+declared preview surface ids; the composable resolves them against the
+organization runtime binding and returns the host-owned module descriptors
+for the graph preview rail. Renderer components load through the read-only
+surface mount, while only renderer ids cross the Worker boundary. Each
+invocation supplies its declared capability allowlist; host handlers run on
+the main thread and receive the plugin, version, operation, and cancellation
+context. Browser capability calls use the authenticated read-only
+organization capability route. `dispose()` terminates the composable's workers.
 
 The Worker module contract lives in
 [plugin-sdk](../packages/plugin-sdk/README.md) → managed runtime module.

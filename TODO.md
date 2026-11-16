@@ -46,8 +46,9 @@ integration waits for the owner's completion of build123d-flow.
   bindings and provider metadata is returned from inside the Worker. Browser
   capabilities use an authenticated, read-only host route; operation
   declarations are checked again by the host. Node capability ids now require
-  qualified, unique names. Custom preview renderer module wiring and
-  end-to-end graph preview tests remain.
+  qualified, unique names. Custom preview renderer ids now resolve to
+  declared preview surfaces through the host mount contract; end-to-end graph
+  preview tests remain.
 - [ ] Implement the platform-managed server runtime: shared scheduling,
   isolated runtime pools, package loading by organization/version, resource
   limits, network/filesystem policy, and validated result/effect commits.
@@ -503,9 +504,11 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   component-level tests for async catalog, revision hydration, and save lifecycle.
 - [ ] G4 Procedural preview — core evaluator and process adapter are wired
   to the editor preview panel; JSON input-binding controls are implemented
-  and boundary defaults are consumed by the evaluator. Remaining:
-  renderer/channel hosting, plugin provider discovery/execution bindings,
-  and robust per-node diagnostics. Preview remains read-only.
+  and boundary defaults are consumed by the evaluator. Browser runtime
+  provider discovery/execution bindings now resolve worker renderer ids to
+  declared preview surfaces and mount them through the read-only host.
+  Remaining: end-to-end graph preview tests and robust per-node diagnostics.
+  Preview remains read-only.
 - [ ] - [ ] G5 Commit, Bake, and Export — page-file Bake is implemented in the
   graph-executions service and exposed through its explicit API route; Export
   returns a selected output as a download and records a `procedural-export`

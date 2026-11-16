@@ -54,6 +54,10 @@ describe('provider-neutral node contract', () => {
       provider: 'plugin.example', definitions: [candidate], execute: () => ({}),
       previewRenderers: { mesh: surface }
     }).previewRenderers.mesh).toEqual(surface);
+    expect(() => normalizeNodeProvider({
+      provider: 'plugin.example', definitions: [candidate], execute: () => ({}),
+      previewRenderers: { mesh: 'Mesh Preview' }
+    })).toThrow(/preview surface ids/);
   });
 
   it('normalizes and freezes a provider-qualified operation definition', () => {
