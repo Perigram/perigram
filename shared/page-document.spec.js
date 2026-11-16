@@ -30,7 +30,8 @@ describe('page document', () => {
         name: 'part.glb',
         mime: 'model/gltf-binary',
         size: 120,
-        revision: 2
+        revision: 2,
+        history: []
       }
     }]);
   });
