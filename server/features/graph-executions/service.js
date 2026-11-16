@@ -381,11 +381,17 @@ export async function commitProposal({ graphDocumentInstanceId, record: value, p
   if (!typeId || !instanceId || !expectedRevision || !patch || typeof patch !== 'object' || Array.isArray(patch)) {
     throw createError({ statusCode: 400, message: 'Commit proposal requires a type, instance, expected revision, and patch' });
   }
+  const fieldKeys = patch.fields && typeof patch.fields === 'object' && !Array.isArray(patch.fields)
+    ? Object.keys(patch.fields)
+    : [];
   if (Object.keys(patch).some(key => !['name', 'fields'].includes(key))
     || (patch.fields != null && (typeof patch.fields !== 'object' || Array.isArray(patch.fields)))
     || (!Object.hasOwn(patch, 'name') && !Object.hasOwn(patch, 'fields'))
-    || (patch.fields && Object.keys(patch.fields).length === 0 && !Object.hasOwn(patch, 'name'))) {
-    throw createError({ statusCode: 400, message: 'Commit patch supports only a name and declared fields' });
+    || (fieldKeys.length === 0 && !Object.hasOwn(patch, 'name'))
+    || fieldKeys.some(key => !/^[A-Za-z][A-Za-z0-9_-]{0,127}$/.test(key)
+      || ['__proto__', 'prototype', 'constructor'].includes(key))
+    || (Object.hasOwn(patch, 'name') && typeof patch.name !== 'string')) {
+    throw createError({ statusCode: 400, message: 'Commit patch supports a string name and declared flat field ids only' });
   }
 
   const instances = preview.readSet?.instances || [];
