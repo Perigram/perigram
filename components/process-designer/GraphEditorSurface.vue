@@ -239,6 +239,15 @@ async function loadGraphDocument() {
 
 async function saveGraphDocument() {
   if (saving.value || readOnly.value) return;
+  if (!validation.value.ok) {
+    toast.add({
+      severity: 'error',
+      summary: t('processDesigner.invalidGraphPayload'),
+      detail: validation.value.errors.join('; '),
+      life: 6000
+    });
+    return;
+  }
   saving.value = true;
   try {
     const name = String(recordName.value || props.record?.name || 'graph').trim() || 'graph';
