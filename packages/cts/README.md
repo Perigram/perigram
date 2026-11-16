@@ -72,7 +72,9 @@ modules onto its sections.
   unresolvable children.
 Authored instance-scoped `constraints` compile against the composed typed
 view; `validateConstraints` evaluates them with asynchronous collection
-resolvers. Authoritative write-boundary enforcement is tracked separately.
+resolvers. The generic instance service enforces declared constraints on
+generic creation, constrained field updates, and re-derive; the state-machine
+adapter delegates flat CTS transition candidates to that same validator.
 - `render.js` — display-policy derivation and `compileClientBundle()`,
   the single frontend/designer consumption contract. Naming is authored
   vocabulary (SPEC §4); everything else derives — `glyph`, `depiction`,

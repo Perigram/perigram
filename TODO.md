@@ -390,8 +390,9 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   socket cards, graph inspector, Graph Input/Output, dedicated Use Graph
   palette group, and editable boundary semantic/transport/default
   declarations and pinned Use Graph interface hydration from an exact
-  graph revision are wired. Remaining: graph-document discovery UI and
-  comprehensive editor/session interaction tests.
+  graph revision are wired. The organization graph catalog and historical
+  revision picker feed both the inspector and Use Graph palette. Remaining:
+  component-level tests for async catalog, revision hydration, and save lifecycle.
 - [ ] G4 Procedural preview — core evaluator and process adapter are wired
   to the editor preview panel; JSON input-binding controls are implemented
   and boundary defaults are consumed by the evaluator. Remaining:
@@ -401,12 +402,17 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   Bake materializes a selected output to an explicit destination; Export
   creates an external/download result. Each records graph revision,
   execution provenance, and destination.
-- [ ] G6 Organization-data consistency — typed CTS queries, organization
-  data revisions, consistent snapshots where supported, exact execution
-  read sets, and pre-commit validation of affected data and relations.
-- [ ] G7 Constraints — one declarative typed constraint language covers
-  scalar predicates, nested relation traversal, quantifiers, cardinality,
-  aggregates, uniqueness, and concurrency enforcement.
+- [ ] G6 Organization-data consistency — bounded typed CTS queries now
+  support exact-instance detail reads and sequence-bracketed execution read
+  sets. Remaining: durable per-instance revisions, consistent database
+  snapshots where supported, and pre-commit validation of affected data
+  and relations.
+- [ ] G7 Constraints — the typed boolean AST now checks nested
+  relation/containment traversal, finite quantifiers, aggregate result types,
+  and boolean predicate results. Enforcement covers generic creation,
+  constrained updates, re-derive, and flat CTS lifecycle transitions.
+  Remaining: every import/relationship write boundary, explicit
+  uniqueness/cardinality semantics, and cross-record concurrency guarantees.
 - [ ] G8 Typed references and embeds — live and pinned references,
   saved-query/graph-output collection embeds, and derived backlinks.
 - [ ] G9 Procedural vertical slices — document/data and geometry workflows
