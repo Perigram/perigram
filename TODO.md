@@ -366,88 +366,69 @@ deployment.
   be all-included on install. SPEC §20 amended with the client-carried
   hosting mode; slices E1–E6 recorded above.
 
-## Graph documents — callable graph instances (SPEC §28 amendment, owner direction 2026-11-13)
+## Unified node graph system (SPEC §28, owner decisions 2026-11-16)
 
-Composition leaves the process-definition container: a graph is an
-instance of one platform type (semantic records as a JSON payload), the
-same canvas and CTS type system author it wherever it opens, graphs call
-graphs through authored typed bindings, and computed artifacts persist
-into instances procedurally (effects/constructs; value services stay
-pure compute).
+Graphs are organization-owned versioned programs in the canonical
+`perigram.graph` JSON format. The procedural profile is the first
+execution target; the process profile migrates after that foundation
+is proven. Package ownership and migration sequence are in root SPEC §28.
 
-- [x] G0 Canvas interaction model (build123d-flow): the dock — a
-  canvas-top category strip (provenance groups as labels, category
-  chips) opening the popover palette with search over the full catalog;
-  the card headers — palette section label, collapse chevron, collapsed
-  cards dock their sockets to the card edges; the per-node header eye
-  landed 2026-11-13. The workspace toolbar moved to the bottom line
-  (`components/shared/README.md`), freeing the top for the dock.
-- [ ] WAITING — owner verification: G0 — the dock strip lists plugin
-  sections above platform categories, a chip opens the popover, an
-  empty query lists the section while a query spans the full catalog,
-  picking places the node at the visible center; operation cards carry
-  the section label above the node label, the chevron and H collapse
-  the card with handles docked left/right, and the collapse persists
-  through save/reload.
-- [x] G1a Graph document type — the platform `graph-document` file type
-  (JSON payload, upload creation, content revisions) compiles in every
-  registry view and projects as an authorable instance; graph documents
-  are creatable, referenceable, and payload-carrying today.
-- [x] G1b Canvas session extraction — the shared graph core moves from
-  `pages/organization/process.vue` into one session composable (nodes,
-  records, enrichment, sync, decorators, connect, placement, palettes,
-  declaration diagnostics; the declaration-factory literal deduped out
-  of the page and the spec harnesses); the process page consumes it
-  unchanged in behavior. Landed 2026-11-14:
-  `composables/useProcessDesignerGraphSession.js` — the page composes it
-  with lane seeding and the process plane stays page-owned; behavior
-  guarded by the full suites and the process-page SSR smoke (the page
-  carries no unit spec of its own).
-- [x] G1c Graph editor surface — the session composable mounts inside
-  the platform file-surface registry (`fileSurfaceRegistry` plus the
-  `graph-document` editor binding, creation protocol 'editor'), with
-  payload load/save through `instancePayloadPersistence` and the
-  workspace editor chrome (blank open, write-grant mode). Landed
-  2026-11-14: `components/process-designer/GraphEditorSurface.vue`
-  registered as surface id `graph-editor`; the canvas presentation
-  (`GraphCanvas.vue`), inspector body (`GraphInspector.vue`), and
-  channel-tab strip (`GraphPreviewPanel.vue`) extract from the process
-  page, which keeps its process plane unchanged in behavior.
-- [ ] WAITING — owner verification: G1c — a `graph-document` opens as
-  the graph canvas editor (pane tab and record document), authors and
-  saves its payload with revisions, the create button opens the blank
-  editor whose first save creates the instance, and a read grant
-  renders the canvas alone.
-- [ ] WAITING — owner verification: G1b — the process designer behaves
-  as before over the session composable: authoring, wiring, live
-  re-binding, palettes, diagnostics, save/apply all stand (full suites
-  814 ✓, SSR smoke 27 ✓ on the session refactor).
-- [ ] WAITING — owner verification: G1a — a `graph-document` instance
-  creates from its class collection with an uploaded JSON payload, keeps
-  content revisions per payload save, and serves as a ref target for
-  other types' fields.
-- [ ] G2 Typed bindings — a graph authors input/output bindings (name,
-  CTS type / value kind); the binding contract validates with the draft.
-- [ ] G3 Graph-as-node — a graph instance referenced in another graph
-  exposes its bindings as the node's sockets; preview evaluation composes
-  graphs through the one dataflow evaluator; a process graph consumes
-  the outputs like any producer.
-- [ ] G4 Shape viewport — the build123d listing declares its preview
-  channel and serves the viewport surface; every evaluated shape previews
-  (per-output visibility already law).
-- [ ] G5 Procedural persistence — effects/constructs that write computed
-  values into file instances (STEP shape → `b3d-part`, rendered PDF →
-  the documents file types); value services stay pure compute.
-- [x] Built-in outputs channel (owner direction 2026-11-14: graphs must
-  show what they produce) — the preview tab always renders, carrying the
-  platform channel that lists every visible evaluated output (node and
-  socket labels, branch paths, sampled items) beside the served plugin
-  channels.
-- [ ] WAITING — owner verification: built-in outputs channel — the
-  preview tab opens on any graph (no plugin channels installed), every
-  visible node's outputs render under their card labels, the eye removes
-  a node's outputs from the channel while keeping its error, and a
-  plugin channel (documents `report`) sections beside it.
+- [x] G0 Shared canvas interaction model — canvas-top palette dock,
+  collapsed socket rails, per-node preview visibility, selection actions,
+  and whole-graph output channel.
+- [x] G1 Resource and surface scaffolding — the `graph-document` file
+  type, content revisions, editor surface registry, shared canvas
+  presentation, and payload persistence.
+- [ ] WAITING — owner verification: G1 resource creation, payload revision
+  behavior, record/pane editor mounts, and read-grant presentation.
+- [ ] G2 Canonical graph foundation — `packages/core` owns the versioned
+  graph document codec, validation, boundary operations, and procedural
+  preview evaluator; `packages/plugin-sdk` owns normalized provider node
+  definitions and exact-version registration; `packages/processes`
+  contributes preview-safe data operations through its provider adapter.
+  Implementation files and focused tests have landed on `staging`;
+  CI validation is pending.
+- [ ] G3 Canonical graph editor — `GraphEditorSurface` loads, edits, and
+  saves canonical graph documents directly. Node cards, sockets, inspector,
+  palette, and edge projection derive from provider definitions. Graph
+  Input and Graph Output are first-class boundary nodes; Use Graph has its
+  own palette group and pins a graph revision.
+- [ ] G4 Procedural preview — editor preview evaluates the canonical graph
+  through the provider registry, returns per-node outputs and diagnostics,
+  and mounts platform/plugin preview channels. Preview remains read-only.
+- [ ] G5 Commit, Bake, and Export — Commit applies an approved proposal;
+  Bake materializes a selected output to an explicit destination; Export
+  creates an external/download result. Each records graph revision,
+  execution provenance, and destination.
+- [ ] G6 Organization-data consistency — typed CTS queries, organization
+  data revisions, consistent snapshots where supported, exact execution
+  read sets, and pre-commit validation of affected data and relations.
+- [ ] G7 Constraints — one declarative typed constraint language covers
+  scalar predicates, nested relation traversal, quantifiers, cardinality,
+  aggregates, uniqueness, and concurrency enforcement.
+- [ ] G8 Typed references and embeds — live and pinned references,
+  saved-query/graph-output collection embeds, and derived backlinks.
+- [ ] G9 Procedural vertical slices — document/data and geometry workflows
+  exercise provider registration, preview, Commit/Bake, and provenance.
+- [ ] G10 Process migration — inventory all stored process graphs, produce
+  a deterministic migration with dry-run report and recovery path, cut over
+  all records, verify semantics and authorization, then remove the old
+  runtime format.
+
+### Agent Notes (2026-11-16, staging)
+
+- Added the core graph document codec, structural validator, preview-only
+  evaluator, Graph Input/Output and pinned Use Graph semantics, and focused
+  core tests.
+- Added the browser-safe SDK node-definition contract, exact-version
+  provider registry, and focused SDK tests.
+- Added the process data-operation provider adapter and its end-to-end test.
+- Updated package ownership and contract READMEs before adding code.
+- The canonical graph editor integration remains open. The current
+  `GraphEditorSurface` still serializes the process-definition record
+  shape; the next implementation step is its direct canonical-document
+  authoring path.
+- The latest staging CI run is pending. No test or guard result is claimed.
 
 ### Agent Notes (2026-11-14, agent/outputs-channel-20261114)
 
