@@ -3486,6 +3486,11 @@
     "graphInputValues": "Входы графа",
     "applyGraphInput": "Применить вход",
     "graphInterfaceDeclaration": "Объявление интерфейса (JSON)",
+    "graphDocumentSource": "Сохранённый граф",
+    "selectGraphDocument": "Выберите граф",
+    "pinGraphRevision": "Закрепить выбранную версию",
+    "graphPinned": "Версия графа закреплена",
+    "graphUnavailable": "Не удалось загрузить граф",
     "graphApplyInterfaceDeclaration": "Применить объявление интерфейса"
   },
   "generatedScreen": {
