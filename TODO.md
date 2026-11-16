@@ -514,11 +514,12 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   returns a selected output as a download and records a `procedural-export`
   execution. The first Commit adapter applies one exact-instance CTS
   name/field patch through the authorized instance service with an expected
-  revision, after validating the preview read set; it records a
-  `procedural-commit` execution. Remaining: transactionally couple the write
-  and evidence record, define recovery for evidence-write failure, and complete
-  the other declared Bake destinations (instance attachment and explicitly
-  typed new instance).
+  revision, after validating the preview read set. The instance mutation and
+  `procedural-commit` evidence now persist in one Mongo snapshot transaction;
+  a stable organization sequence is reserved by compare-and-swap. Transaction
+  support is required and unsupported deployments fail before writes.
+  Remaining: complete the other declared Bake destinations (instance
+  attachment and explicitly typed new instance).
 - [ ] G6 Organization-data consistency — bounded typed CTS queries now
   support exact-instance detail reads, Mongo snapshot transactions where
   supported, sequence-bracketed fallback, and execution read sets that merge
@@ -532,9 +533,11 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   precondition. Focused stale-revision and concurrent-write regression tests
   were added. The first graph Commit adapter now forwards the preview's
   expected revision through this same boundary and revalidates its read set
-  before writing. Remaining: verify the deployment-run revision backfill, transactionally
-  validate query/range dependencies with multi-object writes, and close the
-  Commit evidence/recovery gap.
+  before writing. Commit revalidation, target mutation, and evidence now share
+  one snapshot transaction; the organization sequence fence rejects writes
+  that race the preview. Remaining: verify the deployment-run revision
+  backfill and extend transactional query/range validation to multi-object
+  writes.
 - [ ] G7 Constraints — the typed boolean AST checks nested
   relation/containment traversal, finite quantifiers, aggregate result types,
   and boolean predicate results. Enforcement covers generic creation,
@@ -559,6 +562,12 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   all records, verify semantics and authorization, then remove the old
   runtime format.
 
+### Agent Notes (2026-11-17, atomic graph Commit)
+
+- The `commitProposal` and `commitOutput` paths revalidate the saved graph and preview read set, apply the authorized exact-instance patch, and insert the append-only `graph-execution` evidence inside one Mongo snapshot transaction.
+- The instance repository and generic instance service propagate the transaction session through reads, constraint resolution, revision compare-and-swap, organization sequence reservation, and writes. A stable preview organization sequence is reserved with a zero-pending compare-and-swap before the target mutation. The execution record advances the same sequence inside the transaction.
+- Mongo transaction support is a commit prerequisite. Unsupported deployments receive `503` before mutation; evidence-write failures abort the instance write with the transaction.
+- Regression coverage verifies the session is shared by the patch and evidence insert, the expected sequence reaches the write boundary, and the sequence reservation rejects stale previews. CI passed the full Vitest, SSR, architecture, framework, documentation, operational-script, and plugin-dependency checks.
 ### Agent Notes (2026-11-16, CTS relation write validation)
 
 - Explicit relation edges now normalize `cardinality` to `one | many` (default `many`). Generic instance creates and internal relation updates validate declared relation slots, typed targets, cardinality shape, duplicate refs, same-organization/system tenancy, and target-domain `where` predicates. Nested relation/containment predicates use the bounded async CTS evaluator and a recursion guard. Generic HTTP PATCH still refuses structural relation writes; this validation protects internal construct/process paths that do write them.
@@ -569,8 +578,8 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
 - Explicit relation-edge cardinality is normalized in `@perigram/cts` and rejects values outside `one | many`; field refs/lists retain their schema-derived one/many shape.
 - Generic create and process-update relation writes resolve declared typed targets, enforce tenant/system scope, reject duplicate refs and invalid one/many shapes, and evaluate target-domain expressions with the bounded async evaluator.
 - Construction lineage now resolves only declared parent types, validates parent scope/existence, and allows authored ancestor axes only when they are present on the validated parent's lineage. Internal process-update lineage writes reject undeclared keys and unresolved parents. The storage boundary ignores `lineage.organizationId`; organization ownership remains the top-level §3 slot.
-- Regression coverage added for cardinality, target type/domain, cross-organization refs, undeclared lineage keys, and missing parents. CI for the structural-edge fixture correction passed the complete Vitest and SSR suites; the subsequent tenancy-slot cleanup is awaiting its own workflow.
-- Open G7 work: import/direct repository and dedicated link/unlink paths need an audit; cross-record aggregate/cardinality constraints need serialized enforcement.
+- Regression coverage covers cardinality, target type/domain, cross-organization refs, undeclared lineage keys, missing parents, duplicate refs, scalar lineage storage, and tenancy-slot isolation. The structural-edge suite passed 291 Vitest files / 2,984 tests plus SSR, architecture, framework, documentation, and plugin-dependency checks.
+- Open G7 work: audit import/direct repository and dedicated link/unlink paths; serialize cross-record aggregate/cardinality constraints.
 ### Agent Notes (2026-11-16, deployment migration wiring)
 
 - `scripts/deploy.sh` now runs the instance-revision backfill and organization-owned plugin-asset migration after the updated app starts. It runs them from the standalone `perigram-seed` image, whose dependency closure now includes the CTS package import map, server DB/utils/features, MongoDB, Winston, and H3; this avoids relying on Nuxt aliases or source trees absent from the app runtime image. The deploy script's executable mode remains `100755`.
