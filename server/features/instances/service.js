@@ -21,7 +21,6 @@ import * as instanceRevisionsService from '../instance-revisions/service.js';
 import * as entityEventService from '../instance-events/service.js';
 import { getOrganizationChangeSequence, recordOrganizationChange, runOrganizationChange, withOrganizationChangeSequence } from './organization-sequence.js';
 export { getOrganizationChangeSequence, recordOrganizationChange, runOrganizationChange, withOrganizationChangeSequence };
-export { getOrganizationChangeSequence, recordOrganizationChange, withOrganizationChangeSequence };
 import { hasInstanceAccess } from '../../core/access/service.js';
 import { appendFieldChangeEvent, appendPayloadRevisionEvent, buildEventActor } from '../../core/machines/service.js';
 import { resolveActiveWorkflow } from '../workflow-overrides/service.js';
