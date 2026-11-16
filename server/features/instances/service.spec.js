@@ -327,6 +327,15 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.find.mock.calls[0][0].type).toBe('panel');
   });
 
+  it('orders equal creation timestamps by stable instance identity', async () => {
+    const coll = stubCollection();
+    const sort = vi.fn(() => ({ limit: () => ({ toArray: async () => [] }) }));
+    coll.find.mockReturnValue({ sort });
+    const service = instanceServiceResolver('panel');
+    await service.processList({}, { userId: 'user-1', organizationId: 'org-1' });
+    expect(sort).toHaveBeenCalledWith({ createdAt: -1, _id: -1 });
+  });
+
   it('filters process entity lookups through the compiled read grant', async () => {
     const coll = stubCollection();
     coll.findOne.mockResolvedValue({
