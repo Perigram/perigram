@@ -22,7 +22,7 @@ export {
   OPERATOR_SPECIES, normalizeOperator
 } from './operators.js';
 export {
-  evaluate, checkMatch, MAX_STEPS
+  evaluate, checkMatch, checkBooleanExpression, MAX_STEPS
 } from './expressions.js';
 export {
   diffTypes, requireCompatible, normalizeMigrateSteps, planTypeMigration
