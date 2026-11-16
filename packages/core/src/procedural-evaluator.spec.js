@@ -60,7 +60,10 @@ describe('procedural graph preview evaluator', () => {
       executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
     });
     expect(resolveNodeDefinition).toHaveBeenCalledTimes(1);
-    expect(resolveNodeDefinition).toHaveBeenCalledWith({ provider: 'plugin.math', id: 'double', version: '1' });
+    expect(resolveNodeDefinition).toHaveBeenCalledWith(
+      { provider: 'plugin.math', id: 'double', version: '1' },
+      expect.objectContaining({ node: expect.objectContaining({ id: 'double' }), config: {} })
+    );
   });
 
   it('refuses missing required graph inputs', async () => {
