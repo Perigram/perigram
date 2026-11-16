@@ -117,33 +117,6 @@ function normalizeOutputFilename(value, fallback, extension) {
   return filename;
 }
 
-export async function queryOrganizationData(query = {}, auth = {}) {^_.+-]+\/[a-z0-9!#export async function queryOrganizationData(query = {}, auth = {}) {^_.+-]+(?:\s*;\s*charset=[a-z0-9._-]+)?$/i.test(mime)
-    ? mime
-    : 'application/octet-stream';
-}
-
-function outputExtension(mimeType) {
-  const mime = String(mimeType).split(';', 1)[0].toLowerCase();
-  if (mime === 'text/plain') return '.txt';
-  if (mime === 'application/json' || mime.endsWith('+json')) return '.json';
-  if (mime === 'image/png') return '.png';
-  if (mime === 'image/jpeg') return '.jpg';
-  if (mime === 'image/svg+xml') return '.svg';
-  if (mime === 'application/pdf') return '.pdf';
-  return '.bin';
-}
-
-function normalizeOutputFilename(value, fallback, extension) {
-  let filename = String(value || fallback)
-    .replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, '-')
-    .replace(/^\.+/, '')
-    .trim()
-    .slice(0, 180);
-  if (!filename) filename = fallback;
-  if (!/\.[a-z0-9]{1,10}$/i.test(filename)) filename += extension;
-  return filename;
-}
-
 export async function queryOrganizationData(query = {}, auth = {}) {
   const typeId = String(query.typeId || '').trim();
   if (!typeId) throw createError({ statusCode: 400, message: 'A CTS typeId is required' });
