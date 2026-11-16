@@ -43,8 +43,8 @@ The current graph is excluded from its own palette.
 `usePluginRuntime()` owns dedicated Workers keyed by installed plugin
 version and declared runtime version. `execute(binding, runtime, operationId,
 input, options)` dispatches only operations declaring browser support.
-`loadProviders(binding, runtime, options)` loads the runtime's provider
-metadata on the host and wraps provider execution with Worker RPC.
+`loadProviders(binding, runtime, options)` reads structured-cloneable provider
+metadata returned by the Worker and wraps provider execution with Worker RPC.
 Each invocation supplies its declared capability allowlist; host handlers
 run on the main thread and receive the plugin, version, operation, and
 cancellation context. `dispose()` terminates the composable's workers.

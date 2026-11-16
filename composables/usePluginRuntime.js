@@ -35,7 +35,7 @@ export function usePluginRuntime({
     worker.onmessage = async event => {
       const message = event.data || {};
       if (message.type === 'ready') {
-        readyResolve();
+        readyResolve(message.providers || []);
         return;
       }
       if (message.type === 'runtime-error') {
@@ -94,7 +94,10 @@ export function usePluginRuntime({
     worker.postMessage({ type: 'initialize', entryUrl: runtime.entryUrl });
 
     return {
-      async invoke(operationId, input, { execution = {}, capabilities = {}, signal } = {}) {
+      async providers() {
+      return await ready;
+    },
+    async invoke(operationId, input, { execution = {}, capabilities = {}, signal } = {}) {
         if (disposed) throw new Error('Plugin runtime has been disposed');
         if (!execution.targets?.includes('browser')) {
           throw new Error(`Operation ${operationId} does not support browser execution`);
@@ -150,13 +153,9 @@ export function usePluginRuntime({
       throw new Error('Plugin runtime binding requires organizationId, pluginId, and version');
     }
     if (!runtime?.targets?.includes('browser')) return [];
-    if (!runtime.entryUrl) throw new Error(`Runtime ${runtime.id} has no served entry URL`);
-    const module = await loadModule(runtime.entryUrl);
-    const createProviders = module.createProviders;
-    const contributions = typeof createProviders === 'function'
-      ? await createProviders()
-      : (module.nodeProviders || []);
-    if (!Array.isArray(contributions)) throw new Error(`Runtime ${runtime.id} nodeProviders must be an array`);
+    const instance = runtimeFor(binding, runtime);
+    const contributions = await instance.providers();
+    if (!Array.isArray(contributions)) throw new Error(`Runtime ${runtime.id} providers must be an array`);
     return contributions.map(contribution => {
       if (!Array.isArray(contribution.definitions) || !contribution.definitions.length) {
         throw new Error(`Runtime ${runtime.id} provider ${contribution.provider} requires definitions`);
@@ -169,7 +168,6 @@ export function usePluginRuntime({
       return {
         provider: contribution.provider,
         definitions: contribution.definitions,
-        previewRenderers: contribution.previewRenderers || {},
         execute: (definition, invocation) => execute(
           binding,
           runtime,

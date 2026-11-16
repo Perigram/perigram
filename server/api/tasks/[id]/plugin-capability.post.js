@@ -43,7 +43,7 @@ export default defineEventHandler(async event => {
     const typeId = String(input.typeId || '');
     const instanceId = String(input.instanceId || '');
     if (!typeId || !instanceId) throw createError({ statusCode: 400, message: 'Instance reads require typeId and instanceId' });
-    return await graphExecutionsService.queryOrganizationData({ typeId, instanceId, projection: input.projection }, run.auth || {});
+    return await graphExecutionsService.queryOrganizationData({ typeId, instanceId, projection: input.projection }, auth);
   }
   if (name === 'organization.instances.create') {
     const typeId = String(input.typeId || '');
@@ -58,7 +58,7 @@ export default defineEventHandler(async event => {
     if (!typeId || !instanceId || !input.patch || typeof input.patch !== 'object') throw createError({ statusCode: 400, message: 'Instance update requires typeId, instanceId, and patch' });
     const instanceService = getAppRegistry().getInstanceService(typeId);
     if (typeof instanceService?.patch !== 'function') throw createError({ statusCode: 404, message: 'Instance update service is unavailable' });
-    return await instanceService.patch(instanceId, input.patch, { auth: run.auth || {}, organizationId });
+    return await instanceService.patch(instanceId, input.patch, { auth, organizationId });
   }
   if (name === 'organization.instances.delete') {
     const typeId = String(input.typeId || '');
@@ -66,7 +66,7 @@ export default defineEventHandler(async event => {
     if (!typeId || !instanceId) throw createError({ statusCode: 400, message: 'Instance deletion requires typeId and instanceId' });
     const instanceService = getAppRegistry().getInstanceService(typeId);
     if (typeof instanceService?.removeForHttp !== 'function') throw createError({ statusCode: 404, message: 'Instance delete service is unavailable' });
-    return await instanceService.removeForHttp(instanceId, { auth: run.auth || {}, organizationId });
+    return await instanceService.removeForHttp(instanceId, { auth, organizationId });
   }
   if (name === 'files.read') {
     const fileId = String(input.fileId || '');

@@ -16,7 +16,11 @@ self.onmessage = async event => {
       if (typeof runtime?.execute !== 'function') {
         throw new Error('Runtime must provide execute(operationId, input, context)');
       }
-      self.postMessage({ type: 'ready' });
+      const providers = typeof runtime.providers === 'function'
+        ? await runtime.providers()
+        : (runtime.providers || []);
+      if (!Array.isArray(providers)) throw new Error('Runtime providers must be an array of provider metadata');
+      self.postMessage({ type: 'ready', providers });
     } catch (error) {
       self.postMessage({ type: 'runtime-error', error: serializeError(error) });
     }

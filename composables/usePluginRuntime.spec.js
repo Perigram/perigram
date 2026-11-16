@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { usePluginRuntime } from './usePluginRuntime.js';
 
 class FakeWorker {
-  constructor() {
+  constructor(providers = []) {
+    this.providers = providers;
     this.messages = [];
     this.terminated = false;
   }
@@ -10,7 +11,7 @@ class FakeWorker {
   postMessage(message) {
     this.messages.push(message);
     if (message.type === 'initialize') {
-      queueMicrotask(() => this.onmessage?.({ data: { type: 'ready' } }));
+      queueMicrotask(() => this.onmessage?.({ data: { type: 'ready', providers: this.providers } }));
     }
     if (message.type === 'invoke') {
       queueMicrotask(() => this.onmessage?.({
@@ -43,19 +44,14 @@ describe('usePluginRuntime', () => {
   });
 
   it('loads provider declarations and routes provider execution through Worker RPC', async () => {
-    const worker = new FakeWorker();
-    const pluginRuntime = usePluginRuntime({
-      createWorker: () => worker,
-      loadModule: async () => ({
-        createProviders: () => [{
-          provider: 'plugin.demo',
-          definitions: [{
-            provider: 'plugin.demo', id: 'math.double', version: '1', inputs: [], outputs: [],
-            execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] }
-          }]
-        }]
-      })
-    });
+    const worker = new FakeWorker([{
+      provider: 'plugin.demo',
+      definitions: [{
+        provider: 'plugin.demo', id: 'math.double', version: '1', inputs: [], outputs: [],
+        execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] }
+      }]
+    }]);
+    const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
     const [provider] = await pluginRuntime.loadProviders(binding, runtime);
     expect(provider.provider).toBe('plugin.demo');
     await expect(provider.execute({ id: 'math.double', execution }, { input: 2 }))

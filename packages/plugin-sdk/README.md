@@ -118,10 +118,10 @@ node-provider contributions in the `@perigram/plugin-sdk/nodes` shape).
 A managed service declares `execution: { runtime, targets, kind,
 capabilities?, deterministic?, idempotent? }`. Its runtime entry module
 exports `createRuntime()` (or a default factory) returning
-`{ execute(operationId, input, { capabilities, signal }) }`. An optional
-`createProviders()` export returns provider metadata (`provider`, `definitions`,
-`previewRenderers`); each definition pins `execution.runtime` and
-`execution.targets`. The host wraps provider execution in Worker RPC.
+`{ execute(operationId, input, { capabilities, signal }) }`. The runtime factory may return a `providers` array of structured-cloneable
+provider metadata (`provider`, `definitions`). Each definition pins
+`execution.runtime` and `execution.targets`; the host wraps provider
+execution in Worker RPC. Provider metadata is produced inside the Worker.
 Capability calls use `capabilities.call(name, input)` and are mediated by the host. `runtime` references
 a declared runtime; `targets` is a non-empty subset of that runtime's
 targets; `kind` uses the graph node execution vocabulary: `pure`, `read`,
