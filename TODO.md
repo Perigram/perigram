@@ -79,10 +79,21 @@ from remaining proof and verification.
     effects, scheduled scanners, webhooks, and bootstrap writers end-to-end;
     reconcile the workflow-overrides repository's tested create/archive
     contract with its read-only public service (there is no current service
-    caller); verify specialized Page writes and machine status snapshots
-    against the generic items persistence boundary. Page writes remain owned
-    by the Page repository over `items`; lifecycle snapshots remain an
-    explicit machine-repository cross-cutting write.
+    caller). Page migration now preserves a legacy source row when its ID
+    collides with an item owned by another tenant, and deletes source rows
+    only after confirming a same-tenant canonical page (commits `93d71ad`,
+    `212a92a`). Machine transition snapshot writes now include the loaded
+    entity's tenant filter in both transactional and non-transactional
+    paths (commits `17fb85b`, `ce58efd`, `d6a9269`, `a767fcd`).
+    These changes have regression tests; their latest full CI run is pending.
+  - Newly confirmed scanner concurrency gap: the process-run scanner reads
+    due parked runs and pending events without a durable claim. The local
+    `running` flag prevents overlap only inside one process; multiple app
+    instances can resume the same run or deliver the same event concurrently.
+    A failure after some event subscribers have started also leaves the event
+    pending, so a retry can start those subscribers again. Define durable
+    leases and per-subscriber idempotency/recovery before claiming exactly-once
+    process-run or event delivery.
 - [ ] Verify package/executor contracts independently, including browser/
   Node compatibility and versioned extraction interfaces under §29.
   Current workspace manifests remain private and expose ESM entry points;
