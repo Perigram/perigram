@@ -78,8 +78,7 @@ export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
       const resolved = ast.op === 'related'
         ? resolver(owner, String(ast.key || ''), scope)
         : resolver(owner, scope);
-      if (!Array.isArray(resolved)) throw new Error(`${ast.op} resolver must return a finite array`);
-      return resolved;
+      return finiteList(resolved, ast.op);
     }
     case 'exists': case 'all': case 'none': case 'one': {
       const list = evaluate(ast.list, scope, budget);
