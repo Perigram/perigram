@@ -61,6 +61,7 @@
       <template v-if="!readOnly" #support>
         <GraphDocumentPreviewPanel
           :result="previewResult"
+          :execution="executionRecord"
           :error="previewError"
           :running="previewRunning"
           :graph="graphDocument"
@@ -120,6 +121,7 @@ const {
   graphDocument,
   validation,
   previewResult,
+  executionRecord,
   inputBindings,
   previewError,
   previewRunning,

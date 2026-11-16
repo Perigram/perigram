@@ -3496,6 +3496,7 @@
     "selectGraphRevision": "Select a revision",
     "previewRepresentations": "Preview representations",
     "openGraphArtifact": "Open artifact",
+    "previewExecution": "Preview execution",
     "selectGraphDocument": "Select a graph",
     "pinGraphRevision": "Pin selected revision",
     "graphPinned": "Graph revision pinned",

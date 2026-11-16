@@ -24,6 +24,7 @@
         option-value="_id"
         class="w-full"
       />
+      <div v-if="execution" class="text-supporting text-muted">{{ $t('processDesigner.previewExecution') }} · {{ execution.status }} · {{ execution.id }}</div>
       <div class="flex flex-wrap gap-1" role="tablist" :aria-label="$t('processDesigner.previewRepresentations')">
         <Button
           v-for="view in availableViews"
@@ -86,6 +87,7 @@ import { GRAPH_OUTPUT_OPERATION } from '@perigram/core';
 
 const props = defineProps({
   result: { type: Object, default: null },
+  execution: { type: Object, default: null },
   error: { type: String, default: '' },
   running: { type: Boolean, default: false },
   graph: { type: Object, default: () => ({}) },

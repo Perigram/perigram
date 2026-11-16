@@ -7,6 +7,7 @@ import {
   GRAPH_OUTPUT_OPERATION,
   GRAPH_INVOKE_OPERATION,
   assertValidGraphDocument,
+  createGraphExecutionRecord,
   evaluateProceduralGraph,
   normalizeGraphDocument,
   validateGraphDocument
@@ -64,6 +65,7 @@ export function useGraphDocumentSession({ t, providers = [] }) {
   const edges = ref([]);
   const validation = ref(null);
   const previewResult = ref(null);
+  const executionRecord = ref(null);
   const inputBindings = ref({});
   const previewError = ref('');
   const previewRunning = ref(false);
@@ -489,8 +491,11 @@ export function useGraphDocumentSession({ t, providers = [] }) {
   async function refreshPreview() {
     previewRunning.value = true;
     previewError.value = '';
+    executionRecord.value = null;
+    const startedAt = new Date().toISOString();
+    let graph = null;
     try {
-      const graph = serializeGraph();
+      graph = serializeGraph();
       const result = await evaluateProceduralGraph({
         graph,
         inputBindings: inputBindings.value,
@@ -502,11 +507,67 @@ export function useGraphDocumentSession({ t, providers = [] }) {
           return executor(definition, invocation);
         }
       });
+      const completedAt = new Date().toISOString();
+      executionRecord.value = createGraphExecutionRecord({
+        id: stableId('execution'),
+        graph: { id: graph.id, revision: graph.revision },
+        profile: 'procedural-preview',
+        status: 'succeeded',
+        startedAt,
+        completedAt,
+        inputs: inputBindings.value,
+        outputs: result.outputs,
+        nodeOutputs: result.nodeOutputs,
+        diagnostics: [],
+        provenance: {
+          nodes: graph.nodes.map(node => ({
+            nodeId: node.id,
+            operation: node.operation,
+            outputs: result.nodeOutputs[node.id] || {}
+          })),
+          invocations: graph.nodes
+            .filter(node => node.operation?.id === GRAPH_INVOKE_OPERATION)
+            .map(node => ({
+              nodeId: node.id,
+              graphId: node.config?.graphId,
+              revision: node.config?.revision || node.config?.graphRevision
+            }))
+        },
+        readSet: { instances: [], relations: [], queries: [] },
+        artifacts: []
+      });
       previewResult.value = result;
       return result;
     } catch (error) {
       previewError.value = error?.message || String(error);
       previewResult.value = null;
+      if (graph) {
+        try {
+          executionRecord.value = createGraphExecutionRecord({
+            id: stableId('execution'),
+            graph: { id: graph.id, revision: graph.revision },
+            profile: 'procedural-preview',
+            status: 'failed',
+            startedAt,
+            completedAt: new Date().toISOString(),
+            inputs: inputBindings.value,
+            outputs: {},
+            nodeOutputs: {},
+            diagnostics: [{ message: previewError.value }],
+            provenance: {
+              nodes: graph.nodes.map(node => ({ nodeId: node.id, operation: node.operation, outputs: {} })),
+              invocations: graph.nodes.filter(node => node.operation?.id === GRAPH_INVOKE_OPERATION).map(node => ({
+                nodeId: node.id, graphId: node.config?.graphId,
+                revision: node.config?.revision || node.config?.graphRevision
+              }))
+            },
+            readSet: { instances: [], relations: [], queries: [] },
+            artifacts: []
+          });
+        } catch {
+          executionRecord.value = null;
+        }
+      }
       return null;
     } finally {
       previewRunning.value = false;
@@ -602,10 +663,13 @@ export function useGraphDocumentSession({ t, providers = [] }) {
     graphDocument,
     validation: computed(() => validateCurrentGraph()),
     previewResult,
+    executionRecord,
     inputBindings,
     previewError,
     previewRunning,
     paletteGroups,
+    previewRenderers: computed(() => Object.fromEntries(providerPreviewRenderers)),
+    nodeDefinitions: computed(() => Object.fromEntries(nodes.value.map(node => [node.id, definitionFor(node)]))),
     contextPaletteGroups,
     contextPaletteChipGroups,
     contextPalette,

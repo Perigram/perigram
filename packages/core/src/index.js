@@ -22,3 +22,5 @@ export {
   assertValidGraphDocument
 } from './graph.js';
 export { evaluateProceduralGraph } from './procedural-evaluator.js';
+
+export * from './graph-execution.js';

@@ -3496,6 +3496,7 @@
     "selectGraphRevision": "Выберите версию",
     "previewRepresentations": "Представления результата",
     "openGraphArtifact": "Открыть файл",
+    "previewExecution": "Выполнение предпросмотра",
     "selectGraphDocument": "Выберите граф",
     "pinGraphRevision": "Закрепить выбранную версию",
     "graphPinned": "Версия графа закреплена",

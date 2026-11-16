@@ -57,6 +57,8 @@ describe('useGraphDocumentSession', () => {
     session.setGraphInputBinding({ portId: inputId, value: 9 });
     const result = await session.refreshPreview();
     expect(result.outputs).toEqual({ [session.graphDocument.value.interface.outputs[0].id]: 18 });
+    expect(session.executionRecord.value).toMatchObject({ profile: 'procedural-preview', status: 'succeeded', graph: { id: session.graphDocument.value.id } });
+    expect(session.executionRecord.value.provenance.nodes.some(item => item.operation?.provider === 'plugin.example')).toBe(true);
   });
 
   it('previews Graph Input to Graph Output with explicit JSON bindings', async () => {
