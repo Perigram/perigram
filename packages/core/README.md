@@ -45,6 +45,30 @@ Parent: [packages README](../README.md).
   `validateTransition`, `validateLifecyclePayload`, `hasLifecyclePayload`,
   `resolveWorkflowStatePath`
 
+## Canonical graph documents
+
+Core owns the versioned `perigram.graph` JSON document and its preview evaluator.
+The document stores graph identity and revision, public input/output interfaces,
+provider-qualified nodes with pinned definition versions, JSON configuration,
+canvas positions, and typed edges. Public interface ports carry both transport
+shape and semantic descriptors; each port has one Graph Input or Graph Output
+boundary node. Use Graph nodes pin an immutable graph revision.
+
+- `normalizeGraphDocument`, `validateGraphDocument`,
+  `assertValidGraphDocument` own document normalization and validation.
+- `GRAPH_DOCUMENT_FORMAT`, `GRAPH_DOCUMENT_VERSION`, and the three
+  `GRAPH_*_OPERATION` constants identify the format and core boundary operations.
+- `evaluateProceduralGraph` evaluates data dependencies in preview mode,
+  resolves exact provider definitions, and composes pinned subgraphs. It returns
+  graph outputs and per-node outputs for host preview channels.
+- Preview accepts pure and read node definitions; effect, proposal, commit,
+  stateful, and control operations are refused by the evaluator.
+
+The graph document and evaluator are application-neutral. Persistence,
+authorization, provider execution bindings, preview rendering, Commit, Bake,
+and Export are host responsibilities. The architecture contract is
+[ root SPEC §28](../../SPEC.md#28-unified-node-graph-system).
+
 ## Internal module boundaries
 
 The public barrel is intentionally a compatibility surface; implementation
