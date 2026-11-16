@@ -1,0 +1,515 @@
+import { computed, nextTick, ref } from 'vue';
+import {
+  CORE_GRAPH_PROVIDER,
+  GRAPH_DOCUMENT_FORMAT,
+  GRAPH_DOCUMENT_VERSION,
+  GRAPH_INPUT_OPERATION,
+  GRAPH_OUTPUT_OPERATION,
+  assertValidGraphDocument,
+  evaluateProceduralGraph,
+  normalizeGraphDocument,
+  validateGraphDocument
+} from '@perigram/core';
+import { createNodeProviderRegistry } from '@perigram/plugin-sdk/nodes';
+import {
+  PROCESS_PROCEDURAL_PROVIDER,
+  PROCESS_PROCEDURAL_VERSION,
+  createProcessProceduralExecutor,
+  createProcessProceduralNodeResolver,
+  registerProcessProceduralNodes
+} from '@perigram/processes';
+import { useProcessDesignerCanvas } from '~/composables/useProcessDesignerCanvas.js';
+import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
+import { mintId } from '~/utils/processDesignerIdentity.js';
+
+const operation = (id, version = '1') => ({
+  provider: CORE_GRAPH_PROVIDER,
+  id,
+  version
+});
+
+const stableId = prefix => mintId(prefix).replaceAll('_', '-');
+const defaultContract = Object.freeze({
+  shape: 'item',
+  semantic: { base: 'json' }
+});
+
+export function createEmptyGraphDocument({ id = stableId('graph'), name = '' } = {}) {
+  return {
+    format: GRAPH_DOCUMENT_FORMAT,
+    version: GRAPH_DOCUMENT_VERSION,
+    id,
+    revision: stableId('rev'),
+    name,
+    interface: { inputs: [], outputs: [] },
+    nodes: [],
+    edges: []
+  };
+}
+
+export function useGraphDocumentSession({ t }) {
+  const graphDocument = ref(createEmptyGraphDocument());
+  const nodes = ref([]);
+  const edges = ref([]);
+  const validation = ref(null);
+  const previewResult = ref(null);
+  const previewError = ref('');
+  const previewRunning = ref(false);
+  const contextPaletteSearch = ref(null);
+  const contextPalette = ref({
+    open: false,
+    x: 0,
+    y: 0,
+    graphPosition: { x: 0, y: 0 },
+    socket: null
+  });
+
+  const registry = createNodeProviderRegistry();
+  registerProcessProceduralNodes(registry);
+  const processResolver = createProcessProceduralNodeResolver();
+  const processExecutor = createProcessProceduralExecutor();
+  const providerExecutors = new Map([[PROCESS_PROCEDURAL_PROVIDER, processExecutor]]);
+
+  const groupLabels = {
+    source: t('processDesigner.graphSources'),
+    value: t('processDesigner.graphValues'),
+    collection: t('processDesigner.graphCollections'),
+    tree: t('processDesigner.graphTrees'),
+    record: t('processDesigner.graphRecords')
+  };
+  const groupSignals = {
+    source: 'identity',
+    value: 'quantity',
+    collection: 'data',
+    tree: 'structure',
+    record: 'structure'
+  };
+
+  const paletteGroups = computed(() => {
+    const groups = [{
+      source: 'framework',
+      id: 'graph-boundaries',
+      label: t('processDesigner.graphBoundaries'),
+      signal: 'structure',
+      items: [
+        {
+          id: 'graph-input',
+          label: t('processDesigner.graphInput'),
+          description: t('processDesigner.graphInputDescription'),
+          signal: 'structure',
+          operation: operation(GRAPH_INPUT_OPERATION)
+        },
+        {
+          id: 'graph-output',
+          label: t('processDesigner.graphOutput'),
+          description: t('processDesigner.graphOutputDescription'),
+          signal: 'structure',
+          operation: operation(GRAPH_OUTPUT_OPERATION)
+        }
+      ]
+    }];
+    const grouped = new Map();
+    for (const definition of registry.list({ provider: PROCESS_PROCEDURAL_PROVIDER })) {
+      const family = definition.id.split('.')[0];
+      if (!grouped.has(family)) grouped.set(family, []);
+      grouped.get(family).push({
+        id: `${definition.provider}:${definition.id}@${definition.version}`,
+        label: definition.label,
+        description: definition.description || '',
+        signal: groupSignals[family] || 'data',
+        operation: {
+          provider: definition.provider,
+          id: definition.id,
+          version: definition.version
+        },
+        config: {}
+      });
+    }
+    for (const [family, items] of grouped) {
+      groups.push({
+        source: 'framework',
+        id: `graph-${family}`,
+        label: groupLabels[family] || family,
+        signal: groupSignals[family] || 'data',
+        items
+      });
+    }
+    return groups;
+  });
+
+  function definitionFor(node) {
+    const op = node?.data?.operation || node?.operation;
+    const config = node?.data?.config || node?.config || {};
+    if (!op) return null;
+    if (op.provider === CORE_GRAPH_PROVIDER && op.id === GRAPH_INPUT_OPERATION) {
+      const port = graphDocument.value.interface.inputs.find(item => item.id === config.interfaceId);
+      return port ? {
+        provider: op.provider, id: op.id, version: op.version,
+        label: t('processDesigner.graphInput'),
+        inputs: [],
+        outputs: [{ id: 'value', label: port.label, ...port.contract, required: false }],
+        execution: { kind: 'pure' }
+      } : null;
+    }
+    if (op.provider === CORE_GRAPH_PROVIDER && op.id === GRAPH_OUTPUT_OPERATION) {
+      const port = graphDocument.value.interface.outputs.find(item => item.id === config.interfaceId);
+      return port ? {
+        provider: op.provider, id: op.id, version: op.version,
+        label: t('processDesigner.graphOutput'),
+        inputs: [{ id: 'value', label: port.label, ...port.contract, required: true }],
+        outputs: [],
+        execution: { kind: 'pure' }
+      } : null;
+    }
+    const invocation = { node: { id: node.id }, config, context: {} };
+    return processResolver(op, invocation) || registry.resolve(op.provider, op.id, op.version);
+  }
+
+  function enrichNode(node) {
+    const definition = definitionFor(node);
+    const group = String(node.data.operation?.id || '').split('.')[0];
+    return {
+      ...node,
+      type: 'graphNode',
+      data: {
+        ...node.data,
+        definition,
+        label: definition?.label || node.data.label || node.data.operation?.id || t('processDesigner.unknownNode'),
+        groupLabel: groupLabels[group] || t('processDesigner.graphBoundaries'),
+        error: node.data.error || ''
+      }
+    };
+  }
+
+  function serializeGraph() {
+    return normalizeGraphDocument({
+      ...graphDocument.value,
+      nodes: nodes.value.map(node => ({
+        id: node.id,
+        operation: node.data.operation,
+        config: node.data.config || {},
+        position: {
+          x: Number(node.position?.x || 0),
+          y: Number(node.position?.y || 0)
+        }
+      })),
+      edges: edges.value.map(edge => ({
+        id: edge.id,
+        source: { node: edge.source, port: edge.sourceHandle },
+        target: { node: edge.target, port: edge.targetHandle }
+      }))
+    });
+  }
+
+  const draft = ref({ data: { graph: { viewport: { x: 0, y: 0, zoom: 1 } } } });
+  function closeContextPalette() {
+    contextPalette.value = { open: false, x: 0, y: 0, graphPosition: { x: 0, y: 0 }, socket: null };
+  }
+  let selection;
+  function syncEdges() {
+    edges.value = edges.value.map(edge => ({
+      ...edge,
+      selected: edge.id === selection?.selectedEdgeId.value
+    }));
+  }
+  selection = useProcessDesignerSelection({
+    nodes,
+    edges,
+    decorateEdge: edge => edge,
+    closePalette: closeContextPalette,
+    syncEdges
+  });
+
+  const selectedGraphNodes = () => nodes.value.filter(node => node.selected);
+  const selectedGraphEdges = () => edges.value.filter(edge => edge.selected);
+  function deleteGraphSelection() {
+    const removed = new Set(selectedGraphNodes().map(node => node.id));
+    for (const node of nodes.value) {
+      if (!removed.has(node.id)) continue;
+      const operationId = node.data.operation?.id;
+      const interfaceId = node.data.config?.interfaceId;
+      if (operationId === GRAPH_INPUT_OPERATION) {
+        graphDocument.value.interface.inputs = graphDocument.value.interface.inputs.filter(port => port.id !== interfaceId);
+      } else if (operationId === GRAPH_OUTPUT_OPERATION) {
+        graphDocument.value.interface.outputs = graphDocument.value.interface.outputs.filter(port => port.id !== interfaceId);
+      }
+    }
+    const removedEdges = new Set(selectedGraphEdges().map(edge => edge.id));
+    nodes.value = nodes.value.filter(node => !removed.has(node.id));
+    edges.value = edges.value.filter(edge => !removedEdges.has(edge.id) && !removed.has(edge.source) && !removed.has(edge.target));
+    selection.reset();
+  }
+
+  const canvas = useProcessDesignerCanvas({
+    nodes,
+    edges,
+    draft,
+    selectedNodeId: selection.selectedNodeId,
+    selectedEdgeId: selection.selectedEdgeId,
+    selectedGraphNodes,
+    selectedGraphEdges,
+    deleteGraphSelection,
+    clearGraphSelection: selection.clearGraphSelection,
+    decorateEdge: edge => edge
+  });
+
+  function addNode(item, position = null) {
+    const nodeId = stableId('node');
+    let config = { ...(item.config || {}) };
+    let operationValue = item.operation;
+    if (operationValue.id === GRAPH_INPUT_OPERATION) {
+      const portId = stableId('input');
+      graphDocument.value.interface.inputs.push({
+        id: portId,
+        label: item.label,
+        contract: { ...defaultContract },
+        required: false,
+        default: null
+      });
+      config = { interfaceId: portId };
+    } else if (operationValue.id === GRAPH_OUTPUT_OPERATION) {
+      const portId = stableId('output');
+      graphDocument.value.interface.outputs.push({
+        id: portId,
+        label: item.label,
+        contract: { ...defaultContract },
+        required: true
+      });
+      config = { interfaceId: portId };
+    }
+    const raw = {
+      id: nodeId,
+      type: 'graphNode',
+      position: position || canvas.nextNodePosition(),
+      data: { operation: operationValue, config, label: item.label }
+    };
+    const node = enrichNode(raw);
+    nodes.value = [...nodes.value, node];
+    closeContextPalette();
+    return node;
+  }
+
+  function onConnect(connection) {
+    const source = nodes.value.find(node => node.id === connection.source);
+    const target = nodes.value.find(node => node.id === connection.target);
+    const sourcePort = definitionFor(source)?.outputs?.find(port => port.id === connection.sourceHandle);
+    const targetPort = definitionFor(target)?.inputs?.find(port => port.id === connection.targetHandle);
+    if (!sourcePort || !targetPort) return;
+    if (edges.value.some(edge => edge.target === target.id && edge.targetHandle === targetPort.id)) {
+      edges.value = edges.value.filter(edge => !(edge.target === target.id && edge.targetHandle === targetPort.id));
+    }
+    edges.value = [...edges.value, {
+      id: stableId('edge'),
+      source: source.id,
+      sourceHandle: sourcePort.id,
+      target: target.id,
+      targetHandle: targetPort.id,
+      type: 'default'
+    }];
+  }
+
+  function updateNodeConfig(nodeId, config) {
+    nodes.value = nodes.value.map(node => node.id === nodeId
+      ? enrichNode({ ...node, data: { ...node.data, config, error: '' } })
+      : node);
+  }
+
+  function updateBoundaryLabel(nodeId, label) {
+    const node = nodes.value.find(item => item.id === nodeId);
+    const interfaceId = node?.data?.config?.interfaceId;
+    if (!node || !interfaceId) return;
+    const collection = node.data.operation.id === GRAPH_INPUT_OPERATION
+      ? graphDocument.value.interface.inputs
+      : graphDocument.value.interface.outputs;
+    const port = collection.find(item => item.id === interfaceId);
+    if (port) port.label = String(label || '').trim();
+    node.data.label = String(label || '').trim();
+    nodes.value = nodes.value.map(item => item.id === nodeId ? enrichNode(item) : item);
+  }
+
+  function loadDocument(source) {
+    const graph = assertValidGraphDocument(source);
+    graphDocument.value = graph;
+    nodes.value = graph.nodes.map(node => enrichNode({
+      id: node.id,
+      type: 'graphNode',
+      position: node.position || { x: 0, y: 0 },
+      data: { operation: node.operation, config: node.config }
+    }));
+    edges.value = graph.edges.map(edge => ({
+      id: edge.id,
+      source: edge.source.node,
+      sourceHandle: edge.source.port,
+      target: edge.target.node,
+      targetHandle: edge.target.port,
+      type: 'default'
+    }));
+    selection.reset();
+    validation.value = null;
+    previewResult.value = null;
+    nextTick(canvas.fitInitialCanvas);
+    return graph;
+  }
+
+  function loadEmpty({ id, name } = {}) {
+    return loadDocument(createEmptyGraphDocument({ id: id || stableId('graph'), name: name || '' }));
+  }
+
+  function validateCurrentGraph() {
+    const problems = validateGraphDocument(serializeGraph());
+    return {
+      ok: problems.length === 0,
+      errors: problems.map(problem => problem.message),
+      warnings: []
+    };
+  }
+
+  function designerSignature() {
+    return JSON.stringify(serializeGraph());
+  }
+
+  async function refreshPreview() {
+    previewRunning.value = true;
+    previewError.value = '';
+    try {
+      const graph = serializeGraph();
+      const result = await evaluateProceduralGraph({
+        graph,
+        resolveNodeDefinition: (op, invocation) => processResolver(op, invocation)
+          || registry.resolve(op.provider, op.id, op.version),
+        executeNode: async (definition, invocation) => {
+          const executor = providerExecutors.get(definition.provider);
+          if (!executor) throw new Error(`No runtime is registered for provider ${definition.provider}`);
+          return executor(definition, invocation);
+        }
+      });
+      previewResult.value = result;
+      return result;
+    } catch (error) {
+      previewError.value = error?.message || String(error);
+      previewResult.value = null;
+      return null;
+    } finally {
+      previewRunning.value = false;
+    }
+  }
+
+  function registerProvider(definition, executor) {
+    if (typeof executor !== 'function') throw new TypeError('Provider executor must be a function');
+    const normalized = registry.register(definition);
+    providerExecutors.set(normalized.provider, executor);
+    return normalized;
+  }
+
+  function openPanePalette(event) {
+    event?.preventDefault?.();
+    const point = canvas.clientPoint(event);
+    const rect = canvas.canvasFrame.value?.getBoundingClientRect?.();
+    contextPalette.value = {
+      open: true,
+      x: Math.max(8, Math.min((rect?.width || 1200) - 304, point.x - (rect?.left || 0))),
+      y: Math.max(8, Math.min((rect?.height || 720) - 336, point.y - (rect?.top || 0))),
+      graphPosition: canvas.clientToGraphPosition(point),
+      socket: contextPalette.value.socket
+    };
+  }
+
+  function beginSocketConnection(connection = {}) {
+    contextPalette.value.socket = {
+      nodeId: connection.nodeId,
+      handleId: connection.handleId,
+      handleType: connection.handleType
+    };
+  }
+
+  function endSocketConnection(event) {
+    const socket = contextPalette.value.socket;
+    if (!socket) return;
+    const target = event?.target;
+    const endedOnPane = target?.classList?.contains('vue-flow__pane')
+      || target?.classList?.contains('vue-flow__transformationpane');
+    if (endedOnPane) openPanePalette(event);
+    else contextPalette.value.socket = null;
+  }
+
+  function addContextNode(item) {
+    const socket = contextPalette.value.socket;
+    const node = addNode(item, contextPalette.value.graphPosition);
+    if (socket && node) {
+      const existing = nodes.value.find(candidate => candidate.id === socket.nodeId);
+      const existingDefinition = definitionFor(existing);
+      const candidateDefinition = definitionFor(node);
+      if (socket.handleType === 'source') {
+        const output = existingDefinition?.outputs?.find(port => port.id === socket.handleId);
+        const input = candidateDefinition?.inputs?.find(port => compatible(output, port));
+        if (input) onConnect({ source: existing.id, sourceHandle: output.id, target: node.id, targetHandle: input.id });
+      } else {
+        const input = existingDefinition?.inputs?.find(port => port.id === socket.handleId);
+        const output = candidateDefinition?.outputs?.find(port => compatible(port, input));
+        if (output) onConnect({ source: node.id, sourceHandle: output.id, target: existing.id, targetHandle: input.id });
+      }
+    }
+    closeContextPalette();
+  }
+
+  function compatible(source, target) {
+    if (!source || !target) return false;
+    const sourceBase = source.semantic?.base || 'json';
+    const targetBase = target.semantic?.base || 'json';
+    return sourceBase === targetBase || sourceBase === 'json' || targetBase === 'json';
+  }
+
+  const contextPaletteGroups = computed(() => paletteGroups.value);
+  const contextPaletteChipGroups = contextPaletteGroups;
+
+  return {
+    nodes,
+    edges,
+    graphDocument,
+    validation: computed(() => validateCurrentGraph()),
+    previewResult,
+    previewError,
+    previewRunning,
+    paletteGroups,
+    contextPaletteGroups,
+    contextPaletteChipGroups,
+    contextPalette,
+    contextPaletteSearch,
+    selectedNode: selection.selectedNode,
+    selectedNodeId: selection.selectedNodeId,
+    selectedGraphNodes,
+    selectedGraphEdges,
+    canvasFrame: canvas.canvasFrame,
+    touchPanDrag: canvas.touchPanDrag,
+    designerViewport: canvas.designerViewport,
+    bindFrame: instance => { canvas.canvasFrame.value = instance; },
+    bindContextPaletteSearch: instance => { contextPaletteSearch.value = instance; },
+    handleDesignerPointerDown: canvas.handleDesignerPointerDown,
+    handleDesignerFocus: canvas.handleDesignerFocus,
+    handleDesignerWheel: canvas.handleDesignerWheel,
+    beginSocketConnection,
+    endSocketConnection,
+    frameSelectedNodes: canvas.frameSelectedNodes,
+    frameAllNodes: canvas.frameAllNodes,
+    zoomCanvasIn: canvas.zoomCanvasIn,
+    zoomCanvasOut: canvas.zoomCanvasOut,
+    resetCanvasZoom: canvas.resetCanvasZoom,
+    deleteGraphSelection,
+    addNode,
+    addContextNode,
+    closeContextPalette,
+    openPanePalette,
+    onConnect,
+    selectNode: selection.selectNode,
+    selectEdge: selection.selectEdge,
+    clearGraphSelection: selection.clearGraphSelection,
+    updateNodeConfig,
+    updateBoundaryLabel,
+    loadDocument,
+    loadEmpty,
+    serializeGraph,
+    designerSignature,
+    refreshPreview,
+    registerProvider
+  };
+}
