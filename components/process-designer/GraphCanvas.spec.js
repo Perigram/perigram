@@ -24,5 +24,6 @@ describe('floating graph editor chrome', () => {
     expect(canvas).toContain('onActivityClick');
     expect(editor).toContain('openActivitySurface');
     expect(editor).toContain("inspectTab.value = 'preview'");
+    expect(editor).toContain("canvasFrame?.openPanel?.('inspector')");
   });
 });

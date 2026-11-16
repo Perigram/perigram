@@ -299,6 +299,7 @@ const canvasStatus = computed(() => {
   return { state, label: t('processDesigner.canvasStatus' + suffix), count: evaluatedNodes.length };
 });
 function openActivitySurface() {
+  canvasFrame?.openPanel?.('inspector');
   inspectTab.value = 'preview';
 }
 const inspectorPreview = computed(() => ({

@@ -204,6 +204,16 @@ function setPanel(panel, value) {
   panels[panel] = Boolean(value);
 }
 
+function openPanel(panel) {
+  if (!PANEL_KEYS.includes(panel)) return;
+  if (compact.value) {
+    for (const key of PANEL_KEYS) panels[key] = key === panel;
+    compactTab.value = panel;
+    return;
+  }
+  panels[panel] = true;
+}
+
 const compactPanelOpen = computed(() => panels.palette || panels.inspector || panels.support);
 
 function closeCompactPanels() {
@@ -255,7 +265,8 @@ defineExpose({
   panels,
   compact,
   toggle,
-  setPanel
+  setPanel,
+  openPanel
 });
 </script>
 
