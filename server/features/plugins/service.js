@@ -202,15 +202,15 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
   let packageAssets = null;
   try {
     await runOrganizationChange(organizationId, {
-    kind: 'plugin-installed',
-    typeId: null,
-    instanceId: String(listing.pluginId),
-    paths: ['plugin-declarations', 'plugin-services'],
-    actorId: null
-  }, async () => {
-    packageAssets = await repository.materializePluginAssets(organizationId, listing.pluginId, listing.version || '1');
-    await repository.createInstall({
-      organizationId: String(organizationId),
+      kind: 'plugin-installed',
+      typeId: null,
+      instanceId: String(listing.pluginId),
+      paths: ['plugin-declarations', 'plugin-services'],
+      actorId: null
+    }, async () => {
+      packageAssets = await repository.materializePluginAssets(organizationId, listing.pluginId, listing.version || '1');
+      await repository.createInstall({
+        organizationId: String(organizationId),
       pluginId: String(listing.pluginId),
       name: listing.name || listing.pluginId,
       version: listing.version || '1',
@@ -222,7 +222,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
       ...(configuredSurfaceOrigin ? { surfaceOrigin: configuredSurfaceOrigin } : {}),
       connectorToken: mintConnectorToken()
     });
-    invalidateInstanceDeclarations(String(organizationId));
+      invalidateInstanceDeclarations(String(organizationId));
     });
   } catch (error) {
     if (packageAssets?.count) {

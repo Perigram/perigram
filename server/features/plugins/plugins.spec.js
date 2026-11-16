@@ -1363,8 +1363,8 @@ describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
     repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
       String(organizationId) === ORG && pluginId === 'coatings' ? engineInstall : null
     ));
-    repository.findPluginAssetMeta.mockResolvedValue({ id: 'asset-1', contentType: 'text/javascript', contentHash: 'sha256:abc' });
-    repository.readPluginAsset.mockResolvedValue(Buffer.from("import * as THREE from 'three';\nexport default null;\n"));
+    repository.findOrganizationPluginAssetMeta.mockResolvedValue({ id: 'asset-1', contentType: 'text/javascript', contentHash: 'sha256:abc' });
+    repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.from("import * as THREE from 'three';\nexport default null;\n"));
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     try {
