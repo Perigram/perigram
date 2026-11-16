@@ -70,9 +70,12 @@ only. Position is presentation; the grant record is the authorization.
   filtered to compatible sockets and connects on choice; dropping the loop item creates the
   `control.forEach`/`forEachEnd` pair together. Nodes place at the nearest unoccupied grid
   position around the viewport center, joining the lane under it.
-- Selected unconnected primitive inputs reveal inline typed fallback editors; a connected wire
-  always wins; an open socket is a composition affordance. Contract-declared defaults are
-  applied by their owning contract. Single-value sockets reject a second wire on the connect
+- Node cards are socket manifests, never authoring surfaces. Inputs, outputs, defaults,
+  operation configuration, structured values, and live values are derived from the normalized
+  operation/port contract and edited in the inspector. The renderer uses generic controls and
+  declarative presentation hints; provider-specific execution logic never lives in node SFCs.
+  A connected wire owns its input; otherwise the inspector exposes the declared default or an
+  appropriate schema-driven editor. Single-value sockets reject a second wire on the connect
   gesture, socket named in the notice.
 - Live evaluation: authoring state folds into one semantic signature; any change re-runs wire
   interpretation and the sync pass in the same tick; the compile is gated on the authoring
