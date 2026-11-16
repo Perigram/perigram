@@ -25,7 +25,7 @@ vi.mock('h3', () => ({
 
 import * as pagesService from './service.js';
 import * as pagesRepository from './repository.js';
-import { getOrganizationChangeSequence } from '../instances/organization-sequence.js';
+import { getOrganizationChangeSequence } from '../instances/index.js';
 
 const ORG_A = 'org-a';
 const ORG_B = 'org-b';
