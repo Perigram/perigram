@@ -1,0 +1,183 @@
+const FORMAT = 'perigram.graph';
+export const GRAPH_DOCUMENT_FORMAT = FORMAT;
+export const GRAPH_DOCUMENT_VERSION = 1;
+export const GRAPH_INPUT_OPERATION = 'perigram.core.graph-input';
+export const GRAPH_OUTPUT_OPERATION = 'perigram.core.graph-output';
+export const GRAPH_INVOKE_OPERATION = 'perigram.core.use-graph';
+
+const EXECUTION_KINDS = new Set(['pure', 'read', 'stateful', 'proposal', 'commit', 'effect', 'control']);
+const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+
+export function normalizeGraphDocument(source = {}) {
+  if (!isRecord(source)) throw new Error('Graph document must be an object');
+  const document = {
+    format: FORMAT,
+    version: Number(source.version || GRAPH_DOCUMENT_VERSION),
+    id: requiredString(source.id, 'Graph id'),
+    revision: requiredString(source.revision, 'Graph revision'),
+    name: String(source.name || ''),
+    interface: {
+      inputs: normalizeInterfacePorts(source.interface?.inputs, 'input'),
+      outputs: normalizeInterfacePorts(source.interface?.outputs, 'output')
+    },
+    nodes: Array.isArray(source.nodes) ? source.nodes.map(normalizeGraphNode) : [],
+    edges: Array.isArray(source.edges) ? source.edges.map(normalizeGraphEdge) : []
+  };
+  if (source.description != null) document.description = String(source.description);
+  if (source.metadata != null) {
+    if (!isJsonValue(source.metadata)) throw new Error('Graph metadata must be JSON-compatible');
+    document.metadata = cloneJson(source.metadata);
+  }
+  return document;
+}
+
+export function validateGraphDocument(source) {
+  const problems = [];
+  let graph;
+  try {
+    graph = normalizeGraphDocument(source);
+  } catch (error) {
+    return [{ code: 'invalid-document', path: '$', message: error.message }];
+  }
+
+  if (graph.version !== GRAPH_DOCUMENT_VERSION) {
+    problems.push(problem('unsupported-version', 'version', `Unsupported graph document version ${graph.version}`));
+  }
+  if (!ID_PATTERN.test(graph.id)) problems.push(problem('invalid-id', 'id', 'Graph id must be a stable identifier'));
+  if (!graph.revision) problems.push(problem('missing-revision', 'revision', 'Graph revision is required'));
+
+  validateInterface(graph.interface.inputs, 'interface.inputs', problems);
+  validateInterface(graph.interface.outputs, 'interface.outputs', problems);
+
+  const nodeIds = new Set();
+  for (let index = 0; index < graph.nodes.length; index += 1) {
+    const node = graph.nodes[index];
+    const path = `nodes[${index}]`;
+    if (!ID_PATTERN.test(node.id)) problems.push(problem('invalid-node-id', `${path}.id`, 'Node id must be a stable identifier'));
+    if (nodeIds.has(node.id)) problems.push(problem('duplicate-node-id', `${path}.id`, `Duplicate node id ${node.id}`));
+    nodeIds.add(node.id);
+    if (!node.operation.provider || !node.operation.id || !node.operation.version) {
+      problems.push(problem('invalid-operation', `${path}.operation`, 'Node operation requires provider, id, and pinned version'));
+    }
+    if (!isJsonValue(node.config)) problems.push(problem('invalid-config', `${path}.config`, 'Node config must be JSON-compatible'));
+    if (node.operation.id === GRAPH_INVOKE_OPERATION) {
+      if (!node.config.graphId || !node.config.revision) {
+        problems.push(problem('unpinned-subgraph', `${path}.config`, 'Use Graph must reference an exact graph id and immutable revision'));
+      }
+    }
+  }
+
+  const edgeIds = new Set();
+  for (let index = 0; index < graph.edges.length; index += 1) {
+    const edge = graph.edges[index];
+    const path = `edges[${index}]`;
+    if (!ID_PATTERN.test(edge.id)) problems.push(problem('invalid-edge-id', `${path}.id`, 'Edge id must be a stable identifier'));
+    if (edgeIds.has(edge.id)) problems.push(problem('duplicate-edge-id', `${path}.id`, `Duplicate edge id ${edge.id}`));
+    edgeIds.add(edge.id);
+    for (const [side, endpoint] of [['source', edge.source], ['target', edge.target]]) {
+      if (!nodeIds.has(endpoint.node)) {
+        problems.push(problem('missing-edge-node', `${path}.${side}.node`, `Edge references missing node ${endpoint.node}`));
+      }
+      if (!endpoint.port) problems.push(problem('missing-edge-port', `${path}.${side}.port`, `Edge ${side} port is required`));
+    }
+  }
+
+  return problems;
+}
+
+export function assertValidGraphDocument(source) {
+  const problems = validateGraphDocument(source);
+  if (problems.length) {
+    const error = new Error(`Invalid graph document: ${problems.map(item => item.message).join('; ')}`);
+    error.problems = problems;
+    throw error;
+  }
+  return normalizeGraphDocument(source);
+}
+
+function normalizeGraphNode(node = {}) {
+  if (!isRecord(node)) throw new Error('Graph nodes must be objects');
+  const operation = isRecord(node.operation) ? node.operation : {};
+  const config = node.config == null ? {} : node.config;
+  if (!isJsonValue(config)) throw new Error(`Node ${node.id || '(unnamed)'} config must be JSON-compatible`);
+  const normalized = {
+    id: requiredString(node.id, 'Node id'),
+    operation: {
+      provider: requiredString(operation.provider, 'Operation provider'),
+      id: requiredString(operation.id, 'Operation id'),
+      version: requiredString(operation.version, 'Operation version')
+    },
+    config: cloneJson(config)
+  };
+  if (node.position != null) {
+    if (!isRecord(node.position) || !Number.isFinite(Number(node.position.x)) || !Number.isFinite(Number(node.position.y))) {
+      throw new Error(`Node ${normalized.id} position must contain finite x and y coordinates`);
+    }
+    normalized.position = { x: Number(node.position.x), y: Number(node.position.y) };
+  }
+  return normalized;
+}
+
+function normalizeGraphEdge(edge = {}) {
+  if (!isRecord(edge)) throw new Error('Graph edges must be objects');
+  const source = isRecord(edge.source) ? edge.source : {};
+  const target = isRecord(edge.target) ? edge.target : {};
+  return {
+    id: requiredString(edge.id, 'Edge id'),
+    source: { node: requiredString(source.node, 'Edge source node'), port: requiredString(source.port, 'Edge source port') },
+    target: { node: requiredString(target.node, 'Edge target node'), port: requiredString(target.port, 'Edge target port') }
+  };
+}
+
+function normalizeInterfacePorts(ports, direction) {
+  if (ports == null) return [];
+  if (!Array.isArray(ports)) throw new Error(`Graph interface ${direction}s must be an array`);
+  return ports.map(port => {
+    if (!isRecord(port)) throw new Error(`Graph interface ${direction} must contain objects`);
+    if (!isJsonValue(port.contract)) throw new Error(`Graph interface port ${port.id || '(unnamed)'} contract must be JSON-compatible`);
+    return {
+      id: requiredString(port.id, `Graph ${direction} id`),
+      label: String(port.label || port.id || ''),
+      contract: cloneJson(port.contract),
+      required: port.required !== false,
+      ...(Object.hasOwn(port, 'default') ? { default: cloneJson(port.default) } : {})
+    };
+  });
+}
+
+function validateInterface(ports, path, problems) {
+  const seen = new Set();
+  ports.forEach((port, index) => {
+    if (!ID_PATTERN.test(port.id)) problems.push(problem('invalid-interface-id', `${path}[${index}].id`, 'Interface port id must be a stable identifier'));
+    if (seen.has(port.id)) problems.push(problem('duplicate-interface-id', `${path}[${index}].id`, `Duplicate interface port ${port.id}`));
+    seen.add(port.id);
+  });
+}
+
+function requiredString(value, label) {
+  if (typeof value !== 'string' || !value.trim()) throw new Error(`${label} is required`);
+  return value.trim();
+}
+
+function isRecord(value) {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null));
+}
+
+function isJsonValue(value, seen = new Set()) {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value !== 'object' || seen.has(value)) return false;
+  if (!Array.isArray(value) && !isRecord(value)) return false;
+  seen.add(value);
+  const valid = (Array.isArray(value) ? value : Object.values(value)).every(item => isJsonValue(item, seen));
+  seen.delete(value);
+  return valid;
+}
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function problem(code, path, message) {
+  return { code, path, message };
+}
