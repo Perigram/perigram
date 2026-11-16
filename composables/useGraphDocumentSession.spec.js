@@ -93,6 +93,27 @@ describe('useGraphDocumentSession', () => {
     expect(node.data.definition.outputs.map(port => port.id)).toEqual(savedGraph.interface.outputs.map(port => port.id));
   });
 
+  it('registers an installed plugin provider dynamically and enforces provider ownership', () => {
+    const session = createSession();
+    const contribution = {
+      provider: 'plugin.example',
+      definitions: [{
+        provider: 'plugin.example', id: 'value.constant', version: '1',
+        inputs: [], outputs: [{ id: 'value', semantic: { base: 'number' } }],
+        execution: { kind: 'pure' }
+      }],
+      execute: async () => ({ value: 7 })
+    };
+    session.registerNodeProvider(contribution, 'example');
+    expect(session.paletteGroups.value.some(group => group.items.some(item => item.operation?.id === 'value.constant'))).toBe(true);
+    const foreign = {
+      ...contribution,
+      provider: 'plugin.other',
+      definitions: contribution.definitions.map(definition => ({ ...definition, provider: 'plugin.other' }))
+    };
+    expect(() => session.registerNodeProvider(foreign, 'example')).toThrow(/not owned by installed plugin example/);
+  });
+
   it('previews Graph Input to Graph Output with explicit JSON bindings', async () => {
     const session = createSession();
     const [input, output] = session.paletteGroups.value[0].items;

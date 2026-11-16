@@ -72,6 +72,7 @@
           :input-bindings="inputBindings"
           :preview-renderers="previewRenderers"
           :node-definitions="nodeDefinitions"
+          :channels="graphPreviewChannels"
           @refresh="refreshPreviewAndRecord"
           @update-input-binding="setGraphInputBinding"
         />
@@ -116,6 +117,7 @@ const clientEngineBindings = ref([]);
 const clientEngines = useClientEngines({ engines: clientEngineBindings });
 const graphDocumentsLoading = ref(false);
 const graphDocumentsError = ref('');
+const graphPreviewChannels = ref([]);
 const graphRevisions = ref([]);
 const graphRevisionsLoading = ref(false);
 const graphRevisionsError = ref('');
@@ -248,7 +250,7 @@ async function loadGraphCatalog() {
             `/api/files/download/${encodeURIComponent(record.payload.fileId)}?bucket=files`,
             { responseType: 'text' }
           );
-          const graph = parseGraphPayload(payload);
+          const graph = assertValidGraphDocument(parseGraphPayload(payload));
           if (record.fields.graphId && record.fields.graphId !== graph.id) {
             throw new Error('Stored graph identity does not match its payload');
           }
@@ -268,6 +270,7 @@ async function loadGraphProviders() {
   try {
     const view = await $fetch('/api/admin/cts/types');
     clientEngineBindings.value = Array.isArray(view?.clientEngines) ? view.clientEngines : [];
+    graphPreviewChannels.value = Array.isArray(view?.previewChannels) ? view.previewChannels : [];
     const results = await Promise.allSettled(clientEngineBindings.value.map(async binding => {
       const engine = await clientEngines.engineFor(binding);
       if (engine.nodeProviders == null) return;

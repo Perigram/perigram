@@ -37,6 +37,43 @@
         />
       </div>
       <div class="min-h-0 rounded-ui bg-subtle p-3">
+        <PreviewChannelMount
+          v-if="activeView.startsWith('channel:') && activeChannel"
+          :channel="activeChannel"
+          :payload="channelPayload"
+        />
+        <img
+          v-else-if="activeView === 'image' && imageUrl"
+          :src="imageUrl"
+          :alt="selectedValue?.name || selectedOutput?.label || 'Graph output'"
+          class="max-h-[32rem] max-w-full object-contain"
+        />
+        <svg
+          v-else-if="activeView === 'scene-2d'"
+          :viewBox="scene2dViewBox"
+          class="h-80 w-full"
+          role="img"
+          :aria-label="selectedOutput?.label || '2D scene'"
+        >
+          <g v-for="(primitive, index) in selectedValue.primitives" :key="index" fill="none" stroke="currentColor" stroke-width="1.5">
+            <line v-if="primitive.type === 'line'" :x1="primitive.x1" :y1="primitive.y1" :x2="primitive.x2" :y2="primitive.y2" />
+            <polyline v-else-if="primitive.type === 'polyline'" :points="svgPoints(primitive.points)" />
+            <polygon v-else-if="primitive.type === 'polygon'" :points="svgPoints(primitive.points)" />
+            <circle v-else-if="primitive.type === 'circle'" :cx="primitive.cx" :cy="primitive.cy" :r="primitive.r" />
+            <rect v-else-if="primitive.type === 'rect'" :x="primitive.x" :y="primitive.y" :width="primitive.width" :height="primitive.height" />
+            <text v-else-if="primitive.type === 'text'" :x="primitive.x" :y="primitive.y" fill="currentColor" stroke="none">{{ primitive.text }}</text>
+          </g>
+        </svg>
+        <svg
+          v-else-if="activeView === 'scene-3d'"
+          viewBox="0 0 800 500"
+          class="h-80 w-full"
+          role="img"
+          :aria-label="selectedOutput?.label || '3D scene'"
+        >
+          <polygon v-for="(face, index) in scene3d.faces" :key="`f${index}`" :points="face" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.35" />
+          <line v-for="(edge, index) in scene3d.edges" :key="`e${index}`" :x1="edge.x1" :y1="edge.y1" :x2="edge.x2" :y2="edge.y2" stroke="currentColor" stroke-width="1.5" />
+        </svg>
         <component
           :is="rendererForOutput"
           v-if="activeView === 'plugin' && rendererForOutput"
@@ -83,6 +120,7 @@ import Textarea from 'primevue/textarea';
 import Message from 'primevue/message';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import PreviewChannelMount from '~/components/process-designer/PreviewChannelMount.vue';
 import { GRAPH_OUTPUT_OPERATION } from '@perigram/core';
 
 const props = defineProps({
@@ -93,7 +131,8 @@ const props = defineProps({
   graph: { type: Object, default: () => ({}) },
   inputBindings: { type: Object, default: () => ({}) },
   previewRenderers: { type: Object, default: () => ({}) },
-  nodeDefinitions: { type: Object, default: () => ({}) }
+  nodeDefinitions: { type: Object, default: () => ({}) },
+  channels: { type: Array, default: () => [] }
 });
 const emit = defineEmits(['refresh', 'update-input-binding']);
 const inputDrafts = reactive({});
@@ -119,6 +158,41 @@ const rendererForOutput = computed(() => {
   if (!rendererId) return null;
   return props.previewRenderers?.[`${sourceDefinition.value.provider}:${rendererId}`] || null;
 });
+const imageUrl = computed(() => {
+  const value = selectedValue.value;
+  return value?.fileId && String(value.mime || '').startsWith('image/')
+    ? `/api/files/download/${encodeURIComponent(value.fileId)}?bucket=${encodeURIComponent(value.bucket || 'files')}`
+    : '';
+});
+const scene2dViewBox = computed(() => {
+  const bounds = selectedValue.value?.bounds || { x: 0, y: 0, width: 100, height: 100 };
+  return `${Number(bounds.x || 0)} ${Number(bounds.y || 0)} ${Math.max(1, Number(bounds.width || 100))} ${Math.max(1, Number(bounds.height || 100))}`;
+});
+const scene3d = computed(() => {
+  const vertices = Array.isArray(selectedValue.value?.vertices) ? selectedValue.value.vertices : [];
+  if (!vertices.length) return { faces: [], edges: [] };
+  const projected = vertices.map(vertex => {
+    const [x = 0, y = 0, z = 0] = (Array.isArray(vertex) ? vertex : []).map(Number);
+    return { x: (x - y) * 0.8660254, y: (x + y) * 0.5 - z };
+  });
+  const xs = projected.map(point => point.x), ys = projected.map(point => point.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const scale = Math.min(720 / Math.max(1, maxX - minX), 420 / Math.max(1, maxY - minY));
+  const points = projected.map(point => ({ x: 400 + (point.x - (minX + maxX) / 2) * scale, y: 250 - (point.y - (minY + maxY) / 2) * scale }));
+  const faces = (selectedValue.value.faces || []).filter(face => Array.isArray(face) && face.length >= 3 && face.every(index => Number.isInteger(index) && points[index])).map(face => face.map(index => `${points[index].x},${points[index].y}`).join(' '));
+  const edgePairs = Array.isArray(selectedValue.value.edges) && selectedValue.value.edges.length
+    ? selectedValue.value.edges
+    : (selectedValue.value.faces || []).flatMap(face => face.map((index, position) => [index, face[(position + 1) % face.length]]));
+  const edges = edgePairs.filter(edge => Array.isArray(edge) && edge.length === 2 && points[edge[0]] && points[edge[1]]).map(([a, b]) => ({ x1: points[a].x, y1: points[a].y, x2: points[b].x, y2: points[b].y }));
+  return { faces, edges };
+});
+const activeChannel = computed(() => props.channels.find(channel => `channel:${channel.id}` === activeView.value) || null);
+const channelPayload = computed(() => ({
+  ...props.result,
+  graph: props.graph,
+  execution: props.execution,
+  selectedOutput: selectedOutput.value ? { id: selectedOutput.value.id, label: selectedOutput.value.label, value: selectedValue.value } : null
+}));
 const availableViews = computed(() => {
   const value = selectedValue.value;
   const views = [{ value: 'json', label: 'JSON' }];
@@ -127,7 +201,13 @@ const availableViews = computed(() => {
   if (Array.isArray(value) && value.length && value.every(item => item && typeof item === 'object' && !Array.isArray(item))) {
     views.unshift({ value: 'table', label: 'Table' });
   }
-  if (value && typeof value === 'object' && value.fileId) views.unshift({ value: 'document', label: 'Document' });
+  if (value && typeof value === 'object' && value.fileId) {
+    if (String(value.mime || '').startsWith('image/')) views.unshift({ value: 'image', label: 'Image' });
+    else views.unshift({ value: 'document', label: 'Document' });
+  }
+  if (value?.representation === 'perigram.scene-2d' && Array.isArray(value.primitives)) views.unshift({ value: 'scene-2d', label: '2D scene' });
+  if (value?.representation === 'perigram.scene-3d' && Array.isArray(value.vertices)) views.unshift({ value: 'scene-3d', label: '3D scene' });
+  for (const channel of props.channels) views.push({ value: `channel:${channel.id}`, label: channel.label });
   return views;
 });
 const tableColumns = computed(() => [...new Set((Array.isArray(selectedValue.value) ? selectedValue.value : []).flatMap(row => Object.keys(row || {})))]);
@@ -148,6 +228,10 @@ watch(
   },
   { immediate: true, deep: true }
 );
+
+function svgPoints(points = []) {
+  return Array.isArray(points) ? points.filter(point => Array.isArray(point) && point.length >= 2).map(point => `${Number(point[0])},${Number(point[1])}`).join(' ') : '';
+}
 
 function applyInput(portId) {
   try {
