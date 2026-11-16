@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   getFileBuffer: vi.fn(),
   bakeFile: vi.fn(),
   retractBakedFile: vi.fn(),
-  withOrganizationChangeSequence: vi.fn()
+  withOrganizationDataSnapshot: vi.fn()
 }));
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: mocks.getAppRegistry }));
 vi.mock('../files/service.js', () => ({
@@ -27,7 +27,7 @@ vi.mock('../pages/service.js', () => ({
   retractBakedFile: mocks.retractBakedFile
 }));
 vi.mock('../instances/index.js', () => ({
-  withOrganizationChangeSequence: mocks.withOrganizationChangeSequence
+  withOrganizationDataSnapshot: mocks.withOrganizationDataSnapshot
 }));
 
 import * as graphExecutionsService from './service.js';
@@ -90,9 +90,9 @@ describe('graph execution service', () => {
     });
     dataService.processList.mockResolvedValue([{ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }]);
     dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));
-    mocks.withOrganizationChangeSequence.mockImplementation(async (_organizationId, read) => ({
+    mocks.withOrganizationDataSnapshot.mockImplementation(async (_organizationId, read) => ({
       value: await read(),
-      boundary: { consistency: 'sequence-bracketed', snapshotId: null, organizationSequenceStart: 4, organizationSequenceEnd: 4 }
+      boundary: { consistency: 'snapshot', snapshotId: null, organizationSequenceStart: 4, organizationSequenceEnd: 4 }
     }));
     mocks.findFileMeta.mockResolvedValue({ metadata: { organizationId: 'org-1' }, contentType: 'application/json' });
     mocks.assertFileReadAccess.mockReturnValue(true);
@@ -104,7 +104,7 @@ describe('graph execution service', () => {
     mocks.retractBakedFile.mockResolvedValue({ success: true });
   });
 
-  it('queries through the authorized instance read boundary and records sequence-bracketed read evidence', async () => {
+  it('queries through the authorized instance read boundary and records snapshot read evidence', async () => {
     const result = await graphExecutionsService.queryOrganizationData({
       typeId: 'part',
       filters: { code: 'A' },
@@ -116,8 +116,8 @@ describe('graph execution service', () => {
     }, auth);
     expect(dataService.processList).toHaveBeenCalledWith({
       code: 'A', sortBy: 'createdAt', sortDirection: 'desc', limit: 25, offset: 5
-    }, auth);
-    expect(mocks.withOrganizationChangeSequence).toHaveBeenCalledWith('org-1', expect.any(Function), { retries: 2 });
+    }, auth, { session: undefined });
+    expect(mocks.withOrganizationDataSnapshot).toHaveBeenCalledWith('org-1', expect.any(Function), { retries: 2 });
     expect(result.items).toEqual([expect.objectContaining({
       _id: 'item-1', type: 'part', revision: 3, fields: { code: 'A' }
     })]);
@@ -137,7 +137,7 @@ describe('graph execution service', () => {
       instanceId: 'item-1',
       projection: ['fields.code']
     }, auth);
-    expect(dataService.processGetById).toHaveBeenCalledWith('item-1', auth);
+    expect(dataService.processGetById).toHaveBeenCalledWith('item-1', auth, { session: undefined });
     expect(dataService.processList).not.toHaveBeenCalled();
     expect(result.items).toEqual([expect.objectContaining({
       _id: 'item-1',

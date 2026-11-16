@@ -665,7 +665,7 @@ function instanceService(typeId) {
       return toDto(await repository.findInstanceAnywhere(id, typeId), await declarationFor(typeId, null) || {});
     },
 
-    async list(filters = {}, userId, organizationId) {
+    async list(filters = {}, userId, organizationId, { session = null } = {}) {
       const declaration = await requireDeclaration(typeId, organizationId);
       const lineageKeys = await lineageKeysFor(typeId, organizationId);
       const reserved = new Set(['limit', 'offset', 'sortBy', 'sortDirection']);
@@ -680,7 +680,7 @@ function instanceService(typeId) {
         organizationId,
         limit,
         filter,
-        { sort, skip: offset }
+        { sort, skip: offset, session }
       );
       return docs.map(doc => toDto(doc));
     },
@@ -1068,7 +1068,7 @@ function instanceService(typeId) {
     },
 
     // -- process bindings --
-    processList: async (filters, auth = {}) => {
+    processList: async (filters, auth = {}, { session = null } = {}) => {
       // Process graph queries are an entity-read surface too: tenant
       // filtering in the repository is necessary but does not replace the
       // compiled feature grant applied by the HTTP list transport.
@@ -1076,7 +1076,7 @@ function instanceService(typeId) {
       const declaration = await requireDeclaration(typeId, organizationId);
       const target = await writeGrantTarget(declaration, organizationId);
       if (!target) throw createError({ statusCode: 403, message: 'Permission denied' });
-      const items = await instanceService(typeId).list(filters, auth.userId, organizationId);
+      const items = await instanceService(typeId).list(filters, auth.userId, organizationId, { session });
       return (items || []).filter(item => hasInstanceAccess({
         entity: item?.toJSON ? item.toJSON() : item,
         typeId: target.typeId,
@@ -1086,8 +1086,8 @@ function instanceService(typeId) {
         auth
       }));
     },
-    processGetById: async (id, auth = {}) => {
-      const doc = await repository.findInstanceAnywhere(id, typeId);
+    processGetById: async (id, auth = {}, { session = null } = {}) => {
+      const doc = await repository.findInstanceAnywhere(id, typeId, { session });
       if (!doc) return null;
       const organizationId = doc.organizationId ?? auth.organizationId ?? null;
       const declaration = await declarationFor(typeId, organizationId);

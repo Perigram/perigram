@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
 import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder } from '#packages/core';
-import { withOrganizationChangeSequence } from '../instances/index.js';
+import { withOrganizationDataSnapshot } from '../instances/index.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '../files/service.js';
 import * as pagesService from '../pages/service.js';
@@ -88,8 +88,8 @@ export async function queryOrganizationData(query = {}, auth = {}) {
       throw createError({ statusCode: 404, message: 'CTS instance detail query service is unavailable' });
     }
     queryShape = { typeId, instanceId, projection };
-    read = async () => {
-      const item = await instanceService.processGetById(instanceId, auth);
+    read = async session => {
+      const item = await instanceService.processGetById(instanceId, auth, { session });
       return item ? [item] : [];
     };
   } else {
@@ -104,16 +104,16 @@ export async function queryOrganizationData(query = {}, auth = {}) {
       throw createError({ statusCode: 400, message: 'Graph query sortDirection must be asc or desc' });
     }
     queryShape = { typeId, filters, sortBy, sortDirection, limit, offset, projection };
-    read = () => instanceService.processList({
+    read = session => instanceService.processList({
       ...filters,
       sortBy,
       sortDirection,
       limit,
       offset
-    }, auth);
+    }, auth, { session });
   }
 
-  const { value: items, boundary } = await withOrganizationChangeSequence(
+  const { value: items, boundary } = await withOrganizationDataSnapshot(
     organizationId,
     read,
     { retries: 2 }

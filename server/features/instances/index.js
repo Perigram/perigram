@@ -8,5 +8,6 @@ export {
   getOrganizationChangeSequence,
   recordOrganizationChange,
   runOrganizationChange,
-  withOrganizationChangeSequence
+  withOrganizationChangeSequence,
+  withOrganizationDataSnapshot
 } from './organization-sequence.js';

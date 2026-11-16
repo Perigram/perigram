@@ -177,3 +177,71 @@ export async function withOrganizationChangeSequence(organizationId, read, { ret
   error.code = 'STALE_ORGANIZATION_READ';
   throw error;
 }
+
+function isSnapshotUnsupported(error) {
+  return [20, 303].includes(Number(error?.code))
+    || ['IllegalOperation', 'OperationNotSupportedInTransaction'].includes(error?.codeName)
+    || /transaction numbers are only allowed on a replica set|transactions are not supported|snapshot read concern is not supported/i.test(error?.message || '');
+}
+
+function staleReadError(start, end, pending = false) {
+  const error = new Error(
+    `Organization changed during graph data read (sequence ${start} → ${end ?? start}${pending ? ', writes pending' : ''}); retry the evaluation`
+  );
+  error.statusCode = 409;
+  error.code = 'STALE_ORGANIZATION_READ';
+  return error;
+}
+
+export async function withOrganizationDataSnapshot(organizationId, read, { retries = 2 } = {}) {
+  if (typeof read !== 'function') throw new TypeError('A read callback is required');
+  const db = await connectDB();
+  const client = db.client;
+  if (!client?.startSession) {
+    return await withOrganizationChangeSequence(organizationId, () => read(null), { retries });
+  }
+
+  let lastStart = null;
+  let lastEnd = null;
+  let pending = false;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const start = organizationId ? await readBoundary(organizationId) : { sequence: null, pendingCount: 0 };
+    lastStart = start.sequence;
+    if (start.pendingCount > 0) {
+      pending = true;
+      continue;
+    }
+
+    const session = client.startSession();
+    try {
+      let value;
+      try {
+        value = await session.withTransaction(
+          () => read(session),
+          { readConcern: { level: 'snapshot' }, readPreference: 'primary' }
+        );
+      } catch (error) {
+        if (!isSnapshotUnsupported(error)) throw error;
+        return await withOrganizationChangeSequence(organizationId, () => read(null), { retries });
+      }
+
+      const end = organizationId ? await readBoundary(organizationId) : { sequence: null, pendingCount: 0 };
+      lastEnd = end.sequence;
+      if (start.sequence === end.sequence && end.pendingCount === 0) {
+        return {
+          value,
+          boundary: {
+            consistency: 'snapshot',
+            snapshotId: session.snapshotTime?.toString?.() || null,
+            organizationSequenceStart: start.sequence,
+            organizationSequenceEnd: end.sequence
+          }
+        };
+      }
+      pending ||= end.pendingCount > 0;
+    } finally {
+      await session.endSession();
+    }
+  }
+  throw staleReadError(lastStart, lastEnd, pending);
+}

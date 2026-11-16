@@ -32,27 +32,32 @@ export async function insertInstance(collection, doc) {
 
 export async function listInstances(collection, typeId, organizationId, limit = 200, filter = {}, {
   sort = { createdAt: -1, _id: -1 },
-  skip = 0
+  skip = 0,
+  session = null
 } = {}) {
   const db = await connectDB();
-  let cursor = db.collection(collection)
-    .find({ type: typeId, ...orgFilter(organizationId), ...filter })
+  const query = { type: typeId, ...orgFilter(organizationId), ...filter };
+  let cursor = (session
+    ? db.collection(collection).find(query, { session })
+    : db.collection(collection).find(query))
     .sort(sort);
   if (skip > 0) cursor = cursor.skip(skip);
   return await cursor.limit(limit).toArray();
 }
 
-export async function findInstance(collection, id, typeId = null) {
+export async function findInstance(collection, id, typeId = null, { session = null } = {}) {
   const db = await connectDB();
   const filter = { _id: toFlexibleId(id) };
   if (typeId) filter.type = typeId;
-  return await db.collection(collection).findOne(filter);
+  return session
+    ? await db.collection(collection).findOne(filter, { session })
+    : await db.collection(collection).findOne(filter);
 }
 
-export async function findInstanceAnywhere(id, typeId) {
+export async function findInstanceAnywhere(id, typeId, { session = null } = {}) {
   const db = await connectDB();
   for (const collection of Object.values(CLASS_COLLECTIONS)) {
-    const doc = await findInstance(collection, id, typeId);
+    const doc = await findInstance(collection, id, typeId, { session });
     if (doc) return doc;
   }
   return null;
