@@ -75,8 +75,10 @@ imported through server modules that Nitro externalizes.
   [instance-filters/README.md](./instance-filters/README.md).
 - `page-document.js`: The Page block document contract — `blocksFromMarkdown`
   splits legacy markdown into ordered text/collection blocks,
-  `normalizePageDocument` keeps only known ordered blocks, and
-  `createBlockId` mints block ids. Consumed by the pages feature, its
+  `normalizePageDocument` preserves ordered text, collection, and immutable
+  file-artifact blocks (including file revision history),
+  `normalizePageFilePath` rejects unsafe relative paths, and `createBlockId`
+  mints block ids. Consumed by the pages feature, its
   store, and the page document session.
 - `markdown.js`: The markdown document contract — `renderMarkdown`
   (source to sanitized HTML, empty server-side) shared by the source
