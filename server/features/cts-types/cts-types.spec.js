@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('../instances/index.js', () => ({ runOrganizationChange: vi.fn(async (_organizationId, _metadata, mutate) => await mutate()) }));
 vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
 vi.mock('../instances/count.js', () => ({ countInstancesOfType: vi.fn(async () => 5) }));
 vi.mock('../instances/migrations.js', () => ({
