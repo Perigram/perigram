@@ -6,10 +6,10 @@ Internal npm workspace packages: the domain-agnostic industrial workflow framewo
 
 | Package | Role |
 |---|---|
-| [`@perigram/core`](./core/README.md) | Entity blocks, status and workflow lifecycle runtime, explicit registries, command/task/hook/attachment contracts |
+| [`@perigram/core`](./core/README.md) | Canonical graph documents and procedural preview evaluation; entity blocks, lifecycle runtime, and command/task contracts |
 | [`@perigram/processes`](./processes/README.md) | Organization process definition normalization, validation, and compilation |
 | [`@perigram/cts`](./cts/README.md) | Perigram Type System: value universe, type declarations, classes, edges, states, operators, expressions, diffing, tenancy (see its `SPEC.md`) |
-| [`@perigram/plugin-sdk`](./plugin-sdk/README.md) | Plugin authoring SDK: listing contract (with JSON schema), executor harnesses, API client, and the `perigram-plugin` CLI |
+| [`@perigram/plugin-sdk`](./plugin-sdk/README.md) | Provider-neutral node contracts and registry; plugin listing, executor harnesses, API client, and CLI |
 
 Module boundaries, runtime relationships, and per-package contracts are
 documented in each package's own `README.md`; the system-level graph lives in
