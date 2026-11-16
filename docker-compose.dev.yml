@@ -165,6 +165,26 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  plugin-runtime:
+    image: perigram-plugin-runtime:latest
+    build:
+      context: .
+      dockerfile: workers/plugin-runtime.Dockerfile
+      args:
+        HTTP_PROXY: ${DOCKER_BUILD_HTTP_PROXY:-${HTTP_PROXY:-${http_proxy:-}}}
+        HTTPS_PROXY: ${DOCKER_BUILD_HTTPS_PROXY:-${HTTPS_PROXY:-${https_proxy:-}}}
+        NO_PROXY: ${DOCKER_BUILD_NO_PROXY:-${NO_PROXY:-${no_proxy:-localhost,127.0.0.1,::1}}}
+    environment:
+      - PERIGRAM_APP_URL=http://app:3000
+      - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
+      - PLUGIN_RUNTIME_WORKER_ID=managed-runtime-dev
+    depends_on:
+      app:
+        condition: service_healthy
+    mem_limit: 1g
+    cpus: 1.0
+    restart: unless-stopped
+
   # The facade plugin's executor (endpoint mode): the app calls it per
   # configured service endpoint — http://facade-executor:8790/<serviceId>.
   # Runs from the repo mount with the host node_modules (pure-JS deps).

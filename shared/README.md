@@ -27,6 +27,8 @@ imported through server modules that Nitro externalizes.
   Primary-status facts use the canonical `getPrimaryState()` reader from
   [`@perigram/core`](../packages/core/README.md); access evaluation does not
   maintain a parallel status projection.
+- `plugin-runtime.js`: Shared worker type, resource budgets, and the
+  platform capability allowlist for managed plugin execution.
 - `plugin-surfaces.js`: The plugin-delivered editor surface contract versions
   the platform can mount (SPEC §20), plus the same-origin module URL resolver.
   Installed organization package assets are the primary source; explicit

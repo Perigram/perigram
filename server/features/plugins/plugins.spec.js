@@ -150,7 +150,7 @@ describe('plugin installs', () => {
     expect(serviceModeOf({})).toBe('claim');
   });
 
-  it('keeps managed package operations out of the external connector queue', async () => {
+  it('queues managed package operations on the shared platform runtime worker', async () => {
     repository.findInstall.mockResolvedValue({
       ...coatingInstall,
       services: [{
@@ -159,9 +159,11 @@ describe('plugin installs', () => {
         execution: { runtime: 'javascript', targets: ['server'], kind: 'pure' }
       }]
     });
-    await expect(executeConnectorService({ id: 'plugin.coatings.transform' }, { parameters: { value: 1 }, auth: AUTH }))
-      .rejects.toMatchObject({ statusCode: 503, message: expect.stringContaining('platform runtime rollout') });
-    expect(enqueueTask).not.toHaveBeenCalled();
+    const result = await executeConnectorService({ id: 'plugin.coatings.transform' }, { parameters: { value: 1 }, auth: AUTH });
+    expect(result.tasks).toHaveLength(1);
+    expect(enqueueTask).toHaveBeenCalledWith('plugin.coatings.transform', {
+      parameters: { value: expect.objectContaining({ pluginId: 'coatings', runtimeId: 'javascript', operationId: 'transform', input: { value: 1 } }) }
+    }, expect.objectContaining({ organizationId: ORG }), expect.objectContaining({ workerType: 'plugin-runtime' }));
   });
 
   it('exposes managed services as runtime operations with no endpoint settings', async () => {

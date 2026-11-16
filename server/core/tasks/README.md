@@ -29,9 +29,12 @@ Parent: [server](../../README.md).
   finalized.
 
 Task definitions come from the app registry, or ride the enqueue call as
-runtime-declared contracts (plugin connector services compose theirs from
-the install snapshot — `enqueueTask`'s `options.definition`), in which case
-completion resolves the contract back through the plugins feature.
+runtime-declared contracts (plugin services compose theirs from the
+install snapshot — `enqueueTask`'s `options.definition`), in which case
+completion resolves the contract back through the plugins feature. Managed
+package operations share the `plugin-runtime` worker type; the worker reads
+package assets and invokes scoped host capabilities through claim-bound
+routes.
 Worker-specific payloads and IO live
 in worker processes or feature adapters; this runtime is domain-agnostic.
 
@@ -78,11 +81,14 @@ authenticated by the configured worker or connector token.
 - `POST /api/tasks/:id/heartbeat`
 - `POST /api/tasks/:id/complete`
 - `POST /api/tasks/:id/fail`
+- `GET /api/tasks/:id/plugin-package` (platform runtime claim only)
+- `POST /api/tasks/:id/plugin-capability` (platform runtime claim only)
 - `POST /api/tasks/:id/cancel`
 
 All worker endpoints accept two credentials (`server/core/tasks/worker-auth.js`):
 the deployment-wide `WORKER_TOKEN` (global scope, matched against the
-`x-worker-token` header) and per-install plugin connector tokens, whose
+`x-worker-token` header), used by platform workers such as `plugin-runtime`,
+and per-install plugin connector tokens, whose
 claims are pinned to the installing organization's queue for that plugin
 (`plugin.<pluginId>@<organizationId>`); connector scope may not target
 task ids directly.

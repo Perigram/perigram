@@ -1,9 +1,10 @@
 # CONTAINER: Workers
 
-The worker tier currently contains the nesting solver and transitional
-plugin executors. Under SPEC §20 (owner direction 2026-11-16), documents
-and build123d are migrating to organization-owned frontend packages; their
-executor containers are temporary and must not be expanded. The `task_runs` protocol
+The worker tier contains the nesting solver, the platform-managed plugin
+runtime, and transitional integration executors. Installed plugin packages
+are organization-owned data; the shared runtime executes server-capable
+operations across organizations. Build123d remains transitional until its
+upstream browser runtime is ready. The `task_runs` protocol
 under `/api/tasks/*` is the
 [task runtime's](../server/core/tasks/README.md) contract.
 
@@ -14,6 +15,7 @@ Target law: [SPEC.md](./SPEC.md).
 
 | Worker | Protocol | Entry point | Responsibility |
 |---|---|---|---|
+| plugin-runtime | Managed task worker | `workers/plugin-runtime/index.ts` | Shared JavaScript runtime for installed packages. Each invocation runs in a short-lived Deno process with package-only read access, denied network/environment/process permissions, a memory ceiling, and a wall-time limit — see [workers/plugin-runtime](./plugin-runtime/README.md). |
 | nesting | HTTP solver | `workers/nesting/worker_service.py` | 2D nesting solver, called by the facade executor through `NESTING_WORKER_URL` — see [workers/nesting](./nesting/README.md). |
 | facade | Endpoint-mode plugin executor | `workers/facade/index.js` | The facade plugin's compute and surfaces — see [workers/facade](./facade/README.md). |
 | documents | Endpoint-mode plugin executor | `workers/documents/index.js` | The documents plugin's projections and text/csv surfaces — see [workers/documents](./documents/README.md). |
@@ -26,4 +28,6 @@ The solver image builds from the project root (the Dockerfile needs the
 repo context — [building locally](./nesting/README.md)); the dev and
 local compose files run `nesting-worker` beside the app and Mongo.
 `WORKER_TOKEN` is the task runtime's app/worker shared secret
-([server/core/tasks](../server/core/tasks/README.md)).
+([server/core/tasks](../server/core/tasks/README.md)). The managed plugin
+runtime claims the shared `plugin-runtime` worker type; package code receives
+host capabilities through task-scoped server routes.
