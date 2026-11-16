@@ -51,6 +51,8 @@ describe('pages', () => {
   beforeEach(async () => {
     await db.collection('pages').deleteMany({});
     await db.collection('items').deleteMany({});
+    await db.collection('files.files').deleteMany({});
+    await db.collection('files.chunks').deleteMany({});
   });
 
   async function seedPage(organizationId, data = {}) {
@@ -154,6 +156,84 @@ describe('pages', () => {
     expect(saved).toMatchObject({ name: 'Notes', blocks, order: ['b1'] });
     const read = await pagesService.getById(page._id, memberOf(ORG_A));
     expect(read).toMatchObject({ name: 'Notes', blocks, order: ['b1'], parentId: section._id });
+  });
+
+  it('bakes an output to a page path and creates immutable file revisions on conflict', async () => {
+    const page = await pagesService.create({ name: 'Artifacts' }, memberOf(ORG_A));
+    const first = await pagesService.bakeFile({
+      pageId: page._id,
+      path: 'exports/result.json',
+      buffer: Buffer.from('{"value":1}'),
+      mimeType: 'application/json',
+      provenance: { graphId: 'graph-1', graphRevision: 'rev-1', executionId: 'exec-1', outputId: 'result' }
+    }, memberOf(ORG_A));
+
+    expect(first.file).toMatchObject({ path: 'exports/result.json', revision: 1, mime: 'application/json' });
+    expect(first.page.blocks.find(block => block.kind === 'file')?.file.fileId).toBe(first.file.fileId);
+    const stored = await db.collection('files.files').findOne({ _id: new ObjectId(first.file.fileId) });
+    expect(stored.metadata).toMatchObject({
+      organizationId: ORG_A,
+      pageId: page._id,
+      logicalPath: 'exports/result.json',
+      graphId: 'graph-1',
+      graphRevision: 'rev-1',
+      executionId: 'exec-1',
+      outputId: 'result'
+    });
+
+    await expect(pagesService.bakeFile({
+      pageId: page._id,
+      path: 'exports/result.json',
+      buffer: Buffer.from('conflict'),
+      mimeType: 'text/plain',
+      conflictPolicy: 'fail'
+    }, memberOf(ORG_A))).rejects.toMatchObject({ statusCode: 409 });
+
+    const second = await pagesService.bakeFile({
+      pageId: page._id,
+      path: 'exports/result.json',
+      buffer: Buffer.from('{"value":2}'),
+      mimeType: 'application/json',
+      conflictPolicy: 'create-revision'
+    }, memberOf(ORG_A));
+    expect(second.file.revision).toBe(2);
+    expect(second.file.history).toHaveLength(1);
+    expect(second.file.history[0].fileId).toBe(first.file.fileId);
+    expect(second.page.blocks.filter(block => block.kind === 'file')).toHaveLength(1);
+  });
+
+  it('creates a distinct logical path when the selected conflict policy requests it', async () => {
+    const page = await pagesService.create({ name: 'Artifacts' }, memberOf(ORG_A));
+    await pagesService.bakeFile({
+      pageId: page._id,
+      path: 'exports/result.json',
+      buffer: Buffer.from('one'),
+      mimeType: 'text/plain'
+    }, memberOf(ORG_A));
+    const result = await pagesService.bakeFile({
+      pageId: page._id,
+      path: 'exports/result.json',
+      buffer: Buffer.from('two'),
+      mimeType: 'text/plain',
+      conflictPolicy: 'create-distinct-name'
+    }, memberOf(ORG_A));
+    expect(result.file.path).toBe('exports/result (2).json');
+    expect(result.page.blocks.filter(block => block.kind === 'file')).toHaveLength(2);
+  });
+
+  it('refuses page file baking into a section and rejects unsafe paths', async () => {
+    const section = await pagesService.create({ kind: 'section' }, memberOf(ORG_A));
+    await expect(pagesService.bakeFile({
+      pageId: section._id,
+      path: 'result.txt',
+      buffer: Buffer.from('value')
+    }, memberOf(ORG_A))).rejects.toMatchObject({ statusCode: 400 });
+    const page = await pagesService.create({}, memberOf(ORG_A));
+    await expect(pagesService.bakeFile({
+      pageId: page._id,
+      path: '../result.txt',
+      buffer: Buffer.from('value')
+    }, memberOf(ORG_A))).rejects.toMatchObject({ statusCode: 400 });
   });
 
   it('migrates legacy pages without deleting their source when an item ID belongs to another tenant', async () => {
