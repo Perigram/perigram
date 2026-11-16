@@ -12,6 +12,20 @@ import { normalizeScreenContract, validateScreenContract } from '@perigram/proce
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 
 describe('process designer interaction boundaries', () => {
+  it('keeps process-node cards as socket manifests and moves all authoring into the inspector', () => {
+    const card = readFileSync(new URL('../components/process-designer/ProcessNode.vue', import.meta.url), 'utf8');
+    const inspector = readFileSync(new URL('../components/process-designer/inspector/ProcessNodeInspector.vue', import.meta.url), 'utf8');
+
+    expect(card).toContain('socketRows.length');
+    expect(card).toContain('DesignerSocketHandle');
+    expect(card).not.toContain('TypedValueControl');
+    expect(card).not.toContain('hasInlineConfiguration');
+    expect(card).not.toContain('updateValueType');
+    expect(inspector).toContain('TypedValueControl');
+    expect(inspector).toContain('operationOptions');
+    expect(inspector).toContain('literalStructureDisplay');
+  });
+
   it('delegates producer-output ownership to the package record-sync pipeline', () => {
     const designer = readFileSync(new URL('../pages/organization/process.vue', import.meta.url), 'utf8');
     const nodeSync = readFileSync(new URL('../composables/useProcessDesignerNodeSync.js', import.meta.url), 'utf8');
