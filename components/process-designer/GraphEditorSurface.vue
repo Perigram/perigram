@@ -58,6 +58,10 @@
                   @update-config="updateNodeConfig"
                   @update-boundary-label="updateBoundaryLabel"
                   @update-boundary-declaration="updateBoundaryDeclaration"
+                  :graph-documents="graphDocuments"
+                  :graph-documents-loading="graphDocumentsLoading"
+                  :graph-documents-error="graphDocumentsError"
+                  @hydrate-graph="hydrateSelectedGraph"
                 />
               </TabPanel>
               <TabPanel value="preview">
@@ -112,6 +116,9 @@ const saving = ref(false);
 const recordName = ref(props.record?.name || '');
 const savedSignature = ref('');
 const inspectTab = ref('inspector');
+const graphDocuments = ref([]);
+const graphDocumentsLoading = ref(false);
+const graphDocumentsError = ref('');
 let canvasFrame = null;
 let instanceId = String(props.record?._id || props.record?.id || '');
 
@@ -130,6 +137,7 @@ const {
   contextPaletteChipGroups,
   contextPalette,
   selectedNode,
+  selectedBoundaryDeclaration,
   selectedNodeId,
   selectedGraphNodes,
   touchPanDrag,
@@ -157,6 +165,8 @@ const {
   clearGraphSelection,
   updateNodeConfig,
   updateBoundaryLabel,
+  updateBoundaryDeclaration,
+  hydrateGraphInvocation,
   renameDeclarationNode,
   loadDocument,
   loadEmpty,
@@ -216,6 +226,44 @@ function parseGraphPayload(payload) {
     throw new Error(t('processDesigner.invalidGraphPayload'));
   }
   return graph;
+}
+
+async function loadGraphCatalog() {
+  graphDocumentsLoading.value = true;
+  graphDocumentsError.value = '';
+  try {
+    const items = await $fetch('/api/instances/graph-document');
+    graphDocuments.value = (Array.isArray(items) ? items : [])
+      .filter(item => item?.payload?.fileId && item?._id)
+      .map(item => ({ ...item, _id: String(item._id), name: String(item.name || 'Graph') }));
+  } catch (error) {
+    graphDocumentsError.value = error?.data?.message || error?.message || '';
+  } finally {
+    graphDocumentsLoading.value = false;
+  }
+}
+
+async function hydrateSelectedGraph({ nodeId, graphId }) {
+  const record = graphDocuments.value.find(item => String(item._id) === String(graphId));
+  if (!record?.payload?.fileId) return;
+  try {
+    const payload = await $fetch(`/api/files/download/${encodeURIComponent(record.payload.fileId)}?bucket=files`, {
+      responseType: 'text'
+    });
+    const graph = parseGraphPayload(payload);
+    if (String(graph.id) !== String(record._id)) {
+      throw new Error('Graph document identity does not match its stored instance');
+    }
+    hydrateGraphInvocation(nodeId, graph);
+    toast.add({ severity: 'success', summary: t('processDesigner.graphPinned'), life: 2400 });
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: t('processDesigner.graphUnavailable'),
+      detail: error?.data?.message || error?.message || '',
+      life: 5000
+    });
+  }
 }
 
 async function loadGraphDocument() {
@@ -313,5 +361,7 @@ props.pageChrome?.bind?.(Object.assign(
   readOnly.value ? {} : { save: saveGraphDocument, rename: renameGraphDocument }
 ));
 
-onMounted(loadGraphDocument);
+onMounted(async () => {
+  await Promise.all([loadGraphDocument(), loadGraphCatalog()]);
+});
 </script>
