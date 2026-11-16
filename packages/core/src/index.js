@@ -24,3 +24,5 @@ export {
 export { evaluateProceduralGraph } from './procedural-evaluator.js';
 
 export * from './graph-execution.js';
+
+export * from './graph-read-set.js';
