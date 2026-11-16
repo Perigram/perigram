@@ -555,8 +555,10 @@ canvas/palette/selection presentation, while provider contracts supply
 node sockets and the graph-specific inspector edits JSON configuration
 and boundary labels. Graph Input, Graph Output, and a distinct Use Graph
 palette group are exposed. Preview invokes the core procedural evaluator
-with registered process data-node adapters; it is preview-only and does
-not commit organization state. The Use Graph invocation UI currently
+with registered process data-node adapters; the preview panel accepts
+JSON graph-input bindings and displays graph outputs plus per-node outputs.
+The canvas activity indicator opens that preview panel directly. Preview
+is read-only and does not commit organization state. The Use Graph invocation UI currently
 authors its pinned graph ID, revision, and public-interface snapshot in
 the node's JSON configuration; graph-document discovery and automatic
 revision/interface hydration remain follow-up work. The header chrome

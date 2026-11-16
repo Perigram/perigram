@@ -379,8 +379,9 @@ invariant).
   graph/node/edge identity, provider-registry palette projection,
   provider-derived socket definitions, Graph Input/Output boundaries,
   pinned Use Graph invocation sockets, canvas selection/placement,
-  structural validation, and preview evaluation through the core
-  procedural evaluator plus the process provider adapter. It reuses the
+  structural validation, transient graph-input bindings, and preview
+  evaluation through the core procedural evaluator plus the process
+  provider adapter. It reuses the
   shared `useProcessDesignerCanvas` and selection primitives without
   translating the document into process-definition records. Persistence
   and the record header remain in `GraphEditorSurface.vue`.
