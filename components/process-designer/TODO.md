@@ -99,6 +99,20 @@ fixed; negations folded to the canonical statements; runtime status model
 linked to server/core/machines/README.md; parent link added. OPEN:
 provenance-citations + palette-home decisions.
 
+### Graph document discovery and pinned invocation (2026-11-16)
+
+- [x] Discover stored graph documents through the generic
+  `graph-document` instance list, which applies organization scoping and
+  compiled read authorization; retrieve the selected JSON payload through
+  the file-read authorization boundary.
+- [x] Expose the discovery picker on Use Graph nodes and hydrate sockets
+  from the exact graph revision carried by the selected immutable payload.
+  Graph identity remains distinct from its storage-instance identity
+  (SPEC §28.2).
+- [ ] Remaining: discover and place reusable graphs directly from the
+  palette; browse historical graph revisions and explicitly update an
+  existing invocation pin.
+
 ### Agent Notes (2026-10-25)
 
 Session `agent/comp-deslop2-20261025-1521` (worktree
