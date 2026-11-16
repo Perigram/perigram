@@ -91,7 +91,7 @@ export function validateNodeDefinition(source) {
   }
   const seenCapabilities = new Set();
   for (const [index, capability] of (source.execution?.capabilities || []).entries()) {
-    if (typeof capability !== 'string' || !/^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$/.test(capability)) {
+    if (typeof capability !== 'string' || !/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/.test(capability)) {
       problems.push(issue('invalid-capability', `execution.capabilities[${index}]`, 'Capability must be a qualified capability id such as organization.instances.read'));
     } else if (seenCapabilities.has(capability)) {
       problems.push(issue('duplicate-capability', `execution.capabilities[${index}]`, `Duplicate capability ${capability}`));

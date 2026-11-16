@@ -822,6 +822,81 @@ export async function commandDefinitionFor(commandId, auth = {}) {
 // ./executor-payload.js; re-exported for the service-module surface.
 export { executorPayload } from './executor-payload.js';
 
+// Resolve and verify the immutable package snapshot for a claimed managed
+// runtime task. The API route owns worker authentication and claim lookup;
+// repository access and package integrity remain behind this feature service.
+export async function managedRuntimePackageForTask(run = {}) {
+  const taskInput = run.input?.parameters?.value || {};
+  const organizationId = String(run.auth?.organizationId || '');
+  const pluginId = String(taskInput.pluginId || '');
+  const version = String(taskInput.version || '');
+  const runtimeId = String(taskInput.runtimeId || '');
+  const operationId = String(taskInput.operationId || '');
+  if (!organizationId || !pluginId || !version || !runtimeId || !operationId) {
+    throw createError({ statusCode: 400, message: 'Managed runtime task package identity is incomplete' });
+  }
+
+  await processDefinitionsService.resolveRunActor(run.auth || {}, organizationId);
+  const install = await repository.findInstall(organizationId, pluginId);
+  if (!install || String(install.version) !== version) {
+    throw createError({ statusCode: 409, message: 'The installed plugin version changed before execution' });
+  }
+  if (String(run.taskId) !== `plugin.${pluginId}.${operationId}`) {
+    throw createError({ statusCode: 403, message: 'Managed runtime task identity does not match its package input' });
+  }
+  const service = (install.services || []).find(item => item.id === operationId);
+  const runtime = (install.declarations?.runtimes || []).find(item => item.id === runtimeId);
+  if (!service?.execution || service.execution.runtime !== runtimeId
+    || !service.execution.targets?.includes('server')
+    || !runtime?.targets?.includes('server')
+    || runtime.language !== 'javascript') {
+    throw createError({ statusCode: 409, message: 'Managed runtime declaration changed or is unsupported' });
+  }
+
+  const manifest = install.packageAssets?.assets || [];
+  if (!manifest.length) {
+    throw createError({ statusCode: 409, message: 'Installed package assets are unavailable; reinstall or upgrade this plugin' });
+  }
+  const assets = [];
+  for (const item of manifest) {
+    const path = String(item.path || '');
+    if (!path || path.startsWith('/') || path.split('/').includes('..')) {
+      throw createError({ statusCode: 500, message: 'Installed package asset manifest contains an unsafe path' });
+    }
+    const meta = await repository.findOrganizationPluginAssetMeta(organizationId, pluginId, version, path);
+    if (!meta) throw createError({ statusCode: 409, message: `Installed package asset ${path} is missing` });
+    const buffer = await repository.readOrganizationPluginAsset(meta);
+    const digest = filesService.contentHash(buffer);
+    if (item.contentHash && digest !== item.contentHash) {
+      throw createError({ statusCode: 409, message: `Installed package asset ${path} failed its content digest check` });
+    }
+    assets.push({
+      path,
+      contentType: meta.contentType || '',
+      contentHash: meta.contentHash || item.contentHash || '',
+      base64: buffer.toString('base64')
+    });
+  }
+
+  const entry = String(runtime.entry || '').replace(/^\//, '');
+  if (!assets.some(asset => asset.path === entry)) {
+    throw createError({ statusCode: 409, message: `Runtime entry ${runtime.entry} is missing from installed package assets` });
+  }
+  return {
+    success: true,
+    package: {
+      pluginId,
+      version,
+      runtime: { ...runtime },
+      execution: { ...service.execution },
+      operationId,
+      input: taskInput.input ?? null,
+      dependencies: install.declarations?.dependencies || [],
+      assets
+    }
+  };
+}
+
 export async function executeConnectorService(command, { parameters, auth = {}, valueOnly = false } = {}) {
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
   const install = await installForCommand(command.id, organizationId);
