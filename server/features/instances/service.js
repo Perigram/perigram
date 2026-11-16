@@ -523,6 +523,7 @@ async function constraintResolversFor(organizationId) {
 }
 
 async function assertDeclaredRelationSlots(declaration, instance, organizationId, keys = []) {
+  if (!keys.length) return;
   const declared = new Set(Object.keys(declaration?.edges?.relations || {}));
   for (const [fieldId, field] of Object.entries(declaration?.fields || {})) {
     if (field?.base === 'ref' || (field?.base === 'list' && field?.itemType?.base === 'ref')) {
