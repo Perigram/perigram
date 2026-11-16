@@ -58,7 +58,11 @@ export async function invokePluginCapability({
     if (!typeId || !instanceId || !input.patch || typeof input.patch !== 'object') throw createError({ statusCode: 400, message: 'Instance update requires typeId, instanceId, and patch' });
     const instanceService = getAppRegistry().getInstanceService(typeId);
     if (typeof instanceService?.patch !== 'function') throw createError({ statusCode: 404, message: 'Instance update service is unavailable' });
-    return await instanceService.patch(instanceId, input.patch, { auth, organizationId: orgId });
+    return await instanceService.patch(instanceId, input.patch, {
+      auth,
+      organizationId: orgId,
+      expectedRevision: input.expectedRevision ?? null
+    });
   }
   if (name === 'organization.instances.delete') {
     const typeId = String(input.typeId || '');
