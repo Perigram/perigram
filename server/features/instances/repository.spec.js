@@ -37,6 +37,25 @@ describe('CTS instance repository revisions', () => {
     );
   });
 
+  it('passes transaction sessions to instance inserts and updates', async () => {
+    const session = { id: 'transaction-session' };
+    await repository.insertInstance('items', { _id: 'instance-1', type: 'part' }, { session });
+    expect(collection.insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: 'instance-1', revision: 1 }),
+      { session }
+    );
+
+    await repository.updateInstanceFields('items', 'instance-1', { 'fields.code': 'B' }, { session });
+    expect(collection.findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: 'instance-1' },
+      expect.objectContaining({
+        $set: expect.objectContaining({ 'fields.code': 'B' }),
+        $inc: { revision: 1 }
+      }),
+      { returnDocument: 'after', session }
+    );
+  });
+
   it('maps unique-index collisions on create and update to a typed conflict', async () => {
     collection.insertOne.mockRejectedValueOnce(Object.assign(new Error('duplicate key'), { code: 11000 }));
     await expect(repository.insertInstance('items', { _id: 'instance-1', type: 'part' })).rejects.toMatchObject({
