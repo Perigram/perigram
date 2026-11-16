@@ -206,7 +206,7 @@ export function checkBooleanExpression(ast, rowNames = null, path = 'expression'
       if (op === 'related' && !String(node.key || '').trim()) errors.push(`${path}: related requires a relation key`);
       return;
     }
-    if (['exists', 'all', 'none', 'one', 'count', 'sum', 'min', 'max', 'map', 'filter'].includes(op)) {
+    if (['exists', 'all', 'none', 'one', 'count', 'sum', 'min', 'max'].includes(op)) {
       visit(node.list, depth + 1, bound);
       const variable = String(node.var || '');
       if (!variable && !(op === 'count' && !node.body)) errors.push(`${path}: ${op} requires a bound variable`);

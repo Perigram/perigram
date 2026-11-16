@@ -56,7 +56,7 @@ describe('generalized finite constraint expressions', () => {
 
   it('requires finite authorized relation resolvers and rejects unbound variables', () => {
     expect(() => evaluate({ op: 'related', key: 'items' }, { value: {} })).toThrow(/authorized collection resolver/);
-    expect(() => evaluate({ op: 'exists', list: { op: 'lit', value: [] }, var: 'x', body: { op: 'var', name: 'y' } })).toThrow(/unbound variable/);
+    expect(checkBooleanExpression({ op: 'exists', list: { op: 'lit', value: [] }, var: 'x', body: { op: 'var', name: 'y' } }))\n      .toContain('expression: unbound variable y');
     expect(checkBooleanExpression({
       op: 'exists',
       list: { op: 'related', key: 'items' },
