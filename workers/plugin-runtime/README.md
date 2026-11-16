@@ -19,7 +19,9 @@ declaration, and capability allowlist before executing a handler.
 
 Runtime modules export `createRuntime()` (or a default factory) returning
 an object with `execute(operationId, input, { capabilities, signal })`.
-The same operation contract is used by the browser Worker adapter. Package
+The same operation contract is used by the browser Worker adapter. Browser
+runtime factories may also return a structured-cloneable `providers` array
+containing provider ids and node definitions. Package
 dependencies resolve from installed local assets through the generated
 Deno import map.
 
