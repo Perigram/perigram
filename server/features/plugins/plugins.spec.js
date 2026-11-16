@@ -1007,6 +1007,7 @@ describe('upgrades', () => {
       declarations: { ...listingV3.declarations, engine: { module: '/engine/index.mjs' } }
     };
     repository.findCatalogByPluginId.mockResolvedValue(engineListing);
+    repository.listInstallsByOrganization.mockResolvedValue([installedV2, primersInstall]);
     await applyUpgrade({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
     expect(repository.updateInstallSnapshot.mock.calls[0][2].declarations.engine)
       .toEqual({ module: '/engine/index.mjs' });
