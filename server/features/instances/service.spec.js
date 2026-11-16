@@ -22,6 +22,12 @@ vi.mock('../plugins/repository.js', () => ({
 vi.mock('../workflow-overrides/service.js', () => ({
   resolveActiveWorkflow: vi.fn(async () => null)
 }));
+vi.mock('./organization-sequence.js', () => ({
+  getOrganizationChangeSequence: vi.fn(async () => 0),
+  recordOrganizationChange: vi.fn(async () => 1),
+  runOrganizationChange: vi.fn(async (_organizationId, _metadata, mutate) => await mutate()),
+  withOrganizationChangeSequence: vi.fn()
+}));
 vi.mock('../instance-events/service.js', () => ({
   publishEntityChanged: vi.fn(async () => null)
 }));
