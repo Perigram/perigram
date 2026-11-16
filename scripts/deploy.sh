@@ -72,8 +72,6 @@ retry docker build --network=host "${build_args[@]}" \
 retry docker build --network=host "${build_args[@]}" \
   -t perigram-plugin-runtime:staging -f workers/plugin-runtime.Dockerfile .
 retry docker build --network=host "${build_args[@]}" \\
-  -t perigram-plugin-runtime:staging -f workers/plugin-runtime.Dockerfile .
-retry docker build --network=host "${build_args[@]}" \
   -t perigram-seed:staging -f deploy/seed.Dockerfile .
 
 echo "Starting plugin executor plane..."

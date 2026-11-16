@@ -153,6 +153,10 @@ describe('plugin installs', () => {
   it('queues managed package operations on the shared platform runtime worker', async () => {
     repository.findInstall.mockResolvedValue({
       ...coatingInstall,
+      declarations: {
+        ...coatingInstall.declarations,
+        runtimes: [{ id: 'javascript', language: 'javascript', version: '1', entry: '/runtime.mjs', targets: ['server'] }]
+      },
       services: [{
         id: 'transform',
         signature: { input: { base: 'json' }, output: { base: 'json' } },

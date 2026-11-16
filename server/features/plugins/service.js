@@ -853,7 +853,8 @@ export async function executeConnectorService(command, { parameters, auth = {}, 
       } }
     }, { ...auth, organizationId: String(organizationId) }, {
       definition: taskContractFor(command.id, install, String(organizationId)),
-      workerType: PLUGIN_RUNTIME_WORKER_TYPE
+      workerType: PLUGIN_RUNTIME_WORKER_TYPE,
+      maxAttempts: ['pure', 'read'].includes(service.execution.kind) || service.execution.idempotent === true ? 3 : 1
     });
     return { tasks: [run] };
   }
