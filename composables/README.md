@@ -38,6 +38,20 @@ The current graph is excluded from its own palette.
 
 ---
 
+## usePluginRuntime — browser package execution
+
+`usePluginRuntime()` owns dedicated Workers keyed by installed plugin
+version and declared runtime version. `execute(binding, runtime, operationId,
+input, options)` dispatches only operations declaring browser support.
+Each invocation supplies its declared capability allowlist; host handlers
+run on the main thread and receive the plugin, version, operation, and
+cancellation context. `dispose()` terminates the composable's workers.
+
+The Worker module contract lives in
+[plugin-sdk](../packages/plugin-sdk/README.md) → managed runtime module.
+
+---
+
 ## useBlocks — Low-level Block Composables
 
 ```js

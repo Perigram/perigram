@@ -1,0 +1,149 @@
+import { ref } from 'vue';
+
+export function usePluginRuntime({
+  createWorker = () => new Worker(new URL('./plugin-runtime.worker.js', import.meta.url), { type: 'module' })
+} = {}) {
+  const errors = ref({});
+  const runtimes = new Map();
+  let invocationSequence = 0;
+
+  function runtimeKey(binding, runtime) {
+    return `${binding.pluginId}@${binding.version}:${runtime.id}@${runtime.version}`;
+  }
+
+  function createRuntime(binding, runtime) {
+    if (!runtime?.entryUrl) throw new Error(`Runtime ${runtime?.id || ''} has no served entry URL`);
+    const worker = createWorker();
+    const pending = new Map();
+    let readyResolve;
+    let readyReject;
+    let disposed = false;
+    const ready = new Promise((resolve, reject) => {
+      readyResolve = resolve;
+      readyReject = reject;
+    });
+
+    function rejectPending(error) {
+      for (const request of pending.values()) request.reject(error);
+      pending.clear();
+    }
+
+    worker.onmessage = async event => {
+      const message = event.data || {};
+      if (message.type === 'ready') {
+        readyResolve();
+        return;
+      }
+      if (message.type === 'runtime-error') {
+        const error = new Error(message.error?.message || 'Plugin runtime failed to initialize');
+        readyReject(error);
+        rejectPending(error);
+        errors.value = { ...errors.value, [binding.pluginId]: error.message };
+        return;
+      }
+      if (message.type === 'capability-request') {
+        const request = pending.get(message.invocationId);
+        if (!request) return;
+        try {
+          if (!request.allowedCapabilities.has(message.name)) {
+            throw new Error(`Capability ${message.name} is not declared by this operation`);
+          }
+          const handler = request.capabilities[message.name];
+          if (typeof handler !== 'function') {
+            throw new Error(`Capability ${message.name} is unavailable in this host`);
+          }
+          const value = await handler(message.input, {
+            pluginId: binding.pluginId,
+            version: binding.version,
+            operationId: request.operationId,
+            signal: request.signal
+          });
+          worker.postMessage({ type: 'capability-result', callId: message.callId, value });
+        } catch (error) {
+          worker.postMessage({
+            type: 'capability-result',
+            callId: message.callId,
+            error: { message: error?.message || String(error) }
+          });
+        }
+        return;
+      }
+      const request = pending.get(message.invocationId);
+      if (!request) return;
+      pending.delete(message.invocationId);
+      request.signal?.removeEventListener('abort', request.abort);
+      if (message.type === 'result-error') {
+        request.reject(new Error(message.error?.message || 'Plugin operation failed'));
+      } else if (message.type === 'result') {
+        request.resolve(message.value);
+      }
+    };
+
+    worker.onerror = event => {
+      const error = new Error(event.message || 'Plugin runtime worker failed');
+      readyReject(error);
+      rejectPending(error);
+      errors.value = { ...errors.value, [binding.pluginId]: error.message };
+    };
+
+    worker.postMessage({ type: 'initialize', entryUrl: runtime.entryUrl });
+
+    return {
+      async invoke(operationId, input, { execution = {}, capabilities = {}, signal } = {}) {
+        if (disposed) throw new Error('Plugin runtime has been disposed');
+        if (!execution.targets?.includes('browser')) {
+          throw new Error(`Operation ${operationId} does not support browser execution`);
+        }
+        if (signal?.aborted) throw new Error('Plugin operation was cancelled');
+        await ready;
+        const invocationId = `invoke-${++invocationSequence}`;
+        const allowedCapabilities = new Set(execution.capabilities || []);
+        return await new Promise((resolve, reject) => {
+          const abort = () => {
+            worker.postMessage({ type: 'cancel', invocationId });
+            pending.delete(invocationId);
+            reject(new Error('Plugin operation was cancelled'));
+          };
+          pending.set(invocationId, {
+            resolve, reject, operationId, capabilities, allowedCapabilities, signal, abort
+          });
+          signal?.addEventListener('abort', abort, { once: true });
+          worker.postMessage({ type: 'invoke', invocationId, operationId, input });
+        });
+      },
+      dispose() {
+        if (disposed) return;
+        disposed = true;
+        rejectPending(new Error('Plugin runtime has been disposed'));
+        worker.terminate();
+      }
+    };
+  }
+
+  function runtimeFor(binding, runtime) {
+    const key = runtimeKey(binding, runtime);
+    if (!runtimes.has(key)) {
+      const instance = createRuntime(binding, runtime);
+      runtimes.set(key, instance);
+    }
+    return runtimes.get(key);
+  }
+
+  async function execute(binding, runtime, operationId, input, options = {}) {
+    if (!binding?.pluginId || !binding?.version) throw new Error('Plugin runtime binding requires pluginId and version');
+    const instance = runtimeFor(binding, runtime);
+    try {
+      return await instance.invoke(operationId, input, options);
+    } catch (error) {
+      errors.value = { ...errors.value, [binding.pluginId]: error.message };
+      throw error;
+    }
+  }
+
+  function dispose() {
+    for (const runtime of runtimes.values()) runtime.dispose();
+    runtimes.clear();
+  }
+
+  return { errors, execute, dispose };
+}
