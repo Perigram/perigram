@@ -14,6 +14,7 @@ fi
 BUILD_HTTP_PROXY="${BUILD_HTTP_PROXY:-}"
 BUILD_HTTPS_PROXY="${BUILD_HTTPS_PROXY:-}"
 BUILD_NO_PROXY="${BUILD_NO_PROXY:-localhost,127.0.0.1}"
+WORKER_TOKEN="${WORKER_TOKEN:-$(od -An -N32 -tx1 /dev/urandom | tr -d ' \\n')}"
 TRANSCRIPTION_PROVIDER="${TRANSCRIPTION_PROVIDER:-none}"
 TRANSCRIPTION_LOCAL_BASE_URL="${TRANSCRIPTION_LOCAL_BASE_URL:-}"
 MEETINGS_LLM_BASE_URL="${MEETINGS_LLM_BASE_URL:-}"
@@ -47,7 +48,7 @@ build_args=(
 )
 
 echo "Pulling base images..."
-for image in node:24.15.0-slim rust:1.83 python:3.11-slim python:3.14-slim node:24-alpine; do
+for image in node:24.15.0-slim rust:1.83 python:3.11-slim python:3.14-slim node:24-alpine denoland/deno:alpine; do
   retry docker pull "$image" || echo "WARN: pull $image failed; build may still resolve it"
 done
 
@@ -74,7 +75,7 @@ retry docker build --network=host "${build_args[@]}" \
 echo "Starting plugin executor plane..."
 docker rm -f perigram-nesting perigram-facade-executor \
   perigram-documents-executor perigram-tech-drawing-executor \
-  perigram-build123d-executor >/dev/null 2>&1 || true
+  perigram-build123d-executor perigram-plugin-runtime >/dev/null 2>&1 || true
 docker run -d --name perigram-nesting --restart unless-stopped \
   --network host perigram-nesting:staging
 docker run -d --name perigram-facade-executor --restart unless-stopped \
@@ -158,7 +159,17 @@ docker run -d --name perigram-staging --restart unless-stopped \
   -e "LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT=$LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT" \
   -e "NUXT_VAPID_PUBLIC_KEY=$NUXT_VAPID_PUBLIC_KEY" \
   -e "NUXT_VAPID_PRIVATE_KEY=$NUXT_VAPID_PRIVATE_KEY" \
+  -e "WORKER_TOKEN=$WORKER_TOKEN" \\
   perigram:staging
+
+docker run -d --name perigram-plugin-runtime --restart unless-stopped \\
+  --network host --memory=512m --cpus=1 --pids-limit=64 \\
+  --cap-drop=ALL --security-opt=no-new-privileges \\
+  --tmpfs /tmp:rw,nosuid,nodev,size=128m \\
+  -e "PERIGRAM_APP_URL=http://127.0.0.1:3001" \\
+  -e "WORKER_TOKEN=$WORKER_TOKEN" \\
+  -e PLUGIN_RUNTIME_WORKER_ID=managed-runtime-staging \\
+  perigram-plugin-runtime:staging
 
 echo "Verifying the deployed build..."
 [[ -n "$(docker ps --filter name=perigram-staging --filter status=running -q)" ]] \

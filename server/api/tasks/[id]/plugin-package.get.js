@@ -3,6 +3,7 @@ import { requireWorkerAccess } from '~/server/core/tasks/worker-auth.js';
 import { getTaskRunById } from '~/server/core/tasks/service.js';
 import * as pluginRepository from '~/server/features/plugins/repository.js';
 import { PLUGIN_RUNTIME_WORKER_TYPE } from '#shared/plugin-runtime.js';
+import * as processDefinitionsService from '~/server/features/process-definitions/service.js';
 
 export default defineEventHandler(async event => {
   const scope = await requireWorkerAccess(event);
@@ -25,6 +26,7 @@ export default defineEventHandler(async event => {
     throw createError({ statusCode: 400, message: 'Managed runtime task package identity is incomplete' });
   }
 
+  await processDefinitionsService.resolveRunActor(run.auth || {}, organizationId);
   const install = await pluginRepository.findInstall(organizationId, pluginId);
   if (!install || String(install.version) !== version) {
     throw createError({ statusCode: 409, message: 'The installed plugin version changed before execution' });

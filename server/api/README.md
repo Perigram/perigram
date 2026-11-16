@@ -80,7 +80,10 @@ Routes are grouped into sub-directories corresponding to features:
   successful frontend CRUD mutations after their canonical entity API call
   succeeds.
 - `tasks/`: Worker task queue protocol for claim, heartbeat, complete,
-  fail, and cancel (see [core/tasks](../core/tasks/README.md)).
+  fail, and cancel. Managed plugin workers also read pinned package assets
+  and invoke declared host capabilities through the task claim boundary
+  (see [core/tasks](../core/tasks/README.md) and
+  [plugins](../features/plugins/README.md)).
 - `admin/commands/` and `admin/tasks/`: Authenticated command/task definition
   and run listings (`command_runs`, `task_runs`). `admin/cts/` serves the
   org type registry view and declaration authoring API;

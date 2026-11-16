@@ -103,7 +103,9 @@ server placement; kind follows the graph execution vocabulary. Managed
 services enqueue platform-owned `plugin-runtime` tasks for server execution.
 The worker loads the exact organization-owned package version in a restricted
 Deno subprocess and requests declared capabilities through authenticated task
-routes. The server runtime currently executes JavaScript packages. Provider-level external integrations use
+routes. The server runtime currently executes JavaScript packages. It rehydrates the
+run actor from the current membership before package delivery and every
+capability call, so revoked membership or grants take effect on the next call. Provider-level external integrations use
 explicit connection records and server-held credentials. Legacy endpoint
 and claim service modes remain migration inputs while existing plugins
 move to managed execution. Local package operations carry no per-function

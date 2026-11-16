@@ -68,7 +68,21 @@ services:
     depends_on:
       mongo-init:
         condition: service_completed_successfully
-      livekit:
+      plugin-runtime:
+    image: perigram-plugin-runtime:latest
+    build:
+      context: .
+      dockerfile: workers/plugin-runtime.Dockerfile
+    environment:
+      - PERIGRAM_APP_URL=http://app:3000
+      - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
+      - PLUGIN_RUNTIME_WORKER_ID=managed-runtime-dev
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+  livekit:
         condition: service_started
     extra_hosts:
       - "host.docker.internal:host-gateway"

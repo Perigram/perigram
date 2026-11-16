@@ -3,6 +3,7 @@ import { requireWorkerAccess } from '~/server/core/tasks/worker-auth.js';
 import { getTaskRunById } from '~/server/core/tasks/service.js';
 import * as pluginRepository from '~/server/features/plugins/repository.js';
 import * as graphExecutionsService from '~/server/features/graph-executions/service.js';
+import * as processDefinitionsService from '~/server/features/process-definitions/service.js';
 import * as filesService from '~/server/features/files/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { PLUGIN_RUNTIME_WORKER_TYPE, PLUGIN_RUNTIME_CAPABILITIES } from '#shared/plugin-runtime.js';
@@ -33,9 +34,10 @@ export default defineEventHandler(async event => {
     throw createError({ statusCode: 403, message: `Capability ${name || '(empty)'} is not granted to this operation` });
   }
 
+  const auth = await processDefinitionsService.resolveRunActor(run.auth || {}, organizationId);
   const input = body.input ?? {};
   if (name === 'organization.instances.query') {
-    return await graphExecutionsService.queryOrganizationData(input, run.auth || {});
+    return await graphExecutionsService.queryOrganizationData(input, auth);
   }
   if (name === 'organization.instances.read') {
     const typeId = String(input.typeId || '');
@@ -48,7 +50,7 @@ export default defineEventHandler(async event => {
     if (!typeId || !input.draft || typeof input.draft !== 'object') throw createError({ statusCode: 400, message: 'Instance creation requires typeId and draft' });
     const instanceService = getAppRegistry().getInstanceService(typeId);
     if (typeof instanceService?.createForHttp !== 'function') throw createError({ statusCode: 404, message: 'Instance create service is unavailable' });
-    return await instanceService.createForHttp(input.draft, { auth: run.auth || {}, organizationId });
+    return await instanceService.createForHttp(input.draft, { auth, organizationId });
   }
   if (name === 'organization.instances.update') {
     const typeId = String(input.typeId || '');
@@ -68,11 +70,11 @@ export default defineEventHandler(async event => {
   }
   if (name === 'files.read') {
     const fileId = String(input.fileId || '');
-    const bucket = String(input.bucket || 'files');
+    const bucket = 'files';
     if (!fileId) throw createError({ statusCode: 400, message: 'File reads require fileId' });
     const meta = await filesService.findFileMeta(fileId, bucket);
     if (!meta) throw createError({ statusCode: 404, message: 'File not found' });
-    filesService.assertFileReadAccess(meta.metadata, run.auth || {});
+    filesService.assertFileReadAccess(meta.metadata, auth);
     const buffer = await filesService.getFileBuffer(fileId, bucket);
     return {
       fileId,
