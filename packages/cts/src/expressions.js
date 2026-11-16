@@ -299,7 +299,9 @@ export function checkTypedBooleanExpression(ast, { rootType, types, path = 'expr
     errors.push(path + ': typed traversal requires a root type and compiled type view');
     return errors;
   }
-  visit(ast, new Map([['value', [rootType.id]]]));
+  const scope = new Map([['value', [rootType.id]]]);
+  visit(ast, scope);
+  requireBoolean(infer(ast, scope), 'predicate');
   return [...new Set(errors)];
 
   function visit(node, scope) {
@@ -331,6 +333,105 @@ export function checkTypedBooleanExpression(ast, { rootType, types, path = 'expr
     }
     if (node.arg) visit(node.arg, scope);
     for (const argument of node.args || []) visit(argument, scope);
+  }
+
+  function infer(node, bindings) {
+    if (!node || typeof node !== 'object') return null;
+    switch (node.op) {
+      case 'lit':
+        if (node.value === null) return { base: 'null' };
+        if (typeof node.value === 'boolean') return { base: 'boolean' };
+        if (typeof node.value === 'number') return { base: 'number' };
+        if (typeof node.value === 'string') return { base: 'string' };
+        if (Array.isArray(node.value)) return { base: 'list', itemType: null };
+        return { base: 'json' };
+      case 'var':
+        return bindings.has(String(node.name || '')) ? { base: 'entity', types: bindings.get(String(node.name || '')) } : null;
+      case 'field':
+        return resolveFieldDescriptor(node, bindings);
+      case 'related':
+      case 'children':
+      case 'descendants':
+        return { base: 'list', itemType: { base: 'entity', types: resolveCollectionTypes(node, bindings) } };
+      case 'exists':
+      case 'all':
+      case 'none':
+      case 'one': {
+        const list = infer(node.list, bindings);
+        const nested = new Map(bindings);
+        nested.set(String(node.var || ''), list?.itemType?.types || []);
+        requireBoolean(infer(node.body, nested), node.op + ' body');
+        return { base: 'boolean' };
+      }
+      case 'count':
+        if (node.body) {
+          const list = infer(node.list, bindings);
+          const nested = new Map(bindings);
+          nested.set(String(node.var || ''), list?.itemType?.types || []);
+          infer(node.body, nested);
+        }
+        return { base: 'number' };
+      case 'sum':
+      case 'min':
+      case 'max': {
+        const list = infer(node.list, bindings);
+        const nested = new Map(bindings);
+        nested.set(String(node.var || ''), list?.itemType?.types || []);
+        const result = infer(node.body, nested);
+        if (result && !['number', 'quantity'].includes(result.base)) {
+          errors.push(path + ': ' + node.op + ' requires a numeric or quantity body, got ' + result.base);
+        }
+        return result;
+      }
+      case 'not':
+        requireBoolean(infer(node.arg, bindings), 'not operand');
+        return { base: 'boolean' };
+      case 'and':
+      case 'or':
+        (node.args || []).forEach((arg, index) => requireBoolean(infer(arg, bindings), node.op + ' argument ' + (index + 1)));
+        return { base: 'boolean' };
+      case 'eq':
+      case 'ne':
+      case 'lt':
+      case 'lte':
+      case 'gt':
+      case 'gte': {
+        const args = (node.args || []).map(arg => infer(arg, bindings));
+        if (args.length === 2 && args[0] && args[1] && !compatible(args[0], args[1])) {
+          errors.push(path + ': ' + node.op + ' compares incompatible types ' + args[0].base + ' and ' + args[1].base);
+        }
+        return { base: 'boolean' };
+      }
+      case 'in': {
+        const args = (node.args || []).map(arg => infer(arg, bindings));
+        const collection = args[1];
+        if (args.length === 2 && collection && collection.base !== 'list' && collection.base !== 'map') {
+          errors.push(path + ': in requires a list or map as its second argument');
+        } else if (args.length === 2 && args[0] && collection?.itemType && !compatible(args[0], collection.itemType)) {
+          errors.push(path + ': in member type ' + args[0].base + ' does not match collection item type ' + collection.itemType.base);
+        }
+        return { base: 'boolean' };
+      }
+      default:
+        return null;
+    }
+  }
+
+  function requireBoolean(descriptor, label) {
+    if (descriptor && descriptor.base !== 'boolean') {
+      errors.push(path + ': ' + label + ' must be boolean, got ' + descriptor.base);
+    }
+  }
+
+  function compatible(left, right) {
+    if (!left || !right || left.base === 'null' || right.base === 'null') return true;
+    if (left.base === right.base) {
+      if (left.base === 'quantity') return left.unit === right.unit;
+      return true;
+    }
+    if (left.base === 'enum' && right.base === 'string') return true;
+    if (right.base === 'enum' && left.base === 'string') return true;
+    return false;
   }
 
   function resolveCollectionTypes(node, scope) {

@@ -233,6 +233,31 @@ describe('class obligations (R6)', () => {
     expect(registry.compile().errors.filter(error => error.includes('typed-nested-order'))).toEqual([]);
 
     registry.defineType({
+      id: 'bad-nested-predicate', class: 'item', scope: 'system',
+      fields: {
+        owner: {
+          base: 'ref',
+          accepts: ['account'],
+          where: {
+            op: 'exists',
+            list: { op: 'related', of: { op: 'var', name: 'value' }, key: 'invoices' },
+            var: 'invoice',
+            body: { op: 'field', of: { op: 'var', name: 'invoice' }, path: ['amount'] }
+          }
+        }
+      }
+    });
+    expect(registry.compile().errors).toContainEqual(
+      expect.stringMatching(/bad-nested-predicate: fields.owner where \\(target account\\): exists body must be boolean, got number/));
+
+    registry.defineType({
+      id: 'bad-root-predicate', class: 'item', scope: 'system',
+      fields: { owner: { base: 'ref', accepts: ['user'], where: { op: 'lit', value: 7 } } }
+    });
+    expect(registry.compile().errors).toContainEqual(
+      expect.stringMatching(/bad-root-predicate: fields.owner where \\(target user\\): predicate must be boolean, got number/));
+
+    registry.defineType({
       id: 'bad-typed-order', class: 'item', scope: 'system',
       fields: {
         owner: {
