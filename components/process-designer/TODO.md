@@ -124,14 +124,17 @@ provenance-citations + palette-home decisions.
   group.
 - [x] Support typed multi-wire fan-in for list, tuple, tree, and map ports
   in the procedural preview evaluator; preserve one-wire list packets.
-- [ ] Remaining: place saved graphs directly from the dedicated **Use Graph**
-  palette group, and load installed plugin engine contributions from the
-  organization plugin runtime rather than requiring the host to pass a
+- [x] Place saved graphs directly from the dedicated **Use Graph** palette
+  group. Each item carries the authorized payload's graph identity, immutable
+  revision, and public interface; the active graph is excluded.
+- [x] Wire the invocation inspector's revision selector to the
+  source-scoped revision list and frozen-file read.
+- [ ] Load installed plugin engine contributions from the organization
+  plugin runtime rather than requiring the host to pass a
   `nodeProviders` contribution.
-- [ ] Remaining: replace the current JSON/text/table/document preview
-  fallbacks with the complete generic representation viewers (including
-  images and 2D/3D scenes) and integrate existing plugin preview-surface
-  channels for arbitrary graph outputs.
+- [ ] Replace the current JSON/text/table/document preview fallbacks with
+  generic representation viewers for images and 2D/3D scenes, and integrate
+  existing plugin preview-surface channels for arbitrary graph outputs.
 
 ### Agent Notes (2026-10-25)
 
