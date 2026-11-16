@@ -107,7 +107,8 @@ transient migration declarations), `services` (SPEC §8 signatures,
 palette metadata, and either managed `execution` metadata or an explicit
 external-integration `mode`), `runtimes` (version-pinned runtime
 descriptors: `{ id, language, version, entry, targets }`; language is
-`javascript`, `python`, or `wasm`; entry is a package asset; targets
+`javascript`, `python`, or `wasm`; entry is a `.js`/`.mjs`, `.py`, or
+`.wasm` package asset respectively; targets
 are `browser` and/or `server`), and `engine` (the transitional browser
 engine declaration: `{ module }` — a root-relative entry module served
 from the installed package; its default export is
@@ -120,7 +121,8 @@ exports `createRuntime()` (or a default factory) returning
 `{ execute(operationId, input, { capabilities, signal }) }`. Capability
 calls use `capabilities.call(name, input)` and are mediated by the host. `runtime` references
 a declared runtime; `targets` is a non-empty subset of that runtime's
-targets; `kind` is `pure`, `read`, or `effect`; capability ids are
+targets; `kind` uses the graph node execution vocabulary: `pure`, `read`,
+`stateful`, `proposal`, `commit`, `effect`, or `control`; capability ids are
 qualified names such as `files.read` or `organization.instances.read`.
 Pure operations carry no host capabilities. A service combines managed
 execution metadata with no legacy `mode`.

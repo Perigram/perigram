@@ -207,7 +207,11 @@
                     "enum": [
                       "pure",
                       "read",
-                      "effect"
+                      "stateful",
+                      "proposal",
+                      "commit",
+                      "effect",
+                      "control"
                     ]
                   },
                   "capabilities": {
@@ -492,7 +496,7 @@
               },
               "entry": {
                 "type": "string",
-                "pattern": "^/[a-z0-9/_-]+\\\\.(m?js|wasm)$"
+                "pattern": "^/[a-z0-9/_-]+\\.(m?js|py|wasm)$"
               },
               "targets": {
                 "type": "array",

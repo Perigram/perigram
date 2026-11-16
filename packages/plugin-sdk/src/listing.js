@@ -1,3 +1,4 @@
+import { NODE_EXECUTION_KINDS } from './node-contract.js';
 // Plugin listing contract (SPEC §Plugin marketplace): the one parser and
 // validator for what a catalog listing may declare. Imported by the
 // platform's install gate and publish API, and by plugin authors through
@@ -50,7 +51,7 @@ const SERVICE_REF = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 const MODULE_PATH = /^\/[a-z0-9/_-]+\.m?js$/;
 const RUNTIME_ENTRY_PATH = /^\/[a-z0-9/_-]+\.(?:m?js|wasm)$/;
 const EXECUTION_TARGETS = new Set(['browser', 'server']);
-const EXECUTION_KINDS = new Set(['pure', 'read', 'effect']);
+const EXECUTION_KINDS = new Set(NODE_EXECUTION_KINDS);
 const RUNTIME_LANGUAGES = new Set(['javascript', 'python', 'wasm']);
 const DEPENDENCY_MODULE_PATH = /^\/[a-z0-9/._-]+\.m?js$/;
 // A cross-plugin dependency module (owner decision 2026-10-27): the
@@ -151,6 +152,12 @@ export function parseListing(listing = {}) {
     }
     if (typeof runtime.entry !== 'string' || !RUNTIME_ENTRY_PATH.test(runtime.entry) || runtime.entry.split('/').includes('..')) {
       throw listingError(`runtime ${runtime.id} entry must be a root-relative .js/.mjs/.wasm package asset`);
+    }
+    const extension = runtime.entry.slice(runtime.entry.lastIndexOf('.'));
+    const validExtensions = runtime.language === 'javascript' ? ['.js', '.mjs']
+      : runtime.language === 'python' ? ['.py'] : ['.wasm'];
+    if (!validExtensions.includes(extension)) {
+      throw listingError(`runtime ${runtime.id} entry extension must match its ${runtime.language} language`);
     }
     if (!Array.isArray(runtime.targets) || !runtime.targets.length
       || runtime.targets.some(target => !EXECUTION_TARGETS.has(target))

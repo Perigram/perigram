@@ -34,6 +34,11 @@ self.onmessage = async event => {
 
   if (message.type === 'cancel') {
     activeInvocations.get(message.invocationId)?.abort();
+    for (const [callId, pending] of capabilityCalls) {
+      if (pending.invocationId !== message.invocationId) continue;
+      capabilityCalls.delete(callId);
+      pending.reject(new Error('Plugin operation was cancelled'));
+    }
     return;
   }
 
@@ -44,7 +49,7 @@ self.onmessage = async event => {
     call(name, input) {
       const callId = `cap-${++capabilitySequence}`;
       return new Promise((resolve, reject) => {
-        capabilityCalls.set(callId, { resolve, reject });
+        capabilityCalls.set(callId, { resolve, reject, invocationId: message.invocationId });
         self.postMessage({
           type: 'capability-request',
           callId,
