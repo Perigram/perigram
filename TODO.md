@@ -407,10 +407,12 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
 - [ ] G6 Organization-data consistency — bounded typed CTS queries now
   support exact-instance detail reads, Mongo snapshot transactions where
   supported, sequence-bracketed fallback, and execution read sets that merge
-  per-query snapshots only at a shared stable organization sequence. The
-  per-instance revision token and dry-run/apply backfill are implemented.
-  Remaining: run the backfill and validate affected data and relations
-  before Commit.
+  per-query snapshots only at a shared stable organization sequence. Bake and
+  Export revalidate graph identity, consumed instance revisions, relations,
+  and query-range sequences before materialization. The per-instance revision
+  token and dry-run/apply backfill are implemented. Remaining: run the
+  backfill and invoke the same read-set validation at Commit's authoritative
+  compare-and-swap boundary.
 - [ ] G7 Constraints — the typed boolean AST now checks nested
   relation/containment traversal, finite quantifiers, aggregate result types,
   and boolean predicate results. Enforcement covers generic creation,
