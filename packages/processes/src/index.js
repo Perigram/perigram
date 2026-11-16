@@ -146,6 +146,7 @@ export {
   PROCESS_PROCEDURAL_PROVIDER,
   PROCESS_PROCEDURAL_VERSION,
   createProcessProceduralNodeDefinition,
+  createProcessProceduralNodeResolver,
   createProcessProceduralExecutor,
   registerProcessProceduralNodes
 } from './procedural-provider.js';
