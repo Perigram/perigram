@@ -91,6 +91,28 @@ for (const organization of organizations) {
       migrated += 1;
       console.log('migrated ' + organizationId + '/' + pluginId + '@' + version + ': ' + manifest.count + ' asset(s)');
     } catch (error) {
+      // A failed repair may have removed a previously materialized copy.
+      // Clear only the exact snapshot we inspected so runtime falls back to
+      // catalog distribution assets instead of trusting a now-incomplete
+      // organization manifest. A concurrent install/upgrade is left alone.
+      const unchangedPin = { _id: install._id, organizationId, pluginId, version };
+      unchangedPin.assetStorage = Object.hasOwn(install, 'assetStorage')
+        ? install.assetStorage
+        : { $exists: false };
+      unchangedPin.packageAssets = Object.hasOwn(install, 'packageAssets')
+        ? install.packageAssets
+        : { $exists: false };
+      try {
+        const reset = await db.collection('plugin_installs').updateOne(
+          unchangedPin,
+          { $unset: { packageAssets: '', assetStorage: '' } }
+        );
+        if (reset.matchedCount !== 1) {
+          console.error('Could not restore catalog fallback because the install pin changed during migration');
+        }
+      } catch (resetError) {
+        console.error('Could not clear the incomplete organization asset marker: ' + (resetError?.message || resetError));
+      }
       failed += 1;
       console.error('FAILED ' + organizationId + '/' + pluginId + '@' + version + ': ' + (error?.message || error));
     }
