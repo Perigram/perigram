@@ -62,7 +62,9 @@
                   :error="previewError"
                   :running="previewRunning"
                   :graph="graphDocument"
+                  :input-bindings="inputBindings"
                   @refresh="refreshPreview"
+                  @update-input-binding="setGraphInputBinding"
                 />
               </TabPanel>
             </TabPanels>
@@ -115,6 +117,7 @@ const {
   graphDocument,
   validation,
   previewResult,
+  inputBindings,
   previewError,
   previewRunning,
   paletteGroups,
@@ -154,7 +157,8 @@ const {
   loadEmpty,
   serializeGraph,
   designerSignature,
-  refreshPreview
+  refreshPreview,
+  setGraphInputBinding
 } = session;
 
 // The server-rendered boot state is the initial saved baseline; async
