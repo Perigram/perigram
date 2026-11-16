@@ -67,6 +67,7 @@ boundary node. Use Graph nodes pin an immutable graph revision.
   invocation provenance, read sets, and artifact references. Construction
   validates JSON values before cloning so serialization cannot erase invalid
   `undefined`, non-finite, or non-JSON values.
+- `createCoreGraphDataProvider` registers the platform CTS instance-query node. Its executor receives an authorized host query capability and forwards the returned consistency boundary and read dependencies into the shared recorder.
 - `createGraphReadSetRecorder` captures deduplicated instance, relation, and
   query/range dependencies across parent and pinned child evaluations. It
   records a consistency label and optional snapshot/change-sequence boundary;

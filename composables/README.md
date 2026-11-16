@@ -18,11 +18,15 @@ entity-event emission contract; process actions run through `runAction`.
 
 ## useGraphDocumentSession — canonical procedural graph editor
 
-`useGraphDocumentSession({ t, providers, graphDocuments })` owns the
+`useGraphDocumentSession({ t, providers, graphDocuments, queryOrganizationData })` owns the
 browser editing session for a canonical `perigram.graph` document:
 normalized graph state, stable node/edge identity, typed sockets, Graph
 Input/Output declarations, pinned subgraph interfaces, validation, and
-preview evaluation. The provider registry and evaluator contracts live in
+preview evaluation. Its core CTS query node calls the injected
+`queryOrganizationData` capability; the graph workspace binds that callback
+to the authorized graph-executions query endpoint. Query results contribute
+sequence-bracketed read evidence to the execution read set. The provider
+registry and evaluator contracts live in
 [packages/core](../packages/core/README.md) and
 [packages/plugin-sdk](../packages/plugin-sdk/README.md).
 

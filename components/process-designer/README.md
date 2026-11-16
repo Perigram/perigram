@@ -43,7 +43,9 @@ loads each readable graph payload through the file-read boundary and places
 an invocation pinned to the payload's graph identity, revision, and public
 interface. The inspector can select a historical source revision and refresh
 the invocation sockets from that frozen payload. The source storage-instance
-id remains a separate catalog locator.
+id remains a separate catalog locator. The workspace injects the authorized
+CTS query capability used by the core data-query node; preview read sets retain
+the returned instance versions and query boundary.
 
 The graph session contract lives in
 [composables](../../composables/README.md#usegraphdocumentsession--canonical-procedural-graph-editor);
