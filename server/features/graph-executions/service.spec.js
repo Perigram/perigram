@@ -207,7 +207,9 @@ describe('graph execution service', () => {
     }, auth);
     expect(result.buffer).toEqual(Buffer.from('Generated document'));
     expect(result.mimeType).toBe('text/plain; charset=utf-8');
-    expect(result.filename).not.toMatch(/[\\/\\r\\n]/);
+    expect(result.filename).not.toMatch(/[\\/]/);
+    expect(result.filename).not.toContain('\\r');
+    expect(result.filename).not.toContain('\\n');
     expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
       fields: expect.objectContaining({
         profile: 'procedural-export',
