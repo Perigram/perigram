@@ -105,9 +105,12 @@ export async function deleteInstance(collection, id) {
 }
 
 // Unbounded raw-filter scan (the remove path's referrer sweep).
-export async function findInstancesByFilter(collection, filter = {}) {
+export async function findInstancesByFilter(collection, filter = {}, { session = null } = {}) {
   const db = await connectDB();
-  return await db.collection(collection).find(filter).toArray();
+  const cursor = session
+    ? db.collection(collection).find(filter, { session })
+    : db.collection(collection).find(filter);
+  return await cursor.toArray();
 }
 
 
