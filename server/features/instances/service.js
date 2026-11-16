@@ -726,7 +726,9 @@ function instanceService(typeId) {
           message: `Type ${typeId} lifecycle transitions must run through the status runtime`
         });
       }
-      let expectedUpdatedAt;
+      const hasExpectedUpdatedAt = Boolean(context && typeof context === 'object'
+        && Object.hasOwn(context, 'expectedUpdatedAt'));
+      let expectedUpdatedAt = hasExpectedUpdatedAt ? context.expectedUpdatedAt : undefined;
       const constrained = Boolean(declaration.constraints?.length);
       if (constrained) {
         const currentDoc = await repository.findInstance(collection, id, typeId);
@@ -768,14 +770,15 @@ function instanceService(typeId) {
         }
       }
       const write = async () => {
+        const compareRevision = constrained || hasExpectedUpdatedAt;
         const updated = await repository.updateInstanceFields(
           collection,
           id,
           set,
-          ...(constrained ? [{ expectedUpdatedAt }] : [])
+          ...(compareRevision ? [{ expectedUpdatedAt }] : [])
         );
-        if (constrained && !updated) {
-          throw createError({ statusCode: 409, message: `${typeId} ${id} changed while its constraints were being checked` });
+        if (compareRevision && !updated) {
+          throw createError({ statusCode: 409, message: `${typeId} ${id} changed while its update was being validated` });
         }
         return updated;
       };
@@ -795,7 +798,7 @@ function instanceService(typeId) {
     // gated through the shared access engine on the class-collection
     // feature (a write requires a compiled grant — fail-closed), exactly
     // like the payload replacement transport.
-    async patch(id, patch = {}, { auth = null, organizationId = null } = {}) {
+    async patch(id, patch = {}, { auth = null, organizationId = null, expectedRevision = null } = {}) {
       // Structural edges have dedicated link/unlink boundaries that validate
       // declared edge shape, target scope, and relation domains. The generic
       // field-patch transport must never write them around those checks.
@@ -812,11 +815,19 @@ function instanceService(typeId) {
         throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
       }
       const current = toDto(doc);
+      if (expectedRevision != null
+        && (current.revision == null || String(current.revision) !== String(expectedRevision))) {
+        throw createError({ statusCode: 409, message: `${typeId} ${id} changed after the graph proposal was evaluated` });
+      }
       const target = await writeGrantTarget(declaration, organizationId);
       if (!target || !hasInstanceAccess({ entity: current, typeId: target.typeId, feature: target.feature, level: 'write', action: 'update', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
-      const updated = await this.processUpdate(id, patch, organizationId);
+      const updated = await this.processUpdate(id, patch, {
+        organizationId,
+        userId: auth?.userId || null,
+        expectedUpdatedAt: doc.updatedAt
+      });
       // Field edits drop into the state record (SPEC UI): the audit trail
       // carries who changed which field, from what to what, beside the
       // transition history. Only name and data/specs leaves ride — lineage
