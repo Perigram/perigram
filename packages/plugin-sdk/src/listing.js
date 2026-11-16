@@ -48,6 +48,10 @@
 
 const SERVICE_REF = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 const MODULE_PATH = /^\/[a-z0-9/_-]+\.m?js$/;
+const RUNTIME_ENTRY_PATH = /^\/[a-z0-9/_-]+\.(?:m?js|wasm)$/;
+const EXECUTION_TARGETS = new Set(['browser', 'server']);
+const EXECUTION_KINDS = new Set(['pure', 'read', 'effect']);
+const RUNTIME_LANGUAGES = new Set(['javascript', 'python', 'wasm']);
 const DEPENDENCY_MODULE_PATH = /^\/[a-z0-9/._-]+\.m?js$/;
 // A cross-plugin dependency module (owner decision 2026-10-27): the
 // required plugin's id plus a root-relative path that plugin's executor
