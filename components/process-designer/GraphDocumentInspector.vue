@@ -10,7 +10,7 @@
     </template>
     <template v-else-if="isGraphInvocation">
       <label class="text-supporting text-muted" for="graph-document-source">{{ $t('processDesigner.graphDocumentSource') }}</label>
-      <Select
+      <InstanceSelect
         id="graph-document-source"
         v-model="selectedGraphId"
         :options="graphDocuments"
@@ -61,7 +61,7 @@
 import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import Select from 'primevue/select';
+import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
