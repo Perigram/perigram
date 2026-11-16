@@ -1,3 +1,4 @@
+import { createGraphReadSetRecorder } from './graph-read-set.js';
 import {
   assertValidGraphDocument,
   GRAPH_INPUT_OPERATION,
@@ -18,16 +19,23 @@ export async function evaluateProceduralGraph({
   if (mode !== 'preview') throw new Error('The procedural evaluator currently supports preview mode only');
   if (typeof resolveNodeDefinition !== 'function') throw new Error('resolveNodeDefinition callback is required');
   if (typeof executeNode !== 'function') throw new Error('executeNode callback is required');
-  return evaluateGraph({
-    source,
-    inputBindings,
-    resolveNodeDefinition,
-    executeNode,
-    resolveGraph,
-    context,
-    stack: [],
-    maxGraphDepth
-  });
+  const readSetRecorder = createGraphReadSetRecorder(context?.readSetBoundary || {});
+  try {
+    return await evaluateGraph({
+      source,
+      inputBindings,
+      resolveNodeDefinition,
+      executeNode,
+      resolveGraph,
+      context: { ...context, readSet: readSetRecorder },
+      readSetRecorder,
+      stack: [],
+      maxGraphDepth
+    });
+  } catch (error) {
+    if (error && typeof error === 'object') error.readSet = readSetRecorder.toJSON();
+    throw error;
+  }
 }
 
 async function evaluateGraph(options) {
@@ -184,7 +192,8 @@ async function evaluateGraph(options) {
     graphId: graph.id,
     graphRevision: graph.revision,
     outputs,
-    nodeOutputs
+    nodeOutputs,
+    readSet: options.readSetRecorder.toJSON()
   };
 }
 
