@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blocksFromMarkdown, normalizePageDocument } from './page-document.js';
+import { blocksFromMarkdown, normalizePageDocument, normalizePageFilePath } from './page-document.js';
 
 describe('page document', () => {
   it('splits markdown into ordered text and view blocks', () => {
@@ -7,6 +7,41 @@ describe('page document', () => {
     expect(document.blocks.map(block => block.kind)).toEqual(['text', 'view', 'text']);
     expect(document.order).toEqual(document.blocks.map(block => block.id));
     expect(document.blocks[1].view).toMatchObject({ typeId: 'widget', name: 'Widgets' });
+  });
+
+
+  it('preserves page file blocks with safe logical paths and canonical file refs', () => {
+    const document = normalizePageDocument({
+      blocks: [
+        { id: 'file-1', kind: 'file', file: { path: 'models/part.glb', fileId: 'blob-1', bucket: 'uploads', mime: 'model/gltf-binary', size: 120, revision: 2 } },
+        { id: 'bad-path', kind: 'file', file: { path: '../secret.txt', fileId: 'blob-2' } },
+        { id: 'bad-id', kind: 'file', file: { path: 'notes/readme.txt' } }
+      ],
+      order: ['file-1', 'bad-path', 'bad-id']
+    });
+    expect(document.order).toEqual(['file-1']);
+    expect(document.blocks).toEqual([{
+      id: 'file-1',
+      kind: 'file',
+      file: {
+        path: 'models/part.glb',
+        fileId: 'blob-1',
+        bucket: 'files',
+        name: 'part.glb',
+        mime: 'model/gltf-binary',
+        size: 120,
+        revision: 2
+      }
+    }]);
+  });
+
+  it('rejects unsafe, absolute, empty, and overlong logical paths', () => {
+    expect(normalizePageFilePath('models/part.glb')).toBe('models/part.glb');
+    expect(normalizePageFilePath('../part.glb')).toBe('');
+    expect(normalizePageFilePath('/part.glb')).toBe('');
+    expect(normalizePageFilePath('models//part.glb')).toBe('');
+    expect(normalizePageFilePath('models\\part.glb')).toBe('');
+    expect(normalizePageFilePath('a'.repeat(241))).toBe('');
   });
 
   it('keeps only ordered, known blocks and appends missing order entries', () => {
