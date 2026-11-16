@@ -2645,3 +2645,73 @@ repository split. It prepares and validates the boundaries required by
   an executor could request platform persistence operations through its return
   value. A command-service regression verifies the plugin value remains raw and
   no effect dispatch occurs.
+
+Owner direction (2026-11-16): installed plugins are organization data, not
+independently deployed backend services. This direction supersedes the
+earlier §20 hosting/deployment passages wherever they require a server
+executor, a per-function endpoint, or platform-hosted plugin code.
+
+A plugin install is an organization-owned, version-pinned data package:
+its validated declaration snapshot, immutable runtime assets, content
+digests, enabled state, and organization-scoped configuration. Installing
+copies/materializes the selected catalog release into that organization's
+plugin data; upgrading replaces that package only through the explicit
+upgrade/migration gate, and uninstall removes it only after the existing
+data/dependency drain gate. The platform catalog remains the distribution
+and discovery source, not the runtime host. The installed package and its
+assets are stored, authorized, backed up, revised, and addressed as
+organization data. Runtime asset reads are organization-scoped and use
+the ordinary authenticated data boundary; one organization's install
+must never resolve another organization's package or configuration.
+
+Local plugins execute in the frontend. Their UI surfaces mount through
+the existing data-only surface contract; compute services and node
+providers execute in a dedicated browser Worker (or an equivalent
+isolated browser execution context declared by the runtime contract).
+The host supplies only explicit, versioned capabilities — authorized
+instance queries and mutations, file/payload transport, notifications,
+navigation, and synchronization — and never exposes application stores,
+raw authentication credentials, unrestricted server APIs, or another
+plugin's private state. Plugin code receives no broader authority than
+the initiating user and the grants enforced by the host's service
+boundaries. Local execution does not bypass authorization, organization
+scoping, persistence ownership, validation, or audit evidence. A plugin
+that has no remote integrations has no executor deployment, endpoint
+settings, connector token, or backend container.
+
+Plugin service declarations distinguish local computation from remote
+integration. A local service resolves to the installed package's browser
+engine and runs client-side; it is never dispatched by the server. A
+remote integration is declared as a provider-level integration contract,
+not as an independently configured URL and API key for every function.
+The organization connects an integration once through a supported
+protocol (for example OAuth authorization, a provider API credential,
+webhook subscription, or an explicitly configured remote service).
+The platform stores secrets server-side, and a server-side integration
+adapter mediates authorized calls; the browser receives only scoped
+capability handles and results, never provider secrets. Remote integrations
+may call third-party APIs and may be shared by multiple plugin functions.
+Arbitrary endpoints are not inferred from plugin function names and are
+not exposed as unrestricted browser fetch.
+
+The Plugins settings surface therefore manages installed organization
+packages, version/update state, and declared integration connections.
+It does not ask for an API endpoint for each called function. Endpoint
+configuration exists only where an integration protocol explicitly
+requires a remote service address, and then belongs to that integration
+connection, not to each plugin service. Local engine assets are delivered
+from the organization's installed package through the platform's
+authenticated asset boundary; they are not served by a separately
+deployed plugin executor.
+
+The first migrations are the currently developed documents and
+build123d plugins. Their editors, projections, value services, node
+providers, and compute engines move into their installed frontend
+packages. Documents operations run locally over authorized payload
+values. build123d runs its Python/WASM engine and geometry kernel in the
+browser's isolated execution context. Their current executor containers,
+per-service endpoint configuration, connector tokens, and deployment
+dependencies are retired after the package assets and local execution
+paths are verified. Remote integration support remains a first-class
+protocol for plugins that genuinely need third-party systems; it is not
+the default hosting model for plugin code.
