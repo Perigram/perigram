@@ -400,9 +400,9 @@ function mintConnectorToken() {
 }
 
 // --- Connector services (marketplace SPEC: services execute on external
-// executors — endpoint mode calls a configured URL (the nesting-worker
-// shape: self-hosted or cloud-hosted), claim mode polls the worker
-// protocol) ---
+// Managed services declare execution targets and runtime metadata.
+// Endpoint and claim modes remain explicit external-integration paths;
+// local mode is the transitional browser-engine contract.
 
 export function serviceModeOf(service = {}) {
   if (service.execution) return 'managed';
@@ -441,10 +441,9 @@ function assertInstallableDependencies(dependencies = []) {
 // The plugin's connection settings: per-service endpoints for
 // endpoint-mode services, and the API key sent to the publisher's
 // executor when calling them.
-// The plugin-module proxy core (the README's surface module proxy
-// contract): resolves the caller's install and streams the module path
-// from its endpoint origin. Browsers load plugin modules same-origin
-// through the route wrapper — never the server-network origin.
+// The plugin-module proxy resolves the caller's installed package asset
+// first, with the configured external integration origin as a migration
+// fallback. Browsers load modules through the same-origin route.
 export async function fetchSurfaceModule({ organizationId, pluginId, modulePath = '', auth = {} }) {
   assertSameOrganization(organizationId, auth);
   const install = await repository.findInstall(organizationId, pluginId);

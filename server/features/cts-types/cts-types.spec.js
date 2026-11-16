@@ -171,6 +171,28 @@ describe('cts type storage', () => {
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
   });
 
+
+  it('serves organization-owned runtime provider bindings', async () => {
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
+      organizationId: ORG,
+      pluginId: 'coatings',
+      version: '4',
+      packageAssets: { count: 1 },
+      declarations: {
+        types: [],
+        runtimes: [{ id: 'javascript', language: 'javascript', version: '1', entry: '/runtime.mjs', targets: ['browser'] }]
+      },
+      services: []
+    }]);
+    const view = await describeOrganizationTypes(ORG);
+    expect(view.clientRuntimes[0]).toMatchObject({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      runtime: { id: 'javascript', entryUrl: '/api/plugins/coatings/module/runtime.mjs' }
+    });
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
+  });
+
   it('refuses an installed editor binding the composed view cannot serve', async () => {
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
       organizationId: ORG,

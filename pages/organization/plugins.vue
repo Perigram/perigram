@@ -424,7 +424,7 @@ function hasEndpointServices(item) {
 }
 
 function hasRemoteServices(item) {
-  return (item.services || []).some(service => ['endpoint', 'claim'].includes(service.mode));
+  return (item.services || []).some(service => service.mode === 'claim');
 }
 
 async function openSettings(item) {

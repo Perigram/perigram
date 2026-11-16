@@ -50,14 +50,9 @@ export function isSupportedSurfaceContract(version) {
   return SUPPORTED_SURFACE_CONTRACTS.includes(Number(version));
 }
 
-// Where a plugin's surface modules load from: the install's first
-// configured endpoint origin, or its configured `surfaceOrigin` (owner
-// decision 2026-10-17 — executors with surfaces but no services, like a
-// declarations-only plugin with an editor) — the executor serves its UI
-// beside its services. Server-side consumers only: that origin addresses
-// the server's network (dev's docker-internal executor host is the
-// canonical example), which a browser can never reach, so the platform
-// serves modules same-origin through `pluginModuleUrl`'s app proxy route.
+// Legacy external-integration origin resolution. Installed package assets
+// are the primary module source; endpoint and surface origins remain a
+// migration fallback for older installs.
 export function endpointOriginOf(install) {
   for (const url of Object.values(install?.endpoints || {})) {
     try {
