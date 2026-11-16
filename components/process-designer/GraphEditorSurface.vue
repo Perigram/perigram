@@ -305,12 +305,7 @@ async function saveGraphDocument() {
       `${name}.json`
     );
     instanceId = String(updated?._id || updated?.id || instanceId);
-    if (!props.record?._id && recordName.value && recordName.value !== updated?.name) {
-      const renamed = await props.persistence.rename(recordName.value);
-      recordName.value = renamed?.name || recordName.value;
-    } else if (updated?.name) {
-      recordName.value = updated.name;
-    }
+    if (updated?.name) recordName.value = updated.name;
     savedSignature.value = designerSignature();
     toast.add({ severity: 'success', summary: t('processDesigner.saved'), life: 2400 });
   } catch (error) {
