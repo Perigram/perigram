@@ -41,6 +41,8 @@ describe('graph execution record', () => {
 
   it('rejects non-JSON values and backwards timestamps', () => {
     expect(() => createGraphExecutionRecord({ ...base(), outputs: { value: undefined } })).toThrow(/JSON-compatible/);
+    expect(() => createGraphExecutionRecord({ ...base(), outputs: { value: Number.NaN } })).toThrow(/JSON-compatible/);
+    expect(() => createGraphExecutionRecord({ ...base(), outputs: { value: 1n } })).toThrow(/JSON-compatible/);
     expect(validateGraphExecutionRecord({ ...base(), completedAt: '2026-11-16T09:59:00.000Z' }).some(item => item.code === 'invalid-time-order')).toBe(true);
   });
 });
