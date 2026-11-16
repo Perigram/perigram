@@ -19,7 +19,8 @@ import { listQueryFilter } from './filters.js';
 import * as filesService from '../files/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import * as entityEventService from '../instance-events/service.js';
-import { getOrganizationChangeSequence, recordOrganizationChange, withOrganizationChangeSequence } from './organization-sequence.js';
+import { getOrganizationChangeSequence, recordOrganizationChange, runOrganizationChange, withOrganizationChangeSequence } from './organization-sequence.js';
+export { getOrganizationChangeSequence, recordOrganizationChange, runOrganizationChange, withOrganizationChangeSequence };
 export { getOrganizationChangeSequence, recordOrganizationChange, withOrganizationChangeSequence };
 import { hasInstanceAccess } from '../../core/access/service.js';
 import { appendFieldChangeEvent, appendPayloadRevisionEvent, buildEventActor } from '../../core/machines/service.js';
@@ -484,14 +485,15 @@ function instanceService(typeId) {
       createdAt: now,
       updatedAt: now
     };
-    await repository.insertInstance(repository.collectionForClass(declaration.class), doc);
-    await recordPayloadRevision(typeId, doc, declaration, payload, userId, 'created');
-    await recordOrganizationChange(effectiveOrganizationId, {
+    await runOrganizationChange(effectiveOrganizationId, {
       kind: 'instance-created',
       typeId,
       instanceId: String(doc._id),
       paths: ['fields', 'lineage', 'relations', 'payload', 'provenance'],
       actorId: userId
+    }, async () => {
+      await repository.insertInstance(repository.collectionForClass(declaration.class), doc);
+      await recordPayloadRevision(typeId, doc, declaration, payload, userId, 'created');
     });
     return toDto(doc);
   }
@@ -583,16 +585,15 @@ function instanceService(typeId) {
           if (value !== undefined) set[`relations.${key}`] = value;
         }
       }
-      const updated = await repository.updateInstanceFields(collection, id, set);
-      if (updated && Object.keys(set).length) {
-        await recordOrganizationChange(organizationId, {
-          kind: 'instance-updated',
-          typeId,
-          instanceId: String(updated._id || id),
-          paths: Object.keys(set),
-          actorId: context?.userId || null
-        });
-      }
+      const updated = Object.keys(set).length
+        ? await runOrganizationChange(organizationId, {
+            kind: 'instance-updated',
+            typeId,
+            instanceId: String(id),
+            paths: Object.keys(set),
+            actorId: context?.userId || null
+          }, () => repository.updateInstanceFields(collection, id, set))
+        : await repository.updateInstanceFields(collection, id, set);
       return toDto(updated);
     },
 
@@ -684,20 +685,17 @@ function instanceService(typeId) {
       if (declaration?.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
       const collection = repository.collectionForClass(declaration?.class);
       const doc = await repository.findInstance(collection, id, typeId);
-      if (doc) {
+      if (!doc) return false;
+      return await runOrganizationChange(doc.organizationId ?? organizationId, {
+        kind: 'instance-deleted',
+        typeId,
+        instanceId: String(id),
+        paths: ['instance'],
+        actorId: actor
+      }, async () => {
         await sweepRelationRefs({ typeId, id: String(doc._id), organizationId: doc.organizationId ?? null }, actor);
-      }
-      const removed = await repository.deleteInstance(collection, id);
-      if (removed) {
-        await recordOrganizationChange(doc?.organizationId ?? organizationId, {
-          kind: 'instance-deleted',
-          typeId,
-          instanceId: String(id),
-          paths: ['instance'],
-          actorId: actor
-        });
-      }
-      return removed;
+        return await repository.deleteInstance(collection, id);
+      });
     },
 
     // Payload replacement — the editor concern SPEC §3 names. Requires a
@@ -732,28 +730,30 @@ function instanceService(typeId) {
         type: typeId
       }, PAYLOAD_BUCKET);
       try {
-        const payload = payloadFromWire({
-          payload: {
-            fileId: stored.id,
-            mime: mimeType || null,
-            size: buffer.length,
-            name: filename || 'payload'
-          }
-        }, declaration);
-        await recordPayloadRevision(typeId, current, declaration, payload, userId, reason, { auth, restoredFrom });
-        const updated = await repository.updateInstanceFields(collection, id, {
-          payload,
-          updatedAt: new Date().toISOString()
-        });
-        if (!updated) {
-          throw createError({ statusCode: 409, message: `${typeId} ${id} changed before its payload was saved` });
-        }
-        await recordOrganizationChange(organizationId, {
+        const updated = await runOrganizationChange(organizationId, {
           kind: 'instance-payload-replaced',
           typeId,
-          instanceId: String(updated._id || id),
+          instanceId: String(id),
           paths: ['payload'],
           actorId: userId
+        }, async () => {
+          const payload = payloadFromWire({
+            payload: {
+              fileId: stored.id,
+              mime: mimeType || null,
+              size: buffer.length,
+              name: filename || 'payload'
+            }
+          }, declaration);
+          await recordPayloadRevision(typeId, current, declaration, payload, userId, reason, { auth, restoredFrom });
+          const changed = await repository.updateInstanceFields(collection, id, {
+            payload,
+            updatedAt: new Date().toISOString()
+          });
+          if (!changed) {
+            throw createError({ statusCode: 409, message: `${typeId} ${id} changed before its payload was saved` });
+          }
+          return changed;
         });
         return toDto(updated);
       } catch (error) {
