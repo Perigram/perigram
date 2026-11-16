@@ -18,7 +18,7 @@ describe('CTS instance repository revisions', () => {
   });
 
   it('starts new instance revisions at one', async () => {
-    const stored = await repository.insertInstance('items', { _id: 'instance-1', type: 'part', fields: {} });
+    const stored = await repository.insertInstance('items', { _id: 'instance-1', type: 'part', revision: 99, fields: {} });
     expect(stored.revision).toBe(1);
     expect(collection.insertOne).toHaveBeenCalledWith(expect.objectContaining({ revision: 1 }));
   });

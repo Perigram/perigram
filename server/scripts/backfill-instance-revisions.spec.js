@@ -26,7 +26,8 @@ describe('instance revision backfill', () => {
     expect(result).toEqual({
       mode: 'dry-run',
       scanned: Object.values(CLASS_COLLECTIONS).length * 2,
-      updated: Object.values(CLASS_COLLECTIONS).length * 2,
+      eligible: Object.values(CLASS_COLLECTIONS).length * 2,
+      updated: 0,
       skipped: 0,
       failures: []
     });
@@ -39,6 +40,7 @@ describe('instance revision backfill', () => {
     expect(result).toEqual({
       mode: 'apply',
       scanned: Object.values(CLASS_COLLECTIONS).length,
+      eligible: Object.values(CLASS_COLLECTIONS).length,
       updated: Object.values(CLASS_COLLECTIONS).length,
       skipped: 0,
       failures: []

@@ -15,7 +15,7 @@ const needsRevision = {
 
 export async function runInstanceRevisionBackfill(database, { apply = false } = {}) {
   const db = database || await connectDB();
-  const summary = { mode: apply ? 'apply' : 'dry-run', scanned: 0, updated: 0, skipped: 0, failures: [] };
+  const summary = { mode: apply ? 'apply' : 'dry-run', scanned: 0, eligible: 0, updated: 0, skipped: 0, failures: [] };
 
   for (const collection of Object.values(CLASS_COLLECTIONS)) {
     const cursor = db.collection(collection).find({
@@ -24,10 +24,8 @@ export async function runInstanceRevisionBackfill(database, { apply = false } = 
     }).project({ _id: 1 });
     for await (const doc of cursor) {
       summary.scanned += 1;
-      if (!apply) {
-        summary.updated += 1;
-        continue;
-      }
+      summary.eligible += 1;
+      if (!apply) continue;
       try {
         const result = await db.collection(collection).updateOne(
           { _id: doc._id, type: { $type: 'string', $ne: '' }, ...needsRevision },

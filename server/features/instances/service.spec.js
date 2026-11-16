@@ -290,7 +290,9 @@ describe('generic instance service stored shape (SPEC §3)', () => {
 
     const stored = coll.insertOne.mock.calls[0][0];
     expect(stored.state).toBeNull();
+    expect(stored.revision).toBe(1);
     expect(dto.state).toBeNull();
+    expect(dto.revision).toBe(1);
   });
 
   it('refuses direct lifecycle writes outside the status runtime', async () => {

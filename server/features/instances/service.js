@@ -622,6 +622,7 @@ function instanceService(typeId) {
       _id: new ObjectId(),
       type: typeId,
       typeVersion: declaration.version || 1,
+      revision: 1,
       organizationId: effectiveOrganizationId,
       name: draft.name ?? null,
       fields: { ...(draft.fields || {}) },

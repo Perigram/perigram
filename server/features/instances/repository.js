@@ -24,7 +24,7 @@ export async function insertInstance(collection, doc) {
   const db = await connectDB();
   const stored = {
     ...doc,
-    revision: Number.isSafeInteger(doc?.revision) && doc.revision > 0 ? doc.revision : 1
+    revision: 1
   };
   await db.collection(collection).insertOne(stored);
   return stored;
