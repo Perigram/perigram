@@ -182,60 +182,72 @@ export async function bakeFile({
   }
 
   const fileName = targetPath.split('/').pop();
-  const stored = await filesService.uploadFile(
-    buffer,
-    fileName,
-    {
-      userId: String(auth.userId),
-      organizationId,
-      pageId: String(page._id),
-      logicalPath: targetPath,
-      graphId: String(provenance.graphId || ''),
-      graphRevision: String(provenance.graphRevision || ''),
-      executionId: String(provenance.executionId || ''),
-      outputId: String(provenance.outputId || '')
-    },
-    'files',
-    mimeType
-  );
-  const previousFile = existing?.file || null;
-  const history = previousFile
-    ? [...(previousFile.history || []), Object.fromEntries(Object.entries(previousFile).filter(([key]) => key !== 'history'))]
-    : [];
-  const revision = previousFile ? Number(previousFile.revision || 1) + 1 : 1;
-  const file = {
-    path: targetPath,
-    fileId: stored.id,
-    bucket: 'files',
-    name: fileName,
-    mime: String(mimeType || 'application/octet-stream'),
-    size: buffer.length,
-    revision,
-    history
-  };
-  const block = existing
-    ? { ...existing, file }
-    : { id: createBlockId('f'), kind: 'file', file };
-  const blocks = existing
-    ? document.blocks.map(item => item.id === existing.id ? block : item)
-    : [...document.blocks, block];
-  const order = existing
-    ? document.order
-    : [...document.order, block.id];
-
-  const updated = await repository.updatePageDocumentIfUnchanged(
-    page._id,
-    organizationId,
-    page.updatedAt,
-    normalizePageDocument({ blocks, order })
-  );
-  if (!updated) {
-    await filesService.deleteFile(stored.id, 'files');
-    throw createError({ statusCode: 409, message: 'Page changed while the file was being baked; reload and retry' });
-  }
+  const baked = await runOrganizationChange(organizationId, {
+    kind: 'page-file-baked',
+    typeId: 'page',
+    instanceId: String(page._id),
+    paths: ['blocks', `files.${targetPath}`],
+    actorId: auth.userId
+  }, async () => {
+    const stored = await filesService.uploadFile(
+      buffer,
+      fileName,
+      {
+        userId: String(auth.userId),
+        organizationId,
+        pageId: String(page._id),
+        logicalPath: targetPath,
+        graphId: String(provenance.graphId || ''),
+        graphRevision: String(provenance.graphRevision || ''),
+        executionId: String(provenance.executionId || ''),
+        outputId: String(provenance.outputId || '')
+      },
+      'files',
+      mimeType
+    );
+    try {
+      const previousFile = existing?.file || null;
+      const history = previousFile
+        ? [...(previousFile.history || []), Object.fromEntries(Object.entries(previousFile).filter(([key]) => key !== 'history'))]
+        : [];
+      const revision = previousFile ? Number(previousFile.revision || 1) + 1 : 1;
+      const file = {
+        path: targetPath,
+        fileId: stored.id,
+        bucket: 'files',
+        name: fileName,
+        mime: String(mimeType || 'application/octet-stream'),
+        size: buffer.length,
+        revision,
+        history
+      };
+      const block = existing
+        ? { ...existing, file }
+        : { id: createBlockId('f'), kind: 'file', file };
+      const blocks = existing
+        ? document.blocks.map(item => item.id === existing.id ? block : item)
+        : [...document.blocks, block];
+      const order = existing
+        ? document.order
+        : [...document.order, block.id];
+      const updated = await repository.updatePageDocumentIfUnchanged(
+        page._id,
+        organizationId,
+        page.updatedAt,
+        normalizePageDocument({ blocks, order })
+      );
+      if (!updated) {
+        throw createError({ statusCode: 409, message: 'Page changed while the file was being baked; reload and retry' });
+      }
+      return { updated, file };
+    } catch (error) {
+      await filesService.deleteFile(stored.id, 'files').catch(() => {});
+      throw error;
+    }
+  });
   return {
-    page: repository.serializeFull(updated),
-    file,
+    page: repository.serializeFull(baked.updated),
+    file: baked.file,
     conflictPolicy
   };
 }
