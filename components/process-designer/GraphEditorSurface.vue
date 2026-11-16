@@ -6,22 +6,20 @@
       v-else
       v-model:nodes="nodes"
       v-model:edges="edges"
-      :bind-frame="instance => { canvasFrame = instance }"
-      :bind-context-palette-search="instance => { contextPaletteSearch = instance }"
+      :bind-frame="bindFrame"
+      :bind-context-palette-search="bindContextPaletteSearch"
       :document-items="[]"
-      :canvas-items="canvasDockItems"
+      :canvas-items="canvasItems"
       chrome-variant="floating"
-      :canvas-status="canvasStatus"
-      :on-activity-click="openActivitySurface"
       :touch-pan-drag="touchPanDrag"
       :default-edge-options="{ type: 'default' }"
-      :palette-groups="paletteChipGroups"
+      :palette-groups="paletteGroups"
       :palette-placeholder="$t('processDesigner.searchOperations')"
       :context-palette="contextPalette"
-      :context-palette-groups="contextPaletteChipGroups"
+      :context-palette-groups="contextPaletteGroups"
       :empty-message="$t('processDesigner.emptyGraph')"
       :validation="validation"
-      :validation-diff-lines="validationDiffLines"
+      :validation-diff-lines="[]"
       :selected-graph-nodes="selectedGraphNodes"
       :selected-node-id="selectedNodeId"
       :viewport="designerViewport"
@@ -41,9 +39,9 @@
       :begin-socket-connection="beginSocketConnection"
       :end-socket-connection="endSocketConnection"
       :on-connect="onConnect"
-      :read-only="mode === 'read'"
+      :read-only="readOnly"
     >
-      <template v-if="mode !== 'read'" #inspector>
+      <template v-if="!readOnly" #inspector>
         <div class="flex h-full min-h-0 flex-col">
           <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
             <TabList>
@@ -52,55 +50,19 @@
             </TabList>
             <TabPanels class="min-h-0 flex-1 overflow-y-auto">
               <TabPanel value="inspector">
-                <GraphInspector
-                  :selected-node="selectedNode"
-                  :selected-process-node="selectedProcessNode"
-                  :selected-entity="selectedEntity"
-                  :selected-entity-available="selectedEntityAvailable"
-                  :selected-declaration-edge="selectedDeclarationEdge"
-                  :declaration-node-types="declarationNodeTypes"
-                  :class-type-id-valid="classTypeIdValid"
-                  :class-declaration-diagnostics="classDeclarationDiagnostics"
-                  :declaration-type-options="declarationTypeOptions"
-                  :type-anchor-options="typeAnchorOptions"
-                  :class-identifier-field="classIdentifierField"
-                  :relation-options-for-entity="relationOptionsForEntity"
-                  :projection-options-for-entity="projectionOptionsForEntity"
-                  :type-id-options="typeIdOptions"
-                  :role-options="roleOptions"
-                  :command-options="commandOptions"
-                  :selected-command-service="selectedCommandService"
-                  :service-principal-options="servicePrincipalOptions"
-                  :transition-guard-field-options="transitionGuardFieldOptions"
-                  :record-state-policy-target="recordStatePolicyTarget"
-                  :record-state-field-policy-options="recordStateFieldPolicyOptions"
-                  :construction-modes="selectedConstructionModes"
-                  :designer="designer"
-                  :grants="selectedProcessNodeGrants"
-                  :effective-access="selectedProcessNodeEffectiveAccess"
-                  :inputs="selectedProcessNodeInputs"
-                  :operation-options="selectedNode?.type === 'processNode' ? processNodeOperationOptions(selectedProcessNode) : []"
-                  :status-options="selectedNode?.data?.processStatusOptions || []"
-                  :preview="inspectorPreview"
-                  :format-preview-path="formatPreviewPath"
-                  :format-preview-items="formatPreviewItems"
-                  @sync="syncNodeData"
-                  @update-name="value => updateClassName(selectedNode, value)"
-                  @update-identifier-field="value => setClassIdentifierField(selectedNode, value)"
-                  @update-grant-level="({ index, level }) => updateSelectedProcessNodeGrantLevel(index, level)"
-                  @update-construction-mode="value => updateProcessNodeConstructionMode(selectedProcessNode, value)"
-                  @create-command-service="createCommandServiceForSelectedNode"
-                  @remove-command-service="removeSelectedCommandService"
+                <GraphDocumentInspector
+                  :node="selectedNode"
+                  @update-config="updateNodeConfig"
+                  @update-boundary-label="updateBoundaryLabel"
                 />
               </TabPanel>
               <TabPanel value="preview">
-                <GraphPreviewPanel
-                  :channels="servedPreviewChannels"
-                  :payload="channelPreview.payload.value"
-                  :nodes="nodes"
-                  :running="channelPreview.running.value"
-                  :error="channelPreview.error.value"
-                  @refresh="channelPreview.run"
+                <GraphDocumentPreviewPanel
+                  :result="previewResult"
+                  :error="previewError"
+                  :running="previewRunning"
+                  :graph="graphDocument"
+                  @refresh="refreshPreview"
                 />
               </TabPanel>
             </TabPanels>
@@ -112,7 +74,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Tab from 'primevue/tab';
@@ -122,22 +84,11 @@ import TabPanels from 'primevue/tabpanels';
 import Tabs from 'primevue/tabs';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import GraphCanvas from '~/components/process-designer/GraphCanvas.vue';
-import GraphInspector from '~/components/process-designer/GraphInspector.vue';
-import GraphPreviewPanel from '~/components/process-designer/GraphPreviewPanel.vue';
-import { useAuthStore } from '~/stores/auth';
-import { useProcessDesignerGraphSession } from '~/composables/useProcessDesignerGraphSession.js';
-import { useProcessDesignerPersistence } from '~/composables/useProcessDesignerPersistence.js';
-import { useProcessDesignerRoles } from '~/composables/useProcessDesignerRoles.js';
-import { useGraphChannelPreview } from '~/composables/useGraphChannelPreview.js';
-import { canvasToDefinition, PROCESS_DATAFLOW_VERSION } from '@perigram/processes';
+import GraphDocumentInspector from '~/components/process-designer/GraphDocumentInspector.vue';
+import GraphDocumentPreviewPanel from '~/components/process-designer/GraphDocumentPreviewPanel.vue';
+import { useGraphDocumentSession } from '~/composables/useGraphDocumentSession.js';
+import { mintId } from '~/utils/processDesignerIdentity.js';
 
-// The graph editor surface (SPEC §28): the graph canvas session mounted
-// over a `graph-document` payload — the same authoring core the process
-// designer page rides. The document lifecycle is payload-based: the
-// payload text is the serialized graph data object, the save writes it
-// through the instance payload transport (blank-create on the first
-// save), and the header chrome channel carries the name, save, and
-// dirty state. A read grant mounts the canvas alone.
 const props = defineProps({
   record: { type: Object, default: null },
   typeId: { type: String, default: 'graph-document' },
@@ -146,254 +97,100 @@ const props = defineProps({
   pageChrome: { type: Object, default: null }
 });
 
-const { t, te } = useI18n();
+const { t } = useI18n();
 const toast = useToast();
-const authStore = useAuthStore();
-
 const readOnly = computed(() => props.mode === 'read');
 const loading = ref(true);
 const loadError = ref('');
 const saving = ref(false);
-const savedSignature = ref('');
 const recordName = ref(props.record?.name || '');
+const savedSignature = ref('');
 const inspectTab = ref('inspector');
-const organizationRoles = ref({});
-const draft = ref(null);
+let instanceId = String(props.record?._id || props.record?.id || '');
 
-function activeOrganizationId() {
-  return draft.value?.lineage?.organizationId
-    || authStore.organizationData?._id
-    || authStore.userData?.organizationId
-    || authStore.memberships?.[0]?.organizationId
-    || null;
-}
-
-const rolePersistence = useProcessDesignerRoles();
-// The graph preview seam rides the process-definition preview
-// transport; every other save/load verb belongs to the instance
-// payload persistence the registry hands in.
-const previewTransport = useProcessDesignerPersistence();
-const graphPersistence = { ...props.persistence, previewDraft: previewTransport.previewDraft };
-
-const channelPreview = useGraphChannelPreview({
-  persistence: graphPersistence,
-  serializeProcess: () => serializeProcess(),
-  clientEngines: () => ({ engines: servedClientEngines.value, domain: ctsProjectedDomain() })
-});
-
+const session = useGraphDocumentSession({ t });
 const {
   nodes,
   edges,
+  graphDocument,
   validation,
-  secondaryHidden,
-  draftDataSignature,
-  designerSignature,
-  loadDocument,
-  serializeProcess,
-  designer,
-  ctsTypeView,
-  loadOrgTypes,
-  loadProcessCapabilities,
-  servedPreviewChannels,
-  servedClientEngines,
-  ctsProjectedDomain,
-  nodeTypeId,
-  relationOptionsForEntity,
-  projectionOptionsForEntity,
-  constructionModeOptions,
-  processNodeInputs,
-  processNodeOperationOptions,
-  updateProcessNodeConstructionMode,
+  previewResult,
+  previewError,
+  previewRunning,
+  paletteGroups,
+  contextPaletteGroups,
+  contextPaletteChipGroups,
+  contextPalette,
   selectedNode,
   selectedNodeId,
   selectedGraphNodes,
-  selectNode,
-  selectEdge,
-  clearGraphSelection,
-  deleteGraphSelection,
-  canvasFrame,
   touchPanDrag,
+  designerViewport,
+  bindFrame,
+  bindContextPaletteSearch,
   handleDesignerPointerDown,
   handleDesignerFocus,
   handleDesignerWheel,
   beginSocketConnection,
   endSocketConnection,
   frameSelectedNodes,
+  frameAllNodes,
   zoomCanvasIn,
   zoomCanvasOut,
   resetCanvasZoom,
-  frameAllNodes,
-  designerViewport,
-  toggleSecondaryHidden,
+  deleteGraphSelection,
   addNode,
-  onConnect,
-  renameDeclarationNode,
-  updateClassName,
-  setClassIdentifierField,
-  classIdentifierField,
-  classTypeIdValid,
-  classDeclarationDiagnostics,
-  declarationNodeTypes,
-  selectedDeclarationEdge,
-  paletteChipGroups,
-  contextPaletteChipGroups,
-  contextPalette,
-  openPanePalette,
-  closeContextPalette,
   addContextNode,
-  contextPaletteSearch,
-  selectedEntity,
-  selectedProcessNode,
-  selectedEntityAvailable,
-  servicePrincipalOptions,
-  typeIdOptions,
-  roleOptions,
-  commandOptions,
-  selectedCommandService,
-  createCommandServiceForSelectedNode,
-  removeSelectedCommandService,
-  transitionGuardFieldOptions,
-  recordStatePolicyTarget,
-  recordStateFieldPolicyOptions,
-  selectedProcessNodeGrants,
-  selectedProcessNodeEffectiveAccess,
-  updateSelectedProcessNodeGrantLevel,
-  validationDiffLines,
-  selectedNodeSupportsPreview,
-  selectedChannelNode,
-  selectedChannelInputs,
-  selectedChannelOutputs,
-  formatPreviewPath,
-  formatPreviewItems
-} = useProcessDesignerGraphSession({
-  t,
-  te,
-  toast,
-  draft,
-  roles: () => organizationRoles.value,
-  activeOrganizationId,
-  persistence: graphPersistence,
-  graphEvaluation: channelPreview.payload
-});
+  closeContextPalette,
+  openPanePalette,
+  onConnect,
+  selectNode,
+  selectEdge,
+  clearGraphSelection,
+  updateNodeConfig,
+  updateBoundaryLabel,
+  renameDeclarationNode,
+  loadDocument,
+  loadEmpty,
+  serializeGraph,
+  designerSignature,
+  refreshPreview
+} = session;
 
-const selectedConstructionModes = computed(() => (selectedNode.value?.type === 'processNode' ? constructionModeOptions(nodeTypeId(selectedProcessNode.value)) : []));
-const selectedProcessNodeInputs = computed(() => {
-  if (selectedNode.value?.type !== 'processNode') return [];
-  const connected = new Set(selectedNode.value.data?.processConnectedInputIds || []);
-  return processNodeInputs(selectedProcessNode.value || {}).map(input => ({
-    ...input,
-    base: input.type?.base || 'json',
-    connected: connected.has(input.id)
-  }));
-});
-const canvasStatus = computed(() => {
-  const evaluatedNodes = Object.values(channelPreview.payload.value?.nodes || {});
-  const state = channelPreview.running.value
-    ? 'running'
-    : channelPreview.error.value || evaluatedNodes.some(node => node.error)
-      ? 'error'
-      : channelPreview.payload.value
-        ? 'ready'
-        : 'idle';
-  const labels = {
-    idle: t('processDesigner.canvasStatusIdle'),
-    running: t('processDesigner.canvasStatusRunning'),
-    ready: t('processDesigner.canvasStatusReady'),
-    error: t('processDesigner.canvasStatusError')
-  };
-  return { state, label: labels[state], count: evaluatedNodes.length };
-});
-function openActivitySurface() {
-  canvasFrame?.openPanel?.('inspector');
-  inspectTab.value = 'preview';
-}
-const inspectorPreview = computed(() => ({
-  supported: selectedNodeSupportsPreview.value,
-  running: channelPreview.running.value,
-  state: selectedChannelNode.value,
-  inputs: selectedNode.value?.type === 'processNode' ? selectedChannelInputs.value : [],
-  outputs: selectedNode.value?.type === 'processNode' ? selectedChannelOutputs.value : [],
-  error: channelPreview.error.value
-}));
-const isDirty = computed(() => !readOnly.value && Boolean(draft.value) && designerSignature() !== savedSignature.value);
-
-const declarationTypeOptions = computed(() => [
-  ...new Set([
-    ...ctsTypeView().map(entry => entry.id),
-    ...nodes.value.filter(node => node.type === 'ctsClass' && node.data?.typeId).map(node => node.data.typeId)
-  ])
-]);
-const typeAnchorOptions = computed(() => ctsTypeView().map(entry => ({
-  label: `${entry.label} · ${entry.class}`,
-  value: entry.id
-})));
-
-const canvasDockItems = computed(() => [
-  {
-    icon: 'pi pi-eye-slash',
-    label: t('processDesigner.hideSecondary'),
-    pressed: secondaryHidden.value,
-    onClick: toggleSecondaryHidden
-  },
-  { separator: true },
-  {
-    icon: 'pi pi-search-minus',
-    label: t('drawing.zoomOut'),
-    onClick: zoomCanvasOut
-  },
-  {
-    icon: 'pi pi-search-plus',
-    label: t('drawing.zoomIn'),
-    onClick: zoomCanvasIn
-  },
-  {
-    icon: 'pi pi-expand',
-    label: t('processDesigner.frameAll'),
-    onClick: frameAllNodes
-  },
-  {
-    icon: 'pi pi-crosshairs',
-    label: t('processDesigner.frameSelection'),
-    onClick: frameSelectedNodes
-  },
-  {
-    icon: 'pi pi-refresh',
-    label: t('processDesigner.resetZoom'),
-    onClick: resetCanvasZoom
-  }
+const canvasItems = computed(() => [
+  { icon: 'pi pi-search-minus', label: t('drawing.zoomOut'), onClick: zoomCanvasOut },
+  { icon: 'pi pi-search-plus', label: t('drawing.zoomIn'), onClick: zoomCanvasIn },
+  { icon: 'pi pi-expand', label: t('processDesigner.frameAll'), onClick: frameAllNodes },
+  { icon: 'pi pi-crosshairs', label: t('processDesigner.frameSelection'), onClick: frameSelectedNodes },
+  { icon: 'pi pi-refresh', label: t('processDesigner.resetZoom'), onClick: resetCanvasZoom }
 ]);
 
-function emptyGraphDocument() {
-  return {
-    data: canvasToDefinition(
-      { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
-      { dataflowVersion: PROCESS_DATAFLOW_VERSION }
-    )
-  };
-}
+const isDirty = computed(() => !readOnly.value
+  && Boolean(graphDocument.value)
+  && designerSignature() !== savedSignature.value);
 
-function parseGraphPayload(text) {
-  const data = JSON.parse(text);
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+function parseGraphPayload(payload) {
+  const graph = JSON.parse(payload);
+  if (!graph || typeof graph !== 'object' || Array.isArray(graph)) {
     throw new Error(t('processDesigner.invalidGraphPayload'));
   }
-  return { data };
+  return graph;
 }
-
-// The bound instance (the blank page has none until its first save).
-let instanceId = String(props.record?._id || props.record?.id || '');
 
 async function loadGraphDocument() {
   loading.value = true;
   loadError.value = '';
   try {
-    const text = await props.persistence.load();
-    const value = text ? parseGraphPayload(text) : emptyGraphDocument();
-    loadDocument(value, {
-      onLoaded: () => {
-        savedSignature.value = designerSignature();
-      }
-    });
+    const payload = await props.persistence.load();
+    if (payload) {
+      loadDocument(parseGraphPayload(payload));
+    } else {
+      loadEmpty({
+        id: instanceId || undefined,
+        name: recordName.value
+      });
+    }
+    savedSignature.value = designerSignature();
   } catch (error) {
     loadError.value = error?.data?.message || error?.message || t('processDesigner.invalidGraphPayload');
   } finally {
@@ -406,10 +203,13 @@ async function saveGraphDocument() {
   saving.value = true;
   try {
     const name = String(recordName.value || props.record?.name || 'graph').trim() || 'graph';
-    const updated = await props.persistence.save(JSON.stringify(serializeProcess(), null, 2), `${name}.json`);
+    graphDocument.value.name = name;
+    graphDocument.value.revision = mintId('rev').replaceAll('_', '-');
+    const updated = await props.persistence.save(
+      JSON.stringify(serializeGraph(), null, 2),
+      `${name}.json`
+    );
     instanceId = String(updated?._id || updated?.id || instanceId);
-    // The blank page's first save creates the instance unnamed; a name
-    // authored before it applies right after the create.
     if (!props.record?._id && recordName.value && recordName.value !== updated?.name) {
       const renamed = await props.persistence.rename(recordName.value);
       recordName.value = renamed?.name || recordName.value;
@@ -419,7 +219,12 @@ async function saveGraphDocument() {
     savedSignature.value = designerSignature();
     toast.add({ severity: 'success', summary: t('processDesigner.saved'), life: 2400 });
   } catch (error) {
-    toast.add({ severity: 'error', summary: t('common.save'), detail: error?.data?.message || error?.message || '', life: 5000 });
+    toast.add({
+      severity: 'error',
+      summary: t('common.save'),
+      detail: error?.data?.message || error?.message || '',
+      life: 5000
+    });
   } finally {
     saving.value = false;
   }
@@ -428,23 +233,26 @@ async function saveGraphDocument() {
 async function renameGraphDocument(name) {
   const trimmed = String(name || '').trim();
   if (!trimmed) return;
-  // The blank page names at its first save: before the instance exists
-  // the name rides the local draft and the save applies it.
   if (!instanceId) {
     recordName.value = trimmed;
+    graphDocument.value.name = trimmed;
     return;
   }
   try {
     const updated = await props.persistence.rename(trimmed);
     recordName.value = updated?.name || trimmed;
+    graphDocument.value.name = recordName.value;
+    savedSignature.value = designerSignature();
   } catch (error) {
-    toast.add({ severity: 'error', summary: t('common.rename'), detail: error?.data?.message || error?.message || '', life: 4000 });
+    toast.add({
+      severity: 'error',
+      summary: t('common.rename'),
+      detail: error?.data?.message || error?.message || '',
+      life: 4000
+    });
   }
 }
 
-// The document chrome hand-off (SPEC §4): the header renders the name,
-// the dirty-marked save from this binding; a read grant binds the name
-// alone.
 props.pageChrome?.bind?.(Object.assign(
   reactive({
     name: computed(() => recordName.value),
@@ -455,23 +263,5 @@ props.pageChrome?.bind?.(Object.assign(
   readOnly.value ? {} : { save: saveGraphDocument, rename: renameGraphDocument }
 ));
 
-// The channel tab follows the authoring signature — one debounced seam
-// runs while the tab stays open (composables README).
-const authoringSignature = computed(() => JSON.stringify({
-  data: draftDataSignature.value,
-  nodes: nodes.value.map(node => [node.id, node.type, node.data]),
-  edges: edges.value.map(edge => [edge.id, edge.source, edge.target, edge.sourceHandle, edge.targetHandle, edge.role, edge.label])
-}));
-// C2 live values: the channel evaluation runs while the inspector or the
-// preview tab is open — the selected node's inputs and outputs render live in both.
-watch(authoringSignature, () => channelPreview.schedule(['inspector', 'preview'].includes(inspectTab.value)));
-watch(inspectTab, () => channelPreview.schedule(['inspector', 'preview'].includes(inspectTab.value)));
-
-onMounted(async () => {
-  loadProcessCapabilities();
-  loadOrgTypes();
-  const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
-  organizationRoles.value = organizationId ? await rolePersistence.list(organizationId).catch(() => ({})) : {};
-  await loadGraphDocument();
-});
+onMounted(loadGraphDocument);
 </script>
