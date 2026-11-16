@@ -97,12 +97,12 @@ function fieldChangesFromPatch(patch = {}, current = {}) {
 // The workflow resolves through the same seam the status runtime uses; a
 // vocabulary without authored facets writes unrestricted, and the current
 // document is read only when some state carries a facet.
-async function assertStateEditableFields(typeId, organizationId, collection, id, fieldIds) {
+async function assertStateEditableFields(typeId, organizationId, collection, id, fieldIds, { session = null } = {}) {
   if (!fieldIds.length || !organizationId) return;
   const workflow = await resolveActiveWorkflow({ typeId, organizationId });
   const states = workflow?.states || {};
   if (!Object.values(states).some(state => state?.fieldPolicy)) return;
-  const doc = await repository.findInstance(collection, id, typeId);
+  const doc = await repository.findInstance(collection, id, typeId, { session });
   const state = String(doc?.state ?? '');
   if (!state) return;
   const facet = states[state]?.fieldPolicy || states[state.split('.').pop()]?.fieldPolicy;
@@ -411,7 +411,7 @@ function constraintValue(instance = {}) {
   };
 }
 
-async function constraintResolversFor(organizationId) {
+async function constraintResolversFor(organizationId, { session = null } = {}) {
   const declarations = await overlayDeclarationsFor(organizationId);
   const domainChecks = new Set();
   const domainBudget = { steps: MAX_STEPS };
@@ -420,7 +420,7 @@ async function constraintResolversFor(organizationId) {
   async function loadTarget(typeId, id) {
     const declaration = view.get(typeId) || await declarationFor(typeId, organizationId);
     if (!declaration?.class) return null;
-    const doc = await repository.findInstance(repository.collectionForClass(declaration.class), id, typeId);
+    const doc = await repository.findInstance(repository.collectionForClass(declaration.class), id, typeId, { session });
     if (!doc) return null;
     const targetOrganizationId = doc.organizationId == null ? null : String(doc.organizationId);
     const sourceOrganizationId = organizationId == null ? null : String(organizationId);
@@ -502,7 +502,7 @@ async function constraintResolversFor(organizationId) {
           type: childType,
           ...scope,
           [`lineage.${key}`]: toFlexibleId(owner._id ?? owner.id)
-        });
+        }, { session });
         for (const doc of docs) {
           result.push(constraintValue(toDto(doc)));
           if (result.length > MAX_COLLECTION_ITEMS) throw new Error('child collection item limit exceeded');
@@ -538,7 +538,7 @@ async function constraintResolversFor(organizationId) {
   return { resolveRelation, resolveChildren, resolveDescendants };
 }
 
-async function assertDeclaredRelationSlots(declaration, instance, organizationId, keys = []) {
+async function assertDeclaredRelationSlots(declaration, instance, organizationId, keys = [], { session = null } = {}) {
   if (!keys.length) return;
   const declared = new Set(Object.keys(declaration?.edges?.relations || {}));
   for (const [fieldId, field] of Object.entries(declaration?.fields || {})) {
@@ -546,7 +546,7 @@ async function assertDeclaredRelationSlots(declaration, instance, organizationId
       declared.add(fieldId);
     }
   }
-  const resolvers = await constraintResolversFor(organizationId);
+  const resolvers = await constraintResolversFor(organizationId, { session });
   for (const key of keys) {
     if (!declared.has(key)) {
       throw createError({ statusCode: 400, message: `Relation ${key} is not declared for ${declaration.id}` });
@@ -608,12 +608,12 @@ async function assertDeclaredLineageSlots(typeId, lineage, organizationId) {
   }
 }
 
-async function assertPermanentConstraints(declaration, instance, organizationId) {
+async function assertPermanentConstraints(declaration, instance, organizationId, { session = null } = {}) {
   if (!declaration?.constraints?.length) return;
   const errors = await validateConstraints(
     declaration,
     instance,
-    await constraintResolversFor(organizationId)
+    await constraintResolversFor(organizationId, { session })
   );
   if (errors.length) {
     throw createError({
@@ -765,7 +765,7 @@ function instanceService(typeId) {
   // construction mode. The wire draft IS the stored shape: tenancy
   // travels as `organizationId`, the payload as `payload`, rows as flat
   // `fields`, the rename channel as `name`.
-  async function createValidated(draft, declaration, userId, organizationId, { executorFieldIds = [] } = {}) {
+  async function createValidated(draft, declaration, userId, organizationId, { executorFieldIds = [], session = null } = {}) {
     const payload = payloadFromWire(draft, declaration);
     const provenance = provenanceFromWire(draft);
     const now = new Date().toISOString();
@@ -826,9 +826,9 @@ function instanceService(typeId) {
       paths: ['fields', 'lineage', 'relations', 'payload', 'provenance'],
       actorId: userId
     }, async () => {
-      await repository.insertInstance(repository.collectionForClass(declaration.class), doc);
+      await repository.insertInstance(repository.collectionForClass(declaration.class), doc, { session });
       await recordPayloadRevision(typeId, doc, declaration, payload, userId, 'created');
-    });
+    }, { session });
     return toDto(doc);
   }
 
@@ -897,6 +897,7 @@ function instanceService(typeId) {
       // a bare id): org-authored types resolve their declarations through
       // it, static types ignore it.
       const organizationId = typeof context === 'string' ? context : context?.organizationId || null;
+      const session = context && typeof context === 'object' ? context.session || null : null;
       const declaration = await requireDeclaration(typeId, organizationId);
       if (declaration.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
       if (patch.fields != null && (typeof patch.fields !== 'object' || Array.isArray(patch.fields))) {
@@ -927,9 +928,9 @@ function instanceService(typeId) {
           fields: patch.fields || {},
           relations: patch.relations || {}
         };
-        await assertDeclaredRelationSlots(declaration, candidate, organizationId, [...relationKeys]);
+        await assertDeclaredRelationSlots(declaration, candidate, organizationId, [...relationKeys], { session });
       }
-      await assertDeclaredLineageSlots(typeId, patch.lineage, organizationId);
+      await assertDeclaredLineageSlots(typeId, patch.lineage, organizationId, { session });
       // Wire patches speak the stored shape. Lifecycle is deliberately
       // absent: transitions and initial-state writes belong to the status
       // runtime.
@@ -944,7 +945,7 @@ function instanceService(typeId) {
       let expectedUpdatedAt = hasExpectedUpdatedAt ? context.expectedUpdatedAt : undefined;
       const constrained = Boolean(declaration.constraints?.length);
       if (constrained) {
-        const currentDoc = await repository.findInstance(collection, id, typeId);
+        const currentDoc = await repository.findInstance(collection, id, typeId, { session });
         if (!currentDoc) throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
         expectedUpdatedAt = currentDoc.updatedAt;
         if (context?.expectedRevision != null
@@ -959,10 +960,10 @@ function instanceService(typeId) {
           lineage: { ...current.lineage, ...(patch.lineage || {}) },
           relations: { ...current.relations, ...(patch.relations || {}) }
         };
-        await assertPermanentConstraints(declaration, candidate, organizationId);
+        await assertPermanentConstraints(declaration, candidate, organizationId, { session });
       }
       const patchedFieldIds = Object.keys(patch.fields || {}).filter(key => patch.fields[key] !== undefined);
-      await assertStateEditableFields(typeId, organizationId, collection, id, patchedFieldIds);
+      await assertStateEditableFields(typeId, organizationId, collection, id, patchedFieldIds, { session });
       const set = {};
       if (patch.name !== undefined) set.name = patch.name;
       if (patch.fields && typeof patch.fields === 'object') {
@@ -995,7 +996,7 @@ function instanceService(typeId) {
           collection,
           id,
           set,
-          ...(compareRevision ? [{ expectedUpdatedAt }] : [])
+          { ...(compareRevision ? { expectedUpdatedAt } : {}), ...(session ? { session } : {}) }
         );
         if (compareRevision && !updated) {
           throw createError({ statusCode: 409, message: `${typeId} ${id} changed while its update was being validated` });
@@ -1009,7 +1010,7 @@ function instanceService(typeId) {
             instanceId: String(id),
             paths: Object.keys(set),
             actorId: context?.userId || null
-          }, write)
+          }, write, { session, expectedSequence: context?.expectedOrganizationSequence ?? null })
         : await write();
       return toDto(updated);
     },
@@ -1018,7 +1019,7 @@ function instanceService(typeId) {
     // gated through the shared access engine on the class-collection
     // feature (a write requires a compiled grant — fail-closed), exactly
     // like the payload replacement transport.
-    async patch(id, patch = {}, { auth = null, organizationId = null, expectedRevision = null } = {}) {
+    async patch(id, patch = {}, { auth = null, organizationId = null, expectedRevision = null, expectedOrganizationSequence = null, session = null } = {}) {
       // Structural edges have dedicated link/unlink boundaries that validate
       // declared edge shape, target scope, and relation domains. The generic
       // field-patch transport must never write them around those checks.
@@ -1030,7 +1031,7 @@ function instanceService(typeId) {
       }
       const declaration = await requireDeclaration(typeId, organizationId);
       const collection = repository.collectionForClass(declaration.class);
-      const doc = await repository.findInstance(collection, id, typeId);
+      const doc = await repository.findInstance(collection, id, typeId, { session });
       if (!doc) {
         throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
       }
@@ -1047,7 +1048,9 @@ function instanceService(typeId) {
         organizationId,
         userId: auth?.userId || null,
         expectedUpdatedAt: doc.updatedAt,
-        expectedRevision
+        expectedRevision,
+        expectedOrganizationSequence,
+        session
       });
       // Field edits drop into the state record (SPEC UI): the audit trail
       // carries who changed which field, from what to what, beside the
