@@ -79,5 +79,34 @@ export const frameworkTypes = [
     },
     revisions: 'content',
     fields: { name: { base: 'string', identifier: true }, graphId: { base: 'string', required: false } }
+  },
+  {
+    id: 'graph-execution',
+    framework: true,
+    class: 'item',
+    scope: 'system',
+    version: 1,
+    mutability: 'append-only',
+    name: 'Graph execution',
+    glyph: 'pi pi-history',
+    fields: {
+      name: { base: 'string', identifier: true },
+      executionId: { base: 'string' },
+      graphId: { base: 'string' },
+      graphRevision: { base: 'string' },
+      graphDocument: { base: 'ref', accepts: ['graph-document'] },
+      profile: { base: 'enum', values: ['procedural-preview', 'procedural-commit', 'procedural-bake', 'process'] },
+      status: { base: 'enum', values: ['succeeded', 'failed', 'stale', 'cancelled'] },
+      startedAt: { base: 'instant' },
+      completedAt: { base: 'instant', nullable: true },
+      actorId: { base: 'string' },
+      inputs: { base: 'json' },
+      outputs: { base: 'json' },
+      nodeOutputs: { base: 'json' },
+      diagnostics: { base: 'json' },
+      provenance: { base: 'json' },
+      readSet: { base: 'json' },
+      artifacts: { base: 'json' }
+    }
   }
 ];
