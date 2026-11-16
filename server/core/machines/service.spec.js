@@ -629,6 +629,7 @@ describe('status service lifecycle payloads', () => {
       _id: id,
       type: 'e2e-note',
       typeVersion: 1,
+      revision: 1,
       organizationId: 'org-1',
       name: 'Note',
       fields: { name: 'Note' },
