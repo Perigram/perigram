@@ -1001,6 +1001,17 @@ describe('upgrades', () => {
     expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
   });
 
+  it('preserves the client engine declaration in an upgraded install snapshot', async () => {
+    const engineListing = {
+      ...listingV3,
+      declarations: { ...listingV3.declarations, engine: { module: '/engine/index.mjs' } }
+    };
+    repository.findCatalogByPluginId.mockResolvedValue(engineListing);
+    await applyUpgrade({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(repository.updateInstallSnapshot.mock.calls[0][2].declarations.engine)
+      .toEqual({ module: '/engine/index.mjs' });
+  });
+
   it('refuses an upgrade whose pack requirements no longer hold', async () => {
     repository.findCatalogByPluginId.mockImplementation(async () => ({ ...listingV3, requires: ['primers'] }));
     repository.listInstallsByOrganization.mockResolvedValue([]);
