@@ -53,6 +53,7 @@ describe('pages', () => {
     await db.collection('items').deleteMany({});
     await db.collection('files.files').deleteMany({});
     await db.collection('files.chunks').deleteMany({});
+    await db.collection('organization_change_sequences').deleteMany({});
   });
 
   async function seedPage(organizationId, data = {}) {
