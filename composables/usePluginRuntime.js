@@ -150,6 +150,7 @@ export function usePluginRuntime({
       throw new Error('Plugin runtime binding requires organizationId, pluginId, and version');
     }
     if (!runtime?.targets?.includes('browser')) return [];
+    if (!runtime.entryUrl) throw new Error(`Runtime ${runtime.id} has no served entry URL`);
     const module = await loadModule(runtime.entryUrl);
     const createProviders = module.createProviders;
     const contributions = typeof createProviders === 'function'

@@ -536,7 +536,9 @@ export async function settingsFor({ organizationId, pluginId, auth = {} }) {
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
   const endpoints = install.endpoints || {};
-  const packageOwned = Number(install.packageAssets?.count) > 0;
+  const packageOwned = Number(install.packageAssets?.count) > 0
+    || Boolean(install.declarations?.engine)
+    || Boolean(install.declarations?.runtimes?.length);
   return {
     pluginId: install.pluginId,
     authToken: install.authToken || null,
@@ -596,7 +598,9 @@ export async function updateSettings({ organizationId, pluginId, endpoints = {},
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
   const configured = configuredEndpointsFor(install.services, endpoints);
-  const packageOwned = Number(install.packageAssets?.count) > 0;
+  const packageOwned = Number(install.packageAssets?.count) > 0
+    || Boolean(install.declarations?.engine)
+    || Boolean(install.declarations?.runtimes?.length);
   const hasEndpointServices = (install.services || []).some(service => serviceModeOf(service) === 'endpoint');
   if (authToken && !hasEndpointServices) {
     throw createError({ statusCode: 400, message: 'An API key applies only to external endpoint services' });
@@ -830,7 +834,7 @@ export async function executeConnectorService(command, { parameters, auth = {}, 
     throw createError({ statusCode: 400, message: `Service ${serviceId} runs in the transitional client engine — server execution does not apply` });
   }
   if (serviceModeOf(service) === 'managed') {
-    throw createError({ statusCode: 503, message: `Managed runtime execution for ${serviceId} is not available yet` });
+    throw createError({ statusCode: 503, message: `Managed runtime execution for ${serviceId} is queued for the platform runtime rollout` });
   }
 
   // Endpoint mode: call the configured executor URL directly (the

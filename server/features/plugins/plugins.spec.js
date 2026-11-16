@@ -89,7 +89,7 @@ import * as repository from './repository.js';
 import { __db } from '~/server/db/mongo';
 import * as typeStore from '../cts-types/repository.js';
 import {
-  install, installFromCatalog, uninstall, listInstalled, listCatalog, servicesForOrganization,
+  install, installFromCatalog, uninstall, listInstalled, listCatalog, servicesForOrganization, serviceModeOf,
   projectedServicesForOrganization, projectedDomainsForOrganization, commandDefinitionFor, executeConnectorService, invokeEndpointValueService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings, publishPluginAsset,
