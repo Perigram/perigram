@@ -249,16 +249,16 @@ describe('class obligations (R6)', () => {
         }
       }
     });
-    expect(registry.compile().errors).toContainEqual(
-      expect.stringMatching(/bad-nested-predicate: fields.owner where \(target account\): exists body must be boolean, got number/));
+    expect(registry.compile().errors).toContain(
+      'type bad-nested-predicate: fields.owner where (target account): exists body must be boolean, got number');
 
     registry.defineType({
       id: 'bad-root-predicate', class: 'item', scope: 'system',
       fields: {
         code: { base: 'string', identifier: true }, owner: { base: 'ref', accepts: ['user'], where: { op: 'lit', value: 7 } } }
     });
-    expect(registry.compile().errors).toContainEqual(
-      expect.stringMatching(/bad-root-predicate: fields.owner where \(target user\): predicate must be boolean, got number/));
+    expect(registry.compile().errors).toContain(
+      'type bad-root-predicate: fields.owner where (target user): predicate must be boolean, got number');
 
     registry.defineType({
       id: 'bad-typed-order', class: 'item', scope: 'system',
@@ -271,8 +271,33 @@ describe('class obligations (R6)', () => {
         }
       }
     });
-    expect(registry.compile().errors).toContainEqual(
-      expect.stringMatching(/bad-typed-order: fields.owner where \(target user\): related key missing is not a declared relation or ref field on user/));
+    expect(registry.compile().errors).toContain(
+      'type bad-typed-order: fields.owner where (target user): related key missing is not a declared relation or ref field on user');
+
+    registry.defineType({
+      id: 'bad-sum-predicate', class: 'item', scope: 'system',
+      fields: {
+        code: { base: 'string', identifier: true },
+        owner: {
+          base: 'ref',
+          accepts: ['account'],
+          where: {
+            op: 'gt',
+            args: [
+              {
+                op: 'sum',
+                list: { op: 'related', key: 'invoices' },
+                var: 'invoice',
+                body: { op: 'field', of: { op: 'var', name: 'invoice' }, path: ['code'] }
+              },
+              { op: 'lit', value: 0 }
+            ]
+          }
+        }
+      }
+    });
+    expect(registry.compile().errors).toContain(
+      'type bad-sum-predicate: fields.owner where (target account): sum requires a numeric or quantity body, got string');
 
     registry.defineType({
       id: 'typed-containment-order', class: 'item', scope: 'system',
