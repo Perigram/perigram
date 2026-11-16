@@ -38,9 +38,12 @@ socket visual.
 
 ### Card anatomy
 
-Top to bottom: header (neutral icon chip + label), inline configuration (value-authoring
-species only), socket rail (labeled rows, inputs left / outputs right, handles centered on the
-outer rail, labels always render), event section (effects only). Sections separate by spacing
+Top to bottom: header (neutral icon chip + label), socket rail (labeled rows, inputs left /
+outputs right, handles centered on the outer rail, labels always render), event section (effects
+only). Cards are socket manifests, never authoring surfaces: typed defaults, literal values,
+operation parameters, casts, conversions, and structured values are edited in the inspector.
+The inspector also owns live input/output evaluation; the card exposes only identity, diagnostics,
+preview visibility, collapse, and socket contracts. Sections separate by spacing
 alone; the hover/focus tooltip carries the socket contract (`Expects`/`Outputs`: name — type ·
 access · optional) from the real ports. All cards compose `DesignerNodeCard` /
 `DesignerSocketHandle` from [components/shared](../shared/README.md): enforced by construction.
