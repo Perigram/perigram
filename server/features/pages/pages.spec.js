@@ -221,6 +221,29 @@ describe('pages', () => {
     expect(result.page.blocks.filter(block => block.kind === 'file')).toHaveLength(2);
   });
 
+  it('retracts page-owned file blobs when their block or page is removed', async () => {
+    const page = await pagesService.create({ name: 'Artifacts' }, memberOf(ORG_A));
+    const baked = await pagesService.bakeFile({
+      pageId: page._id,
+      path: 'exports/remove-me.txt',
+      buffer: Buffer.from('artifact'),
+      mimeType: 'text/plain'
+    }, memberOf(ORG_A));
+    expect(await db.collection('files.files').countDocuments({ _id: new ObjectId(baked.file.fileId) })).toBe(1);
+
+    await pagesService.update(page._id, { blocks: [], order: [] }, memberOf(ORG_A));
+    expect(await db.collection('files.files').countDocuments({ _id: new ObjectId(baked.file.fileId) })).toBe(0);
+
+    const next = await pagesService.bakeFile({
+      pageId: page._id,
+      path: 'exports/remove-page.txt',
+      buffer: Buffer.from('artifact'),
+      mimeType: 'text/plain'
+    }, memberOf(ORG_A));
+    await pagesService.remove(page._id, memberOf(ORG_A));
+    expect(await db.collection('files.files').countDocuments({ _id: new ObjectId(next.file.fileId) })).toBe(0);
+  });
+
   it('refuses page file baking into a section and rejects unsafe paths', async () => {
     const section = await pagesService.create({ kind: 'section' }, memberOf(ORG_A));
     await expect(pagesService.bakeFile({
