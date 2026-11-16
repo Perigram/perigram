@@ -11,7 +11,7 @@ import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
 import { planTypeMigration } from '#packages/cts';
-import { findTypeReferences } from '../process-definitions/service.js';
+import { findTypeReferences, resolveRunActor } from '../process-definitions/service.js';
 import { applyTypeRename } from './type-rename.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
@@ -836,7 +836,7 @@ export async function managedRuntimePackageForTask(run = {}) {
     throw createError({ statusCode: 400, message: 'Managed runtime task package identity is incomplete' });
   }
 
-  await processDefinitionsService.resolveRunActor(run.auth || {}, organizationId);
+  await resolveRunActor(run.auth || {}, organizationId);
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install || String(install.version) !== version) {
     throw createError({ statusCode: 409, message: 'The installed plugin version changed before execution' });
