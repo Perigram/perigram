@@ -11,7 +11,7 @@
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, mimeMatches } from '#packages/cts';
+import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, mimeMatches, validateConstraints, MAX_COLLECTION_ITEMS } from '#packages/cts';
 import * as typeStore from '../cts-types/repository.js';
 import * as pluginInstalls from '../plugins/repository.js';
 import * as repository from './repository.js';
@@ -396,6 +396,112 @@ async function recordPayloadRevision(typeId, entity, declaration, payload, userI
 // lookups. Keys the type never declared are transport noise the service
 // ignores — never a Mongo path.
 
+async function constraintResolversFor(organizationId) {
+  const declarations = await overlayDeclarationsFor(organizationId);
+  const view = new Map(declarations.map(declaration => [declaration.id, declaration]));
+
+  async function loadTarget(typeId, id) {
+    const declaration = view.get(typeId) || await declarationFor(typeId, organizationId);
+    if (!declaration?.class) return null;
+    const doc = await repository.findInstance(repository.collectionForClass(declaration.class), id, typeId);
+    if (!doc) return null;
+    if (doc.organizationId != null && organizationId != null
+      && String(doc.organizationId) !== String(organizationId)) return null;
+    return toDto(doc);
+  }
+
+  async function resolveRelation(owner, key) {
+    const declaration = view.get(owner?.type) || await declarationFor(owner?.type, organizationId);
+    const field = declaration?.fields?.[key];
+    const edge = declaration?.edges?.relations?.[key];
+    const accepted = edge?.types || field?.accepts || field?.itemType?.accepts || [];
+    const slot = owner?.relations?.[key] ?? owner?.fields?.[key];
+    if (slot == null) return [];
+    const refs = Array.isArray(slot) ? slot : [slot];
+    const resolved = [];
+    for (const ref of refs) {
+      const id = typeof ref === 'string' ? ref : ref?.id ?? ref?._id;
+      const types = ref?.type ? [String(ref.type)] : accepted;
+      if (id == null || !types.length) {
+        throw new Error(`relation ${key} has no resolvable typed reference`);
+      }
+      let target = null;
+      for (const targetType of types) {
+        target = await loadTarget(targetType, String(id));
+        if (target) break;
+      }
+      if (!target) throw new Error(`relation ${key} target ${String(id)} is missing or outside the organization`);
+      resolved.push(target);
+      if (resolved.length > MAX_COLLECTION_ITEMS) throw new Error('relation collection item limit exceeded');
+    }
+    return resolved;
+  }
+
+  async function resolveChildren(owner) {
+    const declaration = view.get(owner?.type) || await declarationFor(owner?.type, organizationId);
+    const result = [];
+    for (const [key, edge] of Object.entries(declaration?.edges?.children || {})) {
+      for (const childType of edge.types || []) {
+        const childDeclaration = view.get(childType) || await declarationFor(childType, organizationId);
+        if (!childDeclaration?.class) continue;
+        const scope = organizationId
+          ? { $or: [{ organizationId: toFlexibleId(organizationId) }, { organizationId: null }] }
+          : { organizationId: null };
+        const docs = await repository.findInstancesByFilter(repository.collectionForClass(childDeclaration.class), {
+          type: childType,
+          ...scope,
+          [`lineage.${key}`]: toFlexibleId(owner._id ?? owner.id)
+        });
+        for (const doc of docs) {
+          result.push(toDto(doc));
+          if (result.length > MAX_COLLECTION_ITEMS) throw new Error('child collection item limit exceeded');
+        }
+      }
+    }
+    return result;
+  }
+
+  async function resolveDescendants(owner) {
+    const seen = new Set([`${owner?.type}:${String(owner?._id ?? owner?.id)}`]);
+    const all = [];
+    let frontier = [owner];
+    for (let depth = 0; frontier.length && depth < 32; depth += 1) {
+      const next = [];
+      for (const parent of frontier) {
+        for (const child of await resolveChildren(parent)) {
+          const key = `${child.type}:${String(child._id)}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          all.push(child);
+          next.push(child);
+          if (all.length > MAX_COLLECTION_ITEMS) throw new Error('descendant collection item limit exceeded');
+        }
+      }
+      frontier = next;
+    }
+    if (frontier.length) throw new Error('descendant traversal depth limit exceeded');
+    return all;
+  }
+
+  return { resolveRelation, resolveChildren, resolveDescendants };
+}
+
+async function assertPermanentConstraints(declaration, instance, organizationId) {
+  if (!declaration?.constraints?.length) return;
+  const errors = await validateConstraints(
+    declaration,
+    instance,
+    await constraintResolversFor(organizationId)
+  );
+  if (errors.length) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'CTS instance constraints failed',
+      data: { errors }
+    });
+  }
+}
+
 async function requireDeclaration(typeId, organizationId) {
   const declaration = await declarationFor(typeId, organizationId);
   if (!declaration) {
@@ -513,6 +619,7 @@ function instanceService(typeId) {
       createdAt: now,
       updatedAt: now
     };
+    await assertPermanentConstraints(declaration, toDto(doc), effectiveOrganizationId);
     await runOrganizationChange(effectiveOrganizationId, {
       kind: 'instance-created',
       typeId,
@@ -594,6 +701,19 @@ function instanceService(typeId) {
           statusCode: 400,
           message: `Type ${typeId} lifecycle transitions must run through the status runtime`
         });
+      }
+      if (declaration.constraints?.length) {
+        const currentDoc = await repository.findInstance(collection, id, typeId);
+        if (!currentDoc) throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
+        const current = toDto(currentDoc);
+        const candidate = {
+          ...current,
+          ...(patch.name !== undefined ? { name: patch.name } : {}),
+          fields: { ...current.fields, ...(patch.fields || {}) },
+          lineage: { ...current.lineage, ...(patch.lineage || {}) },
+          relations: { ...current.relations, ...(patch.relations || {}) }
+        };
+        await assertPermanentConstraints(declaration, candidate, organizationId);
       }
       const patchedFieldIds = Object.keys(patch.fields || {}).filter(key => patch.fields[key] !== undefined);
       await assertStateEditableFields(typeId, organizationId, collection, id, patchedFieldIds);
@@ -872,6 +992,10 @@ function instanceService(typeId) {
         throw createError({ statusCode: 400, message: `Type ${typeId} declares no ${mode} construct to re-run` });
       }
       const merged = await applyConstructionService(typeId, mode, stored, { userId, organizationId, auth });
+      await assertPermanentConstraints(declaration, {
+        ...current,
+        fields: merged.fields || current.fields
+      }, organizationId);
       const nextProvenance = { ...(merged.provenance || current.provenance || {}) };
       if (provenance?.op) nextProvenance.op = provenance.op;
       const updated = await repository.updateInstanceFields(collection, id, {

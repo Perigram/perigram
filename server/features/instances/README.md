@@ -280,3 +280,10 @@ ref with no pin follows the source's current payload.
 ## Action-specific gates
 
 HTTP create, patch, and delete use the corresponding `create`, `update`, and `delete` action. Reads use `view`. The shared access contract maps `delete` to admin level; a generic write grant cannot delete. Payload replace, restore, and rederive use `update`.
+
+
+## Instance constraints
+
+Instance-scoped CTS constraints are evaluated asynchronously against
+organization-scoped relation, child, and descendant resolvers before generic
+create, process update, and re-derive writes. Resolver failures fail closed.

@@ -52,7 +52,30 @@ vi.mock('../cts-types/repository.js', () => ({
           ? { id: 'memo', class: 'item', version: 1, fields: { title: { base: 'string' }, body: { base: 'string' } }, states: { main: { initial: 'new', states: { new: {} } } }, access: { inherits: 'gallery' } }
         : typeId === 'plain-note'
           ? { id: 'plain-note', class: 'item', version: 1, fields: { name: { base: 'string', identifier: true } }, states: { main: { initial: 'new', states: { new: {} } } } }
-          : typeId === 'project'
+          : typeId === 'invoice'
+        ? { id: 'invoice', class: 'item', version: 1, fields: { code: { base: 'string', identifier: true }, amount: { base: 'number' } } }
+        : typeId === 'constrained-account'
+          ? {
+              id: 'constrained-account',
+              class: 'item',
+              version: 1,
+              fields: {
+                code: { base: 'string', identifier: true },
+                invoices: { base: 'list', itemType: { base: 'ref', accepts: ['invoice'] } }
+              },
+              constraints: [{
+                id: 'positive-invoice-total',
+                message: 'Invoice total must be positive',
+                expression: {
+                  op: 'gt',
+                  args: [
+                    { op: 'sum', list: { op: 'related', key: 'invoices' }, var: 'invoice', body: { op: 'field', of: { op: 'var', name: 'invoice' }, path: ['amount'] } },
+                    { op: 'lit', value: 0 }
+                  ]
+                }
+              }]
+            }
+        : typeId === 'project'
             ? {
                 id: 'project',
                 class: 'group',
@@ -69,6 +92,27 @@ vi.mock('../cts-types/repository.js', () => ({
     organizationId === 'org-1'
       ? [
           { id: 'bin', class: 'group', version: 1, fields: { name: { base: 'string' } }, edges: { children: { panels: { types: ['panel'], onRemove: 'restrict' } } } },
+          { id: 'invoice', class: 'item', version: 1, fields: { code: { base: 'string', identifier: true }, amount: { base: 'number' } } },
+          {
+            id: 'constrained-account',
+            class: 'item',
+            version: 1,
+            fields: {
+              code: { base: 'string', identifier: true },
+              invoices: { base: 'list', itemType: { base: 'ref', accepts: ['invoice'] } }
+            },
+            constraints: [{
+              id: 'positive-invoice-total',
+              message: 'Invoice total must be positive',
+              expression: {
+                op: 'gt',
+                args: [
+                  { op: 'sum', list: { op: 'related', key: 'invoices' }, var: 'invoice', body: { op: 'field', of: { op: 'var', name: 'invoice' }, path: ['amount'] } },
+                  { op: 'lit', value: 0 }
+                ]
+              }
+            }]
+          },
           {
             id: 'project',
             class: 'group',
@@ -149,6 +193,49 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(dto.fields).toEqual({ serial: 'SH-1', width: 2500 });
     expect(dto.data).toBeUndefined();
     expect(dto.specs).toBeUndefined();
+  });
+
+  it('rejects creates and updates that violate typed asynchronous instance constraints', async () => {
+    const coll = stubCollection();
+    const invoice = {
+      _id: 'invoice-1',
+      type: 'invoice',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      fields: { code: 'I-1', amount: -5 },
+      lineage: {},
+      relations: {},
+      createdAt: '2026-11-16T10:00:00Z',
+      updatedAt: '2026-11-16T10:00:00Z'
+    };
+    coll.findOne.mockImplementation(async filter => {
+      if (filter.type === 'invoice') return invoice;
+      if (filter.type === 'constrained-account') {
+        return {
+          _id: 'account-1',
+          type: 'constrained-account',
+          typeVersion: 1,
+          organizationId: 'org-1',
+          fields: { code: 'A-1', invoices: ['invoice-1'] },
+          lineage: {},
+          relations: {},
+          createdAt: '2026-11-16T10:00:00Z',
+          updatedAt: '2026-11-16T10:00:00Z'
+        };
+      }
+      return null;
+    });
+    const service = instanceServiceResolver('constrained-account');
+    await expect(service.create({
+      fields: { code: 'A-2', invoices: ['invoice-1'] },
+      lineage: {}
+    }, 'user-1', 'org-1')).rejects.toMatchObject({ statusCode: 400 });
+    expect(coll.insertOne).not.toHaveBeenCalled();
+
+    await expect(service.processUpdate('account-1', {
+      fields: { code: 'A-2' }
+    }, 'org-1')).rejects.toMatchObject({ statusCode: 400 });
+    expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
   it('creates without a state — nothing synthesizes an initial (SPEC §7)', async () => {
