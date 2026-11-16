@@ -1,5 +1,6 @@
 import {
   getProcessNodeDefinition,
+  PROCESS_NODE_CATALOG,
   resolveCatalogNodePorts
 } from './node-catalog.js';
 import { executeProcessDataNode } from './evaluator.js';
@@ -38,6 +39,25 @@ export function createProcessProceduralNodeDefinition(kind, record = {}, catalog
       additionalProperties: true
     }
   };
+}
+
+
+/**
+ * Register the process package's preview-safe data operations in the shared
+ * plugin-SDK registry. The registry remains SDK-owned; this adapter only
+ * contributes the process provider's exact-version definitions.
+ */
+export function registerProcessProceduralNodes(registry, { catalogContext = {} } = {}) {
+  if (!registry || typeof registry.register !== 'function') {
+    throw new TypeError('A plugin-SDK node provider registry is required');
+  }
+  const registered = [];
+  for (const catalog of PROCESS_NODE_CATALOG) {
+    const definition = createProcessProceduralNodeDefinition(catalog.kind, {}, catalogContext);
+    if (!definition) continue;
+    registered.push(registry.register(definition));
+  }
+  return registered;
 }
 
 export function createProcessProceduralExecutor({ context = {}, catalogContext = {} } = {}) {
