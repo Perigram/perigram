@@ -37,8 +37,8 @@ Parent: [server/features](../README.md).
   instance of that parent type in the same organization or system scope.
   The parent's ancestor axes are inherited, authored ancestor axes win,
   and ref objects scalarize to ids. Process updates apply the same parent
-  edge and scope checks to changed lineage axes. `organizationId` remains
-  the top-level tenancy slot.
+  edge and scope checks to changed lineage axes and store scalar parent ids.
+  `organizationId` remains the top-level tenancy slot.
 - Type migration executor (`migrations.js`): runs a covered `migrate` step
   set against the type's persisted instances when
   [cts-types](../cts-types/README.md) lands a breaking redefinition.
