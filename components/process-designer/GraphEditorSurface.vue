@@ -131,13 +131,14 @@ import { useProcessDesignerRoles } from '~/composables/useProcessDesignerRoles.j
 import { useGraphChannelPreview } from '~/composables/useGraphChannelPreview.js';
 import { canvasToDefinition, PROCESS_DATAFLOW_VERSION } from '@perigram/processes';
 
-// The graph editor surface (SPEC §28): the graph canvas session mounted
-// over a `graph-document` payload — the same authoring core the process
-// designer page rides. The document lifecycle is payload-based: the
-// payload text is the serialized graph data object, the save writes it
-// through the instance payload transport (blank-create on the first
-// save), and the header chrome channel carries the name, save, and
-// dirty state. A read grant mounts the canvas alone.
+// The graph editor surface currently reuses the process-designer canvas
+// session and instance-payload lifecycle. Important boundary: this host is
+// mounted on a `graph-document` instance, but the session still loads and
+// saves the legacy process-authoring data shape via definitionToCanvas /
+// canvasToDefinition. It is not yet a canonical `perigram.graph` editor;
+// the core graph codec/provider evaluator integration remains outstanding.
+// The host owns payload load/save, naming, and page chrome; a read grant
+// mounts the canvas alone.
 const props = defineProps({
   record: { type: Object, default: null },
   typeId: { type: String, default: 'graph-document' },
