@@ -180,8 +180,12 @@ types before the declaration is accepted.
 - [x] Add statically typed relation/containment resolution against compiled
   declarations, including nested field paths, predicate result types,
   quantifier bodies, and numeric/quantity aggregate bodies.
-- [ ] Add authored permanent constraints to CTS declarations and enforce
-  them at every authoritative create/update/import/transition boundary.
+- [x] Add authored instance-scoped constraints to declarations and
+  compile their boolean expressions against the composed typed view.
+- [x] Add asynchronous bounded evaluation for server-backed relation and
+  containment resolvers.
+- [ ] Enforce constraints at every authoritative create/update/import/
+  transition boundary.
 - [ ] Add concurrency-safe unique/cardinality/aggregate enforcement using
   transactions, unique indexes, or conditional/serialized writes. The AST
   evaluator alone is not an enforcement guarantee.

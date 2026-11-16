@@ -42,12 +42,10 @@ modules onto its sections.
 - `operators.js` — the six species with typed signatures and
   event/schedule triggers (SPEC §8); services and projections are
   ref-free.
-- `expressions.js` — CEL-semantics expression ASTs (SPEC §15): total
-  evaluation with a step budget, finite quantifiers and aggregates,
-  relation/containment resolver hooks, membership `in`, and
-  `checkTypedBooleanExpression` — statically checks traversal targets,
-  field paths, predicate result types, quantifier bodies, and aggregate
-  value types for relation target domains.
+- `expressions.js` — CEL-semantics expression ASTs (SPEC §15): bounded
+  synchronous preview and asynchronous authoritative evaluation, finite
+  quantifiers/aggregates, relation/containment resolver hooks, membership
+  `in`, and typed predicate/aggregate checks.
 - `diff.js` — version stamping, evolution classification, and the
   declared migration gate (R7, SPEC §11). `planTypeMigration(previous,
   next)` is the one planner: diff, normalized steps, coverage verdict.
@@ -72,6 +70,9 @@ modules onto its sections.
   are zero live instances (synchronous `hasInstances` probe) and repair
   of a stored declaration that violates class obligations or declares
   unresolvable children.
+Authored instance-scoped `constraints` compile against the composed typed
+view; `validateConstraints` evaluates them with asynchronous collection
+resolvers. Authoritative write-boundary enforcement is tracked separately.
 - `render.js` — display-policy derivation and `compileClientBundle()`,
   the single frontend/designer consumption contract. Naming is authored
   vocabulary (SPEC §4); everything else derives — `glyph`, `depiction`,

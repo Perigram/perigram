@@ -832,6 +832,25 @@ sits in predicate position. Four completions follow from this principle:
    Retry policy is the declared per-operator knob and the whole failure
    story.
 
+
+### Permanent instance constraints
+
+A type may author an ordered `constraints` list. Each entry has a stable
+kebab-case `id`, `scope: 'instance'`, a boolean expression AST, and an
+optional diagnostic message. The expression's `value` binding is the
+candidate instance. Compilation resolves every field path and relation or
+containment traversal against the composed CTS declaration view; invalid
+or non-boolean expressions refuse the declaration.
+
+The asynchronous evaluator is the authoritative server-side counterpart
+to the synchronous preview evaluator. It awaits organization-scoped
+collection resolvers while preserving finite collection and step budgets.
+A false predicate or resolver failure rejects the candidate. Constraints
+are intended to run at every authoritative write boundary; declaration
+and evaluator support alone do not establish write-time or concurrency
+safety. Cross-instance uniqueness and aggregate/cardinality races require
+transactional, indexed, or serialized enforcement.
+
 ## 16. Plug-ins
 
 Domain content is optional plug-ins. The pack mount retired (owner
