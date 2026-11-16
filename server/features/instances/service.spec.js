@@ -429,6 +429,18 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
+
+  it('refuses patches to fields absent from the resolved CTS declaration', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('panel');
+
+    await expect(service.processUpdate('507f1f77bcf86cd799439011', {
+      fields: { undeclaredField: 'not part of the type' }
+    }, 'org-1')).rejects.toMatchObject({ statusCode: 400 });
+
+    expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
   it('maps wire patch paths to §3 field writes', async () => {
     const coll = stubCollection();
     coll.findOneAndUpdate.mockResolvedValue({ _id: '507f1f77bcf86cd799439011', type: 'pdf-document', typeVersion: 1, fields: { name: 'Renamed' }, states: { main: 'active' }, lineage: {} });

@@ -716,6 +716,18 @@ function instanceService(typeId) {
       const organizationId = typeof context === 'string' ? context : context?.organizationId || null;
       const declaration = await requireDeclaration(typeId, organizationId);
       if (declaration.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
+      if (patch.fields != null && (typeof patch.fields !== 'object' || Array.isArray(patch.fields))) {
+        throw createError({ statusCode: 400, message: 'Instance fields patch must be an object' });
+      }
+      const unknownFields = Object.keys(patch.fields || {}).filter(fieldId =>
+        !Object.hasOwn(declaration.fields || {}, fieldId)
+      );
+      if (unknownFields.length) {
+        throw createError({
+          statusCode: 400,
+          message: 'Fields ' + unknownFields.join(', ') + ' are not declared for ' + typeId
+        });
+      }
       const collection = repository.collectionForClass(declaration.class);
       // Wire patches speak the stored shape. Lifecycle is deliberately
       // absent: transitions and initial-state writes belong to the status
