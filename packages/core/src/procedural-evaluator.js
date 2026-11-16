@@ -83,7 +83,7 @@ async function evaluateGraph(options) {
       if (seenOutputs.has(interfaceId)) throw new Error(`Graph output ${interfaceId} has more than one boundary node`);
       seenOutputs.add(interfaceId);
       if (incoming.get(node.id).some(edge => edge.target.port !== 'value')) throw new Error(`Graph Output node ${node.id} accepts only the value input`);
-      const value = readSingleInput(node, 'value', incoming.get(node.id), values, true);
+      const value = readInput(node, 'value', incoming.get(node.id), values, true, undefined, graph.interface.outputs.find(port => port.id === interfaceId)?.contract?.shape || 'item');
       outputs[interfaceId] = value;
       nodeOutputs[node.id] = { value };
       continue;
@@ -107,7 +107,7 @@ async function evaluateGraph(options) {
         if (!childOutputIds.has(edge.source.port)) throw new Error(`Use Graph node ${node.id} has no output ${edge.source.port}`);
       }
       for (const port of childGraph.interface.inputs) {
-        const value = readSingleInput(node, port.id, incoming.get(node.id), values, port.required, port.default);
+        const value = readInput(node, port.id, incoming.get(node.id), values, port.required, port.default, port.contract?.shape || 'item');
         if (value !== undefined) childInputs[port.id] = value;
       }
       const childResult = await evaluateGraph({
@@ -149,7 +149,7 @@ async function evaluateGraph(options) {
       if (!declaredOutputIds.has(edge.source.port)) throw new Error(`Node ${node.id} has no output ${edge.source.port}`);
     }
     for (const port of definition.inputs || []) {
-      const value = readSingleInput(node, port.id, incoming.get(node.id), values, port.required !== false, port.default);
+      const value = readInput(node, port.id, incoming.get(node.id), values, port.required !== false, port.default, port.shape || 'item');
       if (value !== undefined) inputs[port.id] = value;
     }
     const result = await options.executeNode(definition, {
@@ -188,18 +188,39 @@ async function evaluateGraph(options) {
   };
 }
 
-function readSingleInput(node, portId, edges, values, required, fallback) {
-  const matches = edges.filter(edge => edge.target.port === portId);
-  if (matches.length > 1) throw new Error(`Node ${node.id} input ${portId} has multiple incoming wires; use an explicit collection operation`);
+function readInput(node, portId, edges, values, required, fallback, shape = 'item') {
+  const matches = edges
+    .filter(edge => edge.target.port === portId)
+    .sort((a, b) => a.id.localeCompare(b.id));
   if (!matches.length) {
     if (fallback !== undefined) return fallback;
     if (required) throw new Error(`Node ${node.id} is missing required input ${portId}`);
     return undefined;
   }
-  const edge = matches[0];
-  const key = `${edge.source.node}:${edge.source.port}`;
-  if (!values.has(key)) throw new Error(`Node ${node.id} input ${portId} reads unavailable output ${key}`);
-  return values.get(key);
+  if (shape === 'item' && matches.length > 1) {
+    throw new Error(`Node ${node.id} item input ${portId} has multiple incoming wires; declare a list, tuple, tree, or map transport shape`);
+  }
+  if (shape === 'stream') {
+    throw new Error(`Node ${node.id} stream input ${portId} is not materializable in bounded preview`);
+  }
+  const valuesForEdges = matches.map(edge => {
+    const key = `${edge.source.node}:${edge.source.port}`;
+    if (!values.has(key)) throw new Error(`Node ${node.id} input ${portId} reads unavailable output ${key}`);
+    return { edge, value: values.get(key) };
+  });
+  if (shape === 'map') {
+    return Object.fromEntries(valuesForEdges.map(({ edge, value }) => [
+      `${edge.source.node}:${edge.source.port}`,
+      value
+    ]));
+  }
+  if (['list', 'tuple', 'tree'].includes(shape)) {
+    return valuesForEdges.map(({ value }) => value);
+  }
+  if (matches.length !== 1) {
+    throw new Error(`Node ${node.id} input ${portId} has unsupported transport shape ${shape}`);
+  }
+  return valuesForEdges[0].value;
 }
 
 function topologicalOrder(nodes, edges) {

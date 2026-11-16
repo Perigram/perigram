@@ -51,6 +51,60 @@ describe('procedural graph preview evaluator', () => {
     expect(result.nodeOutputs.double).toEqual({ result: 42 });
   });
 
+  it('fans multiple wires into list, tuple, tree, and map inputs deterministically', async () => {
+    for (const shape of ['list', 'tuple', 'tree', 'map']) {
+      const sourceNodes = ['a', 'b'].map(id => ({
+        id,
+        operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' },
+        config: { interfaceId: id }
+      }));
+      const sourceEdges = ['a', 'b'].map(id => ({
+        id: `wire-${id}`,
+        source: { node: id, port: 'value' },
+        target: { node: 'out', port: 'value' }
+      }));
+      const document = graph({
+        inputs: ['a', 'b'].map(id => ({ id, contract: { shape: 'item', semantic: { base: 'number' } } })),
+        outputs: [{ id: 'result', contract: { shape, semantic: { base: 'json' } } }],
+        nodes: [...sourceNodes, {
+          id: 'out',
+          operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' },
+          config: { interfaceId: 'result' }
+        }],
+        edges: sourceEdges
+      });
+      const result = await evaluateProceduralGraph({
+        graph: document,
+        inputBindings: { a: 10, b: 20 },
+        resolveNodeDefinition: () => null,
+        executeNode: () => ({})
+      });
+      if (shape === 'map') expect(result.outputs.result).toEqual({ 'a:value': 10, 'b:value': 20 });
+      else expect(result.outputs.result).toEqual([10, 20]);
+    }
+  });
+
+  it('rejects multi-wire fan-in to item-shaped inputs', async () => {
+    const document = graph({
+      nodes: [
+        { id: 'in', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'number' } },
+        { id: 'double', operation: { provider: 'plugin.math', id: 'double', version: '1' }, config: {} },
+        { id: 'out', operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' }, config: { interfaceId: 'result' } }
+      ],
+      edges: [
+        { id: 'e1', source: { node: 'in', port: 'value' }, target: { node: 'double', port: 'value' } },
+        { id: 'e2', source: { node: 'in', port: 'value' }, target: { node: 'double', port: 'value' } },
+        { id: 'e3', source: { node: 'double', port: 'result' }, target: { node: 'out', port: 'value' } }
+      ]
+    });
+    await expect(evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: 3 },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: () => ({ result: 6 })
+    })).rejects.toThrow(/item input value has multiple incoming wires/);
+  });
+
   it('does not invoke a provider for graph boundary nodes', async () => {
     const resolveNodeDefinition = vi.fn(() => doubleDefinition);
     await evaluateProceduralGraph({
