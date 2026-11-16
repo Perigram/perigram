@@ -4,6 +4,86 @@ import {
   PLUGIN_RUNTIME_MAX_MEMORY_MB
 } from '../../shared/plugin-runtime.js';
 
+const BOOTSTRAP_SOURCE = `const request = JSON.parse(await Deno.readTextFile(Deno.args[0]));
+const encoder = new TextEncoder();
+const stdout = Deno.stdout.writable.getWriter();
+const pending = new Map();
+let callSequence = 0;
+const controller = new AbortController();
+
+console.log = console.error.bind(console);
+console.info = console.error.bind(console);
+console.debug = console.error.bind(console);
+
+async function send(message) {
+  await stdout.write(encoder.encode(JSON.stringify(message) + '\\n'));
+}
+
+let responseReader = null;
+async function readResponses() {
+  responseReader = Deno.stdin.readable.pipeThrough(new TextDecoderStream()).getReader();
+  const reader = responseReader;
+  let buffer = '';
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += value;
+    const lines = buffer.split('\\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      let message;
+      try { message = JSON.parse(line); } catch { continue; }
+      if (message.type === 'cancel') controller.abort();
+      if (message.type !== 'capability-result') continue;
+      const deferred = pending.get(message.callId);
+      if (!deferred) continue;
+      pending.delete(message.callId);
+      if (message.error) deferred.reject(new Error(message.error.message || 'Host capability failed'));
+      else deferred.resolve(message.value);
+    }
+  }
+}
+
+const moduleUrl = new URL('./' + request.runtimeEntry, import.meta.url);
+try {
+  const module = await import(moduleUrl.href);
+  const createRuntime = module.createRuntime || module.default;
+  if (typeof createRuntime !== 'function') throw new Error('Runtime module must export createRuntime');
+  const runtime = await createRuntime();
+  if (typeof runtime?.execute !== 'function') throw new Error('Runtime must provide execute(operationId, input, context)');
+  const responseLoop = readResponses();
+  const capabilities = {
+    call(name, input) {
+      const callId = 'cap-' + (++callSequence);
+      return new Promise((resolve, reject) => {
+        pending.set(callId, { resolve, reject });
+        void send({ type: 'capability', callId, name, input });
+      });
+    }
+  };
+  try {
+    const value = await runtime.execute(request.operationId, request.input, {
+      capabilities,
+      signal: controller.signal
+    });
+    await responseReader?.cancel();
+    await responseLoop.catch(() => {});
+    await send({ type: 'result', value: value === undefined ? null : value });
+    await stdout.close();
+    Deno.exit(0);
+  } catch (error) {
+    await responseReader?.cancel();
+    await responseLoop.catch(() => {});
+    await send({ type: 'error', error: { message: error?.message || String(error) } });
+    await stdout.close();
+    Deno.exit(1);
+  }
+} catch (error) {
+  await send({ type: 'error', error: { message: error?.message || String(error) } });
+  await stdout.close();
+  Deno.exit(1);
+}`;
+
 const appUrl = (Deno.env.get('PERIGRAM_APP_URL') || 'http://app:3000').replace(/\/+$/, '');
 const workerToken = Deno.env.get('WORKER_TOKEN') || '';
 const workerId = Deno.env.get('PLUGIN_RUNTIME_WORKER_ID') || 'managed-runtime-1';
@@ -228,67 +308,4 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const BOOTSTRAP_SOURCE = `const request = JSON.parse(await Deno.readTextFile(Deno.args[0]));
-const encoder = new TextEncoder();
-const stdout = Deno.stdout.writable.getWriter();
-const pending = new Map();
-let callSequence = 0;
-const controller = new AbortController();
 
-console.log = console.error.bind(console);
-console.info = console.error.bind(console);
-console.debug = console.error.bind(console);
-
-async function send(message) {
-  await stdout.write(encoder.encode(JSON.stringify(message) + '\\n'));
-}
-
-async function readResponses() {
-  const reader = Deno.stdin.readable.pipeThrough(new TextDecoderStream()).getReader();
-  let buffer = '';
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += value;
-    const lines = buffer.split('\\n');
-    buffer = lines.pop() || '';
-    for (const line of lines) {
-      let message;
-      try { message = JSON.parse(line); } catch { continue; }
-      if (message.type === 'cancel') controller.abort();
-      if (message.type !== 'capability-result') continue;
-      const deferred = pending.get(message.callId);
-      if (!deferred) continue;
-      pending.delete(message.callId);
-      if (message.error) deferred.reject(new Error(message.error.message || 'Host capability failed'));
-      else deferred.resolve(message.value);
-    }
-  }
-}
-
-const moduleUrl = new URL('./' + request.runtimeEntry, import.meta.url);
-try {
-  const module = await import(moduleUrl.href);
-  const createRuntime = module.createRuntime || module.default;
-  if (typeof createRuntime !== 'function') throw new Error('Runtime module must export createRuntime');
-  const runtime = await createRuntime();
-  if (typeof runtime?.execute !== 'function') throw new Error('Runtime must provide execute(operationId, input, context)');
-  void readResponses();
-  const capabilities = {
-    call(name, input) {
-      const callId = 'cap-' + (++callSequence);
-      return new Promise((resolve, reject) => {
-        pending.set(callId, { resolve, reject });
-        void send({ type: 'capability', callId, name, input });
-      });
-    }
-  };
-  const value = await runtime.execute(request.operationId, request.input, {
-    capabilities,
-    signal: controller.signal
-  });
-  await send({ type: 'result', value: value === undefined ? null : value });
-} catch (error) {
-  await send({ type: 'error', error: { message: error?.message || String(error) } });
-  Deno.exitCode = 1;
-}`;
