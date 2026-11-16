@@ -8,6 +8,7 @@
 // Slice 1 carries declaration payloads only: connectors (worker-protocol
 // executors), upgrades, and cross-org execution are later slices.
 import { createError } from 'h3';
+import { PLUGIN_RUNTIME_WORKER_TYPE } from '#shared/plugin-runtime.js';
 import { createHash, randomBytes } from 'node:crypto';
 import * as repository from './repository.js';
 import { runOrganizationChange } from '../instances/index.js';
@@ -834,7 +835,27 @@ export async function executeConnectorService(command, { parameters, auth = {}, 
     throw createError({ statusCode: 400, message: `Service ${serviceId} runs in the transitional client engine — server execution does not apply` });
   }
   if (serviceModeOf(service) === 'managed') {
-    throw createError({ statusCode: 503, message: `Managed runtime execution for ${serviceId} is queued for the platform runtime rollout` });
+    const runtime = (install.declarations?.runtimes || []).find(item => item.id === service.execution.runtime);
+    if (!runtime) throw createError({ statusCode: 500, message: `Service ${serviceId} references a missing runtime ${service.execution.runtime}` });
+    if (!service.execution.targets?.includes('server') || !runtime.targets?.includes('server')) {
+      throw createError({ statusCode: 400, message: `Service ${serviceId} does not support server execution` });
+    }
+    if (runtime.language !== 'javascript') {
+      throw createError({ statusCode: 501, message: `Server runtime ${runtime.language} is not available yet` });
+    }
+    const run = await enqueueTask(command.id, {
+      parameters: { value: {
+        pluginId: install.pluginId,
+        version: install.version,
+        runtimeId: runtime.id,
+        operationId: service.id,
+        input: parameters ?? null
+      } }
+    }, auth, {
+      definition: taskContractFor(command.id, install, String(organizationId)),
+      workerType: PLUGIN_RUNTIME_WORKER_TYPE
+    });
+    return { tasks: [run] };
   }
 
   // Endpoint mode: call the configured executor URL directly (the
@@ -939,7 +960,6 @@ export async function taskDefinitionFor(taskId, organizationId) {
   if (!install) return null;
   const serviceId = String(taskId).match(PLUGIN_COMMAND_PATTERN)?.[2];
   const service = (install.services || []).find(item => item.id === serviceId);
-  if (service?.execution) return null;
   return taskContractFor(taskId, install, String(organizationId));
 }
 
