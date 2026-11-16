@@ -12,6 +12,7 @@ import { pluginModuleUrl } from '#shared/plugin-surfaces.js';
 import * as pluginInstalls from '../plugins/repository.js';
 
 import { invalidateInstanceDeclarations } from '../instances/service.js';
+import { runOrganizationChange } from '../instances/index.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
@@ -335,37 +336,47 @@ export async function defineType(declaration = {}, { organizationId, actor = nul
   }
 
   invalidateInstanceDeclarations(String(organizationId));
-  let stored = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
-    ...withoutMigrateSteps(versioned),
-    scope: 'org',
-    organizationId: String(organizationId)
-  }, { unset: ['migrate'] });
-  // Covered breaking changes execute here: instances are behind the new
-  // version from this write until the executor stamps them, so the run is
-  // synchronous and idempotent (finished documents carry the new
-  // typeVersion and are skipped on re-post).
-  if (plan?.covered && plan.breaking.length && plan.steps.length) {
-    const migration = await applyTypeMigrationSteps({
-      declaration: versioned,
-      organizationId,
-      steps: plan.steps,
-      toVersion: versioned.version,
-      actor,
-      // remove-edge steps detach the stored key on FOREIGN child types
-      // too; the registry view right here resolves each child's
-      // collection (self-containment rides the declaring type's loop).
-      collectionForType: typeId => {
-        const child = registry.getType(String(typeId), organizationId);
-        return child ? collectionForClass(child.class) : null;
-      }
-    });
-    stored = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
+  let migrationError = null;
+  const stored = await runOrganizationChange(organizationId, {
+    kind: 'cts-type-declared',
+    typeId: orgDeclaration.id,
+    paths: ['declaration', 'typeVersion'],
+    actorId: actor
+  }, async () => {
+    let current = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
       ...withoutMigrateSteps(versioned),
       scope: 'org',
-      organizationId: String(organizationId),
-      migrated: migration
+      organizationId: String(organizationId)
     }, { unset: ['migrate'] });
-  }
+    // Keep the organization read boundary pending through the one-time
+    // instance migration. If migration fails after the declaration write,
+    // the sequence still advances for the partially committed schema state.
+    if (plan?.covered && plan.breaking.length && plan.steps.length) {
+      try {
+        const migration = await applyTypeMigrationSteps({
+          declaration: versioned,
+          organizationId,
+          steps: plan.steps,
+          toVersion: versioned.version,
+          actor,
+          collectionForType: typeId => {
+            const child = registry.getType(String(typeId), organizationId);
+            return child ? collectionForClass(child.class) : null;
+          }
+        });
+        current = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
+          ...withoutMigrateSteps(versioned),
+          scope: 'org',
+          organizationId: String(organizationId),
+          migrated: migration
+        }, { unset: ['migrate'] });
+      } catch (error) {
+        migrationError = error;
+      }
+    }
+    return current;
+  });
+  if (migrationError) throw migrationError;
   // Declaration writes can change the derived index set (SPEC §13).
   await ensureInstanceIndexes(registry.resolveView(organizationId));
   publishOrgContractChanged(String(organizationId), 'registry', { typeId: orgDeclaration.id });
@@ -396,7 +407,12 @@ export async function removeType(typeId, { organizationId, actor = null, abandon
       data: { instances, boundBy }
     });
   }
-  const removed = await repository.deleteByTypeId(organizationId, typeId);
+  const removed = await runOrganizationChange(organizationId, {
+    kind: 'cts-type-removed',
+    typeId: String(typeId),
+    paths: ['declaration'],
+    actorId: actor
+  }, () => repository.deleteByTypeId(organizationId, typeId));
   invalidateInstanceDeclarations(String(organizationId));
   // A removed type may have been the last declaring an edge index.
   const after = await compileRegistryForOrganization(organizationId);
