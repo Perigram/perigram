@@ -120,7 +120,7 @@ The route expects `/api/users` to return canonical user DTO blocks with
 `users:read`; it derives the active organization id from the loaded organization
 store first and falls back to the auth membership list.
 
-`process.vue` is the visual process-designer surface. It edits organization
+`graphs.vue` is the procedural graph workspace (root SPEC §28): it lists organization-authorized `graph-document` instances, creates a graph document on the first editor save with its validated canonical JSON payload, and saves later payload revisions through the generic instance revision boundary. The graph editor is independent of process-definition authoring; the process designer links to this workspace from its document dock. Page/file ownership and payload storage remain CTS/file-service concerns.\n\n`process.vue` is the visual process-designer surface. It edits organization
 process definitions with Vue Flow, persists drafts through
 `/api/process-definitions`, validates them through the process compiler, and
 activates compiled runtime contracts for access, screen manifests, navigation,

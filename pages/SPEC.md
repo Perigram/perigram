@@ -30,7 +30,7 @@ Parents: [README.md](../README.md) · [SPEC.md](../SPEC.md) ·
 | `/screens` · `/screens/:screenKey` | `screens/` | app | generated operational screens from the compiled manifest |
 | `/chats` | `chats.vue` | app | full-page conversation inbox |
 | `/organization` | `organization/index.vue` | app | generated organization overview screen; orgless and pending-only states |
-| `/organization/billing` · `/models` · `/partners` · `/plugins` · `/process` · `/users` | `organization/*.vue` | app | organization screens: billing, models, partners, plugins, process designer, team |
+| `/organization/billing` · `/models` · `/partners` · `/plugins` · `/process` · `/graphs` · `/users` | `organization/*.vue` | app | organization screens: billing, models, partners, plugins, process designer, graph documents, team |
 | `/test/ui-lab` · `/test/ui-mapping` | `test/` | `ui-lab-layout` | internal demo surfaces |
 
 ### Routing laws
