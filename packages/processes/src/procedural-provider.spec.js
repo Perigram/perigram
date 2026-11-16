@@ -6,6 +6,7 @@ import {
 import {
   createProcessProceduralExecutor,
   createProcessProceduralNodeDefinition,
+  createProcessProceduralNodeResolver,
   registerProcessProceduralNodes,
   PROCESS_PROCEDURAL_PROVIDER,
   PROCESS_PROCEDURAL_VERSION
@@ -88,9 +89,10 @@ describe('process procedural provider adapter', () => {
       ]
     };
     const executeNode = createProcessProceduralExecutor();
+    const resolveNodeDefinition = createProcessProceduralNodeResolver();
     const result = await evaluateProceduralGraph({
       graph,
-      resolveNodeDefinition: (operation, { config }) => createProcessProceduralNodeDefinition(operation.id, config),
+      resolveNodeDefinition,
       executeNode
     });
     expect(result.outputs.count).toBe(3);
