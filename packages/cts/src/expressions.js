@@ -169,9 +169,9 @@ export function checkMatch(ast, variantDescriptor) {
 // surface; error lines carry the caller's path prefix.
 const BOOLEAN_COMPARISON_OPS = new Set(['eq', 'ne', 'lt', 'lte', 'gt', 'gte', 'in']);
 
-export function checkBooleanExpression(ast, rowNames = null, path = 'expression') {
+export function checkBooleanExpression(ast, rowNames = null, path = 'expression', initialBindings = []) {
   const errors = [];
-  visit(ast, 0, new Set());
+  visit(ast, 0, new Set(initialBindings));
   return errors;
 
   function visit(node, depth, bound = new Set()) {
@@ -294,7 +294,7 @@ function deepEqual(a, b) {
 // Static type checking for relation and containment traversal. The runtime
 // still resolves collections through organization-scoped authorized readers.
 export function checkTypedBooleanExpression(ast, { rootType, types, path = 'expression' } = {}) {
-  const errors = checkBooleanExpression(ast, new Set(Object.keys(rootType?.fields || {})), path);
+  const errors = checkBooleanExpression(ast, new Set(Object.keys(rootType?.fields || {})), path, ['value']);
   if (!rootType?.id || !(types instanceof Map)) {
     errors.push(path + ': typed traversal requires a root type and compiled type view');
     return errors;

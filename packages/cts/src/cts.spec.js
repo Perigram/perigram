@@ -215,6 +215,7 @@ describe('class obligations (R6)', () => {
     registry.defineType({
       id: 'typed-nested-order', class: 'item', scope: 'system',
       fields: {
+        code: { base: 'string', identifier: true },
         owner: {
           base: 'ref',
           accepts: ['account'],
