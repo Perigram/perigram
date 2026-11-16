@@ -7,6 +7,8 @@ import {
   GRAPH_OUTPUT_OPERATION,
   GRAPH_INVOKE_OPERATION,
   assertValidGraphDocument,
+  createCoreGraphDataProvider,
+  CORE_DATA_PROVIDER,
   createGraphExecutionRecord,
   evaluateProceduralGraph,
   normalizeGraphDocument,
@@ -59,7 +61,7 @@ export function createEmptyGraphDocument({ id = stableId('graph'), name = '' } =
   };
 }
 
-export function useGraphDocumentSession({ t, providers = [], graphDocuments = [] }) {
+export function useGraphDocumentSession({ t, providers = [], graphDocuments = [], queryOrganizationData = null }) {
   const graphDocument = ref(createEmptyGraphDocument());
   const nodes = ref([]);
   const edges = ref([]);
@@ -85,20 +87,23 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
   const providerExecutors = new Map([[PROCESS_PROCEDURAL_PROVIDER, processExecutor]]);
   const providerPreviewRenderers = new Map();
   const providerGeneration = ref(0);
+  const coreDataProvider = createCoreGraphDataProvider();
 
   const groupLabels = {
     source: t('processDesigner.graphSources'),
     value: t('processDesigner.graphValues'),
     collection: t('processDesigner.graphCollections'),
     tree: t('processDesigner.graphTrees'),
-    record: t('processDesigner.graphRecords')
+    record: t('processDesigner.graphRecords'),
+    query: t('processDesigner.graphQueries')
   };
   const groupSignals = {
     source: 'identity',
     value: 'quantity',
     collection: 'data',
     tree: 'structure',
-    record: 'structure'
+    record: 'structure',
+    query: 'data'
   };
 
   const paletteGroups = computed(() => {
@@ -178,10 +183,11 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     }
     for (const { provider, family, items } of grouped.values()) {
       const processProvider = provider === PROCESS_PROCEDURAL_PROVIDER;
+      const coreData = provider === CORE_DATA_PROVIDER;
       groups.push({
-        source: processProvider ? 'framework' : 'plugin',
+        source: processProvider || coreData ? 'framework' : 'plugin',
         id: `graph-${provider}-${family}`,
-        label: processProvider ? (groupLabels[family] || family) : `${provider} · ${family}`,
+        label: processProvider || coreData ? (groupLabels[family] || family) : `${provider} · ${family}`,
         signal: groupSignals[family] || 'data',
         items
       });
@@ -625,6 +631,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     return provider;
   }
 
+  registerNodeProvider(coreDataProvider);
   for (const contribution of providers) registerNodeProvider(contribution);
 
   function openPanePalette(event) {
