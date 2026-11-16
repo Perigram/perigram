@@ -35,6 +35,7 @@ import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { evaluate as evaluateExpression } from '#packages/cts';
 import { processEffects } from '../effects/service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
+import { runOrganizationChange } from '~/server/features/instances/index.js';
 
 
 export const stateService = {
@@ -106,27 +107,35 @@ export const stateService = {
     );
     const statusData = JSON.parse(JSON.stringify(status));
     const db = await connectDB();
-    await machineRepository.insertStatusEvent(db, buildStatusEventRecord({
-      eventId,
-      targetId: flexId,
-      targetType: normalizedTypeId,
-      fromState: null,
-      toState: enteredTarget,
-      fromStatePrimary: null,
-      toStatePrimary: statusData.state.primary,
-      region: regionId,
-      statusData,
-      actor: buildEventActor(typeof actor === 'object' ? actor : {}, actorId),
-      operation: { kind: 'initialize', region: regionId },
-      evidence: buildEventEvidence(stateMetadata, initialLifecycle),
-      source: metadata?.source ?? null
-    }));
-    await machineRepository.updateEntityStatus(db, collection,
-      { _id: flexId, ...organizationFilter },
-      instanceDoc
-        ? { $set: { ...instanceStateSetFromStatus(statusData), updatedAt: new Date().toISOString() } }
-        : { $set: { status: statusData } }
-    );
+    await runOrganizationChange(organizationId, {
+      kind: 'instance-state-initialized',
+      typeId: normalizedTypeId,
+      instanceId: String(flexId),
+      paths: ['state', 'status'],
+      actorId
+    }, async () => {
+      await machineRepository.insertStatusEvent(db, buildStatusEventRecord({
+        eventId,
+        targetId: flexId,
+        targetType: normalizedTypeId,
+        fromState: null,
+        toState: enteredTarget,
+        fromStatePrimary: null,
+        toStatePrimary: statusData.state.primary,
+        region: regionId,
+        statusData,
+        actor: buildEventActor(typeof actor === 'object' ? actor : {}, actorId),
+        operation: { kind: 'initialize', region: regionId },
+        evidence: buildEventEvidence(stateMetadata, initialLifecycle),
+        source: metadata?.source ?? null
+      }));
+      await machineRepository.updateEntityStatus(db, collection,
+        { _id: flexId, ...organizationFilter },
+        instanceDoc
+          ? { $set: { ...instanceStateSetFromStatus(statusData), updatedAt: new Date().toISOString() } }
+          : { $set: { status: statusData } }
+      );
+    });
     return statusData;
   },
 
@@ -578,7 +587,13 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
         ...evidence.entityAttachmentSet,
         ...(options.entityPatch || {})
       };
-    await machineRepository.writeStatusEventAndEntitySnapshot({
+    await runOrganizationChange(instanceDoc?.organizationId ?? auth.organizationId, {
+      kind: 'instance-state-transitioned',
+      typeId: normalizedTypeId,
+      instanceId: String(flexId),
+      paths: ['state', 'status'],
+      actorId
+    }, () => machineRepository.writeStatusEventAndEntitySnapshot({
       db,
       collection,
       targetId: flexId,
@@ -586,7 +601,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       entitySet,
       entityFilter: organizationFilter,
       preferTransaction: Boolean(options.entityPatch && Object.keys(options.entityPatch).length)
-    });
+    }));
 
     const afterEffects = await runTransitionHooks(
       transition,
