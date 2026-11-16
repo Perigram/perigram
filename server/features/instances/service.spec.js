@@ -342,6 +342,32 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(sort).toHaveBeenCalledWith({ createdAt: -1, _id: -1 });
   });
 
+  it('applies validated field sorting and bounded offset pagination', async () => {
+    const coll = stubCollection();
+    const limit = vi.fn(() => ({ toArray: async () => [] }));
+    const skip = vi.fn(() => ({ limit }));
+    const sort = vi.fn(() => ({ skip }));
+    coll.find.mockReturnValue({ sort });
+    const service = instanceServiceResolver('panel');
+    await service.processList({
+      sortBy: 'width',
+      sortDirection: 'asc',
+      limit: '10',
+      offset: '5'
+    }, { userId: 'user-1', organizationId: 'org-1' });
+    expect(sort).toHaveBeenCalledWith({ 'fields.width': 1, _id: 1 });
+    expect(skip).toHaveBeenCalledWith(5);
+    expect(limit).toHaveBeenCalledWith(10);
+  });
+
+  it('rejects undeclared sort fields and unbounded pagination', async () => {
+    const service = instanceServiceResolver('panel');
+    await expect(service.processList({ sortBy: 'fields.secret' }, { userId: 'user-1', organizationId: 'org-1' }))
+      .rejects.toMatchObject({ statusCode: 400 });
+    await expect(service.processList({ offset: '10001' }, { userId: 'user-1', organizationId: 'org-1' }))
+      .rejects.toMatchObject({ statusCode: 400 });
+  });
+
   it('filters process entity lookups through the compiled read grant', async () => {
     const coll = stubCollection();
     coll.findOne.mockResolvedValue({
