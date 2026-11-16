@@ -9,16 +9,12 @@ import {
 } from '#shared/plugin-runtime.js';
 
 export async function invokePluginCapability({
-  organizationId,
-  pluginId,
-  version,
-  runtimeId,
-  operationId,
-  name,
-  input = {},
-  target,
-  auth = {}
+  organizationId, pluginId, version, runtimeId, operationId,
+  name, input = {}, target, auth = {}
 } = {}) {
+  if (!['browser', 'server'].includes(target)) {
+    throw createError({ statusCode: 400, message: 'Plugin capability target must be browser or server' });
+  }
   const orgId = String(organizationId || '');
   if (!auth.userId && auth.system !== true) {
     throw createError({ statusCode: 401, message: 'Authentication required' });
@@ -33,9 +29,7 @@ export async function invokePluginCapability({
   }
   const service = (install.services || []).find(item => item.id === String(operationId || ''));
   const runtime = (install.declarations?.runtimes || []).find(item => item.id === String(runtimeId || ''));
-  const allowed = target === 'browser'
-    ? PLUGIN_RUNTIME_BROWSER_CAPABILITIES
-    : PLUGIN_RUNTIME_CAPABILITIES;
+  const allowed = target === 'browser' ? PLUGIN_RUNTIME_BROWSER_CAPABILITIES : PLUGIN_RUNTIME_CAPABILITIES;
   if (!service?.execution || service.execution.runtime !== runtimeId
     || !service.execution.targets?.includes(target)
     || !runtime?.targets?.includes(target)
@@ -44,45 +38,35 @@ export async function invokePluginCapability({
     throw createError({ statusCode: 403, message: `Capability ${name || '(empty)'} is not granted to this operation` });
   }
 
-  if (name === 'organization.instances.query') {
-    return await graphExecutionsService.queryOrganizationData(input, auth);
-  }
+  if (name === 'organization.instances.query') return await graphExecutionsService.queryOrganizationData(input, auth);
   if (name === 'organization.instances.read') {
     const typeId = String(input.typeId || '');
     const instanceId = String(input.instanceId || '');
     if (!typeId || !instanceId) throw createError({ statusCode: 400, message: 'Instance reads require typeId and instanceId' });
-    return await graphExecutionsService.queryOrganizationData({
-      typeId,
-      instanceId,
-      projection: input.projection
-    }, auth);
+    return await graphExecutionsService.queryOrganizationData({ typeId, instanceId, projection: input.projection }, auth);
   }
   if (name === 'organization.instances.create') {
     const typeId = String(input.typeId || '');
-    if (!typeId || !input.draft || typeof input.draft !== 'object') {
-      throw createError({ statusCode: 400, message: 'Instance creation requires typeId and draft' });
-    }
-    const service = getAppRegistry().getInstanceService(typeId);
-    if (typeof service?.createForHttp !== 'function') throw createError({ statusCode: 404, message: 'Instance create service is unavailable' });
-    return await service.createForHttp(input.draft, { auth, organizationId: orgId });
+    if (!typeId || !input.draft || typeof input.draft !== 'object') throw createError({ statusCode: 400, message: 'Instance creation requires typeId and draft' });
+    const instanceService = getAppRegistry().getInstanceService(typeId);
+    if (typeof instanceService?.createForHttp !== 'function') throw createError({ statusCode: 404, message: 'Instance create service is unavailable' });
+    return await instanceService.createForHttp(input.draft, { auth, organizationId: orgId });
   }
   if (name === 'organization.instances.update') {
     const typeId = String(input.typeId || '');
     const instanceId = String(input.instanceId || '');
-    if (!typeId || !instanceId || !input.patch || typeof input.patch !== 'object') {
-      throw createError({ statusCode: 400, message: 'Instance update requires typeId, instanceId, and patch' });
-    }
-    const service = getAppRegistry().getInstanceService(typeId);
-    if (typeof service?.patch !== 'function') throw createError({ statusCode: 404, message: 'Instance update service is unavailable' });
-    return await service.patch(instanceId, input.patch, { auth, organizationId: orgId });
+    if (!typeId || !instanceId || !input.patch || typeof input.patch !== 'object') throw createError({ statusCode: 400, message: 'Instance update requires typeId, instanceId, and patch' });
+    const instanceService = getAppRegistry().getInstanceService(typeId);
+    if (typeof instanceService?.patch !== 'function') throw createError({ statusCode: 404, message: 'Instance update service is unavailable' });
+    return await instanceService.patch(instanceId, input.patch, { auth, organizationId: orgId });
   }
   if (name === 'organization.instances.delete') {
     const typeId = String(input.typeId || '');
     const instanceId = String(input.instanceId || '');
     if (!typeId || !instanceId) throw createError({ statusCode: 400, message: 'Instance deletion requires typeId and instanceId' });
-    const service = getAppRegistry().getInstanceService(typeId);
-    if (typeof service?.removeForHttp !== 'function') throw createError({ statusCode: 404, message: 'Instance delete service is unavailable' });
-    return await service.removeForHttp(instanceId, { auth, organizationId: orgId });
+    const instanceService = getAppRegistry().getInstanceService(typeId);
+    if (typeof instanceService?.removeForHttp !== 'function') throw createError({ statusCode: 404, message: 'Instance delete service is unavailable' });
+    return await instanceService.removeForHttp(instanceId, { auth, organizationId: orgId });
   }
   if (name === 'files.read') {
     const fileId = String(input.fileId || '');
@@ -91,13 +75,7 @@ export async function invokePluginCapability({
     if (!meta) throw createError({ statusCode: 404, message: 'File not found' });
     filesService.assertFileReadAccess(meta.metadata, auth);
     const buffer = await filesService.getFileBuffer(fileId, 'files');
-    return {
-      fileId,
-      name: meta.filename,
-      mime: meta.contentType,
-      size: meta.length,
-      base64: buffer.toString('base64')
-    };
+    return { fileId, name: meta.filename, mime: meta.contentType, size: meta.length, base64: buffer.toString('base64') };
   }
   throw createError({ statusCode: 501, message: `Capability ${name} has no host adapter yet` });
 }
