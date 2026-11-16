@@ -1,4 +1,5 @@
 import { createError } from 'h3';
+import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 import { resolveOrganizationId } from '~/server/utils/organization-scope.js';
 import { PAGE_TYPE_ID, pageTypeDeclaration } from '#packages/cts';
@@ -8,6 +9,7 @@ import * as filesService from '../files/service.js';
 import { runOrganizationChange } from '../instances/index.js';
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
 import * as repository from './repository.js';
+import { runOrganizationChange } from '../instances/organization-sequence.js';
 
 const KINDS = new Set(['page', 'section']);
 const ensuredPageTypes = new Set();
@@ -280,13 +282,22 @@ export async function retractBakedFile({ pageId, fileId } = {}, auth = {}) {
     blocks = document.blocks.filter(item => item.id !== block.id);
     order = order.filter(id => id !== block.id);
   }
-  const updated = await repository.updatePageDocumentIfUnchanged(
-    page._id,
-    organizationId,
-    page.updatedAt,
-    normalizePageDocument({ blocks, order })
-  );
-  if (!updated) throw createError({ statusCode: 409, message: 'Page changed before the failed Bake could be retracted' });
+  const updated = await runOrganizationChange(organizationId, {
+    kind: 'page-file-retracted',
+    typeId: PAGE_TYPE_ID,
+    instanceId: String(page._id),
+    paths: ['fields.blocks', 'fields.order'],
+    actorId: auth.userId
+  }, async () => {
+    const result = await repository.updatePageDocumentIfUnchanged(
+      page._id,
+      organizationId,
+      page.updatedAt,
+      normalizePageDocument({ blocks, order })
+    );
+    if (!result) throw createError({ statusCode: 409, message: 'Page changed before the failed Bake could be retracted' });
+    return result;
+  });
   await filesService.deleteFile(fileId, 'files');
   return { success: true, page: repository.serializeFull(updated) };
 }
