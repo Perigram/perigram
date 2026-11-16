@@ -100,8 +100,10 @@ A service may declare managed `execution: { runtime, targets, kind,
 capabilities, deterministic?, idempotent? }`. The runtime id resolves to
 an installed package runtime; target declarations constrain browser and
 server placement; kind follows the graph execution vocabulary. Managed
-services run through Perigram's runtime adapters and receive organization
-capabilities through the host. Provider-level external integrations use
+services enqueue platform-owned `plugin-runtime` tasks for server execution.
+The worker loads the exact organization-owned package version in a restricted
+Deno subprocess and requests declared capabilities through authenticated task
+routes. The server runtime currently executes JavaScript packages. Provider-level external integrations use
 explicit connection records and server-held credentials. Legacy endpoint
 and claim service modes remain migration inputs while existing plugins
 move to managed execution. Local package operations carry no per-function

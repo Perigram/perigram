@@ -12,7 +12,7 @@ cd perigram
 ./scripts/dev.sh up
 ```
 
-The first run initializes submodules, builds the app and worker images, starts MongoDB, initializes its replica set, and starts LiveKit and the plugin executors. Open [http://localhost:3001](http://localhost:3001). The host port defaults to `3001` so the dev stack can coexist with another app using `3000`; override it with `PERIGRAM_DEV_APP_PORT` in `.env`.
+The first run initializes submodules, builds the app and worker images, starts MongoDB, initializes its replica set, and starts LiveKit, plugin executors, and the managed plugin runtime worker. Open [http://localhost:3001](http://localhost:3001). The host port defaults to `3001` so the dev stack can coexist with another app using `3000`; override it with `PERIGRAM_DEV_APP_PORT` in `.env`.
 
 The development stack uses its own Compose project (`perigram-dev`), project-scoped containers, network, and MongoDB volume. It can run alongside other Compose projects without reusing their containers or networks. MongoDB is published on `127.0.0.1:27018` for optional host access; LiveKit is published on ports `17880`–`17882`. The app and services communicate over the private Compose network. The app is published on host port `3001` by default (container port `3000`); set `PERIGRAM_DEV_APP_PORT` in `.env` to choose another host port.
 
@@ -60,7 +60,7 @@ E2E tests require the development stack to be running.
 
 ## Production
 
-A push to `staging` runs [the Forgejo deployment workflow](.forgejo/workflows/deploy.yml), which calls `scripts/deploy.sh`. The script builds and replaces the app and its plugin executors, publishes the plugin catalog, applies plugin migrations, and verifies the deployed app assets. It includes the build123d executor.
+A push to `staging` runs [the Forgejo deployment workflow](.forgejo/workflows/deploy.yml), which calls `scripts/deploy.sh`. The script builds and replaces the app, plugin executors, and managed plugin runtime worker, publishes the plugin catalog, applies plugin migrations, and verifies the deployed app assets. It includes the build123d executor.
 
 Before the first deploy, an operator must:
 

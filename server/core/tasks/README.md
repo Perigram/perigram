@@ -36,7 +36,10 @@ package operations share the `plugin-runtime` worker type; the worker reads
 package assets and invokes scoped host capabilities through claim-bound
 routes.
 Worker-specific payloads and IO live
-in worker processes or feature adapters; this runtime is domain-agnostic.
+in worker processes or feature adapters; this runtime is domain-agnostic. Managed
+plugin operations use the `plugin-runtime` worker type and carry the installed
+organization, plugin version, runtime id, operation id, and input in the task
+parameters.
 
 ## Transitions
 
@@ -84,6 +87,8 @@ authenticated by the configured worker or connector token.
 - `GET /api/tasks/:id/plugin-package` (platform runtime claim only)
 - `POST /api/tasks/:id/plugin-capability` (platform runtime claim only)
 - `POST /api/tasks/:id/cancel`
+- `GET /api/tasks/:id/plugin-package` — package assets for a claimed managed runtime task.
+- `POST /api/tasks/:id/plugin-capability` — capability calls for a claimed managed runtime task.
 
 All worker endpoints accept two credentials (`server/core/tasks/worker-auth.js`):
 the deployment-wide `WORKER_TOKEN` (global scope, matched against the
