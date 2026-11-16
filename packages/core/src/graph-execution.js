@@ -4,6 +4,7 @@ export const GRAPH_EXECUTION_PROFILES = Object.freeze([
   'procedural-preview',
   'procedural-commit',
   'procedural-bake',
+  'procedural-export',
   'process'
 ]);
 export const GRAPH_EXECUTION_STATUSES = Object.freeze([

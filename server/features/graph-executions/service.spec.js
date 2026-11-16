@@ -198,6 +198,31 @@ describe('graph execution service', () => {
     expect(result.execution._id).toBe('execution-instance-1');
   });
 
+  it('exports a selected output as a safe download and records procedural-export provenance', async () => {
+    const result = await graphExecutionsService.exportOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: preview(),
+      outputId: 'document',
+      filename: '../generated\\r\\n.txt'
+    }, auth);
+    expect(result.buffer).toEqual(Buffer.from('Generated document'));
+    expect(result.mimeType).toBe('text/plain; charset=utf-8');
+    expect(result.filename).not.toMatch(/[\\/\\r\\n]/);
+    expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
+      fields: expect.objectContaining({
+        profile: 'procedural-export',
+        artifacts: [expect.objectContaining({
+          kind: 'download',
+          outputId: 'document',
+          sourceExecutionId: 'preview-1',
+          mime: 'text/plain; charset=utf-8',
+          size: Buffer.byteLength('Generated document')
+        })]
+      })
+    }), 'user-1', 'org-1');
+    expect(result.execution._id).toBe('execution-instance-1');
+  });
+
   it('retracts the page file if execution provenance persistence fails', async () => {
     executionService.create.mockRejectedValueOnce(new Error('record unavailable'));
     await expect(graphExecutionsService.bakeOutput({

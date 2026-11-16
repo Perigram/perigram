@@ -61,6 +61,62 @@ async function persistRecord(record, graphDocument, organizationId, auth) {
   }, auth.userId, organizationId);
 }
 
+async function materializeOutput(output, auth, graph, outputId, requestedFilename = null) {
+  let buffer;
+  let mimeType;
+  let sourceFilename = null;
+  if (output && typeof output === 'object' && output.fileId) {
+    const bucket = output.bucket || 'files';
+    const file = await filesService.findFileMeta(output.fileId, bucket);
+    if (!file) throw createError({ statusCode: 404, message: 'Graph output file not found' });
+    filesService.assertFileReadAccess(file.metadata, auth);
+    buffer = await filesService.getFileBuffer(output.fileId, bucket);
+    mimeType = normalizeOutputMimeType(output.mime || file.contentType);
+    sourceFilename = output.name || file.filename || file.metadata?.name || null;
+  } else if (typeof output === 'string') {
+    buffer = Buffer.from(output, 'utf8');
+    mimeType = 'text/plain; charset=utf-8';
+  } else {
+    const serialized = JSON.stringify(output, null, 2);
+    if (serialized === undefined) throw createError({ statusCode: 400, message: 'Graph output cannot be serialized as a file' });
+    buffer = Buffer.from(serialized, 'utf8');
+    mimeType = 'application/json; charset=utf-8';
+  }
+  const extension = outputExtension(mimeType);
+  const fallback = `${graph.name || graph.id}-${outputId}${extension}`;
+  const filename = normalizeOutputFilename(requestedFilename || sourceFilename || fallback, fallback, extension);
+  return { buffer, mimeType, filename };
+}
+
+function normalizeOutputMimeType(value) {
+  const mime = String(value || 'application/octet-stream').trim();
+  return /^[a-z0-9!#export async function queryOrganizationData(query = {}, auth = {}) {^_.+-]+\/[a-z0-9!#export async function queryOrganizationData(query = {}, auth = {}) {^_.+-]+(?:\s*;\s*charset=[a-z0-9._-]+)?$/i.test(mime)
+    ? mime
+    : 'application/octet-stream';
+}
+
+function outputExtension(mimeType) {
+  const mime = String(mimeType).split(';', 1)[0].toLowerCase();
+  if (mime === 'text/plain') return '.txt';
+  if (mime === 'application/json' || mime.endsWith('+json')) return '.json';
+  if (mime === 'image/png') return '.png';
+  if (mime === 'image/jpeg') return '.jpg';
+  if (mime === 'image/svg+xml') return '.svg';
+  if (mime === 'application/pdf') return '.pdf';
+  return '.bin';
+}
+
+function normalizeOutputFilename(value, fallback, extension) {
+  let filename = String(value || fallback)
+    .replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, '-')
+    .replace(/^\.+/, '')
+    .trim()
+    .slice(0, 180);
+  if (!filename) filename = fallback;
+  if (!/\.[a-z0-9]{1,10}$/i.test(filename)) filename += extension;
+  return filename;
+}
+
 export async function queryOrganizationData(query = {}, auth = {}) {
   const typeId = String(query.typeId || '').trim();
   if (!typeId) throw createError({ statusCode: 400, message: 'A CTS typeId is required' });
@@ -216,25 +272,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
   }
 
-  const output = preview.outputs[selectedOutputId];
-  let buffer;
-  let mimeType;
-  if (output && typeof output === 'object' && output.fileId) {
-    const bucket = output.bucket || 'files';
-    const file = await filesService.findFileMeta(output.fileId, bucket);
-    if (!file) throw createError({ statusCode: 404, message: 'Graph output file not found' });
-    filesService.assertFileReadAccess(file.metadata, auth);
-    buffer = await filesService.getFileBuffer(output.fileId, bucket);
-    mimeType = output.mime || file.contentType || 'application/octet-stream';
-  } else if (typeof output === 'string') {
-    buffer = Buffer.from(output, 'utf8');
-    mimeType = 'text/plain; charset=utf-8';
-  } else {
-    const serialized = JSON.stringify(output, null, 2);
-    if (serialized === undefined) throw createError({ statusCode: 400, message: 'Graph output cannot be serialized as a file' });
-    buffer = Buffer.from(serialized, 'utf8');
-    mimeType = 'application/json; charset=utf-8';
-  }
+  const { buffer, mimeType } = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId);
 
   const bakeId = randomUUID();
   const timestamp = new Date().toISOString();
@@ -278,4 +316,41 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     }
     throw error;
   }
+}
+
+export async function exportOutput({ graphDocumentInstanceId, record: value, outputId, filename = null } = {}, auth = {}) {
+  const preview = parseRecord(value);
+  if (preview.profile !== 'procedural-preview' || preview.status !== 'succeeded') {
+    throw createError({ statusCode: 409, message: 'Export requires a successful procedural preview' });
+  }
+  const selectedOutputId = String(outputId || '');
+  if (!Object.hasOwn(preview.outputs || {}, selectedOutputId)) {
+    throw createError({ statusCode: 400, message: 'Selected graph output is unavailable' });
+  }
+  const { graphDocument, graph, organizationId } = await sourceFor(graphDocumentInstanceId, preview, auth);
+  if (!(graph.interface?.outputs || []).some(port => String(port.id) === selectedOutputId)) {
+    throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
+  }
+
+  const materialized = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId, filename);
+  const exportId = randomUUID();
+  const timestamp = new Date().toISOString();
+  const exportRecord = createGraphExecutionRecord({
+    ...preview,
+    id: exportId,
+    profile: 'procedural-export',
+    status: 'succeeded',
+    startedAt: timestamp,
+    completedAt: timestamp,
+    artifacts: [...(preview.artifacts || []), {
+      kind: 'download',
+      filename: materialized.filename,
+      mime: materialized.mimeType,
+      size: materialized.buffer.length,
+      outputId: selectedOutputId,
+      sourceExecutionId: preview.id
+    }]
+  });
+  const execution = await persistRecord(exportRecord, graphDocument, organizationId, auth);
+  return { ...materialized, execution };
 }

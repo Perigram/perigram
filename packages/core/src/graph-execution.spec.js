@@ -39,6 +39,11 @@ describe('graph execution record', () => {
     expect(validateGraphExecutionRecord({ ...base(), readSet: { instances: [] } }).some(item => item.code === 'invalid-read-set')).toBe(true);
   });
 
+  it('accepts an explicit procedural export execution profile', () => {
+    const record = createGraphExecutionRecord({ ...base(), profile: 'procedural-export' });
+    expect(record.profile).toBe('procedural-export');
+  });
+
   it('rejects non-JSON values and backwards timestamps', () => {
     expect(() => createGraphExecutionRecord({ ...base(), outputs: { value: undefined } })).toThrow(/JSON-compatible/);
     expect(() => createGraphExecutionRecord({ ...base(), outputs: { value: Number.NaN } })).toThrow(/JSON-compatible/);
