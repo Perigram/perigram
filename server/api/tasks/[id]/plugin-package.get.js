@@ -3,6 +3,7 @@ import { requireWorkerAccess } from '~/server/core/tasks/worker-auth.js';
 import { getTaskRunById } from '~/server/core/tasks/service.js';
 import * as pluginRepository from '~/server/features/plugins/repository.js';
 import { PLUGIN_RUNTIME_WORKER_TYPE } from '#shared/plugin-runtime.js';
+import { contentHash } from '~/server/features/files/service.js';
 import * as processDefinitionsService from '~/server/features/process-definitions/service.js';
 
 export default defineEventHandler(async event => {
@@ -54,6 +55,10 @@ export default defineEventHandler(async event => {
     const meta = await pluginRepository.findOrganizationPluginAssetMeta(organizationId, pluginId, version, path);
     if (!meta) throw createError({ statusCode: 409, message: `Installed package asset ${path} is missing` });
     const buffer = await pluginRepository.readOrganizationPluginAsset(meta);
+    const digest = contentHash(buffer);
+    if (item.contentHash && digest !== item.contentHash) {
+      throw createError({ statusCode: 409, message: `Installed package asset ${path} failed its content digest check` });
+    }
     assets.push({
       path,
       contentType: meta.contentType || '',
