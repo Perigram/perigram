@@ -3,14 +3,30 @@ import {
   GRAPH_OUTPUT_OPERATION,
   evaluateProceduralGraph
 } from '@perigram/core';
+import { createNodeProviderRegistry } from '@perigram/plugin-sdk';
 import {
   createProcessProceduralExecutor,
   createProcessProceduralNodeDefinition,
+  registerProcessProceduralNodes,
   PROCESS_PROCEDURAL_PROVIDER,
   PROCESS_PROCEDURAL_VERSION
 } from './procedural-provider.js';
 
 describe('process procedural provider adapter', () => {
+
+  it('registers only preview-safe process nodes in the shared provider registry', () => {
+    const registry = createNodeProviderRegistry();
+    const registered = registerProcessProceduralNodes(registry);
+    expect(registered.length).toBeGreaterThan(0);
+    expect(registry.resolve(PROCESS_PROCEDURAL_PROVIDER, 'collection.count', PROCESS_PROCEDURAL_VERSION)).toMatchObject({
+      provider: PROCESS_PROCEDURAL_PROVIDER,
+      id: 'collection.count',
+      execution: { kind: 'pure' }
+    });
+    expect(registry.resolve(PROCESS_PROCEDURAL_PROVIDER, 'cts.read', PROCESS_PROCEDURAL_VERSION)).toBeNull();
+    expect(registry.resolve(PROCESS_PROCEDURAL_PROVIDER, 'control.if', PROCESS_PROCEDURAL_VERSION)).toBeNull();
+  });
+
   it('exposes pure process catalog nodes as provider-qualified contracts', () => {
     const definition = createProcessProceduralNodeDefinition('collection.count');
     expect(definition).toMatchObject({
