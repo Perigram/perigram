@@ -76,6 +76,10 @@ export function validateNodeDefinition(source) {
       problems.push(issue('invalid-targets', 'execution.targets', 'Execution targets must be a non-empty unique subset of browser and server'));
     }
   }
+  if (['commit', 'effect'].includes(source.execution?.kind) && source.execution?.targets?.length
+    && !source.execution.targets.includes('server')) {
+    problems.push(issue('server-target-required', 'execution.targets', `${source.execution.kind} nodes require server execution support`));
+  }
   if (source.execution?.runtime != null && source.execution?.targets == null) {
     problems.push(issue('missing-targets', 'execution.targets', 'A runtime-bound node must declare its execution targets'));
   }

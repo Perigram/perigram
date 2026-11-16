@@ -193,7 +193,7 @@ export function parseListing(listing = {}) {
         throw listingError(`service ${service.id} references undeclared runtime ${execution.runtime}`);
       }
       if (!EXECUTION_KINDS.has(execution.kind)) {
-        throw listingError(`service ${service.id} execution kind must be pure, read, or effect`);
+        throw listingError(`service ${service.id} execution kind must be pure, read, stateful, proposal, commit, effect, or control`);
       }
       if (!Array.isArray(execution.targets) || !execution.targets.length
         || execution.targets.some(target => !EXECUTION_TARGETS.has(target) || !runtime.targets.includes(target))
@@ -212,6 +212,12 @@ export function parseListing(listing = {}) {
           throw listingError(`service ${service.id} declares duplicate capability ${capability}`);
         }
         seenCapabilities.add(capability);
+      }
+      if (['commit', 'effect'].includes(execution.kind) && !execution.targets.includes('server')) {
+        throw listingError(`service ${service.id} ${execution.kind} execution requires server support`);
+      }
+      if (['commit', 'effect'].includes(execution.kind) && !seenCapabilities.size) {
+        throw listingError(`service ${service.id} ${execution.kind} execution requires a host capability`);
       }
       if (execution.kind === 'pure' && seenCapabilities.size) {
         throw listingError(`service ${service.id} pure execution cannot request host capabilities`);

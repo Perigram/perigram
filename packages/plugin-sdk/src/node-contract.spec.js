@@ -68,6 +68,8 @@ describe('provider-neutral node contract', () => {
       .map(problem => problem.code)).toContain('invalid-runtime');
     expect(validateNodeDefinition(definition({ execution: { kind: 'pure', runtime: 'javascript' } }))
       .map(problem => problem.code)).toContain('missing-targets');
+    expect(validateNodeDefinition(definition({ execution: { kind: 'effect', runtime: 'javascript', targets: ['browser'] } }))
+      .map(problem => problem.code)).toContain('server-target-required');
   });
 
   it('accepts existing stable camel-case operation and port ids', () => {
