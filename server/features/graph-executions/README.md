@@ -16,6 +16,34 @@ Parent: [server features](../README.md).
 - Organization queries use the generic instance service's read grant and Mongo snapshot transactions where supported, with sequence-bracketed fallback. They support bounded deterministic lists and exact-instance detail reads. Execution read sets retain instance revisions and query/range dependencies; distinct per-query snapshots collapse to one sequence-bracketed boundary only when they share the same stable organization sequence.
 - The capability accepts only a selected graph output and a successful preview execution as Bake input.
 
+## Commit
+
+`POST /api/graph-executions/commit` commits one selected proposal from a
+successful `procedural-preview` record against the exact saved graph
+revision. The first authoritative write adapter supports this output shape:
+
+```json
+{
+  "kind": "cts.instance.patch",
+  "typeId": "record-type",
+  "instanceId": "instance-id",
+  "expectedRevision": "revision-token",
+  "conflictPolicy": "fail",
+  "patch": {
+    "fields": { "status": "approved" }
+  }
+}
+```
+
+The preview read set must contain exactly that instance and its matching
+revision. Optional query observations must be exact-instance reads of the
+same target; relation dependencies and broad query ranges are rejected by
+this first commit adapter. The instance service rechecks authorization,
+field policy, constraints, and the expected revision at the write boundary.
+A successful commit records a `procedural-commit` execution with the
+resulting instance revision and artifact reference. Broader multi-object
+and relation commits remain gated on transactionally validated write sets.
+
 ## API
 
 | Endpoint | Responsibility |

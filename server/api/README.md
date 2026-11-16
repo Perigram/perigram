@@ -30,8 +30,10 @@ Routes are grouped into sub-directories corresponding to features:
 - `graph-executions/`: `POST /api/graph-executions/query` runs an authorized,
   snapshot-backed CTS query for procedural graph reads;
   `POST /api/graph-executions` records an immutable execution envelope against
-  the exact saved graph revision; `POST /api/graph-executions/bake` materializes
-  one selected output to an explicitly selected Page and relative path; and
+  the exact saved graph revision; `POST /api/graph-executions/commit` applies
+  a selected exact-instance CTS patch proposal with a revision precondition;
+  `POST /api/graph-executions/bake` materializes one selected output to an
+  explicitly selected Page and relative path; and
   `POST /api/graph-executions/export` returns one selected output as a download
   while recording export provenance. All routes delegate to the
   [graph-executions feature](../features/graph-executions/README.md).

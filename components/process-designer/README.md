@@ -56,6 +56,11 @@ The graph session contract lives in
 the canonical format and evaluator live in
 [packages/core](../../packages/core/README.md).
 
+The preview rail exposes **Commit** when the selected output is a
+supported CTS instance-patch proposal and the saved graph is current. Commit
+uses the proposal's exact target revision and `fail` conflict policy; stale
+proposals are rejected by the authoritative instance write service.
+
 ## Contracts owned here
 
 ### Canvas channel vocabulary
