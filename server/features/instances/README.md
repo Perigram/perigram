@@ -166,7 +166,9 @@ Parent: [server/features](../README.md).
   workflow resolves through
   [workflow-overrides](../workflow-overrides/README.md) — the same seam
   the status runtime uses; vocabularies without authored facets write
-  unrestricted and read no instance document.
+  unrestricted and read no instance document. Constrained updates compare
+  the candidate's source `updatedAt` value at write time; a concurrent edit
+  returns 409.
 - Creates (`createForHttp`): `POST /api/instances/:type` carries the §3
   draft `createValidated` stores (the `name` rename channel, flat
   `fields`, `lineage` edges, payload references) under the same
