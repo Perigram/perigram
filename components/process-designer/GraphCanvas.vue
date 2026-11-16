@@ -47,6 +47,7 @@
           <template #node-ctsField="slotProps"><FieldNode v-bind="slotProps" @rename="value => renameDeclarationNode(slotProps, value)" /></template>
           <template #node-ctsState="slotProps"><StateNode v-bind="slotProps" @rename="value => renameDeclarationNode(slotProps, value)" /></template>
           <template #node-processNode="slotProps"><ProcessNode v-bind="slotProps" /></template>
+          <template #node-graphNode="slotProps"><GraphDocumentNode v-bind="slotProps" /></template>
           <template #edge-selfloop="slotProps"><SelfLoopEdge v-bind="slotProps" /></template>
           <template #zoom-pane>
             <slot name="lane" />
@@ -152,6 +153,7 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import OperationPalette from '~/components/process-designer/OperationPalette.vue';
 import PaletteDock from '~/components/process-designer/PaletteDock.vue';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
+import GraphDocumentNode from '~/components/process-designer/GraphDocumentNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
 import SelfLoopEdge from '~/components/process-designer/SelfLoopEdge.vue';
 import ClassNode from '~/components/type-designer/TypeNode.vue';
