@@ -74,6 +74,18 @@ describe('provider-neutral node contract', () => {
       .map(problem => problem.code)).toContain('missing-effect-capability');
   });
 
+  it('requires qualified, unique host capability ids', () => {
+    expect(validateNodeDefinition(definition({
+      execution: { kind: 'read', capabilities: ['files.read', 'organization.instances.query'] }
+    }))).toEqual([]);
+    expect(validateNodeDefinition(definition({
+      execution: { kind: 'read', capabilities: ['files'] }
+    })).map(problem => problem.code)).toContain('invalid-capability');
+    expect(validateNodeDefinition(definition({
+      execution: { kind: 'read', capabilities: ['files.read', 'files.read'] }
+    })).map(problem => problem.code)).toContain('duplicate-capability');
+  });
+
   it('accepts existing stable camel-case operation and port ids', () => {
     const candidate = definition({
       id: 'source.literalItem',
