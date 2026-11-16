@@ -119,10 +119,15 @@ A managed service declares `execution: { runtime, targets, kind,
 capabilities?, deterministic?, idempotent? }`. Its runtime entry module
 exports `createRuntime()` (or a default factory) returning
 `{ execute(operationId, input, { capabilities, signal }) }`. The runtime factory may return a `providers` array of structured-cloneable
-provider metadata (`provider`, `definitions`). Each definition pins
-`execution.runtime` and `execution.targets`; the host wraps provider
-execution in Worker RPC. Provider metadata is produced inside the Worker.
-Capability calls use `capabilities.call(name, input)` and are mediated by the host. `runtime` references
+provider metadata (`provider`, `definitions`, and optional
+`previewRenderers`). Each definition pins `execution.runtime` and
+`execution.targets`; the host wraps provider execution in Worker RPC.
+Provider metadata is produced inside the Worker. A preview renderer maps
+its renderer id to the id of a plugin-declared `preview` surface; the
+host resolves that id to the installed module URL and mounts the surface
+with `{ record: null, payload: { value, output } }`. Renderer metadata
+stays structured-cloneable across the Worker boundary. Capability calls
+use `capabilities.call(name, input)` and are mediated by the host. `runtime` references
 a declared runtime; `targets` is a non-empty subset of that runtime's
 targets; `kind` uses the graph node execution vocabulary: `pure`, `read`,
 `stateful`, `proposal`, `commit`, `effect`, or `control`; capability ids are

@@ -94,7 +94,7 @@ installed plugins' records:
 | Surface declarations | `{ id, url, surfaceContract, kind? }` per installed plugin module |
 | Preview bindings | `previews: [{ type, surface, url, surfaceContract }]`, one per type |
 | Preview channels | `previewChannels: [{ id, label, surface, url, surfaceContract }]` per plugin-declared designer preview tab (SPEC §28); channel ids are global across installs — a collision is a composition error |
-| Client runtimes | `clientRuntimes: [{ organizationId, pluginId, version, runtime, services }]` for browser-capable JavaScript runtimes and operations |
+| Client runtimes | `clientRuntimes: [{ organizationId, pluginId, version, runtime, services, previewRenderers }]` for browser-capable JavaScript runtimes, operations, and the install's declared preview surfaces resolved to module URLs |
 
 Editor bindings are file-type contracts: editor surfaces belong to
 `file`-class (payload-bearing) types declared by the same plugin — the

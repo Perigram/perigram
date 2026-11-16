@@ -46,8 +46,10 @@ the invocation sockets from that frozen payload. The source storage-instance
 id remains a separate catalog locator. The workspace injects the authorized
 CTS query capability used by the core data-query node; preview read sets retain
 the returned instance versions and query boundary. Installed plugin runtimes
-contribute graph node definitions and preview renderers through the browser
-Worker runtime bridge, with execution callbacks mediated by the host.
+contribute graph node definitions and preview renderer ids through the
+browser Worker runtime bridge, with execution callbacks mediated by the
+host. Each renderer id resolves to an installed plugin `preview` surface;
+the host mounts that surface with the selected graph output as its payload.
 
 The graph session contract lives in
 [composables](../../composables/README.md#usegraphdocumentsession--canonical-procedural-graph-editor);
