@@ -448,6 +448,149 @@ export async function commitProposal({ graphDocumentInstanceId, record: value, p
   }
 }
 
+function isPlainRecord(value) {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value)
+    && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null));
+}
+
+function validateInstancePatchProposal(value, readSet) {
+  if (!isPlainRecord(value) || value.kind !== 'cts.instance.patch') {
+    throw createError({ statusCode: 400, message: 'Selected output is not a supported CTS instance patch proposal' });
+  }
+  const typeId = String(value.typeId || '').trim();
+  const instanceId = String(value.instanceId || '').trim();
+  const expectedRevision = String(value.expectedRevision ?? '').trim();
+  if (!typeId || !instanceId || !expectedRevision || value.conflictPolicy !== 'fail') {
+    throw createError({ statusCode: 400, message: 'CTS patch proposal requires an exact target, expected revision, and fail conflict policy' });
+  }
+  const patch = value.patch;
+  if (!isPlainRecord(patch)
+    || Object.keys(patch).some(key => !['name', 'fields'].includes(key))
+    || (patch.name !== undefined && typeof patch.name !== 'string')
+    || (patch.fields !== undefined && !isPlainRecord(patch.fields))
+    || (patch.fields && Object.keys(patch.fields).some(key => ['__proto__', 'prototype', 'constructor'].includes(key)))
+    || (!Object.hasOwn(patch, 'name') && !Object.hasOwn(patch, 'fields'))
+    || (patch.fields && Object.keys(patch.fields).length === 0 && patch.name === undefined)) {
+    throw createError({ statusCode: 400, message: 'CTS patch proposal contains an invalid or empty field patch' });
+  }
+
+  const instances = Array.isArray(readSet?.instances) ? readSet.instances : [];
+  const relations = Array.isArray(readSet?.relations) ? readSet.relations : [];
+  const queries = Array.isArray(readSet?.queries) ? readSet.queries : [];
+  if (instances.length !== 1 || relations.length !== 0) {
+    throw stalePreviewError('Commit requires a read set containing only the exact target instance');
+  }
+  const target = instances[0];
+  if (String(target.typeId) !== typeId || String(target.instanceId) !== instanceId
+    || target.revision == null || String(target.revision) !== expectedRevision) {
+    throw stalePreviewError('Commit target revision does not match the preview read set');
+  }
+  const exactQueries = queries.every(query => (
+    String(query.typeId) === typeId
+    && String(query.query?.typeId || '') === typeId
+    && String(query.query?.instanceId || '') === instanceId
+    && Array.isArray(query.resultIds)
+    && query.resultIds.length === 1
+    && String(query.resultIds[0]) === instanceId
+    && query.observedTotal === 1
+  ));
+  if (!exactQueries) {
+    throw stalePreviewError('Commit read set contains a broad query dependency');
+  }
+  return { typeId, instanceId, expectedRevision, patch };
+}
+
+export async function commitOutput({ graphDocumentInstanceId, record: value, outputId } = {}, auth = {}) {
+  const preview = parseRecord(value);
+  if (preview.profile !== 'procedural-preview' || preview.status !== 'succeeded') {
+    throw createError({ statusCode: 409, message: 'Commit requires a successful procedural preview' });
+  }
+  const selectedOutputId = String(outputId || '');
+  if (!Object.hasOwn(preview.outputs || {}, selectedOutputId)) {
+    throw createError({ statusCode: 400, message: 'Selected graph output is unavailable' });
+  }
+  const { graphDocument, graph, organizationId } = await sourceFor(graphDocumentInstanceId, preview, auth);
+  if (!(graph.interface?.outputs || []).some(port => String(port.id) === selectedOutputId)) {
+    throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
+  }
+  const proposal = validateInstancePatchProposal(preview.outputs[selectedOutputId], preview.readSet);
+  await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument);
+
+  const instanceService = getAppRegistry().getInstanceService(proposal.typeId);
+  if (typeof instanceService?.patch !== 'function') {
+    throw createError({ statusCode: 404, message: 'CTS instance update service is unavailable' });
+  }
+  const startedAt = new Date().toISOString();
+  const updated = await instanceService.patch(proposal.instanceId, proposal.patch, {
+    auth,
+    organizationId,
+    expectedRevision: proposal.expectedRevision
+  });
+  const completedAt = new Date().toISOString();
+  const committedRevision = String(updated?.revision ?? '');
+  const commitId = randomUUID();
+  const commitRecord = createGraphExecutionRecord({
+    id: commitId,
+    graph: preview.graph,
+    profile: 'procedural-commit',
+    status: 'succeeded',
+    startedAt,
+    completedAt,
+    inputs: preview.inputs,
+    outputs: {
+      [selectedOutputId]: {
+        kind: 'cts.instance.patch',
+        typeId: proposal.typeId,
+        instanceId: proposal.instanceId,
+        expectedRevision: proposal.expectedRevision,
+        committedRevision,
+        conflictPolicy: 'fail'
+      }
+    },
+    nodeOutputs: preview.nodeOutputs,
+    diagnostics: [],
+    provenance: {
+      nodes: preview.provenance.nodes,
+      invocations: [...preview.provenance.invocations, {
+        kind: 'commit',
+        provider: 'perigram.cts',
+        operation: 'instance.patch',
+        outputId: selectedOutputId,
+        typeId: proposal.typeId,
+        instanceId: proposal.instanceId,
+        expectedRevision: proposal.expectedRevision,
+        committedRevision
+      }]
+    },
+    readSet: preview.readSet,
+    artifacts: [...preview.artifacts, {
+      kind: 'cts.instance',
+      typeId: proposal.typeId,
+      instanceId: proposal.instanceId,
+      revision: committedRevision,
+      outputId: selectedOutputId,
+      sourceExecutionId: preview.id,
+      conflictPolicy: 'fail'
+    }]
+  });
+  try {
+    const execution = await persistRecord(commitRecord, graphDocument, organizationId, auth);
+    return { instance: updated, execution: commitRecord, persisted: execution };
+  } catch (error) {
+    throw createError({
+      statusCode: 500,
+      message: 'CTS update was applied but its graph execution record could not be persisted',
+      data: {
+        commitApplied: true,
+        typeId: proposal.typeId,
+        instanceId: proposal.instanceId,
+        revision: committedRevision,
+        cause: error?.message || String(error)
+      }
+    });
+  }
+}
+
 export async function bakeOutput({ graphDocumentInstanceId, record: value, outputId, destination = {} } = {}, auth = {}) {
   const preview = parseRecord(value);
   if (preview.profile !== 'procedural-preview' || preview.status !== 'succeeded') {
