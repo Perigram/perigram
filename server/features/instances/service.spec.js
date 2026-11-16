@@ -222,6 +222,29 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.insertOne).not.toHaveBeenCalled();
   });
 
+  it('rejects duplicate references in a declared relation list', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockResolvedValue({
+      _id: 'panel-1',
+      type: 'panel',
+      typeVersion: 2,
+      organizationId: 'org-1',
+      fields: { serial: 'ALLOWED' },
+      lineage: {},
+      relations: {}
+    });
+    const service = instanceServiceResolver('project');
+
+    await expect(service.create({
+      relations: { panels: [
+        { type: 'panel', id: 'panel-1' },
+        { type: 'panel', id: 'panel-1' }
+      ] }
+    }, 'user-1', 'org-1')).rejects.toMatchObject({ statusCode: 400 });
+
+    expect(coll.insertOne).not.toHaveBeenCalled();
+  });
+
   it('enforces relation target-domain predicates on create', async () => {
     const coll = stubCollection();
     coll.findOne.mockResolvedValue({
