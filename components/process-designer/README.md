@@ -35,6 +35,21 @@ data signature against the settled load baseline; a dirty canvas
 reconciles nothing (its own save is the next write,
 last-writer-wins like the canvas itself).
 
+## Canonical graph surface
+
+`GraphEditorSurface` mounts the shared canvas over a `graph-document`
+payload through the organization graph workspace. Its Use Graph palette
+loads each readable graph payload through the file-read boundary and places
+an invocation pinned to the payload's graph identity, revision, and public
+interface. The inspector can select a historical source revision and refresh
+the invocation sockets from that frozen payload. The source storage-instance
+id remains a separate catalog locator.
+
+The graph session contract lives in
+[composables](../../composables/README.md#usegraphdocumentsession--canonical-procedural-graph-editor);
+the canonical format and evaluator live in
+[packages/core](../../packages/core/README.md).
+
 ## Contracts owned here
 
 ### Canvas channel vocabulary
