@@ -32,11 +32,13 @@ Parent: [server/features](../README.md).
   uploaded file's name (extension stripped) when the draft carries
   none, and the declared identifier row's value resolves
   client-side through the display contract (`titleFor`), staying in its
-  row. The lineage chain derives at `createValidated`: every referenced
-  parent contributes its own `lineage` to the created record (authored
-  axes win over derived ones; ref objects scalarize to ids; a parent in
-  another organization refuses), so a create submits immediate parent
-  axes alone and construction contracts prompt no grandparent.
+  row. The lineage chain derives at `createValidated`: each authored parent axis
+  must match a declared `children` edge for the child type and resolve an
+  instance of that parent type in the same organization or system scope.
+  The parent's ancestor axes are inherited, authored ancestor axes win,
+  and ref objects scalarize to ids. Process updates apply the same parent
+  edge and scope checks to changed lineage axes. `organizationId` remains
+  the top-level tenancy slot.
 - Type migration executor (`migrations.js`): runs a covered `migrate` step
   set against the type's persisted instances when
   [cts-types](../cts-types/README.md) lands a breaking redefinition.

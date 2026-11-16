@@ -26,7 +26,8 @@ modules onto its sections.
   authoring surfaces gate on); `DECLARABLE_CLASSES` — party is
   framework-only, so every class picker offers the same set.
 - `edges.js` — children/relations/provenance declarations with
-  `onRemove` integrity (SPEC §6). Children entries carry their storage
+  `onRemove` integrity (SPEC §6). Relation entries normalize `cardinality`
+  to `one | many` (default `many`); child entries carry their storage
   `lineageKey` (authored, else the derived
   `camel(declaringTypeId)+"Id"` — one derivation home, consumed by the
   domain projection, derived indexes, and the UI generator); relation
