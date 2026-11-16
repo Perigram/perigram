@@ -217,6 +217,13 @@ export async function describeOrganizationTypes(organizationId) {
         if (!entryUrl) {
           throw createError({ statusCode: 500, message: `installed plugin ${install.pluginId} runtime ${runtime.id} has no served package entry` });
         }
+        const previewRenderers = (install.declarations?.surfaces || [])
+          .filter(surface => surface?.id && surface?.module && surface.kind === 'preview')
+          .map(surface => Object.freeze({
+            id: surface.id,
+            url: pluginModuleUrl(install, surface.module),
+            surfaceContract: surface.surfaceContract
+          }));
         clientRuntimes.push(Object.freeze({
           organizationId: String(organizationId),
           pluginId: install.pluginId,
@@ -224,7 +231,8 @@ export async function describeOrganizationTypes(organizationId) {
           runtime: Object.freeze({ ...runtime, entryUrl }),
           services: Object.freeze((install.services || [])
             .filter(service => service.execution?.runtime === runtime.id && service.execution.targets?.includes('browser'))
-            .map(service => Object.freeze({ id: service.id, execution: service.execution })))
+            .map(service => Object.freeze({ id: service.id, execution: service.execution }))),
+          previewRenderers: Object.freeze(previewRenderers)
         }));
       }
       for (const editor of install.declarations?.editors || []) {

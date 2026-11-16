@@ -168,9 +168,20 @@ export function usePluginRuntime({
           throw new Error(`Node ${definition.id} must declare runtime ${runtime.id} and browser execution support`);
         }
       }
+      const previewRenderers = Object.fromEntries(Object.entries(contribution.previewRenderers || {}).map(([rendererId, surfaceId]) => {
+        if (typeof surfaceId !== 'string') {
+          throw new Error(`Runtime ${runtime.id} preview renderer ${rendererId} must name a declared preview surface`);
+        }
+        const surface = (binding.previewRenderers || []).find(item => item.id === surfaceId);
+        if (!surface) {
+          throw new Error(`Runtime ${runtime.id} preview renderer ${rendererId} references unavailable preview surface ${surfaceId}`);
+        }
+        return [rendererId, surface];
+      }));
       return {
         provider: contribution.provider,
         definitions: contribution.definitions,
+        previewRenderers,
         execute: (definition, invocation) => {
           const capabilities = Object.fromEntries((definition.execution.capabilities || []).map(name => [
             name,

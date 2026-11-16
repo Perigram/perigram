@@ -74,9 +74,14 @@
           <polygon v-for="(face, index) in scene3d.faces" :key="`f${index}`" :points="face" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.35" />
           <line v-for="(edge, index) in scene3d.edges" :key="`e${index}`" :x1="edge.x1" :y1="edge.y1" :x2="edge.x2" :y2="edge.y2" stroke="currentColor" stroke-width="1.5" />
         </svg>
+        <PreviewChannelMount
+          v-else-if="activeView === 'plugin' && rendererForOutput && typeof rendererForOutput === 'object'"
+          :channel="rendererForOutput"
+          :payload="{ value: selectedValue, output: selectedOutput }"
+        />
         <component
           :is="rendererForOutput"
-          v-else-if="activeView === 'plugin' && rendererForOutput"
+          v-else-if="activeView === 'plugin' && typeof rendererForOutput === 'function'"
           :value="selectedValue"
           :output="selectedOutput"
         />

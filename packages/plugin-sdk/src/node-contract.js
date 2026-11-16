@@ -138,8 +138,16 @@ export function normalizeNodeProvider(source = {}) {
     return normalized;
   });
   const previewRenderers = source.previewRenderers || {};
-  if (!isRecord(previewRenderers) || Object.values(previewRenderers).some(renderer => typeof renderer !== 'function')) {
-    throw new Error(`Node provider ${provider} previewRenderers must map renderer ids to functions`);
+  const isPreviewSurfaceId = value => typeof value === 'string'
+    && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value);
+  const isPreviewSurface = value => isRecord(value)
+    && typeof value.id === 'string'
+    && Number.isInteger(Number(value.surfaceContract))
+    && (value.url == null || typeof value.url === 'string');
+  if (!isRecord(previewRenderers) || Object.values(previewRenderers).some(renderer => (
+    typeof renderer !== 'function' && !isPreviewSurfaceId(renderer) && !isPreviewSurface(renderer)
+  ))) {
+    throw new Error(`Node provider ${provider} previewRenderers must map renderer ids to preview surface ids`);
   }
   for (const definition of definitions) {
     const rendererId = definition.preview?.renderer;

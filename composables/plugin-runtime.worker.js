@@ -20,6 +20,13 @@ self.onmessage = async event => {
         ? await runtime.providers()
         : (runtime.providers || []);
       if (!Array.isArray(providers)) throw new Error('Runtime providers must be an array of provider metadata');
+      for (const provider of providers) {
+        for (const [rendererId, surfaceId] of Object.entries(provider.previewRenderers || {})) {
+          if (typeof surfaceId !== 'string') {
+            throw new Error(`Preview renderer ${rendererId} must reference a declared preview surface id`);
+          }
+        }
+      }
       self.postMessage({ type: 'ready', providers });
     } catch (error) {
       self.postMessage({ type: 'runtime-error', error: serializeError(error) });
