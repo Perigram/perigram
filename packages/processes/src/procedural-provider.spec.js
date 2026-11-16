@@ -1,0 +1,100 @@
+import { describe, expect, it } from 'vitest';
+import {
+  GRAPH_OUTPUT_OPERATION,
+  evaluateProceduralGraph
+} from '@perigram/core';
+import {
+  createProcessProceduralExecutor,
+  createProcessProceduralNodeDefinition,
+  createProcessProceduralNodeResolver,
+  registerProcessProceduralNodes,
+  PROCESS_PROCEDURAL_PROVIDER,
+  PROCESS_PROCEDURAL_VERSION
+} from './procedural-provider.js';
+
+describe('process procedural provider adapter', () => {
+
+  it('registers only preview-safe process nodes in the shared provider registry', () => {
+    const definitions = new Map();
+    const registry = {
+      register(definition) {
+        const key = `${definition.provider}/${definition.id}@${definition.version}`;
+        if (definitions.has(key)) throw new Error(`duplicate ${key}`);
+        definitions.set(key, definition);
+        return definition;
+      },
+      resolve(provider, id, version) {
+        return definitions.get(`${provider}/${id}@${version}`) || null;
+      }
+    };
+    const registered = registerProcessProceduralNodes(registry);
+    expect(registered.length).toBeGreaterThan(0);
+    expect(registry.resolve(PROCESS_PROCEDURAL_PROVIDER, 'collection.count', PROCESS_PROCEDURAL_VERSION)).toMatchObject({
+      provider: PROCESS_PROCEDURAL_PROVIDER,
+      id: 'collection.count',
+      execution: { kind: 'pure' }
+    });
+    expect(registry.resolve(PROCESS_PROCEDURAL_PROVIDER, 'cts.read', PROCESS_PROCEDURAL_VERSION)).toBeNull();
+    expect(registry.resolve(PROCESS_PROCEDURAL_PROVIDER, 'control.if', PROCESS_PROCEDURAL_VERSION)).toBeNull();
+  });
+
+  it('exposes pure process catalog nodes as provider-qualified contracts', () => {
+    const definition = createProcessProceduralNodeDefinition('collection.count');
+    expect(definition).toMatchObject({
+      provider: PROCESS_PROCEDURAL_PROVIDER,
+      id: 'collection.count',
+      version: PROCESS_PROCEDURAL_VERSION,
+      execution: { kind: 'pure' },
+      inputs: [{ id: 'value', shape: 'list', semantic: { base: 'json' }, required: true }],
+      outputs: [{ id: 'value', semantic: { base: 'integer' } }]
+    });
+  });
+
+  it('does not expose control, effect, or CTS operations as pure procedural nodes', () => {
+    expect(createProcessProceduralNodeDefinition('control.if')).toBeNull();
+    expect(createProcessProceduralNodeDefinition('cts.mutate')).toBeNull();
+    expect(createProcessProceduralNodeDefinition('cts.read')).toBeNull();
+  });
+
+  it('executes a process list operation through the canonical graph evaluator', async () => {
+    const graph = {
+      format: 'perigram.graph',
+      version: 1,
+      id: 'graph.process-adapter',
+      revision: 'rev-1',
+      interface: {
+        inputs: [],
+        outputs: [{ id: 'count', label: 'Count', contract: { shape: 'item', semantic: { base: 'integer' } } }]
+      },
+      nodes: [
+        {
+          id: 'source',
+          operation: { provider: PROCESS_PROCEDURAL_PROVIDER, id: 'source.literalList', version: PROCESS_PROCEDURAL_VERSION },
+          config: { value: [2, 3, 5], access: 'list' }
+        },
+        {
+          id: 'count',
+          operation: { provider: PROCESS_PROCEDURAL_PROVIDER, id: 'collection.count', version: PROCESS_PROCEDURAL_VERSION },
+          config: {}
+        },
+        {
+          id: 'output',
+          operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' },
+          config: { interfaceId: 'count' }
+        }
+      ],
+      edges: [
+        { id: 'source-count', source: { node: 'source', port: 'value' }, target: { node: 'count', port: 'value' } },
+        { id: 'count-output', source: { node: 'count', port: 'value' }, target: { node: 'output', port: 'value' } }
+      ]
+    };
+    const executeNode = createProcessProceduralExecutor();
+    const resolveNodeDefinition = createProcessProceduralNodeResolver();
+    const result = await evaluateProceduralGraph({
+      graph,
+      resolveNodeDefinition,
+      executeNode
+    });
+    expect(result.outputs.count).toBe(3);
+  });
+});
