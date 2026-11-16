@@ -78,6 +78,6 @@ export const frameworkTypes = [
       creation: ['upload', 'editor']
     },
     revisions: 'content',
-    fields: { name: { base: 'string', identifier: true } }
+    fields: { name: { base: 'string', identifier: true }, graphId: { base: 'string', required: false } }
   }
 ];
