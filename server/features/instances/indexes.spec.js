@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createHash } from 'node:crypto';
 
 vi.mock('~/server/db/mongo', () => ({ connectDB: vi.fn() }));
 
@@ -111,9 +112,11 @@ describe('derived instance indexes (SPEC §13)', () => {
 
   it('prunes only stale unique indexes for the selected scope', async () => {
     const dropIndex = vi.fn();
+    const organizationScope = createHash('sha256').update('org-1').digest('hex').slice(0, 12);
+    const organizationIndex = `cts_u_o_${organizationScope}_stale`;
     const listIndexes = vi.fn(() => ({ toArray: async () => [
       { name: '_id_' },
-      { name: 'cts_u_o_abcdef123456_stale' },
+      { name: organizationIndex },
       { name: 'cts_u_g_stale' }
     ] }));
     const emptyCollection = {
@@ -125,7 +128,7 @@ describe('derived instance indexes (SPEC §13)', () => {
     });
     const dropped = await pruneInstanceUniqueIndexes(view, { organizationId: 'org-1' });
     expect(dropped).toHaveLength(2);
-    expect(dropIndex).toHaveBeenCalledWith('cts_u_o_abcdef123456_stale');
+    expect(dropIndex).toHaveBeenCalledWith(organizationIndex);
     expect(dropIndex).toHaveBeenCalledWith('cts_u_g_stale');
   });
 
