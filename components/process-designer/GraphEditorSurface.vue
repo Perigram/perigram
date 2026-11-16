@@ -68,7 +68,7 @@
           :input-bindings="inputBindings"
           :preview-renderers="previewRenderers"
           :node-definitions="nodeDefinitions"
-          @refresh="refreshPreview"
+          @refresh="refreshPreviewAndRecord"
           @update-input-binding="setGraphInputBinding"
         />
       </template>
@@ -299,6 +299,23 @@ async function loadGraphDocument() {
   } finally {
     loading.value = false;
   }
+}
+
+async function refreshPreviewAndRecord() {
+  const result = await refreshPreview();
+  if (executionRecord.value && instanceId && typeof props.persistence.recordExecution === 'function') {
+    try {
+      await props.persistence.recordExecution(executionRecord.value);
+    } catch (error) {
+      toast.add({
+        severity: 'warn',
+        summary: t('processDesigner.previewExecution'),
+        detail: error?.data?.message || error?.message || String(error),
+        life: 5000
+      });
+    }
+  }
+  return result;
 }
 
 async function saveGraphDocument() {
