@@ -2715,3 +2715,67 @@ dependencies are retired after the package assets and local execution
 paths are verified. Remote integration support remains a first-class
 protocol for plugins that genuinely need third-party systems; it is not
 the default hosting model for plugin code.
+
+Owner direction (2026-11-16): local-first organization plugins supersede the
+older default that every plugin service is an independently deployed
+executor. A plugin package is installed organization data: its versioned
+declarations, UI modules, runtime modules, static assets, and dependency
+manifest are materialized under the installing organization's package
+ownership. The catalog remains the distribution source; installed runtime
+reads resolve the organization-owned immutable version. No executor
+container, per-function endpoint, or connector token is required merely
+because a local plugin function is callable.
+
+The package declares execution placement per capability:
+- **local** code runs in a dedicated browser Worker owned by the plugin
+  runtime; compute, projections, node providers, and editor logic use the
+  package's pinned modules and declared dependencies.
+- **remote integration** calls go through a declared provider-level
+  connection. The server owns credentials and performs protocol-specific
+  requests; the browser receives only scoped capability handles. A remote
+  endpoint is configured once for the integration provider, never repeated
+  for every plugin function. Arbitrary browser fetch and raw credentials are
+  not implicit plugin capabilities.
+- **host surface** modules remain data-only mounts. The host supplies
+  persistence, file/payload, locale, design-token, and other explicitly
+  granted capabilities; a plugin does not receive host stores, router,
+  auth state, or unrestricted application APIs.
+
+A Worker is an execution boundary for responsiveness and API separation,
+not a security sandbox for untrusted third-party code. Only platform-published
+or otherwise trusted package code is executable. User-authored Python or
+other code is an explicit capability and must be separately consented to and
+constrained by the applicable runtime policy. The runtime protocol validates
+message shapes, capability grants, package/version identity, and resource
+budgets.
+
+The documents and build123d plugins are the first local migrations.
+Documents parsing, table projections, compositions, fills, and editor
+surfaces execute locally over host-authorized file payloads. build123d
+uses Python in Pyodide with OCP.wasm in a browser Worker; exact B-rep values
+stay inside the Python runtime, graph documents remain declarative and
+serializable, and persisted CAD outputs cross the host file channel as
+ordinary versioned files (for example STEP), never as serialized live Python
+objects.
+
+The build123d plugin's upstream development source is
+[1suo/build123d-flow](https://github.com/1suo/build123d-flow), not the
+legacy endpoint worker. Its current main branch is an early standalone
+application (package version 0.1.0), so integration means extracting and
+adapting its graph editor, explicit catalog providers, Python runtime,
+worker protocol, and Three.js preview into a Perigram plugin package —
+not embedding a separately deployed application or treating its present
+UI shell as the host. The host remains responsible for navigation,
+organization-scoped graph persistence, file capabilities, authorization,
+and visual consistency.
+
+The integration baseline must be rechecked against the upstream main
+commit and dependency pins at each package release. As of 2026-11-16,
+build123d-flow main is commit
+`3c62677065016ae166f50a176130b127ca35ef12`; it declares Pyodide
+`314.0.7`, build123d `0.13.0`, and OCP.wasm
+`8.0.1.1.post202609241841`. The OCP.wasm pin corresponds to upstream
+OCP.wasm 8.0.1.1. Upstream removed its test suite in the latest commit;
+Perigram integration is blocked on restoring repeatable browser-runtime,
+catalog-discovery, geometry-operation, export, and graph-regression tests.
+

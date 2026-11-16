@@ -29,6 +29,18 @@ migrations.
   services to the local browser package; remove its executor deployment.
 - [ ] Migrate build123d Python/WASM engine and geometry operations to the
   local browser package; remove its executor deployment.
+  Integration baseline checked 2026-11-16: [1suo/build123d-flow](https://github.com/1suo/build123d-flow)
+  main at `3c62677065016ae166f50a176130b127ca35ef12`, package version
+  `0.1.0`; build123d `0.13.0`, Pyodide `314.0.7`, and OCP.wasm
+  `8.0.1.1.post202609241841` (upstream OCP.wasm 8.0.1.1). The upstream
+  app already runs Python/OCP in a browser Worker and keeps exact B-reps
+  in the interpreter; it is an early standalone shell, not yet a Perigram
+  plugin. Extract/adapt its editor, catalog providers, worker/runtime and
+  Three.js preview into the host's plugin surface and org-owned package.
+  Its latest commit removed the test suite; restore browser-runtime,
+  discovery, geometry, export and graph regression coverage before
+  production integration. Recheck upstream main and all runtime pins
+  before each plugin package release.
 - [ ] Retire per-function endpoint settings, connector tokens, executor
   deployment/seed wiring, and obsolete worker routes for local-only plugins.
 - [ ] Preserve remote integration protocols through provider-level
