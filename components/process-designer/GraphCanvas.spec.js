@@ -23,7 +23,8 @@ describe('floating graph editor chrome', () => {
     expect(canvas).toContain('data-canvas-status');
     expect(canvas).toContain('onActivityClick');
     expect(editor).toContain('openActivitySurface');
-    expect(editor).toContain("inspectTab.value = 'preview'");
-    expect(editor).toContain("canvasFrame?.openPanel?.('inspector')");
+    expect(editor).toContain("canvasFrame?.openPanel?.('support')");
+    expect(editor).toContain('GraphDocumentPreviewPanel');
+    expect(canvas).toContain('<slot name="support" />');
   });
 });

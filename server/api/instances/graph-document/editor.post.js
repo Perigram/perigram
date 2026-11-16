@@ -1,6 +1,6 @@
 import { createError, defineEventHandler, readBody } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
-import { assertValidGraphDocument } from '@perigram/core';
+import { assertValidGraphDocument } from '#packages/core';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '~/server/features/files/service.js';
 
