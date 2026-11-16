@@ -51,7 +51,8 @@ describe('usePluginRuntime', () => {
         execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] }
       }]
     }]);
-    const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
+    const invokeCapability = vi.fn(async ({ name, input }) => ({ name, input }));
+    const pluginRuntime = usePluginRuntime({ createWorker: () => worker, invokeCapability });
     const [provider] = await pluginRuntime.loadProviders(binding, runtime);
     expect(provider.provider).toBe('plugin.demo');
     await expect(provider.execute({ id: 'math.double', execution }, { input: 2 }))

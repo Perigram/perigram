@@ -10,3 +10,9 @@ export const PLUGIN_RUNTIME_CAPABILITIES = Object.freeze([
   'organization.instances.delete',
   'files.read'
 ]);
+
+export const PLUGIN_RUNTIME_BROWSER_CAPABILITIES = Object.freeze([
+  'organization.instances.query',
+  'organization.instances.read',
+  'files.read'
+]);

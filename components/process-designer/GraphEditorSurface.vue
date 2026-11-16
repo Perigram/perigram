@@ -122,7 +122,21 @@ const graphDocuments = ref([]);
 const clientEngineBindings = ref([]);
 const clientEngines = useClientEngines({ engines: clientEngineBindings });
 const clientRuntimeBindings = ref([]);
-const pluginRuntime = usePluginRuntime();
+const pluginRuntime = usePluginRuntime({
+  invokeCapability: ({ binding, runtime, operationId, name, input }) => $fetch(
+    `/api/organizations/${encodeURIComponent(binding.organizationId)}/plugins/${encodeURIComponent(binding.pluginId)}/capability`,
+    {
+      method: 'POST',
+      body: {
+        version: binding.version,
+        runtimeId: runtime.id,
+        operationId,
+        name,
+        input
+      }
+    }
+  )
+});
 const graphDocumentsLoading = ref(false);
 const graphDocumentsError = ref('');
 const graphPreviewChannels = ref([]);

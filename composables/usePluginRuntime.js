@@ -1,7 +1,8 @@
 import { ref } from 'vue';
 
 export function usePluginRuntime({
-  createWorker = () => new Worker(new URL('./plugin-runtime.worker.js', import.meta.url), { type: 'module' })
+  createWorker = () => new Worker(new URL('./plugin-runtime.worker.js', import.meta.url), { type: 'module' }),
+  invokeCapability = async () => { throw new Error('Plugin host capability bridge is unavailable'); }
 } = {}) {
   const errors = ref({});
   const runtimes = new Map();
@@ -170,7 +171,7 @@ export function usePluginRuntime({
         execute: (definition, invocation) => {
           const capabilities = Object.fromEntries((definition.execution.capabilities || []).map(name => [
             name,
-            input => invokeCapability({ binding, operationId: definition.id, name, input })
+            input => invokeCapability({ binding, runtime, operationId: definition.id, name, input })
           ]));
           return execute(binding, runtime, definition.id, invocation, {
             execution: definition.execution,
