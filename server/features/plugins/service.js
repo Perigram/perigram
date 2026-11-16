@@ -1157,7 +1157,8 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
         exports: layer.exports,
         surfaces: layer.surfaces,
         previews: layer.previews,
-        previewChannels: layer.previewChannels
+        previewChannels: layer.previewChannels,
+        ...(layer.engine ? { engine: layer.engine } : {})
       },
       services: layer.services,
       requires: layer.requires,
