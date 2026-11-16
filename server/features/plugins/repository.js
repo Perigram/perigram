@@ -1,4 +1,4 @@
-import { connectDB } from '~/server/db/mongo';
+import { connectDB } from '../../db/mongo.js';
 import { createHash } from 'node:crypto';
 import { findFileMetaByFilename, getFileBuffer, listFileMetasWhere, uploadFile, deleteFile } from '../files/service.js';
 

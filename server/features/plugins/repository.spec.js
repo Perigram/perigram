@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   deleteFile: vi.fn()
 }));
 vi.mock('../files/service.js', () => mocks);
-vi.mock('~/server/db/mongo', () => ({ connectDB: vi.fn() }));
+vi.mock('../../db/mongo.js', () => ({ connectDB: vi.fn() }));
 
 import { materializePluginAssets, ORG_PLUGIN_ASSETS_BUCKET, PLUGIN_ASSETS_BUCKET } from './repository.js';
 
