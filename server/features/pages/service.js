@@ -102,9 +102,10 @@ export async function update(id, { name, parentId, blocks, order } = {}, auth = 
   await preparePages(organizationId, auth.userId);
   const page = await requireOwnPage(id, organizationId);
   const changes = {};
+  let document = null;
   if (name !== undefined) changes.name = normalizeName(name);
   if (blocks !== undefined || order !== undefined) {
-    const document = normalizePageDocument({
+    document = normalizePageDocument({
       blocks: blocks !== undefined ? blocks : page.fields?.blocks,
       order: order !== undefined ? order : page.fields?.order
     });
