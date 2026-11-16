@@ -430,6 +430,7 @@ export function useGraphDocumentSession({ t }) {
   }
 
   function setGraphInputBinding(portId, value) {
+    if (portId && typeof portId === 'object') ({ portId, value } = portId);
     inputBindings.value = { ...inputBindings.value, [portId]: value };
     previewResult.value = null;
     previewError.value = '';
