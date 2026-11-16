@@ -49,20 +49,30 @@ export function normalizePageDocument(document = {}) {
       }
       if (block.kind === 'file') {
         const file = fileRefOfBlock(block) || {};
-        const path = normalizePageFilePath(file.path);
-        const fileId = String(file.fileId || '');
-        if (!path || !fileId) return null;
+        const normalizeFileRef = source => {
+          const path = normalizePageFilePath(source?.path);
+          const fileId = String(source?.fileId || '');
+          if (!path || !fileId) return null;
+          return {
+            path,
+            fileId,
+            bucket: 'files',
+            name: String(source.name || path.split('/').pop()),
+            mime: String(source.mime || 'application/octet-stream'),
+            size: Number.isFinite(Number(source.size)) && Number(source.size) >= 0 ? Number(source.size) : 0,
+            revision: Number.isInteger(Number(source.revision)) && Number(source.revision) > 0 ? Number(source.revision) : 1
+          };
+        };
+        const normalizedFile = normalizeFileRef(file);
+        if (!normalizedFile) return null;
         return {
           id,
           kind: 'file',
           file: {
-            path,
-            fileId,
-            bucket: 'files',
-            name: String(file.name || path.split('/').pop()),
-            mime: String(file.mime || 'application/octet-stream'),
-            size: Number.isFinite(Number(file.size)) && Number(file.size) >= 0 ? Number(file.size) : 0,
-            revision: Number.isInteger(Number(file.revision)) && Number(file.revision) > 0 ? Number(file.revision) : 1
+            ...normalizedFile,
+            history: (Array.isArray(file.history) ? file.history : [])
+              .map(normalizeFileRef)
+              .filter(Boolean)
           }
         };
       }
