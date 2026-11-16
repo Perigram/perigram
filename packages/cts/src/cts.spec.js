@@ -30,6 +30,26 @@ describe('units (R3)', () => {
   });
 });
 
+describe('append-only mutability capability', () => {
+  it('preserves the capability and rejects unknown values', () => {
+    const declaration = normalizeType({
+      id: 'audit-record',
+      class: 'item',
+      name: 'Audit record',
+      mutability: 'append-only',
+      fields: { name: { base: 'string', identifier: true } }
+    });
+    expect(declaration.mutability).toBe('append-only');
+    expect(() => normalizeType({
+      id: 'bad-record',
+      class: 'item',
+      name: 'Bad record',
+      mutability: 'immutable',
+      fields: { name: { base: 'string', identifier: true } }
+    })).toThrow(/mutability must be mutable or append-only/);
+  });
+});
+
 describe('closed rows (R1)', () => {
   it('rejects unknown and ill-typed fields', () => {
     const registry = packRegistry();
