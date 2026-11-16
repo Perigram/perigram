@@ -3,7 +3,8 @@
 // evaluator enforces a step budget so totality is mechanical, not aspirational.
 import { unify } from './units.js';
 
-export const MAX_STEPS = 10000;\nexport const MAX_COLLECTION_ITEMS = 10000;
+export const MAX_STEPS = 10000;
+export const MAX_COLLECTION_ITEMS = 10000;
 
 // AST nodes:
 // { op: 'lit', value }
@@ -12,7 +13,11 @@ export const MAX_STEPS = 10000;\nexport const MAX_COLLECTION_ITEMS = 10000;
 // { op: 'eq'|'ne'|'lt'|'lte'|'gt'|'gte'|'and'|'or', args: [e, e] }
 // { op: 'not', arg: e }
 // { op: 'add'|'sub'|'mul'|'div', args: [e, e] }   -- unit-unified (R3)
-// { op: 'map'|'filter', list: e, var: 'x', body: e }\n// { op: 'exists'|'all'|'none'|'one', list: e, var: 'x', body: e }\n// { op: 'count', list: e, var?: 'x', body?: e }\n// { op: 'sum'|'min'|'max', list: e, var: 'x', body: e }\n// { op: 'related', of: e, key: relationId } | { op: 'children'|'descendants', of: e }
+// { op: 'map'|'filter', list: e, var: 'x', body: e }
+// { op: 'exists'|'all'|'none'|'one', list: e, var: 'x', body: e }
+// { op: 'count', list: e, var?: 'x', body?: e }
+// { op: 'sum'|'min'|'max', list: e, var: 'x', body: e }
+// { op: 'related', of: e, key: relationId } | { op: 'children'|'descendants', of: e }
 // { op: 'filter', list: e, var: 'x', body: e }
 // { op: 'match', expr: e, arms: { tag: e }, subjectType } -- exhaustive (R-match)
 export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
@@ -227,7 +232,15 @@ export function checkBooleanExpression(ast, rowNames = null, path = 'expression'
   }
 }
 
-function finiteList(value, operation) {\n  if (!Array.isArray(value)) throw new Error(`${operation} requires a list`);\n  if (value.length > MAX_COLLECTION_ITEMS) {\n    throw new Error(`${operation} exceeds collection item limit (${MAX_COLLECTION_ITEMS})`);\n  }\n  return value;\n}\n\nfunction spend(budget, ast) {
+function finiteList(value, operation) {
+  if (!Array.isArray(value)) throw new Error(`${operation} requires a list`);
+  if (value.length > MAX_COLLECTION_ITEMS) {
+    throw new Error(`${operation} exceeds collection item limit (${MAX_COLLECTION_ITEMS})`);
+  }
+  return value;
+}
+
+function spend(budget, ast) {
   budget.steps -= 1;
   if (budget.steps <= 0) {
     throw new Error(`expression exceeded step budget (${MAX_STEPS}) — totality violation`);
