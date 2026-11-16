@@ -475,7 +475,9 @@ describe('graph execution service', () => {
     expect(dataService.patch).toHaveBeenCalledWith('item-1', { fields: { status: 'approved' } }, {
       auth,
       organizationId: 'org-1',
-      expectedRevision: '3'
+      expectedRevision: '3',
+      expectedOrganizationSequence: 4,
+      session
     });
     expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
       fields: expect.objectContaining({
@@ -488,7 +490,9 @@ describe('graph execution service', () => {
           sourceExecutionId: 'preview-1'
         })]
       })
-    }), 'user-1', 'org-1');
+    }), 'user-1', 'org-1', { session });
+    expect(session.withTransaction).toHaveBeenCalledTimes(1);
+    expect(session.endSession).toHaveBeenCalledTimes(1);
     expect(result.instance.revision).toBe(4);
   });
 
