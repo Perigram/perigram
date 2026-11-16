@@ -13,10 +13,23 @@ export function viewRefOfBlock(block = {}) {
   return block.kind === 'view' && block.view && typeof block.view === 'object' ? block.view : null;
 }
 
+export function fileRefOfBlock(block = {}) {
+  return block.kind === 'file' && block.file && typeof block.file === 'object' ? block.file : null;
+}
+
+export function normalizePageFilePath(value) {
+  const path = String(value || '').trim();
+  if (!path || path.length > 240 || path.startsWith('/') || path.includes('\\')
+    || /[\\u0000-\\u001f\\u007f]/.test(path)) return '';
+  const segments = path.split('/');
+  if (segments.some(segment => !segment || segment === '.' || segment === '..')) return '';
+  return path;
+}
+
 export function normalizePageDocument(document = {}) {
   const source = Array.isArray(document.blocks) ? document.blocks : [];
   const blocks = source
-    .filter(block => block && typeof block === 'object' && (block.kind === 'text' || block.kind === 'view'))
+    .filter(block => block && typeof block === 'object' && (block.kind === 'text' || block.kind === 'view' || block.kind === 'file'))
     .map(block => {
       const id = String(block.id || createBlockId(block.kind === 'view' ? 'v' : 't'));
       if (block.kind === 'view') {
@@ -34,19 +47,39 @@ export function normalizePageDocument(document = {}) {
           }
         };
       }
+      if (block.kind === 'file') {
+        const file = fileRefOfBlock(block) || {};
+        const path = normalizePageFilePath(file.path);
+        const fileId = String(file.fileId || '');
+        if (!path || !fileId) return null;
+        return {
+          id,
+          kind: 'file',
+          file: {
+            path,
+            fileId,
+            bucket: 'files',
+            name: String(file.name || path.split('/').pop()),
+            mime: String(file.mime || 'application/octet-stream'),
+            size: Number.isFinite(Number(file.size)) && Number(file.size) >= 0 ? Number(file.size) : 0,
+            revision: Number.isInteger(Number(file.revision)) && Number(file.revision) > 0 ? Number(file.revision) : 1
+          }
+        };
+      }
       return { id, kind: 'text', text: String(block.text || '') };
     });
-  const byId = new Map(blocks.map(block => [block.id, block]));
+  const validBlocks = blocks.filter(Boolean);
+  const byId = new Map(validBlocks.map(block => [block.id, block]));
   const order = [];
   for (const key of Array.isArray(document.order) ? document.order : []) {
     const id = String(key || '');
     if (!byId.has(id) || order.includes(id)) continue;
     order.push(id);
   }
-  for (const block of blocks) {
+  for (const block of validBlocks) {
     if (!order.includes(block.id)) order.push(block.id);
   }
-  return { blocks, order };
+  return { blocks: validBlocks, order };
 }
 
 export function blocksFromMarkdown(content = '') {
