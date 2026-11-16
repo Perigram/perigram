@@ -4,7 +4,8 @@ const { collection, connectDB } = vi.hoisted(() => ({
   collection: {
     insertOne: vi.fn(),
     find: vi.fn(),
-    findOne: vi.fn()
+    findOne: vi.fn(),
+    updateOne: vi.fn()
   },
   connectDB: vi.fn()
 }));
@@ -36,6 +37,27 @@ describe('machine status persistence owner', () => {
       timestamp: expect.any(Date)
     }));
     expect(String(result._id)).toBe('event-1');
+  });
+
+  it('applies the loaded entity tenant filter to the snapshot write', async () => {
+    collection.updateOne.mockResolvedValue({ matchedCount: 1 });
+    const db = { collection: vi.fn(() => collection) };
+    const tenantFilter = { 'lineage.organizationId': { $in: ['org-1'] } };
+
+    await repository.writeStatusEventAndEntitySnapshot({
+      db,
+      collection: 'groups',
+      targetId: 'entity-1',
+      eventRecord: { _id: 'event-1' },
+      entitySet: { state: 'ACTIVE' },
+      entityFilter: tenantFilter
+    });
+
+    expect(collection.updateOne).toHaveBeenCalledWith(
+      { _id: 'entity-1', ...tenantFilter },
+      { $set: { state: 'ACTIVE' } },
+      undefined
+    );
   });
 
   it('owns the shared status-event history reads', async () => {
