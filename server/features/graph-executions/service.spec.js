@@ -328,4 +328,95 @@ describe('graph execution service', () => {
     }, auth)).rejects.toThrow('record unavailable');
     expect(mocks.retractBakedFile).toHaveBeenCalledWith({ pageId: 'page-1', fileId: 'baked-file-1' }, auth);
   });
+
+  it('commits one exact preview instance patch through the authorized revision-checked instance boundary', async () => {
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      readSet: {
+        consistency: 'snapshot',
+        snapshotId: 'snapshot-42',
+        organizationSequenceStart: 4,
+        organizationSequenceEnd: 4,
+        instances: [{
+          typeId: 'part',
+          instanceId: 'item-1',
+          revision: '3',
+          updatedAt: '2026-11-16T10:00:00Z',
+          typeVersion: 2,
+          organizationId: 'org-1'
+        }],
+        relations: [],
+        queries: [{
+          typeId: 'part',
+          organizationId: 'org-1',
+          query: { typeId: 'part', instanceId: 'item-1', projection: null },
+          resultIds: ['item-1'],
+          observedTotal: 1,
+          sequence: 4
+        }]
+      }
+    });
+    const result = await graphExecutionsService.commitProposal({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      proposal: {
+        kind: 'cts.instance.patch',
+        typeId: 'part',
+        instanceId: 'item-1',
+        expectedRevision: '3',
+        conflictPolicy: 'fail',
+        patch: { fields: { status: 'approved' } }
+      }
+    }, auth);
+    expect(dataService.patch).toHaveBeenCalledWith('item-1', { fields: { status: 'approved' } }, {
+      auth,
+      organizationId: 'org-1',
+      expectedRevision: '3'
+    });
+    expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
+      fields: expect.objectContaining({
+        profile: 'procedural-commit',
+        artifacts: [expect.objectContaining({
+          kind: 'cts.instance',
+          typeId: 'part',
+          instanceId: 'item-1',
+          revision: '4',
+          sourceExecutionId: 'preview-1'
+        })]
+      })
+    }), 'user-1', 'org-1');
+    expect(result.instance.revision).toBe(4);
+  });
+
+  it('rejects broad or mismatched read sets before a Commit write', async () => {
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      readSet: {
+        consistency: 'unverified',
+        snapshotId: null,
+        organizationSequenceStart: null,
+        organizationSequenceEnd: null,
+        instances: [
+          { typeId: 'part', instanceId: 'item-1', revision: '3', organizationId: 'org-1' },
+          { typeId: 'part', instanceId: 'item-2', revision: '1', organizationId: 'org-1' }
+        ],
+        relations: [],
+        queries: []
+      }
+    });
+    await expect(graphExecutionsService.commitProposal({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      proposal: {
+        kind: 'cts.instance.patch',
+        typeId: 'part',
+        instanceId: 'item-1',
+        expectedRevision: '3',
+        conflictPolicy: 'fail',
+        patch: { fields: { status: 'approved' } }
+      }
+    }, auth)).rejects.toMatchObject({ statusCode: 409 });
+    expect(dataService.patch).not.toHaveBeenCalled();
+  });
+
 });
