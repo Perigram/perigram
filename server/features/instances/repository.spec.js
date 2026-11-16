@@ -37,6 +37,19 @@ describe('CTS instance repository revisions', () => {
     );
   });
 
+  it('maps unique-index collisions on create and update to a typed conflict', async () => {
+    collection.insertOne.mockRejectedValueOnce(Object.assign(new Error('duplicate key'), { code: 11000 }));
+    await expect(repository.insertInstance('items', { _id: 'instance-1', type: 'part' })).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'CTS_UNIQUE_CONFLICT'
+    });
+    collection.findOneAndUpdate.mockRejectedValueOnce(Object.assign(new Error('duplicate key'), { code: 11000 }));
+    await expect(repository.updateInstanceFields('items', 'instance-1', { 'fields.code': 'A' })).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'CTS_UNIQUE_CONFLICT'
+    });
+  });
+
   it('increments revisions for type migration and lineage detachment writes', async () => {
     await repository.updateMigratedInstance('items', 'instance-1', 'part', 'org-1', { typeVersion: 2 });
     expect(collection.updateOne).toHaveBeenNthCalledWith(

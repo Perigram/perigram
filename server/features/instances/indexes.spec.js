@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('~/server/db/mongo', () => ({ connectDB: vi.fn() }));
 
-import { deriveInstanceIndexes, ensureInstanceIndexes } from './indexes.js';
+import { deriveInstanceIndexes, ensureInstanceIndexes, pruneInstanceUniqueIndexes } from './indexes.js';
 import { connectDB } from '~/server/db/mongo';
 
 const view = new Map([
@@ -65,6 +65,62 @@ describe('derived instance indexes (SPEC §13)', () => {
     const indexes = deriveInstanceIndexes(stamped);
     expect(keySet(indexes, 'processes')).toContain(JSON.stringify({ type: 1, organizationId: 1, 'lineage.projectId': 1 }));
     expect(keySet(indexes, 'processes')).not.toContain(JSON.stringify({ type: 1, organizationId: 1, 'lineage.members': 1 }));
+  });
+
+  it('derives exact scalar uniqueness indexes with global and organization scopes', () => {
+    const uniqueView = new Map([
+      ['customer', {
+        id: 'customer',
+        class: 'item',
+        scope: 'system',
+        fields: { code: { base: 'string' }, profile: { base: 'record', fields: { email: { base: 'string' } } } },
+        constraints: [{ id: 'unique-email', kind: 'unique', scope: 'global', field: 'profile.email', equality: 'exact', nulls: 'ignore' }],
+        edges: {}
+      }],
+      ['org-customer', {
+        id: 'org-customer',
+        class: 'item',
+        scope: 'org',
+        organizationId: 'org-1',
+        fields: { code: { base: 'string' } },
+        constraints: [{ id: 'unique-code', kind: 'unique', scope: 'organization', field: 'code', equality: 'exact', nulls: 'ignore' }],
+        edges: {}
+      }]
+    ]);
+    const indexes = deriveInstanceIndexes(uniqueView, { organizationId: 'org-1' });
+    const global = indexes.find(index => index.options?.name?.startsWith('cts_u_g_'));
+    const scoped = indexes.find(index => index.options?.name?.startsWith('cts_u_o_'));
+    expect(global).toMatchObject({
+      collection: 'items',
+      keys: { type: 1, 'fields.profile.email': 1 },
+      options: {
+        unique: true,
+        partialFilterExpression: { type: 'customer', 'fields.profile.email': { $type: 'string' } },
+        collation: { locale: 'simple' }
+      }
+    });
+    expect(scoped).toMatchObject({
+      collection: 'items',
+      keys: { type: 1, organizationId: 1, 'fields.code': 1 },
+      options: {
+        unique: true,
+        partialFilterExpression: { type: 'org-customer', 'fields.code': { $type: 'string' }, organizationId: 'org-1' }
+      }
+    });
+  });
+
+  it('prunes only stale unique indexes for the selected scope', async () => {
+    const dropIndex = vi.fn();
+    const listIndexes = vi.fn(() => ({ toArray: async () => [
+      { name: '_id_' },
+      { name: 'cts_u_o_abcdef123456_stale' },
+      { name: 'cts_u_g_stale' }
+    ] }));
+    (await connectDB).mockResolvedValue({ collection: () => ({ listIndexes, dropIndex }) });
+    const dropped = await pruneInstanceUniqueIndexes(view, { organizationId: 'org-1' });
+    expect(dropped).toHaveLength(2);
+    expect(dropIndex).toHaveBeenCalledWith('cts_u_o_abcdef123456_stale');
+    expect(dropIndex).toHaveBeenCalledWith('cts_u_g_stale');
   });
 
   it('applies every definition idempotently through createIndex', async () => {

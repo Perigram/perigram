@@ -20,13 +20,26 @@ function orgFilter(organizationId) {
   return { $or: [{ organizationId: toFlexibleId(organizationId) }, { organizationId: null }] };
 }
 
+function throwUniqueConflict(error) {
+  if (Number(error?.code) !== 11000) throw error;
+  const conflict = new Error('A value already exists for a declared CTS unique constraint');
+  conflict.statusCode = 409;
+  conflict.code = 'CTS_UNIQUE_CONFLICT';
+  conflict.cause = error;
+  throw conflict;
+}
+
 export async function insertInstance(collection, doc) {
   const db = await connectDB();
   const stored = {
     ...doc,
     revision: 1
   };
-  await db.collection(collection).insertOne(stored);
+  try {
+    await db.collection(collection).insertOne(stored);
+  } catch (error) {
+    throwUniqueConflict(error);
+  }
   return stored;
 }
 
@@ -71,14 +84,18 @@ export async function updateInstanceFields(collection, id, set, options = {}) {
       ? { $exists: false }
       : options.expectedUpdatedAt;
   }
-  return await db.collection(collection).findOneAndUpdate(
-    filter,
-    {
-      $set: { ...set, updatedAt: new Date().toISOString() },
-      $inc: { revision: 1 }
-    },
-    { returnDocument: 'after' }
-  );
+  try {
+    return await db.collection(collection).findOneAndUpdate(
+      filter,
+      {
+        $set: { ...set, updatedAt: new Date().toISOString() },
+        $inc: { revision: 1 }
+      },
+      { returnDocument: 'after' }
+    );
+  } catch (error) {
+    throwUniqueConflict(error);
+  }
 }
 
 export async function deleteInstance(collection, id) {

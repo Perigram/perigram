@@ -13,7 +13,7 @@ import { pluginModuleUrl } from '#shared/plugin-surfaces.js';
 import * as pluginInstalls from '../plugins/repository.js';
 
 import { invalidateInstanceDeclarations } from '../instances/service.js';
-import { ensureInstanceIndexes } from '../instances/indexes.js';
+import { ensureInstanceIndexes, pruneInstanceUniqueIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
 import { collectionForClass } from '../instances/repository.js';
@@ -346,6 +346,17 @@ async function defineTypeInternal(declaration = {}, { organizationId, actor = nu
     throw createError({ statusCode: 400, message: introduced.join('; ') });
   }
 
+  // Build new unique indexes before publishing the declaration. Existing
+  // duplicates therefore refuse the type edit without replacing the stored
+  // contract; stale indexes are pruned only after the new declaration commits.
+  try {
+    await ensureInstanceIndexes(registry.resolveView(organizationId), { organizationId });
+  } catch (error) {
+    if (Number(error?.code) === 11000) {
+      throw createError({ statusCode: 409, message: 'Existing instances violate a declared unique constraint' });
+    }
+    throw error;
+  }
   invalidateInstanceDeclarations(String(organizationId));
   let migrationError = null;
   const stored = await runOrganizationChange(organizationId, {
@@ -389,7 +400,7 @@ async function defineTypeInternal(declaration = {}, { organizationId, actor = nu
   });
   if (migrationError) throw migrationError;
   // Declaration writes can change the derived index set (SPEC §13).
-  await ensureInstanceIndexes(registry.resolveView(organizationId));
+  await pruneInstanceUniqueIndexes(registry.resolveView(organizationId), { organizationId });
   publishOrgContractChanged(String(organizationId), 'registry', { typeId: orgDeclaration.id });
   return stored;
 }
@@ -441,7 +452,8 @@ async function removeTypeInternal(typeId, { organizationId, actor = null, abando
   });
   // A removed type may have been the last declaring an edge index.
   const after = await compileRegistryForOrganization(organizationId);
-  await ensureInstanceIndexes(after.resolveView(organizationId));
+  await ensureInstanceIndexes(after.resolveView(organizationId), { organizationId });
+  await pruneInstanceUniqueIndexes(after.resolveView(organizationId), { organizationId });
   const abandoned = hasBlastRadius
     ? { instances, boundBy: boundBy.length, actor: actor || 'SYSTEM', at: new Date().toISOString() }
     : null;
