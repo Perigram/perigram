@@ -161,7 +161,8 @@ Parent: [server/features](../README.md).
   persistence path; the process effect boundary keeps its own
   `processUpdate` with execution auth. Both paths land in `processUpdate`,
   which rejects field ids absent from the resolved CTS declaration, validates
-  changed relation slots against declared targets/cardinality/domain, and
+  changed relation slots against declared targets/cardinality/domain and
+  lineage slots against declared parent edges and same-organization parents, and
   enforces the current state's field policy (CTS SPEC §7 `fieldPolicy`): when the
   resolved workflow declares `visible`/`editable` whitelists for the
   instance's state, row-field writes outside them fail with 409. The

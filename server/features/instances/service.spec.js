@@ -262,6 +262,21 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.insertOne).not.toHaveBeenCalled();
   });
 
+  it('rejects undeclared and unresolved lineage writes through process update', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('panel');
+
+    await expect(service.processUpdate('panel-1', {
+      lineage: { unknownParentId: 'parent-1' }
+    }, 'org-1')).rejects.toMatchObject({ statusCode: 400 });
+
+    await expect(service.processUpdate('panel-1', {
+      lineage: { binId: 'missing-bin' }
+    }, 'org-1')).rejects.toMatchObject({ statusCode: 400 });
+
+    expect(coll.updateOne).not.toHaveBeenCalled();
+  });
+
   it('rejects undeclared relation writes through the process update boundary', async () => {
     const coll = stubCollection();
     const service = instanceServiceResolver('project');

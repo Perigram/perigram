@@ -559,6 +559,55 @@ async function assertDeclaredRelationSlots(declaration, instance, organizationId
   }
 }
 
+async function assertDeclaredLineageSlots(typeId, lineage, organizationId) {
+  const entries = Object.entries(lineage || {}).filter(([, value]) => value !== undefined);
+  if (!entries.length) return;
+  const declarations = organizationId
+    ? await overlayDeclarationsFor(organizationId)
+    : [...staticTypes.values()];
+  const parentTypesByKey = new Map();
+  for (const parent of declarations) {
+    for (const [edgeKey, edge] of Object.entries(parent?.edges?.children || {})) {
+      const lineageKey = edge?.lineageKey || lineageKeyForParent(parent.id) || edgeKey;
+      if (!(edge?.types || []).includes(typeId)) continue;
+      const parents = parentTypesByKey.get(lineageKey) || new Set();
+      parents.add(parent.id);
+      parentTypesByKey.set(lineageKey, parents);
+    }
+  }
+  for (const [key, value] of entries) {
+    const parentTypes = parentTypesByKey.get(key);
+    if (!parentTypes?.size) {
+      throw createError({ statusCode: 400, message: `Lineage key ${key} is not declared for child type ${typeId}` });
+    }
+    if (value == null) continue;
+    const id = typeof value === 'object' ? value.id ?? value._id : value;
+    if (id == null) {
+      throw createError({ statusCode: 400, message: `Lineage key ${key} requires a parent instance id` });
+    }
+    let found = false;
+    for (const parentType of parentTypes) {
+      const parentDeclaration = declarations.find(item => item.id === parentType)
+        || await declarationFor(parentType, organizationId);
+      if (!parentDeclaration?.class) continue;
+      const parent = await repository.findInstance(
+        repository.collectionForClass(parentDeclaration.class),
+        String(id),
+        parentType
+      );
+      if (!parent) continue;
+      const parentOrganizationId = parent.organizationId == null ? null : String(parent.organizationId);
+      const childOrganizationId = organizationId == null ? null : String(organizationId);
+      if (parentOrganizationId !== null && parentOrganizationId !== childOrganizationId) continue;
+      found = true;
+      break;
+    }
+    if (!found) {
+      throw createError({ statusCode: 400, message: `Lineage key ${key} parent ${String(id)} is missing or outside the organization` });
+    }
+  }
+}
+
 async function assertPermanentConstraints(declaration, instance, organizationId) {
   if (!declaration?.constraints?.length) return;
   const errors = await validateConstraints(
@@ -830,6 +879,7 @@ function instanceService(typeId) {
         };
         await assertDeclaredRelationSlots(declaration, candidate, organizationId, [...relationKeys]);
       }
+      await assertDeclaredLineageSlots(typeId, patch.lineage, organizationId);
       // Wire patches speak the stored shape. Lifecycle is deliberately
       // absent: transitions and initial-state writes belong to the status
       // runtime.
