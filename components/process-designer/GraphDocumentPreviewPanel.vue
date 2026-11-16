@@ -170,6 +170,7 @@ const props = defineProps({
   previewRenderers: { type: Object, default: () => ({}) },
   nodeDefinitions: { type: Object, default: () => ({}) },
   canBakeToSavedGraph: { type: Boolean, default: false },
+  baking: { type: Boolean, default: false },
   channels: { type: Array, default: () => [] }
 });
 const emit = defineEmits(['refresh', 'update-input-binding', 'bake']);
@@ -181,7 +182,6 @@ const selectedPageId = ref('');
 const pageFilePath = ref('exports/result.json');
 const conflictPolicy = ref('fail');
 const pageOptions = ref([]);
-const baking = ref(false);
 const conflictOptions = computed(() => [
   { value: 'fail', label: t('processDesigner.bakeConflictFail') },
   { value: 'create-revision', label: t('processDesigner.bakeConflictRevision') },
@@ -195,7 +195,7 @@ const canBake = computed(() => Boolean(
   && selectedOutputId.value
   && selectedPageId.value
   && pageFilePath.value.trim()
-  && !baking.value
+  && !props.baking
 ));
 const activeView = ref('json');
 const outputOptions = computed(() => (props.graph.interface?.outputs || []).map(port => ({
@@ -294,18 +294,13 @@ function svgPoints(points = []) {
 
 async function submitBake() {
   if (!canBake.value) return;
-  baking.value = true;
-  try {
-    emit('bake', {
-      outputId: selectedOutputId.value,
-      pageId: selectedPageId.value,
-      path: pageFilePath.value.trim(),
-      conflictPolicy: conflictPolicy.value,
-      execution: props.execution
-    });
-  } finally {
-    baking.value = false;
-  }
+  emit('bake', {
+    outputId: selectedOutputId.value,
+    pageId: selectedPageId.value,
+    path: pageFilePath.value.trim(),
+    conflictPolicy: conflictPolicy.value,
+    execution: props.execution
+  });
 }
 
 onMounted(async () => {
