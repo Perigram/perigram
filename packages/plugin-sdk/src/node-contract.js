@@ -139,9 +139,9 @@ export function normalizeNodeProvider(source = {}) {
   });
   const previewRenderers = source.previewRenderers || {};
   const isPreviewSurfaceId = value => typeof value === 'string'
-    && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value);
+    && /^[a-z0-9-]+$/.test(value);
   const isPreviewSurface = value => isRecord(value)
-    && typeof value.id === 'string'
+    && isPreviewSurfaceId(value.id)
     && Number.isInteger(Number(value.surfaceContract))
     && (value.url == null || typeof value.url === 'string');
   if (!isRecord(previewRenderers) || Object.values(previewRenderers).some(renderer => (
