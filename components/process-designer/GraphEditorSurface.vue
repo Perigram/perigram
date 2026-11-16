@@ -44,40 +44,30 @@
       :read-only="readOnly"
     >
       <template v-if="!readOnly" #inspector>
-        <div class="flex h-full min-h-0 flex-col">
-          <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
-            <TabList>
-              <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
-              <Tab value="preview">{{ $t('processDesigner.previewTab') }}</Tab>
-            </TabList>
-            <TabPanels class="min-h-0 flex-1 overflow-y-auto">
-              <TabPanel value="inspector">
-                <GraphDocumentInspector
-                  :node="selectedNode"
-                  :boundary-declaration="selectedBoundaryDeclaration"
-                  @update-config="updateNodeConfig"
-                  @update-boundary-label="updateBoundaryLabel"
-                  @update-boundary-declaration="updateBoundaryDeclaration"
-                  :graph-documents="graphDocuments"
-                  :graph-documents-loading="graphDocumentsLoading"
-                  :graph-documents-error="graphDocumentsError"
-                  @hydrate-graph="hydrateSelectedGraph"
-                />
-              </TabPanel>
-              <TabPanel value="preview">
-                <GraphDocumentPreviewPanel
-                  :result="previewResult"
-                  :error="previewError"
-                  :running="previewRunning"
-                  :graph="graphDocument"
-                  :input-bindings="inputBindings"
-                  @refresh="refreshPreview"
-                  @update-input-binding="setGraphInputBinding"
-                />
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
+        <div class="flex h-full min-h-0 flex-col overflow-y-auto p-3">
+          <GraphDocumentInspector
+            :node="selectedNode"
+            :boundary-declaration="selectedBoundaryDeclaration"
+            :graph-documents="graphDocuments"
+            :graph-documents-loading="graphDocumentsLoading"
+            :graph-documents-error="graphDocumentsError"
+            @update-config="updateNodeConfig"
+            @update-boundary-label="updateBoundaryLabel"
+            @update-boundary-declaration="updateBoundaryDeclaration"
+            @hydrate-graph="hydrateSelectedGraph"
+          />
         </div>
+      </template>
+      <template v-if="!readOnly" #support>
+        <GraphDocumentPreviewPanel
+          :result="previewResult"
+          :error="previewError"
+          :running="previewRunning"
+          :graph="graphDocument"
+          :input-bindings="inputBindings"
+          @refresh="refreshPreview"
+          @update-input-binding="setGraphInputBinding"
+        />
       </template>
     </GraphCanvas>
   </div>
@@ -87,11 +77,6 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
-import Tab from 'primevue/tab';
-import TabList from 'primevue/tablist';
-import TabPanel from 'primevue/tabpanel';
-import TabPanels from 'primevue/tabpanels';
-import Tabs from 'primevue/tabs';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import GraphCanvas from '~/components/process-designer/GraphCanvas.vue';
 import GraphDocumentInspector from '~/components/process-designer/GraphDocumentInspector.vue';
@@ -216,8 +201,7 @@ function bindCanvasFrame(instance) {
 }
 
 function openActivitySurface() {
-  canvasFrame?.openPanel?.('inspector');
-  inspectTab.value = 'preview';
+  canvasFrame?.openPanel?.('support');
 }
 
 function parseGraphPayload(payload) {

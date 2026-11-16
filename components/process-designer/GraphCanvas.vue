@@ -119,6 +119,9 @@
       <template #inspector>
         <slot name="inspector" />
       </template>
+      <template #support>
+        <slot name="support" />
+      </template>
     </DesignerWorkspace>
 
     <div v-if="validation" class="pointer-events-none absolute inset-x-0 bottom-16 z-10 flex justify-center px-4">
