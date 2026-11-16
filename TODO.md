@@ -398,10 +398,12 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   and boundary defaults are consumed by the evaluator. Remaining:
   renderer/channel hosting, plugin provider discovery/execution bindings,
   and robust per-node diagnostics. Preview remains read-only.
-- [ ] G5 Commit, Bake, and Export — Commit applies an approved proposal;
-  Bake materializes a selected output to an explicit destination; Export
-  creates an external/download result. Each records graph revision,
-  execution provenance, and destination.
+- [ ] - [ ] G5 Commit, Bake, and Export — page-file Bake is implemented in the
+  graph-executions service and exposed through its explicit API route; Export
+  returns a selected output as a download and records a `procedural-export`
+  execution. Remaining: implement Commit against validated proposals and
+  complete the other declared Bake destinations (instance attachment and
+  explicitly typed new instance).
 - [ ] G6 Organization-data consistency — bounded typed CTS queries now
   support exact-instance detail reads, Mongo snapshot transactions where
   supported, sequence-bracketed fallback, and execution read sets that merge

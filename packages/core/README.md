@@ -67,6 +67,7 @@ boundary node. Use Graph nodes pin an immutable graph revision.
   invocation provenance, read sets, and artifact references. Construction
   validates JSON values before cloning so serialization cannot erase invalid
   `undefined`, non-finite, or non-JSON values.
+  Profiles distinguish procedural preview, Commit, Bake, Export, and durable process execution.
 - `createCoreGraphDataProvider` registers the platform CTS instance-query node. It supports bounded typed queries and exact-instance selection; its executor receives an authorized host query capability and forwards the returned consistency boundary and read dependencies into the shared recorder.
 - `createGraphReadSetRecorder` captures deduplicated instance, relation, and
   query/range dependencies across parent and pinned child evaluations. It
