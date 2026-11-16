@@ -29,6 +29,47 @@ CTS declaration records and designer authoring in; runtime contracts out. The se
 | Canvas records | Process nodes and status definitions are canvas records; every other record kind (producer outputs, actions, services, sockets, value inputs) is panel-owned and survives the round trip untouched. A derived action and its effect sharing an id keep one `data.refId` under namespaced canvas ids. |
 | Stability gate | `validateRoundTrip` cycles definition → canvas → definition twice at activation and the generations match; `ctsTypes` records round-trip byte-identical (full authoring key set; `null` binding stays `null`); canvas positions are presentation data. |
 
+### Kernel- and library-agnostic node model
+
+The platform node model is independent of any execution kernel, programming language,
+domain library, or UI framework. This is a contract boundary, not a mandate to rewrite
+the process compiler or to force every domain into one closed type system.
+
+| Aspect | Law |
+|---|---|
+| Definition | A node is a versioned semantic operation contract: stable provider-qualified identity, human label/documentation, input/output port contracts, configuration schema, execution classification, effects/capabilities, and compatibility requirements. Display names and UI component names are never identity. |
+| Provider boundary | A provider discovers or declares operations and implements their execution. Its native callable, class, runtime object, or remote endpoint remains provider-owned. The platform normalizes metadata into the common contract; it does not import or execute provider-native objects. Static declarations and runtime introspection are equally valid discovery mechanisms. |
+| Data values | Values cross the boundary as opaque runtime payloads accompanied by semantic descriptors. The platform may inspect declared metadata and platform-owned envelopes, but must not assume it can inspect, clone, serialize, or interpret arbitrary provider values. Serialization and preview require explicit provider capabilities. |
+| Open-world semantics | Do not require a universal closed enum of data types. A port descriptor supports platform-known primitives and structures, provider-qualified nominal types, structural schemas, refinements/constraints, unions, collections, nullability, and an opaque/unknown fallback. Unknown provider types remain identifiable and connectable only under declared compatibility rules; they must not silently collapse into an unrelated primitive. |
+| Compatibility | Compatibility is a relation, not a single global type equality. A provider or semantic adapter may report exact, safe coercion, conditional/runtime-checked, explicit-conversion-required, or incompatible. The result includes the reason and any required conversion. The platform owns generic rules only where semantics are genuinely universal (for example integer-to-number); domain-specific rules belong to a registered semantic adapter. |
+| Data semantics | Keep value shape separate from value meaning. Item/list/tree/map/tuple and mapping/alignment/access describe how values are transported and applied; nominal identity, schema, units, constraints, entity identity, and domain meaning describe what they represent. Neither dimension may be inferred solely from the other. |
+| Execution semantics | Pure computation, stateful computation, external effects, control flow, streaming/mapping, determinism, and idempotency are declared independently of presentation. The executor/provider validates and enforces the semantics it owns; the graph engine enforces only platform-level guarantees. |
+| Interface derivation | Node cards, sockets, inspectors, defaults, enum selectors, structured editors, and diagnostics are projections of the normalized contract plus optional declarative presentation hints. Hints select a supported editor or schema renderer; they do not embed operation-specific component logic into the canvas. Missing hints fall back to generic inspection/editing or read-only opaque display. |
+| Discovery and stability | Discovery output is normalized, validated, and versioned. Stable operation and port identifiers survive label/documentation changes. Provider version changes and contract changes are explicit; persisted graphs retain the operation identity/version and enough authored configuration to diagnose unavailable or changed providers. |
+| Domain separation | This package's CTS/process species, authorization, entity lifecycle, and workflow rules remain domain semantics layered on the node model. They are not universal node primitives and must not leak into a kernel-neutral base contract. Conversely, generic graph mechanics must not be reimplemented separately for each plugin. |
+
+#### Type-system decision
+
+A strongly typed, closed-world universal type system is not a goal. Perigram handles data whose
+meaning is defined by plugins, declared schemas, user-defined types, runtime objects, and external
+systems. Pretending all such values can be statically understood would either erase semantics into
+`json/any` or create a central registry that cannot keep pace with providers.
+
+Use a **gradual, extensible semantic contract** instead:
+
+1. Preserve provider-qualified nominal identity when a provider knows a type.
+2. Carry structural schema and constraints when available; treat them as evidence, not proof that
+   arbitrary runtime values conform.
+3. Keep transport shape and semantic type as separate descriptors.
+4. Permit opaque values without pretending they are structurally compatible with everything.
+5. Make uncertain compatibility explicit and defer validation to the provider/runtime where
+   necessary.
+6. Require explicit conversion nodes when a conversion changes meaning, loses information, or
+   cannot be proven safe.
+
+This gives the editor enough information to derive useful interfaces and catch known mistakes
+without claiming static guarantees the underlying data cannot support.
+
 ### Palette
 
 | Aspect | Law |
