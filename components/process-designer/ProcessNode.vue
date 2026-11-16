@@ -97,16 +97,6 @@
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
-          <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5 w-full min-w-0" @mousedown.stop @click.stop>
-            <TypedValueControl
-              :base="row.input.base"
-              :type-id="row.input.type?.typeId || ''"
-              :model-value="inputDefault(row.input.id)"
-              :status-options="data.processStatusOptions || []"
-              :placeholder="inputPlaceholder(row.input)"
-              @update:model-value="value => onFallbackValue(row.input, value)"
-            />
-          </div>
         </div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
