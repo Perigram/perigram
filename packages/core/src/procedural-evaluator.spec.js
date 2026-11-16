@@ -136,6 +136,7 @@ describe('procedural graph preview evaluator', () => {
     });
     await expect(evaluateProceduralGraph({
       graph: recursive,
+      inputBindings: { number: 1 },
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: () => ({}),
       resolveGraph: () => recursive
