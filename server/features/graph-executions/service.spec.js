@@ -14,7 +14,8 @@ const mocks = vi.hoisted(() => ({
   getFileBuffer: vi.fn(),
   bakeFile: vi.fn(),
   retractBakedFile: vi.fn(),
-  withOrganizationDataSnapshot: vi.fn()
+  withOrganizationDataSnapshot: vi.fn(),
+  withOrganizationChangeSequence: vi.fn()
 }));
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: mocks.getAppRegistry }));
 vi.mock('../files/service.js', () => ({
@@ -27,7 +28,8 @@ vi.mock('../pages/service.js', () => ({
   retractBakedFile: mocks.retractBakedFile
 }));
 vi.mock('../instances/index.js', () => ({
-  withOrganizationDataSnapshot: mocks.withOrganizationDataSnapshot
+  withOrganizationDataSnapshot: mocks.withOrganizationDataSnapshot,
+  withOrganizationChangeSequence: mocks.withOrganizationChangeSequence
 }));
 
 import * as graphExecutionsService from './service.js';
@@ -90,6 +92,10 @@ describe('graph execution service', () => {
     });
     dataService.processList.mockResolvedValue([{ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }]);
     dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));
+    mocks.withOrganizationChangeSequence.mockImplementation(async (_organizationId, read) => ({
+      value: await read(),
+      boundary: { consistency: 'sequence-bracketed', snapshotId: null, organizationSequenceStart: 4, organizationSequenceEnd: 4 }
+    }));
     mocks.withOrganizationDataSnapshot.mockImplementation(async (_organizationId, read) => ({
       value: await read(),
       boundary: { consistency: 'snapshot', snapshotId: 'snapshot-42', organizationSequenceStart: 4, organizationSequenceEnd: 4 }
@@ -174,10 +180,96 @@ describe('graph execution service', () => {
     expect(executionService.create).not.toHaveBeenCalled();
   });
 
+  it('refuses materialization when a query range has changed since preview', async () => {
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      readSet: {
+        consistency: 'sequence-bracketed',
+        snapshotId: null,
+        organizationSequenceStart: 4,
+        organizationSequenceEnd: 4,
+        instances: [],
+        relations: [],
+        queries: [{
+          typeId: 'part',
+          organizationId: 'org-1',
+          query: { typeId: 'part', limit: 50 },
+          resultIds: ['item-1'],
+          observedTotal: 1,
+          sequence: 4
+        }]
+      }
+    });
+    mocks.withOrganizationChangeSequence.mockImplementation(async (_organizationId, read) => ({
+      value: await read(),
+      boundary: { consistency: 'sequence-bracketed', snapshotId: null, organizationSequenceStart: 5, organizationSequenceEnd: 5 }
+    }));
+    await expect(graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'document',
+      destination: { type: 'page-file', pageId: 'page-1', path: 'exports/document.txt' }
+    }, auth)).rejects.toMatchObject({ statusCode: 409 });
+    expect(mocks.bakeFile).not.toHaveBeenCalled();
+  });
+
+  it('refuses materialization when an instance revision changed after preview', async () => {
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      readSet: {
+        consistency: 'unverified',
+        snapshotId: null,
+        organizationSequenceStart: null,
+        organizationSequenceEnd: null,
+        instances: [{
+          typeId: 'part',
+          instanceId: 'item-1',
+          revision: '2',
+          updatedAt: '2026-11-16T10:00:00Z',
+          typeVersion: 2,
+          organizationId: 'org-1'
+        }],
+        relations: [],
+        queries: []
+      }
+    });
+    await expect(graphExecutionsService.exportOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'document'
+    }, auth)).rejects.toMatchObject({ statusCode: 409 });
+    expect(executionService.create).not.toHaveBeenCalled();
+  });
+
   it('bakes a selected output and records the destination as a procedural-bake execution', async () => {
     const result = await graphExecutionsService.bakeOutput({
       graphDocumentInstanceId: 'graph-instance-1',
-      record: preview(),
+      record: createGraphExecutionRecord({
+        ...preview(),
+        readSet: {
+          consistency: 'sequence-bracketed',
+          snapshotId: null,
+          organizationSequenceStart: 4,
+          organizationSequenceEnd: 4,
+          instances: [{
+            typeId: 'part',
+            instanceId: 'item-1',
+            revision: '3',
+            updatedAt: '2026-11-16T10:00:00Z',
+            typeVersion: 2,
+            organizationId: 'org-1'
+          }],
+          relations: [],
+          queries: [{
+            typeId: 'part',
+            organizationId: 'org-1',
+            query: { typeId: 'part', limit: 50 },
+            resultIds: ['item-1'],
+            observedTotal: 1,
+            sequence: 4
+          }]
+        }
+      }),
       outputId: 'document',
       destination: { type: 'page-file', pageId: 'page-1', path: 'exports/document.txt', conflictPolicy: 'fail' }
     }, auth);

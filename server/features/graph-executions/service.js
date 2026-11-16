@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
 import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder } from '#packages/core';
-import { withOrganizationDataSnapshot } from '../instances/index.js';
+import { withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '../files/service.js';
 import * as pagesService from '../pages/service.js';
@@ -59,6 +59,116 @@ async function persistRecord(record, graphDocument, organizationId, auth) {
       artifacts: record.artifacts
     }
   }, auth.userId, organizationId);
+}
+
+
+function stalePreviewError(message = 'Graph preview data is stale; evaluate again before materializing output') {
+  return createError({ statusCode: 409, message });
+}
+
+function relationContains(value, targetTypeId, targetId) {
+  const values = Array.isArray(value) ? value : [value];
+  return values.some(candidate => {
+    if (candidate == null) return false;
+    if (typeof candidate !== 'object') return String(candidate) === targetId;
+    const typeId = candidate.type == null ? targetTypeId : String(candidate.type);
+    const id = candidate.id ?? candidate._id;
+    return typeId === targetTypeId && id != null && String(id) === targetId;
+  });
+}
+
+async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, sourceGraphDocument) {
+  const instances = Array.isArray(readSet.instances) ? readSet.instances : [];
+  const relations = Array.isArray(readSet.relations) ? readSet.relations : [];
+  const queries = Array.isArray(readSet.queries) ? readSet.queries : [];
+  const start = readSet.organizationSequenceStart;
+  const end = readSet.organizationSequenceEnd;
+  const hasStableSequence = Number.isSafeInteger(start) && start >= 0 && start === end;
+  const supportedBoundary = readSet.consistency === 'snapshot' || readSet.consistency === 'sequence-bracketed';
+
+  if (queries.length) {
+    if (!organizationId || !hasStableSequence || !supportedBoundary
+      || (readSet.consistency === 'snapshot' && !readSet.snapshotId)
+      || queries.some(query => query.sequence !== end
+        || (query.organizationId != null && String(query.organizationId) !== String(organizationId)))) {
+      throw stalePreviewError('Graph preview has no verifiable organization query boundary; evaluate again');
+    }
+  }
+
+  const validate = async () => {
+    const registry = getAppRegistry();
+    const graphService = registry.getInstanceService('graph-document');
+    const currentGraphDocument = await graphService?.processGetById?.(String(sourceGraphDocument._id), auth);
+    if (!currentGraphDocument
+      || String(currentGraphDocument.fields?.graphId || '') !== String(sourceGraphDocument.fields?.graphId || '')
+      || String(currentGraphDocument.payload?.fileId || '') !== String(sourceGraphDocument.payload?.fileId || '')
+      || (sourceGraphDocument.revision != null && String(currentGraphDocument.revision) !== String(sourceGraphDocument.revision))
+      || (sourceGraphDocument.revision == null && sourceGraphDocument.updatedAt != null
+        && currentGraphDocument.updatedAt !== sourceGraphDocument.updatedAt)) {
+      throw stalePreviewError('Saved graph document changed after preview; evaluate the current revision again');
+    }
+
+    const cache = new Map();
+    const readInstance = async (typeId, instanceId) => {
+      const key = typeId + ':' + instanceId;
+      if (cache.has(key)) return cache.get(key);
+      const instanceService = registry.getInstanceService(typeId);
+      if (typeof instanceService?.processGetById !== 'function') {
+        throw stalePreviewError('A graph data dependency can no longer be read');
+      }
+      const current = await instanceService.processGetById(instanceId, auth);
+      if (!current) throw stalePreviewError('A graph data dependency was deleted');
+      cache.set(key, current);
+      return current;
+    };
+
+    for (const dependency of instances) {
+      const current = await readInstance(dependency.typeId, dependency.instanceId);
+      if (dependency.revision != null) {
+        if (current.revision == null || String(current.revision) !== String(dependency.revision)) {
+          throw stalePreviewError('A graph data dependency changed after preview');
+        }
+      } else if (dependency.updatedAt != null) {
+        if (current.updatedAt !== dependency.updatedAt) {
+          throw stalePreviewError('A graph data dependency changed after preview');
+        }
+      } else {
+        throw stalePreviewError('A graph data dependency has no verifiable revision');
+      }
+      if (dependency.typeVersion != null && current.typeVersion !== dependency.typeVersion) {
+        throw stalePreviewError('A graph data dependency changed type version after preview');
+      }
+      if (dependency.organizationId != null
+        && String(current.organizationId ?? '') !== String(dependency.organizationId)) {
+        throw stalePreviewError('A graph data dependency changed organization after preview');
+      }
+    }
+
+    for (const relation of relations) {
+      const source = await readInstance(relation.sourceTypeId, relation.sourceId);
+      const target = await readInstance(relation.targetTypeId, relation.targetId);
+      if (relation.revision != null
+        && (target.revision == null || String(target.revision) !== String(relation.revision))) {
+        throw stalePreviewError('A graph relationship target changed after preview');
+      }
+      const currentRelation = source.relations?.[relation.key] ?? source.fields?.[relation.key];
+      if (!relationContains(currentRelation, String(relation.targetTypeId), String(relation.targetId))) {
+        throw stalePreviewError('A graph relationship changed after preview');
+      }
+    }
+    return true;
+  };
+
+  if (!organizationId) {
+    if (queries.length) throw stalePreviewError('Organization query dependencies cannot be validated without an organization');
+    await validate();
+    return;
+  }
+
+  const { boundary } = await withOrganizationChangeSequence(organizationId, validate, { retries: 2 });
+  if (hasStableSequence && (boundary.organizationSequenceStart !== end || boundary.organizationSequenceEnd !== end)) {
+    throw stalePreviewError('Organization data changed after preview; evaluate again before materializing output');
+  }
 }
 
 async function materializeOutput(output, auth, graph, outputId, requestedFilename = null) {
@@ -271,6 +381,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   if (!(graph.interface?.outputs || []).some(port => String(port.id) === selectedOutputId)) {
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
   }
+  await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument);
 
   const { buffer, mimeType } = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId);
 
@@ -331,6 +442,7 @@ export async function exportOutput({ graphDocumentInstanceId, record: value, out
   if (!(graph.interface?.outputs || []).some(port => String(port.id) === selectedOutputId)) {
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
   }
+  await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument);
 
   const materialized = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId, filename);
   const exportId = randomUUID();
