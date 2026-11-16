@@ -12,7 +12,8 @@
       <label class="text-supporting text-muted" for="graph-document-source">{{ $t('processDesigner.graphDocumentSource') }}</label>
       <InstanceSelect
         id="graph-document-source"
-        v-model="selectedGraphId"\n        @update:model-value="selectGraphDocument"
+        v-model="selectedGraphId"
+        @update:model-value="selectGraphDocument"
         :options="graphDocuments"
         option-label="name"
         option-value="_id"
@@ -137,7 +138,13 @@ watch(() => props.graphRevisions, revisions => {
   }
 }, { deep: true });
 
-function selectGraphDocument(id) {\n  selectedGraphId.value = String(id || '');\n  selectedRevisionId.value = '';\n  emit('select-graph-document', selectedGraphId.value);\n}\n\nfunction applyConfig() {
+function selectGraphDocument(id) {
+  selectedGraphId.value = String(id || '');
+  selectedRevisionId.value = '';
+  emit('select-graph-document', selectedGraphId.value);
+}
+
+function applyConfig() {
   try {
     const value = JSON.parse(configText.value || '{}');
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
