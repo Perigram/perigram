@@ -6,7 +6,6 @@ export const GRAPH_INPUT_OPERATION = 'perigram.core.graph-input';
 export const GRAPH_OUTPUT_OPERATION = 'perigram.core.graph-output';
 export const GRAPH_INVOKE_OPERATION = 'perigram.core.use-graph';
 
-const EXECUTION_KINDS = new Set(['pure', 'read', 'stateful', 'proposal', 'commit', 'effect', 'control']);
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 
 export function normalizeGraphDocument(source = {}) {
