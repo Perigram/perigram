@@ -3479,7 +3479,10 @@
     "graphOutputs": "Outputs",
     "graphNodeOutputs": "Node outputs",
     "graphUnavailableNode": "Node definition unavailable",
-    "unknownNode": "Unavailable node"
+    "unknownNode": "Unavailable node",
+    "graphComposition": "Graph composition",
+    "useGraph": "Use Graph",
+    "useGraphDescription": "Invoke a pinned revision of another graph"
   },
   "generatedScreen": {
     "home": "Home",
