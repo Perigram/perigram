@@ -164,6 +164,10 @@ docker run -d --name perigram-staging --restart unless-stopped \
   -e "NUXT_VAPID_PRIVATE_KEY=$NUXT_VAPID_PRIVATE_KEY" \
   perigram:staging
 
+echo "Applying idempotent organization data migrations..."
+docker exec perigram-staging node server/scripts/backfill-instance-revisions.js --apply
+docker exec perigram-staging node server/scripts/migrate-plugin-assets-to-organization-storage.js
+
 docker run -d --name perigram-plugin-runtime --restart unless-stopped \
   --network host --memory=512m --cpus=1 --pids-limit=64 \
   --cap-drop=ALL --security-opt=no-new-privileges \
