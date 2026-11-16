@@ -36,7 +36,8 @@ export async function insertInstance(collection, doc, { session = null } = {}) {
     revision: 1
   };
   try {
-    await db.collection(collection).insertOne(stored, session ? { session } : {});
+    if (session) await db.collection(collection).insertOne(stored, { session });
+    else await db.collection(collection).insertOne(stored);
   } catch (error) {
     throwUniqueConflict(error);
   }

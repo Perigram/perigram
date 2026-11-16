@@ -75,7 +75,8 @@ function expectedSequenceForReadSet(readSet) {
 }
 
 async function persistRecord(record, graphDocument, organizationId, auth, session = null) {
-  return await getAppRegistry().getInstanceService('graph-execution').create({
+  const service = getAppRegistry().getInstanceService('graph-execution');
+  const draft = {
     name: `Execution ${record.id}`,
     fields: {
       executionId: record.id,
@@ -95,7 +96,10 @@ async function persistRecord(record, graphDocument, organizationId, auth, sessio
       readSet: record.readSet,
       artifacts: record.artifacts
     }
-  }, auth.userId, organizationId, { session });
+  };
+  return session
+    ? await service.create(draft, auth.userId, organizationId, { session })
+    : await service.create(draft, auth.userId, organizationId);
 }
 
 
