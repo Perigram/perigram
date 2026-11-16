@@ -513,4 +513,33 @@ describe('graph execution service', () => {
     expect(dataService.patch).not.toHaveBeenCalled();
   });
 
+
+  it('rejects Mongo-style field paths in Commit proposals before the write boundary', async () => {
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      readSet: {
+        consistency: 'unverified',
+        snapshotId: null,
+        organizationSequenceStart: null,
+        organizationSequenceEnd: null,
+        instances: [{ typeId: 'part', instanceId: 'item-1', revision: '3', organizationId: 'org-1' }],
+        relations: [],
+        queries: []
+      }
+    });
+    await expect(graphExecutionsService.commitProposal({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      proposal: {
+        kind: 'cts.instance.patch',
+        typeId: 'part',
+        instanceId: 'item-1',
+        expectedRevision: '3',
+        conflictPolicy: 'fail',
+        patch: { fields: { '$set.status': 'approved' } }
+      }
+    }, auth)).rejects.toMatchObject({ statusCode: 400 });
+    expect(dataService.patch).not.toHaveBeenCalled();
+  });
+
 });
