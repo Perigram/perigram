@@ -42,6 +42,28 @@ export function createProcessProceduralNodeDefinition(kind, record = {}, catalog
 }
 
 
+
+/**
+ * Resolver callback for the core procedural evaluator. Unlike the static
+ * registry listing, this resolves ports against the node's authored config
+ * and the current invocation context (for example, organization type
+ * contracts), so dynamic sockets are checked at evaluation time.
+ */
+export function createProcessProceduralNodeResolver({ catalogContext = {} } = {}) {
+  return (operation, invocation = {}) => {
+    if (operation?.provider !== PROCESS_PROCEDURAL_PROVIDER
+      || String(operation?.version) !== PROCESS_PROCEDURAL_VERSION) return null;
+    const resolvedContext = typeof catalogContext === 'function'
+      ? catalogContext(invocation)
+      : catalogContext;
+    return createProcessProceduralNodeDefinition(
+      operation.id,
+      invocation.config || {},
+      resolvedContext || {}
+    );
+  };
+}
+
 /**
  * Register the process package's preview-safe data operations in the shared
  * plugin-SDK registry. The registry remains SDK-owned; this adapter only
