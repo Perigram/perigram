@@ -11,7 +11,8 @@
     "./claim-executor": "./src/claim-executor.js",
     "./api-client": "./src/api-client.js",
     "./listing.schema.json": "./src/listing.schema.json",
-    "./surface-check": "./src/surface-check.js"
+    "./surface-check": "./src/surface-check.js",
+    "./nodes": "./src/node-contract.js"
   },
   "bin": {
     "perigram-plugin": "./bin/perigram-plugin.js"
