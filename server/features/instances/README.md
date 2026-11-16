@@ -152,15 +152,16 @@ Parent: [server/features](../README.md).
   `POST /api/instances/:type/:id/restore-revision` with
   `{ revisionId }` is the transport.
 - Field updates (`patch`): `PATCH /api/instances/:type/:id` carries the
-  same wire patch `processUpdate` writes (the `name` rename channel,
-  `fields` leaves, non-tenancy `lineage` edges, `relations` — state
-  writes are status-runtime owned) through the identical §3 mapping. It gates through the
-  shared access engine exactly like the payload transport (write level
-  on the class-collection feature, type-id filter — fail-closed). This
-  is the generated detail surfaces' inline-edit persistence path; the
-  process effect boundary keeps its own `processUpdate` with execution
-  auth. Both paths land in `processUpdate`, which also enforces the
-  current state's field policy (CTS SPEC §7 `fieldPolicy`): when the
+  `name` rename channel and declared `fields` leaves through the §3
+  mapping. It rejects `lineage` and `relations` rather than bypassing
+  their structural write rules; state writes remain status-runtime owned.
+  It gates through the shared access engine exactly like the payload
+  transport (write level on the class-collection feature, type-id filter —
+  fail-closed). This is the generated detail surfaces' inline-edit
+  persistence path; the process effect boundary keeps its own
+  `processUpdate` with execution auth. Both paths land in `processUpdate`,
+  which rejects field ids absent from the resolved CTS declaration and
+  enforces the current state's field policy (CTS SPEC §7 `fieldPolicy`): when the
   resolved workflow declares `visible`/`editable` whitelists for the
   instance's state, row-field writes outside them fail with 409. The
   workflow resolves through

@@ -539,6 +539,8 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   relation/containment traversal, finite quantifiers, aggregate result types,
   and boolean predicate results. Enforcement covers generic creation,
   constrained updates, re-derive, and flat CTS lifecycle transitions.
+  The generic instance update boundary now rejects field ids absent from
+  the resolved CTS declaration, covering API, plugin, and graph patch calls.
   Remaining: every import/relationship write boundary, explicit
   uniqueness/cardinality semantics, and cross-record concurrency guarantees.
 - [ ] G8 Typed references and embeds — live and pinned references,
@@ -550,11 +552,16 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   all records, verify semantics and authorization, then remove the old
   runtime format.
 
+### Agent Notes (2026-11-16, deployment migration wiring)
+
+- `scripts/deploy.sh` now runs the instance-revision backfill and organization-owned plugin-asset migration after the updated app starts. It runs them from the standalone `perigram-seed` image, whose dependency closure now includes the CTS package import map, server DB/utils/features, MongoDB, Winston, and H3; this avoids relying on Nuxt aliases or source trees absent from the app runtime image. The deploy script's executable mode remains `100755`.
+- A failed asset repair clears `packageAssets`/`assetStorage` only when the install still matches the exact snapshot inspected, restoring catalog fallback after a partial copy without clobbering a concurrent upgrade. The migration remains fail-closed for deployment, and the live database has not yet been migrated.
+
 ### Agent Notes (2026-11-16, graph Commit first slice)
 
 - Added `POST /api/graph-executions/commit` and the first `cts.instance.patch` proposal adapter. It requires a successful preview, exactly one matching instance revision in the read set, no relation dependencies, and only exact-instance query observations for the same target. It revalidates the saved graph and read set, then calls the generic instance `patch` service with caller auth, organization, and expected revision. The generic service owns write-grant, field-policy, constraints, and compare-and-swap checks. It persists a `procedural-commit` execution with the resulting instance revision.
 - The instance write and append-only execution evidence are not yet one Mongo transaction. If the write succeeds and evidence persistence fails, the API returns an explicit 500 with the committed instance identity/revision; durable recovery and atomic evidence remain blocking work. Multi-object/relation proposals remain refused.
-- Added service regression coverage for successful commit and broad-read-set refusal. CI was pending at the time of this note; no local test runner was available in this session.
+- Added service regression coverage for successful commit, broad-read-set refusal, and unsafe field-path rejection. The latest staging workflow passed: 290 Vitest files / 2,969 tests, SSR smoke tests, architecture, framework, documentation, operational-script, and plugin-dependency checks. The live deployment migrations have not yet been run.
 
 ### Agent Notes (2026-11-14, agent/outputs-channel-20261114)
 
