@@ -16,6 +16,24 @@ entity-event emission contract; process actions run through `runAction`.
 
 ---
 
+## useGraphDocumentSession — canonical procedural graph editor
+
+`useGraphDocumentSession({ t, providers, graphDocuments })` owns the
+browser editing session for a canonical `perigram.graph` document:
+normalized graph state, stable node/edge identity, typed sockets, Graph
+Input/Output declarations, pinned subgraph interfaces, validation, and
+preview evaluation. The provider registry and evaluator contracts live in
+[packages/core](../packages/core/README.md) and
+[packages/plugin-sdk](../packages/plugin-sdk/README.md).
+
+The `graphDocuments` input is the authorized catalog projection from the
+graph workspace. Each available entry carries its validated payload as
+`graph`; the dedicated Use Graph palette group places an invocation already
+pinned to that graph identity, immutable revision, and public interface.
+The current graph is excluded from its own palette.
+
+---
+
 ## useBlocks — Low-level Block Composables
 
 ```js
