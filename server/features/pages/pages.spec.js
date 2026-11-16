@@ -25,6 +25,7 @@ vi.mock('h3', () => ({
 
 import * as pagesService from './service.js';
 import * as pagesRepository from './repository.js';
+import { getOrganizationChangeSequence } from '../instances/organization-sequence.js';
 
 const ORG_A = 'org-a';
 const ORG_B = 'org-b';
@@ -243,6 +244,51 @@ describe('pages', () => {
     }, memberOf(ORG_A));
     await pagesService.remove(page._id, memberOf(ORG_A));
     expect(await db.collection('files.files').countDocuments({ _id: new ObjectId(next.file.fileId) })).toBe(0);
+  });
+
+  it('sequences page create, update, Bake, and delete mutations', async () => {
+    const page = await pagesService.create({ name: 'Sequenced' }, memberOf(ORG_A));
+    expect(await getOrganizationChangeSequence(ORG_A)).toBe(1);
+
+    await pagesService.update(page._id, { name: 'Renamed' }, memberOf(ORG_A));
+    expect(await getOrganizationChangeSequence(ORG_A)).toBe(2);
+
+    await pagesService.bakeFile({
+      pageId: page._id,
+      path: 'exports/sequence.txt',
+      buffer: Buffer.from('sequenced'),
+      mimeType: 'text/plain'
+    }, memberOf(ORG_A));
+    expect(await getOrganizationChangeSequence(ORG_A)).toBe(3);
+
+    await pagesService.remove(page._id, memberOf(ORG_A));
+    expect(await getOrganizationChangeSequence(ORG_A)).toBe(4);
+  });
+
+  it('retracts a failed Bake revision and restores the prior page file', async () => {
+    const page = await pagesService.create({ name: 'Rollback' }, memberOf(ORG_A));
+    const first = await pagesService.bakeFile({
+      pageId: page._id,
+      path: 'exports/result.txt',
+      buffer: Buffer.from('first'),
+      mimeType: 'text/plain'
+    }, memberOf(ORG_A));
+    const second = await pagesService.bakeFile({
+      pageId: page._id,
+      path: 'exports/result.txt',
+      buffer: Buffer.from('second'),
+      mimeType: 'text/plain',
+      conflictPolicy: 'create-revision'
+    }, memberOf(ORG_A));
+
+    const rollback = await pagesService.retractBakedFile({
+      pageId: page._id,
+      fileId: second.file.fileId
+    }, memberOf(ORG_A));
+    const restored = await pagesService.getById(page._id, memberOf(ORG_A));
+    expect(rollback.success).toBe(true);
+    expect(restored.blocks.find(block => block.kind === 'file').file.fileId).toBe(first.file.fileId);
+    expect(await db.collection('files.files').countDocuments({ _id: new ObjectId(second.file.fileId) })).toBe(0);
   });
 
   it('refuses page file baking into a section and rejects unsafe paths', async () => {
