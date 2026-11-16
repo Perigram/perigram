@@ -14,6 +14,15 @@ export const GRAPH_EXECUTION_STATUSES = Object.freeze([
 ]);
 
 export function createGraphExecutionRecord(source = {}) {
+  if (!isRecord(source)) {
+    throw new TypeError('Graph execution source must be an object');
+  }
+  for (const key of ['graph', 'inputs', 'outputs', 'nodeOutputs', 'diagnostics', 'provenance', 'readSet', 'artifacts']) {
+    const value = source[key] ?? (key === 'graph' ? {} : undefined);
+    if (value !== undefined && !isJsonValue(value)) {
+      throw new TypeError(`Graph execution ${key} must be JSON-compatible`);
+    }
+  }
   const record = {
     format: GRAPH_EXECUTION_FORMAT,
     version: GRAPH_EXECUTION_VERSION,
