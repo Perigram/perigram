@@ -10,7 +10,7 @@ Parent: [server features](../README.md).
 - The submitted graph identity and revision must match the saved payload.
 - Execution envelopes use the hidden append-only `graph-execution` CTS type through the generic instance persistence service.
 - Page-file Bake validates the saved source revision, writes bytes through the [pages feature](../pages/README.md), and records the resulting file reference and destination in a `procedural-bake` execution.
-- Commit applies one exact-instance CTS field/name patch from a successful preview. Its read set must contain exactly the target instance at the proposal's expected revision; optional queries must be exact reads of that same instance. The generic instance service rechecks the caller's write grant and revision at the write boundary. Multi-object and relation commits remain unsupported.
+- Commit applies one exact-instance CTS field/name patch from a successful preview. Its read set must contain exactly the target instance at the proposal's expected revision; optional queries must be exact reads of that same instance. The generic instance service rechecks the caller's write grant and revision at the write boundary. The instance mutation and append-only execution evidence commit in one Mongo snapshot transaction; a stable organization sequence is reserved by compare-and-swap.
 - Export returns a selected output as an authenticated download and records a `procedural-export` execution with filename, MIME type, size, output, and source-execution provenance.
 - Before Bake or Export, the feature re-reads the saved graph document and every consumed instance/relation dependency. Query-backed previews require the recorded organization sequence to remain unchanged; deleted, revised, or re-linked dependencies fail with `409` instead of materializing stale output.
 - Bake destinations identify a Page id and a validated page-relative path. The page service owns conflict policy, revision history, GridFS metadata, and compare-and-swap page updates.
@@ -42,7 +42,9 @@ same target; relation dependencies and broad query ranges are rejected by
 this first commit adapter. The instance service rechecks authorization,
 field policy, constraints, and the expected revision at the write boundary.
 A successful commit records a `procedural-commit` execution with the
-resulting instance revision and artifact reference. Broader multi-object
+resulting instance revision and artifact reference in the same transaction
+as the instance mutation. Mongo transaction support is a commit prerequisite;
+unsupported deployments receive `503` before writes. Broader multi-object
 and relation commits remain gated on transactionally validated write sets.
 
 ## API
