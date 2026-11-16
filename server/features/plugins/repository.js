@@ -69,11 +69,15 @@ export async function materializePluginAssets(organizationId, pluginId, version)
       // installed manifest is later checked against the bytes on every read.
       const buffer = await getFileBuffer(source.id, PLUGIN_ASSETS_BUCKET);
       const contentHash = `sha256:${createHash('sha256').update(buffer).digest('hex')}`;
-      if (existing && String(existing.metadata?.contentHash || '') === contentHash) {
-        copied.push({ path, contentHash, bytes: existing.length });
-        continue;
+      if (existing) {
+        const existingBuffer = await getFileBuffer(existing.id, ORG_PLUGIN_ASSETS_BUCKET);
+        const existingDigest = `sha256:${createHash('sha256').update(existingBuffer).digest('hex')}`;
+        if (String(existing.metadata?.contentHash || '') === contentHash && existingDigest === contentHash) {
+          copied.push({ path, contentHash, bytes: existingBuffer.length });
+          continue;
+        }
+        await deleteFile(existing.id, ORG_PLUGIN_ASSETS_BUCKET);
       }
-      if (existing) await deleteFile(existing.id, ORG_PLUGIN_ASSETS_BUCKET);
       await uploadFile(buffer, filename, {
         organizationId: String(organizationId),
         pluginId: String(pluginId),
