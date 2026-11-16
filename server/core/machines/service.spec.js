@@ -828,6 +828,7 @@ describe('status service lifecycle payloads', () => {
       _id: id,
       type: 'e2e-note',
       typeVersion: 1,
+      revision: 1,
       organizationId: 'org-1',
       name: 'Note',
       fields: { name: 'Note' },
@@ -849,6 +850,7 @@ describe('status service lifecycle payloads', () => {
     await statusService.setInitialStateForOrganization('e2e-note', id.toString(), 'new', 'org-1', 'admin-1', {});
     let entity = await db.collection('items').findOne({ _id: id });
     expect(entity.state).toBe('new');
+    expect(entity.revision).toBe(2);
     expect(entity).not.toHaveProperty('status');
     expect(await db.collection('status_events').countDocuments({ targetId: id })).toBe(1);
 
