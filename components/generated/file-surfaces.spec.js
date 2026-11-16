@@ -113,6 +113,8 @@ describe('file surface registry', () => {
     await expect(text.load()).resolves.toBe('');
     expect(text.save).toBeInstanceOf(Function);
     expect(text.rename).toBeInstanceOf(Function);
+    expect(text.recordExecution).toBeInstanceOf(Function);
+    expect(text.bakeFile).toBeInstanceOf(Function);
   });
 
   it('resolves the payload store-first so reloads serve the current revision', async () => {

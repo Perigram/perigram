@@ -73,7 +73,7 @@
           :preview-renderers="previewRenderers"
           :node-definitions="nodeDefinitions"
           :channels="graphPreviewChannels"
-          :can-bake-to-saved-graph="persisted && !isDirty"
+          :can-bake-to-saved-graph="canBakeToSavedGraph"
           :baking="bakingOutput"
           @refresh="refreshPreviewAndRecord"
           @update-input-binding="setGraphInputBinding"
@@ -359,7 +359,7 @@ async function loadGraphDocument() {
 
 async function refreshPreviewAndRecord() {
   const result = await refreshPreview();
-  if (executionRecord.value && instanceId && typeof props.persistence.recordExecution === 'function') {
+  if (executionRecord.value && instanceId && !isDirty.value && typeof props.persistence.recordExecution === 'function') {
     try {
       await props.persistence.recordExecution(executionRecord.value);
     } catch (error) {

@@ -11,6 +11,8 @@ import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { resolveTypeFeature } from '#shared/field-access-policies.js';
 import { instancePayloadFileUrl } from './file-preview-contract.js';
+import { createGraphExecutionRecord } from '@perigram/core';
+import { mintId } from '~/utils/processDesignerIdentity.js';
 
 /**
  * File surfaces: the single app-side home of the CTS file-type editor
@@ -157,12 +159,93 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
       form.append('file', new File([text], filename, { type: mimeType }));
       const updated = await $fetch(`/api/instances/${encodeURIComponent(typeId)}/${encodeURIComponent(instanceId)}/payload`, { method: 'PUT', body: form });
       if (updated?.payload) record.payload = updated.payload;
+      let result = updated;
+      if (typeId === 'graph-document') {
+        let graph;
+        try { graph = JSON.parse(text); } catch { throw new Error('Graph document payload must be valid JSON'); }
+        if (!graph?.id) throw new Error('Graph document payload must carry its canonical graph identity');
+        const instances = useInstancesStore();
+        const identityUpdate = await instances.updateInstance(
+          instances.canonicalTypeKey(typeId), instanceId,
+          { fields: { graphId: String(graph.id) } },
+          { typeId, reason: 'graph-identity' }
+        );
+        result = { ...updated, ...identityUpdate, payload: updated?.payload || identityUpdate?.payload };
+      }
       // Editor saves owe the shared emission contract (stores README):
       // the browser-local event reconciles every other open pane, the
       // typed invalidation reaches other sessions through the realtime
       // bridge.
-      notify(updated, 'payload-save');
-      return updated;
+      notify(result, 'payload-save');
+      return result;
+    },
+    recordExecution: async (executionRecord) => {
+      if (!instanceId) throw new Error('Save the graph document before recording an execution');
+      return await $fetch('/api/graph-executions', {
+        method: 'POST',
+        body: { graphDocumentInstanceId: instanceId, record: executionRecord }
+      });
+    },
+    bakeFile: async ({ graphDocumentInstanceId, record: previewRecord, outputId, destination } = {}) => {
+      if (!instanceId || String(graphDocumentInstanceId) !== instanceId) throw new Error('Bake source does not match the open graph document');
+      if (!destination?.pageId || !destination?.path || !outputId) throw new Error('Bake requires an exact page, relative file path, and selected output');
+      const output = previewRecord?.outputs?.[outputId];
+      if (output === undefined) throw new Error(`Graph output ${outputId} is unavailable`);
+      let blob;
+      let outputMime = 'application/json';
+      if (output && typeof output === 'object' && output.fileId) {
+        const bucket = output.bucket || 'files';
+        const response = await fetch(`/api/files/download/${encodeURIComponent(output.fileId)}?bucket=${encodeURIComponent(bucket)}`);
+        if (!response.ok) throw new Error(`Could not read graph output file (${response.status})`);
+        blob = await response.blob();
+        outputMime = output.mime || blob.type || 'application/octet-stream';
+      } else if (typeof output === 'string') {
+        blob = new Blob([output], { type: 'text/plain;charset=utf-8' });
+        outputMime = 'text/plain';
+      } else {
+        blob = new Blob([JSON.stringify(output, null, 2)], { type: 'application/json' });
+      }
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      let binary = '';
+      for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+      }
+      const baked = await $fetch(`/api/pages/${encodeURIComponent(destination.pageId)}/files`, {
+        method: 'POST',
+        body: {
+          path: destination.path,
+          contentBase64: btoa(binary),
+          mimeType: outputMime,
+          conflictPolicy: destination.conflictPolicy || 'fail',
+          provenance: {
+            graphId: previewRecord.graph.id,
+            graphRevision: previewRecord.graph.revision,
+            executionId: previewRecord.id,
+            outputId
+          }
+        }
+      });
+      const bakeRecord = createGraphExecutionRecord({
+        ...previewRecord,
+        id: mintId('execution').replaceAll('_', '-'),
+        profile: 'procedural-bake',
+        completedAt: new Date().toISOString(),
+        artifacts: [...(previewRecord.artifacts || []), {
+          kind: 'page-file',
+          pageId: String(destination.pageId),
+          path: baked.file.path,
+          fileId: baked.file.fileId,
+          mime: baked.file.mime,
+          size: baked.file.size,
+          revision: baked.file.revision,
+          outputId
+        }]
+      });
+      await $fetch('/api/graph-executions', {
+        method: 'POST',
+        body: { graphDocumentInstanceId: instanceId, record: bakeRecord }
+      });
+      return baked;
     },
     rename: async (name) => {
       const trimmed = String(name || '').trim();
