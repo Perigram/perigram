@@ -755,3 +755,7 @@ from the compiled manifest.
   applied after mount: production Vue does not rectify hydration
   mismatches, so SSR and the hydration render stay identical and the
   workspace swap-in rides normal reactivity.
+
+## Page file artifacts
+
+The custom page document surface renders file-artifact blocks as authorized file links. The shared page-document contract owns path validation and immutable file-reference history; the pages feature owns organization-scoped blob storage, exact-page attachment, conflict policy, and cleanup. Graph Bake writes to an explicit Page id and relative path rather than an implicit upload list or chat attachment.
