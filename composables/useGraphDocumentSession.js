@@ -54,6 +54,7 @@ export function useGraphDocumentSession({ t }) {
   const edges = ref([]);
   const validation = ref(null);
   const previewResult = ref(null);
+  const inputBindings = ref({});
   const previewError = ref('');
   const previewRunning = ref(false);
   const contextPaletteSearch = ref(null);
@@ -427,6 +428,12 @@ export function useGraphDocumentSession({ t }) {
     }
   }
 
+  function setGraphInputBinding(portId, value) {
+    inputBindings.value = { ...inputBindings.value, [portId]: value };
+    previewResult.value = null;
+    previewError.value = '';
+  }
+
   function registerProvider(definition, executor) {
     if (typeof executor !== 'function') throw new TypeError('Provider executor must be a function');
     const normalized = registry.register(definition);
@@ -501,6 +508,7 @@ export function useGraphDocumentSession({ t }) {
     graphDocument,
     validation: computed(() => validateCurrentGraph()),
     previewResult,
+    inputBindings,
     previewError,
     previewRunning,
     paletteGroups,
@@ -544,6 +552,7 @@ export function useGraphDocumentSession({ t }) {
     serializeGraph,
     designerSignature,
     refreshPreview,
+    setGraphInputBinding,
     registerProvider
   };
 }
