@@ -1512,3 +1512,23 @@ and the compiler surfaces (screens, access, contract diff, orchestration).
   membership gates.
 - [server/scripts](../../server/scripts/README.md) — one-shot
   persisted-data migrations.
+
+
+## Procedural graph provider adapter
+
+`procedural-provider.js` exposes eligible pure process data operations to the
+canonical graph evaluator under provider identity `perigram.processes`.
+
+- `createProcessProceduralNodeDefinition(kind, record, catalogContext)`
+  projects a catalog operation into a version-pinned provider definition.
+- `createProcessProceduralExecutor({ context, catalogContext })` executes the
+  existing data-node implementation through canonical plain port values.
+- Dynamic ports derive from the operation record and catalog context.
+- The adapter covers pure sources, values, collections, and record operations.
+  CTS access, mutation, effects, and control-token operations remain owned by
+  the process authorization and durable orchestration paths.
+
+The canonical graph document and preview evaluator are owned by
+[`@perigram/core`](../core/README.md); provider declarations and registration
+are owned by [`@perigram/plugin-sdk`](../plugin-sdk/README.md). The process
+execution profile remains owned here. See [root SPEC §28](../../SPEC.md#28-unified-node-graph-system).
