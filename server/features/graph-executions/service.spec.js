@@ -229,6 +229,33 @@ describe('graph execution service', () => {
     expect(session.endSession).toHaveBeenCalledTimes(1);
   });
 
+  it('refuses Commit before mutation when Mongo transaction support is unavailable', async () => {
+    mocks.connectDB.mockResolvedValue({});
+    await expect(graphExecutionsService.commitOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: patchProposalPreview(),
+      outputId: 'document'
+    }, auth)).rejects.toMatchObject({ statusCode: 503 });
+    expect(dataService.patch).not.toHaveBeenCalled();
+    expect(executionService.create).not.toHaveBeenCalled();
+  });
+
+  it('aborts the Commit transaction when execution evidence persistence fails', async () => {
+    executionService.create.mockRejectedValue(new Error('evidence store unavailable'));
+    await expect(graphExecutionsService.commitOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: patchProposalPreview(),
+      outputId: 'document'
+    }, auth)).rejects.toMatchObject({
+      statusCode: 500,
+      message: 'CTS update and graph execution evidence could not be committed atomically'
+    });
+    expect(dataService.patch).toHaveBeenCalled();
+    expect(executionService.create).toHaveBeenCalled();
+    expect(session.withTransaction).toHaveBeenCalledTimes(1);
+    expect(session.endSession).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects a stale target revision before the authoritative patch', async () => {
     dataService.processGetById.mockResolvedValue({
       _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1',
