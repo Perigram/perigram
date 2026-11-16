@@ -3,6 +3,10 @@
     <strong class="text-label">{{ node.data.label }}</strong>
     <template v-if="isBoundary">
       <InputText v-model="label" size="small" @blur="applyLabel" @keydown.enter.prevent="applyLabel" />
+      <label class="text-supporting text-muted" for="graph-boundary-declaration">Interface declaration (JSON)</label>
+      <Textarea id="graph-boundary-declaration" v-model="declarationText" rows="8" auto-resize class="w-full text-supporting" />
+      <Message v-if="declarationError" severity="error">{{ declarationError }}</Message>
+      <Button size="small" label="Apply interface declaration" @click="applyDeclaration" />
     </template>
     <template v-else-if="node.data.definition">
       <label class="text-supporting text-muted" for="graph-node-config">{{ $t('processDesigner.graphConfiguration') }}</label>
@@ -39,11 +43,14 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import { GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
 
 const props = defineProps({
-  node: { type: Object, default: null }
+  node: { type: Object, default: null },
+  boundaryDeclaration: { type: Object, default: null }
 });
 const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration']);
 const configText = ref('{}');
-const configError = ref('');\nconst declarationText = ref('{}');\nconst declarationError = ref('');
+const configError = ref('');
+const declarationText = ref('{}');
+const declarationError = ref('');
 const label = ref('');
 
 const isBoundary = computed(() => [
@@ -51,16 +58,30 @@ const isBoundary = computed(() => [
   GRAPH_OUTPUT_OPERATION
 ].includes(props.node?.data?.operation?.id));
 
-watch(() => props.node?.id, () => {
-  configText.value = JSON.stringify(props.node?.data?.config || {}, null, 2);
-  configError.value = '';
-  label.value = props.node?.data?.label || '';
-}, { immediate: true });\n\nwatch(() => props.boundaryDeclaration, declaration => {\n  if (!isBoundary.value) return;\n  declarationText.value = JSON.stringify({\n    contract: declaration?.contract || { shape: 'item', semantic: { base: 'json' } },\n    required: declaration?.required !== false,\n    ...(Object.hasOwn(declaration || {}, 'default') ? { default: declaration.default } : {})\n  }, null, 2);\n}, { deep: true });
+watch(
+  [() => props.node?.id, () => props.boundaryDeclaration],
+  () => {
+    configText.value = JSON.stringify(props.node?.data?.config || {}, null, 2);
+    configError.value = '';
+    declarationError.value = '';
+    declarationText.value = JSON.stringify({
+      contract: props.boundaryDeclaration?.contract || { shape: 'item', semantic: { base: 'json' } },
+      required: props.boundaryDeclaration?.required !== false,
+      ...(Object.hasOwn(props.boundaryDeclaration || {}, 'default')
+        ? { default: props.boundaryDeclaration.default }
+        : {})
+    }, null, 2);
+    label.value = props.node?.data?.label || '';
+  },
+  { immediate: true, deep: true }
+);
 
 function applyConfig() {
   try {
     const value = JSON.parse(configText.value || '{}');
-    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Configuration must be a JSON object');
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('Configuration must be a JSON object');
+    }
     configError.value = '';
     emit('update-config', { nodeId: props.node.id, config: value });
   } catch (error) {
@@ -68,7 +89,20 @@ function applyConfig() {
   }
 }
 
-function applyDeclaration() {\n  try {\n    const declaration = JSON.parse(declarationText.value || '{}');\n    if (!declaration || typeof declaration !== 'object' || Array.isArray(declaration)) throw new Error('Declaration must be a JSON object');\n    emit('update-boundary-declaration', { nodeId: props.node.id, declaration });\n    declarationError.value = '';\n  } catch (error) {\n    declarationError.value = error.message;\n  }\n}\n\nfunction applyLabel() {
+function applyDeclaration() {
+  try {
+    const declaration = JSON.parse(declarationText.value || '{}');
+    if (!declaration || typeof declaration !== 'object' || Array.isArray(declaration)) {
+      throw new Error('Declaration must be a JSON object');
+    }
+    emit('update-boundary-declaration', { nodeId: props.node.id, declaration });
+    declarationError.value = '';
+  } catch (error) {
+    declarationError.value = error.message;
+  }
+}
+
+function applyLabel() {
   emit('update-boundary-label', { nodeId: props.node.id, label: label.value });
 }
 </script>
