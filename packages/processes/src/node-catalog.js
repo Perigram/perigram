@@ -46,6 +46,33 @@ export const MAPPED_MUTATION_SPECIES_KINDS = new Set([
   'cts.remove'
 ]);
 
+const FAMILY_GLYPHS = Object.freeze({
+  sources: 'source', values: 'value', collections: 'collection',
+  records: 'record', reads: 'read', effects: 'effect', control: 'control'
+});
+
+const NODE_GLYPHS = Object.freeze({
+  'source.literalItem': 'literal-item', 'source.literalList': 'literal-list', 'source.literalTree': 'literal-tree',
+  'source.processInput': 'process-input', 'source.triggerPayload': 'trigger-payload', 'source.currentTime': 'clock',
+  'source.secretRef': 'secret', 'source.currentUser': 'user', 'source.currentOrganization': 'organization',
+  'value.cast': 'cast', 'value.select': 'select', 'value.recordField': 'record-field', 'value.convertUnit': 'convert-unit',
+  'value.required': 'required', 'value.coalesce': 'coalesce', 'value.validate': 'validate', 'value.math': 'math',
+  'value.string': 'string', 'value.dateTime': 'date-time', 'value.compare': 'compare', 'value.logic': 'logic', 'value.format': 'format',
+  'collection.makeList': 'make-list', 'collection.packArray': 'pack-array', 'collection.unpackArray': 'unpack-array',
+  'collection.concat': 'concat', 'collection.itemAt': 'item-at', 'collection.slice': 'slice', 'collection.count': 'count',
+  'collection.distinct': 'distinct', 'collection.sort': 'sort', 'collection.reverse': 'reverse', 'collection.shift': 'shift',
+  'collection.partition': 'partition', 'collection.dispatch': 'dispatch', 'collection.groupBy': 'group-by',
+  'collection.filter': 'filter', 'collection.join': 'join', 'collection.reduce': 'reduce',
+  'tree.flatten': 'flatten', 'tree.graft': 'graft', 'tree.simplify': 'simplify', 'tree.branch': 'branch',
+  'tree.zip': 'zip', 'tree.unzip': 'unzip', 'tree.cross': 'cross', 'tree.transpose': 'transpose', 'tree.clean': 'clean', 'tree.stats': 'stats',
+  'record.construct': 'record-construct', 'record.merge': 'record-merge',
+  'cts.construct': 'construct', 'cts.mutate': 'mutate', 'cts.transition': 'transition', 'cts.remove': 'remove',
+  'cts.command': 'command', 'cts.service': 'service', 'cts.conversion': 'conversion', 'cts.read': 'read',
+  'cts.field': 'field', 'cts.emit': 'emit', 'cts.compose': 'compose', 'cts.decompose': 'decompose',
+  'control.if': 'condition', 'control.switch': 'switch', 'control.fork': 'fork', 'control.joinAll': 'join-all',
+  'control.joinAny': 'join-any', 'control.forEach': 'for-each', 'control.forEachEnd': 'for-each-end',
+  'control.waitUntil': 'wait', 'control.stopSuccess': 'success', 'control.stopFailure': 'failure'
+});
 const definitions = [
   source('source.literalItem', 'literalItem'),
   source('source.literalList', 'literalList'),
@@ -195,7 +222,7 @@ function control(kind, label) {
 }
 
 function definition(kind, label, family, level, pure, ports = { inputs: [], outputs: [] }) {
-  return { kind, label, family, level, pure, ports };
+  return { kind, label, family, level, pure, glyph: NODE_GLYPHS[kind] || FAMILY_GLYPHS[family], ports };
 }
 
 // Type-bound species (SPEC §20) split by binding semantics.

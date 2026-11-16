@@ -18,7 +18,10 @@
       />
       <div v-tooltip.bottom="nodeSpecTooltip" class="min-w-0 flex-1">
         <div v-if="data.groupLabel" class="truncate text-supporting text-muted">{{ data.groupLabel }}</div>
-        <strong class="block min-w-0 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
+        <div class="flex min-w-0 items-center gap-2">
+          <i v-if="data.processNodeGlyph"  :class="processNodeGlyphClass(data.processNodeGlyph)" class="shrink-0 text-muted" aria-hidden="true" />
+          <strong class="block min-w-0 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
+        </div>
       </div>
       <Button
         v-if="nodeSpecTooltip.value"

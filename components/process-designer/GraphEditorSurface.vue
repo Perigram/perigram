@@ -10,6 +10,9 @@
       :bind-context-palette-search="instance => { contextPaletteSearch = instance }"
       :document-items="[]"
       :canvas-items="canvasDockItems"
+      chrome-variant="floating"
+      :canvas-status="canvasStatus"
+      :on-activity-click="openActivitySurface"
       :touch-pan-drag="touchPanDrag"
       :default-edge-options="{ type: 'default' }"
       :palette-groups="paletteChipGroups"
@@ -283,6 +286,21 @@ const selectedProcessNodeInputs = computed(() => {
     connected: connected.has(input.id)
   }));
 });
+const canvasStatus = computed(() => {
+  const evaluatedNodes = Object.values(channelPreview.payload.value?.nodes || {});
+  const state = channelPreview.running.value
+    ? 'running'
+    : channelPreview.error.value || evaluatedNodes.some(node => node.error)
+      ? 'error'
+      : channelPreview.payload.value
+        ? 'ready'
+        : 'idle';
+  const suffix = state[0].toUpperCase() + state.slice(1);
+  return { state, label: t('processDesigner.canvasStatus' + suffix), count: evaluatedNodes.length };
+});
+function openActivitySurface() {
+  inspectTab.value = 'preview';
+}
 const inspectorPreview = computed(() => ({
   supported: selectedNodeSupportsPreview.value,
   running: channelPreview.running.value,

@@ -2,6 +2,7 @@
   <DesignerSurface>
     <DesignerWorkspace
       :ref="bindFrame"
+      :chrome-variant="chromeVariant"
       :document-items="documentItems"
       :canvas-items="canvasItems"
       layout="canvas"
@@ -54,6 +55,18 @@
         <template #fallback><div class="absolute inset-0" /></template>
       </ClientOnly>
 
+      <button
+        v-if="canvasStatus && onActivityClick"
+        type="button"
+        data-canvas-status
+        class="pointer-events-auto absolute right-3 top-3 z-20 inline-flex items-center gap-2 rounded-full border border-content-border bg-content/85 px-3 py-1.5 text-supporting text-muted shadow-overlay backdrop-blur-md"
+        :aria-label="$t('processDesigner.canvasStatusAria', { status: canvasStatus.label, count: canvasStatus.count })"
+        @click="onActivityClick()"
+      >
+        <span class="h-2 w-2 shrink-0 rounded-full" :class="statusDotClass(canvasStatus.state)" aria-hidden="true"></span>
+        <span>{{ canvasStatus.label }}</span>
+        <span class="rounded-full bg-subtle px-1.5 py-0.5">{{ canvasStatus.count }}</span>
+      </button>
       <!-- Selection speed dial: the quiet-card policy keeps nodes free of
            per-node chrome, so selection actions float beside the last
            selected node instead. -->
@@ -94,6 +107,7 @@
         v-if="!readOnly"
         :groups="paletteGroups"
         :placeholder="palettePlaceholder"
+        :variant="chromeVariant"
         @pick="item => (item.action ? item.action() : addNode(item))"
       />
 
@@ -193,10 +207,22 @@ const props = defineProps({
   onConnect: { type: Function, required: true },
   handleNodeDragStop: { type: Function, default: null },
   handleCanvasNodesChange: { type: Function, default: null },
-  readOnly: { type: Boolean, default: false }
+  readOnly: { type: Boolean, default: false },
+  chromeVariant: { type: String, default: 'plane', validator: value => ['plane', 'floating'].includes(value) },
+  canvasStatus: { type: Object, default: null },
+  onActivityClick: { type: Function, default: null }
 });
 
 const { t } = useI18n();
+
+function statusDotClass(state) {
+  return {
+    idle: 'bg-signal-identity',
+    running: 'bg-signal-temporal',
+    ready: 'bg-signal-data',
+    error: 'bg-signal-effect'
+  }[state] || 'bg-signal-identity';
+}
 
 function openPaletteAtPane(event) {
   if (!props.readOnly) props.openPanePalette(event);

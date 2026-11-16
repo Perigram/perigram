@@ -5,9 +5,11 @@
     :class="[
       'designer-workspace flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
       compact ? 'designer-workspace--compact' : '',
+      chromeVariant === 'floating' ? 'designer-workspace--floating' : '',
       $attrs.class
     ]"
     :data-designer-layout="layout"
+    :data-designer-chrome="chromeVariant"
   >
     <!-- Lanes: the canvas is the workspace background, edge to edge; palette
          and inspector are floating rails docked over it. Panel visibility is
@@ -41,10 +43,10 @@
 
     <main v-else class="relative min-h-0 min-w-0 flex-1 overflow-hidden">
       <slot />
-      <div v-if="hasPalette && !compact && panels.palette" class="designer-workspace__rail absolute top-3 bottom-3 left-3 z-20 w-[17rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
+      <div v-if="hasPalette && !compact && panels.palette" class="designer-workspace__rail absolute top-3 bottom-3 left-3 z-20 w-[17rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border shadow-overlay" :class="chromeVariant === 'floating' ? 'bg-content/85 backdrop-blur-md' : 'bg-content'">
         <slot name="palette" />
       </div>
-      <aside v-if="hasInspector && !compact && panels.inspector" class="designer-workspace__rail absolute top-3 bottom-3 right-3 z-20 w-[22rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
+      <aside v-if="hasInspector && !compact && panels.inspector" class="designer-workspace__rail absolute top-3 bottom-3 right-3 z-20 w-[22rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border shadow-overlay" :class="chromeVariant === 'floating' ? 'bg-content/85 backdrop-blur-md' : 'bg-content'">
         <slot name="inspector" />
       </aside>
     </main>
@@ -58,7 +60,11 @@
       data-designer-toolbar
       class="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center px-3"
     >
-      <Toolbar :aria-label="$t('designer.toolbar')" class="pointer-events-auto max-w-full overflow-x-auto p-1 gap-1">
+      <Toolbar
+        :aria-label="$t('designer.toolbar')"
+        class="pointer-events-auto max-w-full overflow-x-auto p-1 gap-1"
+        :class="chromeVariant === 'floating' ? 'rounded-full border border-content-border bg-content/85 shadow-overlay backdrop-blur-md' : ''"
+      >
         <template #start>
           <DesignerToolbarItems :items="toolbarStartItems" />
         </template>
@@ -128,7 +134,8 @@ const props = defineProps({
   documentItems: { type: Array, default: () => [] },
   // Canvas commands (zoom cluster, content operations) rendered as the
   // toolbar end group.
-  canvasItems: { type: Array, default: () => [] }
+  canvasItems: { type: Array, default: () => [] },
+  chromeVariant: { type: String, default: 'plane', validator: value => ['plane', 'floating'].includes(value) }
 });
 
 const slots = useSlots();

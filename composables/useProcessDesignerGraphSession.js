@@ -1,6 +1,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import {
   EFFECT_SPECIES_KINDS,
+  getProcessNodeDefinition,
   applyFieldDisplayRole,
   authoredSocketDefault,
   canvasToDefinition,
@@ -629,6 +630,7 @@ export function useProcessDesignerGraphSession({
     'processStatusOptions',
     'processConnectedInputIds',
     'processConnectedOutputIds',
+    'processNodeGlyph',
     'kindLabel',
     'groupLabel',
     'diagnostics',
@@ -662,6 +664,7 @@ export function useProcessDesignerGraphSession({
       processStatusOptions: isProcessNode ? processWorkflowPaths(record) : [],
       processConnectedInputIds: isProcessNode ? connectedProcessInputIds(node, record) : [],
       processConnectedOutputIds: isProcessNode ? connectedProcessOutputIds(node, record) : [],
+      processNodeGlyph: isProcessNode ? getProcessNodeDefinition(record.kind)?.glyph || '' : '',
       kindLabel: isProcessNode ? processNodeDisplayLabel(record) : record.kind,
       groupLabel: isProcessNode ? paletteGroupLabel(processNodeGroupLabel(record)) : '',
       summary: processNodeSummary(record),

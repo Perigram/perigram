@@ -162,27 +162,25 @@ canvas; sockets are generous targets with hover glow.
   payload-family dot drawn by the design system
   (`--socket-color`), growing and ringing on hover; the handle
   primitive gains top/bottom sides for the collapse rails.
-- [ ] C2 Floating inspector with live values — the inspector floats
-  over the canvas: unconnected sockets author through typed controls
-  (structured values via a code dialog), connected inputs and all
-  outputs display their live evaluation from the channel payload; the
-  per-node Inspect action and the inline fallback editor law retire.
-  Landed 2026-11-16: connected input values and outputs now render from
-  the whole-graph channel payload; preview resolves effect inputs without
-  executing effects; structured JSON values open in a code dialog; the
-  per-node Inspect/re-run action is retired. Authoring displacement is
-  complete under C1. Remaining: render the inspector as a floating overlay
-  (with C3).
-- [ ] C3 Floating canvas chrome — the category strip (provenance
-  labels, category chips) and the tool cluster ride floating
-  translucent bars over a fullscreen canvas; the graph editor mount
-  adopts it first, the process page keeps its process plane.
-- [ ] C5 Node glyphs — a monochrome masked glyph per catalog entry
-  (engine op icon set + in-house dataflow glyphs) in palette rows and
-  card headers.
-- [ ] C6 Canvas status — evaluation/engine state as a floating status
-  chip over the canvas (dot + label + count), with the activity
-  surface a toggle away.
+- [x] C2 Floating inspector with live values — unconnected sockets
+  author through typed controls (structured values via a code dialog),
+  connected inputs and all outputs display their live evaluation from
+  the channel payload; the per-node Inspect action and inline fallback
+  editor law are retired. Landed 2026-11-16: the inspector is a translucent
+  floating rail over the graph editor canvas; preview resolves effect
+  inputs without executing effects; the whole-graph channel payload feeds
+  live input/output trees; structured JSON opens in the shared dialog.
+- [x] C3 Floating canvas chrome — the category strip (provenance
+  labels, category chips), inspector, and tool cluster ride floating
+  translucent bars over the fullscreen graph editor canvas. The graph
+  editor opts into the floating variant; the process page retains the
+  default process-plane variant.
+- [x] C5 Node glyphs — every process catalog entry carries a
+  provider-neutral glyph key; the shared UI mapping renders monochrome
+  glyphs in palette rows and node-card headers.
+- [x] C6 Canvas status — a floating evaluation-state chip shows dot,
+  label, and evaluated-node count; activating it switches directly to
+  the activity/preview surface.
 
 ### Agent Notes (2026-11-14, agent/canvas-rethink-20261114)
 

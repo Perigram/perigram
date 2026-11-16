@@ -19,6 +19,10 @@ describe('process v4 node catalog', () => {
     expect(PROCESS_NODE_CATALOG.every(node => /^[a-z]+\.[A-Za-z]+$/.test(node.kind))).toBe(true);
   });
 
+  it('assigns a monochrome glyph to every catalog entry', () => {
+    expect(PROCESS_NODE_CATALOG.every(node => /^[a-z]+(?:-[a-z]+)*$/.test(node.glyph))).toBe(true);
+  });
+
   it('separates value logic, reads, effects, and control', () => {
     expect(getProcessNodeDefinition('value.logic')).toMatchObject({ family: 'values', level: 'data', pure: true });
     expect(getProcessNodeDefinition('cts.read')).toMatchObject({ family: 'reads', level: 'read', pure: false });

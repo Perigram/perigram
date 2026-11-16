@@ -1,6 +1,8 @@
 <template>
   <nav
     class="absolute left-3 top-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap items-start gap-x-4 gap-y-1"
+    :class="variant === 'floating' ? 'rounded-ui border border-content-border bg-content/85 p-2 shadow-overlay backdrop-blur-md' : ''"
+    data-designer-palette-strip
     :aria-label="$t('processDesigner.paletteDock')"
   >
     <div v-for="tier in tiers" :key="tier.id" class="flex max-w-full flex-wrap items-center gap-1.5">
@@ -50,6 +52,7 @@
             v-tooltip.right="item.description"
             @click="pick(item)"
           >
+            <i v-if="item.glyph"  :class="processNodeGlyphClass(item.glyph)" class="mr-1.5 shrink-0 text-muted" aria-hidden="true" />
             <span
               class="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full"
               :class="signalBgClass(item.signal)"
@@ -73,6 +76,7 @@ import Popover from 'primevue/popover';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { signalBgClass } from '~/utils/processDesignerSignals.js';
+import { processNodeGlyphClass } from '~/utils/processDesignerGlyphs.js';
 
 // The canvas-top palette dock (SPEC §28 interaction model): provenance
 // tiers as labels, one chip per palette section; a chip opens the
@@ -82,7 +86,8 @@ import { signalBgClass } from '~/utils/processDesignerSignals.js';
 // picking emits once and closes the popover.
 const props = defineProps({
   groups: { type: Array, default: () => [] },
-  placeholder: { type: String, default: '' }
+  placeholder: { type: String, default: '' },
+  variant: { type: String, default: 'plane', validator: value => ['plane', 'floating'].includes(value) }
 });
 const emit = defineEmits(['pick']);
 
