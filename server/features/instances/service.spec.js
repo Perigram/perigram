@@ -384,6 +384,34 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
+  it('uses updatedAt compare-and-swap to close the race after revision validation', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockResolvedValue({
+      _id: '507f1f77bcf86cd799439011',
+      type: 'pdf-document',
+      typeVersion: 1,
+      revision: 8,
+      updatedAt: '2026-11-16T10:00:00.000Z',
+      fields: { name: 'Current' },
+      lineage: {},
+      relations: {}
+    });
+    coll.findOneAndUpdate.mockResolvedValue(null);
+    const service = instanceServiceResolver('pdf-document');
+
+    await expect(service.patch('507f1f77bcf86cd799439011', {
+      fields: { name: 'Concurrent write' }
+    }, {
+      organizationId: 'org-1',
+      auth: { organizationId: 'org-1', userId: 'user-1' },
+      expectedRevision: 8
+    })).rejects.toMatchObject({ statusCode: 409 });
+
+    expect(coll.findOneAndUpdate.mock.calls[0][0]).toMatchObject({
+      updatedAt: '2026-11-16T10:00:00.000Z'
+    });
+  });
+
   it('refuses structural edge writes through the generic HTTP patch boundary', async () => {
     const coll = stubCollection();
     const service = instanceServiceResolver('pdf-document');
