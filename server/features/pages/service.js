@@ -5,6 +5,7 @@ import { PAGE_TYPE_ID, pageTypeDeclaration } from '#packages/cts';
 import { createBlockId, normalizePageDocument, normalizePageFilePath } from '#shared/page-document.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
 import * as filesService from '../files/service.js';
+import { runOrganizationChange } from '../instances/index.js';
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
 import * as repository from './repository.js';
 
@@ -78,7 +79,12 @@ export async function create({ kind = 'page', name = '', parentId = null, classT
     const parent = await requireParent(parentId, organizationId);
     normalizedParent = toFlexibleId(String(parent._id));
   }
-  const id = await repository.create({
+  const id = await runOrganizationChange(organizationId, {
+    kind: 'page-created',
+    typeId: 'page',
+    paths: ['name', 'parentId', 'blocks', 'order'],
+    actorId: auth.userId
+  }, () => repository.create({
     organizationId: toFlexibleId(organizationId),
     kind,
     name: normalizedName,
@@ -87,7 +93,7 @@ export async function create({ kind = 'page', name = '', parentId = null, classT
     blocks: document.blocks,
     order: document.order,
     createdBy: auth.userId
-  });
+  }));
   return {
     _id: String(id),
     kind,
@@ -118,7 +124,15 @@ export async function update(id, { name, parentId, blocks, order } = {}, auth = 
     }
     changes.parentId = toFlexibleId(await resolvedParentId(id, parentId, organizationId));
   }
-  const updated = await repository.update(id, changes, organizationId);
+  const updated = Object.keys(changes).length
+    ? await runOrganizationChange(organizationId, {
+        kind: 'page-updated',
+        typeId: 'page',
+        instanceId: String(page._id),
+        paths: Object.keys(changes),
+        actorId: auth.userId
+      }, () => repository.update(id, changes, organizationId))
+    : page;
   if (blocks !== undefined || order !== undefined) {
     await prunePageFiles(page._id, document, organizationId);
   }
@@ -261,8 +275,16 @@ export async function remove(id, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   await preparePages(organizationId, auth.userId);
   const page = await requireOwnPage(id, organizationId);
-  await repository.detachChildren(organizationId, page._id);
-  await repository.remove(page._id, organizationId);
+  await runOrganizationChange(organizationId, {
+    kind: 'page-deleted',
+    typeId: 'page',
+    instanceId: String(page._id),
+    paths: ['instance'],
+    actorId: auth.userId
+  }, async () => {
+    await repository.detachChildren(organizationId, page._id);
+    await repository.remove(page._id, organizationId);
+  });
   await prunePageFiles(page._id, { blocks: [], order: [] }, organizationId);
   return { success: true };
 }
