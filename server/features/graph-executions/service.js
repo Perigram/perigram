@@ -83,14 +83,41 @@ async function materializeOutput(output, auth, graph, outputId, requestedFilenam
     mimeType = 'application/json; charset=utf-8';
   }
   const extension = outputExtension(mimeType);
-  const fallback = `${graph.name || graph.id}-${outputId}${extension}`;
+  const fallback = String(graph.name || graph.id) + '-' + outputId + extension;
   const filename = normalizeOutputFilename(requestedFilename || sourceFilename || fallback, fallback, extension);
   return { buffer, mimeType, filename };
 }
 
 function normalizeOutputMimeType(value) {
   const mime = String(value || 'application/octet-stream').trim();
-  return /^[a-z0-9!#export async function queryOrganizationData(query = {}, auth = {}) {^_.+-]+\/[a-z0-9!#export async function queryOrganizationData(query = {}, auth = {}) {^_.+-]+(?:\s*;\s*charset=[a-z0-9._-]+)?$/i.test(mime)
+  return /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+(?:\s*;\s*charset=[a-z0-9._-]+)?$/i.test(mime)
+    ? mime
+    : 'application/octet-stream';
+}
+
+function outputExtension(mimeType) {
+  const mime = String(mimeType).split(';', 1)[0].toLowerCase();
+  if (mime === 'text/plain') return '.txt';
+  if (mime === 'application/json' || mime.endsWith('+json')) return '.json';
+  if (mime === 'image/png') return '.png';
+  if (mime === 'image/jpeg') return '.jpg';
+  if (mime === 'image/svg+xml') return '.svg';
+  if (mime === 'application/pdf') return '.pdf';
+  return '.bin';
+}
+
+function normalizeOutputFilename(value, fallback, extension) {
+  let filename = String(value || fallback)
+    .replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, '-')
+    .replace(/^\.+/, '')
+    .trim()
+    .slice(0, 180);
+  if (!filename) filename = fallback;
+  if (!/\.[a-z0-9]{1,10}$/i.test(filename)) filename += extension;
+  return filename;
+}
+
+export async function queryOrganizationData(query = {}, auth = {}) {^_.+-]+\/[a-z0-9!#export async function queryOrganizationData(query = {}, auth = {}) {^_.+-]+(?:\s*;\s*charset=[a-z0-9._-]+)?$/i.test(mime)
     ? mime
     : 'application/octet-stream';
 }
