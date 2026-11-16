@@ -5,6 +5,7 @@ import {
   GRAPH_DOCUMENT_VERSION,
   GRAPH_INPUT_OPERATION,
   GRAPH_OUTPUT_OPERATION,
+  GRAPH_INVOKE_OPERATION,
   assertValidGraphDocument,
   evaluateProceduralGraph,
   normalizeGraphDocument,
@@ -108,6 +109,20 @@ export function useGraphDocumentSession({ t }) {
         }
       ]
     }];
+    groups.push({
+      source: 'graphs',
+      id: 'graph-invocation',
+      label: t('processDesigner.graphComposition'),
+      signal: 'structure',
+      items: [{
+        id: 'use-graph',
+        label: t('processDesigner.useGraph'),
+        description: t('processDesigner.useGraphDescription'),
+        signal: 'structure',
+        operation: operation(GRAPH_INVOKE_OPERATION),
+        config: { graphId: '', revision: '', interface: { inputs: [], outputs: [] } }
+      }]
+    });
     const grouped = new Map();
     for (const definition of registry.list({ provider: PROCESS_PROCEDURAL_PROVIDER })) {
       const family = definition.id.split('.')[0];
@@ -160,6 +175,22 @@ export function useGraphDocumentSession({ t }) {
         outputs: [],
         execution: { kind: 'pure' }
       } : null;
+    }
+    if (op.provider === CORE_GRAPH_PROVIDER && op.id === GRAPH_INVOKE_OPERATION) {
+      const ports = config.interface || {};
+      return {
+        provider: op.provider, id: op.id, version: op.version,
+        label: t('processDesigner.useGraph'),
+        inputs: (ports.inputs || []).map(port => ({
+          id: port.id, label: port.label || port.id,
+          ...(port.contract || defaultContract), required: port.required !== false
+        })),
+        outputs: (ports.outputs || []).map(port => ({
+          id: port.id, label: port.label || port.id,
+          ...(port.contract || defaultContract), required: false
+        })),
+        execution: { kind: 'pure' }
+      };
     }
     const invocation = { node: { id: node.id }, config, context: {} };
     return processResolver(op, invocation) || registry.resolve(op.provider, op.id, op.version);
