@@ -525,14 +525,14 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   per-query snapshots only at a shared stable organization sequence. Bake and
   Export revalidate graph identity, consumed instance revisions, relations,
   and query-range sequences before materialization. The per-instance revision
-  token and dry-run/apply backfill are implemented. The instance patch
+  token and dry-run/apply backfill are implemented; production deployment now runs the backfill after the updated app starts, with live rollout verification still pending. The instance patch
   boundary now accepts an expected revision and performs an updatedAt
   compare-and-swap, including a second revision check when constraints require
   a fresh read; the managed plugin update capability forwards that
   precondition. Focused stale-revision and concurrent-write regression tests
   were added. The first graph Commit adapter now forwards the preview's
   expected revision through this same boundary and revalidates its read set
-  before writing. Remaining: run the revision backfill, transactionally
+  before writing. Remaining: verify the deployment-run revision backfill, transactionally
   validate query/range dependencies with multi-object writes, and close the
   Commit evidence/recovery gap.
 - [ ] G7 Constraints — the typed boolean AST now checks nested
