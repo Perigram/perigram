@@ -89,4 +89,37 @@ describe('useGraphDocumentSession', () => {
     })).toThrow(/supported shape/);
     expect(session.graphDocument.value.interface.inputs[0]).toEqual(before);
   });
+
+  it('hydrates a Use Graph node from an exact pinned graph revision', () => {
+    const session = createSession();
+    const invocation = session.paletteGroups.value.find(group => group.id === 'graph-invocation').items[0];
+    const node = session.addNode(invocation, { x: 0, y: 0 });
+    const child = createSession();
+    const [input, output] = child.paletteGroups.value[0].items;
+    child.addNode(input, { x: 0, y: 0 });
+    child.addNode(output, { x: 200, y: 0 });
+    child.updateBoundaryDeclaration(child.nodes.value[0].id, {
+      contract: { shape: 'list', semantic: { base: 'number' } },
+      required: true,
+      default: [3, 4]
+    });
+    const pinned = child.serializeGraph();
+
+    const config = session.hydrateGraphInvocation(node.id, pinned);
+
+    expect(config).toMatchObject({
+      graphId: pinned.id,
+      revision: pinned.revision,
+      interface: {
+        inputs: [{
+          id: pinned.interface.inputs[0].id,
+          contract: { shape: 'list', semantic: { base: 'number' } },
+          default: [3, 4]
+        }],
+        outputs: [{ id: pinned.interface.outputs[0].id }]
+      }
+    });
+    expect(session.nodes.value[0].data.definition.inputs[0].shape).toBe('list');
+    expect(session.serializeGraph().nodes[0].config.revision).toBe(pinned.revision);
+  });
 });
