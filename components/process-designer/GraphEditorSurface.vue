@@ -251,9 +251,6 @@ async function hydrateSelectedGraph({ nodeId, graphId }) {
       responseType: 'text'
     });
     const graph = parseGraphPayload(payload);
-    if (String(graph.id) !== String(record._id)) {
-      throw new Error('Graph document identity does not match its stored instance');
-    }
     hydrateGraphInvocation(nodeId, graph);
     toast.add({ severity: 'success', summary: t('processDesigner.graphPinned'), life: 2400 });
   } catch (error) {
