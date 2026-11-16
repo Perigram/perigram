@@ -102,6 +102,41 @@
         <pre v-else class="whitespace-pre-wrap break-all text-supporting">{{ format(selectedValue) }}</pre>
       </div>
     </section>
+    <section v-if="result && outputOptions.length" class="flex flex-col gap-2 border-t border-surface pt-3">
+      <strong class="text-supporting">{{ $t('processDesigner.bakeOutput') }}</strong>
+      <label class="text-supporting text-muted" for="graph-bake-page">{{ $t('processDesigner.pageDestination') }}</label>
+      <InstanceSelect
+        id="graph-bake-page"
+        v-model="selectedPageId"
+        :options="pageOptions"
+        option-label="label"
+        option-value="_id"
+        class="w-full"
+        :placeholder="$t('processDesigner.selectPage')"
+      />
+      <label class="text-supporting text-muted" for="graph-bake-path">{{ $t('processDesigner.pageFilePath') }}</label>
+      <InputText id="graph-bake-path" v-model="pageFilePath" class="w-full" placeholder="exports/result.json" />
+      <label class="text-supporting text-muted" for="graph-bake-conflict">{{ $t('processDesigner.conflictPolicy') }}</label>
+      <InstanceSelect
+        id="graph-bake-conflict"
+        v-model="conflictPolicy"
+        :options="conflictOptions"
+        option-label="label"
+        option-value="value"
+        class="w-full"
+      />
+      <Button
+        size="small"
+        icon="pi pi-file-export"
+        :label="$t('processDesigner.bakeOutput')"
+        :disabled="!canBake"
+        :loading="baking"
+        @click="submitBake"
+      />
+      <Message v-if="!canBake && execution?.status === 'succeeded' && !canBakeToSavedGraph" severity="warn">
+        {{ $t('processDesigner.bakeRequiresSaved') }}
+      </Message>
+    </section>
     <details v-if="result" class="flex flex-col gap-2">
       <summary class="text-supporting text-muted">{{ $t('processDesigner.graphNodeOutputs') }}</summary>
       <div v-for="(outputs, nodeId) in result.nodeOutputs" :key="nodeId" class="rounded-ui bg-subtle p-2">
@@ -114,9 +149,11 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Textarea from 'primevue/textarea';
+import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -132,12 +169,34 @@ const props = defineProps({
   inputBindings: { type: Object, default: () => ({}) },
   previewRenderers: { type: Object, default: () => ({}) },
   nodeDefinitions: { type: Object, default: () => ({}) },
+  canBakeToSavedGraph: { type: Boolean, default: false },
   channels: { type: Array, default: () => [] }
 });
-const emit = defineEmits(['refresh', 'update-input-binding']);
+const emit = defineEmits(['refresh', 'update-input-binding', 'bake']);
+const { t } = useI18n();
 const inputDrafts = reactive({});
 const inputErrors = reactive({});
 const selectedOutputId = ref('');
+const selectedPageId = ref('');
+const pageFilePath = ref('exports/result.json');
+const conflictPolicy = ref('fail');
+const pageOptions = ref([]);
+const baking = ref(false);
+const conflictOptions = computed(() => [
+  { value: 'fail', label: t('processDesigner.bakeConflictFail') },
+  { value: 'create-revision', label: t('processDesigner.bakeConflictRevision') },
+  { value: 'replace', label: t('processDesigner.bakeConflictReplace') },
+  { value: 'create-distinct-name', label: t('processDesigner.bakeConflictDistinct') }
+]);
+const canBake = computed(() => Boolean(
+  props.canBakeToSavedGraph
+  && props.execution?.status === 'succeeded'
+  && props.execution?.profile === 'procedural-preview'
+  && selectedOutputId.value
+  && selectedPageId.value
+  && pageFilePath.value.trim()
+  && !baking.value
+));
 const activeView = ref('json');
 const outputOptions = computed(() => (props.graph.interface?.outputs || []).map(port => ({
   _id: String(port.id),
@@ -232,6 +291,36 @@ watch(
 function svgPoints(points = []) {
   return Array.isArray(points) ? points.filter(point => Array.isArray(point) && point.length >= 2).map(point => `${Number(point[0])},${Number(point[1])}`).join(' ') : '';
 }
+
+async function submitBake() {
+  if (!canBake.value) return;
+  baking.value = true;
+  try {
+    emit('bake', {
+      outputId: selectedOutputId.value,
+      pageId: selectedPageId.value,
+      path: pageFilePath.value.trim(),
+      conflictPolicy: conflictPolicy.value,
+      execution: props.execution
+    });
+  } finally {
+    baking.value = false;
+  }
+}
+
+onMounted(async () => {
+  try {
+    const response = await $fetch('/api/pages');
+    pageOptions.value = (Array.isArray(response?.pages) ? response.pages : [])
+      .filter(page => page?.kind === 'page' && page?._id)
+      .map(page => ({
+        _id: String(page._id),
+        label: `${page.name || t('pages.page')} · ${String(page._id).slice(-6)}`
+      }));
+  } catch {
+    pageOptions.value = [];
+  }
+});
 
 function applyInput(portId) {
   try {
