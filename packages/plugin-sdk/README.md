@@ -1,7 +1,8 @@
 # COMPONENT: @perigram/plugin-sdk
 
-The plugin authoring toolkit (SPEC §20): the listing
-contract, both executor harnesses, the platform API client, and the
+The plugin authoring toolkit (SPEC §20): the listing and portable
+execution contracts, provider-neutral node definitions, external
+integration harnesses, the platform API client, and the
 `perigram-plugin` CLI. It has no third-party runtime dependencies.
 The listing parser is pure and runs in Node and browsers; executor,
 surface-check, vendor, and CLI modules use Node built-ins. The platform's
@@ -18,24 +19,19 @@ surface mount:
 
 ## Authoring loop
 
-A plugin is declarations plus connectors: `listing.json` (the whole
-contract, `perigram-plugin validate listing.json`) and `services.mjs` (one
-handler per declared service). Two hosting models, one contract:
+A plugin package contains `listing.json`, versioned runtime entry modules,
+surface modules, and declared dependencies. The listing declares each
+runtime's language, version, entry asset, and supported targets. Each
+managed operation declares its runtime, supported targets, execution
+kind, and required host capabilities. `perigram-plugin validate listing.json`
+checks the package contract before publication.
 
-| Model | Who runs the executor | How the platform reaches it |
-|---|---|---|
-| Self-hosted | The org (or an agent acting for it) | claim mode (poll) or endpoint mode (URL + key) |
-| Cloud-hosted | The publisher | endpoint mode (their URL + API key) |
-
-Run the executor locally (`perigram-plugin dev`), or poll in claim mode
-(`perigram-plugin run --token <connector token>`). Publish, install,
-connect, and test ride the CLI sequence under §CLI: `login` → `publish` →
-`install` → `connector` → `connect --set <svc>=<url> --key <key>` →
-`test`. A plugin release is two deploys at one version: the executor
-image and the listing (`publish`; built-in deployment plugins seed from
-`server/scripts/seed-plugin-catalog.js`). Installed organizations see the
-available version and apply it themselves through the upgrade diff
-preview.
+Perigram owns browser Worker execution and managed isolated server
+execution. Organizations install immutable package assets and compose
+graphs against the pinned declarations. Provider-level external
+integrations use explicit connection protocols with credentials held by
+the platform. The endpoint and claim harnesses remain available for those
+remote integration adapters.
 
 Acceptance is one clean loop through install → execute → upgrade →
 uninstall: the install gate (type-id no-shadowing, clean compile,
@@ -106,24 +102,25 @@ organizations?, requires?, declarations }` where `visibility` is `public`
 organizations its `organizations` ids name, scoped by the operator at
 publish (the catalog stays platform-published). `requires` lists the pack or plugin ids
 the types resolve against, satisfied by an install (never the plugin
-itself); the platform-side gates enforce it. `declarations` carries `types` (CTS grammar,
-non-empty; a type may carry the transient `migrate` steps and
-`renameFrom: <retired id>` — the rename channel upgrades consume,
-never stored on the install pin), `services` (SPEC §8 signatures, `mode`
-endpoint/claim/local), `engine` (the plugin's client engine, SPEC §20
-client-carried: `{ module }` — a root-relative entry module the package
-serves; a service of `mode: 'local'` executes in the browser through it
-and requires the declaration; the module's default export is
-`createEngine() -> { dispatch?, nodeProviders? }` — `dispatch(serviceId,
-parameters) -> Promise<value>` serves local services; optional
-`nodeProviders` is an array of provider contributions in the
-`@perigram/plugin-sdk/nodes` shape (`{ provider, definitions, execute,
-previewRenderers? }`). Provider ids must be `plugin.<pluginId>` or a
-sub-provider namespace beneath it; each definition must carry that exact
-provider id. A provider-only engine may omit `dispatch`. The platform
-loads the module once per installed version, routes local service dispatch
-through `dispatch`, and registers graph providers/renderers from the same
-installed module),
+itself); the platform-side gates enforce it. `declarations` carries `types` (CTS grammar, non-empty; types may carry
+transient migration declarations), `services` (SPEC §8 signatures,
+palette metadata, and either managed `execution` metadata or an explicit
+external-integration `mode`), `runtimes` (version-pinned runtime
+descriptors: `{ id, language, version, entry, targets }`; language is
+`javascript`, `python`, or `wasm`; entry is a package asset; targets
+are `browser` and/or `server`), and `engine` (the transitional browser
+engine declaration: `{ module }` — a root-relative entry module served
+from the installed package; its default export is
+`createEngine() -> { dispatch?, nodeProviders? }` — optional
+`dispatch(serviceId, parameters) -> Promise<value>` and optional
+node-provider contributions in the `@perigram/plugin-sdk/nodes` shape).
+A managed service declares `execution: { runtime, targets, kind,
+capabilities?, deterministic?, idempotent? }`. `runtime` references
+a declared runtime; `targets` is a non-empty subset of that runtime's
+targets; `kind` is `pure`, `read`, or `effect`; capability ids are
+qualified names such as `files.read` or `organization.instances.read`.
+Pure operations carry no host capabilities. A service combines managed
+execution metadata with no legacy `mode`.
 `editors` (file-type editor bindings — the bound type must be declared by
 the same plugin with class `file`, one binding per type),
 `surfaces` (plugin-delivered surface modules:
