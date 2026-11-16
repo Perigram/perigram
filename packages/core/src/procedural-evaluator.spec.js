@@ -120,6 +120,87 @@ describe('procedural graph preview evaluator', () => {
     });
   });
 
+
+  it('returns an empty diagnostics list on success', async () => {
+    const result = await evaluateProceduralGraph({
+      graph: graph(),
+      inputBindings: { number: 2 },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
+    });
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it('attaches node and phase diagnostics to provider failures', async () => {
+    await expect(evaluateProceduralGraph({
+      graph: graph(),
+      inputBindings: { number: 2 },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: () => { throw new Error('provider exploded'); }
+    })).rejects.toMatchObject({
+      message: 'provider exploded',
+      nodeId: 'double',
+      diagnostics: [expect.objectContaining({
+        code: 'node-execution-failed',
+        severity: 'error',
+        phase: 'execute',
+        graphId: 'graph.main',
+        graphRevision: 'rev-1',
+        nodeId: 'double',
+        completedNodeIds: ['in']
+      })]
+    });
+  });
+
+  it('attaches input diagnostics to the node whose input cannot be resolved', async () => {
+    const document = graph({
+      edges: [
+        { id: 'e2', source: { node: 'double', port: 'result' }, target: { node: 'out', port: 'value' } }
+      ]
+    });
+    await expect(evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: 2 },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: () => ({ result: 4 })
+    })).rejects.toMatchObject({
+      nodeId: 'double',
+      diagnostics: [expect.objectContaining({
+        code: 'node-input-invalid',
+        phase: 'validate-inputs',
+        nodeId: 'double'
+      })]
+    });
+  });
+
+  it('retains child diagnostics and adds the parent Use Graph node context', async () => {
+    const child = graph({ id: 'graph.child', revision: 'rev-2' });
+    const parent = graph({
+      id: 'graph.parent',
+      nodes: [
+        { id: 'in', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'number' } },
+        { id: 'use', operation: { provider: 'perigram.core', id: GRAPH_INVOKE_OPERATION, version: '1' }, config: { graphId: 'graph.child', revision: 'rev-2' } },
+        { id: 'out', operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' }, config: { interfaceId: 'result' } }
+      ],
+      edges: [
+        { id: 'use-in', source: { node: 'in', port: 'value' }, target: { node: 'use', port: 'number' } },
+        { id: 'use-out', source: { node: 'use', port: 'result' }, target: { node: 'out', port: 'value' } }
+      ]
+    });
+    await expect(evaluateProceduralGraph({
+      graph: parent,
+      inputBindings: { number: 2 },
+      resolveGraph: () => child,
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: () => { throw new Error('child failed'); }
+    })).rejects.toMatchObject({
+      diagnostics: [
+        expect.objectContaining({ nodeId: 'use', phase: 'execute-subgraph' }),
+        expect.objectContaining({ nodeId: 'double', phase: 'execute' })
+      ]
+    });
+  });
+
   it('fans multiple wires into list, tuple, tree, and map inputs deterministically', async () => {
     for (const shape of ['list', 'tuple', 'tree', 'map']) {
       const sourceNodes = ['a', 'b'].map(id => ({

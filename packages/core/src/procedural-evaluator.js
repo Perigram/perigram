@@ -33,8 +33,20 @@ export async function evaluateProceduralGraph({
       maxGraphDepth
     });
   } catch (error) {
-    if (error && typeof error === 'object') error.readSet = readSetRecorder.toJSON();
-    throw error;
+    const failure = asError(error);
+    if (!Array.isArray(failure.diagnostics)) {
+      failure.diagnostics = [{
+        code: typeof failure.code === 'string' ? failure.code : 'graph-evaluation-failed',
+        severity: 'error',
+        phase: 'graph',
+        graphId: source?.id ?? null,
+        graphRevision: source?.revision ?? null,
+        nodeId: null,
+        message: failure.message
+      }];
+    }
+    failure.readSet = readSetRecorder.toJSON();
+    throw failure;
   }
 }
 
@@ -67,9 +79,12 @@ async function evaluateGraph(options) {
 
   for (const nodeId of order) {
     const node = nodes.get(nodeId);
+    let phase = 'boundary';
+    try {
     const operationId = node.operation.id;
 
     if (operationId === GRAPH_INPUT_OPERATION) {
+      phase = 'boundary-input';
       const interfaceId = node.config.interfaceId;
       if (!inputIds.has(interfaceId)) throw new Error(`Graph Input node ${node.id} references undeclared input ${interfaceId}`);
       if (seenInputs.has(interfaceId)) throw new Error(`Graph input ${interfaceId} has more than one boundary node`);
@@ -86,6 +101,7 @@ async function evaluateGraph(options) {
     }
 
     if (operationId === GRAPH_OUTPUT_OPERATION) {
+      phase = 'boundary-output';
       const interfaceId = node.config.interfaceId;
       if (!outputIds.has(interfaceId)) throw new Error(`Graph Output node ${node.id} references undeclared output ${interfaceId}`);
       if (seenOutputs.has(interfaceId)) throw new Error(`Graph output ${interfaceId} has more than one boundary node`);
@@ -98,13 +114,16 @@ async function evaluateGraph(options) {
     }
 
     if (operationId === GRAPH_INVOKE_OPERATION) {
+      phase = 'resolve-subgraph';
       if (typeof options.resolveGraph !== 'function') throw new Error('Use Graph requires a resolveGraph callback');
       const child = await options.resolveGraph(node.config.graphId, node.config.revision);
       if (!child) throw new Error(`Pinned subgraph ${node.config.graphId}@${node.config.revision} is unavailable`);
+      phase = 'validate-subgraph';
       const childGraph = assertValidGraphDocument(child);
       if (childGraph.id !== node.config.graphId || childGraph.revision !== node.config.revision) {
         throw new Error(`Subgraph resolver returned the wrong graph revision for node ${node.id}`);
       }
+      phase = 'map-subgraph-inputs';
       const childInputs = {};
       const childInputIds = new Set(childGraph.interface.inputs.map(port => port.id));
       const childOutputIds = new Set(childGraph.interface.outputs.map(port => port.id));
@@ -118,12 +137,14 @@ async function evaluateGraph(options) {
         const value = readInput(node, port.id, incoming.get(node.id), values, port.required, port.default, port.contract?.shape || 'item');
         if (value !== undefined) childInputs[port.id] = value;
       }
+      phase = 'execute-subgraph';
       const childResult = await evaluateGraph({
         ...options,
         source: childGraph,
         inputBindings: childInputs,
         stack: [...options.stack, graphKey]
       });
+      phase = 'map-subgraph-outputs';
       const result = childResult.outputs;
       nodeOutputs[node.id] = result;
       for (const port of childGraph.interface.outputs) {
@@ -132,6 +153,7 @@ async function evaluateGraph(options) {
       continue;
     }
 
+    phase = 'resolve-definition';
     const definition = await options.resolveNodeDefinition(node.operation, { node, config: node.config, context: options.context });
     if (!definition) {
       throw new Error(`Node definition unavailable: ${node.operation.provider}/${node.operation.id}@${node.operation.version}`);
@@ -147,6 +169,7 @@ async function evaluateGraph(options) {
     if (!['pure', 'read'].includes(kind)) {
       throw new Error(`Preview cannot execute ${kind || 'unclassified'} node ${node.id}`);
     }
+    phase = 'validate-inputs';
     const inputs = {};
     const declaredInputIds = new Set((definition.inputs || []).map(port => port.id));
     const declaredOutputIds = new Set((definition.outputs || []).map(port => port.id));
@@ -160,6 +183,7 @@ async function evaluateGraph(options) {
       const value = readInput(node, port.id, incoming.get(node.id), values, port.required !== false, port.default, port.shape || 'item');
       if (value !== undefined) inputs[port.id] = value;
     }
+    phase = 'execute';
     const result = await options.executeNode(definition, {
       node,
       config: node.config,
@@ -167,6 +191,7 @@ async function evaluateGraph(options) {
       context: options.context,
       mode: 'preview'
     });
+    phase = 'validate-outputs';
     if (!isRecord(result)) throw new Error(`Node ${node.id} executor must return an object keyed by output port id`);
     const declaredOutputs = new Set((definition.outputs || []).map(port => port.id));
     for (const key of Object.keys(result)) {
@@ -179,6 +204,16 @@ async function evaluateGraph(options) {
       }
     }
     nodeOutputs[node.id] = result;
+    } catch (error) {
+      throw addNodeDiagnostic(error, {
+        graph,
+        node,
+        phase,
+        nodeOutputs,
+        outputs,
+        invocationPath: options.stack
+      });
+    }
   }
 
   for (const port of graph.interface.inputs) {
@@ -193,8 +228,64 @@ async function evaluateGraph(options) {
     graphRevision: graph.revision,
     outputs,
     nodeOutputs,
+    diagnostics: [],
     readSet: options.readSetRecorder.toJSON()
   };
+}
+
+
+function asError(error) {
+  if (error instanceof Error && Object.isExtensible(error)) return error;
+  const message = error && typeof error === 'object' && typeof error.message === 'string'
+    ? error.message
+    : String(error);
+  const failure = new Error(message, error instanceof Error ? { cause: error } : undefined);
+  if (error && typeof error === 'object' && typeof error.code === 'string') failure.code = error.code;
+  return failure;
+}
+
+function addNodeDiagnostic(error, {
+  graph,
+  node,
+  phase,
+  nodeOutputs,
+  outputs,
+  invocationPath
+}) {
+  const failure = asError(error);
+  const phaseCodes = {
+    'boundary-input': 'graph-input-invalid',
+    'boundary-output': 'graph-output-invalid',
+    'resolve-subgraph': 'subgraph-unavailable',
+    'validate-subgraph': 'subgraph-invalid',
+    'map-subgraph-inputs': 'subgraph-input-invalid',
+    'execute-subgraph': 'subgraph-execution-failed',
+    'map-subgraph-outputs': 'subgraph-output-invalid',
+    'resolve-definition': 'node-definition-unavailable',
+    'validate-inputs': 'node-input-invalid',
+    execute: 'node-execution-failed',
+    'validate-outputs': 'node-output-invalid'
+  };
+  const diagnostic = {
+    code: typeof failure.code === 'string' ? failure.code : (phaseCodes[phase] || 'node-execution-failed'),
+    severity: 'error',
+    phase,
+    graphId: graph.id,
+    graphRevision: graph.revision,
+    nodeId: node.id,
+    operation: {
+      provider: node.operation.provider,
+      id: node.operation.id,
+      version: node.operation.version
+    },
+    message: failure.message,
+    completedNodeIds: Object.keys(nodeOutputs),
+    completedOutputIds: Object.keys(outputs),
+    invocationPath: [...invocationPath]
+  };
+  failure.diagnostics = [diagnostic, ...(Array.isArray(failure.diagnostics) ? failure.diagnostics : [])];
+  if (failure.nodeId == null) failure.nodeId = node.id;
+  return failure;
 }
 
 function readInput(node, portId, edges, values, required, fallback, shape = 'item') {
