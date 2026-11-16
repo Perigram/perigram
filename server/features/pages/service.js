@@ -259,6 +259,9 @@ export async function retractBakedFile({ pageId, fileId } = {}, auth = {}) {
   const document = normalizePageDocument({ blocks: page.fields?.blocks, order: page.fields?.order });
   const block = document.blocks.find(item => item.kind === 'file' && String(item.file?.fileId || '') === String(fileId || ''));
   if (!block) {
+    const retainedInHistory = document.blocks.some(item => item.kind === 'file'
+      && (item.file?.history || []).some(revision => String(revision.fileId || '') === String(fileId || '')));
+    if (retainedInHistory) return { success: false, referenced: true };
     const file = await filesService.findFileMeta(fileId, 'files');
     if (file && String(file.metadata?.pageId || '') === String(pageId)) {
       await filesService.deleteFile(fileId, 'files');
