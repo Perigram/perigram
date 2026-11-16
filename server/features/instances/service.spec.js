@@ -238,6 +238,49 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
+  it('rejects a constrained update when the source record changes after validation', async () => {
+    const coll = stubCollection();
+    const account = {
+      _id: 'account-1',
+      type: 'constrained-account',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      fields: { code: 'A-1', invoices: ['invoice-1'] },
+      lineage: {},
+      relations: {},
+      createdAt: '2026-11-16T10:00:00Z',
+      updatedAt: '2026-11-16T10:00:00Z'
+    };
+    const invoice = {
+      _id: 'invoice-1',
+      type: 'invoice',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      fields: { code: 'I-1', amount: 5 },
+      lineage: {},
+      relations: {},
+      createdAt: '2026-11-16T10:00:00Z',
+      updatedAt: '2026-11-16T10:00:00Z'
+    };
+    coll.findOne.mockImplementation(async filter => {
+      if (filter.type === 'constrained-account') return account;
+      if (filter.type === 'invoice') return invoice;
+      return null;
+    });
+    coll.findOneAndUpdate.mockResolvedValue(null);
+
+    const service = instanceServiceResolver('constrained-account');
+    await expect(service.processUpdate('account-1', {
+      fields: { code: 'A-2' }
+    }, 'org-1')).rejects.toMatchObject({ statusCode: 409 });
+
+    expect(coll.findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: 'account-1', updatedAt: account.updatedAt },
+      expect.objectContaining({ $set: expect.objectContaining({ 'fields.code': 'A-2' }) }),
+      { returnDocument: 'after' }
+    );
+  });
+
   it('creates without a state — nothing synthesizes an initial (SPEC §7)', async () => {
     const coll = stubCollection();
     const service = instanceServiceResolver('panel');

@@ -716,9 +716,12 @@ function instanceService(typeId) {
           message: `Type ${typeId} lifecycle transitions must run through the status runtime`
         });
       }
-      if (declaration.constraints?.length) {
+      let expectedUpdatedAt;
+      const constrained = Boolean(declaration.constraints?.length);
+      if (constrained) {
         const currentDoc = await repository.findInstance(collection, id, typeId);
         if (!currentDoc) throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
+        expectedUpdatedAt = currentDoc.updatedAt;
         const current = toDto(currentDoc);
         const candidate = {
           ...current,
@@ -754,6 +757,18 @@ function instanceService(typeId) {
           if (value !== undefined) set[`relations.${key}`] = value;
         }
       }
+      const write = async () => {
+        const updated = await repository.updateInstanceFields(
+          collection,
+          id,
+          set,
+          ...(constrained ? [{ expectedUpdatedAt }] : [])
+        );
+        if (constrained && !updated) {
+          throw createError({ statusCode: 409, message: `${typeId} ${id} changed while its constraints were being checked` });
+        }
+        return updated;
+      };
       const updated = Object.keys(set).length
         ? await runOrganizationChange(organizationId, {
             kind: 'instance-updated',
@@ -761,8 +776,8 @@ function instanceService(typeId) {
             instanceId: String(id),
             paths: Object.keys(set),
             actorId: context?.userId || null
-          }, () => repository.updateInstanceFields(collection, id, set))
-        : await repository.updateInstanceFields(collection, id, set);
+          }, write)
+        : await write();
       return toDto(updated);
     },
 

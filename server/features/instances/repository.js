@@ -54,10 +54,16 @@ export async function findInstanceAnywhere(id, typeId) {
   return null;
 }
 
-export async function updateInstanceFields(collection, id, set) {
+export async function updateInstanceFields(collection, id, set, options = {}) {
   const db = await connectDB();
+  const filter = { _id: toFlexibleId(id) };
+  if (Object.hasOwn(options, 'expectedUpdatedAt')) {
+    filter.updatedAt = options.expectedUpdatedAt === undefined
+      ? { $exists: false }
+      : options.expectedUpdatedAt;
+  }
   return await db.collection(collection).findOneAndUpdate(
-    { _id: toFlexibleId(id) },
+    filter,
     { $set: { ...set, updatedAt: new Date().toISOString() } },
     { returnDocument: 'after' }
   );
