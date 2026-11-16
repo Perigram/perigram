@@ -74,7 +74,7 @@ organization answers 404.
 
 ## API
 
-Service seam: `listTree`, `getById`, `create`, `update`, `remove`.
+Service seam: `listTree`, `getById`, `create`, `update`, `remove`; `retractBakedFile` is the internal rollback used when Bake provenance persistence fails.
 
 | Endpoint | Responsibility |
 |---|---|
@@ -93,4 +93,4 @@ Service seam: `listTree`, `getById`, `create`, `update`, `remove`.
 
 ## Baked page files
 
-A file block is a page-owned artifact reference, not a path on the application host. Its logical path is relative to the exact Page id and rejects absolute paths, traversal segments, backslashes, control characters, empty segments, and paths longer than 240 characters. The blob is stored in the organization-scoped `files` bucket with SHA-256 content addressing and provenance metadata (graph identity/revision, execution id, and output id). A path collision must select an explicit policy: fail, append an immutable file revision, replace (organization admin only), or generate a distinct sibling name. Page writes use an `updatedAt` compare-and-swap; a race removes the just-uploaded blob and returns 409. Removing a file block or page retracts its page-owned current and historical blobs.
+A file block is a page-owned artifact reference, not a path on the application host. Its logical path is relative to the exact Page id and rejects absolute paths, traversal segments, backslashes, control characters, empty segments, and paths longer than 240 characters. The blob is stored in the organization-scoped `files` bucket with SHA-256 content addressing and provenance metadata (graph identity/revision, execution id, and output id). A path collision must select an explicit policy: fail, append an immutable file revision, replace (organization admin only), or generate a distinct sibling name. Page writes use an `updatedAt` compare-and-swap and the organization's durable change sequence; a race removes the just-uploaded blob and returns 409. Removing a file block or page retracts its page-owned current and historical blobs.
