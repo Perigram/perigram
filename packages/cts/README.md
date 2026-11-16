@@ -43,10 +43,11 @@ modules onto its sections.
   event/schedule triggers (SPEC §8); services and projections are
   ref-free.
 - `expressions.js` — CEL-semantics expression ASTs (SPEC §15): total
-  evaluation with a step budget, `map`/`filter` comprehensions,
-  membership `in`, compile-checked exhaustive `match`, and
-  `checkBooleanExpression` — the boolean-subset checker transition
-  guards and relation target domains share.
+  evaluation with a step budget, finite quantifiers and aggregates,
+  relation/containment resolver hooks, membership `in`, and
+  `checkTypedBooleanExpression` — statically checks traversal targets,
+  field paths, predicate result types, quantifier bodies, and aggregate
+  value types for relation target domains.
 - `diff.js` — version stamping, evolution classification, and the
   declared migration gate (R7, SPEC §11). `planTypeMigration(previous,
   next)` is the one planner: diff, normalized steps, coverage verdict.
@@ -61,7 +62,7 @@ modules onto its sections.
 - `registry.js` — type records as data, tenancy resolution (system
   first, one org overlay, SPEC §4), `compile()` running R1–R6 (party
   types refused as children targets; relation `where` domains
-  row-checked against every declared target), instance validation with
+  type-checked against every declared target, including nested relation/containment traversals), instance validation with
   `typeVersion` ill-typing, payload normalization to the canonical
   trait shape (including `payload.inputs`, the extra construction inputs
   an upload-backed type prompts beside its file), and the SPEC §4
