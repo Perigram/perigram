@@ -149,11 +149,12 @@ canvas; sockets are generous targets with hover glow.
   card; the header keeps collapse, description (tooltip affordance),
   error (popover), and the eye; collapse docks sockets on top/bottom
   rails around the centered name; card width is content-sized.
-  Landed 2026-11-14: the presentation half — fault popover,
-  description affordance, Blender-style top/bottom collapse rails
-  around the centered name (content width was already law). Remaining:
-  the authoring displacement — inline typed editors and inline
-  configuration leave the card for the inspector (C2's typed controls).
+  Landed 2026-11-14: fault popover, description affordance,
+  Blender-style top/bottom collapse rails around the centered name
+  (content width was already law). Completed 2026-11-16: typed fallback
+  editors and inline operation/literal configuration have been removed
+  from cards; authoring lives in the inspector. A source-boundary test
+  prevents those controls from returning.
 - [x] C4 Socket presentation — generous hit targets, hover grow + glow
   in the payload-family color, type hints on the rows. Landed
   2026-11-14: the handle is a 22×26 transparent target with the
@@ -170,8 +171,8 @@ canvas; sockets are generous targets with hover glow.
   scheduled while the inspector is open beside the preview tab, the
   selected node's channel state and port-labeled outputs feed the
   existing output section, and the on-demand Inspect stays as the
-  explicit re-run. Remaining: the authoring displacement (C1's other
-  half rides here) and the floating overlay (with C3).
+  explicit re-run. Authoring displacement is complete under C1;
+  remaining: render the inspector as a floating overlay (with C3).
 - [ ] C3 Floating canvas chrome — the category strip (provenance
   labels, category chips) and the tool cluster ride floating
   translucent bars over a fullscreen canvas; the graph editor mount
