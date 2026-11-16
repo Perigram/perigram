@@ -1,4 +1,5 @@
-const IDENTIFIER = /^[a-z0-9][a-z0-9._-]{0,127}$/;
+const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+const PROVIDER_IDENTIFIER = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 const SHAPES = new Set(['item', 'list', 'tree', 'map', 'tuple', 'stream']);
 const EXECUTION_KINDS = new Set(['pure', 'read', 'stateful', 'proposal', 'commit', 'effect', 'control']);
 
@@ -35,7 +36,7 @@ export function normalizeNodeDefinition(source = {}) {
 export function validateNodeDefinition(source) {
   const problems = [];
   if (!isRecord(source)) return [{ code: 'invalid-definition', path: '$', message: 'Node definition must be an object' }];
-  if (!IDENTIFIER.test(String(source.provider || ''))) problems.push(issue('invalid-provider', 'provider', 'Provider must be a stable lowercase identifier'));
+  if (!PROVIDER_IDENTIFIER.test(String(source.provider || ''))) problems.push(issue('invalid-provider', 'provider', 'Provider must be a stable lowercase identifier'));
   if (!IDENTIFIER.test(String(source.id || ''))) problems.push(issue('invalid-operation-id', 'id', 'Operation id must be a stable lowercase identifier'));
   if (source.version == null || !String(source.version).trim()) problems.push(issue('missing-version', 'version', 'Node definition version is required'));
   if (!source.execution || !EXECUTION_KINDS.has(source.execution.kind)) {
