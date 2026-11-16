@@ -18,6 +18,12 @@ describe('graph-document framework type', () => {
     expect(graphDocument.framework).toBeUndefined();
   });
 
+  it('declares execution records as hidden append-only CTS instances', () => {
+    const execution = frameworkTypes.find(declaration => declaration.id === 'graph-execution');
+    expect(execution).toMatchObject({ framework: true, class: 'item', mutability: 'append-only' });
+    expect(execution.fields.graphDocument).toMatchObject({ base: 'ref', accepts: ['graph-document'] });
+  });
+
   it('compiles clean in a registry view and projects as an authorable entity', () => {
     const registry = createTypeRegistry({ id: 'graph-document-check' });
     for (const declaration of frameworkTypes) registry.defineType(declaration);
