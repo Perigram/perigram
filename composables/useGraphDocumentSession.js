@@ -505,6 +505,7 @@ export function useGraphDocumentSession({ t }) {
     clearGraphSelection: selection.clearGraphSelection,
     updateNodeConfig,
     updateBoundaryLabel,
+    renameDeclarationNode: () => {},
     loadDocument,
     loadEmpty,
     serializeGraph,
