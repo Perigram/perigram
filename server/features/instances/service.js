@@ -648,6 +648,14 @@ function instanceService(typeId) {
   }
 
   return {
+    async validateCandidate(candidate, organizationId = null) {
+      const effectiveOrganizationId = organizationId ?? candidate?.organizationId ?? null;
+      const declaration = await requireDeclaration(typeId, effectiveOrganizationId);
+      if (!declaration.constraints?.length) return false;
+      await assertPermanentConstraints(declaration, toDto(candidate || {}), effectiveOrganizationId);
+      return true;
+    },
+
     async getById(id) {
       // Without organization context the class (and therefore the
       // collection) is not statically known: search the per-class

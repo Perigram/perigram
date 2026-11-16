@@ -106,6 +106,7 @@ export const stateService = {
       initialLifecycle
     );
     const statusData = JSON.parse(JSON.stringify(status));
+    if (instanceDoc) await validateFlatInstanceCandidate(normalizedTypeId, instanceDoc, enteredTarget);
     const db = await connectDB();
     await runOrganizationChange(organizationId, {
       kind: 'instance-state-initialized',
@@ -114,27 +115,38 @@ export const stateService = {
       paths: ['state', 'status'],
       actorId
     }, async () => {
-      await machineRepository.insertStatusEvent(db, buildStatusEventRecord({
-        eventId,
+      await machineRepository.writeStatusEventAndEntitySnapshot({
+        db,
+        collection,
         targetId: flexId,
-        targetType: normalizedTypeId,
-        fromState: null,
-        toState: enteredTarget,
-        fromStatePrimary: null,
-        toStatePrimary: statusData.state.primary,
-        region: regionId,
-        statusData,
-        actor: buildEventActor(typeof actor === 'object' ? actor : {}, actorId),
-        operation: { kind: 'initialize', region: regionId },
-        evidence: buildEventEvidence(stateMetadata, initialLifecycle),
-        source: metadata?.source ?? null
-      }));
-      await machineRepository.updateEntityStatus(db, collection,
-        { _id: flexId, ...organizationFilter },
-        instanceDoc
-          ? { $set: { ...instanceStateSetFromStatus(statusData), updatedAt: new Date().toISOString() } }
-          : { $set: { status: statusData } }
-      );
+        eventRecord: buildStatusEventRecord({
+          eventId,
+          targetId: flexId,
+          targetType: normalizedTypeId,
+          fromState: null,
+          toState: enteredTarget,
+          fromStatePrimary: null,
+          toStatePrimary: statusData.state.primary,
+          region: regionId,
+          statusData,
+          actor: buildEventActor(typeof actor === 'object' ? actor : {}, actorId),
+          operation: { kind: 'initialize', region: regionId },
+          evidence: buildEventEvidence(stateMetadata, initialLifecycle),
+          source: metadata?.source ?? null
+        }),
+        entitySet: instanceDoc
+          ? { ...instanceStateSetFromStatus(statusData), updatedAt: new Date().toISOString() }
+          : { status: statusData },
+        entityFilter: {
+          ...organizationFilter,
+          ...(instanceDoc ? {
+            updatedAt: instanceDoc.updatedAt === undefined
+              ? { $exists: false }
+              : instanceDoc.updatedAt
+          } : {})
+        },
+        preferTransaction: Boolean(instanceDoc)
+      });
     });
     return statusData;
   },
@@ -438,6 +450,12 @@ function transitionGuardAllows(transition, entity, instanceDoc) {
   return Boolean(evaluateExpression(transition.guard, { value: instanceRowForGuard(entity, instanceDoc) }));
 }
 
+async function validateFlatInstanceCandidate(typeId, instanceDoc, state) {
+  const service = getAppRegistry().getInstanceService(typeId);
+  if (typeof service?.validateCandidate !== 'function') return false;
+  return await service.validateCandidate({ ...instanceDoc, state }, instanceDoc.organizationId ?? null);
+}
+
 async function performTransition(typeId, targetId, targetState, userId, userRole, metadata = {}, options = {}) {
     const normalizedTypeId = normalizeTypeId(typeId);
     const transitionContext = normalizeTransitionContext(metadata);
@@ -553,6 +571,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
     
     // Ensure we store a plain object in DB, not a class instance
     const statusData = JSON.parse(JSON.stringify(newStatus));
+    if (instanceDoc) await validateFlatInstanceCandidate(normalizedTypeId, instanceDoc, validation.to || enteredTarget);
 
     const operationIntent = transitionContext.intent || transition?.intent || null;
     const eventRecord = buildStatusEventRecord({
@@ -599,8 +618,15 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       targetId: flexId,
       eventRecord,
       entitySet,
-      entityFilter: organizationFilter,
-      preferTransaction: Boolean(options.entityPatch && Object.keys(options.entityPatch).length)
+      entityFilter: {
+        ...organizationFilter,
+        ...(instanceDoc ? {
+          updatedAt: instanceDoc.updatedAt === undefined
+            ? { $exists: false }
+            : instanceDoc.updatedAt
+        } : {})
+      },
+      preferTransaction: Boolean(instanceDoc || (options.entityPatch && Object.keys(options.entityPatch).length))
     }));
 
     const afterEffects = await runTransitionHooks(

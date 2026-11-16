@@ -88,7 +88,7 @@ export async function writeStatusEventAndEntitySnapshot({
           { session }
         );
         if (result.matchedCount !== 1) {
-          throw createError({ statusCode: 404, message: 'Status target not found during combined entity update' });
+          throw createError({ statusCode: 409, message: 'Status target changed before the combined entity update' });
         }
       });
       return;

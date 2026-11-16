@@ -104,6 +104,49 @@ describe('status service lifecycle payloads', () => {
     expect(entity.status.userId).toBe('admin-1');
   });
 
+  it('validates flat CTS state candidates before persisting the status event', async () => {
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'ACTIVE',
+          states: { ACTIVE: {}, DONE: {} },
+          transitions: [{ from: 'ACTIVE', to: 'DONE', access: { system: true } }]
+        }
+      }
+    });
+    const instance = {
+      _id: 'constrained-transition-1',
+      type: 'constrained-account',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      fields: { code: 'A-1' },
+      state: 'ACTIVE',
+      lineage: {},
+      relations: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await db.collection('items').insertOne(instance);
+    const validateCandidate = vi.fn(async candidate => {
+      expect(candidate.state).toBe('DONE');
+      throw new Error('permanent constraint failed');
+    });
+    vi.spyOn(getAppRegistry(), 'getInstanceService').mockReturnValue({ validateCandidate });
+
+    await expect(statusService.transition(
+      'constrained-account',
+      instance._id,
+      'DONE',
+      'SYSTEM',
+      { userId: 'SYSTEM', role: 'system' }
+    )).rejects.toThrow('permanent constraint failed');
+
+    expect(validateCandidate).toHaveBeenCalledTimes(1);
+    expect(await db.collection('status_events').countDocuments({ targetId: instance._id })).toBe(0);
+    expect((await db.collection('items').findOne({ _id: instance._id })).state).toBe('ACTIVE');
+  });
+
   it('returns only server-authorized actions for the current user', async () => {
     mockCassetteWorkflow();
     await db.collection('files').insertOne(cassetteDoc('cassette-2'));
