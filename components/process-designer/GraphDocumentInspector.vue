@@ -6,7 +6,7 @@
     </template>
     <template v-else-if="node.data.definition">
       <label class="text-supporting text-muted" for="graph-node-config">{{ $t('processDesigner.graphConfiguration') }}</label>
-      <Textarea id="graph-node-config" v-model="configText" rows="8" auto-resize class="w-full font-mono text-supporting" />
+      <Textarea id="graph-node-config" v-model="configText" rows="8" auto-resize class="w-full text-supporting" />
       <Message v-if="configError" severity="error">{{ configError }}</Message>
       <Button size="small" :label="$t('processDesigner.graphApplyConfiguration')" @click="applyConfig" />
     </template>
