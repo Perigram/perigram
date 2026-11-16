@@ -509,12 +509,16 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   declared preview surfaces and mount them through the read-only host.
   Remaining: end-to-end graph preview tests and robust per-node diagnostics.
   Preview remains read-only.
-- [ ] - [ ] G5 Commit, Bake, and Export — page-file Bake is implemented in the
+- [ ] G5 Commit, Bake, and Export — page-file Bake is implemented in the
   graph-executions service and exposed through its explicit API route; Export
   returns a selected output as a download and records a `procedural-export`
-  execution. Remaining: implement Commit against validated proposals and
-  complete the other declared Bake destinations (instance attachment and
-  explicitly typed new instance).
+  execution. The first Commit adapter applies one exact-instance CTS
+  name/field patch through the authorized instance service with an expected
+  revision, after validating the preview read set; it records a
+  `procedural-commit` execution. Remaining: transactionally couple the write
+  and evidence record, define recovery for evidence-write failure, and complete
+  the other declared Bake destinations (instance attachment and explicitly
+  typed new instance).
 - [ ] G6 Organization-data consistency — bounded typed CTS queries now
   support exact-instance detail reads, Mongo snapshot transactions where
   supported, sequence-bracketed fallback, and execution read sets that merge
@@ -526,8 +530,11 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   compare-and-swap, including a second revision check when constraints require
   a fresh read; the managed plugin update capability forwards that
   precondition. Focused stale-revision and concurrent-write regression tests
-  were added. Remaining: run the revision backfill and connect graph Commit
-  to this boundary after its proposal and recovery contract is implemented.
+  were added. The first graph Commit adapter now forwards the preview's
+  expected revision through this same boundary and revalidates its read set
+  before writing. Remaining: run the revision backfill, transactionally
+  validate query/range dependencies with multi-object writes, and close the
+  Commit evidence/recovery gap.
 - [ ] G7 Constraints — the typed boolean AST now checks nested
   relation/containment traversal, finite quantifiers, aggregate result types,
   and boolean predicate results. Enforcement covers generic creation,
@@ -542,6 +549,12 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   a deterministic migration with dry-run report and recovery path, cut over
   all records, verify semantics and authorization, then remove the old
   runtime format.
+
+### Agent Notes (2026-11-16, graph Commit first slice)
+
+- Added `POST /api/graph-executions/commit` and the first `cts.instance.patch` proposal adapter. It requires a successful preview, exactly one matching instance revision in the read set, no relation dependencies, and only exact-instance query observations for the same target. It revalidates the saved graph and read set, then calls the generic instance `patch` service with caller auth, organization, and expected revision. The generic service owns write-grant, field-policy, constraints, and compare-and-swap checks. It persists a `procedural-commit` execution with the resulting instance revision.
+- The instance write and append-only execution evidence are not yet one Mongo transaction. If the write succeeds and evidence persistence fails, the API returns an explicit 500 with the committed instance identity/revision; durable recovery and atomic evidence remain blocking work. Multi-object/relation proposals remain refused.
+- Added service regression coverage for successful commit and broad-read-set refusal. CI was pending at the time of this note; no local test runner was available in this session.
 
 ### Agent Notes (2026-11-14, agent/outputs-channel-20261114)
 
