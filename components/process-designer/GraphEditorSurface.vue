@@ -90,6 +90,8 @@ import GraphDocumentInspector from '~/components/process-designer/GraphDocumentI
 import GraphDocumentPreviewPanel from '~/components/process-designer/GraphDocumentPreviewPanel.vue';
 import { useGraphDocumentSession } from '~/composables/useGraphDocumentSession.js';
 import { mintId } from '~/utils/processDesignerIdentity.js';
+import { assertValidGraphDocument } from '@perigram/core';
+import { useClientEngines } from '~/composables/useClientEngines.js';
 
 const props = defineProps({
   record: { type: Object, default: null },
@@ -110,6 +112,8 @@ const recordName = ref(props.record?.name || '');
 const savedSignature = ref('');
 const inspectTab = ref('inspector');
 const graphDocuments = ref([]);
+const clientEngineBindings = ref([]);
+const clientEngines = useClientEngines({ engines: clientEngineBindings });
 const graphDocumentsLoading = ref(false);
 const graphDocumentsError = ref('');
 const graphRevisions = ref([]);
@@ -170,7 +174,8 @@ const {
   serializeGraph,
   designerSignature,
   refreshPreview,
-  setGraphInputBinding
+  setGraphInputBinding,
+  registerNodeProvider
 } = session;
 
 // The server-rendered boot state is the initial saved baseline; async
@@ -256,6 +261,25 @@ async function loadGraphCatalog() {
     graphDocumentsError.value = error?.data?.message || error?.message || '';
   } finally {
     graphDocumentsLoading.value = false;
+  }
+}
+
+async function loadGraphProviders() {
+  try {
+    const view = await $fetch('/api/admin/cts/types');
+    clientEngineBindings.value = Array.isArray(view?.clientEngines) ? view.clientEngines : [];
+    const results = await Promise.allSettled(clientEngineBindings.value.map(async binding => {
+      const engine = await clientEngines.engineFor(binding);
+      if (engine.nodeProviders == null) return;
+      if (!Array.isArray(engine.nodeProviders)) throw new Error(`Engine ${binding.pluginId} nodeProviders must be an array`);
+      for (const contribution of engine.nodeProviders) registerNodeProvider(contribution, binding.pluginId);
+    }));
+    const failures = results.filter(result => result.status === 'rejected');
+    if (failures.length) {
+      graphDocumentsError.value = [graphDocumentsError.value, failures.map(result => result.reason?.message || String(result.reason)).join('; ')].filter(Boolean).join(' · ');
+    }
+  } catch (error) {
+    graphDocumentsError.value = [graphDocumentsError.value, error?.data?.message || error?.message || String(error)].filter(Boolean).join(' · ');
   }
 }
 
@@ -412,6 +436,6 @@ props.pageChrome?.bind?.(Object.assign(
 ));
 
 onMounted(async () => {
-  await Promise.all([loadGraphDocument(), loadGraphCatalog()]);
+  await Promise.all([loadGraphDocument(), loadGraphCatalog(), loadGraphProviders()]);
 });
 </script>

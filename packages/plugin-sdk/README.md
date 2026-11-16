@@ -114,9 +114,16 @@ endpoint/claim/local), `engine` (the plugin's client engine, SPEC §20
 client-carried: `{ module }` — a root-relative entry module the package
 serves; a service of `mode: 'local'` executes in the browser through it
 and requires the declaration; the module's default export is
-`createEngine() -> { dispatch(serviceId, parameters) -> Promise<value> }`
-— the platform loads it once per installed version and routes local
-service dispatch to it),
+`createEngine() -> { dispatch?, nodeProviders? }` — `dispatch(serviceId,
+parameters) -> Promise<value>` serves local services; optional
+`nodeProviders` is an array of provider contributions in the
+`@perigram/plugin-sdk/nodes` shape (`{ provider, definitions, execute,
+previewRenderers? }`). Provider ids must be `plugin.<pluginId>` or a
+sub-provider namespace beneath it; each definition must carry that exact
+provider id. A provider-only engine may omit `dispatch`. The platform
+loads the module once per installed version, routes local service dispatch
+through `dispatch`, and registers graph providers/renderers from the same
+installed module),
 `editors` (file-type editor bindings — the bound type must be declared by
 the same plugin with class `file`, one binding per type),
 `surfaces` (plugin-delivered surface modules:

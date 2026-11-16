@@ -35,6 +35,18 @@ describe('useClientEngines', () => {
     await expect(engines.dispatchService('plugin.demo.spin', {})).resolves.toBe(1);
   });
 
+  it('loads graph-only engines with node-provider contributions', async () => {
+    const nodeProviders = [{ provider: 'plugin.demo', definitions: [{
+      provider: 'plugin.demo', id: 'value.constant', version: '1', inputs: [], outputs: [], execution: { kind: 'pure' }
+    }], execute: async () => ({ value: 1 }) }];
+    const engines = useClientEngines({
+      engines: ref([binding]),
+      loadModule: async () => ({ default: () => ({ nodeProviders }) })
+    });
+    await expect(engines.engineFor(binding)).resolves.toMatchObject({ nodeProviders });
+    await expect(engines.dispatchService('plugin.demo.spin', {})).rejects.toThrow(/does not provide service dispatch/);
+  });
+
   it('refuses a dispatch with no served binding', async () => {
     const engines = useClientEngines({ engines: ref([]), loadModule: vi.fn() });
     await expect(engines.dispatchService('plugin.demo.spin', {})).rejects.toThrow(/no served client engine/);

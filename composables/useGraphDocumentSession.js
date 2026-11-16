@@ -84,6 +84,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
   const processExecutor = createProcessProceduralExecutor();
   const providerExecutors = new Map([[PROCESS_PROCEDURAL_PROVIDER, processExecutor]]);
   const providerPreviewRenderers = new Map();
+  const providerGeneration = ref(0);
 
   const groupLabels = {
     source: t('processDesigner.graphSources'),
@@ -101,6 +102,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
   };
 
   const paletteGroups = computed(() => {
+    providerGeneration.value;
     const groups = [{
       source: 'framework',
       id: 'graph-boundaries',
@@ -607,13 +609,23 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     return normalized;
   }
 
-  for (const contribution of providers) {
+  function registerNodeProvider(contribution, pluginId = null) {
     const provider = normalizeNodeProvider(contribution);
+    if (pluginId) {
+      const owner = `plugin.${String(pluginId)}`;
+      if (provider.provider !== owner && !provider.provider.startsWith(`${owner}.`)) {
+        throw new Error(`Node provider ${provider.provider} is not owned by installed plugin ${pluginId}`);
+      }
+    }
     for (const definition of provider.definitions) registerProvider(definition, provider.execute);
     for (const [rendererId, renderer] of Object.entries(provider.previewRenderers)) {
       providerPreviewRenderers.set(`${provider.provider}:${rendererId}`, renderer);
     }
+    providerGeneration.value += 1;
+    return provider;
   }
+
+  for (const contribution of providers) registerNodeProvider(contribution);
 
   function openPanePalette(event) {
     event?.preventDefault?.();
@@ -687,7 +699,10 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     previewError,
     previewRunning,
     paletteGroups,
-    previewRenderers: computed(() => Object.fromEntries(providerPreviewRenderers)),
+    previewRenderers: computed(() => {
+      providerGeneration.value;
+      return Object.fromEntries(providerPreviewRenderers);
+    }),
     nodeDefinitions: computed(() => Object.fromEntries(nodes.value.map(node => [node.id, definitionFor(node)]))),
     contextPaletteGroups,
     contextPaletteChipGroups,
@@ -733,6 +748,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     designerSignature,
     refreshPreview,
     setGraphInputBinding,
-    registerProvider
+    registerProvider,
+    registerNodeProvider
   };
 }

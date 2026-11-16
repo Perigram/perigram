@@ -419,11 +419,14 @@ invariant).
 
 - `useClientEngines` loads served client-engine bindings (SPEC §20):
   each binding's entry module loads once per installed version and its
-  default-exported `createEngine()` factory provides
-  `dispatch(serviceId, parameters)`; `bindingForService` resolves a
-  plugin-qualified command id to its binding and `dispatchService`
-  routes the dispatch (a failed load is forgotten and recorded in
-  `errors`).
+  default-exported `createEngine()` factory provides optional
+  `dispatch(serviceId, parameters)` and/or `nodeProviders`. Graph provider
+  contributions use the `@perigram/plugin-sdk/nodes` contract and are
+  registered only under the owning plugin's provider namespace; the graph
+  session derives palette definitions, executors, and preview renderers
+  from them. `bindingForService` resolves local service ids and
+  `dispatchService` routes service calls; a failed load is forgotten and
+  recorded in `errors`.
 
 - `useProcessDesignerLiveGraph` is the realtime evaluation loop: one
   semantic signature over authoring state (nodes minus presentation, edges,
