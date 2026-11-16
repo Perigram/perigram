@@ -71,9 +71,10 @@ boundary node. Use Graph nodes pin an immutable graph revision.
 - `createGraphReadSetRecorder` captures deduplicated instance, relation, and
   query/range dependencies across parent and pinned child evaluations. It
   records a consistency label and optional snapshot/change-sequence boundary;
-  the default is explicitly `unverified` until an authoritative data adapter
-  supplies stronger evidence. Read providers record dependencies only after
-  their authorized read completes.
+  distinct query snapshots collapse to a `sequence-bracketed` execution
+  boundary only when every read shares the same stable organization sequence.
+  Divergent or unverified reads downgrade the whole set to `unverified`.
+  Read providers record dependencies only after their authorized read completes.
 - Preview accepts pure and read node definitions; effect, proposal, commit,
   stateful, and control operations are refused by the evaluator.
 

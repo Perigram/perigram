@@ -11,7 +11,7 @@ Parent: [server features](../README.md).
 - Execution envelopes use the hidden append-only `graph-execution` CTS type through the generic instance persistence service.
 - Page-file Bake validates the saved source revision, writes bytes through the [pages feature](../pages/README.md), and records the resulting file reference and destination in a `procedural-bake` execution.
 - Bake destinations identify a Page id and a validated page-relative path. The page service owns conflict policy, revision history, GridFS metadata, and compare-and-swap page updates.
-- Organization queries use the generic instance service's read grant and sequence-bracketed consistency boundary; they support bounded deterministic lists and exact-instance detail reads. Execution read sets retain returned instance versions and query/range semantics.
+- Organization queries use the generic instance service's read grant and Mongo snapshot transactions where supported, with sequence-bracketed fallback. They support bounded deterministic lists and exact-instance detail reads. Execution read sets retain instance revisions and query/range dependencies; distinct per-query snapshots collapse to one sequence-bracketed boundary only when they share the same stable organization sequence.
 - The capability accepts only a selected graph output and a successful preview execution as Bake input.
 
 ## API

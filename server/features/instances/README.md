@@ -205,7 +205,7 @@ Parent: [server/features](../README.md).
 
 ## Organization change sequence (SPEC §28)
 
-`organization-sequence.js` owns the durable per-organization mutation boundary. Every authoritative write reserves a pending token before mutation and advances the sequence only after the write succeeds. Failed writes release their reservation; readers fail closed while writes remain pending. `withOrganizationChangeSequence` brackets multi-query reads with the exact start/end sequence and retries changed boundaries. New mutation paths use `runOrganizationChange`; `recordOrganizationChange` remains for legacy write paths during migration.
+`organization-sequence.js` owns the durable per-organization mutation boundary. Every authoritative write reserves a pending token before mutation and advances the sequence only after the write succeeds. Failed writes release their reservation; readers fail closed while writes remain pending. `withOrganizationDataSnapshot` runs reads in a Mongo snapshot transaction where supported, passes its session through the generic list/detail repository reads, and checks the organization sequence before and after. It retries changed boundaries and falls back to `withOrganizationChangeSequence` when snapshot transactions are unsupported. `withOrganizationChangeSequence` is the sequence-bracketed fallback. New mutation paths use `runOrganizationChange`; `recordOrganizationChange` remains for legacy write paths during migration.
 
 ## Derived indexes (SPEC §13)
 
