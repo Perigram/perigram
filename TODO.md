@@ -546,9 +546,10 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   predicates. Construction and process updates validate lineage against
   declared parent edges and existing parent instances; construction inherits
   only validated ancestor axes, and tenancy is kept out of stored lineage.
-  Remaining: audit all import/direct repository and dedicated relation mutation
-  paths, add explicit uniqueness semantics, and guarantee cross-record
-  cardinality/uniqueness under concurrency.
+  Global and organization-scoped exact scalar uniqueness uses registry-derived
+  Mongo unique indexes, partial scalar filters, and 409 conflict mapping.
+  Remaining: audit import/direct repository and dedicated relation mutation
+  paths, then serialize cross-record aggregate/cardinality constraints.
 - [ ] G8 Typed references and embeds — live and pinned references,
   saved-query/graph-output collection embeds, and derived backlinks.
 - [ ] G9 Procedural vertical slices — document/data and geometry workflows
@@ -569,7 +570,7 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
 - Generic create and process-update relation writes resolve declared typed targets, enforce tenant/system scope, reject duplicate refs and invalid one/many shapes, and evaluate target-domain expressions with the bounded async evaluator.
 - Construction lineage now resolves only declared parent types, validates parent scope/existence, and allows authored ancestor axes only when they are present on the validated parent's lineage. Internal process-update lineage writes reject undeclared keys and unresolved parents. The storage boundary ignores `lineage.organizationId`; organization ownership remains the top-level §3 slot.
 - Regression coverage added for cardinality, target type/domain, cross-organization refs, undeclared lineage keys, and missing parents. CI for the structural-edge fixture correction passed the complete Vitest and SSR suites; the subsequent tenancy-slot cleanup is awaiting its own workflow.
-- This does not yet close G7: direct import/repository and dedicated link/unlink paths still need an audit, and cross-record uniqueness/cardinality need transaction/index/serialization semantics.
+- Open G7 work: import/direct repository and dedicated link/unlink paths need an audit; cross-record aggregate/cardinality constraints need serialized enforcement.
 ### Agent Notes (2026-11-16, deployment migration wiring)
 
 - `scripts/deploy.sh` now runs the instance-revision backfill and organization-owned plugin-asset migration after the updated app starts. It runs them from the standalone `perigram-seed` image, whose dependency closure now includes the CTS package import map, server DB/utils/features, MongoDB, Winston, and H3; this avoids relying on Nuxt aliases or source trees absent from the app runtime image. The deploy script's executable mode remains `100755`.

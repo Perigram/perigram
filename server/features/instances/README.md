@@ -155,8 +155,8 @@ Parent: [server/features](../README.md).
   `{ revisionId }` is the transport.
 - Field updates (`patch`): `PATCH /api/instances/:type/:id` carries the
   `name` rename channel and declared `fields` leaves through the §3
-  mapping. It rejects `lineage` and `relations` rather than bypassing
-  their structural write rules; state writes remain status-runtime owned.
+  mapping. Structural lineage and relation changes use their validated
+  edge-write boundary; state writes remain status-runtime owned.
   It gates through the shared access engine exactly like the payload
   transport (write level on the class-collection feature, type-id filter —
   fail-closed). This is the generated detail surfaces' inline-edit
@@ -232,6 +232,9 @@ idempotently (`createIndex`):
   storage key (see `packages/cts/SPEC.md` §6), not the entry's map key;
 - per declared relation edge, on the owner's class collection:
   `{ type, organizationId, 'relations.<key>' }`.
+- per declared unique constraint, on `fields.<path>`: an exact, simple-collation
+  unique index scoped globally or to the owning organization. Missing values
+  are excluded by a scalar-type partial filter; duplicate writes return 409.
 
 Type declarations and process activation are the write paths that can
 change the view, so `defineType`/`removeType` (cts-types) and activate
