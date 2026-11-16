@@ -6,11 +6,13 @@
       v-else
       v-model:nodes="nodes"
       v-model:edges="edges"
-      :bind-frame="bindFrame"
+      :bind-frame="bindCanvasFrame"
       :bind-context-palette-search="bindContextPaletteSearch"
       :document-items="[]"
       :canvas-items="canvasItems"
       chrome-variant="floating"
+      :canvas-status="canvasStatus"
+      :on-activity-click="openActivitySurface"
       :touch-pan-drag="touchPanDrag"
       :default-edge-options="{ type: 'default' }"
       :palette-groups="paletteGroups"
@@ -108,6 +110,7 @@ const saving = ref(false);
 const recordName = ref(props.record?.name || '');
 const savedSignature = ref('');
 const inspectTab = ref('inspector');
+let canvasFrame = null;
 let instanceId = String(props.record?._id || props.record?.id || '');
 
 const session = useGraphDocumentSession({ t });
@@ -177,6 +180,33 @@ const canvasItems = computed(() => [
 const isDirty = computed(() => !readOnly.value
   && Boolean(graphDocument.value)
   && designerSignature() !== savedSignature.value);
+
+const canvasStatus = computed(() => {
+  const evaluatedNodes = Object.keys(previewResult.value?.nodeOutputs || {});
+  const state = previewRunning.value
+    ? 'running'
+    : previewError.value
+      ? 'error'
+      : previewResult.value
+        ? 'ready'
+        : 'idle';
+  const suffix = state[0].toUpperCase() + state.slice(1);
+  return {
+    state,
+    label: t(`processDesigner.canvasStatus${suffix}`),
+    count: evaluatedNodes.length
+  };
+});
+
+function bindCanvasFrame(instance) {
+  canvasFrame = instance;
+  bindFrame(instance);
+}
+
+function openActivitySurface() {
+  canvasFrame?.openPanel?.('inspector');
+  inspectTab.value = 'preview';
+}
 
 function parseGraphPayload(payload) {
   const graph = JSON.parse(payload);
