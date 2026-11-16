@@ -40,6 +40,14 @@ Parent: [packages README](../README.md).
   `normalizeStatusState`, `getPrimaryState`, `getRegionState`,
   `getStatusRegions`, `createData`, `inheritLineage`,
   `createAttachment`
+- Graph documents: `normalizeGraphDocument`, `validateGraphDocument`,
+  `assertValidGraphDocument`; canonical format `perigram.graph` v1,
+  provider-qualified and version-pinned operations, explicit graph interfaces,
+  and pinned `Use Graph` references.
+- Procedural preview: `evaluateProceduralGraph` evaluates an acyclic graph in
+  preview mode, resolves pure/read providers through explicit callbacks, and
+  supports pinned subgraph invocation. Commit/effect execution is deliberately
+  not part of this initial evaluator.
 - Lifecycle runtime: `normalizeWorkflow`, `getWorkflowRegions`,
   `getWorkflowRegion`, `createWorkflowState`, `applyWorkflowTransitionState`,
   `validateTransition`, `validateLifecyclePayload`, `hasLifecyclePayload`,
@@ -116,3 +124,30 @@ round-trip contract lives in
 ## Related
 
 - [server/core/blocks](../../server/core/blocks/README.md)
+
+
+## Procedural graph foundation
+
+`graph.js` owns the canonical, JSON-safe graph document contract. A graph
+stores its stable identity and authored revision, public input/output
+contracts, provider-qualified node operation references (including pinned
+definition versions), JSON configuration, layout coordinates, and explicit
+edges. It does not store evaluated values or provider runtime objects.
+
+Graph Input and Graph Output nodes bind the authored canvas to the declared
+public interface. Use Graph nodes pin both graph identity and immutable
+revision. The evaluator rejects recursive subgraph invocation and dependency
+cycles. Subgraph interfaces are resolved from the pinned child revision.
+
+`procedural-evaluator.js` is an intentionally narrow first execution profile:
+it topologically evaluates pure and read nodes for preview, with provider
+execution supplied by callbacks. It refuses proposal, commit, and external
+effect nodes. Reads must still pass through the host's authoritative
+authorization boundary. The evaluator is not the durable process scheduler
+and does not persist outputs.
+
+The initial evaluator transports values as opaque JavaScript values and
+supports one incoming wire per input. Collection/tree mapping, incremental
+evaluation, output caching, diagnostics envelopes, execution records,
+read-set capture, and materialization are subsequent slices; they must not be
+silently inferred from this initial contract.
