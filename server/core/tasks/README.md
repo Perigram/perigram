@@ -14,6 +14,8 @@ Parent: [server](../../README.md).
   own.
 - Applies retry state (`RETRY_WAIT`) before terminal failure when attempts remain;
   executor errors with 4xx `statusCode` are treated as non-retryable.
+- Managed plugin tasks retry pure/read operations up to three attempts;
+  stateful/effect operations use one attempt unless declared idempotent.
 - Persists normalized `createTaskResult()` output.
 - Validates terminal `entities` (including effect-contributed entities)
   against the task's declared per-output contracts at completion phase:
@@ -87,8 +89,6 @@ authenticated by the configured worker or connector token.
 - `GET /api/tasks/:id/plugin-package` (platform runtime claim only)
 - `POST /api/tasks/:id/plugin-capability` (platform runtime claim only)
 - `POST /api/tasks/:id/cancel`
-- `GET /api/tasks/:id/plugin-package` — package assets for a claimed managed runtime task.
-- `POST /api/tasks/:id/plugin-capability` — capability calls for a claimed managed runtime task.
 
 All worker endpoints accept two credentials (`server/core/tasks/worker-auth.js`):
 the deployment-wide `WORKER_TOKEN` (global scope, matched against the

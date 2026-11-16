@@ -1,5 +1,7 @@
 # Managed Plugin Runtime
 
+Parent: [workers](../README.md).
+
 One platform worker claims the shared `plugin-runtime` task type for every
 organization and installed plugin. The worker retrieves the pinned
 organization-owned package assets through a claim-bound API, creates a
@@ -21,6 +23,6 @@ The same operation contract is used by the browser Worker adapter. Package
 dependencies resolve from installed local assets through the generated
 Deno import map.
 
-The worker is shared platform infrastructure. Organizations install
-versioned package data; each plugin has its own immutable package assets
-and declared runtime requirements, with no per-plugin executor deployment.
+Perigram runs this worker as shared platform infrastructure across
+organizations. Each install carries immutable package assets and declared
+runtime requirements.

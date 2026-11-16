@@ -127,8 +127,7 @@ a declared runtime; `targets` is a non-empty subset of that runtime's
 targets; `kind` uses the graph node execution vocabulary: `pure`, `read`,
 `stateful`, `proposal`, `commit`, `effect`, or `control`; capability ids are
 qualified names such as `files.read` or `organization.instances.read`.
-Pure operations carry no host capabilities. `commit` and `effect` operations are server-only and require a declared host capability. A service combines managed
-execution metadata with no legacy `mode`.
+Pure operations are capability-free. `commit` and `effect` operations are server-only and require a declared host capability. Managed service operations declare `execution` as their runtime contract.
 `editors` (file-type editor bindings — the bound type must be declared by
 the same plugin with class `file`, one binding per type),
 `surfaces` (plugin-delivered surface modules:

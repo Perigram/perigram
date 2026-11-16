@@ -15,8 +15,7 @@ Target law: [SPEC.md](./SPEC.md).
 
 | Worker | Protocol | Entry point | Responsibility |
 |---|---|---|---|
-| plugin-runtime | Managed task worker | `workers/plugin-runtime/index.ts` | Shared JavaScript runtime for installed packages. Each invocation runs in a short-lived Deno process with package-only read access, denied network/environment/process permissions, a memory ceiling, and a wall-time limit — see [workers/plugin-runtime](./plugin-runtime/README.md). |
-| plugin-runtime | Managed package execution | `workers/plugin-runtime/index.ts` | Claims `plugin-runtime` tasks and runs pinned JavaScript package operations in isolated Deno subprocesses with bounded execution and mediated host capabilities. |
+| plugin-runtime | Managed task worker | `workers/plugin-runtime/index.ts` | Claims shared runtime tasks and executes pinned JavaScript packages in isolated Deno subprocesses with package-scoped reads, bounded memory/time, and host-mediated capabilities — see [workers/plugin-runtime](./plugin-runtime/README.md). |
 | nesting | HTTP solver | `workers/nesting/worker_service.py` | 2D nesting solver, called by the facade executor through `NESTING_WORKER_URL` — see [workers/nesting](./nesting/README.md). |
 | facade | Endpoint-mode plugin executor | `workers/facade/index.js` | The facade plugin's compute and surfaces — see [workers/facade](./facade/README.md). |
 | documents | Endpoint-mode plugin executor | `workers/documents/index.js` | The documents plugin's projections and text/csv surfaces — see [workers/documents](./documents/README.md). |

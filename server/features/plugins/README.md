@@ -94,27 +94,26 @@ affordances with no authored action nodes (SPEC §21).
 Installed construction contracts merge into the projected domain's
 construction table (`projectedDomainsForOrganization`).
 
-### Connector services
+### Service execution
 
-A service may declare managed `execution: { runtime, targets, kind,
-capabilities, deterministic?, idempotent? }`. The runtime id resolves to
-an installed package runtime; target declarations constrain browser and
-server placement; kind follows the graph execution vocabulary. Managed
-services enqueue platform-owned `plugin-runtime` tasks for server execution.
-The worker loads the exact organization-owned package version in a restricted
-Deno subprocess and requests declared capabilities through authenticated task
-routes. The server runtime currently executes JavaScript packages. It rehydrates the
-run actor from the current membership before package delivery and every
-capability call, so revoked membership or grants take effect on the next call.
-The capability adapter in `capabilities.js` checks the installed version,
-runtime target, operation declaration, and capability allowlist before
-calling the host's authorized instance or file services. Browser calls use
-the authenticated organization plugin capability route and are read-only;
-server calls use the claimed task route and may invoke declared writes. Provider-level external integrations use
-explicit connection records and server-held credentials. Legacy endpoint
-and claim service modes remain migration inputs while existing plugins
-move to managed execution. Local package operations carry no per-function
-endpoint or API-key settings.
+Managed services declare `execution: { runtime, targets, kind,
+capabilities, deterministic?, idempotent? }`. The install snapshot pins
+the package runtime and operation contract. Server calls enqueue the shared
+`plugin-runtime` task; the Deno worker loads the pinned organization
+package into a restricted subprocess and requests host capabilities through
+claim-bound routes.
+
+The capability adapter in `capabilities.js` validates the installed version,
+runtime target, operation declaration, and capability allowlist. It uses
+authorized instance and file services. Browser calls use the authenticated
+organization capability route and expose query, read, and file-read
+capabilities. Server calls use the claimed task route and may invoke declared
+writes. The server rehydrates the run actor from current membership and
+grants before package delivery and capability calls.
+
+Provider-level integrations use organization connection records and
+server-held credentials. Installed package operations use their pinned
+organization package and declared capabilities.
 
 Installed services compose into the projected domain's service list
 (`projectedServicesForOrganization` — the one list the designer,
@@ -141,12 +140,13 @@ cannot feed, so it stays out of the palette and the operator domain
 while remaining fully dispatchable through its construction,
 conversion, or export binding and the connector path.
 
-Executing a managed service dispatches through the platform runtime
-scheduler. Browser-capable pure operations may preview in a dedicated
-Worker; server execution validates graph inputs, capability grants, and
-read evidence before committing durable effects. Legacy endpoint and
-claim services continue through their explicit integration adapters
-while their packages migrate. A service input field declared with base `blob` receives a
+Managed service execution dispatches through the platform scheduler.
+Browser pure and read operations may preview in a Worker. Server execution
+validates graph inputs, capability grants, and read evidence before durable
+effects commit. Endpoint and claim services use the external integration
+protocol.
+
+A service input field declared with base `blob` receives a
 payload handle `{ fileId, mime, size, name? }` on the wire; the
 endpoint dispatch hydrates the handle with its stored bytes as
 `payloadBase64`, so the executor reaches no storage — the hydration is

@@ -728,7 +728,7 @@ The plugin runtime exposes a narrow, versioned host capability interface
 for organization data, files, events, and configured external integrations.
 A package declares the capabilities it requires; installation and execution
 authorize each grant in the organization context. Runtime adapters implement
-the same capability contract in browser and server environments. Secrets
+the same capability contract in browser and server environments. Browser capabilities grant organization queries, reads, and authorized file reads. Durable create, update, delete, and commit operations run on the server; `commit` and `effect` declarations require server support and an explicit host capability. Secrets
 and database handles remain host-owned; plugin code receives scoped
 capability calls and values.
 

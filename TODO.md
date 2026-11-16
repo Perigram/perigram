@@ -85,6 +85,16 @@ integration waits for the owner's completion of build123d-flow.
   deployment inventories; run focused tests plus architecture, docs,
   plugin-dependency, framework, SSR, and full Vitest guards.
 
+### Agent Notes
+
+- 2026-11-16: Added portable runtime declarations, browser Worker RPC,
+  authenticated read-only browser capabilities, the shared Deno server
+  worker, package digest checks, current-principal reauthorization, and
+  development/production worker wiring. Remaining work covers effect
+  evidence and transactional commits, preview renderer modules, Documents
+  migration, existing-install asset migration, and end-to-end verification.
+  Tests and repository guards have not been run in this environment.
+
 ## Architecture simplification (SPEC §30, active 2026-11-14)
 
 Execution authority: [SPEC §30](./SPEC.md). This sequence tracks the
