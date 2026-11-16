@@ -183,6 +183,23 @@ read-only over the graph's preview evaluation — the channel id is a
 globally unique slug and the label is the tab's name; the same schema
 mirror carries it.
 
+## Provider-neutral node contracts
+
+The browser-safe `@perigram/plugin-sdk/nodes` entry owns normalized node
+provider definitions and exact-version registration. A definition declares
+provider and operation identity, its own version, JSON configuration schema,
+input/output ports, semantic descriptors, transport shapes, execution kind,
+capabilities, determinism, idempotency, and optional preview metadata.
+
+- `validateNodeDefinition`, `normalizeNodeDefinition`, and
+  `assertValidNodeDefinition` validate and freeze declarations.
+- `createNodeProviderRegistry` registers definitions by provider, operation,
+  and exact definition version; resolution returns the exact registered version.
+- Port transport shape and semantic meaning are independent fields.
+
+The package root remains Node-bound. Browser consumers import the dedicated
+`./nodes` entry for graph authoring and provider discovery.
+
 ## Executor harnesses
 
 - **Endpoint mode** — `createEndpointExecutor({ services, token })` returns
