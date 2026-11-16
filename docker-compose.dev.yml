@@ -68,7 +68,10 @@ services:
     depends_on:
       mongo-init:
         condition: service_completed_successfully
-      plugin-runtime:
+      livekit:
+        condition: service_started
+
+  plugin-runtime:
     image: perigram-plugin-runtime:latest
     build:
       context: .

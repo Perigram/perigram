@@ -69,6 +69,8 @@ retry docker build --network=host "${build_args[@]}" \
   -f workers/plugin-executor.Dockerfile .
 retry docker build --network=host "${build_args[@]}" \
   -t perigram-build123d-executor:staging -f workers/build123d/Dockerfile workers/build123d
+retry docker build --network=host "${build_args[@]}" \\
+  -t perigram-plugin-runtime:staging -f workers/plugin-runtime.Dockerfile .
 retry docker build --network=host "${build_args[@]}" \
   -t perigram-seed:staging -f deploy/seed.Dockerfile .
 

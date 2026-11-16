@@ -1,8 +1,7 @@
 import { ref } from 'vue';
 
 export function usePluginRuntime({
-  createWorker = () => new Worker(new URL('./plugin-runtime.worker.js', import.meta.url), { type: 'module' }),
-  loadModule = url => import(/* @vite-ignore */ url)
+  createWorker = () => new Worker(new URL('./plugin-runtime.worker.js', import.meta.url), { type: 'module' })
 } = {}) {
   const errors = ref({});
   const runtimes = new Map();
@@ -148,7 +147,7 @@ export function usePluginRuntime({
     }
   }
 
-  async function loadProviders(binding, runtime, { capabilities = {} } = {}) {
+  async function loadProviders(binding, runtime) {
     if (!binding?.organizationId || !binding?.pluginId || !binding?.version) {
       throw new Error('Plugin runtime binding requires organizationId, pluginId, and version');
     }
@@ -168,13 +167,16 @@ export function usePluginRuntime({
       return {
         provider: contribution.provider,
         definitions: contribution.definitions,
-        execute: (definition, invocation) => execute(
-          binding,
-          runtime,
-          definition.id,
-          invocation,
-          { execution: definition.execution, capabilities }
-        )
+        execute: (definition, invocation) => {
+          const capabilities = Object.fromEntries((definition.execution.capabilities || []).map(name => [
+            name,
+            input => invokeCapability({ binding, operationId: definition.id, name, input })
+          ]));
+          return execute(binding, runtime, definition.id, invocation, {
+            execution: definition.execution,
+            capabilities
+          });
+        }
       };
     });
   }
