@@ -1346,7 +1346,7 @@ describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
     }
   });
 
-  it('serves an engine install\'s modules from the platform-stored package', async () => {
+  it('serves an engine install\'s modules from its organization-owned package', async () => {
     const engineInstall = {
       ...moduleInstall,
       version: '2',

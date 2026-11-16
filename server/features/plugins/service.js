@@ -457,7 +457,7 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
       ? await repository.findOrganizationPluginAssetMeta(organizationId, pluginId, install.version, segments.join('/'))
       : await repository.findPluginAssetMeta(pluginId, install.version, segments.join('/'));
     if (!asset) throw createError({ statusCode: 404, message: `Plugin ${pluginId} package does not carry ${segments.join('/')}` });
-    const isJsModule = /\\.[cm]?js$/.test(segments[segments.length - 1] || '');
+    const isJsModule = /\.[cm]?js$/.test(segments[segments.length - 1] || '');
     const raw = organizationOwned
       ? await repository.readOrganizationPluginAsset(asset)
       : await repository.readPluginAsset(asset);
@@ -484,7 +484,7 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
     throw createError({ statusCode: 502, message: `Plugin ${pluginId} executor did not serve the module (${response.status})` });
   }
   const contentType = response.headers.get('content-type') || 'application/octet-stream';
-  const isJsModule = /\.[cm]?js$/.test(segments[segments.length - 1] || '');
+    const isJsModule = /\.[cm]?js$/.test(segments[segments.length - 1] || '');
   // A JS module's declared dependencies (owner decision 2026-10-17)
   // resolve to the plugin's own vendor scope: bare specifiers rewrite to
   // same-origin proxied URLs, so a surface imports `three` and the
