@@ -139,20 +139,16 @@ import Select from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
 import { useI18n } from 'vue-i18n';
 import {
-  CAST_BASES,
-  CONVERT_UNITS,
   EFFECT_SPECIES_KINDS,
-  MAPPED_MUTATION_SPECIES_KINDS, formatProcessType } from '@perigram/processes';
+  formatProcessType } from '@perigram/processes';
 import { socketSpecLine } from '~/composables/useNodeSpec.js';
 import DesignerNodeCard from '~/components/shared/DesignerNodeCard.vue';
 import DesignerSocketHandle from '~/components/shared/DesignerSocketHandle.vue';
-import TypedValueControl from './TypedValueControl.vue';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
   selected: { type: Boolean, default: false }
 });
-const { t } = useI18n();
 
 const record = computed(() => props.data.processNodeRecord || props.data);
 const opKind = computed(() => operationKindOf(record.value || {}));
@@ -191,7 +187,6 @@ const nodeSpecTooltip = computed(() => {
 const faultMessages = computed(() => (Array.isArray(props.data.diagnostics) ? props.data.diagnostics : null));
 const faulted = computed(() => Boolean(faultMessages.value?.length));
 const errorPopover = ref(null);
-const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutputs.value, 'event'));
 // The collapsed card's edge sockets: every socket, data and event alike.
 const collapseInputs = computed(() => [...dataInputs.value, ...eventInputs.value]);
 const collapseOutputs = computed(() => [...dataOutputs.value, ...eventOutputs.value]);
@@ -201,91 +196,6 @@ function toggleCollapsed() {
   props.data.collapsed = !collapsed.value;
 }
 const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));
-const operationOptions = computed(() => props.data.processOperationOptions || []);
-const showTypeEditor = computed(() => opKind.value.startsWith('source.literal'));
-const baseTypeOptions = computed(() => [
-  'string',
-  'number',
-  'integer',
-  'boolean',
-  'json',
-  'date',
-  'dateTime',
-  'duration',
-  'enum',
-  'entityRef'
-].map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value })));
-const castBaseOptions = CAST_BASES.map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value }));
-const convertUnitOptions = CONVERT_UNITS.map(value => ({ label: value, value }));
-const isTypedValueUtility = computed(() => ['value.required', 'value.validate', 'value.coalesce', 'value.format'].includes(opKind.value));
-const literalStructureDisplay = computed(() => (
-  typeof record.value.value === 'string' ? record.value.value : JSON.stringify(record.value.value, null, 2)
-));
-const hasInlineConfiguration = computed(() => (
-  showTypeEditor.value
-  || operationOptions.value.length
-  || opKind.value === 'value.cast'
-  || isTypedValueUtility.value
-  || opKind.value === 'value.convertUnit'
-  || opKind.value.startsWith('source.literal')
-));
-
-// The one-line literal: a single data output (the value), no inputs —
-// anything with more sockets keeps the full card.
-const isOneLineLiteral = computed(() => (
-  opKind.value === 'source.literalItem'
-  && dataInputs.value.length === 0
-  && dataOutputs.value.length === 1
-  && eventSocketRows.value.length === 0
-));
-const oneLineOutput = computed(() => (isOneLineLiteral.value ? dataOutputs.value[0] : null));
-function update(updates) {
-  props.data.onProcessNodeUpdate?.(updates);
-}
-
-// Per-node preview visibility (SPEC §28): the header eye. An authored
-// `previewVisible: false` removes the node's outputs from the preview
-// channels; visible stays unauthored.
-const previewVisible = computed(() => record.value.previewVisible !== false);
-
-function togglePreviewVisible() {
-  update({ previewVisible: previewVisible.value ? false : null });
-}
-
-const operationValue = computed(() => (
-  opKind.value === 'collection.sort'
-    ? record.value.direction || 'asc'
-    : record.value.operation
-));
-
-function updateOperation(value) {
-  update(opKind.value === 'collection.sort' ? { direction: value } : { operation: value });
-}
-
-function updateValueType(base) {
-  const updates = { type: { ...(record.value.type || {}), base } };
-  if (opKind.value.startsWith('source.literal')) {
-    updates.value = base === 'boolean' ? false
-      : ['number', 'integer'].includes(base) ? 0
-        : base === 'json' ? {}
-          : base === 'entityRef' ? null
-            : '';
-    if (base === 'entityRef') {
-      updates.typeId = record.value.type?.typeId || record.value.typeId || '';
-      updates.type.typeId = updates.typeId;
-    }
-  }
-  update(updates);
-}
-
-function updateLiteralStructure(value) {
-  try {
-    update({ value: JSON.parse(value) });
-  } catch {
-    update({ value });
-  }
-}
-
 function normalizeSpecs(items) {
   return items.map((item, index) => ({
     ...item,
@@ -309,60 +219,6 @@ function alignSockets(inputs, outputs, prefix) {
 
 function socketTitle(item) {
   return [item.label, item.typeLabel, item.description].filter(Boolean).join(' · ');
-}
-
-function showInlineFallback(input) {
-  return props.selected
-    && !input.connected
-    && supportsInlineValue(input);
-}
-
-function supportsInlineValue(input) {
-  // The Get Field path authors through the inspector pick or the field
-  // wire — the socket takes a wire, not typed text.
-  if (opKind.value === 'cts.field' && input.id === 'field') return false;
-  return ['string', 'id', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'status', 'entityRef'].includes(input.base)
-    && (input.access === 'item'
-      // Mapped mutation sockets declare List consumption; an inline scalar
-      // fallback is stored as one broadcast item.
-      || (input.access === 'list' && MAPPED_MUTATION_SPECIES_KINDS.has(opKind.value)));
-}
-
-function inputDefault(id) {
-  const value = record.value.inputDefaults?.[id];
-  if (!value?.branches) return value;
-  return value.branches[0]?.items?.[0];
-}
-
-// The fallback editor's value landing: typed values arrive parsed from
-// TypedValueControl; an entityRef arrives as the authored reference
-// { type, id } — the control owns the instance picking, and the socket's
-// type is the typeId it was handed.
-function onFallbackValue(input, value) {
-  if (input.base === 'status') return updateStatusInputDefault(input.id, value);
-  return updateInputDefault(input.id, value);
-}
-
-function inputPlaceholder(input) {
-  if (input.base === 'status') return t('processDesigner.transitionStatusValue');
-  return t('processDesigner.inlineValue');
-}
-
-function updateInputDefault(id, value) {
-  const inputDefaults = { ...(record.value.inputDefaults || {}) };
-  if (value == null || value === '') delete inputDefaults[id];
-  else inputDefaults[id] = { branches: [{ path: [], items: [value] }] };
-  update({ inputDefaults });
-}
-
-function updateStatusInputDefault(id, value) {
-  // The target rides the record's `state` payload — the compile
-  // vocabulary (`state.to`) the entry wire and the inspector write too;
-  // the legacy `status` spelling only survives load-time renaming.
-  update({
-    inputDefaults: { ...(record.value.inputDefaults || {}), [id]: { branches: [{ path: [], items: [value] }] } },
-    state: { ...(record.value.state || {}), to: value }
-  });
 }
 
 function socketClass(item, side) {
