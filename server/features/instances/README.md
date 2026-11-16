@@ -201,6 +201,10 @@ Parent: [server/features](../README.md).
 - Registration: the core registry's entity-service resolver consults
   `instanceServiceResolver`; explicit feature services always win.
 
+## Organization change sequence (SPEC §28)
+
+`organization-sequence.js` owns the durable per-organization mutation boundary. Every authoritative write reserves a pending token before mutation and advances the sequence only after the write succeeds. Failed writes release their reservation; readers fail closed while writes remain pending. `withOrganizationChangeSequence` brackets multi-query reads with the exact start/end sequence and retries changed boundaries. New mutation paths use `runOrganizationChange`; `recordOrganizationChange` remains for legacy write paths during migration.
+
 ## Derived indexes (SPEC §13)
 
 `indexes.js` owns the registry-derived index set — no hand-mirrored index
