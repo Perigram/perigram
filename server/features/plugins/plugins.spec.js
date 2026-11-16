@@ -143,6 +143,45 @@ beforeEach(() => {
 });
 
 describe('plugin installs', () => {
+  it('classifies managed execution independently from external connector modes', () => {
+    expect(serviceModeOf({ execution: { runtime: 'javascript', targets: ['server'], kind: 'pure' } })).toBe('managed');
+    expect(serviceModeOf({ mode: 'endpoint' })).toBe('endpoint');
+    expect(serviceModeOf({ mode: 'local' })).toBe('local');
+    expect(serviceModeOf({})).toBe('claim');
+  });
+
+  it('keeps managed package operations out of the external connector queue', async () => {
+    repository.findInstall.mockResolvedValue({
+      ...coatingInstall,
+      services: [{
+        id: 'transform',
+        signature: { input: { base: 'json' }, output: { base: 'json' } },
+        execution: { runtime: 'javascript', targets: ['server'], kind: 'pure' }
+      }]
+    });
+    await expect(executeConnectorService({ id: 'plugin.coatings.transform' }, { parameters: { value: 1 }, auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 503, message: expect.stringContaining('platform runtime rollout') });
+    expect(enqueueTask).not.toHaveBeenCalled();
+  });
+
+  it('exposes managed services as runtime operations with no endpoint settings', async () => {
+    repository.findInstall.mockResolvedValue({
+      ...coatingInstall,
+      packageAssets: { count: 1 },
+      declarations: { ...coatingInstall.declarations, runtimes: [{ id: 'javascript' }] },
+      services: [{
+        id: 'transform',
+        signature: { input: { base: 'json' }, output: { base: 'json' } },
+        execution: { runtime: 'javascript', targets: ['browser', 'server'], kind: 'pure' }
+      }]
+    });
+    const settings = await settingsFor({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(settings.services).toEqual([expect.objectContaining({ id: 'transform', mode: 'managed', endpoint: null })]);
+    expect(settings.surfaces).toBe(false);
+    expect(settings.surfaceOrigin).toBeNull();
+  });
+
+
   it('publishes a valid listing normalized through the contract', async () => {
     const valid = await publishListing(coatingListing);
     expect(valid).toMatchObject({ pluginId: 'coatings', version: '2', requires: [] });
