@@ -92,7 +92,7 @@ describe('graph execution service', () => {
     dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));
     mocks.withOrganizationDataSnapshot.mockImplementation(async (_organizationId, read) => ({
       value: await read(),
-      boundary: { consistency: 'snapshot', snapshotId: null, organizationSequenceStart: 4, organizationSequenceEnd: 4 }
+      boundary: { consistency: 'snapshot', snapshotId: 'snapshot-42', organizationSequenceStart: 4, organizationSequenceEnd: 4 }
     }));
     mocks.findFileMeta.mockResolvedValue({ metadata: { organizationId: 'org-1' }, contentType: 'application/json' });
     mocks.assertFileReadAccess.mockReturnValue(true);
@@ -123,7 +123,8 @@ describe('graph execution service', () => {
     })]);
     expect(result.count).toBe(1);
     expect(result.readSet).toMatchObject({
-      consistency: 'sequence-bracketed',
+      consistency: 'snapshot',
+      snapshotId: 'snapshot-42',
       organizationSequenceStart: 4,
       organizationSequenceEnd: 4,
       instances: [{ typeId: 'part', instanceId: 'item-1', revision: '3', typeVersion: 2 }],

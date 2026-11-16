@@ -58,8 +58,8 @@ describe('organization data snapshot', () => {
     ));
     const read = vi.fn(async activeSession => ({ session: activeSession }));
     const result = await withOrganizationDataSnapshot('org-1', read);
-    expect(read).toHaveBeenNthCalledWith(1, session);
-    expect(read).toHaveBeenNthCalledWith(2, null);
+    expect(read).toHaveBeenCalledOnce();
+    expect(read).toHaveBeenCalledWith(null);
     expect(result.boundary).toMatchObject({
       consistency: 'sequence-bracketed',
       organizationSequenceStart: 7,
@@ -72,7 +72,7 @@ describe('organization data snapshot', () => {
     let boundaryRead = 0;
     sequenceCollection.findOne.mockImplementation(async () => {
       boundaryRead += 1;
-      return { sequence: boundaryRead <= 2 ? 7 : 8, pendingCount: 0 };
+      return { sequence: boundaryRead === 1 ? 7 : 8, pendingCount: 0 };
     });
     let reads = 0;
     session.withTransaction.mockImplementation(async callback => {

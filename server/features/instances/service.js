@@ -1087,7 +1087,9 @@ function instanceService(typeId) {
       }));
     },
     processGetById: async (id, auth = {}, { session = null } = {}) => {
-      const doc = await repository.findInstanceAnywhere(id, typeId, { session });
+      const doc = session
+        ? await repository.findInstanceAnywhere(id, typeId, { session })
+        : await repository.findInstanceAnywhere(id, typeId);
       if (!doc) return null;
       const organizationId = doc.organizationId ?? auth.organizationId ?? null;
       const declaration = await declarationFor(typeId, organizationId);
