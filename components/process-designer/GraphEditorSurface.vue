@@ -75,7 +75,9 @@
                   :designer="designer"
                   :grants="selectedProcessNodeGrants"
                   :effective-access="selectedProcessNodeEffectiveAccess"
-                  :inputs="selectedNode?.type === 'processNode' ? processNodeInputs(selectedProcessNode) : []"
+                  :inputs="selectedProcessNodeInputs"
+                  :operation-options="selectedNode?.type === 'processNode' ? processNodeOperationOptions(selectedProcessNode) : []"
+                  :status-options="selectedNode?.data?.processStatusOptions || []"
                   :preview="inspectorPreview"
                   :format-preview-path="formatPreviewPath"
                   :format-preview-items="formatPreviewItems"
@@ -198,6 +200,7 @@ const {
   projectionOptionsForEntity,
   constructionModeOptions,
   processNodeInputs,
+  processNodeOperationOptions,
   updateProcessNodeConstructionMode,
   selectedNode,
   selectedNodeId,
@@ -275,6 +278,15 @@ const {
 });
 
 const selectedConstructionModes = computed(() => (selectedNode.value?.type === 'processNode' ? constructionModeOptions(nodeTypeId(selectedProcessNode.value)) : []));
+const selectedProcessNodeInputs = computed(() => {
+  if (selectedNode.value?.type !== 'processNode') return [];
+  const connected = new Set(selectedNode.value.data?.processConnectedInputIds || []);
+  return processNodeInputs(selectedProcessNode.value || {}).map(input => ({
+    ...input,
+    base: input.type?.base || 'json',
+    connected: connected.has(input.id)
+  }));
+});
 const inspectorPreview = computed(() => ({
   supported: selectedNodeSupportsPreview.value,
   running: previewingData.value || channelPreview.running.value,

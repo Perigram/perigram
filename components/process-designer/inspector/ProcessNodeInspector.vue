@@ -1,5 +1,119 @@
 <template>
   <div>
+    <section v-if="editableInputs.length || operationOptions.length || isLiteral || isCast || isTypedValueUtility || isConvertUnit" class="flex flex-col gap-3">
+      <div v-if="editableInputs.length" class="flex flex-col gap-2">
+        <label class="font-medium">{{ $t('processDesigner.inputDefaults') }}</label>
+        <div v-for="input in editableInputs" :key="input.id" class="flex flex-col gap-1">
+          <label>{{ input.label }}</label>
+          <TypedValueControl
+            :base="input.base"
+            :type-id="input.type?.typeId || ''"
+            :model-value="inputDefault(input.id)"
+            :status-options="statusOptions"
+            :placeholder="$t('processDesigner.inlineValue')"
+            @update:model-value="value => setInputDefault(input, value)"
+          />
+        </div>
+      </div>
+      <div v-if="operationOptions.length" class="flex flex-col gap-1">
+        <label>{{ $t('processDesigner.operation') }}</label>
+        <Select
+          :model-value="operationValue"
+          :options="operationOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          @update:model-value="setOperation"
+        />
+      </div>
+      <div v-if="isLiteral" class="flex flex-col gap-2">
+        <label>{{ $t('processDesigner.valueType') }}</label>
+        <Select
+          :model-value="record.type?.base || 'json'"
+          :options="baseTypeOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          @update:model-value="setLiteralBase"
+        />
+        <Select
+          v-if="record.type?.base === 'entityRef'"
+          :model-value="record.typeId || record.type?.typeId || ''"
+          :options="typeIdOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          filter
+          @update:model-value="setLiteralTypeId"
+        />
+        <TypedValueControl
+          v-if="op === 'source.literalItem'"
+          :base="record.type?.base || 'json'"
+          :type-id="record.type?.typeId || record.typeId || ''"
+          :model-value="record.value"
+          :status-options="statusOptions"
+          :placeholder="$t('processDesigner.inlineValue')"
+          @update:model-value="value => { record.value = value; emit('sync'); }"
+        />
+        <Textarea
+          v-else
+          :model-value="literalStructureDisplay"
+          class="w-full"
+          rows="3"
+          auto-resize
+          @update:model-value="updateLiteralStructure"
+        />
+      </div>
+      <div v-if="isCast" class="flex flex-col gap-1">
+        <label>{{ $t('processDesigner.recordOutputType') }}</label>
+        <Select
+          :model-value="record.outputType?.base || 'record'"
+          :options="castBaseOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          @update:model-value="value => { record.outputType = { ...(record.outputType || {}), base: value }; emit('sync'); }"
+        />
+      </div>
+      <div v-if="isTypedValueUtility" class="flex flex-col gap-2">
+        <label>{{ $t('processDesigner.valueType') }}</label>
+        <Select
+          :model-value="record.type?.base || 'json'"
+          :options="baseTypeOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          @update:model-value="value => { record.type = { ...(record.type || {}), base: value }; emit('sync'); }"
+        />
+        <InputText
+          v-if="op === 'value.format'"
+          :model-value="record.template ?? ''"
+          size="small"
+          @update:model-value="value => { record.template = String(value ?? ''); emit('sync'); }"
+        />
+      </div>
+      <div v-if="isConvertUnit" class="flex items-center gap-2">
+        <Select
+          :model-value="record.fromUnit || 'mm'"
+          :options="convertUnitOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="value => { record.fromUnit = value; emit('sync'); }"
+        />
+        <i class="pi pi-arrow-right text-muted" aria-hidden="true" />
+        <Select
+          :model-value="record.toUnit || 'm'"
+          :options="convertUnitOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="value => { record.toUnit = value; emit('sync'); }"
+        />
+      </div>
+    </section>
     <div v-if="isEffect" class="flex flex-col gap-2">
       <!-- Role assignment is lane placement (node UI contract "Lanes");
            this panel owns only the per-grant access LEVELS. -->
@@ -304,15 +418,14 @@
 </template>
 
 <script setup>
-// The processNode inspector: effect authorization rows (grants plus the
-// inherited entity-access window), the transition reference, the
-// producer-output panel, output preview, the command-service panel, and
-// the per-kind configuration selects (construction mode,
-// events, relations). Pure presentation over the selected record — every
-// mutation is an event back to the page's single update/sync entry point.
+// The processNode inspector owns all authoring controls: unconnected socket
+// defaults, literal/value configuration, operation parameters, access grants,
+// transition guards, construction mode, event triggers, and previews. The
+// canvas node itself stays a read-only socket manifest. Mutations stay on
+// this selected-record surface and return through the host's sync entry point.
 import { computed } from 'vue';
 import { operationKindOf, typeIdOf } from '#packages/cts';
-import { EFFECT_SPECIES_KINDS } from '#packages/processes';
+import { CAST_BASES, CONVERT_UNITS, EFFECT_SPECIES_KINDS, MAPPED_MUTATION_SPECIES_KINDS } from '#packages/processes';
 import Button from 'primevue/button';
 import DatePicker from 'primevue/datepicker';
 import InputNumber from 'primevue/inputnumber';
@@ -322,6 +435,8 @@ import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Panel from 'primevue/panel';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Tag from 'primevue/tag';
+import Textarea from 'primevue/textarea';
+import TypedValueControl from '~/components/process-designer/TypedValueControl.vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
@@ -350,6 +465,8 @@ const props = defineProps({
   grants: { type: Array, default: () => [] },
   effectiveAccess: { type: Array, default: () => [] },
   inputs: { type: Array, default: () => [] },
+  operationOptions: { type: Array, default: () => [] },
+  statusOptions: { type: Array, default: () => [] },
   preview: { type: Object, default: () => ({ supported: false, running: false, state: null, outputs: [] }) },
   formatPreviewPath: { type: Function, required: true },
   formatPreviewItems: { type: Function, required: true }
@@ -368,6 +485,78 @@ const { t, te } = useI18n();
 const op = computed(() => operationKindOf(props.record || {}));
 const isEffect = computed(() => EFFECT_SPECIES_KINDS.has(op.value));
 const typeId = computed(() => typeIdOf(props.record || {}));
+
+const isLiteral = computed(() => String(op.value).startsWith('source.literal'));
+const isCast = computed(() => op.value === 'value.cast');
+const isTypedValueUtility = computed(() => ['value.required', 'value.validate', 'value.coalesce', 'value.format'].includes(op.value));
+const isConvertUnit = computed(() => op.value === 'value.convertUnit');
+const baseTypeOptions = computed(() => [
+  'string', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'entityRef'
+].map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value })));
+const castBaseOptions = CAST_BASES.map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value }));
+const convertUnitOptions = CONVERT_UNITS.map(value => ({ label: value, value }));
+const operationValue = computed(() => (
+  op.value === 'collection.sort' ? props.record.direction || 'asc' : props.record.operation
+));
+const editableInputs = computed(() => props.inputs.filter(input => (
+  !input.connected
+  && input.id !== (op.value === 'cts.field' ? 'field' : null)
+  && ['string', 'id', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'status', 'entityRef'].includes(input.base)
+  && (input.access === 'item' || (input.access === 'list' && MAPPED_MUTATION_SPECIES_KINDS.has(op.value)))
+)));
+const literalStructureDisplay = computed(() => (
+  typeof props.record.value === 'string'
+    ? props.record.value
+    : JSON.stringify(props.record.value, null, 2)
+));
+
+function inputDefault(id) {
+  const value = props.record.inputDefaults?.[id];
+  return value?.branches ? value.branches[0]?.items?.[0] : value;
+}
+function setInputDefault(input, value) {
+  const inputDefaults = { ...(props.record.inputDefaults || {}) };
+  if (value == null || value === '') delete inputDefaults[input.id];
+  else inputDefaults[input.id] = { branches: [{ path: [], items: [value] }] };
+  props.record.inputDefaults = inputDefaults;
+  if (input.base === 'status' && value != null && value !== '') {
+    props.record.state = { ...(props.record.state || {}), to: value };
+  }
+  emit('sync');
+}
+function setOperation(value) {
+  if (op.value === 'collection.sort') props.record.direction = value;
+  else props.record.operation = value;
+  emit('sync');
+}
+function setLiteralBase(base) {
+  props.record.type = { ...(props.record.type || {}), base };
+  props.record.value = base === 'boolean' ? false
+    : ['number', 'integer'].includes(base) ? 0
+      : base === 'json' ? {}
+        : base === 'entityRef' ? null
+          : '';
+  if (base === 'entityRef') {
+    const typeId = props.record.type?.typeId || props.record.typeId || '';
+    props.record.typeId = typeId;
+    props.record.type.typeId = typeId;
+  }
+  emit('sync');
+}
+function setLiteralTypeId(value) {
+  props.record.typeId = value || '';
+  props.record.type = { ...(props.record.type || {}), typeId: value || '' };
+  emit('sync');
+}
+function updateLiteralStructure(value) {
+  try {
+    props.record.value = JSON.parse(value);
+  } catch {
+    props.record.value = value;
+  }
+  emit('sync');
+}
+
 
 // Schedule/event authoring renders on unwired entries: the wire wins the
 // trigger mode, so an authored start time or subscription is an entry fact.

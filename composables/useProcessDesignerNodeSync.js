@@ -220,6 +220,18 @@ export function useProcessDesignerNodeSync({
       .filter(Boolean);
   }
 
+  function connectedProcessOutputIds(graphNode = {}, record = {}) {
+    const outputs = catalogPorts(record).outputs;
+    return edges.value
+      .filter(edge => edge.source === graphNode.id)
+      .map(edge => {
+        const clean = parseProcessSocketHandleId(edge.sourceHandle);
+        if ((!clean || clean === 'output') && outputs.length === 1) return outputs[0].id;
+        return clean;
+      })
+      .filter(Boolean);
+  }
+
   // Persisted authored trigger modes heal into derived ones
   // (effectTriggerFor owns the derivation).
   function syncEffectTriggerMode(graphNode = {}, record = {}) {
@@ -262,6 +274,7 @@ export function useProcessDesignerNodeSync({
     processNodeGroupLabel,
     processNodeDescription,
     connectedProcessInputIds,
+    connectedProcessOutputIds,
     syncEffectTriggerMode,
     syncProcessNode
   };

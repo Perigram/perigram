@@ -50,6 +50,17 @@ function freshDraft() {
   draft.value = { data: { processNodes: {}, producerOutputs: {} } };
 }
 
+describe('socket connection projection', () => {
+  it('projects connected output socket ids for the canvas manifest', () => {
+    freshDraft();
+    const source = nodeRecords.createProcessNode('source', 'source.literalItem');
+    const output = sync.processNodeOutputs(source)[0];
+    edges.value = [{ source: 'source-node', sourceHandle: 'output' }];
+
+    expect(sync.connectedProcessOutputIds({ id: 'source-node' }, source)).toEqual([output.id]);
+  });
+});
+
 describe('effect record access stays a grant object', () => {
   it('a fresh cts.construct record syncs to a clean grant object, not a spread socket string', () => {
     freshDraft();

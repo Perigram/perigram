@@ -116,6 +116,7 @@ export function useProcessDesignerGraphSession({
     processNodeGroupLabel,
     processNodeDescription,
     connectedProcessInputIds,
+    connectedProcessOutputIds,
     syncEffectTriggerMode,
     syncProcessNode
   } = useProcessDesignerNodeSync({
@@ -633,6 +634,7 @@ export function useProcessDesignerGraphSession({
     'processFieldOptions',
     'processStatusOptions',
     'processConnectedInputIds',
+    'processConnectedOutputIds',
     'kindLabel',
     'groupLabel',
     'diagnostics',
@@ -665,6 +667,7 @@ export function useProcessDesignerGraphSession({
       processOperationOptions: isProcessNode ? processNodeOperationOptions(record) : [],
       processStatusOptions: isProcessNode ? processWorkflowPaths(record) : [],
       processConnectedInputIds: isProcessNode ? connectedProcessInputIds(node, record) : [],
+      processConnectedOutputIds: isProcessNode ? connectedProcessOutputIds(node, record) : [],
       kindLabel: isProcessNode ? processNodeDisplayLabel(record) : record.kind,
       groupLabel: isProcessNode ? paletteGroupLabel(processNodeGroupLabel(record)) : '',
       summary: processNodeSummary(record),

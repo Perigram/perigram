@@ -34,6 +34,8 @@
       :grants="grants"
       :effective-access="effectiveAccess"
       :inputs="inputs"
+      :operation-options="operationOptions"
+      :status-options="statusOptions"
       :preview="preview"
       :format-preview-path="formatPreviewPath"
       :format-preview-items="formatPreviewItems"
@@ -89,6 +91,8 @@ defineProps({
   grants: { type: Array, default: () => [] },
   effectiveAccess: { type: Array, default: () => [] },
   inputs: { type: Array, default: () => [] },
+  operationOptions: { type: Array, default: () => [] },
+  statusOptions: { type: Array, default: () => [] },
   preview: { type: Object, default: null },
   formatPreviewPath: { type: Function, required: true },
   formatPreviewItems: { type: Function, required: true }
