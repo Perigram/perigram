@@ -13,7 +13,6 @@ import { pluginModuleUrl } from '#shared/plugin-surfaces.js';
 import * as pluginInstalls from '../plugins/repository.js';
 
 import { invalidateInstanceDeclarations } from '../instances/service.js';
-import { runOrganizationChange } from '../instances/index.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
