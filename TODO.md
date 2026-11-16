@@ -45,8 +45,9 @@ integration waits for the owner's completion of build123d-flow.
   scoped runtime binding exist; graph hydration exposes browser runtime
   bindings and provider metadata is returned from inside the Worker. Browser
   capabilities use an authenticated, read-only host route; operation
-  declarations are checked again by the host. Custom preview renderer module
-  wiring and end-to-end graph preview tests remain.
+  declarations are checked again by the host. Node capability ids now require
+  qualified, unique names. Custom preview renderer module wiring and
+  end-to-end graph preview tests remain.
 - [ ] Implement the platform-managed server runtime: shared scheduling,
   isolated runtime pools, package loading by organization/version, resource
   limits, network/filesystem policy, and validated result/effect commits.
@@ -54,9 +55,14 @@ integration waits for the owner's completion of build123d-flow.
   `plugin-runtime` task type; the Deno worker loads the pinned organization
   package into a restricted child process, verifies package digests, and
   mediates declared host capabilities. Development Compose and production
-  deployment start the shared worker; capability calls rehydrate the actor's
-  current membership and grants. Durable effect evidence, transactionally
-  validated commits, and runtime pool observability remain.
+  deployment start the shared worker; package resolution is owned by the
+  plugin feature service, which rehydrates the actor, checks the pinned
+  install version and server operation declaration, and verifies materialized
+  asset digests. The task route validates the worker claim and delegates
+  package loading. Instance update capabilities carry an expected revision
+  into the generic instance compare-and-swap boundary. Durable effect
+  evidence, transactionally validated commits, and runtime pool
+  observability remain.
 - [ ] Define graph placement and validation rules for browser-only,
   server-only, and dual-target operations; make server validation
   authoritative for durable effects and persist reproducibility evidence.
