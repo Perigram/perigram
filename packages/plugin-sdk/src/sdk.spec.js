@@ -144,6 +144,7 @@ describe('parseListing', () => {
     invalid({ runtimes: [{ ...runtime, targets: [] }] }).toThrow(/targets must be/);
     invalid({ runtimes: [{ ...runtime, entry: '/../escape.mjs' }] }).toThrow(/entry must be/);
     invalid({ runtimes: [{ ...runtime, language: 'ruby' }] }).toThrow(/language must be/);
+    invalid({ runtimes: [{ ...runtime, language: 'python', entry: '/runtime.mjs' }] }).toThrow(/entry extension must match/);
     invalid({ runtimes: [runtime], services: [{ ...service, execution: { ...service.execution, runtime: 'python' } }] }).toThrow(/undeclared runtime/);
     invalid({ runtimes: [{ ...runtime, targets: ['browser'] }], services: [service] }).toThrow(/execution targets/);
     invalid({ runtimes: [runtime], services: [{ ...service, mode: 'endpoint' }] }).toThrow(/cannot combine execution metadata/);

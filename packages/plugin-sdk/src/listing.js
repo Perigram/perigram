@@ -49,7 +49,7 @@ import { NODE_EXECUTION_KINDS } from './node-contract.js';
 
 const SERVICE_REF = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 const MODULE_PATH = /^\/[a-z0-9/_-]+\.m?js$/;
-const RUNTIME_ENTRY_PATH = /^\/[a-z0-9/_-]+\.(?:m?js|wasm)$/;
+const RUNTIME_ENTRY_PATH = /^\/[a-z0-9/_-]+\.(?:m?js|py|wasm)$/;
 const EXECUTION_TARGETS = new Set(['browser', 'server']);
 const EXECUTION_KINDS = new Set(NODE_EXECUTION_KINDS);
 const RUNTIME_LANGUAGES = new Set(['javascript', 'python', 'wasm']);
