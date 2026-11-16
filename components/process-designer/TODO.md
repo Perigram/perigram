@@ -143,6 +143,12 @@ provenance-citations + palette-home decisions.
   with compare-and-swap, and retract unreferenced current/history blobs when
   blocks or pages are removed.
 
+- [x] Connect the core CTS instance-query node to the authorized graph
+  execution query boundary. It uses the generic instance service's compiled
+  read grant, bounded deterministic sorting/pagination/projection, and
+  organization change-sequence bracketing; returned instance versions and
+  query/range dependencies are recorded in the preview execution read set.
+
 ### Agent Notes (2026-10-25)
 
 Session `agent/comp-deslop2-20261025-1521` (worktree

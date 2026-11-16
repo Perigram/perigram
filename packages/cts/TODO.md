@@ -162,7 +162,9 @@ paths are checked against the traversed declaration. Runtime collection
 reads remain supplied by the authorization-scoped resolver boundary.
 Focused coverage includes nested ref traversal, containment, and an
 undeclared relation key. Permanent declaration and write enforcement,
-plus concurrency guarantees, remain open below.
+plus concurrency guarantees, remain open below. The compiled checker now
+rejects non-boolean predicates/quantifier bodies and invalid aggregate value
+types before the declaration is accepted.
 
 ### Generalized constraint expression substrate (2026-11-16)
 
@@ -175,8 +177,9 @@ plus concurrency guarantees, remain open below.
 - [x] Extend the shared boolean AST checker for nested bound variables and
   quantifier bodies while keeping map/filter comprehensions out of boolean
   guard vocabulary.
-- [ ] Add statically typed relation/containment resolution against compiled
-  declarations, not merely a non-empty relation key.
+- [x] Add statically typed relation/containment resolution against compiled
+  declarations, including nested field paths, predicate result types,
+  quantifier bodies, and numeric/quantity aggregate bodies.
 - [ ] Add authored permanent constraints to CTS declarations and enforce
   them at every authoritative create/update/import/transition boundary.
 - [ ] Add concurrency-safe unique/cardinality/aggregate enforcement using
