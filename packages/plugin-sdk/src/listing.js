@@ -6,8 +6,8 @@ import { NODE_EXECUTION_KINDS } from './node-contract.js';
 // drift. Pure: no storage, no platform imports, runs in Node and browsers.
 //
 // A listing carries beside its types:
-// - `services` — SPEC §8 V-grammar signatures bound to external executors
-//   (endpoint/claim mode) or to the plugin's client engine (local mode);
+// - `services` — SPEC §8 V-grammar signatures with managed `execution`
+//   metadata, remote endpoint/claim adapters, or the transitional local engine;
 // - `editors` — file-type editor bindings (the same records packs declare);
 // - `constructions` — construction modes of the plugin's own types bound to
 //   plugin services: `{ '<typeId>': { '<mode>': '<service ref>' } }`;

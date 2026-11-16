@@ -123,10 +123,11 @@ const clientEngineBindings = ref([]);
 const clientEngines = useClientEngines({ engines: clientEngineBindings });
 const clientRuntimeBindings = ref([]);
 const pluginRuntime = usePluginRuntime({
-  invokeCapability: ({ binding, runtime, operationId, name, input }) => $fetch(
+  invokeCapability: ({ binding, runtime, operationId, name, input, signal }) => $fetch(
     `/api/organizations/${encodeURIComponent(binding.organizationId)}/plugins/${encodeURIComponent(binding.pluginId)}/capability`,
     {
       method: 'POST',
+      signal,
       body: {
         version: binding.version,
         runtimeId: runtime.id,

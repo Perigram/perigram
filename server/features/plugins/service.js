@@ -1,12 +1,5 @@
-// Plugin marketplace consumer side (SPEC §Plugin marketplace): central
-// catalog listings, per-org installs pinning a declaration snapshot, and
-// the install/uninstall gates. Installed declarations are a resolution
-// source in the org view (the plugins repository composes into
-// compileRegistryForOrganization) — plugin types never copy into the
-// org-authored store, so plugin ownership stays clean for upgrades.
-//
-// Slice 1 carries declaration payloads only: connectors (worker-protocol
-// executors), upgrades, and cross-org execution are later slices.
+// Plugin marketplace service: catalog publication, organization installs,
+// declaration composition, managed execution, and remote service adapters.
 import { createError } from 'h3';
 import { PLUGIN_RUNTIME_WORKER_TYPE } from '#shared/plugin-runtime.js';
 import { createHash, randomBytes } from 'node:crypto';
@@ -401,10 +394,8 @@ function mintConnectorToken() {
   return randomBytes(24).toString('base64url');
 }
 
-// --- Connector services (marketplace SPEC: services execute on external
-// Managed services declare execution targets and runtime metadata.
-// Endpoint and claim modes remain explicit external-integration paths;
-// local mode is the transitional browser-engine contract.
+// Plugin service execution modes: managed package runtime, remote endpoint/
+// claim adapters, and the transitional browser-local engine.
 
 export function serviceModeOf(service = {}) {
   if (service.execution) return 'managed';

@@ -95,12 +95,15 @@ export function usePluginRuntime({
 
     return {
       async providers() {
-      return await ready;
-    },
-    async invoke(operationId, input, { execution = {}, capabilities = {}, signal } = {}) {
+        return await ready;
+      },
+      async invoke(operationId, input, { execution = {}, capabilities = {}, signal } = {}) {
         if (disposed) throw new Error('Plugin runtime has been disposed');
-        if (!execution.targets?.includes('browser') || ['commit', 'effect'].includes(execution.kind)) {
+        if (!execution.targets?.includes('browser')) {
           throw new Error(`Operation ${operationId} does not support browser execution`);
+        }
+        if (['commit', 'effect'].includes(execution.kind)) {
+          throw new Error(`Operation ${operationId} requires server execution`);
         }
         if (signal?.aborted) throw new Error('Plugin operation was cancelled');
         await ready;
@@ -171,11 +174,12 @@ export function usePluginRuntime({
         execute: (definition, invocation) => {
           const capabilities = Object.fromEntries((definition.execution.capabilities || []).map(name => [
             name,
-            input => invokeCapability({ binding, runtime, operationId: definition.id, name, input })
+            (input, context) => invokeCapability({ binding, runtime, operationId: definition.id, name, input, signal: context.signal })
           ]));
           return execute(binding, runtime, definition.id, invocation, {
             execution: definition.execution,
-            capabilities
+            capabilities,
+            signal: invocation?.signal
           });
         }
       };
