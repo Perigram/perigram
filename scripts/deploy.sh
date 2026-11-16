@@ -14,7 +14,7 @@ fi
 BUILD_HTTP_PROXY="${BUILD_HTTP_PROXY:-}"
 BUILD_HTTPS_PROXY="${BUILD_HTTPS_PROXY:-}"
 BUILD_NO_PROXY="${BUILD_NO_PROXY:-localhost,127.0.0.1}"
-WORKER_TOKEN="${WORKER_TOKEN:-$(od -An -N32 -tx1 /dev/urandom | tr -d ' \\n')}"
+WORKER_TOKEN="${WORKER_TOKEN:-$(od -An -N32 -tx1 /dev/urandom | tr -d '[:space:]')}"
 TRANSCRIPTION_PROVIDER="${TRANSCRIPTION_PROVIDER:-none}"
 TRANSCRIPTION_LOCAL_BASE_URL="${TRANSCRIPTION_LOCAL_BASE_URL:-}"
 MEETINGS_LLM_BASE_URL="${MEETINGS_LLM_BASE_URL:-}"
@@ -69,6 +69,8 @@ retry docker build --network=host "${build_args[@]}" \
   -f workers/plugin-executor.Dockerfile .
 retry docker build --network=host "${build_args[@]}" \
   -t perigram-build123d-executor:staging -f workers/build123d/Dockerfile workers/build123d
+retry docker build --network=host "${build_args[@]}" \
+  -t perigram-plugin-runtime:staging -f workers/plugin-runtime.Dockerfile .
 retry docker build --network=host "${build_args[@]}" \\
   -t perigram-plugin-runtime:staging -f workers/plugin-runtime.Dockerfile .
 retry docker build --network=host "${build_args[@]}" \
@@ -140,6 +142,7 @@ fi
 docker run -d --name perigram-staging --restart unless-stopped \
   --network host \
   -e "NUXT_MONGODB_URI=$NUXT_MONGODB_URI" \
+  -e "WORKER_TOKEN=$WORKER_TOKEN" \
   -e "BASE_URL=$BASE_URL" \
   -e "NUXT_PUBLIC_BASE_URL=$BASE_URL" \
   -e FACADE_EXECUTOR_URL=http://127.0.0.1:8790 \
@@ -161,16 +164,15 @@ docker run -d --name perigram-staging --restart unless-stopped \
   -e "LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT=$LIVEKIT_RECORDINGS_S3_UPLOAD_ENDPOINT" \
   -e "NUXT_VAPID_PUBLIC_KEY=$NUXT_VAPID_PUBLIC_KEY" \
   -e "NUXT_VAPID_PRIVATE_KEY=$NUXT_VAPID_PRIVATE_KEY" \
-  -e "WORKER_TOKEN=$WORKER_TOKEN" \\
   perigram:staging
 
-docker run -d --name perigram-plugin-runtime --restart unless-stopped \\
-  --network host --memory=512m --cpus=1 --pids-limit=64 \\
-  --cap-drop=ALL --security-opt=no-new-privileges \\
-  --tmpfs /tmp:rw,nosuid,nodev,size=128m \\
-  -e "PERIGRAM_APP_URL=http://127.0.0.1:3001" \\
-  -e "WORKER_TOKEN=$WORKER_TOKEN" \\
-  -e PLUGIN_RUNTIME_WORKER_ID=managed-runtime-staging \\
+docker run -d --name perigram-plugin-runtime --restart unless-stopped \
+  --network host --memory=512m --cpus=1 --pids-limit=64 \
+  --cap-drop=ALL --security-opt=no-new-privileges \
+  --tmpfs /tmp:rw,nosuid,nodev,size=128m \
+  -e "PERIGRAM_APP_URL=http://127.0.0.1:3001" \
+  -e "WORKER_TOKEN=$WORKER_TOKEN" \
+  -e PLUGIN_RUNTIME_WORKER_ID=managed-runtime-staging \
   perigram-plugin-runtime:staging
 
 echo "Verifying the deployed build..."
