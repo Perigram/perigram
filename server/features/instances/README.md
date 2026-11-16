@@ -288,4 +288,6 @@ HTTP create, patch, and delete use the corresponding `create`, `update`, and `de
 
 Instance-scoped CTS constraints are evaluated asynchronously against
 organization-scoped relation, child, and descendant resolvers before generic
-create, process update, and re-derive writes. Resolver failures fail closed.
+create, constrained updates, re-derive, and flat-instance lifecycle transitions.
+Resolver failures fail closed. Constrained updates compare the source
+`updatedAt` at write time.
