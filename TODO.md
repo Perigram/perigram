@@ -381,21 +381,20 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   presentation, and payload persistence.
 - [ ] WAITING — owner verification: G1 resource creation, payload revision
   behavior, record/pane editor mounts, and read-grant presentation.
-- [ ] G2 Canonical graph foundation — `packages/core` owns the versioned
-  graph document codec, validation, boundary operations, and procedural
-  preview evaluator; `packages/plugin-sdk` owns normalized provider node
-  definitions and exact-version registration; `packages/processes`
-  contributes preview-safe data operations through its provider adapter.
-  Implementation files and focused tests have landed on `staging`;
-  CI validation is pending.
-- [ ] G3 Canonical graph editor — `GraphEditorSurface` loads, edits, and
-  saves canonical graph documents directly. Node cards, sockets, inspector,
-  palette, and edge projection derive from provider definitions. Graph
-  Input and Graph Output are first-class boundary nodes; Use Graph has its
-  own palette group and pins a graph revision.
-- [ ] G4 Procedural preview — editor preview evaluates the canonical graph
-  through the provider registry, returns per-node outputs and diagnostics,
-  and mounts platform/plugin preview channels. Preview remains read-only.
+- [x] G2 Canonical graph foundation — core document codec, structural
+  validation, Graph Input/Output boundaries, pinned Use Graph evaluator,
+  preview-only procedural evaluation, plugin-SDK provider definitions and
+  exact-version registry, and process data-operation adapter with tests.
+- [ ] G3 Canonical graph editor — direct `perigram.graph` load/edit/save
+  now uses a separate session and shared canvas presentation. Provider
+  socket cards, graph inspector, Graph Input/Output, and a dedicated Use
+  Graph palette group are wired. Remaining: graph-document discovery and
+  automatic pinned-interface hydration; editable semantic/default input
+  declarations; comprehensive editor/session interaction tests.
+- [ ] G4 Procedural preview — core evaluator and process adapter are wired
+  to the editor preview panel. Remaining: preview input-binding controls,
+  renderer/channel hosting, plugin provider discovery/execution bindings,
+  and robust per-node diagnostics. Preview remains read-only.
 - [ ] G5 Commit, Bake, and Export — Commit applies an approved proposal;
   Bake materializes a selected output to an explicit destination; Export
   creates an external/download result. Each records graph revision,
@@ -414,21 +413,6 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   a deterministic migration with dry-run report and recovery path, cut over
   all records, verify semantics and authorization, then remove the old
   runtime format.
-
-### Agent Notes (2026-11-16, staging)
-
-- Added the core graph document codec, structural validator, preview-only
-  evaluator, Graph Input/Output and pinned Use Graph semantics, and focused
-  core tests.
-- Added the browser-safe SDK node-definition contract, exact-version
-  provider registry, and focused SDK tests.
-- Added the process data-operation provider adapter and its end-to-end test.
-- Updated package ownership and contract READMEs before adding code.
-- The canonical graph editor integration remains open. The current
-  `GraphEditorSurface` still serializes the process-definition record
-  shape; the next implementation step is its direct canonical-document
-  authoring path.
-- The latest staging CI run is pending. No test or guard result is claimed.
 
 ### Agent Notes (2026-11-14, agent/outputs-channel-20261114)
 
@@ -7457,3 +7441,4 @@ inside documents carry full chrome; custom pages open as a blank void.
 Session reads: SPEC §26/§22.17/§22.15/§4; TODO Phase J's Agent Notes
 (the current shapes); the 2026-11-08 blocks review findings; the
 degradation/editor laws in Program B notes.
+
