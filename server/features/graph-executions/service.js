@@ -450,43 +450,47 @@ export async function commitProposal({ graphDocumentInstanceId, record: value, p
   }
 
   const { graphDocument, graph, organizationId } = await sourceFor(graphDocumentInstanceId, preview, auth);
-  await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument);
   const instanceService = getAppRegistry().getInstanceService(typeId);
   if (typeof instanceService?.patch !== 'function') {
     throw createError({ statusCode: 404, message: 'CTS instance write service is unavailable' });
   }
-  const updated = await instanceService.patch(instanceId, patch, {
-    auth,
-    organizationId,
-    expectedRevision
-  });
-
-  const timestamp = new Date().toISOString();
-  const commitId = randomUUID();
-  const commitRecord = createGraphExecutionRecord({
-    ...preview,
-    id: commitId,
-    profile: 'procedural-commit',
-    status: 'succeeded',
-    startedAt: timestamp,
-    completedAt: timestamp,
-    artifacts: [...(preview.artifacts || []), {
-      kind: 'cts.instance',
-      typeId,
-      instanceId,
-      revision: updated?.revision == null ? null : String(updated.revision),
-      sourceExecutionId: preview.id,
-      conflictPolicy: 'fail'
-    }]
-  });
   try {
-    const execution = await persistRecord(commitRecord, graphDocument, organizationId, auth);
-    return { instance: updated, execution };
+    return await withMongoWriteTransaction(async session => {
+      await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
+      const updated = await instanceService.patch(instanceId, patch, {
+        auth,
+        organizationId,
+        expectedRevision,
+        expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet),
+        session
+      });
+      const timestamp = new Date().toISOString();
+      const commitId = randomUUID();
+      const commitRecord = createGraphExecutionRecord({
+        ...preview,
+        id: commitId,
+        profile: 'procedural-commit',
+        status: 'succeeded',
+        startedAt: timestamp,
+        completedAt: timestamp,
+        artifacts: [...(preview.artifacts || []), {
+          kind: 'cts.instance',
+          typeId,
+          instanceId,
+          revision: updated?.revision == null ? null : String(updated.revision),
+          sourceExecutionId: preview.id,
+          conflictPolicy: 'fail'
+        }]
+      });
+      const execution = await persistRecord(commitRecord, graphDocument, organizationId, auth, session);
+      return { instance: updated, execution };
+    });
   } catch (error) {
+    if (error?.statusCode) throw error;
     throw createError({
       statusCode: 500,
-      message: 'CTS proposal was committed but its execution evidence could not be persisted',
-      data: { instanceId, typeId, revision: updated?.revision ?? null, cause: error.message }
+      message: 'CTS proposal and execution evidence could not be committed atomically',
+      data: { instanceId, typeId, cause: error?.message || String(error) }
     });
   }
 }
@@ -557,77 +561,79 @@ export async function commitOutput({ graphDocumentInstanceId, record: value, out
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
   }
   const proposal = validateInstancePatchProposal(preview.outputs[selectedOutputId], preview.readSet);
-  await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument);
-
   const instanceService = getAppRegistry().getInstanceService(proposal.typeId);
   if (typeof instanceService?.patch !== 'function') {
     throw createError({ statusCode: 404, message: 'CTS instance update service is unavailable' });
   }
-  const startedAt = new Date().toISOString();
-  const updated = await instanceService.patch(proposal.instanceId, proposal.patch, {
-    auth,
-    organizationId,
-    expectedRevision: proposal.expectedRevision
-  });
-  const completedAt = new Date().toISOString();
-  const committedRevision = String(updated?.revision ?? '');
-  const commitId = randomUUID();
-  const commitRecord = createGraphExecutionRecord({
-    id: commitId,
-    graph: preview.graph,
-    profile: 'procedural-commit',
-    status: 'succeeded',
-    startedAt,
-    completedAt,
-    inputs: preview.inputs,
-    outputs: {
-      [selectedOutputId]: {
-        kind: 'cts.instance.patch',
-        typeId: proposal.typeId,
-        instanceId: proposal.instanceId,
-        expectedRevision: proposal.expectedRevision,
-        committedRevision,
-        conflictPolicy: 'fail'
-      }
-    },
-    nodeOutputs: preview.nodeOutputs,
-    diagnostics: [],
-    provenance: {
-      nodes: preview.provenance.nodes,
-      invocations: [...preview.provenance.invocations, {
-        kind: 'commit',
-        provider: 'perigram.cts',
-        operation: 'instance.patch',
-        outputId: selectedOutputId,
-        typeId: proposal.typeId,
-        instanceId: proposal.instanceId,
-        expectedRevision: proposal.expectedRevision,
-        committedRevision
-      }]
-    },
-    readSet: preview.readSet,
-    artifacts: [...preview.artifacts, {
-      kind: 'cts.instance',
-      typeId: proposal.typeId,
-      instanceId: proposal.instanceId,
-      revision: committedRevision,
-      outputId: selectedOutputId,
-      sourceExecutionId: preview.id,
-      conflictPolicy: 'fail'
-    }]
-  });
   try {
-    const execution = await persistRecord(commitRecord, graphDocument, organizationId, auth);
-    return { instance: updated, execution: commitRecord, persisted: execution };
+    return await withMongoWriteTransaction(async session => {
+      await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
+      const startedAt = new Date().toISOString();
+      const updated = await instanceService.patch(proposal.instanceId, proposal.patch, {
+        auth,
+        organizationId,
+        expectedRevision: proposal.expectedRevision,
+        expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet),
+        session
+      });
+      const completedAt = new Date().toISOString();
+      const committedRevision = String(updated?.revision ?? '');
+      const commitId = randomUUID();
+      const commitRecord = createGraphExecutionRecord({
+        id: commitId,
+        graph: preview.graph,
+        profile: 'procedural-commit',
+        status: 'succeeded',
+        startedAt,
+        completedAt,
+        inputs: preview.inputs,
+        outputs: {
+          [selectedOutputId]: {
+            kind: 'cts.instance.patch',
+            typeId: proposal.typeId,
+            instanceId: proposal.instanceId,
+            expectedRevision: proposal.expectedRevision,
+            committedRevision,
+            conflictPolicy: 'fail'
+          }
+        },
+        nodeOutputs: preview.nodeOutputs,
+        diagnostics: [],
+        provenance: {
+          nodes: preview.provenance.nodes,
+          invocations: [...preview.provenance.invocations, {
+            kind: 'commit',
+            provider: 'perigram.cts',
+            operation: 'instance.patch',
+            outputId: selectedOutputId,
+            typeId: proposal.typeId,
+            instanceId: proposal.instanceId,
+            expectedRevision: proposal.expectedRevision,
+            committedRevision
+          }]
+        },
+        readSet: preview.readSet,
+        artifacts: [...preview.artifacts, {
+          kind: 'cts.instance',
+          typeId: proposal.typeId,
+          instanceId: proposal.instanceId,
+          revision: committedRevision,
+          outputId: selectedOutputId,
+          sourceExecutionId: preview.id,
+          conflictPolicy: 'fail'
+        }]
+      });
+      const execution = await persistRecord(commitRecord, graphDocument, organizationId, auth, session);
+      return { instance: updated, execution: commitRecord, persisted: execution };
+    });
   } catch (error) {
+    if (error?.statusCode) throw error;
     throw createError({
       statusCode: 500,
-      message: 'CTS update was applied but its graph execution record could not be persisted',
+      message: 'CTS update and graph execution evidence could not be committed atomically',
       data: {
-        commitApplied: true,
         typeId: proposal.typeId,
         instanceId: proposal.instanceId,
-        revision: committedRevision,
         cause: error?.message || String(error)
       }
     });
