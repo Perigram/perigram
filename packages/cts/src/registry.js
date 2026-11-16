@@ -72,6 +72,13 @@ function startCase(value = '') {
 
 // Write-gate delegation facet: `{ inherits: <typeId> }`, validated at
 // the authoring boundary like every other facet.
+function normalizeMutability(value, typeId) {
+  if (!['mutable', 'append-only'].includes(value)) {
+    throw new Error(`type ${typeId}: mutability must be mutable or append-only`);
+  }
+  return value;
+}
+
 function normalizeAccess(access = {}) {
   const inherits = String(access?.inherits || '');
   if (!inherits) {
@@ -169,6 +176,7 @@ export function normalizeType(declaration = {}) {
     // language at the authoring boundary.
     ...(declaration.migrate ? { migrate: normalizeMigrateSteps(declaration.migrate) } : {}),
     revisions: declaration.revisions || null,
+    ...(declaration.mutability ? { mutability: normalizeMutability(declaration.mutability, declaration.id) } : {}),
     ...(declaration.framework ? { framework: true } : {})
   };
   type.operators = Object.fromEntries(Object.entries(declaration.operators || {}).map(([id, operator]) => [
