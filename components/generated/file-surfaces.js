@@ -11,8 +11,6 @@ import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { resolveTypeFeature } from '#shared/field-access-policies.js';
 import { instancePayloadFileUrl } from './file-preview-contract.js';
-import { createGraphExecutionRecord } from '@perigram/core';
-import { mintId } from '~/utils/processDesignerIdentity.js';
 
 /**
  * File surfaces: the single app-side home of the CTS file-type editor
@@ -210,42 +208,15 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
       for (let offset = 0; offset < bytes.length; offset += 0x8000) {
         binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
       }
-      const baked = await $fetch(`/api/pages/${encodeURIComponent(destination.pageId)}/files`, {
+      return await $fetch('/api/graph-bakes', {
         method: 'POST',
         body: {
-          path: destination.path,
-          contentBase64: btoa(binary),
-          mimeType: outputMime,
-          conflictPolicy: destination.conflictPolicy || 'fail',
-          provenance: {
-            graphId: previewRecord.graph.id,
-            graphRevision: previewRecord.graph.revision,
-            executionId: previewRecord.id,
-            outputId
-          }
+          graphDocumentInstanceId: instanceId,
+          record: previewRecord,
+          outputId,
+          destination
         }
       });
-      const bakeRecord = createGraphExecutionRecord({
-        ...previewRecord,
-        id: mintId('execution').replaceAll('_', '-'),
-        profile: 'procedural-bake',
-        completedAt: new Date().toISOString(),
-        artifacts: [...(previewRecord.artifacts || []), {
-          kind: 'page-file',
-          pageId: String(destination.pageId),
-          path: baked.file.path,
-          fileId: baked.file.fileId,
-          mime: baked.file.mime,
-          size: baked.file.size,
-          revision: baked.file.revision,
-          outputId
-        }]
-      });
-      await $fetch('/api/graph-executions', {
-        method: 'POST',
-        body: { graphDocumentInstanceId: instanceId, record: bakeRecord }
-      });
-      return baked;
     },
     rename: async (name) => {
       const trimmed = String(name || '').trim();
