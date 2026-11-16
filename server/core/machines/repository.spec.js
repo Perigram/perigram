@@ -56,7 +56,7 @@ describe('machine status persistence owner', () => {
     expect(collection.updateOne).toHaveBeenCalledWith(
       { _id: 'entity-1', ...tenantFilter },
       { $set: { state: 'ACTIVE' } },
-      undefined
+      {}
     );
   });
 
