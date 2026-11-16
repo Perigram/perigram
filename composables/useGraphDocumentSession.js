@@ -409,6 +409,7 @@ export function useGraphDocumentSession({ t }) {
       const graph = serializeGraph();
       const result = await evaluateProceduralGraph({
         graph,
+        inputBindings: inputBindings.value,
         resolveNodeDefinition: (op, invocation) => processResolver(op, invocation)
           || registry.resolve(op.provider, op.id, op.version),
         executeNode: async (definition, invocation) => {
