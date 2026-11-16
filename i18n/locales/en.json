@@ -3492,6 +3492,7 @@
     "graphNodeOutputs": "Node outputs",
     "graphUnavailableNode": "Node definition unavailable",
     "unknownNode": "Unavailable node",
+    "graphQueries": "Queries",
     "graphComposition": "Graph composition",
     "useGraph": "Use Graph",
     "useGraphDescription": "Invoke a pinned revision of another graph",

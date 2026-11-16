@@ -3492,6 +3492,7 @@
     "graphNodeOutputs": "Выходы узлов",
     "graphUnavailableNode": "Определение узла недоступно",
     "unknownNode": "Недоступный узел",
+    "graphQueries": "Запросы",
     "graphComposition": "Композиция графов",
     "useGraph": "Использовать граф",
     "useGraphDescription": "Вызвать закреплённую ревизию другого графа",

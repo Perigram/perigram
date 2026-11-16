@@ -19,6 +19,12 @@ vi.mock('~/server/features/cts-types/repository.js', () => ({
   listByOrganization: vi.fn(async () => []),
   findByTypeId: vi.fn(async () => null)
 }));
+vi.mock('~/server/features/instances/organization-sequence.js', () => ({
+  getOrganizationChangeSequence: vi.fn(async () => 0),
+  recordOrganizationChange: vi.fn(async () => 1),
+  runOrganizationChange: vi.fn(async (_organizationId, _metadata, mutate) => await mutate()),
+  withOrganizationChangeSequence: vi.fn()
+}));
 
 vi.mock('~/server/features/instances/organization-sequence.js', () => ({
   runOrganizationChange: vi.fn(async (_organizationId, _metadata, mutate) => await mutate()),
