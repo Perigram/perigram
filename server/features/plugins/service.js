@@ -1339,6 +1339,17 @@ function assertSupportedRuntimeDeclarations(runtimes = []) {
   }
 }
 
+function assertSupportedRuntimeDeclarations(runtimes = []) {
+  for (const runtime of runtimes) {
+    if (runtime.language !== 'javascript') {
+      throw createError({
+        statusCode: 400,
+        message: `Runtime language ${runtime.language} is not available for installation yet`
+      });
+    }
+  }
+}
+
 function parseListingOr400(listing) {
   try {
     return parseListing(listing);
