@@ -153,6 +153,17 @@ clear (repo debt 26→17); the remaining blocking broken link
 and outside this wave. `npx vitest run packages/cts` green.
 
 
+### Agent Notes (2026-11-16, typed traversal)
+
+Added compiled-view type resolution for nested `related`, ref-field,
+`children`, and `descendants` traversal inside boolean predicates.
+Quantifier bindings inherit the declared target types, so nested field
+paths are checked against the traversed declaration. Runtime collection
+reads remain supplied by the authorization-scoped resolver boundary.
+Focused coverage includes nested ref traversal, containment, and an
+undeclared relation key. Permanent declaration and write enforcement,
+plus concurrency guarantees, remain open below.
+
 ### Generalized constraint expression substrate (2026-11-16)
 
 - [x] Add finite `exists`/`all`/`none`/`one` quantifiers and
