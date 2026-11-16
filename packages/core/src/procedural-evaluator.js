@@ -66,6 +66,7 @@ async function evaluateGraph(options) {
       if (!inputIds.has(interfaceId)) throw new Error(`Graph Input node ${node.id} references undeclared input ${interfaceId}`);
       if (seenInputs.has(interfaceId)) throw new Error(`Graph input ${interfaceId} has more than one boundary node`);
       seenInputs.add(interfaceId);
+      if (outgoing.get(node.id).some(edge => edge.source.port !== 'value')) throw new Error(`Graph Input node ${node.id} exposes only the value output`);
       const port = graph.interface.inputs.find(item => item.id === interfaceId);
       const value = Object.hasOwn(options.inputBindings, interfaceId)
         ? options.inputBindings[interfaceId]
@@ -81,6 +82,7 @@ async function evaluateGraph(options) {
       if (!outputIds.has(interfaceId)) throw new Error(`Graph Output node ${node.id} references undeclared output ${interfaceId}`);
       if (seenOutputs.has(interfaceId)) throw new Error(`Graph output ${interfaceId} has more than one boundary node`);
       seenOutputs.add(interfaceId);
+      if (incoming.get(node.id).some(edge => edge.target.port !== 'value')) throw new Error(`Graph Output node ${node.id} accepts only the value input`);
       const value = readSingleInput(node, 'value', incoming.get(node.id), values, true);
       outputs[interfaceId] = value;
       nodeOutputs[node.id] = { value };
@@ -96,8 +98,16 @@ async function evaluateGraph(options) {
         throw new Error(`Subgraph resolver returned the wrong graph revision for node ${node.id}`);
       }
       const childInputs = {};
+      const childInputIds = new Set(childGraph.interface.inputs.map(port => port.id));
+      const childOutputIds = new Set(childGraph.interface.outputs.map(port => port.id));
+      for (const edge of incoming.get(node.id)) {
+        if (!childInputIds.has(edge.target.port)) throw new Error(`Use Graph node ${node.id} has no input ${edge.target.port}`);
+      }
+      for (const edge of outgoing.get(node.id)) {
+        if (!childOutputIds.has(edge.source.port)) throw new Error(`Use Graph node ${node.id} has no output ${edge.source.port}`);
+      }
       for (const port of childGraph.interface.inputs) {
-        const value = readSingleInput(node, port.id, incoming.get(node.id), values, port.required);
+        const value = readSingleInput(node, port.id, incoming.get(node.id), values, port.required, port.default);
         if (value !== undefined) childInputs[port.id] = value;
       }
       const childResult = await evaluateGraph({
@@ -130,6 +140,14 @@ async function evaluateGraph(options) {
       throw new Error(`Preview cannot execute ${kind || 'unclassified'} node ${node.id}`);
     }
     const inputs = {};
+    const declaredInputIds = new Set((definition.inputs || []).map(port => port.id));
+    const declaredOutputIds = new Set((definition.outputs || []).map(port => port.id));
+    for (const edge of incoming.get(node.id)) {
+      if (!declaredInputIds.has(edge.target.port)) throw new Error(`Node ${node.id} has no input ${edge.target.port}`);
+    }
+    for (const edge of outgoing.get(node.id)) {
+      if (!declaredOutputIds.has(edge.source.port)) throw new Error(`Node ${node.id} has no output ${edge.source.port}`);
+    }
     for (const port of definition.inputs || []) {
       const value = readSingleInput(node, port.id, incoming.get(node.id), values, port.required !== false, port.default);
       if (value !== undefined) inputs[port.id] = value;
