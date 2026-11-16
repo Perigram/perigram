@@ -5,9 +5,9 @@ import * as graphExecutionsService from '~/server/features/graph-executions/inde
 export default defineEventHandler(async event => {
   const auth = await requireAuth(event);
   const body = await readBody(event) || {};
-  return await graphExecutionsService.commitProposal({
+  return await graphExecutionsService.commitOutput({
     graphDocumentInstanceId: body.graphDocumentInstanceId,
     record: body.record,
-    proposal: body.proposal
+    outputId: body.outputId
   }, auth);
 });

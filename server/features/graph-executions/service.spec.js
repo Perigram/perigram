@@ -71,6 +71,37 @@ const preview = () => createGraphExecutionRecord({
   artifacts: []
 });
 
+const patchProposalPreview = (overrides = {}) => createGraphExecutionRecord({
+  ...preview(),
+  outputs: {
+    document: {
+      kind: 'cts.instance.patch',
+      typeId: 'part',
+      instanceId: 'item-1',
+      expectedRevision: '3',
+      conflictPolicy: 'fail',
+      patch: { fields: { code: 'B' } }
+    }
+  },
+  readSet: {
+    consistency: 'unverified',
+    snapshotId: null,
+    organizationSequenceStart: null,
+    organizationSequenceEnd: null,
+    instances: [{
+      typeId: 'part',
+      instanceId: 'item-1',
+      revision: '3',
+      updatedAt: '2026-11-16T10:00:00Z',
+      typeVersion: 2,
+      organizationId: 'org-1'
+    }],
+    relations: [],
+    queries: []
+  },
+  ...overrides
+});
+
 describe('graph execution service', () => {
   const auth = { userId: 'user-1', organizationId: 'org-1' };
   const graphDocument = {
@@ -92,6 +123,7 @@ describe('graph execution service', () => {
     });
     dataService.processList.mockResolvedValue([{ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }]);
     dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));
+    dataService.patch.mockResolvedValue({ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 4, updatedAt: '2026-11-16T10:01:00Z', fields: { code: 'B' } });
     dataService.patch.mockResolvedValue({ _id: 'item-1', type: 'part', revision: 4, fields: { status: 'approved' } });
     mocks.withOrganizationChangeSequence.mockImplementation(async (_organizationId, read) => ({
       value: await read(),
@@ -159,6 +191,68 @@ describe('graph execution service', () => {
       observedTotal: 1,
       sequence: 4
     })]);
+  });
+
+  it('commits an exact-instance patch proposal with its expected revision and records provenance', async () => {
+    const result = await graphExecutionsService.commitOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: patchProposalPreview(),
+      outputId: 'document'
+    }, auth);
+
+    expect(dataService.patch).toHaveBeenCalledWith('item-1', { fields: { code: 'B' } }, {
+      auth, organizationId: 'org-1', expectedRevision: '3'
+    });
+    expect(result.execution).toMatchObject({
+      profile: 'procedural-commit',
+      status: 'succeeded',
+      artifacts: [{
+        kind: 'cts.instance',
+        typeId: 'part',
+        instanceId: 'item-1',
+        revision: '4',
+        sourceExecutionId: 'preview-1'
+      }]
+    });
+    expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
+      fields: expect.objectContaining({ profile: 'procedural-commit', status: 'succeeded' })
+    }), 'user-1', 'org-1');
+  });
+
+  it('rejects a stale target revision before the authoritative patch', async () => {
+    dataService.processGetById.mockResolvedValue({
+      _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1',
+      revision: 4, updatedAt: '2026-11-16T10:02:00Z', fields: { code: 'C' }
+    });
+    await expect(graphExecutionsService.commitOutput({
+      graphDocumentInstanceId: 'graph-instance-1', record: patchProposalPreview(), outputId: 'document'
+    }, auth)).rejects.toMatchObject({ statusCode: 409 });
+    expect(dataService.patch).not.toHaveBeenCalled();
+  });
+
+  it('rejects broad query dependencies from an instance patch proposal', async () => {
+    const record = patchProposalPreview({
+      readSet: {
+        consistency: 'sequence-bracketed',
+        snapshotId: null,
+        organizationSequenceStart: 4,
+        organizationSequenceEnd: 4,
+        instances: [{
+          typeId: 'part', instanceId: 'item-1', revision: '3',
+          updatedAt: '2026-11-16T10:00:00Z', typeVersion: 2, organizationId: 'org-1'
+        }],
+        relations: [],
+        queries: [{
+          typeId: 'part', organizationId: 'org-1',
+          query: { typeId: 'part', filters: { code: 'A' } },
+          resultIds: ['item-1'], observedTotal: 1, sequence: 4
+        }]
+      }
+    });
+    await expect(graphExecutionsService.commitOutput({
+      graphDocumentInstanceId: 'graph-instance-1', record, outputId: 'document'
+    }, auth)).rejects.toMatchObject({ statusCode: 409 });
+    expect(dataService.patch).not.toHaveBeenCalled();
   });
 
   it('records an execution only against the exact authorized saved graph revision', async () => {
