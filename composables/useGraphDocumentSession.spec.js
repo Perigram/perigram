@@ -89,8 +89,8 @@ describe('useGraphDocumentSession', () => {
         outputs: savedGraph.interface.outputs
       }
     });
-    expect(node.data.definition.inputs).toEqual([]);
-    expect(node.data.definition.outputs).toEqual([]);
+    expect(node.data.definition.inputs.map(port => port.id)).toEqual(savedGraph.interface.inputs.map(port => port.id));
+    expect(node.data.definition.outputs.map(port => port.id)).toEqual(savedGraph.interface.outputs.map(port => port.id));
   });
 
   it('previews Graph Input to Graph Output with explicit JSON bindings', async () => {
