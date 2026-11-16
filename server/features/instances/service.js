@@ -49,6 +49,35 @@ const relationEdgesCache = new Map();
 // The attributed change list for the field-change audit event: which
 // patched leaves actually differ from the current DTO. Values compare by
 // JSON identity — patch leaves are plain wire data.
+function boundedInteger(value, fallback, minimum, maximum, label) {
+  if (value == null || value === '') return fallback;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < minimum || parsed > maximum) {
+    throw createError({ statusCode: 400, message: `Query ${label} must be an integer between ${minimum} and ${maximum}` });
+  }
+  return parsed;
+}
+
+function instanceSortOf(sortBy, sortDirection, declaration, lineageKeys) {
+  const requested = String(sortBy || 'createdAt');
+  const direction = sortDirection == null || sortDirection === '' || sortDirection === 'desc'
+    ? -1
+    : sortDirection === 'asc' ? 1 : null;
+  if (direction == null) {
+    throw createError({ statusCode: 400, message: 'Query sortDirection must be asc or desc' });
+  }
+  const allowed = new Set(['_id', 'name', 'state', 'createdAt', 'updatedAt']);
+  for (const fieldId of Object.keys(declaration.fields || {})) allowed.add(`fields.${fieldId}`);
+  for (const key of lineageKeys || []) allowed.add(`lineage.${key}`);
+  const path = requested.startsWith('fields.') || requested.startsWith('lineage.')
+    ? requested
+    : Object.hasOwn(declaration.fields || {}, requested) ? `fields.${requested}` : requested;
+  if (!allowed.has(path)) {
+    throw createError({ statusCode: 400, message: `Query sort field ${requested} is not declared for ${declaration.id}` });
+  }
+  return { [path]: direction, _id: direction };
+}
+
 function fieldChangesFromPatch(patch = {}, current = {}) {
   const sameValue = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
   const changes = [];
@@ -507,13 +536,20 @@ function instanceService(typeId) {
 
     async list(filters = {}, userId, organizationId) {
       const declaration = await requireDeclaration(typeId, organizationId);
-      const filter = listQueryFilter(filters, await lineageKeysFor(typeId, organizationId));
+      const lineageKeys = await lineageKeysFor(typeId, organizationId);
+      const reserved = new Set(['limit', 'offset', 'sortBy', 'sortDirection']);
+      const queryFilters = Object.fromEntries(Object.entries(filters || {}).filter(([key]) => !reserved.has(key)));
+      const limit = boundedInteger(filters?.limit, 200, 1, 1000, 'limit');
+      const offset = boundedInteger(filters?.offset, 0, 0, 10000, 'offset');
+      const sort = instanceSortOf(filters?.sortBy, filters?.sortDirection, declaration, lineageKeys);
+      const filter = listQueryFilter(queryFilters, lineageKeys);
       const docs = await repository.listInstances(
         repository.collectionForClass(declaration.class),
         typeId,
         organizationId,
-        Number(filters?.limit) || 200,
-        filter
+        limit,
+        filter,
+        { sort, skip: offset }
       );
       return docs.map(doc => toDto(doc));
     },
