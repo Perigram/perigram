@@ -666,6 +666,7 @@ async function lineageWithDerivedChain(draft = {}, organizationId = null, childT
   // scalarize to ids at this boundary.
   const authored = {};
   for (const [key, value] of Object.entries(wire)) {
+    if (key === 'organizationId') continue; // tenancy is stored in its own §3 slot
     authored[key] = value && typeof value === 'object' ? value.id ?? value._id : value;
   }
   const declarations = organizationId
@@ -769,6 +770,9 @@ function instanceService(typeId) {
     }
     if (draft.relations != null && (typeof draft.relations !== 'object' || Array.isArray(draft.relations))) {
       throw createError({ statusCode: 400, message: 'Instance relations must be an object' });
+    }
+    if (draft.lineage != null && (typeof draft.lineage !== 'object' || Array.isArray(draft.lineage))) {
+      throw createError({ statusCode: 400, message: 'Instance lineage must be an object' });
     }
     const trustedExecutorFields = new Set(executorFieldIds);
     const unsafeExecutorFields = executorFieldIds.filter(fieldId =>
