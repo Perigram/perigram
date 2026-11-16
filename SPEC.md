@@ -695,36 +695,78 @@ unit and the geometry handlers externalize behind endpoints like the already
 external nesting worker; editor surfaces ride the surface registry until
 they ship with the plugin (owner decision 2026-10-11, below).
 
-Plugins are hosted two ways, one contract. **Self-written and self-hosted**:
-a coding agent authors the plugin (listing + executor) following the plugin
-authoring guide, and the organization hosts the executor — claim mode or an
-endpoint it configures. **Cloud-hosted**: the publisher runs the executor and
-the organization connects to it. Plugin settings carry the connection: the
-API endpoint per endpoint-mode service and the executor API key. The
-marketplace catalog itself stays platform-side (no separate deployment);
-server-side services are separate processes by design.
+A plugin is one versioned package with one set of graph semantics
+and declared execution targets. The package is authored and installed as
+organization-owned data; Perigram owns execution infrastructure. A package
+may run in the browser, on the server, or in both environments. The graph
+contract and operation signatures are environment-independent, while each
+operation declares the targets and runtime it supports.
 
-**Client-carried** (owner direction 2026-11-14): a plugin may carry its
-engine in the package — the engine runs in the browser and its services
-evaluate locally, in the same Web Worker isolation the engine declares.
-Install is self-contained: connection settings configure only services
-that call remote systems, and a plugin whose services all run client-side
-carries no connection surface. The build123d plugin is this shape — the
-Python engine and geometry kernel run in WebAssembly in the browser, the
-catalog derives from the engine's own introspection, and the plugin
-deploys nothing.
+**Execution environments**:
 
-A third-party plugin is declarations plus connectors — never in-process code:
+- **Browser**: Perigram loads package modules in a dedicated Web Worker.
+  The worker receives graph inputs and explicit host capabilities through
+  a versioned message contract. Preview and interactive operations may run
+  here when the package declares browser support.
+- **Server**: Perigram schedules package operations through its managed
+  execution service. The service loads the organization's pinned package
+  version into an isolated, resource-limited runtime pool. Organizations
+  consume this managed capacity as a platform service.
+- **Dual-target**: the same operation contract can be implemented for both
+  environments. The graph remains portable; execution placement follows
+  the operation's declared targets and the graph's effect requirements.
+
+Graph evaluation is portable dataflow. Pure operations may preview in the
+browser and execute on the server with equivalent inputs and version pins.
+Durable writes, privileged reads, external calls, and other effects execute
+through authorized host capabilities. A browser preview is provisional;
+the server validates and commits durable effects. Execution records pin
+the plugin package version, runtime version, dependency lock, inputs,
+capability grants, and read evidence needed for reproducibility and audit.
+
+The plugin runtime exposes a narrow, versioned host capability interface
+for organization data, files, events, and configured external integrations.
+A package declares the capabilities it requires; installation and execution
+authorize each grant in the organization context. Runtime adapters implement
+the same capability contract in browser and server environments. Secrets
+and database handles remain host-owned; plugin code receives scoped
+capability calls and values.
+
+JavaScript/TypeScript is the default portable runtime. Browser execution
+uses Web Workers; server execution uses isolated managed processes or
+containers with CPU, memory, time, filesystem, and network policy. A Worker
+is a responsiveness boundary and the server runtime supplies the security
+boundary. WASM/WASI is available for portable modules and tighter sandboxing
+where appropriate. Language-specific managed runtimes support workloads
+such as Python when their declared dependencies and target support are
+available.
+
+External systems use provider-level integration connections. A plugin
+declares the provider and capability contract it consumes; the organization
+configures credentials and policy once for that provider. Local plugin
+installation carries no per-function endpoint or key settings. Remote
+integration adapters execute server-side with server-held credentials and
+return scoped results through the host capability layer.
+
+A plugin package may contain declarations, browser surfaces, operation
+modules, runtime metadata, and dependency locks. Installed package assets
+are immutable, version-pinned organization data. The catalog distributes
+releases; installation materializes the selected release into the
+organization's package store. Upgrades explicitly migrate package pins and
+dependent graph references.
+
+A plugin is executable package data under the platform's managed runtime:
 
 - **Declarations** (types now; processes/screens as the exchange grows) install
   as a pinned snapshot and compose into the org's registry view as a resolution
   source between system pack types and the org-authored overlay — same
   no-shadowing rule; a colliding type id refuses the install.
-- **Connectors** bind a plugin's declared services to external executors over
-  the worker claim protocol: the executor polls the app's worker endpoints with
-  a per-install connector token whose claims are pinned to the installing
-  organization's queue for that plugin. The platform stays free of third-party
-  code.
+- **External integrations** bind declared provider capabilities to
+  organization-level connections. The managed adapter applies provider
+  policy and organization grants, then calls the external system with
+  host-held credentials. A connector protocol may serve a genuinely remote
+  integration runtime; it is a provider integration boundary, while ordinary
+  plugin operations use the platform-managed runtime.
 - **Agent tools** ride a listing as `tools`: tool descriptors bound to the
   plugin's own declared endpoint-mode services. Installs snapshot them; they
   compose into the installing org's agent catalog on every surface and
@@ -777,6 +819,42 @@ shell; a surface that bundles its own runtime or UI kit, or fails the
 mount-and-save smoke, fails the check. Structural consistency is
 contractual; taste stays review, with the facade editors as the reference.
 
+**Owner direction (2026-11-16): portable graphs and platform-managed
+execution.** A graph has one semantic contract across browser and server.
+Operation declarations state supported execution targets and runtime
+requirements; placement is a runtime decision constrained by those
+declarations, grants, and effect semantics. The platform provides browser
+Workers and managed isolated server runtime pools. Plugin authors publish
+packages; organizations install package data and compose graphs. Perigram
+provides the endpoint, scheduling, isolation, and capacity layers.
+
+Pure operations may execute in either environment when the declared
+runtime and dependencies are available. Interactive previews prefer the
+browser. Server execution is authoritative for durable effects and
+privileged capabilities. Host capability calls carry organization scope,
+principal, grants, and operation identity; the host validates every call
+and owns persistence, secrets, and external network access. Runtime
+adapters implement one capability contract in each supported environment.
+
+The managed server runtime uses shared scheduling and isolated execution
+capacity. Each invocation is bounded by declared resource policy and
+enforced CPU, memory, wall-time, filesystem, and network limits. Untrusted
+plugin code executes in isolated runtime capacity. Runtime images and
+language environments are platform-maintained and versioned; packages pin
+their runtime and dependency requirements.
+
+Execution evidence records package and runtime versions, dependency
+resolution, input identity, capability grants, and the graph read set.
+Pure deterministic operations may be cached by canonical inputs and
+version identity. Effects use idempotency keys and transactional commit
+boundaries. A preview result is advisory until the server validates and
+commits its effects.
+
+Build123d browser integration is deferred until the owner completes
+build123d-flow. Its existing executor remains transitional during that
+work; the Perigram plugin adapter will be designed against the portable
+package and runtime contracts above.
+
 Domain law for a marketplace domain lives in the plugin's own
 SPEC; the facade fabrication domain's owner decisions (cassettes,
 profiles, sheet design) live in workers/facade/SPEC.md. This section
@@ -808,27 +886,23 @@ the org runs itself, claim mode or an endpoint it configures. The catalog
 route serves a private listing only to its owning organizations; install,
 upgrade, and uninstall are the same gated path for every listing.
 
-Storage and deployment follow the same law. The marketplace deploys as part
-of the app — no separate service: the catalog is platform-side data, seeded
-with the built-in listings as a deploy step so a fresh environment
-self-contains its default installs. Plugins gain no platform-side artifact
-store: the listing is versioned in the plugin's repository (git history is
-the version store), the catalog and install snapshots serve declarations,
-and an executor ships as a container image in a registry, deployed as a
-long-running service the platform calls or that polls it. The platform
-stores declarations, never plugin code.
+Storage and execution follow the same law. The marketplace catalog
+distributes versioned releases. Each organization install owns an immutable
+copy of its selected package assets and a content-digest manifest alongside
+its declaration snapshot. Perigram's managed execution service loads those
+assets into shared isolated runtime pools; runtime capacity is platform
+infrastructure, not a deployment created for each plugin or organization.
 
 The pack retirement is dependency-ordered. `requires` chains
 plugin-on-plugin (the install and upgrade gates treat a required plugin id
 as satisfied by an install, not only a mounted pack); starter constructs
 ride listing declarations and compose through the default installs,
 replacing the pack-side starter-construct seam; tech-drawing becomes a
-declarations-only listing — no services, no executor, its types riding the
-generic instance machinery; documents becomes an executor-backed plugin:
-`documents.csvText` externalizes as a pure value service, the rows/cells
-payload decompositions externalize as pure computes over the record's own
-payload value (the DXF-extraction precedent), and its editor bindings ship
-as plugin surfaces. After both migrations the pack machinery deletes — the
+declarations-only listing — its types ride the generic instance machinery;
+documents becomes a locally executable package whose projections,
+compositions, editors, and compute operations declare browser and/or server
+targets. Its pure payload operations run in the managed plugin runtime,
+while durable file and organization-data effects use host capabilities. After both migrations the pack machinery deletes — the
 registry's pack mounts, the pack composition seams, and the pack enablement
 records — leaving installs the only management plane.
 

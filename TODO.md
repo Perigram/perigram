@@ -1,34 +1,50 @@
 # TODO
 
-## Organization-owned frontend plugins (SPEC §20 amendment, owner direction 2026-11-16)
+## Portable plugins and platform-managed execution (SPEC §20, owner direction 2026-11-16)
 
-Installed plugins are organization data, not independently deployed
-backend services. Local UI and compute code executes in the frontend;
-remote third-party integrations remain explicit provider-level protocols.
-The documents and build123d plugins are the first local-runtime
-migrations.
+Installed plugins are versioned organization-owned package data.
+Graphs carry environment-independent semantics; operations declare browser
+and server targets. Perigram provides browser Workers and managed isolated
+server runtime pools, with host-mediated capabilities and provider-level
+external integrations. Documents is the first migration. Build123d
+integration waits for the owner's completion of build123d-flow.
 
 - [ ] Reconcile the plugin listing, install snapshot, settings, and runtime
   contracts: local services and browser engines must not acquire per-service
   endpoint/key settings; remote integration connections are declared and
   configured once at provider scope.
-- [ ] Make installed package assets organization-owned data: materialize
-  immutable versioned assets with content digests on install/upgrade,
-  authorize reads by organization membership, and remove package data only
-  through the existing uninstall drain gate.
+- [ ] Complete organization-owned package assets: materialize immutable
+  versioned assets with content digests on install/upgrade, authorize reads
+  by organization membership, and remove package data through the uninstall
+  drain gate. Existing installs need one-time materialization and digest
+  verification; remove the catalog asset fallback after migration.
   Progress (2026-11-16): new installs and upgrades materialize the catalog
   release into an organization-scoped GridFS bucket; the install pin records
   its asset manifest, module reads resolve that copy, and uninstall cleanup
   runs only after the drain gate. Existing pins still need a one-time
   materialization migration; the old catalog lookup remains only until that
   migration is applied.
-- [ ] Execute local plugin compute and node providers in the isolated browser
-  runtime; keep surface modules on the data-only host mount and expose only
-  explicit authorized capabilities.
+- [ ] Define the shared plugin execution contract in the SDK: operation
+  targets, runtime/dependency requirements, capability declarations,
+  invocation envelopes, result envelopes, cancellation, and execution
+  evidence.
+- [ ] Implement the versioned host capability contract for organization
+  data, files, events, and provider integrations; authorize each invocation
+  against the active principal, organization, and declared grants.
+- [ ] Implement browser Worker execution for package operations and node
+  providers, with a typed RPC bridge, lifecycle/cancellation, and explicit
+  capability calls. Keep surface modules on the data-only host mount.
+- [ ] Implement the platform-managed server runtime: shared scheduling,
+  isolated runtime pools, package loading by organization/version, resource
+  limits, network/filesystem policy, and validated result/effect commits.
+- [ ] Define graph placement and validation rules for browser-only,
+  server-only, and dual-target operations; make server validation
+  authoritative for durable effects and persist reproducibility evidence.
 - [ ] Migrate documents projections, compositions, editors, and compute
-  services to the local browser package; remove its executor deployment.
-- [ ] Migrate build123d Python/WASM engine and geometry operations to the
-  local browser package; remove its executor deployment.
+  operations to the managed package runtime; remove its executor deployment.
+- [ ] Keep build123d integration deferred until the owner completes
+  build123d-flow; then adapt its browser Python/WASM runtime to the same
+  package, graph, and capability contracts.
   Integration baseline checked 2026-11-16: [1suo/build123d-flow](https://github.com/1suo/build123d-flow)
   main at `3c62677065016ae166f50a176130b127ca35ef12`, package version
   `0.1.0`; build123d `0.13.0`, Pyodide `314.0.7`, and OCP.wasm
@@ -41,11 +57,13 @@ migrations.
   discovery, geometry, export and graph regression coverage before
   production integration. Recheck upstream main and all runtime pins
   before each plugin package release.
-- [ ] Retire per-function endpoint settings, connector tokens, executor
-  deployment/seed wiring, and obsolete worker routes for local-only plugins.
-- [ ] Preserve remote integration protocols through provider-level
-  server-side adapters with server-held credentials and scoped client
-  capability handles; cover supported protocols with contract tests.
+- [ ] Retire per-function endpoint settings and local-plugin connector
+  tokens after all local packages migrate; retain explicit remote integration
+  protocols through provider-level server adapters with server-held
+  credentials and scoped capability handles.
+- [ ] Remove the Documents executor deployment, seed wiring, and obsolete
+  routes after its managed runtime migration; retain Build123d's transitional
+  executor until its deferred browser integration is complete.
 - [ ] Migrate existing installed plugin records and package assets without
   retaining the retired endpoint-per-service contract; verify install,
   upgrade, uninstall, organization isolation, authorization, and offline
