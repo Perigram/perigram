@@ -61,6 +61,38 @@ describe('useGraphDocumentSession', () => {
     expect(session.executionRecord.value.provenance.nodes.some(item => item.operation?.provider === 'plugin.example')).toBe(true);
   });
 
+  it('places saved graph revisions directly from the Use Graph palette', () => {
+    const source = createSession();
+    const [input, output] = source.paletteGroups.value[0].items;
+    source.addNode(input, { x: 0, y: 0 });
+    source.addNode(output, { x: 240, y: 0 });
+    const savedGraph = source.serializeGraph();
+
+    const caller = useGraphDocumentSession({
+      t: key => key,
+      graphDocuments: [{ graph: savedGraph }]
+    });
+    const group = caller.paletteGroups.value.find(item => item.source === 'graphs');
+    expect(group.items).toHaveLength(1);
+    expect(group.items[0]).toMatchObject({
+      label: savedGraph.name || savedGraph.id,
+      operation: { id: 'perigram.core.use-graph' },
+      config: { graphId: savedGraph.id, revision: savedGraph.revision }
+    });
+
+    const node = caller.addNode(group.items[0], { x: 120, y: 80 });
+    expect(node.data.config).toMatchObject({
+      graphId: savedGraph.id,
+      revision: savedGraph.revision,
+      interface: {
+        inputs: savedGraph.interface.inputs,
+        outputs: savedGraph.interface.outputs
+      }
+    });
+    expect(node.data.definition.inputs).toEqual([]);
+    expect(node.data.definition.outputs).toEqual([]);
+  });
+
   it('previews Graph Input to Graph Output with explicit JSON bindings', async () => {
     const session = createSession();
     const [input, output] = session.paletteGroups.value[0].items;
