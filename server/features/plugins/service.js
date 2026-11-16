@@ -198,19 +198,27 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
 
   const configuredEndpoints = configuredEndpointsFor(services, endpoints);
   const configuredSurfaceOrigin = configuredSurfaceOriginFor(surfaces, surfaceOrigin);
-  await repository.createInstall({
-    organizationId: String(organizationId),
-    pluginId: String(listing.pluginId),
-    name: listing.name || listing.pluginId,
-    version: listing.version || '1',
-    declarations: { types, editors, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, previews: layer.previews, previewChannels: layer.previewChannels, ...(engine ? { engine } : {}) },
-    services,
-    requires,
-    endpoints: configuredEndpoints,
-    ...(configuredSurfaceOrigin ? { surfaceOrigin: configuredSurfaceOrigin } : {}),
-    connectorToken: mintConnectorToken()
+  await runOrganizationChange(organizationId, {
+    kind: 'plugin-installed',
+    typeId: null,
+    instanceId: String(listing.pluginId),
+    paths: ['plugin-declarations', 'plugin-services'],
+    actorId: null
+  }, async () => {
+    await repository.createInstall({
+      organizationId: String(organizationId),
+      pluginId: String(listing.pluginId),
+      name: listing.name || listing.pluginId,
+      version: listing.version || '1',
+      declarations: { types, editors, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, previews: layer.previews, previewChannels: layer.previewChannels, ...(engine ? { engine } : {}) },
+      services,
+      requires,
+      endpoints: configuredEndpoints,
+      ...(configuredSurfaceOrigin ? { surfaceOrigin: configuredSurfaceOrigin } : {}),
+      connectorToken: mintConnectorToken()
+    });
+    invalidateInstanceDeclarations(String(organizationId));
   });
-  invalidateInstanceDeclarations(String(organizationId));
   await ensureInstanceIndexes(registry.resolveView(organizationId));
   publishOrgContractChanged(String(organizationId), 'registry', {
     pluginId: String(listing.pluginId),
@@ -310,10 +318,18 @@ export async function uninstall({ organizationId, pluginId, cascade = false, aut
     });
   }
 
-  for (const id of removing) {
-    await repository.deleteInstall(organizationId, id);
-  }
-  invalidateInstanceDeclarations(String(organizationId));
+  await runOrganizationChange(organizationId, {
+    kind: 'plugin-uninstalled',
+    typeId: null,
+    instanceId: String(pluginId),
+    paths: ['plugin-declarations', 'plugin-services'],
+    actorId: auth.userId
+  }, async () => {
+    for (const id of removing) {
+      await repository.deleteInstall(organizationId, id);
+    }
+    invalidateInstanceDeclarations(String(organizationId));
+  });
   const after = await compileRegistryForOrganization(organizationId);
   await ensureInstanceIndexes(after.resolveView(organizationId));
   publishOrgContractChanged(String(organizationId), 'registry', {
@@ -1048,47 +1064,54 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
     throw createError({ statusCode: 400, message: introduced.join('; ') });
   }
 
-  await repository.updateInstallSnapshot(organizationId, pluginId, {
-    version: listing.version,
-    declarations: {
-      types: versionedTypes.map(withoutMigrateSteps),
-      editors: layer.editors,
-      constructions: layer.constructions,
-      starterConstructs: layer.starterConstructs,
-      dependencies: layer.dependencies,
-      exports: layer.exports,
-      surfaces: layer.surfaces,
-      previews: layer.previews,
-      previewChannels: layer.previewChannels
-    },
-    services: layer.services,
-    requires: layer.requires,
-    endpoints: upgradedEndpointsFor(install, layer.services)
-  });
-
-  // Covered breaking changes execute against live instances (SPEC §11
-  // machinery, same as an org type edit): steps come from the new
-  // declaration's transient `migrate` key. A covered rename rewrites the
-  // org's stored world to the new id first — the step scanner matches on
-  // the new discriminator.
-  invalidateInstanceDeclarations(String(organizationId));
-  for (const rename of plan.renamed || []) {
-    await applyTypeRename(rename, organizationId);
-  }
-  const changedById = new Map(plan.changed.map(change => [change.typeId, change]));
-  for (const versioned of versionedTypes) {
-    const change = changedById.get(versioned.id);
-    if (change?.instances > 0 && change.covered && change.steps.length) {
-      await applyTypeMigrationSteps({
-        declaration: versioned,
-        organizationId,
-        steps: change.steps,
-        toVersion: versioned.version,
-        actor: auth.userId
-      });
+  let migrationError = null;
+  await runOrganizationChange(organizationId, {
+    kind: 'plugin-upgraded',
+    typeId: null,
+    instanceId: String(pluginId),
+    paths: ['plugin-declarations', 'plugin-services', 'instance-migrations'],
+    actorId: auth.userId
+  }, async () => {
+    await repository.updateInstallSnapshot(organizationId, pluginId, {
+      version: listing.version,
+      declarations: {
+        types: versionedTypes.map(withoutMigrateSteps),
+        editors: layer.editors,
+        constructions: layer.constructions,
+        starterConstructs: layer.starterConstructs,
+        dependencies: layer.dependencies,
+        exports: layer.exports,
+        surfaces: layer.surfaces,
+        previews: layer.previews,
+        previewChannels: layer.previewChannels
+      },
+      services: layer.services,
+      requires: layer.requires,
+      endpoints: upgradedEndpointsFor(install, layer.services)
+    });
+    invalidateInstanceDeclarations(String(organizationId));
+    try {
+      for (const rename of plan.renamed || []) {
+        await applyTypeRename(rename, organizationId);
+      }
+      const changedById = new Map(plan.changed.map(change => [change.typeId, change]));
+      for (const versioned of versionedTypes) {
+        const change = changedById.get(versioned.id);
+        if (change?.instances > 0 && change.covered && change.steps.length) {
+          await applyTypeMigrationSteps({
+            declaration: versioned,
+            organizationId,
+            steps: change.steps,
+            toVersion: versioned.version,
+            actor: auth.userId
+          });
+        }
+      }
+    } catch (error) {
+      migrationError = error;
     }
-  }
-
+  });
+  if (migrationError) throw migrationError;
   await ensureInstanceIndexes(registry.resolveView(organizationId));
   publishOrgContractChanged(String(organizationId), 'registry', {
     pluginId: String(pluginId),
