@@ -129,12 +129,19 @@ provenance-citations + palette-home decisions.
   revision, and public interface; the active graph is excluded.
 - [x] Wire the invocation inspector's revision selector to the
   source-scoped revision list and frozen-file read.
-- [ ] Load installed plugin engine contributions from the organization
-  plugin runtime rather than requiring the host to pass a
-  `nodeProviders` contribution.
-- [ ] Replace the current JSON/text/table/document preview fallbacks with
-  generic representation viewers for images and 2D/3D scenes, and integrate
-  existing plugin preview-surface channels for arbitrary graph outputs.
+- [x] Load installed client-engine modules from the organization CTS
+  view, cache each plugin/version binding, and register graph-only or
+  service-plus-graph provider contributions in the editor session.
+- [x] Render JSON, text, Markdown, tables, documents, images, 2D/3D scenes,
+  provider-specific renderers, and declared plugin preview channels in the
+  graph support rail.
+- [x] Bake a successful preview output to an explicit Page id and safe
+  relative path. Persist the graph/revision/execution/output provenance,
+  enforce source graph read access and exact saved-revision identity, and
+  expose explicit fail/revision/admin-replace/distinct-name conflict policy.
+- [x] Store baked files as page-owned artifact blocks, protect page updates
+  with compare-and-swap, and retract unreferenced current/history blobs when
+  blocks or pages are removed.
 
 ### Agent Notes (2026-10-25)
 
