@@ -26,6 +26,38 @@ describe('useGraphDocumentSession', () => {
     expect(session.serializeGraph()).toEqual(graph);
   });
 
+  it('composes an independently registered plugin provider into the palette and preview runtime', async () => {
+    const definition = {
+      provider: 'plugin.example',
+      id: 'math.double',
+      version: '1',
+      label: 'Double',
+      inputs: [{ id: 'value', shape: 'item', semantic: { base: 'number' }, required: true }],
+      outputs: [{ id: 'result', shape: 'item', semantic: { base: 'number' }, required: true }],
+      execution: { kind: 'pure', deterministic: true }
+    };
+    const session = useGraphDocumentSession({
+      t: key => key,
+      providers: [{
+        definitions: [definition],
+        execute: (_definition, { inputs }) => ({ result: inputs.value * 2 })
+      }]
+    });
+    const pluginGroup = session.paletteGroups.value.find(group => group.source === 'plugin');
+    expect(pluginGroup.items[0].operation).toEqual({
+      provider: 'plugin.example', id: 'math.double', version: '1'
+    });
+    const input = session.addNode(session.paletteGroups.value[0].items[0], { x: 0, y: 0 });
+    const node = session.addNode(pluginGroup.items[0], { x: 200, y: 0 });
+    const output = session.addNode(session.paletteGroups.value[0].items[1], { x: 400, y: 0 });
+    session.onConnect({ source: input.id, sourceHandle: 'value', target: node.id, targetHandle: 'value' });
+    session.onConnect({ source: node.id, sourceHandle: 'result', target: output.id, targetHandle: 'value' });
+    const inputId = session.graphDocument.value.interface.inputs[0].id;
+    session.setGraphInputBinding({ portId: inputId, value: 9 });
+    const result = await session.refreshPreview();
+    expect(result.outputs).toEqual({ [session.graphDocument.value.interface.outputs[0].id]: 18 });
+  });
+
   it('previews Graph Input to Graph Output with explicit JSON bindings', async () => {
     const session = createSession();
     const [input, output] = session.paletteGroups.value[0].items;

@@ -89,7 +89,8 @@ const props = defineProps({
   typeId: { type: String, default: 'graph-document' },
   persistence: { type: Object, required: true },
   mode: { type: String, default: 'edit' },
-  pageChrome: { type: Object, default: null }
+  pageChrome: { type: Object, default: null },
+  nodeProviders: { type: Array, default: () => [] }
 });
 
 const { t } = useI18n();
@@ -110,7 +111,7 @@ const graphRevisionsError = ref('');
 let canvasFrame = null;
 let instanceId = String(props.record?._id || props.record?.id || '');
 
-const session = useGraphDocumentSession({ t });
+const session = useGraphDocumentSession({ t, providers: props.nodeProviders });
 const {
   nodes,
   edges,

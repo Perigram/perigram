@@ -18,6 +18,19 @@ const definition = overrides => ({
 });
 
 describe('provider-neutral node contract', () => {
+  it('normalizes provider contributions with matching node ownership and callable runtimes', () => {
+    const definition = {
+      provider: 'plugin.example', id: 'math.double', version: '1',
+      inputs: [], outputs: [],
+      execution: { kind: 'pure' }
+    };
+    const execute = () => ({});
+    const provider = normalizeNodeProvider({ provider: 'plugin.example', definitions: [definition], execute });
+    expect(provider.definitions[0].provider).toBe('plugin.example');
+    expect(provider.execute).toBe(execute);
+    expect(() => normalizeNodeProvider({ provider: 'plugin.other', definitions: [definition], execute })).toThrow(/belongs to plugin.example/);
+  });
+
   it('normalizes and freezes a provider-qualified operation definition', () => {
     const normalized = normalizeNodeDefinition(definition());
     expect(normalized).toMatchObject({

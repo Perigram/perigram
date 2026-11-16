@@ -90,6 +90,32 @@ export function assertValidNodeDefinition(source) {
   return normalizeNodeDefinition(source);
 }
 
+export function normalizeNodeProvider(source = {}) {
+  const provider = String(source.provider || '');
+  if (!PROVIDER_IDENTIFIER.test(provider)) throw new Error('Node provider requires a stable lowercase provider id');
+  if (typeof source.execute !== 'function') throw new Error(`Node provider ${provider} requires an execute function`);
+  if (!Array.isArray(source.definitions) || !source.definitions.length) {
+    throw new Error(`Node provider ${provider} requires at least one node definition`);
+  }
+  const definitions = source.definitions.map(definition => {
+    const normalized = assertValidNodeDefinition(definition);
+    if (normalized.provider !== provider) {
+      throw new Error(`Node definition ${normalized.id} belongs to ${normalized.provider}, not ${provider}`);
+    }
+    return normalized;
+  });
+  const previewRenderers = source.previewRenderers || {};
+  if (!isRecord(previewRenderers) || Object.values(previewRenderers).some(renderer => typeof renderer !== 'function')) {
+    throw new Error(`Node provider ${provider} previewRenderers must map renderer ids to functions`);
+  }
+  return Object.freeze({
+    provider,
+    definitions: Object.freeze(definitions),
+    execute: source.execute,
+    previewRenderers: Object.freeze({ ...previewRenderers })
+  });
+}
+
 export function createNodeProviderRegistry() {
   const definitions = new Map();
   return Object.freeze({

@@ -58,7 +58,7 @@ export function createEmptyGraphDocument({ id = stableId('graph'), name = '' } =
   };
 }
 
-export function useGraphDocumentSession({ t }) {
+export function useGraphDocumentSession({ t, providers = [] }) {
   const graphDocument = ref(createEmptyGraphDocument());
   const nodes = ref([]);
   const edges = ref([]);
@@ -135,10 +135,11 @@ export function useGraphDocumentSession({ t }) {
       }]
     });
     const grouped = new Map();
-    for (const definition of registry.list({ provider: PROCESS_PROCEDURAL_PROVIDER })) {
+    for (const definition of registry.list()) {
       const family = definition.id.split('.')[0];
-      if (!grouped.has(family)) grouped.set(family, []);
-      grouped.get(family).push({
+      const groupKey = `${definition.provider}:${family}`;
+      if (!grouped.has(groupKey)) grouped.set(groupKey, { provider: definition.provider, family, items: [] });
+      grouped.get(groupKey).items.push({
         id: `${definition.provider}:${definition.id}@${definition.version}`,
         label: definition.label,
         description: definition.description || '',
@@ -151,11 +152,12 @@ export function useGraphDocumentSession({ t }) {
         config: {}
       });
     }
-    for (const [family, items] of grouped) {
+    for (const { provider, family, items } of grouped.values()) {
+      const processProvider = provider === PROCESS_PROCEDURAL_PROVIDER;
       groups.push({
-        source: 'framework',
-        id: `graph-${family}`,
-        label: groupLabels[family] || family,
+        source: processProvider ? 'framework' : 'plugin',
+        id: `graph-${provider}-${family}`,
+        label: processProvider ? (groupLabels[family] || family) : `${provider} · ${family}`,
         signal: groupSignals[family] || 'data',
         items
       });
@@ -522,6 +524,14 @@ export function useGraphDocumentSession({ t }) {
     const normalized = registry.register(definition);
     providerExecutors.set(normalized.provider, executor);
     return normalized;
+  }
+
+  for (const contribution of providers) {
+    if (!contribution || typeof contribution.execute !== 'function') continue;
+    const definitions = Array.isArray(contribution.definitions)
+      ? contribution.definitions
+      : contribution.definition ? [contribution.definition] : [];
+    for (const definition of definitions) registerProvider(definition, contribution.execute);
   }
 
   function openPanePalette(event) {
