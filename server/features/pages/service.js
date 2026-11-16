@@ -252,6 +252,42 @@ export async function bakeFile({
   };
 }
 
+export async function retractBakedFile({ pageId, fileId } = {}, auth = {}) {
+  const organizationId = resolveOrganizationId(auth);
+  await preparePages(organizationId, auth.userId);
+  const page = await requireOwnPage(pageId, organizationId);
+  const document = normalizePageDocument({ blocks: page.fields?.blocks, order: page.fields?.order });
+  const block = document.blocks.find(item => item.kind === 'file' && String(item.file?.fileId || '') === String(fileId || ''));
+  if (!block) {
+    const file = await filesService.findFileMeta(fileId, 'files');
+    if (file && String(file.metadata?.pageId || '') === String(pageId)) {
+      await filesService.deleteFile(fileId, 'files');
+      return { success: true, detached: true };
+    }
+    return { success: false, referenced: false };
+  }
+  const history = [...(block.file.history || [])];
+  let blocks;
+  let order = document.order;
+  if (history.length) {
+    const previous = history.pop();
+    const restored = { ...previous, history };
+    blocks = document.blocks.map(item => item.id === block.id ? { ...block, file: restored } : item);
+  } else {
+    blocks = document.blocks.filter(item => item.id !== block.id);
+    order = order.filter(id => id !== block.id);
+  }
+  const updated = await repository.updatePageDocumentIfUnchanged(
+    page._id,
+    organizationId,
+    page.updatedAt,
+    normalizePageDocument({ blocks, order })
+  );
+  if (!updated) throw createError({ statusCode: 409, message: 'Page changed before the failed Bake could be retracted' });
+  await filesService.deleteFile(fileId, 'files');
+  return { success: true, page: repository.serializeFull(updated) };
+}
+
 async function prunePageFiles(pageId, document, organizationId) {
   const referenced = new Set();
   for (const block of document?.blocks || []) {
