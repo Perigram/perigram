@@ -59,6 +59,29 @@ describe('usePluginRuntime', () => {
       .resolves.toEqual({ operationId: 'math.double', input: { input: 2 } });
   });
 
+  it('resolves worker renderer ids to installed preview surface modules', async () => {
+    const surface = {
+      id: 'mesh-preview',
+      url: '/api/plugins/demo/module/preview/mesh.mjs',
+      surfaceContract: 1
+    };
+    const worker = new FakeWorker([{
+      provider: 'plugin.demo',
+      definitions: [{
+        provider: 'plugin.demo', id: 'geometry.mesh', version: '1', inputs: [], outputs: [],
+        execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] },
+        preview: { renderer: 'mesh' }
+      }],
+      previewRenderers: { mesh: 'mesh-preview' }
+    }]);
+    const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
+    const [provider] = await pluginRuntime.loadProviders({
+      ...binding,
+      previewRenderers: [surface]
+    }, runtime);
+    expect(provider.previewRenderers.mesh).toEqual(surface);
+  });
+
   it('refuses operations without browser support', async () => {
     const pluginRuntime = usePluginRuntime({ createWorker: () => new FakeWorker() });
     await expect(pluginRuntime.execute(binding, runtime, 'server-only', {}, {

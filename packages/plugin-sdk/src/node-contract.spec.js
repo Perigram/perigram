@@ -45,6 +45,15 @@ describe('provider-neutral node contract', () => {
       provider: 'plugin.example', definitions: [candidate], execute: () => ({}),
       previewRenderers: { mesh: renderer }
     }).previewRenderers.mesh).toBe(renderer);
+    expect(normalizeNodeProvider({
+      provider: 'plugin.example', definitions: [candidate], execute: () => ({}),
+      previewRenderers: { mesh: 'mesh-preview' }
+    }).previewRenderers.mesh).toBe('mesh-preview');
+    const surface = { id: 'mesh-preview', url: '/api/plugins/example/module/mesh.mjs', surfaceContract: 1 };
+    expect(normalizeNodeProvider({
+      provider: 'plugin.example', definitions: [candidate], execute: () => ({}),
+      previewRenderers: { mesh: surface }
+    }).previewRenderers.mesh).toEqual(surface);
   });
 
   it('normalizes and freezes a provider-qualified operation definition', () => {

@@ -166,11 +166,37 @@ describe('cts type storage', () => {
         id: 'javascript', language: 'javascript', version: '1', entry: '/runtime.mjs',
         targets: ['browser', 'server'], entryUrl: '/api/plugins/coatings/module/runtime.mjs'
       },
-      services: [{ id: 'shape', execution: { runtime: 'javascript', targets: ['browser'], kind: 'pure' } }]
+      services: [{ id: 'shape', execution: { runtime: 'javascript', targets: ['browser'], kind: 'pure' } }],
+      previewRenderers: []
     }]);
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
   });
 
+
+  it('resolves plugin preview surfaces for worker node renderers', async () => {
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
+      organizationId: ORG,
+      pluginId: 'coatings',
+      version: '4',
+      packageAssets: { count: 1 },
+      declarations: {
+        types: [],
+        runtimes: [{ id: 'javascript', language: 'javascript', version: '1', entry: '/runtime.mjs', targets: ['browser'] }],
+        surfaces: [
+          { id: 'mesh-preview', module: '/preview/mesh.mjs', surfaceContract: 1, kind: 'preview' },
+          { id: 'editor', module: '/editor.mjs', surfaceContract: 4, kind: 'editor' }
+        ]
+      },
+      services: []
+    }]);
+    const view = await describeOrganizationTypes(ORG);
+    expect(view.clientRuntimes[0].previewRenderers).toEqual([{
+      id: 'mesh-preview',
+      url: '/api/plugins/coatings/module/preview/mesh.mjs',
+      surfaceContract: 1
+    }]);
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
+  });
 
   it('serves organization-owned runtime provider bindings', async () => {
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
