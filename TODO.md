@@ -389,9 +389,9 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   now uses a separate session and shared canvas presentation. Provider
   socket cards, graph inspector, Graph Input/Output, dedicated Use Graph
   palette group, and editable boundary semantic/transport/default
-  declarations are wired. Remaining: graph-document discovery and
-  automatic pinned-interface hydration; comprehensive editor/session
-  interaction tests.
+  declarations and pinned Use Graph interface hydration from an exact
+  graph revision are wired. Remaining: graph-document discovery UI and
+  comprehensive editor/session interaction tests.
 - [ ] G4 Procedural preview — core evaluator and process adapter are wired
   to the editor preview panel; JSON input-binding controls are implemented
   and boundary defaults are consumed by the evaluator. Remaining:
