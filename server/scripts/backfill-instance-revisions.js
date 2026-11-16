@@ -3,7 +3,7 @@
 // the counter. Existing typed documents are assigned their baseline revision.
 // Dry-run by default; --apply persists. Idempotent.
 import { connectDB } from '../db/mongo.js';
-import { CLASS_COLLECTIONS } from '../../packages/cts/src/index.js';
+import { CLASS_COLLECTIONS } from '#packages/cts';
 
 const needsRevision = {
   $or: [

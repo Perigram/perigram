@@ -6,7 +6,7 @@ ARG HTTPS_PROXY
 ARG NO_PROXY=localhost,127.0.0.1
 WORKDIR /app
 RUN npm install --silent mongodb winston h3
-RUN printf '{ "type": "module" }' > package.json
+RUN printf '{ "type": "module", "imports": { "#packages/cts": "./packages/cts/src/index.js" } }' > package.json
 COPY server/scripts ./server/scripts
 COPY server/db ./server/db
 COPY server/utils ./server/utils
