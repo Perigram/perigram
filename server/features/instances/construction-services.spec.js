@@ -147,6 +147,16 @@ describe('service-backed construction executor payloads (SPEC §24)', () => {
     expect(dto.payload).toEqual({ fileId: 'stored-Sheet A.pdf', mime: 'application/pdf', size: 8, name: 'Sheet A.pdf' });
   });
 
+  it('rejects undeclared user fields even when an executor returns additional fields', async () => {
+    stubCollection();
+    executorOutput({ data: { pages: 2 } });
+
+    await expect(serviceBackedConstruction('report', 'fromTemplate')({
+      name: 'Passport',
+      fields: { userSuppliedUnknown: true }
+    }, CONTEXT)).rejects.toMatchObject({ statusCode: 400 });
+  });
+
   it('creates without a payload when the executor returns none', async () => {
     const coll = stubCollection();
     executorOutput({ data: { geometry: { ok: true } } });

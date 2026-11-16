@@ -15,6 +15,9 @@ import * as filesService from '../files/service.js';
 import { executeConnectorService, constructionsForOrganization } from '../plugins/service.js';
 import { executorPayload } from '../plugins/executor-payload.js';
 
+const EXECUTOR_FIELD_IDS = Symbol('executorFieldIds');
+
+
 // Service-backed construction (SPEC §Plugin marketplace): construction
 // modes of installed-plugin types dispatch to the plugin's executor.
 export function serviceAwareConstructionHandlers(typeId, standard) {
@@ -44,10 +47,11 @@ export function serviceBackedConstruction(typeId, mode) {
     const merged = await applyConstructionService(typeId, mode, draft, context);
     const { instanceServiceResolver } = await import('./service.js');
     const service = instanceServiceResolver(typeId);
+    const executorFieldIds = merged[EXECUTOR_FIELD_IDS] || [];
     if (merged.payload || mode === 'upload' || mode === 'capture') {
-      return await service.createWithPayloadProtocol(merged, context, mode);
+      return await service.createWithPayloadProtocol(merged, context, mode, { executorFieldIds });
     }
-    return await service.create(merged, context.userId, context.organizationId);
+    return await service.create(merged, context.userId, context.organizationId, { executorFieldIds });
   };
 }
 
@@ -115,6 +119,7 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
   if (!run) return draft;
   const { serviceRef, parameters, output, data } = run;
   const merged = { ...draft, fields: { ...(draft.fields || {}), ...data } };
+  Object.defineProperty(merged, EXECUTOR_FIELD_IDS, { value: Object.keys(data) });
   // Executor-declared relations (SPEC §6 edges): computed relation values
   // join the draft beside the computed fields and store through the same
   // §3 relations slot wire patches use.
@@ -140,7 +145,9 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
   }
   const file = executorPayload(serviceRef, output.payload);
   if (!file) return merged;
-  return { ...merged, payload: await storeExecutorPayload(typeId, draft, file, context, context.organizationId) };
+  const withPayload = { ...merged, payload: await storeExecutorPayload(typeId, draft, file, context, context.organizationId) };
+  Object.defineProperty(withPayload, EXECUTOR_FIELD_IDS, { value: Object.keys(data) });
+  return withPayload;
 }
 
 async function storeExecutorPayload(typeId, draft, file, context, organizationId) {

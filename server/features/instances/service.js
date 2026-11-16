@@ -669,7 +669,7 @@ function instanceService(typeId) {
   // construction mode. The wire draft IS the stored shape: tenancy
   // travels as `organizationId`, the payload as `payload`, rows as flat
   // `fields`, the rename channel as `name`.
-  async function createValidated(draft, declaration, userId, organizationId) {
+  async function createValidated(draft, declaration, userId, organizationId, { executorFieldIds = [] } = {}) {
     const payload = payloadFromWire(draft, declaration);
     const provenance = provenanceFromWire(draft);
     const now = new Date().toISOString();
@@ -681,8 +681,16 @@ function instanceService(typeId) {
     if (draft.relations != null && (typeof draft.relations !== 'object' || Array.isArray(draft.relations))) {
       throw createError({ statusCode: 400, message: 'Instance relations must be an object' });
     }
+    const trustedExecutorFields = new Set(executorFieldIds);
+    const unsafeExecutorFields = executorFieldIds.filter(fieldId =>
+      !/^[A-Za-z][A-Za-z0-9_-]{0,127}$/.test(fieldId)
+      || ['__proto__', 'prototype', 'constructor'].includes(fieldId)
+    );
+    if (unsafeExecutorFields.length) {
+      throw createError({ statusCode: 400, message: 'Executor returned unsafe field ids: ' + unsafeExecutorFields.join(', ') });
+    }
     const unknownFields = Object.keys(draft.fields || {}).filter(fieldId =>
-      !Object.hasOwn(declaration.fields || {}, fieldId)
+      !Object.hasOwn(declaration.fields || {}, fieldId) && !trustedExecutorFields.has(fieldId)
     );
     if (unknownFields.length) {
       throw createError({ statusCode: 400, message: 'Fields ' + unknownFields.join(', ') + ' are not declared for ' + typeId });
@@ -761,15 +769,15 @@ function instanceService(typeId) {
       return docs.map(doc => toDto(doc));
     },
 
-    async create(draft = {}, userId, organizationId) {
+    async create(draft = {}, userId, organizationId, options = {}) {
       const declaration = await requireDeclaration(typeId, organizationId || draft?.organizationId);
-      return await createValidated(draft, declaration, userId, organizationId);
+      return await createValidated(draft, declaration, userId, organizationId, options);
     },
 
     // Upload/capture protocol constructs: the payload reference is the
     // protocol's whole point — a missing one is a protocol violation,
     // not a silent blank instance.
-    async createWithPayloadProtocol(draft = {}, { userId, organizationId } = {}, protocol = 'upload') {
+    async createWithPayloadProtocol(draft = {}, { userId, organizationId } = {}, protocol = 'upload', options = {}) {
       const declaration = await requireDeclaration(typeId, organizationId || draft?.organizationId);
       if (!declaration.payload) {
         throw createError({ statusCode: 400, message: `Type ${typeId} declares no payload; creation protocol ${protocol} does not apply` });
@@ -782,7 +790,7 @@ function instanceService(typeId) {
       // stripped); an explicit draft name wins.
       const filename = typeof reference?.name === 'string' ? reference.name.replace(/\.[^.]+$/, '') : '';
       const named = draft.name == null && filename ? { ...draft, name: filename } : draft;
-      return await createValidated(named, declaration, userId, organizationId);
+      return await createValidated(named, declaration, userId, organizationId, options);
     },
 
     async processUpdate(id, patch = {}, context = null) {
