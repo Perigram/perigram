@@ -1,4 +1,5 @@
 import { connectDB } from '~/server/db/mongo';
+import { createHash } from 'node:crypto';
 import { findFileMetaByFilename, getFileBuffer, listFileMetasWhere, uploadFile, deleteFile } from '../files/service.js';
 
 // Catalog listings are platform-published (the central-catalog decision,
@@ -64,21 +65,23 @@ export async function materializePluginAssets(organizationId, pluginId, version)
       if (!path) continue;
       const filename = organizationAssetFilename(organizationId, pluginId, version, path);
       const existing = await findFileMetaByFilename(filename, ORG_PLUGIN_ASSETS_BUCKET);
-      const sourceHash = String(source.metadata?.contentHash || '');
-      if (existing && String(existing.metadata?.contentHash || '') === sourceHash) {
-        copied.push({ path, contentHash: sourceHash, bytes: existing.length });
+      // Hash the bytes actually copied, not publisher-supplied metadata. The
+      // installed manifest is later checked against the bytes on every read.
+      const buffer = await getFileBuffer(source.id, PLUGIN_ASSETS_BUCKET);
+      const contentHash = createHash('sha256').update(buffer).digest('hex');
+      if (existing && String(existing.metadata?.contentHash || '') === contentHash) {
+        copied.push({ path, contentHash, bytes: existing.length });
         continue;
       }
       if (existing) await deleteFile(existing.id, ORG_PLUGIN_ASSETS_BUCKET);
-      const buffer = await getFileBuffer(source.id, PLUGIN_ASSETS_BUCKET);
       await uploadFile(buffer, filename, {
         organizationId: String(organizationId),
         pluginId: String(pluginId),
         version: String(version),
         path,
-        sourceContentHash: sourceHash
+        contentHash
       }, ORG_PLUGIN_ASSETS_BUCKET, source.contentType || '');
-      copied.push({ path, contentHash: sourceHash, bytes: buffer.length });
+      copied.push({ path, contentHash, bytes: buffer.length });
     }
     return { count: copied.length, assets: copied };
   } catch (error) {
