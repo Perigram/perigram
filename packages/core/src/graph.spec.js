@@ -77,6 +77,24 @@ describe('canonical graph document', () => {
     expect(validateGraphDocument(graph).map(problem => problem.code)).toContain('unsupported-version');
   });
 
+  it('rejects an unknown graph document format', () => {
+    const graph = validGraph();
+    graph.format = 'other.graph';
+    expect(validateGraphDocument(graph).map(problem => problem.code)).toContain('unsupported-format');
+  });
+
+  it('requires each public interface port to have exactly one boundary node', () => {
+    const graph = validGraph();
+    graph.nodes = graph.nodes.filter(node => node.id !== 'input-1');
+    expect(validateGraphDocument(graph).map(problem => problem.code)).toContain('missing-input-boundary');
+  });
+
+  it('rejects non-JSON interface defaults', () => {
+    const graph = validGraph();
+    graph.interface.inputs[0].default = () => 1;
+    expect(validateGraphDocument(graph)[0].code).toBe('invalid-document');
+  });
+
   it('does not mutate authored input', () => {
     const graph = validGraph();
     const before = JSON.stringify(graph);
