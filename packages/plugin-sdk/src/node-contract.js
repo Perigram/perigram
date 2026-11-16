@@ -77,7 +77,7 @@ export function validateNodeDefinition(source) {
     }
   }
   if (['commit', 'effect'].includes(source.execution?.kind) && source.execution?.targets?.length
-    && !source.execution.targets.includes('server')) {
+    && (!source.execution.targets.includes('server') || source.execution.targets.includes('browser'))) {
     problems.push(issue('server-target-required', 'execution.targets', `${source.execution.kind} nodes require server execution support`));
   }
   if (source.execution?.runtime != null && source.execution?.targets == null) {
@@ -93,6 +93,12 @@ export function validateNodeDefinition(source) {
     if (typeof capability !== 'string' || !IDENTIFIER.test(capability)) {
       problems.push(issue('invalid-capability', `execution.capabilities[${index}]`, 'Capability must be a stable lowercase identifier'));
     }
+  }
+  if (source.execution?.kind === 'pure' && (source.execution.capabilities || []).length) {
+    problems.push(issue('pure-capabilities', 'execution.capabilities', 'Pure nodes cannot request host capabilities'));
+  }
+  if (['commit', 'effect'].includes(source.execution?.kind) && !(source.execution?.capabilities || []).length) {
+    problems.push(issue('missing-effect-capability', 'execution.capabilities', `${source.execution.kind} nodes require a host capability`));
   }
   if (source.preview != null && !isJsonValue(source.preview)) {
     problems.push(issue('invalid-preview', 'preview', 'Preview declarations must be JSON-compatible'));

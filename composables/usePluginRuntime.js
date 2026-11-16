@@ -99,7 +99,7 @@ export function usePluginRuntime({
     },
     async invoke(operationId, input, { execution = {}, capabilities = {}, signal } = {}) {
         if (disposed) throw new Error('Plugin runtime has been disposed');
-        if (!execution.targets?.includes('browser')) {
+        if (!execution.targets?.includes('browser') || ['commit', 'effect'].includes(execution.kind)) {
           throw new Error(`Operation ${operationId} does not support browser execution`);
         }
         if (signal?.aborted) throw new Error('Plugin operation was cancelled');

@@ -213,7 +213,8 @@ export function parseListing(listing = {}) {
         }
         seenCapabilities.add(capability);
       }
-      if (['commit', 'effect'].includes(execution.kind) && !execution.targets.includes('server')) {
+      if (['commit', 'effect'].includes(execution.kind)
+        && (!execution.targets.includes('server') || execution.targets.includes('browser'))) {
         throw listingError(`service ${service.id} ${execution.kind} execution requires server support`);
       }
       if (['commit', 'effect'].includes(execution.kind) && !seenCapabilities.size) {

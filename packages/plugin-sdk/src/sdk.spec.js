@@ -150,7 +150,7 @@ describe('parseListing', () => {
     invalid({ runtimes: [runtime], services: [{ ...service, mode: 'endpoint' }] }).toThrow(/cannot combine execution metadata/);
     invalid({ runtimes: [runtime], services: [{ ...service, execution: { ...service.execution, kind: 'pure', capabilities: ['files.read'] } }] }).toThrow(/pure execution cannot request/);
     invalid({ runtimes: [runtime], services: [{ ...service, execution: { ...service.execution, capabilities: ['bad'] } }] }).toThrow(/qualified capability id/);
-    invalid({ runtimes: [{ ...runtime, targets: ['browser'] }], services: [{ ...service, execution: { runtime: 'javascript', targets: ['browser'], kind: 'effect', capabilities: ['organization.instances.update'] } }] }).toThrow(/requires server support/);
+    invalid({ runtimes: [{ ...runtime, targets: ['browser', 'server'] }], services: [{ ...service, execution: { runtime: 'javascript', targets: ['browser', 'server'], kind: 'effect', capabilities: ['organization.instances.update'] } }] }).toThrow(/requires server support/);
     invalid({ runtimes: [runtime], services: [{ ...service, execution: { runtime: 'javascript', targets: ['server'], kind: 'effect', capabilities: [] } }] }).toThrow(/requires a host capability/);
   });
 
