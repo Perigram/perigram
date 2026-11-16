@@ -367,14 +367,23 @@ rubber-band (`useProcessDesignerCanvasModel.spec.js` drives the full
 lifecycle — declaration authoring, wiring, renames, deletions — against this
 invariant).
 
-- `useProcessDesignerGraphSession` is the canvas authoring core every graph
-  document mounts (SPEC §28): nodes/edges/records, the record sync and
-  `enrichNodeData` passes, wire legality and decoration, placement, the
-  palettes, declaration diagnostics, and the inspector seams, with the host
-  injecting `draft` (the document ref), `roles`, `activeOrganizationId`,
-  `persistence` (`previewDraft`), `graphEvaluation`, and a placement seed.
-  The process page mounts it over a process definition with lane seeding;
-  the graph editor surface mounts it over a `graph-document` payload.
+- `useProcessDesignerGraphSession` is the process-definition canvas
+  authoring core: nodes/edges/records, record sync and `enrichNodeData`,
+  process wire legality and decoration, placement, declaration diagnostics,
+  and inspector seams. The process page composes it with the process
+  definition lifecycle, lanes, roles, screens, and Apply ceremony. It is
+  deliberately not the canonical graph-document session.
+
+- `useGraphDocumentSession` is the canonical `perigram.graph` editor
+  session (SPEC §28): it owns document load/normalize/serialize, stable
+  graph/node/edge identity, provider-registry palette projection,
+  provider-derived socket definitions, Graph Input/Output boundaries,
+  pinned Use Graph invocation sockets, canvas selection/placement,
+  structural validation, and preview evaluation through the core
+  procedural evaluator plus the process provider adapter. It reuses the
+  shared `useProcessDesignerCanvas` and selection primitives without
+  translating the document into process-definition records. Persistence
+  and the record header remain in `GraphEditorSurface.vue`.
 
 - `useGraphChannelPreview` is the whole-graph preview evaluation the
   channel tabs ride (SPEC §28): `run()` evaluates the serialized graph
