@@ -18,10 +18,9 @@ export const MAX_COLLECTION_ITEMS = 10000;
 // { op: 'count', list: e, var?: 'x', body?: e }
 // { op: 'sum'|'min'|'max', list: e, var: 'x', body: e }
 // { op: 'related', of: e, key: relationId } | { op: 'children'|'descendants', of: e }
-// { op: 'filter', list: e, var: 'x', body: e }
 // { op: 'match', expr: e, arms: { tag: e }, subjectType } -- exhaustive (R-match)
 export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
-  spend(budget, ast);
+  budget.steps = Number.isFinite(budget.steps) ? budget.steps : MAX_STEPS;\n  spend(budget, ast);
   switch (ast?.op) {
     case 'lit': return ast.value;
     case 'var': {
@@ -102,7 +101,7 @@ export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
     }
     case 'count': case 'sum': case 'min': case 'max': {
       const list = evaluate(ast.list, scope, budget);
-      if (!Array.isArray(list)) throw new Error(`${ast.op} requires a list`);
+      finiteList(list, ast.op);
       if (ast.op === 'count' && ast.body == null) return list.length;
       const variable = String(ast.var || '');
       if (!variable) throw new Error(`${ast.op} requires a bound variable`);
