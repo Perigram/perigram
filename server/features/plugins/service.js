@@ -10,6 +10,7 @@
 import { createError } from 'h3';
 import { createHash, randomBytes } from 'node:crypto';
 import * as repository from './repository.js';
+import { runOrganizationChange } from '../instances/index.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { instanceServiceResolver, invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';

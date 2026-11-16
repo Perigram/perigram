@@ -65,6 +65,10 @@ describe('procedural graph preview evaluator', () => {
         { id: 'in', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'number' } },
         { id: 'lookup', operation: { provider: 'plugin.data', id: 'lookup', version: '1' }, config: {} },
         { id: 'out', operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' }, config: { interfaceId: 'result' } }
+      ],
+      edges: [
+        { id: 'lookup-in', source: { node: 'in', port: 'value' }, target: { node: 'lookup', port: 'value' } },
+        { id: 'lookup-out', source: { node: 'lookup', port: 'result' }, target: { node: 'out', port: 'value' } }
       ]
     });
     const result = await evaluateProceduralGraph({

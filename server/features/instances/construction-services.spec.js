@@ -93,7 +93,7 @@ constructionsForOrganization.mockImplementation(async organizationId => (
 ));
 
 function stubCollection() {
-  const coll = { insertOne: vi.fn(), findOne: vi.fn(), findOneAndUpdate: vi.fn(), find: vi.fn(), deleteOne: vi.fn() };
+  const coll = { createIndex: vi.fn(async () => 'organizationId_1'), insertOne: vi.fn(), findOne: vi.fn(), findOneAndUpdate: vi.fn(), find: vi.fn(), deleteOne: vi.fn() };
   coll.find.mockReturnValue({ sort: () => ({ limit: () => ({ toArray: async () => [] }) }) });
   db.collection.mockReturnValue(coll);
   return coll;
