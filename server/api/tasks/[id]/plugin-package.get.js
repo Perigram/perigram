@@ -29,6 +29,9 @@ export default defineEventHandler(async event => {
   if (!install || String(install.version) !== version) {
     throw createError({ statusCode: 409, message: 'The installed plugin version changed before execution' });
   }
+  if (String(run.taskId) !== `plugin.${pluginId}.${operationId}`) {
+    throw createError({ statusCode: 403, message: 'Managed runtime task identity does not match its package input' });
+  }
   const service = (install.services || []).find(item => item.id === operationId);
   const runtime = (install.declarations?.runtimes || []).find(item => item.id === runtimeId);
   if (!service?.execution || service.execution.runtime !== runtimeId

@@ -27,7 +27,9 @@ export default defineEventHandler(async event => {
   const service = (install.services || []).find(item => item.id === String(taskInput.operationId || ''));
   const name = String(body.name || '');
   const declared = new Set(service?.execution?.capabilities || []);
-  if (!service?.execution || !declared.has(name) || !PLUGIN_RUNTIME_CAPABILITIES.includes(name)) {
+  if (!service?.execution || service.execution.runtime !== taskInput.runtimeId
+    || !service.execution.targets?.includes('server')
+    || !declared.has(name) || !PLUGIN_RUNTIME_CAPABILITIES.includes(name)) {
     throw createError({ statusCode: 403, message: `Capability ${name || '(empty)'} is not granted to this operation` });
   }
 
@@ -39,13 +41,30 @@ export default defineEventHandler(async event => {
     const typeId = String(input.typeId || '');
     const instanceId = String(input.instanceId || '');
     if (!typeId || !instanceId) throw createError({ statusCode: 400, message: 'Instance reads require typeId and instanceId' });
-    const serviceForType = getAppRegistry().getInstanceService(typeId);
-    if (typeof serviceForType?.processGetById !== 'function') {
-      throw createError({ statusCode: 404, message: 'Instance read service is unavailable' });
-    }
-    const instance = await serviceForType.processGetById(instanceId, run.auth || {});
-    if (!instance) throw createError({ statusCode: 404, message: 'Instance not found' });
-    return instance;
+    return await graphExecutionsService.queryOrganizationData({ typeId, instanceId, projection: input.projection }, run.auth || {});
+  }
+  if (name === 'organization.instances.create') {
+    const typeId = String(input.typeId || '');
+    if (!typeId || !input.draft || typeof input.draft !== 'object') throw createError({ statusCode: 400, message: 'Instance creation requires typeId and draft' });
+    const instanceService = getAppRegistry().getInstanceService(typeId);
+    if (typeof instanceService?.createForHttp !== 'function') throw createError({ statusCode: 404, message: 'Instance create service is unavailable' });
+    return await instanceService.createForHttp(input.draft, { auth: run.auth || {}, organizationId });
+  }
+  if (name === 'organization.instances.update') {
+    const typeId = String(input.typeId || '');
+    const instanceId = String(input.instanceId || '');
+    if (!typeId || !instanceId || !input.patch || typeof input.patch !== 'object') throw createError({ statusCode: 400, message: 'Instance update requires typeId, instanceId, and patch' });
+    const instanceService = getAppRegistry().getInstanceService(typeId);
+    if (typeof instanceService?.patch !== 'function') throw createError({ statusCode: 404, message: 'Instance update service is unavailable' });
+    return await instanceService.patch(instanceId, input.patch, { auth: run.auth || {}, organizationId });
+  }
+  if (name === 'organization.instances.delete') {
+    const typeId = String(input.typeId || '');
+    const instanceId = String(input.instanceId || '');
+    if (!typeId || !instanceId) throw createError({ statusCode: 400, message: 'Instance deletion requires typeId and instanceId' });
+    const instanceService = getAppRegistry().getInstanceService(typeId);
+    if (typeof instanceService?.removeForHttp !== 'function') throw createError({ statusCode: 404, message: 'Instance delete service is unavailable' });
+    return await instanceService.removeForHttp(instanceId, { auth: run.auth || {}, organizationId });
   }
   if (name === 'files.read') {
     const fileId = String(input.fileId || '');

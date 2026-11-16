@@ -5,5 +5,8 @@ export const PLUGIN_RUNTIME_MAX_MEMORY_MB = 128;
 export const PLUGIN_RUNTIME_CAPABILITIES = Object.freeze([
   'organization.instances.query',
   'organization.instances.read',
+  'organization.instances.create',
+  'organization.instances.update',
+  'organization.instances.delete',
   'files.read'
 ]);

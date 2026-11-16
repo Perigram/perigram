@@ -851,7 +851,7 @@ export async function executeConnectorService(command, { parameters, auth = {}, 
         operationId: service.id,
         input: parameters ?? null
       } }
-    }, auth, {
+    }, { ...auth, organizationId: String(organizationId) }, {
       definition: taskContractFor(command.id, install, String(organizationId)),
       workerType: PLUGIN_RUNTIME_WORKER_TYPE
     });
@@ -958,8 +958,6 @@ export async function taskDefinitionFor(taskId, organizationId) {
   if (!organizationId) return null;
   const install = await installForCommand(taskId, organizationId);
   if (!install) return null;
-  const serviceId = String(taskId).match(PLUGIN_COMMAND_PATTERN)?.[2];
-  const service = (install.services || []).find(item => item.id === serviceId);
   return taskContractFor(taskId, install, String(organizationId));
 }
 
