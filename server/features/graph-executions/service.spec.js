@@ -225,7 +225,11 @@ describe('graph execution service', () => {
     expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
       fields: expect.objectContaining({ profile: 'procedural-commit', status: 'succeeded' })
     }), 'user-1', 'org-1', { session });
-    expect(session.withTransaction).toHaveBeenCalledTimes(1);
+    expect(session.withTransaction).toHaveBeenCalledWith(expect.any(Function), {
+      readConcern: { level: 'snapshot' },
+      writeConcern: { w: 'majority' },
+      readPreference: 'primary'
+    });
     expect(session.endSession).toHaveBeenCalledTimes(1);
   });
 
@@ -240,7 +244,7 @@ describe('graph execution service', () => {
     expect(executionService.create).not.toHaveBeenCalled();
   });
 
-  it('aborts the Commit transaction when execution evidence persistence fails', async () => {
+  it('fails the Commit transaction when execution evidence persistence fails', async () => {
     executionService.create.mockRejectedValue(new Error('evidence store unavailable'));
     await expect(graphExecutionsService.commitOutput({
       graphDocumentInstanceId: 'graph-instance-1',
