@@ -69,6 +69,7 @@ export async function writeStatusEventAndEntitySnapshot({
   targetId,
   eventRecord,
   entitySet,
+  entityFilter = {},
   preferTransaction = false
 }) {
   if (preferTransaction) {
@@ -82,7 +83,7 @@ export async function writeStatusEventAndEntitySnapshot({
         const result = await updateEntityStatus(
           db,
           collection,
-          { _id: targetId },
+          { _id: targetId, ...entityFilter },
           { $set: entitySet },
           { session }
         );
@@ -100,7 +101,7 @@ export async function writeStatusEventAndEntitySnapshot({
   const result = await updateEntityStatus(
     db,
     collection,
-    { _id: targetId },
+    { _id: targetId, ...entityFilter },
     { $set: entitySet }
   );
   if (result.matchedCount !== 1) {
