@@ -30,6 +30,14 @@ describe('provider-neutral node contract', () => {
     expect(Object.isFrozen(normalized.inputs[0].semantic)).toBe(true);
   });
 
+  it('accepts existing stable camel-case operation and port ids', () => {
+    const candidate = definition({
+      id: 'source.literalItem',
+      outputs: [{ id: 'itemValue', semantic: { base: 'json' } }]
+    });
+    expect(validateNodeDefinition(candidate)).toEqual([]);
+  });
+
   it('validates semantic descriptors and transport shapes independently', () => {
     const candidate = definition({
       inputs: [{ id: 'items', shape: 'tree', semantic: { base: 'geometry', provider: 'plugin.cad' } }]
