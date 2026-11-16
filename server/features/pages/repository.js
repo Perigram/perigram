@@ -49,31 +49,57 @@ export async function migrateLegacy(organizationId) {
     .find({ organizationId: orgFilter(organizationId) })
     .toArray();
   if (!legacy.length) return;
-  await db.collection(COLLECTION).bulkWrite(legacy.map(row => ({
-    updateOne: {
-      filter: { _id: row._id },
-      update: {
-        $setOnInsert: {
-          type: TYPE,
-          typeVersion: 1,
-          organizationId: toFlexibleId(organizationId),
-          name: row.name || '',
-          fields: {
-            name: row.name || '',
-            content: row.content || '',
-            section: row.kind === 'section'
-          },
-          state: null,
-          lineage: row.parentId ? { pageId: String(row.parentId) } : {},
-          ...(row.createdBy ? { createdBy: row.createdBy } : {}),
-          createdAt: row.createdAt || new Date(),
-          updatedAt: row.updatedAt || new Date()
-        }
-      },
-      upsert: true
+
+  const migratedIds = [];
+  for (const row of legacy) {
+    // IDs are shared across the canonical items collection. Never let a
+    // legacy row from one tenant overwrite, shadow, or cause deletion of an
+    // item already owned by another tenant (or another item type).
+    const existing = await db.collection(COLLECTION).findOne({ _id: row._id });
+    if (existing) {
+      const alreadyMigrated = existing.type === TYPE
+        && String(existing.organizationId) === String(organizationId);
+      if (alreadyMigrated) migratedIds.push(row._id);
+      continue;
     }
-  })), { ordered: false });
-  await db.collection(LEGACY_COLLECTION).deleteMany({ organizationId: orgFilter(organizationId) });
+
+    const doc = {
+      _id: row._id,
+      type: TYPE,
+      typeVersion: 1,
+      organizationId: toFlexibleId(organizationId),
+      name: row.name || '',
+      fields: {
+        name: row.name || '',
+        content: row.content || '',
+        section: row.kind === 'section'
+      },
+      state: null,
+      lineage: row.parentId ? { pageId: String(row.parentId) } : {},
+      ...(row.createdBy ? { createdBy: row.createdBy } : {}),
+      createdAt: row.createdAt || new Date(),
+      updatedAt: row.updatedAt || new Date()
+    };
+    try {
+      await db.collection(COLLECTION).insertOne(doc);
+      migratedIds.push(row._id);
+    } catch (error) {
+      // A concurrent migration may have inserted this ID after our lookup.
+      // Preserve the source row unless the winner is the same tenant's page.
+      if (error?.code !== 11000) throw error;
+      const winner = await db.collection(COLLECTION).findOne({ _id: row._id });
+      if (winner?.type === TYPE && String(winner.organizationId) === String(organizationId)) {
+        migratedIds.push(row._id);
+      }
+    }
+  }
+
+  if (migratedIds.length) {
+    await db.collection(LEGACY_COLLECTION).deleteMany({
+      _id: { $in: migratedIds },
+      organizationId: orgFilter(organizationId)
+    });
+  }
 }
 
 export async function migrateDocuments(organizationId) {
