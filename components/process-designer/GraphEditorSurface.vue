@@ -295,8 +295,13 @@ const canvasStatus = computed(() => {
       : channelPreview.payload.value
         ? 'ready'
         : 'idle';
-  const suffix = state[0].toUpperCase() + state.slice(1);
-  return { state, label: t('processDesigner.canvasStatus' + suffix), count: evaluatedNodes.length };
+  const labels = {
+    idle: t('processDesigner.canvasStatusIdle'),
+    running: t('processDesigner.canvasStatusRunning'),
+    ready: t('processDesigner.canvasStatusReady'),
+    error: t('processDesigner.canvasStatusError')
+  };
+  return { state, label: labels[state], count: evaluatedNodes.length };
 });
 function openActivitySurface() {
   canvasFrame?.openPanel?.('inspector');
