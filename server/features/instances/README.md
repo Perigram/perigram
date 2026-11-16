@@ -289,7 +289,8 @@ HTTP create, patch, and delete use the corresponding `create`, `update`, and `de
 Instance-scoped CTS constraints are evaluated asynchronously against
 organization-scoped relation, child, and descendant resolvers before generic
 create, constrained updates, re-derive, and flat-instance lifecycle transitions.
-Resolver failures fail closed. Constrained updates compare the source
-`updatedAt` at write time. The `validateCandidate` service seam also serves
-flat CTS lifecycle transitions; their status event and entity snapshot commit
-together against the loaded `updatedAt` value.
+Resolver failures fail closed. Constrained updates and re-derive
+compare the source `updatedAt` at write time and reserve the organization
+change sequence around the mutation. The `validateCandidate` service seam
+also serves flat CTS lifecycle transitions; their status event and entity
+snapshot commit together against the loaded `updatedAt` value.

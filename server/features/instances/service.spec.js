@@ -128,6 +128,7 @@ vi.mock('../cts-types/repository.js', () => ({
 import { instanceServiceResolver, invalidateInstanceDeclarations } from './service.js';
 import * as revisionService from '../instance-revisions/service.js';
 import * as pluginsService from '../plugins/service.js';
+import { runOrganizationChange } from './organization-sequence.js';
 import * as repository from './repository.js';
 import { findByTypeId } from '../cts-types/repository.js';
 import { resolveActiveWorkflow } from '../workflow-overrides/service.js';
@@ -954,6 +955,7 @@ describe('version fabric (SPEC §24)', () => {
       _id: new ObjectId('0123456789abcdef01234567'),
       type: 'pdf-document',
       organizationId: 'org-1',
+      updatedAt: '2026-11-16T10:00:00.000Z',
       name: 'Filled report',
       fields: { name: 'Filled report' },
       provenance: { op: 'cts.construct:fill:fill', sources: [], effective: { via: 'fill', parameters: { values: { title: 'Old' } } } }
@@ -976,6 +978,18 @@ describe('version fabric (SPEC §24)', () => {
     expect(parameters.mode).toBe('fill');
     expect(parameters.draft.data.values).toEqual({ title: 'Old' });
     const patch = coll.findOneAndUpdate.mock.calls[0][1].$set;
+    expect(coll.findOneAndUpdate.mock.calls[0][0]).toMatchObject({
+      updatedAt: '2026-11-16T10:00:00.000Z'
+    });
+    expect(runOrganizationChange).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({
+        kind: 'instance-rederived',
+        typeId: 'pdf-document',
+        instanceId: '0123456789abcdef01234567'
+      }),
+      expect.any(Function)
+    );
     expect(patch.fields.pages).toBe(2);
     expect(patch.provenance.op).toBe('cts.construct:fill:fill');
     expect(patch.payload.fileId).toBe('stored-Filled report.pdf');
@@ -983,6 +997,39 @@ describe('version fabric (SPEC §24)', () => {
       expect.objectContaining({ reason: 'rederived', scope: 'content' })
     );
     expect(dto.type).toBe('pdf-document');
+    constructions.mockRestore();
+    execute.mockRestore();
+  });
+
+  it('rejects a re-derive when its source instance revision changed during execution', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockResolvedValue({
+      _id: new ObjectId('0123456789abcdef01234567'),
+      type: 'pdf-document',
+      organizationId: 'org-1',
+      updatedAt: '2026-11-16T10:00:00.000Z',
+      name: 'Filled report',
+      fields: { name: 'Filled report' },
+      provenance: { op: 'cts.construct:fill:fill', sources: [], effective: { via: 'fill', parameters: { values: { title: 'Old' } } } }
+    });
+    coll.findOneAndUpdate.mockResolvedValue(null);
+    const constructions = vi.spyOn(pluginsService, 'constructionsForOrganization')
+      .mockResolvedValue({ 'pdf-document': { fill: 'plugin.documents.fill' } });
+    const execute = vi.spyOn(pluginsService, 'executeConnectorService')
+      .mockResolvedValue({ data: { pages: 2 } });
+    const service = instanceServiceResolver('pdf-document');
+
+    await expect(service.rederive('0123456789abcdef01234567', 'fill', {
+      userId: 'user-1',
+      organizationId: 'org-1'
+    })).rejects.toMatchObject({ statusCode: 409 });
+
+    expect(runOrganizationChange).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({ kind: 'instance-rederived' }),
+      expect.any(Function)
+    );
+    expect(revisionService.ensureForEntitySnapshot).not.toHaveBeenCalled();
     constructions.mockRestore();
     execute.mockRestore();
   });

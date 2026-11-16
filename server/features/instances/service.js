@@ -1035,18 +1035,33 @@ function instanceService(typeId) {
       }, organizationId);
       const nextProvenance = { ...(merged.provenance || current.provenance || {}) };
       if (provenance?.op) nextProvenance.op = provenance.op;
-      const updated = await repository.updateInstanceFields(collection, id, {
-        fields: merged.fields || current.fields,
-        ...(merged.payload ? { payload: merged.payload } : {}),
-        provenance: nextProvenance,
-        updatedAt: new Date().toISOString()
+      let revisionError = null;
+      const updated = await runOrganizationChange(organizationId, {
+        kind: 'instance-rederived',
+        typeId,
+        instanceId: String(id),
+        paths: ['fields', ...(merged.payload ? ['payload'] : []), 'provenance'],
+        actorId: userId || null
+      }, async () => {
+        const changed = await repository.updateInstanceFields(collection, id, {
+          fields: merged.fields || current.fields,
+          ...(merged.payload ? { payload: merged.payload } : {}),
+          provenance: nextProvenance,
+          updatedAt: new Date().toISOString()
+        }, { expectedUpdatedAt: doc.updatedAt });
+        if (!changed) {
+          throw createError({ statusCode: 409, message: `${typeId} ${id} changed before its re-derive was saved` });
+        }
+        if (merged.payload) {
+          try {
+            await recordPayloadRevision(typeId, current, declaration, merged.payload, userId, 'rederived', { auth });
+          } catch (error) {
+            revisionError = error;
+          }
+        }
+        return changed;
       });
-      if (!updated) {
-        throw createError({ statusCode: 409, message: `${typeId} ${id} changed before its re-derive was saved` });
-      }
-      if (merged.payload) {
-        await recordPayloadRevision(typeId, current, declaration, merged.payload, userId, 'rederived', { auth });
-      }
+      if (revisionError) throw revisionError;
       return toDto(updated);
     },
 
