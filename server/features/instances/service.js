@@ -413,6 +413,8 @@ function constraintValue(instance = {}) {
 
 async function constraintResolversFor(organizationId) {
   const declarations = await overlayDeclarationsFor(organizationId);
+  const domainChecks = new Set();
+  const domainBudget = { steps: MAX_STEPS };
   const view = new Map(declarations.map(declaration => [declaration.id, declaration]));
 
   async function loadTarget(typeId, id) {
@@ -465,8 +467,20 @@ async function constraintResolversFor(organizationId) {
       const target = await loadTarget(targetType, String(id));
       if (!target) throw new Error(`relation ${key} target ${String(id)} is missing or outside the organization`);
       const where = edge?.where ?? field?.where ?? field?.itemType?.where;
-      if (where != null && await evaluateAsync(where, { value: target }) !== true) {
-        throw new Error(`relation ${key} target ${String(id)} is outside its declared domain`);
+      if (where != null) {
+        const ownerId = String(owner?._id ?? owner?.id ?? '');
+        const domainKey = `${owner?.type || ''}:${ownerId}.${key}->${targetType}:${String(id)}`;
+        if (domainChecks.has(domainKey)) {
+          throw new Error(`relation ${key} target-domain evaluation is recursive`);
+        }
+        domainChecks.add(domainKey);
+        try {
+          if (await evaluateAsync(where, { value: target }, domainBudget) !== true) {
+            throw new Error(`relation ${key} target ${String(id)} is outside its declared domain`);
+          }
+        } finally {
+          domainChecks.delete(domainKey);
+        }
       }
       resolved.push(target);
       if (resolved.length > MAX_COLLECTION_ITEMS) throw new Error('relation collection item limit exceeded');
@@ -520,6 +534,7 @@ async function constraintResolversFor(organizationId) {
     return all;
   }
 
+  Object.assign(domainBudget, { resolveRelation, resolveChildren, resolveDescendants });
   return { resolveRelation, resolveChildren, resolveDescendants };
 }
 
