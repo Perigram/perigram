@@ -10,6 +10,13 @@ describe('plugin surface origins and supported contracts', () => {
     expect(isSupportedSurfaceContract(5)).toBe(false);
   });
 
+  it('serves organization-owned package modules through the same-origin proxy', () => {
+    expect(pluginModuleUrl({ pluginId: 'demo', packageAssets: { count: 2 } }, '/runtime.mjs'))
+      .toBe('/api/plugins/demo/module/runtime.mjs');
+    expect(pluginModuleUrl({ pluginId: 'demo', declarations: { runtimes: [{ id: 'js' }] } }, '/runtime.mjs'))
+      .toBe('/api/plugins/demo/module/runtime.mjs');
+  });
+
   it('derives the module origin from service endpoints first, then the surface origin', () => {
     expect(endpointOriginOf({ endpoints: { match: 'http://a:1/x' } })).toBe('http://a:1');
     expect(endpointOriginOf({ endpoints: {}, surfaceOrigin: 'http://b:2' })).toBe('http://b:2');

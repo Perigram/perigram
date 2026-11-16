@@ -198,7 +198,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
   }
 
   const configuredEndpoints = configuredEndpointsFor(services, endpoints);
-  const configuredSurfaceOrigin = configuredSurfaceOriginFor(surfaces, surfaceOrigin);
+  let configuredSurfaceOrigin = null;
   let packageAssets = null;
   try {
     await runOrganizationChange(organizationId, {
@@ -209,8 +209,11 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
       actorId: null
     }, async () => {
       packageAssets = await repository.materializePluginAssets(organizationId, listing.pluginId, listing.version || '1');
+      configuredSurfaceOrigin = Number(packageAssets?.count) > 0
+        ? null
+        : configuredSurfaceOriginFor(surfaces, surfaceOrigin);
       for (const runtime of runtimes) {
-        const asset = await repository.findOrganizationPluginAssetMeta(organizationId, listing.pluginId, listing.version || '1', runtime.entry.replace(/^\\//, ''));
+        const asset = await repository.findOrganizationPluginAssetMeta(organizationId, listing.pluginId, listing.version || '1', runtime.entry.slice(1));
         if (!asset) throw createError({ statusCode: 400, message: `Runtime ${runtime.id} entry ${runtime.entry} is missing from the published package assets` });
       }
       await repository.createInstall({
@@ -594,9 +597,17 @@ export async function updateSettings({ organizationId, pluginId, endpoints = {},
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
   const configured = configuredEndpointsFor(install.services, endpoints);
-  const configuredSurfaceOrigin = surfaceOrigin === undefined
+  const packageOwned = Number(install.packageAssets?.count) > 0;
+  const hasEndpointServices = (install.services || []).some(service => serviceModeOf(service) === 'endpoint');
+  if (authToken && !hasEndpointServices) {
+    throw createError({ statusCode: 400, message: 'An API key applies only to external endpoint services' });
+  }
+  if (packageOwned && surfaceOrigin) {
+    throw createError({ statusCode: 400, message: 'Organization-owned package surfaces use the installed package assets' });
+  }
+  const configuredSurfaceOrigin = packageOwned ? null : (surfaceOrigin === undefined
     ? (install.surfaceOrigin || null)
-    : configuredSurfaceOriginFor(install.declarations?.surfaces || [], surfaceOrigin);
+    : configuredSurfaceOriginFor(install.declarations?.surfaces || [], surfaceOrigin));
   await repository.updateSettings(organizationId, pluginId, {
     endpoints: configured,
     authToken: authToken ? String(authToken) : null,
@@ -923,6 +934,9 @@ export async function taskDefinitionFor(taskId, organizationId) {
   if (!organizationId) return null;
   const install = await installForCommand(taskId, organizationId);
   if (!install) return null;
+  const serviceId = String(taskId).match(PLUGIN_COMMAND_PATTERN)?.[2];
+  const service = (install.services || []).find(item => item.id === serviceId);
+  if (service?.execution) return null;
   return taskContractFor(taskId, install, String(organizationId));
 }
 

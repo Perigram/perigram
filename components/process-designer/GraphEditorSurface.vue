@@ -301,7 +301,9 @@ async function loadGraphProviders() {
       for (const contribution of engine.nodeProviders) registerNodeProvider(contribution, binding.pluginId);
     }));
     const runtimeResults = await Promise.allSettled(clientRuntimeBindings.value.map(async binding => {
-      const contributions = await pluginRuntime.loadProviders(binding, binding.runtime);
+      const contributions = await pluginRuntime.loadProviders(binding, binding.runtime, {
+        capabilities: { 'organization.instances.query': queryOrganizationData }
+      });
       for (const contribution of contributions) registerNodeProvider(contribution, binding.pluginId);
     }));
     const failures = [...results, ...runtimeResults].filter(result => result.status === 'rejected');

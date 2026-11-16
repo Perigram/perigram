@@ -171,6 +171,32 @@ describe('plugin installs', () => {
     expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({ packageAssets }));
   });
 
+
+  it('snapshots managed runtimes as organization-owned package declarations', async () => {
+    const runtimeListing = {
+      ...coatingListing,
+      declarations: {
+        ...coatingListing.declarations,
+        runtimes: [{ id: 'javascript', language: 'javascript', version: '1', entry: '/runtime.mjs', targets: ['browser', 'server'] }],
+        services: [{
+          id: 'transform',
+          signature: { input: { base: 'json' }, output: { base: 'json' } },
+          execution: { runtime: 'javascript', targets: ['browser', 'server'], kind: 'pure', deterministic: true }
+        }]
+      }
+    };
+    repository.findCatalogByPluginId.mockResolvedValue(runtimeListing);
+    repository.materializePluginAssets.mockResolvedValue({ count: 1, assets: [] });
+    repository.findOrganizationPluginAssetMeta.mockResolvedValue({ id: 'runtime-asset' });
+    await installFromCatalog({ organizationId: ORG, pluginId: 'coatings' });
+    expect(repository.findOrganizationPluginAssetMeta).toHaveBeenCalledWith(ORG, 'coatings', '2', 'runtime.mjs');
+    expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
+      declarations: expect.objectContaining({ runtimes: runtimeListing.declarations.runtimes }),
+      services: runtimeListing.declarations.services,
+      connectorToken: null
+    }));
+  });
+
   it('installs a pinned declaration snapshot', async () => {
     repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
     const result = await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });

@@ -221,7 +221,10 @@ export async function describeOrganizationTypes(organizationId) {
           organizationId: String(organizationId),
           pluginId: install.pluginId,
           version: String(install.version || ''),
-          runtime: Object.freeze({ ...runtime, entryUrl })
+          runtime: Object.freeze({ ...runtime, entryUrl }),
+          services: Object.freeze((install.services || [])
+            .filter(service => service.execution?.runtime === runtime.id && service.execution.targets?.includes('browser'))
+            .map(service => Object.freeze({ id: service.id, execution: service.execution })))
         }));
       }
       for (const editor of install.declarations?.editors || []) {

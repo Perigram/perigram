@@ -145,6 +145,32 @@ describe('cts type storage', () => {
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
   });
 
+  it('serves browser JavaScript runtimes with org-scoped package entry URLs', async () => {
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
+      organizationId: ORG,
+      pluginId: 'coatings',
+      version: '4',
+      packageAssets: { count: 1 },
+      declarations: {
+        types: [],
+        runtimes: [{ id: 'javascript', language: 'javascript', version: '1', entry: '/runtime.mjs', targets: ['browser', 'server'] }]
+      },
+      services: [{ id: 'shape', execution: { runtime: 'javascript', targets: ['browser'], kind: 'pure' } }]
+    }]);
+    const view = await describeOrganizationTypes(ORG);
+    expect(view.clientRuntimes).toEqual([{
+      organizationId: ORG,
+      pluginId: 'coatings',
+      version: '4',
+      runtime: {
+        id: 'javascript', language: 'javascript', version: '1', entry: '/runtime.mjs',
+        targets: ['browser', 'server'], entryUrl: '/api/plugins/coatings/module/runtime.mjs'
+      },
+      services: [{ id: 'shape', execution: { runtime: 'javascript', targets: ['browser'], kind: 'pure' } }]
+    }]);
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
+  });
+
   it('refuses an installed editor binding the composed view cannot serve', async () => {
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
       organizationId: ORG,
