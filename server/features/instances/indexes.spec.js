@@ -116,7 +116,13 @@ describe('derived instance indexes (SPEC §13)', () => {
       { name: 'cts_u_o_abcdef123456_stale' },
       { name: 'cts_u_g_stale' }
     ] }));
-    (await connectDB).mockResolvedValue({ collection: () => ({ listIndexes, dropIndex }) });
+    const emptyCollection = {
+      listIndexes: () => ({ toArray: async () => [] }),
+      dropIndex: vi.fn()
+    };
+    (await connectDB).mockResolvedValue({
+      collection: name => name === 'items' ? { listIndexes, dropIndex } : emptyCollection
+    });
     const dropped = await pruneInstanceUniqueIndexes(view, { organizationId: 'org-1' });
     expect(dropped).toHaveLength(2);
     expect(dropIndex).toHaveBeenCalledWith('cts_u_o_abcdef123456_stale');

@@ -141,6 +141,7 @@ beforeEach(() => {
   repository.findInstall.mockResolvedValue(null);
   repository.listInstallsByOrganization.mockResolvedValue([]);
   repository.findCatalogByPluginId.mockResolvedValue(null);
+  repository.materializePluginAssets.mockResolvedValue({ count: 0, assets: [] });
   typeStore.findByTypeId.mockResolvedValue(null);
   typeStore.listByOrganization.mockResolvedValue([]);
 });
