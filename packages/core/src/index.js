@@ -10,3 +10,13 @@ export * from './workflows.js';
 export * from './registry.js';
 export * from './entities.js';
 export * from './results.js';
+export {
+  GRAPH_DOCUMENT_FORMAT,
+  GRAPH_DOCUMENT_VERSION,
+  GRAPH_INPUT_OPERATION,
+  GRAPH_OUTPUT_OPERATION,
+  GRAPH_INVOKE_OPERATION,
+  normalizeGraphDocument,
+  validateGraphDocument,
+  assertValidGraphDocument
+} from './graph.js';
