@@ -29,14 +29,14 @@ function throwUniqueConflict(error) {
   throw conflict;
 }
 
-export async function insertInstance(collection, doc) {
+export async function insertInstance(collection, doc, { session = null } = {}) {
   const db = await connectDB();
   const stored = {
     ...doc,
     revision: 1
   };
   try {
-    await db.collection(collection).insertOne(stored);
+    await db.collection(collection).insertOne(stored, session ? { session } : {});
   } catch (error) {
     throwUniqueConflict(error);
   }
@@ -91,7 +91,7 @@ export async function updateInstanceFields(collection, id, set, options = {}) {
         $set: { ...set, updatedAt: new Date().toISOString() },
         $inc: { revision: 1 }
       },
-      { returnDocument: 'after' }
+      { returnDocument: 'after', ...(options.session ? { session: options.session } : {}) }
     );
   } catch (error) {
     throwUniqueConflict(error);
