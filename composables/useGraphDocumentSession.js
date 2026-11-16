@@ -1,4 +1,4 @@
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, unref } from 'vue';
 import {
   CORE_GRAPH_PROVIDER,
   GRAPH_DOCUMENT_FORMAT,
@@ -59,7 +59,7 @@ export function createEmptyGraphDocument({ id = stableId('graph'), name = '' } =
   };
 }
 
-export function useGraphDocumentSession({ t, providers = [] }) {
+export function useGraphDocumentSession({ t, providers = [], graphDocuments = [] }) {
   const graphDocument = ref(createEmptyGraphDocument());
   const nodes = ref([]);
   const edges = ref([]);
@@ -123,19 +123,38 @@ export function useGraphDocumentSession({ t, providers = [] }) {
         }
       ]
     }];
+    const savedGraphs = (unref(graphDocuments) || [])
+      .map(item => item?.graph)
+      .filter(graph => graph?.id && graph?.revision && graph.id !== graphDocument.value.id);
     groups.push({
       source: 'graphs',
       id: 'graph-invocation',
       label: t('processDesigner.graphComposition'),
       signal: 'structure',
-      items: [{
-        id: 'use-graph',
-        label: t('processDesigner.useGraph'),
-        description: t('processDesigner.useGraphDescription'),
-        signal: 'structure',
-        operation: operation(GRAPH_INVOKE_OPERATION),
-        config: { graphId: '', revision: '', interface: { inputs: [], outputs: [] } }
-      }]
+      items: savedGraphs.length
+        ? savedGraphs.map(graph => ({
+            id: `use-graph:${graph.id}@${graph.revision}`,
+            label: graph.name || graph.id,
+            description: t('processDesigner.useGraphDescription'),
+            signal: 'structure',
+            operation: operation(GRAPH_INVOKE_OPERATION),
+            config: {
+              graphId: graph.id,
+              revision: graph.revision,
+              interface: {
+                inputs: graph.interface.inputs.map(port => structuredClone(port)),
+                outputs: graph.interface.outputs.map(port => structuredClone(port))
+              }
+            }
+          }))
+        : [{
+            id: 'use-graph',
+            label: t('processDesigner.useGraph'),
+            description: t('processDesigner.useGraphDescription'),
+            signal: 'structure',
+            operation: operation(GRAPH_INVOKE_OPERATION),
+            config: { graphId: '', revision: '', interface: { inputs: [], outputs: [] } }
+          }]
     });
     const grouped = new Map();
     for (const definition of registry.list()) {
