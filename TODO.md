@@ -35,17 +35,21 @@ integration waits for the owner's completion of build123d-flow.
   providers, with a typed RPC bridge, lifecycle/cancellation, and explicit
   capability calls. Keep surface modules on the data-only host mount.
   Progress (2026-11-16): a dedicated Worker RPC harness and organization-
-  scoped runtime binding exist; graph hydration now exposes browser runtime
-  bindings. Provider discovery still needs to move fully inside the Worker,
-  and the runtime capability bridge needs live principal authorization.
+  scoped runtime binding exist; graph hydration exposes browser runtime
+  bindings and provider metadata is returned from inside the Worker. Browser
+  capabilities use an authenticated, read-only host route; operation
+  declarations are checked again by the host. Custom preview renderer module
+  wiring and end-to-end graph preview tests remain.
 - [ ] Implement the platform-managed server runtime: shared scheduling,
   isolated runtime pools, package loading by organization/version, resource
   limits, network/filesystem policy, and validated result/effect commits.
   Progress (2026-11-16): managed JavaScript operations enqueue the shared
   `plugin-runtime` task type; the Deno worker loads the pinned organization
-  package into a restricted child process and mediates declared host
-  capabilities. Compose and production deployment wiring, live-principal
-  authorization, and execution evidence remain in progress.
+  package into a restricted child process, verifies package digests, and
+  mediates declared host capabilities. Development Compose and production
+  deployment start the shared worker; capability calls rehydrate the actor's
+  current membership and grants. Durable effect evidence, transactionally
+  validated commits, and runtime pool observability remain.
 - [ ] Define graph placement and validation rules for browser-only,
   server-only, and dual-target operations; make server validation
   authoritative for durable effects and persist reproducibility evidence.
