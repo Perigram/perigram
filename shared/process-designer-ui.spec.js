@@ -23,7 +23,8 @@ describe('process designer interaction boundaries', () => {
     expect(card).not.toContain('updateValueType');
     expect(inspector).toContain('TypedValueControl');
     expect(inspector).toContain('operationOptions');
-    expect(inspector).toContain('literalStructureDisplay');
+    expect(inspector).toContain('base="json"');
+    expect(inspector).toContain('setLiteralBase');
   });
 
   it('delegates producer-output ownership to the package record-sync pipeline', () => {
