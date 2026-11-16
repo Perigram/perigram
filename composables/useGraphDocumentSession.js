@@ -294,7 +294,7 @@ export function useGraphDocumentSession({ t }) {
     const target = nodes.value.find(node => node.id === connection.target);
     const sourcePort = definitionFor(source)?.outputs?.find(port => port.id === connection.sourceHandle);
     const targetPort = definitionFor(target)?.inputs?.find(port => port.id === connection.targetHandle);
-    if (!sourcePort || !targetPort) return;
+    if (!sourcePort || !targetPort || !compatible(sourcePort, targetPort)) return;
     if (edges.value.some(edge => edge.target === target.id && edge.targetHandle === targetPort.id)) {
       edges.value = edges.value.filter(edge => !(edge.target === target.id && edge.targetHandle === targetPort.id));
     }
@@ -309,12 +309,14 @@ export function useGraphDocumentSession({ t }) {
   }
 
   function updateNodeConfig(nodeId, config) {
+    if (nodeId && typeof nodeId === 'object') ({ nodeId, config } = nodeId);
     nodes.value = nodes.value.map(node => node.id === nodeId
       ? enrichNode({ ...node, data: { ...node.data, config, error: '' } })
       : node);
   }
 
   function updateBoundaryLabel(nodeId, label) {
+    if (nodeId && typeof nodeId === 'object') ({ nodeId, label } = nodeId);
     const node = nodes.value.find(item => item.id === nodeId);
     const interfaceId = node?.data?.config?.interfaceId;
     if (!node || !interfaceId) return;
