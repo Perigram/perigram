@@ -62,7 +62,6 @@ export async function previewProcessDataflow(definition, sample = {}, environmen
     if (environment.targetNodeId && String(node.id) !== String(environment.targetNodeId)) continue;
     const record = process.processNodes?.[recordId(node)];
     if (!record || record.kind.startsWith('control.')) continue;
-    if (isEffectRecord(record) && !(record.kind === 'cts.service' && typeof environment.previewService === 'function')) continue;
     const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
     const inputs = {};
     const outputs = {};

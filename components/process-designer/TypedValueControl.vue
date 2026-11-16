@@ -48,7 +48,7 @@
   <div v-else-if="base === 'json'" class="flex min-w-0 items-center gap-2">
     <span class="min-w-0 flex-1 truncate text-supporting text-muted">{{ jsonSummary }}</span>
     <Button icon="pi pi-code" text size="small" :aria-label="t('processDesigner.editStructuredValue')" @click="openJsonDialog" />
-    <Dialog v-model:visible="jsonDialogVisible" modal :header="t('processDesigner.editStructuredValue')">
+    <StandardDialog v-model:visible="jsonDialogVisible" :title="t('processDesigner.editStructuredValue')" size="lg">
       <div class="flex min-w-0 flex-col gap-2">
         <Textarea v-model="jsonDraft" rows="12" auto-resize class="w-full" />
         <Message v-if="jsonError" severity="error">{{ jsonError }}</Message>
@@ -57,7 +57,7 @@
         <Button :label="t('common.cancel')" severity="secondary" text @click="jsonDialogVisible = false" />
         <Button :label="t('common.save')" @click="saveJson" />
       </template>
-    </Dialog>
+    </StandardDialog>
   </div>
   <InputText
     v-else
@@ -81,11 +81,11 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import DatePicker from 'primevue/datepicker';
-import Dialog from 'primevue/dialog';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import Textarea from 'primevue/textarea';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import Select from '~/components/shared/InstanceSelect.vue';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { instancePickerOptions } from '~/utils/instance-select.js';

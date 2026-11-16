@@ -516,7 +516,8 @@ const operationValue = computed(() => (
 ));
 const editableInputs = computed(() => props.inputs.filter(input => (
   !input.connected
-  && input.id !== (op.value === 'cts.field' ? 'field' : null)
+  && input.role === 'data'
+  && op.value !== 'cts.field'
   && ['string', 'id', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'status', 'entityRef'].includes(input.base)
   && (input.access === 'item' || (input.access === 'list' && MAPPED_MUTATION_SPECIES_KINDS.has(op.value)))
 )));
