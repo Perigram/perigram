@@ -124,7 +124,7 @@ async function evaluateGraph(options) {
       continue;
     }
 
-    const definition = await options.resolveNodeDefinition(node.operation);
+    const definition = await options.resolveNodeDefinition(node.operation, { node, config: node.config, context: options.context });
     if (!definition) {
       throw new Error(`Node definition unavailable: ${node.operation.provider}/${node.operation.id}@${node.operation.version}`);
     }
