@@ -122,10 +122,14 @@ describe('procedural graph preview evaluator', () => {
   it('rejects recursive pinned subgraph invocation', async () => {
     const recursive = graph({
       nodes: [
+        { id: 'in', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'number' } },
         { id: 'use', operation: { provider: 'perigram.core', id: GRAPH_INVOKE_OPERATION, version: '1' }, config: { graphId: 'graph.main', revision: 'rev-1' } },
         { id: 'out', operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' }, config: { interfaceId: 'result' } }
       ],
-      edges: [{ id: 'e1', source: { node: 'use', port: 'result' }, target: { node: 'out', port: 'value' } }]
+      edges: [
+        { id: 'e1', source: { node: 'in', port: 'value' }, target: { node: 'use', port: 'number' } },
+        { id: 'e2', source: { node: 'use', port: 'result' }, target: { node: 'out', port: 'value' } }
+      ]
     });
     await expect(evaluateProceduralGraph({
       graph: recursive,
