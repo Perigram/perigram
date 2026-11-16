@@ -20,7 +20,8 @@ export const MAX_COLLECTION_ITEMS = 10000;
 // { op: 'related', of: e, key: relationId } | { op: 'children'|'descendants', of: e }
 // { op: 'match', expr: e, arms: { tag: e }, subjectType } -- exhaustive (R-match)
 export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
-  budget.steps = Number.isFinite(budget.steps) ? budget.steps : MAX_STEPS;\n  spend(budget, ast);
+  budget.steps = Number.isFinite(budget.steps) ? budget.steps : MAX_STEPS;
+  spend(budget, ast);
   switch (ast?.op) {
     case 'lit': return ast.value;
     case 'var': {
