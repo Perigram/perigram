@@ -198,7 +198,7 @@ export function parseListing(listing = {}) {
       }
       const seenCapabilities = new Set();
       for (const capability of execution.capabilities || []) {
-        if (typeof capability !== 'string' || !/^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$/.test(capability)) {
+        if (typeof capability !== 'string' || !/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/.test(capability)) {
           throw listingError(`service ${service.id} capability must be a qualified capability id`);
         }
         if (seenCapabilities.has(capability)) {
