@@ -80,7 +80,7 @@ export function useGraphDocumentSession({ t, providers = [] }) {
   registerProcessProceduralNodes(registry);
   const processResolver = createProcessProceduralNodeResolver();
   const processExecutor = createProcessProceduralExecutor();
-  const providerExecutors = new Map([[PROCESS_PROCEDURAL_PROVIDER, processExecutor]]);
+  const providerExecutors = new Map([[PROCESS_PROCEDURAL_PROVIDER, processExecutor]]);\n  const providerPreviewRenderers = new Map();
 
   const groupLabels = {
     source: t('processDesigner.graphSources'),

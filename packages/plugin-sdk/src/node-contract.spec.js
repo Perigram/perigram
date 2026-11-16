@@ -32,6 +32,21 @@ describe('provider-neutral node contract', () => {
     expect(() => normalizeNodeProvider({ provider: 'plugin.other', definitions: [definition], execute })).toThrow(/belongs to plugin.example/);
   });
 
+  it('requires every declared preview renderer to be provided by the same node provider', () => {
+    const candidate = {
+      provider: 'plugin.example', id: 'geometry.mesh', version: '1',
+      inputs: [], outputs: [], execution: { kind: 'pure' },
+      preview: { renderer: 'mesh' }
+    };
+    expect(() => normalizeNodeProvider({ provider: 'plugin.example', definitions: [candidate], execute: () => ({}) }))
+      .toThrow(/missing preview renderer mesh/);
+    const renderer = () => null;
+    expect(normalizeNodeProvider({
+      provider: 'plugin.example', definitions: [candidate], execute: () => ({}),
+      previewRenderers: { mesh: renderer }
+    }).previewRenderers.mesh).toBe(renderer);
+  });
+
   it('normalizes and freezes a provider-qualified operation definition', () => {
     const normalized = normalizeNodeDefinition(definition());
     expect(normalized).toMatchObject({
