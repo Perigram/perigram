@@ -81,7 +81,13 @@ vi.mock('../cts-types/repository.js', () => ({
                 class: 'group',
                 version: 1,
                 fields: { name: { base: 'string' }, library: { base: 'ref', accepts: ['panel'] } },
-                edges: { relations: { panels: { types: ['panel'], cardinality: 'many', onRemove: 'detach' } } }
+                edges: { relations: { panels: { types: ['panel'], cardinality: 'many', onRemove: 'detach', where: {
+                  op: 'eq',
+                  args: [
+                    { op: 'field', of: { op: 'var', name: 'value' }, path: ['fields', 'serial'] },
+                    { op: 'lit', value: 'ALLOWED' }
+                  ]
+                } } } }
               }
             : null
   )),
@@ -118,7 +124,13 @@ vi.mock('../cts-types/repository.js', () => ({
             class: 'group',
             version: 1,
             fields: { name: { base: 'string' }, library: { base: 'ref', accepts: ['panel'] } },
-            edges: { relations: { panels: { types: ['panel'], cardinality: 'many', onRemove: 'detach' } } }
+            edges: { relations: { panels: { types: ['panel'], cardinality: 'many', onRemove: 'detach', where: {
+                  op: 'eq',
+                  args: [
+                    { op: 'field', of: { op: 'var', name: 'value' }, path: ['fields', 'serial'] },
+                    { op: 'lit', value: 'ALLOWED' }
+                  ]
+                } } } }
           }
         ]
       : []
@@ -205,6 +217,26 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     }, 'user-1', 'org-1')).rejects.toMatchObject({ statusCode: 400 });
     await expect(service.create({
       relations: { panels: [{ type: 'invoice', id: 'invoice-1' }] }
+    }, 'user-1', 'org-1')).rejects.toMatchObject({ statusCode: 400 });
+
+    expect(coll.insertOne).not.toHaveBeenCalled();
+  });
+
+  it('enforces relation target-domain predicates on create', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockResolvedValue({
+      _id: 'panel-1',
+      type: 'panel',
+      typeVersion: 2,
+      organizationId: 'org-1',
+      fields: { serial: 'OUTSIDE' },
+      lineage: {},
+      relations: {}
+    });
+    const service = instanceServiceResolver('project');
+
+    await expect(service.create({
+      relations: { panels: [{ type: 'panel', id: 'panel-1' }] }
     }, 'user-1', 'org-1')).rejects.toMatchObject({ statusCode: 400 });
 
     expect(coll.insertOne).not.toHaveBeenCalled();
