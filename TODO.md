@@ -1,5 +1,41 @@
 # TODO
 
+## Organization-owned frontend plugins (SPEC §20 amendment, owner direction 2026-11-16)
+
+Installed plugins are organization data, not independently deployed
+backend services. Local UI and compute code executes in the frontend;
+remote third-party integrations remain explicit provider-level protocols.
+The documents and build123d plugins are the first local-runtime
+migrations.
+
+- [ ] Reconcile the plugin listing, install snapshot, settings, and runtime
+  contracts: local services and browser engines must not acquire per-service
+  endpoint/key settings; remote integration connections are declared and
+  configured once at provider scope.
+- [ ] Make installed package assets organization-owned data: materialize
+  immutable versioned assets with content digests on install/upgrade,
+  authorize reads by organization membership, and remove package data only
+  through the existing uninstall drain gate.
+- [ ] Execute local plugin compute and node providers in the isolated browser
+  runtime; keep surface modules on the data-only host mount and expose only
+  explicit authorized capabilities.
+- [ ] Migrate documents projections, compositions, editors, and compute
+  services to the local browser package; remove its executor deployment.
+- [ ] Migrate build123d Python/WASM engine and geometry operations to the
+  local browser package; remove its executor deployment.
+- [ ] Retire per-function endpoint settings, connector tokens, executor
+  deployment/seed wiring, and obsolete worker routes for local-only plugins.
+- [ ] Preserve remote integration protocols through provider-level
+  server-side adapters with server-held credentials and scoped client
+  capability handles; cover supported protocols with contract tests.
+- [ ] Migrate existing installed plugin records and package assets without
+  retaining the retired endpoint-per-service contract; verify install,
+  upgrade, uninstall, organization isolation, authorization, and offline
+  behavior.
+- [ ] Update the plugin SDK, server, frontend, worker/package READMEs and
+  deployment inventories; run focused tests plus architecture, docs,
+  plugin-dependency, framework, SSR, and full Vitest guards.
+
 ## Architecture simplification (SPEC §30, active 2026-11-14)
 
 Execution authority: [SPEC §30](./SPEC.md). This sequence tracks the
