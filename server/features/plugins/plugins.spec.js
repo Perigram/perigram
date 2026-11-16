@@ -32,7 +32,7 @@ vi.mock('~/server/db/mongo', () => {
 vi.mock('../instances/migrations.js', () => ({
   applyTypeMigrationSteps: vi.fn(async () => ({ appliedAt: '2026-10-08T00:00:00.000Z', actor: 'user-1', counts: {}, failures: [] }))
 }));
-vi.mock('../process-definitions/service.js', () => ({ findTypeReferences: vi.fn(async () => []) }));
+vi.mock('../process-definitions/service.js', () => ({ findTypeReferences: vi.fn(async () => []), resolveRunActor: vi.fn(async auth => auth) }));
 vi.mock('../instance-events/service.js', () => ({ publishOrgContractChanged: vi.fn() }));
 vi.mock('../instances/service.js', () => ({
   invalidateInstanceDeclarations: vi.fn(),
@@ -96,7 +96,7 @@ import {
   projectedServicesForOrganization, projectedDomainsForOrganization, commandDefinitionFor, executeConnectorService, invokeEndpointValueService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings, publishPluginAsset,
-  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview
+  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask
 } from './service.js';
 import { enqueueTask } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -144,6 +144,55 @@ beforeEach(() => {
   repository.materializePluginAssets.mockResolvedValue({ count: 0, assets: [] });
   typeStore.findByTypeId.mockResolvedValue(null);
   typeStore.listByOrganization.mockResolvedValue([]);
+});
+
+describe('managed plugin runtime package loading', () => {
+  it('loads only the pinned organization package and verifies its asset digest', async () => {
+    repository.findInstall.mockResolvedValue({
+      pluginId: 'demo',
+      version: '2',
+      services: [{ id: 'run', execution: { runtime: 'javascript', targets: ['server'] } }],
+      declarations: {
+        runtimes: [{ id: 'javascript', language: 'javascript', targets: ['server'], entry: '/runtime.mjs' }],
+        dependencies: []
+      },
+      packageAssets: { assets: [{ path: 'runtime.mjs', contentHash: 'sha256:abc' }] }
+    });
+    repository.findOrganizationPluginAssetMeta.mockResolvedValue({
+      id: 'asset-1', contentType: 'text/javascript', contentHash: 'sha256:abc'
+    });
+    repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.from('payload'));
+
+    const result = await managedRuntimePackageForTask({
+      taskId: 'plugin.demo.run',
+      auth: { organizationId: ORG, userId: AUTH.userId },
+      input: { parameters: { value: {
+        pluginId: 'demo', version: '2', runtimeId: 'javascript', operationId: 'run', input: { value: 7 }
+      } } }
+    });
+
+    expect(result.package).toMatchObject({
+      pluginId: 'demo',
+      version: '2',
+      operationId: 'run',
+      input: { value: 7 },
+      runtime: { entry: '/runtime.mjs' },
+      assets: [{ path: 'runtime.mjs', contentHash: 'sha256:abc' }]
+    });
+    expect(repository.findInstall).toHaveBeenCalledWith(ORG, 'demo');
+    expect(repository.readOrganizationPluginAsset).toHaveBeenCalledWith(expect.objectContaining({ id: 'asset-1' }));
+  });
+
+  it('rejects package loading when the installed version changed', async () => {
+    repository.findInstall.mockResolvedValue({ pluginId: 'demo', version: '3' });
+    await expect(managedRuntimePackageForTask({
+      taskId: 'plugin.demo.run',
+      auth: { organizationId: ORG },
+      input: { parameters: { value: {
+        pluginId: 'demo', version: '2', runtimeId: 'javascript', operationId: 'run'
+      } } }
+    })).rejects.toMatchObject({ statusCode: 409 });
+  });
 });
 
 describe('plugin installs', () => {
