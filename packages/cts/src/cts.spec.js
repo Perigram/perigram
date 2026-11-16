@@ -197,6 +197,51 @@ describe('class obligations (R6)', () => {
     })).resolves.toEqual(['constraint positive-invoice-total: Invoice total must be positive']);
   });
 
+  it('normalizes scoped exact uniqueness constraints and type-checks nested scalar paths', () => {
+    const registry = createTypeRegistry();
+    registry.defineType({
+      id: 'unique-customer', class: 'item', scope: 'system',
+      fields: {
+        code: { base: 'string', identifier: true },
+        profile: { base: 'record', fields: { email: { base: 'string' } } }
+      },
+      constraints: [{
+        id: 'unique-email',
+        kind: 'unique',
+        scope: 'global',
+        field: 'profile.email',
+        equality: 'exact',
+        nulls: 'ignore'
+      }]
+    });
+    expect(registry.compile().errors.filter(error => error.includes('unique-customer: unique constraint'))).toEqual([]);
+    expect(registry.getType('unique-customer').constraints[0]).toEqual({
+      id: 'unique-email',
+      kind: 'unique',
+      scope: 'global',
+      field: 'profile.email',
+      equality: 'exact',
+      nulls: 'ignore'
+    });
+    expect(validateConstraints(registry.getType('unique-customer'), { fields: { profile: { email: 'a@example.test' } } })).resolves.toEqual([]);
+  });
+
+  it('rejects uniqueness on unknown and non-scalar fields and enforces organization scope', () => {
+    const registry = createTypeRegistry();
+    registry.defineType({
+      id: 'bad-unique-path', class: 'item', scope: 'system',
+      fields: { code: { base: 'string', identifier: true } },
+      constraints: [{ id: 'unique-missing', kind: 'unique', scope: 'global', field: 'missing' }]
+    });
+    expect(registry.compile().errors).toContainEqual(expect.stringMatching(/bad-unique-path: unique constraint unique-missing references unknown/));
+
+    expect(() => registry.defineType({
+      id: 'wrong-unique-scope', class: 'item', scope: 'org', organizationId: 'org-1',
+      fields: { code: { base: 'string', identifier: true } },
+      constraints: [{ id: 'unique-code', kind: 'unique', scope: 'global', field: 'code' }]
+    })).toThrow(/requires scope organization/);
+  });
+
   it('enforces presets', () => {
     const registry = packRegistry();
     // Items carry no state obligation (SPEC §7): state vocabularies are

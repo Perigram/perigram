@@ -114,7 +114,7 @@ function constraintValue(instance = {}) {
   };
 }
 
-function normalizeConstraints(constraints = [], typeId = '') {
+function normalizeConstraints(constraints = [], typeId = '', typeScope = 'system') {
   if (!Array.isArray(constraints) || constraints.length > 100) throw new Error(`type ${typeId}: constraints must be an array of at most 100 entries`);
   const seen = new Set();
   return Object.freeze(constraints.map((constraint, index) => {
@@ -122,6 +122,25 @@ function normalizeConstraints(constraints = [], typeId = '') {
     if (!/^[a-z][a-z0-9-]{0,63}$/.test(id)) throw new Error(`type ${typeId}: constraint ${index} requires a kebab-case id`);
     if (seen.has(id)) throw new Error(`type ${typeId}: duplicate constraint id ${id}`);
     seen.add(id);
+    if (constraint.kind === 'unique') {
+      const expectedScope = typeScope === 'org' ? 'organization' : 'global';
+      const scope = String(constraint.scope || '');
+      if (scope !== expectedScope) {
+        throw new Error(`type ${typeId}: unique constraint ${id} on a ${typeScope} type requires scope ${expectedScope}`);
+      }
+      const field = String(constraint.field || '').trim();
+      if (!/^[a-z][a-zA-Z0-9]*(?:\.[a-z][a-zA-Z0-9]*)*$/.test(field)) {
+        throw new Error(`type ${typeId}: unique constraint ${id} requires a lowerCamelCase field path`);
+      }
+      const equality = constraint.equality == null ? 'exact' : String(constraint.equality);
+      if (equality !== 'exact') throw new Error(`type ${typeId}: unique constraint ${id} supports exact equality only`);
+      const nulls = constraint.nulls == null ? 'ignore' : String(constraint.nulls);
+      if (nulls !== 'ignore') throw new Error(`type ${typeId}: unique constraint ${id} supports nulls: ignore only`);
+      return Object.freeze({ id, kind: 'unique', scope, field, equality, nulls });
+    }
+    if (constraint.kind != null && constraint.kind !== 'expression') {
+      throw new Error(`type ${typeId}: constraint ${id} has unsupported kind ${constraint.kind}`);
+    }
     if (constraint.scope != null && constraint.scope !== 'instance') throw new Error(`type ${typeId}: constraint ${id} currently supports instance scope only`);
     if (!constraint.expression || typeof constraint.expression !== 'object' || Array.isArray(constraint.expression)) throw new Error(`type ${typeId}: constraint ${id} requires an expression AST`);
     return Object.freeze({
@@ -136,6 +155,7 @@ function normalizeConstraints(constraints = [], typeId = '') {
 export async function validateConstraints(type, instance, resolvers = {}) {
   const errors = [];
   for (const constraint of type?.constraints || []) {
+    if (constraint.kind === 'unique') continue;
     try {
       const valid = await evaluateAsync(constraint.expression, { value: constraintValue(instance) }, { steps: MAX_STEPS, ...resolvers });
       if (valid !== true) errors.push(`constraint ${constraint.id}: ${constraint.message || 'predicate did not hold'}`);
@@ -217,7 +237,7 @@ export function normalizeType(declaration = {}) {
     // or pack handler id). Validated at the authoring boundary like every
     // other facet.
     ...(declaration.projections?.length ? { projections: normalizeProjections(declaration.projections, declaration.id) } : {}),
-    ...(declaration.constraints?.length ? { constraints: normalizeConstraints(declaration.constraints, declaration.id) } : {}),
+    ...(declaration.constraints?.length ? { constraints: normalizeConstraints(declaration.constraints, declaration.id, scope) } : {}),
     // Declared migration steps (SPEC §11) ride the declaration through to
     // the R7 gate and the stored record; normalization validates the step
     // language at the authoring boundary.
@@ -365,7 +385,9 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
       errors.push(...checkRefTargets(type, view));
       errors.push(...checkChildrenDeclared(type, view));
       errors.push(...checkRelationDomains(type, view));
+      errors.push(...checkUniqueConstraints(type));
       for (const constraint of type.constraints || []) {
+        if (constraint.kind === 'unique') continue;
         errors.push(...checkTypedBooleanExpression(constraint.expression, {
           rootType: type,
           types: view,
@@ -455,7 +477,34 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
   // ref field) may constrain its targets with a boolean expression over
   // the target instance. The expression must row-check against EVERY
   // declared target — a multi-target edge exposes one domain.
-  function checkRelationDomains(type, view) {
+  function checkUniqueConstraints(type) {
+  const errors = [];
+  for (const constraint of type.constraints || []) {
+    if (constraint.kind !== 'unique') continue;
+    let row = type.fields || {};
+    let descriptor = null;
+    const segments = constraint.field.split('.');
+    for (let index = 0; index < segments.length; index += 1) {
+      descriptor = row[segments[index]] || null;
+      if (!descriptor) break;
+      if (index < segments.length - 1) {
+        if (descriptor.base !== 'record') {
+          descriptor = null;
+          break;
+        }
+        row = descriptor.fields || {};
+      }
+    }
+    if (!descriptor) {
+      errors.push(`type ${type.id}: unique constraint ${constraint.id} references unknown or non-record field path fields.${constraint.field}`);
+    } else if (!['string', 'id', 'instant', 'number', 'boolean', 'enum'].includes(descriptor.base)) {
+      errors.push(`type ${type.id}: unique constraint ${constraint.id} requires a scalar indexable field, got fields.${constraint.field} (${descriptor.base})`);
+    }
+  }
+  return errors;
+}
+
+function checkRelationDomains(type, view) {
     const errors = [];
     const entries = [
       ...Object.entries(type.edges?.relations || {}).map(([key, declaration]) => ({ key, declaration, label: `relations.${key}` })),
