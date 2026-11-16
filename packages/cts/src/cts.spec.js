@@ -206,11 +206,11 @@ describe('class obligations (R6)', () => {
 
     registry.defineType({
       id: 'invoice', class: 'item', scope: 'system',
-      fields: { amount: { base: 'number' } }
+      fields: { code: { base: 'string', identifier: true }, amount: { base: 'number' } }
     });
     registry.defineType({
       id: 'account', class: 'item', scope: 'system',
-      fields: { invoices: { base: 'list', itemType: { base: 'ref', accepts: ['invoice'] } } }
+      fields: { code: { base: 'string', identifier: true }, invoices: { base: 'list', itemType: { base: 'ref', accepts: ['invoice'] } } }
     });
     registry.defineType({
       id: 'typed-nested-order', class: 'item', scope: 'system',
@@ -221,7 +221,7 @@ describe('class obligations (R6)', () => {
           accepts: ['account'],
           where: {
             op: 'exists',
-            list: { op: 'related', of: { op: 'var', name: 'value' }, key: 'invoices' },
+            list: { op: 'related', key: 'invoices' },
             var: 'invoice',
             body: { op: 'gt', args: [
               { op: 'field', of: { op: 'var', name: 'invoice' }, path: ['amount'] },
@@ -236,12 +236,13 @@ describe('class obligations (R6)', () => {
     registry.defineType({
       id: 'bad-nested-predicate', class: 'item', scope: 'system',
       fields: {
+        code: { base: 'string', identifier: true },
         owner: {
           base: 'ref',
           accepts: ['account'],
           where: {
             op: 'exists',
-            list: { op: 'related', of: { op: 'var', name: 'value' }, key: 'invoices' },
+            list: { op: 'related', key: 'invoices' },
             var: 'invoice',
             body: { op: 'field', of: { op: 'var', name: 'invoice' }, path: ['amount'] }
           }
@@ -253,7 +254,8 @@ describe('class obligations (R6)', () => {
 
     registry.defineType({
       id: 'bad-root-predicate', class: 'item', scope: 'system',
-      fields: { owner: { base: 'ref', accepts: ['user'], where: { op: 'lit', value: 7 } } }
+      fields: {
+        code: { base: 'string', identifier: true }, owner: { base: 'ref', accepts: ['user'], where: { op: 'lit', value: 7 } } }
     });
     expect(registry.compile().errors).toContainEqual(
       expect.stringMatching(/bad-root-predicate: fields.owner where \\(target user\\): predicate must be boolean, got number/));
@@ -261,10 +263,11 @@ describe('class obligations (R6)', () => {
     registry.defineType({
       id: 'bad-typed-order', class: 'item', scope: 'system',
       fields: {
+        code: { base: 'string', identifier: true },
         owner: {
           base: 'ref',
           accepts: ['user'],
-          where: { op: 'exists', list: { op: 'related', of: { op: 'var', name: 'value' }, key: 'missing' }, var: 'x', body: { op: 'lit', value: true } }
+          where: { op: 'exists', list: { op: 'related', key: 'missing' }, var: 'x', body: { op: 'lit', value: true } }
         }
       }
     });
@@ -274,10 +277,11 @@ describe('class obligations (R6)', () => {
     registry.defineType({
       id: 'typed-containment-order', class: 'item', scope: 'system',
       fields: {
+        code: { base: 'string', identifier: true },
         owner: {
           base: 'ref',
           accepts: ['facade'],
-          where: { op: 'exists', list: { op: 'children', of: { op: 'var', name: 'value' } }, var: 'part', body: { op: 'lit', value: true } }
+          where: { op: 'exists', list: { op: 'children' }, var: 'part', body: { op: 'lit', value: true } }
         }
       }
     });

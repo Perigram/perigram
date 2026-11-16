@@ -3469,6 +3469,7 @@
     "graphInputDescription": "Expose a value as a graph input",
     "graphOutputDescription": "Expose a value as a graph output",
     "graphSources": "Sources",
+    "graphQueries": "Data queries",
     "graphValues": "Values",
     "graphCollections": "Collections",
     "graphTrees": "Trees",

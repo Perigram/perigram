@@ -5,6 +5,12 @@ const { mockedHasInstanceAccess } = vi.hoisted(() => ({
 }));
 
 vi.mock('~/server/db/mongo', () => ({ connectDB: vi.fn() }));
+vi.mock('./organization-sequence.js', () => ({
+  runOrganizationChange: vi.fn(async (_organizationId, _metadata, mutate) => await mutate()),
+  recordOrganizationChange: vi.fn(async () => 1),
+  getOrganizationChangeSequence: vi.fn(async () => 0),
+  withOrganizationChangeSequence: vi.fn()
+}));
 vi.mock('../files/service.js', () => ({
   uploadFile: vi.fn(async (buffer, filename) => ({ id: `stored-${filename}`, filename, url: '#' })),
   deleteFile: vi.fn(async () => {}),
@@ -93,7 +99,7 @@ constructionsForOrganization.mockImplementation(async organizationId => (
 ));
 
 function stubCollection() {
-  const coll = { createIndex: vi.fn(async () => 'organizationId_1'), insertOne: vi.fn(), findOne: vi.fn(), findOneAndUpdate: vi.fn(), find: vi.fn(), deleteOne: vi.fn() };
+  const coll = { insertOne: vi.fn(), findOne: vi.fn(), findOneAndUpdate: vi.fn(), find: vi.fn(), deleteOne: vi.fn() };
   coll.find.mockReturnValue({ sort: () => ({ limit: () => ({ toArray: async () => [] }) }) });
   db.collection.mockReturnValue(coll);
   return coll;

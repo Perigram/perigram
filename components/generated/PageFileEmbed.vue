@@ -3,7 +3,7 @@
     <div class="flex min-w-0 items-center justify-between gap-3">
       <div class="min-w-0">
         <a
-          class="break-all text-supporting font-medium underline"
+          class="break-all text-supporting underline"
           :href="downloadUrl"
           target="_blank"
           rel="noopener"

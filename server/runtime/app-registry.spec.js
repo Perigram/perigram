@@ -20,6 +20,13 @@ vi.mock('~/server/features/cts-types/repository.js', () => ({
   findByTypeId: vi.fn(async () => null)
 }));
 
+vi.mock('~/server/features/instances/organization-sequence.js', () => ({
+  runOrganizationChange: vi.fn(async (_organizationId, _metadata, mutate) => await mutate()),
+  recordOrganizationChange: vi.fn(async () => 1),
+  getOrganizationChangeSequence: vi.fn(async () => 0),
+  withOrganizationChangeSequence: vi.fn()
+}));
+
 vi.mock('~/server/features/instances/repository.js', () => ({
   CLASS_COLLECTIONS: Object.freeze({ file: 'files', item: 'items', group: 'groups', process: 'processes' }),
   collectionForClass: classOf => ({ file: 'files', item: 'items', group: 'groups', process: 'processes' }[classOf] || 'files'),

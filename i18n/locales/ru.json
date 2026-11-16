@@ -3469,6 +3469,7 @@
     "graphInputDescription": "Опубликовать значение как вход графа",
     "graphOutputDescription": "Опубликовать значение как выход графа",
     "graphSources": "Источники",
+    "graphQueries": "Запросы данных",
     "graphValues": "Значения",
     "graphCollections": "Коллекции",
     "graphTrees": "Деревья",
