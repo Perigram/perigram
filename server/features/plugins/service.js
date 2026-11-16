@@ -1346,9 +1346,6 @@ function assertSupportedRuntimeDeclarations(runtimes = []) {
   }
 }
 
-
-}
-
 function parseListingOr400(listing) {
   try {
     return parseListing(listing);
