@@ -65,6 +65,10 @@
             :source-id="session.blockByKey(key).view?.sourceId || ''"
             :fallback-name="session.blockByKey(key).view?.name || ''"
           />
+          <PageFileEmbed
+            v-else-if="session.blockByKey(key)?.kind === 'file'"
+            :file="session.blockByKey(key).file"
+          />
         </DocumentSectionShell>
       </div>
       <ViewPickerDialog
@@ -95,6 +99,7 @@ import SurfaceHeader from '~/components/ui-mapping/SurfaceHeader.vue';
 import DocumentSectionShell from '~/components/ui-mapping/DocumentSectionShell.vue';
 import OverlayTextBlock from './OverlayTextBlock.vue';
 import ViewEmbed from './ViewEmbed.vue';
+import PageFileEmbed from './PageFileEmbed.vue';
 import ViewPickerDialog from './ViewPickerDialog.vue';
 import GeneratedScreenHost from './GeneratedScreenHost.vue';
 import ClassDialog from '~/components/type-designer/ClassDialog.vue';
