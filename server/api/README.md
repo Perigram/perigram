@@ -27,8 +27,9 @@ Routes are grouped into sub-directories corresponding to features:
   test (see [web-search feature](../features/web-search/README.md)).
 - `commands/`: Authenticated execution route for declared domain commands such
   as `generateAttachment`.
-- `graph-executions/`: `POST /api/graph-executions` records an immutable
-  execution envelope against the exact saved graph revision;
+- `graph-executions/`: `POST /api/graph-executions/query` runs an authorized,
+  sequence-bracketed CTS query for procedural graph reads;
+  `POST /api/graph-executions` records an immutable execution envelope against the exact saved graph revision;
   `POST /api/graph-executions/bake` materializes one selected output to an
   explicitly selected Page and relative path. Both routes delegate to the
   [graph-executions feature](../features/graph-executions/README.md).
