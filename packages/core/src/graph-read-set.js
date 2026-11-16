@@ -96,7 +96,18 @@ export function createGraphReadSetRecorder(initial = {}) {
       consistencyObserved = true;
       return toJSON();
     }
-    if (stableJson(snapshot) !== stableJson(candidate)) downgradeConsistency();
+    if (stableJson(snapshot) !== stableJson(candidate)) {
+      if (sameOrganizationSequence(snapshot, candidate)) {
+        Object.assign(snapshot, {
+          consistency: 'sequence-bracketed',
+          snapshotId: null,
+          organizationSequenceStart: candidate.organizationSequenceStart,
+          organizationSequenceEnd: candidate.organizationSequenceEnd
+        });
+      } else {
+        downgradeConsistency();
+      }
+    }
     return toJSON();
   }
 
@@ -122,6 +133,18 @@ export function createGraphReadSetRecorder(initial = {}) {
 
 export function emptyGraphReadSet() {
   return cloneJson(EMPTY_READ_SET);
+}
+
+function sameOrganizationSequence(left = {}, right = {}) {
+  const start = left.organizationSequenceStart;
+  const end = left.organizationSequenceEnd;
+  return ['snapshot', 'sequence-bracketed'].includes(left.consistency)
+    && ['snapshot', 'sequence-bracketed'].includes(right.consistency)
+    && Number.isSafeInteger(start)
+    && start >= 0
+    && start === end
+    && start === right.organizationSequenceStart
+    && start === right.organizationSequenceEnd;
 }
 
 function hasBoundaryDeclaration(value = {}) {

@@ -83,6 +83,39 @@ describe('graph execution read set', () => {
     ]));
   });
 
+  it('combines separate database snapshots into one sequence-bracketed graph read set', () => {
+    const recorder = createGraphReadSetRecorder({
+      consistency: 'snapshot',
+      snapshotId: 'snapshot-a',
+      organizationSequenceStart: 21,
+      organizationSequenceEnd: 21
+    });
+    recorder.setConsistency({
+      consistency: 'snapshot',
+      snapshotId: 'snapshot-b',
+      organizationSequenceStart: 21,
+      organizationSequenceEnd: 21
+    });
+    expect(recorder.toJSON()).toMatchObject({
+      consistency: 'sequence-bracketed',
+      snapshotId: null,
+      organizationSequenceStart: 21,
+      organizationSequenceEnd: 21
+    });
+  });
+
+  it('does not merge independent snapshots without a shared organization sequence', () => {
+    const recorder = createGraphReadSetRecorder({
+      consistency: 'snapshot',
+      snapshotId: 'snapshot-a'
+    });
+    recorder.setConsistency({
+      consistency: 'snapshot',
+      snapshotId: 'snapshot-b'
+    });
+    expect(recorder.toJSON().consistency).toBe('unverified');
+  });
+
   it('downgrades the shared boundary when graph reads span different sequences', () => {
     const recorder = createGraphReadSetRecorder();
     recorder.setConsistency({
