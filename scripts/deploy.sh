@@ -165,8 +165,12 @@ docker run -d --name perigram-staging --restart unless-stopped \
   perigram:staging
 
 echo "Applying idempotent organization data migrations..."
-docker exec perigram-staging node server/scripts/backfill-instance-revisions.js --apply
-docker exec perigram-staging node server/scripts/migrate-plugin-assets-to-organization-storage.js
+docker run --rm --network host \
+  -e "NUXT_MONGODB_URI=$NUXT_MONGODB_URI" \
+  perigram-seed:staging sh -ec '
+    node server/scripts/backfill-instance-revisions.js --apply &&
+    node server/scripts/migrate-plugin-assets-to-organization-storage.js
+  '
 
 docker run -d --name perigram-plugin-runtime --restart unless-stopped \
   --network host --memory=512m --cpus=1 --pids-limit=64 \
