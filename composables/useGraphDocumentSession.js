@@ -532,7 +532,8 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
           const executor = providerExecutors.get(definition.provider);
           if (!executor) throw new Error(`No runtime is registered for provider ${definition.provider}`);
           return executor(definition, invocation);
-        }
+        },
+        context: { data: { queryInstances: queryOrganizationData } }
       });
       const completedAt = new Date().toISOString();
       executionRecord.value = createGraphExecutionRecord({
