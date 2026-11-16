@@ -236,8 +236,7 @@ async function prunePageFiles(pageId, document, organizationId) {
     }
   }
   const owned = await filesService.listFileMetasWhere('files', {
-    'metadata.pageId': String(pageId),
-    'metadata.organizationId': organizationId
+    'metadata.pageId': String(pageId)
   });
   await Promise.all(owned
     .filter(file => !referenced.has(String(file.id)))
