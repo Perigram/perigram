@@ -2,7 +2,9 @@ import { createError } from 'h3';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 import { resolveOrganizationId } from '~/server/utils/organization-scope.js';
 import { PAGE_TYPE_ID, pageTypeDeclaration } from '#packages/cts';
-import { normalizePageDocument } from '#shared/page-document.js';
+import { createBlockId, normalizePageDocument, normalizePageFilePath } from '#shared/page-document.js';
+import { hasPermission } from '../../utils/auth-helpers.js';
+import * as filesService from '../files/service.js';
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
 import * as repository from './repository.js';
 
@@ -117,6 +119,121 @@ export async function update(id, { name, parentId, blocks, order } = {}, auth = 
   }
   const updated = await repository.update(id, changes, organizationId);
   return repository.serializeFull(updated);
+}
+
+export async function bakeFile({
+  pageId,
+  path,
+  buffer,
+  mimeType = 'application/octet-stream',
+  conflictPolicy = 'fail',
+  provenance = {}
+} = {}, auth = {}) {
+  const organizationId = resolveOrganizationId(auth);
+  await preparePages(organizationId, auth.userId);
+  const page = await requireOwnPage(pageId, organizationId);
+  if (page.fields?.section === true) {
+    throw createError({ statusCode: 400, message: 'Files can only be baked into a page, not a section' });
+  }
+  if (!Buffer.isBuffer(buffer) || buffer.length === 0 || buffer.length > 25 * 1024 * 1024) {
+    throw createError({ statusCode: 400, message: 'Baked file must contain between 1 byte and 25 MiB' });
+  }
+  const logicalPath = normalizePageFilePath(path);
+  if (!logicalPath) throw createError({ statusCode: 400, message: 'A safe relative page file path is required' });
+  if (!['fail', 'create-revision', 'replace', 'create-distinct-name'].includes(conflictPolicy)) {
+    throw createError({ statusCode: 400, message: 'Unsupported page file conflict policy' });
+  }
+  if (conflictPolicy === 'replace' && !hasPermission(auth, 'organizations', 'admin')) {
+    throw createError({ statusCode: 403, message: 'Replacing a page file requires organization admin permission' });
+  }
+
+  const document = normalizePageDocument({
+    blocks: page.fields?.blocks,
+    order: page.fields?.order
+  });
+  let targetPath = logicalPath;
+  let existing = document.blocks.find(block => block.kind === 'file' && block.file.path === targetPath) || null;
+  if (existing && conflictPolicy === 'fail') {
+    throw createError({ statusCode: 409, message: `Page already contains ${targetPath}` });
+  }
+  if (existing && conflictPolicy === 'create-distinct-name') {
+    targetPath = distinctPageFilePath(targetPath, new Set(
+      document.blocks.filter(block => block.kind === 'file').map(block => block.file.path)
+    ));
+    existing = null;
+  }
+
+  const fileName = targetPath.split('/').pop();
+  const stored = await filesService.uploadFile(
+    buffer,
+    fileName,
+    {
+      userId: String(auth.userId),
+      organizationId,
+      pageId: String(page._id),
+      logicalPath: targetPath,
+      graphId: String(provenance.graphId || ''),
+      graphRevision: String(provenance.graphRevision || ''),
+      executionId: String(provenance.executionId || ''),
+      outputId: String(provenance.outputId || '')
+    },
+    'files',
+    mimeType
+  );
+  const previousFile = existing?.file || null;
+  const history = previousFile
+    ? [...(previousFile.history || []), Object.fromEntries(Object.entries(previousFile).filter(([key]) => key !== 'history'))]
+    : [];
+  const revision = previousFile ? Number(previousFile.revision || 1) + 1 : 1;
+  const file = {
+    path: targetPath,
+    fileId: stored.id,
+    bucket: 'files',
+    name: fileName,
+    mime: String(mimeType || 'application/octet-stream'),
+    size: buffer.length,
+    revision,
+    history
+  };
+  const block = existing
+    ? { ...existing, file }
+    : { id: createBlockId('f'), kind: 'file', file };
+  const blocks = existing
+    ? document.blocks.map(item => item.id === existing.id ? block : item)
+    : [...document.blocks, block];
+  const order = existing
+    ? document.order
+    : [...document.order, block.id];
+
+  const updated = await repository.updatePageDocumentIfUnchanged(
+    page._id,
+    organizationId,
+    page.updatedAt,
+    normalizePageDocument({ blocks, order })
+  );
+  if (!updated) {
+    await filesService.deleteFile(stored.id, 'files');
+    throw createError({ statusCode: 409, message: 'Page changed while the file was being baked; reload and retry' });
+  }
+  return {
+    page: repository.serializeFull(updated),
+    file,
+    conflictPolicy
+  };
+}
+
+function distinctPageFilePath(path, occupied) {
+  const slash = path.lastIndexOf('/');
+  const directory = slash >= 0 ? path.slice(0, slash + 1) : '';
+  const filename = slash >= 0 ? path.slice(slash + 1) : path;
+  const dot = filename.lastIndexOf('.');
+  const stem = dot > 0 ? filename.slice(0, dot) : filename;
+  const extension = dot > 0 ? filename.slice(dot) : '';
+  for (let suffix = 2; suffix <= 1000; suffix += 1) {
+    const candidate = `${directory}${stem} (${suffix})${extension}`;
+    if (!occupied.has(candidate)) return candidate;
+  }
+  throw createError({ statusCode: 409, message: 'Could not find an unused page file name' });
 }
 
 export async function remove(id, auth = {}) {
