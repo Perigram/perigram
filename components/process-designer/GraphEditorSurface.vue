@@ -54,8 +54,10 @@
               <TabPanel value="inspector">
                 <GraphDocumentInspector
                   :node="selectedNode"
+                  :boundary-declaration="selectedBoundaryDeclaration"
                   @update-config="updateNodeConfig"
                   @update-boundary-label="updateBoundaryLabel"
+                  @update-boundary-declaration="updateBoundaryDeclaration"
                 />
               </TabPanel>
               <TabPanel value="preview">
