@@ -8,6 +8,30 @@
       <Message v-if="declarationError" severity="error">{{ declarationError }}</Message>
       <Button size="small" :label="$t('processDesigner.graphApplyInterfaceDeclaration')" @click="applyDeclaration" />
     </template>
+    <template v-else-if="isGraphInvocation">
+      <label class="text-supporting text-muted" for="graph-document-source">{{ $t('processDesigner.graphDocumentSource') }}</label>
+      <Select
+        id="graph-document-source"
+        v-model="selectedGraphId"
+        :options="graphDocuments"
+        option-label="name"
+        option-value="_id"
+        :loading="graphDocumentsLoading"
+        :disabled="graphDocumentsLoading || !graphDocuments.length"
+        class="w-full"
+        :placeholder="$t('processDesigner.selectGraphDocument')"
+      />
+      <Message v-if="graphDocumentsError" severity="error">{{ graphDocumentsError }}</Message>
+      <Button
+        size="small"
+        :label="$t('processDesigner.pinGraphRevision')"
+        :disabled="!selectedGraphId || graphDocumentsLoading"
+        @click="emit('hydrate-graph', { nodeId: node.id, graphId: selectedGraphId })"
+      />
+      <div v-if="node.data.config?.graphId" class="text-supporting text-muted">
+        {{ node.data.config.graphId }} · {{ node.data.config.revision }}
+      </div>
+    </template>
     <template v-else-if="node.data.definition">
       <label class="text-supporting text-muted" for="graph-node-config">{{ $t('processDesigner.graphConfiguration') }}</label>
       <Textarea id="graph-node-config" v-model="configText" rows="8" auto-resize class="w-full text-supporting" />
@@ -37,6 +61,7 @@
 import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
+import Select from 'primevue/select';
 import Textarea from 'primevue/textarea';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -44,15 +69,20 @@ import { GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
 
 const props = defineProps({
   node: { type: Object, default: null },
-  boundaryDeclaration: { type: Object, default: null }
+  boundaryDeclaration: { type: Object, default: null },
+  graphDocuments: { type: Array, default: () => [] },
+  graphDocumentsLoading: { type: Boolean, default: false },
+  graphDocumentsError: { type: String, default: '' }
 });
-const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration']);
+const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration', 'hydrate-graph']);
 const configText = ref('{}');
 const configError = ref('');
 const declarationText = ref('{}');
 const declarationError = ref('');
 const label = ref('');
 
+const selectedGraphId = ref('');
+const isGraphInvocation = computed(() => props.node?.data?.operation?.id === 'perigram.core.use-graph');
 const isBoundary = computed(() => [
   GRAPH_INPUT_OPERATION,
   GRAPH_OUTPUT_OPERATION
@@ -72,6 +102,7 @@ watch(
         : {})
     }, null, 2);
     label.value = props.node?.data?.label || '';
+    selectedGraphId.value = String(props.node?.data?.config?.graphId || '');
   },
   { immediate: true, deep: true }
 );
