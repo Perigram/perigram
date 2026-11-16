@@ -470,6 +470,13 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
     const raw = organizationOwned
       ? await repository.readOrganizationPluginAsset(asset)
       : await repository.readPluginAsset(asset);
+    if (organizationOwned) {
+      const manifestAsset = (install.packageAssets?.assets || []).find(item => item.path === segments.join('/'));
+      if (!manifestAsset || !manifestAsset.contentHash
+        || filesService.contentHash(raw) !== manifestAsset.contentHash) {
+        throw createError({ statusCode: 409, message: `Installed package asset ${segments.join('/')} failed its content digest check` });
+      }
+    }
     const body = isJsModule
       ? Buffer.from(rewriteDeclaredImports(raw.toString('utf8'), pluginId, install.declarations?.dependencies || []), 'utf8')
       : raw;
@@ -1339,15 +1346,7 @@ function assertSupportedRuntimeDeclarations(runtimes = []) {
   }
 }
 
-function assertSupportedRuntimeDeclarations(runtimes = []) {
-  for (const runtime of runtimes) {
-    if (runtime.language !== 'javascript') {
-      throw createError({
-        statusCode: 400,
-        message: `Runtime language ${runtime.language} is not available for installation yet`
-      });
-    }
-  }
+
 }
 
 function parseListingOr400(listing) {

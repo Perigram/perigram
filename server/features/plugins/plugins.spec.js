@@ -38,7 +38,10 @@ vi.mock('../instances/service.js', () => ({
   invalidateInstanceDeclarations: vi.fn(),
   instanceServiceResolver: vi.fn(() => ({ getById: vi.fn(async () => null) }))
 }));
-vi.mock('../files/service.js', () => ({ getFileBuffer: vi.fn(async () => Buffer.from('payload')) }));
+vi.mock('../files/service.js', () => ({
+  getFileBuffer: vi.fn(async () => Buffer.from('payload')),
+  contentHash: vi.fn(() => 'sha256:abc')
+}));
 vi.mock('../../utils/auth-helpers.js', () => ({ hasPermission: vi.fn(() => true) }));
 vi.mock('../cts-types/repository.js', () => ({
   findByTypeId: vi.fn(async () => null),
@@ -219,6 +222,26 @@ describe('plugin installs', () => {
       .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('Runtime language python is not available') });
     expect(repository.materializePluginAssets).not.toHaveBeenCalled();
     expect(repository.createInstall).not.toHaveBeenCalled();
+  });
+
+  it('verifies organization package digests before serving browser modules', async () => {
+    repository.findInstall.mockResolvedValue({
+      ...coatingInstall,
+      packageAssets: { count: 1, assets: [{ path: 'runtime.mjs', contentHash: 'sha256:abc' }] }
+    });
+    repository.findOrganizationPluginAssetMeta.mockResolvedValue({ contentType: 'text/javascript' });
+    repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.from('export default 1;'));
+    const result = await fetchSurfaceModule({
+      organizationId: ORG, pluginId: 'coatings', modulePath: 'runtime.mjs', auth: AUTH
+    });
+    expect(result.body.toString()).toBe('export default 1;');
+    repository.findInstall.mockResolvedValue({
+      ...coatingInstall,
+      packageAssets: { count: 1, assets: [{ path: 'runtime.mjs', contentHash: 'sha256:wrong' }] }
+    });
+    await expect(fetchSurfaceModule({
+      organizationId: ORG, pluginId: 'coatings', modulePath: 'runtime.mjs', auth: AUTH
+    })).rejects.toMatchObject({ statusCode: 409 });
   });
 
   it('materializes the pinned package into organization-owned data on install', async () => {
