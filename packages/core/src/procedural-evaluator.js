@@ -208,6 +208,15 @@ function readInput(node, portId, edges, values, required, fallback, shape = 'ite
     if (!values.has(key)) throw new Error(`Node ${node.id} input ${portId} reads unavailable output ${key}`);
     return { edge, value: values.get(key) };
   });
+  if (matches.length === 1) {
+    const value = valuesForEdges[0].value;
+    if (shape === 'map') {
+      return isRecord(value) ? value : { [`${matches[0].source.node}:${matches[0].source.port}`]: value };
+    }
+    if (['list', 'tuple', 'tree'].includes(shape)) {
+      return Array.isArray(value) ? value : [value];
+    }
+  }
   if (shape === 'map') {
     return Object.fromEntries(valuesForEdges.map(({ edge, value }) => [
       `${edge.source.node}:${edge.source.port}`,
