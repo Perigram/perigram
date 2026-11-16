@@ -190,10 +190,10 @@ describe('class obligations (R6)', () => {
     expect(compiled.errors.filter(error => error.includes('type account: constraints'))).toEqual([]);
     const type = registry.getType('account');
     await expect(validateConstraints(type, { _id: 'a-1', type: 'account' }, {
-      resolveRelation: async () => [{ fields: { amount: 4 } }, { fields: { amount: 6 } }]
+      resolveRelation: async () => [{ amount: 4 }, { amount: 6 }]
     })).resolves.toEqual([]);
     await expect(validateConstraints(type, { _id: 'a-1', type: 'account' }, {
-      resolveRelation: async () => [{ fields: { amount: -4 } }]
+      resolveRelation: async () => [{ amount: -4 }]
     })).resolves.toEqual(['constraint positive-invoice-total: Invoice total must be positive']);
   });
 

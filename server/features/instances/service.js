@@ -396,6 +396,20 @@ async function recordPayloadRevision(typeId, entity, declaration, payload, userI
 // lookups. Keys the type never declared are transport noise the service
 // ignores — never a Mongo path.
 
+function constraintValue(instance = {}) {
+  const fields = instance.fields && typeof instance.fields === 'object' ? instance.fields : {};
+  return {
+    ...fields,
+    _id: instance._id ?? instance.id ?? null,
+    type: instance.type ?? null,
+    organizationId: instance.organizationId ?? null,
+    fields,
+    relations: instance.relations || {},
+    lineage: instance.lineage || {},
+    state: instance.state ?? null
+  };
+}
+
 async function constraintResolversFor(organizationId) {
   const declarations = await overlayDeclarationsFor(organizationId);
   const view = new Map(declarations.map(declaration => [declaration.id, declaration]));
@@ -407,7 +421,7 @@ async function constraintResolversFor(organizationId) {
     if (!doc) return null;
     if (doc.organizationId != null && organizationId != null
       && String(doc.organizationId) !== String(organizationId)) return null;
-    return toDto(doc);
+    return constraintValue(toDto(doc));
   }
 
   async function resolveRelation(owner, key) {
@@ -453,7 +467,7 @@ async function constraintResolversFor(organizationId) {
           [`lineage.${key}`]: toFlexibleId(owner._id ?? owner.id)
         });
         for (const doc of docs) {
-          result.push(toDto(doc));
+          result.push(constraintValue(toDto(doc)));
           if (result.length > MAX_COLLECTION_ITEMS) throw new Error('child collection item limit exceeded');
         }
       }

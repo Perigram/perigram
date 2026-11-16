@@ -100,6 +100,20 @@ function adoptName(declaration, scope) {
     || (scope === 'org' ? null : startCase(declaration.id));
 }
 
+function constraintValue(instance = {}) {
+  const fields = instance.fields && typeof instance.fields === 'object' ? instance.fields : {};
+  return {
+    ...fields,
+    _id: instance._id ?? instance.id ?? null,
+    type: instance.type ?? null,
+    organizationId: instance.organizationId ?? null,
+    fields,
+    relations: instance.relations || {},
+    lineage: instance.lineage || {},
+    state: instance.state ?? null
+  };
+}
+
 function normalizeConstraints(constraints = [], typeId = '') {
   if (!Array.isArray(constraints) || constraints.length > 100) throw new Error(`type ${typeId}: constraints must be an array of at most 100 entries`);
   const seen = new Set();
@@ -123,7 +137,7 @@ export async function validateConstraints(type, instance, resolvers = {}) {
   const errors = [];
   for (const constraint of type?.constraints || []) {
     try {
-      const valid = await evaluateAsync(constraint.expression, { value: instance }, { steps: MAX_STEPS, ...resolvers });
+      const valid = await evaluateAsync(constraint.expression, { value: constraintValue(instance) }, { steps: MAX_STEPS, ...resolvers });
       if (valid !== true) errors.push(`constraint ${constraint.id}: ${constraint.message || 'predicate did not hold'}`);
     } catch (error) {
       errors.push(`constraint ${constraint.id}: ${error?.message || String(error)}`);
