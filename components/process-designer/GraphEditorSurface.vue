@@ -157,6 +157,11 @@ const {
   refreshPreview
 } = session;
 
+// The server-rendered boot state is the initial saved baseline; async
+// payload hydration may replace it on mount, but must not mark a new
+// editor dirty before the first user edit.
+savedSignature.value = designerSignature();
+
 const canvasItems = computed(() => [
   { icon: 'pi pi-search-minus', label: t('drawing.zoomOut'), onClick: zoomCanvasOut },
   { icon: 'pi pi-search-plus', label: t('drawing.zoomIn'), onClick: zoomCanvasIn },
