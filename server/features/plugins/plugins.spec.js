@@ -207,6 +207,20 @@ describe('plugin installs', () => {
       .rejects.toMatchObject({ message: expect.stringContaining('pluginId') });
     expect(repository.upsertCatalogListing).not.toHaveBeenCalled();
   });
+  it('refuses packages that target an unavailable managed runtime', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: {
+        ...coatingListing.declarations,
+        runtimes: [{ id: 'python', language: 'python', version: '1', entry: '/runtime.py', targets: ['browser'] }]
+      }
+    });
+    await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('Runtime language python is not available') });
+    expect(repository.materializePluginAssets).not.toHaveBeenCalled();
+    expect(repository.createInstall).not.toHaveBeenCalled();
+  });
+
   it('materializes the pinned package into organization-owned data on install', async () => {
     repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
     const packageAssets = { count: 2, assets: [{ path: 'engine.mjs', contentHash: 'sha256:abc', bytes: 42 }] };

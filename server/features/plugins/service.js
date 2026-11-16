@@ -145,6 +145,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
   }
   const layer = parseListingOr400(listing);
   const { types, services, editors, constructions, starterConstructs, dependencies, runtimes, exports: exportBindings, surfaces, engine, requires } = layer;
+  assertSupportedRuntimeDeclarations(runtimes);
   assertInstallableDependencies(dependencies);
   // Surface modules target a mount-contract major; an unsupported one
   // refuses at the gate — never a runtime half-mount (SPEC §Plugin
@@ -1072,6 +1073,7 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
   assertOrganizationPermission(auth, 'admin');
   const { install, listing } = await loadUpgradePair(organizationId, pluginId);
   const layer = parseListingOr400(listing);
+  assertSupportedRuntimeDeclarations(layer.runtimes);
   assertInstallableDependencies(layer.dependencies);
   // Surface modules target a mount-contract major; the upgrade re-checks
   // the same law the install gate enforced.
@@ -1324,6 +1326,17 @@ function withoutMigrateSteps(declaration = {}) {
   delete next.migrate;
   delete next.renameFrom;
   return next;
+}
+
+function assertSupportedRuntimeDeclarations(runtimes = []) {
+  for (const runtime of runtimes) {
+    if (runtime.language !== 'javascript') {
+      throw createError({
+        statusCode: 400,
+        message: `Runtime language ${runtime.language} is not available for installation yet`
+      });
+    }
+  }
 }
 
 function parseListingOr400(listing) {
