@@ -138,7 +138,8 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     return { ...baked, execution };
   } catch (error) {
     try {
-      await pagesService.retractBakedFile({ pageId: destination.pageId, fileId: baked.file.fileId }, auth);
+      const rollback = await pagesService.retractBakedFile({ pageId: destination.pageId, fileId: baked.file.fileId }, auth);
+      if (!rollback?.success) throw new Error('Baked file remains referenced by the Page and requires manual provenance repair');
     } catch (rollbackError) {
       throw createError({ statusCode: 500, message: 'Bake artifact could not be rolled back after execution recording failed', data: { executionError: error.message, rollbackError: rollbackError.message, fileId: baked.file.fileId } });
     }
