@@ -114,7 +114,7 @@ const graphRevisionsError = ref('');
 let canvasFrame = null;
 let instanceId = String(props.record?._id || props.record?.id || '');
 
-const session = useGraphDocumentSession({ t, providers: props.nodeProviders });
+const session = useGraphDocumentSession({ t, providers: props.nodeProviders, graphDocuments });
 const {
   nodes,
   edges,
@@ -225,9 +225,29 @@ async function loadGraphCatalog() {
   graphDocumentsError.value = '';
   try {
     const items = await $fetch('/api/instances/graph-document');
-    graphDocuments.value = (Array.isArray(items) ? items : [])
+    graphDocuments.value = await Promise.all((Array.isArray(items) ? items : [])
       .filter(item => item?.payload?.fileId && item?._id)
-      .map(item => ({ ...item, _id: String(item._id), name: String(item.name || 'Graph'), fields: { ...(item.fields || {}), graphId: String(item.fields?.graphId || '') } }));
+      .map(async item => {
+        const record = {
+          ...item,
+          _id: String(item._id),
+          name: String(item.name || 'Graph'),
+          fields: { ...(item.fields || {}), graphId: String(item.fields?.graphId || '') }
+        };
+        try {
+          const payload = await $fetch(
+            `/api/files/download/${encodeURIComponent(record.payload.fileId)}?bucket=files`,
+            { responseType: 'text' }
+          );
+          const graph = parseGraphPayload(payload);
+          if (record.fields.graphId && record.fields.graphId !== graph.id) {
+            throw new Error('Stored graph identity does not match its payload');
+          }
+          return { ...record, graph };
+        } catch {
+          return { ...record, graph: null };
+        }
+      }));
   } catch (error) {
     graphDocumentsError.value = error?.data?.message || error?.message || '';
   } finally {
