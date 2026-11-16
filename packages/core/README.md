@@ -61,6 +61,12 @@ boundary node. Use Graph nodes pin an immutable graph revision.
 - `evaluateProceduralGraph` evaluates data dependencies in preview mode,
   resolves exact provider definitions, and composes pinned subgraphs. It returns
   graph outputs and per-node outputs for host preview channels.
+- `createGraphExecutionRecord`, `validateGraphExecutionRecord`, and
+  `assertValidGraphExecutionRecord` own immutable, versioned execution
+  envelopes with pinned graph revisions, inputs, outputs, diagnostics,
+  invocation provenance, read sets, and artifact references. Construction
+  validates JSON values before cloning so serialization cannot erase invalid
+  `undefined`, non-finite, or non-JSON values.
 - Preview accepts pure and read node definitions; effect, proposal, commit,
   stateful, and control operations are refused by the evaluator.
 
