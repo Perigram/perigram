@@ -276,3 +276,21 @@ Env: `PERIGRAM_APP` (default `http://localhost:3000`),
   platform consumer of the contract.
 - [components/generated](../../components/generated/README.md) — the
   host-side surface mount and preview slots.
+
+
+## Provider-neutral node contracts
+
+The browser-safe `@perigram/plugin-sdk/nodes` entry exposes
+`normalizeNodeDefinition`, `validateNodeDefinition`,
+`assertValidNodeDefinition`, and `createNodeProviderRegistry`.
+A node definition pins provider, operation id, and definition version;
+declares independent input/output ports with transport shape and semantic
+descriptors; and classifies execution behavior and required capabilities.
+The registry resolves exact provider-qualified versions and rejects duplicate
+registrations.
+
+This contract is metadata and dispatch identity, not an executor sandbox.
+Providers still own their execution implementation. The platform runtime
+must enforce authorization and effect boundaries independently of node
+declarations. The package root also re-exports these helpers for Node users;
+browser consumers should use the `./nodes` subpath.
