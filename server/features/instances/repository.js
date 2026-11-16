@@ -26,13 +26,16 @@ export async function insertInstance(collection, doc) {
   return doc;
 }
 
-export async function listInstances(collection, typeId, organizationId, limit = 200, filter = {}) {
+export async function listInstances(collection, typeId, organizationId, limit = 200, filter = {}, {
+  sort = { createdAt: -1, _id: -1 },
+  skip = 0
+} = {}) {
   const db = await connectDB();
-  return await db.collection(collection)
+  let cursor = db.collection(collection)
     .find({ type: typeId, ...orgFilter(organizationId), ...filter })
-    .sort({ createdAt: -1, _id: -1 })
-    .limit(limit)
-    .toArray();
+    .sort(sort);
+  if (skip > 0) cursor = cursor.skip(skip);
+  return await cursor.limit(limit).toArray();
 }
 
 export async function findInstance(collection, id, typeId = null) {
