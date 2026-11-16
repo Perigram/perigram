@@ -538,6 +538,7 @@ function instanceService(typeId) {
       // it, static types ignore it.
       const organizationId = typeof context === 'string' ? context : context?.organizationId || null;
       const declaration = await requireDeclaration(typeId, organizationId);
+      if (declaration.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
       const collection = repository.collectionForClass(declaration.class);
       // Wire patches speak the stored shape. Lifecycle is deliberately
       // absent: transitions and initial-state writes belong to the status
@@ -648,6 +649,7 @@ function instanceService(typeId) {
       }
       const targetOrganizationId = doc.organizationId ?? organizationId ?? null;
       const declaration = await requireDeclaration(typeId, targetOrganizationId);
+      if (declaration.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
       const target = await writeGrantTarget(declaration, targetOrganizationId);
       if (!target || !hasInstanceAccess({ entity: toDto(doc), typeId: target.typeId, feature: target.feature, level: 'write', action: 'delete', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -661,6 +663,7 @@ function instanceService(typeId) {
     async remove(id, { actor = null, organizationId = null } = {}) {
       organizationId = organizationId == null ? null : String(organizationId);
       const declaration = await declarationFor(typeId, organizationId);
+      if (declaration?.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
       const collection = repository.collectionForClass(declaration?.class);
       const doc = await repository.findInstance(collection, id, typeId);
       if (doc) {
@@ -862,8 +865,8 @@ function instanceService(typeId) {
     processCapabilities: {
       create: staticCreateModes.length > 0,
       createModes: staticCreateModes,
-      processUpdate: true,
-      delete: true,
+      processUpdate: staticDeclaration?.mutability !== 'append-only',
+      delete: staticDeclaration?.mutability !== 'append-only',
       archive: false
     },
     constructionHandlers: serviceAwareConstructionHandlers(typeId, {
