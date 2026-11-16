@@ -559,7 +559,7 @@ async function assertDeclaredRelationSlots(declaration, instance, organizationId
   }
 }
 
-async function assertDeclaredLineageSlots(typeId, lineage, organizationId) {
+async function assertDeclaredLineageSlots(typeId, lineage, organizationId, { session = null } = {}) {
   const entries = Object.entries(lineage || {}).filter(([, value]) => value !== undefined);
   if (!entries.length) return;
   const declarations = organizationId
@@ -593,7 +593,8 @@ async function assertDeclaredLineageSlots(typeId, lineage, organizationId) {
       const parent = await repository.findInstance(
         repository.collectionForClass(parentDeclaration.class),
         String(id),
-        parentType
+        parentType,
+        { session }
       );
       if (!parent) continue;
       const parentOrganizationId = parent.organizationId == null ? null : String(parent.organizationId);
@@ -666,7 +667,7 @@ function lineageParentId(value) {
   return value;
 }
 
-async function lineageWithDerivedChain(draft = {}, organizationId = null, childTypeId = null) {
+async function lineageWithDerivedChain(draft = {}, organizationId = null, childTypeId = null, { session = null } = {}) {
   const wire = draft.lineage && typeof draft.lineage === 'object' ? draft.lineage : {};
   // The stored lineage is pure tree edges: ref objects (`{ type, id }`)
   // scalarize to ids at this boundary.
@@ -707,7 +708,8 @@ async function lineageWithDerivedChain(draft = {}, organizationId = null, childT
       const candidate = await repository.findInstance(
         repository.collectionForClass(declaration.class),
         parentId,
-        parentType
+        parentType,
+        { session }
       );
       if (!candidate) continue;
       const parentOrganizationId = candidate.organizationId == null ? null : String(candidate.organizationId);
@@ -794,7 +796,7 @@ function instanceService(typeId) {
     if (unknownFields.length) {
       throw createError({ statusCode: 400, message: 'Fields ' + unknownFields.join(', ') + ' are not declared for ' + typeId });
     }
-    const lineage = await lineageWithDerivedChain(draft, effectiveOrganizationId, typeId);
+    const lineage = await lineageWithDerivedChain(draft, effectiveOrganizationId, typeId, { session });
     const doc = {
       _id: new ObjectId(),
       type: typeId,
@@ -817,8 +819,8 @@ function instanceService(typeId) {
       if ((field?.base === 'ref' || (field?.base === 'list' && field?.itemType?.base === 'ref'))
         && Object.hasOwn(doc.fields || {}, fieldId)) relationKeys.add(fieldId);
     }
-    await assertDeclaredRelationSlots(declaration, doc, effectiveOrganizationId, [...relationKeys]);
-    await assertPermanentConstraints(declaration, toDto(doc), effectiveOrganizationId);
+    await assertDeclaredRelationSlots(declaration, doc, effectiveOrganizationId, [...relationKeys], { session });
+    await assertPermanentConstraints(declaration, toDto(doc), effectiveOrganizationId, { session });
     await runOrganizationChange(effectiveOrganizationId, {
       kind: 'instance-created',
       typeId,
