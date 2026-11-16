@@ -581,7 +581,7 @@ async function assertDeclaredLineageSlots(typeId, lineage, organizationId) {
       throw createError({ statusCode: 400, message: `Lineage key ${key} is not declared for child type ${typeId}` });
     }
     if (value == null) continue;
-    const id = typeof value === 'object' ? value.id ?? value._id : value;
+    const id = lineageParentId(value);
     if (id == null) {
       throw createError({ statusCode: 400, message: `Lineage key ${key} requires a parent instance id` });
     }
@@ -660,6 +660,12 @@ export { writeGrantTarget };
 // contributes its own lineage; authored axes win over derived ones
 // (canonical law: this feature's README). A parent in another
 // organization refuses.
+function lineageParentId(value) {
+  if (value instanceof ObjectId) return value;
+  if (value && typeof value === 'object') return value.id ?? value._id;
+  return value;
+}
+
 async function lineageWithDerivedChain(draft = {}, organizationId = null, childTypeId = null) {
   const wire = draft.lineage && typeof draft.lineage === 'object' ? draft.lineage : {};
   // The stored lineage is pure tree edges: ref objects (`{ type, id }`)
@@ -667,7 +673,7 @@ async function lineageWithDerivedChain(draft = {}, organizationId = null, childT
   const authored = {};
   for (const [key, value] of Object.entries(wire)) {
     if (key === 'organizationId') continue; // tenancy is stored in its own §3 slot
-    authored[key] = value && typeof value === 'object' ? value.id ?? value._id : value;
+    authored[key] = lineageParentId(value);
   }
   const declarations = organizationId
     ? await overlayDeclarationsFor(organizationId)
@@ -970,7 +976,7 @@ function instanceService(typeId) {
           // organizationId key is deliberately not a writable edge.
           if (key === 'organizationId') continue;
           if (value !== undefined) {
-            const parentId = value && typeof value === 'object' ? value.id ?? value._id : value;
+            const parentId = lineageParentId(value);
             set[`lineage.${key}`] = parentId;
           }
         }
