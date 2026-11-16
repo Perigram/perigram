@@ -51,9 +51,13 @@
             :graph-documents="graphDocuments"
             :graph-documents-loading="graphDocumentsLoading"
             :graph-documents-error="graphDocumentsError"
+            :graph-revisions="graphRevisions"
+            :graph-revisions-loading="graphRevisionsLoading"
+            :graph-revisions-error="graphRevisionsError"
             @update-config="updateNodeConfig"
             @update-boundary-label="updateBoundaryLabel"
             @update-boundary-declaration="updateBoundaryDeclaration"
+            @select-graph-document="loadGraphRevisions"
             @hydrate-graph="hydrateSelectedGraph"
           />
         </div>
