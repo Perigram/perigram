@@ -300,6 +300,30 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
+  it('stores process-update lineage references as scalar parent ids', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockResolvedValue({
+      _id: 'bin-1',
+      type: 'bin',
+      organizationId: 'org-1',
+      lineage: {}
+    });
+    coll.findOneAndUpdate.mockResolvedValue({
+      _id: 'panel-1',
+      type: 'panel',
+      organizationId: 'org-1',
+      fields: {},
+      lineage: { binId: 'bin-1' }
+    });
+    const service = instanceServiceResolver('panel');
+
+    await service.processUpdate('panel-1', {
+      lineage: { binId: { type: 'bin', id: 'bin-1' } }
+    }, 'org-1');
+
+    expect(coll.findOneAndUpdate.mock.calls[0][1].$set['lineage.binId']).toBe('bin-1');
+  });
+
   it('rejects undeclared relation writes through the process update boundary', async () => {
     const coll = stubCollection();
     const service = instanceServiceResolver('project');
