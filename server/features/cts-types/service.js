@@ -4,7 +4,7 @@
 // them per SPEC §4 (no shadowing), and redefinition goes through the
 // refuse-on-breaking diff (SPEC §11).
 import { createError } from 'h3';
-import { runOrganizationChange } from '../instances/organization-sequence.js';
+import { runOrganizationChange } from '../instances/index.js';
 import * as repository from './repository.js';
 import {
   createTypeRegistry, compileClientBundle, frameworkTypes, planTypeMigration
