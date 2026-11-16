@@ -129,7 +129,16 @@ const graphRevisionsError = ref('');
 let canvasFrame = null;
 let instanceId = String(props.record?._id || props.record?.id || '');
 
-const session = useGraphDocumentSession({ t, providers: props.nodeProviders, graphDocuments });
+const queryOrganizationData = query => $fetch('/api/graph-executions/query', {
+  method: 'POST',
+  body: query
+});
+const session = useGraphDocumentSession({
+  t,
+  providers: props.nodeProviders,
+  graphDocuments,
+  queryOrganizationData
+});
 const {
   nodes,
   edges,

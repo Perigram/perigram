@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
-import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord } from '#packages/core';
+import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder } from '#packages/core';
+import { withOrganizationChangeSequence } from '../instances/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '../files/service.js';
 import * as pagesService from '../pages/service.js';
@@ -58,6 +59,115 @@ async function persistRecord(record, graphDocument, organizationId, auth) {
       artifacts: record.artifacts
     }
   }, auth.userId, organizationId);
+}
+
+export async function queryOrganizationData(query = {}, auth = {}) {
+  const typeId = String(query.typeId || '').trim();
+  if (!typeId) throw createError({ statusCode: 400, message: 'A CTS typeId is required' });
+  if (typeId.length > 128) throw createError({ statusCode: 400, message: 'CTS typeId is too long' });
+  const filters = query.filters == null ? {} : query.filters;
+  if (!filters || typeof filters !== 'object' || Array.isArray(filters)) {
+    throw createError({ statusCode: 400, message: 'Graph query filters must be an object' });
+  }
+  const limit = boundedQueryInteger(query.limit, 50, 1, 200, 'limit');
+  const offset = boundedQueryInteger(query.offset, 0, 0, 10000, 'offset');
+  const sortBy = query.sortBy == null ? 'createdAt' : String(query.sortBy);
+  const sortDirection = query.sortDirection == null ? 'desc' : String(query.sortDirection);
+  if (!['asc', 'desc'].includes(sortDirection)) {
+    throw createError({ statusCode: 400, message: 'Graph query sortDirection must be asc or desc' });
+  }
+  const projection = normalizeProjection(query.projection);
+  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+  const instanceService = getAppRegistry().getInstanceService(typeId);
+  if (!instanceService || typeof instanceService.processList !== 'function') {
+    throw createError({ statusCode: 404, message: 'CTS instance query service is unavailable' });
+  }
+
+  const queryShape = { typeId, filters, sortBy, sortDirection, limit, offset, projection };
+  const { value: items, boundary } = await withOrganizationChangeSequence(
+    organizationId,
+    () => instanceService.processList({
+      ...filters,
+      sortBy,
+      sortDirection,
+      limit,
+      offset
+    }, auth),
+    { retries: 2 }
+  );
+  const recorder = createGraphReadSetRecorder(boundary);
+  for (const item of items || []) {
+    recorder.recordInstance({
+      typeId,
+      instanceId: String(item?._id ?? item?.id ?? ''),
+      revision: item?.revision ?? null,
+      updatedAt: item?.updatedAt ?? null,
+      typeVersion: item?.typeVersion,
+      organizationId: item?.organizationId ?? organizationId
+    });
+  }
+  recorder.recordQuery({
+    typeId,
+    organizationId,
+    query: queryShape,
+    resultIds: (items || []).map(item => String(item?._id ?? item?.id ?? '')),
+    observedTotal: (items || []).length,
+    sequence: boundary.organizationSequenceEnd
+  });
+  return {
+    items: (items || []).map(item => projectGraphQueryItem(item, projection)),
+    count: (items || []).length,
+    readSet: recorder.toJSON()
+  };
+}
+
+function boundedQueryInteger(value, fallback, minimum, maximum, label) {
+  if (value == null || value === '') return fallback;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < minimum || parsed > maximum) {
+    throw createError({ statusCode: 400, message: 'Graph query ' + label + ' must be an integer between ' + minimum + ' and ' + maximum });
+  }
+  return parsed;
+}
+
+function normalizeProjection(value) {
+  if (value == null) return null;
+  if (!Array.isArray(value) || value.length > 50) {
+    throw createError({ statusCode: 400, message: 'Graph query projection must be an array of at most 50 paths' });
+  }
+  const allowed = /^(?:_id|type|typeVersion|organizationId|name|state|createdAt|updatedAt|payload|provenance|fields\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*|lineage\.[A-Za-z0-9_-]+|relations\.[A-Za-z0-9_-]+)$/;
+  const paths = [...new Set(value.map(String))];
+  if (paths.some(path => !allowed.test(path) || path.split('.').some(part => ['__proto__', 'prototype', 'constructor'].includes(part)))) {
+    throw createError({ statusCode: 400, message: 'Graph query projection contains an unsupported path' });
+  }
+  return paths;
+}
+
+function projectGraphQueryItem(item, projection) {
+  if (!projection) return item;
+  const result = {};
+  for (const key of ['_id', 'type', 'typeVersion', 'organizationId']) {
+    if (item?.[key] !== undefined) result[key] = item[key];
+  }
+  for (const path of projection) {
+    const parts = path.split('.');
+    let source = item;
+    for (const part of parts) {
+      if (!source || typeof source !== 'object' || !Object.hasOwn(source, part)) {
+        source = undefined;
+        break;
+      }
+      source = source[part];
+    }
+    if (source === undefined) continue;
+    let target = result;
+    for (const part of parts.slice(0, -1)) {
+      target[part] ||= {};
+      target = target[part];
+    }
+    target[parts.at(-1)] = source;
+  }
+  return result;
 }
 
 export async function recordExecution({ graphDocumentInstanceId, record: value } = {}, auth = {}) {

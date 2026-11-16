@@ -13,7 +13,8 @@ const mocks = vi.hoisted(() => ({
   assertFileReadAccess: vi.fn(),
   getFileBuffer: vi.fn(),
   bakeFile: vi.fn(),
-  retractBakedFile: vi.fn()
+  retractBakedFile: vi.fn(),
+  withOrganizationChangeSequence: vi.fn()
 }));
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: mocks.getAppRegistry }));
 vi.mock('../files/service.js', () => ({
@@ -24,6 +25,9 @@ vi.mock('../files/service.js', () => ({
 vi.mock('../pages/service.js', () => ({
   bakeFile: mocks.bakeFile,
   retractBakedFile: mocks.retractBakedFile
+}));
+vi.mock('../instances/service.js', () => ({
+  withOrganizationChangeSequence: mocks.withOrganizationChangeSequence
 }));
 
 import * as graphExecutionsService from './service.js';
@@ -75,14 +79,20 @@ describe('graph execution service', () => {
   };
   const executionService = { create: vi.fn() };
   const graphService = { processGetById: vi.fn() };
+  const dataService = { processList: vi.fn() };
 
   beforeEach(() => {
     vi.clearAllMocks();
     graphService.processGetById.mockResolvedValue(graphDocument);
     executionService.create.mockResolvedValue({ _id: 'execution-instance-1' });
     mocks.getAppRegistry.mockReturnValue({
-      getInstanceService: typeId => typeId === 'graph-document' ? graphService : executionService
+      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : dataService
     });
+    dataService.processList.mockResolvedValue([{ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }]);
+    mocks.withOrganizationChangeSequence.mockImplementation(async (_organizationId, read) => ({
+      value: await read(),
+      boundary: { consistency: 'sequence-bracketed', snapshotId: null, organizationSequenceStart: 4, organizationSequenceEnd: 4 }
+    }));
     mocks.findFileMeta.mockResolvedValue({ metadata: { organizationId: 'org-1' }, contentType: 'application/json' });
     mocks.assertFileReadAccess.mockReturnValue(true);
     mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
@@ -91,6 +101,33 @@ describe('graph execution service', () => {
       file: { path: 'exports/document.txt', fileId: 'baked-file-1', mime: 'text/plain', size: 18, revision: 1 }
     });
     mocks.retractBakedFile.mockResolvedValue({ success: true });
+  });
+
+  it('queries through the authorized instance read boundary and records sequence-bracketed read evidence', async () => {
+    const result = await graphExecutionsService.queryOrganizationData({
+      typeId: 'part',
+      filters: { code: 'A' },
+      sortBy: 'createdAt',
+      sortDirection: 'desc',
+      limit: 25,
+      offset: 5,
+      projection: ['fields.code']
+    }, auth);
+    expect(dataService.processList).toHaveBeenCalledWith({
+      code: 'A', sortBy: 'createdAt', sortDirection: 'desc', limit: 25, offset: 5
+    }, auth);
+    expect(mocks.withOrganizationChangeSequence).toHaveBeenCalledWith('org-1', expect.any(Function), { retries: 2 });
+    expect(result.items).toEqual([expect.objectContaining({
+      _id: 'item-1', type: 'part', fields: { code: 'A' }
+    })]);
+    expect(result.count).toBe(1);
+    expect(result.readSet).toMatchObject({
+      consistency: 'sequence-bracketed',
+      organizationSequenceStart: 4,
+      organizationSequenceEnd: 4,
+      instances: [{ typeId: 'part', instanceId: 'item-1', typeVersion: 2 }],
+      queries: [{ typeId: 'part', resultIds: ['item-1'], observedTotal: 1, sequence: 4 }]
+    });
   });
 
   it('records an execution only against the exact authorized saved graph revision', async () => {
