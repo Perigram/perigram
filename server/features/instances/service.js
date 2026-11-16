@@ -11,7 +11,7 @@
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, mimeMatches, validateConstraints, evaluateAsync, MAX_COLLECTION_ITEMS } from '#packages/cts';
+import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, mimeMatches, validateConstraints, evaluateAsync, MAX_COLLECTION_ITEMS, MAX_STEPS } from '#packages/cts';
 import * as typeStore from '../cts-types/repository.js';
 import * as pluginInstalls from '../plugins/repository.js';
 import * as repository from './repository.js';
