@@ -11,7 +11,7 @@ import {
   normalizeGraphDocument,
   validateGraphDocument
 } from '@perigram/core';
-import { createNodeProviderRegistry } from '@perigram/plugin-sdk/nodes';
+import { createNodeProviderRegistry, normalizeNodeProvider } from '@perigram/plugin-sdk/nodes';
 import {
   PROCESS_PROCEDURAL_PROVIDER,
   PROCESS_PROCEDURAL_VERSION,
@@ -527,11 +527,8 @@ export function useGraphDocumentSession({ t, providers = [] }) {
   }
 
   for (const contribution of providers) {
-    if (!contribution || typeof contribution.execute !== 'function') continue;
-    const definitions = Array.isArray(contribution.definitions)
-      ? contribution.definitions
-      : contribution.definition ? [contribution.definition] : [];
-    for (const definition of definitions) registerProvider(definition, contribution.execute);
+    const provider = normalizeNodeProvider(contribution);
+    for (const definition of provider.definitions) registerProvider(definition, provider.execute);
   }
 
   function openPanePalette(event) {

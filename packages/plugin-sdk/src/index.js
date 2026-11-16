@@ -9,5 +9,6 @@ export {
   normalizeNodeDefinition,
   validateNodeDefinition,
   assertValidNodeDefinition,
-  createNodeProviderRegistry
+  createNodeProviderRegistry,
+  normalizeNodeProvider
 } from './node-contract.js';

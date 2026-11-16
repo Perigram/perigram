@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   assertValidNodeDefinition,
   createNodeProviderRegistry,
+  normalizeNodeProvider,
   normalizeNodeDefinition,
   validateNodeDefinition
 } from './node-contract.js';
