@@ -3,10 +3,10 @@
     <strong class="text-label">{{ node.data.label }}</strong>
     <template v-if="isBoundary">
       <InputText v-model="label" size="small" @blur="applyLabel" @keydown.enter.prevent="applyLabel" />
-      <label class="text-supporting text-muted" for="graph-boundary-declaration">Interface declaration (JSON)</label>
+      <label class="text-supporting text-muted" for="graph-boundary-declaration">{{ $t('processDesigner.graphInterfaceDeclaration') }}</label>
       <Textarea id="graph-boundary-declaration" v-model="declarationText" rows="8" auto-resize class="w-full text-supporting" />
       <Message v-if="declarationError" severity="error">{{ declarationError }}</Message>
-      <Button size="small" label="Apply interface declaration" @click="applyDeclaration" />
+      <Button size="small" :label="$t('processDesigner.graphApplyInterfaceDeclaration')" @click="applyDeclaration" />
     </template>
     <template v-else-if="node.data.definition">
       <label class="text-supporting text-muted" for="graph-node-config">{{ $t('processDesigner.graphConfiguration') }}</label>

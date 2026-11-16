@@ -3484,7 +3484,9 @@
     "useGraph": "Use Graph",
     "useGraphDescription": "Invoke a pinned revision of another graph",
     "graphInputValues": "Graph inputs",
-    "applyGraphInput": "Apply input"
+    "applyGraphInput": "Apply input",
+    "graphInterfaceDeclaration": "Interface declaration (JSON)",
+    "graphApplyInterfaceDeclaration": "Apply interface declaration"
   },
   "generatedScreen": {
     "home": "Home",

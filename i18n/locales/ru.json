@@ -3484,7 +3484,9 @@
     "useGraph": "Использовать граф",
     "useGraphDescription": "Вызвать закреплённую ревизию другого графа",
     "graphInputValues": "Входы графа",
-    "applyGraphInput": "Применить вход"
+    "applyGraphInput": "Применить вход",
+    "graphInterfaceDeclaration": "Объявление интерфейса (JSON)",
+    "graphApplyInterfaceDeclaration": "Применить объявление интерфейса"
   },
   "generatedScreen": {
     "home": "Главная",
