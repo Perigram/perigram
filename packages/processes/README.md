@@ -1512,3 +1512,24 @@ and the compiler surfaces (screens, access, contract diff, orchestration).
   membership gates.
 - [server/scripts](../../server/scripts/README.md) — one-shot
   persisted-data migrations.
+
+## Procedural graph provider adapter
+
+`procedural-provider.js` exposes the process package's pure data-operation
+catalog to the canonical procedural evaluator without transferring ownership
+of the process scheduler or effect runtime.
+
+- `createProcessProceduralNodeDefinition(kind, record, catalogContext)`
+  projects an eligible pure source/value/collection/record operation into a
+  provider-qualified, versioned node contract.
+- `createProcessProceduralExecutor({ context, catalogContext })` adapts
+  canonical plain port values to the process package's data-tree packets,
+  calls `executeProcessDataNode`, and unwraps the declared output shape.
+- The provider identity is `perigram.processes`; operation IDs remain the
+  existing process species IDs. Dynamic port declarations are resolved from
+  the catalog using the node's configuration.
+
+CTS reads, CTS writes, control-token nodes, and effects are deliberately not
+exposed by this adapter. They remain behind their existing authorization and
+durable orchestration boundaries. A host must supply any trusted read context
+explicitly; this adapter does not grant data access.
