@@ -48,4 +48,45 @@ describe('useGraphDocumentSession', () => {
     });
     expect(session.previewError.value).toBe('');
   });
+
+  it('edits boundary semantic contracts and optional defaults as interface declarations', () => {
+    const session = createSession();
+    const [input] = session.paletteGroups.value[0].items;
+    const node = session.addNode(input, { x: 0, y: 0 });
+    const portId = session.graphDocument.value.interface.inputs[0].id;
+
+    session.updateBoundaryDeclaration(node.id, {
+      contract: { shape: 'list', semantic: { base: 'number', unit: 'kg' } },
+      required: true,
+      default: [1, 2]
+    });
+
+    expect(session.graphDocument.value.interface.inputs[0]).toMatchObject({
+      id: portId,
+      contract: { shape: 'list', semantic: { base: 'number', unit: 'kg' } },
+      required: true,
+      default: [1, 2]
+    });
+    expect(session.serializeGraph().interface.inputs[0].default).toEqual([1, 2]);
+
+    session.updateBoundaryDeclaration(node.id, {
+      contract: { shape: 'item', semantic: { base: 'json' } },
+      required: false
+    });
+    expect(session.graphDocument.value.interface.inputs[0]).not.toHaveProperty('default');
+    expect(session.validation.value.ok).toBe(true);
+  });
+
+  it('rejects malformed boundary declarations without mutating the interface', () => {
+    const session = createSession();
+    const [input] = session.paletteGroups.value[0].items;
+    const node = session.addNode(input, { x: 0, y: 0 });
+    const before = JSON.parse(JSON.stringify(session.graphDocument.value.interface.inputs[0]));
+
+    expect(() => session.updateBoundaryDeclaration(node.id, {
+      contract: { shape: 'unknown', semantic: {} },
+      required: true
+    })).toThrow(/supported shape/);
+    expect(session.graphDocument.value.interface.inputs[0]).toEqual(before);
+  });
 });
