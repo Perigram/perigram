@@ -2,7 +2,7 @@
   <div>
     <section v-if="editableInputs.length || operationOptions.length || isLiteral || isCast || isTypedValueUtility || isConvertUnit" class="flex flex-col gap-3">
       <div v-if="editableInputs.length" class="flex flex-col gap-2">
-        <label class="font-medium">{{ $t('processDesigner.inputDefaults') }}</label>
+        <label >{{ $t('processDesigner.inputDefaults') }}</label>
         <div v-for="input in editableInputs" :key="input.id" class="flex flex-col gap-1">
           <label>{{ input.label }}</label>
           <TypedValueControl

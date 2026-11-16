@@ -275,13 +275,13 @@
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
-          <span class="truncate text-caption text-muted">{{ row.input.typeLabel }}</span>
+          <span class="truncate text-supporting text-muted">{{ row.input.typeLabel }}</span>
           <i :class="row.input.connected ? 'pi pi-link text-muted' : 'pi pi-unlink text-muted'" :title="row.input.connected ? t('processDesigner.socketConnected') : t('processDesigner.socketUnconnected')" aria-hidden="true" />
         </div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
           <span class="block truncate text-supporting">{{ row.output.label }}</span>
-          <span class="truncate text-caption text-muted">{{ row.output.typeLabel }}</span>
+          <span class="truncate text-supporting text-muted">{{ row.output.typeLabel }}</span>
           <i :class="row.output.connected ? 'pi pi-link text-muted' : 'pi pi-unlink text-muted'" :title="row.output.connected ? t('processDesigner.socketConnected') : t('processDesigner.socketUnconnected')" aria-hidden="true" />
         </div>
       </div>

@@ -53,11 +53,13 @@ function freshDraft() {
 describe('socket connection projection', () => {
   it('projects connected output socket ids for the canvas manifest', () => {
     freshDraft();
+    const previousEdges = edges.value;
     const source = nodeRecords.createProcessNode('source', 'source.literalItem');
     const output = sync.processNodeOutputs(source)[0];
     edges.value = [{ source: 'source-node', sourceHandle: 'output' }];
 
     expect(sync.connectedProcessOutputIds({ id: 'source-node' }, source)).toEqual([output.id]);
+    edges.value = previousEdges;
   });
 });
 
