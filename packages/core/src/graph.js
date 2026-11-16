@@ -12,8 +12,8 @@ const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 export function normalizeGraphDocument(source = {}) {
   if (!isRecord(source)) throw new Error('Graph document must be an object');
   const document = {
-    format: String(source.format || FORMAT),
-    version: Number(source.version || GRAPH_DOCUMENT_VERSION),
+    format: source.format == null ? FORMAT : String(source.format),
+    version: Number(source.version ?? GRAPH_DOCUMENT_VERSION),
     id: requiredString(source.id, 'Graph id'),
     revision: requiredString(source.revision, 'Graph revision'),
     name: String(source.name || ''),
@@ -167,6 +167,7 @@ function normalizeInterfacePorts(ports, direction) {
   return ports.map(port => {
     if (!isRecord(port)) throw new Error(`Graph interface ${direction} must contain objects`);
     if (!isJsonValue(port.contract)) throw new Error(`Graph interface port ${port.id || '(unnamed)'} contract must be JSON-compatible`);
+    if (Object.hasOwn(port, 'default') && !isJsonValue(port.default)) throw new Error(`Graph interface port ${port.id || '(unnamed)'} default must be JSON-compatible`);
     return {
       id: requiredString(port.id, `Graph ${direction} id`),
       label: String(port.label || port.id || ''),
