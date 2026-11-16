@@ -29,11 +29,37 @@ CTS declaration records and designer authoring in; runtime contracts out. The se
 | Canvas records | Process nodes and status definitions are canvas records; every other record kind (producer outputs, actions, services, sockets, value inputs) is panel-owned and survives the round trip untouched. A derived action and its effect sharing an id keep one `data.refId` under namespaced canvas ids. |
 | Stability gate | `validateRoundTrip` cycles definition → canvas → definition twice at activation and the generations match; `ctsTypes` records round-trip byte-identical (full authoring key set; `null` binding stays `null`); canvas positions are presentation data. |
 
+### Relationship to the unified graph architecture
+
+Root SPEC.md §28 is authoritative for the canonical graph document,
+procedural execution profile, reusable subgraph interface, plugin-provider
+contract, preview, Commit/Bake, and graph-format migration. This package's
+node-model section is the process profile's compatibility contract for
+those shared definitions; it must not fork or redefine them.
+
+Process orchestration remains a distinct execution profile. Its control
+tokens, durable task boundaries, event starts, waits, retries, workflow
+lifecycle, role grants, and effect guarantees remain process-owned. The
+procedural graph foundation is delivered and validated first. Process
+records are then migrated in one controlled, one-time cutover to the
+canonical graph format; after verification, old-format runtime readers and
+writers are removed. There is no permanent dual-format process runtime.
+
 ### Kernel- and library-agnostic node model
 
-The platform node model is independent of any execution kernel, programming language,
-domain library, or UI framework. This is a contract boundary, not a mandate to rewrite
-the process compiler or to force every domain into one closed type system.
+The provider-neutral node contract described here is shared platform architecture,
+not a process-package-owned graph model. Its authoritative provider-facing contract
+belongs to `packages/plugin-sdk`; canonical graph documents and procedural graph
+mechanics belong to `packages/core` (root SPEC.md §28). This section records the
+requirements the process execution profile consumes and must remain compatible with.
+The process package owns process-specific authoring, CTS operation semantics, durable
+orchestration, lifecycle, authorization, and effects; it does not define a parallel
+universal graph format, provider registry, or procedural evaluator.
+
+The common node contract is independent of execution kernel, programming language,
+domain library, and UI framework. Sharing that contract does not require replacing the
+existing process compiler with the procedural evaluator or forcing every domain into
+one closed type system.
 
 | Aspect | Law |
 |---|---|
@@ -46,7 +72,7 @@ the process compiler or to force every domain into one closed type system.
 | Execution semantics | Pure computation, stateful computation, external effects, control flow, streaming/mapping, determinism, and idempotency are declared independently of presentation. The executor/provider validates and enforces the semantics it owns; the graph engine enforces only platform-level guarantees. |
 | Interface derivation | Node cards, sockets, inspectors, defaults, enum selectors, structured editors, and diagnostics are projections of the normalized contract plus optional declarative presentation hints. Hints select a supported editor or schema renderer; they do not embed operation-specific component logic into the canvas. Missing hints fall back to generic inspection/editing or read-only opaque display. |
 | Discovery and stability | Discovery output is normalized, validated, and versioned. Stable operation and port identifiers survive label/documentation changes. Provider version changes and contract changes are explicit; persisted graphs retain the operation identity/version and enough authored configuration to diagnose unavailable or changed providers. |
-| Domain separation | This package's CTS/process species, authorization, entity lifecycle, and workflow rules remain domain semantics layered on the node model. They are not universal node primitives and must not leak into a kernel-neutral base contract. Conversely, generic graph mechanics must not be reimplemented separately for each plugin. |
+| Domain separation | This package's CTS/process species, authorization, entity lifecycle, and workflow rules remain process-profile semantics layered on the shared node contract. They are not universal node primitives and must not leak into the kernel-neutral base contract. Generic graph mechanics are owned by `packages/core`; provider-facing declarations are owned by `packages/plugin-sdk`; neither is reimplemented here or separately by plugins. |
 
 #### Type-system decision
 
