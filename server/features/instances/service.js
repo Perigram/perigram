@@ -650,8 +650,8 @@ function instanceService(typeId) {
   return {
     async validateCandidate(candidate, organizationId = null) {
       const effectiveOrganizationId = organizationId ?? candidate?.organizationId ?? null;
-      const declaration = await requireDeclaration(typeId, effectiveOrganizationId);
-      if (!declaration.constraints?.length) return false;
+      const declaration = await declarationFor(typeId, effectiveOrganizationId);
+      if (!declaration?.constraints?.length) return false;
       await assertPermanentConstraints(declaration, toDto(candidate || {}), effectiveOrganizationId);
       return true;
     },
