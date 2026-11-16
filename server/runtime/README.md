@@ -27,6 +27,10 @@ Parent: [server](../README.md).
   (`roles` from the org's assignments, `bot`, `avatarUrl`;
   `party-wire.js` — the single party translation home);
   party mutation stays on the feature routes.
+- The hidden append-only `graph-execution` framework declaration is served
+  through the generic instance resolver; it is not an authorable type or a
+  separately registered framework feature service. Its HTTP creation boundary
+  verifies the source graph document and immutable execution envelope.
 - The generic instance-service resolver (SPEC §13 of the CTS spec): every
   type without a framework or pack service resolves to its per-class
   instance service — pack types and org-authored types are executable

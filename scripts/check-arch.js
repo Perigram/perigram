@@ -12,13 +12,15 @@ const FEATURES_DIR = './server/features';
 const API_DIR = './server/api';
 // instanceService entities resolve through the generic instance feature
 // (server/features/instances) and declare no feature directory of their own.
-// Framework-flagged machinery types and party types own feature directories;
-// every other framework type is a generic instance entity.
+// Framework machinery types and party types own feature directories, except
+// graph-execution: it is a hidden, append-only CTS type served by the generic
+// instance machinery, not a separately managed feature service.
 // The registry view is the entity catalog (one source): feature keys derive
 // from projected view entities' collections, and lifecycle ownership comes
 // from declared state trees (SPEC §7) — machines are graph-compiled.
+const GENERIC_FRAMEWORK_TYPES = new Set(['graph-execution']);
 const classifiedDeclarations = frameworkTypes
-  .filter(declaration => declaration.framework || declaration.class === 'party');
+  .filter(declaration => (declaration.framework && !GENERIC_FRAMEWORK_TYPES.has(declaration.id)) || declaration.class === 'party');
 const FEATURE_DIRECTORY_ALIASES = new Map([
   ['entity-revisions', 'instance-revisions']
 ]);
