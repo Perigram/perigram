@@ -31,8 +31,6 @@ export async function beginOrganizationChange(organizationId) {
       $setOnInsert: {
         organizationId: String(organizationId),
         sequence: 0,
-        pendingCount: 0,
-        pendingOperations: [],
         createdAt: now
       }
     },
