@@ -109,7 +109,9 @@ authorized instance and file services. Browser calls use the authenticated
 organization capability route and expose query, read, and file-read
 capabilities. Server calls use the claimed task route and may invoke declared
 writes. The server rehydrates the run actor from current membership and
-grants before package delivery and capability calls.
+grants before package delivery and capability calls. The instance-update
+capability accepts an optional `expectedRevision` precondition and forwards
+it to the generic instance compare-and-swap write boundary.
 
 Remote service adapters currently use endpoint and claim modes. Endpoint
 URLs and connector credentials are stored in plugin install settings.
