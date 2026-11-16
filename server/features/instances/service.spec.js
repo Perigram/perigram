@@ -97,7 +97,7 @@ vi.mock('../cts-types/repository.js', () => ({
   listByOrganization: vi.fn(async (organizationId) => (
     organizationId === 'org-1'
       ? [
-          { id: 'bin', class: 'group', version: 1, fields: { name: { base: 'string' } }, edges: { children: { panels: { types: ['panel'], onRemove: 'restrict' } } } },
+          { id: 'bin', class: 'group', version: 1, fields: { name: { base: 'string' } }, edges: { children: { panels: { types: ['panel', 'label'], onRemove: 'restrict' } } } },
           { id: 'invoice', class: 'item', version: 1, fields: { code: { base: 'string', identifier: true }, amount: { base: 'number' } } },
           {
             id: 'constrained-account',
