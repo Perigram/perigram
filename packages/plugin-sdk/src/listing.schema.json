@@ -4,33 +4,60 @@
   "title": "Perigram plugin listing",
   "description": "A platform-published plugin catalog listing: declarations (types, services, editors) plus pack requirements. The authoritative validator is parseListing in @perigram/plugin-sdk; this schema mirrors it for editors, agents, and tooling.",
   "type": "object",
-  "required": ["pluginId", "name", "declarations"],
+  "required": [
+    "pluginId",
+    "name",
+    "declarations"
+  ],
   "additionalProperties": true,
   "properties": {
-    "pluginId": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-    "name": { "type": "string", "minLength": 1 },
-    "description": { "type": "string" },
-    "version": { "type": ["string", "number"] },
+    "pluginId": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "version": {
+      "type": [
+        "string",
+        "number"
+      ]
+    },
     "requires": {
       "type": "array",
       "description": "Pack or plugin ids the plugin's types resolve against: a requirement is satisfied by a mounted pack or an installed plugin",
-      "items": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$"
+      },
       "uniqueItems": true
     },
     "visibility": {
       "type": "string",
-      "enum": ["public", "private"],
+      "enum": [
+        "public",
+        "private"
+      ],
       "description": "A private listing is served only to the organizations its organizations array names; the catalog stays platform-published and the operator scopes private listings"
     },
     "organizations": {
       "type": "array",
       "description": "Owner organization ids — the only orgs a private listing is served to",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "uniqueItems": true
     },
     "declarations": {
       "type": "object",
-      "required": ["types"],
+      "required": [
+        "types"
+      ],
       "additionalProperties": false,
       "properties": {
         "types": {
@@ -38,29 +65,58 @@
           "minItems": 1,
           "items": {
             "type": "object",
-            "required": ["id", "class"],
+            "required": [
+              "id",
+              "class"
+            ],
             "additionalProperties": true,
             "properties": {
-              "id": { "type": "string", "minLength": 1 },
-              "class": { "enum": ["file", "item", "group"] },
-              "name": { "type": "string" },
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "class": {
+                "enum": [
+                  "file",
+                  "item",
+                  "group"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
               "projections": {
                 "type": "array",
                 "description": "SPEC §8 p extract projections; resolve names a stored field path or an endpoint-mode plugin service",
                 "items": {
                   "type": "object",
-                  "required": ["id"],
+                  "required": [
+                    "id"
+                  ],
                   "additionalProperties": true,
                   "properties": {
-                    "id": { "type": "string", "minLength": 1 },
-                    "label": { "type": "string" },
-                    "group": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Process-designer palette section the extract preset drops into (SPEC §8 plugin-tab law); absent stays unlisted" },
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "group": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9-]*$",
+                      "description": "Process-designer palette section the extract preset drops into (SPEC §8 plugin-tab law); absent stays unlisted"
+                    },
                     "resolve": {
                       "type": "object",
                       "additionalProperties": false,
                       "properties": {
-                        "field": { "type": "string" },
-                        "service": { "type": "string" }
+                        "field": {
+                          "type": "string"
+                        },
+                        "service": {
+                          "type": "string"
+                        }
                       }
                     }
                   }
@@ -73,22 +129,101 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["id", "signature"],
+            "required": [
+              "id",
+              "signature"
+            ],
             "additionalProperties": true,
             "properties": {
-              "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-              "label": { "type": "string" },
-              "mode": { "enum": ["endpoint", "claim", "local"] },
-              "render": { "type": "object" },
-              "group": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Process-designer palette section the service drops into (SPEC §8 plugin-tab law); absent falls to the services tab" },
-              "cache": { "const": "deterministic", "description": "Endpoint-only: same canonical input replays the cached output (SPEC §28 artifact contract); the key covers service identity, installed version, and canonical input" },
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]+$"
+              },
+              "label": {
+                "type": "string"
+              },
+              "mode": {
+                "enum": [
+                  "endpoint",
+                  "claim",
+                  "local"
+                ]
+              },
+              "render": {
+                "type": "object"
+              },
+              "group": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$",
+                "description": "Process-designer palette section the service drops into (SPEC §8 plugin-tab law); absent falls to the services tab"
+              },
+              "cache": {
+                "const": "deterministic",
+                "description": "Endpoint-only: same canonical input replays the cached output (SPEC §28 artifact contract); the key covers service identity, installed version, and canonical input"
+              },
               "signature": {
                 "type": "object",
-                "required": ["input", "output"],
+                "required": [
+                  "input",
+                  "output"
+                ],
                 "additionalProperties": true,
                 "properties": {
-                  "input": { "type": "object", "description": "SPEC §8 V-grammar descriptor; record fields may declare kind — a namespaced value slug (e.g. document.report) that gates socket compatibility" },
-                  "output": { "type": "object", "description": "SPEC §8 V-grammar descriptor; fields may declare kind as on the input" }
+                  "input": {
+                    "type": "object",
+                    "description": "SPEC §8 V-grammar descriptor; record fields may declare kind — a namespaced value slug (e.g. document.report) that gates socket compatibility"
+                  },
+                  "output": {
+                    "type": "object",
+                    "description": "SPEC §8 V-grammar descriptor; fields may declare kind as on the input"
+                  }
+                }
+              },
+              "execution": {
+                "type": "object",
+                "required": [
+                  "runtime",
+                  "targets",
+                  "kind"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "runtime": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9-]+$"
+                  },
+                  "targets": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "enum": [
+                        "browser",
+                        "server"
+                      ]
+                    }
+                  },
+                  "kind": {
+                    "enum": [
+                      "pure",
+                      "read",
+                      "effect"
+                    ]
+                  },
+                  "capabilities": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]*(\\\\.[a-z][a-z0-9-]*)+$"
+                    }
+                  },
+                  "deterministic": {
+                    "type": "boolean"
+                  },
+                  "idempotent": {
+                    "type": "boolean"
+                  }
                 }
               }
             }
@@ -99,12 +234,28 @@
           "description": "File-type editor bindings; the bound type must be declared by this plugin and carry the file class",
           "items": {
             "type": "object",
-            "required": ["type", "surface", "modes"],
+            "required": [
+              "type",
+              "surface",
+              "modes"
+            ],
             "additionalProperties": false,
             "properties": {
-              "type": { "type": "string", "minLength": 1 },
-              "surface": { "type": "string", "minLength": 1 },
-              "modes": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+              "type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "surface": {
+                "type": "string",
+                "minLength": 1
+              },
+              "modes": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
             }
           }
         },
@@ -112,7 +263,9 @@
           "type": "object",
           "description": "The plugin's client engine (SPEC §20 client-carried): services of mode 'local' execute in the browser through the entry module",
           "additionalProperties": false,
-          "required": ["module"],
+          "required": [
+            "module"
+          ],
           "properties": {
             "module": {
               "type": "string",
@@ -126,17 +279,33 @@
           "description": "Plugin-delivered surface modules (owner decision 2026-10-11): the executor serves each module; surfaceContract is the mount-contract major it targets; kind 'preview' (M7) is the read-only { record, payload } mount into the platform's preview slots and always targets contract 1",
           "items": {
             "type": "object",
-            "required": ["id", "module", "surfaceContract"],
+            "required": [
+              "id",
+              "module",
+              "surfaceContract"
+            ],
             "additionalProperties": false,
             "properties": {
-              "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]+$"
+              },
               "module": {
                 "type": "string",
                 "pattern": "^/[a-z0-9/_-]+\\.m?js$",
                 "description": "Root-relative module path the plugin's executor serves"
               },
-              "surfaceContract": { "type": "integer", "minimum": 1 },
-              "kind": { "enum": ["editor", "preview"], "default": "editor" }
+              "surfaceContract": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "kind": {
+                "enum": [
+                  "editor",
+                  "preview"
+                ],
+                "default": "editor"
+              }
             }
           }
         },
@@ -145,11 +314,20 @@
           "description": "Preview bindings (M7): the plugin's types whose preview slots mount the bound preview surface; exactly one per type, the surface must be kind 'preview'",
           "items": {
             "type": "object",
-            "required": ["type", "surface"],
+            "required": [
+              "type",
+              "surface"
+            ],
             "additionalProperties": false,
             "properties": {
-              "type": { "type": "string", "minLength": 1 },
-              "surface": { "type": "string", "pattern": "^[a-z0-9-]+$" }
+              "type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "surface": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]+$"
+              }
             }
           }
         },
@@ -158,12 +336,25 @@
           "description": "Designer preview channels (SPEC §28): one tab per channel, mounted read-only through the preview surface contract; the surface must be kind 'preview'",
           "items": {
             "type": "object",
-            "required": ["id", "surface", "label"],
+            "required": [
+              "id",
+              "surface",
+              "label"
+            ],
             "additionalProperties": false,
             "properties": {
-              "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-              "surface": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-              "label": { "type": "string", "minLength": 1 }
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]+$"
+              },
+              "surface": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]+$"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         },
@@ -173,8 +364,13 @@
           "additionalProperties": {
             "type": "object",
             "minProperties": 1,
-            "propertyNames": { "pattern": "^[a-zA-Z][a-zA-Z0-9]*$" },
-            "additionalProperties": { "type": "string", "pattern": "^plugin\\.[a-z0-9-]+\\.[a-z0-9-]+$" }
+            "propertyNames": {
+              "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+            },
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^plugin\\.[a-z0-9-]+\\.[a-z0-9-]+$"
+            }
           }
         },
         "starterConstructs": {
@@ -182,11 +378,18 @@
           "description": "Constructs the plugin stations into every installing organization's initial process: the plugin's own file type, a mode it declares, one construct per type",
           "items": {
             "type": "object",
-            "required": ["typeId", "construction"],
+            "required": [
+              "typeId",
+              "construction"
+            ],
             "additionalProperties": false,
             "properties": {
-              "typeId": { "type": "string" },
-              "construction": { "type": "string" }
+              "typeId": {
+                "type": "string"
+              },
+              "construction": {
+                "type": "string"
+              }
             }
           },
           "uniqueItems": true
@@ -196,14 +399,31 @@
           "description": "Attachment exports bound to plugin services",
           "items": {
             "type": "object",
-            "required": ["typeId", "kind", "service"],
+            "required": [
+              "typeId",
+              "kind",
+              "service"
+            ],
             "additionalProperties": true,
             "properties": {
-              "typeId": { "type": "string", "minLength": 1 },
-              "kind": { "type": "string", "minLength": 1 },
-              "service": { "type": "string", "pattern": "^plugin\\.[a-z0-9-]+\\.[a-z0-9-]+$" },
-              "extension": { "type": "string" },
-              "mime": { "type": "string" }
+              "typeId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "type": "string",
+                "minLength": 1
+              },
+              "service": {
+                "type": "string",
+                "pattern": "^plugin\\.[a-z0-9-]+\\.[a-z0-9-]+$"
+              },
+              "extension": {
+                "type": "string"
+              },
+              "mime": {
+                "type": "string"
+              }
             }
           }
         },
@@ -212,16 +432,81 @@
           "description": "Declared runtime dependencies (owner decision 2026-10-17): one flat vendor bundle per npm name served by the executor; host-injected externals (vue, primevue, pinia, marked, dompurify) refuse",
           "items": {
             "type": "object",
-            "required": ["name", "version", "module", "license"],
+            "required": [
+              "name",
+              "version",
+              "module",
+              "license"
+            ],
             "additionalProperties": false,
             "properties": {
-              "name": { "type": "string", "pattern": "^(@[a-z0-9-~][a-z0-9-._~]*\\/)?[a-z0-9-~][a-z0-9-._~]*(\\/[a-z0-9-._~]+)*$" },
-              "version": { "type": "string", "minLength": 1 },
-              "module": { "type": "string", "pattern": "^(\\/[a-z0-9\\/._-]+\\.m?js|plugin:[a-z0-9-]+\\/[a-z0-9\\/._-]+\\.m?js)$", "description": "Root-relative module path the executor serves, or plugin:<id><path> naming a required plugin's served module (owner decision 2026-10-27)" },
-              "license": { "type": "string", "pattern": "^[A-Za-z0-9.+-]+$" }
+              "name": {
+                "type": "string",
+                "pattern": "^(@[a-z0-9-~][a-z0-9-._~]*\\/)?[a-z0-9-~][a-z0-9-._~]*(\\/[a-z0-9-._~]+)*$"
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "module": {
+                "type": "string",
+                "pattern": "^(\\/[a-z0-9\\/._-]+\\.m?js|plugin:[a-z0-9-]+\\/[a-z0-9\\/._-]+\\.m?js)$",
+                "description": "Root-relative module path the executor serves, or plugin:<id><path> naming a required plugin's served module (owner decision 2026-10-27)"
+              },
+              "license": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9.+-]+$"
+              }
             }
           },
           "uniqueItems": true
+        },
+        "runtimes": {
+          "type": "array",
+          "description": "Version-pinned execution runtimes carried by the package; each runtime declares its language, entry asset, and supported environments",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "language",
+              "version",
+              "entry",
+              "targets"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]+$"
+              },
+              "language": {
+                "enum": [
+                  "javascript",
+                  "python",
+                  "wasm"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "entry": {
+                "type": "string",
+                "pattern": "^/[a-z0-9/_-]+\\\\.(m?js|wasm)$"
+              },
+              "targets": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "browser",
+                    "server"
+                  ]
+                }
+              }
+            }
+          }
         }
       }
     }

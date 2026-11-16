@@ -104,18 +104,51 @@ describe('parseListing', () => {
       requires: ['documents']
     });
     expect(Object.keys(normalized.declarations)).toEqual([
-      'types', 'services', 'editors', 'constructions', 'starterConstructs', 'exports', 'surfaces', 'previews', 'previewChannels', 'dependencies'
+      'types', 'services', 'editors', 'constructions', 'starterConstructs', 'exports', 'surfaces', 'previews', 'previewChannels', 'dependencies', 'runtimes'
     ]);
   });
 
   it('keeps the JSON schema in lockstep with the validated fields', () => {
     const declarations = schema.properties.declarations.properties;
     expect(Object.keys(declarations)).toEqual([
-      'types', 'services', 'editors', 'engine', 'surfaces', 'previews', 'previewChannels', 'constructions', 'starterConstructs', 'exports', 'dependencies'
+      'types', 'services', 'editors', 'engine', 'surfaces', 'previews', 'previewChannels', 'constructions', 'starterConstructs', 'exports', 'dependencies', 'runtimes'
     ]);
     expect(declarations.engine.properties.module.pattern).toBe('^/[a-z0-9/_-]+\\.m?js$');
     expect(schema.properties.requires.items.pattern).toBe('^[a-z0-9-]+$');
     expect(schema.properties.visibility.enum).toEqual(['public', 'private']);
+  });
+
+
+  it('validates versioned browser and server runtimes and operation execution contracts', () => {
+    const runtime = { id: 'javascript', language: 'javascript', version: '1', entry: '/runtime.mjs', targets: ['browser', 'server'] };
+    const service = {
+      id: 'transform',
+      signature: { input: { base: 'json' }, output: { base: 'json' } },
+      execution: { runtime: 'javascript', targets: ['browser', 'server'], kind: 'pure', deterministic: true }
+    };
+    const layer = parseListing({
+      ...fullListing,
+      declarations: { ...fullListing.declarations, runtimes: [runtime], services: [service] }
+    });
+    expect(layer.runtimes).toEqual([runtime]);
+    expect(normalizeListing({
+      ...fullListing,
+      declarations: { ...fullListing.declarations, runtimes: [runtime], services: [service] }
+    }).declarations.runtimes).toEqual([runtime]);
+
+    const invalid = candidate => expect(() => parseListing({
+      ...fullListing,
+      declarations: { ...fullListing.declarations, ...candidate }
+    }));
+    invalid({ runtimes: [runtime, runtime] }).toThrow(/duplicate runtime/);
+    invalid({ runtimes: [{ ...runtime, targets: [] }] }).toThrow(/targets must be/);
+    invalid({ runtimes: [{ ...runtime, entry: '/../escape.mjs' }] }).toThrow(/entry must be/);
+    invalid({ runtimes: [{ ...runtime, language: 'ruby' }] }).toThrow(/language must be/);
+    invalid({ runtimes: [runtime], services: [{ ...service, execution: { ...service.execution, runtime: 'python' } }] }).toThrow(/undeclared runtime/);
+    invalid({ runtimes: [{ ...runtime, targets: ['browser'] }], services: [service] }).toThrow(/execution targets/);
+    invalid({ runtimes: [runtime], services: [{ ...service, mode: 'endpoint' }] }).toThrow(/cannot combine execution metadata/);
+    invalid({ runtimes: [runtime], services: [{ ...service, execution: { ...service.execution, kind: 'pure', capabilities: ['files.read'] } }] }).toThrow(/pure execution cannot request/);
+    invalid({ runtimes: [runtime], services: [{ ...service, execution: { ...service.execution, capabilities: ['bad'] } }] }).toThrow(/qualified capability id/);
   });
 
   it('validates listing visibility and its owning organizations', () => {

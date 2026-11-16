@@ -78,6 +78,7 @@ export function parseListing(listing = {}) {
   const previews = (declarations.previews || []).filter(Boolean);
   const previewChannels = (declarations.previewChannels || []).filter(Boolean);
   const dependencies = (declarations.dependencies || []).filter(Boolean);
+  const runtimes = (declarations.runtimes || []).filter(Boolean);
   const engine = declarations.engine || null;
   if (engine !== null && (!engine?.module || typeof engine.module !== 'string')) {
     throw listingError(`engine needs a module path string (got ${JSON.stringify(engine?.module)})`);
@@ -130,6 +131,31 @@ export function parseListing(listing = {}) {
     }
   }
 
+  const runtimeById = new Map();
+  for (const runtime of runtimes) {
+    if (!/^[a-z0-9-]+$/.test(runtime?.id || '')) {
+      throw listingError(`runtime id must be a slug (got ${JSON.stringify(runtime?.id)})`);
+    }
+    if (runtimeById.has(runtime.id)) {
+      throw listingError(`duplicate runtime ${runtime.id}`);
+    }
+    if (!RUNTIME_LANGUAGES.has(runtime.language)) {
+      throw listingError(`runtime ${runtime.id} language must be javascript, python, or wasm`);
+    }
+    if (typeof runtime.version !== 'string' || !runtime.version.trim()) {
+      throw listingError(`runtime ${runtime.id} needs a version string`);
+    }
+    if (typeof runtime.entry !== 'string' || !RUNTIME_ENTRY_PATH.test(runtime.entry) || runtime.entry.split('/').includes('..')) {
+      throw listingError(`runtime ${runtime.id} entry must be a root-relative .js/.mjs/.wasm package asset`);
+    }
+    if (!Array.isArray(runtime.targets) || !runtime.targets.length
+      || runtime.targets.some(target => !EXECUTION_TARGETS.has(target))
+      || new Set(runtime.targets).size !== runtime.targets.length) {
+      throw listingError(`runtime ${runtime.id} targets must be a non-empty unique subset of browser and server`);
+    }
+    runtimeById.set(runtime.id, runtime);
+  }
+
   for (const service of services) {
     if (!/^[a-z0-9-]+$/.test(service.id || '')) {
       throw listingError(`service id must be a slug (got ${JSON.stringify(service.id)})`);
@@ -142,6 +168,48 @@ export function parseListing(listing = {}) {
     }
     if (service.mode === 'local' && !engine) {
       throw listingError(`service ${service.id} runs in the client engine — the listing must declare one`);
+    }
+    if (service.execution !== undefined) {
+      const execution = service.execution;
+      if (service.mode !== undefined) {
+        throw listingError(`service ${service.id} cannot combine execution metadata with legacy mode`);
+      }
+      if (!execution || typeof execution !== 'object' || Array.isArray(execution)) {
+        throw listingError(`service ${service.id} execution must be an object`);
+      }
+      const runtime = runtimeById.get(execution.runtime);
+      if (!runtime) {
+        throw listingError(`service ${service.id} references undeclared runtime ${execution.runtime}`);
+      }
+      if (!EXECUTION_KINDS.has(execution.kind)) {
+        throw listingError(`service ${service.id} execution kind must be pure, read, or effect`);
+      }
+      if (!Array.isArray(execution.targets) || !execution.targets.length
+        || execution.targets.some(target => !EXECUTION_TARGETS.has(target) || !runtime.targets.includes(target))
+        || new Set(execution.targets).size !== execution.targets.length) {
+        throw listingError(`service ${service.id} execution targets must be a non-empty subset of runtime ${runtime.id} targets`);
+      }
+      if (!Array.isArray(execution.capabilities || [])) {
+        throw listingError(`service ${service.id} execution capabilities must be an array`);
+      }
+      const seenCapabilities = new Set();
+      for (const capability of execution.capabilities || []) {
+        if (typeof capability !== 'string' || !/^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$/.test(capability)) {
+          throw listingError(`service ${service.id} capability must be a qualified capability id`);
+        }
+        if (seenCapabilities.has(capability)) {
+          throw listingError(`service ${service.id} declares duplicate capability ${capability}`);
+        }
+        seenCapabilities.add(capability);
+      }
+      if (execution.kind === 'pure' && seenCapabilities.size) {
+        throw listingError(`service ${service.id} pure execution cannot request host capabilities`);
+      }
+      for (const flag of ['deterministic', 'idempotent']) {
+        if (execution[flag] !== undefined && typeof execution[flag] !== 'boolean') {
+          throw listingError(`service ${service.id} execution ${flag} must be boolean`);
+        }
+      }
     }
     if (service.group !== undefined && !/^[a-z0-9][a-z0-9-]*$/.test(String(service.group))) {
       throw listingError(`service ${service.id} group must be a palette-section slug (got ${JSON.stringify(service.group)})`);
@@ -398,7 +466,7 @@ export function parseListing(listing = {}) {
     }
   }
 
-  return { pluginId, types, services, editors, constructions, starterConstructs, exports: exportsList, surfaces, previews, previewChannels, dependencies, engine, requires, visibility, organizations };
+  return { pluginId, types, services, editors, constructions, starterConstructs, exports: exportsList, surfaces, previews, previewChannels, dependencies, runtimes, engine, requires, visibility, organizations };
 }
 
 // The normalized catalog document the publish API stores and installs
@@ -426,6 +494,7 @@ export function normalizeListing(listing = {}) {
       previews: layer.previews,
       previewChannels: layer.previewChannels,
       dependencies: layer.dependencies,
+      runtimes: layer.runtimes,
       ...(layer.engine ? { engine: layer.engine } : {})
     }
   };
