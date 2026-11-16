@@ -205,6 +205,59 @@ describe('class obligations (R6)', () => {
       expect.stringMatching(/bad-order: fields.owner where \(target user\): op map is not boolean vocabulary/));
 
     registry.defineType({
+      id: 'invoice', class: 'item', scope: 'system',
+      fields: { amount: { base: 'number' } }
+    });
+    registry.defineType({
+      id: 'account', class: 'item', scope: 'system',
+      fields: { invoices: { base: 'list', itemType: { base: 'ref', accepts: ['invoice'] } } }
+    });
+    registry.defineType({
+      id: 'typed-nested-order', class: 'item', scope: 'system',
+      fields: {
+        owner: {
+          base: 'ref',
+          accepts: ['account'],
+          where: {
+            op: 'exists',
+            list: { op: 'related', of: { op: 'var', name: 'value' }, key: 'invoices' },
+            var: 'invoice',
+            body: { op: 'gt', args: [
+              { op: 'field', of: { op: 'var', name: 'invoice' }, path: ['amount'] },
+              { op: 'lit', value: 0 }
+            ] }
+          }
+        }
+      }
+    });
+    expect(registry.compile().errors.filter(error => error.includes('typed-nested-order'))).toEqual([]);
+
+    registry.defineType({
+      id: 'bad-typed-order', class: 'item', scope: 'system',
+      fields: {
+        owner: {
+          base: 'ref',
+          accepts: ['user'],
+          where: { op: 'exists', list: { op: 'related', of: { op: 'var', name: 'value' }, key: 'missing' }, var: 'x', body: { op: 'lit', value: true } }
+        }
+      }
+    });
+    expect(registry.compile().errors).toContainEqual(
+      expect.stringMatching(/bad-typed-order: fields.owner where \(target user\): related key missing is not a declared relation or ref field on user/));
+
+    registry.defineType({
+      id: 'typed-containment-order', class: 'item', scope: 'system',
+      fields: {
+        owner: {
+          base: 'ref',
+          accepts: ['facade'],
+          where: { op: 'exists', list: { op: 'children', of: { op: 'var', name: 'value' } }, var: 'part', body: { op: 'lit', value: true } }
+        }
+      }
+    });
+    expect(registry.compile().errors.filter(error => error.includes('typed-containment-order'))).toEqual([]);
+
+    registry.defineType({
       id: 'off-row-order', class: 'item', scope: 'system',
       fields: { owner: { base: 'ref', accepts: ['user'], where: { op: 'eq', args: [{ op: 'field', path: ['value', 'ghost'] }, { op: 'lit', value: 1 }] } } }
     });

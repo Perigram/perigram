@@ -289,3 +289,155 @@ function deepEqual(a, b) {
   }
   return false;
 }
+
+
+// Static type checking for relation and containment traversal. The runtime
+// still resolves collections through organization-scoped authorized readers.
+export function checkTypedBooleanExpression(ast, { rootType, types, path = 'expression' } = {}) {
+  const errors = checkBooleanExpression(ast, new Set(Object.keys(rootType?.fields || {})), path);
+  if (!rootType?.id || !(types instanceof Map)) {
+    errors.push(path + ': typed traversal requires a root type and compiled type view');
+    return errors;
+  }
+  visit(ast, new Map([['value', [rootType.id]]]));
+  return [...new Set(errors)];
+
+  function visit(node, scope) {
+    if (!node || typeof node !== 'object') return;
+    if (node.op === 'field') {
+      resolveFieldDescriptor(node, scope);
+      if (node.of) visit(node.of, scope);
+      return;
+    }
+    if (node.op === 'related' || node.op === 'children' || node.op === 'descendants') {
+      resolveCollectionTypes(node, scope);
+      if (node.of) visit(node.of, scope);
+      return;
+    }
+    if (['exists', 'all', 'none', 'one', 'count', 'sum', 'min', 'max', 'map', 'filter'].includes(node.op)) {
+      visit(node.list, scope);
+      const variable = String(node.var || '');
+      if (variable && node.body) {
+        const nested = new Map(scope);
+        nested.set(variable, resolveCollectionTypes(node.list, scope));
+        visit(node.body, nested);
+      }
+      return;
+    }
+    if (node.op === 'match') {
+      visit(node.expr, scope);
+      for (const arm of Object.values(node.arms || {})) visit(arm, scope);
+      return;
+    }
+    if (node.arg) visit(node.arg, scope);
+    for (const argument of node.args || []) visit(argument, scope);
+  }
+
+  function resolveCollectionTypes(node, scope) {
+    if (!node || typeof node !== 'object') return [];
+    if (node.op === 'related') {
+      const owners = node.of ? resolveEntityTypes(node.of, scope) : [rootType.id];
+      const targets = new Set();
+      const key = String(node.key || '');
+      for (const ownerId of owners) {
+        const owner = types.get(ownerId);
+        if (!owner) continue;
+        const edge = owner.edges?.relations?.[key];
+        if (edge) {
+          for (const target of edge.types || []) targets.add(target);
+          continue;
+        }
+        const refs = referenceTargets(owner.fields?.[key]);
+        if (!refs.length) {
+          errors.push(path + ': related key ' + (key || '(empty)') + ' is not a declared relation or ref field on ' + ownerId);
+          continue;
+        }
+        for (const target of refs) {
+          if (!types.has(target)) errors.push(path + ': related ' + key + ' targets unknown type ' + target);
+          else targets.add(target);
+        }
+      }
+      if (!owners.length) errors.push(path + ': related traversal owner has no statically known CTS type');
+      return [...targets];
+    }
+    if (node.op === 'children' || node.op === 'descendants') {
+      const owners = node.of ? resolveEntityTypes(node.of, scope) : [rootType.id];
+      const targets = new Set();
+      for (const ownerId of owners) {
+        const owner = types.get(ownerId);
+        const entries = Object.entries(owner?.edges?.children || {}).filter(([key]) => !node.key || key === String(node.key));
+        if (!entries.length) {
+          errors.push(path + ': ' + node.op + ' has no declared containment' + (node.key ? ' key ' + node.key : '') + ' on ' + ownerId);
+          continue;
+        }
+        for (const [, edge] of entries) for (const target of edge.types || []) {
+          if (!types.has(target)) errors.push(path + ': containment targets unknown type ' + target);
+          else targets.add(target);
+        }
+      }
+      if (node.op === 'descendants') {
+        const queue = [...targets];
+        while (queue.length) {
+          const current = queue.shift();
+          for (const edge of Object.values(types.get(current)?.edges?.children || {})) {
+            for (const target of edge.types || []) if (!targets.has(target)) {
+              targets.add(target);
+              queue.push(target);
+            }
+          }
+        }
+      }
+      if (!owners.length) errors.push(path + ': ' + node.op + ' traversal owner has no statically known CTS type');
+      return [...targets];
+    }
+    return resolveEntityTypes(node, scope);
+  }
+
+  function resolveEntityTypes(node, scope) {
+    if (!node || typeof node !== 'object') return [];
+    if (node.op === 'var') return scope.get(String(node.name || '')) || [];
+    if (node.op === 'field') return referenceTargets(resolveFieldDescriptor(node, scope)).filter(id => types.has(id));
+    return [];
+  }
+
+  function resolveFieldDescriptor(node, scope) {
+    const fieldPath = Array.isArray(node.path) ? [...node.path] : [];
+    let owners;
+    if (!node.of) {
+      if (fieldPath[0] !== 'value') return null;
+      fieldPath.shift();
+      owners = [rootType.id];
+    } else owners = resolveEntityTypes(node.of, scope);
+    if (!owners.length) {
+      if (node.of) errors.push(path + ': field traversal owner has no statically known CTS type');
+      return null;
+    }
+    const descriptors = [];
+    for (const ownerId of owners) {
+      let descriptor = null;
+      let row = types.get(ownerId)?.fields || {};
+      for (const key of fieldPath) {
+        descriptor = row?.[key] || null;
+        if (!descriptor) {
+          errors.push(path + ': field ' + key + ' is not declared on ' + ownerId);
+          break;
+        }
+        row = descriptor.base === 'record' ? descriptor.fields || {} : null;
+      }
+      if (descriptor) descriptors.push(descriptor);
+    }
+    if (!descriptors.length) return null;
+    const first = descriptors[0];
+    for (const descriptor of descriptors.slice(1)) if (descriptor.base !== first.base) {
+      errors.push(path + ': field path has incompatible declared types across traversal targets');
+    }
+    return first;
+  }
+}
+
+function referenceTargets(descriptor) {
+  if (!descriptor || typeof descriptor !== 'object') return [];
+  if (descriptor.base === 'ref') return descriptor.accepts || [];
+  if (descriptor.base === 'list' && descriptor.itemType?.base === 'ref') return descriptor.itemType.accepts || [];
+  return [];
+}

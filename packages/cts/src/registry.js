@@ -6,7 +6,7 @@ import { checkClassObligations } from './classes.js';
 import { normalizeOperator, OPERATOR_SPECIES_BY_LETTER } from './operators.js';
 import { describeType } from './values.js';
 import { requireCompatible, normalizeMigrateSteps } from './diff.js';
-import { checkBooleanExpression } from './expressions.js';
+import { checkTypedBooleanExpression } from './expressions.js';
 import { normalizeStateVocabulary } from './states.js';
 
 // Payload traits (SPEC §4): the payload declaration carries the accepted
@@ -414,9 +414,11 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
       for (const target of declaration.accepts || declaration.types || []) {
         const targetType = view.get(target);
         if (!targetType) continue; // unknown targets report at their own check
-        const rowNames = new Set(Object.keys(targetType.fields || {}));
-        errors.push(...checkBooleanExpression(
-          declaration.where, rowNames, `type ${type.id}: ${label} where (target ${target})`));
+        errors.push(...checkTypedBooleanExpression(declaration.where, {
+          rootType: targetType,
+          types: view,
+          path: `type ${type.id}: ${label} where (target ${target})`
+        }));
       }
     }
     return errors;
