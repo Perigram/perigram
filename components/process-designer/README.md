@@ -546,16 +546,22 @@ strip over the whole-graph evaluation
 
 `GraphEditorSurface.vue` is the graph-document editor mount registered as
 the `graph-editor` file surface
-([generated](../generated/README.md) owns the binding contract). It
-mounts the session over the instance payload: the payload text is the
-serialized graph data object (`serializeProcess()` — the same shape a
-process definition's `data` carries), loaded through
-`loadDocument({ data })` and saved through the instance payload
-transport; a blank first save creates the instance. The header chrome
+([generated](../generated/README.md) owns the binding contract). It uses
+`useGraphDocumentSession`, not the process-definition session: payload
+text is parsed and validated as the canonical `perigram.graph` document
+owned by `@perigram/core`, and saves serialize that same format through
+the instance payload transport. It reuses `GraphCanvas.vue` for the
+canvas/palette/selection presentation, while provider contracts supply
+node sockets and the graph-specific inspector edits JSON configuration
+and boundary labels. Graph Input, Graph Output, and a distinct Use Graph
+palette group are exposed. Preview invokes the core procedural evaluator
+with registered process data-node adapters; it is preview-only and does
+not commit organization state. The Use Graph invocation UI currently
+authors its pinned graph ID, revision, and public-interface snapshot in
+the node's JSON configuration; graph-document discovery and automatic
+revision/interface hydration remain follow-up work. The header chrome
 channel binds `{ name, dirty, saving, save(), rename() }`; a read grant
-binds the name alone and mounts the canvas read-only. Preview evaluation
-rides the process-definition preview transport; roles load from the
-organization for grant authoring.
+binds the name alone and mounts the canvas read-only.
 
 ### Inspector anatomy
 
@@ -608,9 +614,9 @@ nodes, which show no inspection action.
 
 ## Structure
 
-15 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `CtsTypeNode.vue`),
+18 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `GraphDocumentNode.vue`, `CtsTypeNode.vue`),
 the shared canvas presentation (`GraphCanvas.vue`), the graph-document
-editor mount (`GraphEditorSurface.vue`), the inspector body
+editor mount (`GraphEditorSurface.vue`), graph-specific inspector and preview (`GraphDocumentInspector.vue`, `GraphDocumentPreviewPanel.vue`), the process inspector body
 (`GraphInspector.vue`) and channel-tab strip (`GraphPreviewPanel.vue`),
 the built-in outputs channel (`GraphOutputsChannel.vue`),
 the palette dock (`PaletteDock.vue`), the context palette list
