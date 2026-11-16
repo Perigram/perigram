@@ -318,6 +318,8 @@ Every edge declaration carries integrity semantics:
 onRemove ::= restrict | cascade | detach
 ```
 
+A relation declaration normalizes `cardinality` to `one | many`; an omitted explicit relation-edge cardinality defaults to `many`. Ref fields are one-valued and list-of-ref fields are many-valued in the domain projection.
+
 A children declaration also names its storage key: `lineageKey` is the
 property children store under `lineage.<lineageKey>`. Normalization stamps
 it on every children entry — the authored value wins, else the derived

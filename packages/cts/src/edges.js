@@ -31,6 +31,13 @@ export function normalizeEdges(edges = {}, declaringTypeId = '') {
       if (!ON_REMOVE.includes(normalizedEntry.onRemove)) {
         throw new Error(`edge ${kind}.${key}: onRemove must be one of ${ON_REMOVE.join(' | ')}`);
       }
+      if (kind === 'relations') {
+        const cardinality = declaration.cardinality ?? 'many';
+        if (!['one', 'many'].includes(cardinality)) {
+          throw new Error(`edge relations.${key}: cardinality must be one or many`);
+        }
+        normalizedEntry.cardinality = cardinality;
+      }
       if (kind === 'relations' && declaration.unlink != null && !UNLINK_POLICIES.includes(declaration.unlink)) {
         throw new Error(`edge relations.${key}: unlink must be one of ${UNLINK_POLICIES.join(' | ')}`);
       }

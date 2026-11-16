@@ -541,8 +541,10 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   constrained updates, re-derive, and flat CTS lifecycle transitions.
   The generic instance update boundary now rejects field ids absent from
   the resolved CTS declaration, covering API, plugin, and graph patch calls.
-  Remaining: every import/relationship write boundary, explicit
-  uniqueness/cardinality semantics, and cross-record concurrency guarantees.
+  Explicit relation edges now normalize and validate `cardinality: one | many`
+  (omitted explicit-edge cardinality defaults to `many`). Remaining: enforce
+  relation target domains/cardinality at every import and relationship write,
+  add uniqueness semantics, and guarantee cross-record concurrency.
 - [ ] G8 Typed references and embeds — live and pinned references,
   saved-query/graph-output collection embeds, and derived backlinks.
 - [ ] G9 Procedural vertical slices — document/data and geometry workflows
