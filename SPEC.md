@@ -1954,7 +1954,7 @@ source/target types, cardinality, and target-domain constraints.
 Containment remains distinct from ordinary relations because it carries
 ownership/hierarchy and lifecycle/integrity semantics.
 
-Design the generalized CTS constraint language up front as one typed,
+The CTS expression evaluator now provides finite quantifiers, aggregates,\nrelation/containment collection resolver hooks, and a shared boolean AST\nchecker ([CTS SPEC §15](packages/cts/SPEC.md)). This is the expression\nsubstrate, not yet proof that every permanent constraint is enforced at\nauthoritative write boundaries or with concurrency-safe uniqueness and\ncardinality guarantees.\n\nDesign the generalized CTS constraint language up front as one typed,
 composable expression model used for declarations and authoritative
 validation. It must express:
 - Scalar and structural field predicates, type/state predicates, and

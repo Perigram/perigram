@@ -12,7 +12,7 @@ export const MAX_STEPS = 10000;
 // { op: 'eq'|'ne'|'lt'|'lte'|'gt'|'gte'|'and'|'or', args: [e, e] }
 // { op: 'not', arg: e }
 // { op: 'add'|'sub'|'mul'|'div', args: [e, e] }   -- unit-unified (R3)
-// { op: 'map', list: e, var: 'x', body: e }
+// { op: 'map'|'filter', list: e, var: 'x', body: e }\n// { op: 'exists'|'all'|'none'|'one', list: e, var: 'x', body: e }\n// { op: 'count', list: e, var?: 'x', body?: e }\n// { op: 'sum'|'min'|'max', list: e, var: 'x', body: e }\n// { op: 'related', of: e, key: relationId } | { op: 'children'|'descendants', of: e }
 // { op: 'filter', list: e, var: 'x', body: e }
 // { op: 'match', expr: e, arms: { tag: e }, subjectType } -- exhaustive (R-match)
 export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
@@ -205,7 +205,7 @@ export function checkBooleanExpression(ast, rowNames = null, path = 'expression'
     if (['exists', 'all', 'none', 'one', 'count', 'sum', 'min', 'max', 'map', 'filter'].includes(op)) {
       visit(node.list, depth + 1, bound);
       const variable = String(node.var || '');
-      if (!variable) errors.push(`${path}: ${op} requires a bound variable`);
+      if (!variable && !(op === 'count' && !node.body)) errors.push(`${path}: ${op} requires a bound variable`);
       if (node.body) visit(node.body, depth + 1, new Set([...bound, variable]));
       else if (op !== 'count') errors.push(`${path}: ${op} requires a body expression`);
       return;
