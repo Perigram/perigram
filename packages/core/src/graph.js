@@ -135,9 +135,9 @@ function normalizeGraphNode(node = {}) {
   const normalized = {
     id: requiredString(node.id, 'Node id'),
     operation: {
-      provider: requiredString(operation.provider, 'Operation provider'),
-      id: requiredString(operation.id, 'Operation id'),
-      version: requiredString(operation.version, 'Operation version')
+      provider: String(operation.provider || '').trim(),
+      id: String(operation.id || '').trim(),
+      version: String(operation.version || '').trim()
     },
     config: cloneJson(config)
   };
