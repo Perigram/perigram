@@ -181,6 +181,7 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
       if (!instanceId) throw new Error('Save the graph document before recording an execution');
       return await $fetch('/api/graph-executions', {
         method: 'POST',
+        headers: { 'Idempotency-Key': `graph-execution:${executionRecord.id}` },
         body: { graphDocumentInstanceId: instanceId, record: executionRecord }
       });
     },
@@ -192,6 +193,7 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
       }
       return await $fetch('/api/graph-bakes', {
         method: 'POST',
+        headers: { 'Idempotency-Key': `graph-bake:${previewRecord.id}:${destination.pageId}:${destination.path}:${outputId}` },
         body: {
           graphDocumentInstanceId: instanceId,
           record: previewRecord,
