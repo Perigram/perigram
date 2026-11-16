@@ -51,6 +51,71 @@ describe('procedural graph preview evaluator', () => {
     expect(result.nodeOutputs.double).toEqual({ result: 42 });
   });
 
+  it('records authorized read dependencies emitted by read providers', async () => {
+    const readDefinition = {
+      provider: 'plugin.data',
+      id: 'lookup',
+      version: '1',
+      inputs: [{ id: 'value', required: true }],
+      outputs: [{ id: 'result', required: true }],
+      execution: { kind: 'read' }
+    };
+    const document = graph({
+      nodes: [
+        { id: 'in', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'number' } },
+        { id: 'lookup', operation: { provider: 'plugin.data', id: 'lookup', version: '1' }, config: {} },
+        { id: 'out', operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' }, config: { interfaceId: 'result' } }
+      ]
+    });
+    const result = await evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: 1 },
+      resolveNodeDefinition: () => readDefinition,
+      executeNode: (_definition, { inputs, context }) => {
+        context.readSet.recordInstance({
+          typeId: 'part',
+          instanceId: 'part-1',
+          revision: 'revision-4',
+          organizationId: 'org-1'
+        });
+        context.readSet.recordRelation({
+          sourceTypeId: 'part',
+          sourceId: 'part-1',
+          key: 'material',
+          targetTypeId: 'material',
+          targetId: 'material-1'
+        });
+        context.readSet.recordQuery({
+          typeId: 'part',
+          organizationId: 'org-1',
+          query: { filter: { active: true }, sort: [{ field: 'createdAt', direction: 'desc' }], limit: 10 },
+          resultIds: ['part-1'],
+          observedTotal: 1
+        });
+        return { result: inputs.value };
+      }
+    });
+    expect(result.readSet.instances).toMatchObject([{ typeId: 'part', instanceId: 'part-1', revision: 'revision-4' }]);
+    expect(result.readSet.relations).toMatchObject([{ sourceTypeId: 'part', targetId: 'material-1' }]);
+    expect(result.readSet.queries).toMatchObject([{ typeId: 'part', resultIds: ['part-1'], observedTotal: 1 }]);
+  });
+
+  it('attaches read-set evidence to provider failures', async () => {
+    const readDefinition = { ...doubleDefinition, execution: { kind: 'read' } };
+    await expect(evaluateProceduralGraph({
+      graph: graph(),
+      inputBindings: { number: 1 },
+      resolveNodeDefinition: () => readDefinition,
+      executeNode: (_definition, { context }) => {
+        context.readSet.recordInstance({ typeId: 'part', instanceId: 'part-1' });
+        throw new Error('read failed');
+      }
+    })).rejects.toMatchObject({
+      message: 'read failed',
+      readSet: { instances: [{ typeId: 'part', instanceId: 'part-1' }] }
+    });
+  });
+
   it('fans multiple wires into list, tuple, tree, and map inputs deterministically', async () => {
     for (const shape of ['list', 'tuple', 'tree', 'map']) {
       const sourceNodes = ['a', 'b'].map(id => ({
