@@ -3,7 +3,7 @@
 // evaluator enforces a step budget so totality is mechanical, not aspirational.
 import { unify } from './units.js';
 
-export const MAX_STEPS = 10000;
+export const MAX_STEPS = 10000;\nexport const MAX_COLLECTION_ITEMS = 10000;
 
 // AST nodes:
 // { op: 'lit', value }
@@ -37,7 +37,7 @@ export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
     case 'in': {
       // CEL membership: scalar in list (deep-equal items).
       const [member, list] = [evaluate(ast.args[0], scope, budget), evaluate(ast.args[1], scope, budget)];
-      if (!Array.isArray(list)) throw new Error('in requires a list');
+      finiteList(list, 'in');
       return list.some(item => deepEqual(item, member));
     }
     case 'lt': case 'lte': case 'gt': case 'gte': {
@@ -79,7 +79,7 @@ export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
     }
     case 'exists': case 'all': case 'none': case 'one': {
       const list = evaluate(ast.list, scope, budget);
-      if (!Array.isArray(list)) throw new Error(`${ast.op} requires a list`);
+      finiteList(list, ast.op);
       const variable = String(ast.var || '');
       if (!variable) throw new Error(`${ast.op} requires a bound variable`);
       let matches = 0;
@@ -131,12 +131,12 @@ export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
     }
     case 'map': {
       const list = evaluate(ast.list, scope, budget);
-      if (!Array.isArray(list)) throw new Error('map requires a list');
+      finiteList(list, 'map');
       return list.map(item => evaluate(ast.body, { ...scope, [ast.var]: item }, budget));
     }
     case 'filter': {
       const list = evaluate(ast.list, scope, budget);
-      if (!Array.isArray(list)) throw new Error('filter requires a list');
+      finiteList(list, 'filter');
       return list.filter(item => Boolean(evaluate(ast.body, { ...scope, [ast.var]: item }, budget)));
     }
     case 'match': {
@@ -227,7 +227,7 @@ export function checkBooleanExpression(ast, rowNames = null, path = 'expression'
   }
 }
 
-function spend(budget, ast) {
+function finiteList(value, operation) {\n  if (!Array.isArray(value)) throw new Error(`${operation} requires a list`);\n  if (value.length > MAX_COLLECTION_ITEMS) {\n    throw new Error(`${operation} exceeds collection item limit (${MAX_COLLECTION_ITEMS})`);\n  }\n  return value;\n}\n\nfunction spend(budget, ast) {
   budget.steps -= 1;
   if (budget.steps <= 0) {
     throw new Error(`expression exceeded step budget (${MAX_STEPS}) — totality violation`);

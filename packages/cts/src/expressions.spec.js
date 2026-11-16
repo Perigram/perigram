@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluate, checkBooleanExpression } from './expressions.js';
+import { evaluate, checkBooleanExpression, MAX_COLLECTION_ITEMS } from './expressions.js';
 
 describe('generalized finite constraint expressions', () => {
   it('supports nested relation traversal with quantifiers', () => {
@@ -50,7 +50,7 @@ describe('generalized finite constraint expressions', () => {
     expect(evaluate({ op: 'max', list, var: 'n', body: { op: 'var', name: 'n' } }, scope)).toBe(4);
   });
 
-  it('requires finite authorized relation resolvers and rejects unbound variables', () => {
+  it('bounds collection cardinality before quantification and aggregation', () => {\n    expect(() => evaluate({ op: 'count', list: { op: 'lit', value: Array(MAX_COLLECTION_ITEMS + 1).fill(1) } })).toThrow(/collection item limit/);\n  });\n\n  it('requires finite authorized relation resolvers and rejects unbound variables', () => {
     expect(() => evaluate({ op: 'related', key: 'items' }, { value: {} })).toThrow(/authorized collection resolver/);
     expect(() => evaluate({ op: 'exists', list: { op: 'lit', value: [] }, var: 'x', body: { op: 'var', name: 'y' } })).toThrow(/unbound variable/);
     expect(checkBooleanExpression({
