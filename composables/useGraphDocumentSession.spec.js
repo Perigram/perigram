@@ -39,6 +39,7 @@ describe('useGraphDocumentSession', () => {
     const session = useGraphDocumentSession({
       t: key => key,
       providers: [{
+        provider: 'plugin.example',
         definitions: [definition],
         execute: (_definition, { inputs }) => ({ result: inputs.value * 2 })
       }]
