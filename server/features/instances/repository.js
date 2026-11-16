@@ -30,7 +30,7 @@ export async function listInstances(collection, typeId, organizationId, limit = 
   const db = await connectDB();
   return await db.collection(collection)
     .find({ type: typeId, ...orgFilter(organizationId), ...filter })
-    .sort({ createdAt: -1 })
+    .sort({ createdAt: -1, _id: -1 })
     .limit(limit)
     .toArray();
 }
