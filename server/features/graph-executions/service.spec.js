@@ -15,9 +15,11 @@ const mocks = vi.hoisted(() => ({
   bakeFile: vi.fn(),
   retractBakedFile: vi.fn(),
   withOrganizationDataSnapshot: vi.fn(),
-  withOrganizationChangeSequence: vi.fn()
+  withOrganizationChangeSequence: vi.fn(),
+  connectDB: vi.fn()
 }));
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: mocks.getAppRegistry }));
+vi.mock('~/server/db/mongo', () => ({ connectDB: mocks.connectDB }));
 vi.mock('../files/service.js', () => ({
   findFileMeta: mocks.findFileMeta,
   assertFileReadAccess: mocks.assertFileReadAccess,
@@ -113,9 +115,15 @@ describe('graph execution service', () => {
   const executionService = { create: vi.fn() };
   const graphService = { processGetById: vi.fn() };
   const dataService = { processList: vi.fn(), processGetById: vi.fn(), patch: vi.fn() };
+  const session = {
+    withTransaction: vi.fn(async callback => await callback()),
+    endSession: vi.fn(async () => {})
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    session.withTransaction.mockImplementation(async callback => await callback());
+    mocks.connectDB.mockResolvedValue({ client: { startSession: () => session } });
     graphService.processGetById.mockResolvedValue(graphDocument);
     executionService.create.mockResolvedValue({ _id: 'execution-instance-1' });
     mocks.getAppRegistry.mockReturnValue({
@@ -201,7 +209,7 @@ describe('graph execution service', () => {
     }, auth);
 
     expect(dataService.patch).toHaveBeenCalledWith('item-1', { fields: { code: 'B' } }, {
-      auth, organizationId: 'org-1', expectedRevision: '3'
+      auth, organizationId: 'org-1', expectedRevision: '3', expectedOrganizationSequence: null, session
     });
     expect(result.execution).toMatchObject({
       profile: 'procedural-commit',
@@ -216,7 +224,9 @@ describe('graph execution service', () => {
     });
     expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
       fields: expect.objectContaining({ profile: 'procedural-commit', status: 'succeeded' })
-    }), 'user-1', 'org-1');
+    }), 'user-1', 'org-1', { session });
+    expect(session.withTransaction).toHaveBeenCalledTimes(1);
+    expect(session.endSession).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a stale target revision before the authoritative patch', async () => {
