@@ -60,9 +60,10 @@ declaration layer — types, editors, surfaces, previews, constructions,
 starter constructs, exports, and the client engine when the listing
 declares one.
 
-Installs and uninstalls invalidate the instance-declaration cache,
-re-derive instance indexes, and publish the org contract-change event
-(`registry` origin) so open screens reconcile.
+Install, upgrade, and uninstall mutations run inside the
+organization change-sequence boundary. Each completed mutation invalidates
+the instance-declaration cache, re-derives instance indexes, and publishes
+the org contract-change event (`registry` origin) so open screens reconcile.
 
 ### Composition
 
