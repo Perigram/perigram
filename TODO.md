@@ -19,15 +19,18 @@ integration waits for the owner's completion of build123d-flow.
   drain gate. Existing installs need one-time materialization and digest
   verification; remove the catalog asset fallback after migration.
   Progress (2026-11-16): new installs and upgrades materialize the catalog
-  release into an organization-scoped GridFS bucket; the install pin records
-  its asset manifest, module reads resolve that copy, and uninstall cleanup
-  runs only after the drain gate. Added the idempotent
-  `migrate-plugin-assets-to-organization-storage.js` operator migration:
-  it copies each existing org pin's exact version, verifies every declared
-  runtime/engine/surface/local dependency asset, and records the organization
-  storage marker only after verification. The operator migration still needs
-  to be run against the live database; the old catalog lookup remains until
-  that rollout is confirmed.
+  release into an organization-scoped GridFS bucket; install and upgrade
+  snapshots explicitly mark organization ownership, record the content
+  manifest, and module reads resolve that copy. Materialization computes
+  digests from copied bytes and revalidates existing bytes before reuse.
+  Repository tests cover digest creation, valid reuse, and repair of corrupt
+  existing bytes. Uninstall cleanup runs only after the drain gate. The
+  idempotent `migrate-plugin-assets-to-organization-storage.js` migration
+  copies each existing org pin's exact version, verifies every manifest
+  digest against stored bytes plus every declared runtime/engine/surface/local
+  dependency asset, and records the organization marker only after
+  verification. The migration still needs to run against the live database;
+  the old catalog fallback remains until rollout is confirmed.
 - [ ] Define the shared plugin execution contract in the SDK: operation
   targets, runtime/dependency requirements, capability declarations,
   invocation envelopes, result envelopes, cancellation, and execution
