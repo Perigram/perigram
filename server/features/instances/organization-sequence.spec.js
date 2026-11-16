@@ -8,6 +8,7 @@ vi.mock('~/server/db/mongo', () => ({ connectDB }));
 import {
   getOrganizationChangeSequence,
   recordOrganizationChange,
+  runOrganizationChange,
   withOrganizationChangeSequence
 } from './organization-sequence.js';
 
@@ -96,6 +97,23 @@ describe('organization change sequence', () => {
       statusCode: 409,
       code: 'STALE_ORGANIZATION_READ'
     });
+  });
+
+  it('reserves an expected sequence with a session and refuses stale reservations', async () => {
+    const session = client.startSession();
+    try {
+      await expect(runOrganizationChange('org-a', { kind: 'graph-commit' }, async () => {
+        await db.collection('atomic-write-test').insertOne({ marker: 'committed' }, { session });
+      }, { session, expectedSequence: 0 })).resolves.toBeUndefined();
+      await expect(getOrganizationChangeSequence('org-a')).resolves.toBe(1);
+      await expect(db.collection('atomic-write-test').findOne({ marker: 'committed' })).resolves.toMatchObject({ marker: 'committed' });
+      await expect(runOrganizationChange('org-a', { kind: 'stale-commit' }, async () => null, {
+        session,
+        expectedSequence: 0
+      })).rejects.toMatchObject({ statusCode: 409, code: 'STALE_ORGANIZATION_READ' });
+    } finally {
+      await session.endSession();
+    }
   });
 
   it('does not claim organization consistency without an organization scope', async () => {
