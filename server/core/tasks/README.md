@@ -33,15 +33,11 @@ Parent: [server](../../README.md).
 Task definitions come from the app registry, or ride the enqueue call as
 runtime-declared contracts (plugin services compose theirs from the
 install snapshot — `enqueueTask`'s `options.definition`), in which case
-completion resolves the contract back through the plugins feature. Managed
-package operations share the `plugin-runtime` worker type; the worker reads
-package assets and invokes scoped host capabilities through claim-bound
-routes.
-Worker-specific payloads and IO live
-in worker processes or feature adapters; this runtime is domain-agnostic. Managed
-plugin operations use the `plugin-runtime` worker type and carry the installed
-organization, plugin version, runtime id, operation id, and input in the task
-parameters.
+completion resolves the contract back through the plugins feature.
+Managed package tasks carry the organization, plugin version, runtime id,
+operation id, and input; the shared `plugin-runtime` worker reads pinned
+assets and invokes scoped host capabilities through claim-bound routes.
+Worker-specific payloads and IO live in worker processes or feature adapters.
 
 ## Transitions
 

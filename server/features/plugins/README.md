@@ -111,9 +111,10 @@ capabilities. Server calls use the claimed task route and may invoke declared
 writes. The server rehydrates the run actor from current membership and
 grants before package delivery and capability calls.
 
-Provider-level integrations use organization connection records and
-server-held credentials. Installed package operations use their pinned
-organization package and declared capabilities.
+Remote service adapters currently use endpoint and claim modes. Endpoint
+URLs and connector credentials are stored in plugin install settings.
+Provider-level connection records follow the SPEC §20 contract and are
+tracked in TODO.
 
 Installed services compose into the projected domain's service list
 (`projectedServicesForOrganization` — the one list the designer,
@@ -141,10 +142,10 @@ while remaining fully dispatchable through its construction,
 conversion, or export binding and the connector path.
 
 Managed service execution dispatches through the platform scheduler.
-Browser pure and read operations may preview in a Worker. Server execution
-validates graph inputs, capability grants, and read evidence before durable
-effects commit. Endpoint and claim services use the external integration
-protocol.
+Browser pure and read operations may preview in a Worker. Server tasks run
+the pinned package and mediate each declared capability. Graph input
+validation, read evidence, and transactional effect commits are tracked
+in TODO. Endpoint and claim services use the external integration protocol.
 
 A service input field declared with base `blob` receives a
 payload handle `{ fileId, mime, size, name? }` on the wire; the

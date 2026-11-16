@@ -10,12 +10,11 @@ operation.
 
 The parent worker retains the platform token and network access. The
 operation process receives the package directory as its read boundary and
-runs with a bounded V8 heap and wall time. Its permission set excludes
-network access, environment access, filesystem writes, and child-process
-creation. Organization data, files, and other host services are available
-through capability requests that the parent forwards to the server; the
-server checks the active task claim, installed package version, operation
-declaration, and capability allowlist before executing a handler.
+runs with a bounded V8 heap and wall time. The child process starts with a package-scoped read permission and bounded
+execution resources. The parent mediates organization data, files, and
+network access through capability requests; the server checks the active
+task claim, installed package version, operation declaration, and capability
+allowlist before executing a handler.
 
 Runtime modules export `createRuntime()` (or a default factory) returning
 an object with `execute(operationId, input, { capabilities, signal })`.
