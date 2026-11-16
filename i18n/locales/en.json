@@ -3491,7 +3491,7 @@
     "graphName": "Graph name",
     "unnamedGraph": "Untitled graph",
     "selectOrCreateGraph": "Select a graph or create a new one",
-    "graphDocumentSource": "Stored graph document",
+    "graphDocumentSource": "Stored graph document",\n    "graphRevision": "Graph revision",\n    "selectGraphRevision": "Select a revision",
     "selectGraphDocument": "Select a graph",
     "pinGraphRevision": "Pin selected revision",
     "graphPinned": "Graph revision pinned",

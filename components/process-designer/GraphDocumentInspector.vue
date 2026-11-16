@@ -12,7 +12,7 @@
       <label class="text-supporting text-muted" for="graph-document-source">{{ $t('processDesigner.graphDocumentSource') }}</label>
       <InstanceSelect
         id="graph-document-source"
-        v-model="selectedGraphId"
+        v-model="selectedGraphId"\n        @update:model-value="selectGraphDocument"
         :options="graphDocuments"
         option-label="name"
         option-value="_id"
@@ -22,11 +22,24 @@
         :placeholder="$t('processDesigner.selectGraphDocument')"
       />
       <Message v-if="graphDocumentsError" severity="error">{{ graphDocumentsError }}</Message>
+      <label class="text-supporting text-muted" for="graph-document-revision">{{ $t('processDesigner.graphRevision') }}</label>
+      <InstanceSelect
+        id="graph-document-revision"
+        v-model="selectedRevisionId"
+        :options="graphRevisions"
+        option-label="label"
+        option-value="_id"
+        :loading="graphRevisionsLoading"
+        :disabled="!selectedGraphId || graphRevisionsLoading || !graphRevisions.length"
+        class="w-full"
+        :placeholder="$t('processDesigner.selectGraphRevision')"
+      />
+      <Message v-if="graphRevisionsError" severity="error">{{ graphRevisionsError }}</Message>
       <Button
         size="small"
         :label="$t('processDesigner.pinGraphRevision')"
-        :disabled="!selectedGraphId || graphDocumentsLoading"
-        @click="emit('hydrate-graph', { nodeId: node.id, graphId: selectedGraphId })"
+        :disabled="!selectedGraphId || !selectedRevisionId || graphDocumentsLoading || graphRevisionsLoading"
+        @click="emit('hydrate-graph', { nodeId: node.id, graphId: selectedGraphId, revisionId: selectedRevisionId })"
       />
       <div v-if="node.data.config?.graphId" class="text-supporting text-muted">
         {{ node.data.config.graphId }} · {{ node.data.config.revision }}
@@ -72,9 +85,12 @@ const props = defineProps({
   boundaryDeclaration: { type: Object, default: null },
   graphDocuments: { type: Array, default: () => [] },
   graphDocumentsLoading: { type: Boolean, default: false },
-  graphDocumentsError: { type: String, default: '' }
+  graphDocumentsError: { type: String, default: '' },
+  graphRevisions: { type: Array, default: () => [] },
+  graphRevisionsLoading: { type: Boolean, default: false },
+  graphRevisionsError: { type: String, default: '' }
 });
-const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration', 'hydrate-graph']);
+const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration', 'hydrate-graph', 'select-graph-document']);
 const configText = ref('{}');
 const configError = ref('');
 const declarationText = ref('{}');
@@ -82,6 +98,7 @@ const declarationError = ref('');
 const label = ref('');
 
 const selectedGraphId = ref('');
+const selectedRevisionId = ref('');
 const isGraphInvocation = computed(() => props.node?.data?.operation?.id === 'perigram.core.use-graph');
 const isBoundary = computed(() => [
   GRAPH_INPUT_OPERATION,
@@ -89,7 +106,7 @@ const isBoundary = computed(() => [
 ].includes(props.node?.data?.operation?.id));
 
 watch(
-  [() => props.node?.id, () => props.node?.data?.config?.graphId, () => props.boundaryDeclaration],
+  [() => props.node?.id, () => props.node?.data?.config?.graphId, () => props.boundaryDeclaration, () => props.graphDocuments],
   () => {
     configText.value = JSON.stringify(props.node?.data?.config || {}, null, 2);
     configError.value = '';
@@ -102,12 +119,25 @@ watch(
         : {})
     }, null, 2);
     label.value = props.node?.data?.label || '';
-    selectedGraphId.value = String(props.node?.data?.config?.graphId || '');
+    const canonicalGraphId = String(props.node?.data?.config?.graphId || '');
+    const stored = props.graphDocuments.find(item => String(item.fields?.graphId || '') === canonicalGraphId);
+    const nextId = String(stored?._id || '');
+    if (nextId !== selectedGraphId.value) {
+      selectedGraphId.value = nextId;
+      selectedRevisionId.value = '';
+      if (nextId) emit('select-graph-document', nextId);
+    }
   },
   { immediate: true, deep: true }
 );
 
-function applyConfig() {
+watch(() => props.graphRevisions, revisions => {
+  if (!revisions.some(revision => String(revision._id) === String(selectedRevisionId.value))) {
+    selectedRevisionId.value = String(revisions[0]?._id || '');
+  }
+}, { deep: true });
+
+function selectGraphDocument(id) {\n  selectedGraphId.value = String(id || '');\n  selectedRevisionId.value = '';\n  emit('select-graph-document', selectedGraphId.value);\n}\n\nfunction applyConfig() {
   try {
     const value = JSON.parse(configText.value || '{}');
     if (!value || typeof value !== 'object' || Array.isArray(value)) {

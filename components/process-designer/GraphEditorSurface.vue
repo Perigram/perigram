@@ -104,6 +104,9 @@ const inspectTab = ref('inspector');
 const graphDocuments = ref([]);
 const graphDocumentsLoading = ref(false);
 const graphDocumentsError = ref('');
+const graphRevisions = ref([]);
+const graphRevisionsLoading = ref(false);
+const graphRevisionsError = ref('');
 let canvasFrame = null;
 let instanceId = String(props.record?._id || props.record?.id || '');
 
@@ -219,7 +222,7 @@ async function loadGraphCatalog() {
     const items = await $fetch('/api/instances/graph-document');
     graphDocuments.value = (Array.isArray(items) ? items : [])
       .filter(item => item?.payload?.fileId && item?._id)
-      .map(item => ({ ...item, _id: String(item._id), name: String(item.name || 'Graph') }));
+      .map(item => ({ ...item, _id: String(item._id), name: String(item.name || 'Graph'), fields: { ...(item.fields || {}), graphId: String(item.fields?.graphId || '') } }));
   } catch (error) {
     graphDocumentsError.value = error?.data?.message || error?.message || '';
   } finally {
@@ -227,13 +230,38 @@ async function loadGraphCatalog() {
   }
 }
 
-async function hydrateSelectedGraph({ nodeId, graphId }) {
-  const record = graphDocuments.value.find(item => String(item._id) === String(graphId));
-  if (!record?.payload?.fileId) return;
+async function loadGraphRevisions(graphId) {
+  graphRevisions.value = [];
+  graphRevisionsError.value = '';
+  if (!graphId) return;
+  graphRevisionsLoading.value = true;
   try {
-    const payload = await $fetch(`/api/files/download/${encodeURIComponent(record.payload.fileId)}?bucket=files`, {
-      responseType: 'text'
+    const result = await $fetch('/api/instance-revisions', {
+      query: { typeId: 'graph-document', instanceId: String(graphId), scope: 'content' }
     });
+    graphRevisions.value = (Array.isArray(result) ? result : [])
+      .map(revision => ({
+        ...revision,
+        _id: String(revision._id),
+        label: `v${revision.data?.number ?? '?'} · ${String(revision.data?.createdAt || '').slice(0, 16)}`
+      }))
+      .sort((a, b) => Number(b.data?.number || 0) - Number(a.data?.number || 0));
+  } catch (error) {
+    graphRevisionsError.value = error?.data?.message || error?.message || '';
+  } finally {
+    graphRevisionsLoading.value = false;
+  }
+}
+
+async function hydrateSelectedGraph({ nodeId, graphId, revisionId }) {
+  const record = graphDocuments.value.find(item => String(item._id) === String(graphId));
+  if (!record) return;
+  try {
+    const revision = graphRevisions.value.find(item => String(item._id) === String(revisionId));
+    if (revisionId && !revision) throw new Error(t('processDesigner.selectGraphRevision'));
+    const payload = revisionId
+      ? await $fetch(`/api/instance-revisions/${encodeURIComponent(revisionId)}/file`, { responseType: 'text' })
+      : await $fetch(`/api/files/download/${encodeURIComponent(record.payload.fileId)}?bucket=files`, { responseType: 'text' });
     const graph = parseGraphPayload(payload);
     hydrateGraphInvocation(nodeId, graph);
     toast.add({ severity: 'success', summary: t('processDesigner.graphPinned'), life: 2400 });

@@ -48,6 +48,7 @@ export default defineEventHandler(async (event) => {
     }
     return await service.createForHttp({
       name,
+      fields: { graphId: graph.id },
       payload: { fileId: stored.id, mime: 'application/json', size: bytes.length, name: `${name}.json` }
     }, { auth, organizationId });
   } catch (error) {

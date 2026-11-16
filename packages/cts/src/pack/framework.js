@@ -59,7 +59,7 @@ export const frameworkTypes = [
     id: 'process-definition', framework: true, class: 'process', scope: 'system', version: 1,
     name: 'Process definition',
     glyph: 'pi pi-sitemap',
-    fields: { name: { base: 'string', identifier: true } }
+    fields: { name: { base: 'string', identifier: true }, graphId: { base: 'string' } }
   },
   // The graph document (SPEC §28): an authored graph as an ordinary
   // instance — a JSON payload of semantic records, content-addressed by
