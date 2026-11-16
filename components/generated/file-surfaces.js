@@ -187,26 +187,8 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
     bakeFile: async ({ graphDocumentInstanceId, record: previewRecord, outputId, destination } = {}) => {
       if (!instanceId || String(graphDocumentInstanceId) !== instanceId) throw new Error('Bake source does not match the open graph document');
       if (!destination?.pageId || !destination?.path || !outputId) throw new Error('Bake requires an exact page, relative file path, and selected output');
-      const output = previewRecord?.outputs?.[outputId];
-      if (output === undefined) throw new Error(`Graph output ${outputId} is unavailable`);
-      let blob;
-      let outputMime = 'application/json';
-      if (output && typeof output === 'object' && output.fileId) {
-        const bucket = output.bucket || 'files';
-        const response = await fetch(`/api/files/download/${encodeURIComponent(output.fileId)}?bucket=${encodeURIComponent(bucket)}`);
-        if (!response.ok) throw new Error(`Could not read graph output file (${response.status})`);
-        blob = await response.blob();
-        outputMime = output.mime || blob.type || 'application/octet-stream';
-      } else if (typeof output === 'string') {
-        blob = new Blob([output], { type: 'text/plain;charset=utf-8' });
-        outputMime = 'text/plain';
-      } else {
-        blob = new Blob([JSON.stringify(output, null, 2)], { type: 'application/json' });
-      }
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      let binary = '';
-      for (let offset = 0; offset < bytes.length; offset += 0x8000) {
-        binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+      if (!Object.prototype.hasOwnProperty.call(previewRecord?.outputs || {}, outputId)) {
+        throw new Error(`Graph output ${outputId} is unavailable`);
       }
       return await $fetch('/api/graph-bakes', {
         method: 'POST',
