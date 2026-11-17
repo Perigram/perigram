@@ -158,7 +158,7 @@ describe('entity Select wrappers', () => {
       'pages/organization/models.vue'
     ]);
     const violations = vueFiles(['components', 'pages', 'layouts'])
-      .filter(file => !['components/shared/InstanceSelect.vue', 'components/shared/InstanceMultiSelect.vue'].includes(file))
+      .filter(file => !['components/shared/InstanceSelect.vue', 'components/shared/InstanceMultiSelect.vue', 'components/shared/ValueSelect.vue'].includes(file))
       .filter(file => !enumSelectAllowance.has(file))
       .filter(file => /from\s+['"]primevue\/(?:select|multiselect)['"]/.test(readFileSync(file, 'utf8')));
 

@@ -22,7 +22,7 @@ import {
   renderPdfFromWorkbook,
   workbookTemplateTokens
 } from './fill.js';
-import { parseMarkdown, renderReportPdf, renderDocumentPdf } from './report.js';
+import { renderReportPdf, renderDocumentPdf } from './report.js';
 
 function badRequest(message) {
   const error = new Error(message);
@@ -139,7 +139,6 @@ export const services = {
   'table-rows': async input => recordsByHeader(await sheetMatrix(input)),
   'table-cells': async input => recordsByPosition(await sheetMatrix(input)),
   text: async input => new TextDecoder().decode(bufferOf(input)),
-  'parse-markdown': async ({ text } = {}) => parseMarkdown(text),
   'render-report-pdf': async ({ report, name } = {}) => toPayload(
     await renderReportPdf(report),
     'application/pdf',
