@@ -23,9 +23,13 @@ export default function createSurface({ vue, components }) {
       async function resolveDrawing() {
         const currentRequest = ++requestId;
         drawing.value = null;
-        const layerData = await resolveOccsProfileSketchLayerData(props.record?.fields?.sketch);
-        if (currentRequest !== requestId) return;
-        drawing.value = layerData ? normalizeGeometryDrawing({ data: { layerData } }) : null;
+        try {
+          const layerData = await resolveOccsProfileSketchLayerData(props.record?.fields?.sketch);
+          if (currentRequest !== requestId) return;
+          drawing.value = layerData ? normalizeGeometryDrawing({ data: { layerData } }) : null;
+        } catch {
+          if (currentRequest === requestId) drawing.value = null;
+        }
       }
 
       const renderKey = computed(() => [
