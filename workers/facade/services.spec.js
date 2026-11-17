@@ -15,6 +15,13 @@ describe('Facade endpoint inventory', () => {
     );
   });
 
+  it('declares a revision scope for every payload-bearing file type', () => {
+    for (const type of listing.declarations.types.filter(type => type.class === 'file' && type.payload)) {
+      expect(['content', 'geometry']).toContain(type.revisions);
+    }
+    expect(listing.declarations.types.find(type => type.id === 'sheet-dxf').revisions).toBe('content');
+  });
+
   it('resolves every construction and projection binding to a declared service', () => {
     const serviceIds = new Set(listing.declarations.services.map(service => service.id));
     for (const type of listing.declarations.types) {
