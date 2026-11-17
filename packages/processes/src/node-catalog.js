@@ -916,6 +916,7 @@ function processTypeFrom(value, fallback) {
     qualifiers.keyType = value.keyType;
     qualifiers.valueType = value.valueType;
   }
+  if (value.base === 'json' && value.kind) qualifiers.kind = value.kind;
   for (const key of ['unit', 'enumId', 'schema', 'opaqueType', 'attachmentKind', 'eventType', 'taskType', 'capability']) {
     if (value[key]) qualifiers[key] = value[key];
   }
