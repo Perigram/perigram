@@ -82,6 +82,25 @@ describe('procedural graph preview evaluator', () => {
     })).rejects.toThrow(/input value does not accept null/);
   });
 
+  it('rejects null at a non-nullable graph input boundary', async () => {
+    const document = graph({
+      inputs: [{
+        id: 'number',
+        contract: { shape: 'item', semantic: { base: 'number' } }
+      }]
+    });
+    const nullableDefinition = {
+      ...doubleDefinition,
+      inputs: [{ id: 'value', required: true, semantic: { base: 'number', nullable: true } }]
+    };
+    await expect(evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: null },
+      resolveNodeDefinition: () => nullableDefinition,
+      executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
+    })).rejects.toThrow(/Graph input number does not accept null/);
+  });
+
   it('shares one execution id across every node in a graph preview', async () => {
     const document = graph({
       nodes: [
