@@ -557,10 +557,7 @@ function legacyExecutorOrigin(install) {
 }
 
 function endpointUrlFor(install, service) {
-  if (install.endpoints?.[service.id] && !install.executorOrigin) return install.endpoints[service.id];
-  const origin = install.executorOrigin || legacyExecutorOrigin(install);
-  if (!origin) return null;
-  return String(origin).replace(/\/$/, '') + '/' + encodeURIComponent(service.id);
+  return install.executorOrigin || legacyExecutorOrigin(install);
 }
 
 export async function settingsFor({ organizationId, pluginId, auth = {} }) {
@@ -1137,7 +1134,7 @@ async function callEndpointService(install, serviceId, body) {
         'content-type': 'application/json',
         ...(install.authToken ? { authorization: `Bearer ${install.authToken}` } : {})
       },
-      body: JSON.stringify(body ?? null),
+      body: JSON.stringify({ operationId: serviceId, input: body ?? null }),
       signal: AbortSignal.timeout(60000)
     });
   } catch (error) {
