@@ -405,9 +405,13 @@ function mintConnectorToken() {
 // claim adapters, and the transitional browser-local engine.
 
 export function serviceModeOf(service = {}) {
-  if (service.execution) return 'managed';
+  // An explicit transport mode is authoritative. Some listing compilers
+  // attach execution metadata for shared/browser-server implementations;
+  // that metadata must not hide a declared remote endpoint from plugin
+  // settings (or from the provider-level executor-origin configuration).
   if (service.mode === 'endpoint') return 'endpoint';
   if (service.mode === 'local') return 'local';
+  if (service.execution) return 'managed';
   return 'claim';
 }
 
