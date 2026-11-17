@@ -18,7 +18,8 @@ const mocks = vi.hoisted(() => ({
   retractBakedFile: vi.fn(),
   withOrganizationDataSnapshot: vi.fn(),
   withOrganizationChangeSequence: vi.fn(),
-  connectDB: vi.fn()
+  connectDB: vi.fn(),
+  declarationForType: vi.fn()
 }));
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: mocks.getAppRegistry }));
 vi.mock('~/server/db/mongo', () => ({ connectDB: mocks.connectDB }));
@@ -34,6 +35,7 @@ vi.mock('../pages/service.js', () => ({
   bakeFile: mocks.bakeFile,
   retractBakedFile: mocks.retractBakedFile
 }));
+vi.mock('../instances/service.js', () => ({ declarationForType: mocks.declarationForType }));
 vi.mock('../instances/index.js', () => ({
   withOrganizationDataSnapshot: mocks.withOrganizationDataSnapshot,
   withOrganizationChangeSequence: mocks.withOrganizationChangeSequence
@@ -120,7 +122,7 @@ describe('graph execution service', () => {
   const executionService = { create: vi.fn() };
   const graphService = { processGetById: vi.fn() };
   const dataService = { processList: vi.fn(), processGetById: vi.fn(), patch: vi.fn() };
-  const payloadService = { replacePayload: vi.fn(), createForHttp: vi.fn() };
+  const payloadService = { replacePayload: vi.fn(), createForHttp: vi.fn(), patch: vi.fn() };
   const session = {
     withTransaction: vi.fn(async callback => await callback()),
     endSession: vi.fn(async () => {})
@@ -154,6 +156,8 @@ describe('graph execution service', () => {
     mocks.deleteFile.mockResolvedValue(true);
     payloadService.replacePayload.mockResolvedValue({ _id: 'item-1', type: 'part', revision: 4, payload: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8' } });
     payloadService.createForHttp.mockResolvedValue({ _id: 'new-part-1', type: 'part', revision: 1, payload: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8' } });
+    payloadService.patch.mockResolvedValue({ _id: 'item-1', type: 'part', revision: 4, fields: { attachment: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8', size: 18 } } });
+    mocks.declarationForType.mockResolvedValue({ fields: { attachment: { base: 'blob' } } });
     mocks.bakeFile.mockResolvedValue({
       page: { _id: 'page-1' },
       file: { path: 'exports/document.txt', fileId: 'baked-file-1', mime: 'text/plain', size: 18, revision: 1 }
@@ -450,18 +454,43 @@ describe('graph execution service', () => {
     expect(result.execution.profile).toBe('procedural-bake');
   });
 
-  it('does not bake a graph output into a Page in another active organization', async () => {
-    graphService.processGetById.mockResolvedValueOnce({
-      ...graphDocument,
-      organizationId: 'org-2'
+  it('bakes an output into an explicitly declared Blob field on an exact CTS instance', async () => {
+    const result = await graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: preview(),
+      outputId: 'document',
+      destination: { type: 'instance-field', typeId: 'part', instanceId: 'item-1', fieldId: 'attachment', expectedRevision: '3' }
+    }, auth);
+
+    expect(mocks.declarationForType).toHaveBeenCalledWith('part', 'org-1');
+    expect(mocks.uploadFile).toHaveBeenCalledWith(
+      Buffer.from('Generated document'),
+      expect.any(String),
+      expect.objectContaining({ organizationId: 'org-1', type: 'part' }),
+      'files',
+      'text/plain; charset=utf-8'
+    );
+    expect(payloadService.patch).toHaveBeenCalledWith('item-1', {
+      fields: { attachment: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8', size: 18 } }
+    }, expect.objectContaining({ expectedRevision: '3', expectedOrganizationSequence: null, session }));
+    expect(result.instance.revision).toBe(4);
+    expect(result.execution.artifacts.at(-1)).toMatchObject({
+      kind: 'instance-field', typeId: 'part', instanceId: 'item-1', fieldId: 'attachment',
+      fileId: 'baked-payload-1', conflictPolicy: 'fail'
     });
+    expect(mocks.deleteFile).not.toHaveBeenCalled();
+  });
+
+  it('refuses instance-field Bake unless the destination is a declared Blob field', async () => {
+    mocks.declarationForType.mockResolvedValueOnce({ fields: { attachment: { base: 'string' } } });
     await expect(graphExecutionsService.bakeOutput({
       graphDocumentInstanceId: 'graph-instance-1',
       record: preview(),
       outputId: 'document',
-      destination: { type: 'page-file', pageId: 'page-1', path: 'exports/document.txt' }
-    }, auth)).rejects.toMatchObject({ statusCode: 403 });
-    expect(mocks.bakeFile).not.toHaveBeenCalled();
+      destination: { type: 'instance-field', typeId: 'part', instanceId: 'item-1', fieldId: 'attachment', expectedRevision: '3' }
+    }, auth)).rejects.toMatchObject({ statusCode: 400 });
+    expect(mocks.uploadFile).not.toHaveBeenCalled();
+    expect(payloadService.patch).not.toHaveBeenCalled();
   });
 
   it('rejects new-instance Bake drafts that can spoof tenancy or lifecycle', async () => {
