@@ -92,6 +92,7 @@ describe('transformInstanceForSteps', () => {
 
 describe('applyTypeMigrationSteps', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     __state.docs = [];
     __state.updates = [];
     __state.matchedCount = 1;
