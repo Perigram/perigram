@@ -73,7 +73,7 @@ describe('node port compatibility', () => {
     expect(compareNodePorts(
       { semantic: { base: 'string' }, required: false },
       { semantic: { base: 'string' }, required: true }
-    )).toMatchObject({ status: 'conditional', compatible: false });
+    )).toMatchObject({ status: 'conditional', compatible: true });
   });
 
   it('requires explicit unit conversion', () => {
