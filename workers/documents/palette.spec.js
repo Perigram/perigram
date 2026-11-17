@@ -26,7 +26,7 @@ describe('Documents plugin node palette contribution', () => {
   it('exposes declared table extraction and document operations as plugin-owned groups', () => {
     const groups = declaredPaletteGroups();
     const tableData = groups.find(group => group.id === 'plugin-documents-table-data');
-    const documentCompose = groups.find(group => group.id === 'plugin-documents-document-compose');
+    const documentCompose = groups.find(group => group.id === 'plugin-documents-document-composition');
 
     expect(groups.every(group => group.source === 'plugin')).toBe(true);
     expect(tableData.items.map(item => item.id)).toContain('extract:documents:rows');
