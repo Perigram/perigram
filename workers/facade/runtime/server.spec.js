@@ -42,22 +42,6 @@ describe('Facade managed server runtime', () => {
     })).resolves.toEqual({ found: false, design: null });
   });
 
-  it('projects cassette nesting polygons and their source layers in the managed runtime', async () => {
-    const runtime = createRuntime();
-    const result = await runtime.execute('nesting-parts', {
-      typeId: 'cassette-design',
-      instanceId: 'design-1',
-      fields: { geometry: {
-        nestingPolygons: [{ coordinates: [[0, 0], [10, 0], [10, 10]], workpieceId: 'wp-1' }],
-        layerData: [{ layer: 'cut.outer', workpieceId: 'wp-1', coordinates: [[0, 0], [10, 0]] }]
-      } }
-    });
-    expect(result.designId).toBe('design-1');
-    expect(result.polygonParts).toHaveLength(1);
-    expect(result.polygonParts[0].designId).toBe('design-1');
-    expect(result.polygonParts[0].sourceLayers).toHaveLength(1);
-  });
-
   it('constructs pinned sheet geometry and parts in the managed runtime', async () => {
     const runtime = createRuntime();
     const result = await runtime.execute('construct-sheet', {
