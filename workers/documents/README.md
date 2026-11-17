@@ -79,12 +79,50 @@ Inline nodes: `text` (`text`), `strong`/`emphasis` (`children`),
 dropped construct is reported, never silently lost; an inline image
 keeps its literal markdown as text.
 
-`document.report@1` — `{ title?, sections: [{ id, title?, blocks }] }`
-where a section's blocks are `{ type: 'flow', document }` (a
-flow-document value) and `{ type: 'table', rows }` (row records). On
-the one graph, values are the artifacts: the table block carries its
-rows inline. `compose-report` refuses a flow input that is not a flow
-document — parse and extract are the graph's own explicit operations.
+The primary graph value is `text.flow-document@1` — a document
+independent of Markdown, HTML, or PDF serialization. It has optional
+`title`, ordered `blocks`, and optional parse `diagnostics`.
+
+| Block value | Required shape |
+|---|---|
+| `paragraph` | `{ type, children: InlineNode[] }` |
+| `heading` | `{ type, level: 1..6, children: InlineNode[] }` |
+| `list` | `{ type, ordered, items: InlineNode[][] }` |
+| `blockquote` | `{ type, blocks: DocumentBlock[] }` |
+| `code-block` | `{ type, language?, text }` |
+| `table` | `{ type, rows: Record<string, string>[] }` |
+| `horizontal-rule` | `{ type }` |
+
+Each block is a graph value of kind `text.document-block`; a composed
+document is `text.flow-document`. Inline values are text, strong, emphasis,
+code, and safe links. The provider validates block shape at every constructor,
+composition, append, and export boundary. A graph can create a block directly,
+compose a list of blocks, append a block to an existing document, or parse an
+existing Markdown string into the same document value. The Markdown editor's
+file payload remains Markdown; it is not silently replaced with a serialized
+JSON record.
+
+Document operations are grouped by authoring intent:
+
+| Palette group | Operations |
+|---|---|
+| **Document blocks** | Paragraph, Heading, List, Table, Quote, Code block, Divider |
+| **Document composition** | Compose document, Append block, Parse Markdown |
+| **Document export** | Markdown text, Markdown file, HTML, PDF |
+
+`text.flow-document` is previewable directly through the Documents preview
+channel. The existing `document.report@1` value remains a separate report
+composition format for workflows that explicitly need report sections; it
+is not the generic document value and must not be used as a substitute for
+authorable document blocks.
+
+Format exports that produce files return the plugin SDK payload envelope
+(`payload: { base64, mime, name }`). The graph host recognizes that envelope
+as file content and owns Bake/Export destinations. Markdown file export uses
+`text/markdown`, HTML uses `text/html`, and PDF uses `application/pdf`.
+A plain Markdown-text operation remains available when the string itself is
+needed for further graph computation.
+
 - Editor surfaces (contract 3 — the capability mount): the markdown
   editor (`surfaces/text-editor.mjs`, milkdown/crepe with every engine
   chrome disabled — remote saves reconcile through the host's
