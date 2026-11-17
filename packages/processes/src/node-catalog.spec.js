@@ -296,7 +296,7 @@ describe('process v4 node catalog', () => {
     const makeBlocks = resolveCatalogNodePorts({ kind: 'collection.makeList', type: { base: 'json', kind: 'text.document-block' } }, { domain });
     const rows = resolveCatalogNodePorts({ kind: 'cts.read', select: 'extract', typeId: 'csv-table', projection: 'rows' }, { domain });
 
-    expect(paragraph.outputs.find(port => port.id === 'result').type).toEqual({ base: 'json', kind: 'text.document-block' });
+    expect(paragraph.outputs.find(port => port.id === 'result').type).toEqual({ base: 'json', kind: 'text.document-block', nullable: false });
     expect(processTypesCompatible(rows.outputs[0].type, table.inputs.find(port => port.id === 'rows').type).ok).toBe(true);
     expect(processTypesCompatible(table.outputs.find(port => port.id === 'result').type, makeBlocks.inputs[0].type).ok).toBe(true);
     expect(processTypesCompatible(makeBlocks.outputs[0].type, compose.inputs.find(port => port.id === 'blocks').type).ok).toBe(true);

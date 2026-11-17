@@ -4,15 +4,26 @@
 export default function createSurface(ctx) {
   const h = ctx?.vue?.h || (() => null);
 
-  const renderInline = nodes => (nodes || []).map((node, index) => {
+  const safeHref = value => {
+    const href = String(value || '').trim();
+    return href && /^(https?:|mailto:|\/|#|\?)/i.test(href) && !href.startsWith('//') ? href : null;
+  };
+
+  const renderInline = nodes => (Array.isArray(nodes) ? nodes : []).map((node, index) => {
     if (node.type === 'strong') return h('strong', { key: index }, renderInline(node.children));
     if (node.type === 'emphasis') return h('em', { key: index }, renderInline(node.children));
     if (node.type === 'code') return h('code', { key: index }, node.text);
-    if (node.type === 'link') return h('a', { key: index, href: node.href, target: '_blank', rel: 'noopener' }, renderInline(node.children));
-    return h('span', { key: index }, node.text ?? '');
+    if (node.type === 'link') {
+      const href = safeHref(node.href);
+      return href
+        ? h('a', { key: index, href, target: '_blank', rel: 'noopener noreferrer' }, renderInline(node.children))
+        : h('span', { key: index }, renderInline(node.children));
+    }
+    return h('span', { key: index }, typeof node.text === 'string' ? node.text : '');
   });
 
   const renderBlock = (block, key) => {
+    if (!block || typeof block !== 'object') return null;
     if (block.type === 'flow') {
       return h('div', { key, class: 'flex flex-col gap-2' }, (block.document?.blocks || []).map(renderBlock));
     }
@@ -34,10 +45,11 @@ export default function createSurface(ctx) {
   };
 
   const renderTable = (block, key) => {
-    const columns = [...new Set((block.rows || []).flatMap(row => Object.keys(row || {})))];
+    const rows = Array.isArray(block.rows) ? block.rows.filter(row => row && typeof row === 'object' && !Array.isArray(row)) : [];
+    const columns = [...new Set(rows.flatMap(row => Object.keys(row)))];
     if (!columns.length) return null;
     const head = h('thead', null, [h('tr', null, columns.map(column => h('th', { key: column }, column)))]);
-    const body = h('tbody', null, (block.rows || []).map((row, index) => h(
+    const body = h('tbody', null, rows.map((row, index) => h(
       'tr', { key: index }, columns.map(column => h('td', { key: column }, String(row?.[column] ?? '')))
     )));
     return h('table', { key }, [head, body]);
@@ -79,8 +91,8 @@ export function documentsOf(payload) {
   const found = [];
   for (const node of Object.values(payload?.nodes || {})) {
     for (const tree of Object.values(node?.outputs || {})) {
-      for (const branch of tree?.branches || []) {
-        for (const item of branch.items || []) {
+      for (const branch of Array.isArray(tree?.branches) ? tree.branches : []) {
+        for (const item of Array.isArray(branch?.items) ? branch.items : []) {
           if (item?.type === 'text.flow-document' || item?.type === 'document.report') found.push(item);
         }
       }
