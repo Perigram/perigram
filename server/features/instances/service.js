@@ -1122,8 +1122,16 @@ function instanceService(typeId) {
       const relationValue = edge ? current.relations?.[key] : current.fields?.[key];
       const many = edge ? edge.cardinality !== 'one' : fieldRefList;
       const nextRef = { type: String(targetRef.type), id: String(targetRef.id) };
+      const acceptedTypes = edge?.types || field?.accepts || field?.itemType?.accepts || [];
+      const matchesTarget = value => {
+        const valueType = value && typeof value === 'object'
+          ? String(value.type || (acceptedTypes.length === 1 ? acceptedTypes[0] : ''))
+          : acceptedTypes.length === 1 ? acceptedTypes[0] : '';
+        const valueId = typeof value === 'string' ? value : value?.id ?? value?._id;
+        return valueType === nextRef.type && String(valueId ?? '') === nextRef.id;
+      };
       const existing = relationValue == null ? [] : Array.isArray(relationValue) ? relationValue : [relationValue];
-      if (existing.some(value => String(value?.type || '') === nextRef.type && String(value?.id || '') === nextRef.id)) {
+      if (existing.some(matchesTarget)) {
         throw createError({ statusCode: 409, message: 'The relation already contains this target' });
       }
       if (!many && existing.length) {
@@ -1207,9 +1215,15 @@ function instanceService(typeId) {
         throw createError({ statusCode: 400, message: `Relation ${key} is not declared for ${typeId}` });
       }
       const relationValue = edge ? current.relations?.[key] : current.fields?.[key];
+      const acceptedTypes = edge?.types || field?.accepts || field?.itemType?.accepts || [];
       const existing = relationValue == null ? [] : Array.isArray(relationValue) ? relationValue : [relationValue];
-      const matches = value => String(value?.type || '') === String(targetRef.type)
-        && String(value?.id ?? value?._id ?? '') === String(targetRef.id);
+      const matches = value => {
+        const valueType = value && typeof value === 'object'
+          ? String(value.type || (acceptedTypes.length === 1 ? acceptedTypes[0] : ''))
+          : acceptedTypes.length === 1 ? acceptedTypes[0] : '';
+        const valueId = typeof value === 'string' ? value : value?.id ?? value?._id;
+        return valueType === String(targetRef.type) && String(valueId ?? '') === String(targetRef.id);
+      };
       if (!existing.some(matches)) {
         throw createError({ statusCode: 409, message: 'The relation does not contain this target' });
       }
