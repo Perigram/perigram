@@ -5,6 +5,7 @@
 // extraction moved here from the retired pack's projection handlers
 // (owner decision 2026-10-17); column semantics stay in the reading
 // graph. Imports the xlsx ESM build.
+import { readFileSync } from 'node:fs';
 import * as XLSX from 'xlsx/xlsx.mjs';
 import {
   DXF_MIME_TYPES,
@@ -197,6 +198,9 @@ export const services = {
 };
 
 
+const listing = JSON.parse(readFileSync(new URL('./listing.json', import.meta.url), 'utf8'));
 export const endpointServices = Object.fromEntries(
-  Object.entries(services).filter(([id]) => id !== 'csv-text')
+  listing.declarations.services
+    .filter(service => service.mode === 'endpoint')
+    .map(service => [service.id, services[service.id]])
 );
