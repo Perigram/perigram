@@ -38,76 +38,75 @@ Documents exposes semantic operation groups from its listing:
 
 - **Document sources** — read text from an existing Markdown file
 - **Table data** — extract header-keyed or positional rows and serialize rows to CSV
-- **Inline content / Document blocks** — author typed text fragments and structural blocks
+- **Inline content** — create text, emphasis, strong/code marks, and safe links
+- **Document blocks** — create paragraphs, headings, lists, tables, quotes, code blocks, and dividers
 - **Document composition** — parse Markdown, compose/append flowing documents, and compose sectioned reports
 - **Document export** — render HTML/PDF and produce Markdown/HTML file payloads
 
-Template fill and file-to-PDF conversion remain construction operations
-bound to their file types, rather than generic graph nodes.
+### Document graph values
 
-## Document IR contracts
+The generic authoring value is `text.flow-document@1`:
 
-`text.flow-document@1` — flowing text independent of serialization:
+```js
+{
+  type: 'text.flow-document',
+  schemaVersion: 1,
+  title?: string,
+  blocks: DocumentBlock[],
+  diagnostics?: string[]
+}
+```
+
+A block is a typed `text.document-block` value. The union is:
 
 | Block | Shape |
 |---|---|
-| `paragraph` / `heading` | `{ children: InlineNode[] }` (+ `level` 1–6 on headings) |
-| `list` | `{ ordered: boolean, items: InlineNode[][] }` |
-| `blockquote` | `{ blocks: Block[] }` |
-| `code-block` | `{ language?: string, text: string }` |
-| `table` | `{ rows: Record<string, string>[] }` — header-keyed records |
-| `horizontal-rule` | `{}` |
+| Paragraph | `{ type: 'paragraph', children: InlineNode[] }` |
+| Heading | `{ type: 'heading', level: 1..6, children: InlineNode[] }` |
+| List | `{ type: 'list', ordered: boolean, items: InlineNode[][] }` |
+| Quote | `{ type: 'blockquote', blocks: DocumentBlock[] }` |
+| Code block | `{ type: 'code-block', language?: string, text: string }` |
+| Table | `{ type: 'table', rows: Record<string, string>[] }` |
+| Divider | `{ type: 'horizontal-rule' }` |
 
-Inline nodes: `text` (`text`), `strong`/`emphasis` (`children`),
-`code` (`text`), `link` (`href`, `children`). Parse diagnostics ride
-`diagnostics: string[]` (`UNSUPPORTED_HTML`, `UNSUPPORTED_IMAGE`) — a
-dropped construct is reported, never silently lost; an inline image
-keeps its literal markdown as text.
+Inline values use kind `text.inline`: text/code nodes carry `text`, strong
+and emphasis nodes carry `children`, and link nodes carry a safe `href`
+plus `children`. The provider validates nested inline and block values when
+constructing, composing, appending, previewing, or exporting a document.
+Unsafe link schemes are rejected or dropped with a parse diagnostic.
 
-The primary graph value is `text.flow-document@1` — a document
-independent of Markdown, HTML, or PDF serialization. It has optional
-`title`, ordered `blocks`, and optional parse `diagnostics`.
+A document can be authored entirely from nodes: create typed inline values
+and blocks, put block outputs into `Make List` configured for
+`text.document-block`, then connect that list to `Compose document`.
+Alternatively append blocks one at a time. Existing Markdown files enter
+through the `Parse Markdown` operation and produce the same value.
 
-| Block value | Required shape |
-|---|---|
-| `paragraph` | `{ type, children: InlineNode[] }` |
-| `heading` | `{ type, level: 1..6, children: InlineNode[] }` |
-| `list` | `{ type, ordered, items: InlineNode[][] }` |
-| `blockquote` | `{ type, blocks: DocumentBlock[] }` |
-| `code-block` | `{ type, language?, text }` |
-| `table` | `{ type, rows: Record<string, string>[] }` |
-| `horizontal-rule` | `{ type }` |
+A concrete data workflow is: read a CSV/XLSX `rows` projection →
+`Table` block → typed `Make List` → `Compose document` → preview →
+`Export Markdown file` → Bake as a `text-document` instance. The row
+projection connects directly to the table block's list input; block and
+document sockets carry distinct semantic kinds, so arbitrary JSON records
+cannot be wired in accidentally.
 
-Each block is a graph value of kind `text.document-block`; a composed
-document is `text.flow-document`. Inline values are text, strong, emphasis,
-code, and safe links. The provider validates block shape at every constructor,
-composition, append, and export boundary. A graph can create a block directly,
-compose a list of blocks, append a block to an existing document, or parse an
-existing Markdown string into the same document value. The Markdown editor's
-file payload remains Markdown; it is not silently replaced with a serialized
-JSON record.
+The sectioned `document.report@1` value remains available for report-specific
+workflows; it is not a substitute for the generic authorable document value.
 
-Document operations are grouped by authoring intent:
+### File export and templates
 
-| Palette group | Operations |
-|---|---|
-| **Inline content** | Inline text, strong/emphasis/code marks, safe links |
-| **Document blocks** | Paragraph, Heading, List, Table, Quote, Code block, Divider |
-| **Document composition** | Compose document, Append block, Parse Markdown |
-| **Document export** | Markdown text, Markdown file, HTML, PDF |
+File-producing operations return the plugin SDK payload envelope
+`{ payload: { base64, mime, name } }`. The graph host materializes those
+bytes through the normal Bake/Export lifecycle: Markdown uses
+`text/markdown`, HTML uses `text/html`, and PDF uses
+`application/pdf`. The plugin defines the format; the host owns file
+identity, authorization, destination, and persistence. `Export Markdown`
+also remains available as a plain string value when downstream graph
+computation needs text rather than a file.
 
-`text.flow-document` is previewable directly through the Documents preview
-channel. The existing `document.report@1` value remains a separate report
-composition format for workflows that explicitly need report sections; it
-is not the generic document value and must not be used as a substitute for
-authorable document blocks.
-
-Format exports that produce files return the plugin SDK payload envelope
-(`payload: { base64, mime, name }`). The graph host recognizes that envelope
-as file content and owns Bake/Export destinations. Markdown file export uses
-`text/markdown`, HTML uses `text/html`, and PDF uses `application/pdf`.
-A plain Markdown-text operation remains available when the string itself is
-needed for further graph computation.
+A graph-authored document becomes a reusable Markdown template through
+`Compose document` → `Export Markdown file` → explicit Bake to a new
+`text-document` instance. That ordinary file can then be selected as the
+template input of the `text-document.fill` construction. No parallel
+template record or document-specific storage path is introduced.
 
 - Editor surfaces (contract 3 — the capability mount): the markdown
   editor (`surfaces/text-editor.mjs`, milkdown/crepe with every engine
