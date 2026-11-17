@@ -856,7 +856,8 @@ export function pluginPaletteGroups(projectionContracts = {}, serviceContracts =
     if (!service?.group || !service?.id || !service.command) continue;
     section(service.group).items.push(paletteItem(`service:${service.id}`, 'cts.service', {
       label: service.render?.label || service.id,
-      description: service.render?.label || service.id,
+      description: service.description || service.render?.description || service.render?.label || service.id,
+      searchTerms: [service.id, service.command, service.provider, service.pluginId].filter(Boolean),
       icon: service.render?.icon || 'pi pi-bolt',
       preset: { operator: service.id }
     }));
