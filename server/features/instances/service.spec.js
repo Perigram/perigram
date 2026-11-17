@@ -840,13 +840,16 @@ describe('generic instance service stored shape (SPEC §3)', () => {
   it('createForHttp stores the §3 draft under the access gate and refuses without a grant', async () => {
     const coll = stubCollection();
     const service = instanceServiceResolver('label'); // item class
+    const session = { id: 'create-transaction-session' };
 
     const dto = await service.createForHttp(
       { name: 'Hanger 40x20', fields: { code: 'H40', note: 'n' } },
-      { auth: { userId: 'user-1', organizationId: 'org-1' }, organizationId: 'org-1' }
+      { auth: { userId: 'user-1', organizationId: 'org-1' }, organizationId: 'org-1', session, expectedOrganizationSequence: 2 }
     );
 
     const stored = coll.insertOne.mock.calls[0][0];
+    expect(coll.insertOne.mock.calls[0][1]).toEqual({ session });
+    expect(runOrganizationChange).toHaveBeenCalledWith('org-1', expect.objectContaining({ kind: 'instance-created' }), expect.any(Function), { session, expectedSequence: 2 });
     expect(stored.organizationId).toBe('org-1');
     expect(stored.name).toBe('Hanger 40x20');
     expect(stored.fields).toEqual({ code: 'H40', note: 'n' });

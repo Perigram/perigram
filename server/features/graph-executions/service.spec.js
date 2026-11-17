@@ -372,6 +372,8 @@ describe('graph execution service', () => {
       }
     }, auth);
 
+    const revisions = await import('../instance-revisions/service.js');
+    expect(revisions.ensureRevisionIndexes).toHaveBeenCalledTimes(1);
     expect(mocks.uploadFile).toHaveBeenCalledWith(
       Buffer.from('Generated document'),
       'Document graph-document.txt',
