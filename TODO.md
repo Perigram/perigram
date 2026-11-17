@@ -564,8 +564,11 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   only validated ancestor axes, and tenancy is kept out of stored lineage.
   Global and organization-scoped exact scalar uniqueness uses registry-derived
   Mongo unique indexes, partial scalar filters, and 409 conflict mapping.
-  Remaining: audit import/direct repository and dedicated relation mutation
-  paths, then serialize cross-record aggregate/cardinality constraints.
+  HTTP link/unlink now run in snapshot transactions with the relation update,
+  revision check, audit event, and organization sequence in one unit. Authorized
+  delete also transacts the declared-referrer sweep and delete. Remaining:
+  audit import/type-migration direct repository writes, then serialize
+  cross-record aggregate/cardinality constraints.
 - [ ] G8 Typed references and embeds — live and pinned references,
   saved-query/graph-output collection embeds, and derived backlinks.
 - [ ] G9 Procedural vertical slices — document/data and geometry workflows
@@ -581,6 +584,13 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
 - The instance repository and generic instance service propagate the transaction session through reads, constraint resolution, revision compare-and-swap, organization sequence reservation, and writes. A stable preview organization sequence is reserved with a zero-pending compare-and-swap and an exclusive token before the target mutation; ordinary organization writes cannot begin until that token is completed or cancelled. The execution record advances the same sequence inside the transaction.
 - Mongo transaction support is a commit prerequisite. Unsupported deployments receive `503` before mutation; evidence-write failures abort the instance write with the transaction.
 - Regression coverage verifies the session is shared by the patch and evidence insert, the expected sequence reaches the write boundary, and the sequence reservation rejects stale previews. CI passed the full Vitest, SSR, architecture, framework, documentation, operational-script, and plugin-dependency checks.
+### Agent Notes (2026-11-17, transactional relation mutation)
+
+- Added a shared Mongo snapshot-transaction helper and reused it for graph Commit plus HTTP relation link/unlink.
+- Authorized instance deletion now opens the same transaction boundary; the target delete, declared relation-referrer scan/rewrites, entity events, and organization change sequence share its session.
+- The relation routes forward an optional `expectedOrganizationSequence` fence as well as the exact owner revision. Unsupported Mongo deployments fail with 503 before the mutation.
+- Regression tests cover session propagation through relation link/unlink, delete/referrer sweep, sequence fencing, and the authorized delete transport.
+
 ### Agent Notes (2026-11-16, CTS relation write validation)
 
 - Explicit relation edges now normalize `cardinality` to `one | many` (default `many`). Generic instance creates and internal relation updates validate declared relation slots, typed targets, cardinality shape, duplicate refs, same-organization/system tenancy, and target-domain `where` predicates. Nested relation/containment predicates use the bounded async CTS evaluator and a recursion guard. Generic HTTP PATCH still refuses structural relation writes; this validation protects internal construct/process paths that do write them.

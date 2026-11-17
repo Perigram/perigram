@@ -156,7 +156,10 @@ Parent: [server/features](../README.md).
 - Field updates (`patch`): `PATCH /api/instances/:type/:id` carries the
   `name` rename channel and declared `fields` leaves through the §3
   mapping. Structural lineage and relation changes use their validated
-  edge-write boundary; state writes remain status-runtime owned.
+  edge-write boundary; state writes remain status-runtime owned. HTTP
+  relation link/unlink and authorized delete run in a Mongo snapshot
+  transaction, so target checks, revision CAS, relation-ref cleanup, audit
+  events, and organization sequence updates commit or abort together.
   It gates through the shared access engine exactly like the payload
   transport (write level on the class-collection feature, type-id filter —
   fail-closed). This is the generated detail surfaces' inline-edit
