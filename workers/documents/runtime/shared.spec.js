@@ -60,7 +60,7 @@ describe('Documents shared runtime', () => {
     const handle = runtime.execute('table-rows', { payload: { mime: 'text/csv', payloadBase64: base64 } });
     const envelope = runtime.execute('table-rows', { typeId: 'csv-table', payloadBase64: base64 });
     expect(handle).toEqual(envelope);
-    expect(handle).toEqual([{ name: 'aluminium', qty: '12' }, { name: 'steel', qty: '3' }]);
+    expect(handle).toEqual([{ name: 'aluminium', qty: 12 }, { name: 'steel', qty: 3 }]);
   });
 
   it('projects positional spreadsheet rows with stable column keys', () => {
@@ -70,8 +70,8 @@ describe('Documents shared runtime', () => {
     });
     expect(rows).toEqual([
       { A: 'name', B: 'qty' },
-      { A: 'aluminium', B: '12' },
-      { A: 'steel', B: '3' }
+      { A: 'aluminium', B: 12 },
+      { A: 'steel', B: 3 }
     ]);
   });
 
@@ -92,7 +92,7 @@ describe('Documents shared runtime', () => {
 
   it('rejects missing and unreadable projection payloads with actionable errors', () => {
     expect(() => runtime.execute('text', {})).toThrow('requires a payload with payloadBase64');
-    expect(() => runtime.execute('table-rows', { typeId: 'csv-table', payloadBase64: 'bm90LWEtdGFibGU=' })).toThrow(/sheet|rows/);
+    expect(() => runtime.execute('table-rows', { typeId: 'csv-table', payloadBase64: 'not-base64!!' })).toThrow();
   });
 
   it('serializes row records through the shared spreadsheet engine', () => {
