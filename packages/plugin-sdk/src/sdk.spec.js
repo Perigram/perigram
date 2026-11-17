@@ -274,7 +274,7 @@ describe('parseListing', () => {
     });
     expect(withServiceGroup('facade').services[0].palette.group).toBe('facade');
     expect(() => withServiceGroup('Facade Tab')).toThrow(/palette.group/);
-    expect(() => withServiceGroup('')).toThrow(/palette-section slug/);
+    expect(() => withServiceGroup('')).toThrow(/palette.group/);
     const withProjectionGroup = group => parseListing({
       ...fullListing,
       declarations: {
@@ -989,19 +989,19 @@ function stopAfter(target, calls) {
   it('validates palette-section groups on services and projections (SPEC §8 plugin-tab law)', () => {
     const withServiceGroup = group => parseListing({
       ...fullListing,
-      declarations: { ...fullListing.declarations, services: [{ ...fullListing.declarations.services[0], group }] }
+      declarations: { ...fullListing.declarations, services: [{ ...fullListing.declarations.services[0], palette: { group } }] }
     });
-    expect(withServiceGroup('facade').services[0].group).toBe('facade');
+    expect(withServiceGroup('facade').services[0].palette.group).toBe('facade');
     expect(() => withServiceGroup('Facade Tab')).toThrow(/palette-section slug/);
     expect(() => withServiceGroup('')).toThrow(/palette-section slug/);
     const withProjectionGroup = group => parseListing({
       ...fullListing,
       declarations: {
         ...fullListing.declarations,
-        types: [{ ...fullListing.declarations.types[0], projections: [{ id: 'p', resolve: { field: 'fields.code' }, group }] }]
+        types: [{ ...fullListing.declarations.types[0], projections: [{ id: 'p', resolve: { field: 'fields.code' }, palette: { group } }] }]
       }
     });
-    expect(withProjectionGroup('table-data').types[0].projections[0].group).toBe('table-data');
+    expect(withProjectionGroup('table-data').types[0].projections[0].palette.group).toBe('table-data');
     expect(() => withProjectionGroup('table data')).toThrow(/palette-section slug/);
   });
 
