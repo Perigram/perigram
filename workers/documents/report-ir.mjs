@@ -61,8 +61,15 @@ function inlineMarkdown(nodes = []) {
 export const DOCUMENT_BLOCK_TYPE = 'text.document-block';
 export const INLINE_VALUE_TYPE = 'text.inline';
 function inlineText(text) { return { type: 'text', text: String(text ?? '') }; }
+function isInlineValue(node) {
+  if (!node || typeof node !== 'object' || Array.isArray(node)) return false;
+  if (node.type === 'text' || node.type === 'code') return typeof node.text === 'string';
+  if (node.type === 'strong' || node.type === 'emphasis') return Array.isArray(node.children) && node.children.every(isInlineValue);
+  if (node.type === 'link') return typeof node.href === 'string' && Array.isArray(node.children) && node.children.every(isInlineValue);
+  return false;
+}
 function requireInlineList(value, label = 'children') {
-  if (!Array.isArray(value) || value.some(node => !node || typeof node !== 'object' || Array.isArray(node) || !['text', 'strong', 'emphasis', 'code', 'link'].includes(node.type))) throw badInput(`${label} must be a list of document inline values`);
+  if (!Array.isArray(value) || value.some(node => !isInlineValue(node))) throw badInput(`${label} must be a list of document inline values`);
   return value;
 }
 export function createInlineValue(operationId, input = {}) {
@@ -116,9 +123,9 @@ export function appendDocumentBlock(document, block) {
 export function isDocumentBlock(block) {
   if (!block || typeof block !== 'object' || Array.isArray(block)) return false;
   switch (block.type) {
-    case 'paragraph':
-    case 'heading': return Array.isArray(block.children);
-    case 'list': return Array.isArray(block.items) && block.items.every(Array.isArray);
+    case 'paragraph': return Array.isArray(block.children) && block.children.every(isInlineValue);
+    case 'heading': return Number.isInteger(block.level) && block.level >= 1 && block.level <= 6 && Array.isArray(block.children) && block.children.every(isInlineValue);
+    case 'list': return typeof block.ordered === 'boolean' && Array.isArray(block.items) && block.items.every(item => Array.isArray(item) && item.every(isInlineValue));
     case 'blockquote': return Array.isArray(block.blocks) && block.blocks.every(isDocumentBlock);
     case 'code-block': return typeof block.text === 'string';
     case 'table': return Array.isArray(block.rows) && block.rows.every(row => row && typeof row === 'object' && !Array.isArray(row));
@@ -171,7 +178,7 @@ export function requireReport(report) {
 }
 
 function requireFlowDocument(document) {
-  if (document?.type !== FLOW_DOCUMENT_TYPE || !Array.isArray(document.blocks)) {
+  if (document?.type !== FLOW_DOCUMENT_TYPE || !Array.isArray(document.blocks) || document.blocks.some(block => !isDocumentBlock(block))) {
     throw badInput(`this operation requires a ${FLOW_DOCUMENT_TYPE} value`);
   }
   return document;

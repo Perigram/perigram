@@ -38,12 +38,13 @@ types ride the generic instance machinery from the install snapshot.
 
 ### Graph operation palette
 
-Documents exposes two operation groups from its listing:
+Documents exposes semantic operation groups from its listing:
 
-- **Table data** — extract text, header-keyed rows, positional cells, and
-  serialize rows back to CSV
-- **Document compose** — parse/export Markdown, compose reports, extract
-  report tables, and render HTML/PDF representations
+- **Document sources** — read text from an existing Markdown file
+- **Table data** — extract header-keyed or positional rows and serialize rows to CSV
+- **Inline content / Document blocks** — author typed text fragments and structural blocks
+- **Document composition** — parse Markdown, compose/append flowing documents, and compose sectioned reports
+- **Document export** — render HTML/PDF and produce Markdown/HTML file payloads
 
 Template fill and file-to-PDF conversion remain construction operations
 bound to their file types, rather than generic graph nodes.
@@ -94,6 +95,7 @@ Document operations are grouped by authoring intent:
 
 | Palette group | Operations |
 |---|---|
+| **Inline content** | Inline text, strong/emphasis/code marks, safe links |
 | **Document blocks** | Paragraph, Heading, List, Table, Quote, Code block, Divider |
 | **Document composition** | Compose document, Append block, Parse Markdown |
 | **Document export** | Markdown text, Markdown file, HTML, PDF |

@@ -152,8 +152,8 @@
               "service": "plugin.documents.text"
             },
             "palette": {
-              "group": "table-data",
-              "label": "Table data"
+              "group": "document-sources",
+              "label": "Document sources"
             }
           }
         ],
@@ -559,7 +559,7 @@
         },
         "description": "Parse Markdown into the structured flow-document format",
         "palette": {
-          "group": "document-compose",
+          "group": "document-composition",
           "label": "Document composition"
         }
       },
@@ -597,8 +597,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-compose",
-          "label": "Document composition"
+          "group": "document-export",
+          "label": "Document export"
         }
       },
       {
@@ -649,7 +649,7 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-compose",
+          "group": "document-composition",
           "label": "Document composition"
         }
       },
@@ -690,8 +690,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-compose",
-          "label": "Document composition"
+          "group": "table-data",
+          "label": "Table data"
         }
       },
       {
@@ -728,8 +728,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-compose",
-          "label": "Document composition"
+          "group": "document-export",
+          "label": "Document export"
         }
       },
       {
@@ -761,8 +761,8 @@
         },
         "description": "Render a report as a PDF document",
         "palette": {
-          "group": "document-compose",
-          "label": "Document composition"
+          "group": "document-export",
+          "label": "Document export"
         }
       },
       {
@@ -794,7 +794,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-inline"
+          "group": "inline-content",
+          "label": "Inline text"
         }
       },
       {
@@ -838,7 +839,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-inline"
+          "group": "inline-content",
+          "label": "Inline mark"
         }
       },
       {
@@ -877,7 +879,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-inline"
+          "group": "inline-content",
+          "label": "Inline link"
         }
       },
       {
@@ -918,7 +921,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-blocks"
+          "group": "document-blocks",
+          "label": "Paragraph"
         }
       },
       {
@@ -962,7 +966,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-blocks"
+          "group": "document-blocks",
+          "label": "Heading"
         }
       },
       {
@@ -1000,7 +1005,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-blocks"
+          "group": "document-blocks",
+          "label": "List"
         }
       },
       {
@@ -1035,7 +1041,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-blocks"
+          "group": "document-blocks",
+          "label": "Table"
         }
       },
       {
@@ -1071,7 +1078,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-blocks"
+          "group": "document-blocks",
+          "label": "Quote"
         }
       },
       {
@@ -1107,7 +1115,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-blocks"
+          "group": "document-blocks",
+          "label": "Code block"
         }
       },
       {
@@ -1135,7 +1144,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-blocks"
+          "group": "document-blocks",
+          "label": "Divider"
         }
       },
       {
@@ -1175,7 +1185,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-composition"
+          "group": "document-composition",
+          "label": "Compose document"
         }
       },
       {
@@ -1212,7 +1223,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-composition"
+          "group": "document-composition",
+          "label": "Append block"
         }
       },
       {
@@ -1244,7 +1256,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-export"
+          "group": "document-export",
+          "label": "Render HTML"
         }
       },
       {
@@ -1281,7 +1294,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-export"
+          "group": "document-export",
+          "label": "Export Markdown file"
         }
       },
       {
@@ -1318,7 +1332,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-export"
+          "group": "document-export",
+          "label": "Export HTML file"
         }
       },
       {
@@ -1346,7 +1361,8 @@
         },
         "description": "Render a flowing document as a PDF file payload",
         "palette": {
-          "group": "document-export"
+          "group": "document-export",
+          "label": "Export PDF file"
         }
       }
     ],

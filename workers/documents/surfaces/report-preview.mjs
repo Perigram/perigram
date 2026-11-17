@@ -1,8 +1,6 @@
-// The documents plugin's designer preview channel: one read-only tab
-// rendering every `document.report` value the whole-graph preview
-// evaluation carries. The report IR renders as flowing content; the
-// surface mounts through the preview contract (vue from the ctx,
-// render functions only).
+// The Documents preview channel renders flowing-document and report values
+// from the whole-graph evaluation. The host owns the preview workspace;
+// this surface only renders the provider's read-only representations.
 export default function createSurface(ctx) {
   const h = ctx?.vue?.h || (() => null);
 
@@ -76,8 +74,7 @@ export default function createSurface(ctx) {
   };
 }
 
-// Every `document.report` item in the evaluation payload, in node and
-// branch order — the IR's own type discriminator is the selector.
+// Document/report values in node and branch order; the IR discriminator selects the renderer.
 export function documentsOf(payload) {
   const found = [];
   for (const node of Object.values(payload?.nodes || {})) {
