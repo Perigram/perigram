@@ -982,14 +982,15 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
 
   it('stores, revisions, and swaps the payload for a revisioned type', async () => {
     const coll = stubCollection();
-    stubSketchDoc(coll);
+    stubSketchDoc(coll, { revision: 1 });
     const service = instanceServiceResolver('csv-table');
 
+    const session = { id: 'graph-commit-session' };
     const dto = await service.replacePayload(SKETCH_ID, {
       buffer: Buffer.from('a,b\n1,2'),
       filename: 'table.csv',
       mimeType: 'text/csv'
-    }, { userId: 'user-1', organizationId: 'org-1', auth: { userId: 'user-1', organizationId: 'org-1' } });
+    }, { userId: 'user-1', organizationId: 'org-1', auth: { userId: 'user-1', organizationId: 'org-1' }, session, expectedRevision: 1, expectedOrganizationSequence: 4 });
 
     const { uploadFile } = await import('../files/service.js');
     const { ensureForEntitySnapshot } = await import('../instance-revisions/service.js');
@@ -997,8 +998,13 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
     expect(ensureForEntitySnapshot).toHaveBeenCalledWith(expect.objectContaining({
       typeId: 'csv-table',
       scope: 'content',
-      reason: 'payload-replaced'
+      reason: 'payload-replaced',
+      session
     }));
+    expect(coll.findOne).toHaveBeenCalledWith({ _id: SKETCH_ID, type: 'csv-table' }, { session });
+    expect(coll.findOneAndUpdate.mock.calls[0][2]).toMatchObject({ session });
+    const { runOrganizationChange } = await import('./organization-sequence.js');
+    expect(runOrganizationChange).toHaveBeenCalledWith('org-1', expect.objectContaining({ kind: 'instance-payload-replaced' }), expect.any(Function), { session, expectedSequence: 4 });
     const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
     expect(set.payload).toMatchObject({ fileId: 'stored-table.csv', mime: 'text/csv' });
     expect(dto.payload.fileId).toBe('stored-table.csv');
