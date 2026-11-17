@@ -1596,6 +1596,40 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
     find.mockRestore();
   });
 
+  it('keeps the ref sweep and delete in the caller transaction and sequence fence', async () => {
+    const coll = stubPanel();
+    const session = { id: 'mongo-session' };
+    const find = stubReferrers({
+      _id: 'project-5',
+      type: 'project',
+      organizationId: 'org-1',
+      fields: { library: PANEL_ID }
+    });
+    const { runOrganizationChange } = await import('./organization-sequence.js');
+    const service = instanceServiceResolver('panel');
+
+    await service.remove(PANEL_ID, {
+      actor: 'user-1',
+      organizationId: 'org-1',
+      session,
+      expectedOrganizationSequence: 17
+    });
+
+    expect(find.mock.calls[0][2]).toEqual({ session });
+    expect(coll.findOneAndUpdate.mock.calls[0][2]).toEqual(expect.objectContaining({ session }));
+    expect(coll.deleteOne).toHaveBeenCalledWith(
+      { _id: PANEL_ID },
+      { session }
+    );
+    expect(runOrganizationChange).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({ kind: 'instance-deleted', instanceId: PANEL_ID }),
+      expect.any(Function),
+      { session, expectedSequence: 17 }
+    );
+    find.mockRestore();
+  });
+
   it('nulls a single relation ref and keeps other targets of a multi-target slot', async () => {
     const coll = stubPanel();
     const referrer = {
