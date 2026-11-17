@@ -1,6 +1,7 @@
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import { withMongoSnapshotTransaction } from '~/server/utils/mongo-transaction.js';
 
 // Link one declared typed relation target. The instance service owns edge
 // cardinality, target-domain, tenancy, revision, and write-grant validation.
@@ -23,9 +24,11 @@ export default defineEventHandler(async event => {
     throw createError({ statusCode: 404, statusMessage: `no relation-link service for type ${typeId}` });
   }
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
-  return await service.linkRelationForHttp(id, relationKey, body.target, {
+  return await withMongoSnapshotTransaction(session => service.linkRelationForHttp(id, relationKey, body.target, {
     auth,
     organizationId,
-    expectedRevision: body.expectedRevision
-  });
+    expectedRevision: body.expectedRevision,
+    expectedOrganizationSequence: body.expectedOrganizationSequence ?? null,
+    session
+  }));
 });

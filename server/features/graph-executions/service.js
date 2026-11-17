@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
-import { connectDB } from '~/server/db/mongo';
+import { withMongoSnapshotTransaction } from '~/server/utils/mongo-transaction.js';
 import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder } from '#packages/core';
 import { ensureOrganizationChangeIndexes, withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
 import { declarationForType } from '../instances/service.js';
@@ -38,37 +38,6 @@ async function sourceFor(instanceId, record, auth) {
     throw createError({ statusCode: 409, message: 'Execution graph revision is stale; save and preview the current revision' });
   }
   return { graphDocument, graph, organizationId: graphDocument.organizationId || auth.organizationId || auth.memberships?.[0]?.organizationId || null };
-}
-
-async function withMongoWriteTransaction(callback) {
-  const db = await connectDB();
-  const client = db.client;
-  if (!client?.startSession) {
-    throw createError({ statusCode: 503, message: 'Atomic graph commits require MongoDB transaction support' });
-  }
-  await ensureOrganizationChangeIndexes();
-  const session = client.startSession();
-  try {
-    let value;
-    await session.withTransaction(async () => {
-      value = await callback(session);
-      return value;
-    }, {
-      readConcern: { level: 'snapshot' },
-      writeConcern: { w: 'majority' },
-      readPreference: 'primary'
-    });
-    return value;
-  } catch (error) {
-    if ([20, 303].includes(Number(error?.code))
-      || ['IllegalOperation', 'OperationNotSupportedInTransaction'].includes(error?.codeName)
-      || /transactions are not supported|transaction numbers are only allowed on a replica set/i.test(error?.message || '')) {
-      throw createError({ statusCode: 503, message: 'Atomic graph commits require MongoDB transaction support' });
-    }
-    throw error;
-  } finally {
-    await session.endSession();
-  }
 }
 
 function expectedSequenceForReadSet(readSet) {
@@ -541,7 +510,7 @@ export async function commitProposal({ graphDocumentInstanceId, record: value, p
     throw createError({ statusCode: 404, message: 'CTS instance write service is unavailable' });
   }
   try {
-    return await withMongoWriteTransaction(async session => {
+    return await withMongoSnapshotTransaction(async session => {
       const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
       const updated = await instanceService.patch(instanceId, patch, {
         auth,
@@ -652,7 +621,7 @@ export async function commitOutput({ graphDocumentInstanceId, record: value, out
     throw createError({ statusCode: 404, message: 'CTS instance update service is unavailable' });
   }
   try {
-    return await withMongoWriteTransaction(async session => {
+    return await withMongoSnapshotTransaction(async session => {
       const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
       const startedAt = new Date().toISOString();
       const updated = await instanceService.patch(proposal.instanceId, proposal.patch, {
@@ -803,7 +772,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     }, 'files', mimeType || 'application/octet-stream');
     if (!stored?.id) throw createError({ statusCode: 500, message: 'Relation attachment storage returned no file identity' });
     try {
-      return await withMongoWriteTransaction(async session => {
+      return await withMongoSnapshotTransaction(async session => {
         const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
         const expectedOrganizationSequence = expectedSequenceForValidation(preview.readSet, validationBoundary);
         const attachment = await fileService.createForHttp({
@@ -907,7 +876,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     }, 'files', mimeType || 'application/octet-stream');
     if (!stored?.id) throw createError({ statusCode: 500, message: 'Attachment file storage returned no file identity' });
     try {
-      return await withMongoWriteTransaction(async session => {
+      return await withMongoSnapshotTransaction(async session => {
         const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
         const updated = await instanceService.patch(resolvedInstanceTarget.instanceId, {
           fields: {
@@ -987,7 +956,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
       type: String(destination.typeId)
     }, 'files', mimeType || 'application/octet-stream');
     try {
-      return await withMongoWriteTransaction(async session => {
+      return await withMongoSnapshotTransaction(async session => {
         const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
         const updated = isInstancePayload
           ? await instanceService.replacePayload(resolvedInstanceTarget.instanceId, {
