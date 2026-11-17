@@ -575,9 +575,9 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   exclusively at write time, serializing cross-record aggregate/cardinality
   checks. Remaining: audit import and type-migration direct repository writes.
 - [ ] G8 Typed references and embeds — Page blocks now author live/pinned
-  typed references, resolve them through the target read grant, render an
-  explicit unavailable state without target-existence leakage, and expose
-  rebuildable org-scoped backlinks. Existing saved-view collection embeds
+  typed references, resolve them through the target read grant, render a
+  shared unavailable state for inaccessible targets, and expose rebuildable
+  org-scoped backlinks. Existing saved-view collection embeds
   remain live. Remaining: collection embeds backed by saved-query/graph-output
   identities with pinned definition revisions, explicit parameters, and
   live-versus-pinned result policy; integrate these into the common renderer.
@@ -7671,5 +7671,5 @@ degradation/editor laws in Program B notes.
 
 - Page documents accept typed reference blocks with stable type/instance identity and an optional exact retained revision. The picker inserts live references or selects a retained content revision.
 - Resolution checks the source's ordinary read grant, loads the selected revision, and verifies its source identity. Missing and inaccessible targets share one unavailable response.
-- Page surfaces render live/pinned reference embeds. Backlinks are derived by scanning the owning organization's page documents and remain rebuildable.
+- Page surfaces render live/pinned reference embeds. Backlinks are derived from the owning organization's page documents and remain rebuildable.
 - G8 remains open for saved-query/graph-output collection embeds and their definition/result pinning semantics.

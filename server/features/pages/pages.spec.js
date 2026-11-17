@@ -184,6 +184,15 @@ describe('pages', () => {
     expect(assertRevisionSourceReadable).toHaveBeenCalledWith(expect.objectContaining({ _id: 'revision:part:part-2:content:3' }), auth);
   });
 
+  it('maps inaccessible live targets to the same unavailable response as missing targets', async () => {
+    const page = await pagesService.create({ name: 'Denied reference', blocks: [
+      { id: 'live', kind: 'reference', ref: { typeId: 'part', instanceId: 'foreign-part' } }
+    ], order: ['live'] }, memberOf(ORG_A));
+    getAppRegistry.mockReturnValue({ getInstanceService: () => ({ processGetById: vi.fn(async () => { throw Object.assign(new Error('denied'), { statusCode: 403 }); }) }) });
+    const result = await pagesService.resolveReferences(page._id, memberOf(ORG_A));
+    expect(result).toEqual([{ blockId: 'live', status: 'unavailable' }]);
+  });
+
   it('never falls a pinned reference forward when its exact revision is unavailable', async () => {
     const page = await pagesService.create({ name: 'Unavailable pin', blocks: [
       { id: 'pinned', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-2', revisionId: 'missing-revision' } }
