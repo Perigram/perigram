@@ -15,7 +15,7 @@ vi.mock('h3', () => ({
   })
 }));
 
-import { stateService as statusService } from './service.js';
+import { stateService as statusService, appendFieldChangeEvent } from './service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 
@@ -87,6 +87,25 @@ describe('status service lifecycle payloads', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('writes field audit events through the supplied Mongo transaction session', async () => {
+    const session = con.startSession();
+    try {
+      await session.withTransaction(async () => {
+        await appendFieldChangeEvent('part', 'part-1', {
+          changes: [{ field: 'width', before: 10, after: 20 }],
+          actorId: 'user-1',
+          state: 'draft',
+          session
+        });
+        expect(await db.collection('status_events').countDocuments({})).toBe(0);
+        expect(await db.collection('status_events').countDocuments({}, { session })).toBe(1);
+      });
+      expect(await db.collection('status_events').countDocuments({})).toBe(1);
+    } finally {
+      await session.endSession();
+    }
   });
 
   it('uses full auth context and registry collection metadata for cassette transitions', async () => {
