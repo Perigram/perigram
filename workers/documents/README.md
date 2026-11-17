@@ -41,6 +41,19 @@ the plugin's surface modules, and types ride the generic instance machinery.
 
 - Document and report operations (`report.js` and `report-ir.mjs`, grouped by inline content, blocks, composition, and export): `parse-markdown` (text → `text.flow-document@1`), typed inline and block constructors (`text.inline` and `text.document-block`), `compose-document` and `append-document-block` (blocks → flowing document), `export-markdown` (flow document → markdown text), Markdown/HTML file exports, and `render-document-html` (flow document → safe HTML). The `document.report@1` composition remains available for explicitly sectioned reports. The Documents preview channel renders flowing documents and reports from the unified graph evaluator's `outputs`/`nodeOutputs` envelope, with the selected graph output first; it retains the legacy branch-tree envelope for older hosts. The IR is the source and Markdown, HTML, and PDF are representations.
 
+### Unified graph provider scope
+
+The `documents-shared` runtime currently publishes 20 browser graph
+operations: CSV serialization, inline/block constructors, document and report
+composition, table extraction from document values, HTML rendering, and
+Markdown/HTML exports. Their definitions are derived from the installed
+listing's signatures, execution declarations, and palette metadata.
+
+The endpoint-mode `text`, `table-rows`, `table-cells`, `parse-markdown`,
+template-fill, and PDF-render services remain in the existing executor path.
+Their provider/runtime migration and authorized file-payload read boundary
+are the next Documents graph delivery slice in the root TODO.
+
 ### Graph operation palette
 
 Documents exposes semantic operation groups from its listing:

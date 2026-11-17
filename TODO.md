@@ -84,7 +84,7 @@ port-compatibility result for new wires, persisted-wire validation, and
 preview preflight. The graph inspector renders declared configuration
 properties as typed controls and exposes graph interface shape/base/kind,
 required, and default fields. Provider and graph integration regressions
-were added; test execution and deployed workflow verification remain open.
+were added; Endpoint-mode file text/table projections, Markdown parsing, template fill, and PDF rendering remain the next Documents provider migration. Test execution and deployed workflow verification remain open.
 
 ## Priority: Documents and Facade plugin review/refactor (owner direction 2026-11-17)
 
