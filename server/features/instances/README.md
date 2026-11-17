@@ -158,8 +158,9 @@ Parent: [server/features](../README.md).
   mapping. Structural lineage and relation changes use their validated
   edge-write boundary; state writes remain status-runtime owned. HTTP
   relation link/unlink and authorized delete run in a Mongo snapshot
-  transaction, so target checks, revision CAS, relation-ref cleanup, audit
-  events, and organization sequence updates commit or abort together.
+  transaction, so target checks, revision CAS, relation-ref cleanup, persisted
+  field-change events, and organization sequence updates commit or abort
+  together. In-memory refresh hints publish only after a successful commit.
   It gates through the shared access engine exactly like the payload
   transport (write level on the class-collection feature, type-id filter —
   fail-closed). This is the generated detail surfaces' inline-edit

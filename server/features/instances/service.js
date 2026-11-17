@@ -1304,17 +1304,23 @@ function instanceService(typeId) {
       if (!target || !hasInstanceAccess({ entity: toDto(doc), typeId: target.typeId, feature: target.feature, level: 'write', action: 'delete', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
-      return await withMongoSnapshotTransaction(session => this.remove(id, {
+      const pendingEvents = [];
+      const removed = await withMongoSnapshotTransaction(session => this.remove(id, {
         actor: auth?.userId || null,
         organizationId: doc.organizationId ?? null,
-        session
+        session,
+        pendingEvents
       }));
+      for (const event of pendingEvents) {
+        await entityEventService.publishEntityChanged(event.auth, event.detail);
+      }
+      return removed;
     },
 
     // The sweep runs before the delete (SPEC §22.12); the doc's own
     // organization scopes the referrer scan, so a system target sweeps
     // every org.
-    async remove(id, { actor = null, organizationId = null, session = null, expectedOrganizationSequence = null } = {}) {
+    async remove(id, { actor = null, organizationId = null, session = null, expectedOrganizationSequence = null, pendingEvents = null } = {}) {
       organizationId = organizationId == null ? null : String(organizationId);
       const declaration = await declarationFor(typeId, organizationId);
       if (declaration?.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
@@ -1328,7 +1334,7 @@ function instanceService(typeId) {
         paths: ['instance'],
         actorId: actor
       }, async () => {
-        await sweepRelationRefs({ typeId, id: String(doc._id), organizationId: doc.organizationId ?? null }, actor, { session });
+        await sweepRelationRefs({ typeId, id: String(doc._id), organizationId: doc.organizationId ?? null }, actor, { session, pendingEvents });
         return await repository.deleteInstance(collection, id, { session });
       }, { session, expectedSequence: expectedOrganizationSequence });
     },
@@ -1664,7 +1670,7 @@ function sweptRefSlot(value, deletedId, deletedTypeId) {
   return refPointsAt(value, deletedId, deletedTypeId) ? null : value;
 }
 
-async function sweepRelationRefs({ typeId, id, organizationId }, actor = null, { session = null } = {}) {
+async function sweepRelationRefs({ typeId, id, organizationId }, actor = null, { session = null, pendingEvents = null } = {}) {
   const edges = await relationEdgesFor(typeId, organizationId);
   if (!edges.length) return;
   const deletedId = String(id);
@@ -1698,10 +1704,12 @@ async function sweepRelationRefs({ typeId, id, organizationId }, actor = null, {
       }
       if (!Object.keys(set).length) continue;
       await repository.updateInstanceFields(collection, referrer._id, set, { session });
-      await entityEventService.publishEntityChanged(
-        { userId: actor || 'SYSTEM', organizationId: referrer.organizationId ?? organizationId },
-        { type: ownerTypeId, id: String(referrer._id), change: 'updated', reason: 'ref-sweep' }
-      );
+      const event = {
+        auth: { userId: actor || 'SYSTEM', organizationId: referrer.organizationId ?? organizationId },
+        detail: { type: ownerTypeId, id: String(referrer._id), change: 'updated', reason: 'ref-sweep' }
+      };
+      if (Array.isArray(pendingEvents)) pendingEvents.push(event);
+      else await entityEventService.publishEntityChanged(event.auth, event.detail);
     }
   }
 }

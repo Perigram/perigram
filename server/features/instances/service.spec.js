@@ -1741,6 +1741,32 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
     findEntity.mockRestore();
   });
 
+  it('publishes ref-sweep refresh events only after the authorized delete transaction commits', async () => {
+    const coll = stubPanel();
+    const find = stubReferrers({
+      _id: 'project-6',
+      type: 'project',
+      organizationId: 'org-1',
+      fields: { library: PANEL_ID }
+    });
+    const events = await import('../instance-events/service.js');
+    const service = instanceServiceResolver('panel');
+
+    await service.removeForHttp(PANEL_ID, {
+      auth: { userId: 'user-1', organizationId: 'org-1' },
+      organizationId: 'org-1'
+    });
+
+    expect(transactionSession.withTransaction).toHaveBeenCalledTimes(1);
+    expect(events.publishEntityChanged).toHaveBeenCalledWith(
+      { userId: 'user-1', organizationId: 'org-1' },
+      { type: 'project', id: 'project-6', change: 'updated', reason: 'ref-sweep' }
+    );
+    expect(transactionSession.withTransaction.mock.invocationCallOrder[0])
+      .toBeLessThan(events.publishEntityChanged.mock.invocationCallOrder[0]);
+    find.mockRestore();
+  });
+
   it('enforces the entity write grant for process deletes', async () => {
     const coll = stubPanel();
     const access = await import('../../core/access/service.js');

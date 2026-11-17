@@ -587,7 +587,7 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
 ### Agent Notes (2026-11-17, transactional relation mutation)
 
 - Added a shared Mongo snapshot-transaction helper and reused it for graph Commit plus HTTP relation link/unlink.
-- Authorized instance deletion now opens the same transaction boundary; the target delete, declared relation-referrer scan/rewrites, entity events, and organization change sequence share its session.
+- Authorized instance deletion now opens the same transaction boundary; the target delete, declared relation-referrer scan/rewrites, persisted field-change events, and organization change sequence share its session. In-memory refresh hints are deferred until commit succeeds.
 - The relation routes forward an optional `expectedOrganizationSequence` fence as well as the exact owner revision. Unsupported Mongo deployments fail with 503 before the mutation.
 - Regression tests cover session propagation through relation link/unlink, delete/referrer sweep, sequence fencing, and the authorized delete transport.
 
