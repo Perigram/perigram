@@ -14,7 +14,7 @@ describe('Facade managed server runtime', () => {
       expect(service.execution).toMatchObject({
         runtime: 'facade-server',
         kind: 'pure',
-        targets: id === 'bake' ? ['browser'] : ['browser', 'server'],
+        targets: ['browser', 'server'],
         capabilities: []
       });
     }
@@ -120,6 +120,11 @@ describe('Facade managed server runtime', () => {
     });
     expect(result.data.name).toBe('Tray 600 · A 600 · B 450');
     expect(result.data.geometry.nestingPolygons.length).toBeGreaterThan(0);
+  });
+
+  it('loads the Clipper WASM binary from the package directory in the Deno runtime', async () => {
+    const source = await (await import('../surfaces/lib/cassetteV2Clipper.js')).getCassetteV2Clipper();
+    expect(source).toBeTruthy();
   });
 
   it('refuses operations outside the managed runtime declaration', async () => {

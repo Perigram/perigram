@@ -662,7 +662,8 @@
           "runtime": "facade-server",
           "kind": "pure",
           "targets": [
-            "browser"
+            "browser",
+            "server"
           ],
           "capabilities": [],
           "idempotent": true

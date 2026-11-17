@@ -374,8 +374,13 @@ const verticesFromPathsD = (paths, precision) => {
 
 export const getCassetteV2Clipper = async () => {
   if (!clipperPromise) {
-    clipperPromise = runtimeImport(clipperModuleSpecifier())
-      .then(module => module.default())
+    clipperPromise = runtimeImport()
+      .then(async module => {
+        const wasmBinary = globalThis.Deno?.readFile
+          ? await globalThis.Deno.readFile(new URL('../../assets/vendor/clipper2/clipper2z.wasm', import.meta.url))
+          : undefined;
+        return await module.default(wasmBinary ? { wasmBinary } : {});
+      })
       .catch((error) => {
         clipperPromise = null;
         throw error;
