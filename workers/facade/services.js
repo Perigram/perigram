@@ -311,6 +311,5 @@ export const services = {
 
 export const endpointServices = {
   'extract-geometry': services['extract-geometry'],
-  bake: services.bake,
   'nesting-parts': services['nesting-parts']
 };

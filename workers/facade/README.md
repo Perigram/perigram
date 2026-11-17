@@ -56,6 +56,8 @@ labels and descriptions are the user-facing palette copy.
 
 ## Services
 
+The remaining HTTP executor exposes only `extract-geometry` and `nesting-parts`. `bake`, `match-sheet`, `construct-sheet`, and `generate-sheet-dxf` execute through the versioned `facade-server` runtime; pure operations use the browser/server Worker boundary, while nesting solve is server-only and calls the platform-owned solver capability.
+
 Service compute is value→value (SPEC §8): payload values in, computed
 values and files out, free of service imports, persistence, and auth.
 

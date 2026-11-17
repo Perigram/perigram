@@ -8,7 +8,7 @@ describe('Facade managed server runtime', () => {
   it('declares pure sheet operations for both browser and server targets without endpoint modes', () => {
     expect(listing.declarations.runtimes.find(runtime => runtime.id === 'facade-server').targets)
       .toEqual(['browser', 'server']);
-    for (const id of ['construct-sheet', 'generate-sheet-dxf', 'match-sheet']) {
+    for (const id of ['bake', 'construct-sheet', 'generate-sheet-dxf', 'match-sheet']) {
       const service = listing.declarations.services.find(item => item.id === id);
       expect(service.mode).toBeUndefined();
       expect(service.execution).toMatchObject({
