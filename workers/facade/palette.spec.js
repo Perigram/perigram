@@ -15,7 +15,7 @@ function declaredPaletteGroups() {
       {
         ...service,
         command: service.id,
-        group: service.group || service.render?.label || service.id
+        group: service.group
       }
     ])
   );
@@ -25,11 +25,19 @@ function declaredPaletteGroups() {
 describe('Facade plugin node palette contribution', () => {
   it('places nesting operations in the declared Facade group', () => {
     const groups = declaredPaletteGroups();
-    const facade = groups.find(group => group.id === 'facade');
-    expect(facade.items.map(item => item.id)).toContain('extract:nesting-polygons');
-    expect(facade.items.map(item => item.id)).toContain('service:nesting-solve');
-    expect(facade.items.map(item => item.id)).toContain('service:match-sheet');
-    expect(facade.items.find(item => item.id === 'service:nesting-solve').searchTerms).toContain('nesting-solve');
+    const nesting = groups.find(group => group.id === 'nesting');
+    const planning = groups.find(group => group.id === 'sheet-planning');
+    const production = groups.find(group => group.id === 'production-export');
+    expect(nesting.items.map(item => item.id)).toContain('service:nesting-solve');
+    expect(planning.items.map(item => item.id)).toEqual([
+      'service:match-sheet',
+      'service:construct-sheet'
+    ]);
+    expect(production.items.map(item => item.id)).toContain('service:generate-sheet-dxf');
+    expect(nesting.items.find(item => item.id === 'service:nesting-solve').searchTerms).toContain('nesting-solve');
+    expect(groups.some(group => group.items.some(item => item.id === 'service:extract-geometry'))).toBe(false);
+    expect(groups.some(group => group.items.some(item => item.id === 'service:bake'))).toBe(false);
+    expect(groups.some(group => group.items.some(item => item.id === 'service:nesting-parts'))).toBe(false);
   });
 
   it('keeps every declared projection and service reachable from the plugin palette', () => {
@@ -39,6 +47,6 @@ describe('Facade plugin node palette contribution', () => {
       .filter(projection => projection.group)
       .map(projection => `${projection.group}:${projection.id}`)));
     expect(items.filter(item => item.kind === 'cts.read')).toHaveLength(projections.size);
-    expect(items.filter(item => item.kind === 'cts.service')).toHaveLength(listing.declarations.services.length);
+    expect(items.filter(item => item.kind === 'cts.service')).toHaveLength(listing.declarations.services.filter(service => service.group).length);
   });
 });

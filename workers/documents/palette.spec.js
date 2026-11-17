@@ -15,7 +15,7 @@ function declaredPaletteGroups() {
       {
         ...service,
         command: service.id,
-        group: service.group || service.render?.label || service.id
+        group: service.group
       }
     ])
   );
@@ -42,7 +42,7 @@ describe('Documents plugin node palette contribution', () => {
       .filter(projection => projection.group)
       .map(projection => `${projection.group}:${projection.id}`));
     const services = listing.declarations.services
-      .filter(service => service.group || service.render?.label || service.id);
+      .filter(service => service.group);
 
     expect(items.filter(item => item.kind === 'cts.read')).toHaveLength(projections.size);
     expect(items.filter(item => item.kind === 'cts.service')).toHaveLength(services.length);

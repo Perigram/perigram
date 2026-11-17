@@ -539,9 +539,9 @@
     "services": [
       {
         "id": "nesting-solve",
-        "label": "Nesting solver",
+        "label": "Solve sheet nesting",
         "mode": "endpoint",
-        "group": "facade",
+        "group": "nesting",
         "render": {
           "label": "Nesting solver",
           "icon": "pi pi-compass"
@@ -621,7 +621,8 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Arrange cassette-design parts on available sheet stock"
       },
       {
         "id": "extract-geometry",
@@ -651,7 +652,7 @@
       },
       {
         "id": "generate-sheet-dxf",
-        "label": "Generate sheet-design DXF",
+        "label": "Export sheet DXF",
         "mode": "endpoint",
         "signature": {
           "input": {
@@ -660,11 +661,13 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "group": "production-export",
+        "description": "Generate a production-layer DXF from a sheet design"
       },
       {
         "id": "construct-sheet",
-        "label": "Construct sheet design",
+        "label": "Create sheet design",
         "mode": "endpoint",
         "signature": {
           "input": {
@@ -673,13 +676,15 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "group": "sheet-planning",
+        "description": "Create a sheet design from a solved nesting layout"
       },
       {
         "id": "match-sheet",
-        "label": "Match sheet design",
+        "label": "Find reusable sheet design",
         "mode": "endpoint",
-        "group": "facade",
+        "group": "sheet-planning",
         "signature": {
           "input": {
             "base": "record",
@@ -703,7 +708,8 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Reuse an existing sheet design with the same composition"
       },
       {
         "id": "nesting-parts",
