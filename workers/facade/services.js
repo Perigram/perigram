@@ -10,7 +10,9 @@ import {
   enrichNestingResult,
   groupNestingLayouts,
   nestingPartsProjection,
-  summarizeNestingResult
+  summarizeNestingResult,
+  normalizeNestingItems,
+  nestingSheetCount
 } from './nesting-projections.js';
 import { nestingResultToPreview, sheetDesignParts } from './surfaces/lib/sheetLayout.js';
 
@@ -124,33 +126,6 @@ export async function bake({ refs = {}, draft = {} } = {}) {
 // nesting worker (NESTING_WORKER_URL) — this executor validates, maps,
 // and summarizes. Sheet stock is the worst-case count (one part per
 // sheet); the solver uses only the sheets it needs.
-export function nestingSheetCount(items = []) {
-  const total = items.reduce((sum, item) => (
-    sum + Math.max(1, Math.trunc(Number(item?.count) || 1))
-  ), 0);
-  if (!Number.isSafeInteger(total)) {
-    badRequest('Nesting sheet count exceeds the safe integer limit');
-  }
-  return Math.max(1, total);
-}
-
-export function normalizeNestingItems(items) {
-  if (!Array.isArray(items) || !items.length) badRequest('The nesting run has no parts to place');
-  return items.map((item, index) => {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) {
-      badRequest(`Item ${index} is not a part`);
-    }
-    const authoredCount = Number(item.count);
-    const count = authoredCount === 0 || !Number.isFinite(authoredCount)
-      ? (item.count == null || item.count === '' || authoredCount === 0 ? 1 : NaN)
-      : Math.trunc(authoredCount);
-    if (!Number.isSafeInteger(count) || count < 1) {
-      badRequest(`Item ${index} count must be a positive safe integer`);
-    }
-    return { ...item, count };
-  });
-}
-
 export async function nestingSolve({ items, sheetWidth, sheetHeight, space } = {}) {
   const normalizedItems = normalizeNestingItems(items);
   const params = {

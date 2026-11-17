@@ -1,9 +1,40 @@
 // The nesting services' value→value helpers — contract in ./README.md (Services).
-import { createError } from 'h3';
+
+function nestingError(message) {
+  const error = new Error(message);
+  error.status = 400;
+  error.statusCode = 400;
+  throw error;
+}
+
+export function normalizeNestingItems(items) {
+  if (!Array.isArray(items) || !items.length) nestingError('The nesting run has no parts to place');
+  return items.map((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      nestingError(`Item ${index} is not a part`);
+    }
+    const authoredCount = Number(item.count);
+    const count = authoredCount === 0 || !Number.isFinite(authoredCount)
+      ? (item.count == null || item.count === '' || authoredCount === 0 ? 1 : NaN)
+      : Math.trunc(authoredCount);
+    if (!Number.isSafeInteger(count) || count < 1) {
+      nestingError(`Item ${index} count must be a positive safe integer`);
+    }
+    return { ...item, count };
+  });
+}
+
+export function nestingSheetCount(items = []) {
+  const total = items.reduce((sum, item) => (
+    sum + Math.max(1, Math.trunc(Number(item?.count) || 1))
+  ), 0);
+  if (!Number.isSafeInteger(total)) nestingError('Nesting sheet count exceeds the safe integer limit');
+  return Math.max(1, total);
+}
 
 export function buildValueWorkerRequest(jobFiles, params = {}) {
   const items = buildNestingItems(jobFiles);
-  if (!items.length) throw createError({ statusCode: 400, message: 'No nestable cassette-design geometry found' });
+  if (!items.length) throw nestingError('No nestable cassette-design geometry found');
   return {
     items,
     params: {

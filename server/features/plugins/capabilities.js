@@ -72,6 +72,40 @@ export async function invokePluginCapability({
     if (typeof instanceService?.removeForHttp !== 'function') throw createError({ statusCode: 404, message: 'Instance delete service is unavailable' });
     return await instanceService.removeForHttp(instanceId, { auth, organizationId: orgId });
   }
+  if (name === 'facade.nesting.solve') {
+    if (String(pluginId) !== 'facade' || String(operationId) !== 'nesting-solve') {
+      throw createError({ statusCode: 403, message: 'The facade nesting adapter is restricted to facade.nesting-solve' });
+    }
+    const endpoint = process.env.NESTING_WORKER_URL || 'http://nesting-worker:8000/nest';
+    let destination;
+    try {
+      destination = new URL(endpoint);
+    } catch {
+      throw createError({ statusCode: 503, message: 'The platform nesting worker URL is invalid' });
+    }
+    if (!['http:', 'https:'].includes(destination.protocol) || destination.username || destination.password) {
+      throw createError({ statusCode: 503, message: 'The platform nesting worker URL must be an HTTP(S) origin without credentials' });
+    }
+    let response;
+    try {
+      response = await fetch(destination, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(input)
+      });
+    } catch (error) {
+      throw createError({ statusCode: 502, message: `Nesting worker is unavailable: ${error?.message || String(error)}` });
+    }
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw createError({ statusCode: 502, message: `Nesting worker failed: ${detail || response.statusText}` });
+    }
+    try {
+      return await response.json();
+    } catch {
+      throw createError({ statusCode: 502, message: 'Nesting worker returned invalid JSON' });
+    }
+  }
   if (name === 'files.read') {
     const fileId = String(input.fileId || '');
     if (!fileId) throw createError({ statusCode: 400, message: 'File reads require fileId' });

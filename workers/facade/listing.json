@@ -540,7 +540,6 @@
       {
         "id": "nesting-solve",
         "label": "Solve sheet nesting",
-        "mode": "endpoint",
         "group": "nesting",
         "render": {
           "label": "Nesting solver",
@@ -622,7 +621,18 @@
             "base": "json"
           }
         },
-        "description": "Arrange cassette-design parts on available sheet stock"
+        "description": "Arrange cassette-design parts on available sheet stock",
+        "execution": {
+          "runtime": "facade-server",
+          "kind": "read",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [
+            "facade.nesting.solve"
+          ],
+          "idempotent": true
+        }
       },
       {
         "id": "extract-geometry",
@@ -806,6 +816,17 @@
         "version": "0.7.0",
         "module": "plugin:tech-drawing/assets/vendor/cadcraft/host.mjs",
         "license": "Apache-2.0"
+      }
+    ],
+    "runtimes": [
+      {
+        "id": "facade-server",
+        "language": "javascript",
+        "version": "1",
+        "entry": "/runtime/server.mjs",
+        "targets": [
+          "server"
+        ]
       }
     ]
   }
