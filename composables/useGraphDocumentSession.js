@@ -165,13 +165,20 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     });
     const grouped = new Map();
     for (const definition of registry.list()) {
-      const family = definition.id.split('.')[0];
+      const family = definition.palette?.group || definition.id.split('.')[0];
       const groupKey = `${definition.provider}:${family}`;
-      if (!grouped.has(groupKey)) grouped.set(groupKey, { provider: definition.provider, family, items: [] });
+      if (!grouped.has(groupKey)) grouped.set(groupKey, {
+        provider: definition.provider,
+        family,
+        label: definition.palette?.label || '',
+        items: []
+      });
       grouped.get(groupKey).items.push({
         id: `${definition.provider}:${definition.id}@${definition.version}`,
         label: definition.label,
         description: definition.description || '',
+        keywords: definition.palette?.keywords || [],
+        searchTerms: [definition.provider, definition.id, family],
         signal: groupSignals[family] || 'data',
         operation: {
           provider: definition.provider,
@@ -181,13 +188,13 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
         config: {}
       });
     }
-    for (const { provider, family, items } of grouped.values()) {
+    for (const { provider, family, label, items } of grouped.values()) {
       const processProvider = provider === PROCESS_PROCEDURAL_PROVIDER;
       const coreData = provider === CORE_DATA_PROVIDER;
       groups.push({
         source: processProvider || coreData ? 'framework' : 'plugin',
         id: `graph-${provider}-${family}`,
-        label: processProvider || coreData ? (groupLabels[family] || family) : `${provider} · ${family}`,
+        label: label || (processProvider || coreData ? (groupLabels[family] || family) : `${provider} · ${family}`),
         signal: groupSignals[family] || 'data',
         items
       });

@@ -75,7 +75,11 @@ const filteredGroups = computed(() => {
       items: needle
         ? group.items.filter(item =>
           item.label.toLowerCase().includes(needle)
-          || (item.description || '').toLowerCase().includes(needle))
+          || (item.description || '').toLowerCase().includes(needle)
+          || (item.id || '').toLowerCase().includes(needle)
+          || (item.kind || '').toLowerCase().includes(needle)
+          || (item.keywords || []).some(keyword => keyword.toLowerCase().includes(needle)
+            || (item.searchTerms || []).some(term => String(term).toLowerCase().includes(needle)))
         : group.items
     }))
     .filter(group => group.items.length);

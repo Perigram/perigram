@@ -21,6 +21,11 @@ export function normalizeNodeDefinition(source = {}) {
     version: String(source.version),
     label: String(source.label || source.id),
     ...(source.description ? { description: String(source.description) } : {}),
+    palette: {
+      group: String(source.palette?.group || source.id.split('.')[0]),
+      ...(source.palette?.label ? { label: String(source.palette.label) } : {}),
+      keywords: [...new Set((source.palette?.keywords || []).map(value => String(value).trim().toLowerCase()).filter(Boolean))]
+    },
     inputs: (source.inputs || []).map(normalizePort),
     outputs: (source.outputs || []).map(normalizePort),
     execution: {
@@ -64,6 +69,22 @@ export function validateNodeDefinition(source) {
       if (!isRecord(port.semantic) || !Object.keys(port.semantic).length) problems.push(issue('missing-semantic', `${path}.semantic`, 'Port requires a non-empty semantic descriptor object'));
       else if (!isJsonValue(port.semantic)) problems.push(issue('invalid-semantic', `${path}.semantic`, 'Semantic descriptor must be JSON-compatible'));
       if (Object.hasOwn(port, 'default') && !isJsonValue(port.default)) problems.push(issue('invalid-default', `${path}.default`, 'Port default must be JSON-compatible'));
+    }
+  }
+  if (source.palette != null) {
+    if (!isRecord(source.palette)) {
+      problems.push(issue('invalid-palette', 'palette', 'Palette metadata must be an object'));
+    } else {
+      if (source.palette.group != null && !/^[a-z][a-z0-9-]{0,63}$/.test(String(source.palette.group))) {
+        problems.push(issue('invalid-palette-group', 'palette.group', 'Palette group must be a stable lowercase slug'));
+      }
+      if (source.palette.label != null && (typeof source.palette.label !== 'string' || !source.palette.label.trim())) {
+        problems.push(issue('invalid-palette-label', 'palette.label', 'Palette group label must be a non-empty string'));
+      }
+      if (source.palette.keywords != null && (!Array.isArray(source.palette.keywords)
+        || source.palette.keywords.some(value => typeof value !== 'string' || !value.trim()))) {
+        problems.push(issue('invalid-palette-keywords', 'palette.keywords', 'Palette keywords must be non-empty strings'));
+      }
     }
   }
   if (source.execution?.runtime != null && !/^[a-z0-9-]+$/.test(String(source.execution.runtime))) {

@@ -72,6 +72,25 @@ describe('provider-neutral node contract', () => {
     expect(Object.isFrozen(normalized.inputs[0].semantic)).toBe(true);
   });
 
+  it('normalizes semantic palette groups and searchable keywords', () => {
+    const normalized = normalizeNodeDefinition(definition({
+      palette: { group: 'document-authoring', label: 'Document authoring', keywords: ['markdown', 'Report', 'markdown'] }
+    }));
+    expect(normalized.palette).toEqual({
+      group: 'document-authoring',
+      label: 'Document authoring',
+      keywords: ['markdown', 'report']
+    });
+    expect(normalizeNodeDefinition(definition()).palette).toEqual({
+      group: 'document',
+      keywords: []
+    });
+    expect(validateNodeDefinition(definition({ palette: { group: 'Not a slug' } }))
+      .map(problem => problem.code)).toContain('invalid-palette-group');
+    expect(validateNodeDefinition(definition({ palette: { keywords: [''] } }))
+      .map(problem => problem.code)).toContain('invalid-palette-keywords');
+  });
+
   it('preserves runtime and target declarations for managed provider execution', () => {
     const normalized = normalizeNodeDefinition(definition({
       execution: { kind: 'pure', runtime: 'javascript', targets: ['browser', 'server'], deterministic: true }
