@@ -151,6 +151,42 @@ describe('useGraphDocumentSession', () => {
     await expect(session.refreshPreview()).resolves.toBeNull();
   });
 
+  it('surfaces conditional wires that require runtime value checks', () => {
+    const session = useGraphDocumentSession({
+      t: key => key,
+      providers: [{
+        provider: 'plugin.example',
+        definitions: [
+          {
+            provider: 'plugin.example', id: 'maybe-value', version: '1',
+            palette: { group: 'values', label: 'Values' },
+            inputs: [],
+            outputs: [{ id: 'value', semantic: { base: 'string' }, required: false }],
+            execution: { kind: 'pure' }
+          },
+          {
+            provider: 'plugin.example', id: 'required-value', version: '1',
+            palette: { group: 'values', label: 'Values' },
+            inputs: [{ id: 'value', semantic: { base: 'string' }, required: true }],
+            outputs: [],
+            execution: { kind: 'pure' }
+          }
+        ],
+        execute: () => ({})
+      }]
+    });
+    const items = session.paletteGroups.value.flatMap(group => group.items);
+    const source = session.addNode(items.find(item => item.operation?.id === 'maybe-value'), { x: 0, y: 0 });
+    const target = session.addNode(items.find(item => item.operation?.id === 'required-value'), { x: 220, y: 0 });
+    session.onConnect({
+      source: source.id, sourceHandle: 'value',
+      target: target.id, targetHandle: 'value'
+    });
+    expect(session.edges.value).toHaveLength(1);
+    expect(session.validation.value.ok).toBe(true);
+    expect(session.validation.value.warnings.join(' ')).toContain('runtime value validation');
+  });
+
   it('composes and exports a Documents flow through listing-derived unified graph nodes', async () => {
     const runtime = createDocumentsRuntime();
     const contribution = runtime.providers[0];
