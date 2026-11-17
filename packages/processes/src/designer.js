@@ -808,8 +808,8 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
 // `serviceContracts` is the single source: what is not registered is not
 // offered.
 export function servicesPaletteGroups(serviceContracts = {}) {
-  // The fallback tab: services without a declared pack group. Grouped
-  // services drop into their pack's section (packPaletteGroups).
+  // The fallback tab: services without a declared plugin group. Grouped
+  // services drop into their plugin's section (pluginPaletteGroups).
   const items = Object.values(serviceContracts || {})
     .filter(service => service?.id && service.command && !service.group)
     .map(service => paletteItem(`service:${service.id}`, 'cts.service', {
@@ -831,10 +831,10 @@ export function servicesPaletteGroups(serviceContracts = {}) {
 // facade pack's `facade` tab carries cassette geometry extraction beside
 // the solver. Ungrouped projections stay unlisted (the generic extract
 // preset covers them).
-export function packPaletteGroups(projectionContracts = {}, serviceContracts = {}) {
+export function pluginPaletteGroups(projectionContracts = {}, serviceContracts = {}) {
   const sections = new Map();
   const section = id => {
-    if (!sections.has(id)) sections.set(id, { id, items: [], source: 'pack' });
+    if (!sections.has(id)) sections.set(id, { id, items: [], source: 'plugin' });
     return sections.get(id);
   };
   const seenProjections = new Set();
@@ -925,7 +925,7 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
   }
 
   const paletteGroups = [
-    ...packPaletteGroups(domain.projectionContracts || {}, domain.serviceContracts || {}),
+    ...pluginPaletteGroups(domain.projectionContracts || {}, domain.serviceContracts || {}),
     ...servicesPaletteGroups(domain.serviceContracts || {}),
     ...PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
       ...group,

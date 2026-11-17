@@ -3422,7 +3422,7 @@
     "declarationClass": "Class",
     "edgeKey": "key",
     "edgeOnRemove": "on remove",
-    "palettePackSections": "Plugins",
+    "palettePluginSections": "Plugins",
     "palettePlatformSections": "Platform",
     "previewTab": "Preview",
     "previewChannels": "Graph preview",

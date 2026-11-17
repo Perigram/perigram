@@ -83,13 +83,13 @@ const filteredGroups = computed(() => {
 const tiers = computed(() => [
   {
     id: 'pack',
-    label: t('processDesigner.palettePackSections'),
-    groups: filteredGroups.value.filter(group => group.source === 'pack')
+    label: t('processDesigner.palettePluginSections'),
+    groups: filteredGroups.value.filter(group => group.source === 'plugin')
   },
   {
     id: 'framework',
     label: t('processDesigner.palettePlatformSections'),
-    groups: filteredGroups.value.filter(group => group.source !== 'pack')
+    groups: filteredGroups.value.filter(group => group.source !== 'plugin')
   }
 ]);
 </script>

@@ -3422,7 +3422,7 @@
     "declarationClass": "Класс",
     "edgeKey": "ключ",
     "edgeOnRemove": "при удалении",
-    "palettePackSections": "Плагины",
+    "palettePluginSections": "Плагины",
     "palettePlatformSections": "Платформа",
     "previewTab": "Предпросмотр",
     "previewChannels": "Предпросмотр графа",

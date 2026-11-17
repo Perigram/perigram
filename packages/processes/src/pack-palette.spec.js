@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { packPaletteGroups } from './designer.js';
+import { pluginPaletteGroups } from './designer.js';
 
 // The plugin-tab law: one palette item per pack operation — never
 // per-type copies. The type binds at configure time; the inspector's
 // projection switch is the single mode selector.
-describe('packPaletteGroups', () => {
+describe('pluginPaletteGroups', () => {
   const projections = {
     'csv-table/rows': { typeId: 'csv-table', id: 'rows', label: 'Table rows', group: 'tableData' },
     'xlsx-workbook/rows': { typeId: 'xlsx-workbook', id: 'rows', label: 'Table rows', group: 'tableData' },
@@ -16,7 +16,7 @@ describe('packPaletteGroups', () => {
   };
 
   it('emits one item per operation across types, projection pre-bound, type unbound', () => {
-    const groups = packPaletteGroups(projections, {});
+    const groups = pluginPaletteGroups(projections, {});
     const tableData = groups.find(group => group.id === 'tableData');
     expect(tableData.items.map(item => item.id)).toEqual(['extract:rows', 'extract:cells', 'extract:text']);
     for (const item of tableData.items) {

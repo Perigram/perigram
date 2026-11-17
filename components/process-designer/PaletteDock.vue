@@ -99,13 +99,13 @@ const activeGroupId = ref('');
 const tiers = computed(() => [
   {
     id: 'pack',
-    label: t('processDesigner.palettePackSections'),
-    groups: props.groups.filter(group => group.source === 'pack')
+    label: t('processDesigner.palettePluginSections'),
+    groups: props.groups.filter(group => group.source === 'plugin')
   },
   {
     id: 'framework',
     label: t('processDesigner.palettePlatformSections'),
-    groups: props.groups.filter(group => group.source !== 'pack')
+    groups: props.groups.filter(group => group.source !== 'plugin')
   }
 ].filter(tier => tier.groups.length));
 

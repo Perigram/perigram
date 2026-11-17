@@ -75,7 +75,7 @@ export {
   declarationWireLegality,
   childrenWireLegality,
   servicesPaletteGroups,
-  packPaletteGroups,
+  pluginPaletteGroups,
   syncProcessNodeProducerOutputs,
   effectTriggerFor
 } from './designer.js';
