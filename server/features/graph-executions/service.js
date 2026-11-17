@@ -275,6 +275,12 @@ async function materializeOutput(output, auth, graph, outputId, requestedFilenam
     buffer = await filesService.getFileBuffer(output.fileId, bucket);
     mimeType = normalizeOutputMimeType(output.mime || file.contentType);
     sourceFilename = output.name || file.filename || file.metadata?.name || null;
+  } else if (output && typeof output === 'object' && typeof output.payload?.base64 === 'string' && typeof output.payload?.mime === 'string') {
+    const encoded = output.payload.base64.replace(/\\s/g, '');
+    if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)) throw createError({ statusCode: 400, message: 'Graph file payload must contain valid base64 content' });
+    buffer = Buffer.from(encoded, 'base64');
+    mimeType = normalizeOutputMimeType(output.payload.mime);
+    sourceFilename = output.payload.name || null;
   } else if (typeof output === 'string') {
     buffer = Buffer.from(output, 'utf8');
     mimeType = 'text/plain; charset=utf-8';

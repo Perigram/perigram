@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "15",
+  "version": "16",
   "requires": [
     "tech-drawing"
   ],
@@ -744,12 +744,597 @@
             }
           },
           "output": {
-            "base": "json"
+            "base": "json",
+            "kind": "documents.file"
           }
         },
         "description": "Render a report as a PDF document",
         "palette": {
           "group": "document-compose"
+        }
+      },
+      {
+        "id": "inline-text",
+        "label": "Inline text",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "text": {
+                "base": "string"
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "text.inline"
+          }
+        },
+        "description": "Create inline text content",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-inline"
+        }
+      },
+      {
+        "id": "inline-mark",
+        "label": "Inline mark",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "mark": {
+                "base": "string"
+              },
+              "text": {
+                "base": "string",
+                "nullable": true
+              },
+              "children": {
+                "base": "list",
+                "itemType": {
+                  "base": "json",
+                  "kind": "text.inline"
+                },
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "text.inline"
+          }
+        },
+        "description": "Create strong, emphasis, or code inline content",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-inline"
+        }
+      },
+      {
+        "id": "inline-link",
+        "label": "Inline link",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "href": {
+                "base": "string"
+              },
+              "children": {
+                "base": "list",
+                "itemType": {
+                  "base": "json",
+                  "kind": "text.inline"
+                }
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "text.inline"
+          }
+        },
+        "description": "Create a safe inline link",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-inline"
+        }
+      },
+      {
+        "id": "document-paragraph",
+        "label": "Paragraph",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "text": {
+                "base": "string",
+                "nullable": true
+              },
+              "children": {
+                "base": "list",
+                "itemType": {
+                  "base": "json",
+                  "kind": "text.inline"
+                },
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "text.document-block"
+          }
+        },
+        "description": "Create a paragraph block",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-blocks"
+        }
+      },
+      {
+        "id": "document-heading",
+        "label": "Heading",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "text": {
+                "base": "string",
+                "nullable": true
+              },
+              "level": {
+                "base": "number"
+              },
+              "children": {
+                "base": "list",
+                "itemType": {
+                  "base": "json",
+                  "kind": "text.inline"
+                },
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "text.document-block"
+          }
+        },
+        "description": "Create a heading block",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-blocks"
+        }
+      },
+      {
+        "id": "document-list",
+        "label": "List",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "items": {
+                "base": "list",
+                "itemType": {
+                  "base": "string"
+                }
+              },
+              "ordered": {
+                "base": "boolean"
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "text.document-block"
+          }
+        },
+        "description": "Create a bullet or numbered list",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-blocks"
+        }
+      },
+      {
+        "id": "document-table",
+        "label": "Table",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "rows": {
+                "base": "list",
+                "itemType": {
+                  "base": "record"
+                }
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "text.document-block"
+          }
+        },
+        "description": "Create a table block from row records",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-blocks"
+        }
+      },
+      {
+        "id": "document-quote",
+        "label": "Quote",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "blocks": {
+                "base": "list",
+                "itemType": {
+                  "base": "json",
+                  "kind": "text.document-block"
+                }
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "text.document-block"
+          }
+        },
+        "description": "Create a blockquote from document blocks",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-blocks"
+        }
+      },
+      {
+        "id": "document-code-block",
+        "label": "Code block",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "text": {
+                "base": "string"
+              },
+              "language": {
+                "base": "string",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "text.document-block"
+          }
+        },
+        "description": "Create a fenced code block",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-blocks"
+        }
+      },
+      {
+        "id": "document-divider",
+        "label": "Divider",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {}
+          },
+          "output": {
+            "base": "json",
+            "kind": "text.document-block"
+          }
+        },
+        "description": "Create a horizontal rule block",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-blocks"
+        }
+      },
+      {
+        "id": "compose-document",
+        "label": "Compose document",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "title": {
+                "base": "string",
+                "nullable": true
+              },
+              "blocks": {
+                "base": "list",
+                "itemType": {
+                  "base": "json",
+                  "kind": "text.document-block"
+                }
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "text.flow-document"
+          }
+        },
+        "description": "Compose a flowing document from typed blocks",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-composition"
+        }
+      },
+      {
+        "id": "append-document-block",
+        "label": "Append block",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "document": {
+                "base": "json",
+                "kind": "text.flow-document"
+              },
+              "block": {
+                "base": "json",
+                "kind": "text.document-block"
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "text.flow-document"
+          }
+        },
+        "description": "Append a typed block to a flowing document",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-composition"
+        }
+      },
+      {
+        "id": "render-document-html",
+        "label": "Render HTML",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "document": {
+                "base": "json",
+                "kind": "text.flow-document"
+              }
+            }
+          },
+          "output": {
+            "base": "string"
+          }
+        },
+        "description": "Render a flowing document as safe HTML",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-export"
+        }
+      },
+      {
+        "id": "export-markdown-file",
+        "label": "Export Markdown file",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "document": {
+                "base": "json",
+                "kind": "text.flow-document"
+              },
+              "name": {
+                "base": "string",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "documents.file"
+          }
+        },
+        "description": "Create a Markdown file payload from a flowing document",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-export"
+        }
+      },
+      {
+        "id": "export-html-file",
+        "label": "Export HTML file",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "document": {
+                "base": "json",
+                "kind": "text.flow-document"
+              },
+              "name": {
+                "base": "string",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "documents.file"
+          }
+        },
+        "description": "Create an HTML file payload from a flowing document",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-export"
+        }
+      },
+      {
+        "id": "render-document-pdf",
+        "label": "Export PDF file",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "document": {
+                "base": "json",
+                "kind": "text.flow-document"
+              },
+              "name": {
+                "base": "string",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "documents.file"
+          }
+        },
+        "description": "Render a flowing document as a PDF file payload",
+        "palette": {
+          "group": "document-export"
         }
       }
     ],
@@ -781,7 +1366,7 @@
         "surfaceContract": 3
       },
       {
-        "id": "report-preview",
+        "id": "document-preview",
         "module": "/surfaces/report-preview.mjs",
         "surfaceContract": 1,
         "kind": "preview"
@@ -887,9 +1472,9 @@
     ],
     "previewChannels": [
       {
-        "id": "report",
-        "surface": "report-preview",
-        "label": "Report"
+        "id": "documents",
+        "surface": "document-preview",
+        "label": "Documents"
       }
     ],
     "runtimes": [

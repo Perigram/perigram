@@ -58,6 +58,79 @@ function inlineMarkdown(nodes = []) {
   }).join('');
 }
 
+export const DOCUMENT_BLOCK_TYPE = 'text.document-block';
+export const INLINE_VALUE_TYPE = 'text.inline';
+function inlineText(text) { return { type: 'text', text: String(text ?? '') }; }
+function requireInlineList(value, label = 'children') {
+  if (!Array.isArray(value) || value.some(node => !node || typeof node !== 'object' || Array.isArray(node) || !['text', 'strong', 'emphasis', 'code', 'link'].includes(node.type))) throw badInput(`${label} must be a list of document inline values`);
+  return value;
+}
+export function createInlineValue(operationId, input = {}) {
+  if (operationId === 'inline-text') return inlineText(input.text);
+  if (operationId === 'inline-mark') {
+    const mark = String(input.mark || '');
+    if (!['strong', 'emphasis', 'code'].includes(mark)) throw badInput('inline-mark requires strong, emphasis, or code');
+    if (mark === 'code') return { type: 'code', text: String(input.text ?? '') };
+    return { type: mark, children: requireInlineList(input.children) };
+  }
+  if (operationId === 'inline-link') {
+    const href = String(input.href || '').trim();
+    if (!href || !/^(https?:|mailto:|\/|#|\?)/i.test(href) || href.startsWith('//')) throw badInput('inline-link requires a safe HTTP(S), mailto, local path, or fragment URL');
+    return { type: 'link', href, children: requireInlineList(input.children) };
+  }
+  throw badInput(`Unsupported inline operation: ${operationId}`);
+}
+export function createDocumentBlock(operationId, input = {}) {
+  const text = input.text == null ? '' : String(input.text);
+  const children = input.children == null ? [inlineText(text)] : requireInlineList(input.children);
+  switch (operationId) {
+    case 'document-paragraph': return { type: 'paragraph', children };
+    case 'document-heading': {
+      const level = Number(input.level ?? 1);
+      if (!Number.isInteger(level) || level < 1 || level > 6) throw badInput('document-heading level must be an integer from 1 to 6');
+      return { type: 'heading', level, children };
+    }
+    case 'document-list':
+      if (!Array.isArray(input.items) || !input.items.length) throw badInput('document-list requires a non-empty items list');
+      return { type: 'list', ordered: input.ordered === true, items: input.items.map(item => Array.isArray(item) ? requireInlineList(item, 'list item') : [inlineText(item)]) };
+    case 'document-table':
+      if (!Array.isArray(input.rows) || input.rows.some(row => !row || typeof row !== 'object' || Array.isArray(row))) throw badInput('document-table requires a list of row records');
+      return { type: 'table', rows: input.rows.map(row => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, String(value ?? '')]))) };
+    case 'document-quote':
+      if (!Array.isArray(input.blocks) || input.blocks.some(block => !isDocumentBlock(block))) throw badInput('document-quote requires a list of document blocks');
+      return { type: 'blockquote', blocks: input.blocks.map(block => structuredClone(block)) };
+    case 'document-code-block': return { type: 'code-block', ...(input.language ? { language: String(input.language) } : {}), text };
+    case 'document-divider': return { type: 'horizontal-rule' };
+    default: throw badInput(`Unsupported document block operation: ${operationId}`);
+  }
+}
+export function composeDocument({ title, blocks } = {}) {
+  if (!Array.isArray(blocks) || blocks.some(block => !isDocumentBlock(block))) throw badInput('compose-document requires a list of text.document-block values');
+  return { type: FLOW_DOCUMENT_TYPE, schemaVersion: 1, ...(title ? { title: String(title) } : {}), blocks: blocks.map(block => structuredClone(block)) };
+}
+export function appendDocumentBlock(document, block) {
+  requireFlowDocument(document);
+  if (!isDocumentBlock(block)) throw badInput('append-document-block requires a text.document-block value');
+  return { ...structuredClone(document), blocks: [...document.blocks, structuredClone(block)] };
+}
+export function isDocumentBlock(block) {
+  if (!block || typeof block !== 'object' || Array.isArray(block)) return false;
+  switch (block.type) {
+    case 'paragraph':
+    case 'heading': return Array.isArray(block.children);
+    case 'list': return Array.isArray(block.items) && block.items.every(Array.isArray);
+    case 'blockquote': return Array.isArray(block.blocks) && block.blocks.every(isDocumentBlock);
+    case 'code-block': return typeof block.text === 'string';
+    case 'table': return Array.isArray(block.rows) && block.rows.every(row => row && typeof row === 'object' && !Array.isArray(row));
+    case 'horizontal-rule': return true;
+    default: return false;
+  }
+}
+export function renderDocumentHtml(document) {
+  requireFlowDocument(document);
+  return renderReportHtml({ type: REPORT_TYPE, ...(document.title ? { title: document.title } : {}), sections: [{ id: 'document', blocks: [{ type: 'flow', document }] }] });
+}
+
 export function composeReport({ title, sectionTitle, flow, rows } = {}) {
   const sections = [];
   if (flow !== undefined && flow !== null) {

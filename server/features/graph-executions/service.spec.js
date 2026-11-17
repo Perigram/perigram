@@ -435,6 +435,22 @@ describe('graph execution service', () => {
     expect(mocks.bakeFile).not.toHaveBeenCalled();
   });
 
+  it('materializes plugin file payload envelopes with their declared MIME type and filename', async () => {
+    const content = '# Generated Markdown\n';
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      outputs: { document: { payload: { base64: Buffer.from(content).toString('base64'), mime: 'text/markdown', name: 'generated.md' } } }
+    });
+    const result = await graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'document',
+      destination: { type: 'page-file', pageId: 'page-1', path: 'exports/generated.md' }
+    }, auth);
+    expect(mocks.bakeFile).toHaveBeenCalledWith(expect.objectContaining({ buffer: Buffer.from(content), mimeType: 'text/markdown', path: 'exports/generated.md' }), auth);
+    expect(result.file.fileId).toBe('baked-file-1');
+  });
+
   it('bakes an output into an authorized revisioned instance payload atomically', async () => {
     const result = await graphExecutionsService.bakeOutput({
       graphDocumentInstanceId: 'graph-instance-1',

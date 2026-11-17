@@ -22,7 +22,7 @@ import {
   renderPdfFromWorkbook,
   workbookTemplateTokens
 } from './fill.js';
-import { parseMarkdown, renderReportPdf } from './report.js';
+import { parseMarkdown, renderReportPdf, renderDocumentPdf } from './report.js';
 
 function badRequest(message) {
   const error = new Error(message);
@@ -144,6 +144,11 @@ export const services = {
     await renderReportPdf(report),
     'application/pdf',
     `${baseName(name || report?.title || 'report')}.pdf`
+  ),
+  'render-document-pdf': async ({ document, name } = {}) => toPayload(
+    await renderDocumentPdf(document),
+    'application/pdf',
+    `${baseName(name || document?.title || 'document')}.pdf`
   ),
   // Template fill (SPEC §24): the template ref's payload plus the wired
   // values in, the filled file out as the created record's payload. The

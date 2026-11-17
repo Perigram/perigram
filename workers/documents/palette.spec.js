@@ -32,6 +32,9 @@ describe('Documents plugin node palette contribution', () => {
     expect(tableData.items.map(item => item.id)).toContain('extract:documents:rows');
     expect(tableData.items.map(item => item.id)).toContain('extract:documents:cells');
     expect(documentCompose.items.map(item => item.id)).toContain('service:documents:compose-report');
+    expect(groups.find(group => group.id === 'plugin-documents-document-blocks').items.map(item => item.id)).toContain('service:documents:document-paragraph');
+    expect(groups.find(group => group.id === 'plugin-documents-document-composition').items.map(item => item.id)).toContain('service:documents:compose-document');
+    expect(groups.find(group => group.id === 'plugin-documents-document-export').items.map(item => item.id)).toContain('service:documents:export-markdown-file');
     expect(documentCompose.items.find(item => item.id === 'service:documents:compose-report').searchTerms).toContain('compose-report');
   });
 

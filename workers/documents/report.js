@@ -146,3 +146,7 @@ export function reportMarkdown(report) {
 export async function renderReportPdf(report) {
   return await renderPdfFromMarkdown(reportMarkdown(report));
 }
+
+export async function renderDocumentPdf(document) {
+  return await renderPdfFromMarkdown(exportMarkdown(document));
+}

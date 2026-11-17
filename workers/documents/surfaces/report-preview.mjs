@@ -45,6 +45,11 @@ export default function createSurface(ctx) {
     return h('table', { key }, [head, body]);
   };
 
+  const renderDocument = (document, key) => h('article', { key, class: 'flex flex-col gap-3' }, [
+    document.title ? h('h2', { key: 'title' }, document.title) : null,
+    ...(document.blocks || []).map((block, index) => renderBlock(block, index))
+  ].filter(Boolean));
+
   const renderReport = (report, key) => {
     const sections = (report.sections || []).flatMap((section, sectionIndex) => {
       const heading = section.title
@@ -64,22 +69,22 @@ export default function createSurface(ctx) {
       payload: { type: Object, default: null }
     },
     render() {
-      const reports = reportsOf(this.payload);
-      if (!reports.length) return h('div');
-      return h('div', { class: 'flex flex-col gap-6' }, reports.map(renderReport));
+      const values = documentsOf(this.payload);
+      if (!values.length) return h('div');
+      return h('div', { class: 'flex flex-col gap-6' }, values.map((value, index) => value.type === 'text.flow-document' ? renderDocument(value, index) : renderReport(value, index)));
     }
   };
 }
 
 // Every `document.report` item in the evaluation payload, in node and
 // branch order — the IR's own type discriminator is the selector.
-export function reportsOf(payload) {
+export function documentsOf(payload) {
   const found = [];
   for (const node of Object.values(payload?.nodes || {})) {
     for (const tree of Object.values(node?.outputs || {})) {
       for (const branch of tree?.branches || []) {
         for (const item of branch.items || []) {
-          if (item?.type === 'document.report') found.push(item);
+          if (item?.type === 'text.flow-document' || item?.type === 'document.report') found.push(item);
         }
       }
     }
