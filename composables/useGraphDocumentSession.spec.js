@@ -7,6 +7,49 @@ function createSession() {
 }
 
 describe('useGraphDocumentSession', () => {
+  it('executes the Documents Markdown-to-file workflow through listing-derived graph nodes', async () => {
+    const documents = createDocumentsRuntime();
+    const [provider] = documents.providers;
+    const session = useGraphDocumentSession({
+      t: key => key,
+      providers: [{
+        ...provider,
+        execute: (definition, invocation) => documents.execute(definition.id, invocation)
+      }]
+    });
+    const boundaries = session.paletteGroups.value.find(group => group.id === 'graph-boundaries');
+    const input = session.addNode(boundaries.items[0], { x: 0, y: 0 });
+    session.updateBoundaryDeclaration(input.id, {
+      contract: { shape: 'item', semantic: { base: 'string' } },
+      required: true
+    });
+    const output = session.addNode(boundaries.items[1], { x: 900, y: 0 });
+    const operations = session.paletteGroups.value.flatMap(group => group.items);
+    const parse = session.addNode(operations.find(item => item.operation?.id === 'parse-markdown'), { x: 260, y: 0 });
+    const exportFile = session.addNode(operations.find(item => item.operation?.id === 'export-markdown-file'), { x: 560, y: 0 });
+    session.onConnect({ source: input.id, sourceHandle: 'value', target: parse.id, targetHandle: 'text' });
+    session.onConnect({ source: parse.id, sourceHandle: 'value', target: exportFile.id, targetHandle: 'document' });
+    session.onConnect({ source: exportFile.id, sourceHandle: 'value', target: output.id, targetHandle: 'value' });
+    session.setGraphInputBinding({
+      portId: session.graphDocument.value.interface.inputs[0].id,
+      value: '# Graph report\n\nBuilt from typed graph operations.'
+    });
+
+    const result = await session.refreshPreview();
+    expect(result.outputs).toHaveProperty(session.graphDocument.value.interface.outputs[0].id);
+    const file = result.outputs[session.graphDocument.value.interface.outputs[0].id];
+    expect(file.payload).toMatchObject({ mime: 'text/markdown', name: 'document.md' });
+    expect(Buffer.from(file.payload.base64, 'base64').toString('utf8'))
+      .toBe('# Graph report\n\nBuilt from typed graph operations.\n');
+    expect(session.executionRecord.value).toMatchObject({
+      status: 'succeeded',
+      provenance: { nodes: expect.arrayContaining([
+        expect.objectContaining({ operation: { provider: 'plugin.documents', id: 'parse-markdown', version: '1' } }),
+        expect.objectContaining({ operation: { provider: 'plugin.documents', id: 'export-markdown-file', version: '1' } })
+      ]) }
+    });
+  });
+
   it('creates and round-trips canonical graph documents with boundary nodes', () => {
     const session = createSession();
     const [input, output] = session.paletteGroups.value[0].items;
