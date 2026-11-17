@@ -880,10 +880,13 @@ export function pluginPaletteGroups(projectionContracts = {}, serviceContracts =
 
 function pluginProviderId(source = {}) {
   const direct = String(source.pluginId || source.provider || '');
-  const directMatch = /^(?:plugin\\.)?([a-z0-9-]+)$/.exec(direct);
-  if (directMatch) return directMatch[1];
+  if (direct) {
+    const parts = direct.split('.');
+    return parts[0] === 'plugin' ? (parts[1] || '') : (parts[0] || '');
+  }
   const reference = String(source.resolve?.service || source.command || source.id || '');
-  return /^plugin\\.([a-z0-9-]+)\\./.exec(reference)?.[1] || '';
+  const parts = reference.split('.');
+  return parts[0] === 'plugin' ? (parts[1] || '') : '';
 }
 
 function humanizePaletteGroup(value = '') {

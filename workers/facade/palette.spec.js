@@ -35,7 +35,7 @@ describe('Facade plugin node palette contribution', () => {
       'service:facade:match-sheet'
     ]);
     expect(production.items.map(item => item.id)).toContain('service:facade:generate-sheet-dxf');
-    expect(nesting.items.find(item => item.id === 'service:nesting-solve').searchTerms).toContain('nesting-solve');
+    expect(nesting.items.find(item => item.id === 'service:facade:nesting-solve').searchTerms).toContain('nesting-solve');
     expect(nesting.items.find(item => item.id === 'service:nesting-solve')).toMatchObject({
       label: 'Solve sheet nesting',
       description: 'Arrange cassette-design parts on available sheet stock'
