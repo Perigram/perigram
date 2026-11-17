@@ -134,17 +134,25 @@ describe('useGraphDocumentSession', () => {
         provider: 'plugin.example',
         definitions: [{
           provider: 'plugin.example', id: 'fail', version: '1',
-          inputs: [], outputs: [{ id: 'value', semantic: { base: 'number' } }],
+          inputs: [{ id: 'value', semantic: { base: 'number' }, required: true }],
+          outputs: [{ id: 'result', semantic: { base: 'number' }, required: true }],
           execution: { kind: 'pure' }
         }],
         execute: async () => { throw new Error('preview failed'); }
       }]
     });
+    const [input, output] = session.paletteGroups.value[0].items;
+    const inputNode = session.addNode(input, { x: 0, y: 0 });
     const item = session.paletteGroups.value.flatMap(group => group.items).find(entry => entry.operation?.id === 'fail');
-    const node = session.addNode(item, { x: 120, y: 80 });
+    const node = session.addNode(item, { x: 120, y: 0 });
+    const outputNode = session.addNode(output, { x: 360, y: 0 });
+    session.onConnect({ source: inputNode.id, sourceHandle: 'value', target: node.id, targetHandle: 'value' });
+    session.onConnect({ source: node.id, sourceHandle: 'result', target: outputNode.id, targetHandle: 'value' });
+    session.setGraphInputBinding({ portId: session.graphDocument.value.interface.inputs[0].id, value: 4 });
     await session.refreshPreview();
     expect(finalized).toEqual([session.executionRecord.value.id]);
     expect(session.executionRecord.value.status).toBe('failed');
+    expect(session.previewError.value).toContain('preview failed');
     expect(node).toBeTruthy();
   });
 
