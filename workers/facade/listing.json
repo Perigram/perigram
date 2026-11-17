@@ -688,7 +688,16 @@
           }
         },
         "group": "sheet-planning",
-        "description": "Create a sheet design from a solved nesting layout"
+        "description": "Create a sheet design from a solved nesting layout",
+        "execution": {
+          "runtime": "facade-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true
+        }
       },
       {
         "id": "match-sheet",

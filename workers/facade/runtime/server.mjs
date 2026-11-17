@@ -1,3 +1,4 @@
+import { nestingResultToPreview, sheetDesignParts } from '../surfaces/lib/sheetLayout.js';
 import {
   buildValueWorkerRequest,
   enrichNestingResult,
@@ -7,6 +8,65 @@ import {
   normalizeNestingItems,
   nestingSheetCount
 } from '../nesting-projections.js';
+
+function designIdOfPlacement(items = [], placed = {}) {
+  const source = items.find(item => String(item.id) === String(placed.item_id ?? placed.itemId ?? placed.id));
+  return String(source?.design_id ?? placed.design_id ?? '') || null;
+}
+
+function sheetPolygonBounds(polygon) {
+  const outer = polygon?.outer || [];
+  if (outer.length < 2) return { width: 1220, height: 2440 };
+  const xs = outer.map(point => Number(point?.[0]) || 0);
+  const ys = outer.map(point => Number(point?.[1]) || 0);
+  return { width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
+}
+
+function constructSheet({ refs = {}, draft = {} } = {}) {
+  const layout = draft?.data?.layout;
+  const resolvedDesigns = Array.isArray(refs.designs) ? refs.designs : [];
+  const designPin = new Map(resolvedDesigns.map(design => [
+    String(design.id),
+    design.revision ? { type: 'cassette-design', id: String(design.id), revision: String(design.revision) } : null
+  ]));
+  if (layout != null && (typeof layout !== 'object' || Array.isArray(layout))) {
+    badRequest('Sheet construction requires a layout value');
+  }
+  const placements = layout ? (layout.placed_items || layout.items || []) : [];
+  if (layout && !Array.isArray(placements)) badRequest('Sheet construction requires a layout with placed items');
+  const items = layout && Array.isArray(layout.sourceItems) ? layout.sourceItems : [];
+  if (layout && placements.length && !items.length) {
+    badRequest('Sheet construction requires a layout with item sources — re-run the nesting solve');
+  }
+  for (const placed of placements) {
+    const designId = designIdOfPlacement(items, placed);
+    if (!designId) {
+      badRequest('Sheet construction needs the cassette-design behind every placement — re-run the nesting solve with the designs connected');
+    }
+    if (resolvedDesigns.length && !designPin.has(designId)) {
+      badRequest(`Sheet construction placement names cassette-design ${designId}, which the declared designs do not include`);
+    }
+  }
+  const { sourceItems, sheetPolygon: solvedPolygon, ...storedLayout } = layout || {};
+  const sheetPolygon = solvedPolygon && Array.isArray(solvedPolygon.outer)
+    ? { outer: solvedPolygon.outer, inner: Array.isArray(solvedPolygon.inner) ? solvedPolygon.inner : [] }
+    : null;
+  const { width, height } = sheetPolygonBounds(sheetPolygon);
+  const result = { items, solution: { layouts: [storedLayout] } };
+  const created = new Date();
+  const pad = value => String(value).padStart(2, '0');
+  return {
+    data: {
+      name: `Sheet ${created.getFullYear()}-${pad(created.getMonth() + 1)}-${pad(created.getDate())} ${pad(created.getHours())}:${pad(created.getMinutes())}`,
+      ...(layout?.compositionKey ? { compositionKey: String(layout.compositionKey) } : {}),
+      geometry: {
+        data: { ...result, ...(sheetPolygon ? { sheetPolygon } : {}), solveParams: { width, height } },
+        preview: nestingResultToPreview(result, { width, height }, { layoutIndex: 0 })
+      }
+    },
+    relations: { parts: sheetDesignParts(result, designPin) }
+  };
+}
 
 function nestingParts({ typeId, instanceId, fields = {} } = {}) {
   const geometry = fields.geometry || null;
@@ -38,6 +98,7 @@ export function createRuntime() {
     async execute(operationId, input = {}, { capabilities } = {}) {
       if (operationId === 'match-sheet') return matchSheet(input);
       if (operationId === 'nesting-parts') return nestingParts(input);
+      if (operationId === 'construct-sheet') return constructSheet(input);
       if (operationId !== 'nesting-solve') {
         throw new Error(`Unsupported Facade managed operation: ${operationId}`);
       }

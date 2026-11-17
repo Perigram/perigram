@@ -58,6 +58,22 @@ describe('Facade managed server runtime', () => {
     expect(result.polygonParts[0].sourceLayers).toHaveLength(1);
   });
 
+  it('constructs pinned sheet geometry and parts in the managed runtime', async () => {
+    const runtime = createRuntime();
+    const result = await runtime.execute('construct-sheet', {
+      refs: { designs: [{ id: 'design-1', revision: '7' }] },
+      draft: { data: { layout: {
+        compositionKey: 'composition-a',
+        sourceItems: [{ id: 'item-1', design_id: 'design-1' }],
+        placed_items: [{ item_id: 'item-1', x: 10, y: 20 }],
+        sheetPolygon: { outer: [[0, 0], [100, 0], [100, 200], [0, 200]] }
+      } } }
+    });
+    expect(result.data.compositionKey).toBe('composition-a');
+    expect(result.data.geometry.data.sheetPolygon.outer).toHaveLength(4);
+    expect(result.relations.parts).toEqual([{ type: 'cassette-design', id: 'design-1', revision: '7' }]);
+  });
+
   it('refuses operations outside the managed runtime declaration', async () => {
     const runtime = createRuntime();
     await expect(runtime.execute('bake', {}, { capabilities: { call: vi.fn() } }))
