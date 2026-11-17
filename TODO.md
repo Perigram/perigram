@@ -18,7 +18,7 @@ providers.
   and every declared construction/service. Verify each workflow and close
   behavior/spec gaps.
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
-  hosting. Current inventory: 7 of 12 Documents services and 2 of 7 Facade services remain
+  hosting. Current inventory: 8 of 28 Documents services and 2 of 7 Facade services remain
   `mode: endpoint`; Facade `nesting-solve` runs in the managed server runtime
   through the platform-owned `facade.nesting.solve` capability. Pure
   `bake`, `match-sheet`, `construct-sheet`, `generate-sheet-dxf`, and Documents `csv-text` run in the shared
@@ -56,6 +56,8 @@ providers.
   for each defect found during the review.
 - [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO after
   behavior verification; record remaining owner decisions explicitly.
+
+Progress (2026-11-17): Documents list construction accepts typed `text.inline` values through the declared `inlineItems` input as well as plain text items. A graph-level regression covers typed construction, document composition, preview rendering, and Markdown/HTML file payload generation; test execution and generic Bake materialization remain to be verified.
 
 Progress (2026-11-17): Documents `extract-table`, `compose-report`, `export-markdown`, and `render-html` now run in the managed server runtime rather than per-service endpoints. Their shared, dependency-free `report-ir.mjs` module owns the report/flow contracts, table extraction, composition, Markdown serialization, and escaped HTML representation. Standalone HTML now strips unsafe link schemes while preserving safe HTTP(S), mailto, and local fragment/path links.
 
