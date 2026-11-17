@@ -503,7 +503,10 @@ describe('graph execution service', () => {
         type: 'instance-field',
         typeId: 'part',
         fieldId: 'attachment',
-        selector: { query, resultIndex: 0 }
+        selector: {
+          query: { typeId: 'part', sortBy: 'createdAt', sortDirection: 'desc', limit: 1 },
+          resultIndex: 0
+        }
       }
     }, auth);
 
