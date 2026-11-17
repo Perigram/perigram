@@ -196,6 +196,7 @@ describe('authorized relation linking', () => {
     });
     const service = instanceServiceResolver('project');
     const session = { id: 'relation-link-session' };
+    const sequence = await import('./organization-sequence.js');
 
     const updated = await service.linkRelationForHttp('project-1', 'panels', {
       type: 'panel',
@@ -204,11 +205,17 @@ describe('authorized relation linking', () => {
       auth: { userId: 'user-1', organizationId: 'org-1' },
       organizationId: 'org-1',
       expectedRevision: '1',
-      expectedOrganizationSequence: 9,
       session
     });
 
     expect(updated.relations.panels).toEqual([{ type: 'panel', id: 'panel-1' }]);
+    expect(sequence.getOrganizationChangeSequence).toHaveBeenCalledWith('org-1');
+    expect(sequence.runOrganizationChange).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({ kind: 'instance-updated' }),
+      expect.any(Function),
+      { session, expectedSequence: 0 }
+    );
     expect(coll.findOneAndUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ _id: 'project-1', updatedAt: owner.updatedAt }),
       expect.objectContaining({ $set: expect.objectContaining({ 'relations.panels': [{ type: 'panel', id: 'panel-1' }] }) }),
