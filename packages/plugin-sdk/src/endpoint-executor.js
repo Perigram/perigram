@@ -43,7 +43,7 @@ export function createEndpointExecutor({ services = {}, token = null, staticRoot
 async function handleRequest(req, res, services, token, staticRoot) {
   try {
     const pathname = new URL(req.url || '/', 'http://executor.local').pathname;
-    const legacyServiceId = pathname.replace(/^\\/+|\\/+$/g, '');
+    const legacyServiceId = pathname.replace(/^\/+|\/+$/g, '');
     if (req.method === 'GET' && staticRoot) {
       serveStatic(req, res, staticRoot, legacyServiceId);
       return;
