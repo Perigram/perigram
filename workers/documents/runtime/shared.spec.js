@@ -23,6 +23,17 @@ describe('Documents shared runtime', () => {
     expect(() => runtime.execute('csv-text', { rows: {} })).toThrow(/rows array/);
   });
 
+  it('declares text list items optional when formatted inline items are wired', () => {
+    const list = listing.declarations.services.find(service => service.id === 'document-list');
+    expect(list.signature.input.fields.items).toMatchObject({ base: 'list', nullable: true, label: 'Text items' });
+    expect(list.signature.input.fields.inlineItems).toMatchObject({
+      base: 'list',
+      nullable: true,
+      label: 'Formatted items',
+      itemType: { base: 'json', kind: 'text.inline' }
+    });
+  });
+
   it('builds typed inline values, blocks, and a flow document from graph operations', () => {
     const text = runtime.execute('inline-text', { text: 'Hello' });
     const strong = runtime.execute('inline-mark', { mark: 'strong', children: [text] });
