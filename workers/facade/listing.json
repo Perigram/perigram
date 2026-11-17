@@ -681,7 +681,8 @@
             "server"
           ],
           "capabilities": [],
-          "idempotent": true
+          "idempotent": true,
+          "deterministic": true
         }
       },
       {
@@ -705,7 +706,8 @@
             "server"
           ],
           "capabilities": [],
-          "idempotent": true
+          "idempotent": true,
+          "deterministic": true
         }
       },
       {

@@ -7,7 +7,8 @@ import {
   groupNestingLayouts,
   summarizeNestingResult,
   normalizeNestingItems,
-  nestingSheetCount
+  nestingSheetCount,
+  stableSheetName
 } from '../nesting-projections.js';
 
 function designIdOfPlacement(items = [], placed = {}) {
@@ -94,11 +95,9 @@ function constructSheet({ refs = {}, draft = {} } = {}) {
     : null;
   const { width, height } = sheetPolygonBounds(sheetPolygon);
   const result = { items, solution: { layouts: [storedLayout] } };
-  const created = new Date();
-  const pad = value => String(value).padStart(2, '0');
   return {
     data: {
-      name: `Sheet ${created.getFullYear()}-${pad(created.getMonth() + 1)}-${pad(created.getDate())} ${pad(created.getHours())}:${pad(created.getMinutes())}`,
+      name: stableSheetName(layout, draft),
       ...(layout?.compositionKey ? { compositionKey: String(layout.compositionKey) } : {}),
       geometry: {
         data: { ...result, ...(sheetPolygon ? { sheetPolygon } : {}), solveParams: { width, height } },

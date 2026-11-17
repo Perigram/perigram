@@ -32,6 +32,18 @@ export function nestingSheetCount(items = []) {
   return Math.max(1, total);
 }
 
+export function stableSheetName(layout = null, draft = {}) {
+  const authored = String(draft?.data?.name || '').trim();
+  if (authored) return authored;
+  const identity = String(layout?.compositionKey || JSON.stringify(layout || {}));
+  let hash = 2166136261;
+  for (let index = 0; index < identity.length; index += 1) {
+    hash ^= identity.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `Sheet ${(hash >>> 0).toString(36)}`;
+}
+
 export function buildValueWorkerRequest(jobFiles, params = {}) {
   const items = buildNestingItems(jobFiles);
   if (!items.length) throw nestingError('No nestable cassette-design geometry found');

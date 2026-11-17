@@ -86,6 +86,26 @@ describe('Facade managed server runtime', () => {
     expect(atob(result.payload.base64)).toContain('SECTION');
   });
 
+  it('names a sheet deterministically from its layout or authored draft name', async () => {
+    const runtime = createRuntime();
+    const input = {
+      draft: { data: { layout: {
+        compositionKey: 'composition-a',
+        sourceItems: [],
+        placed_items: [],
+        sheetPolygon: { outer: [[0, 0], [100, 0], [100, 100], [0, 100]] }
+      } } }
+    };
+    const first = await runtime.execute('construct-sheet', input);
+    const second = await runtime.execute('construct-sheet', input);
+    expect(first.data.name).toBe(second.data.name);
+    const named = await runtime.execute('construct-sheet', {
+      ...input,
+      draft: { ...input.draft, data: { ...input.draft.data, name: 'Panel A' } }
+    });
+    expect(named.data.name).toBe('Panel A');
+  });
+
   it('refuses operations outside the managed runtime declaration', async () => {
     const runtime = createRuntime();
     await expect(runtime.execute('bake', {}, { capabilities: { call: vi.fn() } }))
