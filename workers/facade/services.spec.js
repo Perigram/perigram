@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { bake, constructSheet, extractGeometry, generateSheetDxf, matchSheet, nestingParts, nestingSheetCount, nestingSolve, normalizeNestingItems, services } from './services.js';
 import listing from './listing.json';
 import { createDefaultOccsCassetteTemplateDefinition } from './occs/templates.js';
@@ -79,6 +79,29 @@ describe('facade graph service behavior', () => {
       .toThrow(/count must be a positive safe integer/);
     expect(() => normalizeNestingItems([{ id: 'part-1', count: Number.MAX_SAFE_INTEGER + 1 }]))
       .toThrow(/count must be a positive safe integer/);
+  });
+
+  it('dispatches normalized copies of authored nesting items to the solver', async () => {
+    const authored = Object.freeze({
+      id: 'design-1',
+      designId: 'design-1',
+      count: '2',
+      dimensions: Object.freeze({ width: 20, height: 10 })
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [], layouts: [] })
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await nestingSolve({ items: [authored], sheetWidth: 100, sheetHeight: 100 });
+      const request = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(request.params.sheetCount).toBe(2);
+      expect(request.items[0].count).toBe(2);
+      expect(authored.count).toBe('2');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('rejects invalid nesting inputs before contacting the external solver', async () => {
