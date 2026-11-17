@@ -459,6 +459,99 @@ describe('graph execution service', () => {
     expect(result.execution.profile).toBe('procedural-bake');
   });
 
+  it('resolves a last-created-instance Bake selector from the exact preview query read set', async () => {
+    const query = {
+      typeId: 'part',
+      filters: {},
+      sortBy: 'createdAt',
+      sortDirection: 'desc',
+      limit: 1,
+      offset: 0,
+      projection: null
+    };
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      readSet: {
+        consistency: 'sequence-bracketed',
+        snapshotId: null,
+        organizationSequenceStart: 4,
+        organizationSequenceEnd: 4,
+        instances: [{
+          typeId: 'part',
+          instanceId: 'item-1',
+          revision: '3',
+          updatedAt: '2026-11-16T10:00:00Z',
+          typeVersion: 2,
+          organizationId: 'org-1'
+        }],
+        relations: [],
+        queries: [{
+          typeId: 'part',
+          organizationId: 'org-1',
+          query,
+          resultIds: ['item-1'],
+          observedTotal: 1,
+          sequence: 4
+        }]
+      }
+    });
+    const result = await graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'document',
+      destination: {
+        type: 'instance-field',
+        typeId: 'part',
+        fieldId: 'attachment',
+        selector: { query, resultIndex: 0 }
+      }
+    }, auth);
+
+    expect(payloadService.patch).toHaveBeenCalledWith('item-1', expect.any(Object), expect.objectContaining({
+      expectedRevision: '3',
+      expectedOrganizationSequence: 4
+    }));
+    expect(result.execution.artifacts.at(-1)).toMatchObject({ instanceId: 'item-1', fieldId: 'attachment' });
+  });
+
+  it('rejects a Bake selector that was not observed by the preview', async () => {
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      readSet: {
+        consistency: 'sequence-bracketed',
+        snapshotId: null,
+        organizationSequenceStart: 4,
+        organizationSequenceEnd: 4,
+        instances: [],
+        relations: [],
+        queries: []
+      }
+    });
+    await expect(graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'document',
+      destination: {
+        type: 'instance-field',
+        typeId: 'part',
+        fieldId: 'attachment',
+        selector: {
+          query: {
+            typeId: 'part',
+            filters: {},
+            sortBy: 'createdAt',
+            sortDirection: 'desc',
+            limit: 1,
+            offset: 0,
+            projection: null
+          },
+          resultIndex: 0
+        }
+      }
+    }, auth)).rejects.toMatchObject({ statusCode: 409 });
+    expect(mocks.uploadFile).not.toHaveBeenCalled();
+  });
+
   it('bakes an output into an explicitly declared Blob field on an exact CTS instance', async () => {
     const result = await graphExecutionsService.bakeOutput({
       graphDocumentInstanceId: 'graph-instance-1',
