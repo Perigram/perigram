@@ -1088,7 +1088,7 @@ export async function listCollectionOutputs(auth = {}) {
       for (const output of source.graph.interface?.outputs || []) {
         const outputId = String(output.id || '');
         const values = fields.outputs?.[outputId];
-        if (output.contract?.shape !== 'collection' || !Array.isArray(values)) continue;
+        if (output.contract?.shape !== 'list' || !Array.isArray(values)) continue;
         options.push({
           executionInstanceId: String(record._id),
           executionId: String(fields.executionId || ''),
@@ -1126,8 +1126,8 @@ export async function resolveCollectionOutput(executionInstanceId, outputId, aut
   const source = await sourceFor(String(fields.graphDocument.id), { graph: { id: fields.graphId, revision: fields.graphRevision } }, auth);
   const output = (source.graph.interface?.outputs || []).find(port => String(port.id) === String(outputId));
   const values = fields.outputs?.[String(outputId)];
-  if (!output || output.contract?.shape !== 'collection' || !Array.isArray(values)) {
-    throw createError({ statusCode: 409, message: 'Pinned graph output is not a collection in the saved graph revision' });
+  if (!output || output.contract?.shape !== 'list' || !Array.isArray(values)) {
+    throw createError({ statusCode: 409, message: 'Pinned graph output is not a list in the saved graph revision' });
   }
   const items = [];
   for (const value of values.slice(0, 100)) {

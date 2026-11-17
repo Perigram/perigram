@@ -177,7 +177,7 @@ describe('graph execution service', () => {
 
   it('lists only authorized pinned graph collection outputs from saved graph revisions', async () => {
     const collectionGraph = graph();
-    collectionGraph.interface.outputs[0].contract.shape = 'collection';
+    collectionGraph.interface.outputs[0].contract.shape = 'list';
     mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(collectionGraph)));
     executionService.processList.mockResolvedValue([{
       _id: 'execution-instance-1',
@@ -202,7 +202,7 @@ describe('graph execution service', () => {
 
   it('resolves pinned graph collection values through each target read grant', async () => {
     const collectionGraph = graph();
-    collectionGraph.interface.outputs[0].contract.shape = 'collection';
+    collectionGraph.interface.outputs[0].contract.shape = 'list';
     mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(collectionGraph)));
     executionService.processGetById.mockResolvedValue({
       _id: 'execution-instance-1',
