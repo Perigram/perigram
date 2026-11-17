@@ -97,10 +97,14 @@ export async function ensureForEntitySnapshot({
 
   const instanceId = toFlexibleId(entity._id);
   const contentHash = hashRevisionContent(content);
-  const existing = await repository.findByHash(typeId, instanceId, scope, contentHash, { session });
+  const existing = session
+    ? await repository.findByHash(typeId, instanceId, scope, contentHash, { session })
+    : await repository.findByHash(typeId, instanceId, scope, contentHash);
   if (existing) return toDTO(existing);
 
-  const latest = await repository.findLatest(typeId, instanceId, scope, { session });
+  const latest = session
+    ? await repository.findLatest(typeId, instanceId, scope, { session })
+    : await repository.findLatest(typeId, instanceId, scope);
   const number = Number(latest?.data?.number || 0) + 1;
   const revisionMachine = await workflowOverridesService.resolveActiveWorkflow({
     typeId: 'entity_revision',
@@ -145,10 +149,12 @@ export async function ensureForEntitySnapshot({
   };
 
   try {
-    return toDTO(await repository.create(doc, { session }));
+    return toDTO(await (session ? repository.create(doc, { session }) : repository.create(doc)));
   } catch (error) {
     if (error?.code === 11000) {
-      const concurrent = await repository.findByHash(typeId, instanceId, scope, contentHash, { session });
+      const concurrent = session
+        ? await repository.findByHash(typeId, instanceId, scope, contentHash, { session })
+        : await repository.findByHash(typeId, instanceId, scope, contentHash);
       if (concurrent) return toDTO(concurrent);
     }
     throw error;

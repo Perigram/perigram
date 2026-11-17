@@ -726,8 +726,8 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
             bucket: 'files'
           }]
         });
-        const execution = await persistRecord(bakeRecord, graphDocument, organizationId, auth, session);
-        return { instance: updated, execution };
+        const persisted = await persistRecord(bakeRecord, graphDocument, organizationId, auth, session);
+        return { instance: updated, execution: bakeRecord, persisted };
       });
     } catch (error) {
       try {
