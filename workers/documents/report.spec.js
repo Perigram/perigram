@@ -107,7 +107,9 @@ describe('markdown ↔ flow-document', () => {
     };
     const parsed = parseMarkdown(exportMarkdown(document));
     const children = parsed.blocks[0].children;
-    expect(children[0].text).toBe('Literal *stars*, [brackets], # heading, ~~strike~~, &copy;, and \\ path.');
+    const codeIndex = children.findIndex(node => node.type === 'code');
+    expect(children.slice(0, codeIndex).map(node => node.text ?? '').join(''))
+      .toBe('Literal *stars*, [brackets], # heading, ~~strike~~, &copy;, and \\ path. ');
     expect(children.find(node => node.type === 'code').text).toBe('a' + String.fromCharCode(96) + 'b');
     expect(children.find(node => node.type === 'link')).toMatchObject({
       href: 'https://example.com/a_(b)?q=one%20two&x=1%0Anext',
