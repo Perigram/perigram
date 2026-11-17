@@ -18,6 +18,7 @@ vi.mock('h3', () => ({
 import { stateService as statusService, appendFieldChangeEvent } from './service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import { recordOrganizationChange } from '~/server/features/instances/index.js';
 
 // The cassette lifecycle exactly as the facade pack declares it (SPEC §7):
 // declarations are not a machine source, so the spec environment supplies
@@ -106,6 +107,50 @@ describe('status service lifecycle payloads', () => {
     } finally {
       await session.endSession();
     }
+  });
+
+  it('rejects a lifecycle transition when organization data changes during CTS validation', async () => {
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'ACTIVE',
+          states: { ACTIVE: {}, DONE: {} },
+          transitions: [{ from: 'ACTIVE', to: 'DONE', access: { system: true } }]
+        }
+      }
+    });
+    const instance = {
+      _id: 'racing-transition-1',
+      type: 'constrained-account',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      fields: { code: 'A-1' },
+      state: 'ACTIVE',
+      lineage: {},
+      relations: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await db.collection('items').insertOne(instance);
+    vi.spyOn(getAppRegistry(), 'getInstanceService').mockReturnValue({
+      validateCandidate: vi.fn(async () => {
+        await recordOrganizationChange('org-1', { kind: 'concurrent-instance-write' });
+        return true;
+      })
+    });
+
+    await expect(statusService.transition(
+      'constrained-account',
+      instance._id,
+      'DONE',
+      'SYSTEM',
+      { userId: 'SYSTEM', organizationId: 'org-1' }
+    )).rejects.toMatchObject({ statusCode: 409, code: 'STALE_ORGANIZATION_READ' });
+
+    const unchanged = await db.collection('items').findOne({ _id: instance._id });
+    expect(unchanged.state).toBe('ACTIVE');
+    expect(await db.collection('status_events').countDocuments({ targetId: instance._id })).toBe(0);
   });
 
   it('uses full auth context and registry collection metadata for cassette transitions', async () => {
