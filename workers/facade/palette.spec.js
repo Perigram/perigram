@@ -29,6 +29,7 @@ describe('Facade plugin node palette contribution', () => {
     expect(facade.items.map(item => item.id)).toContain('extract:nesting-polygons');
     expect(facade.items.map(item => item.id)).toContain('service:nesting-solve');
     expect(facade.items.map(item => item.id)).toContain('service:match-sheet');
+    expect(facade.items.find(item => item.id === 'service:nesting-solve').searchTerms).toContain('nesting-solve');
   });
 
   it('keeps every declared projection and service reachable from the plugin palette', () => {

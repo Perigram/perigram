@@ -32,6 +32,7 @@ describe('Documents plugin node palette contribution', () => {
     expect(tableData.items.map(item => item.id)).toContain('extract:rows');
     expect(tableData.items.map(item => item.id)).toContain('extract:cells');
     expect(documentCompose.items.map(item => item.id)).toContain('service:compose-report');
+    expect(documentCompose.items.find(item => item.id === 'service:compose-report').searchTerms).toContain('compose-report');
   });
 
   it('keeps every declared projection and grouped service reachable from the palette', () => {
