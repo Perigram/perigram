@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, sheet instances, and the nesting solver as an installable plugin with an external executor",
-  "version": "45",
+  "version": "46",
   "requires": [
     "tech-drawing"
   ],
@@ -439,7 +439,8 @@
           }
         },
         "name": "Sheet DXF",
-        "glyph": "pi pi-file-export"
+        "glyph": "pi pi-file-export",
+        "revisions": "content"
       },
       {
         "id": "sheet-cut-plan",
