@@ -72,7 +72,8 @@ A block is a typed `text.document-block` value. The union is:
 Inline values use kind `text.inline`: text/code nodes carry `text`, strong
 and emphasis nodes carry `children`, and link nodes carry a safe `href`
 plus `children`. Paragraphs and headings accept inline-value lists; list
-blocks accept plain text items or typed inline items through `inlineItems`.
+blocks accept optional plain-text `items` or typed inline `inlineItems` (or
+both), so a formatted-only list does not require an unused text-list input.
 The provider validates nested inline and block values when constructing,
 composing, appending, previewing, or exporting a document. Unsafe link
 schemes are rejected or dropped with a parse diagnostic. Markdown export escapes literal text punctuation, selects safe code-span delimiters and link destinations, and escapes table cell delimiters while flattening embedded line breaks.
