@@ -40,6 +40,20 @@ gets). Each module targets a surface mount contract
 | `cassette-preview` | preview | 1 | Read-only cassette-template/cassette-design preview as in-place SVG on the shared drawing canvas: the record's OCCS payload through the plugin tree renderer — the same render the designer's template-picker thumbnails use — with baked geometry rows when the payload is absent; the preview layer law (`CASSETTE_PREVIEW_LAYERS` in [`surfaces/lib/drawingPreview.js`](./surfaces/lib/drawingPreview.js) — outline and folds) gates the visible layers. A record whose payload reference names an OCCS document shows the loader until the host hands the parsed document. The band is inert; card and record clicks stay with the host layout. |
 | `profile-preview` | preview | 1 | The profile library type's preview: the stored sketch through the boolean fold (`resolveOccsProfileSketchLayerData`) and the shared drawing-preview normalizer; blank when the sketch does not resolve. |
 
+## Graph operation palette
+
+The graph palette exposes user-invokable operations by workflow rather than
+by executor implementation. The declared groups are:
+
+- **Nesting** — solve a job's cassette parts onto sheet stock
+- **Sheet planning** — reuse a matching sheet design or create one from a
+  solved layout
+- **Production export** — generate a production-layer DXF from a sheet design
+
+The extract-geometry, bake, and nesting-parts services remain construction or
+projection helpers, not generic graph operations. The listing's operation
+labels and descriptions are the user-facing palette copy.
+
 ## Services
 
 Service compute is value→value (SPEC §8): payload values in, computed

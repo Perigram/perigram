@@ -48,6 +48,8 @@ providers.
 - [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO after
   behavior verification; record remaining owner decisions explicitly.
 
+Progress (2026-11-17): Documents and Facade palette contributions now use the actual listing declarations in contract tests (no synthetic fallback groups). Facade's graph-visible operations are grouped by workflow (nesting, sheet-planning, production-export); provider-authored operation labels and descriptions are now rendered by the shared palette projection. Internal construction/projection helpers stay out of the graph palette. The service execution migration is still open: all 12 Documents and all 7 Facade services remain endpoint-mode.
+
 Progress (2026-11-17): palette provenance now uses plugin terminology;
 node-provider declarations accept a stable semantic palette group, optional
 group label, and normalized search keywords. Graph palette grouping consumes

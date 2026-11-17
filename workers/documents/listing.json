@@ -386,7 +386,8 @@
         "render": {
           "label": "Table rows",
           "icon": "pi pi-table"
-        }
+        },
+        "description": "Read the first worksheet as records keyed by its header row"
       },
       {
         "id": "table-cells",
@@ -413,7 +414,8 @@
         "render": {
           "label": "Table cells (positional)",
           "icon": "pi pi-table"
-        }
+        },
+        "description": "Read worksheet rows with stable positional column keys"
       },
       {
         "id": "text",
@@ -437,7 +439,8 @@
         "render": {
           "label": "Document text",
           "icon": "pi pi-table"
-        }
+        },
+        "description": "Extract the text content from a document payload"
       },
       {
         "id": "csv-text",
@@ -464,7 +467,8 @@
             "base": "string"
           }
         },
-        "cache": "deterministic"
+        "cache": "deterministic",
+        "description": "Serialize row records as CSV text"
       },
       {
         "id": "fill",
@@ -515,7 +519,8 @@
             "base": "json",
             "kind": "text.flow-document"
           }
-        }
+        },
+        "description": "Parse Markdown into the structured flow-document format"
       },
       {
         "id": "export-markdown",
@@ -540,7 +545,8 @@
           "output": {
             "base": "string"
           }
-        }
+        },
+        "description": "Serialize a flow document back to Markdown"
       },
       {
         "id": "compose-report",
@@ -579,7 +585,8 @@
             "base": "json",
             "kind": "document.report"
           }
-        }
+        },
+        "description": "Compose a report from flow-document content and tabular rows"
       },
       {
         "id": "extract-table",
@@ -607,7 +614,8 @@
               "base": "record"
             }
           }
-        }
+        },
+        "description": "Extract the table block from a flow document"
       },
       {
         "id": "render-html",
@@ -632,7 +640,8 @@
           "output": {
             "base": "string"
           }
-        }
+        },
+        "description": "Render a report as safe standalone HTML"
       },
       {
         "id": "render-report-pdf",
@@ -660,7 +669,8 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Render a report as a PDF document"
       }
     ],
     "editors": [

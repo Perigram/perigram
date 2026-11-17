@@ -43,7 +43,19 @@ types ride the generic instance machinery from the install snapshot.
   report IR is the source; HTML, markdown, and PDF are its
   representations.
 
-### Document IR contracts
+### Graph operation palette
+
+Documents exposes two operation groups from its listing:
+
+- **Table data** — extract text, header-keyed rows, positional cells, and
+  serialize rows back to CSV
+- **Document compose** — parse/export Markdown, compose reports, extract
+  report tables, and render HTML/PDF representations
+
+Template fill and file-to-PDF conversion remain construction operations
+bound to their file types, rather than generic graph nodes.
+
+## Document IR contracts
 
 `text.flow-document@1` — flowing text independent of serialization:
 
