@@ -57,7 +57,7 @@ Admissibility rules (the policy; the installed API decides the rest):
   string; shape classes and shape collections map to a shape value; a
   non-representable annotation drops the param when it has a default
   and rejects the callable when required.
-- Variadic parameters are ignored while named parameters remain.
+- Positional variadic parameters make a callable inadmissible because graph inputs cannot represent positional argument lists; keyword variadics are ignored.
 - File-I/O callables stay out (the attachment channel owns files).
 - The algebra operand is shape-typed by protocol semantics — the
   installed signatures leave it unannotated; its first param is the
