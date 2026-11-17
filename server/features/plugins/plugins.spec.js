@@ -1127,10 +1127,10 @@ describe('endpoint-mode services', () => {
         { parameters: { code: 'C-1' }, auth: AUTH }
       );
       expect(result).toEqual({ shade: 'matte' });
-      expect(fetchMock).toHaveBeenCalledWith('https://executor.example/match', expect.objectContaining({
+      expect(fetchMock).toHaveBeenCalledWith('https://executor.example', expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({ authorization: 'Bearer publisher-key' }),
-        body: JSON.stringify({ code: 'C-1' })
+        body: JSON.stringify({ operationId: 'match', input: { code: 'C-1' } })
       }));
     } finally {
       vi.unstubAllGlobals();
@@ -1154,9 +1154,10 @@ describe('endpoint-mode services', () => {
       await executeConnectorService({ id: 'plugin.coatings.match' }, { parameters: {}, auth: AUTH });
       await executeConnectorService({ id: 'plugin.coatings.poll' }, { parameters: {}, auth: AUTH });
       expect(fetchMock.mock.calls.map(call => call[0])).toEqual([
-        'https://executor.example/api/match',
-        'https://executor.example/api/poll'
+        'https://executor.example/api',
+        'https://executor.example/api'
       ]);
+      expect(fetchMock.mock.calls.map(call => JSON.parse(call[1].body).operationId)).toEqual(['match', 'poll']);
       const settings = await settingsFor({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
       expect(settings.executorOrigin).toBe('https://executor.example/api');
       expect(settings.services.every(service => !Object.hasOwn(service, 'endpoint'))).toBe(true);
