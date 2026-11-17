@@ -43,10 +43,9 @@ the plugin's surface modules, and types ride the generic instance machinery.
 
 ### Unified graph provider scope
 
-The `documents-shared` runtime currently publishes 20 browser graph
+The `documents-shared` runtime currently publishes 23 browser graph
 operations: CSV serialization, inline/block constructors, document and report
-composition, table extraction from document values, HTML rendering, and
-Markdown/HTML exports. Their definitions are derived from the installed
+composition, table extraction from document values, HTML rendering, Markdown/HTML exports, and authorized text/CSV/XLSX file reads. Their definitions are derived from the installed
 listing's signatures, execution declarations, and palette metadata.
 
 The endpoint-mode `text`, `table-rows`, `table-cells`, `parse-markdown`,

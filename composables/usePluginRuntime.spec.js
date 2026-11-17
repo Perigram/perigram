@@ -79,6 +79,7 @@ describe('usePluginRuntime', () => {
     const [provider] = await pluginRuntime.loadProviders(documentsBinding, documentsRuntime);
     expect(provider.provider).toBe('plugin.documents');
     expect(provider.definitions.map(definition => definition.id)).toContain('document-paragraph');
+    expect(provider.definitions.find(definition => definition.id === 'read-table-rows')?.execution.capabilities).toEqual(['files.read']);
     const paragraph = provider.definitions.find(definition => definition.id === 'document-paragraph');
     await provider.execute(paragraph, {
       node: { id: 'paragraph-1' },

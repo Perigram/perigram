@@ -1,17 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createRuntime } from './shared.mjs';
 import listing from '../listing.json';
 
 describe('Documents shared runtime', () => {
   const runtime = createRuntime();
 
-  it('declares pure document and CSV operations for browser and server', () => {
+  it('declares browser and server runtime operations with explicit read capabilities', () => {
     expect(listing.declarations.runtimes).toEqual([
       expect.objectContaining({ id: 'documents-shared', targets: ['browser', 'server'] })
     ]);
     for (const service of listing.declarations.services.filter(item => item.execution?.runtime === 'documents-shared')) {
       expect(service.execution.targets).toEqual(['browser', 'server']);
-      expect(service.execution.capabilities).toEqual([]);
+      expect(service.execution.capabilities).toEqual(
+        ['read-text-file', 'read-table-rows', 'read-table-cells'].includes(service.id)
+          ? ['files.read']
+          : []
+      );
     }
   });
 
@@ -22,6 +26,9 @@ describe('Documents shared runtime', () => {
     const report = { type: 'document.report', schemaVersion: 1, sections: [{ blocks: [{ type: 'flow', document }] }] };
     const cases = [
       ['csv-text', { rows: [{ value: '1' }] }],
+      ['read-text-file', { payload: { base64: btoa('Hello'), mime: 'text/plain' } }],
+      ['read-table-rows', { payload: { base64: btoa('sku,qty\\nA-1,2\\n'), mime: 'text/csv' } }],
+      ['read-table-cells', { payload: { base64: btoa('sku,qty\\nA-1,2\\n'), mime: 'text/csv' } }],
       ['export-markdown', { document }],
       ['compose-report', { rows: [{ value: '1' }] }],
       ['extract-table', { document }],
@@ -48,8 +55,33 @@ describe('Documents shared runtime', () => {
       .sort();
     expect(cases.map(([id]) => id).sort()).toEqual(declared);
     for (const [id, input] of cases) {
-      expect(runtime.execute(id, input), id).toBeDefined();
+      await expect(Promise.resolve(runtime.execute(id, input)), id).resolves.toBeDefined();
     }
+  });
+
+  it('reads text and tabular files through the authorized files.read capability', async () => {
+    const csv = 'sku,qty\\nA-1,2\\n';
+    const readFile = vi.fn(async ({ fileId }) => ({
+      fileId,
+      name: 'inventory.csv',
+      mime: 'text/csv',
+      base64: btoa(csv)
+    }));
+    const capabilities = { 'files.read': readFile };
+    await expect(runtime.execute('read-text-file', { fileId: 'file-1' }, { capabilities }))
+      .resolves.toBe(csv);
+    const rows = await runtime.execute('read-table-rows', { fileId: 'file-1' }, { capabilities });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].sku).toBe('A-1');
+    expect(Number(rows[0].qty)).toBe(2);
+    const cells = await runtime.execute('read-table-cells', { fileId: 'file-1' }, { capabilities });
+    expect(cells[0]).toMatchObject({ A: 'sku', B: 'qty' });
+    expect(cells[1]).toMatchObject({ A: 'A-1' });
+    expect(readFile).toHaveBeenCalledTimes(3);
+    const graphValue = await runtime.execute('read-table-rows', {
+      mode: 'preview', inputs: { fileId: 'file-1' }
+    }, { capabilities });
+    expect(graphValue.value[0].sku).toBe('A-1');
   });
 
   it('publishes listing-derived graph providers with serializable definitions and output envelopes', async () => {

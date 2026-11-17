@@ -31,10 +31,13 @@ export function createRuntime() {
     return exportMarkdown(input.document);
   };
   return {
-    execute(operationId, input = {}) {
+    execute(operationId, input = {}, options = {}) {
       const graphInvocation = input?.mode === 'preview' && input?.inputs && typeof input.inputs === 'object';
-      const value = executeOperation(operationId, graphInvocation ? input.inputs : input);
-      return graphInvocation ? { value } : value;
+      const args = graphInvocation ? input.inputs : input;
+      const value = ['read-text-file', 'read-table-rows', 'read-table-cells'].includes(operationId)
+        ? executeFileRead(operationId, args, options.capabilities || {})
+        : executeOperation(operationId, args);
+      return graphInvocation ? Promise.resolve(value).then(result => ({ value: result })) : value;
     },
     providers: [{
       provider: 'plugin.documents',
@@ -98,6 +101,73 @@ function nodePortContract(schema = {}) {
     ...(schema.nullable === true ? { nullable: true } : {})
   };
   return { shape, semantic };
+}
+
+async function executeFileRead(operationId, input = {}, capabilities = {}) {
+  const payload = input.payload?.payloadBase64 || input.payload?.base64 ? input.payload : input;
+  let file = payload;
+  if (typeof (file.payloadBase64 || file.base64) !== 'string') {
+    const fileId = String(input.fileId || input.payload?.fileId || '');
+    if (!fileId) throw new Error(`${operationId} requires a fileId or hydrated payload`);
+    if (typeof capabilities['files.read'] !== 'function') {
+      throw new Error('The authorized files.read capability is unavailable');
+    }
+    file = await capabilities['files.read']({ fileId });
+  }
+  const encoded = file.payloadBase64 || file.base64;
+  if (typeof encoded !== 'string') throw new Error('The file read capability returned no base64 payload');
+  let binary;
+  try {
+    binary = atob(encoded);
+  } catch {
+    throw new Error('The file payload is not valid base64');
+  }
+  const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+  if (operationId === 'read-text-file') return new TextDecoder().decode(bytes);
+
+  const csv = input.typeId === 'csv-table'
+    || String(file.mime || '').startsWith('text/csv')
+    || /\\.csv$/i.test(String(file.name || ''));
+  let workbook;
+  try {
+    workbook = csv
+      ? XLSX.read(new TextDecoder().decode(bytes), { type: 'string' })
+      : XLSX.read(bytes, { type: 'array' });
+  } catch {
+    throw new Error('The file payload is not a readable CSV or XLSX workbook');
+  }
+  const sheetName = workbook.SheetNames?.[0];
+  const sheet = sheetName ? workbook.Sheets?.[sheetName] : null;
+  if (!sheet) throw new Error('The file payload carries no worksheet');
+  const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
+    .filter(row => Array.isArray(row) && row.some(cell => String(cell ?? '').trim() !== ''));
+  if (!matrix.length) throw new Error('The file payload carries no rows');
+  return operationId === 'read-table-rows'
+    ? recordsByHeader(matrix)
+    : recordsByPosition(matrix);
+}
+
+function recordsByHeader(matrix) {
+  const headers = matrix[0].map(header => String(header ?? '').trim());
+  return matrix.slice(1).map(row => Object.fromEntries(
+    headers.map((header, index) => [header, row[index] ?? '']).filter(([header]) => header)
+  ));
+}
+
+function recordsByPosition(matrix) {
+  return matrix.map(row => Object.fromEntries(
+    row.map((cell, index) => [columnLetter(index), cell ?? ''])
+  ));
+}
+
+function columnLetter(index) {
+  let n = index;
+  let letter = '';
+  do {
+    letter = String.fromCharCode(65 + (n % 26)) + letter;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return letter;
 }
 
 function filePayload(content, mime, name) {

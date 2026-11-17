@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, HTML, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "23",
+  "version": "24",
   "requires": [
     "tech-drawing"
   ],
@@ -1446,6 +1446,155 @@
         "palette": {
           "group": "document-export",
           "label": "Document export"
+        }
+      },
+      {
+        "id": "read-text-file",
+        "label": "Read text file",
+        "description": "Read a text file through the authorized file capability",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "fileId": {
+                "base": "string",
+                "label": "File ID"
+              },
+              "typeId": {
+                "base": "string",
+                "nullable": true,
+                "label": "File type"
+              }
+            }
+          },
+          "output": {
+            "base": "string"
+          }
+        },
+        "execution": {
+          "runtime": "documents-shared",
+          "kind": "read",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [
+            "files.read"
+          ],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "document-sources",
+          "label": "Document sources",
+          "visible": true,
+          "keywords": [
+            "file",
+            "text",
+            "markdown"
+          ]
+        }
+      },
+      {
+        "id": "read-table-rows",
+        "label": "Read table rows",
+        "description": "Read header-keyed rows from a CSV or XLSX file",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "fileId": {
+                "base": "string",
+                "label": "File ID"
+              },
+              "typeId": {
+                "base": "string",
+                "nullable": true,
+                "label": "File type"
+              }
+            }
+          },
+          "output": {
+            "base": "list",
+            "itemType": {
+              "base": "record"
+            }
+          }
+        },
+        "execution": {
+          "runtime": "documents-shared",
+          "kind": "read",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [
+            "files.read"
+          ],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "table-data",
+          "label": "Table data",
+          "visible": true,
+          "keywords": [
+            "file",
+            "csv",
+            "xlsx",
+            "rows"
+          ]
+        }
+      },
+      {
+        "id": "read-table-cells",
+        "label": "Read table cells",
+        "description": "Read positional cell records from a CSV or XLSX file",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "fileId": {
+                "base": "string",
+                "label": "File ID"
+              },
+              "typeId": {
+                "base": "string",
+                "nullable": true,
+                "label": "File type"
+              }
+            }
+          },
+          "output": {
+            "base": "list",
+            "itemType": {
+              "base": "record"
+            }
+          }
+        },
+        "execution": {
+          "runtime": "documents-shared",
+          "kind": "read",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [
+            "files.read"
+          ],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "table-data",
+          "label": "Table data",
+          "visible": true,
+          "keywords": [
+            "file",
+            "csv",
+            "xlsx",
+            "cells"
+          ]
         }
       }
     ],
