@@ -43,6 +43,16 @@ describe('nesting input normalization', () => {
     expect(() => normalizeNestingItems([{ count: 0 }])).toThrow(/positive safe integer/);
   });
 
+  it('normalizes the legacy quantity alias and validates aggregate helpers', () => {
+    expect(normalizeNestingItems([{ quantity: '2' }])[0].count).toBe(2);
+    expect(() => nestingSheetCount([{ count: 1.5 }])).toThrow(/positive safe integer/);
+    expect(() => buildValueWorkerRequest([{
+      count: 1.5,
+      polygonParts: [{ coordinates: [[0, 0], [10, 0], [10, 10], [0, 10]] }]
+    }], { width: 100, height: 100, space: 3, sheetCount: 1 }))
+      .toThrow(/positive safe integer/);
+  });
+
   it.each([0.5, 1.2, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1, true])(
     'rejects invalid physical quantity %s',
     count => expect(() => normalizeNestingItems([{ count }])).toThrow(/positive safe integer/)
