@@ -492,6 +492,34 @@ describe('graph execution service', () => {
     expect(mocks.deleteFile).toHaveBeenCalledWith('baked-payload-1', 'files');
   });
 
+  it('refuses durable Bake when consumed instances lack a stable organization read boundary', async () => {
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      readSet: {
+        consistency: 'unverified',
+        snapshotId: null,
+        organizationSequenceStart: null,
+        organizationSequenceEnd: null,
+        instances: [{
+          typeId: 'part',
+          instanceId: 'item-1',
+          revision: '3',
+          typeVersion: 2,
+          organizationId: 'org-1'
+        }],
+        relations: [],
+        queries: []
+      }
+    });
+    await expect(graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'document',
+      destination: { type: 'page-file', pageId: 'page-1', path: 'exports/document.txt' }
+    }, auth)).rejects.toMatchObject({ statusCode: 409 });
+    expect(mocks.bakeFile).not.toHaveBeenCalled();
+  });
+
   it('refuses materialization when an instance revision changed after preview', async () => {
     const record = createGraphExecutionRecord({
       ...preview(),

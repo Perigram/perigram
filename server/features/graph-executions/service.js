@@ -119,7 +119,7 @@ function relationContains(value, targetTypeId, targetId) {
   });
 }
 
-async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, sourceGraphDocument, { session = null } = {}) {
+async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, sourceGraphDocument, { session = null, requireStableReadSet = false } = {}) {
   const instances = Array.isArray(readSet.instances) ? readSet.instances : [];
   const relations = Array.isArray(readSet.relations) ? readSet.relations : [];
   const queries = Array.isArray(readSet.queries) ? readSet.queries : [];
@@ -127,6 +127,11 @@ async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, s
   const end = readSet.organizationSequenceEnd;
   const hasStableSequence = Number.isSafeInteger(start) && start >= 0 && start === end;
   const supportedBoundary = readSet.consistency === 'snapshot' || readSet.consistency === 'sequence-bracketed';
+  if (requireStableReadSet && (instances.length || relations.length || queries.length)
+    && (!organizationId || !hasStableSequence || !supportedBoundary
+      || (readSet.consistency === 'snapshot' && !readSet.snapshotId))) {
+    throw stalePreviewError('Durable Bake/Export requires a stable organization snapshot or sequence-bracketed read set');
+  }
 
   if (queries.length) {
     if (!organizationId || !hasStableSequence || !supportedBoundary
@@ -461,7 +466,7 @@ export async function commitProposal({ graphDocumentInstanceId, record: value, p
   }
   try {
     return await withMongoWriteTransaction(async session => {
-      await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
+      await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
       const updated = await instanceService.patch(instanceId, patch, {
         auth,
         organizationId,
@@ -769,7 +774,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     }
   }
 
-  await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument);
+  await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { requireStableReadSet: true });
   const bakeId = randomUUID();
   const timestamp = new Date().toISOString();
   const baked = await pagesService.bakeFile({
