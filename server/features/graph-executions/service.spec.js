@@ -19,7 +19,8 @@ const mocks = vi.hoisted(() => ({
   withOrganizationDataSnapshot: vi.fn(),
   withOrganizationChangeSequence: vi.fn(),
   connectDB: vi.fn(),
-  declarationForType: vi.fn()
+  declarationForType: vi.fn(),
+  runOrganizationChange: vi.fn()
 }));
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: mocks.getAppRegistry }));
 vi.mock('~/server/db/mongo', () => ({ connectDB: mocks.connectDB }));
@@ -38,7 +39,8 @@ vi.mock('../pages/service.js', () => ({
 vi.mock('../instances/service.js', () => ({ declarationForType: mocks.declarationForType }));
 vi.mock('../instances/index.js', () => ({
   withOrganizationDataSnapshot: mocks.withOrganizationDataSnapshot,
-  withOrganizationChangeSequence: mocks.withOrganizationChangeSequence
+  withOrganizationChangeSequence: mocks.withOrganizationChangeSequence,
+  runOrganizationChange: mocks.runOrganizationChange
 }));
 
 import * as graphExecutionsService from './service.js';
@@ -141,6 +143,7 @@ describe('graph execution service', () => {
     dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));
     dataService.patch.mockResolvedValue({ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 4, updatedAt: '2026-11-16T10:01:00Z', fields: { code: 'B' } });
     dataService.patch.mockResolvedValue({ _id: 'item-1', type: 'part', revision: 4, fields: { status: 'approved' } });
+    mocks.runOrganizationChange.mockImplementation(async (_organizationId, _metadata, mutate) => await mutate());
     mocks.withOrganizationChangeSequence.mockImplementation(async (_organizationId, read) => ({
       value: await read(),
       boundary: { consistency: 'sequence-bracketed', snapshotId: null, organizationSequenceStart: 4, organizationSequenceEnd: 4 }
