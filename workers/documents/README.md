@@ -102,8 +102,9 @@ File-producing operations return the plugin SDK payload envelope
 bytes through the normal Bake/Export lifecycle: Markdown uses
 `text/markdown` and bakes into `text-document`, HTML uses `text/html`
 and bakes into `html-document`, and PDF uses `application/pdf` and
-bakes into `pdf-document`. The HTML type exposes a text projection and is download-only, so generated
-markup is never executed in the platform preview. The plugin defines the
+bakes into `pdf-document`. The HTML type exposes a text projection and a plugin preview
+that sanitizes through the host markdown pipeline, then renders in a sandboxed
+iframe with scripts and network access disabled. The plugin defines the
 format; the host owns file identity, authorization, destination, and
 persistence. `Export Markdown`
 also remains available as a plain string value when downstream graph
