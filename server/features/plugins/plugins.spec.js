@@ -406,7 +406,7 @@ describe('plugin installs', () => {
     repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
   });
 
-  it('installs with pre-wired endpoints for endpoint-mode services only', async () => {
+  it('installs endpoint services with one provider-level executor origin', async () => {
     repository.findCatalogByPluginId.mockResolvedValue({
       ...coatingListing,
       declarations: {
@@ -420,10 +420,10 @@ describe('plugin installs', () => {
     await installFromCatalog({
       organizationId: ORG,
       pluginId: 'coatings',
-      endpoints: { match: 'http://127.0.0.1:8787/match' }
+      executorOrigin: 'http://127.0.0.1:8787'
     });
     expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
-      endpoints: { match: 'http://127.0.0.1:8787/match' }
+      executorOrigin: 'http://127.0.0.1:8787'
     }));
     await expect(installFromCatalog({
       organizationId: ORG,
@@ -433,7 +433,7 @@ describe('plugin installs', () => {
     await expect(installFromCatalog({
       organizationId: ORG,
       pluginId: 'coatings',
-      endpoints: { match: 'not-a-url' }
+      executorOrigin: 'not-a-url'
     })).rejects.toThrow(/must be an http\(s\) URL/);
     expect(repository.createInstall).toHaveBeenCalledTimes(1);
   });
@@ -1024,7 +1024,7 @@ describe('upgrades', () => {
 
   it('applies a clean upgrade as the new pinned snapshot and runs covered steps', async () => {
     countInstancesOfType.mockResolvedValue(7);
-    const installedWithEndpoints = { ...installedV2, endpoints: { match: 'https://executor.example/match' } };
+    const installedWithEndpoints = { ...installedV2, executorOrigin: 'https://executor.example' };
     repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
       String(organizationId) === ORG && pluginId === 'coatings' ? installedWithEndpoints : null
     ));
@@ -1038,10 +1038,8 @@ describe('upgrades', () => {
     expect(persisted.declarations.editors).toEqual([{ type: 'coating-sheet', surface: 'coating-designer', modes: ['edit'] }]);
     expect(persisted.requires).toEqual(['primers']);
     // a newly declared endpoint service inherits the install's origin
-    expect(persisted.endpoints).toEqual({
-      match: 'https://executor.example/match',
-      polish: 'https://executor.example/polish'
-    });
+    expect(persisted.executorOrigin).toBe('https://executor.example');
+    expect(persisted).not.toHaveProperty('endpoints');
     // one-time steps never persist (SPEC §11)
     expect(persisted.declarations.types.some(type => type.migrate)).toBe(false);
     expect(applyTypeMigrationSteps).toHaveBeenCalledWith(expect.objectContaining({

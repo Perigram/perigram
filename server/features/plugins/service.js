@@ -1313,20 +1313,6 @@ async function loadUpgradePair(organizationId, pluginId) {
   return { install, listing };
 }
 
-// Upgrades inherit connection settings: a newly declared endpoint-mode
-// service derives its URL from the origin the install already
-// configured for the plugin's other services.
-function upgradedEndpointsFor(install, services = []) {
-  const endpoints = { ...(install.endpoints || {}) };
-  const origin = Object.values(endpoints)[0]?.replace(/\/[^/]+$/, '') || null;
-  for (const service of services) {
-    if (serviceModeOf(service) === 'endpoint' && !endpoints[service.id] && origin) {
-      endpoints[service.id] = `${origin}/${service.id}`;
-    }
-  }
-  return endpoints;
-}
-
 // The diff before the apply: additions, removals (drain-gated), and
 // changed types through the SPEC §11 planner — uncovered breaking
 // changes on types with live instances block the upgrade.
