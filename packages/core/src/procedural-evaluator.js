@@ -131,7 +131,8 @@ async function evaluateGraph(options) {
       if (seenOutputs.has(interfaceId)) throw new Error(`Graph output ${interfaceId} has more than one boundary node`);
       seenOutputs.add(interfaceId);
       if (incoming.get(node.id).some(edge => edge.target.port !== 'value')) throw new Error(`Graph Output node ${node.id} accepts only the value input`);
-      const value = readInput(node, 'value', incoming.get(node.id), values, true, undefined, graph.interface.outputs.find(port => port.id === interfaceId)?.contract?.shape || 'item');
+      const outputPort = graph.interface.outputs.find(port => port.id === interfaceId);
+      const value = readInput(node, 'value', incoming.get(node.id), values, true, undefined, outputPort?.contract?.shape || 'item', outputPort?.contract?.semantic || {});
       outputs[interfaceId] = value;
       nodeOutputs[node.id] = { value };
       continue;
@@ -158,7 +159,7 @@ async function evaluateGraph(options) {
         if (!childOutputIds.has(edge.source.port)) throw new Error(`Use Graph node ${node.id} has no output ${edge.source.port}`);
       }
       for (const port of childGraph.interface.inputs) {
-        const value = readInput(node, port.id, incoming.get(node.id), values, port.required, port.default, port.contract?.shape || 'item');
+        const value = readInput(node, port.id, incoming.get(node.id), values, port.required, port.default, port.contract?.shape || 'item', port.contract?.semantic || {});
         if (value !== undefined) childInputs[port.id] = value;
       }
       phase = 'execute-subgraph';
@@ -204,7 +205,7 @@ async function evaluateGraph(options) {
       if (!declaredOutputIds.has(edge.source.port)) throw new Error(`Node ${node.id} has no output ${edge.source.port}`);
     }
     for (const port of definition.inputs || []) {
-      const value = readInput(node, port.id, incoming.get(node.id), values, port.required !== false, port.default, port.shape || 'item');
+      const value = readInput(node, port.id, incoming.get(node.id), values, port.required !== false, port.default, port.shape || 'item', port.semantic || {});
       if (value !== undefined) inputs[port.id] = value;
     }
     phase = 'execute';
@@ -312,7 +313,7 @@ function addNodeDiagnostic(error, {
   return failure;
 }
 
-function readInput(node, portId, edges, values, required, fallback, shape = 'item') {
+function readInput(node, portId, edges, values, required, fallback, shape = 'item', semantic = {}) {
   const matches = edges
     .filter(edge => edge.target.port === portId)
     .sort((a, b) => a.id.localeCompare(b.id));
@@ -335,7 +336,7 @@ function readInput(node, portId, edges, values, required, fallback, shape = 'ite
   if (required && valuesForEdges.some(item => item.value === undefined)) {
     throw new Error(`Node ${node.id} required input ${portId} received no value from its connected source`);
   }
-  if (port.semantic?.nullable !== true && valuesForEdges.some(item => item.value === null)) {
+  if (semantic.nullable !== true && valuesForEdges.some(item => item.value === null)) {
     throw new Error(`Node ${node.id} input ${portId} does not accept null from its connected source`);
   }
   if (matches.length === 1) {
