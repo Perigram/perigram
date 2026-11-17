@@ -70,7 +70,7 @@ describe('markdown ↔ flow-document', () => {
   });
 
   it('preserves formatted text when projecting Markdown table cells to records', () => {
-    const document = parseMarkdown('| label | value |\\n| --- | --- |\\n| **bold** and *italic* | [site](https://example.com) with `code` |');
+    const document = parseMarkdown('| label | value |\n| --- | --- |\n| **bold** and *italic* | [site](https://example.com) with `code` |');
     expect(document.blocks[0].rows).toEqual([{
       label: 'bold and italic',
       value: 'site with code'
