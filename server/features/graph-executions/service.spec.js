@@ -155,7 +155,7 @@ describe('graph execution service', () => {
     executionService.processList.mockResolvedValue([]);
     executionService.processGetById.mockResolvedValue(null);
     mocks.getAppRegistry.mockReturnValue({
-      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : typeId === 'part' ? partService : typeId === 'file-record' ? fileService : dataService
+      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : ['part', 'text-document'].includes(typeId) ? partService : typeId === 'file-record' ? fileService : dataService
     });
     dataService.processList.mockResolvedValue([{ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }]);
     dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));
@@ -540,6 +540,61 @@ describe('graph execution service', () => {
     }), 'user-1', 'org-1', { session });
     expect(result.instance._id).toBe('new-part-1');
     expect(result.execution.profile).toBe('procedural-bake');
+  });
+
+  it('bakes a Documents Markdown file payload into a text-document instance', async () => {
+    const markdown = '# Generated document\\n';
+    const payload = {
+      payload: {
+        base64: Buffer.from(markdown).toString('base64'),
+        mime: 'text/markdown',
+        name: 'release.md'
+      }
+    };
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      outputs: { document: payload }
+    });
+    const result = await graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'document',
+      destination: {
+        type: 'instance-create',
+        typeId: 'text-document',
+        draft: { name: 'Release notes' }
+      }
+    }, auth);
+
+    expect(mocks.uploadFile).toHaveBeenCalledWith(Buffer.from(markdown), 'release.md', {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      type: 'text-document'
+    }, 'files', 'text/markdown');
+    expect(payloadService.createForHttp).toHaveBeenCalledWith({
+      name: 'Release notes',
+      payload: {
+        fileId: 'baked-payload-1',
+        mime: 'text/markdown',
+        size: Buffer.byteLength(markdown),
+        name: 'release.md'
+      }
+    }, {
+      auth,
+      userId: 'user-1',
+      organizationId: 'org-1',
+      session,
+      expectedOrganizationSequence: 4,
+      requireRevisionedPayload: true
+    });
+    expect(result.instance._id).toBe('new-part-1');
+    expect(result.execution.artifacts).toEqual([expect.objectContaining({
+      kind: 'instance-payload',
+      typeId: 'text-document',
+      created: true,
+      filename: 'release.md',
+      mime: 'text/markdown'
+    })]);
   });
 
   it('resolves a last-created-instance Bake selector from the exact preview query read set', async () => {
