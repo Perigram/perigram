@@ -48,6 +48,27 @@ describe('node port compatibility', () => {
     });
   });
 
+  it('compares nominal and structural semantic identities by value', () => {
+    const source = {
+      semantic: {
+        base: 'record',
+        nominal: { provider: 'plugin.documents', id: 'table-row' },
+        schema: { fields: { sku: { base: 'string' } } }
+      }
+    };
+    const equivalent = {
+      semantic: {
+        base: 'record',
+        schema: { fields: { sku: { base: 'string' } } },
+        nominal: { id: 'table-row', provider: 'plugin.documents' }
+      }
+    };
+    expect(compareNodePorts(source, equivalent).status).toBe('exact');
+    expect(compareNodePorts(source, {
+      semantic: { ...equivalent.semantic, constraints: { minimumItems: 1 } }
+    })).toMatchObject({ status: 'conditional', compatible: false });
+  });
+
   it('requires explicit unit conversion', () => {
     expect(compareNodePorts(
       { semantic: { base: 'number', unit: 'mm' } },
