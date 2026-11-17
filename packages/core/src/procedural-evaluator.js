@@ -119,6 +119,9 @@ async function evaluateGraph(options) {
         ? options.inputBindings[interfaceId]
         : (Object.hasOwn(port, 'default') ? port.default : undefined);
       if (value === undefined && port.required) throw new Error(`Required graph input ${interfaceId} was not supplied`);
+      if (value === null && port.contract?.semantic?.nullable !== true) {
+        throw new Error(`Graph input ${interfaceId} does not accept null`);
+      }
       values.set(`${node.id}:value`, value);
       nodeOutputs[node.id] = { value };
       continue;
@@ -318,7 +321,12 @@ function readInput(node, portId, edges, values, required, fallback, shape = 'ite
     .filter(edge => edge.target.port === portId)
     .sort((a, b) => a.id.localeCompare(b.id));
   if (!matches.length) {
-    if (fallback !== undefined) return fallback;
+    if (fallback !== undefined) {
+      if (fallback === null && semantic.nullable !== true) {
+        throw new Error(`Node ${node.id} input ${portId} does not accept a null default`);
+      }
+      return fallback;
+    }
     if (required) throw new Error(`Node ${node.id} is missing required input ${portId}`);
     return undefined;
   }
