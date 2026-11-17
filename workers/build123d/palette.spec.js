@@ -3,7 +3,7 @@ import listing from './listing.json';
 import { pluginPaletteGroups } from '#packages/processes';
 
 describe('build123d plugin node palette contribution', () => {
-  it('keeps every discovered operation in its declared semantic group', () => {
+  it('keeps every graph-composable operation in its declared semantic group', () => {
     const services = Object.fromEntries(listing.declarations.services.map(service => [
       service.id,
       { ...service, command: service.id, group: service.group }
@@ -19,8 +19,9 @@ describe('build123d plugin node palette contribution', () => {
       'build123d-sketch',
       'build123d-text'
     ]);
-    expect(items).toHaveLength(51);
-    expect(new Set(items.map(item => item.id)).size).toBe(64);
+    const declaredIds = listing.declarations.services.map(service => `service:${service.id}`).sort();
+    expect(items.map(item => item.id).sort()).toEqual(declaredIds);
+    expect(new Set(items.map(item => item.id)).size).toBe(declaredIds.length);
     expect(items.every(item => item.kind === 'cts.service')).toBe(true);
     expect(items.map(item => item.id)).not.toEqual(expect.arrayContaining([
       'service:basepartobject', 'service:basesketchobject', 'service:basecurveobject',
