@@ -33,7 +33,7 @@ export function composeNestingAttemptGraph(authoring, { adminAccess = null } = {
   authoring.drop('literal', { id: 'one' });
   authoring.configure('one', { type: { base: 'number', nullable: false, unit: 'count' }, value: 1 });
 
-  authoring.drop('service:plugin.facade.nesting-solve', { id: 'solve' });
+  authoring.drop('service:facade:nesting-solve', { id: 'solve' });
   authoring.setInputDefault('solve', 'sheetWidth', 1220);
   authoring.setInputDefault('solve', 'sheetHeight', 2440);
   if (adminAccess) authoring.configure('solve', { access: adminAccess });

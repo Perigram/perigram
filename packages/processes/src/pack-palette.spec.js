@@ -27,6 +27,15 @@ describe('pluginPaletteGroups', () => {
     expect(tableData.items[0].preset.projection).toBe('rows');
     expect(groups.find(group => group.id === 'plugin-facade-facade').items).toHaveLength(1);
   });
+  it('keeps ungrouped plugin services in provider-owned Operations groups', () => {
+    const groups = servicesPaletteGroups({
+      fill: { id: 'plugin.documents.fill', command: 'plugin.documents.fill', label: 'Fill' },
+      export: { id: 'plugin.facade.export', command: 'plugin.facade.export', label: 'Export' }
+    });
+    expect(groups.map(group => group.id)).toEqual(['plugin-documents-operations', 'plugin-facade-operations']);
+    expect(groups.flatMap(group => group.items).map(item => item.id)).toEqual(['service:documents:fill', 'service:facade:export']);
+  });
+
   it('keeps identical group slugs isolated by provider', () => {
     const groups = pluginPaletteGroups({}, {
       first: { id: 'one', command: 'plugin.documents.one', group: 'operations' },

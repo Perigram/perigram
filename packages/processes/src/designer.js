@@ -808,18 +808,43 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
 // `serviceContracts` is the single source: what is not registered is not
 // offered.
 export function servicesPaletteGroups(serviceContracts = {}) {
-  // The fallback tab: services without a declared plugin group. Grouped
-  // services drop into their plugin's section (pluginPaletteGroups).
-  const items = Object.values(serviceContracts || {})
-    .filter(service => service?.id && service.command && !service.group)
-    .map(service => paletteItem(`service:${service.id}`, 'cts.service', {
-      label: service.label || service.render?.label || service.id,
-      description: service.description || service.render?.description || service.label || service.render?.label || service.id,
-      searchTerms: [service.id, service.command, service.provider, service.pluginId, ...(service.keywords || [])].filter(Boolean),
-      icon: service.render?.icon || 'pi pi-bolt',
-      preset: { operator: service.id }
-    }));
-  return items.length ? [{ id: 'services', items, source: 'framework' }] : [];
+  const pluginGroups = new Map();
+  const frameworkItems = [];
+  for (const service of Object.values(serviceContracts || {})) {
+    if (!service?.id || !service.command || service.group) continue;
+    const provider = pluginProviderId(service);
+    const localId = provider && String(service.id).startsWith(`plugin.${provider}.`)
+      ? String(service.id).slice(`plugin.${provider}.`.length)
+      : String(service.id);
+    const item = paletteItem(
+      provider ? `service:${provider}:${localId}` : `service:${service.id}`,
+      'cts.service',
+      {
+        label: service.label || service.render?.label || localId,
+        description: service.description || service.render?.description || service.label || service.render?.label || localId,
+        searchTerms: [provider, service.id, service.command, ...(service.keywords || [])].filter(Boolean),
+        icon: service.render?.icon || 'pi pi-bolt',
+        preset: { operator: service.id }
+      }
+    );
+    if (!provider) {
+      frameworkItems.push(item);
+      continue;
+    }
+    if (!pluginGroups.has(provider)) {
+      pluginGroups.set(provider, {
+        id: `plugin-${provider}-operations`,
+        label: 'Operations',
+        items: [],
+        source: 'plugin'
+      });
+    }
+    pluginGroups.get(provider).items.push(item);
+  }
+  return [
+    ...pluginGroups.values(),
+    ...(frameworkItems.length ? [{ id: 'services', label: 'Services', items: frameworkItems, source: 'framework' }] : [])
+  ];
 }
 
 // Plugin-owned palette sections — the provider contribution law (SPEC §28):
