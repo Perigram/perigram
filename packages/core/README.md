@@ -64,7 +64,7 @@ boundary node. Use Graph nodes pin an immutable graph revision.
   resolves exact provider definitions, composes pinned subgraphs, and awaits
   the optional `context.finalizeExecution(executionId)` hook in its settlement
   path. Connected required inputs fail when their source output is absent or
-  undefined. The same execution id is exposed to every node invocation and
+  undefined; non-nullable inputs also reject null values and null defaults. The same execution id is exposed to every node invocation and
   the finalizer. It returns graph outputs and per-node outputs for host preview
   channels.
 - `createGraphExecutionRecord`, `validateGraphExecutionRecord`, and

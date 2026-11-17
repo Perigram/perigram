@@ -34,7 +34,7 @@ the plugin's surface modules, and types ride the generic instance machinery.
 - Unified graph provider (`runtime/shared.mjs`): `createRuntime()` publishes the
   `plugin.documents` provider. Its node definitions are projected from the
   listing services assigned to `documents-shared`, using each service's
-  signature, execution declaration, and palette metadata. The runtime wraps
+  signature (including nullable fields), execution declaration, and palette metadata. The runtime wraps
   each operation result in the declared `value` output port for graph
   evaluation. The browser graph editor consumes these definitions; browser and managed
   server execution share the same operation implementation.

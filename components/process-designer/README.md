@@ -59,7 +59,7 @@ the main palette and socket-context palette use the same search contract.
 
 The inspector renders node configuration properties from each
 definition's JSON schema and edits graph interface transport shape,
-semantic base/kind, required status, and optional defaults. Socket gestures,
+semantic base/kind/nullability, required status, and optional defaults. Socket gestures,
 persisted-edge validation, and preview preflight share the SDK compatibility
 relation.
 

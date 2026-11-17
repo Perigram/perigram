@@ -19,7 +19,7 @@ provider discovery → typed authoring → preview → file export → Bake.
   Keep synchronous projection semantics and declare the execution target.
 - [ ] Make graph compatibility canonical in plugin-sdk: evaluate transport
   shape and semantic base/kind/nominal identity, structural constraints,
-  optionality, and explicit conversion requirements. Return a reasoned
+  nullability, optionality, and explicit conversion requirements. Return a reasoned
   compatibility result and use it in connection gestures, graph validation,
   palette filtering, and execution preflight.
 - [ ] Derive Documents node configuration controls from normalized
