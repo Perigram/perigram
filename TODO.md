@@ -564,11 +564,14 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   only validated ancestor axes, and tenancy is kept out of stored lineage.
   Global and organization-scoped exact scalar uniqueness uses registry-derived
   Mongo unique indexes, partial scalar filters, and 409 conflict mapping.
-  HTTP link/unlink now run in snapshot transactions with the relation update,
-  revision check, audit event, and organization sequence in one unit. Authorized
-  delete also transacts the declared-referrer sweep and delete. Remaining:
-  audit import/type-migration direct repository writes, then serialize
-  cross-record aggregate/cardinality constraints.
+  HTTP link/unlink run in snapshot transactions with relation updates,
+  revision checks, field-change audit records, and organization sequence
+  updates. Authorized delete transacts the declared-referrer sweep and delete;
+  live refresh hints publish after commit. Constraint-bearing generic
+  create/update, relation, delete, payload, lifecycle, and type-declaration
+  writes capture the organization sequence before validation and reserve it
+  exclusively at write time, serializing cross-record aggregate/cardinality
+  checks. Remaining: audit import and type-migration direct repository writes.
 - [ ] G8 Typed references and embeds — live and pinned references,
   saved-query/graph-output collection embeds, and derived backlinks.
 - [ ] G9 Procedural vertical slices — document/data and geometry workflows
