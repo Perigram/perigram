@@ -8,6 +8,7 @@ import { services } from './services.js';
 import { createRuntime } from './runtime/shared.mjs';
 import { checkSurfaceModule } from '@perigram/plugin-sdk/surface-check';
 import createReportSurface, { documentsOf } from './surfaces/report-preview.mjs';
+import listing from './listing.json';
 
 const SOURCE = [
   '# Engineering report',
@@ -283,6 +284,20 @@ describe('document graph vertical slice', () => {
 describe('report preview surface', () => {
   it('passes the surface-module check', async () => {
     await expect(checkSurfaceModule(new URL('./surfaces/report-preview.mjs', import.meta.url).pathname)).resolves.toBe(true);
+  });
+
+  it('loads the Markdown editor surface with its declared vendor dependencies', async () => {
+    await expect(checkSurfaceModule(
+      new URL('./surfaces/text-editor.mjs', import.meta.url).pathname,
+      { dependencies: listing.declarations.dependencies }
+    )).resolves.toBe(true);
+  });
+
+  it('loads the CSV editor surface with its declared spreadsheet dependency', async () => {
+    await expect(checkSurfaceModule(
+      new URL('./surfaces/csv-editor.mjs', import.meta.url).pathname,
+      { dependencies: listing.declarations.dependencies }
+    )).resolves.toBe(true);
   });
 
   it('selects flowing documents and reports by their IR discriminators across payload trees', () => {
