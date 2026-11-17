@@ -185,8 +185,11 @@ function inlineHtml(nodes = []) {
 
 function safeHref(value) {
   const href = String(value || '').trim();
-  if (/^https?:\\/\\//i.test(href) || /^mailto:/i.test(href)) return href;
-  if (/^(?:\\/(?!\\/)|#|\\?)/.test(href)) return href;
+  if (href.toLowerCase().startsWith('https://')
+    || href.toLowerCase().startsWith('http://')
+    || /^mailto:/i.test(href)) return href;
+  if ((href.startsWith('/') && !href.startsWith('//'))
+    || href.startsWith('#') || href.startsWith('?')) return href;
   return '';
 }
 
