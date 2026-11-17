@@ -357,7 +357,7 @@ function provenanceFromWire(draft = {}) {
 // replacement, and re-derive all pass through this one home. The mint
 // stamps the acting principal and, on restore, the restored revision;
 // every write past creation also rides the status_events audit trail.
-async function recordPayloadRevision(typeId, entity, declaration, payload, userId, reason, { auth = null, restoredFrom = null } = {}) {
+async function recordPayloadRevision(typeId, entity, declaration, payload, userId, reason, { auth = null, restoredFrom = null, session = null } = {}) {
   if (!declaration?.revisions || !payload?.fileId) return;
   const actor = buildEventActor(auth || {}, userId);
   const revision = await instanceRevisionsService.ensureForEntitySnapshot({
@@ -376,7 +376,8 @@ async function recordPayloadRevision(typeId, entity, declaration, payload, userI
     userId,
     reason,
     actor,
-    ...(restoredFrom ? { restoredFrom } : {})
+    ...(restoredFrom ? { restoredFrom } : {}),
+    session
   });
   if (reason !== 'created') {
     await appendPayloadRevisionEvent(typeId, entity._id ?? entity.id, {
@@ -385,7 +386,8 @@ async function recordPayloadRevision(typeId, entity, declaration, payload, userI
       restoredFrom,
       actorId: userId,
       auth: auth || {},
-      state: typeof entity.state === 'string' && entity.state ? entity.state : null
+      state: typeof entity.state === 'string' && entity.state ? entity.state : null,
+      session
     });
   }
 }
@@ -1116,7 +1118,7 @@ function instanceService(typeId) {
       const declaration = await declarationFor(typeId, organizationId);
       if (declaration?.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
       const collection = repository.collectionForClass(declaration?.class);
-      const doc = await repository.findInstance(collection, id, typeId);
+      const doc = await repository.findInstance(collection, id, typeId, { session });
       if (!doc) return false;
       return await runOrganizationChange(doc.organizationId ?? organizationId, {
         kind: 'instance-deleted',
@@ -1135,7 +1137,7 @@ function instanceService(typeId) {
     // payload bytes are ever lost to a silent overwrite. Gated by the
     // shared access engine on the class-collection feature (the feature
     // grants compile against) with the type id as type-id filter.
-    async replacePayload(id, { buffer, filename, mimeType } = {}, { userId, organizationId, auth, reason = 'payload-replaced', restoredFrom = null } = {}) {
+    async replacePayload(id, { buffer, filename, mimeType } = {}, { userId, organizationId, auth, reason = 'payload-replaced', restoredFrom = null, session = null, expectedRevision = null, expectedOrganizationSequence = null } = {}) {
       const declaration = await requireDeclaration(typeId, organizationId);
       if (!declaration.payload) {
         throw createError({ statusCode: 400, message: `Type ${typeId} declares no payload` });
@@ -1152,6 +1154,10 @@ function instanceService(typeId) {
         throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
       }
       const current = toDto(doc);
+      if (expectedRevision != null
+        && (current.revision == null || String(current.revision) !== String(expectedRevision))) {
+        throw createError({ statusCode: 409, message: `${typeId} ${id} changed after the graph proposal was evaluated` });
+      }
       const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
       if (!hasInstanceAccess({ entity: current, typeId: typeId, feature, level: 'write', action: 'update', auth: auth || null })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -1177,16 +1183,15 @@ function instanceService(typeId) {
               name: filename || 'payload'
             }
           }, declaration);
-          await recordPayloadRevision(typeId, current, declaration, payload, userId, reason, { auth, restoredFrom });
+          await recordPayloadRevision(typeId, current, declaration, payload, userId, reason, { auth, restoredFrom, session });
           const changed = await repository.updateInstanceFields(collection, id, {
-            payload,
-            updatedAt: new Date().toISOString()
-          });
+            payload
+          }, { expectedUpdatedAt: doc.updatedAt, session });
           if (!changed) {
             throw createError({ statusCode: 409, message: `${typeId} ${id} changed before its payload was saved` });
           }
           return changed;
-        });
+        }, { session, expectedSequence: expectedOrganizationSequence });
         return toDto(updated);
       } catch (error) {
         await filesService.deleteFile(stored.id, PAYLOAD_BUCKET).catch(() => {});
