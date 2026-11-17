@@ -10,7 +10,7 @@ types ride the generic instance machinery from the install snapshot.
 
 - Listing: `workers/documents/listing.json` — types with
   service-resolved projections (`resolve: { service:
-  'plugin.documents.<svc>' }` — endpoint mode), the six services,
+  'plugin.documents.<svc>' }` — endpoint mode), the twelve services,
   editor bindings, the fill construction bindings, and the
   text-document starter construct (markdown stays visible-by-default
   through the default installs). `requires` names tech-drawing: the

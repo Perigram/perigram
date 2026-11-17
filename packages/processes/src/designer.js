@@ -821,9 +821,9 @@ export function servicesPaletteGroups(serviceContracts = {}) {
   return items.length ? [{ id: 'services', items, source: 'framework' }] : [];
 }
 
-// Pack-owned palette sections — the plugin-tab law (SPEC §8 palette law):
-// a pack's declared data operations surface as the pack's own tab, like a
-// Grasshopper plugin's component category. One item per OPERATION, never
+// Plugin-owned palette sections — the provider contribution law (SPEC §28):
+// a plugin's declared data operations surface under its own semantic group,
+// alongside the platform's native operation families. One item per OPERATION, never
 // per-type copies: the extract preset binds the projection, the type
 // binds at configure time (Type pin / inspector), and the inspector's
 // projection switch is the single mode selector. The documents pack's

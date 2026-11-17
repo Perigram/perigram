@@ -38,6 +38,13 @@ plugins as product capabilities and as graph-node providers; do not treat
 - [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO only after
   behavior is verified; document remaining owner decisions explicitly.
 
+Progress (2026-11-17): moved palette ownership terminology from legacy
+"pack" provenance to "plugin"; node-provider declarations now accept a
+stable semantic palette group, optional group label, and normalized search
+keywords. Graph palette grouping uses that declaration rather than parsing
+operation ids, and search indexes provider id, operation id, group, and
+keywords. Existing providers retain the id-prefix fallback until migrated.
+
 Review order: (1) inventory declarations and actual behavior; (2) trace
 palette/provider discovery and graph execution; (3) validate end-to-end
 workflows; (4) consolidate/refactor shared contracts and UI; (5) remove
