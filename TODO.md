@@ -598,6 +598,13 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
 - The relation routes forward an optional `expectedOrganizationSequence` fence as well as the exact owner revision. Unsupported Mongo deployments fail with 503 before the mutation.
 - Regression tests cover session propagation through relation link/unlink, delete/referrer sweep, sequence fencing, and the authorized delete transport.
 
+### Agent Notes (2026-11-17, serialized CTS constraint writes)
+
+- Generic instance create and process-update capture the organization sequence before validation and pass it to the exclusive write reservation.
+- Relation link/unlink capture the sequence before reading targets; authorized delete captures it before the referrer sweep; payload writes capture it before the target read.
+- Lifecycle transitions capture the sequence before candidate validation and reject when another organization write completes before their reservation.
+- A concurrent write therefore invalidates cross-record aggregate/cardinality validation before persistence.
+
 ### Agent Notes (2026-11-16, CTS relation write validation)
 
 - Explicit relation edges now normalize `cardinality` to `one | many` (default `many`). Generic instance creates and internal relation updates validate declared relation slots, typed targets, cardinality shape, duplicate refs, same-organization/system tenancy, and target-domain `where` predicates. Nested relation/containment predicates use the bounded async CTS evaluator and a recursion guard. Generic HTTP PATCH still refuses structural relation writes; this validation protects internal construct/process paths that do write them.
