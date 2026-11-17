@@ -1305,12 +1305,15 @@ function instanceService(typeId) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
       const pendingEvents = [];
-      const removed = await withMongoSnapshotTransaction(session => this.remove(id, {
+      const removed = await withMongoSnapshotTransaction(session => {
+        pendingEvents.length = 0;
+        return this.remove(id, {
         actor: auth?.userId || null,
         organizationId: doc.organizationId ?? null,
         session,
         pendingEvents
-      }));
+        });
+      });
       for (const event of pendingEvents) {
         await entityEventService.publishEntityChanged(event.auth, event.detail);
       }
