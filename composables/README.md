@@ -28,7 +28,10 @@ to the authorized graph-executions query endpoint. Query results contribute
 sequence-bracketed read evidence to the execution read set. The provider
 registry and evaluator contracts live in
 [packages/core](../packages/core/README.md) and
-[packages/plugin-sdk](../packages/plugin-sdk/README.md).
+[packages/plugin-sdk](../packages/plugin-sdk/README.md). Provider definitions
+may declare `palette.group`, `palette.label`, and `palette.keywords`;
+the session groups operations by provider and semantic group, then exposes
+provider id, operation id, group id, and keywords to palette search.
 
 The `graphDocuments` input is the authorized catalog projection from the
 graph workspace. Each available entry carries its validated payload as
