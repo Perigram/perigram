@@ -27,4 +27,21 @@ describe('pluginPaletteGroups', () => {
     expect(tableData.items[0].preset.projection).toBe('rows');
     expect(groups.find(group => group.id === 'facade').items).toHaveLength(1);
   });
+  it('uses provider-authored operation labels and descriptions in the palette', () => {
+    const groups = pluginPaletteGroups({}, {
+      'nesting-solve': {
+        id: 'nesting-solve',
+        command: 'nesting-solve',
+        group: 'nesting',
+        label: 'Solve sheet nesting',
+        description: 'Arrange parts on sheet stock',
+        render: { label: 'Legacy fallback label', description: 'Legacy fallback description' }
+      }
+    });
+    expect(groups[0].items[0]).toMatchObject({
+      label: 'Solve sheet nesting',
+      description: 'Arrange parts on sheet stock'
+    });
+  });
+
 });
