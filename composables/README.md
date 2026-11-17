@@ -471,7 +471,8 @@ invariant).
 - `useProcessDesignerNodeSync` keeps the record-level access shapes disjoint:
   effect and `cts.*` records always carry the grant object (`{ level,
   roleIds, grants }`) that compiles into action access, while the Item/List/Tree
-  socket-access string is written only onto pure value-algebra records
+  socket-access string is written only onto pure value-algebra records;
+  inspector input projections expose each socket's nested base as `base`
   (`useProcessDesignerNodeSync.spec.js` pins both).
 - `useProcessDesignerScreens` mutates complete semantic screen sources,
   regions, lineage rows, and typed binding/filter maps, then normalizes
