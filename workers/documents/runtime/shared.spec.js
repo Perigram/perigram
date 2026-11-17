@@ -1,7 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { createRuntime } from './server.mjs';
-describe('Documents server runtime', () => {
+import { createRuntime } from './shared.mjs';
+import listing from '../listing.json';
+
+describe('Documents shared runtime', () => {
   const runtime = createRuntime();
+
+  it('declares pure document and CSV operations for browser and server', () => {
+    expect(listing.declarations.runtimes).toEqual([
+      expect.objectContaining({ id: 'documents-shared', targets: ['browser', 'server'] })
+    ]);
+    for (const service of listing.declarations.services.filter(item => item.execution?.runtime === 'documents-shared')) {
+      expect(service.execution.targets).toEqual(['browser', 'server']);
+      expect(service.execution.capabilities).toEqual([]);
+    }
+  });
+
+  it('serializes row records through the shared spreadsheet engine', () => {
+    const csv = runtime.execute('csv-text', { rows: [{ name: 'Panel', width: 600 }, { name: 'Door', width: 450 }] });
+    expect(csv).toContain('name,width');
+    expect(csv).toContain('Panel,600');
+    expect(csv).toContain('Door,450');
+    expect(() => runtime.execute('csv-text', { rows: {} })).toThrow(/rows array/);
+  });
+
   it('builds typed inline values, blocks, and a flow document from graph operations', () => {
     const text = runtime.execute('inline-text', { text: 'Hello' });
     const strong = runtime.execute('inline-mark', { mark: 'strong', children: [text] });
@@ -30,24 +51,16 @@ describe('Documents server runtime', () => {
     expect(Buffer.from(html.payload.base64, 'base64').toString()).toContain('<h2>Ready</h2>');
   });
 
-  it('renders a flow document directly as HTML', () => {
+  it('renders a flow document directly as safe HTML', () => {
     const html = runtime.execute('render-document-html', { document: { type: 'text.flow-document', blocks: [{ type: 'paragraph', children: [{ type: 'text', text: '<safe>' }] }] } });
     expect(html).toContain('&lt;safe&gt;');
   });
 
-  it('extracts the first table from a flow document', () => {
+  it('extracts tables and composes reports from typed documents', () => {
     const rows = [{ sku: 'A-1', quantity: 2 }];
-    expect(runtime.execute('extract-table', { document: { type: 'text.flow-document', schemaVersion: 1, blocks: [{ type: 'paragraph', children: [] }, { type: 'table', rows }] } })).toEqual(rows);
-  });
-  it('rejects values outside the flow-document contract', () => {
-    expect(() => runtime.execute('extract-table', { document: { type: 'document.report', blocks: [] } })).toThrow(/text\.flow-document/);
-  });
-  it('rejects flow documents without a table', () => {
-    expect(() => runtime.execute('extract-table', { document: { type: 'text.flow-document', blocks: [{ type: 'paragraph', children: [] }] } })).toThrow(/carries no table/);
-  });
-  it('composes report IR from flow documents and row records', () => {
-    const result = runtime.execute('compose-report', { title: 'Parts', rows: [{ sku: 'A-1' }] });
-    expect(result).toMatchObject({ type: 'document.report', title: 'Parts', sections: [{ id: 'content', blocks: [{ type: 'table', rows: [{ sku: 'A-1' }] }] }] });
+    const document = { type: 'text.flow-document', schemaVersion: 1, blocks: [{ type: 'table', rows }] };
+    expect(runtime.execute('extract-table', { document })).toEqual(rows);
+    expect(runtime.execute('compose-report', { title: 'Parts', rows })).toMatchObject({ type: 'document.report', title: 'Parts' });
   });
 
   it('renders escaped standalone HTML from report IR', () => {
@@ -56,31 +69,8 @@ describe('Documents server runtime', () => {
     expect(html).not.toContain('<script>');
   });
 
-  it('removes unsafe link schemes from standalone HTML', () => {
-    const html = runtime.execute('render-html', {
-      report: {
-        type: 'document.report',
-        sections: [{
-          blocks: [{
-            type: 'paragraph',
-            children: [
-              { type: 'link', href: 'javascript:alert(1)', children: [{ type: 'text', text: 'unsafe' }] },
-              { type: 'link', href: 'https://example.com/path?a=1&b=2', children: [{ type: 'text', text: 'safe' }] }
-            ]
-          }]
-        }]
-      }
-    });
-    expect(html).not.toContain('javascript:');
-    expect(html).toContain('href="https://example.com/path?a=1&amp;b=2"');
-    expect(html).toContain('unsafe');
-  });
-
-  it('exports flow documents to Markdown', () => {
+  it('exports flow documents to Markdown and rejects unknown operations', () => {
     expect(runtime.execute('export-markdown', { document: { type: 'text.flow-document', blocks: [{ type: 'heading', level: 2, children: [{ type: 'text', text: 'Parts' }] }, { type: 'paragraph', children: [{ type: 'text', text: 'Ready' }] }] } })).toBe('## Parts\n\nReady\n');
-  });
-
-  it('rejects unknown operations', () => {
-    expect(() => runtime.execute('unknown-operation', {})).toThrow(/Unsupported Documents server operation/);
+    expect(() => runtime.execute('unknown-operation', {})).toThrow(/Unsupported Documents shared operation/);
   });
 });

@@ -2,10 +2,10 @@
 
 The documents domain as a third-party plugin (SPEC §20): the generic
 media/office file types (image, PDF, markdown, CSV, XLSX, DOCX), their
-editor surfaces, the table projections, the CSV composition, and the
+editor surfaces, the table projections, the CSV serialization, and the
 template fills (SPEC §24). The platform carries zero documents code:
 projections and fills compute here as pure payload decompositions and
-compositions, the browser runtime handles pure row-to-CSV serialization,
+compositions, the shared runtime handles pure row-to-CSV serialization and document composition/export,
 editors ship as the plugin's surface modules, and the
 types ride the generic instance machinery from the install snapshot.
 
@@ -17,14 +17,14 @@ types ride the generic instance machinery from the install snapshot.
   through the default installs). `requires` names tech-drawing: the
   PDF render construction accepts `dxf-source` sources.
 - Services (`services.js`, with `csv-text` moved to the browser Worker
-  runtime and `extract-table`, `compose-report`, `export-markdown`, and `render-html` moved to the managed server runtime; only the
+  runtime and `extract-table`, `compose-report`, `export-markdown`, and `render-html` moved to the portable shared runtime; only the
   remaining endpoint-mode operations are served by `index.js`;
   the projection helper services are synchronous endpoint handlers, not
   graph palette items; the declared projections are the graph nodes):
   `table-rows`/`table-cells`
   (payload → first sheet as header-keyed / positional row records),
   `text` (payload → string), `csv-text` (rows → CSV text, serialized by
-  `/runtime/browser.mjs` using the bundled XLSX engine) — the
+  `/runtime/shared.mjs` using the bundled XLSX engine) — the
   extraction trio takes one `payload` field declared `blob`: composed
   on the process canvas the platform hydrates the payload handle with
   its bytes (`payloadBase64`), projected the platform sends the

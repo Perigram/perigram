@@ -489,13 +489,15 @@
         "cache": "deterministic",
         "description": "Serialize row records as CSV text",
         "execution": {
-          "runtime": "documents-browser",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
-            "browser"
+            "browser",
+            "server"
           ],
           "capabilities": [],
-          "idempotent": true
+          "idempotent": true,
+          "deterministic": true
         },
         "palette": {
           "group": "table-data",
@@ -587,9 +589,10 @@
         },
         "description": "Serialize a flow document back to Markdown",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -639,9 +642,10 @@
         },
         "description": "Compose a report from flow-document content and tabular rows",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -680,9 +684,10 @@
         },
         "description": "Extract the table block from a flow document",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -718,9 +723,10 @@
         },
         "description": "Render a report as safe standalone HTML",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -784,9 +790,10 @@
         },
         "description": "Create inline text content",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -829,9 +836,10 @@
         },
         "description": "Create strong, emphasis, or code inline content",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -869,9 +877,10 @@
         },
         "description": "Create a safe inline link",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -911,9 +920,10 @@
         },
         "description": "Create a paragraph block",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -957,9 +967,10 @@
         },
         "description": "Create a heading block",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -997,9 +1008,10 @@
         },
         "description": "Create a bullet or numbered list",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -1033,9 +1045,10 @@
         },
         "description": "Create a table block from row records",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -1070,9 +1083,10 @@
         },
         "description": "Create a blockquote from document blocks",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -1107,9 +1121,10 @@
         },
         "description": "Create a fenced code block",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -1136,9 +1151,10 @@
         },
         "description": "Create a horizontal rule block",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -1177,9 +1193,10 @@
         },
         "description": "Compose a flowing document from typed blocks",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -1215,9 +1232,10 @@
         },
         "description": "Append a typed block to a flowing document",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -1248,9 +1266,10 @@
         },
         "description": "Render a flowing document as safe HTML",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -1286,9 +1305,10 @@
         },
         "description": "Create a Markdown file payload from a flowing document",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -1324,9 +1344,10 @@
         },
         "description": "Create an HTML file payload from a flowing document",
         "execution": {
-          "runtime": "documents-server",
+          "runtime": "documents-shared",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -1509,20 +1530,12 @@
     ],
     "runtimes": [
       {
-        "id": "documents-browser",
+        "id": "documents-shared",
         "language": "javascript",
         "version": "1",
-        "entry": "/runtime/browser.mjs",
+        "entry": "/runtime/shared.mjs",
         "targets": [
-          "browser"
-        ]
-      },
-      {
-        "id": "documents-server",
-        "language": "javascript",
-        "version": "1",
-        "entry": "/runtime/server.mjs",
-        "targets": [
+          "browser",
           "server"
         ]
       }
