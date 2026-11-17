@@ -2113,7 +2113,6 @@
     "moveSectionDown": "Move down",
     "moveSection": "Move section",
     "sectionActions": "Section actions",
-    "pinViewDefinition": "Pin view definition",
     "slashHint": "Type '/' for commands",
     "fields": "Fields",
     "collectionActions": "Collection actions"
@@ -2407,6 +2406,7 @@
     "savedViews": "Saved views",
     "collections": "Collections",
     "noCollections": "No collections",
+    "pinViewDefinition": "Pin view definition",
     "slashHint": "Type '/' for commands"
   },
   "sketch": {

@@ -2113,7 +2113,6 @@
     "moveSectionDown": "Ниже",
     "moveSection": "Переместить раздел",
     "sectionActions": "Действия раздела",
-    "pinViewDefinition": "Закрепить определение представления",
     "slashHint": "Введите '/' для команд",
     "fields": "Поля",
     "collectionActions": "Действия коллекции"
@@ -2407,6 +2406,7 @@
     "savedViews": "Сохранённые виды",
     "collections": "Коллекции",
     "noCollections": "Нет коллекций",
+    "pinViewDefinition": "Закрепить определение представления",
     "slashHint": "Введите '/' для команд"
   },
   "sketch": {
