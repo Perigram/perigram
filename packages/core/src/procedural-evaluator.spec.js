@@ -51,6 +51,51 @@ describe('procedural graph preview evaluator', () => {
     expect(result.nodeOutputs.double).toEqual({ result: 42 });
   });
 
+  it('shares one execution id across every node in a graph preview', async () => {
+    const document = graph({
+      nodes: [
+        { id: 'in', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'number' } },
+        { id: 'first', operation: { provider: 'plugin.math', id: 'double', version: '1' }, config: {} },
+        { id: 'second', operation: { provider: 'plugin.math', id: 'double', version: '1' }, config: {} },
+        { id: 'out', operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' }, config: { interfaceId: 'result' } }
+      ],
+      edges: [
+        { id: 'e1', source: { node: 'in', port: 'value' }, target: { node: 'first', port: 'value' } },
+        { id: 'e2', source: { node: 'first', port: 'result' }, target: { node: 'second', port: 'value' } },
+        { id: 'e3', source: { node: 'second', port: 'result' }, target: { node: 'out', port: 'value' } }
+      ]
+    });
+    const contexts = [];
+    await evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: 3 },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: (_definition, { inputs, context }) => {
+        contexts.push(context);
+        return { result: inputs.value * 2 };
+      }
+    });
+    expect(contexts).toHaveLength(2);
+    expect(contexts[0].executionId).toMatch(/^graph-preview-/);
+    expect(contexts[1].executionId).toBe(contexts[0].executionId);
+    expect(contexts[0].readSet).toBeTruthy();
+  });
+
+  it('preserves an execution id supplied by the graph host', async () => {
+    let observed;
+    await evaluateProceduralGraph({
+      graph: graph(),
+      inputBindings: { number: 3 },
+      context: { executionId: 'host-run-42' },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: (_definition, { context }) => {
+        observed = context.executionId;
+        return { result: 6 };
+      }
+    });
+    expect(observed).toBe('host-run-42');
+  });
+
   it('records authorized read dependencies emitted by read providers', async () => {
     const readDefinition = {
       provider: 'plugin.data',
