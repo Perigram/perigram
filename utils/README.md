@@ -22,6 +22,9 @@ Parent: [root README](../README.md).
 - `design-system-contract.js`: The design-system vocabulary source — entity contracts and surface-chrome tables; binding to Vue components happens in `design-system-cards.js`.
 - `design-system-cards.js`: The one card-component binding (`DESIGN_SYSTEM_CARD_COMPONENTS`, keyed by contract key) that `InstanceInlineRef`, `DrawingCanvas`, and the registry resolve cards through.
 - `design-system.js`: The registry binding (`DESIGN_SYSTEM_ENTITIES`) composing the card binding with the DTO factories. Used by `/test/ui-lab`.
+- `processDesignerPaletteSearch.js`: The shared search predicate for the
+  process palette and socket-context palette; it indexes display text,
+  stable operation identity, provider/group ids, and declared aliases.
 - `processDesignerSocketTone.js`: Pure process-port resolver used by every
   designer node form and source edge. It maps structured port type/role data to a
   semantic signal token so a socket and the wire it produces cannot drift

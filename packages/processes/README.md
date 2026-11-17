@@ -22,7 +22,12 @@ The primary palette admits CTS semantics and explicit process intent. Raw
 storage-id lookup, producer-path joins, per-node packet matching, and
 transport adapters are compiler concerns, hidden from authoring.
 Type-changing traversal selects a declared children/parent/relation edge and
-exposes that edge's exact target type.
+exposes that edge's exact target type. Plugin projection and service
+contracts contribute plugin-owned palette groups through `pluginPaletteGroups`;
+projection entries deduplicate by declared group and projection id, while
+service entries retain their operation identity and preset. The surface search
+indexes labels, descriptions, operation ids, group ids, and provider-authored
+search terms.
 
 ## Authoring seam
 

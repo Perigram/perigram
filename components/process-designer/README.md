@@ -50,6 +50,10 @@ contribute graph node definitions and preview renderer ids through the
 browser Worker runtime bridge, with execution callbacks mediated by the
 host. Each renderer id resolves to an installed plugin `preview` surface;
 the host mounts that surface with the selected graph output as its payload.
+Plugin node providers declare semantic palette groups and searchable
+keywords; the shared palette search also indexes stable operation, provider,
+and group identities. Both the main palette and socket-context palette use
+the same search contract.
 
 The graph session contract lives in
 [composables](../../composables/README.md#usegraphdocumentsession--canonical-procedural-graph-editor);
