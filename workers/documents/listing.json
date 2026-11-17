@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "16",
+  "version": "17",
   "requires": [
     "tech-drawing"
   ],
@@ -998,6 +998,14 @@
               "ordered": {
                 "base": "boolean",
                 "default": false
+              },
+              "inlineItems": {
+                "base": "list",
+                "itemType": {
+                  "base": "json",
+                  "kind": "text.inline"
+                },
+                "nullable": true
               }
             }
           },
@@ -1006,7 +1014,7 @@
             "kind": "text.document-block"
           }
         },
-        "description": "Create a bullet or numbered list",
+        "description": "Create a bullet or numbered list from text or typed inline values",
         "execution": {
           "runtime": "documents-shared",
           "kind": "pure",
