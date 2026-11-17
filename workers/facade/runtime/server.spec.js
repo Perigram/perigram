@@ -5,7 +5,7 @@ import listing from '../listing.json';
 const SQUARE = [[0, 0], [100, 0], [100, 100], [0, 100], [0, 0]];
 
 describe('Facade managed server runtime', () => {
-  it('declares pure sheet operations for both browser and server targets without endpoint modes', () => {
+  it('declares pure managed operations with explicit execution targets and no endpoint mode', () => {
     expect(listing.declarations.runtimes.find(runtime => runtime.id === 'facade-server').targets)
       .toEqual(['browser', 'server']);
     for (const id of ['bake', 'construct-sheet', 'generate-sheet-dxf', 'match-sheet']) {
@@ -14,7 +14,7 @@ describe('Facade managed server runtime', () => {
       expect(service.execution).toMatchObject({
         runtime: 'facade-server',
         kind: 'pure',
-        targets: ['browser', 'server'],
+        targets: id === 'bake' ? ['browser'] : ['browser', 'server'],
         capabilities: []
       });
     }
