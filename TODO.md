@@ -7672,4 +7672,4 @@ degradation/editor laws in Program B notes.
 - Page documents accept typed reference blocks with stable type/instance identity and an optional exact retained revision. The picker inserts live references or selects a retained content revision.
 - Resolution checks the source's ordinary read grant, loads the selected revision, and verifies its source identity. Missing and inaccessible targets share one unavailable response.
 - Page surfaces render live/pinned reference embeds. Backlinks are derived from the owning organization's page documents and remain rebuildable.
-- Saved-query collection embeds can carry a pinned viewState definition revision and continue rendering live authorized collection results. G8 remains open for graph-output collection embeds, explicit parameters, and pinned result snapshots.
+- Saved-query collection embeds carry a pinned viewState definition revision, explicit empty parameters, and live authorized collection results. G8 remains open for graph-output collection embeds, parameter binding, and pinned result snapshots.

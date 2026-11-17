@@ -42,7 +42,7 @@ export function normalizePageDocument(document = {}) {
             typeId: String(view.typeId || ''),
             name: String(view.name || ''),
             parameters: view.parameters && typeof view.parameters === 'object' && !Array.isArray(view.parameters) ? view.parameters : {},
-            resultPolicy: view.resultPolicy === 'pinned' ? 'pinned' : 'live',
+            resultPolicy: 'live',
             ...(view.parentTypeId ? { parentTypeId: String(view.parentTypeId) } : {}),
             ...(view.parentId ? { parentId: String(view.parentId) } : {}),
             ...(view.sourceId ? { sourceId: String(view.sourceId) } : {}),

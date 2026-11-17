@@ -232,7 +232,8 @@ the `section` field set.
   — and inserts the chosen child collection or saved lens as a sibling
   view block. Saved views can be embedded live or with a pinned definition
   snapshot; pinned snapshots carry the selected viewState and its updatedAt
-  revision token, then render over the live authorized collection. A text
+  revision token, plus explicit parameters and a live result policy. They
+  render over the live authorized collection. A text
   block's slash view entry delegates to the page
   session's picker, so collections never nest inside a text editor. The
   instance entry and typing `@` open `InstanceMentionPicker.vue` over the
