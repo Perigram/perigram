@@ -35,7 +35,7 @@ export function blockMarkdown(block) {
         .replaceAll('\\', '\\\\')
         .replaceAll('|', '\\|')
         .replace(/\r\n?|\n/g, ' ');
-      const line = cells => \`| \${cells.map(cell).join(' | ')} |\`;
+      const line = cells => '| ' + cells.map(cell).join(' | ') + ' |';
       return [
         line(columns),
         line(columns.map(() => '---')),
