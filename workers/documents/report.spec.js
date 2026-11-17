@@ -181,7 +181,7 @@ describe('report composition', () => {
   });
 
   it('composes and exports the report through the shared runtime', async () => {
-    const document = await services['parse-markdown']({ text: '# Title' });
+    const document = await runtime.execute('parse-markdown', { text: '# Title' });
     expect(document.blocks[0].type).toBe('heading');
     const text = await runtime.execute('export-markdown', { document });
     expect(text).toBe('# Title\n');
