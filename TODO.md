@@ -1,5 +1,75 @@
 # TODO
 
+## Priority: Unified Documents graph usability (owner direction 2026-11-17)
+
+Deliver the first usable Documents graph workflow before broadening format
+coverage or completing the server execution profile. The acceptance path is
+provider discovery → typed authoring → preview → file export → Bake.
+
+- [ ] Publish Documents operations as provider-neutral node definitions
+  through the installed runtime contract. Reuse the listing's operation
+  identities, signatures, palette declarations, and execution metadata as
+  the source; do not maintain a second hand-authored operation catalog.
+- [ ] Move the browser-eligible document IR operations into the Documents
+  client runtime and expose them as graph provider contributions. Include
+  typed inline/block constructors, Markdown parsing, composition, append,
+  HTML rendering, and Markdown/HTML file export.
+- [ ] Make payload-backed text/table projections available through an
+  explicit graph read-provider boundary with authorized payload hydration.
+  Keep synchronous projection semantics and declare the execution target.
+- [ ] Make graph compatibility canonical in plugin-sdk: evaluate transport
+  shape and semantic base/kind/nominal identity, structural constraints,
+  optionality, and explicit conversion requirements. Return a reasoned
+  compatibility result and use it in connection gestures, graph validation,
+  palette filtering, and execution preflight.
+- [ ] Derive Documents node configuration controls from normalized
+  configuration/input schemas. Preserve useful defaults, optionality,
+  descriptions, labels, and actionable validation errors.
+- [ ] Complete the first user workflow in the unified graph workspace:
+  create a flowing document from typed blocks, preview it, export Markdown
+  and HTML file payloads, Bake each to an explicit destination, reopen the
+  resulting files, and verify provenance.
+- [ ] Add one graph-workspace acceptance test using the installed Documents
+  package and real provider/runtime discovery. Cover palette search,
+  placement, schema configuration, valid/invalid wires, execution, preview,
+  export, and Bake.
+- [ ] Reconcile Documents listing versions with installed organization
+  snapshots. Verify upgrade behavior against an installation carrying the
+  previous declaration version; record catalog and installed versions in
+  regression coverage.
+- [ ] Classify every Documents operation by browser, managed-server, or
+  external-integration execution. Move local-eligible parsing, template,
+  projection, and rendering work to managed runtimes as dependencies permit.
+  Keep endpoint mode only for an explicitly declared remote boundary.
+- [ ] Implement server-side procedural graph evaluation using the canonical
+  core graph evaluator, the same pinned provider definitions, managed
+  plugin runtimes, host capabilities, read-set recorder, and execution
+  envelope. Keep browser preview and server execution on the same graph and
+  node contracts.
+- [ ] Gate server graph execution by operation kind, target, capabilities,
+  authorization, and effect policy. Define how read, proposal, commit, and
+  effect nodes cross the execution boundary; preserve explicit Commit/Bake/
+  Export lifecycles and execution provenance.
+- [ ] Add server graph acceptance tests for the same Documents workflow,
+  including pinned package versions, authorized file reads, cancellation,
+  timeout, cleanup, and deterministic output comparison with browser mode.
+- [ ] Complete format-specific template acceptance for Markdown, XLSX, and
+  PDF; document each engine's supported token/section semantics and test
+  missing values, invalid structures, and output round-trips. Decide and
+  track DOCX fill/export scope separately.
+- [ ] Reconcile HAG acceptance notes with the unified graph provider and
+  runtime contracts. Mark each slice by implementation, test execution, and
+  owner verification; remove obsolete duplicate paths after their consumers
+  migrate.
+
+Implementation order:
+1. Documents browser provider and canonical type compatibility.
+2. Schema-driven inspector and end-to-end Markdown/HTML workflow.
+3. Authorized file/table projections and installed-plugin upgrade coverage.
+4. Remaining Documents formats and template behavior.
+5. Managed server graph evaluator and cross-target acceptance.
+6. HAG/process integration and obsolete-path retirement.
+
 ## Priority: Documents and Facade plugin review/refactor (owner direction 2026-11-17)
 
 This work is prioritized ahead of further breadth in the portable-runtime
