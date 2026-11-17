@@ -1,8 +1,9 @@
+import listing from '../listing.json' with { type: 'json' };
 import * as XLSX from '../assets/vendor/xlsx.mjs';
 import { composeReport, extractTable, renderReportHtml, renderDocumentHtml, exportMarkdown, composeDocument, appendDocumentBlock, createDocumentBlock, createInlineValue } from '../report-ir.mjs';
 
 export function createRuntime() {
-  return {
+  const runtime = {
     execute(operationId, input = {}) {
       if (operationId === 'csv-text') {
         const rows = input.rows ?? [];
@@ -31,6 +32,72 @@ export function createRuntime() {
       return exportMarkdown(input.document);
     }
   };
+  return {
+    ...runtime,
+    providers: [{
+      provider: 'plugin.documents',
+      definitions: documentsNodeDefinitions(listing, 'documents-shared'),
+      execute: async (definition, { inputs = {} } = {}) => ({
+        value: await runtime.execute(definition.id, inputs)
+      })
+    }]
+  };
+}
+
+function documentsNodeDefinitions(source, runtimeId) {
+  const runtime = source.declarations.runtimes?.find(item => item.id === runtimeId);
+  if (!runtime) throw new Error(`Documents runtime declaration is missing: ${runtimeId}`);
+  return source.declarations.services
+    .filter(service => service.execution?.runtime === runtimeId
+      && service.execution.targets?.includes('browser')
+      && service.palette?.visible !== false
+      && service.palette?.group)
+    .map(service => ({
+      provider: 'plugin.documents',
+      id: service.id,
+      version: String(service.nodeVersion || '1'),
+      label: service.label || service.id,
+      ...(service.description ? { description: service.description } : {}),
+      palette: {
+        group: service.palette.group,
+        ...(service.palette.label ? { label: service.palette.label } : {}),
+        keywords: service.palette.keywords || []
+      },
+      inputs: Object.entries(service.signature?.input?.fields || {}).map(([id, field]) => ({
+        id,
+        label: field.label || id,
+        ...nodePortContract(field),
+        required: field.nullable !== true,
+        ...(Object.hasOwn(field, 'default') ? { default: field.default } : {}),
+        ...(field.description ? { description: field.description } : {})
+      })),
+      outputs: [{
+        id: 'value',
+        label: service.signature?.output?.label || 'Value',
+        ...nodePortContract(service.signature?.output || {}),
+        required: true
+      }],
+      execution: {
+        runtime: runtimeId,
+        kind: service.execution.kind,
+        targets: service.execution.targets,
+        capabilities: service.execution.capabilities || [],
+        deterministic: service.execution.deterministic === true,
+        idempotent: service.execution.idempotent === true
+      }
+    }));
+}
+
+function nodePortContract(schema = {}) {
+  const shape = ['list', 'tree', 'map', 'tuple', 'stream'].includes(schema.base)
+    ? schema.base
+    : 'item';
+  const semanticSource = shape === 'item' ? schema : (schema.itemType || { base: 'json' });
+  const semantic = {
+    base: semanticSource.base || 'json',
+    ...(semanticSource.kind ? { kind: semanticSource.kind } : {})
+  };
+  return { shape, semantic };
 }
 
 function filePayload(content, mime, name) {
