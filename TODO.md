@@ -1,5 +1,49 @@
 # TODO
 
+## Priority: Documents and Facade plugin review/refactor (owner direction 2026-11-17)
+
+This work is prioritized ahead of further breadth in the portable-runtime
+migration, except for correctness/security fixes that block it. Review both
+plugins as product capabilities and as graph-node providers; do not treat
+"listing validates" or "executor responds" as completion.
+
+- [ ] Audit Documents end to end: every declared type, projection, service,
+  construction, editor, preview, fill, import/export, and file/payload path.
+  Compare listing declarations with actual runtime behavior and SPEC; remove
+  stale executor/endpoint assumptions as the managed local runtime lands.
+- [ ] Audit Facade end to end against `workers/facade/SPEC.md`: six-type
+  fabrication flow, OCCS evaluation, nesting, DXF import/export, editor
+  surfaces, preview renderers, cross-plugin dependencies, data revisions,
+  and every declared construction/service. Identify dead, duplicated,
+  unreachable, or UI-only functionality and close behavior/spec gaps.
+- [ ] Refactor the node catalog and palette around one coherent provider
+  contract. Review discovery, grouping, search, filtering, socket/type
+  compatibility, operation signatures, labels/descriptions, provenance,
+  placement, and node configuration as one user-facing workflow. Plugin
+  nodes must be discoverable and understandable without hardcoded
+  Documents/Facade branches in platform UI.
+- [ ] Make palette grouping and presentation declaration-driven and
+  consistent across operation, value, construction, editor, and graph-use
+  nodes. Remove duplicate category vocabularies and stale hardcoded palette
+  metadata; ensure the same semantics appear in palette entries, canvas
+  nodes, inspector, and preview/diagnostics.
+- [ ] Review every Documents and Facade node for useful inputs/outputs,
+  correct typed sockets, defaults, optionality, dynamic references, and
+  actionable validation errors. Ensure palette search and compatibility
+  filtering do not hide valid operations or offer unusable ones.
+- [ ] Add focused contract tests and representative graph-level tests for
+  each plugin's major workflows, including discovery → palette → placement →
+  configuration → execution → preview → commit/bake. Add regression tests
+  for every defect found during the review.
+- [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO only after
+  behavior is verified; document remaining owner decisions explicitly.
+
+Review order: (1) inventory declarations and actual behavior; (2) trace
+palette/provider discovery and graph execution; (3) validate end-to-end
+workflows; (4) consolidate/refactor shared contracts and UI; (5) remove
+obsolete paths and update docs. Keep the two plugin reviews coordinated so
+shared palette changes are designed once, not independently patched twice.
+
 ## Portable plugins and platform-managed execution (SPEC §20, owner direction 2026-11-16)
 
 Installed plugins are versioned organization-owned package data.
