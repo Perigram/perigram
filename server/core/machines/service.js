@@ -663,7 +663,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
 // who changed which field, from what value to what. The record carries the
 // instance's current state on both ends — a field edit never moves the
 // machine — and the operation's `changes` list feeds the history surface.
-export async function appendFieldChangeEvent(typeId, targetId, { changes = [], actorId = null, auth = {}, state = null } = {}) {
+export async function appendFieldChangeEvent(typeId, targetId, { changes = [], actorId = null, auth = {}, state = null, session = null } = {}) {
   const effective = (changes || []).filter(change => change && change.field);
   if (!effective.length) return null;
   const flexId = toFlexibleId(targetId);
@@ -682,7 +682,7 @@ export async function appendFieldChangeEvent(typeId, targetId, { changes = [], a
     operation: { kind: 'field_change', changes: effective },
     evidence: buildEventEvidence({}, {})
   });
-  await machineRepository.insertStatusEvent(db, record);
+  await machineRepository.insertStatusEvent(db, record, session ? { session } : {});
   return record;
 }
 

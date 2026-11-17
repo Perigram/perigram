@@ -1062,7 +1062,8 @@ function instanceService(typeId) {
         changes: fieldChangesFromPatch(patch, current),
         actorId: auth?.userId || null,
         auth: auth || {},
-        state: typeof current.state === 'string' && current.state ? current.state : null
+        state: typeof current.state === 'string' && current.state ? current.state : null,
+        session
       });
       return updated;
     },
