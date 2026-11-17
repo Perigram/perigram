@@ -161,6 +161,85 @@ function stubCollection() {
   return coll;
 }
 
+describe('authorized relation linking', () => {
+  it('links a declared typed relation only after validating the target domain and owner revision', async () => {
+    const coll = stubCollection();
+    const owner = {
+      _id: 'project-1',
+      type: 'project',
+      organizationId: 'org-1',
+      revision: 1,
+      updatedAt: '2026-11-17T06:00:00.000Z',
+      fields: { name: 'Project' },
+      relations: {}
+    };
+    const target = {
+      _id: 'panel-1',
+      type: 'panel',
+      organizationId: 'org-1',
+      revision: 1,
+      updatedAt: '2026-11-17T06:00:00.000Z',
+      fields: { serial: 'ALLOWED', width: { value: 20, unit: 'mm' } }
+    };
+    coll.findOne.mockImplementation(async filter => filter.type === 'project' ? owner : filter.type === 'panel' ? target : null);
+    coll.findOneAndUpdate.mockResolvedValue({
+      ...owner,
+      revision: 2,
+      relations: { panels: [{ type: 'panel', id: 'panel-1' }] }
+    });
+    const service = instanceServiceResolver('project');
+
+    const updated = await service.linkRelationForHttp('project-1', 'panels', {
+      type: 'panel',
+      id: 'panel-1'
+    }, {
+      auth: { userId: 'user-1', organizationId: 'org-1' },
+      organizationId: 'org-1',
+      expectedRevision: '1'
+    });
+
+    expect(updated.relations.panels).toEqual([{ type: 'panel', id: 'panel-1' }]);
+    expect(coll.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: expect.anything(), type: 'project', organizationId: 'org-1', updatedAt: owner.updatedAt }),
+      expect.objectContaining({ $set: { 'relations.panels': [{ type: 'panel', id: 'panel-1' }] } }),
+      expect.any(Object)
+    );
+  });
+
+  it('rejects relation targets outside the declared where domain without writing', async () => {
+    const coll = stubCollection();
+    const owner = {
+      _id: 'project-1',
+      type: 'project',
+      organizationId: 'org-1',
+      revision: 1,
+      updatedAt: '2026-11-17T06:00:00.000Z',
+      fields: { name: 'Project' },
+      relations: {}
+    };
+    const target = {
+      _id: 'panel-1',
+      type: 'panel',
+      organizationId: 'org-1',
+      revision: 1,
+      updatedAt: '2026-11-17T06:00:00.000Z',
+      fields: { serial: 'DENIED', width: { value: 20, unit: 'mm' } }
+    };
+    coll.findOne.mockImplementation(async filter => filter.type === 'project' ? owner : filter.type === 'panel' ? target : null);
+    const service = instanceServiceResolver('project');
+
+    await expect(service.linkRelationForHttp('project-1', 'panels', {
+      type: 'panel',
+      id: 'panel-1'
+    }, {
+      auth: { userId: 'user-1', organizationId: 'org-1' },
+      organizationId: 'org-1',
+      expectedRevision: '1'
+    })).rejects.toMatchObject({ statusCode: 400 });
+    expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+});
+
 describe('generic instance service stored shape (SPEC §3)', () => {
   it('stores flat fields + state and projects the wire DTO', async () => {
     const coll = stubCollection();
