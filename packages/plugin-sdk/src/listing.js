@@ -229,9 +229,10 @@ export function parseListing(listing = {}) {
         }
       }
     }
-    if (service.group !== undefined && !/^[a-z0-9][a-z0-9-]*$/.test(String(service.group))) {
-      throw listingError(`service ${service.id} group must be a palette-section slug (got ${JSON.stringify(service.group)})`);
+    if (service.group !== undefined) {
+      throw listingError(`service ${service.id} uses retired group metadata — use palette.group`);
     }
+    validatePalette(service.palette, `service ${service.id}`);
     if (service.cache !== undefined) {
       if (service.cache !== 'deterministic') {
         throw listingError(`service ${service.id} cache must be 'deterministic' (got ${JSON.stringify(service.cache)})`);
@@ -350,9 +351,10 @@ export function parseListing(listing = {}) {
       } else if (resolve.field === undefined) {
         throw listingError(`projection ${type.id}/${projection?.id} needs a field or service resolve (got ${JSON.stringify(resolve)})`);
       }
-      if (projection.group !== undefined && !/^[a-z0-9][a-z0-9-]*$/.test(String(projection.group))) {
-        throw listingError(`projection ${type.id}/${projection?.id} group must be a palette-section slug (got ${JSON.stringify(projection.group)})`);
+      if (projection.group !== undefined) {
+        throw listingError(`projection ${type.id}/${projection?.id} uses retired group metadata — use palette.group`);
       }
+      validatePalette(projection.palette, `projection ${type.id}/${projection?.id}`);
     }
   }
 
@@ -522,4 +524,28 @@ function listingError(message) {
   const error = new Error(message);
   error.listing = true;
   return error;
+}
+
+
+function validatePalette(palette, context) {
+  if (palette === undefined) return;
+  if (!palette || typeof palette !== 'object' || Array.isArray(palette)) {
+    throw listingError(`${context} palette must be an object`);
+  }
+  const allowed = new Set(['group', 'label', 'keywords', 'visible']);
+  const unknown = Object.keys(palette).filter(key => !allowed.has(key));
+  if (unknown.length) throw listingError(`${context} palette has unsupported fields: ${unknown.join(', ')}`);
+  if (palette.group !== undefined && !/^[a-z0-9][a-z0-9-]*$/.test(String(palette.group))) {
+    throw listingError(`${context} palette.group must be a stable lowercase slug`);
+  }
+  if (palette.label !== undefined && (typeof palette.label !== 'string' || !palette.label.trim())) {
+    throw listingError(`${context} palette.label must be a non-empty string`);
+  }
+  if (palette.keywords !== undefined && (!Array.isArray(palette.keywords)
+    || palette.keywords.some(keyword => typeof keyword !== 'string' || !keyword.trim()))) {
+    throw listingError(`${context} palette.keywords must be non-empty strings`);
+  }
+  if (palette.visible !== undefined && typeof palette.visible !== 'boolean') {
+    throw listingError(`${context} palette.visible must be boolean`);
+  }
 }

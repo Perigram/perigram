@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://perigram.dev/schemas/plugin-listing.schema.json",
   "title": "Perigram plugin listing",
-  "description": "A platform-published plugin catalog listing: declarations (types, services, editors) plus pack requirements. The authoritative validator is parseListing in @perigram/plugin-sdk; this schema mirrors it for editors, agents, and tooling.",
+  "description": "A platform-published plugin catalog listing: declarations (types, services, editors) plus pack requirements. Node discovery metadata is declared through one shared palette object on graph-visible operations and projections.",
   "type": "object",
   "required": [
     "pluginId",
@@ -102,11 +102,6 @@
                     "label": {
                       "type": "string"
                     },
-                    "group": {
-                      "type": "string",
-                      "pattern": "^[a-z0-9][a-z0-9-]*$",
-                      "description": "Process-designer palette section the extract preset drops into (SPEC §8 plugin-tab law); absent stays unlisted"
-                    },
                     "resolve": {
                       "type": "object",
                       "additionalProperties": false,
@@ -118,6 +113,9 @@
                           "type": "string"
                         }
                       }
+                    },
+                    "palette": {
+                      "$ref": "#/$defs/palette"
                     }
                   }
                 }
@@ -151,11 +149,6 @@
               },
               "render": {
                 "type": "object"
-              },
-              "group": {
-                "type": "string",
-                "pattern": "^[a-z0-9][a-z0-9-]*$",
-                "description": "Process-designer palette section the service drops into (SPEC §8 plugin-tab law); absent falls to the services tab"
               },
               "cache": {
                 "const": "deterministic",
@@ -229,6 +222,9 @@
                     "type": "boolean"
                   }
                 }
+              },
+              "palette": {
+                "$ref": "#/$defs/palette"
               }
             }
           }
@@ -511,6 +507,37 @@
               }
             }
           }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "palette": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "group": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "description": "Stable semantic palette category slug"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional human-facing category label"
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "description": "Provider-authored search aliases"
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "False keeps construction/projection helpers out of graph-node discovery"
         }
       }
     }

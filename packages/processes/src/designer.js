@@ -811,7 +811,7 @@ export function servicesPaletteGroups(serviceContracts = {}) {
   const pluginGroups = new Map();
   const frameworkItems = [];
   for (const service of Object.values(serviceContracts || {})) {
-    if (!service?.id || !service.command || service.group) continue;
+    if (!service?.id || !service.command || service.palette?.visible === false || service.palette?.group) continue;
     const provider = pluginProviderId(service);
     const localId = provider && String(service.id).startsWith(`plugin.${provider}.`)
       ? String(service.id).slice(`plugin.${provider}.`.length)
@@ -822,7 +822,7 @@ export function servicesPaletteGroups(serviceContracts = {}) {
       {
         label: service.label || service.render?.label || localId,
         description: service.description || service.render?.description || service.label || service.render?.label || localId,
-        searchTerms: [provider, service.id, service.command, ...(service.keywords || [])].filter(Boolean),
+        searchTerms: [provider, service.id, service.command, ...(service.palette?.keywords || [])].filter(Boolean),
         icon: service.render?.icon || 'pi pi-bolt',
         preset: { operator: service.id }
       }
@@ -872,31 +872,31 @@ export function pluginPaletteGroups(projectionContracts = {}, serviceContracts =
   };
   const seenProjections = new Set();
   for (const projection of Object.values(projectionContracts || {})) {
-    if (!projection?.group || !projection.id) continue;
+    if (!projection?.id || !projection.palette?.group || projection.palette.visible === false) continue;
     const provider = pluginProviderId(projection);
     if (!provider) continue;
     const key = `${provider}:${projection.id}`;
     if (seenProjections.has(key)) continue;
     seenProjections.add(key);
-    section(provider, projection.group, projection.groupLabel).items.push(paletteItem(`extract:${provider}:${projection.id}`, 'cts.read', {
+    section(provider, projection.palette.group, projection.palette.label).items.push(paletteItem(`extract:${provider}:${projection.id}`, 'cts.read', {
       label: projection.label,
       description: projection.description || projection.label,
-      searchTerms: [provider, projection.id, projection.typeId, projection.service, ...(projection.keywords || [])].filter(Boolean),
+      searchTerms: [provider, projection.id, projection.typeId, projection.service, ...(projection.palette.keywords || [])].filter(Boolean),
       icon: 'pi pi-table',
       preset: { select: 'extract', projection: projection.id }
     }));
   }
   for (const service of Object.values(serviceContracts || {})) {
-    if (!service?.group || !service?.id || !service.command) continue;
+    if (!service?.id || !service.command || service.palette?.visible === false || !service.palette?.group) continue;
     const provider = pluginProviderId(service);
     if (!provider) continue;
     const localId = String(service.id).startsWith(`plugin.${provider}.`)
       ? String(service.id).slice(`plugin.${provider}.`.length)
       : String(service.id);
-    section(provider, service.group, service.groupLabel).items.push(paletteItem(`service:${provider}:${localId}`, 'cts.service', {
+    section(provider, service.palette.group, service.palette.label).items.push(paletteItem(`service:${provider}:${localId}`, 'cts.service', {
       label: service.label || service.render?.label || localId,
       description: service.description || service.render?.description || service.render?.label || localId,
-      searchTerms: [provider, service.id, service.command, ...(service.keywords || [])].filter(Boolean),
+      searchTerms: [provider, service.id, service.command, ...(service.palette.keywords || [])].filter(Boolean),
       icon: service.render?.icon || 'pi pi-bolt',
       preset: { operator: service.id }
     }));

@@ -25,7 +25,7 @@ Type-changing traversal selects a declared children/parent/relation edge and
 exposes that edge's exact target type. Plugin projection and service
 contracts contribute plugin-owned palette groups through `pluginPaletteGroups`;
 projection entries deduplicate by provider, declared group, and projection id, while
-service entries retain their provider-qualified operation identity and preset. Group ids are provider-qualified; labels and keywords come from declarations, so equal group slugs from different plugins never merge. The surface search
+service entries retain their provider-qualified operation identity and preset. Group ids are provider-qualified; services and projections share the same `palette: { group, label, keywords, visible }` declaration, so equal group slugs from different plugins never merge. `visible: false` keeps construction and synchronous projection helpers out of graph-node discovery. Ungrouped visible plugin services fall into that provider's Operations section. The surface search
 indexes labels, descriptions, operation ids, group ids, and provider-authored
 search terms.
 

@@ -6,12 +6,12 @@ import { pluginPaletteGroups, servicesPaletteGroups } from './designer.js';
 // projection switch is the single mode selector.
 describe('pluginPaletteGroups', () => {
   const projections = {
-    'csv-table/rows': { typeId: 'csv-table', id: 'rows', label: 'Table rows', group: 'table-data', pluginId: 'documents' },
+    'csv-table/rows': { typeId: 'csv-table', id: 'rows', label: 'Table rows', palette: { group: 'table-data' }, pluginId: 'documents' },
     'xlsx-workbook/rows': { typeId: 'xlsx-workbook', id: 'rows', label: 'Table rows', group: 'table-data', pluginId: 'documents' },
     'csv-table/cells': { typeId: 'csv-table', id: 'cells', label: 'Table cells (positional)', group: 'table-data', pluginId: 'documents' },
     'xlsx-workbook/cells': { typeId: 'xlsx-workbook', id: 'cells', label: 'Table cells (positional)', group: 'table-data', pluginId: 'documents' },
     'text-document/text': { typeId: 'text-document', id: 'text', label: 'Text', group: 'table-data', pluginId: 'documents' },
-    'cassette/polygons': { typeId: 'cassette', id: 'polygons', label: 'Polygons', group: 'facade', pluginId: 'facade' },
+    'cassette/polygons': { typeId: 'cassette', id: 'polygons', label: 'Polygons', palette: { group: 'facade' }, pluginId: 'facade' },
     'un grouped': { typeId: 'misc', id: 'ungrouped', label: 'Ungrouped' }
   };
 
@@ -51,7 +51,7 @@ describe('pluginPaletteGroups', () => {
       'nesting-solve': {
         id: 'nesting-solve',
         command: 'nesting-solve', pluginId: 'facade',
-        group: 'nesting',
+        palette: { group: 'nesting' },
         label: 'Solve sheet nesting',
         description: 'Arrange parts on sheet stock',
         keywords: ['cutting', 'stock layout'],

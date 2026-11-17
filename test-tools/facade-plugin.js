@@ -17,7 +17,7 @@ export const facadeServices = listing.declarations.services.map(service => ({
   id: `plugin.${listing.pluginId}.${service.id}`,
   species: 'service',
   command: `plugin.${listing.pluginId}.${service.id}`,
-  group: service.group || service.label || service.id,
+  palette: service.palette,
   signature: service.signature,
   render: service.render || { label: service.label || service.id }
 }));

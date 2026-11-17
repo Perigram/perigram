@@ -485,7 +485,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         label: projection.label || projection.id,
         output: projection.output,
         resolve: projection.resolve,
-        ...(projection.group ? { group: projection.group } : {})
+        ...(projection.palette ? { palette: projection.palette } : {})
       };
     }
   }
