@@ -40,7 +40,7 @@ access checks, event writes, and hook dispatch.
   creating construct's state socket, and transitions from authored
   transition nodes. An org process that wants a system flow declares its
   states and transitions itself.
-- **CTS constraints**: flat CTS instance transitions validate the target-state candidate through the generic instance service before the status event and entity snapshot are persisted together, incrementing the per-instance revision under the same transaction.
+- **CTS constraints**: flat CTS instance transitions validate the target-state candidate through the generic instance service. The transition captures the organization sequence before validation and reserves it by compare-and-swap before persistence; a concurrent organization write rejects the stale transition. The status event and entity snapshot persist together, incrementing the per-instance revision under one transaction.
 - **Transition guards**: a compiled transition may carry a `guard` — a
   boolean expression AST over `{ value }`, the operated instance's row (a
   §3 instance's flat `fields`; a legacy block doc's merged `data`/`specs`).
