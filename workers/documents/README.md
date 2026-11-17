@@ -41,6 +41,16 @@ the plugin's surface modules, and types ride the generic instance machinery.
 
 - Document and report operations (`report.js` and `report-ir.mjs`, grouped by inline content, blocks, composition, and export): `parse-markdown` (text → `text.flow-document@1`), typed inline and block constructors (`text.inline` and `text.document-block`), `compose-document` and `append-document-block` (blocks → flowing document), `export-markdown` (flow document → markdown text), Markdown/HTML file exports, and `render-document-html` (flow document → safe HTML). The `document.report@1` composition remains available for explicitly sectioned reports. The Documents preview channel renders flowing documents and reports from the unified graph evaluator's `outputs`/`nodeOutputs` envelope, with the selected graph output first; it retains the legacy branch-tree envelope for older hosts. The IR is the source and Markdown, HTML, and PDF are representations.
 
+### Graph file preview
+
+The Documents preview channel accepts actual `text/markdown` and
+`text/html` file payload envelopes from selected graph outputs and node
+outputs. It decodes the payload and renders through the host's
+Markdown/DOMPurify pipeline in a sandboxed iframe with restrictive CSP.
+Document and report IR previews remain native read-only renderings. The
+graph output panel automatically selects the Documents channel for these
+values instead of leaving the user on a base64 JSON view.
+
 ### Markdown template graph operation
 
 `fill-markdown-template` is a pure operation in the shared browser/server

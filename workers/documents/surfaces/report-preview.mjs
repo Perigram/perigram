@@ -1,4 +1,4 @@
-// The Documents preview channel renders flowing-document and report values
+// The Documents preview channel renders flowing-document, report, and file values
 // from the whole-graph evaluation. The host owns the preview workspace;
 // this surface only renders the provider's read-only representations.
 export default function createSurface(ctx) {
@@ -60,6 +60,46 @@ export default function createSurface(ctx) {
     ...(document.blocks || []).map((block, index) => renderBlock(block, index))
   ].filter(Boolean));
 
+  const renderFilePayload = (value, key) => {
+    const payload = value?.payload || {};
+    const mime = String(payload.mime || '');
+    if (!['text/markdown', 'text/html'].includes(mime) || typeof payload.base64 !== 'string') {
+      return h('div', { key, class: 'text-supporting text-muted' }, [
+        h('strong', null, payload.name || 'Document file'),
+        h('p', null, mime || 'Unsupported document preview')
+      ]);
+    }
+    let source = '';
+    try {
+      const binary = atob(payload.base64);
+      const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+      source = new TextDecoder().decode(bytes);
+    } catch {
+      return h('div', { key, class: 'text-supporting text-muted' }, 'The file payload could not be decoded');
+    }
+    if (typeof ctx?.renderMarkdown !== 'function') {
+      if (mime === 'text/markdown') {
+        try { return renderDocument(parseMarkdown(source), key); } catch { /* fall through to text */ }
+      }
+      return h('pre', { key, class: 'whitespace-pre-wrap break-words' }, source);
+    }
+    let sanitized = '';
+    try { sanitized = String(ctx.renderMarkdown(source) || ''); } catch { sanitized = ''; }
+    if (!sanitized) return h('pre', { key, class: 'whitespace-pre-wrap break-words' }, source);
+    const csp = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none';";
+    const srcdoc = '<!doctype html><meta http-equiv="Content-Security-Policy" content="' + csp + '">' + sanitized;
+    return h('section', { key, class: 'flex min-h-0 flex-col gap-2' }, [
+      h('div', { class: 'text-supporting text-muted' }, payload.name || mime),
+      h('iframe', {
+        title: payload.name || 'Document file preview',
+        sandbox: '',
+        referrerpolicy: 'no-referrer',
+        srcdoc,
+        class: 'min-h-64 h-96 w-full border-0 bg-white'
+      })
+    ]);
+  };
+
   const renderReport = (report, key) => {
     const sections = (report.sections || []).flatMap((section, sectionIndex) => {
       const heading = section.title
@@ -81,17 +121,24 @@ export default function createSurface(ctx) {
     render() {
       const values = documentsOf(this.payload);
       if (!values.length) return h('div');
-      return h('div', { class: 'flex flex-col gap-6' }, values.map((value, index) => value.type === 'text.flow-document' ? renderDocument(value, index) : renderReport(value, index)));
+      return h('div', { class: 'flex flex-col gap-6' }, values.map((value, index) => {
+        if (value.type === 'text.flow-document') return renderDocument(value, index);
+        if (value.type === 'document.report') return renderReport(value, index);
+        return renderFilePayload(value, index);
+      }));
     }
   };
 }
 
-// Document/report values in node and branch order; the IR discriminator selects the renderer.
+// Document/report/file values in node and branch order; the value envelope selects the renderer.
 export function documentsOf(payload) {
   const found = [];
   const seen = new Set();
   const add = value => {
-    if (!value || !['text.flow-document', 'document.report'].includes(value.type) || seen.has(value)) return;
+    const isIr = value && ['text.flow-document', 'document.report'].includes(value.type);
+    const isFile = value && value.payload && typeof value.payload.base64 === 'string'
+      && ['text/markdown', 'text/html'].includes(value.payload.mime);
+    if ((!isIr && !isFile) || seen.has(value)) return;
     seen.add(value);
     found.push(value);
   };

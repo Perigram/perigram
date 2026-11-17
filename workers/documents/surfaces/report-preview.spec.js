@@ -8,6 +8,7 @@ describe('Documents graph preview channel', () => {
     const block = { type: 'paragraph', children: [] };
     const file = { payload: { mime: 'text/markdown', base64: 'IyBIZWxsbw==' } };
 
+    const htmlFile = { payload: { mime: 'text/html', base64: 'PGgxPkhlbGxvPC9oMT4=', name: 'hello.html' } };
     expect(documentsOf({
       selectedOutput: { id: 'document', value: document },
       outputs: { document, report },
@@ -15,9 +16,10 @@ describe('Documents graph preview channel', () => {
         paragraph: { value: block },
         compose: { value: document },
         report: { value: report },
-        export: { value: file }
+        export: { value: file },
+        html: { value: htmlFile }
       }
-    })).toEqual([document, report]);
+    })).toEqual([document, report, file, htmlFile]);
   });
 
   it('retains the legacy branch-tree preview envelope', () => {
