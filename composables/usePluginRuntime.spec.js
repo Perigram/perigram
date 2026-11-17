@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { usePluginRuntime } from './usePluginRuntime.js';
+import { createRuntime as createDocumentsRuntime } from '../workers/documents/runtime/shared.mjs';
 
 class FakeWorker {
   constructor(providers = []) {
@@ -62,6 +63,34 @@ describe('usePluginRuntime', () => {
     expect(provider.provider).toBe('plugin.demo');
     await expect(provider.execute({ id: 'math.double', execution }, { input: 2 }))
       .resolves.toEqual({ operationId: 'math.double', input: { input: 2 } });
+  });
+
+  it('loads the installed Documents listing-derived provider and dispatches a graph invocation', async () => {
+    const documents = createDocumentsRuntime();
+    const worker = new FakeWorker(documents.providers);
+    const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
+    const documentsBinding = { organizationId: 'org-1', pluginId: 'documents', version: '23' };
+    const documentsRuntime = {
+      id: 'documents-shared',
+      version: '1',
+      entryUrl: '/api/plugins/documents/module/runtime/shared.mjs',
+      targets: ['browser']
+    };
+    const [provider] = await pluginRuntime.loadProviders(documentsBinding, documentsRuntime);
+    expect(provider.provider).toBe('plugin.documents');
+    expect(provider.definitions.map(definition => definition.id)).toContain('document-paragraph');
+    const paragraph = provider.definitions.find(definition => definition.id === 'document-paragraph');
+    await provider.execute(paragraph, {
+      node: { id: 'paragraph-1' },
+      config: {},
+      inputs: { text: 'Hello from the graph' },
+      mode: 'preview'
+    });
+    expect(worker.messages.find(message => message.type === 'invoke')).toMatchObject({
+      operationId: 'document-paragraph',
+      input: { inputs: { text: 'Hello from the graph' }, mode: 'preview' }
+    });
+    pluginRuntime.dispose();
   });
 
   it('finalizes execution-scoped native values across loaded runtimes', async () => {
