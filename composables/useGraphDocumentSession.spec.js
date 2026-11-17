@@ -106,6 +106,48 @@ describe('useGraphDocumentSession', () => {
     expect(session.executionRecord.value.provenance.nodes.some(item => item.operation?.provider === 'plugin.example')).toBe(true);
   });
 
+  it('uses one execution identity and finalizes plugin runtimes after a preview', async () => {
+    const finalized = [];
+    const session = useGraphDocumentSession({
+      t: key => key,
+      finalizeExecution: async id => { finalized.push(id); }
+    });
+    const [input, output] = session.paletteGroups.value[0].items;
+    const inputNode = session.addNode(input, { x: 0, y: 0 });
+    const outputNode = session.addNode(output, { x: 240, y: 0 });
+    session.onConnect({
+      source: inputNode.id,
+      sourceHandle: 'value',
+      target: outputNode.id,
+      targetHandle: 'value'
+    });
+    await session.refreshPreview();
+    expect(finalized).toEqual([session.executionRecord.value.id]);
+  });
+
+  it('finalizes plugin runtimes after a failed graph preview too', async () => {
+    const finalized = [];
+    const session = useGraphDocumentSession({
+      t: key => key,
+      finalizeExecution: async id => { finalized.push(id); },
+      providers: [{
+        provider: 'plugin.example',
+        definitions: [{
+          provider: 'plugin.example', id: 'fail', version: '1',
+          inputs: [], outputs: [{ id: 'value', semantic: { base: 'number' } }],
+          execution: { kind: 'pure' }
+        }],
+        execute: async () => { throw new Error('preview failed'); }
+      }]
+    });
+    const item = session.paletteGroups.value.flatMap(group => group.items).find(entry => entry.operation?.id === 'fail');
+    const node = session.addNode(item, { x: 120, y: 80 });
+    await session.refreshPreview();
+    expect(finalized).toEqual([session.executionRecord.value.id]);
+    expect(session.executionRecord.value.status).toBe('failed');
+    expect(node).toBeTruthy();
+  });
+
   it('places saved graph revisions directly from the Use Graph palette', () => {
     const source = createSession();
     const [input, output] = source.paletteGroups.value[0].items;

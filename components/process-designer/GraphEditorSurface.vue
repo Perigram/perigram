@@ -155,6 +155,7 @@ const session = useGraphDocumentSession({
   t,
   providers: props.nodeProviders,
   graphDocuments,
+  finalizeExecution: pluginRuntime.finalizeExecution,
   queryOrganizationData
 });
 const {

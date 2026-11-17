@@ -61,7 +61,7 @@ export function createEmptyGraphDocument({ id = stableId('graph'), name = '' } =
   };
 }
 
-export function useGraphDocumentSession({ t, providers = [], graphDocuments = [], queryOrganizationData = null }) {
+export function useGraphDocumentSession({ t, providers = [], graphDocuments = [], queryOrganizationData = null, finalizeExecution = null }) {
   const graphDocument = ref(createEmptyGraphDocument());
   const nodes = ref([]);
   const edges = ref([]);
@@ -528,6 +528,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     executionRecord.value = null;
     const startedAt = new Date().toISOString();
     let graph = null;
+    const executionId = stableId('execution');
     try {
       graph = serializeGraph();
       const result = await evaluateProceduralGraph({
@@ -540,11 +541,15 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
           if (!executor) throw new Error(`No runtime is registered for provider ${definition.provider}`);
           return executor(definition, invocation);
         },
-        context: { data: { queryInstances: queryOrganizationData } }
+        context: {
+          executionId,
+          finalizeExecution,
+          data: { queryInstances: queryOrganizationData }
+        }
       });
       const completedAt = new Date().toISOString();
       executionRecord.value = createGraphExecutionRecord({
-        id: stableId('execution'),
+        id: executionId,
         graph: { id: graph.id, revision: graph.revision },
         profile: 'procedural-preview',
         status: 'succeeded',
@@ -579,7 +584,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       if (graph) {
         try {
           executionRecord.value = createGraphExecutionRecord({
-            id: stableId('execution'),
+            id: executionId,
             graph: { id: graph.id, revision: graph.revision },
             profile: 'procedural-preview',
             status: 'failed',
