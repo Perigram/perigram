@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// The documents plugin's remaining endpoint executor: the platform's
-// Connection settings use one provider-level URL for every service
-// `http://<this-host>:<port>/<serviceId>`. Pure compute over values —
+// The documents plugin's remaining provider executor: all operations share
+// one URL and dispatch by operationId in the JSON request envelope. Pure
+// compute over values —
 // see services.js (table decomposition, text extraction, and other
 // endpoint-backed payload operations). CSV serialization runs in the
 // browser runtime. Surface modules and their vendored runtimes serve as

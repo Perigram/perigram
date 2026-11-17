@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// The facade plugin's remaining endpoint services: the platform's Connection
-// settings point each service at `http://<this-host>:<port>/<serviceId>`
-// (or the org configures a reverse proxy for cloud hosting). Pure compute
+// The facade plugin's remaining endpoint services share one provider URL;
+// operationId travels in the request envelope (or the org configures a
+// reverse proxy for cloud hosting). Pure compute
 // over values — see services.js. Runs with the repo's node_modules when
 // compose-mounted, or its own install when extracted.
 import { createEndpointExecutor } from '@perigram/plugin-sdk/endpoint-executor';

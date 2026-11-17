@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// The tech-drawing plugin's executor (endpoint mode): the plugin's types
-// are pure declarations served by the generic instance machinery, and
-// this process serves its services (DXF spot placement) plus the sketch
+// The tech-drawing plugin's provider executor dispatches operationId through
+// one URL. Its types are pure declarations served by the generic instance
+// machinery, and this process serves DXF placement plus the sketch
 // and DXF editor surface modules (and their vendored runtime
 // dependencies) as static GETs — the platform's module proxy streams
 // them to browsers same-origin.

@@ -1,16 +1,10 @@
-// Endpoint-mode executor harness: a zero-dependency HTTP server matching
-// the plugin Connection contract (docs/PLUGIN_AUTHORING.md §executor). The
-// platform POSTs the service input as the JSON body to the configured URL
-// and expects the service output as JSON; with an install authToken the
-// call arrives as `authorization: Bearer <key>`.
-//
-// Each service is served at `POST /<serviceId>` — configure that URL in
-// the plugin's Connection settings per service. With `staticRoot`, GET
-// requests resolve files under that directory (path-traversal refused):
-// that is how the executor serves its declared surface modules. Static
-// GETs carry `access-control-allow-origin: *` — the browser imports the
-// module cross-origin from the app, and the resolved URL is the only
-// credential (the executor key never reaches the client).
+// Provider executor harness: a zero-dependency HTTP server matching the
+// plugin Connection contract. The platform POSTs one { operationId, input }
+// envelope to the provider's single configured URL and expects the service
+// output as JSON. Every operation shares POST /; operation identity is data,
+// not a route. Legacy POST /<serviceId> requests remain accepted during
+// migration. With staticRoot, GET requests resolve files under that directory.
+
 import { createServer } from 'node:http';
 import { createReadStream, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';

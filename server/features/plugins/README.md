@@ -115,8 +115,8 @@ it to the generic instance compare-and-swap write boundary.
 
 Remote service adapters currently retain a transitional endpoint mode and
 claim mode. Endpoint-mode operations share one provider-level `executorOrigin`;
-operation URLs are derived as `<executorOrigin>/<serviceId>`. The install
-never stores a URL per function. Legacy install maps are collapsed on settings
+all operations POST to `<executorOrigin>` with `{ operationId, input }`. The install
+never stores or derives a URL per function. Legacy install maps are collapsed on settings
 save when every operation URL has the same provider base; divergent maps are
 surfaced as a migration warning rather than silently guessed.
 New external-system integrations must use provider-level connection records
