@@ -228,6 +228,10 @@ describe('document graph vertical slice', () => {
     const htmlFile = await runtime.execute('export-html-file', { document, name: 'release' });
     expect(htmlFile.payload).toMatchObject({ mime: 'text/html', name: 'release.html' });
     expect(Buffer.from(htmlFile.payload.base64, 'base64').toString('utf8')).toContain('<strong>notes</strong>');
+
+    const pdfFile = await services['render-document-pdf']({ document, name: 'release' });
+    expect(pdfFile.payload).toMatchObject({ mime: 'application/pdf', name: 'release.pdf' });
+    expect(Buffer.from(pdfFile.payload.base64, 'base64').subarray(0, 4).toString()).toBe('%PDF');
   });
 });
 
