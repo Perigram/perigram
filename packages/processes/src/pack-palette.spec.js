@@ -35,6 +35,7 @@ describe('pluginPaletteGroups', () => {
         group: 'nesting',
         label: 'Solve sheet nesting',
         description: 'Arrange parts on sheet stock',
+        keywords: ['cutting', 'stock layout'],
         render: { label: 'Legacy fallback label', description: 'Legacy fallback description' }
       }
     });

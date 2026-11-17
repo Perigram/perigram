@@ -214,6 +214,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       return port ? {
         provider: op.provider, id: op.id, version: op.version,
         label: t('processDesigner.graphInput'),
+        palette: { group: 'graph-boundaries', label: t('processDesigner.graphBoundaries') },
         inputs: [],
         outputs: [{ id: 'value', label: port.label, ...port.contract, required: false }],
         execution: { kind: 'pure' }
@@ -224,6 +225,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       return port ? {
         provider: op.provider, id: op.id, version: op.version,
         label: t('processDesigner.graphOutput'),
+        palette: { group: 'graph-boundaries', label: t('processDesigner.graphBoundaries') },
         inputs: [{ id: 'value', label: port.label, ...port.contract, required: true }],
         outputs: [],
         execution: { kind: 'pure' }
@@ -234,6 +236,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       return {
         provider: op.provider, id: op.id, version: op.version,
         label: t('processDesigner.useGraph'),
+        palette: { group: 'graphs', label: t('processDesigner.graphComposition') },
         inputs: (ports.inputs || []).map(port => ({
           id: port.id, label: port.label || port.id,
           ...(port.contract || defaultContract), required: port.required !== false
