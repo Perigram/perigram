@@ -24,6 +24,7 @@
         />
       </div>
       <Message v-if="declarationError" severity="error">{{ declarationError }}</Message>
+      <Message v-if="configError" severity="error">{{ configError }}</Message>
       <Button size="small" :label="$t('processDesigner.graphApplyInterfaceDeclaration')" @click="applyDeclaration" />
     </template>
     <template v-else-if="isGraphInvocation">
@@ -67,7 +68,7 @@
     <template v-else-if="node.data.definition">
       <div v-if="configFields.length" class="flex flex-col gap-3">
         <div v-for="field in configFields" :key="field.id" class="flex min-w-0 flex-col gap-1">
-          <label class="text-supporting text-muted">{{ field.label }}</label>
+          <label class="text-supporting text-muted">{{ field.label }}{{ field.required ? ' *' : '' }}</label>
           <Select
             v-if="Array.isArray(field.schema.enum)"
             :model-value="configFieldValue(field)"
@@ -97,6 +98,7 @@
           <span v-if="field.schema.description" class="text-xs text-muted">{{ field.schema.description }}</span>
         </div>
       </div>
+      <Message v-if="configError" severity="error">{{ configError }}</Message>
       <p v-else-if="node.data.definition.description" class="text-supporting text-muted">
         {{ node.data.definition.description }}
       </p>
@@ -148,6 +150,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration', 'hydrate-graph', 'select-graph-document']);
 const configDraft = ref({});
+const configError = ref('');
 const declarationShape = ref('item');
 const declarationBase = ref('json');
 const declarationKind = ref('');
@@ -162,7 +165,12 @@ const selectedGraphId = ref('');
 const selectedRevisionId = ref('');
 const isGraphInvocation = computed(() => props.node?.data?.operation?.id === 'perigram.core.use-graph');
 const configFields = computed(() => Object.entries(props.node?.data?.definition?.configuration?.properties || {})
-  .map(([id, schema]) => ({ id, label: schema.title || id, schema })));
+  .map(([id, schema]) => ({
+    id,
+    label: schema.title || id,
+    required: (props.node?.data?.definition?.configuration?.required || []).includes(id),
+    schema
+  })));
 const isBoundary = computed(() => [
   GRAPH_INPUT_OPERATION,
   GRAPH_OUTPUT_OPERATION
@@ -172,6 +180,7 @@ watch(
   [() => props.node?.id, () => props.node?.data?.config, () => props.boundaryDeclaration, () => props.graphDocuments],
   () => {
     configDraft.value = { ...(props.node?.data?.config || {}) };
+    configError.value = '';
     declarationError.value = '';
     const contract = props.boundaryDeclaration?.contract || { shape: 'item', semantic: { base: 'json' } };
     declarationShape.value = contract.shape || 'item';
@@ -219,8 +228,35 @@ function configBase(schema = {}) {
 }
 
 function updateConfigField(id, value) {
-  configDraft.value = { ...configDraft.value, [id]: value };
-  emit('update-config', { nodeId: props.node.id, config: { ...configDraft.value } });
+  const next = { ...configDraft.value, [id]: value };
+  configDraft.value = next;
+  const schema = props.node?.data?.definition?.configuration || {};
+  const required = schema.required || [];
+  for (const fieldId of required) {
+    if (next[fieldId] == null || next[fieldId] === '') {
+      configError.value = t('processDesigner.graphConfigurationFieldRequired', { field: fieldId });
+      return;
+    }
+  }
+  const fieldSchema = schema.properties?.[id] || {};
+  if (fieldSchema.enum && !fieldSchema.enum.some(option => option === value)) {
+    configError.value = t('processDesigner.graphConfigurationFieldInvalid', { field: id });
+    return;
+  }
+  if (typeof value === 'number'
+    && ((fieldSchema.minimum != null && value < fieldSchema.minimum)
+      || (fieldSchema.maximum != null && value > fieldSchema.maximum))) {
+    configError.value = t('processDesigner.graphConfigurationFieldOutOfRange', { field: id });
+    return;
+  }
+  if (typeof value === 'string'
+    && ((fieldSchema.minLength != null && value.length < fieldSchema.minLength)
+      || (fieldSchema.maxLength != null && value.length > fieldSchema.maxLength))) {
+    configError.value = t('processDesigner.graphConfigurationFieldInvalid', { field: id });
+    return;
+  }
+  configError.value = '';
+  emit('update-config', { nodeId: props.node.id, config: next });
 }
 
 function applyDeclaration() {
