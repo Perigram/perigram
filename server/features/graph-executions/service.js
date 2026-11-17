@@ -678,9 +678,9 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     throw createError({ statusCode: 400, message: 'New-instance Bake requires a typed instance draft without a caller-supplied payload' });
   }
   if (!isPageFile && !isInstancePayload && !isInstanceCreate && !isInstanceField) {
-    throw createError({ statusCode: 400, message: 'Bake destination must be page-file, instance-payload, or instance-create' });
+    throw createError({ statusCode: 400, message: 'Bake destination must be page-file, instance-payload, instance-field, or instance-create' });
   }
-  if ((isInstancePayload || isInstanceCreate) && destination.conflictPolicy != null && destination.conflictPolicy !== 'fail') {
+  if ((isInstancePayload || isInstanceCreate || isInstanceField) && destination.conflictPolicy != null && destination.conflictPolicy !== 'fail') {
     throw createError({ statusCode: 400, message: 'Instance Bake supports only fail-on-conflict semantics' });
   }
   const { graphDocument, graph, organizationId } = await sourceFor(graphDocumentInstanceId, preview, auth);
@@ -700,7 +700,10 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     const typeId = String(destination.typeId);
     const fieldId = String(destination.fieldId);
     const declaration = await declarationForType(typeId, organizationId);
-    if (declaration?.fields?.[fieldId]?.base !== 'blob') {
+    if (!/^[A-Za-z][A-Za-z0-9_-]{0,127}$/.test(fieldId)
+      || ['__proto__', 'prototype', 'constructor'].includes(fieldId)
+      || !Object.hasOwn(declaration?.fields || {}, fieldId)
+      || declaration.fields[fieldId]?.base !== 'blob') {
       throw createError({ statusCode: 400, message: `Instance attachment field ${typeId}.${fieldId} must be declared with base blob` });
     }
     const instanceService = getAppRegistry().getInstanceService(typeId);
