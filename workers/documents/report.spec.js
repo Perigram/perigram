@@ -83,6 +83,7 @@ describe('markdown ↔ flow-document', () => {
 });
 
 describe('report composition', () => {
+  const runtime = createRuntime();
   it('composes flow content and row records into one section', () => {
     const flow = parseMarkdown('## Section\n\nbody text');
     const report = composeReport({ title: 'Report', sectionTitle: 'Section', flow, rows: [{ a: 1 }] });

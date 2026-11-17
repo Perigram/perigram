@@ -964,7 +964,7 @@ describe('current process-definition service contract', () => {
           signature: { input: { base: 'record', fields: { code: { base: 'string' } } }, output: { base: 'string' } }
         }
       ],
-      endpoints: { match: 'https://executor.example/match' }
+      executorOrigin: 'https://executor.example'
     };
     pluginsRepository.listInstallsByOrganization.mockResolvedValue([install]);
     pluginsRepository.findInstall.mockResolvedValue(install);
@@ -996,9 +996,9 @@ describe('current process-definition service contract', () => {
       }, adminAuth());
 
       expect(result.nodes.match.outputs.result.branches[0].items).toEqual(['matte']);
-      expect(fetchMock).toHaveBeenCalledWith('https://executor.example/match', expect.objectContaining({
+      expect(fetchMock).toHaveBeenCalledWith('https://executor.example', expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ code: 'C-1' })
+        body: JSON.stringify({ operationId: 'match', input: { code: 'C-1' } })
       }));
     } finally {
       vi.unstubAllGlobals();
