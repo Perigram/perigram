@@ -408,6 +408,23 @@ describe('graph execution service', () => {
     expect(mocks.deleteFile).not.toHaveBeenCalled();
   });
 
+  it('removes a pre-uploaded payload when atomic Bake evidence cannot be persisted', async () => {
+    executionService.create.mockRejectedValueOnce(new Error('evidence write failed'));
+    await expect(graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: preview(),
+      outputId: 'document',
+      destination: {
+        type: 'instance-payload',
+        typeId: 'part',
+        instanceId: 'item-1',
+        expectedRevision: '3'
+      }
+    }, auth)).rejects.toThrow('CTS payload and graph execution evidence could not be committed atomically');
+
+    expect(mocks.deleteFile).toHaveBeenCalledWith('baked-payload-1', 'files');
+  });
+
   it('refuses materialization when an instance revision changed after preview', async () => {
     const record = createGraphExecutionRecord({
       ...preview(),
