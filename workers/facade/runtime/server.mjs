@@ -102,10 +102,16 @@ function generateSheetDxf({ fields, refs = {}, draft = {} } = {}) {
 function constructSheet({ refs = {}, draft = {} } = {}) {
   const layout = draft?.data?.layout;
   const resolvedDesigns = Array.isArray(refs.designs) ? refs.designs : [];
-  const designPin = new Map(resolvedDesigns.map(design => [
-    String(design.id),
-    design.revision ? { type: 'cassette-design', id: String(design.id), revision: String(design.revision) } : null
-  ]));
+  const designPin = new Map();
+  for (const design of resolvedDesigns) {
+    const id = String(design?.id || '').trim();
+    const revision = String(design?.revision || '').trim();
+    if (!id || !revision) {
+      badRequest('Sheet construction requires revision-pinned cassette-design references');
+    }
+    if (designPin.has(id)) badRequest(`Sheet construction received duplicate cassette-design reference ${id}`);
+    designPin.set(id, { type: 'cassette-design', id, revision });
+  }
   if (layout != null && (typeof layout !== 'object' || Array.isArray(layout))) {
     badRequest('Sheet construction requires a layout value');
   }
@@ -120,7 +126,7 @@ function constructSheet({ refs = {}, draft = {} } = {}) {
     if (!designId) {
       badRequest('Sheet construction needs the cassette-design behind every placement — re-run the nesting solve with the designs connected');
     }
-    if (resolvedDesigns.length && !designPin.has(designId)) {
+    if (!designPin.has(designId)) {
       badRequest(`Sheet construction placement names cassette-design ${designId}, which the declared designs do not include`);
     }
   }

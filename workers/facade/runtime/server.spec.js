@@ -75,6 +75,25 @@ describe('Facade managed server runtime', () => {
     expect(result.relations.parts).toEqual([{ type: 'cassette-design', id: 'design-1', revision: '7' }]);
   });
 
+  it('requires revision-pinned design references for every sheet placement', async () => {
+    const runtime = createRuntime();
+    const layout = {
+      sourceItems: [{ id: 'item-1', design_id: 'design-1' }],
+      placed_items: [{ item_id: 'item-1', x: 10, y: 20 }]
+    };
+    await expect(runtime.execute('construct-sheet', {
+      draft: { data: { layout } }
+    })).rejects.toThrow(/declared designs do not include/);
+    await expect(runtime.execute('construct-sheet', {
+      refs: { designs: [{ id: 'design-2', revision: '7' }] },
+      draft: { data: { layout } }
+    })).rejects.toThrow(/declared designs do not include/);
+    await expect(runtime.execute('construct-sheet', {
+      refs: { designs: [{ id: 'design-1' }] },
+      draft: { data: { layout } }
+    })).rejects.toThrow(/revision-pinned cassette-design references/);
+  });
+
   it('exports the sheet drawing as a base64 DXF payload in the managed runtime', async () => {
     const runtime = createRuntime();
     const result = await runtime.execute('generate-sheet-dxf', {
