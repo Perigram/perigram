@@ -1149,7 +1149,7 @@ function instanceService(typeId) {
         throw createError({ statusCode: 400, message: 'Payload file is required' });
       }
       const collection = repository.collectionForClass(declaration.class);
-      const doc = await repository.findInstance(collection, id, typeId);
+      const doc = await repository.findInstance(collection, id, typeId, { session });
       if (!doc) {
         throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
       }
