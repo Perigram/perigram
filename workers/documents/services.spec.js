@@ -27,6 +27,12 @@ describe('documents listing/runtime inventory', () => {
     );
   });
 
+  it('declares content revisions for every payload-bearing file type', () => {
+    for (const type of listing.declarations.types.filter(type => type.class === 'file' && type.payload)) {
+      expect(type.revisions).toBe('content');
+    }
+  });
+
   it('implements every endpoint service exactly once', () => {
     expect(Object.keys(services).sort()).toEqual(
       listing.declarations.services.filter(service => service.mode === 'endpoint').map(service => service.id).sort()
