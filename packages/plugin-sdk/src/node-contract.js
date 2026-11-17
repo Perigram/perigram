@@ -215,7 +215,9 @@ export function compareNodePorts(source, target) {
         compatible: false,
         reason: from[key] == null
           ? `The source does not declare target semantic identity ${key}`
-          : `Semantic identity ${key} does not match`,
+          : key === 'kind'
+            ? 'Representation kind does not match'
+            : `Semantic identity ${key} does not match`,
         conversions: []
       };
     }

@@ -5,7 +5,7 @@
       <InputText v-model="label" size="small" @blur="applyLabel" @keydown.enter.prevent="applyLabel" />
       <div class="flex flex-col gap-2">
         <label class="text-supporting text-muted">{{ $t('processDesigner.graphInterfaceDeclaration') }}</label>
-        <Select v-model="declarationShape" :options="shapeOptions" option-label="label" option-value="value" size="small" class="w-full" />
+        <ValueSelect v-model="declarationShape" :options="shapeOptions" option-label="label" option-value="value" size="small" class="w-full" />
         <InputText v-model="declarationBase" size="small" :placeholder="$t('processDesigner.graphSemanticBase')" />
         <InputText v-model="declarationKind" size="small" :placeholder="$t('processDesigner.graphSemanticKind')" />
         <div class="flex items-center justify-between">
@@ -98,7 +98,7 @@
             :model-value="configFieldValue(field)"
             @update:model-value="value => updateConfigField(field.id, value)"
           />
-          <span v-if="field.schema.description" class="text-xs text-muted">{{ field.schema.description }}</span>
+          <span v-if="field.schema.description" class="text-supporting text-muted">{{ field.schema.description }}</span>
         </div>
       </div>
       <Message v-if="configError" severity="error">{{ configError }}</Message>
@@ -131,7 +131,7 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
-import Select from 'primevue/select';
+import ValueSelect from '~/components/shared/ValueSelect.vue';
 import ToggleSwitch from 'primevue/toggleswitch';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import TypedValueControl from '~/components/process-designer/TypedValueControl.vue';

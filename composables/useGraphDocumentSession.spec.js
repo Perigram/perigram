@@ -95,6 +95,10 @@ describe('useGraphDocumentSession', () => {
       provider: 'plugin.example', id: 'math.double', version: '1'
     });
     const input = session.addNode(session.paletteGroups.value[0].items[0], { x: 0, y: 0 });
+    session.updateBoundaryDeclaration(input.id, {
+      contract: { shape: 'item', semantic: { base: 'number' } },
+      required: true
+    });
     const node = session.addNode(pluginGroup.items[0], { x: 200, y: 0 });
     const output = session.addNode(session.paletteGroups.value[0].items[1], { x: 400, y: 0 });
     session.onConnect({ source: input.id, sourceHandle: 'value', target: node.id, targetHandle: 'value' });
