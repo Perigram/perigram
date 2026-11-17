@@ -43,6 +43,18 @@ self.onmessage = async event => {
     return;
   }
 
+  if (message.type === 'clear-execution' && runtime) {
+    try {
+      const value = typeof runtime.clearExecution === 'function'
+        ? await runtime.clearExecution(String(message.executionId || ''))
+        : false;
+      self.postMessage({ type: 'result', invocationId: message.invocationId, value });
+    } catch (error) {
+      self.postMessage({ type: 'result-error', invocationId: message.invocationId, error: serializeError(error) });
+    }
+    return;
+  }
+
   if (message.type === 'cancel') {
     activeInvocations.get(message.invocationId)?.abort();
     for (const [callId, pending] of capabilityCalls) {
