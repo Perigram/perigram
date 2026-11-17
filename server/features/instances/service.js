@@ -9,7 +9,7 @@
 // The service resolves the type's declaration per call: framework and pack
 // types from static declarations, org types from `cts_types` (cached).
 import { createError } from 'h3';
-import { withMongoSnapshotTransaction } from '~/server/utils/mongo-transaction.js';
+import { withMongoSnapshotTransaction } from '~/server/db/transactions.js';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, mimeMatches, validateConstraints, evaluateAsync, MAX_COLLECTION_ITEMS, MAX_STEPS } from '#packages/cts';

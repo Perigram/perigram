@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
-import { withMongoSnapshotTransaction } from '~/server/utils/mongo-transaction.js';
+import { withMongoSnapshotTransaction } from '~/server/db/transactions.js';
 import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder } from '#packages/core';
 import { ensureOrganizationChangeIndexes, withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
 import { declarationForType } from '../instances/service.js';

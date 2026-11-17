@@ -1,7 +1,7 @@
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { withMongoSnapshotTransaction } from '~/server/utils/mongo-transaction.js';
+import { withMongoSnapshotTransaction } from '~/server/db/transactions.js';
 
 // Link one declared typed relation target. The instance service owns edge
 // cardinality, target-domain, tenancy, revision, and write-grant validation.
