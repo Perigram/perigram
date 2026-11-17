@@ -63,7 +63,7 @@ export const INLINE_VALUE_TYPE = 'text.inline';
 function inlineText(text) { return { type: 'text', text: String(text ?? '') }; }
 function isSafeDocumentHref(value) {
   const href = String(value || '').trim();
-  return Boolean(href && /^(https?:|mailto:|\\/|#|\\?)/i.test(href) && !href.startsWith('//'));
+  return Boolean(href && /^(https?:|mailto:|\/|#|\?)/i.test(href) && !href.startsWith('//'));
 }
 function isInlineValue(node) {
   if (!node || typeof node !== 'object' || Array.isArray(node)) return false;
