@@ -6,6 +6,8 @@ const { connectDB } = vi.hoisted(() => ({ connectDB: vi.fn() }));
 vi.mock('~/server/db/mongo', () => ({ connectDB }));
 
 import {
+  beginOrganizationChange,
+  completeOrganizationChange,
   getOrganizationChangeSequence,
   recordOrganizationChange,
   runOrganizationChange,
@@ -57,6 +59,18 @@ describe('organization change sequence', () => {
       paths: [],
       actorId: null
     });
+  });
+
+  it('exclusively fences organization writes while a preview-based commit is reserved', async () => {
+    const token = await beginOrganizationChange('org-a', { expectedSequence: 0 });
+    await expect(beginOrganizationChange('org-a')).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'ORGANIZATION_WRITE_RESERVED'
+    });
+    await completeOrganizationChange('org-a', token, { kind: 'graph-commit' });
+    const next = await beginOrganizationChange('org-a');
+    await completeOrganizationChange('org-a', next, { kind: 'ordinary-write' });
+    await expect(getOrganizationChangeSequence('org-a')).resolves.toBe(2);
   });
 
   it('brackets a stable read with the exact organization sequence', async () => {
