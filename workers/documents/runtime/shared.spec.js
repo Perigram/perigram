@@ -136,8 +136,8 @@ describe('Documents shared runtime', () => {
     expect(atob(result.payload.base64)).toBe('# Report\n\nHello Ada; missing {missing}');
   });
 
-  it('parses Markdown into typed flow-document values in the shared runtime', () => {
-    const document = runtime.execute('parse-markdown', {
+  it('parses Markdown into typed flow-document values in the shared runtime', async () => {
+    const document = await runtime.execute('parse-markdown', {
       mode: 'preview',
       inputs: { text: '# Hello\n\nA **formatted** paragraph.\n\n- One\n- Two' }
     });
