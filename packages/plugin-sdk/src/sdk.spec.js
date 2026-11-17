@@ -542,39 +542,60 @@ describe('createEndpointExecutor', () => {
     return `http://localhost:${server.address().port}`;
   };
 
-  it('serves each service at POST /<serviceId> with JSON in and out', async () => {
+  it('serves all operations through one POST / provider endpoint envelope', async () => {
     const base = await listen({ services: { match: async input => ({ matched: input?.code }) } });
-    const response = await fetch(`${base}/match`, {
+    const response = await fetch(base, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ code: 'C-1' })
+      body: JSON.stringify({ operationId: 'match', input: { code: 'C-1' } })
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ matched: 'C-1' });
   });
 
-  it('answers 404 for unknown services, 405 for non-POST', async () => {
+  it('answers 404 for unknown operation ids and 405 for non-POST', async () => {
     const base = await listen({ services: { match: async () => null } });
-    expect((await fetch(`${base}/other`, { method: 'POST' })).status).toBe(404);
-    expect((await fetch(`${base}/match`)).status).toBe(405);
+    const missing = await fetch(base, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ operationId: 'other', input: {} })
+    });
+    expect(missing.status).toBe(404);
+    expect((await fetch(base)).status).toBe(405);
   });
 
   it('surfaces handler failures as 500 with the message body', async () => {
     const base = await listen({ services: { match: async () => { throw new Error('bad input'); } } });
-    const response = await fetch(`${base}/match`, { method: 'POST', body: '{}' });
+    const response = await fetch(base, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ operationId: 'match', input: {} })
+    });
     expect(response.status).toBe(500);
     expect((await response.json()).error).toContain('bad input');
   });
 
-  it('enforces the executor key when configured', async () => {
+  it('enforces the executor key on the provider-level endpoint', async () => {
     const base = await listen({ services: { match: async () => 'ok' }, token: 'secret' });
-    const denied = await fetch(`${base}/match`, { method: 'POST' });
+    const denied = await fetch(base, { method: 'POST' });
     expect(denied.status).toBe(401);
-    const allowed = await fetch(`${base}/match`, {
+    const allowed = await fetch(base, {
       method: 'POST',
-      headers: { authorization: 'Bearer secret' }
+      headers: { authorization: 'Bearer secret', 'content-type': 'application/json' },
+      body: JSON.stringify({ operationId: 'match', input: {} })
     });
     expect(allowed.status).toBe(200);
+  });
+
+  it('retains the old service-path route only as a migration compatibility adapter', async () => {
+    const base = await listen({ services: { match: async input => ({ matched: input?.code }) } });
+    const response = await fetch(`${base}/match`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'legacy' })
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ matched: 'legacy' });
   });
 
   it('serves declared surface modules as static GETs with CORS, refusing traversal', async () => {
