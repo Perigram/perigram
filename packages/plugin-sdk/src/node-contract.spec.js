@@ -69,11 +69,15 @@ describe('node port compatibility', () => {
     })).toMatchObject({ status: 'conditional', compatible: false });
   });
 
-  it('does not connect an optional output to a required input', () => {
+  it('marks optional outputs for runtime presence validation', () => {
     expect(compareNodePorts(
       { semantic: { base: 'string' }, required: false },
       { semantic: { base: 'string' }, required: true }
     )).toMatchObject({ status: 'conditional', compatible: true });
+    expect(compareNodePorts(
+      { semantic: { base: 'json', kind: 'text.document-block' }, required: false },
+      { semantic: { base: 'json', kind: 'text.flow-document' }, required: true }
+    )).toMatchObject({ status: 'incompatible', compatible: false });
   });
 
   it('requires explicit unit conversion', () => {
