@@ -55,7 +55,6 @@ export const stateService = {
 
   async initialStatusForOrganization(typeId, organizationId, actor = 'SYSTEM', metadata = {}) {
     const normalizedTypeId = normalizeTypeId(typeId);
-    const expectedSequence = await getOrganizationChangeSequence(organizationId);
     const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId: metadata.producerOutputId });
     if (!machine) {
       throw createError({
@@ -69,6 +68,7 @@ export const stateService = {
 
   async setInitialStateForOrganization(typeId, targetId, targetState, organizationId, actor = 'SYSTEM', metadata = {}) {
     const normalizedTypeId = normalizeTypeId(typeId);
+    const expectedSequence = await getOrganizationChangeSequence(organizationId);
     const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId: metadata.producerOutputId });
     if (!machine) {
       throw createError({
