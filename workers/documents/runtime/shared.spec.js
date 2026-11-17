@@ -27,8 +27,8 @@ describe('Documents shared runtime', () => {
     const cases = [
       ['csv-text', { rows: [{ value: '1' }] }],
       ['read-text-file', { payload: { base64: btoa('Hello'), mime: 'text/plain' } }],
-      ['read-table-rows', { payload: { base64: btoa('sku,qty\\nA-1,2\\n'), mime: 'text/csv' } }],
-      ['read-table-cells', { payload: { base64: btoa('sku,qty\\nA-1,2\\n'), mime: 'text/csv' } }],
+      ['read-table-rows', { payload: { base64: btoa('sku,qty\nA-1,2\n'), mime: 'text/csv' } }],
+      ['read-table-cells', { payload: { base64: btoa('sku,qty\nA-1,2\n'), mime: 'text/csv' } }],
       ['export-markdown', { document }],
       ['compose-report', { rows: [{ value: '1' }] }],
       ['extract-table', { document }],
@@ -60,7 +60,7 @@ describe('Documents shared runtime', () => {
   });
 
   it('reads text and tabular files through the authorized files.read capability', async () => {
-    const csv = 'sku,qty\\nA-1,2\\n';
+    const csv = 'sku,qty\nA-1,2\n';
     const readFile = vi.fn(async ({ fileId }) => ({
       fileId,
       name: 'inventory.csv',
