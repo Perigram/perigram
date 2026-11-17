@@ -1352,8 +1352,8 @@ describe('endpoint-mode services', () => {
       const handle = { fileId: 'f-1', mime: 'text/csv', size: 7, name: 'spec.csv' };
       const result = await invokeEndpointValueService('plugin.coatings.match', { payload: handle }, AUTH);
       expect(result).toEqual({ shade: 'matte' });
-      expect(fetchMock).toHaveBeenCalledWith('https://executor.example/match', expect.objectContaining({
-        body: JSON.stringify({ payload: { ...handle, payloadBase64: Buffer.from('payload').toString('base64') } })
+      expect(fetchMock).toHaveBeenCalledWith('https://executor.example', expect.objectContaining({
+        body: JSON.stringify({ operationId: 'match', input: { payload: { ...handle, payloadBase64: Buffer.from('payload').toString('base64') } } })
       }));
     } finally {
       vi.unstubAllGlobals();
@@ -1508,14 +1508,14 @@ describe('starter constructs and service-resolved projections', () => {
         instanceId: 'inst-1'
       });
       expect(value).toEqual([{ A: '1' }]);
-      expect(fetchMock).toHaveBeenCalledWith('https://executor.example/table-rows', expect.objectContaining({
+      expect(fetchMock).toHaveBeenCalledWith('https://executor.example', expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({
+        body: JSON.stringify({ operationId: 'table-rows', input: {
           typeId: 'csv-table',
           instanceId: 'inst-1',
           fields: { name: 'Sheet 1' },
           payloadBase64: Buffer.from('payload').toString('base64')
-        })
+        } })
       }));
     } finally {
       vi.unstubAllGlobals();
