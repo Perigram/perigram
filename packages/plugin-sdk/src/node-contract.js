@@ -166,8 +166,8 @@ export function compareNodePorts(source, target) {
   if (source.required === false && target.required !== false) {
     return {
       status: 'conditional',
-      compatible: false,
-      reason: 'An optional output cannot satisfy a required input',
+      compatible: true,
+      reason: 'The required input checks that the optional source produced a value at runtime',
       conversions: []
     };
   }
