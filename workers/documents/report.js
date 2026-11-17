@@ -5,6 +5,7 @@
 import { marked } from 'marked';
 import { FLOW_DOCUMENT_TYPE, REPORT_TYPE, requireReport, composeReport, extractTable, renderReportHtml } from './report-ir.mjs';
 import { renderPdfFromMarkdown } from './fill.js';
+export { composeReport, extractTable, renderReportHtml };
 
 function flowDocument(blocks, diagnostics = []) {
   return {
