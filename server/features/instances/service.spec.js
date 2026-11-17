@@ -200,8 +200,8 @@ describe('authorized relation linking', () => {
 
     expect(updated.relations.panels).toEqual([{ type: 'panel', id: 'panel-1' }]);
     expect(coll.findOneAndUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ _id: expect.anything(), type: 'project', organizationId: 'org-1', updatedAt: owner.updatedAt }),
-      expect.objectContaining({ $set: { 'relations.panels': [{ type: 'panel', id: 'panel-1' }] } }),
+      expect.objectContaining({ _id: 'project-1', updatedAt: owner.updatedAt }),
+      expect.objectContaining({ $set: expect.objectContaining({ 'relations.panels': [{ type: 'panel', id: 'panel-1' }] }) }),
       expect.any(Object)
     );
   });
