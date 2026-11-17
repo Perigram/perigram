@@ -4,9 +4,10 @@ The documents domain as a third-party plugin (SPEC §20): the generic
 media/office file types (image, PDF, markdown, HTML, CSV, XLSX, DOCX), their
 editor surfaces, the table projections, the CSV serialization, and the
 template fills (SPEC §24). The platform carries zero documents code: the plugin owns the file formats,
-projections, template fills, and rendering. Payload projections and file
-constructions use endpoint handlers; pure CSV and document graph operations
-run through one portable runtime on both browser and server. Editors ship as
+projections, template fills, and rendering. Payload projections, Markdown
+parsing, template fills, and PDF generation use the platform-owned plugin
+executor; CSV serialization and the report/document IR operations run through
+one portable runtime on both browser and server. Editors ship as
 the plugin's surface modules, and types ride the generic instance machinery.
 
 - Listing: `workers/documents/listing.json` — types with
