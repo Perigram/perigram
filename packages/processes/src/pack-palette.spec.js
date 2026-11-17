@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pluginPaletteGroups } from './designer.js';
+import { pluginPaletteGroups, servicesPaletteGroups } from './designer.js';
 
 // The plugin-tab law: one palette item per pack operation — never
 // per-type copies. The type binds at configure time; the inspector's
