@@ -215,12 +215,12 @@ describe('services dispatch', () => {
   });
 
   it('fill refuses an unsupported template kind', async () => {
-    await expect(runtime.execute('fill', {
+    expect(() => runtime.execute('fill', {
       refs: { template: { name: 'spec.txt', payloadMime: 'text/plain', payloadBase64: b64('x') } }
-    })).rejects.toThrow(/accepts markdown, xlsx, or pdf/);
+    })).toThrow(/accepts Markdown or XLSX/);
   });
 
   it('fill refuses a template ref without a payload', async () => {
-    await expect(runtime.execute('fill', { refs: { template: { name: 'x.md' } } })).rejects.toThrow(/template ref with a payload/);
+    expect(() => runtime.execute('fill', { refs: { template: { name: 'x.md' } } })).toThrow(/template ref with payloadBase64/);
   });
 });
