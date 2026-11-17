@@ -4,10 +4,9 @@ The facade fabrication domain as a third-party plugin (SPEC §20): `listing.json
 services, editor bindings, preview bindings,
 service-backed construction bindings, exports), and this
 process is the executor that owns the domain's compute and its UI. The
-platform carries zero facade code — it reaches this executor per
-configured service endpoint (endpoint mode), sending referenced
-instances and payloads as base64 values and receiving computed fields
-and files. The executor never calls back.
+platform carries zero facade code — it reaches this executor through one provider URL. Each request carries
+its service id and input envelope; referenced instances and payloads arrive
+as base64 values, and computed fields/files return. The executor never calls back.
 
 Runs from the repo mount (compose `facade-executor`, port 8790) or as
 its own deployment — nothing here imports platform code. The OCCS

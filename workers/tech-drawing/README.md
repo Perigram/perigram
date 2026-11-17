@@ -11,7 +11,7 @@ same-origin. Orgs connect the executor through the install's
 
 - Listing: `workers/tech-drawing/listing.json` (validate with
   `npx perigram-plugin validate workers/tech-drawing/listing.json`).
-- Service: `place-dxf` (`services.js`, endpoint mode, construction
+- Service: `place-dxf` (`services.js`, provider-dispatched service, construction
   `fill` on `dxf-source`). Input `{ refs: { template, parts }, draft }`
   — template and part refs arrive with `payloadBase64`; output
   `payload: { base64, mime: 'application/dxf', name }` (the composed

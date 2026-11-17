@@ -20,11 +20,11 @@
 
 
 The build123d engine as an installable plugin (SPEC §28): the op
-catalog is parsed from the installed build123d library by
-introspection, every op registers as a deterministic endpoint value
-service with its provenance and palette placement, and one generic
-dispatcher executes the real library call. The executor is python —
-the engine's own runtime.
+catalog is parsed from the installed build123d library by introspection;
+every op registers as a deterministic service operation with its provenance
+and palette placement. One provider URL receives `{ operationId, input }`
+and a generic dispatcher executes the real library call. The executor is
+Python — the engine's own runtime.
 
 Parent: [workers README](../README.md). Contract:
 [plugin SDK](../../packages/plugin-sdk/README.md); platform consumer:
@@ -39,7 +39,7 @@ Parent: [workers README](../README.md). Contract:
 | `catalog.json` | The generated catalog: op id, kind, label, palette group, python target, params, return, doc summary, provenance (`build123d` + version). Committed; the executor's dispatch table. |
 | `listing.json` | The generated listing (one service per op). Committed; the publish input. |
 | `dispatch.py` | The one evaluator: resolves an op from the catalog, coerces args per its param types, calls the real build123d callable, serializes the result. |
-| `server.py` | Endpoint-mode executor: `POST /<op-id>` with the service input record as the JSON body; env `BUILD123D_EXECUTOR_PORT` (8793), `BUILD123D_EXECUTOR_KEY`. |
+| `server.py` | Transitional provider executor: one `POST /` with `{ operationId, input }`; env `BUILD123D_EXECUTOR_PORT` (8793), `BUILD123D_EXECUTOR_KEY`. |
 | `Dockerfile` | `python:3.14-slim` + the engine, pinned to the catalog's provenance version. |
 
 Regenerate after an engine change (the Dockerfile pin moves with it):

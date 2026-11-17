@@ -219,10 +219,10 @@ The package root remains Node-bound. Browser consumers import the dedicated
 ## Executor harnesses
 
 - **Endpoint mode** — `createEndpointExecutor({ services, token })` returns
-  a `node:http` server serving each service at `POST /<serviceId>` (JSON
-  in/out, handler errors as 500 with the message body, optional
-  `authorization: Bearer` key check). Point the plugin's Connection
-  settings at it.
+  a `node:http` server serving every operation through one `POST /` provider
+  URL. The JSON envelope is `{ operationId, input }`; handler errors return
+  500 with the message body, and the optional `authorization: Bearer` key
+  check is provider-wide. Point the plugin's single executor setting at it.
 - **Claim mode** — `runClaimExecutor({ appUrl, token, workerId, services,
   pollIntervalMs, heartbeatIntervalMs, signal, onLog, fetchImpl })` polls
   `/api/tasks/claim` with the connector token, executes one claimed run at
