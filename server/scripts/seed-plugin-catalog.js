@@ -11,8 +11,11 @@
 // validated by the one contract home (@perigram/plugin-sdk parseListing),
 // so a broken listing refuses loudly instead of entering the catalog.
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { connectDB } from '../db/mongo.js';
 import { normalizeListing } from '#packages/plugin-sdk/listing';
+import * as pluginRepository from '../features/plugins/repository.js';
+import { collectRuntimeAssetFiles } from './lib/plugin-runtime-assets.js';
 
 const BUILTIN_LISTING_PATHS = [
   'workers/documents/listing.json',
@@ -31,6 +34,19 @@ for (const path of paths) {
     { $set: { ...listing, builtin: true, publishedAt: new Date() } },
     { upsert: true }
   );
+  for (const runtime of listing.declarations.runtimes || []) {
+    const packageRoot = resolve('workers', listing.pluginId);
+    for (const asset of collectRuntimeAssetFiles(packageRoot, runtime.entry, runtime.language)) {
+      await pluginRepository.storePluginAsset({
+        pluginId: listing.pluginId,
+        version: listing.version,
+        path: asset.path,
+        buffer: asset.buffer,
+        contentType: asset.contentType
+      });
+      console.log(`asset: ${listing.pluginId}@${listing.version}/${asset.path}`);
+    }
+  }
   console.log(`catalog: ${listing.pluginId} v${listing.version} (${listing.declarations.types.length} types, ${listing.declarations.services.length} services)`);
 }
 
