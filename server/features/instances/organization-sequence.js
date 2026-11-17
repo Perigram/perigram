@@ -33,39 +33,39 @@ export async function beginOrganizationChange(organizationId, { session = null, 
       createdAt: now
     }
   };
-  const options = { upsert: true, returnDocument: 'after', ...(session ? { session } : {}) };
-  if (expectedSequence != null) {
-    await target.updateOne(
-      { organizationId: String(organizationId) },
-      { $setOnInsert: {
-        organizationId: String(organizationId),
-        sequence: 0,
-        pendingCount: 0,
-        createdAt: now
-      } },
-      { upsert: true, ...(session ? { session } : {}) }
-    );
-    const reserved = await target.findOneAndUpdate(
-      {
+  const options = { upsert: false, returnDocument: 'after', ...(session ? { session } : {}) };
+  await target.updateOne(
+    { organizationId: String(organizationId) },
+    { $setOnInsert: {
+      organizationId: String(organizationId),
+      sequence: 0,
+      pendingCount: 0,
+      createdAt: now
+    } },
+    { upsert: true, ...(session ? { session } : {}) }
+  );
+  const filter = expectedSequence != null
+    ? {
         organizationId: String(organizationId),
         sequence: Number(expectedSequence),
-        pendingCount: 0
-      },
-      update,
-      { ...options, upsert: false }
-    );
-    if (!reserved) {
-      const error = new Error('Organization data changed after graph preview');
-      error.statusCode = 409;
-      error.code = 'STALE_ORGANIZATION_READ';
-      throw error;
-    }
-  } else {
-    await target.findOneAndUpdate(
-      { organizationId: String(organizationId) },
-      update,
-      options
-    );
+        pendingCount: 0,
+        $or: [{ exclusiveToken: { $exists: false } }, { exclusiveToken: null }]
+      }
+    : {
+        organizationId: String(organizationId),
+        $or: [{ exclusiveToken: { $exists: false } }, { exclusiveToken: null }]
+      };
+  if (expectedSequence != null) {
+    update.$set.exclusiveToken = token;
+  }
+  const reserved = await target.findOneAndUpdate(filter, update, options);
+  if (!reserved) {
+    const error = new Error(expectedSequence != null
+      ? 'Organization data changed after graph preview'
+      : 'Organization data is reserved by a graph commit');
+    error.statusCode = 409;
+    error.code = expectedSequence != null ? 'STALE_ORGANIZATION_READ' : 'ORGANIZATION_WRITE_RESERVED';
+    throw error;
   }
   return token;
 }
@@ -85,6 +85,7 @@ export async function completeOrganizationChange(organizationId, token, {
     {
       $inc: { sequence: 1, pendingCount: -1 },
       $pull: { pendingOperations: token },
+      $unset: { exclusiveToken: '' },
       $set: {
         updatedAt: now,
         lastChange: {
@@ -110,6 +111,7 @@ export async function cancelOrganizationChange(organizationId, token, { session 
     {
       $inc: { pendingCount: -1 },
       $pull: { pendingOperations: token },
+      $unset: { exclusiveToken: '' },
       $set: { updatedAt: new Date().toISOString() }
     },
     { returnDocument: 'after', ...(session ? { session } : {}) }
