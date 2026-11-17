@@ -776,6 +776,7 @@ function instanceService(typeId) {
     const now = new Date().toISOString();
     const state = typeof draft.state === 'string' && draft.state ? draft.state : null;
     const effectiveOrganizationId = organizationId ?? draft.organizationId ?? null;
+    const expectedSequence = expectedOrganizationSequence ?? await getOrganizationChangeSequence(effectiveOrganizationId);
     if (draft.fields != null && (typeof draft.fields !== 'object' || Array.isArray(draft.fields))) {
       throw createError({ statusCode: 400, message: 'Instance fields must be an object' });
     }
@@ -903,6 +904,10 @@ function instanceService(typeId) {
       // it, static types ignore it.
       const organizationId = typeof context === 'string' ? context : context?.organizationId || null;
       const session = context && typeof context === 'object' ? context.session || null : null;
+      const expectedSequence = context && typeof context === 'object'
+        && Object.hasOwn(context, 'expectedOrganizationSequence')
+        ? context.expectedOrganizationSequence
+        : await getOrganizationChangeSequence(organizationId);
       const declaration = await requireDeclaration(typeId, organizationId);
       if (declaration.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
       if (patch.fields != null && (typeof patch.fields !== 'object' || Array.isArray(patch.fields))) {
@@ -1015,7 +1020,7 @@ function instanceService(typeId) {
             instanceId: String(id),
             paths: Object.keys(set),
             actorId: context?.userId || null
-          }, write, { session, expectedSequence: context?.expectedOrganizationSequence ?? null })
+          }, write, { session, expectedSequence })
         : await write();
       return toDto(updated);
     },

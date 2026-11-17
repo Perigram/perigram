@@ -448,6 +448,36 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
+  it('reserves the organization sequence before process-update writes', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockResolvedValue({
+      _id: 'panel-1',
+      type: 'panel',
+      organizationId: 'org-1',
+      fields: {},
+      lineage: {}
+    });
+    coll.findOneAndUpdate.mockResolvedValue({
+      _id: 'panel-1',
+      type: 'panel',
+      organizationId: 'org-1',
+      fields: { serial: 'P-1' },
+      lineage: {}
+    });
+    const service = instanceServiceResolver('panel');
+    const sequence = await import('./organization-sequence.js');
+
+    await service.processUpdate('panel-1', { fields: { serial: 'P-1' } }, 'org-1');
+
+    expect(sequence.getOrganizationChangeSequence).toHaveBeenCalledWith('org-1');
+    expect(sequence.runOrganizationChange).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({ kind: 'instance-updated' }),
+      expect.any(Function),
+      { session: null, expectedSequence: 0 }
+    );
+  });
+
   it('stores process-update lineage references as scalar parent ids', async () => {
     const coll = stubCollection();
     coll.findOne.mockResolvedValue({
