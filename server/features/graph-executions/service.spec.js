@@ -126,7 +126,8 @@ describe('graph execution service', () => {
   const executionService = { create: vi.fn() };
   const graphService = { processGetById: vi.fn() };
   const dataService = { processList: vi.fn(), processGetById: vi.fn(), patch: vi.fn() };
-  const payloadService = { replacePayload: vi.fn(), createForHttp: vi.fn(), patch: vi.fn() };
+  const payloadService = { replacePayload: vi.fn(), createForHttp: vi.fn(), patch: vi.fn(), linkRelationForHttp: vi.fn() };
+  const fileService = { createForHttp: vi.fn() };
   const session = {
     withTransaction: vi.fn(async callback => await callback()),
     endSession: vi.fn(async () => {})
@@ -139,7 +140,7 @@ describe('graph execution service', () => {
     graphService.processGetById.mockResolvedValue(graphDocument);
     executionService.create.mockResolvedValue({ _id: 'execution-instance-1' });
     mocks.getAppRegistry.mockReturnValue({
-      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : typeId === 'part' ? payloadService : dataService
+      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : typeId === 'part' ? payloadService : typeId === 'file-record' ? fileService : dataService
     });
     dataService.processList.mockResolvedValue([{ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }]);
     dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));
@@ -162,6 +163,8 @@ describe('graph execution service', () => {
     payloadService.replacePayload.mockResolvedValue({ _id: 'item-1', type: 'part', revision: 4, payload: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8' } });
     payloadService.createForHttp.mockResolvedValue({ _id: 'new-part-1', type: 'part', revision: 1, payload: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8' } });
     payloadService.patch.mockResolvedValue({ _id: 'item-1', type: 'part', revision: 4, fields: { attachment: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8', size: 18 } } });
+    payloadService.linkRelationForHttp.mockResolvedValue({ _id: 'item-1', type: 'part', revision: 4, relations: { attachments: [{ type: 'file-record', id: 'file-record-1' }] } });
+    fileService.createForHttp.mockResolvedValue({ _id: 'file-record-1', type: 'file-record', revision: 1, payload: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8' } });
     mocks.declarationForType.mockResolvedValue({ fields: { attachment: { base: 'blob' } } });
     mocks.bakeFile.mockResolvedValue({
       page: { _id: 'page-1' },
@@ -553,6 +556,72 @@ describe('graph execution service', () => {
       }
     }, auth)).rejects.toMatchObject({ statusCode: 409 });
     expect(mocks.uploadFile).not.toHaveBeenCalled();
+  });
+
+  it('bakes a file into a new revisioned file instance and links it through a declared relation', async () => {
+    mocks.declarationForType.mockImplementation(async typeId => typeId === 'file-record'
+      ? { payload: { mime: ['text/plain'] }, revisions: 'content' }
+      : { fields: { attachment: { base: 'blob' } } });
+    const result = await graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: preview(),
+      outputId: 'document',
+      destination: {
+        type: 'instance-relation',
+        typeId: 'part',
+        instanceId: 'item-1',
+        expectedRevision: '3',
+        relationKey: 'attachments',
+        fileTypeId: 'file-record'
+      }
+    }, auth);
+
+    expect(fileService.createForHttp).toHaveBeenCalledWith(expect.objectContaining({
+      name: expect.any(String),
+      payload: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8', size: 18, name: expect.any(String) }
+    }), expect.objectContaining({
+      expectedOrganizationSequence: 4,
+      requireRevisionedPayload: true,
+      session
+    }));
+    expect(payloadService.linkRelationForHttp).toHaveBeenCalledWith('item-1', 'attachments', {
+      type: 'file-record',
+      id: 'file-record-1'
+    }, expect.objectContaining({
+      expectedRevision: '3',
+      expectedOrganizationSequence: null,
+      session
+    }));
+    expect(result.attachment._id).toBe('file-record-1');
+    expect(result.execution.artifacts.at(-1)).toMatchObject({
+      kind: 'instance-relation',
+      typeId: 'part',
+      instanceId: 'item-1',
+      relationKey: 'attachments',
+      fileTypeId: 'file-record',
+      fileInstanceId: 'file-record-1',
+      fileId: 'baked-payload-1'
+    });
+    expect(mocks.deleteFile).not.toHaveBeenCalled();
+  });
+
+  it('refuses relation Bake when the selected file type lacks revisioned payload', async () => {
+    mocks.declarationForType.mockResolvedValueOnce({ payload: { mime: ['text/plain'] } });
+    await expect(graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: preview(),
+      outputId: 'document',
+      destination: {
+        type: 'instance-relation',
+        typeId: 'part',
+        instanceId: 'item-1',
+        expectedRevision: '3',
+        relationKey: 'attachments',
+        fileTypeId: 'file-record'
+      }
+    }, auth)).rejects.toMatchObject({ statusCode: 400 });
+    expect(mocks.uploadFile).not.toHaveBeenCalled();
+    expect(fileService.createForHttp).not.toHaveBeenCalled();
   });
 
   it('bakes an output into an explicitly declared Blob field on an exact CTS instance', async () => {
