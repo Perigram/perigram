@@ -548,10 +548,9 @@ function legacyExecutorOrigin(install) {
     if (!service || serviceModeOf(service) !== 'endpoint') return null;
     try {
       const url = new URL(String(raw));
-      const suffix = String(service.endpointPath || serviceId).replace(/^\/+/, '');
-      if (!url.pathname.endsWith('/' + suffix)) return null;
+      const suffix = serviceId;
+      if (url.username || url.password || url.search || url.hash || !url.pathname.endsWith('/' + suffix)) return null;
       url.pathname = url.pathname.slice(0, -suffix.length).replace(/\/$/, '');
-      url.search = ''; url.hash = '';
       bases.add(url.toString().replace(/\/$/, ''));
     } catch { return null; }
   }
@@ -562,8 +561,7 @@ function endpointUrlFor(install, service) {
   if (install.endpoints?.[service.id] && !install.executorOrigin) return install.endpoints[service.id];
   const origin = install.executorOrigin || legacyExecutorOrigin(install);
   if (!origin) return null;
-  const path = String(service.endpointPath || service.id).replace(/^\/+/, '');
-  return String(origin).replace(/\/$/, '') + '/' + path.split('/').map(encodeURIComponent).join('/');
+  return String(origin).replace(/\/$/, '') + '/' + encodeURIComponent(service.id);
 }
 
 export async function settingsFor({ organizationId, pluginId, auth = {} }) {
