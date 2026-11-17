@@ -1,24 +1,26 @@
 <template>
-  <div class="my-2 rounded-lg border border-surface p-3">
-    <div v-if="loading" class="text-sm text-muted">Loading collection…</div>
-    <div v-else-if="error || !result" class="text-sm text-muted">Collection output is unavailable</div>
+  <div class="my-2 rounded border border-surface p-3">
+    <div v-if="loading" class="text-supporting text-muted">{{ t('processDesigner.loadingCollectionOutput') }}</div>
+    <div v-else-if="error || !result" class="text-supporting text-muted">{{ t('processDesigner.collectionOutputUnavailable') }}</div>
     <template v-else>
-      <div class="mb-2 text-sm font-medium">{{ result.label }} · {{ result.itemCount }}</div>
+      <div class="mb-2 text-supporting text-title">{{ result.label }} · {{ result.itemCount }}</div>
       <div v-for="(item, index) in result.items" :key="index" class="py-1">
         <InstanceInlineRef v-if="item.kind === 'instance'" :type="item.typeId" :id="item.instanceId" :entity="item.instance" :fetch="false" />
-        <span v-else-if="item.kind === 'unavailable'" class="text-sm text-muted">Referenced item is unavailable</span>
-        <span v-else class="text-sm">{{ displayValue(item.value) }}</span>
+        <span v-else-if="item.kind === 'unavailable'" class="text-supporting text-muted">{{ t('processDesigner.referencedItemUnavailable') }}</span>
+        <span v-else class="text-supporting">{{ displayValue(item.value) }}</span>
       </div>
-      <div v-if="!result.items.length" class="text-sm text-muted">No items</div>
-      <div v-if="result.truncated" class="mt-2 text-xs text-muted">Showing the first {{ result.items.length }} items</div>
+      <div v-if="!result.items.length" class="text-supporting text-muted">{{ t('processDesigner.noItems') }}</div>
+      <div v-if="result.truncated" class="mt-2 text-supporting text-muted">{{ t('processDesigner.showingFirstItems', { count: result.items.length }) }}</div>
     </template>
   </div>
 </template>
 
 <script setup>
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 
+const { t } = useI18n();
 const props = defineProps({ collection: { type: Object, required: true } });
 const result = ref(null);
 const loading = ref(false);
