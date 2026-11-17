@@ -714,7 +714,8 @@ export async function appendPayloadRevisionEvent(typeId, targetId, { reason = nu
     },
     evidence: buildEventEvidence({}, {})
   });
-  await machineRepository.insertStatusEvent(db, record, session ? { session } : {});
+  if (session) await machineRepository.insertStatusEvent(db, record, { session });
+  else await machineRepository.insertStatusEvent(db, record);
   return record;
 }
 

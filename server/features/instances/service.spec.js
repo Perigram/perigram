@@ -868,6 +868,21 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     )).rejects.toMatchObject({ statusCode: 403 });
   });
 
+  it('requires a revisioned payload when graph Bake creates an instance', async () => {
+    stubCollection();
+    const service = instanceServiceResolver('gallery'); // payload type without a revision scope
+    await expect(service.createForHttp({
+      payload: { fileId: 'baked-file-1', mime: 'image/png', size: 12 }
+    }, {
+      auth: { userId: 'user-1', organizationId: 'org-1' },
+      organizationId: 'org-1',
+      requireRevisionedPayload: true
+    })).rejects.toMatchObject({
+      statusCode: 400,
+      message: expect.stringContaining('revisioned payload')
+    });
+  });
+
   it('a type delegating its write gate (access.inherits) is authorized by the parent grant', async () => {
     stubCollection();
     const { hasInstanceAccess } = await import('../../core/access/service.js');
