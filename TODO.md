@@ -42,7 +42,7 @@ providers.
   nodes. Consolidate category vocabularies and source palette metadata from
   declarations; keep the same semantics across palette entries, canvas
   nodes, inspector, and preview/diagnostics.
-- [ ] Give Documents a first-class authorable document graph value: typed block
+- [x] Give Documents a first-class authorable document graph value: typed block
   constructors, document composition/append, direct preview, and actual
   Markdown/HTML/PDF file outputs through generic Bake/Export. The flow value
   must not be a dead generic record; test create → compose → preview → export
@@ -58,13 +58,19 @@ providers.
 - [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO after
   behavior verification; record remaining owner decisions explicitly.
 
+Progress (2026-11-17): The Documents graph-value acceptance is complete: typed constructors → compose → direct preview → Markdown/HTML/PDF export, with generic Bake materialization into `text-document`, `html-document`, and `pdf-document` covered by regressions. Full CI passes (304 files / 3,138 tests; SSR 9 files / 29 tests).
+
+Progress (2026-11-17): Built-in Documents and Facade executors are platform-managed: provider-level origins are prewired from deployment configuration, persisted on installs, hidden from organization settings, and protected from organization-level overrides. Legacy installs resolve the platform origin without asking an organization to supply one.
+
+Progress (2026-11-17): Facade cassette/profile card previews now have regression coverage; malformed OCCS profile evaluation and baked cassette geometry degrade to the quiet empty preview instead of surfacing unhandled render errors. Full CI passes (304 files / 3,138 tests; SSR 9 files / 29 tests).
+
 Progress (2026-11-17): HTML file previews now preserve the raw `text/html` payload through the generic preview loader, sanitize through the host markdown/DOMPurify pipeline, and render in a sandboxed iframe with restrictive CSP; malformed non-HTML plugin payloads still fail closed. The Documents listing maps `html-document` to its own preview surface (v21).
 
 Progress (2026-11-17): Documents list construction accepts typed `text.inline` values through the declared `inlineItems` input as well as plain text items.
 
 Progress (2026-11-17): The Documents List node's plain-text `items` socket is now optional and labeled separately from typed `inlineItems`, so a formatted-only list is authorable without an unused required input. The listing version advanced to 18; a declaration-contract regression covers the optional typed-input path.
 
-Progress (2026-11-17): Added a first-class `html-document` file type (`text/html`, content revisions, download-only preview, and a text projection) so `Export HTML file` output has a valid generic Bake destination instead of an unmaterializable MIME. Documents listing version advanced to 19; listing and graph-Bake regressions cover the type and materialization contract. A graph-level regression covers typed construction, document composition, preview rendering, and Markdown/HTML/PDF file payload generation; test execution remains unverified; a graph-executions regression now covers materialization into a `text-document` instance.
+Progress (2026-11-17): Added a first-class `html-document` file type (`text/html`, content revisions, download-only preview, and a text projection) so `Export HTML file` output has a valid generic Bake destination instead of an unmaterializable MIME. Documents listing version advanced to 19; listing and graph-Bake regressions cover the type and materialization contract. A graph-level regression covers typed construction, document composition, preview rendering, and Markdown/HTML/PDF file payload generation; the complete CI suite verifies the graph vertical slice and materialization regressions (304 test files / 3,138 tests; SSR 9 files / 29 tests).
 
 Progress (2026-11-17): Markdown table export escapes backslashes and pipe delimiters and flattens embedded cell line breaks.
 
