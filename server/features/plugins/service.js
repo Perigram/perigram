@@ -671,7 +671,8 @@ export async function servicesForOrganization(organizationId) {
         id,
         species: 'service',
         command: id,
-        group: service.group || install.name || install.pluginId,
+        group: service.group || install.pluginId,
+        ...(!service.group ? { groupLabel: install.name || install.pluginId } : {}),
         signature: service.signature,
         render: service.render || { label: service.label || service.id }
       });

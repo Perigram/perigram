@@ -831,7 +831,8 @@ describe('connector services', () => {
       id: 'plugin.coatings.mix',
       species: 'service',
       command: 'plugin.coatings.mix',
-      group: 'Coatings'
+      group: 'coatings',
+      groupLabel: 'Coatings'
     });
     expect(services[1]).toMatchObject({
       id: 'plugin.coatings.blend',
@@ -840,6 +841,24 @@ describe('connector services', () => {
     const merged = await projectedServicesForOrganization(ORG);
     expect(merged.some(service => service.id === 'plugin.coatings.mix')).toBe(true);
     expect(merged.some(service => service.id === 'plugin.coatings.match')).toBe(false);
+  });
+
+  it('gives ungrouped plugin services a stable provider-owned palette group', async () => {
+    repository.listInstallsByOrganization.mockResolvedValue([{
+      ...coatingInstall,
+      name: 'Coatings',
+      services: [{
+        id: 'render',
+        label: 'Render',
+        signature: { input: { base: 'record', fields: {} }, output: { base: 'json' } }
+      }]
+    }]);
+    const services = await servicesForOrganization(ORG);
+    expect(services[0]).toMatchObject({
+      id: 'plugin.coatings.render',
+      group: 'coatings',
+      groupLabel: 'Coatings'
+    });
   });
 
   it('projects scalar signature fields as the plugin command parameters', async () => {

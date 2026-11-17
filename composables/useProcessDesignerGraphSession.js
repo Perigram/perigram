@@ -293,7 +293,7 @@ export function useProcessDesignerGraphSession({
   const toPaletteGroups = groups => (groups || []).map(group => ({
     id: group.id,
     source: group.source,
-    label: paletteGroupLabel(group.id),
+    label: group.label || paletteGroupLabel(group.id),
     items: group.items.map(item => ({
       ...item,
       label: paletteLabel(item),

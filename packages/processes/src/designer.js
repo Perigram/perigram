@@ -834,8 +834,9 @@ export function servicesPaletteGroups(serviceContracts = {}) {
 // preset covers them).
 export function pluginPaletteGroups(projectionContracts = {}, serviceContracts = {}) {
   const sections = new Map();
-  const section = id => {
-    if (!sections.has(id)) sections.set(id, { id, items: [], source: 'plugin' });
+  const section = (id, label = '') => {
+    if (!sections.has(id)) sections.set(id, { id, ...(label ? { label } : {}), items: [], source: 'plugin' });
+    else if (label && !sections.get(id).label) sections.get(id).label = label;
     return sections.get(id);
   };
   const seenProjections = new Set();
@@ -854,7 +855,7 @@ export function pluginPaletteGroups(projectionContracts = {}, serviceContracts =
   }
   for (const service of Object.values(serviceContracts || {})) {
     if (!service?.group || !service?.id || !service.command) continue;
-    section(service.group).items.push(paletteItem(`service:${service.id}`, 'cts.service', {
+    section(service.group, service.groupLabel).items.push(paletteItem(`service:${service.id}`, 'cts.service', {
       label: service.label || service.render?.label || service.id,
       description: service.description || service.render?.description || service.render?.label || service.id,
       searchTerms: [service.id, service.command, service.provider, service.pluginId].filter(Boolean),
