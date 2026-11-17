@@ -2,10 +2,9 @@ import { createError, defineEventHandler, getRouterParam, readBody } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 
-// Generic instance update transport: the wire patch blocks
-// (`identity.name`, `data`/`specs` leaves, `states.main`, `lineage`
-// edges, `relations`) the generic instance service writes. The service
-// owns the §3 patch mapping and the access gate.
+// Generic instance update transport: the generic instance service writes
+// the name and declared flat fields through its access and revision gates.
+// Structural lineage/relation changes use their dedicated validated routes.
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const typeId = getRouterParam(event, 'type');
