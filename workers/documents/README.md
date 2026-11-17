@@ -5,21 +5,24 @@ media/office file types (image, PDF, markdown, CSV, XLSX, DOCX), their
 editor surfaces, the table projections, the CSV composition, and the
 template fills (SPEC §24). The platform carries zero documents code:
 projections and fills compute here as pure payload decompositions and
-compositions, editors ship as the plugin's surface modules, and the
+compositions, the browser runtime handles pure row-to-CSV serialization,
+editors ship as the plugin's surface modules, and the
 types ride the generic instance machinery from the install snapshot.
 
 - Listing: `workers/documents/listing.json` — types with
   service-resolved projections (`resolve: { service:
-  'plugin.documents.<svc>' }` — endpoint mode), the twelve services,
+  'plugin.documents.<svc>' }` — synchronous endpoint mode), the twelve services,
   editor bindings, the fill construction bindings, and the
   text-document starter construct (markdown stays visible-by-default
   through the default installs). `requires` names tech-drawing: the
   PDF render construction accepts `dxf-source` sources.
-- Services (`services.js`, endpoint mode, the four value services
-  deterministic-cached and palette-wireable in the `table-data`
-  section): `table-rows`/`table-cells`
+- Services (`services.js`, with `csv-text` moved to the browser Worker
+  runtime and the remaining value operations endpoint-backed; the four
+  value services are deterministic-cached and palette-wireable in the
+  `table-data` section): `table-rows`/`table-cells`
   (payload → first sheet as header-keyed / positional row records),
-  `text` (payload → string), `csv-text` (rows → CSV text) — the
+  `text` (payload → string), `csv-text` (rows → CSV text, serialized by
+  `/runtime/browser.mjs` using the bundled XLSX engine) — the
   extraction trio takes one `payload` field declared `blob`: composed
   on the process canvas the platform hydrates the payload handle with
   its bytes (`payloadBase64`), projected the platform sends the
