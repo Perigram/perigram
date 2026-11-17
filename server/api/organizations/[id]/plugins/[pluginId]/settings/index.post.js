@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   return pluginsService.updateSettings({
     organizationId: getRouterParam(event, 'id'),
     pluginId: getRouterParam(event, 'pluginId'),
-    endpoints: body?.endpoints || {},
+    executorOrigin: body?.executorOrigin,
     authToken: body?.authToken || null,
     auth
   });

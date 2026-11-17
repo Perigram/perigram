@@ -244,15 +244,18 @@
       size="md"
     >
       <div v-if="settings" class="flex flex-col gap-4">
-        <div v-for="field in settings.fields" :key="field.id" class="flex flex-col gap-2">
-          <div class="text-muted text-label">{{ field.label }}</div>
+        <div v-if="settings.hasEndpointServices" class="flex flex-col gap-2">
+          <div class="text-muted text-label">{{ $t('plugins.executorOrigin') }}</div>
           <InputText
-            v-model="settings.endpoints[field.id]"
+            v-model="settings.executorOrigin"
             type="text"
             class="w-full text-technical"
-            :placeholder="$t('plugins.endpointPlaceholder')"
-            :data-testid="`plugin-endpoint-${field.id}`"
+            :placeholder="$t('plugins.executorOriginPlaceholder')"
+            data-testid="plugin-executor-origin"
           />
+          <Message v-if="settings.legacyEndpointConflict" severity="warn" size="small">
+            {{ $t('plugins.legacyEndpointConflict') }}
+          </Message>
         </div>
         <div v-if="settings.surfaces" class="flex flex-col gap-2">
           <div class="text-muted text-label">{{ $t('plugins.surfaceOrigin') }}</div>
@@ -437,11 +440,9 @@ async function openSettings(item) {
       authToken: response.authToken || '',
       surfaceOrigin: response.surfaceOrigin || '',
       surfaces: response.surfaces || false,
-      endpoints: Object.fromEntries(
-        (response.services || []).filter(service => service.mode === 'endpoint')
-          .map(service => [service.id, service.endpoint || ''])
-      ),
-      fields: (response.services || []).filter(service => service.mode === 'endpoint')
+      executorOrigin: response.executorOrigin || '',
+      legacyEndpointConflict: response.legacyEndpointConflict || false,
+      hasEndpointServices: response.hasEndpointServices || false
     };
   } catch (error) {
     settingsDialogVisible.value = false;
@@ -456,7 +457,7 @@ async function saveSettings() {
     await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(settings.value.pluginId)}/settings`, {
       method: 'POST',
       body: {
-        endpoints: settings.value.endpoints,
+        executorOrigin: settings.value.executorOrigin || null,
         authToken: settings.value.authToken || null,
         ...(settings.value.surfaces ? { surfaceOrigin: settings.value.surfaceOrigin || null } : {})
       }

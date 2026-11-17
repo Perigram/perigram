@@ -233,12 +233,12 @@ export async function updateInstallSnapshot(organizationId, pluginId, { version,
   );
 }
 
-// Connection settings: per-service endpoints and the executor API key.
-export async function updateSettings(organizationId, pluginId, { endpoints, authToken, surfaceOrigin }) {
+// Connection settings: one provider-level executor origin and credential.
+export async function updateSettings(organizationId, pluginId, { executorOrigin, authToken, surfaceOrigin }) {
   const db = await connectDB();
   await db.collection(INSTALLS_COLLECTION).updateOne(
     { organizationId: String(organizationId), pluginId: String(pluginId) },
-    { $set: { endpoints, authToken, surfaceOrigin: surfaceOrigin || null } }
+    { $set: { executorOrigin: executorOrigin || null, authToken, surfaceOrigin: surfaceOrigin || null }, $unset: { endpoints: '' } }
   );
 }
 
