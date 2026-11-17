@@ -252,7 +252,7 @@ describe('process v4 node catalog', () => {
     const ports = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'nesting.solve' }, { domain });
     // A service is an effect species: the event contract wraps the
     // signature-derived data sockets.
-    expect(ports.inputs.map(input => input.id)).toEqual(['in', 'polygons', 'sheet']);
+    expect(ports.inputs.map(input => input.id)).toEqual(['in', 'polygons', 'sheet', 'sheetWidth', 'space']);
     expect(ports.outputs.map(output => output.id)).toEqual(['completed', 'result']);
     // A `list` signature field is the element-typed List socket (a runtime
     // collection, not a persisted array).

@@ -149,7 +149,10 @@ export function normalizeProcessSocket(socket = {}, fallback = {}) {
     path: source.path || source.dataPath || fallback.path || '',
     description: source.description || fallback.description || '',
     ...(source.plane || fallback.plane ? { plane: source.plane || fallback.plane } : {}),
-    multiple: source.multiple === true || fallback.multiple === true
+    multiple: source.multiple === true || fallback.multiple === true,
+    ...((source.default !== undefined || fallback.default !== undefined)
+      ? { default: structuredClone(source.default !== undefined ? source.default : fallback.default) }
+      : {})
   };
 }
 
