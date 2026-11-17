@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
     organizationId: getRouterParam(event, 'id'),
     pluginId: getRouterParam(event, 'pluginId'),
     executorOrigin: body?.executorOrigin,
+    endpoints: body?.endpoints,
     authToken: body?.authToken || null,
     auth
   });

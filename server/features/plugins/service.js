@@ -644,6 +644,9 @@ export async function updateSettings({ organizationId, pluginId, executorOrigin 
     if (Object.keys(legacyMap).length && !candidate) throw createError({ statusCode: 400, message: 'Per-service endpoints cannot be saved. Configure one provider-level executor origin.' });
     requestedOrigin = candidate;
   }
+  if (!requestedOrigin && Object.keys(install.endpoints || {}).length && !legacyExecutorOrigin(install)) {
+    throw createError({ statusCode: 400, message: 'Legacy operation URLs do not share one provider base. Set the provider executor origin explicitly before saving.' });
+  }
   let configuredOrigin = install.executorOrigin || legacyExecutorOrigin(install);
   if (requestedOrigin !== undefined) {
     if (!requestedOrigin) configuredOrigin = null;

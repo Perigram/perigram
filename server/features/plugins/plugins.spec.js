@@ -1180,6 +1180,31 @@ describe('endpoint-mode services', () => {
     expect(saved.executorOrigin).toBe('https://executor.example');
   });
 
+  it('does not discard divergent legacy URLs until an administrator sets a provider origin', async () => {
+    const divergent = {
+      ...endpointInstall,
+      services: [
+        { id: 'match', mode: 'endpoint', signature: { input: { base: 'json' }, output: { base: 'json' } } },
+        { id: 'poll', mode: 'endpoint', signature: { input: { base: 'json' }, output: { base: 'json' } } }
+      ],
+      endpoints: {
+        match: 'https://one.example/match',
+        poll: 'https://two.example/poll'
+      }
+    };
+    repository.findInstall.mockResolvedValue(divergent);
+    const settings = await settingsFor({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(settings.legacyEndpointConflict).toBe(true);
+    expect(settings.executorOrigin).toBe('');
+    await expect(updateSettings({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      executorOrigin: null,
+      auth: AUTH
+    })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('do not share one provider base') });
+    expect(repository.updateSettings).not.toHaveBeenCalled();
+  });
+
   it('replays a deterministic endpoint service through the service cache (SPEC §28)', async () => {
     const cachedInstall = {
       ...endpointInstall,
