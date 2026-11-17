@@ -119,7 +119,12 @@ export function usePluginRuntime({
             resolve, reject, operationId, capabilities, allowedCapabilities, signal, abort
           });
           signal?.addEventListener('abort', abort, { once: true });
-          worker.postMessage({ type: 'invoke', invocationId, operationId, input });
+          worker.postMessage({
+            type: 'invoke',
+            invocationId,
+            operationId,
+            input: transferableInvocation(input)
+          });
         });
       },
       dispose() {
@@ -130,6 +135,28 @@ export function usePluginRuntime({
       }
     };
   }
+
+
+// Graph evaluation context contains host-owned recorders (notably readSet)
+// with functions and Maps. A plugin worker needs only the serializable
+// execution metadata; the authoritative recorder remains in the host.
+function transferableInvocation(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return input;
+  const result = { ...input };
+  if (!input.context || typeof input.context !== 'object') return result;
+  const context = {};
+  for (const [key, value] of Object.entries(input.context)) {
+    if (key === 'readSet' || typeof value === 'function') continue;
+    try {
+      structuredClone(value);
+      context[key] = value;
+    } catch {
+      // Host-only context values are deliberately not exposed to plugin code.
+    }
+  }
+  result.context = context;
+  return result;
+}
 
   function runtimeFor(binding, runtime) {
     const key = runtimeKey(binding, runtime);
