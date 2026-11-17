@@ -1107,6 +1107,10 @@ async function installForCommand(commandId, organizationId) {
 // 60 s budget, JSON in/out — shared by connector commands and projection
 // reads.
 async function callEndpointService(install, serviceId, body) {
+  const service = (install.services || []).find(item => item.id === String(serviceId));
+  if (!service || serviceModeOf(service) !== 'endpoint') {
+    throw createError({ statusCode: 400, message: `Service ${serviceId} is not an endpoint-mode service` });
+  }
   const endpoint = endpointUrlFor(install, service);
   if (!endpoint) {
     throw createError({
