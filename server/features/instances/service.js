@@ -1161,6 +1161,94 @@ function instanceService(typeId) {
       return updated;
     },
 
+    async unlinkRelationForHttp(id, relationKey, targetRef, {
+      auth = null,
+      organizationId = null,
+      expectedRevision = null,
+      expectedOrganizationSequence = null,
+      session = null
+    } = {}) {
+      const key = String(relationKey || '');
+      if (!key || !targetRef || typeof targetRef !== 'object'
+        || typeof targetRef.type !== 'string' || !targetRef.type.trim()
+        || typeof targetRef.id !== 'string' || !targetRef.id.trim()) {
+        throw createError({ statusCode: 400, message: 'Relation unlink requires a declared key and typed target reference' });
+      }
+      const declaration = await requireDeclaration(typeId, organizationId);
+      const collection = repository.collectionForClass(declaration.class);
+      const doc = await repository.findInstance(collection, id, typeId, { session });
+      if (!doc) throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
+      if (doc.organizationId != null && organizationId != null
+        && String(doc.organizationId) !== String(organizationId)) {
+        throw createError({ statusCode: 403, message: 'Relation owner belongs to a different organization' });
+      }
+      const current = toDto(doc, declaration);
+      if (expectedRevision == null || current.revision == null
+        || String(current.revision) !== String(expectedRevision)) {
+        throw createError({ statusCode: 409, message: `${typeId} ${id} changed after the relation proposal was evaluated` });
+      }
+      const target = await writeGrantTarget(declaration, organizationId);
+      if (!target || !hasInstanceAccess({
+        entity: current,
+        typeId: target.typeId,
+        feature: target.feature,
+        level: 'write',
+        action: 'update',
+        auth
+      })) {
+        throw createError({ statusCode: 403, message: 'Permission denied' });
+      }
+
+      const edge = declaration.edges?.relations?.[key] || null;
+      const field = declaration.fields?.[key] || null;
+      const fieldRef = field?.base === 'ref';
+      const fieldRefList = field?.base === 'list' && field?.itemType?.base === 'ref';
+      if (!edge && !fieldRef && !fieldRefList) {
+        throw createError({ statusCode: 400, message: `Relation ${key} is not declared for ${typeId}` });
+      }
+      const relationValue = edge ? current.relations?.[key] : current.fields?.[key];
+      const existing = relationValue == null ? [] : Array.isArray(relationValue) ? relationValue : [relationValue];
+      const matches = value => String(value?.type || '') === String(targetRef.type)
+        && String(value?.id ?? value?._id ?? '') === String(targetRef.id);
+      if (!existing.some(matches)) {
+        throw createError({ statusCode: 409, message: 'The relation does not contain this target' });
+      }
+      const many = edge ? edge.cardinality !== 'one' : fieldRefList;
+      if (!many && fieldRef && field.nullable !== true) {
+        throw createError({ statusCode: 409, message: `Relation field ${key} is not nullable and cannot be unlinked` });
+      }
+      const nextValue = many ? existing.filter(value => !matches(value)) : null;
+      const patch = edge
+        ? { relations: { [key]: nextValue } }
+        : { fields: { [key]: nextValue } };
+      const candidate = {
+        ...current,
+        [edge ? 'relations' : 'fields']: {
+          ...(edge ? current.relations : current.fields),
+          [key]: nextValue
+        }
+      };
+      await assertDeclaredRelationSlots(declaration, candidate, organizationId, [key], { session });
+      const updated = await instanceService(typeId).processUpdate(id, patch, {
+        organizationId,
+        userId: auth?.userId || null,
+        expectedUpdatedAt: doc.updatedAt,
+        expectedRevision,
+        expectedOrganizationSequence,
+        session
+      });
+      if (!edge) {
+        await appendFieldChangeEvent(typeId, id, {
+          changes: fieldChangesFromPatch(patch, current),
+          actorId: auth?.userId || null,
+          auth: auth || {},
+          state: typeof current.state === 'string' && current.state ? current.state : null,
+          session
+        });
+      }
+      return updated;
+    },
+
     // HTTP create transport (`POST /api/instances/:type`): the create
     // half of the same wire — the §3 draft createValidated stores (name
     // rename channel, flat fields, lineage edges, payload traits),
