@@ -74,6 +74,7 @@ describe('useGraphDocumentSession', () => {
       id: 'math.double',
       version: '1',
       label: 'Double',
+      palette: { group: 'numeric-operations', label: 'Numeric operations', keywords: ['arithmetic', 'math'] },
       inputs: [{ id: 'value', shape: 'item', semantic: { base: 'number' }, required: true }],
       outputs: [{ id: 'result', shape: 'item', semantic: { base: 'number' }, required: true }],
       execution: { kind: 'pure', deterministic: true }
@@ -87,6 +88,8 @@ describe('useGraphDocumentSession', () => {
       }]
     });
     const pluginGroup = session.paletteGroups.value.find(group => group.source === 'plugin');
+    expect(pluginGroup).toMatchObject({ id: 'graph-plugin.example-numeric-operations', label: 'Numeric operations' });
+    expect(pluginGroup.items[0]).toMatchObject({ keywords: ['arithmetic', 'math'], searchTerms: ['plugin.example', 'math.double', 'numeric-operations'] });
     expect(pluginGroup.items[0].operation).toEqual({
       provider: 'plugin.example', id: 'math.double', version: '1'
     });
