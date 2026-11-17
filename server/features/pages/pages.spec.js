@@ -193,6 +193,15 @@ describe('pages', () => {
     expect(result).toEqual([{ blockId: 'pinned', status: 'unavailable' }]);
   });
 
+  it('returns the same unavailable state when a pinned revision belongs to another source', async () => {
+    const page = await pagesService.create({ name: 'Mismatched pin', blocks: [
+      { id: 'pinned', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-2', revisionId: 'wrong-source-revision' } }
+    ], order: ['pinned'] }, memberOf(ORG_A));
+    getRevisionById.mockResolvedValueOnce({ _id: 'wrong-source-revision', data: { source: { type: 'part', id: 'somebody-else' } } });
+    const result = await pagesService.resolveReferences(page._id, memberOf(ORG_A));
+    expect(result).toEqual([{ blockId: 'pinned', status: 'unavailable' }]);
+  });
+
   it('derives backlinks from page reference blocks, including pinned references', async () => {
     await pagesService.create({ name: 'Source page', blocks: [
       { id: 'ref-live', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-1' } },

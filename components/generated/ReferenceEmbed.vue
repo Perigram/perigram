@@ -10,7 +10,7 @@
       :revision="result.mode === 'pinned' ? result.revisionId : null"
       :fetch="false"
       variant="compact"
-      :interactive="true"
+      :interactive="result.mode !== 'pinned'"
     />
   </div>
 </template>
