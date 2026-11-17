@@ -1040,6 +1040,10 @@ function instanceService(typeId) {
         throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
       }
       const current = toDto(doc);
+      if (doc.organizationId != null && organizationId != null
+        && String(doc.organizationId) !== String(organizationId)) {
+        throw createError({ statusCode: 403, message: 'Instance belongs to a different organization' });
+      }
       if (expectedRevision != null
         && (current.revision == null || String(current.revision) !== String(expectedRevision))) {
         throw createError({ statusCode: 409, message: `${typeId} ${id} changed after the graph proposal was evaluated` });

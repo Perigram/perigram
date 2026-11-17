@@ -484,6 +484,20 @@ describe('graph execution service', () => {
     expect(mocks.deleteFile).not.toHaveBeenCalled();
   });
 
+  it('does not bake a graph output into a Page in another active organization', async () => {
+    graphService.processGetById.mockResolvedValueOnce({
+      ...graphDocument,
+      organizationId: 'org-2'
+    });
+    await expect(graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: preview(),
+      outputId: 'document',
+      destination: { type: 'page-file', pageId: 'page-1', path: 'exports/document.txt' }
+    }, auth)).rejects.toMatchObject({ statusCode: 403 });
+    expect(mocks.bakeFile).not.toHaveBeenCalled();
+  });
+
   it('refuses instance-field Bake unless the destination is a declared Blob field', async () => {
     mocks.declarationForType.mockResolvedValueOnce({ fields: { attachment: { base: 'string' } } });
     await expect(graphExecutionsService.bakeOutput({

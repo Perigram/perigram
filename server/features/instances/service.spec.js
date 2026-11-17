@@ -998,6 +998,24 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
     });
   }
 
+  it('refuses to patch an instance through a different organization scope', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockResolvedValue({
+      _id: SKETCH_ID,
+      type: 'csv-table',
+      organizationId: 'org-2',
+      revision: 1,
+      updatedAt: '2026-11-17T00:00:00.000Z',
+      fields: { name: 'Foreign' }
+    });
+    const service = instanceServiceResolver('csv-table');
+    await expect(service.patch(SKETCH_ID, { fields: { name: 'Changed' } }, {
+      auth: { userId: 'user-1', organizationId: 'org-1' },
+      organizationId: 'org-1'
+    })).rejects.toMatchObject({ statusCode: 403 });
+    expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
   it('stores, revisions, and swaps the payload for a revisioned type', async () => {
     const coll = stubCollection();
     stubSketchDoc(coll, { revision: 1 });

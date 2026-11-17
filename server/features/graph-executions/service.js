@@ -568,11 +568,6 @@ export async function commitOutput({ graphDocumentInstanceId, record: value, out
     throw createError({ statusCode: 400, message: 'Selected graph output is unavailable' });
   }
   const { graphDocument, graph, organizationId } = await sourceFor(graphDocumentInstanceId, preview, auth);
-  const activeOrganizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
-  if (isPageFile && graphDocument.organizationId != null && activeOrganizationId != null
-    && String(graphDocument.organizationId) !== String(activeOrganizationId)) {
-    throw createError({ statusCode: 403, message: 'Page-file Bake must stay within the graph document organization' });
-  }
   if (!(graph.interface?.outputs || []).some(port => String(port.id) === selectedOutputId)) {
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
   }
@@ -689,6 +684,11 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     throw createError({ statusCode: 400, message: 'Instance Bake supports only fail-on-conflict semantics' });
   }
   const { graphDocument, graph, organizationId } = await sourceFor(graphDocumentInstanceId, preview, auth);
+  const activeOrganizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+  if (isPageFile && graphDocument.organizationId != null && activeOrganizationId != null
+    && String(graphDocument.organizationId) !== String(activeOrganizationId)) {
+    throw createError({ statusCode: 403, message: 'Page-file Bake must stay within the graph document organization' });
+  }
   if (!(graph.interface?.outputs || []).some(port => String(port.id) === selectedOutputId)) {
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
   }
