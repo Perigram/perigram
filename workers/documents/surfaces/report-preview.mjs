@@ -1,3 +1,5 @@
+import { parseMarkdown } from '../markdown-ir.mjs';
+
 // The Documents preview channel renders flowing-document, report, and file values
 // from the whole-graph evaluation. The host owns the preview workspace;
 // this surface only renders the provider's read-only representations.
