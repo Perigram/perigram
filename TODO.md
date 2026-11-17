@@ -104,7 +104,7 @@ providers.
   and every declared construction/service. Verify each workflow and close
   behavior/spec gaps.
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
-  hosting. Current inventory: 8 of 28 Documents services and 2 of 7 Facade services remain
+  hosting. Current inventory: 7 of 28 Documents services and 2 of 7 Facade services remain
   `mode: endpoint`; Facade `nesting-solve` runs in the managed server runtime
   through the platform-owned `facade.nesting.solve` capability. Pure
   `bake`, `match-sheet`, `construct-sheet`, `generate-sheet-dxf`, and all
@@ -174,7 +174,7 @@ Progress (2026-11-17): Facade nesting quantity normalization no longer truncates
 
 Progress (2026-11-17): Facade `sheet-dxf` now declares `content` revisions, completing the revision-scope declaration for all payload-bearing Facade file types. A contract test rejects any payload-bearing file type without a `content` or `geometry` revision scope; Facade listing version advanced to 46.
 
-Progress (2026-11-17): Documents and Facade palette contributions now use the actual listing declarations in contract tests (no synthetic fallback groups). Facade's graph-visible operations are grouped by workflow (nesting, sheet-planning, production-export); provider-authored operation labels and descriptions are now rendered by the shared palette projection. Internal construction/projection helpers stay out of the graph palette. Service execution migration is underway: Documents `csv-text` now runs in its browser runtime; 8 Documents operations remain endpoint-backed. Facade has five managed operations and two endpoint-backed operations.
+Progress (2026-11-17): Documents and Facade palette contributions now use the actual listing declarations in contract tests (no synthetic fallback groups). Facade's graph-visible operations are grouped by workflow (nesting, sheet-planning, production-export); provider-authored operation labels and descriptions are now rendered by the shared palette projection. Internal construction/projection helpers stay out of the graph palette. Service execution migration is underway: Documents `csv-text` now runs in its browser runtime; 7 Documents operations remain endpoint-backed. Facade has five managed operations and two endpoint-backed operations.
 
 Progress (2026-11-17): The graph-node palette and plugin listing now share
 one declaration contract: `palette.group`, optional `label`, `keywords`,
@@ -7908,3 +7908,41 @@ Documents graph operation in the shared browser/server runtime. It returns a
 real Markdown file payload; template text can come from the authorized
 `read-text-file` operation and values remain explicit graph inputs. XLSX/PDF
 template engines are still endpoint-backed. CI verification is pending.
+
+### Documents graph delivery — next sequence
+
+The first usable browser/server graph slice now includes typed document
+construction, Markdown parsing, composition, Markdown/HTML file export,
+Markdown template fill, direct document/report previews, sandboxed Markdown
+and HTML file previews, and a graph-level Markdown → file regression. The
+server Bake regression now consumes a file payload produced by the actual
+Documents runtime rather than a hand-built fixture.
+
+Remaining work is ordered by the shortest path to human-usable file-backed
+graphs:
+
+- [ ] Add a typed file-reference input control to the graph preview panel.
+  Derive readable file options from the user's registry and use the
+  authorized file read capability; do not make users paste opaque file IDs.
+- [ ] Add a generic `read-file` graph operation returning a typed file
+  payload, so binary templates can flow through nodes without endpoint
+  coupling.
+- [ ] Move XLSX template filling into the shared browser/server runtime,
+  preserving cell formatting, formulas, row sections, merged cells, and
+  worksheet dimensions. Connect it to `read-file` and generic Bake.
+- [ ] Keep PDF template filling server-managed, but expose it as a typed
+  graph operation using the same file/value contract and managed executor.
+- [ ] Add full acceptance coverage for Markdown and XLSX template graphs:
+  select source file → read → fill → preview → Bake to an explicit page/path
+  → reopen the resulting file and verify execution provenance.
+- [ ] Publish/upgrade the installed Documents catalog and verify the exact
+  installed listing/runtime versions used by an organization. Source commits
+  alone do not prove the catalog or running executor has upgraded.
+
+
+Progress (2026-11-17): The Documents preview channel now recognizes file
+payload envelopes from graph outputs and node outputs. Markdown and HTML
+payloads render through the host sanitizer in a sandboxed iframe with a
+restrictive CSP; the graph output panel selects the Documents channel
+automatically for document/report/file values. A server Bake regression now
+starts from a real file payload emitted by the Documents shared runtime.

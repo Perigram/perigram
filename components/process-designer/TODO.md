@@ -205,3 +205,12 @@ browser/server runtime and is exposed through listing-derived provider
 discovery. It produces `text.flow-document@1` and preserves the existing
 report adapter import. Verify the node in the actual palette and run the
 Markdown graph acceptance path after package/catalog upgrade.
+
+### Agent Notes (2026-11-17, Documents file outputs)
+
+The Documents preview channel now renders Markdown and HTML file payload
+envelopes from selected graph outputs and node outputs, and the preview panel
+prefers that channel for those values. The server Bake regression now starts
+with a real Markdown payload produced by the shared Documents runtime. Next:
+replace manual file-ID text inputs with a readable file-instance picker and
+add a generic file-payload read operation for binary templates.

@@ -306,3 +306,7 @@ Behavior and traps:
 
 Parent: [workers README](../README.md). Platform consumer:
 [plugins feature](../../server/features/plugins/README.md).
+
+The graph preview channel also renders Markdown and HTML file payloads from
+unified graph outputs through the host sanitizer in a sandboxed iframe. The
+same runtime file payload is accepted by the generic page-file Bake path.
