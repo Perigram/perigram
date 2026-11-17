@@ -49,6 +49,8 @@ The extract-geometry, bake, and nesting-parts services remain construction or
 projection helpers, not generic graph operations. The listing's operation
 labels and descriptions are the user-facing palette copy.
 
+Every payload-bearing Facade file type declares a revision scope. The cassette template and cassette design pin geometry revisions; generated sheet DXF files pin content revisions. The sheet DXF is construction-derived, so its payload is replaced only by re-running the declared `fromSheet` construction, not by direct editing.
+
 ## Services
 
 The remaining HTTP executor exposes only `extract-geometry` and `nesting-parts`. `bake`, `match-sheet`, `construct-sheet`, and `generate-sheet-dxf` execute through the versioned `facade-server` runtime; pure operations use the browser/server Worker boundary, while nesting solve is server-only and calls the platform-owned solver capability.
