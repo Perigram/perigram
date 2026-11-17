@@ -17,7 +17,7 @@ types ride the generic instance machinery from the install snapshot.
   through the default installs). `requires` names tech-drawing: the
   PDF render construction accepts `dxf-source` sources.
 - Services (`services.js`, with `csv-text` moved to the browser Worker
-  runtime and `extract-table`, `compose-report`, and `render-html` moved to the managed server runtime; only the
+  runtime and `extract-table`, `compose-report`, `export-markdown`, and `render-html` moved to the managed server runtime; only the
   remaining endpoint-mode operations are served by `index.js`;
   the four value services are deterministic-cached and palette-wireable in
   the `table-data` section): `table-rows`/`table-cells`

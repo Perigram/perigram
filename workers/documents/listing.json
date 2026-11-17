@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "14",
+  "version": "15",
   "requires": [
     "tech-drawing"
   ],
@@ -533,7 +533,6 @@
       {
         "id": "export-markdown",
         "label": "Export markdown",
-        "mode": "endpoint",
         "group": "document-compose",
         "cache": "deterministic",
         "render": {
@@ -554,7 +553,17 @@
             "base": "string"
           }
         },
-        "description": "Serialize a flow document back to Markdown"
+        "description": "Serialize a flow document back to Markdown",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        }
       },
       {
         "id": "compose-report",

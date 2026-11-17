@@ -23,6 +23,10 @@ describe('Documents server runtime', () => {
     expect(html).not.toContain('<script>');
   });
 
+  it('exports flow documents to Markdown', () => {
+    expect(runtime.execute('export-markdown', { document: { type: 'text.flow-document', blocks: [{ type: 'heading', level: 2, children: [{ type: 'text', text: 'Parts' }] }, { type: 'paragraph', children: [{ type: 'text', text: 'Ready' }] }] } })).toBe('## Parts\\n\\nReady\\n');
+  });
+
   it('rejects unknown operations', () => {
     expect(() => runtime.execute('render-html', {})).toThrow(/Unsupported Documents server operation/);
   });

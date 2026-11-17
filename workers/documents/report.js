@@ -3,9 +3,9 @@
 // composition, and the report's export representations. Pure value
 // code — the IR contracts live in this worker's README.
 import { marked } from 'marked';
-import { FLOW_DOCUMENT_TYPE, REPORT_TYPE, requireReport, composeReport, extractTable, renderReportHtml } from './report-ir.mjs';
+import { FLOW_DOCUMENT_TYPE, REPORT_TYPE, requireReport, composeReport, extractTable, renderReportHtml, exportMarkdown, blockMarkdown } from './report-ir.mjs';
 import { renderPdfFromMarkdown } from './fill.js';
-export { composeReport, extractTable, renderReportHtml };
+export { composeReport, extractTable, renderReportHtml, exportMarkdown };
 
 function flowDocument(blocks, diagnostics = []) {
   return {
@@ -118,57 +118,6 @@ function badInput(message) {
   const error = new Error(message);
   error.status = 400;
   return error;
-}
-
-export function exportMarkdown(document) {
-  if (document?.type !== FLOW_DOCUMENT_TYPE || !Array.isArray(document.blocks)) {
-    throw badInput(`export-markdown requires a ${FLOW_DOCUMENT_TYPE} value`);
-  }
-  return document.blocks.map(blockMarkdown).join('\n\n').trimEnd() + '\n';
-}
-
-function blockMarkdown(block) {
-  switch (block.type) {
-    case 'heading':
-      return `${'#'.repeat(Math.min(6, Math.max(1, block.level || 1)))} ${inlineMarkdown(block.children)}`;
-    case 'paragraph':
-      return inlineMarkdown(block.children);
-    case 'list':
-      return block.items
-        .map((item, index) => `${block.ordered ? `${index + 1}.` : '-'} ${inlineMarkdown(item)}`)
-        .join('\n');
-    case 'blockquote':
-      return block.blocks.map(blockMarkdown).join('\n\n').split('\n').map(line => `> ${line}`).join('\n');
-    case 'code-block':
-      return `\`\`\`${block.language || ''}\n${block.text}\n\`\`\``;
-    case 'table': {
-      const columns = [...new Set((block.rows || []).flatMap(row => Object.keys(row)))];
-      if (!columns.length) return '';
-      const line = cells => `| ${cells.join(' | ')} |`;
-      return [
-        line(columns),
-        line(columns.map(() => '---')),
-        ...(block.rows || []).map(row => line(columns.map(column => String(row[column] ?? ''))))
-      ].join('\n');
-    }
-    case 'horizontal-rule':
-      return '---';
-    default:
-      throw badInput(`export-markdown cannot serialize block type ${block.type}`);
-  }
-}
-
-function inlineMarkdown(nodes = []) {
-  return nodes.map(node => {
-    switch (node.type) {
-      case 'text': return node.text;
-      case 'strong': return `**${inlineMarkdown(node.children)}**`;
-      case 'emphasis': return `*${inlineMarkdown(node.children)}*`;
-      case 'code': return `\`${node.text}\``;
-      case 'link': return `[${inlineMarkdown(node.children)}](${node.href})`;
-      default: return '';
-    }
-  }).join('');
 }
 
 // One report over the composed inputs: the flow document renders as the

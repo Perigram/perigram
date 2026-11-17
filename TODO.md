@@ -18,7 +18,7 @@ providers.
   and every declared construction/service. Verify each workflow and close
   behavior/spec gaps.
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
-  hosting. Current inventory: 8 of 12 Documents services and 2 of 7 Facade services remain
+  hosting. Current inventory: 7 of 12 Documents services and 2 of 7 Facade services remain
   `mode: endpoint`; Facade `nesting-solve` runs in the managed server runtime
   through the platform-owned `facade.nesting.solve` capability. Pure
   `bake`, `match-sheet`, `construct-sheet`, `generate-sheet-dxf`, and Documents `csv-text` run in the shared
@@ -51,7 +51,7 @@ providers.
 - [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO after
   behavior verification; record remaining owner decisions explicitly.
 
-Progress (2026-11-17): Documents `extract-table`, `compose-report`, and `render-html` now run in the managed server runtime rather than per-service endpoints. Their shared, dependency-free `report-ir.mjs` module owns the report/flow contracts, table extraction, composition, and escaped HTML representation.
+Progress (2026-11-17): Documents `extract-table`, `compose-report`, `export-markdown`, and `render-html` now run in the managed server runtime rather than per-service endpoints. Their shared, dependency-free `report-ir.mjs` module owns the report/flow contracts, table extraction, composition, and escaped HTML representation.
 
 Progress (2026-11-17): Plugin connection settings now explain that executor origins apply only to separately hosted endpoint-mode services; the bearer-token field is hidden unless such services exist, uses password input, and explains that the secret stays server-side. Managed/local package installs no longer return an irrelevant auth token to the settings UI. This is a UX clarification, not completion of the endpoint-to-managed-runtime migration.
 
