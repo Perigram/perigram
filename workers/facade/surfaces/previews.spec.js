@@ -95,7 +95,7 @@ describe('Facade preview surfaces', () => {
     });
     await mount.settle();
     const tree = render();
-    expect(tree.children[0].tag).toBe('ProgressSpinner');
+    expect(tree.children[0].children[0].tag).toBe('ProgressSpinner');
   });
 
   it('renders evaluated profile sketches through the drawing normalizer', async () => {
