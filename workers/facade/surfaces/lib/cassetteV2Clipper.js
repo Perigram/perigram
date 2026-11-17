@@ -9,7 +9,7 @@ let clipperPromise = null;
 // The clipper2 runtime ships beside the plugin. Keep this a literal
 // relative import so managed-runtime asset collection can include both
 // the JavaScript glue and its import.meta.url-resolved WASM binary.
-const runtimeImport = () => import(/* @vite-ignore */ '../../assets/vendor/clipper2/clipper2z.js');
+const runtimeImport = () => import('../../assets/vendor/clipper2/clipper2z.js');
 
 const numeric = (value, fallback = 0) => {
   const next = Number(value);
