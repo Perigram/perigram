@@ -434,7 +434,7 @@ describe('plugin installs', () => {
       organizationId: ORG,
       pluginId: 'coatings',
       executorOrigin: 'not-a-url'
-    })).rejects.toThrow(/must be an http\(s\) URL/);
+    })).rejects.toThrow(/absolute http\(s\) URL/);
     expect(repository.createInstall).toHaveBeenCalledTimes(1);
   });
 
