@@ -46,6 +46,7 @@ vi.mock('../instances/index.js', () => ({
 }));
 
 import * as graphExecutionsService from './service.js';
+import { createRuntime as createDocumentsRuntime } from '../../../workers/documents/runtime/shared.mjs';
 
 const graph = () => ({
   format: GRAPH_DOCUMENT_FORMAT,
@@ -435,11 +436,15 @@ describe('graph execution service', () => {
     expect(mocks.bakeFile).not.toHaveBeenCalled();
   });
 
-  it('materializes plugin file payload envelopes with their declared MIME type and filename', async () => {
+  it('bakes a real Markdown file payload emitted by the Documents graph runtime', async () => {
+    const documents = createDocumentsRuntime();
+    const heading = documents.execute('document-heading', { text: 'Generated Markdown', level: 1 });
+    const flow = documents.execute('compose-document', { title: 'Generated Markdown', blocks: [heading] });
+    const file = documents.execute('export-markdown-file', { document: flow, name: 'generated' });
     const content = '# Generated Markdown\n';
     const record = createGraphExecutionRecord({
       ...preview(),
-      outputs: { document: { payload: { base64: Buffer.from(content).toString('base64'), mime: 'text/markdown', name: 'generated.md' } } }
+      outputs: { document: file }
     });
     const result = await graphExecutionsService.bakeOutput({
       graphDocumentInstanceId: 'graph-instance-1',
@@ -447,7 +452,11 @@ describe('graph execution service', () => {
       outputId: 'document',
       destination: { type: 'page-file', pageId: 'page-1', path: 'exports/generated.md' }
     }, auth);
-    expect(mocks.bakeFile).toHaveBeenCalledWith(expect.objectContaining({ buffer: Buffer.from(content), mimeType: 'text/markdown', path: 'exports/generated.md' }), auth);
+    expect(mocks.bakeFile).toHaveBeenCalledWith(expect.objectContaining({
+      buffer: Buffer.from(content),
+      mimeType: 'text/markdown',
+      path: 'exports/generated.md'
+    }), auth);
     expect(result.file.fileId).toBe('baked-file-1');
   });
 
