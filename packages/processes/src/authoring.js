@@ -299,6 +299,10 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
     node.outputs = decorate(node, catalogPorts(node).outputs);
     syncProcessNodeProducerOutputs(draftData, node);
     node.inputDefaults ||= {};
+    for (const input of node.inputs) {
+      if (input.default === undefined || Object.hasOwn(node.inputDefaults, input.id)) continue;
+      node.inputDefaults[input.id] = { branches: [{ path: [], items: [input.default] }] };
+    }
     // Authored socket defaults survive a vocabulary gap (law: README
     // Authoring seam).
     if (typeIsKnown(node)) {

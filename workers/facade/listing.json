@@ -615,7 +615,8 @@
               "space": {
                 "base": "quantity",
                 "unit": "mm",
-                "nullable": true
+                "nullable": true,
+                "default": 3
               }
             }
           },

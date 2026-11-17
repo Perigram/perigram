@@ -613,7 +613,8 @@ function serviceSignaturePorts(signature = {}) {
   const isList = descriptor => descriptor.base === 'list';
   return {
     inputs: Object.entries(input?.fields || {}).map(([id, descriptor]) => ({
-      ...socket(id, socketType(descriptor), DATA, descriptor.nullable !== true, isList(descriptor) ? 'list' : 'item'),
+      ...socket(id, socketType(descriptor), DATA, descriptor.nullable !== true && descriptor.default === undefined, isList(descriptor) ? 'list' : 'item'),
+      ...(descriptor.default !== undefined ? { default: descriptor.default } : {}),
       label: id
     })),
     outputs: [{

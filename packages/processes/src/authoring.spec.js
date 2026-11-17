@@ -438,6 +438,11 @@ describe('headless definition authoring', () => {
     sync.syncProcessNode(record);
     expect(record.inputs.map(port => port.id)).toEqual(['in', 'items', 'sheetWidth', 'sheetHeight', 'space']);
     expect(record.outputs.map(port => port.id)).toEqual(['completed', 'result']);
+    expect(record.inputs.find(port => port.id === 'sheetWidth')).toMatchObject({ required: false, default: 1220 });
+    expect(record.inputs.find(port => port.id === 'sheetHeight')).toMatchObject({ required: false, default: 2440 });
+    expect(record.inputDefaults.sheetWidth).toEqual({ branches: [{ path: [], items: [1220] }] });
+    expect(record.inputDefaults.sheetHeight).toEqual({ branches: [{ path: [], items: [2440] }] });
+    expect(record.inputDefaults.space).toEqual({ branches: [{ path: [], items: [3] }] });
   });
 });
 

@@ -240,7 +240,9 @@ describe('process v4 node catalog', () => {
           signature: {
             input: { base: 'record', fields: {
               polygons: { base: 'list', itemType: { base: 'json' } },
-              sheet: { base: 'record', fields: { width: { base: 'quantity', unit: 'mm' } } }
+              sheet: { base: 'record', fields: { width: { base: 'quantity', unit: 'mm' } } },
+              sheetWidth: { base: 'number', default: 1220 },
+              space: { base: 'number', nullable: true, default: 3 }
             } },
             output: { base: 'json' }
           }
@@ -255,6 +257,8 @@ describe('process v4 node catalog', () => {
     // A `list` signature field is the element-typed List socket (a runtime
     // collection, not a persisted array).
     expect(ports.inputs[1]).toMatchObject({ id: 'polygons', type: { base: 'json' }, access: 'list' });
+    expect(ports.inputs.find(input => input.id === 'sheetWidth')).toMatchObject({ required: false, default: 1220 });
+    expect(ports.inputs.find(input => input.id === 'space')).toMatchObject({ required: false, default: 3 });
     expect(ports.outputs[1]).toMatchObject({ id: 'result', type: { base: 'json' } });
 
     // an unknown or signature-less operator resolves no data ports;

@@ -937,7 +937,8 @@
                 "nullable": true
               },
               "level": {
-                "base": "number"
+                "base": "number",
+                "default": 1
               },
               "children": {
                 "base": "list",
@@ -984,7 +985,8 @@
                 }
               },
               "ordered": {
-                "base": "boolean"
+                "base": "boolean",
+                "default": false
               }
             }
           },
