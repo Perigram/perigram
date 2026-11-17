@@ -119,7 +119,7 @@ describe('graph execution service', () => {
   const executionService = { create: vi.fn() };
   const graphService = { processGetById: vi.fn() };
   const dataService = { processList: vi.fn(), processGetById: vi.fn(), patch: vi.fn() };
-  const payloadService = { replacePayload: vi.fn() };
+  const payloadService = { replacePayload: vi.fn(), createForHttp: vi.fn() };
   const session = {
     withTransaction: vi.fn(async callback => await callback()),
     endSession: vi.fn(async () => {})
@@ -152,6 +152,7 @@ describe('graph execution service', () => {
     mocks.uploadFile.mockResolvedValue({ id: 'baked-payload-1', filename: 'Document graph-document.txt' });
     mocks.deleteFile.mockResolvedValue(true);
     payloadService.replacePayload.mockResolvedValue({ _id: 'item-1', type: 'part', revision: 4, payload: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8' } });
+    payloadService.createForHttp.mockResolvedValue({ _id: 'new-part-1', type: 'part', revision: 1, payload: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8' } });
     mocks.bakeFile.mockResolvedValue({
       page: { _id: 'page-1' },
       file: { path: 'exports/document.txt', fileId: 'baked-file-1', mime: 'text/plain', size: 18, revision: 1 }
@@ -406,6 +407,44 @@ describe('graph execution service', () => {
     expect(result.instance.payload.fileId).toBe('baked-payload-1');
     expect(result.execution.profile).toBe('procedural-bake');
     expect(mocks.deleteFile).not.toHaveBeenCalled();
+  });
+
+  it('bakes an output into a newly created, explicitly typed CTS instance', async () => {
+    const result = await graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: preview(),
+      outputId: 'document',
+      destination: {
+        type: 'instance-create',
+        typeId: 'part',
+        draft: { name: 'Generated part', fields: { code: 'NEW-1' } }
+      }
+    }, auth);
+
+    expect(payloadService.createForHttp).toHaveBeenCalledWith({
+      name: 'Generated part',
+      fields: { code: 'NEW-1' },
+      payload: {
+        fileId: 'baked-payload-1',
+        mime: 'text/plain; charset=utf-8',
+        size: Buffer.byteLength('Generated document'),
+        name: 'Document graph-document.txt'
+      }
+    }, { auth, userId: 'user-1', organizationId: 'org-1', session });
+    expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
+      fields: expect.objectContaining({
+        profile: 'procedural-bake',
+        artifacts: [expect.objectContaining({
+          kind: 'instance-payload',
+          typeId: 'part',
+          instanceId: 'new-part-1',
+          created: true,
+          fileId: 'baked-payload-1'
+        })]
+      })
+    }), 'user-1', 'org-1', { session });
+    expect(result.instance._id).toBe('new-part-1');
+    expect(result.execution.profile).toBe('procedural-bake');
   });
 
   it('removes a pre-uploaded payload when atomic Bake evidence cannot be persisted', async () => {

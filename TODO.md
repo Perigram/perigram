@@ -521,8 +521,10 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   Instance-payload Bake is now implemented for one exact revisioned CTS
   instance: the uploaded blob is compensated on abort, while payload swap,
   immutable revision, audit event, organization sequence, and execution
-  evidence share one Mongo snapshot transaction. Remaining: Bake to an
-  explicitly typed new instance.
+  evidence share one Mongo snapshot transaction. New-instance Bake now uses
+  an explicit CTS type and draft; the host creates the record and attaches
+  the output payload inside the same transaction. Remaining: end-to-end
+  graph vertical-slice verification and owner acceptance.
 - [ ] G6 Organization-data consistency — bounded typed CTS queries now
   support exact-instance detail reads, Mongo snapshot transactions where
   supported, sequence-bracketed fallback, and execution read sets that merge

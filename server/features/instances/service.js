@@ -1078,7 +1078,7 @@ function instanceService(typeId) {
     // fail-closed. The construct boundary keeps its own `create` with
     // execution auth; this serves the records host capability
     // (contract-2 surfaces composing other types' records).
-    async createForHttp(draft = {}, { auth = null, organizationId = null } = {}) {
+    async createForHttp(draft = {}, { auth = null, organizationId = null, session = null } = {}) {
       const targetOrganizationId = organizationId || draft?.organizationId || null;
       const declaration = await requireDeclaration(typeId, targetOrganizationId);
       const target = await writeGrantTarget(declaration, targetOrganizationId);
@@ -1086,7 +1086,7 @@ function instanceService(typeId) {
       if (!target || !hasInstanceAccess({ entity: scopeEntity, typeId: target.typeId, feature: target.feature, level: 'write', action: 'create', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
-      return await createValidated(draft, declaration, auth?.userId || null, targetOrganizationId);
+      return await createValidated(draft, declaration, auth?.userId || null, targetOrganizationId, { session });
     },
 
     // HTTP remove transport (`DELETE /api/instances/:type/:id`): the

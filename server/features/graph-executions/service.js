@@ -655,17 +655,21 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   }
   const isPageFile = destination.type === 'page-file';
   const isInstancePayload = destination.type === 'instance-payload';
+  const isInstanceCreate = destination.type === 'instance-create';
   if (isPageFile && (!destination.pageId || !destination.path)) {
     throw createError({ statusCode: 400, message: 'Page-file Bake requires an exact Page and relative file path' });
   }
   if (isInstancePayload && (!destination.typeId || !destination.instanceId || destination.expectedRevision == null)) {
     throw createError({ statusCode: 400, message: 'Instance-payload Bake requires an exact type, instance, and expected revision' });
   }
-  if (!isPageFile && !isInstancePayload) {
-    throw createError({ statusCode: 400, message: 'Bake destination must be page-file or instance-payload' });
+  if (isInstanceCreate && (!destination.typeId || !destination.draft || typeof destination.draft !== 'object' || Array.isArray(destination.draft) || destination.draft.payload != null)) {
+    throw createError({ statusCode: 400, message: 'New-instance Bake requires a typed instance draft without a caller-supplied payload' });
   }
-  if (isInstancePayload && destination.conflictPolicy != null && destination.conflictPolicy !== 'fail') {
-    throw createError({ statusCode: 400, message: 'Instance-payload Bake supports only fail-on-conflict semantics' });
+  if (!isPageFile && !isInstancePayload && !isInstanceCreate) {
+    throw createError({ statusCode: 400, message: 'Bake destination must be page-file, instance-payload, or instance-create' });
+  }
+  if ((isInstancePayload || isInstanceCreate) && destination.conflictPolicy != null && destination.conflictPolicy !== 'fail') {
+    throw createError({ statusCode: 400, message: 'Instance Bake supports only fail-on-conflict semantics' });
   }
   const { graphDocument, graph, organizationId } = await sourceFor(graphDocumentInstanceId, preview, auth);
   if (!(graph.interface?.outputs || []).some(port => String(port.id) === selectedOutputId)) {
@@ -673,12 +677,15 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   }
 
   const { buffer, mimeType, filename: materializedFilename } = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId,
-    isInstancePayload ? destination.filename || null : null);
+    (isInstancePayload || isInstanceCreate) ? destination.filename || null : null);
 
-  if (isInstancePayload) {
+  if (isInstancePayload || isInstanceCreate) {
     const instanceService = getAppRegistry().getInstanceService(String(destination.typeId));
-    if (typeof instanceService?.replacePayload !== 'function') {
+    if (isInstancePayload && typeof instanceService?.replacePayload !== 'function') {
       throw createError({ statusCode: 404, message: 'CTS payload replacement service is unavailable' });
+    }
+    if (isInstanceCreate && typeof instanceService?.createForHttp !== 'function') {
+      throw createError({ statusCode: 404, message: 'CTS instance creation service is unavailable' });
     }
     const filename = materializedFilename;
     const stored = await filesService.uploadFile(buffer, filename, {
@@ -689,19 +696,29 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     try {
       return await withMongoWriteTransaction(async session => {
         await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
-        const updated = await instanceService.replacePayload(destination.instanceId, {
-          buffer,
-          filename,
-          mimeType
-        }, {
-          auth,
-          userId: auth.userId,
-          organizationId,
-          session,
-          expectedRevision: destination.expectedRevision,
-          expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet),
-          storedFile: stored
-        });
+        const updated = isInstancePayload
+          ? await instanceService.replacePayload(destination.instanceId, {
+              buffer,
+              filename,
+              mimeType
+            }, {
+              auth,
+              userId: auth.userId,
+              organizationId,
+              session,
+              expectedRevision: destination.expectedRevision,
+              expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet),
+              storedFile: stored
+            })
+          : await instanceService.createForHttp({
+              ...destination.draft,
+              payload: {
+                fileId: stored.id,
+                mime: mimeType || null,
+                size: buffer.length,
+                name: filename
+              }
+            }, { auth, userId: auth.userId, organizationId, session });
         const timestamp = new Date().toISOString();
         const bakeId = randomUUID();
         const bakeRecord = createGraphExecutionRecord({
@@ -714,7 +731,8 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
           artifacts: [...(preview.artifacts || []), {
             kind: 'instance-payload',
             typeId: String(destination.typeId),
-            instanceId: String(destination.instanceId),
+            instanceId: String(updated._id ?? updated.id),
+            created: isInstanceCreate,
             revision: updated.revision == null ? null : String(updated.revision),
             fileId: stored.id,
             filename,
