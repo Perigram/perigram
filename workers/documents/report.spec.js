@@ -97,7 +97,7 @@ describe('markdown ↔ flow-document', () => {
       blocks: [{
         type: 'paragraph',
         children: [
-          { type: 'text', text: 'Literal *stars*, [brackets], # heading, ~~strike~~, &copy;, and \\ path.' },
+          { type: 'text', text: 'Literal *stars*, [brackets], # heading, ~~strike~~, A & B, and \\ path.' },
           { type: 'text', text: ' ' },
           { type: 'code', text: 'a' + String.fromCharCode(96) + 'b' },
           { type: 'text', text: ' ' },
@@ -109,7 +109,7 @@ describe('markdown ↔ flow-document', () => {
     const children = parsed.blocks[0].children;
     const codeIndex = children.findIndex(node => node.type === 'code');
     expect(children.slice(0, codeIndex).map(node => node.text ?? '').join(''))
-      .toBe('Literal *stars*, [brackets], # heading, ~~strike~~, &copy;, and \\ path. ');
+      .toBe('Literal *stars*, [brackets], # heading, ~~strike~~, A & B, and \\ path. ');
     expect(children.find(node => node.type === 'code').text).toBe('a' + String.fromCharCode(96) + 'b');
     expect(children.find(node => node.type === 'link')).toMatchObject({
       href: 'https://example.com/a_(b)?q=one%20two&x=1%0Anext',

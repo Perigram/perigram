@@ -63,9 +63,7 @@ function inlineMarkdown(nodes = []) {
 }
 
 function escapeMarkdownText(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replace(/([\\\`*_{}\[\]()#+\-!|>~])/g, '\\$1');
+  return String(value ?? '').replace(/([\\\`*_{}\[\]()#+\-!|>~])/g, '\\$1');
 }
 
 function codeSpan(value) {
