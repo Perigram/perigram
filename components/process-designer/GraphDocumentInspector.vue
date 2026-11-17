@@ -9,6 +9,10 @@
         <InputText v-model="declarationBase" size="small" :placeholder="$t('processDesigner.graphSemanticBase')" />
         <InputText v-model="declarationKind" size="small" :placeholder="$t('processDesigner.graphSemanticKind')" />
         <div class="flex items-center justify-between">
+          <label class="text-supporting">{{ $t('processDesigner.graphNullable') }}</label>
+          <ToggleSwitch v-model="declarationNullable" />
+        </div>
+        <div class="flex items-center justify-between">
           <label class="text-supporting">{{ $t('processDesigner.graphRequired') }}</label>
           <ToggleSwitch v-model="declarationRequired" />
         </div>
@@ -153,6 +157,7 @@ const configError = ref('');
 const declarationShape = ref('item');
 const declarationBase = ref('json');
 const declarationKind = ref('');
+const declarationNullable = ref(false);
 const declarationRequired = ref(true);
 const declarationHasDefault = ref(false);
 const declarationDefault = ref(null);
@@ -185,6 +190,7 @@ watch(
     declarationShape.value = contract.shape || 'item';
     declarationBase.value = contract.semantic?.base || 'json';
     declarationKind.value = contract.semantic?.kind || '';
+    declarationNullable.value = contract.semantic?.nullable === true;
     declarationRequired.value = props.boundaryDeclaration?.required !== false;
     declarationHasDefault.value = Object.hasOwn(props.boundaryDeclaration || {}, 'default');
     declarationDefault.value = props.boundaryDeclaration?.default ?? null;
@@ -269,7 +275,8 @@ function applyDeclaration() {
       shape: declarationShape.value,
       semantic: {
         base,
-        ...(declarationKind.value.trim() ? { kind: declarationKind.value.trim() } : {})
+        ...(declarationKind.value.trim() ? { kind: declarationKind.value.trim() } : {}),
+        ...(declarationNullable.value ? { nullable: true } : {})
       }
     },
     required: declarationRequired.value,

@@ -3539,7 +3539,8 @@
     "graphApplyInterfaceDeclaration": "Apply interface declaration",
     "graphConfigurationFieldRequired": "{field} is required",
     "graphConfigurationFieldInvalid": "{field} has an invalid value",
-    "graphConfigurationFieldOutOfRange": "{field} is outside its allowed range"
+    "graphConfigurationFieldOutOfRange": "{field} is outside its allowed range",
+    "graphNullable": "Allows null"
   },
   "generatedScreen": {
     "home": "Home",

@@ -80,6 +80,17 @@ describe('node port compatibility', () => {
     )).toMatchObject({ status: 'incompatible', compatible: false });
   });
 
+  it('treats nullability as a separate semantic constraint', () => {
+    expect(compareNodePorts(
+      { semantic: { base: 'string', nullable: true } },
+      { semantic: { base: 'string' } }
+    )).toMatchObject({ status: 'conditional', compatible: true });
+    expect(compareNodePorts(
+      { semantic: { base: 'string' } },
+      { semantic: { base: 'string', nullable: true } }
+    )).toMatchObject({ status: 'safe-coercion', compatible: true });
+  });
+
   it('requires explicit unit conversion', () => {
     expect(compareNodePorts(
       { semantic: { base: 'number', unit: 'mm' } },

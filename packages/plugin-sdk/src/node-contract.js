@@ -224,14 +224,24 @@ export function compareNodePorts(source, target) {
       conversions: []
     };
   }
+  const nullableCheck = from.nullable === true && to.nullable !== true;
+  const nullableWidening = from.nullable !== true && to.nullable === true;
   return {
-    status: optionalSource ? 'conditional' : transportWidening ? 'safe-coercion' : 'exact',
+    status: optionalSource || nullableCheck
+      ? 'conditional'
+      : transportWidening || nullableWidening
+        ? 'safe-coercion'
+        : 'exact',
     compatible: true,
     reason: optionalSource
       ? 'The required input checks that the optional source produced a value at runtime'
-      : transportWidening
-        ? 'An item value is accepted by the collection input'
-        : 'Transport and semantic contracts match',
+      : nullableCheck
+        ? 'The required input checks that the nullable source produced a non-null value at runtime'
+        : transportWidening
+          ? 'An item value is accepted by the collection input'
+          : nullableWidening
+            ? 'A non-null value is accepted by the nullable input'
+            : 'Transport and semantic contracts match',
     conversions: []
   };
 }

@@ -335,6 +335,9 @@ function readInput(node, portId, edges, values, required, fallback, shape = 'ite
   if (required && valuesForEdges.some(item => item.value === undefined)) {
     throw new Error(`Node ${node.id} required input ${portId} received no value from its connected source`);
   }
+  if (port.semantic?.nullable !== true && valuesForEdges.some(item => item.value === null)) {
+    throw new Error(`Node ${node.id} input ${portId} does not accept null from its connected source`);
+  }
   if (matches.length === 1) {
     const value = valuesForEdges[0].value;
     if (shape === 'map') {

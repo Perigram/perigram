@@ -3539,7 +3539,8 @@
     "graphApplyInterfaceDeclaration": "Применить объявление интерфейса",
     "graphConfigurationFieldRequired": "Поле «{field}» обязательно",
     "graphConfigurationFieldInvalid": "Поле «{field}» содержит недопустимое значение",
-    "graphConfigurationFieldOutOfRange": "Значение поля «{field}» вне допустимого диапазона"
+    "graphConfigurationFieldOutOfRange": "Значение поля «{field}» вне допустимого диапазона",
+    "graphNullable": "Допускает null"
   },
   "generatedScreen": {
     "home": "Главная",
