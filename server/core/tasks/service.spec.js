@@ -87,6 +87,27 @@ describe('task run transitions', () => {
     await db.dropDatabase();
   });
 
+  it('claims runtime-declared tasks when the static registry has no status map', async () => {
+    const definition = taskDefinition({
+      id: 'plugin.dynamic.compute',
+      service: 'plugin.dynamic',
+      executor: { workerType: 'plugin.dynamic@org-1' }
+    });
+    await service.enqueueTask('plugin.dynamic.compute', {}, {
+      userId: 'user-1',
+      organizationId: 'org-1'
+    }, { definition, workerType: 'plugin.dynamic@org-1' });
+
+    const claimed = await service.claimTask({ workerType: 'plugin.dynamic@org-1' });
+
+    expect(claimed).toMatchObject({
+      taskId: 'plugin.dynamic.compute',
+      status: 'RUNNING',
+      workerType: 'plugin.dynamic@org-1'
+    });
+    expect(claimed.attempts).toBe(1);
+  });
+
   it('keeps connector task completions as values and never executes worker-supplied effects', async () => {
     const workerType = 'plugin.docs@org-1';
     definitions.set('plugin.docs.generate', taskDefinition({
