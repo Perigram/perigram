@@ -31,11 +31,15 @@ export function blockMarkdown(block) {
     case 'table': {
       const columns = [...new Set((block.rows || []).flatMap(row => Object.keys(row)))];
       if (!columns.length) return '';
-      const line = cells => `| ${cells.join(' | ')} |`;
+      const cell = value => String(value ?? '')
+        .replaceAll('\\', '\\\\')
+        .replaceAll('|', '\\|')
+        .replace(/\r\n?|\n/g, ' ');
+      const line = cells => \`| \${cells.map(cell).join(' | ')} |\`;
       return [
         line(columns),
         line(columns.map(() => '---')),
-        ...(block.rows || []).map(row => line(columns.map(column => String(row[column] ?? ''))))
+        ...(block.rows || []).map(row => line(columns.map(column => row[column])))
       ].join('\n');
     }
     case 'horizontal-rule':
