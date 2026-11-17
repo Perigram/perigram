@@ -4,11 +4,17 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { MongoClient, ObjectId } from 'mongodb';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-const { mockedConnectDB } = vi.hoisted(() => ({
-  mockedConnectDB: vi.fn()
+const { mockedConnectDB, getAppRegistry, getRevisionById, assertRevisionSourceReadable } = vi.hoisted(() => ({
+  mockedConnectDB: vi.fn(),
+  getAppRegistry: vi.fn(),
+  getRevisionById: vi.fn(),
+  assertRevisionSourceReadable: vi.fn()
 }));
 
 vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
+vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry }));
+vi.mock('../instance-revisions/service.js', () => ({ getById: getRevisionById }));
+vi.mock('~/server/utils/revision-access.js', () => ({ assertRevisionSourceReadable }));
 
 vi.mock('../cts-types/service.js', () => ({
   compileRegistryForOrganization: vi.fn(async () => ({ getType: vi.fn(() => ({ id: 'page' })) })),
@@ -42,6 +48,9 @@ describe('pages', () => {
     con = await MongoClient.connect(mongoServer.getUri());
     db = con.db();
     mockedConnectDB.mockReturnValue(db);
+    getAppRegistry.mockReturnValue({ getInstanceService: () => ({ processGetById: vi.fn(async id => ({ _id: id, type: 'part', fields: { code: 'A' } })) }) });
+    getRevisionById.mockResolvedValue({ _id: 'revision:part:part-2:content:3', data: { source: { type: 'part', id: 'part-2' }, snapshot: { fields: { code: 'B' } } } });
+    assertRevisionSourceReadable.mockResolvedValue({ _id: 'part-2', type: 'part' });
   });
 
   afterAll(async () => {
@@ -158,6 +167,41 @@ describe('pages', () => {
     expect(saved).toMatchObject({ name: 'Notes', blocks, order: ['b1'] });
     const read = await pagesService.getById(page._id, memberOf(ORG_A));
     expect(read).toMatchObject({ name: 'Notes', blocks, order: ['b1'], parentId: section._id });
+  });
+
+  it('resolves live and pinned typed references through authorized source and exact revision reads', async () => {
+    const page = await pagesService.create({ name: 'References', blocks: [
+      { id: 'live', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-1' } },
+      { id: 'pinned', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-2', revisionId: 'revision:part:part-2:content:3' } }
+    ], order: ['live', 'pinned'] }, memberOf(ORG_A));
+    const auth = memberOf(ORG_A);
+    const resolved = await pagesService.resolveReferences(page._id, auth);
+    expect(resolved).toEqual([
+      { blockId: 'live', status: 'resolved', mode: 'live', typeId: 'part', instanceId: 'part-1', instance: { _id: 'part-1', type: 'part', fields: { code: 'A' } } },
+      { blockId: 'pinned', status: 'resolved', mode: 'pinned', typeId: 'part', instanceId: 'part-2', revisionId: 'revision:part:part-2:content:3', revision: expect.objectContaining({ _id: 'revision:part:part-2:content:3' }) }
+    ]);
+    expect(getRevisionById).toHaveBeenCalledWith('revision:part:part-2:content:3', auth.userId, auth.role, auth);
+    expect(assertRevisionSourceReadable).toHaveBeenCalledWith(expect.objectContaining({ _id: 'revision:part:part-2:content:3' }), auth);
+  });
+
+  it('never falls a pinned reference forward when its exact revision is unavailable', async () => {
+    const page = await pagesService.create({ name: 'Unavailable pin', blocks: [
+      { id: 'pinned', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-2', revisionId: 'missing-revision' } }
+    ], order: ['pinned'] }, memberOf(ORG_A));
+    getRevisionById.mockRejectedValueOnce(Object.assign(new Error('not found'), { statusCode: 404 }));
+    const result = await pagesService.resolveReferences(page._id, memberOf(ORG_A));
+    expect(result).toEqual([{ blockId: 'pinned', status: 'unavailable', reason: 'revision-unavailable' }]);
+  });
+
+  it('derives backlinks from page reference blocks, including pinned references', async () => {
+    await pagesService.create({ name: 'Source page', blocks: [
+      { id: 'ref-live', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-1' } },
+      { id: 'ref-pinned', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-1', revisionId: 'rev-1' } }
+    ], order: ['ref-live', 'ref-pinned'] }, memberOf(ORG_A));
+    const backlinks = await pagesService.findBacklinks('part', 'part-1', memberOf(ORG_A));
+    expect(backlinks).toHaveLength(2);
+    expect(backlinks.map(item => item.mode)).toEqual(['live', 'pinned']);
+    expect(backlinks.every(item => item.pageName === 'Source page')).toBe(true);
   });
 
   it('bakes an output to a page path and creates immutable file revisions on conflict', async () => {
