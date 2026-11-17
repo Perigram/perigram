@@ -6,7 +6,7 @@ import { pluginPaletteGroups, servicesPaletteGroups } from './designer.js';
 // projection switch is the single mode selector.
 describe('pluginPaletteGroups', () => {
   const projections = {
-    'csv-table/rows': { typeId: 'csv-table', id: 'rows', label: 'Table rows', palette: { palette: { group: 'table-data' } }, pluginId: 'documents' },
+    'csv-table/rows': { typeId: 'csv-table', id: 'rows', label: 'Table rows', palette: { group: 'table-data' }, pluginId: 'documents' },
     'xlsx-workbook/rows': { typeId: 'xlsx-workbook', id: 'rows', label: 'Table rows', palette: { group: 'table-data' }, pluginId: 'documents' },
     'csv-table/cells': { typeId: 'csv-table', id: 'cells', label: 'Table cells (positional)', palette: { group: 'table-data' }, pluginId: 'documents' },
     'xlsx-workbook/cells': { typeId: 'xlsx-workbook', id: 'cells', label: 'Table cells (positional)', palette: { group: 'table-data' }, pluginId: 'documents' },
