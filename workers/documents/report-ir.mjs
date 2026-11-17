@@ -63,7 +63,7 @@ function inlineMarkdown(nodes = []) {
 }
 
 function escapeMarkdownText(value) {
-  return String(value ?? '').replace(/([\\\`*_{}\[\]()#+\-.!|>])/g, '\\$1');
+  return String(value ?? '').replace(/([\\\`*_{}\[\]()#+\-.!|>&~])/g, '\\$1');
 }
 
 function codeSpan(value) {
@@ -75,7 +75,9 @@ function codeSpan(value) {
 }
 
 function markdownDestination(value) {
-  return String(value ?? '').replaceAll(' ', '%20').replace(/([\\()])/g, '\\$1');
+  return String(value ?? '')
+    .replace(/[\s<>"']/g, character => encodeURIComponent(character))
+    .replace(/([\\()])/g, '\\$1');
 }
 
 export const DOCUMENT_BLOCK_TYPE = 'text.document-block';
