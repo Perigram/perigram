@@ -1074,6 +1074,86 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   }
 }
 
+export async function listCollectionOutputs(auth = {}) {
+  const service = getAppRegistry().getInstanceService('graph-execution');
+  if (typeof service?.processList !== 'function') return [];
+  const records = await service.processList({ limit: 100, sortBy: 'createdAt', sortDirection: 'desc' }, auth);
+  const options = [];
+  for (const record of records || []) {
+    const fields = record?.fields || {};
+    const graphDocumentInstanceId = String(fields.graphDocument?.id || '');
+    if (fields.status !== 'succeeded' || !graphDocumentInstanceId) continue;
+    try {
+      const source = await sourceFor(graphDocumentInstanceId, { graph: { id: fields.graphId, revision: fields.graphRevision } }, auth);
+      for (const output of source.graph.interface?.outputs || []) {
+        const outputId = String(output.id || '');
+        const values = fields.outputs?.[outputId];
+        if (output.contract?.shape !== 'collection' || !Array.isArray(values)) continue;
+        options.push({
+          executionInstanceId: String(record._id),
+          executionId: String(fields.executionId || ''),
+          graphDocumentInstanceId,
+          graphId: String(fields.graphId),
+          graphRevision: String(fields.graphRevision),
+          outputId,
+          label: String(output.label || outputId),
+          count: values.length,
+          completedAt: fields.completedAt || null
+        });
+      }
+    } catch (error) {
+      if ([403, 404, 409].includes(Number(error?.statusCode || error?.status))) continue;
+      throw error;
+    }
+  }
+  return options;
+}
+
+export async function resolveCollectionOutput(executionInstanceId, outputId, auth = {}) {
+  const service = getAppRegistry().getInstanceService('graph-execution');
+  if (typeof service?.processGetById !== 'function') throw createError({ statusCode: 404, message: 'Graph execution not found' });
+  const record = await service.processGetById(String(executionInstanceId), auth);
+  if (!record) throw createError({ statusCode: 404, message: 'Graph execution not found' });
+  const fields = record.fields || {};
+  if (fields.status !== 'succeeded' || !fields.graphDocument?.id) {
+    throw createError({ statusCode: 409, message: 'Pinned graph execution is unavailable' });
+  }
+  const source = await sourceFor(String(fields.graphDocument.id), { graph: { id: fields.graphId, revision: fields.graphRevision } }, auth);
+  const output = (source.graph.interface?.outputs || []).find(port => String(port.id) === String(outputId));
+  const values = fields.outputs?.[String(outputId)];
+  if (!output || output.contract?.shape !== 'collection' || !Array.isArray(values)) {
+    throw createError({ statusCode: 409, message: 'Pinned graph output is not a collection in the saved graph revision' });
+  }
+  const items = [];
+  for (const value of values) {
+    const typeId = String(value?.type || value?.typeId || '');
+    const instanceId = String(value?.id || value?.instanceId || '');
+    if (!typeId || !instanceId) {
+      items.push({ kind: 'value', value });
+      continue;
+    }
+    const target = getAppRegistry().getInstanceService(typeId);
+    try {
+      const instance = await target?.processGetById?.(instanceId, auth);
+      items.push(instance
+        ? { kind: 'instance', typeId, instanceId, instance }
+        : { kind: 'unavailable' });
+    } catch (error) {
+      if ([403, 404].includes(Number(error?.statusCode || error?.status))) items.push({ kind: 'unavailable' });
+      else throw error;
+    }
+  }
+  return {
+    executionInstanceId: String(record._id),
+    executionId: String(fields.executionId || ''),
+    graph: { id: String(fields.graphId), revision: String(fields.graphRevision) },
+    outputId: String(outputId),
+    label: String(output.label || outputId),
+    resultPolicy: 'pinned',
+    items
+  };
+}
+
 export async function exportOutput({ graphDocumentInstanceId, record: value, outputId, filename = null } = {}, auth = {}) {
   const preview = parseRecord(value);
   if (preview.profile !== 'procedural-preview' || preview.status !== 'succeeded') {
