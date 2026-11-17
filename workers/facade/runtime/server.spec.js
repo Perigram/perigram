@@ -1,9 +1,25 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createRuntime } from './server.mjs';
+import listing from '../listing.json';
 
 const SQUARE = [[0, 0], [100, 0], [100, 100], [0, 100], [0, 0]];
 
 describe('Facade managed server runtime', () => {
+  it('declares pure sheet operations for both browser and server targets without endpoint modes', () => {
+    expect(listing.declarations.runtimes.find(runtime => runtime.id === 'facade-server').targets)
+      .toEqual(['browser', 'server']);
+    for (const id of ['construct-sheet', 'generate-sheet-dxf', 'match-sheet']) {
+      const service = listing.declarations.services.find(item => item.id === id);
+      expect(service.mode).toBeUndefined();
+      expect(service.execution).toMatchObject({
+        runtime: 'facade-server',
+        kind: 'pure',
+        targets: ['browser', 'server'],
+        capabilities: []
+      });
+    }
+  });
+
   it('executes nesting through the host capability and returns graph values', async () => {
     const call = vi.fn().mockResolvedValue({ items: [], layouts: [] });
     const runtime = createRuntime();
