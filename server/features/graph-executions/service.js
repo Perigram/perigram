@@ -653,17 +653,85 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   if (!Object.hasOwn(preview.outputs || {}, selectedOutputId)) {
     throw createError({ statusCode: 400, message: 'Selected graph output is unavailable' });
   }
-  if (destination.type !== 'page-file' || !destination.pageId || !destination.path) {
-    throw createError({ statusCode: 400, message: 'Bake requires an exact Page and relative file path' });
+  const isPageFile = destination.type === 'page-file';
+  const isInstancePayload = destination.type === 'instance-payload';
+  if (isPageFile && (!destination.pageId || !destination.path)) {
+    throw createError({ statusCode: 400, message: 'Page-file Bake requires an exact Page and relative file path' });
+  }
+  if (isInstancePayload && (!destination.typeId || !destination.instanceId || destination.expectedRevision == null)) {
+    throw createError({ statusCode: 400, message: 'Instance-payload Bake requires an exact type, instance, and expected revision' });
+  }
+  if (!isPageFile && !isInstancePayload) {
+    throw createError({ statusCode: 400, message: 'Bake destination must be page-file or instance-payload' });
   }
   const { graphDocument, graph, organizationId } = await sourceFor(graphDocumentInstanceId, preview, auth);
   if (!(graph.interface?.outputs || []).some(port => String(port.id) === selectedOutputId)) {
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
   }
+
+  const { buffer, mimeType } = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId,
+    isInstancePayload ? destination.filename || selectedOutputId : null);
+
+  if (isInstancePayload) {
+    const instanceService = getAppRegistry().getInstanceService(String(destination.typeId));
+    if (typeof instanceService?.replacePayload !== 'function') {
+      throw createError({ statusCode: 404, message: 'CTS payload replacement service is unavailable' });
+    }
+    const filename = String(destination.filename || buffer.filename || selectedOutputId).trim();
+    const stored = await filesService.uploadFile(buffer, filename, {
+      userId: auth.userId,
+      organizationId,
+      type: String(destination.typeId)
+    }, 'files', mimeType || 'application/octet-stream');
+    try {
+      return await withMongoWriteTransaction(async session => {
+        await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
+        const updated = await instanceService.replacePayload(destination.instanceId, {
+          buffer,
+          filename,
+          mimeType
+        }, {
+          auth,
+          userId: auth.userId,
+          organizationId,
+          session,
+          expectedRevision: destination.expectedRevision,
+          expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet),
+          storedFile: stored
+        });
+        const timestamp = new Date().toISOString();
+        const bakeId = randomUUID();
+        const bakeRecord = createGraphExecutionRecord({
+          ...preview,
+          id: bakeId,
+          profile: 'procedural-bake',
+          status: 'succeeded',
+          startedAt: timestamp,
+          completedAt: timestamp,
+          artifacts: [...(preview.artifacts || []), {
+            kind: 'instance-payload',
+            typeId: String(destination.typeId),
+            instanceId: String(destination.instanceId),
+            revision: updated.revision == null ? null : String(updated.revision),
+            fileId: stored.id,
+            filename,
+            mime: mimeType || null,
+            size: buffer.length,
+            outputId: selectedOutputId,
+            sourceExecutionId: preview.id,
+            conflictPolicy: 'fail'
+          }]
+        });
+        const execution = await persistRecord(bakeRecord, graphDocument, organizationId, auth, session);
+        return { instance: updated, execution };
+      });
+    } catch (error) {
+      await filesService.deleteFile(stored.id, 'files').catch(() => {});
+      throw error;
+    }
+  }
+
   await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument);
-
-  const { buffer, mimeType } = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId);
-
   const bakeId = randomUUID();
   const timestamp = new Date().toISOString();
   const baked = await pagesService.bakeFile({
