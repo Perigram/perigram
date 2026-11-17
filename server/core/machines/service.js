@@ -682,7 +682,8 @@ export async function appendFieldChangeEvent(typeId, targetId, { changes = [], a
     operation: { kind: 'field_change', changes: effective },
     evidence: buildEventEvidence({}, {})
   });
-  await machineRepository.insertStatusEvent(db, record, session ? { session } : {});
+  if (session) await machineRepository.insertStatusEvent(db, record, { session });
+  else await machineRepository.insertStatusEvent(db, record);
   return record;
 }
 

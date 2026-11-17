@@ -9,7 +9,8 @@ export async function create(data, { session = null } = {}) {
     ...data,
     _id: data.identity?.uid || data._id
   };
-  await db.collection(COLLECTION).insertOne(doc, session ? { session } : {});
+  if (session) await db.collection(COLLECTION).insertOne(doc, { session });
+  else await db.collection(COLLECTION).insertOne(doc);
   return doc;
 }
 
@@ -40,23 +41,28 @@ export async function deleteForSource(typeId, instanceId) {
 export async function findByHash(typeId, instanceId, scope, contentHash, { session = null } = {}) {
   const db = await connectDB();
   const id = toFlexibleId(instanceId).toString();
-  return await db.collection(COLLECTION).findOne({
+  const filter = {
     'data.source.type': typeId,
     'data.source.id': id,
     'data.scope': scope,
     'data.contentHash': contentHash
-  }, session ? { session } : {});
+  };
+  return session
+    ? await db.collection(COLLECTION).findOne(filter, { session })
+    : await db.collection(COLLECTION).findOne(filter);
 }
 
 export async function findLatest(typeId, instanceId, scope, { session = null } = {}) {
   const db = await connectDB();
   const id = toFlexibleId(instanceId).toString();
-  return await db.collection(COLLECTION)
-    .find({
-      'data.source.type': typeId,
-      'data.source.id': id,
-      'data.scope': scope
-    }, session ? { session } : {})
+  const filter = {
+    'data.source.type': typeId,
+    'data.source.id': id,
+    'data.scope': scope
+  };
+  return await (session
+    ? db.collection(COLLECTION).find(filter, { session })
+    : db.collection(COLLECTION).find(filter))
     .sort({ 'data.number': -1, _id: -1 })
     .limit(1)
     .next();
