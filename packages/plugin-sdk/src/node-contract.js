@@ -163,6 +163,14 @@ export function compareNodePorts(source, target) {
     };
   }
 
+  if (source.required === false && target.required !== false) {
+    return {
+      status: 'conditional',
+      compatible: false,
+      reason: 'An optional output cannot satisfy a required input',
+      conversions: []
+    };
+  }
   const from = source.semantic || {};
   const to = target.semantic || {};
   if (typeof from.base !== 'string' || typeof to.base !== 'string') {
