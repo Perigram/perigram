@@ -152,7 +152,8 @@
               "service": "plugin.documents.text"
             },
             "palette": {
-              "group": "table-data"
+              "group": "table-data",
+              "label": "Table data"
             }
           }
         ],
@@ -227,7 +228,8 @@
               "service": "plugin.documents.table-rows"
             },
             "palette": {
-              "group": "table-data"
+              "group": "table-data",
+              "label": "Table data"
             }
           },
           {
@@ -243,7 +245,8 @@
               "service": "plugin.documents.table-cells"
             },
             "palette": {
-              "group": "table-data"
+              "group": "table-data",
+              "label": "Table data"
             }
           }
         ],
@@ -289,7 +292,8 @@
               "service": "plugin.documents.table-rows"
             },
             "palette": {
-              "group": "table-data"
+              "group": "table-data",
+              "label": "Table data"
             }
           },
           {
@@ -305,7 +309,8 @@
               "service": "plugin.documents.table-cells"
             },
             "palette": {
-              "group": "table-data"
+              "group": "table-data",
+              "label": "Table data"
             }
           }
         ],
@@ -493,7 +498,8 @@
           "idempotent": true
         },
         "palette": {
-          "group": "table-data"
+          "group": "table-data",
+          "label": "Table data"
         }
       },
       {
@@ -553,7 +559,8 @@
         },
         "description": "Parse Markdown into the structured flow-document format",
         "palette": {
-          "group": "document-compose"
+          "group": "document-compose",
+          "label": "Document composition"
         }
       },
       {
@@ -590,7 +597,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-compose"
+          "group": "document-compose",
+          "label": "Document composition"
         }
       },
       {
@@ -641,7 +649,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-compose"
+          "group": "document-compose",
+          "label": "Document composition"
         }
       },
       {
@@ -681,7 +690,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-compose"
+          "group": "document-compose",
+          "label": "Document composition"
         }
       },
       {
@@ -718,7 +728,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "document-compose"
+          "group": "document-compose",
+          "label": "Document composition"
         }
       },
       {
@@ -750,7 +761,8 @@
         },
         "description": "Render a report as a PDF document",
         "palette": {
-          "group": "document-compose"
+          "group": "document-compose",
+          "label": "Document composition"
         }
       },
       {

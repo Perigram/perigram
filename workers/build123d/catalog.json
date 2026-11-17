@@ -34,7 +34,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "part"
+        "group": "part",
+        "label": "Parts"
       }
     },
     {
@@ -73,7 +74,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "part"
+        "group": "part",
+        "label": "Parts"
       }
     },
     {
@@ -96,7 +98,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "part"
+        "group": "part",
+        "label": "Parts"
       }
     },
     {
@@ -134,7 +137,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "part"
+        "group": "part",
+        "label": "Parts"
       }
     },
     {
@@ -173,7 +177,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "part"
+        "group": "part",
+        "label": "Parts"
       }
     },
     {
@@ -207,7 +212,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "part"
+        "group": "part",
+        "label": "Parts"
       }
     },
     {
@@ -235,7 +241,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "part"
+        "group": "part",
+        "label": "Parts"
       }
     },
     {
@@ -276,7 +283,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "part"
+        "group": "part",
+        "label": "Parts"
       }
     },
     {
@@ -322,7 +330,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "part"
+        "group": "part",
+        "label": "Parts"
       }
     },
     {
@@ -375,7 +384,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "part"
+        "group": "part",
+        "label": "Parts"
       }
     },
     {
@@ -404,7 +414,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "sketch"
+        "group": "sketch",
+        "label": "Sketches"
       }
     },
     {
@@ -438,7 +449,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "sketch"
+        "group": "sketch",
+        "label": "Sketches"
       }
     },
     {
@@ -472,7 +484,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "sketch"
+        "group": "sketch",
+        "label": "Sketches"
       }
     },
     {
@@ -511,7 +524,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "sketch"
+        "group": "sketch",
+        "label": "Sketches"
       }
     },
     {
@@ -555,7 +569,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "sketch"
+        "group": "sketch",
+        "label": "Sketches"
       }
     },
     {
@@ -589,7 +604,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "sketch"
+        "group": "sketch",
+        "label": "Sketches"
       }
     },
     {
@@ -623,7 +639,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "sketch"
+        "group": "sketch",
+        "label": "Sketches"
       }
     },
     {
@@ -657,7 +674,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "sketch"
+        "group": "sketch",
+        "label": "Sketches"
       }
     },
     {
@@ -703,7 +721,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "sketch"
+        "group": "sketch",
+        "label": "Sketches"
       }
     },
     {
@@ -764,7 +783,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "sketch"
+        "group": "sketch",
+        "label": "Sketches"
       }
     },
     {
@@ -808,7 +828,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "sketch"
+        "group": "sketch",
+        "label": "Sketches"
       }
     },
     {
@@ -862,7 +883,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "sketch"
+        "group": "sketch",
+        "label": "Sketches"
       }
     },
     {
@@ -896,7 +918,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "curve"
+        "group": "curve",
+        "label": "Curves"
       }
     },
     {
@@ -934,7 +957,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "curve"
+        "group": "curve",
+        "label": "Curves"
       }
     },
     {
@@ -977,7 +1001,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "curve"
+        "group": "curve",
+        "label": "Curves"
       }
     },
     {
@@ -1021,7 +1046,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "curve"
+        "group": "curve",
+        "label": "Curves"
       }
     },
     {
@@ -1044,7 +1070,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1087,7 +1114,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1115,7 +1143,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1138,7 +1167,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1182,7 +1212,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1205,7 +1236,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1228,7 +1260,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1251,7 +1284,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1299,7 +1333,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1348,7 +1383,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1381,7 +1417,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1415,7 +1452,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1449,7 +1487,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1487,7 +1526,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1521,7 +1561,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1544,7 +1585,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1567,7 +1609,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1596,7 +1639,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations"
+        "group": "operations",
+        "label": "Operations"
       }
     },
     {
@@ -1625,7 +1669,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "drafting"
+        "group": "drafting",
+        "label": "Drafting"
       }
     },
     {
@@ -1663,7 +1708,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "drafting"
+        "group": "drafting",
+        "label": "Drafting"
       }
     },
     {
@@ -1728,7 +1774,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "drafting"
+        "group": "drafting",
+        "label": "Drafting"
       }
     },
     {
@@ -1745,7 +1792,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "text"
+        "group": "text",
+        "label": "Text"
       }
     },
     {
@@ -1773,7 +1821,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "algebra"
+        "group": "algebra",
+        "label": "Algebra"
       }
     },
     {
@@ -1801,7 +1850,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "algebra"
+        "group": "algebra",
+        "label": "Algebra"
       }
     },
     {
@@ -1829,7 +1879,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "algebra"
+        "group": "algebra",
+        "label": "Algebra"
       }
     }
   ],

@@ -264,7 +264,8 @@
               "service": "plugin.facade.nesting-parts"
             },
             "palette": {
-              "group": "facade"
+              "group": "facade",
+              "label": "Facade geometry"
             }
           }
         ]
@@ -635,7 +636,8 @@
           "idempotent": true
         },
         "palette": {
-          "group": "nesting"
+          "group": "nesting",
+          "label": "Nesting"
         }
       },
       {
@@ -703,7 +705,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "production-export"
+          "group": "production-export",
+          "label": "Production export"
         }
       },
       {
@@ -730,7 +733,8 @@
           "deterministic": true
         },
         "palette": {
-          "group": "sheet-planning"
+          "group": "sheet-planning",
+          "label": "Sheet planning"
         }
       },
       {
@@ -773,7 +777,8 @@
           "idempotent": true
         },
         "palette": {
-          "group": "sheet-planning"
+          "group": "sheet-planning",
+          "label": "Sheet planning"
         }
       },
       {

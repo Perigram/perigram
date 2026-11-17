@@ -75,7 +75,8 @@
             "length",
             "width",
             "height"
-          ]
+          ],
+          "label": "Parts"
         }
       },
       {
@@ -123,7 +124,8 @@
             "top_radius",
             "height",
             "arc_size"
-          ]
+          ],
+          "label": "Parts"
         }
       },
       {
@@ -157,7 +159,8 @@
             "constructor",
             "build123d.objects_part",
             "points"
-          ]
+          ],
+          "label": "Parts"
         }
       },
       {
@@ -204,7 +207,8 @@
             "counter_bore_radius",
             "counter_bore_depth",
             "depth"
-          ]
+          ],
+          "label": "Parts"
         }
       },
       {
@@ -253,7 +257,8 @@
             "counter_sink_radius",
             "depth",
             "counter_sink_angle"
-          ]
+          ],
+          "label": "Parts"
         }
       },
       {
@@ -297,7 +302,8 @@
             "radius",
             "height",
             "arc_size"
-          ]
+          ],
+          "label": "Parts"
         }
       },
       {
@@ -336,7 +342,8 @@
             "build123d.objects_part",
             "radius",
             "depth"
-          ]
+          ],
+          "label": "Parts"
         }
       },
       {
@@ -388,7 +395,8 @@
             "arc_size1",
             "arc_size2",
             "arc_size3"
-          ]
+          ],
+          "label": "Parts"
         }
       },
       {
@@ -444,7 +452,8 @@
             "minor_start_angle",
             "minor_end_angle",
             "major_angle"
-          ]
+          ],
+          "label": "Parts"
         }
       },
       {
@@ -502,7 +511,8 @@
             "zmin",
             "xmax",
             "zmax"
-          ]
+          ],
+          "label": "Parts"
         }
       },
       {
@@ -542,7 +552,8 @@
             "build123d.objects_sketch",
             "radius",
             "arc_size"
-          ]
+          ],
+          "label": "Sketches"
         }
       },
       {
@@ -586,7 +597,8 @@
             "x_radius",
             "y_radius",
             "rotation"
-          ]
+          ],
+          "label": "Sketches"
         }
       },
       {
@@ -630,7 +642,8 @@
             "width",
             "height",
             "rotation"
-          ]
+          ],
+          "label": "Sketches"
         }
       },
       {
@@ -678,7 +691,8 @@
             "height",
             "radius",
             "rotation"
-          ]
+          ],
+          "label": "Sketches"
         }
       },
       {
@@ -732,7 +746,8 @@
             "major_radius",
             "rotation",
             "align"
-          ]
+          ],
+          "label": "Sketches"
         }
       },
       {
@@ -776,7 +791,8 @@
             "arc",
             "height",
             "rotation"
-          ]
+          ],
+          "label": "Sketches"
         }
       },
       {
@@ -820,7 +836,8 @@
             "center_separation",
             "height",
             "rotation"
-          ]
+          ],
+          "label": "Sketches"
         }
       },
       {
@@ -864,7 +881,8 @@
             "width",
             "height",
             "rotation"
-          ]
+          ],
+          "label": "Sketches"
         }
       },
       {
@@ -920,7 +938,8 @@
             "order",
             "point_count",
             "rotation"
-          ]
+          ],
+          "label": "Sketches"
         }
       },
       {
@@ -991,7 +1010,8 @@
             "position_on_path",
             "single_line_width",
             "rotation"
-          ]
+          ],
+          "label": "Sketches"
         }
       },
       {
@@ -1044,7 +1064,8 @@
             "left_side_angle",
             "right_side_angle",
             "rotation"
-          ]
+          ],
+          "label": "Sketches"
         }
       },
       {
@@ -1110,7 +1131,8 @@
             "B",
             "C",
             "rotation"
-          ]
+          ],
+          "label": "Sketches"
         }
       },
       {
@@ -1155,7 +1177,8 @@
             "airfoil_code",
             "n_points",
             "finite_te"
-          ]
+          ],
+          "label": "Curves"
         }
       },
       {
@@ -1203,7 +1226,8 @@
             "curve1",
             "end_points",
             "tangent_scalars"
-          ]
+          ],
+          "label": "Curves"
         }
       },
       {
@@ -1255,7 +1279,8 @@
             "degree",
             "weights",
             "periodic"
-          ]
+          ],
+          "label": "Curves"
         }
       },
       {
@@ -1308,7 +1333,8 @@
             "radius",
             "cone_angle",
             "lefthand"
-          ]
+          ],
+          "label": "Curves"
         }
       },
       {
@@ -1343,7 +1369,8 @@
             "function",
             "build123d.operations_generic",
             "objects"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1395,7 +1422,8 @@
             "length2",
             "angle",
             "reference"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1432,7 +1460,8 @@
             "build123d.operations_generic",
             "objects",
             "radius"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1466,7 +1495,8 @@
             "function",
             "build123d.operations_generic",
             "objects"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1521,7 +1551,8 @@
             "openings",
             "closed",
             "min_edge_length"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1555,7 +1586,8 @@
             "function",
             "build123d.operations_generic",
             "target"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1589,7 +1621,8 @@
             "function",
             "build123d.operations_generic",
             "objects"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1623,7 +1656,8 @@
             "function",
             "build123d.operations_generic",
             "objects"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1682,7 +1716,8 @@
             "is_frenet",
             "binormal",
             "clean"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1742,7 +1777,8 @@
             "both",
             "taper",
             "clean"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1786,7 +1822,8 @@
             "sections",
             "ruled",
             "clean"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1831,7 +1868,8 @@
             "profiles",
             "revolution_arc",
             "clean"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1876,7 +1914,8 @@
             "obj",
             "height",
             "clean"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1925,7 +1964,8 @@
             "amount",
             "both",
             "clean"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -1970,7 +2010,8 @@
             "edge",
             "invert",
             "voronoi_point_count"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -2005,7 +2046,8 @@
             "function",
             "build123d.operations_sketch",
             "edges"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -2040,7 +2082,8 @@
             "function",
             "build123d.operations_sketch",
             "edges"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -2080,7 +2123,8 @@
             "build123d.operations_sketch",
             "lines",
             "line_width"
-          ]
+          ],
+          "label": "Operations"
         }
       },
       {
@@ -2120,7 +2164,8 @@
             "build123d.drafting",
             "size",
             "rotation"
-          ]
+          ],
+          "label": "Drafting"
         }
       },
       {
@@ -2167,7 +2212,8 @@
             "shaft_path",
             "shaft_width",
             "head_at_start"
-          ]
+          ],
+          "label": "Drafting"
         }
       },
       {
@@ -2244,7 +2290,8 @@
             "drawing_scale",
             "nominal_text_size",
             "line_width"
-          ]
+          ],
+          "label": "Drafting"
         }
       },
       {
@@ -2273,7 +2320,8 @@
             "available-fonts",
             "function",
             "build123d.text"
-          ]
+          ],
+          "label": "Text"
         }
       },
       {
@@ -2311,7 +2359,8 @@
             "build123d.topology.shape_core",
             "shape",
             "other"
-          ]
+          ],
+          "label": "Algebra"
         }
       },
       {
@@ -2349,7 +2398,8 @@
             "build123d.topology.shape_core",
             "shape",
             "other"
-          ]
+          ],
+          "label": "Algebra"
         }
       },
       {
@@ -2387,7 +2437,8 @@
             "build123d.topology.shape_core",
             "shape",
             "other"
-          ]
+          ],
+          "label": "Algebra"
         }
       }
     ]
