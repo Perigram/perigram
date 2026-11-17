@@ -202,6 +202,13 @@ Token law:
 | `{#key}` / `{/key}` | xlsx, one cell each, on their own rows | the rows between repeat once per element of `values[key]`; element fields shadow outer values; a scalar element binds to `{item}`; one nesting level |
 | `{spot:name}` | DXF templates | the [tech-drawing](../tech-drawing/README.md) placement contract |
 
+A concrete composition path is: read a CSV/XLSX `rows` projection →
+`Table` block → `Make List` configured for `text.document-block` →
+`Compose document` → preview → `Export Markdown file` → Bake as a
+`text-document` instance. The projection's row records connect directly to
+the table block's list input; block and document sockets carry distinct
+semantic kinds, so arbitrary JSON records cannot be wired in by accident.
+
 A graph-authored document becomes a reusable Markdown template through
 `compose-document` → `export-markdown-file` → explicit Bake to a new
 `text-document` instance. The resulting ordinary file can be selected as

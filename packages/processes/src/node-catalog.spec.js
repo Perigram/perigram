@@ -9,6 +9,7 @@ import {
   getProcessNodeDefinition,
   resolveCatalogNodePorts
 } from './node-catalog.js';
+import { processTypesCompatible } from './types.js';
 import { processSocketsCompatible } from './types.js';
 
 describe('process v4 node catalog', () => {
@@ -266,6 +267,41 @@ describe('process v4 node catalog', () => {
     const unbound = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'ghost' }, { domain });
     expect(unbound.inputs.map(input => input.id)).toEqual(['in']);
     expect(unbound.outputs.map(output => output.id)).toEqual(['completed']);
+  });
+
+  it('connects real table projections through typed document blocks to document export', () => {
+    const domain = {
+      serviceContracts: {
+        'plugin.documents.document-paragraph': {
+          signature: { input: { base: 'record', fields: { text: { base: 'string', nullable: true } } }, output: { base: 'json', kind: 'text.document-block' } }
+        },
+        'plugin.documents.document-table': {
+          signature: { input: { base: 'record', fields: { rows: { base: 'list', itemType: { base: 'record' } } } }, output: { base: 'json', kind: 'text.document-block' } }
+        },
+        'plugin.documents.compose-document': {
+          signature: { input: { base: 'record', fields: { blocks: { base: 'list', itemType: { base: 'json', kind: 'text.document-block' } } } }, output: { base: 'json', kind: 'text.flow-document' } }
+        },
+        'plugin.documents.export-markdown-file': {
+          signature: { input: { base: 'record', fields: { document: { base: 'json', kind: 'text.flow-document' } } }, output: { base: 'json', kind: 'documents.file' } }
+        }
+      },
+      projectionContracts: {
+        'csv-table/rows': { output: { base: 'list', itemType: { base: 'record' } } }
+      }
+    };
+    const paragraph = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'plugin.documents.document-paragraph' }, { domain });
+    const table = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'plugin.documents.document-table' }, { domain });
+    const compose = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'plugin.documents.compose-document' }, { domain });
+    const exportFile = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'plugin.documents.export-markdown-file' }, { domain });
+    const makeBlocks = resolveCatalogNodePorts({ kind: 'collection.makeList', type: { base: 'json', kind: 'text.document-block' } }, { domain });
+    const rows = resolveCatalogNodePorts({ kind: 'cts.read', select: 'extract', typeId: 'csv-table', projection: 'rows' }, { domain });
+
+    expect(paragraph.outputs.find(port => port.id === 'result').type).toEqual({ base: 'json', kind: 'text.document-block' });
+    expect(processTypesCompatible(rows.outputs[0].type, table.inputs.find(port => port.id === 'rows').type).ok).toBe(true);
+    expect(processTypesCompatible(table.outputs.find(port => port.id === 'result').type, makeBlocks.inputs[0].type).ok).toBe(true);
+    expect(processTypesCompatible(makeBlocks.outputs[0].type, compose.inputs.find(port => port.id === 'blocks').type).ok).toBe(true);
+    expect(processTypesCompatible(compose.outputs.find(port => port.id === 'result').type, exportFile.inputs.find(port => port.id === 'document').type).ok).toBe(true);
+    expect(exportFile.outputs.find(port => port.id === 'result').type).toEqual({ base: 'json', kind: 'documents.file' });
   });
 
   it('exposes the unfiltered All read without a hidden predicate input', () => {
