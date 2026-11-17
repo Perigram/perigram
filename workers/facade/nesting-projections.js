@@ -14,10 +14,10 @@ export function normalizeNestingItems(items) {
       nestingError(`Item ${index} is not a part`);
     }
     const authoredCount = Number(item.count);
-    const count = authoredCount === 0 || !Number.isFinite(authoredCount)
-      ? (item.count == null || item.count === '' || authoredCount === 0 ? 1 : NaN)
-      : Math.trunc(authoredCount);
-    if (!Number.isSafeInteger(count) || count < 1) {
+    const count = item.count == null || item.count === '' || authoredCount === 0
+      ? 1
+      : authoredCount;
+    if (typeof item.count === 'boolean' || !Number.isSafeInteger(count) || count < 1) {
       nestingError(`Item ${index} count must be a positive safe integer`);
     }
     return { ...item, count };
