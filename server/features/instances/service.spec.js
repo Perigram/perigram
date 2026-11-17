@@ -1736,7 +1736,7 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
       organizationId: 'org-1'
     });
 
-    expect(coll.deleteOne).toHaveBeenCalledWith({ _id: PANEL_ID });
+    expect(coll.deleteOne).toHaveBeenCalledWith({ _id: PANEL_ID }, { session: transactionSession });
     expect(pluginInstalls.findDeclarationByTypeId).toHaveBeenCalledWith('org-2', 'panel');
     findEntity.mockRestore();
   });
