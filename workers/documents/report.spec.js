@@ -83,6 +83,24 @@ describe('markdown ↔ flow-document', () => {
     expect(document.blocks).toEqual([]);
   });
 
+  it('creates list items from typed inline values', async () => {
+    const strong = await runtime.execute('inline-mark', {
+      mark: 'strong',
+      children: [{ type: 'text', text: 'Important' }]
+    });
+    const list = await runtime.execute('document-list', {
+      inlineItems: [strong],
+      ordered: true
+    });
+    expect(list).toEqual({
+      type: 'list',
+      ordered: true,
+      items: [[{ type: 'strong', children: [{ type: 'text', text: 'Important' }] }]]
+    });
+    expect(() => runtime.execute('document-list', { inlineItems: [{ type: 'other' }] }))
+      .toThrow('text.inline');
+  });
+
   it('refuses empty and non-string input', () => {
     expect(() => parseMarkdown('')).toThrow('non-empty');
     expect(() => parseMarkdown(null)).toThrow('non-empty');
