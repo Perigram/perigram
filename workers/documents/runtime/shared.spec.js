@@ -62,6 +62,21 @@ describe('Documents shared runtime', () => {
     expect(Buffer.from(html.payload.base64, 'base64').toString()).toContain('<h2>Ready</h2>');
   });
 
+  it('declares a download-only HTML file type for exported HTML payloads', () => {
+    const html = listing.declarations.types.find(type => type.id === 'html-document');
+    expect(html).toMatchObject({
+      class: 'file',
+      payload: {
+        mime: ['text/html'],
+        accept: ['.html', '.htm', 'text/html'],
+        preview: 'download'
+      },
+      revisions: 'content'
+    });
+    expect(listing.declarations.services.find(service => service.id === 'export-html-file').signature.output)
+      .toMatchObject({ base: 'json', kind: 'documents.file' });
+  });
+
   it('renders a flow document directly as safe HTML', () => {
     const html = runtime.execute('render-document-html', { document: { type: 'text.flow-document', blocks: [{ type: 'paragraph', children: [{ type: 'text', text: '<safe>' }] }] } });
     expect(html).toContain('&lt;safe&gt;');
