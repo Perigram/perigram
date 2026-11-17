@@ -4,7 +4,7 @@
 // them per SPEC §4 (no shadowing), and redefinition goes through the
 // refuse-on-breaking diff (SPEC §11).
 import { createError } from 'h3';
-import { runOrganizationChange } from '../instances/index.js';
+import { getOrganizationChangeSequence, runOrganizationChange } from '../instances/index.js';
 import * as repository from './repository.js';
 import {
   createTypeRegistry, compileClientBundle, frameworkTypes, planTypeMigration
@@ -288,18 +288,12 @@ export async function describeOrganizationTypes(organizationId) {
 }
 
 export async function defineType(declaration = {}, options = {}) {
-  const actor = options.actor ?? null;
-  const actorId = actor && typeof actor === 'object' ? (actor.userId || actor.id || actor._id || null) : actor;
-  return await runOrganizationChange(options.organizationId, {
-    kind: 'type-defined',
-    typeId: String(declaration?.id || ''),
-    paths: ['declaration'],
-    actorId
-  }, () => defineTypeInternal(declaration, options));
+  return await defineTypeInternal(declaration, options);
 }
 
 async function defineTypeInternal(declaration = {}, { organizationId, actor = null } = {}) {
   if (!organizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
+  const expectedSequence = await getOrganizationChangeSequence(organizationId);
   const orgDeclaration = {
     ...declaration,
     scope: 'org',
@@ -423,7 +417,7 @@ async function defineTypeInternal(declaration = {}, { organizationId, actor = nu
       }
     }
     return current;
-  });
+  }, { expectedSequence });
   if (migrationError) throw migrationError;
   // Declaration writes can change the derived index set (SPEC §13).
   await pruneInstanceUniqueIndexes(registry.resolveView(organizationId), { organizationId });
@@ -432,18 +426,12 @@ async function defineTypeInternal(declaration = {}, { organizationId, actor = nu
 }
 
 export async function removeType(typeId, options = {}) {
-  const actor = options.actor ?? null;
-  const actorId = actor && typeof actor === 'object' ? (actor.userId || actor.id || actor._id || null) : actor;
-  return await runOrganizationChange(options.organizationId, {
-    kind: 'type-removed',
-    typeId: String(typeId || ''),
-    paths: ['declaration'],
-    actorId
-  }, () => removeTypeInternal(typeId, options));
+  return await removeTypeInternal(typeId, options);
 }
 
 async function removeTypeInternal(typeId, { organizationId, actor = null, abandon = false } = {}) {
   if (!organizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
+  const expectedSequence = await getOrganizationChangeSequence(organizationId);
   const registry = await compileRegistryForOrganization(organizationId);
   const type = registry.getType(String(typeId), organizationId);
   if (!type) throw createError({ statusCode: 404, message: `Unknown type ${typeId}` });
@@ -475,7 +463,7 @@ async function removeTypeInternal(typeId, { organizationId, actor = null, abando
     const result = await repository.deleteByTypeId(organizationId, typeId);
     invalidateInstanceDeclarations(String(organizationId));
     return result;
-  });
+  }, { expectedSequence });
   // A removed type may have been the last declaring an edge index.
   const after = await compileRegistryForOrganization(organizationId);
   await ensureInstanceIndexes(after.resolveView(organizationId), { organizationId });
