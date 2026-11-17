@@ -301,7 +301,7 @@ describe('process v4 node catalog', () => {
     expect(processTypesCompatible(table.outputs.find(port => port.id === 'result').type, makeBlocks.inputs[0].type).ok).toBe(true);
     expect(processTypesCompatible(makeBlocks.outputs[0].type, compose.inputs.find(port => port.id === 'blocks').type).ok).toBe(true);
     expect(processTypesCompatible(compose.outputs.find(port => port.id === 'result').type, exportFile.inputs.find(port => port.id === 'document').type).ok).toBe(true);
-    expect(exportFile.outputs.find(port => port.id === 'result').type).toEqual({ base: 'json', kind: 'documents.file' });
+    expect(exportFile.outputs.find(port => port.id === 'result').type).toEqual({ base: 'json', kind: 'documents.file', nullable: false });
   });
 
   it('exposes the unfiltered All read without a hidden predicate input', () => {

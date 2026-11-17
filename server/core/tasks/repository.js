@@ -61,7 +61,7 @@ export async function claimNext({
   const hasNamedRunningStatuses = runningStatus && Object.keys(runningStatus).length > 0;
   const update = typeof runningStatus === 'string' || !hasNamedRunningStatuses
     ? {
-        $set: { status: runningStatus, workerId, claimToken, leaseExpiresAt, startedAt: now, updatedAt: now },
+        $set: { status: typeof runningStatus === 'string' ? runningStatus : 'RUNNING', workerId, claimToken, leaseExpiresAt, startedAt: now, updatedAt: now },
         $inc: { attempts: 1 }
       }
     : [{

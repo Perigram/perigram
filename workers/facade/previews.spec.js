@@ -30,7 +30,7 @@ describe('Facade preview surfaces', () => {
 
   it('passes the surface-module checks', async () => {
     for (const path of ['./surfaces/cassette-preview.mjs', './surfaces/profile-preview.mjs']) {
-      await expect(checkSurfaceModule(new URL(path, import.meta.url).pathname)).resolves.toBe(true);
+      await expect(checkSurfaceModule(new URL(path, import.meta.url).pathname, { dependencies: [{ name: 'module' }] })).resolves.toBe(true);
     }
   });
 

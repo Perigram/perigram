@@ -318,25 +318,26 @@ describe('report preview surface', () => {
       return { tag, props, children };
     };
     const component = createReportSurface({ vue: { h } });
+    const flowDocument = {
+      type: 'text.flow-document',
+      title: 'Graph document',
+      blocks: [
+        { type: 'paragraph', children: [{ type: 'text', text: 'plain' }, { type: 'strong', children: [{ type: 'text', text: 'bold' }] }, { type: 'emphasis', children: [{ type: 'text', text: 'italic' }] }, { type: 'code', text: 'x' }, { type: 'link', href: 'javascript:alert(1)', children: [{ type: 'text', text: 'unsafe' }] }] },
+        { type: 'heading', level: 2, children: [{ type: 'text', text: 'Heading' }] },
+        { type: 'list', ordered: true, items: [[{ type: 'text', text: 'item' }]] },
+        { type: 'blockquote', blocks: [{ type: 'paragraph', children: [{ type: 'text', text: 'quote' }] }] },
+        { type: 'code-block', language: 'js', text: 'const x = 1;' },
+        { type: 'table', rows: [{ a: 'cell' }] },
+        { type: 'horizontal-rule' }
+      ]
+    };
     component.payload = {
-      nodes: { n: { outputs: { result: { branches: [{ items: [{
-        type: 'text.flow-document',
-        title: 'Graph document',
-        blocks: [
-          { type: 'paragraph', children: [{ type: 'text', text: 'plain' }, { type: 'strong', children: [{ type: 'text', text: 'bold' }] }, { type: 'emphasis', children: [{ type: 'text', text: 'italic' }] }, { type: 'code', text: 'x' }, { type: 'link', href: 'javascript:alert(1)', children: [{ type: 'text', text: 'unsafe' }] }] },
-          { type: 'heading', level: 2, children: [{ type: 'text', text: 'Heading' }] },
-          { type: 'list', ordered: true, items: [[{ type: 'text', text: 'item' }]] },
-          { type: 'blockquote', blocks: [{ type: 'paragraph', children: [{ type: 'text', text: 'quote' }] }] },
-          { type: 'code-block', language: 'js', text: 'const x = 1;' },
-          { type: 'table', rows: [{ a: 'cell' }] },
-          { type: 'horizontal-rule' }
-        ]
-      }] }] } } }
+      nodes: { n: { outputs: { result: { branches: [{ items: [flowDocument] }] } } } }
     };
     const tree = component.render();
     expect(tree).toBeTruthy();
     expect(calls.map(call => call.tag)).toEqual(expect.arrayContaining([
-      'article', 'h2', 'p', 'strong', 'em', 'code', 'span', 'h2', 'ol', 'li',
+      'article', 'h2', 'p', 'strong', 'em', 'code', 'span', 'ol', 'li',
       'blockquote', 'pre', 'table', 'thead', 'tbody', 'hr'
     ]));
     expect(calls.some(call => call.tag === 'a' && String(call.props?.href).startsWith('javascript:'))).toBe(false);

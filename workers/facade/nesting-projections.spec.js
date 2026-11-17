@@ -5,6 +5,7 @@ import {
   groupNestingLayouts,
   nestingLayouts,
   nestingPartsProjection,
+  nestingSheetCount,
   normalizeNestingItems,
   summarizeNestingResult
 } from './nesting-projections.js';
