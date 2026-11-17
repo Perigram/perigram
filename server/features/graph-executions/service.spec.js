@@ -207,7 +207,7 @@ describe('graph execution service', () => {
         status: 'succeeded', outputs: { document: [{ type: 'part', id: 'item-1' }, { type: 'part', id: 'hidden' }] }
       }
     });
-    dataService.processGetById.mockImplementation(async id => {
+    payloadService.processGetById = vi.fn(async id => {
       if (id === 'hidden') throw Object.assign(new Error('denied'), { statusCode: 403 });
       return { _id: id, type: 'part', fields: { code: 'A' } };
     });
