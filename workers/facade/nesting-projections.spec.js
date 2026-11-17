@@ -32,6 +32,22 @@ const request = {
   params: { width: 1000, height: 1000, space: 3, sheetCount: 1 }
 };
 
+describe('nesting input normalization', () => {
+  it('defaults missing or zero quantities and copies valid integer quantities', () => {
+    const source = Object.freeze({ count: '3', designId: 'design-1' });
+    const [normalized] = normalizeNestingItems([source]);
+    expect(normalized).toEqual({ count: 3, designId: 'design-1' });
+    expect(normalized).not.toBe(source);
+    expect(normalizeNestingItems([{}])[0].count).toBe(1);
+    expect(normalizeNestingItems([{ count: 0 }])[0].count).toBe(1);
+  });
+
+  it.each([0.5, 1.2, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1, true])(
+    'rejects invalid physical quantity %s',
+    count => expect(() => normalizeNestingItems([{ count }])).toThrow(/positive safe integer/)
+  );
+});
+
 describe('nesting projections', () => {
   it('exposes the worker solution layouts as the value boundary layouts', () => {
     const enriched = enrichNestingResult(workerResult, request);
