@@ -84,7 +84,7 @@ port-compatibility result for new wires, persisted-wire validation, and
 preview preflight. The graph inspector renders declared configuration
 properties as typed controls and exposes graph interface shape/base/kind,
 required, and default fields. Provider and graph integration regressions
-were added; Authorized text/CSV/XLSX file-read nodes now use the managed `files.read` capability. The legacy endpoint projections remain for type projection dispatch; Markdown parsing, template fill, and PDF rendering remain the next Documents provider migration. Test execution and deployed workflow verification remain open.
+were added; Authorized text/CSV/XLSX file-read nodes now use the managed `files.read` capability. The legacy endpoint projections remain for type projection dispatch; Markdown parsing now runs in the shared browser/server provider; template fill and PDF rendering remain the next Documents provider migration. Test execution and deployed workflow verification remain open.
 
 ## Priority: Documents and Facade plugin review/refactor (owner direction 2026-11-17)
 
@@ -7894,3 +7894,11 @@ degradation/editor laws in Program B notes.
 - Palette review covered both process-designer palettes and the procedural graph palette. The graph palette already declared a separate `source: 'graphs'` group, but both the dock and context palette folded it into the platform tier. A shared tier projection now renders reusable graphs separately from platform and installed-plugin contributions. Ungrouped plugin services now receive a stable provider-owned group rather than being mislabeled as framework services.
 - Palette coverage now has explicit tests for all 51 graph-composable build123d operations across seven groups, Technical drawing's provider fallback group, existing Documents and Facade group coverage, the process designer's executable palette trace, and graph/plugin/framework tier separation. The legacy process designer groups remain: types, operations, control, instances, values, and list/tree; plugin sections derive from declared provider groups.
 - This is a settings and palette correction, not completion of the runtime migration or of the entire SPEC §28 graph roadmap. Verify the latest CI run before treating these changes as green.
+
+Progress (2026-11-17): Markdown parsing was extracted into the dependency-light
+`markdown-ir.mjs` adapter and moved from endpoint mode into the
+`documents-shared` browser/server runtime. The installed listing is version
+25; provider discovery derives the node from the same declaration. The report
+adapter re-exports the parser for existing consumers. Runtime and report
+regressions cover typed parsing and the existing Markdown vocabulary. Test
+execution and installed-organization upgrade verification remain open.

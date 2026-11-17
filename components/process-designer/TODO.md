@@ -197,3 +197,11 @@ The core evaluator now validates connected values and defaults against
 declared primitive/record bases, transport shapes, required presence, and
 nullability. Preview inputs expose native primitive controls and structured
 JSON editing. The tests are added but still need execution in the project CI.
+
+### Agent Notes (2026-11-17, Markdown graph operation)
+
+The Documents `parse-markdown` operation now belongs to the shared
+browser/server runtime and is exposed through listing-derived provider
+discovery. It produces `text.flow-document@1` and preserves the existing
+report adapter import. Verify the node in the actual palette and run the
+Markdown graph acceptance path after package/catalog upgrade.

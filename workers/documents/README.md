@@ -41,6 +41,16 @@ the plugin's surface modules, and types ride the generic instance machinery.
 
 - Document and report operations (`report.js` and `report-ir.mjs`, grouped by inline content, blocks, composition, and export): `parse-markdown` (text → `text.flow-document@1`), typed inline and block constructors (`text.inline` and `text.document-block`), `compose-document` and `append-document-block` (blocks → flowing document), `export-markdown` (flow document → markdown text), Markdown/HTML file exports, and `render-document-html` (flow document → safe HTML). The `document.report@1` composition remains available for explicitly sectioned reports. The Documents preview channel renders flowing documents and reports from the unified graph evaluator's `outputs`/`nodeOutputs` envelope, with the selected graph output first; it retains the legacy branch-tree envelope for older hosts. The IR is the source and Markdown, HTML, and PDF are representations.
 
+### Markdown parsing in the shared provider
+
+`parse-markdown` is a pure Documents operation in the
+`documents-shared` runtime. The browser and managed server targets use the
+same `markdown-ir.mjs` adapter to turn Markdown into the typed
+`text.flow-document@1` value; the endpoint-only parser path is retired.
+Unsupported HTML and image constructs remain explicit diagnostics rather
+than silently disappearing. The report adapter re-exports the same parser
+for existing imports.
+
 ### Unified graph provider scope
 
 The `documents-shared` runtime currently publishes 23 browser graph
