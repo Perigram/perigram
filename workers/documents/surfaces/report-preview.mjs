@@ -89,12 +89,23 @@ export default function createSurface(ctx) {
 // Document/report values in node and branch order; the IR discriminator selects the renderer.
 export function documentsOf(payload) {
   const found = [];
+  const seen = new Set();
+  const add = value => {
+    if (!value || !['text.flow-document', 'document.report'].includes(value.type) || seen.has(value)) return;
+    seen.add(value);
+    found.push(value);
+  };
+
+  add(payload?.selectedOutput?.value);
+  for (const value of Object.values(payload?.outputs || {})) add(value);
+  for (const node of Object.values(payload?.nodeOutputs || {})) {
+    for (const value of Object.values(node || {})) add(value);
+  }
+  // Retain support for the branch-tree envelope used by older preview hosts.
   for (const node of Object.values(payload?.nodes || {})) {
     for (const tree of Object.values(node?.outputs || {})) {
       for (const branch of Array.isArray(tree?.branches) ? tree.branches : []) {
-        for (const item of Array.isArray(branch?.items) ? branch.items : []) {
-          if (item?.type === 'text.flow-document' || item?.type === 'document.report') found.push(item);
-        }
+        for (const item of Array.isArray(branch?.items) ? branch.items : []) add(item);
       }
     }
   }
