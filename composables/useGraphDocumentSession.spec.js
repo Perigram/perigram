@@ -107,6 +107,50 @@ describe('useGraphDocumentSession', () => {
     expect(session.executionRecord.value.provenance.nodes.some(item => item.operation?.provider === 'plugin.example')).toBe(true);
   });
 
+  it('rejects semantically different JSON kinds and validates persisted wires', () => {
+    const session = useGraphDocumentSession({
+      t: key => key,
+      providers: [{
+        provider: 'plugin.example',
+        definitions: [
+          {
+            provider: 'plugin.example', id: 'document.block', version: '1',
+            palette: { group: 'documents', label: 'Documents' },
+            inputs: [], outputs: [{ id: 'value', semantic: { base: 'json', kind: 'text.document-block' } }],
+            execution: { kind: 'pure' }
+          },
+          {
+            provider: 'plugin.example', id: 'document.consume', version: '1',
+            palette: { group: 'documents', label: 'Documents' },
+            inputs: [{ id: 'document', semantic: { base: 'json', kind: 'text.flow-document' } }],
+            outputs: [{ id: 'value', semantic: { base: 'json', kind: 'text.flow-document' } }],
+            execution: { kind: 'pure' }
+          }
+        ],
+        execute: () => ({ value: {} })
+      }]
+    });
+    const items = session.paletteGroups.value.flatMap(group => group.items);
+    const block = session.addNode(items.find(item => item.operation?.id === 'document.block'), { x: 0, y: 0 });
+    const consumer = session.addNode(items.find(item => item.operation?.id === 'document.consume'), { x: 200, y: 0 });
+    session.onConnect({
+      source: block.id, sourceHandle: 'value',
+      target: consumer.id, targetHandle: 'document'
+    });
+    expect(session.edges.value).toHaveLength(0);
+
+    session.edges.value = [{
+      id: 'invalid-semantic-edge',
+      source: block.id,
+      sourceHandle: 'value',
+      target: consumer.id,
+      targetHandle: 'document'
+    }];
+    expect(session.validation.value.ok).toBe(false);
+    expect(session.validation.value.errors.join(' ')).toContain('Representation kind');
+    expect(session.refreshPreview()).resolves.toBeNull();
+  });
+
   it('composes and exports a Documents flow through listing-derived unified graph nodes', async () => {
     const runtime = createDocumentsRuntime();
     const contribution = runtime.providers[0];
