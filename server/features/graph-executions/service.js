@@ -77,6 +77,15 @@ function expectedSequenceForReadSet(readSet) {
   return Number.isSafeInteger(start) && start >= 0 && start === end ? end : null;
 }
 
+function expectedSequenceForValidation(readSet, boundary) {
+  const previewSequence = expectedSequenceForReadSet(readSet);
+  if (previewSequence != null) return previewSequence;
+  const validatedSequence = boundary?.organizationSequenceEnd;
+  return Number.isSafeInteger(validatedSequence) && validatedSequence >= 0
+    ? validatedSequence
+    : null;
+}
+
 async function persistRecord(record, graphDocument, organizationId, auth, session = null) {
   const service = getAppRegistry().getInstanceService('graph-execution');
   const draft = {
@@ -211,13 +220,14 @@ async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, s
   if (!organizationId) {
     if (queries.length) throw stalePreviewError('Organization query dependencies cannot be validated without an organization');
     await validate();
-    return;
+    return { consistency: 'unverified', organizationSequenceEnd: null };
   }
 
   const { boundary } = await withOrganizationChangeSequence(organizationId, validate, { retries: 2 });
   if (hasStableSequence && (boundary.organizationSequenceStart !== end || boundary.organizationSequenceEnd !== end)) {
     throw stalePreviewError('Organization data changed after preview; evaluate again before materializing output');
   }
+  return boundary;
 }
 
 async function materializeOutput(output, auth, graph, outputId, requestedFilename = null) {
@@ -468,12 +478,12 @@ export async function commitProposal({ graphDocumentInstanceId, record: value, p
   }
   try {
     return await withMongoWriteTransaction(async session => {
-      await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
+      const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
       const updated = await instanceService.patch(instanceId, patch, {
         auth,
         organizationId,
         expectedRevision,
-        expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet),
+        expectedOrganizationSequence: expectedSequenceForValidation(preview.readSet, validationBoundary),
         session
       });
       const timestamp = new Date().toISOString();
@@ -579,13 +589,13 @@ export async function commitOutput({ graphDocumentInstanceId, record: value, out
   }
   try {
     return await withMongoWriteTransaction(async session => {
-      await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
+      const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
       const startedAt = new Date().toISOString();
       const updated = await instanceService.patch(proposal.instanceId, proposal.patch, {
         auth,
         organizationId,
         expectedRevision: proposal.expectedRevision,
-        expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet),
+        expectedOrganizationSequence: expectedSequenceForValidation(preview.readSet, validationBoundary),
         session
       });
       const completedAt = new Date().toISOString();
@@ -720,7 +730,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     if (!stored?.id) throw createError({ statusCode: 500, message: 'Attachment file storage returned no file identity' });
     try {
       return await withMongoWriteTransaction(async session => {
-        await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
+        const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
         const updated = await instanceService.patch(destination.instanceId, {
           fields: {
             [fieldId]: {
@@ -733,7 +743,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
           auth,
           organizationId,
           expectedRevision: destination.expectedRevision,
-          expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet),
+          expectedOrganizationSequence: expectedSequenceForValidation(preview.readSet, validationBoundary),
           session
         });
         const timestamp = new Date().toISOString();
@@ -800,7 +810,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     }, 'files', mimeType || 'application/octet-stream');
     try {
       return await withMongoWriteTransaction(async session => {
-        await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
+        const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
         const updated = isInstancePayload
           ? await instanceService.replacePayload(destination.instanceId, {
               buffer,
@@ -812,7 +822,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
               organizationId,
               session,
               expectedRevision: destination.expectedRevision,
-              expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet),
+              expectedOrganizationSequence: expectedSequenceForValidation(preview.readSet, validationBoundary),
               storedFile: stored
             })
           : await instanceService.createForHttp({
@@ -823,7 +833,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
                 size: buffer.length,
                 name: filename
               }
-            }, { auth, userId: auth.userId, organizationId, session, expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet), requireRevisionedPayload: true });
+            }, { auth, userId: auth.userId, organizationId, session, expectedOrganizationSequence: expectedSequenceForValidation(preview.readSet, validationBoundary), requireRevisionedPayload: true });
         const timestamp = new Date().toISOString();
         const bakeId = randomUUID();
         const bakeRecord = createGraphExecutionRecord({
@@ -871,7 +881,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     }
   }
 
-  await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { requireStableReadSet: true });
+  const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { requireStableReadSet: true });
   const bakeId = randomUUID();
   const timestamp = new Date().toISOString();
   const baked = await pagesService.bakeFile({
@@ -880,7 +890,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     buffer,
     mimeType,
     conflictPolicy: destination.conflictPolicy || 'fail',
-    expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet),
+    expectedOrganizationSequence: expectedSequenceForValidation(preview.readSet, validationBoundary),
     provenance: { graphId: preview.graph.id, graphRevision: preview.graph.revision, executionId: bakeId, outputId: selectedOutputId }
   }, auth);
   const bakeRecord = createGraphExecutionRecord({

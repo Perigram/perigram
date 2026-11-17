@@ -228,7 +228,7 @@ describe('graph execution service', () => {
     }, auth);
 
     expect(dataService.patch).toHaveBeenCalledWith('item-1', { fields: { code: 'B' } }, {
-      auth, organizationId: 'org-1', expectedRevision: '3', expectedOrganizationSequence: null, session
+      auth, organizationId: 'org-1', expectedRevision: '3', expectedOrganizationSequence: 4, session
     });
     expect(result.execution).toMatchObject({
       profile: 'procedural-commit',
@@ -400,7 +400,7 @@ describe('graph execution service', () => {
       organizationId: 'org-1',
       session,
       expectedRevision: '3',
-      expectedOrganizationSequence: null,
+      expectedOrganizationSequence: 4,
       storedFile: { id: 'baked-payload-1', filename: 'Document graph-document.txt' }
     }));
     expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
@@ -442,7 +442,7 @@ describe('graph execution service', () => {
         size: Buffer.byteLength('Generated document'),
         name: 'Document graph-document.txt'
       }
-    }, { auth, userId: 'user-1', organizationId: 'org-1', session, expectedOrganizationSequence: null, requireRevisionedPayload: true });
+    }, { auth, userId: 'user-1', organizationId: 'org-1', session, expectedOrganizationSequence: 4, requireRevisionedPayload: true });
     expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
       fields: expect.objectContaining({
         profile: 'procedural-bake',
@@ -477,7 +477,7 @@ describe('graph execution service', () => {
     );
     expect(payloadService.patch).toHaveBeenCalledWith('item-1', {
       fields: { attachment: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8', size: 18 } }
-    }, expect.objectContaining({ expectedRevision: '3', expectedOrganizationSequence: null, session }));
+    }, expect.objectContaining({ expectedRevision: '3', expectedOrganizationSequence: 4, session }));
     expect(result.instance.revision).toBe(4);
     expect(result.execution.artifacts.at(-1)).toMatchObject({
       kind: 'instance-field', typeId: 'part', instanceId: 'item-1', fieldId: 'attachment',
