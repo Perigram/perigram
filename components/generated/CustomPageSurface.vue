@@ -98,7 +98,7 @@
 // blocks mount their own editor instances, collection blocks mount
 // ViewEmbed beside them — persisted through the pages API. A class page
 // leads with its class's live collection.
-import { computed, inject, onMounted, provide, reactive, ref } from 'vue';
+import { computed, inject, onMounted, provide, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import SurfaceHeader from '~/components/ui-mapping/SurfaceHeader.vue';
@@ -168,13 +168,21 @@ function openClassInstance({ typeId, instanceId } = {}) {
   openInstanceInWorkspace({ typeId, instanceId: String(instanceId) });
 }
 
-onMounted(async () => {
-  await pagesStore.ensureLoaded();
-  await pagesStore.loadDocument(props.docId).catch(() => {});
+async function refreshReferences() {
   try {
     referenceResults.value = await $fetch(`/api/pages/${encodeURIComponent(props.docId)}/references`);
   } catch {
     referenceResults.value = [];
   }
+}
+
+watch(() => session.dirty, async (dirty, previous) => {
+  if (!dirty && previous) await refreshReferences();
+});
+
+onMounted(async () => {
+  await pagesStore.ensureLoaded();
+  await pagesStore.loadDocument(props.docId).catch(() => {});
+  await refreshReferences();
 });
 </script>
