@@ -1,9 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { bake, extractGeometry, nestingParts, nestingSheetCount } from './services.js';
+import { bake, extractGeometry, nestingParts, nestingSheetCount, services } from './services.js';
+import listing from './listing.json';
 import { createDefaultOccsCassetteTemplateDefinition } from './occs/templates.js';
 import { generateLayeredDxf } from './vendor/dxf-writer.js';
 
 const SQUARE = [[0, 0], [100, 0], [100, 100], [0, 100], [0, 0]];
+
+describe('facade listing/runtime inventory', () => {
+  it('implements every declared service exactly once', () => {
+    expect(Object.keys(services).sort()).toEqual(
+      listing.declarations.services.map(service => service.id).sort()
+    );
+  });
+
+  it('resolves every construction and projection binding to a declared service', () => {
+    const serviceIds = new Set(listing.declarations.services.map(service => service.id));
+    for (const type of listing.declarations.types) {
+      for (const projection of type.projections || []) {
+        expect(serviceIds.has(projection.resolve?.service?.replace('plugin.facade.', ''))).toBe(true);
+      }
+    }
+    for (const [typeId, modes] of Object.entries(listing.declarations.constructions || {})) {
+      expect(listing.declarations.types.some(type => type.id === typeId)).toBe(true);
+      for (const serviceId of Object.values(modes)) {
+        expect(serviceIds.has(String(serviceId).replace('plugin.facade.', ''))).toBe(true);
+      }
+    }
+  });
+});
 
 describe('cassette-design construction names', () => {
   it('names a parametric bake from its template and parameter values', async () => {

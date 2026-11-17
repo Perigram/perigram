@@ -3,6 +3,7 @@
 // receives the envelope's top-level base64. One normalizer serves both.
 import { describe, expect, it } from 'vitest';
 import { services } from './services.js';
+import listing from './listing.json';
 
 const CSV = Buffer.from('name,qty\naluminium,12\nsteel,3\n').toString('base64');
 const XLSX_BASE64 = await (async () => {
@@ -17,6 +18,29 @@ const XLSX_BASE64 = await (async () => {
 
 const composed = payload => ({ payload });
 const projection = payloadBase64 => ({ payloadBase64 });
+
+describe('documents listing/runtime inventory', () => {
+  it('implements every declared service exactly once', () => {
+    expect(Object.keys(services).sort()).toEqual(
+      listing.declarations.services.map(service => service.id).sort()
+    );
+  });
+
+  it('resolves every projection and construction binding to a declared service', () => {
+    const serviceIds = new Set(listing.declarations.services.map(service => service.id));
+    for (const type of listing.declarations.types) {
+      for (const projection of type.projections || []) {
+        expect(serviceIds.has(projection.resolve?.service?.replace('plugin.documents.', ''))).toBe(true);
+      }
+    }
+    for (const [typeId, modes] of Object.entries(listing.declarations.constructions || {})) {
+      expect(listing.declarations.types.some(type => type.id === typeId)).toBe(true);
+      for (const serviceId of Object.values(modes)) {
+        expect(serviceIds.has(String(serviceId).replace('plugin.documents.', ''))).toBe(true);
+      }
+    }
+  });
+});
 
 describe('documents extraction payload contract', () => {
   it('table-rows reads a composed blob handle and a projection envelope alike', async () => {
