@@ -1324,7 +1324,7 @@ function instanceService(typeId) {
         await entityEventService.publishEntityChanged(event.auth, event.detail);
       }
       return result.removed;
-    }
+    },
 
     // The sweep runs before the delete (SPEC §22.12); the doc's own
     // organization scopes the referrer scan, so a system target sweeps
