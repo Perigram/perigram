@@ -1137,7 +1137,7 @@ function instanceService(typeId) {
     // payload bytes are ever lost to a silent overwrite. Gated by the
     // shared access engine on the class-collection feature (the feature
     // grants compile against) with the type id as type-id filter.
-    async replacePayload(id, { buffer, filename, mimeType } = {}, { userId, organizationId, auth, reason = 'payload-replaced', restoredFrom = null, session = null, expectedRevision = null, expectedOrganizationSequence = null } = {}) {
+    async replacePayload(id, { buffer, filename, mimeType } = {}, { userId, organizationId, auth, reason = 'payload-replaced', restoredFrom = null, session = null, expectedRevision = null, expectedOrganizationSequence = null, storedFile = null } = {}) {
       const declaration = await requireDeclaration(typeId, organizationId);
       if (!declaration.payload) {
         throw createError({ statusCode: 400, message: `Type ${typeId} declares no payload` });
@@ -1162,11 +1162,13 @@ function instanceService(typeId) {
       if (!hasInstanceAccess({ entity: current, typeId: typeId, feature, level: 'write', action: 'update', auth: auth || null })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
-      const stored = await filesService.uploadFile(buffer, filename || 'payload', {
+      const ownsStoredFile = !storedFile;
+      const stored = storedFile || await filesService.uploadFile(buffer, filename || 'payload', {
         userId,
         organizationId,
         type: typeId
       }, PAYLOAD_BUCKET);
+      if (!stored?.id) throw createError({ statusCode: 400, message: 'A stored payload file reference is required' });
       try {
         const updated = await runOrganizationChange(organizationId, {
           kind: 'instance-payload-replaced',
@@ -1194,7 +1196,7 @@ function instanceService(typeId) {
         }, { session, expectedSequence: expectedOrganizationSequence });
         return toDto(updated);
       } catch (error) {
-        await filesService.deleteFile(stored.id, PAYLOAD_BUCKET).catch(() => {});
+        if (ownsStoredFile) await filesService.deleteFile(stored.id, PAYLOAD_BUCKET).catch(() => {});
         throw error;
       }
     },
