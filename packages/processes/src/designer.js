@@ -813,8 +813,8 @@ export function servicesPaletteGroups(serviceContracts = {}) {
   const items = Object.values(serviceContracts || {})
     .filter(service => service?.id && service.command && !service.group)
     .map(service => paletteItem(`service:${service.id}`, 'cts.service', {
-      label: service.render?.label || service.id,
-      description: service.description || service.render?.description || service.render?.label || service.id,
+      label: service.label || service.render?.label || service.id,
+      description: service.description || service.render?.description || service.label || service.render?.label || service.id,
       searchTerms: [service.id, service.command, service.provider, service.pluginId].filter(Boolean),
       icon: service.render?.icon || 'pi pi-bolt',
       preset: { operator: service.id }

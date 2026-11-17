@@ -35,6 +35,10 @@ describe('Facade plugin node palette contribution', () => {
     ]);
     expect(production.items.map(item => item.id)).toContain('service:generate-sheet-dxf');
     expect(nesting.items.find(item => item.id === 'service:nesting-solve').searchTerms).toContain('nesting-solve');
+    expect(nesting.items.find(item => item.id === 'service:nesting-solve')).toMatchObject({
+      label: 'Solve sheet nesting',
+      description: 'Arrange cassette-design parts on available sheet stock'
+    });
     expect(groups.some(group => group.items.some(item => item.id === 'service:extract-geometry'))).toBe(false);
     expect(groups.some(group => group.items.some(item => item.id === 'service:bake'))).toBe(false);
     expect(groups.some(group => group.items.some(item => item.id === 'service:nesting-parts'))).toBe(false);
