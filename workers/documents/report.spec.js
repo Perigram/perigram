@@ -75,17 +75,17 @@ describe('markdown ↔ flow-document', () => {
       schemaVersion: 1,
       blocks: [{
         type: 'table',
-        rows: [{ label: 'A|B', notes: 'first\\nsecond', path: 'C:\\\\temp' }]
+        rows: [{ label: 'A|B', notes: 'first\nsecond', path: 'C:\\temp' }]
       }]
     };
     const markdown = exportMarkdown(document);
-    expect(markdown).toContain('A\\\\|B');
+    expect(markdown).toContain('A\\|B');
     expect(markdown).toContain('first second');
-    expect(markdown).toContain('C:\\\\\\\\temp');
+    expect(markdown).toContain('C:\\\\temp');
     expect(parseMarkdown(markdown).blocks[0].rows).toEqual([{
       label: 'A|B',
       notes: 'first second',
-      path: 'C:\\\\temp'
+      path: 'C:\\temp'
     }]);
   });
 
