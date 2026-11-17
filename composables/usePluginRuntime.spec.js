@@ -59,6 +59,30 @@ describe('usePluginRuntime', () => {
       .resolves.toEqual({ operationId: 'math.double', input: { input: 2 } });
   });
 
+  it('strips host-only graph read-set recorders before worker dispatch', async () => {
+    const worker = new FakeWorker();
+    const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
+    const invocation = {
+      node: { id: 'node-1' },
+      config: { graphId: 'graph-1' },
+      inputs: { width: 2 },
+      context: {
+        graphId: 'graph-1',
+        executionId: 'run-1',
+        readSet: { recordInstance() {}, toJSON() { return {}; } }
+      },
+      mode: 'preview'
+    };
+    await pluginRuntime.execute(binding, runtime, 'transform', invocation, { execution });
+    const message = worker.messages.find(item => item.type === 'invoke');
+    expect(message.input.context).toEqual({
+      graphId: 'graph-1',
+      executionId: 'run-1'
+    });
+    expect(message.input.node).toEqual(invocation.node);
+    expect(message.input.inputs).toEqual(invocation.inputs);
+  });
+
   it('resolves worker renderer ids to installed preview surface modules', async () => {
     const surface = {
       id: 'mesh-preview',
