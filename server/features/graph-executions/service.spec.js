@@ -123,7 +123,7 @@ describe('graph execution service', () => {
     fields: { graphId: 'graph.document' },
     payload: { fileId: 'graph-file-1' }
   };
-  const executionService = { create: vi.fn() };
+  const executionService = { create: vi.fn(), processList: vi.fn(), processGetById: vi.fn() };
   const graphService = { processGetById: vi.fn() };
   const dataService = { processList: vi.fn(), processGetById: vi.fn(), patch: vi.fn() };
   const payloadService = { replacePayload: vi.fn(), createForHttp: vi.fn(), patch: vi.fn(), linkRelationForHttp: vi.fn() };
@@ -139,6 +139,8 @@ describe('graph execution service', () => {
     mocks.connectDB.mockResolvedValue({ client: { startSession: () => session } });
     graphService.processGetById.mockResolvedValue(graphDocument);
     executionService.create.mockResolvedValue({ _id: 'execution-instance-1' });
+    executionService.processList.mockResolvedValue([]);
+    executionService.processGetById.mockResolvedValue(null);
     mocks.getAppRegistry.mockReturnValue({
       getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : typeId === 'part' ? payloadService : typeId === 'file-record' ? fileService : dataService
     });
@@ -171,6 +173,50 @@ describe('graph execution service', () => {
       file: { path: 'exports/document.txt', fileId: 'baked-file-1', mime: 'text/plain', size: 18, revision: 1 }
     });
     mocks.retractBakedFile.mockResolvedValue({ success: true });
+  });
+
+  it('lists only authorized pinned graph collection outputs from saved graph revisions', async () => {
+    const collectionGraph = graph();
+    collectionGraph.interface.outputs[0].contract.shape = 'collection';
+    mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(collectionGraph)));
+    executionService.processList.mockResolvedValue([{
+      _id: 'execution-instance-1',
+      fields: {
+        executionId: 'execution-1', graphId: 'graph.document', graphRevision: 'rev-01',
+        graphDocument: { type: 'graph-document', id: 'graph-instance-1' },
+        status: 'succeeded', outputs: { document: [{ type: 'part', id: 'item-1' }] }, completedAt: '2026-11-16T10:00:01Z'
+      }
+    }]);
+    const result = await graphExecutionsService.listCollectionOutputs(auth);
+    expect(result).toEqual([expect.objectContaining({
+      executionInstanceId: 'execution-instance-1', executionId: 'execution-1',
+      graphDocumentInstanceId: 'graph-instance-1', graphId: 'graph.document',
+      graphRevision: 'rev-01', outputId: 'document', label: 'Document', count: 1
+    })]);
+  });
+
+  it('resolves pinned graph collection values through each target read grant', async () => {
+    const collectionGraph = graph();
+    collectionGraph.interface.outputs[0].contract.shape = 'collection';
+    mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(collectionGraph)));
+    executionService.processGetById.mockResolvedValue({
+      _id: 'execution-instance-1',
+      fields: {
+        executionId: 'execution-1', graphId: 'graph.document', graphRevision: 'rev-01',
+        graphDocument: { type: 'graph-document', id: 'graph-instance-1' },
+        status: 'succeeded', outputs: { document: [{ type: 'part', id: 'item-1' }, { type: 'part', id: 'hidden' }] }
+      }
+    });
+    dataService.processGetById.mockImplementation(async id => {
+      if (id === 'hidden') throw Object.assign(new Error('denied'), { statusCode: 403 });
+      return { _id: id, type: 'part', fields: { code: 'A' } };
+    });
+    const result = await graphExecutionsService.resolveCollectionOutput('execution-instance-1', 'document', auth);
+    expect(result).toMatchObject({ executionId: 'execution-1', resultPolicy: 'pinned', graph: { id: 'graph.document', revision: 'rev-01' } });
+    expect(result.items).toEqual([
+      { kind: 'instance', typeId: 'part', instanceId: 'item-1', instance: { _id: 'item-1', type: 'part', fields: { code: 'A' } } },
+      { kind: 'unavailable' }
+    ]);
   });
 
   it('queries through the authorized instance read boundary and records snapshot read evidence', async () => {
