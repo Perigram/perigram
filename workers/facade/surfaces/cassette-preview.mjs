@@ -31,6 +31,7 @@ export default function createSurface({ vue, components }) {
       const drawing = ref(null);
       const loading = ref(false);
       const visibleLayerNames = ref(null);
+      let requestId = 0;
 
       // Pending spans the host's payload fetch; the mime bound keeps
       // DXF-payload records from spinning.
@@ -41,6 +42,7 @@ export default function createSurface({ vue, components }) {
       ));
 
       async function resolveDrawing() {
+        const currentRequest = ++requestId;
         drawing.value = null;
         visibleLayerNames.value = null;
         if (isOccsCassetteDocument(props.payload)) {
@@ -49,16 +51,16 @@ export default function createSurface({ vue, components }) {
             const graphTree = props.payload?.extensions?.perigram?.graphTree
               || props.payload?.graphTree
               || null;
-            drawing.value = graphTree
-              ? await renderCassetteV2TreeToDrawing(graphTree)
-              : null;
+            const rendered = graphTree ? await renderCassetteV2TreeToDrawing(graphTree) : null;
+            if (currentRequest !== requestId) return;
+            drawing.value = rendered;
           } catch {
-            drawing.value = null;
+            if (currentRequest === requestId) drawing.value = null;
           } finally {
-            loading.value = false;
+            if (currentRequest === requestId) loading.value = false;
           }
         }
-        if (drawing.value) return;
+        if (currentRequest !== requestId || drawing.value) return;
         const fields = props.record?.fields || {};
         drawing.value = normalizeGeometryDrawing({ data: { ...fields } });
       }
