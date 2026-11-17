@@ -46,7 +46,8 @@
             <div v-for="view in viewsFor(collection.typeId)" :key="`${collection.key}:${view._id}`" class="ml-6 flex items-center gap-1">
               <Button :label="view.name || t('editors.view')" icon="pi pi-filter" text size="small" class="min-w-0 flex-1 justify-start" @click="pickView(view, collection)" />
               <Button icon="pi pi-bookmark" text size="small" severity="secondary" aria-label="Pin view definition" title="Pin view definition" @click="pickPinnedView(view, collection)" />
-            </div>          </template>
+            </div>
+          </template>
         </div>
         <span v-else class="py-2 text-center text-muted text-supporting">{{ t('editors.noCollections') }}</span>
       </template>

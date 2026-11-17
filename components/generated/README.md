@@ -230,7 +230,10 @@ the `section` field set.
   `ViewPickerDialog.vue` — the shared instance tree picks the parent
   record, then the record's detail screen supplies its child collections
   — and inserts the chosen child collection or saved lens as a sibling
-  view block. A text block's slash view entry delegates to the page
+  view block. Saved views can be embedded live or with a pinned definition
+  snapshot; pinned snapshots carry the selected viewState and its updatedAt
+  revision token, then render over the live authorized collection. A text
+  block's slash view entry delegates to the page
   session's picker, so collections never nest inside a text editor. The
   instance entry and typing `@` open `InstanceMentionPicker.vue` over the
   shared `InstanceTree.vue`, the same section-and-lineage tree chat

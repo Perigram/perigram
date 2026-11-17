@@ -77,7 +77,8 @@ imported through server modules that Nitro externalizes.
 - `page-document.js`: The Page block document contract — `blocksFromMarkdown`
   splits legacy markdown into ordered text/collection blocks,
   `normalizePageDocument` preserves ordered text, collection, typed-reference,
-  and immutable file-artifact blocks (including file revision history),
+  pinned saved-query definition, and immutable file-artifact blocks
+  (including file revision history),
   `normalizePageFilePath` rejects unsafe relative paths, and `createBlockId`
   mints block ids. Consumed by the pages feature, its
   store, and the page document session.

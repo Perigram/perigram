@@ -579,8 +579,8 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   shared unavailable state for inaccessible targets, and expose rebuildable
   org-scoped backlinks. Existing saved-view collection embeds
   remain live. Remaining: collection embeds backed by saved-query/graph-output
-  identities with pinned definition revisions, explicit parameters, and
-  live-versus-pinned result policy; integrate these into the common renderer.
+  graph-output collection embeds, explicit parameters, and pinned result
+  snapshots; integrate both source kinds into the common renderer.
 - [ ] G9 Procedural vertical slices — document/data and geometry workflows
   exercise provider registration, preview, Commit/Bake, and provenance.
 - [ ] G10 Process migration — inventory all stored process graphs, produce
@@ -7672,4 +7672,4 @@ degradation/editor laws in Program B notes.
 - Page documents accept typed reference blocks with stable type/instance identity and an optional exact retained revision. The picker inserts live references or selects a retained content revision.
 - Resolution checks the source's ordinary read grant, loads the selected revision, and verifies its source identity. Missing and inaccessible targets share one unavailable response.
 - Page surfaces render live/pinned reference embeds. Backlinks are derived from the owning organization's page documents and remain rebuildable.
-- G8 remains open for saved-query/graph-output collection embeds and their definition/result pinning semantics.
+- Saved-query collection embeds can carry a pinned viewState definition revision and continue rendering live authorized collection results. G8 remains open for graph-output collection embeds, explicit parameters, and pinned result snapshots.
