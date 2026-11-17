@@ -769,7 +769,7 @@ function instanceService(typeId) {
   // construction mode. The wire draft IS the stored shape: tenancy
   // travels as `organizationId`, the payload as `payload`, rows as flat
   // `fields`, the rename channel as `name`.
-  async function createValidated(draft, declaration, userId, organizationId, { executorFieldIds = [], session = null } = {}) {
+  async function createValidated(draft, declaration, userId, organizationId, { executorFieldIds = [], session = null, expectedOrganizationSequence = null } = {}) {
     const payload = payloadFromWire(draft, declaration);
     const provenance = provenanceFromWire(draft);
     const now = new Date().toISOString();
@@ -831,8 +831,8 @@ function instanceService(typeId) {
       actorId: userId
     }, async () => {
       await repository.insertInstance(repository.collectionForClass(declaration.class), doc, { session });
-      await recordPayloadRevision(typeId, doc, declaration, payload, userId, 'created');
-    }, { session });
+      await recordPayloadRevision(typeId, doc, declaration, payload, userId, 'created', { session });
+    }, { session, expectedSequence: expectedOrganizationSequence });
     return toDto(doc);
   }
 
@@ -1078,7 +1078,7 @@ function instanceService(typeId) {
     // fail-closed. The construct boundary keeps its own `create` with
     // execution auth; this serves the records host capability
     // (contract-2 surfaces composing other types' records).
-    async createForHttp(draft = {}, { auth = null, organizationId = null, session = null } = {}) {
+    async createForHttp(draft = {}, { auth = null, organizationId = null, session = null, expectedOrganizationSequence = null } = {}) {
       const targetOrganizationId = organizationId || draft?.organizationId || null;
       const declaration = await requireDeclaration(typeId, targetOrganizationId);
       const target = await writeGrantTarget(declaration, targetOrganizationId);
@@ -1086,7 +1086,7 @@ function instanceService(typeId) {
       if (!target || !hasInstanceAccess({ entity: scopeEntity, typeId: target.typeId, feature: target.feature, level: 'write', action: 'create', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
-      return await createValidated(draft, declaration, auth?.userId || null, targetOrganizationId, { session });
+      return await createValidated(draft, declaration, auth?.userId || null, targetOrganizationId, { session, expectedOrganizationSequence });
     },
 
     // HTTP remove transport (`DELETE /api/instances/:type/:id`): the

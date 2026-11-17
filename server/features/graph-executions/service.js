@@ -662,7 +662,8 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   if (isInstancePayload && (!destination.typeId || !destination.instanceId || destination.expectedRevision == null)) {
     throw createError({ statusCode: 400, message: 'Instance-payload Bake requires an exact type, instance, and expected revision' });
   }
-  if (isInstanceCreate && (!destination.typeId || !destination.draft || typeof destination.draft !== 'object' || Array.isArray(destination.draft) || destination.draft.payload != null)) {
+  if (isInstanceCreate && (!destination.typeId || !destination.draft || typeof destination.draft !== 'object' || Array.isArray(destination.draft)
+    || Object.keys(destination.draft).some(key => !['name', 'fields', 'lineage', 'relations'].includes(key)))) {
     throw createError({ statusCode: 400, message: 'New-instance Bake requires a typed instance draft without a caller-supplied payload' });
   }
   if (!isPageFile && !isInstancePayload && !isInstanceCreate) {
@@ -718,7 +719,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
                 size: buffer.length,
                 name: filename
               }
-            }, { auth, userId: auth.userId, organizationId, session });
+            }, { auth, userId: auth.userId, organizationId, session, expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet) });
         const timestamp = new Date().toISOString();
         const bakeId = randomUUID();
         const bakeRecord = createGraphExecutionRecord({

@@ -430,7 +430,7 @@ describe('graph execution service', () => {
         size: Buffer.byteLength('Generated document'),
         name: 'Document graph-document.txt'
       }
-    }, { auth, userId: 'user-1', organizationId: 'org-1', session });
+    }, { auth, userId: 'user-1', organizationId: 'org-1', session, expectedOrganizationSequence: null });
     expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
       fields: expect.objectContaining({
         profile: 'procedural-bake',
