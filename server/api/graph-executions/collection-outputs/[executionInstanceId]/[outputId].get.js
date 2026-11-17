@@ -1,4 +1,4 @@
-import { defineEventHandler, getRouterParam } from 'h3';
+import { defineEventHandler, getQuery, getRouterParam } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
 import * as graphExecutionsService from '~/server/features/graph-executions/service.js';
 
@@ -7,6 +7,7 @@ export default defineEventHandler(async event => {
   return graphExecutionsService.resolveCollectionOutput(
     getRouterParam(event, 'executionInstanceId') || '',
     getRouterParam(event, 'outputId') || '',
-    auth
+    auth,
+    getQuery(event)
   );
 });

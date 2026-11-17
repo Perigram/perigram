@@ -1109,7 +1109,7 @@ export async function listCollectionOutputs(auth = {}) {
   return options;
 }
 
-export async function resolveCollectionOutput(executionInstanceId, outputId, auth = {}) {
+export async function resolveCollectionOutput(executionInstanceId, outputId, auth = {}, expected = {}) {
   const service = getAppRegistry().getInstanceService('graph-execution');
   if (typeof service?.processGetById !== 'function') throw createError({ statusCode: 404, message: 'Graph execution not found' });
   const record = await service.processGetById(String(executionInstanceId), auth);
@@ -1117,6 +1117,11 @@ export async function resolveCollectionOutput(executionInstanceId, outputId, aut
   const fields = record.fields || {};
   if (fields.status !== 'succeeded' || !fields.graphDocument?.id) {
     throw createError({ statusCode: 409, message: 'Pinned graph execution is unavailable' });
+  }
+  if ((expected.graphDocumentInstanceId && String(fields.graphDocument.id) !== String(expected.graphDocumentInstanceId))
+    || (expected.graphId && String(fields.graphId) !== String(expected.graphId))
+    || (expected.graphRevision && String(fields.graphRevision) !== String(expected.graphRevision))) {
+    throw createError({ statusCode: 409, message: 'Pinned graph output identity does not match its execution record' });
   }
   const source = await sourceFor(String(fields.graphDocument.id), { graph: { id: fields.graphId, revision: fields.graphRevision } }, auth);
   const output = (source.graph.interface?.outputs || []).find(port => String(port.id) === String(outputId));
@@ -1127,7 +1132,7 @@ export async function resolveCollectionOutput(executionInstanceId, outputId, aut
   const items = [];
   for (const value of values) {
     const typeId = String(value?.type || value?.typeId || '');
-    const instanceId = String(value?.id || value?.instanceId || '');
+    const instanceId = String(value?.id || value?.instanceId || value?._id || '');
     if (!typeId || !instanceId) {
       items.push({ kind: 'value', value });
       continue;

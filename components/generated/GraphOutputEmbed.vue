@@ -27,7 +27,7 @@ watch(() => [props.collection?.source?.executionInstanceId, props.collection?.so
   loading.value = true;
   error.value = false;
   try {
-    result.value = await $fetch(`/api/graph-executions/collection-outputs/${encodeURIComponent(executionId)}/${encodeURIComponent(outputId)}`);
+    result.value = await $fetch(`/api/graph-executions/collection-outputs/${encodeURIComponent(executionId)}/${encodeURIComponent(outputId)}`, { query: { graphDocumentInstanceId: props.collection.source.graphDocumentInstanceId, graphId: props.collection.source.graphId, graphRevision: props.collection.source.graphRevision } });
   } catch {
     result.value = null;
     error.value = true;
