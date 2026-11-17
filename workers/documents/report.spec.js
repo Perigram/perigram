@@ -69,6 +69,14 @@ describe('markdown ↔ flow-document', () => {
     ].join('\n'));
   });
 
+  it('preserves formatted text when projecting Markdown table cells to records', () => {
+    const document = parseMarkdown('| label | value |\\n| --- | --- |\\n| **bold** and *italic* | [site](https://example.com) with `code` |');
+    expect(document.blocks[0].rows).toEqual([{
+      label: 'bold and italic',
+      value: 'site with code'
+    }]);
+  });
+
   it('records dropped constructs as diagnostics instead of silent loss', () => {
     const document = parseMarkdown('<div>drop me</div>\n\n![pic](pic.png)');
     expect(document.diagnostics).toEqual(['UNSUPPORTED_HTML', 'UNSUPPORTED_IMAGE']);
