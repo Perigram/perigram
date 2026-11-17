@@ -13,7 +13,7 @@ The plugin-catalog seeder is `seed-plugin-catalog.js`: it publishes the
 deployment's built-in listings from their `workers/<plugin>/listing.json`
 sources into `plugin_catalog` (validated by the SDK contract, marked
 `builtin`, retract-refused). Run it as a deploy step on fresh environments.
-Idempotent; re-running refreshes the pinned versions.
+Idempotent; re-running refreshes the pinned versions. Runtime entrypoints and imported package modules must also be uploaded as catalog assets before installing a listing that declares managed runtimes; listing seeding alone does not publish package bytes.
 
 The only other live seeder is `seed-palette-colors.js`: it upserts the
 tech-drawing `color` type's system catalogue as SPEC §3 documents

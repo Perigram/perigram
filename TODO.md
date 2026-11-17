@@ -18,8 +18,9 @@ providers.
   and every declared construction/service. Verify each workflow and close
   behavior/spec gaps.
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
-  hosting. Current inventory: all 12 Documents services and all 7 Facade
-  services are still `mode: endpoint`, and both packages start standalone
+  hosting. Current inventory: all 12 Documents services and 6 of 7 Facade services remain
+  `mode: endpoint`; Facade `nesting-solve` now runs in the managed server
+  runtime through the platform-owned `facade.nesting.solve` capability, and both packages start standalone
   HTTP executors. Classify each operation by execution target: browser-local
   pure compute, platform-managed server compute, or explicit remote
   integration. Move local-eligible operations behind the shared
@@ -47,6 +48,8 @@ providers.
   for each defect found during the review.
 - [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO after
   behavior verification; record remaining owner decisions explicitly.
+
+Progress (2026-11-17): Facade `nesting-solve` is the first operation moved off the plugin endpoint into the managed JavaScript server runtime. Its isolated runtime calls a plugin/version/operation-scoped host capability; the platform owns the configured nesting-worker URL and transport. Runtime and capability tests cover request normalization, dispatch, and adapter scoping. The other 18 Documents/Facade services still need execution-target classification and migration.
 
 Progress (2026-11-17): Facade nesting input normalization now clones authored item records, rejects invalid/non-finite counts and dimensions, and rejects unsafe aggregate sheet counts before contacting the external solver. Regression tests cover frozen input records and numeric boundaries.
 
