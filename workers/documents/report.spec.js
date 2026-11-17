@@ -89,6 +89,31 @@ describe('markdown ↔ flow-document', () => {
     }]);
   });
 
+  it('preserves literal Markdown punctuation, code delimiters, and link destinations', () => {
+    const document = {
+      type: 'text.flow-document',
+      schemaVersion: 1,
+      blocks: [{
+        type: 'paragraph',
+        children: [
+          { type: 'text', text: 'Literal *stars*, [brackets], # heading, and \\ path.' },
+          { type: 'text', text: ' ' },
+          { type: 'code', text: 'a' + String.fromCharCode(96) + 'b' },
+          { type: 'text', text: ' ' },
+          { type: 'link', href: 'https://example.com/a_(b)?q=one two', children: [{ type: 'text', text: 'link' }] }
+        ]
+      }]
+    };
+    const parsed = parseMarkdown(exportMarkdown(document));
+    const children = parsed.blocks[0].children;
+    expect(children[0].text).toBe('Literal *stars*, [brackets], # heading, and \\ path.');
+    expect(children.find(node => node.type === 'code').text).toBe('a' + String.fromCharCode(96) + 'b');
+    expect(children.find(node => node.type === 'link')).toMatchObject({
+      href: 'https://example.com/a_(b)?q=one%20two',
+      children: [{ type: 'text', text: 'link' }]
+    });
+  });
+
   it('preserves formatted text when projecting Markdown table cells to records', () => {
     const document = parseMarkdown('| label | value |\n| --- | --- |\n| **bold** and *italic* | [site](https://example.com) with `code` |');
     expect(document.blocks[0].rows).toEqual([{
