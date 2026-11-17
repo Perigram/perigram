@@ -69,6 +69,10 @@
             v-else-if="session.blockByKey(key)?.kind === 'file'"
             :file="session.blockByKey(key).file"
           />
+          <ReferenceEmbed
+            v-else-if="session.blockByKey(key)?.kind === 'reference'"
+            :result="referenceByBlockId[key] || null"
+          />
         </DocumentSectionShell>
       </div>
       <ViewPickerDialog
@@ -100,6 +104,7 @@ import DocumentSectionShell from '~/components/ui-mapping/DocumentSectionShell.v
 import OverlayTextBlock from './OverlayTextBlock.vue';
 import ViewEmbed from './ViewEmbed.vue';
 import PageFileEmbed from './PageFileEmbed.vue';
+import ReferenceEmbed from './ReferenceEmbed.vue';
 import ViewPickerDialog from './ViewPickerDialog.vue';
 import GeneratedScreenHost from './GeneratedScreenHost.vue';
 import ClassDialog from '~/components/type-designer/ClassDialog.vue';
@@ -124,6 +129,8 @@ const session = usePageDocumentSession({ docId: computed(() => props.docId), tab
 provide('uiMappingSpacing', reactive(spacingClasses(1)));
 
 const classEditorOpen = ref(false);
+const referenceResults = ref([]);
+const referenceByBlockId = computed(() => Object.fromEntries(referenceResults.value.map(result => [result.blockId, result])));
 const page = computed(() => pagesStore.pageById(props.docId));
 const displayName = computed(() => page.value?.name || '');
 const classTypeId = computed(() => page.value?.classTypeId || '');
@@ -155,5 +162,10 @@ function openClassInstance({ typeId, instanceId } = {}) {
 onMounted(async () => {
   await pagesStore.ensureLoaded();
   await pagesStore.loadDocument(props.docId).catch(() => {});
+  try {
+    referenceResults.value = await $fetch(`/api/pages/${encodeURIComponent(props.docId)}/references`);
+  } catch {
+    referenceResults.value = [];
+  }
 });
 </script>
