@@ -74,7 +74,7 @@ describe('facade graph service behavior', () => {
     expect(Buffer.from(result.payload.base64, 'base64').toString('utf8')).toContain('SECTION');
   });
 
-  it('rejects non-finite nesting counts and sheet dimensions', () => {
+  it('rejects non-finite nesting counts', () => {
     expect(() => normalizeNestingItems([{ id: 'part-1', count: Infinity }]))
       .toThrow(/count must be a positive safe integer/);
     expect(() => normalizeNestingItems([{ id: 'part-1', count: Number.MAX_SAFE_INTEGER + 1 }]))
@@ -83,7 +83,8 @@ describe('facade graph service behavior', () => {
 
   it('rejects invalid nesting inputs before contacting the external solver', async () => {
     await expect(nestingSolve({ items: [], sheetWidth: 100, sheetHeight: 100 })).rejects.toThrow(/no parts to place/);
-    await expect(nestingSolve({ items: [{ id: 'part-1' }], sheetWidth: 0, sheetHeight: 100 })).rejects.toThrow(/positive width/);
+    await expect(nestingSolve({ items: [{ id: 'part-1' }], sheetWidth: 0, sheetHeight: 100 })).rejects.toThrow(/finite positive width/);
+    await expect(nestingSolve({ items: [{ id: 'part-1' }], sheetWidth: Infinity, sheetHeight: 100 })).rejects.toThrow(/finite positive width/);
   });
 });
 
