@@ -1,18 +1,18 @@
 <template>
-  <StandardDialog :visible="visible" size="sm" title="Insert reference" @update:visible="shown => { if (!shown) close(); }">
+  <StandardDialog :visible="visible" size="sm"  :title="t('processDesigner.insertReference')" @update:visible="shown => { if (!shown) close(); }">
     <div class="flex max-h-[70vh] min-w-72 flex-col gap-3 overflow-y-auto">
-      <InstanceTree v-if="!selected" :show-create="false" aria-label="Choose an instance" @select="selectRecord" />
+      <InstanceTree v-if="!selected" :show-create="false"  :aria-label="t('processDesigner.chooseInstance')" @select="selectRecord" />
       <template v-else>
         <div class="flex items-center gap-2">
           <Button icon="pi pi-arrow-left" text rounded size="small" severity="secondary" @click="selected = null" />
           <InstanceInlineRef :type="selected.type" :entity="selected.entity" :fetch="false" :interactive="false" />
         </div>
-        <Button label="Insert live reference" icon="pi pi-link" text class="w-full justify-start" @click="pick()" />
+        <Button  :label="t('processDesigner.insertLiveReference')" icon="pi pi-link" text class="w-full justify-start" @click="pick()" />
         <div v-if="revisions.length" class="flex flex-col gap-1">
-          <div class="text-sm font-medium">Pin to revision</div>
-          <Button v-for="revision in revisions" :key="revision._id" :label="'Revision ' + (revision.data?.number || '') + ' · ' + (revision.data?.createdAt || '')" icon="pi pi-bookmark" text class="w-full justify-start" @click="pick(revision._id)" />
+          <div class="text-supporting text-title">{{ t('processDesigner.pinToRevision') }}</div>
+          <Button v-for="revision in revisions" :key="revision._id" :label="t('processDesigner.revisionLabel', { number: revision.data?.number || '', createdAt: revision.data?.createdAt || '' })" icon="pi pi-bookmark" text class="w-full justify-start" @click="pick(revision._id)" />
         </div>
-        <div v-else class="text-xs text-muted">No retained revisions are available.</div>
+        <div v-else class="text-supporting text-muted">{{ t('processDesigner.noRetainedRevisions') }}</div>
       </template>
     </div>
   </StandardDialog>
@@ -20,11 +20,13 @@
 
 <script setup>
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import InstanceTree from '~/components/shared/InstanceTree.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 
+const { t } = useI18n();
 const props = defineProps({ visible: { type: Boolean, default: false } });
 const emit = defineEmits(['close', 'pick']);
 const selected = ref(null);

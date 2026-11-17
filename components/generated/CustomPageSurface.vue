@@ -18,8 +18,8 @@
           severity="secondary"
           @click="classEditorOpen = true"
         />
-        <Button label="Reference" icon="pi pi-link" size="small" text severity="secondary" @click="referencePickerOpen = true" />
-        <Button label="Graph output" icon="pi pi-sitemap" size="small" text severity="secondary" @click="graphOutputPickerOpen = true" />
+        <Button  :label="t('processDesigner.referenceButton')" icon="pi pi-link" size="small" text severity="secondary" @click="referencePickerOpen = true" />
+        <Button  :label="t('processDesigner.graphOutput')" icon="pi pi-sitemap" size="small" text severity="secondary" @click="graphOutputPickerOpen = true" />
         <Button
           v-if="session.dirty"
           :label="t('common.save')"
