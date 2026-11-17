@@ -142,6 +142,66 @@ export function assertValidNodeDefinition(source) {
   return normalizeNodeDefinition(source);
 }
 
+export function compareNodePorts(source, target) {
+  if (!source || !target) {
+    return { status: 'incompatible', compatible: false, reason: 'Both source and target ports are required', conversions: [] };
+  }
+  const sourceShape = source.shape || 'item';
+  const targetShape = target.shape || 'item';
+  const collectionShapes = new Set(['list', 'tuple', 'tree', 'map']);
+  if (sourceShape === 'stream' || targetShape === 'stream') {
+    if (sourceShape !== targetShape) {
+      return { status: 'incompatible', compatible: false, reason: 'Stream ports connect only to stream ports', conversions: [] };
+    }
+  } else if (sourceShape !== targetShape
+    && !(sourceShape === 'item' && collectionShapes.has(targetShape))) {
+    return { status: 'conversion-required', compatible: false, reason: `Transport shape ${sourceShape} requires an explicit conversion to ${targetShape}`, conversions: [] };
+  }
+
+  const from = source.semantic || {};
+  const to = target.semantic || {};
+  if (to.base === 'json' && !to.kind) {
+    return {
+      status: sourceShape === targetShape ? 'safe-coercion' : 'safe-coercion',
+      compatible: true,
+      reason: 'The target accepts any JSON value',
+      conversions: []
+    };
+  }
+  if (from.base === 'json' && !from.kind && (to.base !== 'json' || to.kind)) {
+    return {
+      status: 'conditional',
+      compatible: false,
+      reason: 'The source has no declared semantic kind; runtime validation is required',
+      conversions: []
+    };
+  }
+  if (from.base !== to.base) {
+    return {
+      status: 'incompatible',
+      compatible: false,
+      reason: `Semantic base ${from.base || 'unknown'} does not match ${to.base || 'unknown'}`,
+      conversions: []
+    };
+  }
+  for (const key of ['kind', 'nominal', 'provider', 'unit']) {
+    if (from[key] !== to[key]) {
+      const status = key === 'unit' ? 'conversion-required' : 'incompatible';
+      return {
+        status,
+        compatible: false,
+        reason: key === 'kind'
+          ? `Representation kind ${from[key] || 'unspecified'} does not match ${to[key] || 'unspecified'}`
+          : key === 'unit'
+            ? `Unit ${from[key] || 'unspecified'} requires conversion to ${to[key] || 'unspecified'}`
+            : `Semantic identity ${key} does not match`,
+        conversions: []
+      };
+    }
+  }
+  return { status: 'exact', compatible: true, reason: 'Transport and semantic contracts match', conversions: [] };
+}
+
 export function normalizeNodeProvider(source = {}) {
   const provider = String(source.provider || '');
   if (!PROVIDER_IDENTIFIER.test(provider)) throw new Error('Node provider requires a stable lowercase provider id');
