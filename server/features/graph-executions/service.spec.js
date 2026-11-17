@@ -155,7 +155,7 @@ describe('graph execution service', () => {
     executionService.processList.mockResolvedValue([]);
     executionService.processGetById.mockResolvedValue(null);
     mocks.getAppRegistry.mockReturnValue({
-      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : ['part', 'text-document'].includes(typeId) ? partService : typeId === 'file-record' ? fileService : dataService
+      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : ['part', 'text-document', 'html-document'].includes(typeId) ? partService : typeId === 'file-record' ? fileService : dataService
     });
     dataService.processList.mockResolvedValue([{ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }]);
     dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));
@@ -594,6 +594,61 @@ describe('graph execution service', () => {
       created: true,
       filename: 'release.md',
       mime: 'text/markdown'
+    })]);
+  });
+
+  it('bakes a Documents HTML file payload into an html-document instance', async () => {
+    const html = '<!doctype html><html><body><h1>Release</h1></body></html>';
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      outputs: {
+        document: {
+          payload: {
+            base64: Buffer.from(html).toString('base64'),
+            mime: 'text/html',
+            name: 'release.html'
+          }
+        }
+      }
+    });
+    const result = await graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'document',
+      destination: {
+        type: 'instance-create',
+        typeId: 'html-document',
+        draft: { name: 'Release HTML' }
+      }
+    }, auth);
+
+    expect(mocks.uploadFile).toHaveBeenCalledWith(Buffer.from(html), 'release.html', {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      type: 'html-document'
+    }, 'files', 'text/html');
+    expect(payloadService.createForHttp).toHaveBeenCalledWith({
+      name: 'Release HTML',
+      payload: {
+        fileId: 'baked-payload-1',
+        mime: 'text/html',
+        size: Buffer.byteLength(html),
+        name: 'release.html'
+      }
+    }, expect.objectContaining({
+      auth,
+      userId: 'user-1',
+      organizationId: 'org-1',
+      session,
+      requireRevisionedPayload: true
+    }));
+    expect(result.instance._id).toBe('new-part-1');
+    expect(result.execution.artifacts).toEqual([expect.objectContaining({
+      kind: 'instance-payload',
+      typeId: 'html-document',
+      created: true,
+      filename: 'release.html',
+      mime: 'text/html'
     })]);
   });
 
