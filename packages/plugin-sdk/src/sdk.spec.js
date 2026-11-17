@@ -278,6 +278,14 @@ describe('parseListing', () => {
     expect(() => withProjectionGroup('table data')).toThrow(/palette.group/);
   });
 
+  it('requires one human-facing label per declared palette group', () => {
+    const services = [
+      { id: 'first', signature: { input: { base: 'json' }, output: { base: 'json' } }, palette: { group: 'documents', label: 'Documents' } },
+      { id: 'second', signature: { input: { base: 'json' }, output: { base: 'json' } }, palette: { group: 'documents', label: 'Files' } }
+    ];
+    expect(() => parseListing({ ...fullListing, declarations: { ...fullListing.declarations, services } })).toThrow(/palette label for group documents must match/);
+  });
+
   it('validates signature field kinds as namespaced value slugs', () => {
     const withFieldKind = kind => parseListing({
       ...fullListing,

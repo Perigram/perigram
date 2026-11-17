@@ -75,6 +75,7 @@ export function parseListing(listing = {}) {
   const declarations = listing.declarations || {};
   const types = declarations.types || [];
   const services = (declarations.services || []).filter(service => service?.id && service?.signature);
+  const paletteLabels = new Map();
   const editors = declarations.editors || [];
   const constructions = declarations.constructions || {};
   const starterConstructs = (declarations.starterConstructs || []).filter(Boolean);
@@ -232,7 +233,7 @@ export function parseListing(listing = {}) {
     if (service.group !== undefined) {
       throw listingError(`service ${service.id} uses retired group metadata — use palette.group`);
     }
-    validatePalette(service.palette, `service ${service.id}`);
+    validatePalette(service.palette, `service ${service.id}`, paletteLabels);
     if (service.cache !== undefined) {
       if (service.cache !== 'deterministic') {
         throw listingError(`service ${service.id} cache must be 'deterministic' (got ${JSON.stringify(service.cache)})`);
@@ -354,7 +355,7 @@ export function parseListing(listing = {}) {
       if (projection.group !== undefined) {
         throw listingError(`projection ${type.id}/${projection?.id} uses retired group metadata — use palette.group`);
       }
-      validatePalette(projection.palette, `projection ${type.id}/${projection?.id}`);
+      validatePalette(projection.palette, `projection ${type.id}/${projection?.id}`, paletteLabels);
     }
   }
 
@@ -527,7 +528,7 @@ function listingError(message) {
 }
 
 
-function validatePalette(palette, context) {
+function validatePalette(palette, context, groupLabels = new Map()) {
   if (palette === undefined) return;
   if (!palette || typeof palette !== 'object' || Array.isArray(palette)) {
     throw listingError(`${context} palette must be an object`);
@@ -540,6 +541,16 @@ function validatePalette(palette, context) {
   }
   if (palette.label !== undefined && (typeof palette.label !== 'string' || !palette.label.trim())) {
     throw listingError(`${context} palette.label must be a non-empty string`);
+  }
+  if (palette.label !== undefined && palette.group === undefined) {
+    throw listingError(`${context} palette.label requires palette.group`);
+  }
+  if (palette.group && palette.label) {
+    const previousLabel = groupLabels.get(palette.group);
+    if (previousLabel && previousLabel !== palette.label.trim()) {
+      throw listingError(`${context} palette label for group ${palette.group} must match ${JSON.stringify(previousLabel)}`);
+    }
+    groupLabels.set(palette.group, palette.label.trim());
   }
   if (palette.keywords !== undefined && (!Array.isArray(palette.keywords)
     || palette.keywords.some(keyword => typeof keyword !== 'string' || !keyword.trim())

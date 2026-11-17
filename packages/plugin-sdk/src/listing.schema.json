@@ -549,7 +549,21 @@
           "type": "boolean",
           "description": "False keeps construction/projection helpers out of graph-node discovery"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "label"
+            ]
+          },
+          "then": {
+            "required": [
+              "group"
+            ]
+          }
+        }
+      ]
     }
   }
 }

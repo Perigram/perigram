@@ -795,7 +795,7 @@
         },
         "palette": {
           "group": "inline-content",
-          "label": "Inline text"
+          "label": "Inline content"
         }
       },
       {
@@ -840,7 +840,7 @@
         },
         "palette": {
           "group": "inline-content",
-          "label": "Inline mark"
+          "label": "Inline content"
         }
       },
       {
@@ -880,7 +880,7 @@
         },
         "palette": {
           "group": "inline-content",
-          "label": "Inline link"
+          "label": "Inline content"
         }
       },
       {
@@ -922,7 +922,7 @@
         },
         "palette": {
           "group": "document-blocks",
-          "label": "Paragraph"
+          "label": "Document blocks"
         }
       },
       {
@@ -967,7 +967,7 @@
         },
         "palette": {
           "group": "document-blocks",
-          "label": "Heading"
+          "label": "Document blocks"
         }
       },
       {
@@ -1006,7 +1006,7 @@
         },
         "palette": {
           "group": "document-blocks",
-          "label": "List"
+          "label": "Document blocks"
         }
       },
       {
@@ -1042,7 +1042,7 @@
         },
         "palette": {
           "group": "document-blocks",
-          "label": "Table"
+          "label": "Document blocks"
         }
       },
       {
@@ -1079,7 +1079,7 @@
         },
         "palette": {
           "group": "document-blocks",
-          "label": "Quote"
+          "label": "Document blocks"
         }
       },
       {
@@ -1116,7 +1116,7 @@
         },
         "palette": {
           "group": "document-blocks",
-          "label": "Code block"
+          "label": "Document blocks"
         }
       },
       {
@@ -1145,7 +1145,7 @@
         },
         "palette": {
           "group": "document-blocks",
-          "label": "Divider"
+          "label": "Document blocks"
         }
       },
       {
@@ -1186,7 +1186,7 @@
         },
         "palette": {
           "group": "document-composition",
-          "label": "Compose document"
+          "label": "Document composition"
         }
       },
       {
@@ -1224,7 +1224,7 @@
         },
         "palette": {
           "group": "document-composition",
-          "label": "Append block"
+          "label": "Document composition"
         }
       },
       {
@@ -1257,7 +1257,7 @@
         },
         "palette": {
           "group": "document-export",
-          "label": "Render HTML"
+          "label": "Document export"
         }
       },
       {
@@ -1295,7 +1295,7 @@
         },
         "palette": {
           "group": "document-export",
-          "label": "Export Markdown file"
+          "label": "Document export"
         }
       },
       {
@@ -1333,7 +1333,7 @@
         },
         "palette": {
           "group": "document-export",
-          "label": "Export HTML file"
+          "label": "Document export"
         }
       },
       {
@@ -1362,7 +1362,7 @@
         "description": "Render a flowing document as a PDF file payload",
         "palette": {
           "group": "document-export",
-          "label": "Export PDF file"
+          "label": "Document export"
         }
       }
     ],
