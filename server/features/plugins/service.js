@@ -596,7 +596,7 @@ function configuredEndpointsFor(services = [], endpoints = {}) {
     }
     if (raw) {
       const url = String(raw);
-      if (!/^https?:\\/\\//.test(url)) throw createError({ statusCode: 400, message: `Endpoint for ${serviceId} must be an http(s) URL` });
+      if (!/^https?:\/\//.test(url)) throw createError({ statusCode: 400, message: `Endpoint for ${serviceId} must be an http(s) URL` });
       configured[serviceId] = url;
     }
   }
