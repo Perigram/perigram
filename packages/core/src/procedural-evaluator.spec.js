@@ -98,7 +98,16 @@ describe('procedural graph preview evaluator', () => {
       inputBindings: { number: null },
       resolveNodeDefinition: () => nullableDefinition,
       executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
-    })).rejects.toThrow(/Graph input number does not accept null/);
+    })).rejects.toThrow(/input number does not accept null/);
+  });
+
+  it('validates primitive graph input values against the declared semantic base', async () => {
+    await expect(evaluateProceduralGraph({
+      graph: graph(),
+      inputBindings: { number: '21' },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
+    })).rejects.toThrow(/semantic base number/);
   });
 
   it('shares one execution id across every node in a graph preview', async () => {
