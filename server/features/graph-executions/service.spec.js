@@ -450,6 +450,20 @@ describe('graph execution service', () => {
     expect(result.execution.profile).toBe('procedural-bake');
   });
 
+  it('does not bake a graph output into a Page in another active organization', async () => {
+    graphService.processGetById.mockResolvedValueOnce({
+      ...graphDocument,
+      organizationId: 'org-2'
+    });
+    await expect(graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: preview(),
+      outputId: 'document',
+      destination: { type: 'page-file', pageId: 'page-1', path: 'exports/document.txt' }
+    }, auth)).rejects.toMatchObject({ statusCode: 403 });
+    expect(mocks.bakeFile).not.toHaveBeenCalled();
+  });
+
   it('rejects new-instance Bake drafts that can spoof tenancy or lifecycle', async () => {
     await expect(graphExecutionsService.bakeOutput({
       graphDocumentInstanceId: 'graph-instance-1',

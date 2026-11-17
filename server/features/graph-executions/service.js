@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
 import { connectDB } from '~/server/db/mongo';
 import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder } from '#packages/core';
-import { runOrganizationChange, withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
+import { withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
 import { declarationForType } from '../instances/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '../files/service.js';
@@ -37,7 +37,7 @@ async function sourceFor(instanceId, record, auth) {
   if (graph.id !== record.graph.id || graph.revision !== record.graph.revision) {
     throw createError({ statusCode: 409, message: 'Execution graph revision is stale; save and preview the current revision' });
   }
-  return { graphDocument, graph, organizationId: graphDocument.organizationId || auth.organizationId || null };
+  return { graphDocument, graph, organizationId: graphDocument.organizationId || auth.organizationId || auth.memberships?.[0]?.organizationId || null };
 }
 
 async function withMongoWriteTransaction(callback) {
@@ -568,6 +568,11 @@ export async function commitOutput({ graphDocumentInstanceId, record: value, out
     throw createError({ statusCode: 400, message: 'Selected graph output is unavailable' });
   }
   const { graphDocument, graph, organizationId } = await sourceFor(graphDocumentInstanceId, preview, auth);
+  const activeOrganizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+  if (isPageFile && graphDocument.organizationId != null && activeOrganizationId != null
+    && String(graphDocument.organizationId) !== String(activeOrganizationId)) {
+    throw createError({ statusCode: 403, message: 'Page-file Bake must stay within the graph document organization' });
+  }
   if (!(graph.interface?.outputs || []).some(port => String(port.id) === selectedOutputId)) {
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
   }

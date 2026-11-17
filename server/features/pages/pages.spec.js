@@ -162,15 +162,18 @@ describe('pages', () => {
 
   it('bakes an output to a page path and creates immutable file revisions on conflict', async () => {
     const page = await pagesService.create({ name: 'Artifacts' }, memberOf(ORG_A));
+    const expectedOrganizationSequence = await getOrganizationChangeSequence(ORG_A);
     const first = await pagesService.bakeFile({
       pageId: page._id,
       path: 'exports/result.json',
+      expectedOrganizationSequence,
       buffer: Buffer.from('{"value":1}'),
       mimeType: 'application/json',
       provenance: { graphId: 'graph-1', graphRevision: 'rev-1', executionId: 'exec-1', outputId: 'result' }
     }, memberOf(ORG_A));
 
     expect(first.file).toMatchObject({ path: 'exports/result.json', revision: 1, mime: 'application/json' });
+    await expect(getOrganizationChangeSequence(ORG_A)).resolves.toBe(expectedOrganizationSequence + 1);
     expect(first.page.blocks.find(block => block.kind === 'file')?.file.fileId).toBe(first.file.fileId);
     const stored = await db.collection('files.files').findOne({ _id: new ObjectId(first.file.fileId) });
     expect(stored.metadata).toMatchObject({
