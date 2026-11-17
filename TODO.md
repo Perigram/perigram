@@ -72,6 +72,12 @@ Implementation order:
 
 ### Agent Notes (2026-11-17, first implementation slice)
 
+The Documents listing is now version 23 so the new runtime module and
+its listing-derived provider metadata are pinned as a distinct installable
+package asset set. Existing organization installs still need to upgrade to
+v23 before the new graph nodes appear; catalog publication alone does not
+change their pinned package assets.
+
 The Documents shared runtime now projects browser-eligible graph nodes from
 its installed listing declarations. The unified graph editor uses the SDK
 port-compatibility result for new wires, persisted-wire validation, and
