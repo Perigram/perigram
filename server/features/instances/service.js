@@ -904,10 +904,8 @@ function instanceService(typeId) {
       // it, static types ignore it.
       const organizationId = typeof context === 'string' ? context : context?.organizationId || null;
       const session = context && typeof context === 'object' ? context.session || null : null;
-      const expectedSequence = context && typeof context === 'object'
-        && Object.hasOwn(context, 'expectedOrganizationSequence')
-        ? context.expectedOrganizationSequence
-        : await getOrganizationChangeSequence(organizationId);
+      const expectedSequence = context?.expectedOrganizationSequence
+        ?? await getOrganizationChangeSequence(organizationId);
       const declaration = await requireDeclaration(typeId, organizationId);
       if (declaration.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
       if (patch.fields != null && (typeof patch.fields !== 'object' || Array.isArray(patch.fields))) {
