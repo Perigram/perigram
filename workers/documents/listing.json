@@ -197,7 +197,7 @@
         "class": "file",
         "scope": "system",
         "name": "HTML document",
-        "glyph": "ck-file-type-icon ck-file-type-icon-html-document",
+        "glyph": "pi pi-code",
         "payload": {
           "mime": [
             "text/html"
