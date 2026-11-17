@@ -6,17 +6,17 @@
 // composition). Surface modules and their vendored runtimes serve as
 // static GETs beside the services.
 import { createEndpointExecutor } from '@perigram/plugin-sdk/endpoint-executor';
-import { services } from './services.js';
+import { endpointServices } from './services.js';
 import { fileURLToPath } from 'node:url';
 
 const port = Number(process.env.DOCUMENTS_EXECUTOR_PORT || 8791);
 const token = process.env.DOCUMENTS_EXECUTOR_KEY || null;
 const server = createEndpointExecutor({
-  services,
+  services: endpointServices,
   token,
   staticRoot: fileURLToPath(new URL('.', import.meta.url))
 }).listen(port, () => {
-  const served = Object.keys(services).map(id => `  POST http://localhost:${port}/${id}`).join('\n');
+  const served = Object.keys(endpointServices).map(id => `  POST http://localhost:${port}/${id}`).join('\n');
   process.stdout.write(`documents executor on :${port}${token ? ' (key required)' : ''}\n${served}\n  GET  http://localhost:${port}/surfaces/*\n  GET  http://localhost:${port}/assets/*\n`);
 });
 

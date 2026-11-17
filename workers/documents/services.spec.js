@@ -20,6 +20,13 @@ const composed = payload => ({ payload });
 const projection = payloadBase64 => ({ payloadBase64 });
 
 describe('documents listing/runtime inventory', () => {
+  it('endpoint executor exposes only endpoint-mode operations', async () => {
+    const { endpointServices } = await import('./services.js');
+    expect(Object.keys(endpointServices).sort()).toEqual(
+      listing.declarations.services.filter(service => service.mode === 'endpoint').map(service => service.id).sort()
+    );
+  });
+
   it('implements every declared service exactly once', () => {
     expect(Object.keys(services).sort()).toEqual(
       listing.declarations.services.map(service => service.id).sort()

@@ -195,3 +195,8 @@ export const services = {
     badRequest('render-pdf accepts markdown, xlsx, csv, image, or dxf sources');
   }
 };
+
+
+export const endpointServices = Object.fromEntries(
+  Object.entries(services).filter(([id]) => id !== 'csv-text')
+);
