@@ -60,8 +60,8 @@ It evaluates transport shape and semantic `base`, `kind`, nominal
 identity, provider, and unit. Results carry `status`, `compatible`,
 `reason`, and `conversions`; statuses are `exact`,
 `safe-coercion`, `conditional`, `conversion-required`, and
-`incompatible`. The graph editor uses `compatible` as its connection
-gate. A generic JSON target accepts typed JSON values; an untyped JSON
+`incompatible`. The graph editor uses `compatible` for connection gestures, persisted-edge
+validation, and preview preflight. A generic JSON target accepts typed JSON values; an untyped JSON
 source cannot connect to a more specific semantic target until runtime
 validation exists.
 
