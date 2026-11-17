@@ -132,20 +132,25 @@ export function nestingSheetCount(items = []) {
 
 export async function nestingSolve({ items, sheetWidth, sheetHeight, space } = {}) {
   if (!Array.isArray(items) || !items.length) badRequest('The nesting run has no parts to place');
-  for (const [index, item] of items.entries()) {
-    if (!item || typeof item !== 'object') badRequest(`Item ${index} is not a part`);
-    item.count = Math.max(1, Math.trunc(Number(item.count) || 1));
-  }
+  const normalizedItems = items.map((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      badRequest(`Item ${index} is not a part`);
+    }
+    return {
+      ...item,
+      count: Math.max(1, Math.trunc(Number(item.count) || 1))
+    };
+  });
   const params = {
     width: Number(sheetWidth),
     height: Number(sheetHeight),
     space: Number(space ?? 3),
-    sheetCount: nestingSheetCount(items)
+    sheetCount: nestingSheetCount(normalizedItems)
   };
   for (const key of ['width', 'height', 'space', 'sheetCount']) {
     if (!(Number(params[key]) > 0)) badRequest(`Nesting params require a positive ${key}`);
   }
-  const request = buildValueWorkerRequest(items, params);
+  const request = buildValueWorkerRequest(normalizedItems, params);
   const result = enrichNestingResult(await callNestingWorker(request), request);
   if (result.status === 'error') {
     const error = new Error(result.message || 'Nesting worker failed');

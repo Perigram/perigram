@@ -136,6 +136,14 @@ describe('nesting parts projection', () => {
 });
 
 describe('nesting sheet stock', () => {
+  it('normalizes nesting item counts without mutating graph input values', () => {
+    const item = Object.freeze({ id: 'part-1', count: '3', geometry: Object.freeze({ area: 12 }) });
+    const items = Object.freeze([item]);
+    expect(nestingSheetCount(items)).toBe(3);
+    expect(item.count).toBe('3');
+    expect(item.geometry).toEqual({ area: 12 });
+  });
+
   it('uses the item count as the worst-case sheet stock', () => {
     expect(nestingSheetCount([{ count: 2 }, { count: 1 }, {}, { count: '3' }])).toBe(7);
   });
