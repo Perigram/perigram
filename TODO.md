@@ -46,6 +46,11 @@ providers.
   Markdown/HTML/PDF file outputs through generic Bake/Export. The flow value
   must not be a dead generic record; test create → compose → preview → export
   → materialize as a real file.
+- [ ] Give Documents a first-class authorable document graph value: typed block
+  constructors, document composition/append, direct preview, and actual
+  Markdown/HTML/PDF file outputs through generic Bake/Export. The flow value
+  must not be a dead generic record; test create → compose → preview → export
+  → materialize as a real file.
 - [ ] Review every Documents and Facade node for useful inputs/outputs,
   correct typed sockets, defaults, optionality, dynamic references, and
   actionable validation errors. Verify palette search and compatibility

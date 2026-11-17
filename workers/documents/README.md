@@ -34,19 +34,7 @@ types ride the generic instance machinery from the install snapshot.
   kind), and `render-pdf` (source ref payload → rendered PDF payload,
   dispatched on the source kind) stay implementation executors for
   their construction and conversion bindings.
-- Report vertical (`report.js`, palette section `document-compose`,
-  deterministic): `parse-markdown` (text → `text.flow-document@1`),
-  `export-markdown` (flow document → markdown text), `compose-report`
-  (flow document + row records → `document.report@1`), `extract-table`
-  (flow document → its table block's row records), `render-html` (report
-  → standalone HTML string, content escaped), and `render-report-pdf`
-  (report → PDF payload — the markdown assembly over the shared pdf
-  writer) — the values
-  compose on the canvas and preview through the `report` channel
-  (`surfaces/report-preview.mjs`, contract-1 preview surface rendering
-  every `document.report` the whole-graph evaluation carries). The
-  report IR is the source; HTML, markdown, and PDF are its
-  representations.
+- Document and report operations (`report.js` and `report-ir.mjs`, grouped by inline content, blocks, composition, and export): `parse-markdown` (text → `text.flow-document@1`), typed inline and block constructors (`text.inline` and `text.document-block`), `compose-document` and `append-document-block` (blocks → flowing document), `export-markdown` (flow document → markdown text), Markdown/HTML file exports, and `render-document-html` (flow document → safe HTML). The `document.report@1` composition remains available for explicitly sectioned reports. The Documents preview channel renders flowing documents directly as well as report values; the IR is the source and Markdown, HTML, and PDF are representations.
 
 ### Graph operation palette
 
