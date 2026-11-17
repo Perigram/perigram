@@ -22,7 +22,7 @@ export function normalizeNodeDefinition(source = {}) {
     label: String(source.label || source.id),
     ...(source.description ? { description: String(source.description) } : {}),
     palette: {
-      group: String(source.palette?.group || source.id.split('.')[0]),
+      group: String(source.palette?.group || ''),
       ...(source.palette?.label ? { label: String(source.palette.label) } : {}),
       keywords: [...new Set((source.palette?.keywords || []).map(value => String(value).trim().toLowerCase()).filter(Boolean))]
     },
@@ -71,12 +71,11 @@ export function validateNodeDefinition(source) {
       if (Object.hasOwn(port, 'default') && !isJsonValue(port.default)) problems.push(issue('invalid-default', `${path}.default`, 'Port default must be JSON-compatible'));
     }
   }
-  if (source.palette != null) {
-    if (!isRecord(source.palette)) {
-      problems.push(issue('invalid-palette', 'palette', 'Palette metadata must be an object'));
-    } else {
-      if (source.palette.group != null && !/^[a-z][a-z0-9-]{0,63}$/.test(String(source.palette.group))) {
-        problems.push(issue('invalid-palette-group', 'palette.group', 'Palette group must be a stable lowercase slug'));
+  if (!isRecord(source.palette)) {
+    problems.push(issue('missing-palette', 'palette', 'Node definitions require explicit semantic palette metadata'));
+  } else {
+      if (typeof source.palette.group !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/.test(source.palette.group)) {
+        problems.push(issue('invalid-palette-group', 'palette.group', 'Palette group is required and must be a stable lowercase slug'));
       }
       if (source.palette.label != null && (typeof source.palette.label !== 'string' || !source.palette.label.trim())) {
         problems.push(issue('invalid-palette-label', 'palette.label', 'Palette group label must be a non-empty string'));
@@ -85,7 +84,6 @@ export function validateNodeDefinition(source) {
         || source.palette.keywords.some(value => typeof value !== 'string' || !value.trim()))) {
         problems.push(issue('invalid-palette-keywords', 'palette.keywords', 'Palette keywords must be non-empty strings'));
       }
-    }
   }
   if (source.execution?.runtime != null && !/^[a-z0-9-]+$/.test(String(source.execution.runtime))) {
     problems.push(issue('invalid-runtime', 'execution.runtime', 'Runtime id must be a stable lowercase slug'));

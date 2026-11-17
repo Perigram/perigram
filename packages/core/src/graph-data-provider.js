@@ -9,6 +9,7 @@ export function createCoreGraphDataProvider() {
     version: CORE_DATA_VERSION,
     label: 'Query instances',
     description: 'Read a bounded, authorized organization query with deterministic ordering',
+    palette: { group: 'query', keywords: ['organization', 'instances', 'filter'] },
     inputs: [{
       id: 'filters',
       label: 'Filters',

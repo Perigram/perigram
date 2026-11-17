@@ -90,14 +90,17 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
   const coreDataProvider = createCoreGraphDataProvider();
 
   const groupLabels = {
-    source: t('processDesigner.graphSources'),
-    value: t('processDesigner.graphValues'),
-    collection: t('processDesigner.graphCollections'),
-    tree: t('processDesigner.graphTrees'),
-    record: t('processDesigner.graphRecords'),
+    sources: t('processDesigner.graphSources'),
+    values: t('processDesigner.graphValues'),
+    collections: t('processDesigner.graphCollections'),
+    records: t('processDesigner.graphRecords'),
     query: t('processDesigner.graphQueries')
   };
   const groupSignals = {
+    sources: 'identity',
+    values: 'quantity',
+    collections: 'data',
+    records: 'structure',
     source: 'identity',
     value: 'quantity',
     collection: 'data',
@@ -165,7 +168,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     });
     const grouped = new Map();
     for (const definition of registry.list()) {
-      const family = definition.palette?.group || definition.id.split('.')[0];
+      const family = definition.palette.group;
       const groupKey = `${definition.provider}:${family}`;
       if (!grouped.has(groupKey)) grouped.set(groupKey, {
         provider: definition.provider,
@@ -194,7 +197,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       groups.push({
         source: processProvider || coreData ? 'framework' : 'plugin',
         id: `graph-${provider}-${family}`,
-        label: label || (processProvider || coreData ? (groupLabels[family] || family) : `${provider} · ${family}`),
+        label: label || groupLabels[family] || humanizePaletteGroup(family),
         signal: groupSignals[family] || 'data',
         items
       });
@@ -248,7 +251,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
 
   function enrichNode(node) {
     const definition = definitionFor(node);
-    const group = String(node.data.operation?.id || '').split('.')[0];
+    const group = definition?.palette?.group || '';
     return {
       ...node,
       type: 'graphNode',
@@ -256,7 +259,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
         ...node.data,
         definition,
         label: definition?.label || node.data.label || node.data.operation?.id || t('processDesigner.unknownNode'),
-        groupLabel: groupLabels[group] || t('processDesigner.graphBoundaries'),
+        groupLabel: definition?.palette?.label || groupLabels[group] || (group ? humanizePaletteGroup(group) : t('processDesigner.graphBoundaries')),
         error: node.data.error || ''
       }
     };
@@ -771,4 +774,8 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     registerProvider,
     registerNodeProvider
   };
+}
+
+function humanizePaletteGroup(value = '') {
+  return String(value).split(/[-_.]+/).filter(Boolean).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 }

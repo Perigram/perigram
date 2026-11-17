@@ -12,6 +12,7 @@ const definition = overrides => ({
   id: 'document.compose',
   version: '2',
   label: 'Compose document',
+  palette: { group: 'documents', label: 'Documents', keywords: ['files'] },
   inputs: [{ id: 'source', label: 'Source', shape: 'item', semantic: { base: 'record', schema: 'document-source' } }],
   outputs: [{ id: 'document', shape: 'item', semantic: { base: 'document', provider: 'plugin.documents' } }],
   execution: { kind: 'pure', capabilities: [], deterministic: true, idempotent: true },
@@ -22,6 +23,7 @@ describe('provider-neutral node contract', () => {
   it('normalizes provider contributions with matching node ownership and callable runtimes', () => {
     const definition = {
       provider: 'plugin.example', id: 'math.double', version: '1',
+      palette: { group: 'math', label: 'Math' },
       inputs: [], outputs: [],
       execution: { kind: 'pure' }
     };
@@ -35,6 +37,7 @@ describe('provider-neutral node contract', () => {
   it('requires every declared preview renderer to be provided by the same node provider', () => {
     const candidate = {
       provider: 'plugin.example', id: 'geometry.mesh', version: '1',
+      palette: { group: 'geometry', label: 'Geometry' },
       inputs: [], outputs: [], execution: { kind: 'pure' },
       preview: { renderer: 'mesh' }
     };
@@ -72,7 +75,8 @@ describe('provider-neutral node contract', () => {
     expect(Object.isFrozen(normalized.inputs[0].semantic)).toBe(true);
   });
 
-  it('normalizes semantic palette groups and searchable keywords', () => {
+  it('requires an explicit semantic palette group and normalizes searchable keywords', () => {
+    expect(validateNodeDefinition(definition({ palette: undefined })).map(problem => problem.code)).toContain('missing-palette');
     const normalized = normalizeNodeDefinition(definition({
       palette: { group: 'document-authoring', label: 'Document authoring', keywords: ['markdown', 'Report', 'markdown'] }
     }));
@@ -82,9 +86,10 @@ describe('provider-neutral node contract', () => {
       keywords: ['markdown', 'report']
     });
     expect(normalizeNodeDefinition(definition()).palette).toEqual({
-      group: 'document',
-      keywords: []
+      group: 'documents', label: 'Documents', keywords: ['files']
     });
+    expect(validateNodeDefinition(definition({ palette: { keywords: ['files'] } }))
+      .map(problem => problem.code)).toContain('invalid-palette-group');
     expect(validateNodeDefinition(definition({ palette: { group: 'Not a slug' } }))
       .map(problem => problem.code)).toContain('invalid-palette-group');
     expect(validateNodeDefinition(definition({ palette: { keywords: [''] } }))

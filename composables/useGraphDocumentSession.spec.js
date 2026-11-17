@@ -134,6 +134,7 @@ describe('useGraphDocumentSession', () => {
         provider: 'plugin.example',
         definitions: [{
           provider: 'plugin.example', id: 'fail', version: '1',
+          palette: { group: 'diagnostics', label: 'Diagnostics' },
           inputs: [{ id: 'value', semantic: { base: 'number' }, required: true }],
           outputs: [{ id: 'result', semantic: { base: 'number' }, required: true }],
           execution: { kind: 'pure' }
@@ -194,6 +195,7 @@ describe('useGraphDocumentSession', () => {
       provider: 'plugin.example',
       definitions: [{
         provider: 'plugin.example', id: 'value.constant', version: '1',
+        palette: { group: 'values', label: 'Values' },
         inputs: [], outputs: [{ id: 'value', semantic: { base: 'number' } }],
         execution: { kind: 'pure' }
       }],

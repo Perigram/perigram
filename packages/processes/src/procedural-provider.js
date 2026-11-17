@@ -26,6 +26,7 @@ export function createProcessProceduralNodeDefinition(kind, record = {}, catalog
     version: PROCESS_PROCEDURAL_VERSION,
     label: catalog.label || kind,
     description: `Perigram process data operation: ${kind}`,
+    palette: { group: catalog.family, keywords: [kind, catalog.label, catalog.family] },
     inputs,
     outputs,
     execution: {
