@@ -1935,8 +1935,10 @@ identifies both destination owner/scope and logical location within it.
 Supported destination forms include:
 - A file associated with an explicitly identified Page.
 - A file/representation attached to an explicitly identified CTS instance
-  through a declared `blob` field or relation. A declared revisioned
-  `payload` trait is also a supported attachment location: replacement
+  through a declared `blob` field or relation. Relation attachment creates
+  a new file-type instance with a revisioned payload, then links it through
+  the owner's declared typed edge in the same transaction. A declared
+  revisioned `payload` trait is also a supported attachment location: replacement
   names the exact instance and expected revision; the payload, immutable
   revision, audit event, and execution evidence commit atomically.
 - A newly created instance of an explicitly selected CTS type. New-instance

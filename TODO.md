@@ -523,7 +523,10 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   exact revisioned instance or a single-result preview query (e.g. newest by
   `createdAt desc`, with deterministic `_id` tie-break). Uploaded files are
   compensated on abort and the field mutation plus execution evidence share
-  one transaction. Instance-payload Bake is also implemented for one exact
+  one transaction. Relation Bake creates a revisioned file instance and
+  links it through the owner's declared typed relation inside that same
+  transaction, enforcing relation target-domain and cardinality rules.
+  Instance-payload Bake is also implemented for one exact
   revisioned CTS instance: the uploaded blob is compensated on abort, while payload swap,
   immutable revision, audit event, organization sequence, and execution
   evidence share one Mongo snapshot transaction. New-instance Bake now uses
