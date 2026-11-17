@@ -1337,6 +1337,23 @@ function instanceService(typeId) {
     // organization scopes the referrer scan, so a system target sweeps
     // every org.
     async remove(id, { actor = null, organizationId = null, session = null, expectedOrganizationSequence = null, pendingEvents = null } = {}) {
+      if (!session) {
+        const result = await withMongoSnapshotTransaction(async transactionSession => {
+          const events = [];
+          const removed = await this.remove(id, {
+            actor,
+            organizationId,
+            session: transactionSession,
+            expectedOrganizationSequence,
+            pendingEvents: events
+          });
+          return { removed, events };
+        });
+        for (const event of result.events) {
+          await entityEventService.publishEntityChanged(event.auth, event.detail);
+        }
+        return result.removed;
+      }
       organizationId = organizationId == null ? null : String(organizationId);
       const declaration = await declarationFor(typeId, organizationId);
       if (declaration?.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });

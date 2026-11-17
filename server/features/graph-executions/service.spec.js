@@ -127,6 +127,18 @@ describe('graph execution service', () => {
   const graphService = { processGetById: vi.fn() };
   const dataService = { processList: vi.fn(), processGetById: vi.fn(), patch: vi.fn() };
   const payloadService = { replacePayload: vi.fn(), createForHttp: vi.fn(), patch: vi.fn(), linkRelationForHttp: vi.fn() };
+  const partService = {
+    processList: (...args) => dataService.processList(...args),
+    processGetById: (...args) => typeof payloadService.processGetById === 'function'
+      ? payloadService.processGetById(...args)
+      : dataService.processGetById(...args),
+    patch: (...args) => Object.hasOwn(args[1]?.fields || {}, 'attachment')
+      ? payloadService.patch(...args)
+      : dataService.patch(...args),
+    replacePayload: (...args) => payloadService.replacePayload(...args),
+    createForHttp: (...args) => payloadService.createForHttp(...args),
+    linkRelationForHttp: (...args) => payloadService.linkRelationForHttp(...args)
+  };
   const fileService = { createForHttp: vi.fn() };
   const session = {
     withTransaction: vi.fn(async callback => await callback()),
@@ -142,7 +154,7 @@ describe('graph execution service', () => {
     executionService.processList.mockResolvedValue([]);
     executionService.processGetById.mockResolvedValue(null);
     mocks.getAppRegistry.mockReturnValue({
-      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : typeId === 'part' ? payloadService : typeId === 'file-record' ? fileService : dataService
+      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : typeId === 'part' ? partService : typeId === 'file-record' ? fileService : dataService
     });
     dataService.processList.mockResolvedValue([{ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }]);
     dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));

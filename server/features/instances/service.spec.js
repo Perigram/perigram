@@ -1222,7 +1222,7 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
       reason: 'payload-replaced',
       session
     }));
-    expect(coll.findOne).toHaveBeenCalledWith({ _id: SKETCH_ID, type: 'csv-table' }, { session });
+    expect(coll.findOne).toHaveBeenCalledWith({ _id: new ObjectId(SKETCH_ID), type: 'csv-table' }, { session });
     expect(coll.findOneAndUpdate.mock.calls[0][2]).toMatchObject({ session });
     const { runOrganizationChange } = await import('./organization-sequence.js');
     expect(runOrganizationChange).toHaveBeenCalledWith('org-1', expect.objectContaining({ kind: 'instance-payload-replaced' }), expect.any(Function), { session, expectedSequence: 4 });
@@ -1597,6 +1597,8 @@ describe('version fabric (SPEC §24)', () => {
 });
 
 describe('remove sweeps relation refs (SPEC §22.12)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
   const PANEL_ID = 'panel-7';
 
   function stubPanel(overrides = {}) {
