@@ -41,6 +41,11 @@ describe('page document', () => {
     }]);
   });
 
+  it('normalizes pinned graph-output collection references with explicit parameters', () => {
+    const document = normalizePageDocument({ blocks: [{ id: 'graph-output', kind: 'collection', collection: { source: { kind: 'graph-output', executionInstanceId: 'execution-instance-1', graphDocumentInstanceId: 'graph-document-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows' }, parameters: { limit: 20 }, resultPolicy: 'live' } }], order: ['graph-output'] });
+    expect(document.blocks[0]).toMatchObject({ kind: 'collection', collection: { source: { kind: 'graph-output', executionInstanceId: 'execution-instance-1', graphDocumentInstanceId: 'graph-document-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows' }, parameters: { limit: 20 }, resultPolicy: 'pinned' } });
+  });
+
   it('normalizes typed live and pinned references without accepting malformed identities', () => {
     const document = normalizePageDocument({ blocks: [
       { id: 'live', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-1' } },
