@@ -1126,6 +1126,8 @@ describe('endpoint-mode services', () => {
     try {
       repository.findCatalogByPluginId.mockResolvedValue({
         ...coatingListing,
+        pluginId: 'documents',
+        name: 'Documents',
         builtin: true,
         declarations: {
           ...coatingListing.declarations,

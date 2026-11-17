@@ -174,6 +174,8 @@ from the Plugins page's connector panel. Authoring and hosting
 (including the executor implementations for both modes) is documented
 in the [plugin SDK](../../../packages/plugin-sdk/README.md).
 
+Built-in executor origins are deployment-owned: the documents/facade migration scripts persist `executorOrigin` and `platformManaged`, and the organization settings API refuses attempts to replace those origins or credentials. Third-party endpoint integrations remain configurable at provider scope.
+
 ### Service-resolved projections
 
 SPEC §8 p extract: a listing's type projections may resolve through a
