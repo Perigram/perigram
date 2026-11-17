@@ -7956,3 +7956,5 @@ rechecks file access at read time. Added `fill-workbook-template` to the
 shared browser/server runtime. It accepts the typed file payload and values,
 preserves styles/formulas, expands row sections, and emits a real XLSX file
 payload. Runtime regressions verify the binary output.
+
+Progress (2026-11-17): The Documents preview channel also renders XLSX graph file payloads as a bounded worksheet table (first 200 rows, 30 columns), with no HTML injection path. The graph output panel selects this channel automatically for XLSX payloads.

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import createSurface, { documentsOf } from './report-preview.mjs';
+import * as XLSX from '../assets/vendor/xlsx.mjs';
 
 describe('Documents graph preview channel', () => {
   it('renders flowing documents and reports from unified graph execution envelopes', () => {
@@ -48,6 +49,33 @@ describe('Documents graph preview channel', () => {
     });
     expect(iframe.props.srcdoc).toContain('<h1>Sanitized</h1>');
     expect(iframe.props.srcdoc).toContain("default-src 'none'");
+  });
+
+  it('renders XLSX graph file payloads as a worksheet table', () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+      ['SKU', 'Quantity'],
+      ['A-1', 2]
+    ]), 'Inventory');
+    const bytes = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const file = {
+      payload: {
+        mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        name: 'inventory.xlsx',
+        base64: Buffer.from(bytes).toString('base64')
+      }
+    };
+    const h = (type, props, children) => ({ type, props: props || {}, children });
+    const component = createSurface({ vue: { h } });
+    const tree = component.render.call({
+      payload: { selectedOutput: { id: 'file', value: file } }
+    });
+    const section = tree.children[0];
+    const scroll = section.children[1];
+    const table = scroll.children[0];
+    expect(table.type).toBe('table');
+    expect(table.children[0].type).toBe('thead');
+    expect(table.children[1].children[0].children.map(cell => cell.children)).toEqual(['A-1', '2']);
   });
 
   it('retains the legacy branch-tree preview envelope', () => {

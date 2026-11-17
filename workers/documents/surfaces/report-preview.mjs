@@ -1,3 +1,5 @@
+import * as XLSX from '../assets/vendor/xlsx.mjs';
+
 // The Documents preview channel renders flowing-document, report, and file values
 // from the whole-graph evaluation. The host owns the preview workspace;
 // this surface only renders the provider's read-only representations.
@@ -60,10 +62,39 @@ export default function createSurface(ctx) {
     ...(document.blocks || []).map((block, index) => renderBlock(block, index))
   ].filter(Boolean));
 
+  const renderWorkbookPayload = (bytes, name, key) => {
+    let workbook;
+    try { workbook = XLSX.read(bytes, { type: 'array' }); } catch {
+      return h('div', { key, class: 'text-supporting text-muted' }, 'The workbook payload could not be opened');
+    }
+    const sheetName = workbook.SheetNames?.[0];
+    const sheet = sheetName ? workbook.Sheets?.[sheetName] : null;
+    if (!sheet) return h('div', { key, class: 'text-supporting text-muted' }, 'The workbook contains no worksheets');
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }).slice(0, 200);
+    const columns = Math.min(30, Math.max(0, ...rows.map(row => row.length)));
+    const head = rows[0] || [];
+    const body = rows.slice(1);
+    return h('section', { key, class: 'flex min-h-0 flex-col gap-2' }, [
+      h('div', { class: 'text-supporting text-muted' }, `${name || 'Workbook'} · ${sheetName}`),
+      h('div', { class: 'max-h-96 overflow-auto' }, [
+        h('table', { class: 'w-full border-collapse text-supporting' }, [
+          h('thead', null, [h('tr', null, Array.from({ length: columns }, (_, index) => (
+            h('th', { key: index, class: 'border-b px-2 py-1 text-left' }, String(head[index] ?? ''))
+          )))]),
+          h('tbody', null, body.map((row, rowIndex) => h('tr', { key: rowIndex }, Array.from({ length: columns }, (_, columnIndex) => (
+            h('td', { key: columnIndex, class: 'border-b px-2 py-1' }, String(row[columnIndex] ?? ''))
+          )))))
+        ])
+      ]),
+      rows.length > 200 ? h('div', { class: 'text-supporting text-muted' }, 'Showing the first 200 rows') : null
+    ].filter(Boolean));
+  };
+
   const renderFilePayload = (value, key) => {
     const payload = value?.payload || {};
     const mime = String(payload.mime || '');
-    if (!['text/markdown', 'text/html'].includes(mime) || typeof payload.base64 !== 'string') {
+    const isWorkbook = mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    if (!['text/markdown', 'text/html'].includes(mime) && !isWorkbook || typeof payload.base64 !== 'string') {
       return h('div', { key, class: 'text-supporting text-muted' }, [
         h('strong', null, payload.name || 'Document file'),
         h('p', null, mime || 'Unsupported document preview')
@@ -77,6 +108,7 @@ export default function createSurface(ctx) {
     } catch {
       return h('div', { key, class: 'text-supporting text-muted' }, 'The file payload could not be decoded');
     }
+    if (isWorkbook) return renderWorkbookPayload(bytes, payload.name, key);
     if (typeof ctx?.renderMarkdown !== 'function') {
       return h('pre', { key, class: 'whitespace-pre-wrap break-words' }, source);
     }
@@ -134,7 +166,7 @@ export function documentsOf(payload) {
   const add = value => {
     const isIr = value && ['text.flow-document', 'document.report'].includes(value.type);
     const isFile = value && value.payload && typeof value.payload.base64 === 'string'
-      && ['text/markdown', 'text/html'].includes(value.payload.mime);
+      && ['text/markdown', 'text/html', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(value.payload.mime);
     if ((!isIr && !isFile) || seen.has(value)) return;
     seen.add(value);
     found.push(value);

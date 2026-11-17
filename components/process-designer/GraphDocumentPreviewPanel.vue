@@ -355,7 +355,7 @@ watch(availableViews, views => {
   const value = selectedValue.value;
   const documentsChannel = props.channels.find(channel => channel.id === 'documents');
   const isDocument = ['text.flow-document', 'document.report'].includes(value?.type)
-    || ['text/markdown', 'text/html'].includes(value?.payload?.mime);
+    || ['text/markdown', 'text/html', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(value?.payload?.mime);
   const preferred = isDocument && documentsChannel ? `channel:${documentsChannel.id}` : '';
   if (preferred && views.some(view => view.value === preferred)) activeView.value = preferred;
   else if (!views.some(view => view.value === activeView.value)) activeView.value = views[0]?.value || 'json';
