@@ -479,7 +479,7 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
     };
   }
 
-  const origin = endpointOriginOf(install);
+  const origin = install.executorOrigin || endpointOriginOf(install);
   if (!origin) throw createError({ statusCode: 503, message: `Plugin ${pluginId} has no connected executor endpoint` });
   const url = `${origin}/${segments.map(encodeURIComponent).join('/')}`;
   let response;
@@ -531,53 +531,53 @@ function rewriteDeclaredImports(source, pluginId, dependencies = []) {
   });
 }
 
+function legacyExecutorOrigin(install) {
+  const entries = Object.entries(install?.endpoints || {});
+  if (!entries.length) return null;
+  const services = new Map((install.services || []).map(service => [service.id, service]));
+  const bases = new Set();
+  for (const [serviceId, raw] of entries) {
+    const service = services.get(serviceId);
+    if (!service || serviceModeOf(service) !== 'endpoint') return null;
+    try {
+      const url = new URL(String(raw));
+      const suffix = String(service.endpointPath || serviceId).replace(/^\/+/, '');
+      if (!url.pathname.endsWith('/' + suffix)) return null;
+      url.pathname = url.pathname.slice(0, -suffix.length).replace(/\/$/, '');
+      url.search = ''; url.hash = '';
+      bases.add(url.toString().replace(/\/$/, ''));
+    } catch { return null; }
+  }
+  return bases.size === 1 ? [...bases][0] : null;
+}
+
+function endpointUrlFor(install, service) {
+  if (install.endpoints?.[service.id] && !install.executorOrigin) return install.endpoints[service.id];
+  const origin = install.executorOrigin || legacyExecutorOrigin(install);
+  if (!origin) return null;
+  const path = String(service.endpointPath || service.id).replace(/^\/+/, '');
+  return String(origin).replace(/\/$/, '') + '/' + path.split('/').map(encodeURIComponent).join('/');
+}
+
 export async function settingsFor({ organizationId, pluginId, auth = {} }) {
   assertSameOrganization(organizationId, auth);
   assertOrganizationPermission(auth, 'admin');
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
-  const endpoints = install.endpoints || {};
-  const packageOwned = Number(install.packageAssets?.count) > 0
-    || Boolean(install.declarations?.engine)
-    || Boolean(install.declarations?.runtimes?.length);
+  const packageOwned = Number(install.packageAssets?.count) > 0 || Boolean(install.declarations?.engine) || Boolean(install.declarations?.runtimes?.length);
+  const endpointServices = (install.services || []).filter(service => serviceModeOf(service) === 'endpoint');
+  const inferredOrigin = install.executorOrigin || legacyExecutorOrigin(install);
   return {
     pluginId: install.pluginId,
     authToken: install.authToken || null,
+    executorOrigin: inferredOrigin || '',
+    legacyEndpointConflict: !install.executorOrigin && Object.keys(install.endpoints || {}).length > 0 && !inferredOrigin,
     surfaceOrigin: packageOwned ? null : (install.surfaceOrigin || null),
     surfaces: !packageOwned && (install.declarations?.surfaces || []).length > 0,
-    services: (install.services || []).map(service => ({
-      id: service.id,
-      label: serviceSummary(service).label,
-      mode: serviceModeOf(service),
-      endpoint: endpoints[service.id] || null
-    }))
+    hasEndpointServices: endpointServices.length > 0,
+    services: (install.services || []).map(service => ({ id: service.id, label: serviceSummary(service).label, mode: serviceModeOf(service) }))
   };
 }
-
-// Endpoint settings validation, one home: unknown services, claim-mode
-// services, and non-http(s) URLs refuse.
-function configuredEndpointsFor(services = [], endpoints = {}) {
-  const serviceById = new Map((services || []).map(service => [service.id, service]));
-  const configured = {};
-  for (const [serviceId, url] of Object.entries(endpoints || {})) {
-    const service = serviceById.get(serviceId);
-    if (!service) {
-      throw createError({ statusCode: 400, message: `Unknown service ${serviceId}` });
-    }
-    if (serviceModeOf(service) !== 'endpoint') {
-      throw createError({ statusCode: 400, message: `Service ${serviceId} is ${serviceModeOf(service)} mode — no endpoint applies` });
-    }
-    if (url) {
-      const parsed = String(url);
-      if (!/^https?:\/\//.test(parsed)) {
-        throw createError({ statusCode: 400, message: `Endpoint for ${serviceId} must be an http(s) URL` });
-      }
-      configured[serviceId] = parsed;
-    }
-  }
-  return configured;
-}
-
 // The surface origin (owner decision 2026-10-17): executors with
 // surfaces but no endpoint services still need a reachable origin for
 // the module proxy. Only a plugin that declares surfaces may carry one.
@@ -593,12 +593,29 @@ function configuredSurfaceOriginFor(surfaces = [], surfaceOrigin = null) {
   return parsed;
 }
 
-export async function updateSettings({ organizationId, pluginId, endpoints = {}, authToken = null, surfaceOrigin = undefined, auth = {} }) {
+export async function updateSettings({ organizationId, pluginId, executorOrigin = undefined, endpoints = undefined, authToken = null, surfaceOrigin = undefined, auth = {} }) {
   assertSameOrganization(organizationId, auth);
   assertOrganizationPermission(auth, 'admin');
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
-  const configured = configuredEndpointsFor(install.services, endpoints);
+  let requestedOrigin = executorOrigin;
+  if (requestedOrigin === undefined && endpoints !== undefined) {
+    const legacyMap = configuredEndpointsFor(install.services, endpoints);
+    const candidate = legacyExecutorOrigin({ ...install, endpoints: legacyMap });
+    if (Object.keys(legacyMap).length && !candidate) throw createError({ statusCode: 400, message: 'Per-service endpoints cannot be saved. Configure one provider-level executor origin.' });
+    requestedOrigin = candidate;
+  }
+  let configuredOrigin = install.executorOrigin || legacyExecutorOrigin(install);
+  if (requestedOrigin !== undefined) {
+    if (!requestedOrigin) configuredOrigin = null;
+    else {
+      let parsed;
+      try { parsed = new URL(String(requestedOrigin)); } catch { throw createError({ statusCode: 400, message: 'Executor origin must be an absolute http(s) URL' }); }
+      if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password || parsed.search || parsed.hash) throw createError({ statusCode: 400, message: 'Executor origin must be an http(s) URL without credentials, query, or fragment' });
+      if (!(install.services || []).some(service => serviceModeOf(service) === 'endpoint')) throw createError({ statusCode: 400, message: 'This plugin has no remote endpoint services' });
+      configuredOrigin = parsed.toString().replace(/\/$/, '');
+    }
+  }
   const packageOwned = Number(install.packageAssets?.count) > 0
     || Boolean(install.declarations?.engine)
     || Boolean(install.declarations?.runtimes?.length);
@@ -613,7 +630,7 @@ export async function updateSettings({ organizationId, pluginId, endpoints = {},
     ? (install.surfaceOrigin || null)
     : configuredSurfaceOriginFor(install.declarations?.surfaces || [], surfaceOrigin));
   await repository.updateSettings(organizationId, pluginId, {
-    endpoints: configured,
+    executorOrigin: configuredOrigin,
     authToken: authToken ? String(authToken) : null,
     surfaceOrigin: configuredSurfaceOrigin
   });
@@ -1064,11 +1081,11 @@ async function installForCommand(commandId, organizationId) {
 // 60 s budget, JSON in/out — shared by connector commands and projection
 // reads.
 async function callEndpointService(install, serviceId, body) {
-  const endpoint = install.endpoints?.[serviceId];
+  const endpoint = endpointUrlFor(install, service);
   if (!endpoint) {
     throw createError({
       statusCode: 400,
-      message: `Service ${serviceId} has no endpoint — configure it in the plugin settings`
+      message: `Plugin ${install.pluginId} has no provider executor origin — configure it once in plugin settings`
     });
   }
   let response;
