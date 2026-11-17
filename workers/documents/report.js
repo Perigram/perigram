@@ -3,7 +3,7 @@
 // composition, and the report's export representations. Pure value
 // code — the IR contracts live in this worker's README.
 import { marked } from 'marked';
-import { FLOW_DOCUMENT_TYPE, REPORT_TYPE, requireReport, composeReport, extractTable, renderReportHtml, exportMarkdown, blockMarkdown } from './report-ir.mjs';
+import { FLOW_DOCUMENT_TYPE, requireReport, composeReport, extractTable, renderReportHtml, exportMarkdown, blockMarkdown } from './report-ir.mjs';
 import { renderPdfFromMarkdown } from './fill.js';
 export { composeReport, extractTable, renderReportHtml, exportMarkdown };
 
