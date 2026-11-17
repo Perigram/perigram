@@ -52,6 +52,37 @@ describe('Documents shared runtime', () => {
     }
   });
 
+  it('publishes listing-derived graph providers with serializable definitions and output envelopes', async () => {
+    const provider = runtime.providers.find(item => item.provider === 'plugin.documents');
+    expect(provider).toBeTruthy();
+    expect(() => structuredClone(runtime.providers)).not.toThrow();
+    const expected = listing.declarations.services
+      .filter(service => service.execution?.runtime === 'documents-shared'
+        && service.execution.targets?.includes('browser')
+        && service.palette?.visible !== false
+        && service.palette?.group)
+      .map(service => service.id)
+      .sort();
+    expect(provider.definitions.map(definition => definition.id).sort()).toEqual(expected);
+    expect(provider.definitions.find(definition => definition.id === 'compose-document')).toMatchObject({
+      provider: 'plugin.documents',
+      version: '1',
+      palette: { group: 'document-composition', label: 'Document composition' },
+      inputs: [{ id: 'title', semantic: { base: 'string' }, required: false }, {
+        id: 'blocks', shape: 'list', semantic: { base: 'json', kind: 'text.document-block' }, required: true
+      }],
+      outputs: [{ id: 'value', semantic: { base: 'json', kind: 'text.flow-document' } }],
+      execution: { runtime: 'documents-shared', kind: 'pure', targets: ['browser', 'server'] }
+    });
+    const block = await runtime.execute('document-paragraph', {
+      mode: 'preview',
+      inputs: { text: 'From graph' }
+    });
+    expect(block).toEqual({
+      value: { type: 'paragraph', children: [{ type: 'text', text: 'From graph' }] }
+    });
+  });
+
   it('serializes row records through the shared spreadsheet engine', () => {
     const csv = runtime.execute('csv-text', { rows: [{ name: 'Panel', width: 600 }, { name: 'Door', width: 450 }] });
     expect(csv).toContain('name,width');
