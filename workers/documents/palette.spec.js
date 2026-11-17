@@ -42,7 +42,7 @@ describe('Documents plugin node palette contribution', () => {
     const services = listing.declarations.services
       .filter(service => service.group || service.render?.label || service.id);
 
-    expect(items.filter(item => item.kind === 'cts.read')).toHaveLength(projections.length);
+    expect(items.filter(item => item.kind === 'cts.read')).toHaveLength(projections.size);
     expect(items.filter(item => item.kind === 'cts.service')).toHaveLength(services.length);
   });
 });
