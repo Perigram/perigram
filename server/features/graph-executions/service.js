@@ -3,6 +3,7 @@ import { createError } from 'h3';
 import { connectDB } from '~/server/db/mongo';
 import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder } from '#packages/core';
 import { runOrganizationChange, withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
+import { declarationForType } from '../instances/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '../files/service.js';
 import * as pagesService from '../pages/service.js';
@@ -662,17 +663,21 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   const isPageFile = destination.type === 'page-file';
   const isInstancePayload = destination.type === 'instance-payload';
   const isInstanceCreate = destination.type === 'instance-create';
+  const isInstanceField = destination.type === 'instance-field';
   if (isPageFile && (!destination.pageId || !destination.path)) {
     throw createError({ statusCode: 400, message: 'Page-file Bake requires an exact Page and relative file path' });
   }
   if (isInstancePayload && (!destination.typeId || !destination.instanceId || destination.expectedRevision == null)) {
     throw createError({ statusCode: 400, message: 'Instance-payload Bake requires an exact type, instance, and expected revision' });
   }
+  if (isInstanceField && (!destination.typeId || !destination.instanceId || !destination.fieldId || destination.expectedRevision == null)) {
+    throw createError({ statusCode: 400, message: 'Instance-field Bake requires an exact type, instance, Blob field, and expected revision' });
+  }
   if (isInstanceCreate && (!destination.typeId || !destination.draft || typeof destination.draft !== 'object' || Array.isArray(destination.draft)
     || Object.keys(destination.draft).some(key => !['name', 'fields', 'lineage', 'relations'].includes(key)))) {
     throw createError({ statusCode: 400, message: 'New-instance Bake requires a typed instance draft without a caller-supplied payload' });
   }
-  if (!isPageFile && !isInstancePayload && !isInstanceCreate) {
+  if (!isPageFile && !isInstancePayload && !isInstanceCreate && !isInstanceField) {
     throw createError({ statusCode: 400, message: 'Bake destination must be page-file, instance-payload, or instance-create' });
   }
   if ((isInstancePayload || isInstanceCreate) && destination.conflictPolicy != null && destination.conflictPolicy !== 'fail') {
@@ -684,7 +689,89 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   }
 
   const { buffer, mimeType, filename: materializedFilename } = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId,
-    (isInstancePayload || isInstanceCreate) ? destination.filename || null : null);
+    (isInstancePayload || isInstanceCreate || isInstanceField) ? destination.filename || null : null);
+
+  if (isInstanceField) {
+    const typeId = String(destination.typeId);
+    const fieldId = String(destination.fieldId);
+    const declaration = await declarationForType(typeId, organizationId);
+    if (declaration?.fields?.[fieldId]?.base !== 'blob') {
+      throw createError({ statusCode: 400, message: `Instance attachment field ${typeId}.${fieldId} must be declared with base blob` });
+    }
+    const instanceService = getAppRegistry().getInstanceService(typeId);
+    if (typeof instanceService?.patch !== 'function') {
+      throw createError({ statusCode: 404, message: 'CTS instance update service is unavailable' });
+    }
+    const filename = materializedFilename;
+    const stored = await filesService.uploadFile(buffer, filename, {
+      userId: auth.userId,
+      organizationId,
+      type: typeId
+    }, 'files', mimeType || 'application/octet-stream');
+    try {
+      return await withMongoWriteTransaction(async session => {
+        await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
+        const updated = await instanceService.patch(destination.instanceId, {
+          fields: {
+            [fieldId]: {
+              fileId: stored.id,
+              mime: mimeType || null,
+              size: buffer.length
+            }
+          }
+        }, {
+          auth,
+          organizationId,
+          expectedRevision: destination.expectedRevision,
+          expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet),
+          session
+        });
+        const timestamp = new Date().toISOString();
+        const bakeId = randomUUID();
+        const bakeRecord = createGraphExecutionRecord({
+          ...preview,
+          id: bakeId,
+          profile: 'procedural-bake',
+          status: 'succeeded',
+          startedAt: timestamp,
+          completedAt: timestamp,
+          artifacts: [...(preview.artifacts || []), {
+            kind: 'instance-field',
+            typeId,
+            instanceId: String(updated._id ?? updated.id),
+            fieldId,
+            revision: updated.revision == null ? null : String(updated.revision),
+            fileId: stored.id,
+            filename,
+            mime: mimeType || null,
+            size: buffer.length,
+            outputId: selectedOutputId,
+            sourceExecutionId: preview.id,
+            conflictPolicy: 'fail',
+            bucket: 'files'
+          }]
+        });
+        const persisted = await persistRecord(bakeRecord, graphDocument, organizationId, auth, session);
+        return { instance: updated, execution: bakeRecord, persisted };
+      });
+    } catch (error) {
+      try {
+        await filesService.deleteFile(stored.id, 'files');
+      } catch (rollbackError) {
+        throw createError({
+          statusCode: 500,
+          message: 'Instance-field Bake failed and its uploaded file could not be removed',
+          data: { bakeError: error?.message || String(error), rollbackError: rollbackError?.message || String(rollbackError), fileId: stored.id }
+        });
+      }
+      if (error?.statusCode) throw error;
+      throw createError({
+        statusCode: 500,
+        message: 'CTS attachment field and graph execution evidence could not be committed atomically',
+        data: { typeId, instanceId: String(destination.instanceId), fieldId, cause: error?.message || String(error) }
+      });
+    }
+  }
 
   if (isInstancePayload || isInstanceCreate) {
     const instanceService = getAppRegistry().getInstanceService(String(destination.typeId));
