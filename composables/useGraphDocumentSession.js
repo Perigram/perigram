@@ -515,8 +515,30 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     return loadDocument(createEmptyGraphDocument({ id: id || stableId('graph'), name: name || '' }));
   }
 
+  function semanticEdgeProblems(graph = serializeGraph()) {
+    const byId = new Map(nodes.value.map(node => [node.id, node]));
+    const problems = [];
+    for (const edge of graph.edges) {
+      const source = byId.get(edge.source.node);
+      const target = byId.get(edge.target.node);
+      const sourcePort = definitionFor(source)?.outputs?.find(port => port.id === edge.source.port);
+      const targetPort = definitionFor(target)?.inputs?.find(port => port.id === edge.target.port);
+      if (!sourcePort || !targetPort) continue;
+      const result = compareNodePorts(sourcePort, targetPort);
+      if (!result.compatible) {
+        problems.push({
+          code: `edge-${result.status}`,
+          path: `edges.${edge.id}`,
+          message: `Cannot connect ${sourcePort.label || sourcePort.id} to ${targetPort.label || targetPort.id}: ${result.reason}`
+        });
+      }
+    }
+    return problems;
+  }
+
   function validateCurrentGraph() {
-    const problems = validateGraphDocument(serializeGraph());
+    const graph = serializeGraph();
+    const problems = [...validateGraphDocument(graph), ...semanticEdgeProblems(graph)];
     return {
       ok: problems.length === 0,
       errors: problems.map(problem => problem.message),
@@ -537,6 +559,10 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     const executionId = stableId('execution');
     try {
       graph = serializeGraph();
+      const semanticProblems = semanticEdgeProblems(graph);
+      if (semanticProblems.length) {
+        throw new Error(semanticProblems.map(problem => problem.message).join('; '));
+      }
       const result = await evaluateProceduralGraph({
         graph,
         inputBindings: inputBindings.value,
