@@ -71,7 +71,7 @@ max }, volume?, area? }` — a STEP serialization plus measured extents.
 A shape-typed param accepts one shape value or a list of them. Ops that
 return scalars return the scalar.
 
-In the listing every op is `{ mode: 'endpoint', cache: 'deterministic'
+In the transitional listing every op is `{ mode: 'endpoint', cache: 'deterministic'
 }`: pure compute over values, replayed by the platform's service cache.
 Scalar params prompt as command parameters; shape and json params are
 graph data sockets. Palette sections derive from the discovered module
@@ -88,4 +88,4 @@ payload, upload creation) — the persistence vocabulary for STEP parts.
   `workers/build123d`.
 - Publish: `node server/scripts/seed-plugin-catalog.js` seeds the
   built-in listing; organizations install from the Plugins section and
-  point the Connection settings at the executor.
+  configure the single provider-level executor origin in Connection settings.

@@ -55,9 +55,9 @@ requires, executorOrigin, packageAssets, connectorToken, installedAt }`. The ins
 data, so catalog changes reach an installed organization only through
 the explicit upgrade flow ([Upgrades](#upgrades)). Every install write
 — route or onboarding — rides `installFromCatalog`, the gate-and-write
-core: the route wrapper only adds caller authority, `endpoints`/
-`surfaceOrigin` pre-wire connection settings under the settings-save
-validation, and the deployment's built-in plugins install through the
+core: the route wrapper only adds caller authority, `executorOrigin`/
+`surfaceOrigin` pre-wire provider-level connection settings under the
+settings-save validation, and the deployment's built-in plugins install through the
 seed scripts ([server/scripts/README.md](../../scripts/README.md))
 writing the same record shape directly. The snapshot carries the full declaration layer — types, editors,
 surfaces, previews, constructions, starter constructs, exports, runtime
@@ -115,8 +115,10 @@ it to the generic instance compare-and-swap write boundary.
 
 Remote service adapters currently retain a transitional endpoint mode and
 claim mode. Endpoint-mode operations share one provider-level `executorOrigin`;
-operation URLs are derived as `<executorOrigin>/<serviceId>` (or an explicit
-provider-authored `endpointPath`). The install never stores a URL per function.
+operation URLs are derived as `<executorOrigin>/<serviceId>`. The install
+never stores a URL per function. Legacy install maps are collapsed on settings
+save when every operation URL has the same provider base; divergent maps are
+surfaced as a migration warning rather than silently guessed.
 New external-system integrations must use provider-level connection records
 with server-held credentials, per SPEC §20; the legacy endpoint adapter is a
 migration bridge, not the target execution model.
@@ -310,8 +312,8 @@ the cascade refuses the whole removal).
 | `POST /api/organizations/:id/plugins/:pluginId/upgrade` | `organizations:admin` | Apply the upgrade (gated by the preview's blockers). |
 | `GET /api/organizations/:id/plugins/:pluginId/connector` | `organizations:admin` | Connector panel data: token, claim queue, worker endpoints. |
 | `POST /api/organizations/:id/plugins/:pluginId/connector/regenerate` | `organizations:admin` | Rotate the connector token. |
-| `GET /api/organizations/:id/plugins/:pluginId/settings` | `organizations:admin` | Connection settings: per-service modes and endpoints, API key, surface origin. |
-| `POST /api/organizations/:id/plugins/:pluginId/settings` | `organizations:admin` | Save connection settings (endpoints for endpoint-mode services, API key, surface origin for surface-bearing plugins). |
+| `GET /api/organizations/:id/plugins/:pluginId/settings` | `organizations:admin` | Connection settings: one provider executor origin, provider credential, and optional legacy surface origin. |
+| `POST /api/organizations/:id/plugins/:pluginId/settings` | `organizations:admin` | Save the provider-level executor origin and credential, plus the optional surface origin for legacy external surfaces. |
 
 The organization UI is the Plugins section in org settings
 ([pages/organization](../../../pages/organization/README.md)):

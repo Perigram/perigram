@@ -127,9 +127,8 @@ export async function install({ organizationId, pluginId, auth = {} }) {
 }
 
 // The gate-and-write core behind the install route: the wrapper above
-// owns caller authority. `endpoints` pre-wires connection settings for
-// endpoint-mode services under the same validation the settings save
-// applies.
+// owns caller authority. `executorOrigin` configures one provider-level
+// executor base; operation paths derive from their stable service ids.
 export async function installFromCatalog({ organizationId, pluginId, executorOrigin = null, endpoints = {}, surfaceOrigin = null }) {
   const listing = await repository.findCatalogByPluginId(pluginId);
   if (!listing) throw createError({ statusCode: 404, message: 'Plugin not found' });
