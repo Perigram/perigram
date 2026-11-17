@@ -1130,7 +1130,7 @@ export async function resolveCollectionOutput(executionInstanceId, outputId, aut
     throw createError({ statusCode: 409, message: 'Pinned graph output is not a collection in the saved graph revision' });
   }
   const items = [];
-  for (const value of values) {
+  for (const value of values.slice(0, 100)) {
     const typeId = String(value?.type || value?.typeId || '');
     const instanceId = String(value?.id || value?.instanceId || value?._id || '');
     if (!typeId || !instanceId) {
@@ -1155,6 +1155,8 @@ export async function resolveCollectionOutput(executionInstanceId, outputId, aut
     outputId: String(outputId),
     label: String(output.label || outputId),
     resultPolicy: 'pinned',
+    itemCount: values.length,
+    truncated: values.length > 100,
     items
   };
 }

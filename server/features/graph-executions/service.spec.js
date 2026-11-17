@@ -195,6 +195,11 @@ describe('graph execution service', () => {
     })]);
   });
 
+  it('rejects a pinned collection whose authored graph identity differs from its execution', async () => {
+    executionService.processGetById.mockResolvedValue({ _id: 'execution-instance-1', fields: { status: 'succeeded', graphDocument: { id: 'graph-instance-1' }, graphId: 'graph.document', graphRevision: 'rev-01' } });
+    await expect(graphExecutionsService.resolveCollectionOutput('execution-instance-1', 'document', auth, { graphId: 'another.graph', graphRevision: 'rev-01', graphDocumentInstanceId: 'graph-instance-1' })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
   it('resolves pinned graph collection values through each target read grant', async () => {
     const collectionGraph = graph();
     collectionGraph.interface.outputs[0].contract.shape = 'collection';
