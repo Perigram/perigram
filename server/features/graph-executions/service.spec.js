@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   bakeFile: vi.fn(),
   retractBakedFile: vi.fn(),
   withOrganizationDataSnapshot: vi.fn(),
+  ensureOrganizationChangeIndexes: vi.fn(),
   withOrganizationChangeSequence: vi.fn(),
   connectDB: vi.fn(),
   declarationForType: vi.fn(),
@@ -38,6 +39,7 @@ vi.mock('../pages/service.js', () => ({
 }));
 vi.mock('../instances/service.js', () => ({ declarationForType: mocks.declarationForType }));
 vi.mock('../instances/index.js', () => ({
+  ensureOrganizationChangeIndexes: mocks.ensureOrganizationChangeIndexes,
   withOrganizationDataSnapshot: mocks.withOrganizationDataSnapshot,
   withOrganizationChangeSequence: mocks.withOrganizationChangeSequence,
   runOrganizationChange: mocks.runOrganizationChange

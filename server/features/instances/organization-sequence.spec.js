@@ -8,6 +8,7 @@ vi.mock('~/server/db/mongo', () => ({ connectDB }));
 import {
   beginOrganizationChange,
   completeOrganizationChange,
+  ensureOrganizationChangeIndexes,
   getOrganizationChangeSequence,
   recordOrganizationChange,
   runOrganizationChange,
@@ -33,6 +34,12 @@ describe('organization change sequence', () => {
 
   beforeEach(async () => {
     await db.collection('organization_change_sequences').deleteMany({});
+  });
+
+  it('prepares the organization sequence unique index before transaction callers proceed', async () => {
+    await expect(ensureOrganizationChangeIndexes()).resolves.toBe(true);
+    const indexes = await db.collection('organization_change_sequences').indexes();
+    expect(indexes.some(index => index.key?.organizationId === 1 && index.unique === true)).toBe(true);
   });
 
   it('increments one durable sequence per organization and records change identity', async () => {
