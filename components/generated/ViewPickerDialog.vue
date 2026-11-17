@@ -43,17 +43,10 @@
             @click="pickCollection(collection)"
           />
           <template v-for="collection in childCollections" :key="`${collection.key}:views`">
-            <Button
-              v-for="view in viewsFor(collection.typeId)"
-              :key="`${collection.key}:${view._id}`"
-              :label="view.name || t('editors.view')"
-              icon="pi pi-filter"
-              text
-              size="small"
-              class="ml-6 w-full justify-start"
-              @click="pickView(view, collection)"
-            />
-          </template>
+            <div v-for="view in viewsFor(collection.typeId)" :key="`${collection.key}:${view._id}`" class="ml-6 flex items-center gap-1">
+              <Button :label="view.name || t('editors.view')" icon="pi pi-filter" text size="small" class="min-w-0 flex-1 justify-start" @click="pickView(view, collection)" />
+              <Button icon="pi pi-bookmark" text size="small" severity="secondary" aria-label="Pin view definition" title="Pin view definition" @click="pickPinnedView(view, collection)" />
+            </div>          </template>
         </div>
         <span v-else class="py-2 text-center text-muted text-supporting">{{ t('editors.noCollections') }}</span>
       </template>
@@ -156,6 +149,19 @@ function pickView(view, collection) {
     parentTypeId: selected.value.type,
     parentId: selected.value.id,
     sourceId: collection.sourceId
+  });
+}
+
+async function pickPinnedView(view, collection) {
+  const definition = await viewsStore.loadView(view._id);
+  emit('pick', {
+    typeId: collection.typeId,
+    name: definition.name || view.name || '',
+    parentTypeId: selected.value.type,
+    parentId: selected.value.id,
+    sourceId: collection.sourceId,
+    definitionRevision: String(definition.updatedAt || ''),
+    definitionSnapshot: { viewState: definition.viewState || {} }
   });
 }
 

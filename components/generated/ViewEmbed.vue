@@ -56,7 +56,9 @@ const props = defineProps({
   sourceId: { type: String, default: '' },
   // The name the fence carried at authoring time — the deleted-view
   // title and the fallback while the store loads.
-  fallbackName: { type: String, default: '' }
+  fallbackName: { type: String, default: '' },
+  pinnedViewState: { type: Object, default: null },
+  definitionRevision: { type: String, default: '' }
 });
 
 const { te, t } = useI18n();
@@ -66,13 +68,13 @@ const viewsStore = useViewsStore();
 
 const view = computed(() => (props.viewId ? viewsStore.viewById(props.viewId) : null));
 const targetTypeId = computed(() => view.value?.typeId || props.typeId);
-const viewState = computed(() => (props.viewId ? (viewsStore.viewStates[props.viewId] || null) : null));
+const viewState = computed(() => props.pinnedViewState || (props.viewId ? (viewsStore.viewStates[props.viewId] || null) : null));
 const typeLabel = computed(() => {
   const type = (authStore.processPayload?.bundle?.types || []).find(candidate => candidate.id === targetTypeId.value);
   return type ? generatedEntityLabel(type, { t, te }) : '';
 });
 const name = computed(() => view.value?.name || props.fallbackName || typeLabel.value);
-const viewKey = computed(() => view.value?._id || `type:${targetTypeId.value}`);
+const viewKey = computed(() => view.value?._id || `type:${targetTypeId.value}:${props.definitionRevision || 'live'}`);
 
 const pool = computed(() => instancesStore.instancePool);
 const bundle = computed(() => authStore.processPayload?.bundle || { types: [] });

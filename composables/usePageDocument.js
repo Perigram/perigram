@@ -137,7 +137,9 @@ export function usePageDocumentSession({ docId, tabKey }) {
       name: String(pick.name || ''),
       ...(pick.parentTypeId ? { parentTypeId: String(pick.parentTypeId) } : {}),
       ...(pick.parentId ? { parentId: String(pick.parentId) } : {}),
-      ...(pick.sourceId ? { sourceId: String(pick.sourceId) } : {})
+      ...(pick.sourceId ? { sourceId: String(pick.sourceId) } : {}),
+      ...(pick.definitionRevision ? { definitionRevision: String(pick.definitionRevision) } : {}),
+      ...(pick.definitionSnapshot ? { definitionSnapshot: { viewState: pick.definitionSnapshot.viewState || {} } } : {})
     };
     if (!view.id && !view.typeId) return;
     insertBlock({ id: createBlockId('v'), kind: 'view', view }, at);

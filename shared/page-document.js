@@ -43,7 +43,11 @@ export function normalizePageDocument(document = {}) {
             name: String(view.name || ''),
             ...(view.parentTypeId ? { parentTypeId: String(view.parentTypeId) } : {}),
             ...(view.parentId ? { parentId: String(view.parentId) } : {}),
-            ...(view.sourceId ? { sourceId: String(view.sourceId) } : {})
+            ...(view.sourceId ? { sourceId: String(view.sourceId) } : {}),
+            ...(view.definitionRevision ? { definitionRevision: String(view.definitionRevision) } : {}),
+            ...(view.definitionSnapshot && typeof view.definitionSnapshot === 'object' && !Array.isArray(view.definitionSnapshot)
+              ? { definitionSnapshot: { viewState: view.definitionSnapshot.viewState && typeof view.definitionSnapshot.viewState === 'object' && !Array.isArray(view.definitionSnapshot.viewState) ? view.definitionSnapshot.viewState : {} } }
+              : {})
           }
         };
       }

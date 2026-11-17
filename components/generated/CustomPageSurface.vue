@@ -59,12 +59,14 @@
           />
           <ViewEmbed
             v-else-if="session.blockByKey(key)?.kind === 'view'"
-            :view-id="session.blockByKey(key).view?.id || ''"
+            :view-id="session.blockByKey(key).view?.definitionSnapshot ? '' : (session.blockByKey(key).view?.id || '')"
             :type-id="session.blockByKey(key).view?.typeId || ''"
             :parent-type-id="session.blockByKey(key).view?.parentTypeId || ''"
             :parent-id="session.blockByKey(key).view?.parentId || ''"
             :source-id="session.blockByKey(key).view?.sourceId || ''"
             :fallback-name="session.blockByKey(key).view?.name || ''"
+            :pinned-view-state="session.blockByKey(key).view?.definitionSnapshot?.viewState || null"
+            :definition-revision="session.blockByKey(key).view?.definitionRevision || ''"
           />
           <PageFileEmbed
             v-else-if="session.blockByKey(key)?.kind === 'file'"
