@@ -3,70 +3,71 @@
 ## Priority: Documents and Facade plugin review/refactor (owner direction 2026-11-17)
 
 This work is prioritized ahead of further breadth in the portable-runtime
-migration, except for correctness/security fixes that block it. Review both
-plugins as product capabilities and as graph-node providers; do not treat
-"listing validates" or "executor responds" as completion.
+migration, with correctness and security work retaining immediate priority.
+Completion requires verified product behavior, listing validation, and
+executor coverage for both plugins as product capabilities and graph-node
+providers.
 
 - [ ] Audit Documents end to end: every declared type, projection, service,
   construction, editor, preview, fill, import/export, and file/payload path.
-  Compare listing declarations with actual runtime behavior and SPEC; remove
-  stale executor/endpoint assumptions as the managed local runtime lands.
+  Compare listing declarations with actual runtime behavior and SPEC; align
+  executor and endpoint assumptions with the managed local runtime.
 - [ ] Audit Facade end to end against `workers/facade/SPEC.md`: six-type
   fabrication flow, OCCS evaluation, nesting, DXF import/export, editor
   surfaces, preview renderers, cross-plugin dependencies, data revisions,
-  and every declared construction/service. Identify dead, duplicated,
-  unreachable, or UI-only functionality and close behavior/spec gaps.
-- [ ] Migrate the two plugin service surfaces away from per-service endpoint
+  and every declared construction/service. Verify each workflow and close
+  behavior/spec gaps.
+- [ ] Migrate the two plugin service surfaces from per-service endpoint
   hosting. Current inventory: all 12 Documents services and all 7 Facade
-  services are still `mode: endpoint`, and both packages still start
-  standalone HTTP executors. Classify every operation by execution target:
-  browser-local pure compute, platform-managed server compute, or an explicit
-  remote integration. Move local-eligible operations behind the shared
-  provider/runtime contract; keep nesting solver transport behind a managed
-  server adapter rather than a user-owned endpoint. Preserve identical
-  operation semantics across client and server execution where supported.
+  services are still `mode: endpoint`, and both packages start standalone
+  HTTP executors. Classify each operation by execution target: browser-local
+  pure compute, platform-managed server compute, or explicit remote
+  integration. Move local-eligible operations behind the shared
+  provider/runtime contract; route nesting solver transport through a
+  platform-managed server adapter. Preserve operation semantics across
+  client and server execution where supported.
 - [ ] Refactor the node catalog and palette around one coherent provider
   contract. Review discovery, grouping, search, filtering, socket/type
   compatibility, operation signatures, labels/descriptions, provenance,
-  placement, and node configuration as one user-facing workflow. Plugin
-  nodes must be discoverable and understandable without hardcoded
-  Documents/Facade branches in platform UI.
+  placement, and node configuration as one user-facing workflow. Platform
+  UI discovers plugin nodes through provider declarations and keeps plugin
+  identities out of platform-specific UI branches.
 - [ ] Make palette grouping and presentation declaration-driven and
   consistent across operation, value, construction, editor, and graph-use
-  nodes. Remove duplicate category vocabularies and stale hardcoded palette
-  metadata; ensure the same semantics appear in palette entries, canvas
+  nodes. Consolidate category vocabularies and source palette metadata from
+  declarations; keep the same semantics across palette entries, canvas
   nodes, inspector, and preview/diagnostics.
 - [ ] Review every Documents and Facade node for useful inputs/outputs,
   correct typed sockets, defaults, optionality, dynamic references, and
-  actionable validation errors. Ensure palette search and compatibility
-  filtering do not hide valid operations or offer unusable ones.
+  actionable validation errors. Verify palette search and compatibility
+  filtering against valid and invalid operations.
 - [ ] Add focused contract tests and representative graph-level tests for
   each plugin's major workflows, including discovery → palette → placement →
   configuration → execution → preview → commit/bake. Add regression tests
-  for every defect found during the review.
-- [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO only after
-  behavior is verified; document remaining owner decisions explicitly.
+  for each defect found during the review.
+- [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO after
+  behavior verification; record remaining owner decisions explicitly.
 
-Progress (2026-11-17): moved palette ownership terminology from legacy
-"pack" provenance to "plugin"; node-provider declarations now accept a
-stable semantic palette group, optional group label, and normalized search
-keywords. Graph palette grouping uses that declaration rather than parsing
-operation ids, and search indexes provider id, operation id, group, and
-keywords. Existing providers retain the id-prefix fallback until migrated.
-The graph-output/reference/view picker surfaces were also brought back under
-semantic typography and the locale contract; Documents and Facade service
-inventories now have declaration-to-runtime coverage, and Facade's main
-construct/export/nesting paths have direct service tests.
+Progress (2026-11-17): palette provenance now uses plugin terminology;
+node-provider declarations accept a stable semantic palette group, optional
+group label, and normalized search keywords. Graph palette grouping consumes
+declared groups, and search indexes provider id, operation id, group id,
+localized group label, and declared keywords. Existing providers retain the
+id-prefix fallback until migrated. Graph-output, reference, and view-picker
+surfaces use semantic typography and locale keys. Documents and Facade service
+inventories have declaration-to-runtime tests, Facade construction/export/
+nesting paths have direct service tests, and both plugin listings have
+palette-contribution tests.
 
-Execution migration is a prerequisite to calling either plugin review complete:
-the palette must represent the same operation contract that runtime discovery
-and execution actually expose, not a separate list of UI-only commands.
+Execution migration is a prerequisite to completing either plugin review.
+The palette is a projection of the operation contract consumed by runtime
+discovery and execution.
 
 Review order: (1) inventory declarations and actual behavior; (2) trace
 palette/provider discovery and graph execution; (3) validate end-to-end
-workflows; (4) consolidate/refactor shared contracts and UI; (5) remove
+workflows; (4) consolidate/refactor shared contracts and UI; (5) retire
 obsolete paths and update docs. Keep the two plugin reviews coordinated so
-shared palette changes are designed once, not independently patched twice.
+shared palette changes are designed once.
 
 ## Portable plugins and platform-managed execution (SPEC §20, owner direction 2026-11-16)
 
