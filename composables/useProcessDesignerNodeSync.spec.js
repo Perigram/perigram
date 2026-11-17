@@ -51,6 +51,18 @@ function freshDraft() {
 }
 
 describe('socket connection projection', () => {
+  it('exposes each input base type in the inspector projection', () => {
+    freshDraft();
+    const required = nodeRecords.createProcessNode('required', 'value.required');
+    const [input] = sync.processNodeInputs(required);
+
+    expect(input).toMatchObject({
+      id: 'value',
+      base: 'json',
+      type: { base: 'json' }
+    });
+  });
+
   it('projects connected output socket ids for the canvas manifest', () => {
     freshDraft();
     const previousEdges = edges.value;
