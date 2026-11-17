@@ -9,6 +9,7 @@
 // The service resolves the type's declaration per call: framework and pack
 // types from static declarations, org types from `cts_types` (cached).
 import { createError } from 'h3';
+import { withMongoSnapshotTransaction } from '~/server/utils/mongo-transaction.js';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, mimeMatches, validateConstraints, evaluateAsync, MAX_COLLECTION_ITEMS, MAX_STEPS } from '#packages/cts';
@@ -1303,7 +1304,11 @@ function instanceService(typeId) {
       if (!target || !hasInstanceAccess({ entity: toDto(doc), typeId: target.typeId, feature: target.feature, level: 'write', action: 'delete', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
-      return await this.remove(id, { actor: auth?.userId || null, organizationId: doc.organizationId ?? null });
+      return await withMongoSnapshotTransaction(session => this.remove(id, {
+        actor: auth?.userId || null,
+        organizationId: doc.organizationId ?? null,
+        session
+      }));
     },
 
     // The sweep runs before the delete (SPEC §22.12); the doc's own

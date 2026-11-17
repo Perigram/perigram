@@ -149,7 +149,14 @@ import documentsListing from '../../../workers/documents/listing.json' with { ty
 const documentsByType = new Map(documentsListing.declarations.types.map(type => [type.id, type]));
 pluginInstalls.findDeclarationByTypeId.mockImplementation(async (organizationId, typeId) => documentsByType.get(typeId) || null);
 
-const db = { collection: vi.fn() };
+const transactionSession = {
+  withTransaction: vi.fn(async callback => await callback()),
+  endSession: vi.fn(async () => {})
+};
+const db = {
+  collection: vi.fn(),
+  client: { startSession: () => transactionSession }
+};
 const connectDB = (await import('~/server/db/mongo')).connectDB;
 connectDB.mockResolvedValue(db);
 
@@ -1588,7 +1595,7 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
 
     await service.remove(PANEL_ID, { actor: 'user-1', organizationId: 'org-1' });
 
-    expect(coll.deleteOne).toHaveBeenCalledWith({ _id: PANEL_ID });
+    expect(coll.deleteOne).toHaveBeenCalledWith({ _id: PANEL_ID }, { session: transactionSession });
     // Both declared edges over panel — the explicit `panels` edge and the
     // `library` ref field — scanned the owner collection.
     const scans = find.mock.calls.filter(([, filter]) => filter.type === 'project');
@@ -1765,7 +1772,7 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
 
     await service.removeForHttp(PANEL_ID, { auth: { userId: 'user-1' }, organizationId: 'org-1' });
 
-    expect(coll.deleteOne).toHaveBeenCalled();
+    expect(coll.deleteOne).toHaveBeenCalledWith(expect.any(Object), { session: transactionSession });
     expect(coll.findOneAndUpdate.mock.calls[0][1].$set['fields.library']).toBeNull();
     find.mockRestore();
   });
