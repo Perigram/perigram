@@ -543,7 +543,7 @@ describe('graph execution service', () => {
   });
 
   it('bakes a Documents Markdown file payload into a text-document instance', async () => {
-    const markdown = '# Generated document\\n';
+    const markdown = '# Generated document\n';
     const payload = {
       payload: {
         base64: Buffer.from(markdown).toString('base64'),
