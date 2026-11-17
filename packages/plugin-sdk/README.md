@@ -55,6 +55,16 @@ importing the Node-bound root barrel.
 
 Every node definition declares `palette.group` as a stable lowercase semantic slug. `palette.label` is the optional human-facing group name and `palette.keywords` are provider-authored search aliases. The same `palette` object is used by plugin service and projection declarations in `listing.json`: `group` is a stable semantic slug, `label` is the optional human-facing group label, `keywords` are provider-authored search aliases, and `visible: false` keeps construction/projection helpers out of graph-node discovery. The SDK rejects malformed metadata and retired `group` fields; operation-id prefixes are never inferred as palette categories. Providers keep their operation and port identities independent of labels and grouping.
 
+Node-port compatibility is owned by `compareNodePorts(source, target)`.
+It evaluates transport shape and semantic `base`, `kind`, nominal
+identity, provider, and unit. Results carry `status`, `compatible`,
+`reason`, and `conversions`; statuses are `exact`,
+`safe-coercion`, `conditional`, `conversion-required`, and
+`incompatible`. The graph editor uses `compatible` as its connection
+gate. A generic JSON target accepts typed JSON values; an untyped JSON
+source cannot connect to a more specific semantic target until runtime
+validation exists.
+
 ## Surface mount contracts
 
 A surface module default-exports the factory `createSurface(ctx) ->
