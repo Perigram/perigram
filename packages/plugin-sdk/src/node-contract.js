@@ -168,7 +168,7 @@ export function compareNodePorts(source, target) {
   if (typeof from.base !== 'string' || typeof to.base !== 'string') {
     return { status: 'incompatible', compatible: false, reason: 'Both ports require a semantic base', conversions: [] };
   }
-  if (to.base === 'json' && !to.kind && !to.schema && !to.nominal) {
+  if (to.base === 'json' && !to.kind && !to.schema && !to.nominal && !to.provider && !to.entityType && !to.identity && !to.constraints) {
     return {
       status: 'safe-coercion',
       compatible: true,
@@ -176,8 +176,8 @@ export function compareNodePorts(source, target) {
       conversions: []
     };
   }
-  if (from.base === 'json' && !from.kind && !from.schema && !from.nominal
-    && (to.base !== 'json' || to.kind || to.schema || to.nominal)) {
+  if (from.base === 'json' && !from.kind && !from.schema && !from.nominal && !from.provider && !from.entityType && !from.identity && !from.constraints
+    && (to.base !== 'json' || to.kind || to.schema || to.nominal || to.provider || to.entityType || to.identity || to.constraints)) {
     return {
       status: 'conditional',
       compatible: false,
@@ -202,7 +202,7 @@ export function compareNodePorts(source, target) {
     };
   }
   for (const key of ['kind', 'nominal', 'provider', 'schema', 'entityType', 'identity']) {
-    if (from[key] !== to[key]) {
+    if (stableJson(from[key] ?? null) !== stableJson(to[key] ?? null)) {
       return {
         status: from[key] == null ? 'conditional' : 'incompatible',
         compatible: false,
@@ -213,7 +213,7 @@ export function compareNodePorts(source, target) {
       };
     }
   }
-  if (JSON.stringify(from.constraints ?? null) !== JSON.stringify(to.constraints ?? null)) {
+  if (stableJson(from.constraints ?? null) !== stableJson(to.constraints ?? null)) {
     return {
       status: 'conditional',
       compatible: false,
@@ -299,6 +299,14 @@ export function createNodeProviderRegistry() {
 
 function operationKey(provider, id, version) {
   return `${provider}/${id}@${version}`;
+}
+
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (isRecord(value)) {
+    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function issue(code, path, message) {
