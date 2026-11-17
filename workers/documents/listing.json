@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, HTML, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "19",
+  "version": "20",
   "requires": [
     "tech-drawing"
   ],
@@ -424,7 +424,6 @@
       {
         "id": "table-rows",
         "label": "Table rows",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "record",
@@ -449,12 +448,22 @@
         "description": "Read the first worksheet as records keyed by its header row",
         "palette": {
           "visible": false
+        },
+        "execution": {
+          "runtime": "documents-shared",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
         }
       },
       {
         "id": "table-cells",
         "label": "Table cells (positional)",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "record",
@@ -479,12 +488,22 @@
         "description": "Read worksheet rows with stable positional column keys",
         "palette": {
           "visible": false
+        },
+        "execution": {
+          "runtime": "documents-shared",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
         }
       },
       {
         "id": "text",
         "label": "Document text",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "record",
@@ -506,6 +525,17 @@
         "description": "Extract the text content from a document payload",
         "palette": {
           "visible": false
+        },
+        "execution": {
+          "runtime": "documents-shared",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
         }
       },
       {

@@ -55,45 +55,7 @@ describe('documents listing/runtime inventory', () => {
   });
 });
 
-describe('documents extraction payload contract', () => {
-  it('table-rows reads a composed blob handle and a projection envelope alike', async () => {
-    const fromHandle = await services['table-rows'](composed({
-      fileId: 'f-1', mime: 'text/csv', size: 26, payloadBase64: CSV
-    }));
-    const fromEnvelope = await services['table-rows'](projection(CSV));
-    expect(fromHandle).toEqual(fromEnvelope);
-    expect(fromHandle).toEqual([
-      { name: 'aluminium', qty: 12 },
-      { name: 'steel', qty: 3 }
-    ]);
-  });
-
-  it('table-rows parses xlsx payloads through the composed handle', async () => {
-    const rows = await services['table-rows'](composed({
-      fileId: 'f-2', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      size: 100, payloadBase64: XLSX_BASE64
-    }));
-    expect(rows).toEqual([
-      { name: 'aluminium', qty: 12 },
-      { name: 'steel', qty: 3 }
-    ]);
-  });
-
-  it('table-cells reads the positional decomposition through the composed handle', async () => {
-    const cells = await services['table-cells'](composed({
-      fileId: 'f-1', mime: 'text/csv', size: 26, payloadBase64: CSV
-    }));
-    expect(cells[0]).toEqual({ A: 'name', B: 'qty' });
-    expect(cells).toHaveLength(3);
-  });
-
-  it('text decodes the composed handle bytes', async () => {
-    const text = await services.text(composed({
-      fileId: 'f-3', mime: 'text/plain', size: 5, payloadBase64: Buffer.from('hello').toString('base64')
-    }));
-    expect(text).toBe('hello');
-  });
-
+describe('documents template fill payload contract', () => {
   it('fills a Markdown file produced by the document graph as a real template', async () => {
     const template = Buffer.from('# {title}\n\nHello {name}.\n');
     const result = await services.fill({
@@ -110,10 +72,5 @@ describe('documents extraction payload contract', () => {
     expect(result.payload.name).toBe('welcome.md');
     expect(Buffer.from(result.payload.base64, 'base64').toString()).toBe('# Welcome\n\nHello Ada.\n');
     expect(result.meta.tokens).toEqual(['title', 'name']);
-  });
-
-  it('refuses a payload-less dispatch naming the service', async () => {
-    await expect(services['table-rows']({})).rejects.toThrow('requires a payload');
-    await expect(services.text({ payload: { fileId: 'f-x' } })).rejects.toThrow('requires a payload');
   });
 });

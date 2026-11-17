@@ -4,10 +4,9 @@ The documents domain as a third-party plugin (SPEC §20): the generic
 media/office file types (image, PDF, markdown, HTML, CSV, XLSX, DOCX), their
 editor surfaces, the table projections, the CSV serialization, and the
 template fills (SPEC §24). The platform carries zero documents code: the plugin owns the file formats,
-projections, template fills, and rendering. Payload projections, Markdown
-parsing, template fills, and PDF generation use the platform-owned plugin
-executor; CSV serialization and the report/document IR operations run through
-one portable runtime on both browser and server. Editors ship as
+projections, template fills, and rendering. Markdown parsing, template fills, and PDF generation use the platform-owned
+plugin executor; payload projections, CSV serialization, and the report/document
+IR operations run through one portable runtime on both browser and server. Editors ship as
 the plugin's surface modules, and types ride the generic instance machinery.
 
 - Listing: `workers/documents/listing.json` — types with
@@ -17,11 +16,10 @@ the plugin's surface modules, and types ride the generic instance machinery.
   text-document starter construct (markdown stays visible-by-default
   through the default installs). `requires` names tech-drawing: the
   PDF render construction accepts `dxf-source` sources.
-- Services (`services.js`): pure CSV and document IR operations execute
-  through `/runtime/shared.mjs` on both browser and server. Payload projections,
-  Markdown parsing, template filling, and binary PDF generation remain
-  endpoint handlers; projection helpers are synchronous provider dispatches,
-  not palette items. The declared projections are the graph read nodes:
+- Services (`services.js`): pure payload projections, CSV serialization, and document IR operations execute
+  through `/runtime/shared.mjs` on both browser and server. Markdown parsing,
+  template filling, and binary PDF generation remain endpoint handlers;
+  projection helpers are synchronous provider dispatches, not palette items. The declared projections are the graph read nodes:
   `table-rows`/`table-cells` (payload → header-keyed / positional row
   records), `text` (payload → string), and `csv-text` (rows → CSV text).
   The extraction trio takes one `payload` field declared `blob`: composed
