@@ -48,25 +48,32 @@ export function createEndpointExecutor({ services = {}, token = null, staticRoot
 
 async function handleRequest(req, res, services, token, staticRoot) {
   try {
-    const serviceId = String(req.url || '').replace(/^\/+|\/+$/g, '').split('?')[0];
+    const pathname = new URL(req.url || '/', 'http://executor.local').pathname;
+    const legacyServiceId = pathname.replace(/^\\/+|\\/+$/g, '');
     if (req.method === 'GET' && staticRoot) {
-      serveStatic(req, res, staticRoot, serviceId);
+      serveStatic(req, res, staticRoot, legacyServiceId);
       return;
     }
     if (req.method !== 'POST') {
-      respondWithError(res, 405, `service ${serviceId || '/'} answers POST only`);
+      respondWithError(res, 405, 'provider executor answers POST only');
       return;
     }
     if (token && req.headers.authorization !== `Bearer ${token}`) {
       respondWithError(res, 401, 'invalid or missing executor key');
       return;
     }
-    const handler = services[serviceId];
-    if (typeof handler !== 'function') {
-      respondWithError(res, 404, `unknown service ${serviceId || '(root)'} — declared: ${Object.keys(services).sort().join(', ') || '(none)'}`);
+    const envelope = await readJsonBody(req);
+    const serviceId = legacyServiceId || String(envelope?.operationId || '');
+    const input = legacyServiceId ? envelope : envelope?.input;
+    if (!serviceId || (!legacyServiceId && (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)))) {
+      respondWithError(res, 400, 'provider request requires an operationId and input envelope');
       return;
     }
-    const input = await readJsonBody(req);
+    const handler = services[serviceId];
+    if (typeof handler !== 'function') {
+      respondWithError(res, 404, `unknown service ${serviceId || '(missing operationId)'} — declared: ${Object.keys(services).sort().join(', ') || '(none)'}`);
+      return;
+    }
     const output = await handler(input);
     respondWithJson(res, 200, output === undefined ? null : output);
   } catch (error) {
