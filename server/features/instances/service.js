@@ -1299,6 +1299,7 @@ function instanceService(typeId) {
           throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
         }
         const targetOrganizationId = doc.organizationId ?? organizationId ?? null;
+        const expectedSequence = await getOrganizationChangeSequence(targetOrganizationId);
         const declaration = await requireDeclaration(typeId, targetOrganizationId);
         if (declaration.mutability === 'append-only') {
           throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
@@ -1319,6 +1320,7 @@ function instanceService(typeId) {
           actor: auth?.userId || null,
           organizationId: doc.organizationId ?? null,
           session,
+          expectedOrganizationSequence: expectedSequence,
           pendingEvents
         });
         return { removed, pendingEvents };
