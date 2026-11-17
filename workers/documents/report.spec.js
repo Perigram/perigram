@@ -96,20 +96,20 @@ describe('markdown ↔ flow-document', () => {
       blocks: [{
         type: 'paragraph',
         children: [
-          { type: 'text', text: 'Literal *stars*, [brackets], # heading, and \\ path.' },
+          { type: 'text', text: 'Literal *stars*, [brackets], # heading, ~~strike~~, &copy;, and \\ path.' },
           { type: 'text', text: ' ' },
           { type: 'code', text: 'a' + String.fromCharCode(96) + 'b' },
           { type: 'text', text: ' ' },
-          { type: 'link', href: 'https://example.com/a_(b)?q=one two', children: [{ type: 'text', text: 'link' }] }
+          { type: 'link', href: 'https://example.com/a_(b)?q=one two&x=1\nnext', children: [{ type: 'text', text: 'link' }] }
         ]
       }]
     };
     const parsed = parseMarkdown(exportMarkdown(document));
     const children = parsed.blocks[0].children;
-    expect(children[0].text).toBe('Literal *stars*, [brackets], # heading, and \\ path.');
+    expect(children[0].text).toBe('Literal *stars*, [brackets], # heading, ~~strike~~, &copy;, and \\ path.');
     expect(children.find(node => node.type === 'code').text).toBe('a' + String.fromCharCode(96) + 'b');
     expect(children.find(node => node.type === 'link')).toMatchObject({
-      href: 'https://example.com/a_(b)?q=one%20two',
+      href: 'https://example.com/a_(b)?q=one%20two&x=1%0Anext',
       children: [{ type: 'text', text: 'link' }]
     });
   });
