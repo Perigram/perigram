@@ -75,7 +75,7 @@ Progress (2026-11-17): Facade `nesting-solve` is the first operation moved off t
 
 Progress (2026-11-17): Facade nesting input normalization now clones authored item records, rejects invalid/non-finite counts and dimensions, and rejects unsafe aggregate sheet counts before contacting the external solver. Regression tests cover frozen input records and numeric boundaries.
 
-Progress (2026-11-17): Facade nesting quantity normalization no longer truncates fractional physical counts or accepts booleans as quantities. Missing/empty values default to one; explicit zero and every other supplied quantity must be a positive safe integer. Focused regression cases cover fractions, negatives, NaN, infinity, overflow, and booleans.
+Progress (2026-11-17): Facade nesting quantity normalization no longer truncates fractional physical counts or accepts booleans as quantities. Missing/empty values default to one; explicit zero and every other supplied quantity must be a positive safe integer. The shared normalizer also validates the legacy `quantity` alias, and both sheet-count aggregation and direct worker-request construction revalidate rather than truncating. Focused regression cases cover fractions, negatives, NaN, infinity, overflow, and booleans.
 
 Progress (2026-11-17): Facade `sheet-dxf` now declares `content` revisions, completing the revision-scope declaration for all payload-bearing Facade file types. A contract test rejects any payload-bearing file type without a `content` or `geometry` revision scope; Facade listing version advanced to 46.
 
