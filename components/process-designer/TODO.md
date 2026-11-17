@@ -172,3 +172,11 @@ process-designer). No code or README changes in this tree.
 - [ ] Keep graph preview and server execution on the same canonical graph
   document and provider definitions; expose execution target and capability
   failures as actionable diagnostics.
+
+### Agent Notes (2026-11-17, unified graph authoring)
+
+The graph editor now consumes the SDK compatibility result for connection
+gestures, persisted-edge validation, and preview preflight. The inspector
+renders configuration schema properties as typed controls and exposes
+graph interface contracts as shape/base/kind and required/default fields.
+Regression coverage was added; execution remains unverified.

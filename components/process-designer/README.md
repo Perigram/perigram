@@ -57,6 +57,12 @@ and group identities. Socket gestures, persisted-edge validation, and preview
 preflight use the SDK's canonical semantic port compatibility result. Both
 the main palette and socket-context palette use the same search contract.
 
+The inspector renders node configuration properties from each
+definition's JSON schema and edits graph interface transport shape,
+semantic base/kind, required status, and optional defaults. Socket gestures,
+persisted-edge validation, and preview preflight share the SDK compatibility
+relation.
+
 The graph session contract lives in
 [composables](../../composables/README.md#usegraphdocumentsession--canonical-procedural-graph-editor);
 the canonical format and evaluator live in

@@ -70,6 +70,16 @@ Implementation order:
 5. Managed server graph evaluator and cross-target acceptance.
 6. HAG/process integration and obsolete-path retirement.
 
+### Agent Notes (2026-11-17, first implementation slice)
+
+The Documents shared runtime now projects browser-eligible graph nodes from
+its installed listing declarations. The unified graph editor uses the SDK
+port-compatibility result for new wires, persisted-wire validation, and
+preview preflight. The graph inspector renders declared configuration
+properties as typed controls and exposes graph interface shape/base/kind,
+required, and default fields. Provider and graph integration regressions
+were added; test execution and deployed workflow verification remain open.
+
 ## Priority: Documents and Facade plugin review/refactor (owner direction 2026-11-17)
 
 This work is prioritized ahead of further breadth in the portable-runtime

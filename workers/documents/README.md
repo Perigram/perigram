@@ -36,8 +36,8 @@ the plugin's surface modules, and types ride the generic instance machinery.
   listing services assigned to `documents-shared`, using each service's
   signature, execution declaration, and palette metadata. The runtime wraps
   each operation result in the declared `value` output port for graph
-  evaluation. The browser and managed server runtime consume the same
-  definitions and operation implementation.
+  evaluation. The browser graph editor consumes these definitions; browser and managed
+  server execution share the same operation implementation.
 
 - Document and report operations (`report.js` and `report-ir.mjs`, grouped by inline content, blocks, composition, and export): `parse-markdown` (text → `text.flow-document@1`), typed inline and block constructors (`text.inline` and `text.document-block`), `compose-document` and `append-document-block` (blocks → flowing document), `export-markdown` (flow document → markdown text), Markdown/HTML file exports, and `render-document-html` (flow document → safe HTML). The `document.report@1` composition remains available for explicitly sectioned reports. The Documents preview channel renders flowing documents directly as well as report values; the IR is the source and Markdown, HTML, and PDF are representations.
 
