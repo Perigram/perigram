@@ -23,6 +23,26 @@ describe('Documents server runtime', () => {
     expect(html).not.toContain('<script>');
   });
 
+  it('removes unsafe link schemes from standalone HTML', () => {
+    const html = runtime.execute('render-html', {
+      report: {
+        type: 'document.report',
+        sections: [{
+          blocks: [{
+            type: 'paragraph',
+            children: [
+              { type: 'link', href: 'javascript:alert(1)', children: [{ type: 'text', text: 'unsafe' }] },
+              { type: 'link', href: 'https://example.com/path?a=1&b=2', children: [{ type: 'text', text: 'safe' }] }
+            ]
+          }]
+        }]
+      }
+    });
+    expect(html).not.toContain('javascript:');
+    expect(html).toContain('href="https://example.com/path?a=1&amp;b=2"');
+    expect(html).toContain('unsafe');
+  });
+
   it('exports flow documents to Markdown', () => {
     expect(runtime.execute('export-markdown', { document: { type: 'text.flow-document', blocks: [{ type: 'heading', level: 2, children: [{ type: 'text', text: 'Parts' }] }, { type: 'paragraph', children: [{ type: 'text', text: 'Ready' }] }] } })).toBe('## Parts\n\nReady\n');
   });

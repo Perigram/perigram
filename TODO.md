@@ -22,7 +22,8 @@ providers.
   `mode: endpoint`; Facade `nesting-solve` runs in the managed server runtime
   through the platform-owned `facade.nesting.solve` capability. Pure
   `bake`, `match-sheet`, `construct-sheet`, `generate-sheet-dxf`, and Documents `csv-text` run in the shared
-  browser/server runtime. `nesting-parts` remains a synchronous endpoint-backed
+  browser/server runtime; Documents `extract-table`, `compose-report`,
+  `export-markdown`, and `render-html` run in the managed server runtime. `nesting-parts` remains a synchronous endpoint-backed
   projection pending a provider-compatible synchronous host boundary. Classify each operation by execution target: browser-local
   pure compute, platform-managed server compute, or explicit remote
   integration. Move local-eligible operations behind the shared
@@ -51,7 +52,7 @@ providers.
 - [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO after
   behavior verification; record remaining owner decisions explicitly.
 
-Progress (2026-11-17): Documents `extract-table`, `compose-report`, `export-markdown`, and `render-html` now run in the managed server runtime rather than per-service endpoints. Their shared, dependency-free `report-ir.mjs` module owns the report/flow contracts, table extraction, composition, and escaped HTML representation.
+Progress (2026-11-17): Documents `extract-table`, `compose-report`, `export-markdown`, and `render-html` now run in the managed server runtime rather than per-service endpoints. Their shared, dependency-free `report-ir.mjs` module owns the report/flow contracts, table extraction, composition, Markdown serialization, and escaped HTML representation. Standalone HTML now strips unsafe link schemes while preserving safe HTTP(S), mailto, and local fragment/path links.
 
 Progress (2026-11-17): Plugin connection settings now explain that executor origins apply only to separately hosted endpoint-mode services; the bearer-token field is hidden unless such services exist, uses password input, and explains that the secret stays server-side. Managed/local package installs no longer return an irrelevant auth token to the settings UI. This is a UX clarification, not completion of the endpoint-to-managed-runtime migration.
 

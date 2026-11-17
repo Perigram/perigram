@@ -174,10 +174,20 @@ function inlineHtml(nodes = []) {
       case 'strong': return `<strong>${inlineHtml(node.children)}</strong>`;
       case 'emphasis': return `<em>${inlineHtml(node.children)}</em>`;
       case 'code': return `<code>${escapeHtml(node.text ?? '')}</code>`;
-      case 'link': return `<a href="${escapeHtml(node.href || '')}">${inlineHtml(node.children)}</a>`;
+      case 'link': {
+        const href = safeHref(node.href);
+        return href ? `<a href="${escapeHtml(href)}">${inlineHtml(node.children)}</a>` : inlineHtml(node.children);
+      }
       default: return escapeHtml(node.text ?? '');
     }
   }).join('');
+}
+
+function safeHref(value) {
+  const href = String(value || '').trim();
+  if (/^https?:\\/\\//i.test(href) || /^mailto:/i.test(href)) return href;
+  if (/^(?:\\/(?!\\/)|#|\\?)/.test(href)) return href;
+  return '';
 }
 
 function escapeHtml(value) {
