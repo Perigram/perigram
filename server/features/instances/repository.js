@@ -99,9 +99,12 @@ export async function updateInstanceFields(collection, id, set, options = {}) {
   }
 }
 
-export async function deleteInstance(collection, id) {
+export async function deleteInstance(collection, id, { session = null } = {}) {
   const db = await connectDB();
-  const result = await db.collection(collection).deleteOne({ _id: toFlexibleId(id) });
+  const result = await db.collection(collection).deleteOne(
+    { _id: toFlexibleId(id) },
+    session ? { session } : {}
+  );
   return result.deletedCount > 0;
 }
 

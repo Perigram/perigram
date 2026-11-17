@@ -1309,7 +1309,7 @@ function instanceService(typeId) {
     // The sweep runs before the delete (SPEC §22.12); the doc's own
     // organization scopes the referrer scan, so a system target sweeps
     // every org.
-    async remove(id, { actor = null, organizationId = null } = {}) {
+    async remove(id, { actor = null, organizationId = null, session = null, expectedOrganizationSequence = null } = {}) {
       organizationId = organizationId == null ? null : String(organizationId);
       const declaration = await declarationFor(typeId, organizationId);
       if (declaration?.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
@@ -1323,9 +1323,9 @@ function instanceService(typeId) {
         paths: ['instance'],
         actorId: actor
       }, async () => {
-        await sweepRelationRefs({ typeId, id: String(doc._id), organizationId: doc.organizationId ?? null }, actor);
-        return await repository.deleteInstance(collection, id);
-      });
+        await sweepRelationRefs({ typeId, id: String(doc._id), organizationId: doc.organizationId ?? null }, actor, { session });
+        return await repository.deleteInstance(collection, id, { session });
+      }, { session, expectedSequence: expectedOrganizationSequence });
     },
 
     // Payload replacement — the editor concern SPEC §3 names. Requires a
@@ -1659,7 +1659,7 @@ function sweptRefSlot(value, deletedId, deletedTypeId) {
   return refPointsAt(value, deletedId, deletedTypeId) ? null : value;
 }
 
-async function sweepRelationRefs({ typeId, id, organizationId }, actor = null) {
+async function sweepRelationRefs({ typeId, id, organizationId }, actor = null, { session = null } = {}) {
   const edges = await relationEdgesFor(typeId, organizationId);
   if (!edges.length) return;
   const deletedId = String(id);
@@ -1681,7 +1681,7 @@ async function sweepRelationRefs({ typeId, id, organizationId }, actor = null) {
       // system target (organizationId null) is referenced from any org.
       ...(organizationId ? { organizationId: toFlexibleId(organizationId) } : {})
     };
-    for (const referrer of await repository.findInstancesByFilter(collection, filter)) {
+    for (const referrer of await repository.findInstancesByFilter(collection, filter, { session })) {
       const set = {};
       if (referrer.relations && referrer.relations[key] !== undefined) {
         const next = sweptRefSlot(referrer.relations[key], deletedId, typeId);
@@ -1692,7 +1692,7 @@ async function sweepRelationRefs({ typeId, id, organizationId }, actor = null) {
         if (next !== referrer.fields[key]) set[`fields.${key}`] = next;
       }
       if (!Object.keys(set).length) continue;
-      await repository.updateInstanceFields(collection, referrer._id, set);
+      await repository.updateInstanceFields(collection, referrer._id, set, { session });
       await entityEventService.publishEntityChanged(
         { userId: actor || 'SYSTEM', organizationId: referrer.organizationId ?? organizationId },
         { type: ownerTypeId, id: String(referrer._id), change: 'updated', reason: 'ref-sweep' }
