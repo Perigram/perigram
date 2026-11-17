@@ -42,6 +42,7 @@ export function stableSheetName(layout = null, draft = {}) {
 }
 
 export function buildValueWorkerRequest(jobFiles, params = {}) {
+  if (!Array.isArray(jobFiles) || !jobFiles.length) nestingError('No nestable cassette-design geometry found');
   const items = buildNestingItems(normalizeNestingItems(jobFiles));
   if (!items.length) throw nestingError('No nestable cassette-design geometry found');
   return {
