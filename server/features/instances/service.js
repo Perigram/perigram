@@ -1061,7 +1061,7 @@ function instanceService(typeId) {
         userId: auth?.userId || null,
         expectedUpdatedAt: doc.updatedAt,
         expectedRevision,
-        expectedOrganizationSequence,
+        expectedOrganizationSequence: expectedSequence,
         session
       });
       // Field edits drop into the state record (SPEC UI): the audit trail
@@ -1085,6 +1085,7 @@ function instanceService(typeId) {
       expectedOrganizationSequence = null,
       session = null
     } = {}) {
+      const expectedSequence = expectedOrganizationSequence ?? await getOrganizationChangeSequence(organizationId);
       const key = String(relationKey || '');
       if (!key || !targetRef || typeof targetRef !== 'object'
         || typeof targetRef.type !== 'string' || !targetRef.type.trim()
@@ -1158,7 +1159,7 @@ function instanceService(typeId) {
         userId: auth?.userId || null,
         expectedUpdatedAt: doc.updatedAt,
         expectedRevision,
-        expectedOrganizationSequence,
+        expectedOrganizationSequence: expectedSequence,
         session
       });
       if (!edge) {
@@ -1180,6 +1181,7 @@ function instanceService(typeId) {
       expectedOrganizationSequence = null,
       session = null
     } = {}) {
+      const expectedSequence = expectedOrganizationSequence ?? await getOrganizationChangeSequence(organizationId);
       const key = String(relationKey || '');
       if (!key || !targetRef || typeof targetRef !== 'object'
         || typeof targetRef.type !== 'string' || !targetRef.type.trim()
@@ -1252,7 +1254,7 @@ function instanceService(typeId) {
         userId: auth?.userId || null,
         expectedUpdatedAt: doc.updatedAt,
         expectedRevision,
-        expectedOrganizationSequence,
+        expectedOrganizationSequence: expectedSequence,
         session
       });
       if (!edge) {
