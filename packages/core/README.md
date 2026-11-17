@@ -60,7 +60,7 @@ boundary node. Use Graph nodes pin an immutable graph revision.
   `assertValidGraphDocument` own document normalization and validation.
 - `GRAPH_DOCUMENT_FORMAT`, `GRAPH_DOCUMENT_VERSION`, and the three
   `GRAPH_*_OPERATION` constants identify the format and core boundary operations.
-- `evaluateProceduralGraph` evaluates data dependencies in preview mode,
+- `evaluateProceduralGraph` evaluates data dependencies in preview mode; connected required inputs fail when their source output is absent or undefined.
   resolves exact provider definitions, composes pinned subgraphs, and awaits
   the optional `context.finalizeExecution(executionId)` hook in its settlement
   path. The same execution id is exposed to every node invocation and the

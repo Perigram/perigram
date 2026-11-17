@@ -63,7 +63,8 @@ identity, provider, unit, constraints, and output optionality. Results carry `st
 `incompatible`. The graph editor uses `compatible` for connection gestures, persisted-edge
 validation, and preview preflight. A generic JSON target accepts typed JSON values. A specific semantic
 target requires a matching declared identity or a provider-declared runtime
-validator.
+validator. Optional outputs may connect to required inputs conditionally; the
+graph evaluator checks value presence at runtime.
 
 ## Surface mount contracts
 
