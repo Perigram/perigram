@@ -5,6 +5,7 @@ const COLLECTION = 'organization_change_sequences';
 let indexPromise = null;
 
 async function collection() {
+
   const db = await connectDB();
   if (!indexPromise) {
     indexPromise = db.collection(COLLECTION).createIndex({ organizationId: 1 }, { unique: true });
@@ -16,6 +17,11 @@ async function collection() {
     throw error;
   }
   return db.collection(COLLECTION);
+}
+
+export async function ensureOrganizationChangeIndexes() {
+  await collection();
+  return true;
 }
 
 export async function beginOrganizationChange(organizationId, { session = null, expectedSequence = null } = {}) {

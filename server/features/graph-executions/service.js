@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
 import { connectDB } from '~/server/db/mongo';
 import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder } from '#packages/core';
-import { withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
+import { ensureOrganizationChangeIndexes, withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
 import { declarationForType } from '../instances/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '../files/service.js';
@@ -46,6 +46,7 @@ async function withMongoWriteTransaction(callback) {
   if (!client?.startSession) {
     throw createError({ statusCode: 503, message: 'Atomic graph commits require MongoDB transaction support' });
   }
+  await ensureOrganizationChangeIndexes();
   const session = client.startSession();
   try {
     let value;

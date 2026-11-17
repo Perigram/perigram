@@ -3,6 +3,7 @@
 // reach into its repository.
 export {
   beginOrganizationChange,
+  ensureOrganizationChangeIndexes,
   cancelOrganizationChange,
   completeOrganizationChange,
   getOrganizationChangeSequence,
