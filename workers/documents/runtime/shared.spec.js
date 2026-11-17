@@ -64,6 +64,14 @@ describe('Documents shared runtime', () => {
       .map(service => service.id)
       .sort();
     expect(provider.definitions.map(definition => definition.id).sort()).toEqual(expected);
+    expect(provider.definitions.find(definition => definition.id === 'document-paragraph')?.inputs).toContainEqual(
+      expect.objectContaining({
+        id: 'children',
+        required: false,
+        shape: 'list',
+        semantic: { base: 'json', kind: 'text.inline', nullable: true }
+      })
+    );
     expect(provider.definitions.find(definition => definition.id === 'compose-document')).toMatchObject({
       provider: 'plugin.documents',
       version: '1',

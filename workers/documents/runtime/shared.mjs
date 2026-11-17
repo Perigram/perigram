@@ -95,7 +95,7 @@ function nodePortContract(schema = {}) {
   const semantic = {
     base: semanticSource.base || 'json',
     ...(semanticSource.kind ? { kind: semanticSource.kind } : {}),
-    ...(semanticSource.nullable === true ? { nullable: true } : {})
+    ...(schema.nullable === true ? { nullable: true } : {})
   };
   return { shape, semantic };
 }
