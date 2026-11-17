@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, HTML, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "21",
+  "version": "22",
   "requires": [
     "tech-drawing"
   ],
@@ -448,6 +448,8 @@
         },
         "description": "Read the first worksheet as records keyed by its header row",
         "palette": {
+          "group": "table-data",
+          "label": "Table data",
           "visible": false
         }
       },
@@ -478,6 +480,8 @@
         },
         "description": "Read worksheet rows with stable positional column keys",
         "palette": {
+          "group": "table-data",
+          "label": "Table data",
           "visible": false
         }
       },
