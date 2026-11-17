@@ -1,6 +1,7 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { collectRuntimeAssetFiles } from './plugin-runtime-assets.js';
 
@@ -36,6 +37,15 @@ describe('managed plugin runtime asset collection', () => {
       'runtime/server.mjs'
     ]);
     expect(assets.find(asset => asset.path === 'runtime/engine.wasm').contentType).toBe('application/wasm');
+  });
+
+  it('collects the Facade browser runtime and its transitive Clipper WASM asset', () => {
+    const packageRoot = fileURLToPath(new URL('../../../workers/facade', import.meta.url));
+    const assets = collectRuntimeAssetFiles(packageRoot, '/runtime/server.mjs');
+    const paths = new Set(assets.map(asset => asset.path));
+    expect(paths.has('runtime/server.mjs')).toBe(true);
+    expect(paths.has('assets/vendor/clipper2/clipper2z.js')).toBe(true);
+    expect(paths.has('assets/vendor/clipper2/clipper2z.wasm')).toBe(true);
   });
 
   it('refuses runtime entry paths that escape the plugin package', () => {
