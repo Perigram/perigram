@@ -99,9 +99,12 @@ workflows; it is not a substitute for the generic authorable document value.
 File-producing operations return the plugin SDK payload envelope
 `{ payload: { base64, mime, name } }`. The graph host materializes those
 bytes through the normal Bake/Export lifecycle: Markdown uses
-`text/markdown`, HTML uses `text/html`, and PDF uses
-`application/pdf`. The plugin defines the format; the host owns file
-identity, authorization, destination, and persistence. `Export Markdown`
+`text/markdown` and bakes into `text-document`, HTML uses `text/html`
+and bakes into `html-document`, and PDF uses `application/pdf` and
+bakes into `pdf-document`. The HTML type is download-only so generated
+markup is never executed in the platform preview. The plugin defines the
+format; the host owns file identity, authorization, destination, and
+persistence. `Export Markdown`
 also remains available as a plain string value when downstream graph
 computation needs text rather than a file.
 
