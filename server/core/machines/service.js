@@ -35,7 +35,7 @@ import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { evaluate as evaluateExpression } from '#packages/cts';
 import { processEffects } from '../effects/service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
-import { runOrganizationChange } from '~/server/features/instances/index.js';
+import { getOrganizationChangeSequence, runOrganizationChange } from '~/server/features/instances/index.js';
 
 
 export const stateService = {
@@ -55,6 +55,7 @@ export const stateService = {
 
   async initialStatusForOrganization(typeId, organizationId, actor = 'SYSTEM', metadata = {}) {
     const normalizedTypeId = normalizeTypeId(typeId);
+    const expectedSequence = await getOrganizationChangeSequence(organizationId);
     const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId: metadata.producerOutputId });
     if (!machine) {
       throw createError({
@@ -148,7 +149,7 @@ export const stateService = {
         preferTransaction: Boolean(instanceDoc),
         incrementRevision: Boolean(instanceDoc)
       });
-    });
+    }, { expectedSequence });
     return statusData;
   },
 
@@ -464,6 +465,8 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
     const actorId = auth.userId || userId || 'SYSTEM';
     const db = await connectDB();
     const { entity, machine, collection, flexId, organizationFilter, instanceDoc } = await loadEntityForWorkflow(normalizedTypeId, targetId, { producerOutputId: transitionContext.producerOutputId });
+    const sequenceOrganizationId = instanceDoc?.organizationId ?? auth.organizationId ?? null;
+    const expectedSequence = await getOrganizationChangeSequence(sequenceOrganizationId);
 
     const normalizedMachine = normalizeWorkflow(machine);
     const transitionScope = normalizeTransitionScope(transitionContext);
@@ -629,7 +632,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       },
       preferTransaction: Boolean(instanceDoc || (options.entityPatch && Object.keys(options.entityPatch).length)),
       incrementRevision: Boolean(instanceDoc)
-    }));
+    }), { expectedSequence });
 
     const afterEffects = await runTransitionHooks(
       transition,
