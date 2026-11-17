@@ -722,12 +722,13 @@
         "description": "Reuse an existing sheet design with the same composition",
         "execution": {
           "runtime": "facade-server",
-          "kind": "read",
+          "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
-          "idempotent": true
+          "deterministic": true
         }
       },
       {
@@ -843,6 +844,7 @@
         "version": "1",
         "entry": "/runtime/server.mjs",
         "targets": [
+          "browser",
           "server"
         ]
       }
