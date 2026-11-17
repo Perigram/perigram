@@ -51,6 +51,17 @@ legacy infrastructure. Its README explicitly says not to add endpoint
 settings, services, or deployment dependencies. Do not revive it as a
 separate server-side Python task worker.
 
+## Current provider implementation status
+
+The provider repository now has a kernel-free per-operation Python dispatcher
+that exercises discovered callable invocation, receiver binding, list/tree
+mapping, longest/shortest/cross matching, and independent loop-source axes.
+Its graph adapter is checked against the actual SDK/core validators in CI.
+The dispatcher is not yet connected to a served JavaScript runtime entry.
+It intentionally rejects builder execution scopes until a persistent
+runtime-session lifecycle exists; opaque native-value references and preview
+artifacts also remain unimplemented.
+
 ## Production acceptance gates
 
 1. A plugin package declares the JavaScript runtime entry and pins compatible
