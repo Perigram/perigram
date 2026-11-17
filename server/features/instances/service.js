@@ -1078,9 +1078,12 @@ function instanceService(typeId) {
     // fail-closed. The construct boundary keeps its own `create` with
     // execution auth; this serves the records host capability
     // (contract-2 surfaces composing other types' records).
-    async createForHttp(draft = {}, { auth = null, organizationId = null, session = null, expectedOrganizationSequence = null } = {}) {
+    async createForHttp(draft = {}, { auth = null, organizationId = null, session = null, expectedOrganizationSequence = null, requireRevisionedPayload = false } = {}) {
       const targetOrganizationId = organizationId || draft?.organizationId || null;
       const declaration = await requireDeclaration(typeId, targetOrganizationId);
+      if (requireRevisionedPayload && (!draft.payload || !declaration.payload || !declaration.revisions)) {
+        throw createError({ statusCode: 400, message: `Type ${typeId} must declare a revisioned payload for graph Bake` });
+      }
       const target = await writeGrantTarget(declaration, targetOrganizationId);
       const scopeEntity = targetOrganizationId ? { lineage: { organizationId: targetOrganizationId } } : null;
       if (!target || !hasInstanceAccess({ entity: scopeEntity, typeId: target.typeId, feature: target.feature, level: 'write', action: 'create', auth })) {

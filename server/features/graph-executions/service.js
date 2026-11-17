@@ -721,7 +721,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
                 size: buffer.length,
                 name: filename
               }
-            }, { auth, userId: auth.userId, organizationId, session, expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet) });
+            }, { auth, userId: auth.userId, organizationId, session, expectedOrganizationSequence: expectedSequenceForReadSet(preview.readSet), requireRevisionedPayload: true });
         const timestamp = new Date().toISOString();
         const bakeId = randomUUID();
         const bakeRecord = createGraphExecutionRecord({
