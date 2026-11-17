@@ -15,7 +15,7 @@ describe('Documents shared runtime', () => {
     }
   });
 
-  it('implements every operation declared for the shared Documents runtime', async () => {
+  it('implements every operation declared for the shared Documents runtime', () => {
     const inline = { type: 'text', text: 'Hello' };
     const paragraph = { type: 'paragraph', children: [inline] };
     const document = { type: 'text.flow-document', schemaVersion: 1, blocks: [{ type: 'table', rows: [{ value: '1' }] }] };
@@ -48,7 +48,7 @@ describe('Documents shared runtime', () => {
       .sort();
     expect(cases.map(([id]) => id).sort()).toEqual(declared);
     for (const [id, input] of cases) {
-      await expect(runtime.execute(id, input), id).resolves.toBeDefined();
+      expect(runtime.execute(id, input), id).toBeDefined();
     }
   });
 
