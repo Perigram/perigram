@@ -15,6 +15,43 @@ describe('Documents shared runtime', () => {
     }
   });
 
+  it('implements every operation declared for the shared Documents runtime', () => {
+    const inline = { type: 'text', text: 'Hello' };
+    const paragraph = { type: 'paragraph', children: [inline] };
+    const document = { type: 'text.flow-document', schemaVersion: 1, blocks: [{ type: 'table', rows: [{ value: '1' }] }] };
+    const report = { type: 'document.report', schemaVersion: 1, sections: [{ blocks: [{ type: 'flow', document }] }] };
+    const cases = [
+      ['csv-text', { rows: [{ value: '1' }] }],
+      ['export-markdown', { document }],
+      ['compose-report', { rows: [{ value: '1' }] }],
+      ['extract-table', { document }],
+      ['render-html', { report }],
+      ['inline-text', { text: 'Hello' }],
+      ['inline-mark', { mark: 'strong', children: [inline] }],
+      ['inline-link', { href: 'https://example.com', children: [inline] }],
+      ['document-paragraph', { children: [inline] }],
+      ['document-heading', { text: 'Hello', level: 1 }],
+      ['document-list', { items: ['Hello'] }],
+      ['document-table', { rows: [{ value: '1' }] }],
+      ['document-quote', { blocks: [paragraph] }],
+      ['document-code-block', { text: 'const x = 1;' }],
+      ['document-divider', {}],
+      ['compose-document', { blocks: [paragraph] }],
+      ['append-document-block', { document: { type: 'text.flow-document', blocks: [] }, block: paragraph }],
+      ['render-document-html', { document }],
+      ['export-markdown-file', { document }],
+      ['export-html-file', { document }]
+    ];
+    const declared = listing.declarations.services
+      .filter(service => service.execution?.runtime === 'documents-shared')
+      .map(service => service.id)
+      .sort();
+    expect(cases.map(([id]) => id).sort()).toEqual(declared);
+    for (const [id, input] of cases) {
+      expect(() => runtime.execute(id, input), id).not.toThrow();
+    }
+  });
+
   it('serializes row records through the shared spreadsheet engine', () => {
     const csv = runtime.execute('csv-text', { rows: [{ name: 'Panel', width: 600 }, { name: 'Door', width: 450 }] });
     expect(csv).toContain('name,width');
