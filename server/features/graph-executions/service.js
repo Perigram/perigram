@@ -100,7 +100,10 @@ function resolveBakeInstanceTarget(destination, readSet = {}) {
       throw createError({ statusCode: 400, message: 'Exact instance Bake requires only instanceId and expectedRevision; do not combine it with a selector' });
     }
     const instanceId = String(destination.instanceId).trim();
-    const expectedRevision = String(destination.expectedRevision);
+    const expectedRevision = String(destination.expectedRevision).trim();
+    if (!instanceId || !expectedRevision) {
+      throw createError({ statusCode: 400, message: 'Exact instance Bake requires a non-empty instance id and revision' });
+    }
     const dependency = (readSet.instances || []).find(item =>
       String(item.typeId) === String(destination.typeId) && String(item.instanceId) === instanceId
     );

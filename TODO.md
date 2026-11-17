@@ -519,7 +519,9 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   a stable organization sequence is reserved by compare-and-swap. Transaction
   support is required and unsupported deployments fail before writes.
   Instance-field Bake now attaches a file handle to an exact declared `blob`
-  field through the generic authorized patch boundary; uploaded files are
+  field through the generic authorized patch boundary; its target can be an
+  exact revisioned instance or a single-result preview query (e.g. newest by
+  `createdAt desc`, with deterministic `_id` tie-break). Uploaded files are
   compensated on abort and the field mutation plus execution evidence share
   one transaction. Instance-payload Bake is also implemented for one exact
   revisioned CTS instance: the uploaded blob is compensated on abort, while payload swap,
