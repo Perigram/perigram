@@ -585,6 +585,26 @@ export async function settingsFor({ organizationId, pluginId, auth = {} }) {
     services: (install.services || []).map(service => ({ id: service.id, label: serviceSummary(service).label, mode: serviceModeOf(service) }))
   };
 }
+// Legacy endpoint-map validator used only to collapse old installs into
+// one provider origin. New writes persist executorOrigin, never this map.
+function configuredEndpointsFor(services = [], endpoints = {}) {
+  const serviceById = new Map((services || []).map(service => [service.id, service]));
+  const configured = {};
+  for (const [serviceId, raw] of Object.entries(endpoints || {})) {
+    const service = serviceById.get(serviceId);
+    if (!service) throw createError({ statusCode: 400, message: `Unknown service ${serviceId}` });
+    if (serviceModeOf(service) !== 'endpoint') {
+      throw createError({ statusCode: 400, message: `Service ${serviceId} is ${serviceModeOf(service)} mode — no endpoint applies` });
+    }
+    if (raw) {
+      const url = String(raw);
+      if (!/^https?:\\/\\//.test(url)) throw createError({ statusCode: 400, message: `Endpoint for ${serviceId} must be an http(s) URL` });
+      configured[serviceId] = url;
+    }
+  }
+  return configured;
+}
+
 // The surface origin (owner decision 2026-10-17): executors with
 // surfaces but no endpoint services still need a reachable origin for
 // the module proxy. Only a plugin that declares surfaces may carry one.
