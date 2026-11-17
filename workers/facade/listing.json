@@ -719,7 +719,16 @@
             "base": "json"
           }
         },
-        "description": "Reuse an existing sheet design with the same composition"
+        "description": "Reuse an existing sheet design with the same composition",
+        "execution": {
+          "runtime": "facade-server",
+          "kind": "read",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true
+        }
       },
       {
         "id": "nesting-parts",

@@ -7,6 +7,14 @@ import {
   nestingSheetCount
 } from '../nesting-projections.js';
 
+function matchSheet({ layoutKey, sheets } = {}) {
+  const key = String(layoutKey || '');
+  const design = key && Array.isArray(sheets)
+    ? sheets.find(sheet => String(sheet?.fields?.compositionKey || '') === key) || null
+    : null;
+  return { found: Boolean(design), design };
+}
+
 function badRequest(message) {
   const error = new Error(message);
   error.status = 400;
@@ -17,6 +25,7 @@ function badRequest(message) {
 export function createRuntime() {
   return {
     async execute(operationId, input = {}, { capabilities } = {}) {
+      if (operationId === 'match-sheet') return matchSheet(input);
       if (operationId !== 'nesting-solve') {
         throw new Error(`Unsupported Facade managed operation: ${operationId}`);
       }

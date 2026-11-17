@@ -29,6 +29,19 @@ describe('Facade managed server runtime', () => {
     });
   });
 
+  it('executes exact composition matching inside the managed runtime', async () => {
+    const runtime = createRuntime();
+    const sheet = { _id: 'sheet-1', fields: { compositionKey: 'composition-a' } };
+    await expect(runtime.execute('match-sheet', {
+      layoutKey: 'composition-a',
+      sheets: [sheet]
+    })).resolves.toEqual({ found: true, design: sheet });
+    await expect(runtime.execute('match-sheet', {
+      layoutKey: 'composition-b',
+      sheets: [sheet]
+    })).resolves.toEqual({ found: false, design: null });
+  });
+
   it('refuses operations outside the managed runtime declaration', async () => {
     const runtime = createRuntime();
     await expect(runtime.execute('bake', {}, { capabilities: { call: vi.fn() } }))
