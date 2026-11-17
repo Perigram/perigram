@@ -155,7 +155,7 @@ describe('graph execution service', () => {
     executionService.processList.mockResolvedValue([]);
     executionService.processGetById.mockResolvedValue(null);
     mocks.getAppRegistry.mockReturnValue({
-      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : ['part', 'text-document', 'html-document'].includes(typeId) ? partService : typeId === 'file-record' ? fileService : dataService
+      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : ['part', 'text-document', 'html-document', 'pdf-document'].includes(typeId) ? partService : typeId === 'file-record' ? fileService : dataService
     });
     dataService.processList.mockResolvedValue([{ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }]);
     dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));
@@ -649,6 +649,61 @@ describe('graph execution service', () => {
       created: true,
       filename: 'release.html',
       mime: 'text/html'
+    })]);
+  });
+
+  it('bakes a Documents PDF file payload into a pdf-document instance', async () => {
+    const pdf = Buffer.from('%PDF-1.7 generated document');
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      outputs: {
+        document: {
+          payload: {
+            base64: pdf.toString('base64'),
+            mime: 'application/pdf',
+            name: 'release.pdf'
+          }
+        }
+      }
+    });
+    const result = await graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'document',
+      destination: {
+        type: 'instance-create',
+        typeId: 'pdf-document',
+        draft: { name: 'Release PDF' }
+      }
+    }, auth);
+
+    expect(mocks.uploadFile).toHaveBeenCalledWith(pdf, 'release.pdf', {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      type: 'pdf-document'
+    }, 'files', 'application/pdf');
+    expect(payloadService.createForHttp).toHaveBeenCalledWith({
+      name: 'Release PDF',
+      payload: {
+        fileId: 'baked-payload-1',
+        mime: 'application/pdf',
+        size: pdf.length,
+        name: 'release.pdf'
+      }
+    }, expect.objectContaining({
+      auth,
+      userId: 'user-1',
+      organizationId: 'org-1',
+      session,
+      requireRevisionedPayload: true
+    }));
+    expect(result.instance._id).toBe('new-part-1');
+    expect(result.execution.artifacts).toEqual([expect.objectContaining({
+      kind: 'instance-payload',
+      typeId: 'pdf-document',
+      created: true,
+      filename: 'release.pdf',
+      mime: 'application/pdf'
     })]);
   });
 
