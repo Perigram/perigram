@@ -12,6 +12,17 @@ describe('Documents server runtime', () => {
   it('rejects flow documents without a table', () => {
     expect(() => runtime.execute('extract-table', { document: { type: 'text.flow-document', blocks: [{ type: 'paragraph', children: [] }] } })).toThrow(/carries no table/);
   });
+  it('composes report IR from flow documents and row records', () => {
+    const result = runtime.execute('compose-report', { title: 'Parts', rows: [{ sku: 'A-1' }] });
+    expect(result).toMatchObject({ type: 'document.report', title: 'Parts', sections: [{ id: 'content', blocks: [{ type: 'table', rows: [{ sku: 'A-1' }] }] }] });
+  });
+
+  it('renders escaped standalone HTML from report IR', () => {
+    const html = runtime.execute('render-html', { report: { type: 'document.report', sections: [{ blocks: [{ type: 'paragraph', children: [{ type: 'text', text: '<script>' }] }] }] } });
+    expect(html).toContain('&lt;script&gt;');
+    expect(html).not.toContain('<script>');
+  });
+
   it('rejects unknown operations', () => {
     expect(() => runtime.execute('render-html', {})).toThrow(/Unsupported Documents server operation/);
   });

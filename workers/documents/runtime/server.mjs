@@ -1,3 +1,5 @@
+import { composeReport, extractTable, renderReportHtml } from '../report-ir.mjs';
+
 const FLOW_DOCUMENT_TYPE = 'text.flow-document';
 function badInput(message) { const error = new Error(message); error.status = 400; throw error; }
 function extractTable(document) {
@@ -9,6 +11,8 @@ function extractTable(document) {
 export function createRuntime() {
   return { execute(operationId, input = {}) {
     if (operationId !== 'extract-table') throw new Error(`Unsupported Documents server operation: ${operationId}`);
-    return extractTable(input.document);
+    if (operationId === 'extract-table') return extractTable(input.document);
+      if (operationId === 'compose-report') return composeReport(input);
+      return renderReportHtml(input.report);
   } };
 }

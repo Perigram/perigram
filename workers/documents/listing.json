@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "13",
+  "version": "14",
   "requires": [
     "tech-drawing"
   ],
@@ -559,7 +559,6 @@
       {
         "id": "compose-report",
         "label": "Compose report",
-        "mode": "endpoint",
         "group": "document-compose",
         "cache": "deterministic",
         "render": {
@@ -594,7 +593,17 @@
             "kind": "document.report"
           }
         },
-        "description": "Compose a report from flow-document content and tabular rows"
+        "description": "Compose a report from flow-document content and tabular rows",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        }
       },
       {
         "id": "extract-table",
@@ -637,7 +646,6 @@
       {
         "id": "render-html",
         "label": "Render HTML",
-        "mode": "endpoint",
         "group": "document-compose",
         "cache": "deterministic",
         "render": {
@@ -658,7 +666,17 @@
             "base": "string"
           }
         },
-        "description": "Render a report as safe standalone HTML"
+        "description": "Render a report as safe standalone HTML",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        }
       },
       {
         "id": "render-report-pdf",
