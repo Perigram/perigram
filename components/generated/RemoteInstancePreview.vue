@@ -10,7 +10,7 @@
 import { computed, onMounted, shallowRef, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useInstancesStore } from '~/stores/instances';
-import { instancePayloadFileUrl } from './file-preview-contract.js';
+import { instancePayloadFileUrl, parsePluginPreviewPayload } from './file-preview-contract.js';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
 // The read-only preview mount (M7): loads a plugin-declared preview
@@ -52,7 +52,7 @@ async function loadPayload() {
   try {
     const text = await $fetch(url, { responseType: 'text' });
     if (token !== payloadToken) return;
-    payloadDocument.value = JSON.parse(text);
+    payloadDocument.value = parsePluginPreviewPayload(text, props.record?.payload?.mime);
   } catch {
     // A payload that will not parse leaves the module the record alone.
   }
@@ -74,5 +74,5 @@ onMounted(async () => {
   }
 });
 
-watch(() => props.record?.payload?.fileId, loadPayload);
+watch(() => [props.record?.payload?.fileId, props.record?.payload?.mime], loadPayload);
 </script>

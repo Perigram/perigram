@@ -60,6 +60,18 @@ function sniffedPeekMode(mime = '', name = '') {
  * null when the file has no renderable peek mode. The URL honors the
  * legacy `uploads` bucket marker like every stored-attachment consumer.
  */
+export function parsePluginPreviewPayload(text, mime = '') {
+  const source = String(text ?? '');
+  if (String(mime).toLowerCase() === 'text/html') {
+    return { type: 'html-document', mime: 'text/html', text: source };
+  }
+  try {
+    return JSON.parse(source);
+  } catch {
+    return null;
+  }
+}
+
 export function resolveAttachmentPeek(attachment = {}) {
   if (!attachment?.fileId) return null;
   const mime = String(attachment.mime || attachment.mimeType || '');

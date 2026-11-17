@@ -58,6 +58,8 @@ providers.
 - [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO after
   behavior verification; record remaining owner decisions explicitly.
 
+Progress (2026-11-17): HTML file previews now preserve the raw `text/html` payload through the generic preview loader, sanitize through the host markdown/DOMPurify pipeline, and render in a sandboxed iframe with restrictive CSP; malformed non-HTML plugin payloads still fail closed. The Documents listing maps `html-document` to its own preview surface (v21).
+
 Progress (2026-11-17): Documents list construction accepts typed `text.inline` values through the declared `inlineItems` input as well as plain text items.
 
 Progress (2026-11-17): The Documents List node's plain-text `items` socket is now optional and labeled separately from typed `inlineItems`, so a formatted-only list is authorable without an unused required input. The listing version advanced to 18; a declaration-contract regression covers the optional typed-input path.
