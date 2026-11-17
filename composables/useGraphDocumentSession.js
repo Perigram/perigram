@@ -14,7 +14,7 @@ import {
   normalizeGraphDocument,
   validateGraphDocument
 } from '@perigram/core';
-import { createNodeProviderRegistry, normalizeNodeProvider } from '@perigram/plugin-sdk/nodes';
+import { compareNodePorts, createNodeProviderRegistry, normalizeNodeProvider } from '@perigram/plugin-sdk/nodes';
 import {
   PROCESS_PROCEDURAL_PROVIDER,
   PROCESS_PROCEDURAL_VERSION,
@@ -705,10 +705,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
   }
 
   function compatible(source, target) {
-    if (!source || !target) return false;
-    const sourceBase = source.semantic?.base || 'json';
-    const targetBase = target.semantic?.base || 'json';
-    return sourceBase === targetBase || sourceBase === 'json' || targetBase === 'json';
+    return compareNodePorts(source, target).compatible;
   }
 
   const contextPaletteGroups = computed(() => paletteGroups.value);
