@@ -9,7 +9,7 @@
         </div>
         <Button  :label="t('processDesigner.insertLiveReference')" icon="pi pi-link" text class="w-full justify-start" @click="pick()" />
         <div v-if="revisions.length" class="flex flex-col gap-1">
-          <div class="text-supporting text-title">{{ t('processDesigner.pinToRevision') }}</div>
+          <div class="text-supporting"><strong>{{ t('processDesigner.pinToRevision') }}</strong></div>
           <Button v-for="revision in revisions" :key="revision._id" :label="t('processDesigner.revisionLabel', { number: revision.data?.number || '', createdAt: revision.data?.createdAt || '' })" icon="pi pi-bookmark" text class="w-full justify-start" @click="pick(revision._id)" />
         </div>
         <div v-else class="text-supporting text-muted">{{ t('processDesigner.noRetainedRevisions') }}</div>

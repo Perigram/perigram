@@ -3,7 +3,7 @@
     <div v-if="loading" class="text-supporting text-muted">{{ t('processDesigner.loadingCollectionOutput') }}</div>
     <div v-else-if="error || !result" class="text-supporting text-muted">{{ t('processDesigner.collectionOutputUnavailable') }}</div>
     <template v-else>
-      <div class="mb-2 text-supporting text-title">{{ result.label }} · {{ result.itemCount }}</div>
+      <div class="mb-2 text-supporting"><strong>{{ result.label }} · {{ result.itemCount }}</strong></div>
       <div v-for="(item, index) in result.items" :key="index" class="py-1">
         <InstanceInlineRef v-if="item.kind === 'instance'" :type="item.typeId" :id="item.instanceId" :entity="item.instance" :fetch="false" />
         <span v-else-if="item.kind === 'unavailable'" class="text-supporting text-muted">{{ t('processDesigner.referencedItemUnavailable') }}</span>
