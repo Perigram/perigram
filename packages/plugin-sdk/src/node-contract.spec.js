@@ -69,6 +69,13 @@ describe('node port compatibility', () => {
     })).toMatchObject({ status: 'conditional', compatible: false });
   });
 
+  it('does not connect an optional output to a required input', () => {
+    expect(compareNodePorts(
+      { semantic: { base: 'string' }, required: false },
+      { semantic: { base: 'string' }, required: true }
+    )).toMatchObject({ status: 'conditional', compatible: false });
+  });
+
   it('requires explicit unit conversion', () => {
     expect(compareNodePorts(
       { semantic: { base: 'number', unit: 'mm' } },
