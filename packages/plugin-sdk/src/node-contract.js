@@ -169,13 +169,17 @@ export function compareNodePorts(source, target) {
   if (typeof from.base !== 'string' || typeof to.base !== 'string') {
     return { status: 'incompatible', compatible: false, reason: 'Both ports require a semantic base', conversions: [] };
   }
+  const nullableCheck = from.nullable === true && to.nullable !== true;
+  const nullableWidening = from.nullable !== true && to.nullable === true;
   if (to.base === 'json' && !to.kind && !to.schema && !to.nominal && !to.provider && !to.entityType && !to.identity && !to.constraints) {
     return {
-      status: optionalSource ? 'conditional' : 'safe-coercion',
+      status: optionalSource || nullableCheck ? 'conditional' : 'safe-coercion',
       compatible: true,
       reason: optionalSource
-        ? 'The target accepts JSON and checks that the optional source produced a value at runtime'
-        : 'The target accepts any JSON value',
+        ? 'The target checks that the optional source produced a value at runtime'
+        : nullableCheck
+          ? 'The target checks that the nullable source produced a non-null value at runtime'
+          : 'The target accepts any JSON value',
       conversions: []
     };
   }
@@ -224,8 +228,6 @@ export function compareNodePorts(source, target) {
       conversions: []
     };
   }
-  const nullableCheck = from.nullable === true && to.nullable !== true;
-  const nullableWidening = from.nullable !== true && to.nullable === true;
   return {
     status: optionalSource || nullableCheck
       ? 'conditional'

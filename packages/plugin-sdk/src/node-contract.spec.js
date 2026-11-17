@@ -91,6 +91,13 @@ describe('node port compatibility', () => {
     )).toMatchObject({ status: 'safe-coercion', compatible: true });
   });
 
+  it('runtime-checks nullable sources even at a generic JSON boundary', () => {
+    expect(compareNodePorts(
+      { semantic: { base: 'json', nullable: true } },
+      { semantic: { base: 'json' } }
+    )).toMatchObject({ status: 'conditional', compatible: true });
+  });
+
   it('requires explicit unit conversion', () => {
     expect(compareNodePorts(
       { semantic: { base: 'number', unit: 'mm' } },
