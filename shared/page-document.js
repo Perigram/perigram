@@ -29,9 +29,9 @@ export function normalizePageFilePath(value) {
 export function normalizePageDocument(document = {}) {
   const source = Array.isArray(document.blocks) ? document.blocks : [];
   const blocks = source
-    .filter(block => block && typeof block === 'object' && (block.kind === 'text' || block.kind === 'view' || block.kind === 'file' || block.kind === 'reference'))
+    .filter(block => block && typeof block === 'object' && (block.kind === 'text' || block.kind === 'view' || block.kind === 'collection' || block.kind === 'file' || block.kind === 'reference'))
     .map(block => {
-      const id = String(block.id || createBlockId(block.kind === 'view' ? 'v' : block.kind === 'file' ? 'f' : 't'));
+      const id = String(block.id || createBlockId(block.kind === 'view' ? 'v' : block.kind === 'collection' ? 'c' : block.kind === 'file' ? 'f' : 't'));
       if (block.kind === 'view') {
         const view = viewRefOfBlock(block) || {};
         return {
@@ -50,6 +50,28 @@ export function normalizePageDocument(document = {}) {
             ...(view.definitionSnapshot && typeof view.definitionSnapshot === 'object' && !Array.isArray(view.definitionSnapshot)
               ? { definitionSnapshot: { viewState: view.definitionSnapshot.viewState && typeof view.definitionSnapshot.viewState === 'object' && !Array.isArray(view.definitionSnapshot.viewState) ? view.definitionSnapshot.viewState : {} } }
               : {})
+          }
+        };
+      }
+      if (block.kind === 'collection') {
+        const collection = block.collection && typeof block.collection === 'object' ? block.collection : {};
+        const source = collection.source && typeof collection.source === 'object' ? collection.source : {};
+        const required = ['executionInstanceId', 'graphDocumentInstanceId', 'graphId', 'graphRevision', 'outputId'];
+        if (source.kind !== 'graph-output' || required.some(key => !String(source[key] || '').trim())) return null;
+        return {
+          id,
+          kind: 'collection',
+          collection: {
+            source: {
+              kind: 'graph-output',
+              executionInstanceId: String(source.executionInstanceId),
+              graphDocumentInstanceId: String(source.graphDocumentInstanceId),
+              graphId: String(source.graphId),
+              graphRevision: String(source.graphRevision),
+              outputId: String(source.outputId)
+            },
+            parameters: collection.parameters && typeof collection.parameters === 'object' && !Array.isArray(collection.parameters) ? collection.parameters : {},
+            resultPolicy: 'pinned'
           }
         };
       }
