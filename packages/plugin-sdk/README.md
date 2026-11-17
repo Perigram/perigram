@@ -57,13 +57,13 @@ Every node definition declares `palette.group` as a stable lowercase semantic sl
 
 Node-port compatibility is owned by `compareNodePorts(source, target)`.
 It evaluates transport shape and semantic `base`, `kind`, nominal
-identity, provider, and unit. Results carry `status`, `compatible`,
+identity, provider, unit, constraints, and output optionality. Results carry `status`, `compatible`,
 `reason`, and `conversions`; statuses are `exact`,
 `safe-coercion`, `conditional`, `conversion-required`, and
 `incompatible`. The graph editor uses `compatible` for connection gestures, persisted-edge
-validation, and preview preflight. A generic JSON target accepts typed JSON values; an untyped JSON
-source cannot connect to a more specific semantic target until runtime
-validation exists.
+validation, and preview preflight. A generic JSON target accepts typed JSON values. A specific semantic
+target requires a matching declared identity or a provider-declared runtime
+validator.
 
 ## Surface mount contracts
 

@@ -129,7 +129,6 @@ import InputNumber from 'primevue/inputnumber';
 import Select from 'primevue/select';
 import ToggleSwitch from 'primevue/toggleswitch';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
-import Textarea from 'primevue/textarea';
 import TypedValueControl from '~/components/process-designer/TypedValueControl.vue';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
