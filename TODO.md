@@ -7669,7 +7669,7 @@ degradation/editor laws in Program B notes.
 
 ### Agent Notes (2026-11-17, Page typed references)
 
-- Page documents now accept typed reference blocks with stable type/instance identity and optional exact retained revision identity. The picker can insert live references or select a retained content revision.
-- Resolution first passes the source's ordinary read grant; pinned resolution then loads the exact revision, verifies its source identity, and never falls forward. Missing and inaccessible targets share one unavailable response to avoid existence leaks.
-- Page surfaces render live/pinned reference embeds. Backlinks are derived by scanning the owning organization's page documents and remain rebuildable rather than becoming a second source of truth.
+- Page documents accept typed reference blocks with stable type/instance identity and an optional exact retained revision. The picker inserts live references or selects a retained content revision.
+- Resolution checks the source's ordinary read grant, loads the selected revision, and verifies its source identity. Missing and inaccessible targets share one unavailable response.
+- Page surfaces render live/pinned reference embeds. Backlinks are derived by scanning the owning organization's page documents and remain rebuildable.
 - G8 remains open for saved-query/graph-output collection embeds and their definition/result pinning semantics.

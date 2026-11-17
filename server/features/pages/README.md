@@ -100,6 +100,6 @@ A file block is a page-owned artifact reference, not a path on the application h
 
 ## Typed references
 
-A reference block stores only stable type and instance identity plus an optional retained revision id; it never copies target fields into the page. The references endpoint resolves live targets through their ordinary authorized instance read service. Pinned targets first pass the same current-source authorization check, then resolve the exact retained revision and verify that it belongs to the requested source. Missing, deleted, cross-tenant, or inaccessible targets return an explicit unavailable state without exposing target data. A missing pinned revision never falls forward to current content.
+A reference block stores stable type and instance identity plus an optional retained revision id. Target fields are resolved at read time through the ordinary authorized instance read service. Pinned targets pass the current-source authorization check, then resolve the exact retained revision and verify its source identity. Missing, deleted, cross-tenant, or inaccessible targets share an explicit unavailable response.
 
-Backlinks are derived from reference blocks in the organization's pages. They are rebuildable discovery data, not a second source of truth. The page document remains authoritative for the forward reference.
+Backlinks are derived from reference blocks in the organization's pages. They are rebuildable discovery data; the page document owns each forward reference.
