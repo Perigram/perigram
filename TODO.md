@@ -18,10 +18,10 @@ providers.
   and every declared construction/service. Verify each workflow and close
   behavior/spec gaps.
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
-  hosting. Current inventory: all 12 Documents services and 3 of 7 Facade services remain
+  hosting. Current inventory: all 12 Documents services and 2 of 7 Facade services remain
   `mode: endpoint`; Facade `nesting-solve` runs in the managed server runtime
   through the platform-owned `facade.nesting.solve` capability. Pure
-  `match-sheet`, `construct-sheet`, and `generate-sheet-dxf` run in the shared
+  `bake`, `match-sheet`, `construct-sheet`, and `generate-sheet-dxf` run in the shared
   browser/server runtime. `nesting-parts` remains a synchronous endpoint-backed
   projection pending a provider-compatible synchronous host boundary. Classify each operation by execution target: browser-local
   pure compute, platform-managed server compute, or explicit remote
@@ -51,7 +51,7 @@ providers.
 - [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO after
   behavior verification; record remaining owner decisions explicitly.
 
-Progress (2026-11-17): Facade `nesting-solve` is the first operation moved off the plugin endpoint into the managed JavaScript server runtime. Its isolated runtime calls a plugin/version/operation-scoped host capability; the platform owns the configured nesting-worker URL and transport. Runtime and capability tests cover request normalization, dispatch, and adapter scoping. Pure sheet matching, sheet construction, and DXF export now share one browser/server runtime; the other 15 Documents/Facade services still need execution-target classification and migration.
+Progress (2026-11-17): Facade `nesting-solve` is the first operation moved off the plugin endpoint into the managed JavaScript server runtime. Its isolated runtime calls a plugin/version/operation-scoped host capability; the platform owns the configured nesting-worker URL and transport. Runtime and capability tests cover request normalization, dispatch, and adapter scoping. Pure sheet matching, sheet construction, and DXF export now share one browser/server runtime; the other 14 Documents/Facade services still need execution-target classification and migration.
 
 Progress (2026-11-17): Facade nesting input normalization now clones authored item records, rejects invalid/non-finite counts and dimensions, and rejects unsafe aggregate sheet counts before contacting the external solver. Regression tests cover frozen input records and numeric boundaries.
 

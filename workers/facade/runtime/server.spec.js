@@ -106,6 +106,22 @@ describe('Facade managed server runtime', () => {
     expect(named.data.name).toBe('Panel A');
   });
 
+  it('bakes an OCCS template in the browser-capable managed runtime', async () => {
+    const { createDefaultOccsCassetteTemplateDefinition } = await import('../occs/templates.js');
+    const definition = createDefaultOccsCassetteTemplateDefinition();
+    const runtime = createRuntime();
+    const result = await runtime.execute('bake', {
+      refs: { template: {
+        id: 'template-1',
+        name: 'Tray 600',
+        payloadBase64: btoa(unescape(encodeURIComponent(JSON.stringify(definition))))
+      } },
+      draft: { data: { parameters: { A: '600', B: '450' } } }
+    });
+    expect(result.data.name).toBe('Tray 600 · A 600 · B 450');
+    expect(result.data.geometry.nestingPolygons.length).toBeGreaterThan(0);
+  });
+
   it('refuses operations outside the managed runtime declaration', async () => {
     const runtime = createRuntime();
     await expect(runtime.execute('bake', {}, { capabilities: { call: vi.fn() } }))

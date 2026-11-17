@@ -650,7 +650,6 @@
       {
         "id": "bake",
         "label": "Bake cassette design",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "json"
@@ -658,6 +657,15 @@
           "output": {
             "base": "json"
           }
+        },
+        "execution": {
+          "runtime": "facade-server",
+          "kind": "pure",
+          "targets": [
+            "browser"
+          ],
+          "capabilities": [],
+          "idempotent": true
         }
       },
       {

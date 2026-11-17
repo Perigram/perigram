@@ -1,6 +1,8 @@
 import { nestingResultToPreview, sheetDesignParts } from '../surfaces/lib/sheetLayout.js';
 import { generateLayeredDxf } from '../vendor/dxf-writer.js';
 import { occsLayerExportName, occsLayerStandard } from '../occs/layerStandards.js';
+import { evaluateOccsCassetteTemplate } from '../occs/evaluate.js';
+import { isOccsDocument } from '../occs/parameters.js';
 import {
   buildValueWorkerRequest,
   enrichNestingResult,
@@ -22,6 +24,39 @@ function sheetPolygonBounds(polygon) {
   const xs = outer.map(point => Number(point?.[0]) || 0);
   const ys = outer.map(point => Number(point?.[1]) || 0);
   return { width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
+}
+
+function utf8FromBase64(value) {
+  const binary = atob(String(value || ''));
+  return new TextDecoder().decode(Uint8Array.from(binary, character => character.charCodeAt(0)));
+}
+
+async function bake({ refs = {}, draft = {} } = {}) {
+  const template = refs.template;
+  if (!template) badRequest('bake requires a template reference');
+  const parameters = draft?.data?.parameters || {};
+  if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) {
+    badRequest('Cassette design bake parameters must be an object');
+  }
+  let definition;
+  try {
+    definition = JSON.parse(utf8FromBase64(template.payloadBase64));
+  } catch {
+    badRequest('Cassette template payload is not a readable OCCS document');
+  }
+  if (!isOccsDocument(definition)) {
+    badRequest('Cassette template is not an OCCS parametric template — only OCCS templates bake');
+  }
+  const evaluation = await evaluateOccsCassetteTemplate(definition, parameters, {
+    templateId: template.id,
+    templateName: template.name || 'Cassette template'
+  });
+  const signature = Object.entries(parameters)
+    .filter(([, value]) => value != null && value !== '')
+    .map(([key, value]) => `${key} ${value}`)
+    .join(' · ');
+  const base = String(template.name || '').trim() || 'Cassette design';
+  return { data: { name: signature ? `${base} · ${signature}` : base, geometry: evaluation } };
 }
 
 function base64OfUtf8(value) {
@@ -129,6 +164,7 @@ export function createRuntime() {
       if (operationId === 'match-sheet') return matchSheet(input);
       if (operationId === 'construct-sheet') return constructSheet(input);
       if (operationId === 'generate-sheet-dxf') return generateSheetDxf(input);
+      if (operationId === 'bake') return await bake(input);
       if (operationId !== 'nesting-solve') {
         throw new Error(`Unsupported Facade managed operation: ${operationId}`);
       }
