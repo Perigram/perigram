@@ -188,6 +188,7 @@ describe('authorized relation linking', () => {
       relations: { panels: [{ type: 'panel', id: 'panel-1' }] }
     });
     const service = instanceServiceResolver('project');
+    const session = { id: 'relation-link-session' };
 
     const updated = await service.linkRelationForHttp('project-1', 'panels', {
       type: 'panel',
@@ -195,7 +196,9 @@ describe('authorized relation linking', () => {
     }, {
       auth: { userId: 'user-1', organizationId: 'org-1' },
       organizationId: 'org-1',
-      expectedRevision: '1'
+      expectedRevision: '1',
+      expectedOrganizationSequence: 9,
+      session
     });
 
     expect(updated.relations.panels).toEqual([{ type: 'panel', id: 'panel-1' }]);
@@ -234,6 +237,7 @@ describe('authorized relation linking', () => {
       relations: { panels: [{ type: 'panel', id: 'panel-2' }] }
     });
     const service = instanceServiceResolver('project');
+    const session = { id: 'relation-unlink-session' };
 
     const updated = await service.unlinkRelationForHttp('project-1', 'panels', {
       type: 'panel',
@@ -241,10 +245,20 @@ describe('authorized relation linking', () => {
     }, {
       auth: { userId: 'user-1', organizationId: 'org-1' },
       organizationId: 'org-1',
-      expectedRevision: '1'
+      expectedRevision: '1',
+      expectedOrganizationSequence: 10,
+      session
     });
 
     expect(updated.relations.panels).toEqual([{ type: 'panel', id: 'panel-2' }]);
+    expect(coll.findOneAndUpdate.mock.calls[0][2]).toEqual(expect.objectContaining({ session }));
+    const { runOrganizationChange } = await import('./organization-sequence.js');
+    expect(runOrganizationChange).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({ kind: 'instance-updated' }),
+      expect.any(Function),
+      { session, expectedSequence: 10 }
+    );
     expect(coll.findOneAndUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ _id: 'project-1', updatedAt: owner.updatedAt }),
       expect.objectContaining({ $set: expect.objectContaining({
