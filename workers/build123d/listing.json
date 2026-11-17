@@ -2,7 +2,7 @@
   "pluginId": "build123d",
   "name": "build123d",
   "description": "Parametric B-Rep CAD operations discovered from the installed build123d 0.13.0 API: shape constructors, part/sketch operations, and the shape-algebra operators, as deterministic value services",
-  "version": "1",
+  "version": "2",
   "declarations": {
     "types": [
       {
@@ -37,30 +37,6 @@
     ],
     "services": [
       {
-        "id": "basepartobject",
-        "label": "BasePartObject",
-        "mode": "endpoint",
-        "group": "build123d-part",
-        "cache": "deterministic",
-        "render": {
-          "label": "BasePartObject",
-          "icon": "pi pi-box"
-        },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {
-              "part": {
-                "base": "json"
-              }
-            }
-          },
-          "output": {
-            "base": "json"
-          }
-        }
-      },
-      {
         "id": "box",
         "label": "Box",
         "mode": "endpoint",
@@ -88,7 +64,17 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Object: Box Create a box defined by length, width, and height.",
+        "keywords": [
+          "Box",
+          "box",
+          "constructor",
+          "build123d.objects_part",
+          "length",
+          "width",
+          "height"
+        ]
       },
       {
         "id": "cone",
@@ -123,16 +109,27 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Object: Cone Create a cone defined by bottom radius, top radius, and height.",
+        "keywords": [
+          "Cone",
+          "cone",
+          "constructor",
+          "build123d.objects_part",
+          "bottom_radius",
+          "top_radius",
+          "height",
+          "arc_size"
+        ]
       },
       {
         "id": "convexpolyhedron",
-        "label": "ConvexPolyhedron",
+        "label": "Convex Polyhedron",
         "mode": "endpoint",
         "group": "build123d-part",
         "cache": "deterministic",
         "render": {
-          "label": "ConvexPolyhedron",
+          "label": "Convex Polyhedron",
           "icon": "pi pi-box"
         },
         "signature": {
@@ -147,16 +144,24 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Object: ConvexPolyhedron Create a convex solid from the convex hull of the provided points.",
+        "keywords": [
+          "ConvexPolyhedron",
+          "convexpolyhedron",
+          "constructor",
+          "build123d.objects_part",
+          "points"
+        ]
       },
       {
         "id": "counterborehole",
-        "label": "CounterBoreHole",
+        "label": "Counter Bore Hole",
         "mode": "endpoint",
         "group": "build123d-part",
         "cache": "deterministic",
         "render": {
-          "label": "CounterBoreHole",
+          "label": "Counter Bore Hole",
           "icon": "pi pi-box"
         },
         "signature": {
@@ -181,16 +186,27 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Operation: Counter Bore Hole Create a counter bore hole defined by radius, counter bore radius, counter bore and depth.",
+        "keywords": [
+          "CounterBoreHole",
+          "counterborehole",
+          "constructor",
+          "build123d.objects_part",
+          "radius",
+          "counter_bore_radius",
+          "counter_bore_depth",
+          "depth"
+        ]
       },
       {
         "id": "countersinkhole",
-        "label": "CounterSinkHole",
+        "label": "Counter Sink Hole",
         "mode": "endpoint",
         "group": "build123d-part",
         "cache": "deterministic",
         "render": {
-          "label": "CounterSinkHole",
+          "label": "Counter Sink Hole",
           "icon": "pi pi-box"
         },
         "signature": {
@@ -217,7 +233,18 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Operation: Counter Sink Hole Create a countersink hole defined by radius, countersink radius, countersink angle, and depth.",
+        "keywords": [
+          "CounterSinkHole",
+          "countersinkhole",
+          "constructor",
+          "build123d.objects_part",
+          "radius",
+          "counter_sink_radius",
+          "depth",
+          "counter_sink_angle"
+        ]
       },
       {
         "id": "cylinder",
@@ -249,7 +276,17 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Object: Cylinder Create a cylinder defined by radius and height.",
+        "keywords": [
+          "Cylinder",
+          "cylinder",
+          "constructor",
+          "build123d.objects_part",
+          "radius",
+          "height",
+          "arc_size"
+        ]
       },
       {
         "id": "hole",
@@ -277,7 +314,16 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Operation: Hole Create a hole defined by radius and depth.",
+        "keywords": [
+          "Hole",
+          "hole",
+          "constructor",
+          "build123d.objects_part",
+          "radius",
+          "depth"
+        ]
       },
       {
         "id": "sphere",
@@ -316,7 +362,18 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Object: Sphere Create a sphere defined by a radius.",
+        "keywords": [
+          "Sphere",
+          "sphere",
+          "constructor",
+          "build123d.objects_part",
+          "radius",
+          "arc_size1",
+          "arc_size2",
+          "arc_size3"
+        ]
       },
       {
         "id": "torus",
@@ -358,7 +415,19 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Object: Torus Create a torus defined by major and minor radii.",
+        "keywords": [
+          "Torus",
+          "torus",
+          "constructor",
+          "build123d.objects_part",
+          "major_radius",
+          "minor_radius",
+          "minor_start_angle",
+          "minor_end_angle",
+          "major_angle"
+        ]
       },
       {
         "id": "wedge",
@@ -400,36 +469,21 @@
           "output": {
             "base": "json"
           }
-        }
-      },
-      {
-        "id": "basesketchobject",
-        "label": "BaseSketchObject",
-        "mode": "endpoint",
-        "group": "build123d-sketch",
-        "cache": "deterministic",
-        "render": {
-          "label": "BaseSketchObject",
-          "icon": "pi pi-box"
         },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {
-              "obj": {
-                "base": "json"
-              },
-              "rotation": {
-                "base": "number",
-                "nullable": true,
-                "default": 0
-              }
-            }
-          },
-          "output": {
-            "base": "json"
-          }
-        }
+        "description": "Part Object: Wedge Create a wedge with a near face defined by xsize and z size, a far face defined by xmin to xmax and zmin to zmax, and a depth of ysize.",
+        "keywords": [
+          "Wedge",
+          "wedge",
+          "constructor",
+          "build123d.objects_part",
+          "xsize",
+          "ysize",
+          "zsize",
+          "xmin",
+          "zmin",
+          "xmax",
+          "zmax"
+        ]
       },
       {
         "id": "circle",
@@ -458,7 +512,16 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: Circle Create a circle defined by radius.",
+        "keywords": [
+          "Circle",
+          "circle",
+          "constructor",
+          "build123d.objects_sketch",
+          "radius",
+          "arc_size"
+        ]
       },
       {
         "id": "ellipse",
@@ -490,33 +553,17 @@
           "output": {
             "base": "json"
           }
-        }
-      },
-      {
-        "id": "polygon",
-        "label": "Polygon",
-        "mode": "endpoint",
-        "group": "build123d-sketch",
-        "cache": "deterministic",
-        "render": {
-          "label": "Polygon",
-          "icon": "pi pi-box"
         },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {
-              "rotation": {
-                "base": "number",
-                "nullable": true,
-                "default": 0
-              }
-            }
-          },
-          "output": {
-            "base": "json"
-          }
-        }
+        "description": "Sketch Object: Ellipse Create an ellipse defined by x- and y- radii.",
+        "keywords": [
+          "Ellipse",
+          "ellipse",
+          "constructor",
+          "build123d.objects_sketch",
+          "x_radius",
+          "y_radius",
+          "rotation"
+        ]
       },
       {
         "id": "rectangle",
@@ -548,16 +595,26 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: Rectangle Create a rectangle defined by width and height.",
+        "keywords": [
+          "Rectangle",
+          "rectangle",
+          "constructor",
+          "build123d.objects_sketch",
+          "width",
+          "height",
+          "rotation"
+        ]
       },
       {
         "id": "rectanglerounded",
-        "label": "RectangleRounded",
+        "label": "Rectangle Rounded",
         "mode": "endpoint",
         "group": "build123d-sketch",
         "cache": "deterministic",
         "render": {
-          "label": "RectangleRounded",
+          "label": "Rectangle Rounded",
           "icon": "pi pi-box"
         },
         "signature": {
@@ -583,16 +640,27 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: Rectangle Rounded Create a rectangle defined by width and height with filleted corners.",
+        "keywords": [
+          "RectangleRounded",
+          "rectanglerounded",
+          "constructor",
+          "build123d.objects_sketch",
+          "width",
+          "height",
+          "radius",
+          "rotation"
+        ]
       },
       {
         "id": "regularpolygon",
-        "label": "RegularPolygon",
+        "label": "Regular Polygon",
         "mode": "endpoint",
         "group": "build123d-sketch",
         "cache": "deterministic",
         "render": {
-          "label": "RegularPolygon",
+          "label": "Regular Polygon",
           "icon": "pi pi-box"
         },
         "signature": {
@@ -623,16 +691,28 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: Regular Polygon Create a regular polygon defined by radius and side count. Use major_radius to define whether the polygon circumscribes (along the vertices) or inscribes (along the sides) the radius circle.",
+        "keywords": [
+          "RegularPolygon",
+          "regularpolygon",
+          "constructor",
+          "build123d.objects_sketch",
+          "radius",
+          "side_count",
+          "major_radius",
+          "rotation",
+          "align"
+        ]
       },
       {
         "id": "slotarc",
-        "label": "SlotArc",
+        "label": "Slot Arc",
         "mode": "endpoint",
         "group": "build123d-sketch",
         "cache": "deterministic",
         "render": {
-          "label": "SlotArc",
+          "label": "Slot Arc",
           "icon": "pi pi-box"
         },
         "signature": {
@@ -655,16 +735,26 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: Slot Arc Create a slot defined by a line and height. May be an arc, stright line, spline, etc.",
+        "keywords": [
+          "SlotArc",
+          "slotarc",
+          "constructor",
+          "build123d.objects_sketch",
+          "arc",
+          "height",
+          "rotation"
+        ]
       },
       {
         "id": "slotcentertocenter",
-        "label": "SlotCenterToCenter",
+        "label": "Slot Center To Center",
         "mode": "endpoint",
         "group": "build123d-sketch",
         "cache": "deterministic",
         "render": {
-          "label": "SlotCenterToCenter",
+          "label": "Slot Center To Center",
           "icon": "pi pi-box"
         },
         "signature": {
@@ -687,16 +777,26 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: Slot Center To Center Create a slot defined by the distance between the centers of the two end arcs.",
+        "keywords": [
+          "SlotCenterToCenter",
+          "slotcentertocenter",
+          "constructor",
+          "build123d.objects_sketch",
+          "center_separation",
+          "height",
+          "rotation"
+        ]
       },
       {
         "id": "slotoverall",
-        "label": "SlotOverall",
+        "label": "Slot Overall",
         "mode": "endpoint",
         "group": "build123d-sketch",
         "cache": "deterministic",
         "render": {
-          "label": "SlotOverall",
+          "label": "Slot Overall",
           "icon": "pi pi-box"
         },
         "signature": {
@@ -719,7 +819,17 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: Slot Overall Create a slot defined by the overall width and height.",
+        "keywords": [
+          "SlotOverall",
+          "slotoverall",
+          "constructor",
+          "build123d.objects_sketch",
+          "width",
+          "height",
+          "rotation"
+        ]
       },
       {
         "id": "superellipse",
@@ -761,7 +871,19 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: Superellipse Create an superellipse (\"squircle\") defined by width, height, and order.",
+        "keywords": [
+          "Superellipse",
+          "superellipse",
+          "constructor",
+          "build123d.objects_sketch",
+          "width",
+          "height",
+          "order",
+          "point_count",
+          "rotation"
+        ]
       },
       {
         "id": "text",
@@ -815,7 +937,22 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: Text Create text defined by text string and font size. Fonts installed to the system can be specified by name and FontStyle. Fonts with subfamilies not in FontStyle should be specified with the subfamily name, e.g. \"Arial Black\". Alternatively, a specific font file can be specified with font_path. Use `available_fonts()` to list available font names for `font` and FontStyles. Note: on Windows, fonts must be installed with \"Install for all users\" to be found by name. Not all fonts have every FontStyle available, however ITALIC and BOLDITALIC will still italicize the font if the respective font file is not available. text_align specifies alignment of text inside the bounding box, while align the aligns the bounding box itself. Optionally, the Text can be positioned on a non-linear edge or wire with a path and position_on_path.",
+        "keywords": [
+          "Text",
+          "text",
+          "constructor",
+          "build123d.objects_sketch",
+          "txt",
+          "font_size",
+          "font",
+          "text_align",
+          "path",
+          "position_on_path",
+          "single_line_width",
+          "rotation"
+        ]
       },
       {
         "id": "trapezoid",
@@ -854,7 +991,19 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: Trapezoid Create a trapezoid defined by major width, height, and interior angle(s).",
+        "keywords": [
+          "Trapezoid",
+          "trapezoid",
+          "constructor",
+          "build123d.objects_sketch",
+          "width",
+          "height",
+          "left_side_angle",
+          "right_side_angle",
+          "rotation"
+        ]
       },
       {
         "id": "triangle",
@@ -904,79 +1053,21 @@
           "output": {
             "base": "json"
           }
-        }
-      },
-      {
-        "id": "basecurveobject",
-        "label": "BaseCurveObject",
-        "mode": "endpoint",
-        "group": "build123d-curve",
-        "cache": "deterministic",
-        "render": {
-          "label": "BaseCurveObject",
-          "icon": "pi pi-box"
         },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {
-              "curve": {
-                "base": "json"
-              }
-            }
-          },
-          "output": {
-            "base": "json"
-          }
-        }
-      },
-      {
-        "id": "baselineobject",
-        "label": "BaseLineObject",
-        "mode": "endpoint",
-        "group": "build123d-curve",
-        "cache": "deterministic",
-        "render": {
-          "label": "BaseLineObject",
-          "icon": "pi pi-box"
-        },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {
-              "curve": {
-                "base": "json"
-              }
-            }
-          },
-          "output": {
-            "base": "json"
-          }
-        }
-      },
-      {
-        "id": "baseedgeobject",
-        "label": "BaseEdgeObject",
-        "mode": "endpoint",
-        "group": "build123d-curve",
-        "cache": "deterministic",
-        "render": {
-          "label": "BaseEdgeObject",
-          "icon": "pi pi-box"
-        },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {
-              "curve": {
-                "base": "json"
-              }
-            }
-          },
-          "output": {
-            "base": "json"
-          }
-        }
+        "description": "Sketch Object: Triangle Create a triangle defined by one side length and any of two other side lengths or interior angles. The interior angles are opposite the side with the same designation (i.e. side 'a' is opposite angle 'A'). Side 'a' is the bottom side, followed by 'b' on the right, going counter-clockwise.",
+        "keywords": [
+          "Triangle",
+          "triangle",
+          "constructor",
+          "build123d.objects_sketch",
+          "a",
+          "b",
+          "c",
+          "A",
+          "B",
+          "C",
+          "rotation"
+        ]
       },
       {
         "id": "airfoil",
@@ -1009,41 +1100,26 @@
           "output": {
             "base": "json"
           }
-        }
-      },
-      {
-        "id": "bezier",
-        "label": "Bezier",
-        "mode": "endpoint",
-        "group": "build123d-curve",
-        "cache": "deterministic",
-        "render": {
-          "label": "Bezier",
-          "icon": "pi pi-box"
         },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {
-              "weights": {
-                "base": "json",
-                "nullable": true
-              }
-            }
-          },
-          "output": {
-            "base": "json"
-          }
-        }
+        "description": "Create an airfoil described by a 4-digit (or fractional) NACA airfoil (e.g. '2412' or '2213.323'). The NACA four-digit wing sections define the airfoil_code by: - First digit describing maximum camber as percentage of the chord. - Second digit describing the distance of maximum camber from the airfoil leading edge in tenths of the chord. - Last two digits describing maximum thickness of the airfoil as percent of the chord.",
+        "keywords": [
+          "Airfoil",
+          "airfoil",
+          "constructor",
+          "build123d.objects_curve",
+          "airfoil_code",
+          "n_points",
+          "finite_te"
+        ]
       },
       {
         "id": "blendcurve",
-        "label": "BlendCurve",
+        "label": "Blend Curve",
         "mode": "endpoint",
         "group": "build123d-curve",
         "cache": "deterministic",
         "render": {
-          "label": "BlendCurve",
+          "label": "Blend Curve",
           "icon": "pi pi-box"
         },
         "signature": {
@@ -1069,7 +1145,18 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Line Object: BlendCurve Create a smooth Bézier-based transition curve between two existing edges. The blend is constructed as a cubic (C1) or quintic (C2) Bézier curve whose control points are determined from the position, first derivative, and (for C2) second derivative of the input curves at the chosen endpoints. Optional scalar multipliers can be applied to the endpoint tangents to control the \"tension\" of the blend.",
+        "keywords": [
+          "BlendCurve",
+          "blendcurve",
+          "constructor",
+          "build123d.objects_curve",
+          "curve0",
+          "curve1",
+          "end_points",
+          "tangent_scalars"
+        ]
       },
       {
         "id": "bspline",
@@ -1107,47 +1194,19 @@
           "output": {
             "base": "json"
           }
-        }
-      },
-      {
-        "id": "constrainedarcs",
-        "label": "ConstrainedArcs",
-        "mode": "endpoint",
-        "group": "build123d-curve",
-        "cache": "deterministic",
-        "render": {
-          "label": "ConstrainedArcs",
-          "icon": "pi pi-box"
         },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {}
-          },
-          "output": {
-            "base": "json"
-          }
-        }
-      },
-      {
-        "id": "constrainedlines",
-        "label": "ConstrainedLines",
-        "mode": "endpoint",
-        "group": "build123d-curve",
-        "cache": "deterministic",
-        "render": {
-          "label": "ConstrainedLines",
-          "icon": "pi pi-box"
-        },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {}
-          },
-          "output": {
-            "base": "json"
-          }
-        }
+        "description": "Line Object: BSpline An exact B-spline edge defined directly from control points and knot data. BSpline creates an exact B-spline from control points, a knot sequence, and optional weights. Control points define the control polygon that pulls the curve, but the curve does not generally pass through them. Knots define the parameter-space structure of the spline: they determine where polynomial spans begin and end and how smoothly those spans join. Repeated knot values indicate knot multiplicity. For a spline of degree p, a knot with multiplicity m has continuity C^(p-m) at that location, so increasing multiplicity reduces smoothness. Repeating the first and last knots degree + 1 times creates a clamped spline that starts and ends at the first and last control points. Optional weights create a rational B-spline, allowing some control points to pull more strongly than others and enabling exact representation of conic sections.` Unlike :class:`~build123d.objects_curve.Spline`, which creates an interpolated curve through a set of points using ``GeomAPI_Interpolate``, ``BSpline`` preserves the supplied spline definition by building the underlying OCCT ``Geom_BSplineCurve`` from its poles, knot vector, optional weights, degree, and periodic flag.",
+        "keywords": [
+          "BSpline",
+          "bspline",
+          "constructor",
+          "build123d.objects_curve",
+          "control_points",
+          "knots",
+          "degree",
+          "weights",
+          "periodic"
+        ]
       },
       {
         "id": "helix",
@@ -1186,114 +1245,28 @@
           "output": {
             "base": "json"
           }
-        }
-      },
-      {
-        "id": "line",
-        "label": "Line",
-        "mode": "endpoint",
-        "group": "build123d-curve",
-        "cache": "deterministic",
-        "render": {
-          "label": "Line",
-          "icon": "pi pi-box"
         },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {}
-          },
-          "output": {
-            "base": "json"
-          }
-        }
-      },
-      {
-        "id": "polyline",
-        "label": "Polyline",
-        "mode": "endpoint",
-        "group": "build123d-curve",
-        "cache": "deterministic",
-        "render": {
-          "label": "Polyline",
-          "icon": "pi pi-box"
-        },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {
-              "close": {
-                "base": "boolean",
-                "nullable": true
-              }
-            }
-          },
-          "output": {
-            "base": "json"
-          }
-        }
-      },
-      {
-        "id": "spline",
-        "label": "Spline",
-        "mode": "endpoint",
-        "group": "build123d-curve",
-        "cache": "deterministic",
-        "render": {
-          "label": "Spline",
-          "icon": "pi pi-box"
-        },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {
-              "tangents": {
-                "base": "json",
-                "nullable": true
-              },
-              "tangent_scalars": {
-                "base": "json",
-                "nullable": true
-              },
-              "periodic": {
-                "base": "boolean",
-                "nullable": true
-              }
-            }
-          },
-          "output": {
-            "base": "json"
-          }
-        }
-      },
-      {
-        "id": "threepointarc",
-        "label": "ThreePointArc",
-        "mode": "endpoint",
-        "group": "build123d-curve",
-        "cache": "deterministic",
-        "render": {
-          "label": "ThreePointArc",
-          "icon": "pi pi-box"
-        },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {}
-          },
-          "output": {
-            "base": "json"
-          }
-        }
+        "description": "Line Object: Helix Create a helix defined by pitch, height, and radius. The helix may have a taper defined by cone_angle. If cone_angle is not 0, radius is the initial helix radius at center. cone_angle > 0 increases the final radius. cone_angle < 0 decreases the final radius.",
+        "keywords": [
+          "Helix",
+          "helix",
+          "constructor",
+          "build123d.objects_curve",
+          "pitch",
+          "height",
+          "radius",
+          "cone_angle",
+          "lefthand"
+        ]
       },
       {
         "id": "bounding-box",
-        "label": "bounding_box",
+        "label": "Bounding Box",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "bounding_box",
+          "label": "Bounding Box",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1309,16 +1282,24 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Generic Operation: Add Bounding Box Applies to: BuildSketch and BuildPart Add the 2D or 3D bounding boxes of the object sequence",
+        "keywords": [
+          "bounding_box",
+          "bounding-box",
+          "function",
+          "build123d.operations_generic",
+          "objects"
+        ]
       },
       {
         "id": "chamfer",
-        "label": "chamfer",
+        "label": "Chamfer",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "chamfer",
+          "label": "Chamfer",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1348,16 +1329,28 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Generic Operation: chamfer Applies to 2 and 3 dimensional objects. Chamfer the given sequence of edges or vertices.",
+        "keywords": [
+          "chamfer",
+          "chamfer",
+          "function",
+          "build123d.operations_generic",
+          "objects",
+          "length",
+          "length2",
+          "angle",
+          "reference"
+        ]
       },
       {
         "id": "fillet",
-        "label": "fillet",
+        "label": "Fillet",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "fillet",
+          "label": "Fillet",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1375,16 +1368,25 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Generic Operation: fillet Applies to 2 and 3 dimensional objects. Fillet the given sequence of edges or vertices. Note that vertices on either end of an open line will be automatically skipped.",
+        "keywords": [
+          "fillet",
+          "fillet",
+          "function",
+          "build123d.operations_generic",
+          "objects",
+          "radius"
+        ]
       },
       {
         "id": "mirror",
-        "label": "mirror",
+        "label": "Mirror",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "mirror",
+          "label": "Mirror",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1400,16 +1402,24 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Generic Operation: mirror Applies to 1, 2, and 3 dimensional objects. Mirror a sequence of objects over the given plane.",
+        "keywords": [
+          "mirror",
+          "mirror",
+          "function",
+          "build123d.operations_generic",
+          "objects"
+        ]
       },
       {
         "id": "offset",
-        "label": "offset",
+        "label": "Offset",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "offset",
+          "label": "Offset",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1442,16 +1452,28 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Generic Operation: offset Applies to 1, 2, and 3 dimensional objects. Offset the given sequence of Edges, Faces, Compound of Faces, or Solids. The kind parameter controls the shape of the transitions. For Solid objects, the openings parameter allows selected faces to be open, like a hollow box with no lid.",
+        "keywords": [
+          "offset",
+          "offset",
+          "function",
+          "build123d.operations_generic",
+          "objects",
+          "amount",
+          "openings",
+          "closed",
+          "min_edge_length"
+        ]
       },
       {
         "id": "project",
-        "label": "project",
+        "label": "Project",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "project",
+          "label": "Project",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1467,16 +1489,24 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Generic Operation: project Applies to 0, 1, and 2 dimensional objects. Project the given objects or points onto a BuildLine or BuildSketch workplane in the direction of the normal of that workplane. When projecting onto a sketch a Face(s) are generated while Edges are generated for BuildLine. Will only use the first if BuildSketch has multiple active workplanes. In algebra mode a workplane must be provided and the output is either a Face, Curve, Sketch, Compound, or ShapeList[Vector]. Note that only if mode is not Mode.PRIVATE only Faces can be projected into BuildSketch and Edge/Wires into BuildLine.",
+        "keywords": [
+          "project",
+          "project",
+          "function",
+          "build123d.operations_generic",
+          "target"
+        ]
       },
       {
         "id": "scale",
-        "label": "scale",
+        "label": "Scale",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "scale",
+          "label": "Scale",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1492,16 +1522,24 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Generic Operation: scale Applies to 1, 2, and 3 dimensional objects. Scale a sequence of objects. Note that when scaling non-uniformly across the three axes, the type of the underlying object may change to bspline from line, circle, etc.",
+        "keywords": [
+          "scale",
+          "scale",
+          "function",
+          "build123d.operations_generic",
+          "objects"
+        ]
       },
       {
         "id": "split",
-        "label": "split",
+        "label": "Split",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "split",
+          "label": "Split",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1517,16 +1555,24 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Generic Operation: split Applies to 1, 2, and 3 dimensional objects. Bisect object with plane and keep either top, bottom or both.",
+        "keywords": [
+          "split",
+          "split",
+          "function",
+          "build123d.operations_generic",
+          "objects"
+        ]
       },
       {
         "id": "sweep",
-        "label": "sweep",
+        "label": "Sweep",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "sweep",
+          "label": "Sweep",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1562,16 +1608,29 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Generic Operation: sweep Sweep pending 1D or 2D objects along path.",
+        "keywords": [
+          "sweep",
+          "sweep",
+          "function",
+          "build123d.operations_generic",
+          "sections",
+          "path",
+          "multisection",
+          "is_frenet",
+          "binormal",
+          "clean"
+        ]
       },
       {
         "id": "extrude",
-        "label": "extrude",
+        "label": "Extrude",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "extrude",
+          "label": "Extrude",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1608,16 +1667,29 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Operation: extrude Extrude a sketch or face by an amount or until another object.",
+        "keywords": [
+          "extrude",
+          "extrude",
+          "function",
+          "build123d.operations_part",
+          "to_extrude",
+          "amount",
+          "target",
+          "both",
+          "taper",
+          "clean"
+        ]
       },
       {
         "id": "loft",
-        "label": "loft",
+        "label": "Loft",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "loft",
+          "label": "Loft",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1641,16 +1713,26 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Operation: loft Loft the pending sketches/faces, across all workplanes, into a solid. Faces may contain inner wires, which are lofted as holes and subtracted from the outer loft. When a face has more than one inner wire, the wires in each subsequent section are matched to the preceding section by choosing the assignment with the smallest total distance between wire centers. This makes the result independent of the order in which inner wires are returned, but it is only a geometric heuristic: holes that are close together, cross paths, or change position significantly may be matched incorrectly. All sections must contain the same number of inner wires.",
+        "keywords": [
+          "loft",
+          "loft",
+          "function",
+          "build123d.operations_part",
+          "sections",
+          "ruled",
+          "clean"
+        ]
       },
       {
         "id": "revolve",
-        "label": "revolve",
+        "label": "Revolve",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "revolve",
+          "label": "Revolve",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1675,16 +1757,26 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Operation: Revolve Revolve the profile or pending sketches/face about the given axis. Note that the most common use case is when the axis is in the same plane as the face to be revolved but this isn't required.",
+        "keywords": [
+          "revolve",
+          "revolve",
+          "function",
+          "build123d.operations_part",
+          "profiles",
+          "revolution_arc",
+          "clean"
+        ]
       },
       {
         "id": "section",
-        "label": "section",
+        "label": "Section",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "section",
+          "label": "Section",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1709,16 +1801,26 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Operation: section Slices current part at the given height by section_by or current workplane(s).",
+        "keywords": [
+          "section",
+          "section",
+          "function",
+          "build123d.operations_part",
+          "obj",
+          "height",
+          "clean"
+        ]
       },
       {
         "id": "thicken",
-        "label": "thicken",
+        "label": "Thicken",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "thicken",
+          "label": "Thicken",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1746,16 +1848,27 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Part Operation: thicken Create a solid(s) from a potentially non planar face(s) by thickening along the normals.",
+        "keywords": [
+          "thicken",
+          "thicken",
+          "function",
+          "build123d.operations_part",
+          "to_thicken",
+          "amount",
+          "both",
+          "clean"
+        ]
       },
       {
         "id": "full-round",
-        "label": "full_round",
+        "label": "Full Round",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "full_round",
+          "label": "Full Round",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1779,16 +1892,26 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Operation: full_round Given an edge from a Face/Sketch, modify the face by replacing the given edge with the arc of the Voronoi largest empty circle that will fit within the Face. This \"rounds off\" the end of the object.",
+        "keywords": [
+          "full_round",
+          "full-round",
+          "function",
+          "build123d.operations_sketch",
+          "edge",
+          "invert",
+          "voronoi_point_count"
+        ]
       },
       {
         "id": "make-face",
-        "label": "make_face",
+        "label": "Make Face",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "make_face",
+          "label": "Make Face",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1804,16 +1927,24 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Operation: make_face Create a face from the given perimeter edges.",
+        "keywords": [
+          "make_face",
+          "make-face",
+          "function",
+          "build123d.operations_sketch",
+          "edges"
+        ]
       },
       {
         "id": "make-hull",
-        "label": "make_hull",
+        "label": "Make Hull",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "make_hull",
+          "label": "Make Hull",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1829,16 +1960,24 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Operation: make_hull Create a face from the convex hull of the given edges",
+        "keywords": [
+          "make_hull",
+          "make-hull",
+          "function",
+          "build123d.operations_sketch",
+          "edges"
+        ]
       },
       {
         "id": "trace",
-        "label": "trace",
+        "label": "Trace",
         "mode": "endpoint",
         "group": "build123d-operations",
         "cache": "deterministic",
         "render": {
-          "label": "trace",
+          "label": "Trace",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -1859,16 +1998,25 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Operation: trace Convert edges, wires or pending edges into faces by sweeping a perpendicular line along them.",
+        "keywords": [
+          "trace",
+          "trace",
+          "function",
+          "build123d.operations_sketch",
+          "lines",
+          "line_width"
+        ]
       },
       {
         "id": "arrowhead",
-        "label": "ArrowHead",
+        "label": "Arrow Head",
         "mode": "endpoint",
         "group": "build123d-drafting",
         "cache": "deterministic",
         "render": {
-          "label": "ArrowHead",
+          "label": "Arrow Head",
           "icon": "pi pi-box"
         },
         "signature": {
@@ -1888,7 +2036,16 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: ArrowHead",
+        "keywords": [
+          "ArrowHead",
+          "arrowhead",
+          "constructor",
+          "build123d.drafting",
+          "size",
+          "rotation"
+        ]
       },
       {
         "id": "arrow",
@@ -1922,16 +2079,27 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: Arrow with shaft",
+        "keywords": [
+          "Arrow",
+          "arrow",
+          "constructor",
+          "build123d.drafting",
+          "arrow_size",
+          "shaft_path",
+          "shaft_width",
+          "head_at_start"
+        ]
       },
       {
         "id": "technicaldrawing",
-        "label": "TechnicalDrawing",
+        "label": "Technical Drawing",
         "mode": "endpoint",
         "group": "build123d-drafting",
         "cache": "deterministic",
         "render": {
-          "label": "TechnicalDrawing",
+          "label": "Technical Drawing",
           "icon": "pi pi-box"
         },
         "signature": {
@@ -1982,16 +2150,31 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Sketch Object: TechnicalDrawing The border of a technical drawing with external frame and text box.",
+        "keywords": [
+          "TechnicalDrawing",
+          "technicaldrawing",
+          "constructor",
+          "build123d.drafting",
+          "designed_by",
+          "title",
+          "sub_title",
+          "drawing_number",
+          "sheet_number",
+          "drawing_scale",
+          "nominal_text_size",
+          "line_width"
+        ]
       },
       {
         "id": "available-fonts",
-        "label": "available_fonts",
+        "label": "Available Fonts",
         "mode": "endpoint",
         "group": "build123d-text",
         "cache": "deterministic",
         "render": {
-          "label": "available_fonts",
+          "label": "Available Fonts",
           "icon": "pi pi-cog"
         },
         "signature": {
@@ -2002,7 +2185,14 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "Get available fonts without initializing the font manager on import.",
+        "keywords": [
+          "available_fonts",
+          "available-fonts",
+          "function",
+          "build123d.text"
+        ]
       },
       {
         "id": "union",
@@ -2029,7 +2219,16 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "fuse shape to self operator +",
+        "keywords": [
+          "Union",
+          "union",
+          "operator",
+          "build123d.topology.shape_core",
+          "shape",
+          "other"
+        ]
       },
       {
         "id": "subtract",
@@ -2056,7 +2255,16 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "cut shape from self operator -",
+        "keywords": [
+          "Subtract",
+          "subtract",
+          "operator",
+          "build123d.topology.shape_core",
+          "shape",
+          "other"
+        ]
       },
       {
         "id": "intersect",
@@ -2083,7 +2291,16 @@
           "output": {
             "base": "json"
           }
-        }
+        },
+        "description": "intersect shape with self operator &",
+        "keywords": [
+          "Intersect",
+          "intersect",
+          "operator",
+          "build123d.topology.shape_core",
+          "shape",
+          "other"
+        ]
       }
     ]
   }

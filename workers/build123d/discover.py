@@ -108,8 +108,9 @@ def params_of(callable_, hints, *, drop_first):
 
     A param with a non-representable annotation is dropped when it
     carries a default (the default applies at dispatch); a required one
-    makes the callable inadmissible. Variadic parameters are ignored
-    while named parameters remain.
+    makes the callable inadmissible. Positional variadics make the
+    callable inadmissible: the graph wire contract cannot faithfully
+    represent positional argument lists. Keyword variadics are ignored.
     """
     try:
         signature = inspect.signature(callable_)
@@ -119,7 +120,9 @@ def params_of(callable_, hints, *, drop_first):
     for index, item in enumerate(signature.parameters.values()):
         if index == 0 and drop_first:
             continue
-        if item.kind in (item.VAR_POSITIONAL, item.VAR_KEYWORD):
+        if item.kind == item.VAR_POSITIONAL:
+            return None, False
+        if item.kind == item.VAR_KEYWORD:
             continue
         kind = annotation_kind(hints.get(item.name, item.annotation))
         has_default = item.default is not inspect.Parameter.empty
@@ -163,6 +166,9 @@ def main():
             if name.startswith("_") or getattr(obj, "__module__", "") != module_name:
                 continue
             if inspect.isclass(obj):
+                if name in {"BasePartObject", "BaseSketchObject", "BaseCurveObject", "BaseLineObject", "BaseEdgeObject"}:
+                    rejected.append(name)
+                    continue
                 if not (isinstance(obj, type) and issubclass(obj, Shape)):
                     continue
                 if inspect.isabstract(obj):

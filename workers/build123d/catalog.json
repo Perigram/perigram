@@ -5,27 +5,6 @@
   },
   "ops": [
     {
-      "id": "basepartobject",
-      "kind": "constructor",
-      "label": "BasePartObject",
-      "module": "build123d.objects_part",
-      "target": "build123d.objects_part:BasePartObject",
-      "group": "build123d-part",
-      "params": [
-        {
-          "name": "part",
-          "type": "shape",
-          "required": true
-        }
-      ],
-      "returns": "shape",
-      "summary": "BasePartObject\n\nBase class for all BuildPart objects & operations",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
       "id": "box",
       "kind": "constructor",
       "label": "Box",
@@ -380,33 +359,6 @@
       }
     },
     {
-      "id": "basesketchobject",
-      "kind": "constructor",
-      "label": "BaseSketchObject",
-      "module": "build123d.objects_sketch",
-      "target": "build123d.objects_sketch:BaseSketchObject",
-      "group": "build123d-sketch",
-      "params": [
-        {
-          "name": "obj",
-          "type": "shape",
-          "required": true
-        },
-        {
-          "name": "rotation",
-          "type": "number",
-          "required": false,
-          "default": 0
-        }
-      ],
-      "returns": "shape",
-      "summary": "BaseSketchObject\n\nBase class for all BuildSketch objects",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
       "id": "circle",
       "kind": "constructor",
       "label": "Circle",
@@ -423,7 +375,7 @@
           "name": "arc_size",
           "type": "number",
           "required": false,
-          "default": 360.0
+          "default": 360
         }
       ],
       "returns": "shape",
@@ -460,28 +412,6 @@
       ],
       "returns": "shape",
       "summary": "Sketch Object: Ellipse\n\nCreate an ellipse defined by x- and y- radii.",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
-      "id": "polygon",
-      "kind": "constructor",
-      "label": "Polygon",
-      "module": "build123d.objects_sketch",
-      "target": "build123d.objects_sketch:Polygon",
-      "group": "build123d-sketch",
-      "params": [
-        {
-          "name": "rotation",
-          "type": "number",
-          "required": false,
-          "default": 0
-        }
-      ],
-      "returns": "shape",
-      "summary": "Sketch Object: Polygon\n\nCreate a polygon defined by given sequence of points.\n\nNote: the order of the points defines the resulting normal of the Face in Algebra\nmode, where counter-clockwise order creates an upward normal while clockwise order\na downward normal. In Builder mode, the Face is added with an upward normal.",
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
@@ -776,7 +706,7 @@
           "name": "position_on_path",
           "type": "number",
           "required": false,
-          "default": 0.0
+          "default": 0
         },
         {
           "name": "single_line_width",
@@ -787,7 +717,7 @@
           "name": "rotation",
           "type": "number",
           "required": false,
-          "default": 0.0
+          "default": 0
         }
       ],
       "returns": "shape",
@@ -892,69 +822,6 @@
       }
     },
     {
-      "id": "basecurveobject",
-      "kind": "constructor",
-      "label": "BaseCurveObject",
-      "module": "build123d.objects_curve",
-      "target": "build123d.objects_curve:BaseCurveObject",
-      "group": "build123d-curve",
-      "params": [
-        {
-          "name": "curve",
-          "type": "shape",
-          "required": true
-        }
-      ],
-      "returns": "shape",
-      "summary": "BaseCurveObject specialized for Curve.",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
-      "id": "baselineobject",
-      "kind": "constructor",
-      "label": "BaseLineObject",
-      "module": "build123d.objects_curve",
-      "target": "build123d.objects_curve:BaseLineObject",
-      "group": "build123d-curve",
-      "params": [
-        {
-          "name": "curve",
-          "type": "shape",
-          "required": true
-        }
-      ],
-      "returns": "shape",
-      "summary": "BaseLineObject specialized for Wire.",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
-      "id": "baseedgeobject",
-      "kind": "constructor",
-      "label": "BaseEdgeObject",
-      "module": "build123d.objects_curve",
-      "target": "build123d.objects_curve:BaseEdgeObject",
-      "group": "build123d-curve",
-      "params": [
-        {
-          "name": "curve",
-          "type": "shape",
-          "required": true
-        }
-      ],
-      "returns": "shape",
-      "summary": "BaseEdgeObject specialized for Edge.",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
       "id": "airfoil",
       "kind": "constructor",
       "label": "Airfoil",
@@ -981,27 +848,6 @@
       ],
       "returns": "shape",
       "summary": "Create an airfoil described by a 4-digit (or fractional) NACA airfoil\n(e.g. '2412' or '2213.323').\n\nThe NACA four-digit wing sections define the airfoil_code by:\n- First digit describing maximum camber as percentage of the chord.\n- Second digit describing the distance of maximum camber from the airfoil leading edge\nin tenths of the chord.\n- Last two digits describing maximum thickness of the airfoil as percent of the chord.",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
-      "id": "bezier",
-      "kind": "constructor",
-      "label": "Bezier",
-      "module": "build123d.objects_curve",
-      "target": "build123d.objects_curve:Bezier",
-      "group": "build123d-curve",
-      "params": [
-        {
-          "name": "weights",
-          "type": "json",
-          "required": false
-        }
-      ],
-      "returns": "shape",
-      "summary": "Line Object: Bezier Curve\n\nCreate a non-rational bezier curve defined by a sequence of points and include optional\nweights to create a rational bezier curve. The number of weights must match the number\nof control points.",
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
@@ -1037,7 +883,7 @@
         }
       ],
       "returns": "shape",
-      "summary": "Line Object: BlendCurve\n\nCreate a smooth B\u00e9zier-based transition curve between two existing edges.\n\nThe blend is constructed as a cubic (C1) or quintic (C2) B\u00e9zier curve\nwhose control points are determined from the position, first derivative,\nand (for C2) second derivative of the input curves at the chosen endpoints.\nOptional scalar multipliers can be applied to the endpoint tangents to\ncontrol the \"tension\" of the blend.",
+      "summary": "Line Object: BlendCurve\n\nCreate a smooth Bézier-based transition curve between two existing edges.\n\nThe blend is constructed as a cubic (C1) or quintic (C2) Bézier curve\nwhose control points are determined from the position, first derivative,\nand (for C2) second derivative of the input curves at the chosen endpoints.\nOptional scalar multipliers can be applied to the endpoint tangents to\ncontrol the \"tension\" of the blend.",
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
@@ -1085,36 +931,6 @@
       }
     },
     {
-      "id": "constrainedarcs",
-      "kind": "constructor",
-      "label": "ConstrainedArcs",
-      "module": "build123d.objects_curve",
-      "target": "build123d.objects_curve:ConstrainedArcs",
-      "group": "build123d-curve",
-      "params": [],
-      "returns": "shape",
-      "summary": "Line Object: Arc(s) constrained by other geometric objects.\n\nThe result is always a Curve containing one or more Edges. If you need\nto access Edge-specific properties or methods (such as ``arc_center``),\nextract the edge or edges first::\n\n    result = ConstrainedArcs(...)\n    arc = result.edge()           # extract the Edge\n    center = arc.arc_center       # now Edge methods are available\n\nNote that in Builder mode the ``selector`` parameter must be provided or\nall results will be combined into the BuildLine context. In Algebra mode\nthe selector can be applied as a parameter or in the normal way to the\nConstrainedArcs object. The content of the selector is the same in both cases.\n\nExamples:\n    An arc built from three edge constraints.\n\n    Algebra::\n\n        l4 = PolarLine((0, 0), 4, 60)\n        l5 = PolarLine((0, 0), 4, 40)\n        a3 = CenterArc((0, 0), 4, 0, 90)\n        ex_a3 = (\n            ConstrainedArcs(l4, l5, a3, sagitta=Sagitta.BOTH).edges().sort_by(Edge.length)[0]\n        )\n\n    Builder::\n\n        with BuildLine() as arc_ex3:\n            l4 = PolarLine((0, 0), 4, 60)\n            l5 = PolarLine((0, 0), 4, 40)\n            a3 = CenterArc((0, 0), 4, 0, 90)\n            ex_a3 = ConstrainedArcs(\n                l4,\n                l5,\n                a3,\n                sagitta=Sagitta.BOTH,\n                selector=lambda arcs: arcs.sort_by(Edge.length)[0],\n            )",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
-      "id": "constrainedlines",
-      "kind": "constructor",
-      "label": "ConstrainedLines",
-      "module": "build123d.objects_curve",
-      "target": "build123d.objects_curve:ConstrainedLines",
-      "group": "build123d-curve",
-      "params": [],
-      "returns": "shape",
-      "summary": "Line Object: Lines(s) constrained by other geometric objects.\n\nThe result is always a Curve containing one or more Edges. If you need\nto access Edge-specific properties or methods (such as ``length``),\nextract the edge or edges first::\n\n    result = ConstrainedLines(...)\n    lines = result.edges()      # extract the Edges\n    length = lines[1].length    # now Edge methods are available\n\nNote that in Builder mode the ``selector`` parameter must be provided or\nall results will be combined into the BuildLine context. In Algebra mode\nthe selector can be applied as a parameter or in the normal way to the\nConstrainedArcs object. The content of the selector is the same in both cases.",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
       "id": "helix",
       "kind": "constructor",
       "label": "Helix",
@@ -1151,88 +967,6 @@
       ],
       "returns": "shape",
       "summary": "Line Object: Helix\n\nCreate a helix defined by pitch, height, and radius. The helix may have a taper\ndefined by cone_angle.\n\nIf cone_angle is not 0, radius is the initial helix radius at center. cone_angle > 0\nincreases the final radius. cone_angle < 0 decreases the final radius.",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
-      "id": "line",
-      "kind": "constructor",
-      "label": "Line",
-      "module": "build123d.objects_curve",
-      "target": "build123d.objects_curve:Line",
-      "group": "build123d-curve",
-      "params": [],
-      "returns": "shape",
-      "summary": "Line Object: Line\n\nCreate a straight line defined by two points.",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
-      "id": "polyline",
-      "kind": "constructor",
-      "label": "Polyline",
-      "module": "build123d.objects_curve",
-      "target": "build123d.objects_curve:Polyline",
-      "group": "build123d-curve",
-      "params": [
-        {
-          "name": "close",
-          "type": "boolean",
-          "required": false
-        }
-      ],
-      "returns": "shape",
-      "summary": "Line Object: Polyline\n\nCreate a sequence of straight lines defined by successive points.",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
-      "id": "spline",
-      "kind": "constructor",
-      "label": "Spline",
-      "module": "build123d.objects_curve",
-      "target": "build123d.objects_curve:Spline",
-      "group": "build123d-curve",
-      "params": [
-        {
-          "name": "tangents",
-          "type": "json",
-          "required": false
-        },
-        {
-          "name": "tangent_scalars",
-          "type": "json",
-          "required": false
-        },
-        {
-          "name": "periodic",
-          "type": "boolean",
-          "required": false
-        }
-      ],
-      "returns": "shape",
-      "summary": "Line Object: Spline\n\nCreate a spline defined by a sequence of points, optionally constrained by tangents.\nTangents and tangent scalars must have length of 2 for only the end points or a length\nof the number of points.",
-      "provenance": {
-        "source": "build123d",
-        "version": "0.13.0"
-      }
-    },
-    {
-      "id": "threepointarc",
-      "kind": "constructor",
-      "label": "ThreePointArc",
-      "module": "build123d.objects_curve",
-      "target": "build123d.objects_curve:ThreePointArc",
-      "group": "build123d-curve",
-      "params": [],
-      "returns": "shape",
-      "summary": "Line Object: Three Point Arc\n\nCreate a circular arc defined by three points.",
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
@@ -1530,7 +1264,7 @@
           "name": "taper",
           "type": "number",
           "required": false,
-          "default": 0.0
+          "default": 0
         },
         {
           "name": "clean",
@@ -1593,7 +1327,7 @@
           "name": "revolution_arc",
           "type": "number",
           "required": false,
-          "default": 360.0
+          "default": 360
         },
         {
           "name": "clean",
@@ -1625,7 +1359,7 @@
           "name": "height",
           "type": "number",
           "required": false,
-          "default": 0.0
+          "default": 0
         },
         {
           "name": "clean",
@@ -1881,13 +1615,13 @@
           "name": "drawing_scale",
           "type": "number",
           "required": false,
-          "default": 1.0
+          "default": 1
         },
         {
           "name": "nominal_text_size",
           "type": "number",
           "required": false,
-          "default": 10.0
+          "default": 10
         },
         {
           "name": "line_width",
@@ -1998,7 +1732,15 @@
     }
   ],
   "rejected": [
+    "BaseCurveObject",
+    "BaseEdgeObject",
+    "BaseLineObject",
+    "BasePartObject",
+    "BaseSketchObject",
+    "Bezier",
     "CenterArc",
+    "ConstrainedArcs",
+    "ConstrainedLines",
     "DimensionLine",
     "DoubleTangentArc",
     "EllipticalCenterArc",
@@ -2008,12 +1750,17 @@
     "HyperbolicCenterArc",
     "IntersectingLine",
     "JernArc",
+    "Line",
     "ParabolicCenterArc",
     "PolarLine",
+    "Polygon",
+    "Polyline",
     "RadiusArc",
     "SagittaArc",
     "SlotCenterPoint",
+    "Spline",
     "TangentArc",
+    "ThreePointArc",
     "add",
     "draft",
     "insert",

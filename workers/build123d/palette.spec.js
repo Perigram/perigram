@@ -19,8 +19,19 @@ describe('build123d plugin node palette contribution', () => {
       'build123d-sketch',
       'build123d-text'
     ]);
-    expect(items).toHaveLength(64);
+    expect(items).toHaveLength(51);
     expect(new Set(items.map(item => item.id)).size).toBe(64);
     expect(items.every(item => item.kind === 'cts.service')).toBe(true);
+    expect(items.map(item => item.id)).not.toEqual(expect.arrayContaining([
+      'service:basepartobject', 'service:basesketchobject', 'service:basecurveobject',
+      'service:baselineobject', 'service:baseedgeobject', 'service:line',
+      'service:polyline', 'service:polygon', 'service:bezier', 'service:spline',
+      'service:threepointarc', 'service:constrainedarcs', 'service:constrainedlines'
+    ]));
+    expect(items.find(item => item.id === 'service:box')).toMatchObject({
+      label: 'Box',
+      description: expect.stringContaining('Create a box'),
+      searchTerms: expect.arrayContaining(['length', 'width', 'height'])
+    });
   });
 });
