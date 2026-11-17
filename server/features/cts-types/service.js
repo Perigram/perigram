@@ -366,17 +366,6 @@ async function defineTypeInternal(declaration = {}, { organizationId, actor = nu
     throw createError({ statusCode: 400, message: introduced.join('; ') });
   }
 
-  // Build new unique indexes before publishing the declaration. Existing
-  // duplicates therefore refuse the type edit without replacing the stored
-  // contract; stale indexes are pruned only after the new declaration commits.
-  try {
-    await ensureInstanceIndexes(registry.resolveView(organizationId), { organizationId });
-  } catch (error) {
-    if (Number(error?.code) === 11000) {
-      throw createError({ statusCode: 409, message: 'Existing instances violate a declared unique constraint' });
-    }
-    throw error;
-  }
   invalidateInstanceDeclarations(String(organizationId));
   let migrationError = null;
   const stored = await runOrganizationChange(organizationId, {
@@ -385,6 +374,14 @@ async function defineTypeInternal(declaration = {}, { organizationId, actor = nu
     paths: ['declaration', 'typeVersion'],
     actorId: actor
   }, async () => {
+    try {
+      await ensureInstanceIndexes(registry.resolveView(organizationId), { organizationId });
+    } catch (error) {
+      if (Number(error?.code) === 11000) {
+        throw createError({ statusCode: 409, message: 'Existing instances violate a declared unique constraint' });
+      }
+      throw error;
+    }
     let current = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
       ...withoutMigrateSteps(versioned),
       scope: 'org',
