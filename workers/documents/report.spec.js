@@ -289,14 +289,14 @@ describe('report preview surface', () => {
   it('loads the Markdown editor surface with its declared vendor dependencies', async () => {
     await expect(checkSurfaceModule(
       new URL('./surfaces/text-editor.mjs', import.meta.url).pathname,
-      { dependencies: listing.declarations.dependencies }
+      { dependencies: listing.declarations.dependencies, pluginRoot: new URL('.', import.meta.url).pathname }
     )).resolves.toBe(true);
   });
 
   it('loads the CSV editor surface with its declared spreadsheet dependency', async () => {
     await expect(checkSurfaceModule(
       new URL('./surfaces/csv-editor.mjs', import.meta.url).pathname,
-      { dependencies: listing.declarations.dependencies }
+      { dependencies: listing.declarations.dependencies, pluginRoot: new URL('.', import.meta.url).pathname }
     )).resolves.toBe(true);
   });
 
