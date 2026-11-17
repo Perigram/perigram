@@ -450,6 +450,31 @@ describe('graph execution service', () => {
     expect(result.execution.profile).toBe('procedural-bake');
   });
 
+  it('rejects new-instance Bake drafts that can spoof tenancy or lifecycle', async () => {
+    await expect(graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: preview(),
+      outputId: 'document',
+      destination: {
+        type: 'instance-create',
+        typeId: 'part',
+        draft: { name: 'Spoofed', organizationId: 'org-2' }
+      }
+    }, auth)).rejects.toMatchObject({ statusCode: 400 });
+    await expect(graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: preview(),
+      outputId: 'document',
+      destination: {
+        type: 'instance-create',
+        typeId: 'part',
+        draft: { name: 'Forged state', state: 'approved' }
+      }
+    }, auth)).rejects.toMatchObject({ statusCode: 400 });
+    expect(mocks.uploadFile).not.toHaveBeenCalled();
+    expect(payloadService.createForHttp).not.toHaveBeenCalled();
+  });
+
   it('removes a pre-uploaded payload when atomic Bake evidence cannot be persisted', async () => {
     executionService.create.mockRejectedValueOnce(new Error('evidence write failed'));
     await expect(graphExecutionsService.bakeOutput({

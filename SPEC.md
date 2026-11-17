@@ -1935,8 +1935,15 @@ identifies both destination owner/scope and logical location within it.
 Supported destination forms include:
 - A file associated with an explicitly identified Page.
 - A file/representation attached to an explicitly identified CTS instance
-  through a declared attachment field or relation.
-- A newly created instance of an explicitly selected CTS type.
+  through a declared attachment field or relation. A declared revisioned
+  `payload` trait is a supported attachment location: replacement
+  names the exact instance and expected revision; the payload, immutable
+  revision, audit event, and execution evidence commit atomically.
+- A newly created instance of an explicitly selected CTS type. New-instance
+  Bake supplies a typed data draft; the host attaches the output through the
+  type's revisioned payload trait and atomically creates the instance,
+  revision, and execution evidence. Caller-supplied tenancy, lifecycle,
+  provenance, and payload fields are not accepted in that draft.
 - A standalone export/download result.
 
 A page-file destination requires the exact Page identity. An
