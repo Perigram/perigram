@@ -90,7 +90,7 @@ export function composeReport({ title, sectionTitle, flow, rows } = {}) {
   };
 }
 
-function requireReport(report) {
+export function requireReport(report) {
   if (report?.type !== REPORT_TYPE || !Array.isArray(report.sections)) {
     throw badInput(`this operation requires a ${REPORT_TYPE} value`);
   }
