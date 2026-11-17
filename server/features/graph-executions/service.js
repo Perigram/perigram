@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
 import { connectDB } from '~/server/db/mongo';
 import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder } from '#packages/core';
-import { withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
+import { runOrganizationChange, withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '../files/service.js';
 import * as pagesService from '../pages/service.js';
@@ -775,48 +775,56 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   }
 
   await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { requireStableReadSet: true });
-  const bakeId = randomUUID();
-  const timestamp = new Date().toISOString();
-  const baked = await pagesService.bakeFile({
-    pageId: destination.pageId,
-    path: destination.path,
-    buffer,
-    mimeType,
-    conflictPolicy: destination.conflictPolicy || 'fail',
-    provenance: { graphId: preview.graph.id, graphRevision: preview.graph.revision, executionId: bakeId, outputId: selectedOutputId }
-  }, auth);
-  const bakeRecord = createGraphExecutionRecord({
-    ...preview,
-    id: bakeId,
-    profile: 'procedural-bake',
-    status: 'succeeded',
-    startedAt: timestamp,
-    completedAt: timestamp,
-    artifacts: [...(preview.artifacts || []), {
-      kind: 'page-file',
-      pageId: String(destination.pageId),
-      path: baked.file.path,
-      fileId: baked.file.fileId,
-      mime: baked.file.mime,
-      size: baked.file.size,
-      revision: baked.file.revision,
-      outputId: selectedOutputId,
-      sourceExecutionId: preview.id,
-      conflictPolicy: destination.conflictPolicy || 'fail'
-    }]
-  });
-  try {
-    const execution = await persistRecord(bakeRecord, graphDocument, organizationId, auth);
-    return { ...baked, execution };
-  } catch (error) {
+  return await runOrganizationChange(organizationId, {
+    kind: 'graph-output-baked',
+    typeId: 'graph-document',
+    instanceId: String(graphDocument._id),
+    paths: ['outputs', `bake.${destination.pageId}.${destination.path}`],
+    actorId: auth.userId
+  }, async () => {
+    const bakeId = randomUUID();
+    const timestamp = new Date().toISOString();
+    const baked = await pagesService.bakeFile({
+      pageId: destination.pageId,
+      path: destination.path,
+      buffer,
+      mimeType,
+      conflictPolicy: destination.conflictPolicy || 'fail',
+      provenance: { graphId: preview.graph.id, graphRevision: preview.graph.revision, executionId: bakeId, outputId: selectedOutputId }
+    }, auth);
+    const bakeRecord = createGraphExecutionRecord({
+      ...preview,
+      id: bakeId,
+      profile: 'procedural-bake',
+      status: 'succeeded',
+      startedAt: timestamp,
+      completedAt: timestamp,
+      artifacts: [...(preview.artifacts || []), {
+        kind: 'page-file',
+        pageId: String(destination.pageId),
+        path: baked.file.path,
+        fileId: baked.file.fileId,
+        mime: baked.file.mime,
+        size: baked.file.size,
+        revision: baked.file.revision,
+        outputId: selectedOutputId,
+        sourceExecutionId: preview.id,
+        conflictPolicy: destination.conflictPolicy || 'fail'
+      }]
+    });
     try {
-      const rollback = await pagesService.retractBakedFile({ pageId: destination.pageId, fileId: baked.file.fileId }, auth);
-      if (!rollback?.success) throw new Error('Baked file remains referenced by the Page and requires manual provenance repair');
-    } catch (rollbackError) {
-      throw createError({ statusCode: 500, message: 'Bake artifact could not be rolled back after execution recording failed', data: { executionError: error.message, rollbackError: rollbackError.message, fileId: baked.file.fileId } });
+      const execution = await persistRecord(bakeRecord, graphDocument, organizationId, auth);
+      return { ...baked, execution };
+    } catch (error) {
+      try {
+        const rollback = await pagesService.retractBakedFile({ pageId: destination.pageId, fileId: baked.file.fileId }, auth);
+        if (!rollback?.success) throw new Error('Baked file remains referenced by the Page and requires manual provenance repair');
+      } catch (rollbackError) {
+        throw createError({ statusCode: 500, message: 'Bake artifact could not be rolled back after execution recording failed', data: { executionError: error.message, rollbackError: rollbackError.message, fileId: baked.file.fileId } });
+      }
+      throw error;
     }
-    throw error;
-  }
+  }, { expectedSequence: expectedSequenceForReadSet(preview.readSet) });
 }
 
 export async function exportOutput({ graphDocumentInstanceId, record: value, outputId, filename = null } = {}, auth = {}) {
