@@ -244,6 +244,9 @@
       size="md"
     >
       <div v-if="settings" class="flex flex-col gap-4">
+        <Message v-if="settings.hasEndpointServices" severity="info" size="small">
+          {{ $t('plugins.remoteConnectionHelp', { services: settings.services.filter(service => service.mode === 'endpoint').map(service => service.label).join(', ') }) }}
+        </Message>
         <div v-if="settings.hasEndpointServices" class="flex flex-col gap-2">
           <div class="text-muted text-label">{{ $t('plugins.executorOrigin') }}</div>
           <InputText
@@ -267,15 +270,16 @@
             data-testid="plugin-surface-origin"
           />
         </div>
-        <div class="flex flex-col gap-2">
+        <div v-if="settings.hasEndpointServices" class="flex flex-col gap-2">
           <div class="text-muted text-label">{{ $t('plugins.apiKey') }}</div>
           <InputText
             v-model="settings.authToken"
-            type="text"
+            type="password"
             class="w-full text-technical"
             :placeholder="$t('plugins.apiKeyPlaceholder')"
-            autocomplete="off"
+            autocomplete="new-password"
           />
+          <small class="text-muted">{{ $t('plugins.apiKeyHelp') }}</small>
         </div>
       </div>
       <template #footer>
@@ -458,7 +462,7 @@ async function saveSettings() {
       method: 'POST',
       body: {
         executorOrigin: settings.value.executorOrigin || null,
-        authToken: settings.value.authToken || null,
+        ...(settings.value.hasEndpointServices ? { authToken: settings.value.authToken || null } : {}),
         ...(settings.value.surfaces ? { surfaceOrigin: settings.value.surfaceOrigin || null } : {})
       }
     });

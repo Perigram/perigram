@@ -570,7 +570,7 @@ export async function settingsFor({ organizationId, pluginId, auth = {} }) {
   const inferredOrigin = install.executorOrigin || legacyExecutorOrigin(install);
   return {
     pluginId: install.pluginId,
-    authToken: install.authToken || null,
+    authToken: endpointServices.length ? (install.authToken || null) : null,
     executorOrigin: inferredOrigin || '',
     legacyEndpointConflict: !install.executorOrigin && Object.keys(install.endpoints || {}).length > 0 && !inferredOrigin,
     surfaceOrigin: packageOwned ? null : (install.surfaceOrigin || null),
