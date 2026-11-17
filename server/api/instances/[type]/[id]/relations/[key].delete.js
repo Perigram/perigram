@@ -16,8 +16,10 @@ export default defineEventHandler(async event => {
   const body = await readBody(event);
   if (!body || typeof body !== 'object' || Array.isArray(body)
     || !body.target || typeof body.target !== 'object'
-    || body.expectedRevision == null) {
-    throw createError({ statusCode: 400, statusMessage: 'target and expectedRevision are required' });
+    || body.expectedRevision == null
+    || (body.expectedOrganizationSequence != null
+      && (!Number.isSafeInteger(body.expectedOrganizationSequence) || body.expectedOrganizationSequence < 0))) {
+    throw createError({ statusCode: 400, statusMessage: 'target and expectedRevision are required; expectedOrganizationSequence must be a non-negative integer when supplied' });
   }
   const service = getAppRegistry().getInstanceService(typeId);
   if (!service || typeof service.unlinkRelationForHttp !== 'function') {
