@@ -45,6 +45,40 @@ describe('Facade endpoint service behavior', () => {
     expect(result.data.geometry.nestingPolygons).toHaveLength(1);
   });
 
+  it('rejects DXF mappings to unknown or group-only OCCS layer codes', async () => {
+    const dxf = generateLayeredDxf({
+      polygonParts: [{ layer: 'OUTER', coordinates: SQUARE }]
+    });
+    const payloadBase64 = Buffer.from(dxf).toString('base64');
+    await expect(extractGeometry({
+      mode: 'upload',
+      payloadBase64,
+      mapping: { OUTER: 'cut.unknown' }
+    })).rejects.toThrow(/undeclared or non-drawable OCCS layer codes/);
+    await expect(extractGeometry({
+      mode: 'upload',
+      payloadBase64,
+      mapping: { OUTER: 'cut.prefix' }
+    })).rejects.toThrow(/undeclared or non-drawable OCCS layer codes/);
+  });
+
+  it('maps multiple DXF source layers into the outer-cut geometry', async () => {
+    const dxf = generateLayeredDxf({
+      polygonParts: [
+        { layer: 'OUTER_A', coordinates: SQUARE },
+        { layer: 'OUTER_B', coordinates: SQUARE.map(([x, y]) => [x + 120, y]) }
+      ]
+    });
+    const mapping = { OUTER_A: 'cut.outer', OUTER_B: 'cut.outer' };
+    const result = await extractGeometry({
+      mode: 'upload',
+      payloadBase64: Buffer.from(dxf).toString('base64'),
+      mapping
+    });
+    expect(result.data.mapping).toEqual(mapping);
+    expect(result.data.geometry.nestingPolygons).toHaveLength(2);
+  });
+
   it('ships one design item with all of its workpiece parts', async () => {
     const result = await nestingParts({
       typeId: 'cassette-design',

@@ -5,6 +5,7 @@ import {
   listDxfLayers
 } from './vendor/dxf-extractor.js';
 import { OCCS_LAYER_CUT_OUTER } from './occs/layers.js';
+import { occsLayerStandard } from './occs/layerStandards.js';
 import { nestingPartsProjection } from './nesting-projections.js';
 
 function badRequest(message) {
@@ -30,6 +31,13 @@ export async function extractGeometry({ mode, payloadBase64, mapping, payloadMet
       .map(([source, target]) => [String(source).trim(), String(target || '').trim()])
       .filter(([source, target]) => source && target)
   );
+  const invalidTargets = [...new Set(Object.values(layerMapping).filter(target => {
+    const standard = occsLayerStandard(target);
+    return !standard || standard.kind === 'group';
+  }))];
+  if (invalidTargets.length) {
+    badRequest(`DXF layer mapping contains undeclared or non-drawable OCCS layer codes: ${invalidTargets.join(', ')}`);
+  }
   if (!Object.values(layerMapping).includes(OCCS_LAYER_CUT_OUTER)) {
     layerMapping[OCCS_LAYER_CUT_OUTER] = OCCS_LAYER_CUT_OUTER;
   }
