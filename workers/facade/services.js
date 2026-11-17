@@ -136,10 +136,14 @@ export function normalizeNestingItems(items) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) {
       badRequest(`Item ${index} is not a part`);
     }
-    return {
-      ...item,
-      count: Math.max(1, Math.trunc(Number(item.count) || 1))
-    };
+    const authoredCount = Number(item.count);
+    const count = authoredCount === 0 || !Number.isFinite(authoredCount)
+      ? (item.count == null || item.count === '' || authoredCount === 0 ? 1 : NaN)
+      : Math.trunc(authoredCount);
+    if (!Number.isSafeInteger(count) || count < 1) {
+      badRequest(`Item ${index} count must be a positive safe integer`);
+    }
+    return { ...item, count };
   });
 }
 
@@ -152,7 +156,9 @@ export async function nestingSolve({ items, sheetWidth, sheetHeight, space } = {
     sheetCount: nestingSheetCount(normalizedItems)
   };
   for (const key of ['width', 'height', 'space', 'sheetCount']) {
-    if (!(Number(params[key]) > 0)) badRequest(`Nesting params require a positive ${key}`);
+    if (!Number.isFinite(params[key]) || !(params[key] > 0)) {
+      badRequest(`Nesting params require a finite positive ${key}`);
+    }
   }
   const request = buildValueWorkerRequest(normalizedItems, params);
   const result = enrichNestingResult(await callNestingWorker(request), request);
