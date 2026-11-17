@@ -155,3 +155,20 @@ Session `agent/comp-deslop2-20261025-1521` (worktree
 `.agent-worktrees/comp`). Bookkeeping only: "Add parent link" verified
 landed (README.md line 13; the parent inventory registers
 process-designer). No code or README changes in this tree.
+
+## Unified graph usability (2026-11-17)
+
+- [ ] Use the canonical plugin-sdk compatibility result for socket gestures,
+  palette compatibility filtering, graph validation, and execution preflight.
+  Surface the reason and required conversion for incompatible or conditional
+  connections.
+- [ ] Render node configuration from normalized definition schemas and
+  declarative controls. Keep JSON editing as an explicit advanced fallback.
+- [ ] Present provider loading failures per provider and operation, while
+  keeping unrelated graph providers usable.
+- [ ] Verify installed Documents provider discovery through the graph
+  workspace, including search, placement, typed sockets, preview channels,
+  and runtime errors.
+- [ ] Keep graph preview and server execution on the same canonical graph
+  document and provider definitions; expose execution target and capability
+  failures as actionable diagnostics.
