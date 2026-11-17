@@ -1,5 +1,6 @@
 import listing from '../listing.json' with { type: 'json' };
 import * as XLSX from '../assets/vendor/xlsx.mjs';
+import { parseMarkdown } from '../markdown-ir.mjs';
 import { composeReport, extractTable, renderReportHtml, renderDocumentHtml, exportMarkdown, composeDocument, appendDocumentBlock, createDocumentBlock, createInlineValue } from '../report-ir.mjs';
 
 export function createRuntime() {
@@ -15,11 +16,12 @@ export function createRuntime() {
     }
     const blockOperations = ['document-paragraph', 'document-heading', 'document-list', 'document-table', 'document-quote', 'document-code-block', 'document-divider'];
     const inlineOperations = ['inline-text', 'inline-mark', 'inline-link'];
-    if (![...blockOperations, ...inlineOperations, 'compose-document', 'append-document-block', 'extract-table', 'compose-report', 'render-html', 'render-document-html', 'export-markdown', 'export-markdown-file', 'export-html-file'].includes(operationId)) {
+    if (![...blockOperations, ...inlineOperations, 'compose-document', 'append-document-block', 'extract-table', 'compose-report', 'render-html', 'render-document-html', 'export-markdown', 'export-markdown-file', 'export-html-file', 'parse-markdown'].includes(operationId)) {
       throw new Error(`Unsupported Documents shared operation: ${operationId}`);
     }
     if (blockOperations.includes(operationId)) return createDocumentBlock(operationId, input);
     if (inlineOperations.includes(operationId)) return createInlineValue(operationId, input);
+    if (operationId === 'parse-markdown') return parseMarkdown(input.text);
     if (operationId === 'compose-document') return composeDocument(input);
     if (operationId === 'append-document-block') return appendDocumentBlock(input.document, input.block);
     if (operationId === 'extract-table') return extractTable(input.document);

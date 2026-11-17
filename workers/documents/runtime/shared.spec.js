@@ -26,6 +26,7 @@ describe('Documents shared runtime', () => {
     const report = { type: 'document.report', schemaVersion: 1, sections: [{ blocks: [{ type: 'flow', document }] }] };
     const cases = [
       ['csv-text', { rows: [{ value: '1' }] }],
+      ['parse-markdown', { text: '# Hello\n\nA **formatted** paragraph.' }],
       ['read-text-file', { payload: { base64: btoa('Hello'), mime: 'text/plain' } }],
       ['read-table-rows', { payload: { base64: btoa('sku,qty\nA-1,2\n'), mime: 'text/csv' } }],
       ['read-table-cells', { payload: { base64: btoa('sku,qty\nA-1,2\n'), mime: 'text/csv' } }],
@@ -120,6 +121,22 @@ describe('Documents shared runtime', () => {
     });
     expect(block).toEqual({
       value: { type: 'paragraph', children: [{ type: 'text', text: 'From graph' }] }
+    });
+  });
+
+  it('parses Markdown into typed flow-document values in the shared runtime', () => {
+    const document = runtime.execute('parse-markdown', {
+      mode: 'preview',
+      inputs: { text: '# Hello\n\nA **formatted** paragraph.\n\n- One\n- Two' }
+    });
+    expect(document.value).toMatchObject({
+      type: 'text.flow-document',
+      schemaVersion: 1,
+      blocks: [
+        { type: 'heading', level: 1 },
+        { type: 'paragraph', children: [{ type: 'strong' }] },
+        { type: 'list', items: expect.arrayContaining([expect.any(Array)]) }
+      ]
     });
   });
 
