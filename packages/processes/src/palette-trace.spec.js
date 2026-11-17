@@ -9,7 +9,8 @@ import {
   PROCESS_DESIGNER_PALETTE_GROUPS,
   TYPE_AUTHORING_PALETTE_ITEMS,
   declarationNodePorts,
-  servicesPaletteGroups
+  servicesPaletteGroups,
+  pluginPaletteGroups
 } from './designer.js';
 import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { createTypeRegistry, projectDomainFromView, resolveCtsRecord, frameworkTypes } from '../../cts/src/index.js';
@@ -46,6 +47,7 @@ describe('palette trace', () => {
   // there is no type-catalog surface to trace.
   const operationItems = [
     ...servicesPaletteGroups(domain.serviceContracts || {}).flatMap(group => group.items),
+    ...pluginPaletteGroups(domain.projectionContracts || {}, domain.serviceContracts || {}).flatMap(group => group.items),
     ...PROCESS_DESIGNER_PALETTE_GROUPS.flatMap(group => group.items)
   ].filter(item => item.kind);
 
