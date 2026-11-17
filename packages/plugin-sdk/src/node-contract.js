@@ -163,14 +163,7 @@ export function compareNodePorts(source, target) {
     };
   }
 
-  if (source.required === false && target.required !== false) {
-    return {
-      status: 'conditional',
-      compatible: true,
-      reason: 'The required input checks that the optional source produced a value at runtime',
-      conversions: []
-    };
-  }
+  const optionalSource = source.required === false && target.required !== false;
   const from = source.semantic || {};
   const to = target.semantic || {};
   if (typeof from.base !== 'string' || typeof to.base !== 'string') {
@@ -178,9 +171,11 @@ export function compareNodePorts(source, target) {
   }
   if (to.base === 'json' && !to.kind && !to.schema && !to.nominal && !to.provider && !to.entityType && !to.identity && !to.constraints) {
     return {
-      status: 'safe-coercion',
+      status: optionalSource ? 'conditional' : 'safe-coercion',
       compatible: true,
-      reason: 'The target accepts any JSON value',
+      reason: optionalSource
+        ? 'The target accepts JSON and checks that the optional source produced a value at runtime'
+        : 'The target accepts any JSON value',
       conversions: []
     };
   }
@@ -230,11 +225,13 @@ export function compareNodePorts(source, target) {
     };
   }
   return {
-    status: transportWidening ? 'safe-coercion' : 'exact',
+    status: optionalSource ? 'conditional' : transportWidening ? 'safe-coercion' : 'exact',
     compatible: true,
-    reason: transportWidening
-      ? 'An item value is accepted by the collection input'
-      : 'Transport and semantic contracts match',
+    reason: optionalSource
+      ? 'The required input checks that the optional source produced a value at runtime'
+      : transportWidening
+        ? 'An item value is accepted by the collection input'
+        : 'Transport and semantic contracts match',
     conversions: []
   };
 }
