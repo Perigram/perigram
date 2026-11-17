@@ -15,7 +15,7 @@ One `items` document of type `page` per page or section:
 |---|---|
 | `organizationId` | Owning organization (flexible id). |
 | `fields.name` | String, the Page identifier; may be empty. |
-| `fields.blocks` | Ordered block records: `{ id, kind: 'text', text }`, `{ id, kind: 'view', view }`, `{ id, kind: 'reference', ref: { typeId, instanceId, revisionId? } }`, or `{ id, kind: 'file', file }`; sections carry an empty list. File blocks point to immutable `files`-bucket blobs by id and keep a safe page-relative path plus revision history. |
+| `fields.blocks` | Ordered block records: `{ id, kind: 'text', text }`, `{ id, kind: 'view', view }`, `{ id, kind: 'reference', ref: { typeId, instanceId, revisionId? } }`, `{ id, kind: 'collection', collection }`, or `{ id, kind: 'file', file }`; sections carry an empty list. File blocks point to immutable `files`-bucket blobs by id and keep a safe page-relative path plus revision history. |
 | `fields.order` | Block ids in document order. |
 | `fields.section` | Boolean; sections are `true`, pages `false`. |
 | `fields.classTypeId` | Optional class binding; a class page is the one page bound to that organization class. |
@@ -98,8 +98,11 @@ Service seam: `listTree`, `getById`, `create`, `update`, `remove`; `retractBaked
 A file block is a page-owned artifact reference, not a path on the application host. Its logical path is relative to the exact Page id and rejects absolute paths, traversal segments, backslashes, control characters, empty segments, and paths longer than 240 characters. The blob is stored in the organization-scoped `files` bucket with SHA-256 content addressing and provenance metadata (graph identity/revision, execution id, and output id). A path collision must select an explicit policy: fail, append an immutable file revision, replace (organization admin only), or generate a distinct sibling name. Page writes use an `updatedAt` compare-and-swap and the organization's durable change sequence; a race removes the just-uploaded blob and returns 409. Removing a file block or page retracts its page-owned current and historical blobs.
 
 
-## Typed references
+## Typed references and collections
 
 A reference block stores stable type and instance identity plus an optional retained revision id. Target fields are resolved at read time through the ordinary authorized instance read service. Pinned targets pass the current-source authorization check, then resolve the exact retained revision and verify its source identity. Missing, deleted, cross-tenant, or inaccessible targets share an explicit unavailable response.
 
 Backlinks are derived from reference blocks in the organization's pages. They are rebuildable discovery data; the page document owns each forward reference.
+
+
+A graph-output collection block pins a successful graph execution instance, graph document revision, and output id. The graph-executions feature validates the saved graph and output contract, then resolves referenced CTS items through their ordinary read grants. The execution fixes output membership; referenced item projections use current authorized reads.
