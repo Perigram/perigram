@@ -1,15 +1,9 @@
 # CONTAINER: Facade Plugin Executor
 
-The facade fabrication domain as a third-party plugin (SPEC §20): `listing.json` is the whole declaration surface (types,
-services, editor bindings, preview bindings,
-service-backed construction bindings, exports), and this
-process is the executor that owns the domain's compute and its UI. The
-platform carries zero facade code — it reaches this executor through one provider URL. Each request carries
-its service id and input envelope; referenced instances and payloads arrive
-as base64 values, and computed fields/files return. The executor never calls back.
+The facade fabrication domain as a third-party plugin (SPEC §20): `listing.json` declares its types, services, editor bindings, preview bindings, construction bindings, and exports. Managed operations execute from the installed package in browser Workers or the shared server runtime. The endpoint host serves `extract-geometry`, `nesting-parts`, and the plugin's surface modules.
 
-Runs from the repo mount (compose `facade-executor`, port 8790) or as
-its own deployment — nothing here imports platform code. The OCCS
+The endpoint host runs from the repo mount (compose `facade-executor`, port 8790) or as
+its own deployment. The OCCS
 engine (`occs/`) is the domain's single copy: the executor's
 construction services and the browser-side surfaces both use it, the
 executor serves it statically, and
