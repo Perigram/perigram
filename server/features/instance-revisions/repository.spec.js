@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ensureIndexes, findByHash } from './repository.js';
+import { create, ensureIndexes, findByHash, findLatest } from './repository.js';
 import { connectDB } from '../../db/mongo.js';
 
 vi.mock('../../db/mongo.js', () => ({
@@ -14,7 +14,9 @@ describe('entity revisions repository indexes', () => {
       indexes: vi.fn(),
       dropIndex: vi.fn(),
       createIndex: vi.fn(),
-      findOne: vi.fn()
+      findOne: vi.fn(),
+      find: vi.fn(),
+      insertOne: vi.fn()
     };
     connectDB.mockResolvedValue({
       collection: vi.fn(() => collection)
@@ -75,6 +77,20 @@ describe('entity revisions repository indexes', () => {
     await ensureIndexes();
 
     expect(collection.dropIndex).not.toHaveBeenCalled();
+  });
+
+  it('keeps revision lookup and creation inside a supplied transaction session', async () => {
+    const session = { id: 'transaction-session' };
+    collection.findOne.mockResolvedValue({ _id: 'revision-1' });
+    collection.find.mockReturnValue({
+      sort: () => ({ limit: () => ({ next: async () => ({ _id: 'revision-1' }) }) })
+    });
+    await findByHash('part', 'part-1', 'content', 'sha256:abc', { session });
+    expect(collection.findOne).toHaveBeenCalledWith(expect.any(Object), { session });
+    await findLatest('part', 'part-1', 'content', { session });
+    expect(collection.find).toHaveBeenCalledWith(expect.any(Object), { session });
+    await create({ _id: 'revision-2', identity: { uid: 'revision-2' } }, { session });
+    expect(collection.insertOne).toHaveBeenCalledWith(expect.objectContaining({ _id: 'revision-2' }), { session });
   });
 
   it('looks up revisions by the stored source keys', async () => {

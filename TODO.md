@@ -518,8 +518,11 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   `procedural-commit` evidence now persist in one Mongo snapshot transaction;
   a stable organization sequence is reserved by compare-and-swap. Transaction
   support is required and unsupported deployments fail before writes.
-  Remaining: complete the other declared Bake destinations (instance
-  attachment and explicitly typed new instance).
+  Instance-payload Bake is now implemented for one exact revisioned CTS
+  instance: the uploaded blob is compensated on abort, while payload swap,
+  immutable revision, audit event, organization sequence, and execution
+  evidence share one Mongo snapshot transaction. Remaining: Bake to an
+  explicitly typed new instance.
 - [ ] G6 Organization-data consistency — bounded typed CTS queries now
   support exact-instance detail reads, Mongo snapshot transactions where
   supported, sequence-bracketed fallback, and execution read sets that merge

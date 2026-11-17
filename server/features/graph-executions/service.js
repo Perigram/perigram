@@ -664,6 +664,9 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   if (!isPageFile && !isInstancePayload) {
     throw createError({ statusCode: 400, message: 'Bake destination must be page-file or instance-payload' });
   }
+  if (isInstancePayload && destination.conflictPolicy != null && destination.conflictPolicy !== 'fail') {
+    throw createError({ statusCode: 400, message: 'Instance-payload Bake supports only fail-on-conflict semantics' });
+  }
   const { graphDocument, graph, organizationId } = await sourceFor(graphDocumentInstanceId, preview, auth);
   if (!(graph.interface?.outputs || []).some(port => String(port.id) === selectedOutputId)) {
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
@@ -719,7 +722,8 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
             size: buffer.length,
             outputId: selectedOutputId,
             sourceExecutionId: preview.id,
-            conflictPolicy: 'fail'
+            conflictPolicy: 'fail',
+            bucket: 'files'
           }]
         });
         const execution = await persistRecord(bakeRecord, graphDocument, organizationId, auth, session);
