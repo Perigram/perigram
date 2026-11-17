@@ -112,6 +112,11 @@ describe('Documents shared runtime', () => {
     });
     expect(listing.declarations.services.find(service => service.id === 'export-html-file').signature.output)
       .toMatchObject({ base: 'json', kind: 'documents.file' });
+    expect(html.projections).toEqual([expect.objectContaining({
+      id: 'text',
+      output: { base: 'string' },
+      resolve: { service: 'plugin.documents.text' }
+    })]);
   });
 
   it('renders a flow document directly as safe HTML', () => {
