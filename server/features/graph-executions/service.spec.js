@@ -420,7 +420,7 @@ describe('graph execution service', () => {
         instanceId: 'item-1',
         expectedRevision: '3'
       }
-    }, auth)).rejects.toThrow('CTS payload and graph execution evidence could not be committed atomically');
+    }, auth)).rejects.toMatchObject({ statusCode: 500, message: 'CTS payload and graph execution evidence could not be committed atomically' });
 
     expect(mocks.deleteFile).toHaveBeenCalledWith('baked-payload-1', 'files');
   });

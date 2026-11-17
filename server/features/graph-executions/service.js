@@ -730,8 +730,21 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
         return { instance: updated, execution };
       });
     } catch (error) {
-      await filesService.deleteFile(stored.id, 'files').catch(() => {});
-      throw error;
+      try {
+        await filesService.deleteFile(stored.id, 'files');
+      } catch (rollbackError) {
+        throw createError({
+          statusCode: 500,
+          message: 'Instance-payload Bake failed and its uploaded file could not be removed',
+          data: { bakeError: error?.message || String(error), rollbackError: rollbackError?.message || String(rollbackError), fileId: stored.id }
+        });
+      }
+      if (error?.statusCode) throw error;
+      throw createError({
+        statusCode: 500,
+        message: 'CTS payload and graph execution evidence could not be committed atomically',
+        data: { typeId: String(destination.typeId), instanceId: String(destination.instanceId), cause: error?.message || String(error) }
+      });
     }
   }
 
