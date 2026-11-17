@@ -114,13 +114,24 @@ function resolveBakeInstanceTarget(destination, readSet = {}) {
   }
 
   const selector = destination.selector;
-  const query = selector?.query;
-  if (!query || typeof query !== 'object' || Array.isArray(query)
-    || String(query.typeId || '') !== String(destination.typeId)
-    || query.limit !== 1 || query.offset !== 0
+  const sourceQuery = selector?.query;
+  if (!sourceQuery || typeof sourceQuery !== 'object' || Array.isArray(sourceQuery)
+    || Object.keys(sourceQuery).some(key => !['typeId', 'filters', 'sortBy', 'sortDirection', 'limit', 'offset', 'projection'].includes(key))
+    || (sourceQuery.filters != null && (typeof sourceQuery.filters !== 'object' || Array.isArray(sourceQuery.filters)))
+    || String(sourceQuery.typeId || '') !== String(destination.typeId)
+    || sourceQuery.limit !== 1 || (sourceQuery.offset != null && sourceQuery.offset !== 0)
     || (selector.resultIndex != null && selector.resultIndex !== 0)) {
     throw createError({ statusCode: 400, message: 'Instance Bake selector must identify one exact type query with limit 1, offset 0, and resultIndex 0' });
   }
+  const query = {
+    typeId: String(sourceQuery.typeId),
+    filters: sourceQuery.filters || {},
+    sortBy: sourceQuery.sortBy == null ? 'createdAt' : String(sourceQuery.sortBy),
+    sortDirection: sourceQuery.sortDirection == null ? 'desc' : String(sourceQuery.sortDirection),
+    limit: 1,
+    offset: 0,
+    projection: sourceQuery.projection ?? null
+  };
   const matches = (readSet.queries || []).filter(item => stableJson(item.query) === stableJson(query));
   if (matches.length !== 1) {
     throw stalePreviewError('Bake selector must match exactly one query recorded by the successful preview');
