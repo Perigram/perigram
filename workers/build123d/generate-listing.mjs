@@ -29,7 +29,7 @@ const services = catalog.ops.map(op => ({
   id: op.id,
   label: op.label,
   mode: 'endpoint',
-  group: op.group,
+  palette: op.palette,
   cache: 'deterministic',
   render: { label: op.label, icon: KIND_ICONS[op.kind] },
   signature: {
@@ -82,5 +82,5 @@ const listing = {
 parseListing(listing);
 
 writeFileSync(new URL('./listing.json', import.meta.url), JSON.stringify(listing, null, 2) + '\n');
-const groups = new Set(catalog.ops.map(op => op.group));
+const groups = new Set(catalog.ops.map(op => op.palette.group));
 console.log(`listing: ${services.length} services from build123d ${version} across ${groups.size} palette sections (${[...groups].sort().join(', ')})`);

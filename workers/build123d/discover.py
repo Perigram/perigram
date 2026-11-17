@@ -21,14 +21,14 @@ from build123d.topology import Shape
 # The authoring surface: build123d's semantic modules. The palette
 # section derives from the module an operation is discovered in.
 MODULE_GROUPS = {
-    "build123d.objects_part": "build123d-part",
-    "build123d.objects_sketch": "build123d-sketch",
-    "build123d.objects_curve": "build123d-curve",
-    "build123d.operations_generic": "build123d-operations",
-    "build123d.operations_part": "build123d-operations",
-    "build123d.operations_sketch": "build123d-operations",
-    "build123d.drafting": "build123d-drafting",
-    "build123d.text": "build123d-text",
+    "build123d.objects_part": "part",
+    "build123d.objects_sketch": "sketch",
+    "build123d.objects_curve": "curve",
+    "build123d.operations_generic": "operations",
+    "build123d.operations_part": "operations",
+    "build123d.operations_sketch": "operations",
+    "build123d.drafting": "drafting",
+    "build123d.text": "text",
 }
 
 # The shape-algebra operator protocol: each supported special method on
@@ -153,7 +153,7 @@ def main():
             "label": label,
             "module": module,
             "target": target,
-            "group": group or MODULE_GROUPS.get(module, "build123d-" + slugify(module.rsplit(".", 1)[-1])),
+            "palette": {"group": group or MODULE_GROUPS.get(module, "operations")},
             "params": params,
             "returns": returns,
             "summary": summary,

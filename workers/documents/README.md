@@ -19,8 +19,9 @@ types ride the generic instance machinery from the install snapshot.
 - Services (`services.js`, with `csv-text` moved to the browser Worker
   runtime and `extract-table`, `compose-report`, `export-markdown`, and `render-html` moved to the managed server runtime; only the
   remaining endpoint-mode operations are served by `index.js`;
-  the four value services are deterministic-cached and palette-wireable in
-  the `table-data` section): `table-rows`/`table-cells`
+  the projection helper services are synchronous endpoint handlers, not
+  graph palette items; the declared projections are the graph nodes):
+  `table-rows`/`table-cells`
   (payload → first sheet as header-keyed / positional row records),
   `text` (payload → string), `csv-text` (rows → CSV text, serialized by
   `/runtime/browser.mjs` using the bundled XLSX engine) — the

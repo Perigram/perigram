@@ -36,7 +36,7 @@ Parent: [workers README](../README.md). Contract:
 |---|---|
 | `discover.py` | Introspects the installed build123d and emits `catalog.json`: one op per representable constructor (the `objects_part`/`objects_sketch`/`objects_curve` shape factories), function (the `operations_*` modules, `drafting`, `text`), and shape-algebra operator (`Shape.__add__`/`__sub__`/`__and__` as union/subtract/intersect). |
 | `generate-listing.mjs` | Compiles the catalog into `listing.json`, validating through the SDK's `parseListing` before writing. |
-| `catalog.json` | The generated catalog: op id, kind, label, palette group, python target, params, return, doc summary, provenance (`build123d` + version). Committed; the executor's dispatch table. |
+| `catalog.json` | The generated catalog: op id, kind, label, `palette.group`, python target, params, return, doc summary, provenance (`build123d` + version). Committed; the executor's dispatch table. |
 | `listing.json` | The generated listing (one service per op). Committed; the publish input. |
 | `dispatch.py` | The one evaluator: resolves an op from the catalog, coerces args per its param types, calls the real build123d callable, serializes the result. |
 | `server.py` | Transitional provider executor: one `POST /` with `{ operationId, input }`; env `BUILD123D_EXECUTOR_PORT` (8793), `BUILD123D_EXECUTOR_KEY`. |
@@ -74,8 +74,7 @@ return scalars return the scalar.
 In the transitional listing every op is `{ mode: 'endpoint', cache: 'deterministic'
 }`: pure compute over values, replayed by the platform's service cache.
 Scalar params prompt as command parameters; shape and json params are
-graph data sockets. Palette sections derive from the discovered module
-(`part`, `sketch`, `curve`, `operations`, `drafting`, `text`, `algebra`).
+graph data sockets. Palette sections derive from the discovered module and use the shared listing `palette` object (`part`, `sketch`, `curve`, `operations`, `drafting`, `text`, `algebra`).
 
 The listing declares one type, `b3d-part` (file class, `application/step`
 payload, upload creation) — the persistence vocabulary for STEP parts.

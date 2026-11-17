@@ -10,7 +10,6 @@
       "label": "Box",
       "module": "build123d.objects_part",
       "target": "build123d.objects_part:Box",
-      "group": "build123d-part",
       "params": [
         {
           "name": "length",
@@ -33,6 +32,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "part"
       }
     },
     {
@@ -41,7 +43,6 @@
       "label": "Cone",
       "module": "build123d.objects_part",
       "target": "build123d.objects_part:Cone",
-      "group": "build123d-part",
       "params": [
         {
           "name": "bottom_radius",
@@ -70,6 +71,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "part"
       }
     },
     {
@@ -78,7 +82,6 @@
       "label": "ConvexPolyhedron",
       "module": "build123d.objects_part",
       "target": "build123d.objects_part:ConvexPolyhedron",
-      "group": "build123d-part",
       "params": [
         {
           "name": "points",
@@ -91,6 +94,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "part"
       }
     },
     {
@@ -99,7 +105,6 @@
       "label": "CounterBoreHole",
       "module": "build123d.objects_part",
       "target": "build123d.objects_part:CounterBoreHole",
-      "group": "build123d-part",
       "params": [
         {
           "name": "radius",
@@ -127,6 +132,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "part"
       }
     },
     {
@@ -135,7 +143,6 @@
       "label": "CounterSinkHole",
       "module": "build123d.objects_part",
       "target": "build123d.objects_part:CounterSinkHole",
-      "group": "build123d-part",
       "params": [
         {
           "name": "radius",
@@ -164,6 +171,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "part"
       }
     },
     {
@@ -172,7 +182,6 @@
       "label": "Cylinder",
       "module": "build123d.objects_part",
       "target": "build123d.objects_part:Cylinder",
-      "group": "build123d-part",
       "params": [
         {
           "name": "radius",
@@ -196,6 +205,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "part"
       }
     },
     {
@@ -204,7 +216,6 @@
       "label": "Hole",
       "module": "build123d.objects_part",
       "target": "build123d.objects_part:Hole",
-      "group": "build123d-part",
       "params": [
         {
           "name": "radius",
@@ -222,6 +233,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "part"
       }
     },
     {
@@ -230,7 +244,6 @@
       "label": "Sphere",
       "module": "build123d.objects_part",
       "target": "build123d.objects_part:Sphere",
-      "group": "build123d-part",
       "params": [
         {
           "name": "radius",
@@ -261,6 +274,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "part"
       }
     },
     {
@@ -269,7 +285,6 @@
       "label": "Torus",
       "module": "build123d.objects_part",
       "target": "build123d.objects_part:Torus",
-      "group": "build123d-part",
       "params": [
         {
           "name": "major_radius",
@@ -305,6 +320,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "part"
       }
     },
     {
@@ -313,7 +331,6 @@
       "label": "Wedge",
       "module": "build123d.objects_part",
       "target": "build123d.objects_part:Wedge",
-      "group": "build123d-part",
       "params": [
         {
           "name": "xsize",
@@ -356,6 +373,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "part"
       }
     },
     {
@@ -364,7 +384,6 @@
       "label": "Circle",
       "module": "build123d.objects_sketch",
       "target": "build123d.objects_sketch:Circle",
-      "group": "build123d-sketch",
       "params": [
         {
           "name": "radius",
@@ -383,6 +402,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "sketch"
       }
     },
     {
@@ -391,7 +413,6 @@
       "label": "Ellipse",
       "module": "build123d.objects_sketch",
       "target": "build123d.objects_sketch:Ellipse",
-      "group": "build123d-sketch",
       "params": [
         {
           "name": "x_radius",
@@ -415,6 +436,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "sketch"
       }
     },
     {
@@ -423,7 +447,6 @@
       "label": "Rectangle",
       "module": "build123d.objects_sketch",
       "target": "build123d.objects_sketch:Rectangle",
-      "group": "build123d-sketch",
       "params": [
         {
           "name": "width",
@@ -447,6 +470,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "sketch"
       }
     },
     {
@@ -455,7 +481,6 @@
       "label": "RectangleRounded",
       "module": "build123d.objects_sketch",
       "target": "build123d.objects_sketch:RectangleRounded",
-      "group": "build123d-sketch",
       "params": [
         {
           "name": "width",
@@ -484,6 +509,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "sketch"
       }
     },
     {
@@ -492,7 +520,6 @@
       "label": "RegularPolygon",
       "module": "build123d.objects_sketch",
       "target": "build123d.objects_sketch:RegularPolygon",
-      "group": "build123d-sketch",
       "params": [
         {
           "name": "radius",
@@ -526,6 +553,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "sketch"
       }
     },
     {
@@ -534,7 +564,6 @@
       "label": "SlotArc",
       "module": "build123d.objects_sketch",
       "target": "build123d.objects_sketch:SlotArc",
-      "group": "build123d-sketch",
       "params": [
         {
           "name": "arc",
@@ -558,6 +587,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "sketch"
       }
     },
     {
@@ -566,7 +598,6 @@
       "label": "SlotCenterToCenter",
       "module": "build123d.objects_sketch",
       "target": "build123d.objects_sketch:SlotCenterToCenter",
-      "group": "build123d-sketch",
       "params": [
         {
           "name": "center_separation",
@@ -590,6 +621,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "sketch"
       }
     },
     {
@@ -598,7 +632,6 @@
       "label": "SlotOverall",
       "module": "build123d.objects_sketch",
       "target": "build123d.objects_sketch:SlotOverall",
-      "group": "build123d-sketch",
       "params": [
         {
           "name": "width",
@@ -622,6 +655,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "sketch"
       }
     },
     {
@@ -630,7 +666,6 @@
       "label": "Superellipse",
       "module": "build123d.objects_sketch",
       "target": "build123d.objects_sketch:Superellipse",
-      "group": "build123d-sketch",
       "params": [
         {
           "name": "width",
@@ -666,6 +701,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "sketch"
       }
     },
     {
@@ -674,7 +712,6 @@
       "label": "Text",
       "module": "build123d.objects_sketch",
       "target": "build123d.objects_sketch:Text",
-      "group": "build123d-sketch",
       "params": [
         {
           "name": "txt",
@@ -725,6 +762,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "sketch"
       }
     },
     {
@@ -733,7 +773,6 @@
       "label": "Trapezoid",
       "module": "build123d.objects_sketch",
       "target": "build123d.objects_sketch:Trapezoid",
-      "group": "build123d-sketch",
       "params": [
         {
           "name": "width",
@@ -767,6 +806,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "sketch"
       }
     },
     {
@@ -775,7 +817,6 @@
       "label": "Triangle",
       "module": "build123d.objects_sketch",
       "target": "build123d.objects_sketch:Triangle",
-      "group": "build123d-sketch",
       "params": [
         {
           "name": "a",
@@ -819,6 +860,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "sketch"
       }
     },
     {
@@ -827,7 +871,6 @@
       "label": "Airfoil",
       "module": "build123d.objects_curve",
       "target": "build123d.objects_curve:Airfoil",
-      "group": "build123d-curve",
       "params": [
         {
           "name": "airfoil_code",
@@ -851,6 +894,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "curve"
       }
     },
     {
@@ -859,7 +905,6 @@
       "label": "BlendCurve",
       "module": "build123d.objects_curve",
       "target": "build123d.objects_curve:BlendCurve",
-      "group": "build123d-curve",
       "params": [
         {
           "name": "curve0",
@@ -887,6 +932,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "curve"
       }
     },
     {
@@ -895,7 +943,6 @@
       "label": "BSpline",
       "module": "build123d.objects_curve",
       "target": "build123d.objects_curve:BSpline",
-      "group": "build123d-curve",
       "params": [
         {
           "name": "control_points",
@@ -928,6 +975,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "curve"
       }
     },
     {
@@ -936,7 +986,6 @@
       "label": "Helix",
       "module": "build123d.objects_curve",
       "target": "build123d.objects_curve:Helix",
-      "group": "build123d-curve",
       "params": [
         {
           "name": "pitch",
@@ -970,6 +1019,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "curve"
       }
     },
     {
@@ -978,7 +1030,6 @@
       "label": "bounding_box",
       "module": "build123d.operations_generic",
       "target": "build123d.operations_generic:bounding_box",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "objects",
@@ -991,6 +1042,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -999,7 +1053,6 @@
       "label": "chamfer",
       "module": "build123d.operations_generic",
       "target": "build123d.operations_generic:chamfer",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "objects",
@@ -1032,6 +1085,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1040,7 +1096,6 @@
       "label": "fillet",
       "module": "build123d.operations_generic",
       "target": "build123d.operations_generic:fillet",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "objects",
@@ -1058,6 +1113,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1066,7 +1124,6 @@
       "label": "mirror",
       "module": "build123d.operations_generic",
       "target": "build123d.operations_generic:mirror",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "objects",
@@ -1079,6 +1136,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1087,7 +1147,6 @@
       "label": "offset",
       "module": "build123d.operations_generic",
       "target": "build123d.operations_generic:offset",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "objects",
@@ -1121,6 +1180,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1129,7 +1191,6 @@
       "label": "project",
       "module": "build123d.operations_generic",
       "target": "build123d.operations_generic:project",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "target",
@@ -1142,6 +1203,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1150,7 +1214,6 @@
       "label": "scale",
       "module": "build123d.operations_generic",
       "target": "build123d.operations_generic:scale",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "objects",
@@ -1163,6 +1226,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1171,7 +1237,6 @@
       "label": "split",
       "module": "build123d.operations_generic",
       "target": "build123d.operations_generic:split",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "objects",
@@ -1184,6 +1249,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1192,7 +1260,6 @@
       "label": "sweep",
       "module": "build123d.operations_generic",
       "target": "build123d.operations_generic:sweep",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "sections",
@@ -1230,6 +1297,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1238,7 +1308,6 @@
       "label": "extrude",
       "module": "build123d.operations_part",
       "target": "build123d.operations_part:extrude",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "to_extrude",
@@ -1277,6 +1346,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1285,7 +1357,6 @@
       "label": "loft",
       "module": "build123d.operations_part",
       "target": "build123d.operations_part:loft",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "sections",
@@ -1308,6 +1379,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1316,7 +1390,6 @@
       "label": "revolve",
       "module": "build123d.operations_part",
       "target": "build123d.operations_part:revolve",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "profiles",
@@ -1340,6 +1413,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1348,7 +1424,6 @@
       "label": "section",
       "module": "build123d.operations_part",
       "target": "build123d.operations_part:section",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "obj",
@@ -1372,6 +1447,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1380,7 +1458,6 @@
       "label": "thicken",
       "module": "build123d.operations_part",
       "target": "build123d.operations_part:thicken",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "to_thicken",
@@ -1408,6 +1485,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1416,7 +1496,6 @@
       "label": "full_round",
       "module": "build123d.operations_sketch",
       "target": "build123d.operations_sketch:full_round",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "edge",
@@ -1440,6 +1519,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1448,7 +1530,6 @@
       "label": "make_face",
       "module": "build123d.operations_sketch",
       "target": "build123d.operations_sketch:make_face",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "edges",
@@ -1461,6 +1542,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1469,7 +1553,6 @@
       "label": "make_hull",
       "module": "build123d.operations_sketch",
       "target": "build123d.operations_sketch:make_hull",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "edges",
@@ -1482,6 +1565,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1490,7 +1576,6 @@
       "label": "trace",
       "module": "build123d.operations_sketch",
       "target": "build123d.operations_sketch:trace",
-      "group": "build123d-operations",
       "params": [
         {
           "name": "lines",
@@ -1509,6 +1594,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "operations"
       }
     },
     {
@@ -1517,7 +1605,6 @@
       "label": "ArrowHead",
       "module": "build123d.drafting",
       "target": "build123d.drafting:ArrowHead",
-      "group": "build123d-drafting",
       "params": [
         {
           "name": "size",
@@ -1536,6 +1623,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "drafting"
       }
     },
     {
@@ -1544,7 +1634,6 @@
       "label": "Arrow",
       "module": "build123d.drafting",
       "target": "build123d.drafting:Arrow",
-      "group": "build123d-drafting",
       "params": [
         {
           "name": "arrow_size",
@@ -1572,6 +1661,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "drafting"
       }
     },
     {
@@ -1580,7 +1672,6 @@
       "label": "TechnicalDrawing",
       "module": "build123d.drafting",
       "target": "build123d.drafting:TechnicalDrawing",
-      "group": "build123d-drafting",
       "params": [
         {
           "name": "designed_by",
@@ -1635,6 +1726,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "drafting"
       }
     },
     {
@@ -1643,13 +1737,15 @@
       "label": "available_fonts",
       "module": "build123d.text",
       "target": "build123d.text:available_fonts",
-      "group": "build123d-text",
       "params": [],
       "returns": "value",
       "summary": "Get available fonts without initializing the font manager on import.",
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "text"
       }
     },
     {
@@ -1658,7 +1754,6 @@
       "label": "Union",
       "module": "build123d.topology.shape_core",
       "target": "build123d.topology.shape_core:Shape.__add__",
-      "group": "build123d-algebra",
       "params": [
         {
           "name": "shape",
@@ -1676,6 +1771,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "algebra"
       }
     },
     {
@@ -1684,7 +1782,6 @@
       "label": "Subtract",
       "module": "build123d.topology.shape_core",
       "target": "build123d.topology.shape_core:Shape.__sub__",
-      "group": "build123d-algebra",
       "params": [
         {
           "name": "shape",
@@ -1702,6 +1799,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "algebra"
       }
     },
     {
@@ -1710,7 +1810,6 @@
       "label": "Intersect",
       "module": "build123d.topology.shape_core",
       "target": "build123d.topology.shape_core:Shape.__and__",
-      "group": "build123d-algebra",
       "params": [
         {
           "name": "shape",
@@ -1728,6 +1827,9 @@
       "provenance": {
         "source": "build123d",
         "version": "0.13.0"
+      },
+      "palette": {
+        "group": "algebra"
       }
     }
   ],

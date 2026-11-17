@@ -53,7 +53,7 @@ importing the Node-bound root barrel.
 
 ## Node provider palette contract
 
-Every node definition declares `palette.group` as a stable lowercase semantic slug. `palette.label` is the optional human-facing group name and `palette.keywords` are provider-authored search aliases. The SDK rejects missing or malformed group metadata; operation-id prefixes are never inferred as palette categories. Providers keep their operation and port identities independent of labels and grouping.
+Every node definition declares `palette.group` as a stable lowercase semantic slug. `palette.label` is the optional human-facing group name and `palette.keywords` are provider-authored search aliases. The same `palette` object is used by plugin service and projection declarations in `listing.json`: `group` is a stable semantic slug, `label` is the optional human-facing group label, `keywords` are provider-authored search aliases, and `visible: false` keeps construction/projection helpers out of graph-node discovery. The SDK rejects malformed metadata and retired `group` fields; operation-id prefixes are never inferred as palette categories. Providers keep their operation and port identities independent of labels and grouping.
 
 ## Surface mount contracts
 
