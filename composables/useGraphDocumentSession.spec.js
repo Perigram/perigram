@@ -107,7 +107,7 @@ describe('useGraphDocumentSession', () => {
     expect(session.executionRecord.value.provenance.nodes.some(item => item.operation?.provider === 'plugin.example')).toBe(true);
   });
 
-  it('rejects semantically different JSON kinds and validates persisted wires', () => {
+  it('rejects semantically different JSON kinds and validates persisted wires', async () => {
     const session = useGraphDocumentSession({
       t: key => key,
       providers: [{
@@ -148,7 +148,7 @@ describe('useGraphDocumentSession', () => {
     }];
     expect(session.validation.value.ok).toBe(false);
     expect(session.validation.value.errors.join(' ')).toContain('Representation kind');
-    expect(session.refreshPreview()).resolves.toBeNull();
+    await expect(session.refreshPreview()).resolves.toBeNull();
   });
 
   it('composes and exports a Documents flow through listing-derived unified graph nodes', async () => {
