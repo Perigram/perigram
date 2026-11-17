@@ -8,9 +8,37 @@
       <strong class="text-supporting">{{ $t('processDesigner.graphInputValues') }}</strong>
       <div v-for="port in graph.interface.inputs" :key="port.id" class="flex flex-col gap-1">
         <label class="text-supporting text-muted" :for="`graph-input-${port.id}`">{{ port.label || port.id }}</label>
-        <Textarea :id="`graph-input-${port.id}`" v-model="inputDrafts[port.id]" rows="2" auto-resize class="w-full text-supporting" />
+        <InputText
+          v-if="port.contract?.shape === 'item' && port.contract?.semantic?.base === 'string'"
+          :id="`graph-input-${port.id}`"
+          :model-value="inputDrafts[port.id] ?? ''"
+          class="w-full"
+          @update:model-value="inputDrafts[port.id] = $event"
+        />
+        <InputNumber
+          v-else-if="port.contract?.shape === 'item' && ['number', 'integer'].includes(port.contract?.semantic?.base)"
+          :id="`graph-input-${port.id}`"
+          :model-value="inputDrafts[port.id] ?? null"
+          :use-grouping="false"
+          :step="port.contract?.semantic?.base === 'integer' ? 1 : undefined"
+          class="w-full"
+          @update:model-value="inputDrafts[port.id] = $event"
+        />
+        <ToggleSwitch
+          v-else-if="port.contract?.shape === 'item' && port.contract?.semantic?.base === 'boolean'"
+          :model-value="Boolean(inputDrafts[port.id])"
+          @update:model-value="inputDrafts[port.id] = $event"
+        />
+        <Textarea
+          v-else
+          :id="`graph-input-${port.id}`"
+          v-model="inputJsonDrafts[port.id]"
+          rows="2"
+          auto-resize
+          class="w-full text-supporting"
+        />
         <Message v-if="inputErrors[port.id]" severity="error">{{ inputErrors[port.id] }}</Message>
-        <Button size="small" severity="secondary" :label="$t('processDesigner.applyGraphInput')" @click="applyInput(port.id)" />
+        <Button size="small" severity="secondary" :label="$t('processDesigner.applyGraphInput')" @click="applyInput(port)" />
       </div>
     </section>
     <Message v-if="error" severity="error">{{ error }}</Message>
@@ -159,6 +187,8 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Textarea from 'primevue/textarea';
 import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
+import ToggleSwitch from 'primevue/toggleswitch';
 import Message from 'primevue/message';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -181,6 +211,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'update-input-binding', 'bake']);
 const { t } = useI18n();
 const inputDrafts = reactive({});
+const inputJsonDrafts = reactive({});
 const inputErrors = reactive({});
 const selectedOutputId = ref('');
 const selectedPageId = ref('');
@@ -287,7 +318,12 @@ watch(
     for (const key of Object.keys(inputDrafts)) if (!ports.some(port => port.id === key)) delete inputDrafts[key];
     for (const port of ports) {
       const value = Object.hasOwn(bindings, port.id) ? bindings[port.id] : port.default;
-      inputDrafts[port.id] = JSON.stringify(value === undefined ? null : value, null, 2);
+      const base = port.contract?.semantic?.base || 'json';
+      const shape = port.contract?.shape || 'item';
+      if (shape === 'item' && base === 'string') inputDrafts[port.id] = value ?? '';
+      else if (shape === 'item' && ['number', 'integer'].includes(base)) inputDrafts[port.id] = value ?? null;
+      else if (shape === 'item' && base === 'boolean') inputDrafts[port.id] = value ?? false;
+      else inputJsonDrafts[port.id] = JSON.stringify(value === undefined ? null : value, null, 2);
     }
   },
   { immediate: true, deep: true }
@@ -330,9 +366,40 @@ onMounted(async () => {
   }
 });
 
-function applyInput(portId) {
+function applyInput(port) {
+  const portId = port.id;
   try {
-    const value = JSON.parse(inputDrafts[portId] || 'null');
+    const base = port.contract?.semantic?.base || 'json';
+    const shape = port.contract?.shape || 'item';
+    const value = shape === 'item' && base === 'string'
+      ? inputDrafts[portId] ?? ''
+      : shape === 'item' && ['number', 'integer'].includes(base)
+        ? inputDrafts[portId]
+        : shape === 'item' && base === 'boolean'
+          ? Boolean(inputDrafts[portId])
+          : JSON.parse(inputJsonDrafts[portId] || 'null');
+    const semantic = port.contract?.semantic || {};
+    if (value === null && semantic.nullable !== true) {
+      throw new Error(t('processDesigner.graphInputNullNotAllowed'));
+    }
+    if (value === undefined && port.required) {
+      throw new Error(t('processDesigner.graphInputInvalid'));
+    }
+    const validItem = item => {
+      if (item === null) return semantic.nullable === true;
+      if (base === 'string') return typeof item === 'string';
+      if (base === 'number') return typeof item === 'number' && Number.isFinite(item);
+      if (base === 'integer') return Number.isSafeInteger(item);
+      if (base === 'boolean') return typeof item === 'boolean';
+      if (base === 'record') return item && typeof item === 'object' && !Array.isArray(item);
+      return true;
+    };
+    const valid = ['list', 'tuple', 'tree'].includes(shape)
+      ? Array.isArray(value) && value.every(validItem)
+      : shape === 'map'
+        ? value && typeof value === 'object' && !Array.isArray(value)
+        : validItem(value);
+    if (!valid) throw new Error(t('processDesigner.graphInputInvalid'));
     delete inputErrors[portId];
     emit('update-input-binding', { portId, value });
   } catch (cause) {
