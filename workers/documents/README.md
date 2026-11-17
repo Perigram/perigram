@@ -17,9 +17,9 @@ types ride the generic instance machinery from the install snapshot.
   through the default installs). `requires` names tech-drawing: the
   PDF render construction accepts `dxf-source` sources.
 - Services (`services.js`, with `csv-text` moved to the browser Worker
-  runtime and only the remaining endpoint-mode operations served by `index.js`; the four
-  value services are deterministic-cached and palette-wireable in the
-  `table-data` section): `table-rows`/`table-cells`
+  runtime and only the remaining endpoint-mode operations served by `index.js`;
+  the four value services are deterministic-cached and palette-wireable in
+  the `table-data` section): `table-rows`/`table-cells`
   (payload → first sheet as header-keyed / positional row records),
   `text` (payload → string), `csv-text` (rows → CSV text, serialized by
   `/runtime/browser.mjs` using the bundled XLSX engine) — the

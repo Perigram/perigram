@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// The documents plugin's executor (endpoint mode): the platform's
+// The documents plugin's remaining endpoint executor: the platform's
 // Connection settings point each service at
 // `http://<this-host>:<port>/<serviceId>`. Pure compute over values —
-// see services.js (table decomposition, text extraction, CSV
-// composition). Surface modules and their vendored runtimes serve as
+// see services.js (table decomposition, text extraction, and other
+// endpoint-backed payload operations). CSV serialization runs in the
+// browser runtime. Surface modules and their vendored runtimes serve as
 // static GETs beside the services.
 import { createEndpointExecutor } from '@perigram/plugin-sdk/endpoint-executor';
 import { endpointServices } from './services.js';
