@@ -52,8 +52,14 @@ and relation commits remain gated on transactionally validated write sets.
 | Endpoint | Responsibility |
 |---|---|
 | `POST /api/graph-executions/query` | Execute a bounded, authorized CTS instance query and return its read-set evidence. |
+| `GET /api/graph-executions/collection-outputs` | List readable collection outputs from successful saved graph executions. |
+| `GET /api/graph-executions/collection-outputs/:executionInstanceId/:outputId` | Resolve one pinned execution output through the saved graph revision and each referenced instance's read grant. |
 | `POST /api/graph-executions` | Record a validated execution envelope against its saved graph revision. |
-| `POST /api/graph-executions/commit` | Apply one authorized, exact-instance proposal with an expected revision and record its result. |\n| `POST /api/graph-executions/bake` | Materialize a selected output to an exact Page path and record the artifact provenance. |
+| `POST /api/graph-executions/commit` | Apply one authorized, exact-instance proposal with an expected revision and record its result. |
+| `POST /api/graph-executions/bake` | Materialize a selected output to an exact Page path and record the artifact provenance. |
 | `POST /api/graph-executions/export` | Return a selected output as a download and record export provenance. |
 
 The canonical execution envelope lives in [@perigram/core](../../../packages/core/README.md). The Page file destination contract lives in [pages](../pages/README.md).
+
+
+Page collection embeds can pin one successful graph execution and one collection output. The saved graph document and revision are revalidated when the output is read; each referenced CTS instance is resolved through its ordinary read grant. The execution pins output membership, while referenced instance projections remain current authorized reads.

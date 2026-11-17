@@ -216,7 +216,9 @@ the `section` field set.
   `ReferenceEmbed.vue` as sibling components outside any editor. `DocumentSectionShell` and
   `OverlayInsertControl` provide the gutter plus, drag reorder, and
   delete; the document's last text block is a real empty block, and
-  typing in it appends a fresh empty block. The header's Reference picker
+  typing in it appends a fresh empty block. The header's Graph output picker
+  selects a readable collection output from a saved execution and pins its
+  execution/output identity. The Reference picker
   inserts a live or exact-revision typed-reference block; the page surface
   resolves it through the pages API and renders its authorized projection.
   The crepe configuration follows the documents plugin's reference mount

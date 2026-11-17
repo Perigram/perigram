@@ -36,7 +36,9 @@ Routes are grouped into sub-directories corresponding to features:
   explicitly selected Page, revisioned instance payload, declared Blob field,
   declared relation attachment, or new typed instance; and
   `POST /api/graph-executions/export` returns one selected output as a download
-  while recording export provenance. All routes delegate to the
+  while recording export provenance; the collection-outputs GET routes list
+  readable collection outputs from successful executions and resolve one
+  pinned output through its saved graph revision. All routes delegate to the
   [graph-executions feature](../features/graph-executions/README.md).
 - `instances/`: The generic per-type instance transport (`/api/instances/:type`
   and `/api/instances/:type/:id`) serving every pack and org-authored type

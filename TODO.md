@@ -577,10 +577,11 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
 - [ ] G8 Typed references and embeds — Page blocks now author live/pinned
   typed references, resolve them through the target read grant, render a
   shared unavailable state for inaccessible targets, and expose rebuildable
-  org-scoped backlinks. Existing saved-view collection embeds
-  remain live. Remaining: collection embeds backed by saved-query/graph-output
-  graph-output collection embeds, explicit parameters, and pinned result
-  snapshots; integrate both source kinds into the common renderer.
+  org-scoped backlinks. Saved-query embeds can pin their definition revision
+  while rendering live authorized results. Graph-output embeds can pin a
+  successful execution and resolve its collection through the saved graph
+  revision and target read grants. Remaining: parameter binding and frozen
+  result data snapshots for referenced instances.
 - [ ] G9 Procedural vertical slices — document/data and geometry workflows
   exercise provider registration, preview, Commit/Bake, and provenance.
 - [ ] G10 Process migration — inventory all stored process graphs, produce
@@ -7672,4 +7673,4 @@ degradation/editor laws in Program B notes.
 - Page documents accept typed reference blocks with stable type/instance identity and an optional exact retained revision. The picker inserts live references or selects a retained content revision.
 - Resolution checks the source's ordinary read grant, loads the selected revision, and verifies its source identity. Missing and inaccessible targets share one unavailable response.
 - Page surfaces render live/pinned reference embeds. Backlinks are derived from the owning organization's page documents and remain rebuildable.
-- Saved-query collection embeds carry a pinned viewState definition revision, explicit empty parameters, and live authorized collection results. G8 remains open for graph-output collection embeds, parameter binding, and pinned result snapshots.
+- Saved-query collection embeds carry a pinned viewState definition revision, explicit empty parameters, and live authorized collection results. Graph-output collection embeds pin an execution/output pair and revalidate the saved graph revision when read; referenced instances resolve through their current read grants. Parameter binding and frozen result data snapshots remain.
