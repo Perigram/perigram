@@ -282,6 +282,10 @@ describe('useGraphDocumentSession', () => {
     });
     const [input, output] = session.paletteGroups.value[0].items;
     const inputNode = session.addNode(input, { x: 0, y: 0 });
+    session.updateBoundaryDeclaration(inputNode.id, {
+      contract: { shape: 'item', semantic: { base: 'number' } },
+      required: true
+    });
     const item = session.paletteGroups.value.flatMap(group => group.items).find(entry => entry.operation?.id === 'fail');
     const node = session.addNode(item, { x: 120, y: 0 });
     const outputNode = session.addNode(output, { x: 360, y: 0 });
