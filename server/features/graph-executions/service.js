@@ -86,6 +86,56 @@ function expectedSequenceForValidation(readSet, boundary) {
     : null;
 }
 
+function stableJson(value) {
+  if (Array.isArray(value)) return '[' + value.map(stableJson).join(',') + ']';
+  if (value && typeof value === 'object') {
+    return '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + stableJson(value[key])).join(',') + '}';
+  }
+  return JSON.stringify(value);
+}
+
+function resolveBakeInstanceTarget(destination, readSet = {}) {
+  if (destination.instanceId != null) {
+    if (destination.selector != null || destination.expectedRevision == null) {
+      throw createError({ statusCode: 400, message: 'Exact instance Bake requires only instanceId and expectedRevision; do not combine it with a selector' });
+    }
+    const instanceId = String(destination.instanceId).trim();
+    const expectedRevision = String(destination.expectedRevision);
+    const dependency = (readSet.instances || []).find(item =>
+      String(item.typeId) === String(destination.typeId) && String(item.instanceId) === instanceId
+    );
+    if (dependency?.revision != null && String(dependency.revision) !== expectedRevision) {
+      throw stalePreviewError('Bake target revision does not match the graph preview read set');
+    }
+    return { instanceId, expectedRevision };
+  }
+
+  const selector = destination.selector;
+  const query = selector?.query;
+  if (!query || typeof query !== 'object' || Array.isArray(query)
+    || String(query.typeId || '') !== String(destination.typeId)
+    || query.limit !== 1 || query.offset !== 0
+    || (selector.resultIndex != null && selector.resultIndex !== 0)) {
+    throw createError({ statusCode: 400, message: 'Instance Bake selector must identify one exact type query with limit 1, offset 0, and resultIndex 0' });
+  }
+  const matches = (readSet.queries || []).filter(item => stableJson(item.query) === stableJson(query));
+  if (matches.length !== 1) {
+    throw stalePreviewError('Bake selector must match exactly one query recorded by the successful preview');
+  }
+  const result = matches[0];
+  if (result.resultIds?.length !== 1 || result.observedTotal !== 1) {
+    throw stalePreviewError('Bake selector did not resolve exactly one instance in the preview');
+  }
+  const instanceId = String(result.resultIds[0]);
+  const dependency = (readSet.instances || []).find(item =>
+    String(item.typeId) === String(destination.typeId) && String(item.instanceId) === instanceId
+  );
+  if (!dependency?.revision) {
+    throw stalePreviewError('Bake selector target has no revision in the preview read set');
+  }
+  return { instanceId, expectedRevision: String(dependency.revision) };
+}
+
 async function persistRecord(record, graphDocument, organizationId, auth, session = null) {
   const service = getAppRegistry().getInstanceService('graph-execution');
   const draft = {
@@ -678,11 +728,11 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   if (isPageFile && (!destination.pageId || !destination.path)) {
     throw createError({ statusCode: 400, message: 'Page-file Bake requires an exact Page and relative file path' });
   }
-  if (isInstancePayload && (!destination.typeId || !destination.instanceId || destination.expectedRevision == null)) {
-    throw createError({ statusCode: 400, message: 'Instance-payload Bake requires an exact type, instance, and expected revision' });
+  if (isInstancePayload && (!destination.typeId || !((destination.instanceId != null && destination.expectedRevision != null && destination.selector == null) || (destination.instanceId == null && destination.expectedRevision == null && destination.selector != null)))) {
+    throw createError({ statusCode: 400, message: 'Instance-payload Bake requires an exact revisioned instance or a single-result preview selector' });
   }
-  if (isInstanceField && (!destination.typeId || !destination.instanceId || !destination.fieldId || destination.expectedRevision == null)) {
-    throw createError({ statusCode: 400, message: 'Instance-field Bake requires an exact type, instance, Blob field, and expected revision' });
+  if (isInstanceField && (!destination.typeId || !destination.fieldId || !((destination.instanceId != null && destination.expectedRevision != null && destination.selector == null) || (destination.instanceId == null && destination.expectedRevision == null && destination.selector != null)))) {
+    throw createError({ statusCode: 400, message: 'Instance-field Bake requires a declared Blob field and an exact revisioned instance or a single-result preview selector' });
   }
   if (isInstanceCreate && (!destination.typeId || !destination.draft || typeof destination.draft !== 'object' || Array.isArray(destination.draft)
     || Object.keys(destination.draft).some(key => !['name', 'fields', 'lineage', 'relations'].includes(key)))) {
@@ -704,6 +754,9 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
   }
 
+  const resolvedInstanceTarget = (isInstancePayload || isInstanceField)
+    ? resolveBakeInstanceTarget(destination, preview.readSet)
+    : null;
   const { buffer, mimeType, filename: materializedFilename } = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId,
     (isInstancePayload || isInstanceCreate || isInstanceField) ? destination.filename || null : null);
 
@@ -731,7 +784,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     try {
       return await withMongoWriteTransaction(async session => {
         const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
-        const updated = await instanceService.patch(destination.instanceId, {
+        const updated = await instanceService.patch(resolvedInstanceTarget.instanceId, {
           fields: {
             [fieldId]: {
               fileId: stored.id,
@@ -742,7 +795,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
         }, {
           auth,
           organizationId,
-          expectedRevision: destination.expectedRevision,
+          expectedRevision: resolvedInstanceTarget.expectedRevision,
           expectedOrganizationSequence: expectedSequenceForValidation(preview.readSet, validationBoundary),
           session
         });
@@ -788,7 +841,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
       throw createError({
         statusCode: 500,
         message: 'CTS attachment field and graph execution evidence could not be committed atomically',
-        data: { typeId, instanceId: String(destination.instanceId), fieldId, cause: error?.message || String(error) }
+        data: { typeId, instanceId: resolvedInstanceTarget.instanceId, fieldId, cause: error?.message || String(error) }
       });
     }
   }
@@ -812,7 +865,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
       return await withMongoWriteTransaction(async session => {
         const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
         const updated = isInstancePayload
-          ? await instanceService.replacePayload(destination.instanceId, {
+          ? await instanceService.replacePayload(resolvedInstanceTarget.instanceId, {
               buffer,
               filename,
               mimeType
@@ -821,7 +874,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
               userId: auth.userId,
               organizationId,
               session,
-              expectedRevision: destination.expectedRevision,
+              expectedRevision: resolvedInstanceTarget.expectedRevision,
               expectedOrganizationSequence: expectedSequenceForValidation(preview.readSet, validationBoundary),
               storedFile: stored
             })
@@ -876,7 +929,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
       throw createError({
         statusCode: 500,
         message: 'CTS payload and graph execution evidence could not be committed atomically',
-        data: { typeId: String(destination.typeId), instanceId: String(destination.instanceId), cause: error?.message || String(error) }
+        data: { typeId: String(destination.typeId), instanceId: resolvedInstanceTarget.instanceId, cause: error?.message || String(error) }
       });
     }
   }
