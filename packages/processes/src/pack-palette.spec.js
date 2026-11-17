@@ -17,6 +17,7 @@ describe('pluginPaletteGroups', () => {
 
   it('emits one item per operation across types, projection pre-bound, type unbound', () => {
     const groups = pluginPaletteGroups(projections, {});
+    expect(groups.every(group => group.source === 'plugin')).toBe(true);
     const tableData = groups.find(group => group.id === 'tableData');
     expect(tableData.items.map(item => item.id)).toEqual(['extract:rows', 'extract:cells', 'extract:text']);
     for (const item of tableData.items) {

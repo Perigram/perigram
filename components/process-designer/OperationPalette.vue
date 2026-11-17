@@ -52,8 +52,8 @@ import { signalBgClass } from '~/utils/processDesignerSignals.js';
 
 // The context palette's list (right-click, wire drop): searchable chips
 // over two provenance tiers — the platform's built-in categories and
-// the plugin sections (palette groups declared `source: 'pack'` by
-// packages/processes' pack-palette projection). Search spans every
+// the plugin sections (palette groups declared `source: 'plugin'` by
+// the shared plugin-palette projection). Search spans every
 // tier. Each chip's dot uses the same token that stripes the canvas
 // node the chip creates (utils/processDesignerSignals.js is the one
 // map; literal classes only — dynamic strings compile to nothing).
