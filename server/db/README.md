@@ -11,6 +11,7 @@ Parent: [server](../README.md).
   to Nuxt runtime config). File storage rides the files feature's own
   GridFS bucket.
 - `indexes.js`: the collection index manifest and its CLI.
+- `transactions.js`: `withMongoSnapshotTransaction(callback)` runs the callback in a Mongo session with snapshot read concern, majority write concern, and primary read preference. It closes the session after completion and returns `503` when the deployment lacks transaction support.
 
 ## Index Management
 

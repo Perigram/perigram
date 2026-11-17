@@ -18,7 +18,7 @@ Parent: [root README](../README.md).
 | Effects | [server/core/effects/](./core/effects/README.md) | Declared cross-entity effect execution and domain-event validation. |
 | Idempotency | [server/core/idempotency/](./core/idempotency/README.md) | Replay dedupe for mutating `/api/**` requests. |
 | Runtime registry | [server/runtime/](./runtime/README.md) | Explicit app registry binding domain contracts to services/handlers. |
-| Database | [server/db/](./db/README.md) | MongoDB connection, GridFS buckets, collection index management. |
+| Database | [server/db/](./db/README.md) | MongoDB connection, GridFS buckets, collection indexes, and snapshot transactions. |
 | Middleware | [server/middleware/](./middleware/README.md) | Auth context, idempotency pre-check, request logging, tracking cookie. |
 | Scripts | [server/scripts/](./scripts/README.md) | One-shot migrations, seeds, and repair helpers. |
 | Utilities | [server/utils/](./utils/README.md) | Auth and multi-tenant permission helpers for routes and services. |

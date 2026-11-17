@@ -1,6 +1,6 @@
 # COMPONENT: Graph Executions
 
-The graph-executions capability authorizes graph data reads and execution records against saved graph revisions, then coordinates explicit output materialization.
+The graph-executions capability authorizes graph data reads and execution records against saved graph revisions, then coordinates explicit output materialization. Mongo transaction mechanics are owned by [the database layer](../../db/README.md#files).
 
 Parent: [server features](../README.md).
 
