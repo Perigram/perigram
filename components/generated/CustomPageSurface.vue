@@ -19,6 +19,7 @@
           @click="classEditorOpen = true"
         />
         <Button label="Reference" icon="pi pi-link" size="small" text severity="secondary" @click="referencePickerOpen = true" />
+        <Button label="Graph output" icon="pi pi-sitemap" size="small" text severity="secondary" @click="graphOutputPickerOpen = true" />
         <Button
           v-if="session.dirty"
           :label="t('common.save')"
@@ -76,9 +77,14 @@
             v-else-if="session.blockByKey(key)?.kind === 'reference'"
             :result="referenceByBlockId[key] || null"
           />
+          <GraphOutputEmbed
+            v-else-if="session.blockByKey(key)?.kind === 'collection'"
+            :collection="session.blockByKey(key).collection"
+          />
         </DocumentSectionShell>
       </div>
       <ReferencePickerDialog :visible="referencePickerOpen" @close="referencePickerOpen = false" @pick="pickReference" />
+      <GraphOutputPickerDialog :visible="graphOutputPickerOpen" @close="graphOutputPickerOpen = false" @pick="pickCollection" />
       <ViewPickerDialog
         :visible="session.viewPickerAt !== null"
         @close="session.closeViewPicker"
@@ -111,6 +117,8 @@ import PageFileEmbed from './PageFileEmbed.vue';
 import ReferenceEmbed from './ReferenceEmbed.vue';
 import ViewPickerDialog from './ViewPickerDialog.vue';
 import ReferencePickerDialog from './ReferencePickerDialog.vue';
+import GraphOutputEmbed from './GraphOutputEmbed.vue';
+import GraphOutputPickerDialog from './GraphOutputPickerDialog.vue';
 import GeneratedScreenHost from './GeneratedScreenHost.vue';
 import ClassDialog from '~/components/type-designer/ClassDialog.vue';
 import { classListScreenForTypeId } from './detail-screen-actions.js';
@@ -135,6 +143,7 @@ provide('uiMappingSpacing', reactive(spacingClasses(1)));
 
 const classEditorOpen = ref(false);
 const referencePickerOpen = ref(false);
+const graphOutputPickerOpen = ref(false);
 const referenceResults = ref([]);
 const referenceByBlockId = computed(() => Object.fromEntries(referenceResults.value.map(result => [result.blockId, result])));
 const page = computed(() => pagesStore.pageById(props.docId));
@@ -163,6 +172,11 @@ async function commitName(name) {
 function pickReference(reference) {
   session.insertReference(reference);
   referencePickerOpen.value = false;
+}
+
+function pickCollection(collection) {
+  session.insertCollection(collection);
+  graphOutputPickerOpen.value = false;
 }
 
 function openClassInstance({ typeId, instanceId } = {}) {

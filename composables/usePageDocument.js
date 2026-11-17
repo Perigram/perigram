@@ -158,6 +158,15 @@ export function usePageDocumentSession({ docId, tabKey }) {
     return insertBlock(block, at);
   }
 
+  function insertCollection(collection = {}) {
+    const source = collection.source && typeof collection.source === 'object' ? collection.source : {};
+    if (source.kind !== 'graph-output' || !source.executionInstanceId || !source.outputId) return null;
+    const block = { id: createBlockId('c'), kind: 'collection', collection: { source: { ...source }, parameters: collection.parameters || {}, resultPolicy: 'pinned' } };
+    const last = draftOrder.value[draftOrder.value.length - 1];
+    const at = isEmptyText(blockById.value.get(last)) ? draftOrder.value.length - 1 : draftOrder.value.length;
+    return insertBlock(block, at);
+  }
+
   function removeBlock(blockId) {
     draftBlocks.value = draftBlocks.value.filter(block => block.id !== blockId);
     draftOrder.value = draftOrder.value.filter(key => key !== blockId);
@@ -274,6 +283,7 @@ export function usePageDocumentSession({ docId, tabKey }) {
     openViewPickerAtEnd,
     pickView,
     insertReference,
+    insertCollection,
     closeViewPicker: () => { viewPickerAt.value = null; },
     moveCaret,
     removeBlock,
