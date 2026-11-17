@@ -427,7 +427,7 @@ async function confirmInstall() {
 }
 
 function hasEndpointServices(item) {
-  return (item.services || []).some(service => service.mode === 'endpoint');
+  return item.platformManaged !== true && (item.services || []).some(service => service.mode === 'endpoint');
 }
 
 function hasRemoteServices(item) {
@@ -446,7 +446,8 @@ async function openSettings(item) {
       surfaces: response.surfaces || false,
       executorOrigin: response.executorOrigin || '',
       legacyEndpointConflict: response.legacyEndpointConflict || false,
-      hasEndpointServices: response.hasEndpointServices || false
+      hasEndpointServices: response.hasEndpointServices || false,
+      platformManaged: response.platformManaged === true
     };
   } catch (error) {
     settingsDialogVisible.value = false;

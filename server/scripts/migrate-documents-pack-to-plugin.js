@@ -32,15 +32,7 @@ const executorUrl = process.env.DOCUMENTS_EXECUTOR_URL || 'http://documents-exec
 const listingPath = process.argv[2] || 'workers/documents/listing.json';
 const listing = normalizeListing(JSON.parse(readFileSync(listingPath, 'utf8')));
 
-function endpointsFor(services = []) {
-  const endpoints = {};
-  for (const service of services) {
-    if (service?.mode === 'endpoint' && service.id) {
-      endpoints[service.id] = `${executorUrl.replace(/\/+$/, '')}/${service.id}`;
-    }
-  }
-  return endpoints;
-}
+
 
 const db = await connectDB();
 
@@ -63,7 +55,7 @@ for (const org of orgs) {
   if (existing) {
     await db.collection('plugin_installs').updateOne(
       { organizationId, pluginId: listing.pluginId },
-      { $set: { endpoints: endpointsFor(existing.services || listing.declarations.services) } }
+      { $set: { executorOrigin: executorUrl, platformManaged: true }, $unset: { endpoints: '' } }
     );
     alreadyInstalled += 1;
   } else {
@@ -75,7 +67,8 @@ for (const org of orgs) {
       declarations: listing.declarations,
       services: listing.declarations.services,
       requires: listing.requires,
-      endpoints: endpointsFor(listing.declarations.services),
+      executorOrigin: executorUrl,
+      platformManaged: true,
       connectorToken: randomBytes(24).toString('base64url'),
       installedAt: new Date()
     });

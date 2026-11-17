@@ -24,6 +24,19 @@ import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-sur
 // claim queue is plugin.<pluginId>@<organizationId>.
 const PLUGIN_COMMAND_PATTERN = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 
+const BUILTIN_EXECUTORS = Object.freeze({
+  documents: ['DOCUMENTS_EXECUTOR_URL', 'http://documents-executor:8791'],
+  facade: ['FACADE_EXECUTOR_URL', 'http://facade-executor:8790'],
+  'tech-drawing': ['TECH_DRAWING_EXECUTOR_URL', 'http://tech-drawing-executor:8792'],
+  build123d: ['BUILD123D_EXECUTOR_URL', 'http://build123d-executor:8793']
+});
+
+function builtinExecutorOrigin(pluginId) {
+  const entry = BUILTIN_EXECUTORS[pluginId];
+  return entry ? (process.env[entry[0]] || entry[1]) : null;
+}
+
+
 export async function listCatalog({ auth = {} } = {}) {
   const listings = await repository.listCatalog();
   // A private listing is served only to its owning organizations (the
@@ -196,9 +209,16 @@ export async function installFromCatalog({ organizationId, pluginId, executorOri
   if (Object.keys(legacyMap).length && !inferredLegacyOrigin) {
     throw createError({ statusCode: 400, message: 'Plugin installs accept one provider-level executor origin, not per-service endpoint URLs' });
   }
-  const configuredOrigin = executorOrigin
-    ? configuredExecutorOriginFor(services, executorOrigin)
-    : inferredLegacyOrigin;
+  const platformManaged = listing.builtin === true;
+  if (platformManaged && executorOrigin) {
+    throw createError({ statusCode: 400, message: 'Built-in plugin executor origins are managed by the platform' });
+  }
+  const hasEndpointServices = services.some(item => serviceModeOf(item) === 'endpoint');
+  const configuredOrigin = platformManaged && hasEndpointServices
+    ? configuredExecutorOriginFor(services, builtinExecutorOrigin(pluginId))
+    : (executorOrigin
+      ? configuredExecutorOriginFor(services, executorOrigin)
+      : inferredLegacyOrigin);
   let configuredSurfaceOrigin = null;
   let packageAssets = null;
   try {
@@ -225,6 +245,7 @@ export async function installFromCatalog({ organizationId, pluginId, executorOri
       declarations: { types, editors, constructions, starterConstructs, dependencies, runtimes, exports: exportBindings, surfaces, previews: layer.previews, previewChannels: layer.previewChannels, ...(engine ? { engine } : {}) },
       services,
       requires,
+      platformManaged,
       executorOrigin: configuredOrigin,
       packageAssets,
       assetStorage: { kind: 'organization', materializedAt: new Date() },
@@ -383,6 +404,7 @@ function serializeInstall(install = {}) {
     name: install.name || install.pluginId,
     version: install.version || '1',
     installedAt: install.installedAt,
+    platformManaged: install.platformManaged === true || install.builtin === true,
     requires: install.requires || [],
     types: (install.declarations?.types || []).map(typeSummary),
     services: (install.services || []).map(serviceSummary)
@@ -574,7 +596,8 @@ export async function settingsFor({ organizationId, pluginId, auth = {} }) {
   const inferredOrigin = install.executorOrigin || legacyExecutorOrigin(install);
   return {
     pluginId: install.pluginId,
-    authToken: endpointServices.length ? (install.authToken || null) : null,
+    platformManaged: install.platformManaged === true || install.builtin === true,
+    authToken: install.platformManaged || install.builtin ? null : (endpointServices.length ? (install.authToken || null) : null),
     executorOrigin: inferredOrigin || '',
     legacyEndpointConflict: !install.executorOrigin && Object.keys(install.endpoints || {}).length > 0 && !inferredOrigin,
     surfaceOrigin: packageOwned ? null : (install.surfaceOrigin || null),
@@ -638,6 +661,10 @@ export async function updateSettings({ organizationId, pluginId, executorOrigin 
   assertOrganizationPermission(auth, 'admin');
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
+  if ((install.platformManaged === true || install.builtin === true)
+    && (executorOrigin !== undefined || endpoints !== undefined || authToken)) {
+    throw createError({ statusCode: 400, message: 'This plugin executor is managed by the platform and cannot be changed in organization settings' });
+  }
   let requestedOrigin = executorOrigin;
   if (requestedOrigin === undefined && endpoints !== undefined) {
     const legacyMap = configuredEndpointsFor(install.services, endpoints);

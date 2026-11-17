@@ -1121,6 +1121,41 @@ describe('endpoint-mode services', () => {
     ));
   });
 
+  it('pre-wires built-in Documents executors without asking an organization for an endpoint', async () => {
+    vi.stubEnv('DOCUMENTS_EXECUTOR_URL', 'http://documents-executor:8791');
+    try {
+      repository.findCatalogByPluginId.mockResolvedValue({
+        ...coatingListing,
+        builtin: true,
+        declarations: {
+          ...coatingListing.declarations,
+          services: [{ id: 'render', mode: 'endpoint', signature: { input: { base: 'json' }, output: { base: 'json' } } }]
+        }
+      });
+      await installFromCatalog({ organizationId: ORG, pluginId: 'documents' });
+      expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
+        pluginId: 'documents', platformManaged: true, executorOrigin: 'http://documents-executor:8791'
+      }));
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('does not expose platform-managed executor credentials as organization settings', async () => {
+    repository.findInstall.mockResolvedValue({
+      ...endpointInstall, platformManaged: true,
+      executorOrigin: 'http://documents-executor:8791', authToken: 'platform-secret'
+    });
+    const settings = await settingsFor({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(settings).toMatchObject({
+      platformManaged: true, executorOrigin: 'http://documents-executor:8791', authToken: null
+    });
+    await expect(updateSettings({
+      organizationId: ORG, pluginId: 'coatings', executorOrigin: null, auth: AUTH
+    })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('managed by the platform') });
+    expect(repository.updateSettings).not.toHaveBeenCalled();
+  });
+
   it('calls the configured endpoint with the service input and API key', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ shade: 'matte' }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
