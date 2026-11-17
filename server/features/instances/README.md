@@ -217,7 +217,7 @@ Parent: [server/features](../README.md).
 - Registration: the core registry's entity-service resolver consults
   `instanceServiceResolver`; explicit feature services always win.
 
-`linkRelationForHttp` and `unlinkRelationForHttp` are the authorized structural relation-write boundaries, exposed as `POST` and `DELETE /api/instances/:type/:id/relations/:key`. They validate the declared edge/ref field, accepted target type, one/many cardinality, duplicate/missing targets, target-domain predicates, organization scope, and expected owner revision; they pass the transaction session through target reads and the final compare-and-swap.
+`linkRelationForHttp` and `unlinkRelationForHttp` are the authorized structural relation-write boundaries, exposed as `POST` and `DELETE /api/instances/:type/:id/relations/:key`. They validate the declared edge/ref field, accepted target type, one/many cardinality, duplicate/missing targets, target-domain predicates, organization scope, and expected owner revision. An optional non-negative `expectedOrganizationSequence` fences the write against a preview read set. The routes pass one snapshot-transaction session through target reads, relation writes, field-change audit events, and the organization sequence update.
 
 ## Organization change sequence (SPEC §28)
 
