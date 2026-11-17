@@ -24,7 +24,10 @@ function uploadedDesignName(payloadMeta = {}) {
 }
 
 export async function extractGeometry({ mode, payloadBase64, mapping, payloadMeta = {}, draft = {} } = {}) {
-  const buffer = bufferOf(payloadBase64, `Construction ${mode || 'upload'}`);
+  if (!['upload', 'convertDxf'].includes(mode)) {
+    badRequest(`DXF geometry extraction does not support construction mode ${String(mode || '')}`);
+  }
+  const buffer = bufferOf(payloadBase64, `Construction ${mode}`);
   const authored = mapping && typeof mapping === 'object' ? mapping : draft?.data?.mapping;
   const layerMapping = Object.fromEntries(
     Object.entries(authored && typeof authored === 'object' && !Array.isArray(authored) ? authored : {})
@@ -38,7 +41,8 @@ export async function extractGeometry({ mode, payloadBase64, mapping, payloadMet
   if (invalidTargets.length) {
     badRequest(`DXF layer mapping contains undeclared or non-drawable OCCS layer codes: ${invalidTargets.join(', ')}`);
   }
-  if (!Object.values(layerMapping).includes(OCCS_LAYER_CUT_OUTER)) {
+  if (!Object.values(layerMapping).includes(OCCS_LAYER_CUT_OUTER)
+    && !Object.hasOwn(layerMapping, OCCS_LAYER_CUT_OUTER)) {
     layerMapping[OCCS_LAYER_CUT_OUTER] = OCCS_LAYER_CUT_OUTER;
   }
   const sourcesByTarget = new Map();
@@ -76,13 +80,15 @@ export async function extractGeometry({ mode, payloadBase64, mapping, payloadMet
 }
 
 export async function nestingParts({ instanceId, fields = {} } = {}) {
+  const designId = String(instanceId || '').trim();
+  if (!designId) badRequest('Nesting parts projection requires an instance id');
   const geometry = fields.geometry || null;
   if (!geometry || !Array.isArray(geometry.nestingPolygons) || !geometry.nestingPolygons.length) {
     badRequest('Cassette design has no baked geometry — bake the template or import the DXF before nesting');
   }
   const polygonParts = nestingPartsProjection(geometry)
-    .map(part => ({ ...part, designId: String(instanceId || '') }));
-  return { designId: String(instanceId || ''), polygonParts };
+    .map(part => ({ ...part, designId }));
+  return { designId, polygonParts };
 }
 
 export const endpointServices = {

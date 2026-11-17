@@ -45,6 +45,24 @@ describe('Facade endpoint service behavior', () => {
     expect(result.data.geometry.nestingPolygons).toHaveLength(1);
   });
 
+  it('preserves an authored mapping for the default outer-cut source layer', async () => {
+    const dxf = generateLayeredDxf({
+      polygonParts: [{ layer: 'cut.outer', coordinates: SQUARE }]
+    });
+    await expect(extractGeometry({
+      mode: 'upload',
+      payloadBase64: Buffer.from(dxf).toString('base64'),
+      mapping: { 'cut.outer': 'cut.inner' }
+    })).rejects.toThrow(/DXF requires at least one closed polygon/);
+  });
+
+  it('accepts only the declared DXF construction modes', async () => {
+    await expect(extractGeometry({
+      mode: 'render',
+      payloadBase64: Buffer.from('not a dxf').toString('base64')
+    })).rejects.toThrow(/does not support construction mode/);
+  });
+
   it('rejects DXF mappings to unknown or group-only OCCS layer codes', async () => {
     const dxf = generateLayeredDxf({
       polygonParts: [{ layer: 'OUTER', coordinates: SQUARE }]
@@ -96,6 +114,11 @@ describe('Facade endpoint service behavior', () => {
     expect(result.designId).toBe('design-1');
     expect(result.polygonParts).toHaveLength(2);
     expect(result.polygonParts.every(part => part.designId === 'design-1')).toBe(true);
+  });
+
+  it('requires an instance id for the nesting projection', async () => {
+    await expect(nestingParts({ fields: { geometry: { nestingPolygons: [SQUARE] } } }))
+      .rejects.toThrow(/requires an instance id/);
   });
 
   it('refuses a design without baked geometry', async () => {
