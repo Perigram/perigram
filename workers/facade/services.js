@@ -308,3 +308,9 @@ export const services = {
   'generate-sheet-dxf': generateSheetDxf,
   'construct-sheet': constructSheet
 };
+
+export const endpointServices = {
+  'extract-geometry': services['extract-geometry'],
+  bake: services.bake,
+  'nesting-parts': services['nesting-parts']
+};

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { bake, constructSheet, extractGeometry, generateSheetDxf, matchSheet, nestingParts, nestingSheetCount, nestingSolve, normalizeNestingItems, services } from './services.js';
+import { bake, constructSheet, endpointServices, extractGeometry, generateSheetDxf, matchSheet, nestingParts, nestingSheetCount, nestingSolve, normalizeNestingItems, services } from './services.js';
 import listing from './listing.json';
 import { createDefaultOccsCassetteTemplateDefinition } from './occs/templates.js';
 import { generateLayeredDxf } from './vendor/dxf-writer.js';
@@ -10,6 +10,12 @@ describe('facade listing/runtime inventory', () => {
   it('implements every declared service exactly once', () => {
     expect(Object.keys(services).sort()).toEqual(
       listing.declarations.services.map(service => service.id).sort()
+    );
+  });
+
+  it('serves only endpoint-mode operations from the legacy HTTP executor', () => {
+    expect(Object.keys(endpointServices).sort()).toEqual(
+      listing.declarations.services.filter(service => service.mode === 'endpoint').map(service => service.id).sort()
     );
   });
 

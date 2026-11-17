@@ -29,11 +29,6 @@ const db = await connectDB();
 
 for (const path of paths) {
   const listing = normalizeListing(JSON.parse(readFileSync(path, 'utf8')));
-  await db.collection('plugin_catalog').updateOne(
-    { pluginId: listing.pluginId },
-    { $set: { ...listing, builtin: true, publishedAt: new Date() } },
-    { upsert: true }
-  );
   for (const runtime of listing.declarations.runtimes || []) {
     const packageRoot = resolve('workers', listing.pluginId);
     for (const asset of collectRuntimeAssetFiles(packageRoot, runtime.entry, runtime.language)) {
@@ -47,6 +42,11 @@ for (const path of paths) {
       console.log(`asset: ${listing.pluginId}@${listing.version}/${asset.path}`);
     }
   }
+  await db.collection('plugin_catalog').updateOne(
+    { pluginId: listing.pluginId },
+    { $set: { ...listing, builtin: true, publishedAt: new Date() } },
+    { upsert: true }
+  );
   console.log(`catalog: ${listing.pluginId} v${listing.version} (${listing.declarations.types.length} types, ${listing.declarations.services.length} services)`);
 }
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// The facade plugin's executor (endpoint mode): the platform's Connection
+// The facade plugin's remaining endpoint services: the platform's Connection
 // settings point each service at `http://<this-host>:<port>/<serviceId>`
 // (or the org configures a reverse proxy for cloud hosting). Pure compute
 // over values — see services.js. Runs with the repo's node_modules when
 // compose-mounted, or its own install when extracted.
 import { createEndpointExecutor } from '@perigram/plugin-sdk/endpoint-executor';
-import { services } from './services.js';
+import { endpointServices } from './services.js';
 import { fileURLToPath } from 'node:url';
 
 const port = Number(process.env.FACADE_EXECUTOR_PORT || 8790);
@@ -14,11 +14,11 @@ const token = process.env.FACADE_EXECUTOR_KEY || null;
 // executor root), so the install-resolved module URL
 // `http://<origin>/surfaces/<module>.mjs` lands here.
 const server = createEndpointExecutor({
-  services,
+  services: endpointServices,
   token,
   staticRoot: fileURLToPath(new URL('.', import.meta.url))
 }).listen(port, () => {
-  const served = Object.keys(services).map(id => `  POST http://localhost:${port}/${id}`).join('\n');
+  const served = Object.keys(endpointServices).map(id => `  POST http://localhost:${port}/${id}`).join('\n');
   process.stdout.write(`facade executor on :${port}${token ? ' (key required)' : ''}\n${served}\n  GET  http://localhost:${port}/surfaces/*\n`);
 });
 

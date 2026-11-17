@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, sheet instances, and the nesting solver as an installable plugin with an external executor",
-  "version": "43",
+  "version": "44",
   "requires": [
     "tech-drawing"
   ],
