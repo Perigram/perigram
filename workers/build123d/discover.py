@@ -153,7 +153,7 @@ def main():
             "label": label,
             "module": module,
             "target": target,
-            "palette": {"group": group or MODULE_GROUPS.get(module, "operations"), "keywords": [label, op_id, kind, module, *[param["name"] for param in params]]},
+            "palette": {"group": group or MODULE_GROUPS.get(module, "operations"), "keywords": list(dict.fromkeys([label, op_id, kind, module, *[param["name"] for param in params]]))},
             "params": params,
             "returns": returns,
             "summary": summary,

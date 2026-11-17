@@ -1388,7 +1388,6 @@
           "group": "operations",
           "keywords": [
             "chamfer",
-            "chamfer",
             "function",
             "build123d.operations_generic",
             "objects",
@@ -1429,7 +1428,6 @@
           "group": "operations",
           "keywords": [
             "fillet",
-            "fillet",
             "function",
             "build123d.operations_generic",
             "objects",
@@ -1464,7 +1462,6 @@
         "palette": {
           "group": "operations",
           "keywords": [
-            "mirror",
             "mirror",
             "function",
             "build123d.operations_generic",
@@ -1517,7 +1514,6 @@
           "group": "operations",
           "keywords": [
             "offset",
-            "offset",
             "function",
             "build123d.operations_generic",
             "objects",
@@ -1556,7 +1552,6 @@
           "group": "operations",
           "keywords": [
             "project",
-            "project",
             "function",
             "build123d.operations_generic",
             "target"
@@ -1591,7 +1586,6 @@
           "group": "operations",
           "keywords": [
             "scale",
-            "scale",
             "function",
             "build123d.operations_generic",
             "objects"
@@ -1625,7 +1619,6 @@
         "palette": {
           "group": "operations",
           "keywords": [
-            "split",
             "split",
             "function",
             "build123d.operations_generic",
@@ -1680,7 +1673,6 @@
         "palette": {
           "group": "operations",
           "keywords": [
-            "sweep",
             "sweep",
             "function",
             "build123d.operations_generic",
@@ -1742,7 +1734,6 @@
           "group": "operations",
           "keywords": [
             "extrude",
-            "extrude",
             "function",
             "build123d.operations_part",
             "to_extrude",
@@ -1790,7 +1781,6 @@
           "group": "operations",
           "keywords": [
             "loft",
-            "loft",
             "function",
             "build123d.operations_part",
             "sections",
@@ -1836,7 +1826,6 @@
           "group": "operations",
           "keywords": [
             "revolve",
-            "revolve",
             "function",
             "build123d.operations_part",
             "profiles",
@@ -1881,7 +1870,6 @@
         "palette": {
           "group": "operations",
           "keywords": [
-            "section",
             "section",
             "function",
             "build123d.operations_part",
@@ -1930,7 +1918,6 @@
         "palette": {
           "group": "operations",
           "keywords": [
-            "thicken",
             "thicken",
             "function",
             "build123d.operations_part",
@@ -2088,7 +2075,6 @@
         "palette": {
           "group": "operations",
           "keywords": [
-            "trace",
             "trace",
             "function",
             "build123d.operations_sketch",
