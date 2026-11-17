@@ -466,7 +466,7 @@ export async function commitProposal({ graphDocumentInstanceId, record: value, p
   }
   try {
     return await withMongoWriteTransaction(async session => {
-      await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
+      await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
       const updated = await instanceService.patch(instanceId, patch, {
         auth,
         organizationId,
@@ -703,7 +703,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     }, 'files', mimeType || 'application/octet-stream');
     try {
       return await withMongoWriteTransaction(async session => {
-        await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session });
+        await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
         const updated = isInstancePayload
           ? await instanceService.replacePayload(destination.instanceId, {
               buffer,
@@ -832,7 +832,7 @@ export async function exportOutput({ graphDocumentInstanceId, record: value, out
   if (!(graph.interface?.outputs || []).some(port => String(port.id) === selectedOutputId)) {
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
   }
-  await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument);
+  await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { requireStableReadSet: true });
 
   const materialized = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId, filename);
   const exportId = randomUUID();
