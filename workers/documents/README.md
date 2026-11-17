@@ -6,7 +6,7 @@ editor surfaces, the table projections, the CSV serialization, and the
 template fills (SPEC §24). The platform carries zero documents code: the plugin owns the file formats,
 projections, template fills, and rendering. Payload projections, Markdown
 parsing, template fills, and PDF generation use the platform-owned plugin
-executor; CSV serialization and the report/document IR operations run through
+executor at `DOCUMENTS_EXECUTOR_URL`; CSV serialization and the report/document IR operations run through
 one portable runtime on both browser and server. Editors ship as
 the plugin's surface modules, and types ride the generic instance machinery.
 
