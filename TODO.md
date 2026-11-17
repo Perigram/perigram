@@ -548,9 +548,11 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   expected revision through this same boundary and revalidates its read set
   before writing. Commit revalidation, target mutation, and evidence now share
   one snapshot transaction; the organization sequence fence rejects writes
-  that race the preview. Remaining: verify the deployment-run revision
-  backfill and extend transactional query/range validation to multi-object
-  writes.
+  that race the preview. CTS declaration edits capture the sequence before
+  validation and reserve it exclusively while unique indexes and migrations
+  apply, advancing the sequence once per declaration mutation. Remaining:
+  verify the deployment-run revision backfill and extend transactional
+  query/range validation to multi-object writes.
 - [ ] G7 Constraints — the typed boolean AST checks nested
   relation/containment traversal, finite quantifiers, aggregate result types,
   and boolean predicate results. Enforcement covers generic creation,
