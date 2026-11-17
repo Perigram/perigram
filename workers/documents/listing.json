@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "12",
+  "version": "13",
   "requires": [
     "tech-drawing"
   ],
@@ -599,7 +599,6 @@
       {
         "id": "extract-table",
         "label": "Extract table",
-        "mode": "endpoint",
         "group": "document-compose",
         "cache": "deterministic",
         "render": {
@@ -623,7 +622,17 @@
             }
           }
         },
-        "description": "Extract the table block from a flow document"
+        "description": "Extract the table block from a flow document",
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        }
       },
       {
         "id": "render-html",
@@ -828,6 +837,15 @@
         "entry": "/runtime/browser.mjs",
         "targets": [
           "browser"
+        ]
+      },
+      {
+        "id": "documents-server",
+        "language": "javascript",
+        "version": "1",
+        "entry": "/runtime/server.mjs",
+        "targets": [
+          "server"
         ]
       }
     ]
