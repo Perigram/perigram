@@ -5,9 +5,9 @@
 import { describe, expect, it } from 'vitest';
 import { composeReport, exportMarkdown, extractTable, parseMarkdown, renderReportHtml, renderReportPdf } from './report.js';
 import { services } from './services.js';
-import { createRuntime } from './runtime/server.mjs';
+import { createRuntime } from './runtime/shared.mjs';
 import { checkSurfaceModule } from '@perigram/plugin-sdk/surface-check';
-import createReportSurface, { reportsOf } from './surfaces/report-preview.mjs';
+import createReportSurface, { documentsOf } from './surfaces/report-preview.mjs';
 
 const SOURCE = [
   '# Engineering report',
@@ -153,7 +153,7 @@ describe('report export representations', () => {
     expect(bytes.length).toBeGreaterThan(500);
   });
 
-  it('serves the report representations through the managed runtime', async () => {
+  it('serves pure report and document operations through the shared runtime', async () => {
     const flow = parseMarkdown('| k | v |\n| --- | --- |\n| x | 1 |');
     expect(await runtime.execute('extract-table', { document: flow })).toEqual([{ k: 'x', v: '1' }]);
     const html = await runtime.execute('render-html', { report });
@@ -166,15 +166,15 @@ describe('report preview surface', () => {
     await expect(checkSurfaceModule(new URL('./surfaces/report-preview.mjs', import.meta.url).pathname)).resolves.toBe(true);
   });
 
-  it('selects report values by the IR discriminator across the payload trees', () => {
+  it('selects flowing documents and reports by their IR discriminators across payload trees', () => {
     const payload = {
       nodes: {
-        a: { outputs: { result: { branches: [{ path: [], items: [{ type: 'document.report', sections: [] }, { type: 'other' }] }] } } },
+        a: { outputs: { result: { branches: [{ path: [], items: [{ type: 'document.report', sections: [] }, { type: 'text.flow-document', blocks: [] }, { type: 'other' }] }] } } },
         b: { outputs: { result: { branches: [{ path: [], items: ['plain string'] }] } } }
       }
     };
-    expect(reportsOf(payload)).toEqual([{ type: 'document.report', sections: [] }]);
-    expect(reportsOf(null)).toEqual([]);
+    expect(documentsOf(payload)).toEqual([{ type: 'document.report', sections: [] }, { type: 'text.flow-document', blocks: [] }]);
+    expect(documentsOf(null)).toEqual([]);
   });
 
   it('renders report sections through the factory component', () => {

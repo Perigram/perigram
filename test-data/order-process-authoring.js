@@ -149,7 +149,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('matHeight', { typeId: 'sheet-material' });
   authoring.setInputDefault('matHeight', 'field', 'fields.height');
 
-  authoring.drop('service:plugin.facade.nesting-solve', { id: 'solve' });
+  authoring.drop('service:facade:nesting-solve', { id: 'solve' });
   authoring.drop('castValue', { id: 'solveRecord' });
   authoring.configure('solveRecord', { outputType: { base: 'record' } });
   authoring.drop('recordField', { id: 'solveLayouts' });
@@ -169,7 +169,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('layoutRecord', { outputType: { base: 'record' } });
   authoring.drop('recordField', { id: 'layoutKey' });
   authoring.configure('layoutKey', { path: 'compositionKey', type: { base: 'string', nullable: true } });
-  authoring.drop('service:plugin.facade.match-sheet', { id: 'matchStored' });
+  authoring.drop('service:facade:match-sheet', { id: 'matchStored' });
   authoring.drop('castValue', { id: 'matchRecord' });
   authoring.configure('matchRecord', { outputType: { base: 'record' } });
   authoring.drop('recordField', { id: 'matchFound' });
