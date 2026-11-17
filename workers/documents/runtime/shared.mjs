@@ -127,7 +127,7 @@ async function executeFileRead(operationId, input = {}, capabilities = {}) {
 
   const csv = input.typeId === 'csv-table'
     || String(file.mime || '').startsWith('text/csv')
-    || /\\.csv$/i.test(String(file.name || ''));
+    || /\.csv$/i.test(String(file.name || ''));
   let workbook;
   try {
     workbook = csv
