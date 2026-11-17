@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { documentsOf } from './report-preview.mjs';
+import { describe, expect, it, vi } from 'vitest';
+import createSurface, { documentsOf } from './report-preview.mjs';
 
 describe('Documents graph preview channel', () => {
   it('renders flowing documents and reports from unified graph execution envelopes', () => {
@@ -20,6 +20,34 @@ describe('Documents graph preview channel', () => {
         html: { value: htmlFile }
       }
     })).toEqual([document, report, file, htmlFile]);
+  });
+
+  it.each([
+    ['text/markdown', '# Hello', 'hello.md'],
+    ['text/html', '<h1>Hello</h1>', 'hello.html']
+  ])('renders %s file payloads through the host sanitizer in a sandbox', (mime, source, name) => {
+    const renderMarkdown = vi.fn(() => '<h1>Sanitized</h1>');
+    const h = (type, props, children) => ({ type, props: props || {}, children });
+    const component = createSurface({ vue: { h }, renderMarkdown });
+    const file = {
+      payload: {
+        mime,
+        name,
+        base64: Buffer.from(source).toString('base64')
+      }
+    };
+    const tree = component.render.call({
+      payload: { selectedOutput: { id: 'file', value: file } }
+    });
+    const section = tree.children[0];
+    const iframe = section.children.find(child => child.type === 'iframe');
+    expect(renderMarkdown).toHaveBeenCalledWith(source);
+    expect(iframe.props).toMatchObject({
+      sandbox: '',
+      referrerpolicy: 'no-referrer'
+    });
+    expect(iframe.props.srcdoc).toContain('<h1>Sanitized</h1>');
+    expect(iframe.props.srcdoc).toContain("default-src 'none'");
   });
 
   it('retains the legacy branch-tree preview envelope', () => {
