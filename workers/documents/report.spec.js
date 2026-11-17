@@ -187,6 +187,50 @@ describe('report export representations', () => {
   });
 });
 
+
+describe('document graph vertical slice', () => {
+  it('creates, previews, and exports a typed document value', async () => {
+    const runtime = createRuntime();
+    const inline = await runtime.execute('inline-text', { text: 'Release ' });
+    const emphasis = await runtime.execute('inline-mark', {
+      mark: 'strong',
+      children: [{ type: 'text', text: 'notes' }]
+    });
+    const paragraph = await runtime.execute('document-paragraph', {
+      children: [inline, emphasis]
+    });
+    const list = await runtime.execute('document-list', { inlineItems: [emphasis] });
+    const document = await runtime.execute('compose-document', {
+      title: 'Release',
+      blocks: [paragraph, list]
+    });
+
+    const calls = [];
+    const surface = createReportSurface({
+      vue: { h: (tag, props, children) => {
+        calls.push(tag);
+        return { tag, props, children };
+      } }
+    });
+    surface.payload = {
+      nodes: { document: { outputs: { result: { branches: [{ items: [document] }] } } } }
+    };
+    expect(surface.render()).toBeTruthy();
+    expect(calls).toContain('article');
+    expect(calls).toContain('strong');
+
+    const markdown = await runtime.execute('export-markdown', { document });
+    expect(markdown).toContain('Release **notes**');
+    const markdownFile = await runtime.execute('export-markdown-file', { document, name: 'release' });
+    expect(markdownFile.payload).toMatchObject({ mime: 'text/markdown', name: 'release.md' });
+    expect(Buffer.from(markdownFile.payload.base64, 'base64').toString('utf8')).toBe(markdown);
+
+    const htmlFile = await runtime.execute('export-html-file', { document, name: 'release' });
+    expect(htmlFile.payload).toMatchObject({ mime: 'text/html', name: 'release.html' });
+    expect(Buffer.from(htmlFile.payload.base64, 'base64').toString('utf8')).toContain('<strong>notes</strong>');
+  });
+});
+
 describe('report preview surface', () => {
   it('passes the surface-module check', async () => {
     await expect(checkSurfaceModule(new URL('./surfaces/report-preview.mjs', import.meta.url).pathname)).resolves.toBe(true);
