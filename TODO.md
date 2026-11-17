@@ -59,7 +59,9 @@ providers.
 
 Progress (2026-11-17): Documents list construction accepts typed `text.inline` values through the declared `inlineItems` input as well as plain text items.
 
-Progress (2026-11-17): The Documents List node's plain-text `items` socket is now optional and labeled separately from typed `inlineItems`, so a formatted-only list is authorable without an unused required input. The listing version advanced to 18; a declaration-contract regression covers the optional typed-input path. A graph-level regression covers typed construction, document composition, preview rendering, and Markdown/HTML/PDF file payload generation; test execution remains unverified; a graph-executions regression now covers materialization into a `text-document` instance.
+Progress (2026-11-17): The Documents List node's plain-text `items` socket is now optional and labeled separately from typed `inlineItems`, so a formatted-only list is authorable without an unused required input. The listing version advanced to 18; a declaration-contract regression covers the optional typed-input path.
+
+Progress (2026-11-17): Added a first-class `html-document` file type (`text/html`, content revisions, download-only preview, and a text projection) so `Export HTML file` output has a valid generic Bake destination instead of an unmaterializable MIME. Documents listing version advanced to 19; listing and graph-Bake regressions cover the type and materialization contract. A graph-level regression covers typed construction, document composition, preview rendering, and Markdown/HTML/PDF file payload generation; test execution remains unverified; a graph-executions regression now covers materialization into a `text-document` instance.
 
 Progress (2026-11-17): Markdown table export escapes backslashes and pipe delimiters and flattens embedded cell line breaks.
 
