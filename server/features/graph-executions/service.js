@@ -669,15 +669,15 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
   }
 
-  const { buffer, mimeType } = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId,
-    isInstancePayload ? destination.filename || selectedOutputId : null);
+  const { buffer, mimeType, filename: materializedFilename } = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId,
+    isInstancePayload ? destination.filename || null : null);
 
   if (isInstancePayload) {
     const instanceService = getAppRegistry().getInstanceService(String(destination.typeId));
     if (typeof instanceService?.replacePayload !== 'function') {
       throw createError({ statusCode: 404, message: 'CTS payload replacement service is unavailable' });
     }
-    const filename = String(destination.filename || buffer.filename || selectedOutputId).trim();
+    const filename = materializedFilename;
     const stored = await filesService.uploadFile(buffer, filename, {
       userId: auth.userId,
       organizationId,
