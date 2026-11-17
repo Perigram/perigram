@@ -72,16 +72,17 @@ Progress (2026-11-17): Facade nesting input normalization now clones authored it
 
 Progress (2026-11-17): Documents and Facade palette contributions now use the actual listing declarations in contract tests (no synthetic fallback groups). Facade's graph-visible operations are grouped by workflow (nesting, sheet-planning, production-export); provider-authored operation labels and descriptions are now rendered by the shared palette projection. Internal construction/projection helpers stay out of the graph palette. Service execution migration is underway: Documents `csv-text` now runs in its browser runtime; 11 Documents services remain endpoint-backed. Facade has five managed operations and two endpoint-backed operations.
 
-Progress (2026-11-17): palette provenance now uses plugin terminology;
-node-provider declarations accept a stable semantic palette group, optional
-group label, and normalized search keywords. Graph palette grouping consumes
-declared groups, and search indexes provider id, operation id, group id,
-localized group label, and declared keywords. Existing providers retain the
-id-prefix fallback until migrated. Graph-output, reference, and view-picker
-surfaces use semantic typography and locale keys. Documents and Facade service
-inventories have declaration-to-runtime tests, Facade construction/export/
-nesting paths have direct service tests, and both plugin listings have
-palette-contribution tests.
+Progress (2026-11-17): The graph-node palette and plugin listing now share
+one declaration contract: `palette.group`, optional `label`, `keywords`,
+and `visible`. The SDK validates the same shape on node definitions, plugin
+services, and projections, and rejects the retired top-level `group` field.
+Provider-qualified group and item IDs prevent cross-plugin collisions without
+displaying plugin IDs as category labels. Search includes provider and
+operation identity, signature fields, and declared aliases. Documents and
+Facade explicitly hide construction/projection helpers while exposing
+user-facing graph operations and extraction projections. Build123d's
+generated catalog/listing uses semantic groups and declared labels, and its
+discovery generator preserves the same shape.
 
 Execution migration is a prerequisite to completing either plugin review.
 The palette is a projection of the operation contract consumed by runtime
@@ -94,6 +95,8 @@ obsolete paths and update docs. Keep the two plugin reviews coordinated so
 shared palette changes are designed once.
 
 ### Agent Notes (2026-11-17, endpoint/runtime ownership audit)
+- Plugin/node palette review (2026-11-17): unified the palette declaration across node definitions, plugin services, and projections; migrated Documents, Facade, and Build123d listings and Build123d discovery/catalog generation; provider-scoped IDs and item IDs prevent collisions; hidden helper operations no longer appear as graph nodes; ungrouped visible plugin services receive provider-owned Operations groups; search indexes provider/operation identity, signature fields, and palette keywords. The end-to-end Documents/Facade operation and socket audit remains in progress.
+
 - Palette contract review (2026-11-17): provider-neutral graph nodes now require an explicit semantic `palette.group`; process and core-data providers declare their groups, and the graph editor no longer infers group labels from operation-id prefixes or displays provider ids as group labels. SDK, process adapter, and graph palette contract tests/docs were updated. Full plugin workflow review and Documents/Facade palette reconciliation remain open.
 
 
