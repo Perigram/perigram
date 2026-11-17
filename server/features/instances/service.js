@@ -1061,7 +1061,7 @@ function instanceService(typeId) {
         userId: auth?.userId || null,
         expectedUpdatedAt: doc.updatedAt,
         expectedRevision,
-        expectedOrganizationSequence: expectedSequence,
+        expectedOrganizationSequence,
         session
       });
       // Field edits drop into the state record (SPEC UI): the audit trail
