@@ -15,7 +15,7 @@ One `items` document of type `page` per page or section:
 |---|---|
 | `organizationId` | Owning organization (flexible id). |
 | `fields.name` | String, the Page identifier; may be empty. |
-| `fields.blocks` | Ordered block records: `{ id, kind: 'text', text }`, `{ id, kind: 'view', view }`, `{ id, kind: 'reference', ref: { typeId, instanceId, revisionId? } }`, `{ id, kind: 'collection', collection }`, or `{ id, kind: 'file', file }`; sections carry an empty list. File blocks point to immutable `files`-bucket blobs by id and keep a safe page-relative path plus revision history. |
+| `fields.blocks` | Ordered block records: `{ id, kind: 'text', text }`, `{ id, kind: 'view', view }`, `{ id, kind: 'reference', ref: { typeId, instanceId, revisionId? } }`, `{ id, kind: 'collection', collection: { source, parameters, resultPolicy } }`, or `{ id, kind: 'file', file }`; sections carry an empty list. File blocks point to immutable `files`-bucket blobs by id and keep a safe page-relative path plus revision history. |
 | `fields.order` | Block ids in document order. |
 | `fields.section` | Boolean; sections are `true`, pages `false`. |
 | `fields.classTypeId` | Optional class binding; a class page is the one page bound to that organization class. |

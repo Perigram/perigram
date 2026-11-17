@@ -212,7 +212,8 @@ the `section` field set.
 - The surface renders the ordered Page block document (`fields.blocks` +
   `fields.order`) through `usePageDocumentSession`: every text block
   mounts its own `OverlayTextBlock` → `CrepeEditor.vue` instance, and
-  collection blocks mount `ViewEmbed.vue`; typed-reference blocks mount
+  saved-query blocks mount `ViewEmbed.vue`, graph-output blocks mount
+  `GraphOutputEmbed.vue`, and typed-reference blocks mount
   `ReferenceEmbed.vue` as sibling components outside any editor. `DocumentSectionShell` and
   `OverlayInsertControl` provide the gutter plus, drag reorder, and
   delete; the document's last text block is a real empty block, and
