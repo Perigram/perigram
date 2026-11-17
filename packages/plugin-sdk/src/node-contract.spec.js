@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   assertValidNodeDefinition,
+  compareNodePorts,
   createNodeProviderRegistry,
   normalizeNodeProvider,
   normalizeNodeDefinition,
@@ -17,6 +18,42 @@ const definition = overrides => ({
   outputs: [{ id: 'document', shape: 'item', semantic: { base: 'document', provider: 'plugin.documents' } }],
   execution: { kind: 'pure', capabilities: [], deterministic: true, idempotent: true },
   ...overrides
+});
+
+describe('node port compatibility', () => {
+  it('distinguishes document representation kinds carried over JSON transport', () => {
+    const block = { shape: 'item', semantic: { base: 'json', kind: 'text.document-block' } };
+    const document = { shape: 'item', semantic: { base: 'json', kind: 'text.flow-document' } };
+    expect(compareNodePorts(block, block).status).toBe('exact');
+    expect(compareNodePorts(block, document)).toMatchObject({
+      status: 'incompatible',
+      compatible: false
+    });
+  });
+
+  it('allows safe widening to generic JSON and marks untyped sources conditional', () => {
+    const typed = { semantic: { base: 'json', kind: 'text.flow-document' } };
+    const generic = { semantic: { base: 'json' } };
+    expect(compareNodePorts(typed, generic)).toMatchObject({ status: 'safe-coercion', compatible: true });
+    expect(compareNodePorts(generic, typed)).toMatchObject({ status: 'conditional', compatible: false });
+  });
+
+  it('checks transport shapes and reports conversions explicitly', () => {
+    const item = { shape: 'item', semantic: { base: 'record' } };
+    const list = { shape: 'list', semantic: { base: 'record' } };
+    expect(compareNodePorts(item, list).compatible).toBe(true);
+    expect(compareNodePorts(list, item)).toMatchObject({
+      status: 'conversion-required',
+      compatible: false
+    });
+  });
+
+  it('requires explicit unit conversion', () => {
+    expect(compareNodePorts(
+      { semantic: { base: 'number', unit: 'mm' } },
+      { semantic: { base: 'number', unit: 'm' } }
+    )).toMatchObject({ status: 'conversion-required', compatible: false });
+  });
 });
 
 describe('provider-neutral node contract', () => {
