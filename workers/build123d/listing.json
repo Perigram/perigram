@@ -40,7 +40,6 @@
         "id": "box",
         "label": "Box",
         "mode": "endpoint",
-        "group": "part",
         "cache": "deterministic",
         "render": {
           "label": "Box",
@@ -66,21 +65,23 @@
           }
         },
         "description": "Part Object: Box Create a box defined by length, width, and height.",
-        "keywords": [
-          "Box",
-          "box",
-          "constructor",
-          "build123d.objects_part",
-          "length",
-          "width",
-          "height"
-        ]
+        "palette": {
+          "group": "part",
+          "keywords": [
+            "Box",
+            "box",
+            "constructor",
+            "build123d.objects_part",
+            "length",
+            "width",
+            "height"
+          ]
+        }
       },
       {
         "id": "cone",
         "label": "Cone",
         "mode": "endpoint",
-        "group": "part",
         "cache": "deterministic",
         "render": {
           "label": "Cone",
@@ -111,22 +112,24 @@
           }
         },
         "description": "Part Object: Cone Create a cone defined by bottom radius, top radius, and height.",
-        "keywords": [
-          "Cone",
-          "cone",
-          "constructor",
-          "build123d.objects_part",
-          "bottom_radius",
-          "top_radius",
-          "height",
-          "arc_size"
-        ]
+        "palette": {
+          "group": "part",
+          "keywords": [
+            "Cone",
+            "cone",
+            "constructor",
+            "build123d.objects_part",
+            "bottom_radius",
+            "top_radius",
+            "height",
+            "arc_size"
+          ]
+        }
       },
       {
         "id": "convexpolyhedron",
         "label": "Convex Polyhedron",
         "mode": "endpoint",
-        "group": "part",
         "cache": "deterministic",
         "render": {
           "label": "Convex Polyhedron",
@@ -146,19 +149,21 @@
           }
         },
         "description": "Part Object: ConvexPolyhedron Create a convex solid from the convex hull of the provided points.",
-        "keywords": [
-          "ConvexPolyhedron",
-          "convexpolyhedron",
-          "constructor",
-          "build123d.objects_part",
-          "points"
-        ]
+        "palette": {
+          "group": "part",
+          "keywords": [
+            "ConvexPolyhedron",
+            "convexpolyhedron",
+            "constructor",
+            "build123d.objects_part",
+            "points"
+          ]
+        }
       },
       {
         "id": "counterborehole",
         "label": "Counter Bore Hole",
         "mode": "endpoint",
-        "group": "part",
         "cache": "deterministic",
         "render": {
           "label": "Counter Bore Hole",
@@ -188,22 +193,24 @@
           }
         },
         "description": "Part Operation: Counter Bore Hole Create a counter bore hole defined by radius, counter bore radius, counter bore and depth.",
-        "keywords": [
-          "CounterBoreHole",
-          "counterborehole",
-          "constructor",
-          "build123d.objects_part",
-          "radius",
-          "counter_bore_radius",
-          "counter_bore_depth",
-          "depth"
-        ]
+        "palette": {
+          "group": "part",
+          "keywords": [
+            "CounterBoreHole",
+            "counterborehole",
+            "constructor",
+            "build123d.objects_part",
+            "radius",
+            "counter_bore_radius",
+            "counter_bore_depth",
+            "depth"
+          ]
+        }
       },
       {
         "id": "countersinkhole",
         "label": "Counter Sink Hole",
         "mode": "endpoint",
-        "group": "part",
         "cache": "deterministic",
         "render": {
           "label": "Counter Sink Hole",
@@ -235,22 +242,24 @@
           }
         },
         "description": "Part Operation: Counter Sink Hole Create a countersink hole defined by radius, countersink radius, countersink angle, and depth.",
-        "keywords": [
-          "CounterSinkHole",
-          "countersinkhole",
-          "constructor",
-          "build123d.objects_part",
-          "radius",
-          "counter_sink_radius",
-          "depth",
-          "counter_sink_angle"
-        ]
+        "palette": {
+          "group": "part",
+          "keywords": [
+            "CounterSinkHole",
+            "countersinkhole",
+            "constructor",
+            "build123d.objects_part",
+            "radius",
+            "counter_sink_radius",
+            "depth",
+            "counter_sink_angle"
+          ]
+        }
       },
       {
         "id": "cylinder",
         "label": "Cylinder",
         "mode": "endpoint",
-        "group": "part",
         "cache": "deterministic",
         "render": {
           "label": "Cylinder",
@@ -278,21 +287,23 @@
           }
         },
         "description": "Part Object: Cylinder Create a cylinder defined by radius and height.",
-        "keywords": [
-          "Cylinder",
-          "cylinder",
-          "constructor",
-          "build123d.objects_part",
-          "radius",
-          "height",
-          "arc_size"
-        ]
+        "palette": {
+          "group": "part",
+          "keywords": [
+            "Cylinder",
+            "cylinder",
+            "constructor",
+            "build123d.objects_part",
+            "radius",
+            "height",
+            "arc_size"
+          ]
+        }
       },
       {
         "id": "hole",
         "label": "Hole",
         "mode": "endpoint",
-        "group": "part",
         "cache": "deterministic",
         "render": {
           "label": "Hole",
@@ -316,20 +327,22 @@
           }
         },
         "description": "Part Operation: Hole Create a hole defined by radius and depth.",
-        "keywords": [
-          "Hole",
-          "hole",
-          "constructor",
-          "build123d.objects_part",
-          "radius",
-          "depth"
-        ]
+        "palette": {
+          "group": "part",
+          "keywords": [
+            "Hole",
+            "hole",
+            "constructor",
+            "build123d.objects_part",
+            "radius",
+            "depth"
+          ]
+        }
       },
       {
         "id": "sphere",
         "label": "Sphere",
         "mode": "endpoint",
-        "group": "part",
         "cache": "deterministic",
         "render": {
           "label": "Sphere",
@@ -364,22 +377,24 @@
           }
         },
         "description": "Part Object: Sphere Create a sphere defined by a radius.",
-        "keywords": [
-          "Sphere",
-          "sphere",
-          "constructor",
-          "build123d.objects_part",
-          "radius",
-          "arc_size1",
-          "arc_size2",
-          "arc_size3"
-        ]
+        "palette": {
+          "group": "part",
+          "keywords": [
+            "Sphere",
+            "sphere",
+            "constructor",
+            "build123d.objects_part",
+            "radius",
+            "arc_size1",
+            "arc_size2",
+            "arc_size3"
+          ]
+        }
       },
       {
         "id": "torus",
         "label": "Torus",
         "mode": "endpoint",
-        "group": "part",
         "cache": "deterministic",
         "render": {
           "label": "Torus",
@@ -417,23 +432,25 @@
           }
         },
         "description": "Part Object: Torus Create a torus defined by major and minor radii.",
-        "keywords": [
-          "Torus",
-          "torus",
-          "constructor",
-          "build123d.objects_part",
-          "major_radius",
-          "minor_radius",
-          "minor_start_angle",
-          "minor_end_angle",
-          "major_angle"
-        ]
+        "palette": {
+          "group": "part",
+          "keywords": [
+            "Torus",
+            "torus",
+            "constructor",
+            "build123d.objects_part",
+            "major_radius",
+            "minor_radius",
+            "minor_start_angle",
+            "minor_end_angle",
+            "major_angle"
+          ]
+        }
       },
       {
         "id": "wedge",
         "label": "Wedge",
         "mode": "endpoint",
-        "group": "part",
         "cache": "deterministic",
         "render": {
           "label": "Wedge",
@@ -471,25 +488,27 @@
           }
         },
         "description": "Part Object: Wedge Create a wedge with a near face defined by xsize and z size, a far face defined by xmin to xmax and zmin to zmax, and a depth of ysize.",
-        "keywords": [
-          "Wedge",
-          "wedge",
-          "constructor",
-          "build123d.objects_part",
-          "xsize",
-          "ysize",
-          "zsize",
-          "xmin",
-          "zmin",
-          "xmax",
-          "zmax"
-        ]
+        "palette": {
+          "group": "part",
+          "keywords": [
+            "Wedge",
+            "wedge",
+            "constructor",
+            "build123d.objects_part",
+            "xsize",
+            "ysize",
+            "zsize",
+            "xmin",
+            "zmin",
+            "xmax",
+            "zmax"
+          ]
+        }
       },
       {
         "id": "circle",
         "label": "Circle",
         "mode": "endpoint",
-        "group": "sketch",
         "cache": "deterministic",
         "render": {
           "label": "Circle",
@@ -514,20 +533,22 @@
           }
         },
         "description": "Sketch Object: Circle Create a circle defined by radius.",
-        "keywords": [
-          "Circle",
-          "circle",
-          "constructor",
-          "build123d.objects_sketch",
-          "radius",
-          "arc_size"
-        ]
+        "palette": {
+          "group": "sketch",
+          "keywords": [
+            "Circle",
+            "circle",
+            "constructor",
+            "build123d.objects_sketch",
+            "radius",
+            "arc_size"
+          ]
+        }
       },
       {
         "id": "ellipse",
         "label": "Ellipse",
         "mode": "endpoint",
-        "group": "sketch",
         "cache": "deterministic",
         "render": {
           "label": "Ellipse",
@@ -555,21 +576,23 @@
           }
         },
         "description": "Sketch Object: Ellipse Create an ellipse defined by x- and y- radii.",
-        "keywords": [
-          "Ellipse",
-          "ellipse",
-          "constructor",
-          "build123d.objects_sketch",
-          "x_radius",
-          "y_radius",
-          "rotation"
-        ]
+        "palette": {
+          "group": "sketch",
+          "keywords": [
+            "Ellipse",
+            "ellipse",
+            "constructor",
+            "build123d.objects_sketch",
+            "x_radius",
+            "y_radius",
+            "rotation"
+          ]
+        }
       },
       {
         "id": "rectangle",
         "label": "Rectangle",
         "mode": "endpoint",
-        "group": "sketch",
         "cache": "deterministic",
         "render": {
           "label": "Rectangle",
@@ -597,21 +620,23 @@
           }
         },
         "description": "Sketch Object: Rectangle Create a rectangle defined by width and height.",
-        "keywords": [
-          "Rectangle",
-          "rectangle",
-          "constructor",
-          "build123d.objects_sketch",
-          "width",
-          "height",
-          "rotation"
-        ]
+        "palette": {
+          "group": "sketch",
+          "keywords": [
+            "Rectangle",
+            "rectangle",
+            "constructor",
+            "build123d.objects_sketch",
+            "width",
+            "height",
+            "rotation"
+          ]
+        }
       },
       {
         "id": "rectanglerounded",
         "label": "Rectangle Rounded",
         "mode": "endpoint",
-        "group": "sketch",
         "cache": "deterministic",
         "render": {
           "label": "Rectangle Rounded",
@@ -642,22 +667,24 @@
           }
         },
         "description": "Sketch Object: Rectangle Rounded Create a rectangle defined by width and height with filleted corners.",
-        "keywords": [
-          "RectangleRounded",
-          "rectanglerounded",
-          "constructor",
-          "build123d.objects_sketch",
-          "width",
-          "height",
-          "radius",
-          "rotation"
-        ]
+        "palette": {
+          "group": "sketch",
+          "keywords": [
+            "RectangleRounded",
+            "rectanglerounded",
+            "constructor",
+            "build123d.objects_sketch",
+            "width",
+            "height",
+            "radius",
+            "rotation"
+          ]
+        }
       },
       {
         "id": "regularpolygon",
         "label": "Regular Polygon",
         "mode": "endpoint",
-        "group": "sketch",
         "cache": "deterministic",
         "render": {
           "label": "Regular Polygon",
@@ -693,23 +720,25 @@
           }
         },
         "description": "Sketch Object: Regular Polygon Create a regular polygon defined by radius and side count. Use major_radius to define whether the polygon circumscribes (along the vertices) or inscribes (along the sides) the radius circle.",
-        "keywords": [
-          "RegularPolygon",
-          "regularpolygon",
-          "constructor",
-          "build123d.objects_sketch",
-          "radius",
-          "side_count",
-          "major_radius",
-          "rotation",
-          "align"
-        ]
+        "palette": {
+          "group": "sketch",
+          "keywords": [
+            "RegularPolygon",
+            "regularpolygon",
+            "constructor",
+            "build123d.objects_sketch",
+            "radius",
+            "side_count",
+            "major_radius",
+            "rotation",
+            "align"
+          ]
+        }
       },
       {
         "id": "slotarc",
         "label": "Slot Arc",
         "mode": "endpoint",
-        "group": "sketch",
         "cache": "deterministic",
         "render": {
           "label": "Slot Arc",
@@ -737,21 +766,23 @@
           }
         },
         "description": "Sketch Object: Slot Arc Create a slot defined by a line and height. May be an arc, stright line, spline, etc.",
-        "keywords": [
-          "SlotArc",
-          "slotarc",
-          "constructor",
-          "build123d.objects_sketch",
-          "arc",
-          "height",
-          "rotation"
-        ]
+        "palette": {
+          "group": "sketch",
+          "keywords": [
+            "SlotArc",
+            "slotarc",
+            "constructor",
+            "build123d.objects_sketch",
+            "arc",
+            "height",
+            "rotation"
+          ]
+        }
       },
       {
         "id": "slotcentertocenter",
         "label": "Slot Center To Center",
         "mode": "endpoint",
-        "group": "sketch",
         "cache": "deterministic",
         "render": {
           "label": "Slot Center To Center",
@@ -779,21 +810,23 @@
           }
         },
         "description": "Sketch Object: Slot Center To Center Create a slot defined by the distance between the centers of the two end arcs.",
-        "keywords": [
-          "SlotCenterToCenter",
-          "slotcentertocenter",
-          "constructor",
-          "build123d.objects_sketch",
-          "center_separation",
-          "height",
-          "rotation"
-        ]
+        "palette": {
+          "group": "sketch",
+          "keywords": [
+            "SlotCenterToCenter",
+            "slotcentertocenter",
+            "constructor",
+            "build123d.objects_sketch",
+            "center_separation",
+            "height",
+            "rotation"
+          ]
+        }
       },
       {
         "id": "slotoverall",
         "label": "Slot Overall",
         "mode": "endpoint",
-        "group": "sketch",
         "cache": "deterministic",
         "render": {
           "label": "Slot Overall",
@@ -821,21 +854,23 @@
           }
         },
         "description": "Sketch Object: Slot Overall Create a slot defined by the overall width and height.",
-        "keywords": [
-          "SlotOverall",
-          "slotoverall",
-          "constructor",
-          "build123d.objects_sketch",
-          "width",
-          "height",
-          "rotation"
-        ]
+        "palette": {
+          "group": "sketch",
+          "keywords": [
+            "SlotOverall",
+            "slotoverall",
+            "constructor",
+            "build123d.objects_sketch",
+            "width",
+            "height",
+            "rotation"
+          ]
+        }
       },
       {
         "id": "superellipse",
         "label": "Superellipse",
         "mode": "endpoint",
-        "group": "sketch",
         "cache": "deterministic",
         "render": {
           "label": "Superellipse",
@@ -873,23 +908,25 @@
           }
         },
         "description": "Sketch Object: Superellipse Create an superellipse (\"squircle\") defined by width, height, and order.",
-        "keywords": [
-          "Superellipse",
-          "superellipse",
-          "constructor",
-          "build123d.objects_sketch",
-          "width",
-          "height",
-          "order",
-          "point_count",
-          "rotation"
-        ]
+        "palette": {
+          "group": "sketch",
+          "keywords": [
+            "Superellipse",
+            "superellipse",
+            "constructor",
+            "build123d.objects_sketch",
+            "width",
+            "height",
+            "order",
+            "point_count",
+            "rotation"
+          ]
+        }
       },
       {
         "id": "text",
         "label": "Text",
         "mode": "endpoint",
-        "group": "sketch",
         "cache": "deterministic",
         "render": {
           "label": "Text",
@@ -939,26 +976,28 @@
           }
         },
         "description": "Sketch Object: Text Create text defined by text string and font size. Fonts installed to the system can be specified by name and FontStyle. Fonts with subfamilies not in FontStyle should be specified with the subfamily name, e.g. \"Arial Black\". Alternatively, a specific font file can be specified with font_path. Use `available_fonts()` to list available font names for `font` and FontStyles. Note: on Windows, fonts must be installed with \"Install for all users\" to be found by name. Not all fonts have every FontStyle available, however ITALIC and BOLDITALIC will still italicize the font if the respective font file is not available. text_align specifies alignment of text inside the bounding box, while align the aligns the bounding box itself. Optionally, the Text can be positioned on a non-linear edge or wire with a path and position_on_path.",
-        "keywords": [
-          "Text",
-          "text",
-          "constructor",
-          "build123d.objects_sketch",
-          "txt",
-          "font_size",
-          "font",
-          "text_align",
-          "path",
-          "position_on_path",
-          "single_line_width",
-          "rotation"
-        ]
+        "palette": {
+          "group": "sketch",
+          "keywords": [
+            "Text",
+            "text",
+            "constructor",
+            "build123d.objects_sketch",
+            "txt",
+            "font_size",
+            "font",
+            "text_align",
+            "path",
+            "position_on_path",
+            "single_line_width",
+            "rotation"
+          ]
+        }
       },
       {
         "id": "trapezoid",
         "label": "Trapezoid",
         "mode": "endpoint",
-        "group": "sketch",
         "cache": "deterministic",
         "render": {
           "label": "Trapezoid",
@@ -993,23 +1032,25 @@
           }
         },
         "description": "Sketch Object: Trapezoid Create a trapezoid defined by major width, height, and interior angle(s).",
-        "keywords": [
-          "Trapezoid",
-          "trapezoid",
-          "constructor",
-          "build123d.objects_sketch",
-          "width",
-          "height",
-          "left_side_angle",
-          "right_side_angle",
-          "rotation"
-        ]
+        "palette": {
+          "group": "sketch",
+          "keywords": [
+            "Trapezoid",
+            "trapezoid",
+            "constructor",
+            "build123d.objects_sketch",
+            "width",
+            "height",
+            "left_side_angle",
+            "right_side_angle",
+            "rotation"
+          ]
+        }
       },
       {
         "id": "triangle",
         "label": "Triangle",
         "mode": "endpoint",
-        "group": "sketch",
         "cache": "deterministic",
         "render": {
           "label": "Triangle",
@@ -1055,25 +1096,27 @@
           }
         },
         "description": "Sketch Object: Triangle Create a triangle defined by one side length and any of two other side lengths or interior angles. The interior angles are opposite the side with the same designation (i.e. side 'a' is opposite angle 'A'). Side 'a' is the bottom side, followed by 'b' on the right, going counter-clockwise.",
-        "keywords": [
-          "Triangle",
-          "triangle",
-          "constructor",
-          "build123d.objects_sketch",
-          "a",
-          "b",
-          "c",
-          "A",
-          "B",
-          "C",
-          "rotation"
-        ]
+        "palette": {
+          "group": "sketch",
+          "keywords": [
+            "Triangle",
+            "triangle",
+            "constructor",
+            "build123d.objects_sketch",
+            "a",
+            "b",
+            "c",
+            "A",
+            "B",
+            "C",
+            "rotation"
+          ]
+        }
       },
       {
         "id": "airfoil",
         "label": "Airfoil",
         "mode": "endpoint",
-        "group": "curve",
         "cache": "deterministic",
         "render": {
           "label": "Airfoil",
@@ -1102,21 +1145,23 @@
           }
         },
         "description": "Create an airfoil described by a 4-digit (or fractional) NACA airfoil (e.g. '2412' or '2213.323'). The NACA four-digit wing sections define the airfoil_code by: - First digit describing maximum camber as percentage of the chord. - Second digit describing the distance of maximum camber from the airfoil leading edge in tenths of the chord. - Last two digits describing maximum thickness of the airfoil as percent of the chord.",
-        "keywords": [
-          "Airfoil",
-          "airfoil",
-          "constructor",
-          "build123d.objects_curve",
-          "airfoil_code",
-          "n_points",
-          "finite_te"
-        ]
+        "palette": {
+          "group": "curve",
+          "keywords": [
+            "Airfoil",
+            "airfoil",
+            "constructor",
+            "build123d.objects_curve",
+            "airfoil_code",
+            "n_points",
+            "finite_te"
+          ]
+        }
       },
       {
         "id": "blendcurve",
         "label": "Blend Curve",
         "mode": "endpoint",
-        "group": "curve",
         "cache": "deterministic",
         "render": {
           "label": "Blend Curve",
@@ -1147,22 +1192,24 @@
           }
         },
         "description": "Line Object: BlendCurve Create a smooth Bézier-based transition curve between two existing edges. The blend is constructed as a cubic (C1) or quintic (C2) Bézier curve whose control points are determined from the position, first derivative, and (for C2) second derivative of the input curves at the chosen endpoints. Optional scalar multipliers can be applied to the endpoint tangents to control the \"tension\" of the blend.",
-        "keywords": [
-          "BlendCurve",
-          "blendcurve",
-          "constructor",
-          "build123d.objects_curve",
-          "curve0",
-          "curve1",
-          "end_points",
-          "tangent_scalars"
-        ]
+        "palette": {
+          "group": "curve",
+          "keywords": [
+            "BlendCurve",
+            "blendcurve",
+            "constructor",
+            "build123d.objects_curve",
+            "curve0",
+            "curve1",
+            "end_points",
+            "tangent_scalars"
+          ]
+        }
       },
       {
         "id": "bspline",
         "label": "BSpline",
         "mode": "endpoint",
-        "group": "curve",
         "cache": "deterministic",
         "render": {
           "label": "BSpline",
@@ -1196,23 +1243,25 @@
           }
         },
         "description": "Line Object: BSpline An exact B-spline edge defined directly from control points and knot data. BSpline creates an exact B-spline from control points, a knot sequence, and optional weights. Control points define the control polygon that pulls the curve, but the curve does not generally pass through them. Knots define the parameter-space structure of the spline: they determine where polynomial spans begin and end and how smoothly those spans join. Repeated knot values indicate knot multiplicity. For a spline of degree p, a knot with multiplicity m has continuity C^(p-m) at that location, so increasing multiplicity reduces smoothness. Repeating the first and last knots degree + 1 times creates a clamped spline that starts and ends at the first and last control points. Optional weights create a rational B-spline, allowing some control points to pull more strongly than others and enabling exact representation of conic sections.` Unlike :class:`~build123d.objects_curve.Spline`, which creates an interpolated curve through a set of points using ``GeomAPI_Interpolate``, ``BSpline`` preserves the supplied spline definition by building the underlying OCCT ``Geom_BSplineCurve`` from its poles, knot vector, optional weights, degree, and periodic flag.",
-        "keywords": [
-          "BSpline",
-          "bspline",
-          "constructor",
-          "build123d.objects_curve",
-          "control_points",
-          "knots",
-          "degree",
-          "weights",
-          "periodic"
-        ]
+        "palette": {
+          "group": "curve",
+          "keywords": [
+            "BSpline",
+            "bspline",
+            "constructor",
+            "build123d.objects_curve",
+            "control_points",
+            "knots",
+            "degree",
+            "weights",
+            "periodic"
+          ]
+        }
       },
       {
         "id": "helix",
         "label": "Helix",
         "mode": "endpoint",
-        "group": "curve",
         "cache": "deterministic",
         "render": {
           "label": "Helix",
@@ -1247,23 +1296,25 @@
           }
         },
         "description": "Line Object: Helix Create a helix defined by pitch, height, and radius. The helix may have a taper defined by cone_angle. If cone_angle is not 0, radius is the initial helix radius at center. cone_angle > 0 increases the final radius. cone_angle < 0 decreases the final radius.",
-        "keywords": [
-          "Helix",
-          "helix",
-          "constructor",
-          "build123d.objects_curve",
-          "pitch",
-          "height",
-          "radius",
-          "cone_angle",
-          "lefthand"
-        ]
+        "palette": {
+          "group": "curve",
+          "keywords": [
+            "Helix",
+            "helix",
+            "constructor",
+            "build123d.objects_curve",
+            "pitch",
+            "height",
+            "radius",
+            "cone_angle",
+            "lefthand"
+          ]
+        }
       },
       {
         "id": "bounding-box",
         "label": "Bounding Box",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Bounding Box",
@@ -1284,19 +1335,21 @@
           }
         },
         "description": "Generic Operation: Add Bounding Box Applies to: BuildSketch and BuildPart Add the 2D or 3D bounding boxes of the object sequence",
-        "keywords": [
-          "bounding_box",
-          "bounding-box",
-          "function",
-          "build123d.operations_generic",
-          "objects"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "bounding_box",
+            "bounding-box",
+            "function",
+            "build123d.operations_generic",
+            "objects"
+          ]
+        }
       },
       {
         "id": "chamfer",
         "label": "Chamfer",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Chamfer",
@@ -1331,23 +1384,25 @@
           }
         },
         "description": "Generic Operation: chamfer Applies to 2 and 3 dimensional objects. Chamfer the given sequence of edges or vertices.",
-        "keywords": [
-          "chamfer",
-          "chamfer",
-          "function",
-          "build123d.operations_generic",
-          "objects",
-          "length",
-          "length2",
-          "angle",
-          "reference"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "chamfer",
+            "chamfer",
+            "function",
+            "build123d.operations_generic",
+            "objects",
+            "length",
+            "length2",
+            "angle",
+            "reference"
+          ]
+        }
       },
       {
         "id": "fillet",
         "label": "Fillet",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Fillet",
@@ -1370,20 +1425,22 @@
           }
         },
         "description": "Generic Operation: fillet Applies to 2 and 3 dimensional objects. Fillet the given sequence of edges or vertices. Note that vertices on either end of an open line will be automatically skipped.",
-        "keywords": [
-          "fillet",
-          "fillet",
-          "function",
-          "build123d.operations_generic",
-          "objects",
-          "radius"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "fillet",
+            "fillet",
+            "function",
+            "build123d.operations_generic",
+            "objects",
+            "radius"
+          ]
+        }
       },
       {
         "id": "mirror",
         "label": "Mirror",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Mirror",
@@ -1404,19 +1461,21 @@
           }
         },
         "description": "Generic Operation: mirror Applies to 1, 2, and 3 dimensional objects. Mirror a sequence of objects over the given plane.",
-        "keywords": [
-          "mirror",
-          "mirror",
-          "function",
-          "build123d.operations_generic",
-          "objects"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "mirror",
+            "mirror",
+            "function",
+            "build123d.operations_generic",
+            "objects"
+          ]
+        }
       },
       {
         "id": "offset",
         "label": "Offset",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Offset",
@@ -1454,23 +1513,25 @@
           }
         },
         "description": "Generic Operation: offset Applies to 1, 2, and 3 dimensional objects. Offset the given sequence of Edges, Faces, Compound of Faces, or Solids. The kind parameter controls the shape of the transitions. For Solid objects, the openings parameter allows selected faces to be open, like a hollow box with no lid.",
-        "keywords": [
-          "offset",
-          "offset",
-          "function",
-          "build123d.operations_generic",
-          "objects",
-          "amount",
-          "openings",
-          "closed",
-          "min_edge_length"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "offset",
+            "offset",
+            "function",
+            "build123d.operations_generic",
+            "objects",
+            "amount",
+            "openings",
+            "closed",
+            "min_edge_length"
+          ]
+        }
       },
       {
         "id": "project",
         "label": "Project",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Project",
@@ -1491,19 +1552,21 @@
           }
         },
         "description": "Generic Operation: project Applies to 0, 1, and 2 dimensional objects. Project the given objects or points onto a BuildLine or BuildSketch workplane in the direction of the normal of that workplane. When projecting onto a sketch a Face(s) are generated while Edges are generated for BuildLine. Will only use the first if BuildSketch has multiple active workplanes. In algebra mode a workplane must be provided and the output is either a Face, Curve, Sketch, Compound, or ShapeList[Vector]. Note that only if mode is not Mode.PRIVATE only Faces can be projected into BuildSketch and Edge/Wires into BuildLine.",
-        "keywords": [
-          "project",
-          "project",
-          "function",
-          "build123d.operations_generic",
-          "target"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "project",
+            "project",
+            "function",
+            "build123d.operations_generic",
+            "target"
+          ]
+        }
       },
       {
         "id": "scale",
         "label": "Scale",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Scale",
@@ -1524,19 +1587,21 @@
           }
         },
         "description": "Generic Operation: scale Applies to 1, 2, and 3 dimensional objects. Scale a sequence of objects. Note that when scaling non-uniformly across the three axes, the type of the underlying object may change to bspline from line, circle, etc.",
-        "keywords": [
-          "scale",
-          "scale",
-          "function",
-          "build123d.operations_generic",
-          "objects"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "scale",
+            "scale",
+            "function",
+            "build123d.operations_generic",
+            "objects"
+          ]
+        }
       },
       {
         "id": "split",
         "label": "Split",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Split",
@@ -1557,19 +1622,21 @@
           }
         },
         "description": "Generic Operation: split Applies to 1, 2, and 3 dimensional objects. Bisect object with plane and keep either top, bottom or both.",
-        "keywords": [
-          "split",
-          "split",
-          "function",
-          "build123d.operations_generic",
-          "objects"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "split",
+            "split",
+            "function",
+            "build123d.operations_generic",
+            "objects"
+          ]
+        }
       },
       {
         "id": "sweep",
         "label": "Sweep",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Sweep",
@@ -1610,24 +1677,26 @@
           }
         },
         "description": "Generic Operation: sweep Sweep pending 1D or 2D objects along path.",
-        "keywords": [
-          "sweep",
-          "sweep",
-          "function",
-          "build123d.operations_generic",
-          "sections",
-          "path",
-          "multisection",
-          "is_frenet",
-          "binormal",
-          "clean"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "sweep",
+            "sweep",
+            "function",
+            "build123d.operations_generic",
+            "sections",
+            "path",
+            "multisection",
+            "is_frenet",
+            "binormal",
+            "clean"
+          ]
+        }
       },
       {
         "id": "extrude",
         "label": "Extrude",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Extrude",
@@ -1669,24 +1738,26 @@
           }
         },
         "description": "Part Operation: extrude Extrude a sketch or face by an amount or until another object.",
-        "keywords": [
-          "extrude",
-          "extrude",
-          "function",
-          "build123d.operations_part",
-          "to_extrude",
-          "amount",
-          "target",
-          "both",
-          "taper",
-          "clean"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "extrude",
+            "extrude",
+            "function",
+            "build123d.operations_part",
+            "to_extrude",
+            "amount",
+            "target",
+            "both",
+            "taper",
+            "clean"
+          ]
+        }
       },
       {
         "id": "loft",
         "label": "Loft",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Loft",
@@ -1715,21 +1786,23 @@
           }
         },
         "description": "Part Operation: loft Loft the pending sketches/faces, across all workplanes, into a solid. Faces may contain inner wires, which are lofted as holes and subtracted from the outer loft. When a face has more than one inner wire, the wires in each subsequent section are matched to the preceding section by choosing the assignment with the smallest total distance between wire centers. This makes the result independent of the order in which inner wires are returned, but it is only a geometric heuristic: holes that are close together, cross paths, or change position significantly may be matched incorrectly. All sections must contain the same number of inner wires.",
-        "keywords": [
-          "loft",
-          "loft",
-          "function",
-          "build123d.operations_part",
-          "sections",
-          "ruled",
-          "clean"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "loft",
+            "loft",
+            "function",
+            "build123d.operations_part",
+            "sections",
+            "ruled",
+            "clean"
+          ]
+        }
       },
       {
         "id": "revolve",
         "label": "Revolve",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Revolve",
@@ -1759,21 +1832,23 @@
           }
         },
         "description": "Part Operation: Revolve Revolve the profile or pending sketches/face about the given axis. Note that the most common use case is when the axis is in the same plane as the face to be revolved but this isn't required.",
-        "keywords": [
-          "revolve",
-          "revolve",
-          "function",
-          "build123d.operations_part",
-          "profiles",
-          "revolution_arc",
-          "clean"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "revolve",
+            "revolve",
+            "function",
+            "build123d.operations_part",
+            "profiles",
+            "revolution_arc",
+            "clean"
+          ]
+        }
       },
       {
         "id": "section",
         "label": "Section",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Section",
@@ -1803,21 +1878,23 @@
           }
         },
         "description": "Part Operation: section Slices current part at the given height by section_by or current workplane(s).",
-        "keywords": [
-          "section",
-          "section",
-          "function",
-          "build123d.operations_part",
-          "obj",
-          "height",
-          "clean"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "section",
+            "section",
+            "function",
+            "build123d.operations_part",
+            "obj",
+            "height",
+            "clean"
+          ]
+        }
       },
       {
         "id": "thicken",
         "label": "Thicken",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Thicken",
@@ -1850,22 +1927,24 @@
           }
         },
         "description": "Part Operation: thicken Create a solid(s) from a potentially non planar face(s) by thickening along the normals.",
-        "keywords": [
-          "thicken",
-          "thicken",
-          "function",
-          "build123d.operations_part",
-          "to_thicken",
-          "amount",
-          "both",
-          "clean"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "thicken",
+            "thicken",
+            "function",
+            "build123d.operations_part",
+            "to_thicken",
+            "amount",
+            "both",
+            "clean"
+          ]
+        }
       },
       {
         "id": "full-round",
         "label": "Full Round",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Full Round",
@@ -1894,21 +1973,23 @@
           }
         },
         "description": "Sketch Operation: full_round Given an edge from a Face/Sketch, modify the face by replacing the given edge with the arc of the Voronoi largest empty circle that will fit within the Face. This \"rounds off\" the end of the object.",
-        "keywords": [
-          "full_round",
-          "full-round",
-          "function",
-          "build123d.operations_sketch",
-          "edge",
-          "invert",
-          "voronoi_point_count"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "full_round",
+            "full-round",
+            "function",
+            "build123d.operations_sketch",
+            "edge",
+            "invert",
+            "voronoi_point_count"
+          ]
+        }
       },
       {
         "id": "make-face",
         "label": "Make Face",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Make Face",
@@ -1929,19 +2010,21 @@
           }
         },
         "description": "Sketch Operation: make_face Create a face from the given perimeter edges.",
-        "keywords": [
-          "make_face",
-          "make-face",
-          "function",
-          "build123d.operations_sketch",
-          "edges"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "make_face",
+            "make-face",
+            "function",
+            "build123d.operations_sketch",
+            "edges"
+          ]
+        }
       },
       {
         "id": "make-hull",
         "label": "Make Hull",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Make Hull",
@@ -1962,19 +2045,21 @@
           }
         },
         "description": "Sketch Operation: make_hull Create a face from the convex hull of the given edges",
-        "keywords": [
-          "make_hull",
-          "make-hull",
-          "function",
-          "build123d.operations_sketch",
-          "edges"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "make_hull",
+            "make-hull",
+            "function",
+            "build123d.operations_sketch",
+            "edges"
+          ]
+        }
       },
       {
         "id": "trace",
         "label": "Trace",
         "mode": "endpoint",
-        "group": "operations",
         "cache": "deterministic",
         "render": {
           "label": "Trace",
@@ -2000,20 +2085,22 @@
           }
         },
         "description": "Sketch Operation: trace Convert edges, wires or pending edges into faces by sweeping a perpendicular line along them.",
-        "keywords": [
-          "trace",
-          "trace",
-          "function",
-          "build123d.operations_sketch",
-          "lines",
-          "line_width"
-        ]
+        "palette": {
+          "group": "operations",
+          "keywords": [
+            "trace",
+            "trace",
+            "function",
+            "build123d.operations_sketch",
+            "lines",
+            "line_width"
+          ]
+        }
       },
       {
         "id": "arrowhead",
         "label": "Arrow Head",
         "mode": "endpoint",
-        "group": "drafting",
         "cache": "deterministic",
         "render": {
           "label": "Arrow Head",
@@ -2038,20 +2125,22 @@
           }
         },
         "description": "Sketch Object: ArrowHead",
-        "keywords": [
-          "ArrowHead",
-          "arrowhead",
-          "constructor",
-          "build123d.drafting",
-          "size",
-          "rotation"
-        ]
+        "palette": {
+          "group": "drafting",
+          "keywords": [
+            "ArrowHead",
+            "arrowhead",
+            "constructor",
+            "build123d.drafting",
+            "size",
+            "rotation"
+          ]
+        }
       },
       {
         "id": "arrow",
         "label": "Arrow",
         "mode": "endpoint",
-        "group": "drafting",
         "cache": "deterministic",
         "render": {
           "label": "Arrow",
@@ -2081,22 +2170,24 @@
           }
         },
         "description": "Sketch Object: Arrow with shaft",
-        "keywords": [
-          "Arrow",
-          "arrow",
-          "constructor",
-          "build123d.drafting",
-          "arrow_size",
-          "shaft_path",
-          "shaft_width",
-          "head_at_start"
-        ]
+        "palette": {
+          "group": "drafting",
+          "keywords": [
+            "Arrow",
+            "arrow",
+            "constructor",
+            "build123d.drafting",
+            "arrow_size",
+            "shaft_path",
+            "shaft_width",
+            "head_at_start"
+          ]
+        }
       },
       {
         "id": "technicaldrawing",
         "label": "Technical Drawing",
         "mode": "endpoint",
-        "group": "drafting",
         "cache": "deterministic",
         "render": {
           "label": "Technical Drawing",
@@ -2152,26 +2243,28 @@
           }
         },
         "description": "Sketch Object: TechnicalDrawing The border of a technical drawing with external frame and text box.",
-        "keywords": [
-          "TechnicalDrawing",
-          "technicaldrawing",
-          "constructor",
-          "build123d.drafting",
-          "designed_by",
-          "title",
-          "sub_title",
-          "drawing_number",
-          "sheet_number",
-          "drawing_scale",
-          "nominal_text_size",
-          "line_width"
-        ]
+        "palette": {
+          "group": "drafting",
+          "keywords": [
+            "TechnicalDrawing",
+            "technicaldrawing",
+            "constructor",
+            "build123d.drafting",
+            "designed_by",
+            "title",
+            "sub_title",
+            "drawing_number",
+            "sheet_number",
+            "drawing_scale",
+            "nominal_text_size",
+            "line_width"
+          ]
+        }
       },
       {
         "id": "available-fonts",
         "label": "Available Fonts",
         "mode": "endpoint",
-        "group": "text",
         "cache": "deterministic",
         "render": {
           "label": "Available Fonts",
@@ -2187,18 +2280,20 @@
           }
         },
         "description": "Get available fonts without initializing the font manager on import.",
-        "keywords": [
-          "available_fonts",
-          "available-fonts",
-          "function",
-          "build123d.text"
-        ]
+        "palette": {
+          "group": "text",
+          "keywords": [
+            "available_fonts",
+            "available-fonts",
+            "function",
+            "build123d.text"
+          ]
+        }
       },
       {
         "id": "union",
         "label": "Union",
         "mode": "endpoint",
-        "group": "algebra",
         "cache": "deterministic",
         "render": {
           "label": "Union",
@@ -2221,20 +2316,22 @@
           }
         },
         "description": "fuse shape to self operator +",
-        "keywords": [
-          "Union",
-          "union",
-          "operator",
-          "build123d.topology.shape_core",
-          "shape",
-          "other"
-        ]
+        "palette": {
+          "group": "algebra",
+          "keywords": [
+            "Union",
+            "union",
+            "operator",
+            "build123d.topology.shape_core",
+            "shape",
+            "other"
+          ]
+        }
       },
       {
         "id": "subtract",
         "label": "Subtract",
         "mode": "endpoint",
-        "group": "algebra",
         "cache": "deterministic",
         "render": {
           "label": "Subtract",
@@ -2257,20 +2354,22 @@
           }
         },
         "description": "cut shape from self operator -",
-        "keywords": [
-          "Subtract",
-          "subtract",
-          "operator",
-          "build123d.topology.shape_core",
-          "shape",
-          "other"
-        ]
+        "palette": {
+          "group": "algebra",
+          "keywords": [
+            "Subtract",
+            "subtract",
+            "operator",
+            "build123d.topology.shape_core",
+            "shape",
+            "other"
+          ]
+        }
       },
       {
         "id": "intersect",
         "label": "Intersect",
         "mode": "endpoint",
-        "group": "algebra",
         "cache": "deterministic",
         "render": {
           "label": "Intersect",
@@ -2293,14 +2392,17 @@
           }
         },
         "description": "intersect shape with self operator &",
-        "keywords": [
-          "Intersect",
-          "intersect",
-          "operator",
-          "build123d.topology.shape_core",
-          "shape",
-          "other"
-        ]
+        "palette": {
+          "group": "algebra",
+          "keywords": [
+            "Intersect",
+            "intersect",
+            "operator",
+            "build123d.topology.shape_core",
+            "shape",
+            "other"
+          ]
+        }
       }
     ]
   }

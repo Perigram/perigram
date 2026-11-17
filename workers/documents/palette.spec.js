@@ -15,7 +15,6 @@ function declaredPaletteGroups() {
       {
         ...service,
         command: service.id,
-        group: service.group,
         pluginId: listing.pluginId
       }
     ])
@@ -40,10 +39,10 @@ describe('Documents plugin node palette contribution', () => {
     const groups = declaredPaletteGroups();
     const items = groups.flatMap(group => group.items);
     const projections = new Set(listing.declarations.types.flatMap(type => type.projections || [])
-      .filter(projection => projection.group)
+      .filter(projection => projection.palette?.group && projection.palette.visible !== false)
       .map(projection => `${projection.group}:${projection.id}`));
     const services = listing.declarations.services
-      .filter(service => service.group);
+      .filter(service => service.palette?.group);
 
     expect(items.filter(item => item.kind === 'cts.read')).toHaveLength(projections.size);
     expect(items.filter(item => item.kind === 'cts.service')).toHaveLength(services.length);

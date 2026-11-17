@@ -145,12 +145,14 @@
           {
             "id": "text",
             "label": "Text",
-            "group": "table-data",
             "output": {
               "base": "string"
             },
             "resolve": {
               "service": "plugin.documents.text"
+            },
+            "palette": {
+              "group": "table-data"
             }
           }
         ],
@@ -215,7 +217,6 @@
           {
             "id": "rows",
             "label": "Table rows",
-            "group": "table-data",
             "output": {
               "base": "list",
               "itemType": {
@@ -224,12 +225,14 @@
             },
             "resolve": {
               "service": "plugin.documents.table-rows"
+            },
+            "palette": {
+              "group": "table-data"
             }
           },
           {
             "id": "cells",
             "label": "Table cells (positional)",
-            "group": "table-data",
             "output": {
               "base": "list",
               "itemType": {
@@ -238,6 +241,9 @@
             },
             "resolve": {
               "service": "plugin.documents.table-cells"
+            },
+            "palette": {
+              "group": "table-data"
             }
           }
         ],
@@ -273,7 +279,6 @@
           {
             "id": "rows",
             "label": "Table rows",
-            "group": "table-data",
             "output": {
               "base": "list",
               "itemType": {
@@ -282,12 +287,14 @@
             },
             "resolve": {
               "service": "plugin.documents.table-rows"
+            },
+            "palette": {
+              "group": "table-data"
             }
           },
           {
             "id": "cells",
             "label": "Table cells (positional)",
-            "group": "table-data",
             "output": {
               "base": "list",
               "itemType": {
@@ -296,6 +303,9 @@
             },
             "resolve": {
               "service": "plugin.documents.table-cells"
+            },
+            "palette": {
+              "group": "table-data"
             }
           }
         ],
@@ -381,13 +391,15 @@
             }
           }
         },
-        "group": "table-data",
         "cache": "deterministic",
         "render": {
           "label": "Table rows",
           "icon": "pi pi-table"
         },
-        "description": "Read the first worksheet as records keyed by its header row"
+        "description": "Read the first worksheet as records keyed by its header row",
+        "palette": {
+          "visible": false
+        }
       },
       {
         "id": "table-cells",
@@ -409,13 +421,15 @@
             }
           }
         },
-        "group": "table-data",
         "cache": "deterministic",
         "render": {
           "label": "Table cells (positional)",
           "icon": "pi pi-table"
         },
-        "description": "Read worksheet rows with stable positional column keys"
+        "description": "Read worksheet rows with stable positional column keys",
+        "palette": {
+          "visible": false
+        }
       },
       {
         "id": "text",
@@ -434,18 +448,19 @@
             "base": "string"
           }
         },
-        "group": "table-data",
         "cache": "deterministic",
         "render": {
           "label": "Document text",
           "icon": "pi pi-table"
         },
-        "description": "Extract the text content from a document payload"
+        "description": "Extract the text content from a document payload",
+        "palette": {
+          "visible": false
+        }
       },
       {
         "id": "csv-text",
         "label": "CSV text",
-        "group": "table-data",
         "render": {
           "label": "CSV text",
           "icon": "pi pi-table"
@@ -476,6 +491,9 @@
           ],
           "capabilities": [],
           "idempotent": true
+        },
+        "palette": {
+          "group": "table-data"
         }
       },
       {
@@ -489,6 +507,9 @@
           "output": {
             "base": "json"
           }
+        },
+        "palette": {
+          "visible": false
         }
       },
       {
@@ -502,13 +523,15 @@
           "output": {
             "base": "json"
           }
+        },
+        "palette": {
+          "visible": false
         }
       },
       {
         "id": "parse-markdown",
         "label": "Parse markdown",
         "mode": "endpoint",
-        "group": "document-compose",
         "cache": "deterministic",
         "render": {
           "label": "Parse markdown",
@@ -528,12 +551,14 @@
             "kind": "text.flow-document"
           }
         },
-        "description": "Parse Markdown into the structured flow-document format"
+        "description": "Parse Markdown into the structured flow-document format",
+        "palette": {
+          "group": "document-compose"
+        }
       },
       {
         "id": "export-markdown",
         "label": "Export markdown",
-        "group": "document-compose",
         "cache": "deterministic",
         "render": {
           "label": "Export markdown",
@@ -563,12 +588,14 @@
           "capabilities": [],
           "idempotent": true,
           "deterministic": true
+        },
+        "palette": {
+          "group": "document-compose"
         }
       },
       {
         "id": "compose-report",
         "label": "Compose report",
-        "group": "document-compose",
         "cache": "deterministic",
         "render": {
           "label": "Compose report",
@@ -612,12 +639,14 @@
           "capabilities": [],
           "idempotent": true,
           "deterministic": true
+        },
+        "palette": {
+          "group": "document-compose"
         }
       },
       {
         "id": "extract-table",
         "label": "Extract table",
-        "group": "document-compose",
         "cache": "deterministic",
         "render": {
           "label": "Extract table",
@@ -650,12 +679,14 @@
           "capabilities": [],
           "idempotent": true,
           "deterministic": true
+        },
+        "palette": {
+          "group": "document-compose"
         }
       },
       {
         "id": "render-html",
         "label": "Render HTML",
-        "group": "document-compose",
         "cache": "deterministic",
         "render": {
           "label": "Render HTML",
@@ -685,13 +716,15 @@
           "capabilities": [],
           "idempotent": true,
           "deterministic": true
+        },
+        "palette": {
+          "group": "document-compose"
         }
       },
       {
         "id": "render-report-pdf",
         "label": "Render PDF",
         "mode": "endpoint",
-        "group": "document-compose",
         "cache": "deterministic",
         "render": {
           "label": "Render PDF",
@@ -714,7 +747,10 @@
             "base": "json"
           }
         },
-        "description": "Render a report as a PDF document"
+        "description": "Render a report as a PDF document",
+        "palette": {
+          "group": "document-compose"
+        }
       }
     ],
     "editors": [

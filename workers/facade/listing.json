@@ -246,7 +246,6 @@
           {
             "id": "nesting-polygons",
             "label": "Nesting parts",
-            "group": "facade",
             "output": {
               "base": "record",
               "fields": {
@@ -263,6 +262,9 @@
             },
             "resolve": {
               "service": "plugin.facade.nesting-parts"
+            },
+            "palette": {
+              "group": "facade"
             }
           }
         ]
@@ -540,7 +542,6 @@
       {
         "id": "nesting-solve",
         "label": "Solve sheet nesting",
-        "group": "nesting",
         "render": {
           "label": "Nesting solver",
           "icon": "pi pi-compass"
@@ -632,6 +633,9 @@
             "facade.nesting.solve"
           ],
           "idempotent": true
+        },
+        "palette": {
+          "group": "nesting"
         }
       },
       {
@@ -645,6 +649,9 @@
           "output": {
             "base": "json"
           }
+        },
+        "palette": {
+          "visible": false
         }
       },
       {
@@ -667,6 +674,9 @@
           ],
           "capabilities": [],
           "idempotent": true
+        },
+        "palette": {
+          "visible": false
         }
       },
       {
@@ -680,7 +690,6 @@
             "base": "json"
           }
         },
-        "group": "production-export",
         "description": "Generate a production-layer DXF from a sheet design",
         "execution": {
           "runtime": "facade-server",
@@ -692,6 +701,9 @@
           "capabilities": [],
           "idempotent": true,
           "deterministic": true
+        },
+        "palette": {
+          "group": "production-export"
         }
       },
       {
@@ -705,7 +717,6 @@
             "base": "json"
           }
         },
-        "group": "sheet-planning",
         "description": "Create a sheet design from a solved nesting layout",
         "execution": {
           "runtime": "facade-server",
@@ -717,12 +728,14 @@
           "capabilities": [],
           "idempotent": true,
           "deterministic": true
+        },
+        "palette": {
+          "group": "sheet-planning"
         }
       },
       {
         "id": "match-sheet",
         "label": "Find reusable sheet design",
-        "group": "sheet-planning",
         "signature": {
           "input": {
             "base": "record",
@@ -758,6 +771,9 @@
           "capabilities": [],
           "deterministic": true,
           "idempotent": true
+        },
+        "palette": {
+          "group": "sheet-planning"
         }
       },
       {
@@ -771,6 +787,9 @@
           "output": {
             "base": "json"
           }
+        },
+        "palette": {
+          "visible": false
         }
       }
     ],

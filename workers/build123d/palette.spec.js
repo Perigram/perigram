@@ -6,7 +6,7 @@ describe('build123d plugin node palette contribution', () => {
   it('keeps every graph-composable operation in its declared semantic group', () => {
     const services = Object.fromEntries(listing.declarations.services.map(service => [
       service.id,
-      { ...service, command: service.id, group: service.group, pluginId: listing.pluginId }
+      { ...service, command: service.id, pluginId: listing.pluginId }
     ]));
     const groups = pluginPaletteGroups({}, services);
     const items = groups.flatMap(group => group.items);
