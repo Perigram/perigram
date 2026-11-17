@@ -77,6 +77,8 @@ Progress (2026-11-17): Facade nesting input normalization now clones authored it
 
 Progress (2026-11-17): Facade nesting quantity normalization no longer truncates fractional physical counts or accepts booleans as quantities. Missing/empty values default to one; explicit zero and every other supplied quantity must be a positive safe integer. Focused regression cases cover fractions, negatives, NaN, infinity, overflow, and booleans.
 
+Progress (2026-11-17): Facade `sheet-dxf` now declares `content` revisions, completing the revision-scope declaration for all payload-bearing Facade file types. A contract test rejects any payload-bearing file type without a `content` or `geometry` revision scope; Facade listing version advanced to 46.
+
 Progress (2026-11-17): Documents and Facade palette contributions now use the actual listing declarations in contract tests (no synthetic fallback groups). Facade's graph-visible operations are grouped by workflow (nesting, sheet-planning, production-export); provider-authored operation labels and descriptions are now rendered by the shared palette projection. Internal construction/projection helpers stay out of the graph palette. Service execution migration is underway: Documents `csv-text` now runs in its browser runtime; 8 Documents operations remain endpoint-backed. Facade has five managed operations and two endpoint-backed operations.
 
 Progress (2026-11-17): The graph-node palette and plugin listing now share
