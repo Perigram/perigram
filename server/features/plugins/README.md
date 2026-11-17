@@ -50,7 +50,7 @@ distribution data; the installed copy is organization data.
 
 `plugin_installs` holds one per organization+plugin —
 `{ organizationId, pluginId, name, version, declarations, services,
-requires, endpoints, packageAssets, connectorToken, installedAt }`. The install
+requires, executorOrigin, packageAssets, connectorToken, installedAt }`. The install
 **snapshots** the listing's declarations: the pinned version is the
 data, so catalog changes reach an installed organization only through
 the explicit upgrade flow ([Upgrades](#upgrades)). Every install write
@@ -113,10 +113,13 @@ grants before package delivery and capability calls. The instance-update
 capability accepts an optional `expectedRevision` precondition and forwards
 it to the generic instance compare-and-swap write boundary.
 
-Remote service adapters currently use endpoint and claim modes. Endpoint
-URLs and connector credentials are stored in plugin install settings.
-Provider-level connection records follow the SPEC §20 contract and are
-tracked in TODO.
+Remote service adapters currently retain a transitional endpoint mode and
+claim mode. Endpoint-mode operations share one provider-level `executorOrigin`;
+operation URLs are derived as `<executorOrigin>/<serviceId>` (or an explicit
+provider-authored `endpointPath`). The install never stores a URL per function.
+New external-system integrations must use provider-level connection records
+with server-held credentials, per SPEC §20; the legacy endpoint adapter is a
+migration bridge, not the target execution model.
 
 Installed services compose into the projected domain's service list
 (`projectedServicesForOrganization` — the one list the designer,
@@ -149,13 +152,13 @@ the pinned package and mediate each declared capability. Graph input
 validation, read evidence, and transactional effect commits are tracked
 in TODO. Endpoint and claim services use the external integration protocol.
 
-A service input field declared with base `blob` receives a
+A transitional endpoint service input field declared with base `blob` receives a
 payload handle `{ fileId, mime, size, name? }` on the wire; the
 endpoint dispatch hydrates the handle with its stored bytes as
 `payloadBase64`, so the executor reaches no storage — the hydration is
 declaration-driven (the service's signature names the field), and the
 deterministic cache keys the raw handle beside it. A service declaring
-`cache: 'deterministic'` (endpoint-only,
+`cache: 'deterministic'` (legacy endpoint-only,
 validated by the listing contract) replays through the
 `plugin_service_cache` collection first: the key hashes the service
 identity, the installed version, and the canonical input (sorted keys
@@ -173,7 +176,7 @@ in the [plugin SDK](../../../packages/plugin-sdk/README.md).
 
 SPEC §8 p extract: a listing's type projections may resolve through a
 declared plugin service (`resolve: { service: 'plugin.<id>.<svc>' }`)
-— endpoint mode only, a projection is a synchronous read and cannot
+— transitional endpoint mode only, a projection is a synchronous read and cannot
 park on the claim queue (the SDK contract refuses the rest, including
 `handler` resolves, which only endpoint executors bind). The platform
 reads the target instance and dispatches `{ typeId, instanceId, fields,

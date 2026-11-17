@@ -225,11 +225,11 @@ export async function deleteInstall(organizationId, pluginId) {
 // Upgrade apply: replace the pinned snapshot (declarations, services,
 // pack requirements, and the inherited endpoint wiring are the pin; the
 // connector token survives).
-export async function updateInstallSnapshot(organizationId, pluginId, { version, declarations, services, requires = [], endpoints = null, packageAssets = null }) {
+export async function updateInstallSnapshot(organizationId, pluginId, { version, declarations, services, requires = [], executorOrigin = undefined, packageAssets = null }) {
   const db = await connectDB();
   await db.collection(INSTALLS_COLLECTION).updateOne(
     { organizationId: String(organizationId), pluginId: String(pluginId) },
-    { $set: { version, declarations, services: services || [], requires, ...(endpoints ? { endpoints } : {}), ...(packageAssets ? { packageAssets, assetStorage: { kind: 'organization', materializedAt: new Date() } } : {}), upgradedAt: new Date() } }
+    { $set: { version, declarations, services: services || [], requires, ...(executorOrigin !== undefined ? { executorOrigin } : {}), ...(packageAssets ? { packageAssets, assetStorage: { kind: 'organization', materializedAt: new Date() } } : {}), upgradedAt: new Date() } }
   );
 }
 

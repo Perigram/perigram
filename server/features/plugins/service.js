@@ -130,7 +130,7 @@ export async function install({ organizationId, pluginId, auth = {} }) {
 // owns caller authority. `endpoints` pre-wires connection settings for
 // endpoint-mode services under the same validation the settings save
 // applies.
-export async function installFromCatalog({ organizationId, pluginId, endpoints = {}, surfaceOrigin = null }) {
+export async function installFromCatalog({ organizationId, pluginId, executorOrigin = null, endpoints = {}, surfaceOrigin = null }) {
   const listing = await repository.findCatalogByPluginId(pluginId);
   if (!listing) throw createError({ statusCode: 404, message: 'Plugin not found' });
   if (await repository.findInstall(organizationId, pluginId)) {
@@ -192,7 +192,14 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
     throw createError({ statusCode: 400, message: introduced.join('; ') });
   }
 
-  const configuredEndpoints = configuredEndpointsFor(services, endpoints);
+  const legacyMap = configuredEndpointsFor(services, endpoints);
+  const inferredLegacyOrigin = legacyExecutorOrigin({ services, endpoints: legacyMap });
+  if (Object.keys(legacyMap).length && !inferredLegacyOrigin) {
+    throw createError({ statusCode: 400, message: 'Plugin installs accept one provider-level executor origin, not per-service endpoint URLs' });
+  }
+  const configuredOrigin = executorOrigin
+    ? configuredExecutorOriginFor(services, executorOrigin)
+    : inferredLegacyOrigin;
   let configuredSurfaceOrigin = null;
   let packageAssets = null;
   try {
@@ -219,7 +226,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
       declarations: { types, editors, constructions, starterConstructs, dependencies, runtimes, exports: exportBindings, surfaces, previews: layer.previews, previewChannels: layer.previewChannels, ...(engine ? { engine } : {}) },
       services,
       requires,
-      endpoints: configuredEndpoints,
+      executorOrigin: configuredOrigin,
       packageAssets,
       assetStorage: { kind: 'organization', materializedAt: new Date() },
       ...(configuredSurfaceOrigin ? { surfaceOrigin: configuredSurfaceOrigin } : {}),
@@ -1254,7 +1261,7 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
       },
       services: layer.services,
       requires: layer.requires,
-      endpoints: upgradedEndpointsFor(install, layer.services),
+      executorOrigin: install.executorOrigin || legacyExecutorOrigin(install),
       packageAssets
     });
     invalidateInstanceDeclarations(String(organizationId));

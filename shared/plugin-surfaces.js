@@ -54,6 +54,9 @@ export function isSupportedSurfaceContract(version) {
 // are the primary module source; endpoint and surface origins remain a
 // migration fallback for older installs.
 export function endpointOriginOf(install) {
+  if (install?.executorOrigin) {
+    try { return new URL(String(install.executorOrigin)).origin; } catch { /* fall through */ }
+  }
   for (const url of Object.values(install?.endpoints || {})) {
     try {
       return new URL(String(url)).origin;

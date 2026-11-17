@@ -1120,6 +1120,49 @@ describe('endpoint-mode services', () => {
     }
   });
 
+  it('routes every operation through one provider-level executor origin', async () => {
+    const providerInstall = {
+      ...endpointInstall,
+      executorOrigin: 'https://executor.example/api',
+      endpoints: undefined,
+      services: [
+        { id: 'match', label: 'Match', mode: 'endpoint', signature: { input: { base: 'json' }, output: { base: 'json' } } },
+        { id: 'poll', label: 'Poll', mode: 'endpoint', signature: { input: { base: 'json' }, output: { base: 'json' } } }
+      ]
+    };
+    repository.findInstall.mockResolvedValue(providerInstall);
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await executeConnectorService({ id: 'plugin.coatings.match' }, { parameters: {}, auth: AUTH });
+      await executeConnectorService({ id: 'plugin.coatings.poll' }, { parameters: {}, auth: AUTH });
+      expect(fetchMock.mock.calls.map(call => call[0])).toEqual([
+        'https://executor.example/api/match',
+        'https://executor.example/api/poll'
+      ]);
+      const settings = await settingsFor({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+      expect(settings.executorOrigin).toBe('https://executor.example/api');
+      expect(settings.services.every(service => !Object.hasOwn(service, 'endpoint'))).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('collapses a legacy operation URL map only when it has one shared provider base', async () => {
+    const saved = await updateSettings({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      endpoints: { match: 'https://cloud.example/api/match' },
+      auth: AUTH
+    });
+    expect(repository.updateSettings).toHaveBeenCalledWith(ORG, 'coatings', {
+      executorOrigin: 'https://cloud.example/api',
+      authToken: null,
+      surfaceOrigin: null
+    });
+    expect(saved.executorOrigin).toBe('https://executor.example');
+  });
+
   it('replays a deterministic endpoint service through the service cache (SPEC §28)', async () => {
     const cachedInstall = {
       ...endpointInstall,
@@ -1336,23 +1379,24 @@ describe('endpoint-mode services', () => {
   it('saves and serves connection settings, refusing endpoints for claim services', async () => {
     const settings = await settingsFor({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
     expect(settings.services).toEqual([
-      { id: 'match', label: 'Coating match', mode: 'endpoint', endpoint: 'https://executor.example/match' }
+      { id: 'match', label: 'Coating match', mode: 'endpoint' }
     ]);
+    expect(settings.executorOrigin).toBe('https://executor.example');
     expect(settings.authToken).toBe('publisher-key');
 
     const saved = await updateSettings({
       organizationId: ORG,
       pluginId: 'coatings',
-      endpoints: { match: 'https://cloud.example/match' },
+      executorOrigin: 'https://cloud.example',
       authToken: 'new-key',
       auth: AUTH
     });
     expect(repository.updateSettings).toHaveBeenCalledWith(ORG, 'coatings', {
-      endpoints: { match: 'https://cloud.example/match' },
+      executorOrigin: 'https://cloud.example',
       authToken: 'new-key',
       surfaceOrigin: null
     });
-    expect(saved.services[0].endpoint).toBe('https://executor.example/match');
+    expect(saved.executorOrigin).toBe('https://executor.example');
 
     const claimInstall = {
       ...endpointInstall,
@@ -1364,7 +1408,7 @@ describe('endpoint-mode services', () => {
     await expect(updateSettings({
       organizationId: ORG,
       pluginId: 'coatings',
-      endpoints: { match: 'https://cloud.example/match' },
+      executorOrigin: 'https://cloud.example',
       auth: AUTH
     })).rejects.toMatchObject({ statusCode: 400 });
   });
