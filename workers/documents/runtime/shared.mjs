@@ -1,81 +1,9 @@
 import * as XLSX from '../assets/vendor/xlsx.mjs';
 import { composeReport, extractTable, renderReportHtml, renderDocumentHtml, exportMarkdown, composeDocument, appendDocumentBlock, createDocumentBlock, createInlineValue } from '../report-ir.mjs';
 
-function badRequest(message) {
-  const error = new Error(message);
-  error.status = 400;
-  throw error;
-}
-
-function payloadSource(input = {}) {
-  return input?.payload?.payloadBase64 ? input.payload : input;
-}
-
-function payloadBytes(input = {}, operationId) {
-  const source = payloadSource(input);
-  if (typeof source?.payloadBase64 !== 'string' || !source.payloadBase64) {
-    badRequest(operationId + ' requires a payload with payloadBase64');
-  }
-  const binary = atob(source.payloadBase64);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
-  return { source, bytes };
-}
-
-function columnLetter(index) {
-  let n = index;
-  let letter = '';
-  do {
-    letter = String.fromCharCode(65 + (n % 26)) + letter;
-    n = Math.floor(n / 26) - 1;
-  } while (n >= 0);
-  return letter;
-}
-
-function recordsByHeader(matrix) {
-  const headers = matrix[0].map(header => String(header ?? '').trim());
-  return matrix.slice(1).map(row => Object.fromEntries(
-    headers.map((header, index) => [header, row[index] ?? '']).filter(([header]) => header)
-  ));
-}
-
-function recordsByPosition(matrix) {
-  return matrix.map(row => Object.fromEntries(
-    row.map((cell, index) => [columnLetter(index), cell ?? ''])
-  ));
-}
-
-function sheetMatrix(input = {}, operationId) {
-  const { source, bytes } = payloadBytes(input, operationId);
-  const csv = input.typeId === 'csv-table' || source.typeId === 'csv-table'
-    || String(source.mime || source.payloadMime || '').startsWith('text/csv');
-  let workbook;
-  try {
-    workbook = csv
-      ? XLSX.read(new TextDecoder().decode(bytes), { type: 'string' })
-      : XLSX.read(bytes, { type: 'array' });
-  } catch {
-    badRequest('payload is not a readable spreadsheet');
-  }
-  const sheetName = workbook.SheetNames?.[0];
-  const sheet = sheetName ? workbook.Sheets?.[sheetName] : null;
-  if (!sheet) badRequest('the payload carries no sheet');
-  const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
-    .filter(row => Array.isArray(row) && row.some(cell => String(cell ?? '').trim() !== ''));
-  if (!matrix.length) badRequest('the payload carries no rows');
-  return matrix;
-}
-
-
 export function createRuntime() {
   return {
     execute(operationId, input = {}) {
-      if (operationId === 'text') {
-        const { bytes } = payloadBytes(input, operationId);
-        return new TextDecoder().decode(bytes);
-      }
-      if (operationId === 'table-rows') return recordsByHeader(sheetMatrix(input, operationId));
-      if (operationId === 'table-cells') return recordsByPosition(sheetMatrix(input, operationId));
       if (operationId === 'csv-text') {
         const rows = input.rows ?? [];
         if (!Array.isArray(rows)) {

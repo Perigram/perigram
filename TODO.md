@@ -18,7 +18,7 @@ providers.
   and every declared construction/service. Verify each workflow and close
   behavior/spec gaps.
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
-  hosting. Current inventory: 5 of 28 Documents services and 2 of 7 Facade services remain
+  hosting. Current inventory: 8 of 28 Documents services and 2 of 7 Facade services remain
   `mode: endpoint`; Facade `nesting-solve` runs in the managed server runtime
   through the platform-owned `facade.nesting.solve` capability. Pure
   `bake`, `match-sheet`, `construct-sheet`, `generate-sheet-dxf`, and all
@@ -57,8 +57,6 @@ providers.
   for each defect found during the review.
 - [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO after
   behavior verification; record remaining owner decisions explicitly.
-
-Progress (2026-11-17): Documents `table-rows`, `table-cells`, and `text` payload projections now execute in the portable browser/server runtime; CSV and XLSX projection regressions cover hydrated handles and projection envelopes. The Documents endpoint inventory falls from eight services to five, and the executor retains only operations that need Markdown parsing, template processing, or binary PDF work. Listing version advanced to 20.
 
 Progress (2026-11-17): Documents list construction accepts typed `text.inline` values through the declared `inlineItems` input as well as plain text items.
 

@@ -6,6 +6,7 @@
 // (owner decision 2026-10-17); column semantics stay in the reading
 // graph. Imports the xlsx ESM build.
 import { readFileSync } from 'node:fs';
+import * as XLSX from 'xlsx/xlsx.mjs';
 import {
   DXF_MIME_TYPES,
   XLSX_MIME,
@@ -71,7 +72,73 @@ function requireRef(input, field, serviceId) {
   };
 }
 
+// The payload source serves both dispatches: a composed value service
+// receives the hydrated blob handle under the `payload` field, a
+// projection receives the envelope's top-level base64.
+function payloadSource(input = {}) {
+  return input?.payload?.payloadBase64 ? input.payload : input;
+}
+
+function bufferOf(input = {}) {
+  const source = payloadSource(input);
+  if (!source?.payloadBase64 || typeof source.payloadBase64 !== 'string') {
+    badRequest('the service requires a payload with payloadBase64');
+  }
+  return Buffer.from(source.payloadBase64, 'base64');
+}
+
+// Spreadsheet column letter: 0 → A, 25 → Z, 26 → AA.
+function columnLetter(index) {
+  let n = index;
+  let letter = '';
+  do {
+    letter = String.fromCharCode(65 + (n % 26)) + letter;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return letter;
+}
+
+// Header-keyed conversion: the first matrix row is the header, the rest
+// are data. Cells under an empty header are dropped.
+function recordsByHeader(matrix) {
+  const headers = matrix[0].map(header => String(header ?? '').trim());
+  return matrix.slice(1).map(row => Object.fromEntries(
+    headers.map((header, index) => [header, row[index] ?? '']).filter(([header]) => header)
+  ));
+}
+
+// Positional conversion: every matrix row is data, keyed by column letter.
+function recordsByPosition(matrix) {
+  return matrix.map(row => Object.fromEntries(
+    row.map((cell, index) => [columnLetter(index), cell ?? ''])
+  ));
+}
+
+function sheetMatrix(input = {}) {
+  const buffer = bufferOf(input);
+  const csv = input.typeId === 'csv-table'
+    || String(payloadSource(input).mime || '').startsWith('text/csv');
+  let workbook;
+  try {
+    workbook = csv
+      ? XLSX.read(new TextDecoder().decode(buffer), { type: 'string' })
+      : XLSX.read(buffer, { type: 'array' });
+  } catch {
+    badRequest('payload is not a readable spreadsheet');
+  }
+  const sheetName = workbook.SheetNames?.[0];
+  const sheet = sheetName ? workbook.Sheets?.[sheetName] : null;
+  if (!sheet) badRequest('the payload carries no sheet');
+  const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
+    .filter(row => Array.isArray(row) && row.some(cell => String(cell ?? '').trim() !== ''));
+  if (!matrix.length) badRequest('the payload carries no rows');
+  return matrix;
+}
+
 export const services = {
+  'table-rows': async input => recordsByHeader(await sheetMatrix(input)),
+  'table-cells': async input => recordsByPosition(await sheetMatrix(input)),
+  text: async input => new TextDecoder().decode(bufferOf(input)),
   'parse-markdown': async ({ text } = {}) => parseMarkdown(text),
   'render-report-pdf': async ({ report, name } = {}) => toPayload(
     await renderReportPdf(report),

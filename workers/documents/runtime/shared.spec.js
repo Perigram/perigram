@@ -21,9 +21,6 @@ describe('Documents shared runtime', () => {
     const document = { type: 'text.flow-document', schemaVersion: 1, blocks: [{ type: 'table', rows: [{ value: '1' }] }] };
     const report = { type: 'document.report', schemaVersion: 1, sections: [{ blocks: [{ type: 'flow', document }] }] };
     const cases = [
-      ['table-rows', { typeId: 'csv-table', payloadBase64: 'bmFtZSxxdHkKYWx1bWluaXVtLDEyCg==' }],
-      ['table-cells', { typeId: 'csv-table', payloadBase64: 'bmFtZSxxdHkKYWx1bWluaXVtLDEyCg==' }],
-      ['text', { payloadBase64: 'aGVsbG8=' }],
       ['csv-text', { rows: [{ value: '1' }] }],
       ['export-markdown', { document }],
       ['compose-report', { rows: [{ value: '1' }] }],
@@ -53,46 +50,6 @@ describe('Documents shared runtime', () => {
     for (const [id, input] of cases) {
       expect(runtime.execute(id, input), id).toBeDefined();
     }
-  });
-
-  it('projects CSV rows from both hydrated payload handles and projection envelopes', () => {
-    const base64 = 'bmFtZSxxdHkKYWx1bWluaXVtLDEyCnN0ZWVsLDMK';
-    const handle = runtime.execute('table-rows', { payload: { mime: 'text/csv', payloadBase64: base64 } });
-    const envelope = runtime.execute('table-rows', { typeId: 'csv-table', payloadBase64: base64 });
-    expect(handle).toEqual(envelope);
-    expect(handle).toEqual([{ name: 'aluminium', qty: 12 }, { name: 'steel', qty: 3 }]);
-  });
-
-  it('projects positional spreadsheet rows with stable column keys', () => {
-    const rows = runtime.execute('table-cells', {
-      typeId: 'csv-table',
-      payloadBase64: 'bmFtZSxxdHkKYWx1bWluaXVtLDEyCnN0ZWVsLDMK'
-    });
-    expect(rows).toEqual([
-      { A: 'name', B: 'qty' },
-      { A: 'aluminium', B: 12 },
-      { A: 'steel', B: 3 }
-    ]);
-  });
-
-  it('reads XLSX payload bytes in the shared runtime', async () => {
-    const XLSX = await import('../assets/vendor/xlsx.mjs');
-    const sheet = XLSX.utils.aoa_to_sheet([['name', 'qty'], ['aluminium', 12], ['steel', 3]]);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, sheet, 'Sheet1');
-    const bytes = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
-    const binary = Array.from(new Uint8Array(bytes), byte => String.fromCharCode(byte)).join('');
-    const rows = runtime.execute('table-rows', { typeId: 'xlsx-workbook', payloadBase64: btoa(binary) });
-    expect(rows).toEqual([{ name: 'aluminium', qty: 12 }, { name: 'steel', qty: 3 }]);
-  });
-
-  it('extracts document text from a payload envelope', () => {
-    expect(runtime.execute('text', { payloadBase64: 'aGVsbG8=' })).toBe('hello');
-  });
-
-  it('rejects missing and unreadable projection payloads with actionable errors', () => {
-    expect(() => runtime.execute('text', {})).toThrow('requires a payload with payloadBase64');
-    expect(() => runtime.execute('table-rows', { typeId: 'csv-table', payloadBase64: 'not-base64!!' })).toThrow();
   });
 
   it('serializes row records through the shared spreadsheet engine', () => {
