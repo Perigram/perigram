@@ -81,7 +81,7 @@ export function useProcessDesignerNodeSync({
 
   function processNodeInputs(node = {}) {
     return catalogPorts(node).inputs
-      .map(port => ({ ...port, label: processPortLabel(node, port) }));
+      .map(port => ({ ...port, base: port.type?.base || 'json', label: processPortLabel(node, port) }));
   }
 
   function processNodeOutputs(node = {}) {
