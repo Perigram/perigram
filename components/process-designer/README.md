@@ -48,7 +48,8 @@ CTS query capability used by the core data-query node; preview read sets retain
 the returned instance versions and query boundary. Installed plugin runtimes
 contribute graph node definitions and preview renderer ids through the
 browser Worker runtime bridge, with execution callbacks mediated by the
-host. Each renderer id resolves to an installed plugin `preview` surface;
+host. Each graph preview uses one execution id across node invocations and
+finalizes that id across every loaded plugin runtime after evaluation settles. Each renderer id resolves to an installed plugin `preview` surface;
 the host mounts that surface with the selected graph output as its payload.
 Plugin node providers declare semantic palette groups and searchable
 keywords; the shared palette search also indexes stable operation, provider,

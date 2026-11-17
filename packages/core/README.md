@@ -59,7 +59,10 @@ boundary node. Use Graph nodes pin an immutable graph revision.
 - `GRAPH_DOCUMENT_FORMAT`, `GRAPH_DOCUMENT_VERSION`, and the three
   `GRAPH_*_OPERATION` constants identify the format and core boundary operations.
 - `evaluateProceduralGraph` evaluates data dependencies in preview mode,
-  resolves exact provider definitions, and composes pinned subgraphs. It returns
+  resolves exact provider definitions, composes pinned subgraphs, and awaits
+  the optional `context.finalizeExecution(executionId)` hook in its settlement
+  path. The same execution id is exposed to every node invocation and the
+  finalizer. It returns
   graph outputs and per-node outputs for host preview channels.
 - `createGraphExecutionRecord`, `validateGraphExecutionRecord`, and
   `assertValidGraphExecutionRecord` own immutable, versioned execution

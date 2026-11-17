@@ -130,8 +130,10 @@ integration waits for the owner's completion of build123d-flow.
   capabilities use an authenticated, read-only host route; operation
   declarations are checked again by the host. Node capability ids now require
   qualified, unique names. Custom preview renderer ids now resolve to
-  declared preview surfaces through the host mount contract; end-to-end graph
-  preview tests remain.
+  declared preview surfaces through the host mount contract. Graph previews
+  now share one execution id across node calls and finalize that id across all
+  loaded plugin Workers on success and failure; focused lifecycle tests are
+  queued for CI verification.
 - [ ] Implement the platform-managed server runtime: shared scheduling,
   isolated runtime pools, package loading by organization/version, resource
   limits, network/filesystem policy, and validated result/effect commits.
