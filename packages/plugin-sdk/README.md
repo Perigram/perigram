@@ -64,7 +64,7 @@ identity, provider, unit, constraints, nullability, and output optionality. Resu
 validation, and preview preflight. A generic JSON target accepts typed JSON values. A specific semantic
 target requires a matching declared identity or a provider-declared runtime
 validator. Optional outputs and nullable values may connect to stricter inputs
-conditionally; the graph evaluator checks presence and nullability at runtime.
+conditionally; the graph evaluator checks presence, nullability, and primitive/record base values at runtime.
 
 ## Surface mount contracts
 

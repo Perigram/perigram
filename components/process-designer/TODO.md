@@ -190,3 +190,10 @@ The graph preview panel now uses native controls for primitive interface
 inputs and validates JSON/collection values against the declared base,
 shape, and nullability. The Documents preview channel now reads the unified
 graph evaluator's output envelope and preserves its legacy envelope path.
+
+### Agent Notes (2026-11-17, runtime value checks)
+
+The core evaluator now validates connected values and defaults against
+declared primitive/record bases, transport shapes, required presence, and
+nullability. Preview inputs expose native primitive controls and structured
+JSON editing. The tests are added but still need execution in the project CI.
