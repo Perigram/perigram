@@ -1359,6 +1359,7 @@ function instanceService(typeId) {
     // shared access engine on the class-collection feature (the feature
     // grants compile against) with the type id as type-id filter.
     async replacePayload(id, { buffer, filename, mimeType } = {}, { userId, organizationId, auth, reason = 'payload-replaced', restoredFrom = null, session = null, expectedRevision = null, expectedOrganizationSequence = null, storedFile = null } = {}) {
+      const expectedSequence = expectedOrganizationSequence ?? await getOrganizationChangeSequence(organizationId);
       const declaration = await requireDeclaration(typeId, organizationId);
       if (!declaration.payload) {
         throw createError({ statusCode: 400, message: `Type ${typeId} declares no payload` });
@@ -1418,7 +1419,7 @@ function instanceService(typeId) {
             throw createError({ statusCode: 409, message: `${typeId} ${id} changed before its payload was saved` });
           }
           return changed;
-        }, { session, expectedSequence: expectedOrganizationSequence });
+        }, { session, expectedSequence });
         return toDto(updated);
       } catch (error) {
         if (ownsStoredFile) await filesService.deleteFile(stored.id, PAYLOAD_BUCKET).catch(() => {});
