@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   findFileMeta: vi.fn(),
   assertFileReadAccess: vi.fn(),
   getFileBuffer: vi.fn(),
+  uploadFile: vi.fn(),
+  deleteFile: vi.fn(),
   bakeFile: vi.fn(),
   retractBakedFile: vi.fn(),
   withOrganizationDataSnapshot: vi.fn(),
@@ -23,7 +25,9 @@ vi.mock('~/server/db/mongo', () => ({ connectDB: mocks.connectDB }));
 vi.mock('../files/service.js', () => ({
   findFileMeta: mocks.findFileMeta,
   assertFileReadAccess: mocks.assertFileReadAccess,
-  getFileBuffer: mocks.getFileBuffer
+  getFileBuffer: mocks.getFileBuffer,
+  uploadFile: mocks.uploadFile,
+  deleteFile: mocks.deleteFile
 }));
 vi.mock('../pages/service.js', () => ({
   bakeFile: mocks.bakeFile,
@@ -115,6 +119,7 @@ describe('graph execution service', () => {
   const executionService = { create: vi.fn() };
   const graphService = { processGetById: vi.fn() };
   const dataService = { processList: vi.fn(), processGetById: vi.fn(), patch: vi.fn() };
+  const payloadService = { replacePayload: vi.fn() };
   const session = {
     withTransaction: vi.fn(async callback => await callback()),
     endSession: vi.fn(async () => {})
@@ -127,7 +132,7 @@ describe('graph execution service', () => {
     graphService.processGetById.mockResolvedValue(graphDocument);
     executionService.create.mockResolvedValue({ _id: 'execution-instance-1' });
     mocks.getAppRegistry.mockReturnValue({
-      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : dataService
+      getInstanceService: typeId => typeId === 'graph-document' ? graphService : typeId === 'graph-execution' ? executionService : typeId === 'part' ? payloadService : dataService
     });
     dataService.processList.mockResolvedValue([{ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }]);
     dataService.processGetById.mockImplementation(async id => ({ _id: id, type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 3, updatedAt: '2026-11-16T10:00:00Z', fields: { code: 'A' } }));
@@ -144,6 +149,9 @@ describe('graph execution service', () => {
     mocks.findFileMeta.mockResolvedValue({ metadata: { organizationId: 'org-1' }, contentType: 'application/json' });
     mocks.assertFileReadAccess.mockReturnValue(true);
     mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
+    mocks.uploadFile.mockResolvedValue({ id: 'baked-payload-1', filename: 'Document graph-document.txt' });
+    mocks.deleteFile.mockResolvedValue(true);
+    payloadService.replacePayload.mockResolvedValue({ _id: 'item-1', type: 'part', revision: 4, payload: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8' } });
     mocks.bakeFile.mockResolvedValue({
       page: { _id: 'page-1' },
       file: { path: 'exports/document.txt', fileId: 'baked-file-1', mime: 'text/plain', size: 18, revision: 1 }
@@ -347,6 +355,57 @@ describe('graph execution service', () => {
       destination: { type: 'page-file', pageId: 'page-1', path: 'exports/document.txt' }
     }, auth)).rejects.toMatchObject({ statusCode: 409 });
     expect(mocks.bakeFile).not.toHaveBeenCalled();
+  });
+
+  it('bakes an output into an authorized revisioned instance payload atomically', async () => {
+    const result = await graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record: preview(),
+      outputId: 'document',
+      destination: {
+        type: 'instance-payload',
+        typeId: 'part',
+        instanceId: 'item-1',
+        expectedRevision: '3'
+      }
+    }, auth);
+
+    expect(mocks.uploadFile).toHaveBeenCalledWith(
+      Buffer.from('Generated document'),
+      'Document graph-document.txt',
+      { userId: 'user-1', organizationId: 'org-1', type: 'part' },
+      'files',
+      'text/plain; charset=utf-8'
+    );
+    expect(payloadService.replacePayload).toHaveBeenCalledWith('item-1', {
+      buffer: Buffer.from('Generated document'),
+      filename: 'Document graph-document.txt',
+      mimeType: 'text/plain; charset=utf-8'
+    }, expect.objectContaining({
+      auth,
+      userId: 'user-1',
+      organizationId: 'org-1',
+      session,
+      expectedRevision: '3',
+      expectedOrganizationSequence: null,
+      storedFile: { id: 'baked-payload-1', filename: 'Document graph-document.txt' }
+    }));
+    expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
+      fields: expect.objectContaining({
+        profile: 'procedural-bake',
+        artifacts: [expect.objectContaining({
+          kind: 'instance-payload',
+          typeId: 'part',
+          instanceId: 'item-1',
+          revision: '4',
+          fileId: 'baked-payload-1',
+          outputId: 'document'
+        })]
+      })
+    }), 'user-1', 'org-1', { session });
+    expect(result.instance.payload.fileId).toBe('baked-payload-1');
+    expect(result.execution.profile).toBe('procedural-bake');
+    expect(mocks.deleteFile).not.toHaveBeenCalled();
   });
 
   it('refuses materialization when an instance revision changed after preview', async () => {
