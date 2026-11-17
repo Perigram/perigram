@@ -12,7 +12,7 @@ describe('page document', () => {
 
   it('preserves a pinned saved-query definition snapshot on a collection embed', () => {
     const document = normalizePageDocument({ blocks: [{ id: 'pinned-view', kind: 'view', view: { id: 'view-1', typeId: 'part', name: 'Approved parts', definitionRevision: '2026-11-17T08:00:00.000Z', definitionSnapshot: { viewState: { filters: { code: 'A' }, sort: { name: 'createdAt', order: -1 } } } } }], order: ['pinned-view'] });
-    expect(document.blocks[0].view).toMatchObject({ id: 'view-1', definitionRevision: '2026-11-17T08:00:00.000Z', definitionSnapshot: { viewState: { filters: { code: 'A' }, sort: { name: 'createdAt', order: -1 } } } });
+    expect(document.blocks[0].view).toMatchObject({ id: 'view-1', parameters: {}, resultPolicy: 'live', definitionRevision: '2026-11-17T08:00:00.000Z', definitionSnapshot: { viewState: { filters: { code: 'A' }, sort: { name: 'createdAt', order: -1 } } } });
   });
 
   it('preserves page file blocks with safe logical paths and canonical file refs', () => {

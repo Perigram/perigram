@@ -135,6 +135,8 @@ export function usePageDocumentSession({ docId, tabKey }) {
       ...(pick.id ? { id: String(pick.id) } : {}),
       typeId: String(pick.typeId || ''),
       name: String(pick.name || ''),
+      parameters: pick.parameters && typeof pick.parameters === 'object' ? pick.parameters : {},
+      resultPolicy: pick.resultPolicy === 'pinned' ? 'pinned' : 'live',
       ...(pick.parentTypeId ? { parentTypeId: String(pick.parentTypeId) } : {}),
       ...(pick.parentId ? { parentId: String(pick.parentId) } : {}),
       ...(pick.sourceId ? { sourceId: String(pick.sourceId) } : {}),

@@ -162,7 +162,9 @@ async function pickPinnedView(view, collection) {
     parentId: selected.value.id,
     sourceId: collection.sourceId,
     definitionRevision: String(definition.updatedAt || ''),
-    definitionSnapshot: { viewState: definition.viewState || {} }
+    definitionSnapshot: { viewState: definition.viewState || {} },
+    parameters: {},
+    resultPolicy: 'live'
   });
 }
 
