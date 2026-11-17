@@ -584,6 +584,13 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
 - The instance repository and generic instance service propagate the transaction session through reads, constraint resolution, revision compare-and-swap, organization sequence reservation, and writes. A stable preview organization sequence is reserved with a zero-pending compare-and-swap and an exclusive token before the target mutation; ordinary organization writes cannot begin until that token is completed or cancelled. The execution record advances the same sequence inside the transaction.
 - Mongo transaction support is a commit prerequisite. Unsupported deployments receive `503` before mutation; evidence-write failures abort the instance write with the transaction.
 - Regression coverage verifies the session is shared by the patch and evidence insert, the expected sequence reaches the write boundary, and the sequence reservation rejects stale previews. CI passed the full Vitest, SSR, architecture, framework, documentation, operational-script, and plugin-dependency checks.
+### Agent Notes (2026-11-17, CTS declaration sequence fencing)
+
+- `defineType` and `removeType` now capture the organization sequence before preflight reads and reserve it by compare-and-swap for the authoritative write.
+- The reservation spans unique-index updates and the complete covered instance migration. A concurrent org-data write rejects the declaration request with a stale-sequence conflict.
+- Removed nested sequence reservations from the public wrappers so each declaration mutation advances the sequence once.
+- Added a regression test for the single reservation and expected sequence.
+
 ### Agent Notes (2026-11-17, transactional relation mutation)
 
 - Added a shared Mongo snapshot-transaction helper and reused it for graph Commit plus HTTP relation link/unlink.
@@ -602,7 +609,7 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
 - Generic create and process-update relation writes resolve declared typed targets, enforce tenant/system scope, reject duplicate refs and invalid one/many shapes, and evaluate target-domain expressions with the bounded async evaluator.
 - Construction lineage now resolves only declared parent types, validates parent scope/existence, and allows authored ancestor axes only when they are present on the validated parent's lineage. Internal process-update lineage writes reject undeclared keys and unresolved parents. The storage boundary ignores `lineage.organizationId`; organization ownership remains the top-level §3 slot.
 - Regression coverage covers cardinality, target type/domain, cross-organization refs, undeclared lineage keys, missing parents, duplicate refs, scalar lineage storage, and tenancy-slot isolation. The structural-edge suite passed 291 Vitest files / 2,984 tests plus SSR, architecture, framework, documentation, and plugin-dependency checks.
-- Open G7 work: audit import/direct repository and dedicated link/unlink paths; serialize cross-record aggregate/cardinality constraints.
+- Open G7 work: audit import and type-migration direct repository writes; serialize cross-record aggregate/cardinality constraints.
 ### Agent Notes (2026-11-16, deployment migration wiring)
 
 - `scripts/deploy.sh` now runs the instance-revision backfill and organization-owned plugin-asset migration after the updated app starts. It runs them from the standalone `perigram-seed` image, whose dependency closure now includes the CTS package import map, server DB/utils/features, MongoDB, Winston, and H3; this avoids relying on Nuxt aliases or source trees absent from the app runtime image. The deploy script's executable mode remains `100755`.
