@@ -71,6 +71,20 @@ describe('Facade preview surfaces', () => {
     expect(tree.children[0].tag).toBe('DrawingCanvas');
   });
 
+  it('degrades malformed baked cassette geometry to the quiet empty preview', async () => {
+    normalizeGeometryDrawing.mockImplementationOnce(() => { throw new Error('invalid geometry'); });
+    const mount = mountContext();
+    const surface = createCassettePreview(mount.context);
+    const render = surface.setup({
+      record: { _id: 'cassette-invalid', updatedAt: 4, fields: { geometry: { data: { invalid: true } } } },
+      payload: null
+    });
+    await expect(mount.settle()).resolves.toBeUndefined();
+    const tree = render();
+    expect(tree.children[0].tag).toBe('div');
+    expect(tree.children[0].children[0].tag).toBe('i');
+  });
+
   it('keeps the cassette payload loading state visible while OCCS bytes are unresolved', async () => {
     normalizeGeometryDrawing.mockReturnValue(null);
     const mount = mountContext();

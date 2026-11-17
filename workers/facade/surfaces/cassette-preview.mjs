@@ -61,8 +61,12 @@ export default function createSurface({ vue, components }) {
           }
         }
         if (currentRequest !== requestId || drawing.value) return;
-        const fields = props.record?.fields || {};
-        drawing.value = normalizeGeometryDrawing({ data: { ...fields } });
+        try {
+          const fields = props.record?.fields || {};
+          drawing.value = normalizeGeometryDrawing({ data: { ...fields } });
+        } catch {
+          if (currentRequest === requestId) drawing.value = null;
+        }
       }
 
       function handleDrawingReady(rendered) {
