@@ -1158,12 +1158,11 @@ describe('endpoint-mode services', () => {
     expect(repository.updateSettings).not.toHaveBeenCalled();
   });
 
-  it('resolves a platform-managed executor origin for existing installs missing the persisted value', async () => {
+  it('resolves a built-in executor origin for legacy installs missing the persisted value', async () => {
     vi.stubEnv('DOCUMENTS_EXECUTOR_URL', 'http://documents-executor:8791');
     const documentsInstall = {
       ...endpointInstall,
       pluginId: 'documents',
-      platformManaged: true,
       executorOrigin: null,
       services: [{ id: 'parse-markdown', label: 'Parse markdown', mode: 'endpoint', signature: { input: { base: 'record' }, output: { base: 'json' } } }]
     };

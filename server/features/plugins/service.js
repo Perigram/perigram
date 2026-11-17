@@ -583,8 +583,11 @@ function legacyExecutorOrigin(install) {
 }
 
 function endpointUrlFor(install, service) {
+  // Built-in catalog seeds predate the persisted platformManaged flag on
+  // install records. The allowlisted plugin id is the authority here: only
+  // platform-shipped executors have an entry in BUILTIN_EXECUTORS.
   return install.executorOrigin || legacyExecutorOrigin(install)
-    || ((install.platformManaged === true || install.builtin === true) ? builtinExecutorOrigin(install.pluginId) : null);
+    || builtinExecutorOrigin(install.pluginId);
 }
 
 export async function settingsFor({ organizationId, pluginId, auth = {} }) {
