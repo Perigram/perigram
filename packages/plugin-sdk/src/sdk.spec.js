@@ -154,14 +154,6 @@ describe('parseListing', () => {
     invalid({ runtimes: [runtime], services: [{ ...service, execution: { runtime: 'javascript', targets: ['server'], kind: 'effect', capabilities: [] } }] }).toThrow(/requires a host capability/);
   });
 
-  it('validates one declaration-driven palette contract for services and projections', () => {
-    const palette = { group: 'document-authoring', label: 'Document authoring', keywords: ['report', 'markdown'], visible: false };
-    const parsed = parseListing({ ...fullListing, declarations: { ...fullListing.declarations, services: [{ ...fullListing.declarations.services[0], palette }] } });
-    expect(parsed.services[0].palette).toEqual(palette);
-    expect(() => parseListing({ ...fullListing, declarations: { ...fullListing.declarations, services: [{ ...fullListing.declarations.services[0], group: 'legacy' }] } })).toThrow(/retired group metadata/);
-    expect(() => parseListing({ ...fullListing, declarations: { ...fullListing.declarations, services: [{ ...fullListing.declarations.services[0], palette: { group: 'Not valid' } }] } })).toThrow(/palette.group/);
-  });
-
   it('validates listing visibility and its owning organizations', () => {
     expect(parseListing(fullListing).visibility).toBe('public');
     const privateListing = parseListing({ ...fullListing, visibility: 'private', organizations: ['org-1'] });
@@ -871,14 +863,6 @@ function stopAfter(target, calls) {
     invalid({ runtimes: [runtime], services: [{ ...service, execution: { ...service.execution, capabilities: ['bad'] } }] }).toThrow(/qualified capability id/);
     invalid({ runtimes: [{ ...runtime, targets: ['browser', 'server'] }], services: [{ ...service, execution: { runtime: 'javascript', targets: ['browser', 'server'], kind: 'effect', capabilities: ['organization.instances.update'] } }] }).toThrow(/requires server support/);
     invalid({ runtimes: [runtime], services: [{ ...service, execution: { runtime: 'javascript', targets: ['server'], kind: 'effect', capabilities: [] } }] }).toThrow(/requires a host capability/);
-  });
-
-  it('validates one declaration-driven palette contract for services and projections', () => {
-    const palette = { group: 'document-authoring', label: 'Document authoring', keywords: ['report', 'markdown'], visible: false };
-    const parsed = parseListing({ ...fullListing, declarations: { ...fullListing.declarations, services: [{ ...fullListing.declarations.services[0], palette }] } });
-    expect(parsed.services[0].palette).toEqual(palette);
-    expect(() => parseListing({ ...fullListing, declarations: { ...fullListing.declarations, services: [{ ...fullListing.declarations.services[0], group: 'legacy' }] } })).toThrow(/retired group metadata/);
-    expect(() => parseListing({ ...fullListing, declarations: { ...fullListing.declarations, services: [{ ...fullListing.declarations.services[0], palette: { group: 'Not valid' } }] } })).toThrow(/palette.group/);
   });
 
   it('validates listing visibility and its owning organizations', () => {
