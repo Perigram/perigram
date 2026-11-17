@@ -713,6 +713,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
       organizationId,
       type: typeId
     }, 'files', mimeType || 'application/octet-stream');
+    if (!stored?.id) throw createError({ statusCode: 500, message: 'Attachment file storage returned no file identity' });
     try {
       return await withMongoWriteTransaction(async session => {
         await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });

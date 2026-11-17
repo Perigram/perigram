@@ -518,8 +518,11 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   `procedural-commit` evidence now persist in one Mongo snapshot transaction;
   a stable organization sequence is reserved by compare-and-swap. Transaction
   support is required and unsupported deployments fail before writes.
-  Instance-payload Bake is now implemented for one exact revisioned CTS
-  instance: the uploaded blob is compensated on abort, while payload swap,
+  Instance-field Bake now attaches a file handle to an exact declared `blob`
+  field through the generic authorized patch boundary; uploaded files are
+  compensated on abort and the field mutation plus execution evidence share
+  one transaction. Instance-payload Bake is also implemented for one exact
+  revisioned CTS instance: the uploaded blob is compensated on abort, while payload swap,
   immutable revision, audit event, organization sequence, and execution
   evidence share one Mongo snapshot transaction. New-instance Bake now uses
   an explicit CTS type and draft; the host creates the record and attaches
