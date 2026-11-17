@@ -81,6 +81,19 @@ describe('procedural graph preview evaluator', () => {
     expect(contexts[0].readSet).toBeTruthy();
   });
 
+  it('finalizes plugin runtime sessions after graph preview evaluation', async () => {
+    const finalizeExecution = vi.fn(async () => {});
+    await evaluateProceduralGraph({
+      graph: graph(),
+      inputBindings: { number: 3 },
+      context: { finalizeExecution },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
+    });
+    expect(finalizeExecution).toHaveBeenCalledTimes(1);
+    expect(finalizeExecution).toHaveBeenCalledWith(expect.stringMatching(/^graph-preview-/));
+  });
+
   it('preserves an execution id supplied by the graph host', async () => {
     let observed;
     await evaluateProceduralGraph({
