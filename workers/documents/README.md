@@ -71,9 +71,11 @@ A block is a typed `text.document-block` value. The union is:
 
 Inline values use kind `text.inline`: text/code nodes carry `text`, strong
 and emphasis nodes carry `children`, and link nodes carry a safe `href`
-plus `children`. The provider validates nested inline and block values when
-constructing, composing, appending, previewing, or exporting a document.
-Unsafe link schemes are rejected or dropped with a parse diagnostic.
+plus `children`. Paragraphs and headings accept inline-value lists; list
+blocks accept plain text items or typed inline items through `inlineItems`.
+The provider validates nested inline and block values when constructing,
+composing, appending, previewing, or exporting a document. Unsafe link
+schemes are rejected or dropped with a parse diagnostic.
 
 A document can be authored entirely from nodes: create typed inline values
 and blocks, put block outputs into `Make List` configured for
