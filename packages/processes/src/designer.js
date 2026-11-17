@@ -826,9 +826,9 @@ export function servicesPaletteGroups(serviceContracts = {}) {
 // alongside the platform's native operation families. One item per OPERATION, never
 // per-type copies: the extract preset binds the projection, the type
 // binds at configure time (Type pin / inspector), and the inspector's
-// projection switch is the single mode selector. The documents pack's
-// `tableData` tab carries table decomposition (rows, cells, text); the
-// facade pack's `facade` tab carries cassette geometry extraction beside
+// projection switch is the single mode selector. The Documents plugin's
+// `table-data` group carries table decomposition (rows, cells, text); the
+// Facade plugin's `facade` group carries cassette geometry extraction beside
 // the solver. Ungrouped projections stay unlisted (the generic extract
 // preset covers them).
 export function pluginPaletteGroups(projectionContracts = {}, serviceContracts = {}) {
