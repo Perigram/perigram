@@ -119,9 +119,7 @@ async function evaluateGraph(options) {
         ? options.inputBindings[interfaceId]
         : (Object.hasOwn(port, 'default') ? port.default : undefined);
       if (value === undefined && port.required) throw new Error(`Required graph input ${interfaceId} was not supplied`);
-      if (value === null && port.contract?.semantic?.nullable !== true) {
-        throw new Error(`Graph input ${interfaceId} does not accept null`);
-      }
+      assertSemanticValue(node, 'value', value, port.contract?.shape || 'item', port.contract?.semantic || {});
       values.set(`${node.id}:value`, value);
       nodeOutputs[node.id] = { value };
       continue;
@@ -322,9 +320,7 @@ function readInput(node, portId, edges, values, required, fallback, shape = 'ite
     .sort((a, b) => a.id.localeCompare(b.id));
   if (!matches.length) {
     if (fallback !== undefined) {
-      if (fallback === null && semantic.nullable !== true) {
-        throw new Error(`Node ${node.id} input ${portId} does not accept a null default`);
-      }
+      assertSemanticValue(node, portId, fallback, shape, semantic);
       return fallback;
     }
     if (required) throw new Error(`Node ${node.id} is missing required input ${portId}`);
@@ -344,31 +340,72 @@ function readInput(node, portId, edges, values, required, fallback, shape = 'ite
   if (required && valuesForEdges.some(item => item.value === undefined)) {
     throw new Error(`Node ${node.id} required input ${portId} received no value from its connected source`);
   }
-  if (semantic.nullable !== true && valuesForEdges.some(item => item.value === null)) {
-    throw new Error(`Node ${node.id} input ${portId} does not accept null from its connected source`);
-  }
+
+  let result;
   if (matches.length === 1) {
     const value = valuesForEdges[0].value;
     if (shape === 'map') {
-      return isRecord(value) ? value : { [`${matches[0].source.node}:${matches[0].source.port}`]: value };
+      result = isRecord(value) ? value : { [`${matches[0].source.node}:${matches[0].source.port}`]: value };
+    } else if (['list', 'tuple', 'tree'].includes(shape)) {
+      result = Array.isArray(value) ? value : [value];
+    } else {
+      result = value;
     }
-    if (['list', 'tuple', 'tree'].includes(shape)) {
-      return Array.isArray(value) ? value : [value];
-    }
-  }
-  if (shape === 'map') {
-    return Object.fromEntries(valuesForEdges.map(({ edge, value }) => [
+  } else if (shape === 'map') {
+    result = Object.fromEntries(valuesForEdges.map(({ edge, value }) => [
       `${edge.source.node}:${edge.source.port}`,
       value
     ]));
-  }
-  if (['list', 'tuple', 'tree'].includes(shape)) {
-    return valuesForEdges.map(({ value }) => value);
-  }
-  if (matches.length !== 1) {
+  } else if (['list', 'tuple', 'tree'].includes(shape)) {
+    result = valuesForEdges.map(({ value }) => value);
+  } else {
     throw new Error(`Node ${node.id} input ${portId} has unsupported transport shape ${shape}`);
   }
-  return valuesForEdges[0].value;
+  assertSemanticValue(node, portId, result, shape, semantic);
+  return result;
+}
+
+function assertSemanticValue(node, portId, value, shape, semantic = {}) {
+  if (value === undefined) return;
+  if (value === null) {
+    if (semantic.nullable === true) return;
+    throw new Error(`Node ${node.id} input ${portId} does not accept null`);
+  }
+  const base = semantic.base;
+  const isJsonValue = (candidate, seen = new Set()) => {
+    if (candidate === null || typeof candidate === 'string' || typeof candidate === 'boolean') return true;
+    if (typeof candidate === 'number') return Number.isFinite(candidate);
+    if (typeof candidate !== 'object' || seen.has(candidate)) return false;
+    seen.add(candidate);
+    const valid = Array.isArray(candidate)
+      ? candidate.every(item => isJsonValue(item, seen))
+      : isRecord(candidate) && Object.values(candidate).every(item => isJsonValue(item, seen));
+    seen.delete(candidate);
+    return valid;
+  };
+  const validItem = item => {
+    if (item === null) return false;
+    if (base === 'string') return typeof item === 'string';
+    if (base === 'number') return typeof item === 'number' && Number.isFinite(item);
+    if (base === 'integer') return Number.isSafeInteger(item);
+    if (base === 'boolean') return typeof item === 'boolean';
+    if (base === 'record') return isRecord(item) && isJsonValue(item);
+    if (base === 'list' || base === 'tuple' || base === 'tree') return Array.isArray(item) && isJsonValue(item);
+    if (base === 'map') return isRecord(item) && isJsonValue(item);
+    if (base === 'json' || !base) return isJsonValue(item);
+    return isJsonValue(item);
+  };
+  let valid;
+  if (shape === 'map') {
+    valid = isRecord(value) && Object.values(value).every(validItem);
+  } else if (['list', 'tuple', 'tree'].includes(shape)) {
+    valid = Array.isArray(value) && value.every(validItem);
+  } else {
+    valid = validItem(value);
+  }
+  if (!valid) {
+    throw new Error(`Node ${node.id} input ${portId} does not match semantic base ${base || 'json'} and transport shape ${shape}`);
+  }
 }
 
 function topologicalOrder(nodes, edges) {
