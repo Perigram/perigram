@@ -3,22 +3,22 @@
 The documents domain as a third-party plugin (SPEC §20): the generic
 media/office file types (image, PDF, markdown, CSV, XLSX, DOCX), their
 editor surfaces, the table projections, the CSV serialization, and the
-template fills (SPEC §24). The platform carries zero documents code:
-projections and fills compute here as pure payload decompositions and
-compositions, the shared runtime handles pure row-to-CSV serialization and document composition/export,
-editors ship as the plugin's surface modules, and the
-types ride the generic instance machinery from the install snapshot.
+template fills (SPEC §24). The platform carries zero documents code: the plugin owns the file formats,
+projections, template fills, and rendering. Payload projections and file
+constructions use endpoint handlers; pure CSV and document graph operations
+run through one portable runtime on both browser and server. Editors ship as
+the plugin's surface modules, and types ride the generic instance machinery.
 
 - Listing: `workers/documents/listing.json` — types with
   service-resolved projections (`resolve: { service:
-  'plugin.documents.<svc>' }` — synchronous provider dispatch), the twelve services,
+  'plugin.documents.<svc>' }` — synchronous provider dispatch), the service declarations,
   editor bindings, the fill construction bindings, and the
   text-document starter construct (markdown stays visible-by-default
   through the default installs). `requires` names tech-drawing: the
   PDF render construction accepts `dxf-source` sources.
-- Services (`services.js`, with `csv-text` moved to the browser Worker
-  runtime and `extract-table`, `compose-report`, `export-markdown`, and `render-html` moved to the portable shared runtime; only the
-  remaining endpoint-mode operations are served by `index.js`;
+- Services (`services.js`, with pure CSV and document operations executed by the
+  shared browser/server runtime; only endpoint-mode operations are served
+  by `index.js`;
   the projection helper services are synchronous endpoint handlers, not
   graph palette items; the declared projections are the graph nodes):
   `table-rows`/`table-cells`

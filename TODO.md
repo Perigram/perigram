@@ -41,6 +41,7 @@ providers.
   nodes. Consolidate category vocabularies and source palette metadata from
   declarations; keep the same semantics across palette entries, canvas
   nodes, inspector, and preview/diagnostics.
+- [x] Documents authorable graph value: typed inline/block constructors, document composition/append, direct preview, and Markdown/HTML/PDF file output through the shared browser/server runtime and generic Bake/Export. Template-fill hand-off from an exported Markdown file is covered by a service test.
 - [ ] Give Documents a first-class authorable document graph value: typed block
   constructors, document composition/append, direct preview, and actual
   Markdown/HTML/PDF file outputs through generic Bake/Export. The flow value

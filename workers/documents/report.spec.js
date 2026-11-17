@@ -106,7 +106,7 @@ describe('report composition', () => {
     expect(() => composeReport({})).toThrow('flow document or row records');
   });
 
-  it('composes and exports the report through the managed runtime', async () => {
+  it('composes and exports the report through the shared runtime', async () => {
     const document = await services['parse-markdown']({ text: '# Title' });
     expect(document.blocks[0].type).toBe('heading');
     const text = await runtime.execute('export-markdown', { document });
