@@ -6,14 +6,14 @@
       <div class="flex flex-col gap-2">
         <label class="text-supporting text-muted">{{ $t('processDesigner.graphInterfaceDeclaration') }}</label>
         <Select v-model="declarationShape" :options="shapeOptions" option-label="label" option-value="value" size="small" class="w-full" />
-        <InputText v-model="declarationBase" size="small" placeholder="Semantic base" />
-        <InputText v-model="declarationKind" size="small" placeholder="Semantic kind" />
+        <InputText v-model="declarationBase" size="small" :placeholder="$t('processDesigner.graphSemanticBase')" />
+        <InputText v-model="declarationKind" size="small" :placeholder="$t('processDesigner.graphSemanticKind')" />
         <div class="flex items-center justify-between">
-          <label class="text-supporting">{{ $t('processDesigner.required') }}</label>
+          <label class="text-supporting">{{ $t('processDesigner.graphRequired') }}</label>
           <ToggleSwitch v-model="declarationRequired" />
         </div>
         <div class="flex items-center justify-between">
-          <label class="text-supporting">{{ $t('processDesigner.defaultValue') }}</label>
+          <label class="text-supporting">{{ $t('processDesigner.graphDefaultValue') }}</label>
           <ToggleSwitch v-model="declarationHasDefault" />
         </div>
         <TypedValueControl
@@ -122,6 +122,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
@@ -133,6 +134,8 @@ import TypedValueControl from '~/components/process-designer/TypedValueControl.v
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
+
+const { t } = useI18n();
 
 const props = defineProps({
   node: { type: Object, default: null },
@@ -224,7 +227,7 @@ function updateConfigField(id, value) {
 function applyDeclaration() {
   const base = declarationBase.value.trim();
   if (!base) {
-    declarationError.value = 'Semantic base is required';
+    declarationError.value = t('processDesigner.graphSemanticBaseRequired');
     return;
   }
   const declaration = {
