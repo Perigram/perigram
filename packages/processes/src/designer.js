@@ -814,7 +814,8 @@ export function servicesPaletteGroups(serviceContracts = {}) {
     .filter(service => service?.id && service.command && !service.group)
     .map(service => paletteItem(`service:${service.id}`, 'cts.service', {
       label: service.render?.label || service.id,
-      description: service.render?.label || service.id,
+      description: service.description || service.render?.description || service.render?.label || service.id,
+      searchTerms: [service.id, service.command, service.provider, service.pluginId].filter(Boolean),
       icon: service.render?.icon || 'pi pi-bolt',
       preset: { operator: service.id }
     }));
@@ -845,7 +846,8 @@ export function pluginPaletteGroups(projectionContracts = {}, serviceContracts =
     seenProjections.add(key);
     section(projection.group).items.push(paletteItem(`extract:${projection.id}`, 'cts.read', {
       label: projection.label,
-      description: projection.label,
+      description: projection.description || projection.label,
+      searchTerms: [projection.id, projection.typeId, projection.service].filter(Boolean),
       icon: 'pi pi-table',
       preset: { select: 'extract', projection: projection.id }
     }));
