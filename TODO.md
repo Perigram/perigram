@@ -574,8 +574,13 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   writes capture the organization sequence before validation and reserve it
   exclusively at write time, serializing cross-record aggregate/cardinality
   checks. Remaining: audit import and type-migration direct repository writes.
-- [ ] G8 Typed references and embeds — live and pinned references,
-  saved-query/graph-output collection embeds, and derived backlinks.
+- [ ] G8 Typed references and embeds — Page blocks now author live/pinned
+  typed references, resolve them through the target read grant, render an
+  explicit unavailable state without target-existence leakage, and expose
+  rebuildable org-scoped backlinks. Existing saved-view collection embeds
+  remain live. Remaining: collection embeds backed by saved-query/graph-output
+  identities with pinned definition revisions, explicit parameters, and
+  live-versus-pinned result policy; integrate these into the common renderer.
 - [ ] G9 Procedural vertical slices — document/data and geometry workflows
   exercise provider registration, preview, Commit/Bake, and provenance.
 - [ ] G10 Process migration — inventory all stored process graphs, produce
@@ -7661,3 +7666,10 @@ Session reads: SPEC §26/§22.17/§22.15/§4; TODO Phase J's Agent Notes
 (the current shapes); the 2026-11-08 blocks review findings; the
 degradation/editor laws in Program B notes.
 
+
+### Agent Notes (2026-11-17, Page typed references)
+
+- Page documents now accept typed reference blocks with stable type/instance identity and optional exact retained revision identity. The picker can insert live references or select a retained content revision.
+- Resolution first passes the source's ordinary read grant; pinned resolution then loads the exact revision, verifies its source identity, and never falls forward. Missing and inaccessible targets share one unavailable response to avoid existence leaks.
+- Page surfaces render live/pinned reference embeds. Backlinks are derived by scanning the owning organization's page documents and remain rebuildable rather than becoming a second source of truth.
+- G8 remains open for saved-query/graph-output collection embeds and their definition/result pinning semantics.

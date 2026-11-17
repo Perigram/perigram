@@ -1,8 +1,8 @@
 import { splitViewEmbeds } from './markdown.js';
 
-// The Page block document (SPEC §26): ordered text and collection blocks.
-// Text blocks carry markdown; collection blocks carry the view ref the
-// read pipeline and ViewEmbed consume.
+// The Page block document (SPEC §28.10): ordered text, collection,
+// typed-reference, and file blocks. References store identity/revision
+// only; resolution and access remain server-owned.
 export function createBlockId(prefix = 'b') {
   const random = globalThis.crypto?.randomUUID?.()
     || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
