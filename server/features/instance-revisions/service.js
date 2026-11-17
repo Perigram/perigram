@@ -86,7 +86,8 @@ export async function ensureForEntitySnapshot({
   userId = 'SYSTEM',
   reason = 'content-change',
   actor = null,
-  restoredFrom = null
+  restoredFrom = null,
+  session = null
 } = {}) {
   if (!typeId) throw createError({ statusCode: 400, message: 'Revision typeId is required' });
   if (!entity?._id) throw createError({ statusCode: 400, message: 'Revision entity is required' });
@@ -96,10 +97,10 @@ export async function ensureForEntitySnapshot({
 
   const instanceId = toFlexibleId(entity._id);
   const contentHash = hashRevisionContent(content);
-  const existing = await repository.findByHash(typeId, instanceId, scope, contentHash);
+  const existing = await repository.findByHash(typeId, instanceId, scope, contentHash, { session });
   if (existing) return toDTO(existing);
 
-  const latest = await repository.findLatest(typeId, instanceId, scope);
+  const latest = await repository.findLatest(typeId, instanceId, scope, { session });
   const number = Number(latest?.data?.number || 0) + 1;
   const revisionMachine = await workflowOverridesService.resolveActiveWorkflow({
     typeId: 'entity_revision',
@@ -144,10 +145,10 @@ export async function ensureForEntitySnapshot({
   };
 
   try {
-    return toDTO(await repository.create(doc));
+    return toDTO(await repository.create(doc, { session }));
   } catch (error) {
     if (error?.code === 11000) {
-      const concurrent = await repository.findByHash(typeId, instanceId, scope, contentHash);
+      const concurrent = await repository.findByHash(typeId, instanceId, scope, contentHash, { session });
       if (concurrent) return toDTO(concurrent);
     }
     throw error;

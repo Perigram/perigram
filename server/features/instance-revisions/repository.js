@@ -3,13 +3,13 @@ import { toFlexibleId } from '../../utils/objectid.js';
 
 const COLLECTION = 'entity_revisions';
 
-export async function create(data) {
+export async function create(data, { session = null } = {}) {
   const db = await connectDB();
   const doc = {
     ...data,
     _id: data.identity?.uid || data._id
   };
-  await db.collection(COLLECTION).insertOne(doc);
+  await db.collection(COLLECTION).insertOne(doc, session ? { session } : {});
   return doc;
 }
 
@@ -37,7 +37,7 @@ export async function deleteForSource(typeId, instanceId) {
   return revisions;
 }
 
-export async function findByHash(typeId, instanceId, scope, contentHash) {
+export async function findByHash(typeId, instanceId, scope, contentHash, { session = null } = {}) {
   const db = await connectDB();
   const id = toFlexibleId(instanceId).toString();
   return await db.collection(COLLECTION).findOne({
@@ -45,10 +45,10 @@ export async function findByHash(typeId, instanceId, scope, contentHash) {
     'data.source.id': id,
     'data.scope': scope,
     'data.contentHash': contentHash
-  });
+  }, session ? { session } : {});
 }
 
-export async function findLatest(typeId, instanceId, scope) {
+export async function findLatest(typeId, instanceId, scope, { session = null } = {}) {
   const db = await connectDB();
   const id = toFlexibleId(instanceId).toString();
   return await db.collection(COLLECTION)
@@ -56,7 +56,7 @@ export async function findLatest(typeId, instanceId, scope) {
       'data.source.type': typeId,
       'data.source.id': id,
       'data.scope': scope
-    })
+    }, session ? { session } : {})
     .sort({ 'data.number': -1, _id: -1 })
     .limit(1)
     .next();

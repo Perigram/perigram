@@ -690,7 +690,7 @@ export async function appendFieldChangeEvent(typeId, targetId, { changes = [], a
 // field edits (SPEC §24): who minted which revision, restoring from
 // which prior revision. The record carries the instance's current state
 // on both ends — a payload write never moves the machine.
-export async function appendPayloadRevisionEvent(typeId, targetId, { reason = null, revision = null, restoredFrom = null, actorId = null, auth = {}, state = null } = {}) {
+export async function appendPayloadRevisionEvent(typeId, targetId, { reason = null, revision = null, restoredFrom = null, actorId = null, auth = {}, state = null, session = null } = {}) {
   if (!reason) return null;
   const flexId = toFlexibleId(targetId);
   const db = await connectDB();
@@ -713,7 +713,7 @@ export async function appendPayloadRevisionEvent(typeId, targetId, { reason = nu
     },
     evidence: buildEventEvidence({}, {})
   });
-  await machineRepository.insertStatusEvent(db, record);
+  await machineRepository.insertStatusEvent(db, record, session ? { session } : {});
   return record;
 }
 
