@@ -183,3 +183,10 @@ Regression coverage was added; execution remains unverified.
 
 - [ ] Verify typed graph preview inputs for primitive, nullable, and collection
   interface contracts, including clear validation for malformed values.
+
+### Agent Notes (2026-11-17, preview workflow)
+
+The graph preview panel now uses native controls for primitive interface
+inputs and validates JSON/collection values against the declared base,
+shape, and nullability. The Documents preview channel now reads the unified
+graph evaluator's output envelope and preserves its legacy envelope path.
