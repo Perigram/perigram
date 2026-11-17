@@ -21,6 +21,20 @@ describe('Facade managed server runtime', () => {
     }
   });
 
+  it('implements every operation declared for the Facade managed runtime', () => {
+    const declared = listing.declarations.services
+      .filter(service => service.execution?.runtime === 'facade-server')
+      .map(service => service.id)
+      .sort();
+    expect(declared).toEqual([
+      'bake',
+      'construct-sheet',
+      'generate-sheet-dxf',
+      'match-sheet',
+      'nesting-solve'
+    ]);
+  });
+
   it('executes nesting through the host capability and returns graph values', async () => {
     const call = vi.fn().mockResolvedValue({ items: [], layouts: [] });
     const runtime = createRuntime();
