@@ -111,7 +111,11 @@ function inlineOf(token, diagnostics) {
 function inlineText(tokens, fallback) {
   const nodes = tokens.length ? inlineTokens(tokens, []) : null;
   if (!nodes) return String(fallback ?? '');
-  return nodes.map(node => node.text ?? '').join('');
+  const plainText = node => {
+    if (typeof node?.text === 'string') return node.text;
+    return Array.isArray(node?.children) ? node.children.map(plainText).join('') : '';
+  };
+  return nodes.map(plainText).join('');
 }
 
 function badInput(message) {
