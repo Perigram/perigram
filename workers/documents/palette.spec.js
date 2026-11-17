@@ -37,8 +37,9 @@ describe('Documents plugin node palette contribution', () => {
   it('keeps every declared projection and grouped service reachable from the palette', () => {
     const groups = declaredPaletteGroups();
     const items = groups.flatMap(group => group.items);
-    const projections = listing.declarations.types.flatMap(type => type.projections || [])
-      .filter(projection => projection.group);
+    const projections = new Set(listing.declarations.types.flatMap(type => type.projections || [])
+      .filter(projection => projection.group)
+      .map(projection => `${projection.group}:${projection.id}`));
     const services = listing.declarations.services
       .filter(service => service.group || service.render?.label || service.id);
 
