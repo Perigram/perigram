@@ -24,8 +24,8 @@ transport adapters are compiler concerns, hidden from authoring.
 Type-changing traversal selects a declared children/parent/relation edge and
 exposes that edge's exact target type. Plugin projection and service
 contracts contribute plugin-owned palette groups through `pluginPaletteGroups`;
-projection entries deduplicate by declared group and projection id, while
-service entries retain their operation identity and preset. The surface search
+projection entries deduplicate by provider, declared group, and projection id, while
+service entries retain their provider-qualified operation identity and preset. Group ids are provider-qualified; labels and keywords come from declarations, so equal group slugs from different plugins never merge. The surface search
 indexes labels, descriptions, operation ids, group ids, and provider-authored
 search terms.
 

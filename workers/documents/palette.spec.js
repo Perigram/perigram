@@ -15,7 +15,8 @@ function declaredPaletteGroups() {
       {
         ...service,
         command: service.id,
-        group: service.group
+        group: service.group,
+        pluginId: listing.pluginId
       }
     ])
   );
@@ -29,9 +30,9 @@ describe('Documents plugin node palette contribution', () => {
     const documentCompose = groups.find(group => group.id === 'plugin-documents-document-compose');
 
     expect(groups.every(group => group.source === 'plugin')).toBe(true);
-    expect(tableData.items.map(item => item.id)).toContain('extract:rows');
-    expect(tableData.items.map(item => item.id)).toContain('extract:cells');
-    expect(documentCompose.items.map(item => item.id)).toContain('service:compose-report');
+    expect(tableData.items.map(item => item.id)).toContain('extract:documents:rows');
+    expect(tableData.items.map(item => item.id)).toContain('extract:documents:cells');
+    expect(documentCompose.items.map(item => item.id)).toContain('service:documents:compose-report');
     expect(documentCompose.items.find(item => item.id === 'service:compose-report').searchTerms).toContain('compose-report');
   });
 

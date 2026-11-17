@@ -75,9 +75,7 @@ In the transitional listing every op is `{ mode: 'endpoint', cache: 'determinist
 }`: pure compute over values, replayed by the platform's service cache.
 Scalar params prompt as command parameters; shape and json params are
 graph data sockets. Palette sections derive from the discovered module
-(`build123d-part`, `build123d-sketch`, `build123d-curve`,
-`build123d-operations`, `build123d-drafting`, `build123d-text`,
-`build123d-algebra`).
+(`part`, `sketch`, `curve`, `operations`, `drafting`, `text`, `algebra`).
 
 The listing declares one type, `b3d-part` (file class, `application/step`
 payload, upload creation) — the persistence vocabulary for STEP parts.

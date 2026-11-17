@@ -15,7 +15,8 @@ function declaredPaletteGroups() {
       {
         ...service,
         command: service.id,
-        group: service.group
+        group: service.group,
+        pluginId: listing.pluginId
       }
     ])
   );
@@ -28,20 +29,20 @@ describe('Facade plugin node palette contribution', () => {
     const nesting = groups.find(group => group.id === 'plugin-facade-nesting');
     const planning = groups.find(group => group.id === 'plugin-facade-sheet-planning');
     const production = groups.find(group => group.id === 'plugin-facade-production-export');
-    expect(nesting.items.map(item => item.id)).toContain('service:nesting-solve');
+    expect(nesting.items.map(item => item.id)).toContain('service:facade:nesting-solve');
     expect(planning.items.map(item => item.id)).toEqual([
-      'service:construct-sheet',
-      'service:match-sheet'
+      'service:facade:construct-sheet',
+      'service:facade:match-sheet'
     ]);
-    expect(production.items.map(item => item.id)).toContain('service:generate-sheet-dxf');
+    expect(production.items.map(item => item.id)).toContain('service:facade:generate-sheet-dxf');
     expect(nesting.items.find(item => item.id === 'service:nesting-solve').searchTerms).toContain('nesting-solve');
     expect(nesting.items.find(item => item.id === 'service:nesting-solve')).toMatchObject({
       label: 'Solve sheet nesting',
       description: 'Arrange cassette-design parts on available sheet stock'
     });
-    expect(groups.some(group => group.items.some(item => item.id === 'service:extract-geometry'))).toBe(false);
-    expect(groups.some(group => group.items.some(item => item.id === 'service:bake'))).toBe(false);
-    expect(groups.some(group => group.items.some(item => item.id === 'service:nesting-parts'))).toBe(false);
+    expect(groups.some(group => group.items.some(item => item.id === 'service:facade:extract-geometry'))).toBe(false);
+    expect(groups.some(group => group.items.some(item => item.id === 'service:facade:bake'))).toBe(false);
+    expect(groups.some(group => group.items.some(item => item.id === 'service:facade:nesting-parts'))).toBe(false);
   });
 
   it('keeps every declared projection and service reachable from the plugin palette', () => {

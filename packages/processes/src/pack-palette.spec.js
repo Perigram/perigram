@@ -19,7 +19,7 @@ describe('pluginPaletteGroups', () => {
     const groups = pluginPaletteGroups(projections, {});
     expect(groups.every(group => group.source === 'plugin')).toBe(true);
     const tableData = groups.find(group => group.id === 'plugin-documents-table-data');
-    expect(tableData.items.map(item => item.id)).toEqual(['extract:rows', 'extract:cells', 'extract:text']);
+    expect(tableData.items.map(item => item.id)).toEqual(['extract:documents:rows', 'extract:documents:cells', 'extract:documents:text']);
     for (const item of tableData.items) {
       expect(item.preset.typeId).toBeUndefined();
       expect(item.preset.select).toBe('extract');
@@ -27,6 +27,16 @@ describe('pluginPaletteGroups', () => {
     expect(tableData.items[0].preset.projection).toBe('rows');
     expect(groups.find(group => group.id === 'plugin-facade-facade').items).toHaveLength(1);
   });
+  it('keeps identical group slugs isolated by provider', () => {
+    const groups = pluginPaletteGroups({}, {
+      first: { id: 'one', command: 'plugin.documents.one', group: 'operations' },
+      second: { id: 'one', command: 'plugin.facade.one', group: 'operations' }
+    });
+    expect(groups.map(group => group.id)).toEqual(['plugin-documents-operations', 'plugin-facade-operations']);
+    expect(groups.map(group => group.items[0].id)).toEqual(['service:documents:one', 'service:facade:one']);
+    expect(groups.every(group => group.label === 'Operations')).toBe(true);
+  });
+
   it('uses provider-authored operation labels and descriptions in the palette', () => {
     const groups = pluginPaletteGroups({}, {
       'nesting-solve': {
