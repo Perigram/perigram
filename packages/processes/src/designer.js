@@ -896,7 +896,7 @@ export function pluginPaletteGroups(projectionContracts = {}, serviceContracts =
     section(provider, service.palette.group, service.palette.label).items.push(paletteItem(`service:${provider}:${localId}`, 'cts.service', {
       label: service.label || service.render?.label || localId,
       description: service.description || service.render?.description || service.render?.label || localId,
-      searchTerms: [provider, service.id, service.command, ...(service.palette.keywords || [])].filter(Boolean),
+      searchTerms: [provider, service.id, service.command, ...Object.keys(service.signature?.input?.fields || {}), ...Object.keys(service.signature?.output?.fields || {}), ...(service.palette.keywords || [])].filter(Boolean),
       icon: service.render?.icon || 'pi pi-bolt',
       preset: { operator: service.id }
     }));

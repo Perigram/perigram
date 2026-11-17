@@ -542,7 +542,8 @@ function validatePalette(palette, context) {
     throw listingError(`${context} palette.label must be a non-empty string`);
   }
   if (palette.keywords !== undefined && (!Array.isArray(palette.keywords)
-    || palette.keywords.some(keyword => typeof keyword !== 'string' || !keyword.trim()))) {
+    || palette.keywords.some(keyword => typeof keyword !== 'string' || !keyword.trim())
+    || new Set(palette.keywords).size !== palette.keywords.length)) {
     throw listingError(`${context} palette.keywords must be non-empty strings`);
   }
   if (palette.visible !== undefined && typeof palette.visible !== 'boolean') {
