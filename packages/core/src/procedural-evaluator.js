@@ -6,6 +6,15 @@ import {
   GRAPH_INVOKE_OPERATION
 } from './graph.js';
 
+let previewExecutionSequence = 0;
+
+function executionIdFor(context = {}) {
+  return String(
+    context.executionId || context.runId ||
+    `graph-preview-${Date.now().toString(36)}-${(++previewExecutionSequence).toString(36)}`
+  );
+}
+
 export async function evaluateProceduralGraph({
   graph: source,
   inputBindings = {},
@@ -20,6 +29,7 @@ export async function evaluateProceduralGraph({
   if (typeof resolveNodeDefinition !== 'function') throw new Error('resolveNodeDefinition callback is required');
   if (typeof executeNode !== 'function') throw new Error('executeNode callback is required');
   const readSetRecorder = createGraphReadSetRecorder(context?.readSetBoundary || {});
+  const executionId = executionIdFor(context);
   try {
     return await evaluateGraph({
       source,
@@ -27,7 +37,7 @@ export async function evaluateProceduralGraph({
       resolveNodeDefinition,
       executeNode,
       resolveGraph,
-      context: { ...context, readSet: readSetRecorder },
+      context: { ...context, executionId, readSet: readSetRecorder },
       readSetRecorder,
       stack: [],
       maxGraphDepth
