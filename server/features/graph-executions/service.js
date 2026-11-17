@@ -739,6 +739,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   const isInstancePayload = destination.type === 'instance-payload';
   const isInstanceCreate = destination.type === 'instance-create';
   const isInstanceField = destination.type === 'instance-field';
+  const isInstanceRelation = destination.type === 'instance-relation';
   if (isPageFile && (!destination.pageId || !destination.path)) {
     throw createError({ statusCode: 400, message: 'Page-file Bake requires an exact Page and relative file path' });
   }
@@ -748,14 +749,19 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
   if (isInstanceField && (!destination.typeId || !destination.fieldId || !((destination.instanceId != null && destination.expectedRevision != null && destination.selector == null) || (destination.instanceId == null && destination.expectedRevision == null && destination.selector != null)))) {
     throw createError({ statusCode: 400, message: 'Instance-field Bake requires a declared Blob field and an exact revisioned instance or a single-result preview selector' });
   }
+  if (isInstanceRelation && (!destination.typeId || !destination.fileTypeId || !destination.relationKey
+    || !((destination.instanceId != null && destination.expectedRevision != null && destination.selector == null)
+      || (destination.instanceId == null && destination.expectedRevision == null && destination.selector != null)))) {
+    throw createError({ statusCode: 400, message: 'Instance-relation Bake requires a declared relation, revisioned owner target, and revisioned file type' });
+  }
   if (isInstanceCreate && (!destination.typeId || !destination.draft || typeof destination.draft !== 'object' || Array.isArray(destination.draft)
     || Object.keys(destination.draft).some(key => !['name', 'fields', 'lineage', 'relations'].includes(key)))) {
     throw createError({ statusCode: 400, message: 'New-instance Bake requires a typed instance draft without a caller-supplied payload' });
   }
-  if (!isPageFile && !isInstancePayload && !isInstanceCreate && !isInstanceField) {
-    throw createError({ statusCode: 400, message: 'Bake destination must be page-file, instance-payload, instance-field, or instance-create' });
+  if (!isPageFile && !isInstancePayload && !isInstanceCreate && !isInstanceField && !isInstanceRelation) {
+    throw createError({ statusCode: 400, message: 'Bake destination must be page-file, instance-payload, instance-field, instance-relation, or instance-create' });
   }
-  if ((isInstancePayload || isInstanceCreate || isInstanceField) && destination.conflictPolicy != null && destination.conflictPolicy !== 'fail') {
+  if ((isInstancePayload || isInstanceCreate || isInstanceField || isInstanceRelation) && destination.conflictPolicy != null && destination.conflictPolicy !== 'fail') {
     throw createError({ statusCode: 400, message: 'Instance Bake supports only fail-on-conflict semantics' });
   }
   const { graphDocument, graph, organizationId } = await sourceFor(graphDocumentInstanceId, preview, auth);
@@ -768,11 +774,116 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     throw createError({ statusCode: 400, message: `Graph revision does not declare output ${selectedOutputId}` });
   }
 
-  const resolvedInstanceTarget = (isInstancePayload || isInstanceField)
+  const resolvedInstanceTarget = (isInstancePayload || isInstanceField || isInstanceRelation)
     ? resolveBakeInstanceTarget(destination, preview.readSet)
     : null;
   const { buffer, mimeType, filename: materializedFilename } = await materializeOutput(preview.outputs[selectedOutputId], auth, graph, selectedOutputId,
-    (isInstancePayload || isInstanceCreate || isInstanceField) ? destination.filename || null : null);
+    (isInstancePayload || isInstanceCreate || isInstanceField || isInstanceRelation) ? destination.filename || null : null);
+
+  if (isInstanceRelation) {
+    const ownerTypeId = String(destination.typeId);
+    const fileTypeId = String(destination.fileTypeId);
+    const relationKey = String(destination.relationKey);
+    const fileDeclaration = await declarationForType(fileTypeId, organizationId);
+    if (!fileDeclaration?.payload || !fileDeclaration?.revisions) {
+      throw createError({ statusCode: 400, message: `Relation attachment type ${fileTypeId} must declare a revisioned payload` });
+    }
+    const ownerService = getAppRegistry().getInstanceService(ownerTypeId);
+    const fileService = getAppRegistry().getInstanceService(fileTypeId);
+    if (typeof ownerService?.linkRelationForHttp !== 'function'
+      || typeof fileService?.createForHttp !== 'function') {
+      throw createError({ statusCode: 404, message: 'CTS relation attachment services are unavailable' });
+    }
+    const filename = materializedFilename;
+    await instanceRevisionsService.ensureRevisionIndexes();
+    const stored = await filesService.uploadFile(buffer, filename, {
+      userId: auth.userId,
+      organizationId,
+      type: fileTypeId
+    }, 'files', mimeType || 'application/octet-stream');
+    if (!stored?.id) throw createError({ statusCode: 500, message: 'Relation attachment storage returned no file identity' });
+    try {
+      return await withMongoWriteTransaction(async session => {
+        const validationBoundary = await assertPreviewReadSetCurrent(preview.readSet, organizationId, auth, graphDocument, { session, requireStableReadSet: true });
+        const expectedOrganizationSequence = expectedSequenceForValidation(preview.readSet, validationBoundary);
+        const attachment = await fileService.createForHttp({
+          name: filename,
+          payload: {
+            fileId: stored.id,
+            mime: mimeType || null,
+            size: buffer.length,
+            name: filename
+          }
+        }, {
+          auth,
+          userId: auth.userId,
+          organizationId,
+          session,
+          expectedOrganizationSequence,
+          requireRevisionedPayload: true
+        });
+        const attachmentId = String(attachment._id ?? attachment.id);
+        const updated = await ownerService.linkRelationForHttp(
+          resolvedInstanceTarget.instanceId,
+          relationKey,
+          { type: fileTypeId, id: attachmentId },
+          {
+            auth,
+            organizationId,
+            expectedRevision: resolvedInstanceTarget.expectedRevision,
+            expectedOrganizationSequence: null,
+            session
+          }
+        );
+        const timestamp = new Date().toISOString();
+        const bakeId = randomUUID();
+        const bakeRecord = createGraphExecutionRecord({
+          ...preview,
+          id: bakeId,
+          profile: 'procedural-bake',
+          status: 'succeeded',
+          startedAt: timestamp,
+          completedAt: timestamp,
+          artifacts: [...(preview.artifacts || []), {
+            kind: 'instance-relation',
+            typeId: ownerTypeId,
+            instanceId: String(updated._id ?? updated.id),
+            relationKey,
+            fileTypeId,
+            fileInstanceId: attachmentId,
+            fileRevision: attachment.revision == null ? null : String(attachment.revision),
+            revision: updated.revision == null ? null : String(updated.revision),
+            fileId: stored.id,
+            filename,
+            mime: mimeType || null,
+            size: buffer.length,
+            outputId: selectedOutputId,
+            sourceExecutionId: preview.id,
+            conflictPolicy: 'fail',
+            bucket: 'files'
+          }]
+        });
+        const persisted = await persistRecord(bakeRecord, graphDocument, organizationId, auth, session);
+        return { instance: updated, attachment, execution: bakeRecord, persisted };
+      });
+    } catch (error) {
+      try {
+        await filesService.deleteFile(stored.id, 'files');
+      } catch (rollbackError) {
+        throw createError({
+          statusCode: 500,
+          message: 'Relation Bake failed and its uploaded file could not be removed',
+          data: { bakeError: error?.message || String(error), rollbackError: rollbackError?.message || String(rollbackError), fileId: stored.id }
+        });
+      }
+      if (error?.statusCode) throw error;
+      throw createError({
+        statusCode: 500,
+        message: 'CTS relation attachment and graph execution evidence could not be committed atomically',
+        data: { ownerTypeId, instanceId: resolvedInstanceTarget.instanceId, relationKey, fileTypeId, cause: error?.message || String(error) }
+      });
+    }
+  }
 
   if (isInstanceField) {
     const typeId = String(destination.typeId);
