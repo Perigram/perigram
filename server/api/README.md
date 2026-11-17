@@ -33,14 +33,17 @@ Routes are grouped into sub-directories corresponding to features:
   the exact saved graph revision; `POST /api/graph-executions/commit` applies
   a selected exact-instance CTS patch proposal with a revision precondition;
   `POST /api/graph-executions/bake` materializes one selected output to an
-  explicitly selected Page and relative path; and
+  explicitly selected Page, revisioned instance payload, declared Blob field,
+  declared relation attachment, or new typed instance; and
   `POST /api/graph-executions/export` returns one selected output as a download
   while recording export provenance. All routes delegate to the
   [graph-executions feature](../features/graph-executions/README.md).
 - `instances/`: The generic per-type instance transport (`/api/instances/:type`
   and `/api/instances/:type/:id`) serving every pack and org-authored type
-  through the CTS instance machinery, including typed payload upload/download
-  and revision restore (`POST /api/instances/:type/:id/restore-revision`,
+  through the CTS instance machinery, including typed payload upload/download,
+  revision restore (`POST /api/instances/:type/:id/restore-revision`), and
+  revision-checked relation link/unlink (`POST`/`DELETE
+  /api/instances/:type/:id/relations/:key`, body `{ target, expectedRevision }`,
   [instances feature](../features/instances/README.md)).
 - `files/`: Shared file transport — `POST /api/files/upload` and
   `GET /api/files/download/:id` for instance payloads and attachments; downloads require authentication and enforce the file's organization/uploader scope.
