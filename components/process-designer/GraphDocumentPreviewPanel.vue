@@ -7,7 +7,7 @@
     <section v-if="graph.interface?.inputs?.length" class="flex flex-col gap-2">
       <strong class="text-supporting">{{ $t('processDesigner.graphInputValues') }}</strong>
       <div v-for="port in graph.interface.inputs" :key="port.id" class="flex flex-col gap-1">
-        <label class="text-supporting text-muted" :for="`graph-input-${port.id}`">{{ port.label || port.id }}</label>
+        <label class="text-supporting text-muted" :for="`graph-input-${port.id}`">{{ port.label || port.id }}{{ port.required ? ' *' : '' }}</label>
         <InputText
           v-if="port.contract?.shape === 'item' && port.contract?.semantic?.base === 'string'"
           :id="`graph-input-${port.id}`"
@@ -316,6 +316,8 @@ watch(
   () => [props.graph.interface?.inputs || [], props.inputBindings],
   ([ports, bindings]) => {
     for (const key of Object.keys(inputDrafts)) if (!ports.some(port => port.id === key)) delete inputDrafts[key];
+    for (const key of Object.keys(inputJsonDrafts)) if (!ports.some(port => port.id === key)) delete inputJsonDrafts[key];
+    for (const key of Object.keys(inputErrors)) if (!ports.some(port => port.id === key)) delete inputErrors[key];
     for (const port of ports) {
       const value = Object.hasOwn(bindings, port.id) ? bindings[port.id] : port.default;
       const base = port.contract?.semantic?.base || 'json';
@@ -386,7 +388,7 @@ function applyInput(port) {
       throw new Error(t('processDesigner.graphInputInvalid'));
     }
     const validItem = item => {
-      if (item === null) return semantic.nullable === true;
+      if (item === null) return shape === 'item' && semantic.nullable === true;
       if (base === 'string') return typeof item === 'string';
       if (base === 'number') return typeof item === 'number' && Number.isFinite(item);
       if (base === 'integer') return Number.isSafeInteger(item);
@@ -394,7 +396,7 @@ function applyInput(port) {
       if (base === 'record') return item && typeof item === 'object' && !Array.isArray(item);
       return true;
     };
-    const valid = ['list', 'tuple', 'tree'].includes(shape)
+    const valid = value === null && semantic.nullable === true ? true : ['list', 'tuple', 'tree'].includes(shape)
       ? Array.isArray(value) && value.every(validItem)
       : shape === 'map'
         ? value && typeof value === 'object' && !Array.isArray(value)
