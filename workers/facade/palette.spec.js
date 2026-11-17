@@ -23,15 +23,15 @@ function declaredPaletteGroups() {
 }
 
 describe('Facade plugin node palette contribution', () => {
-  it('places nesting operations in the declared Facade group', () => {
+  it('groups sheet planning, nesting, and production export by workflow', () => {
     const groups = declaredPaletteGroups();
     const nesting = groups.find(group => group.id === 'nesting');
     const planning = groups.find(group => group.id === 'sheet-planning');
     const production = groups.find(group => group.id === 'production-export');
     expect(nesting.items.map(item => item.id)).toContain('service:nesting-solve');
     expect(planning.items.map(item => item.id)).toEqual([
-      'service:match-sheet',
-      'service:construct-sheet'
+      'service:construct-sheet',
+      'service:match-sheet'
     ]);
     expect(production.items.map(item => item.id)).toContain('service:generate-sheet-dxf');
     expect(nesting.items.find(item => item.id === 'service:nesting-solve').searchTerms).toContain('nesting-solve');
@@ -48,5 +48,8 @@ describe('Facade plugin node palette contribution', () => {
       .map(projection => `${projection.group}:${projection.id}`)));
     expect(items.filter(item => item.kind === 'cts.read')).toHaveLength(projections.size);
     expect(items.filter(item => item.kind === 'cts.service')).toHaveLength(listing.declarations.services.filter(service => service.group).length);
+    expect(items.map(item => item.id)).not.toContain('service:extract-geometry');
+    expect(items.map(item => item.id)).not.toContain('service:bake');
+    expect(items.map(item => item.id)).not.toContain('service:nesting-parts');
   });
 });
