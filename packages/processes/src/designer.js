@@ -842,6 +842,7 @@ export function pluginPaletteGroups(projectionContracts = {}, serviceContracts =
       items: [],
       source: 'plugin'
     });
+    else if (label) sections.get(key).label = label;
     return sections.get(key);
   };
   const seenProjections = new Set();
