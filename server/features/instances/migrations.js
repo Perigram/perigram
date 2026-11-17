@@ -33,6 +33,9 @@ export function transformInstanceForSteps(doc = {}, steps = []) {
       }
       case 'rename-field':
         if (Object.hasOwn(fields, step.from) && step.from !== step.to) {
+          if (Object.hasOwn(fields, step.to)) {
+            throw new Error(`Cannot rename field ${step.from} to ${step.to}: target field already exists`);
+          }
           fields[step.to] = fields[step.from];
           delete fields[step.from];
           applied.push(step.kind);
@@ -125,7 +128,10 @@ export async function applyTypeMigrationSteps({
       for (const [axis, state] of Object.entries(stateChanges)) {
         set[`states.${axis}`] = state;
       }
-      await repository.updateMigratedInstance(collection, doc._id, declaration.id, organizationId, set);
+      const update = await repository.updateMigratedInstance(collection, doc._id, declaration.id, organizationId, set);
+      if (update?.matchedCount !== 1) {
+        throw new Error('Instance disappeared or changed before its type migration update');
+      }
       await entityEventService.publishEntityChanged(
         { userId: actor || 'SYSTEM', organizationId: String(organizationId) },
         { type: declaration.id, id: String(doc._id), change: 'updated', reason: 'type-migration' }

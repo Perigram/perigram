@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { transformInstanceForSteps, applyTypeMigrationSteps } from './migrations.js';
 
 vi.mock('~/server/db/mongo', () => {
-  const state = { docs: [], updates: [] };
+  const state = { docs: [], updates: [], matchedCount: 1 };
   const cursor = {
     async *[Symbol.asyncIterator]() {
       yield* state.docs;
@@ -26,7 +26,7 @@ vi.mock('~/server/db/mongo', () => {
         },
         updateOne: async (filter, update) => {
           state.updates.push({ filter, update });
-          return { matchedCount: 1, modifiedCount: 1 };
+          return { matchedCount: state.matchedCount, modifiedCount: state.matchedCount };
         }
       })
     })),
@@ -63,8 +63,16 @@ describe('transformInstanceForSteps', () => {
   it('is idempotent: a second pass over the transformed document applies nothing', () => {
     const steps = [{ kind: 'rename-field', from: 'note', to: 'label' }];
     const once = transformInstanceForSteps({ fields: { note: 'a' } }, steps);
-    const twice = transformInstanceForSteps(once.fields, steps);
+    const twice = transformInstanceForSteps({ fields: once.fields }, steps);
+    expect(twice.fields).toEqual({ label: 'a' });
     expect(twice.applied).toEqual([]);
+  });
+
+  it('refuses to overwrite a pre-existing field during rename', () => {
+    expect(() => transformInstanceForSteps({
+      fields: { legacyName: 'old', name: 'new' }
+    }, [{ kind: 'rename-field', from: 'legacyName', to: 'name' }]))
+      .toThrow(/target field already exists/);
   });
 
   it('a remove-edge step detaches only the removed lineage key', () => {
@@ -86,6 +94,7 @@ describe('applyTypeMigrationSteps', () => {
   beforeEach(() => {
     __state.docs = [];
     __state.updates = [];
+    __state.matchedCount = 1;
   });
 
   it('rewrites behind documents, stamps the version, and publishes invalidations', async () => {
@@ -127,6 +136,25 @@ describe('applyTypeMigrationSteps', () => {
     });
     expect(summary.failures.map(failure => failure.id)).toEqual(['d-1']);
     expect(summary.counts).toEqual({ 'add-default-field': 1 });
+  });
+
+  it('does not publish an invalidation when the migration update matched no instance', async () => {
+    __state.docs = [
+      { _id: 'd-1', type: 'gadget', typeVersion: 3, fields: { note: 'a' } }
+    ];
+    __state.matchedCount = 0;
+    const summary = await applyTypeMigrationSteps({
+      declaration: { id: 'gadget', class: 'file' },
+      organizationId: 'org-1',
+      steps: [{ kind: 'rename-field', from: 'note', to: 'label' }],
+      toVersion: 4
+    });
+    const { publishEntityChanged } = await import('../instance-events/service.js');
+    expect(summary.failures).toMatchObject([
+      { id: 'd-1', error: expect.stringMatching(/disappeared or changed/) }
+    ]);
+    expect(summary.counts).toEqual({});
+    expect(publishEntityChanged).not.toHaveBeenCalled();
   });
 
   it('remove-edge detaches foreign children without the declaring type version stamp', async () => {
