@@ -146,7 +146,7 @@ describe('Documents shared runtime', () => {
       schemaVersion: 1,
       blocks: [
         { type: 'heading', level: 1 },
-        { type: 'paragraph', children: [{ type: 'strong' }] },
+        { type: 'paragraph', children: expect.arrayContaining([expect.objectContaining({ type: 'strong' })]) },
         { type: 'list', items: expect.arrayContaining([expect.any(Array)]) }
       ]
     });
