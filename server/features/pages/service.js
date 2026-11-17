@@ -146,7 +146,8 @@ export async function bakeFile({
   buffer,
   mimeType = 'application/octet-stream',
   conflictPolicy = 'fail',
-  provenance = {}
+  provenance = {},
+  expectedOrganizationSequence = null
 } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   await preparePages(organizationId, auth.userId);
@@ -245,7 +246,7 @@ export async function bakeFile({
       await filesService.deleteFile(stored.id, 'files').catch(() => {});
       throw error;
     }
-  });
+  }, { expectedSequence: expectedOrganizationSequence });
   return {
     page: repository.serializeFull(baked.updated),
     file: baked.file,
