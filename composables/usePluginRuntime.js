@@ -127,6 +127,27 @@ export function usePluginRuntime({
           });
         });
       },
+      async clearExecution(executionId) {
+        if (disposed) throw new Error('Plugin runtime has been disposed');
+        await ready;
+        const invocationId = `clear-${++invocationSequence}`;
+        return await new Promise((resolve, reject) => {
+          pending.set(invocationId, {
+            resolve, reject, operationId: 'runtime.clearExecution',
+            capabilities: {}, allowedCapabilities: new Set(), signal: null, abort: null
+          });
+          try {
+            worker.postMessage({
+              type: 'clear-execution',
+              invocationId,
+              executionId: String(executionId)
+            });
+          } catch (error) {
+            pending.delete(invocationId);
+            reject(error);
+          }
+        });
+      },
       dispose() {
         if (disposed) return;
         disposed = true;
@@ -224,10 +245,21 @@ function transferableInvocation(input) {
     });
   }
 
+  async function finalizeExecution(executionId) {
+    const results = await Promise.allSettled(
+      [...runtimes.values()].map(instance => instance.clearExecution(executionId))
+    );
+    const failures = results.filter(result => result.status === 'rejected');
+    if (failures.length) {
+      throw new AggregateError(failures.map(result => result.reason), 'Plugin execution cleanup failed');
+    }
+    return results.map(result => result.value);
+  }
+
   function dispose() {
     for (const runtime of runtimes.values()) runtime.dispose();
     runtimes.clear();
   }
 
-  return { errors, execute, loadProviders, dispose };
+  return { errors, execute, loadProviders, finalizeExecution, dispose };
 }
