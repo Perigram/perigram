@@ -58,7 +58,8 @@ export async function claimNext({
   if (taskId) query.taskId = taskId;
   if (workerType) query.workerType = workerType;
 
-  const update = typeof runningStatus === 'string'
+  const hasNamedRunningStatuses = runningStatus && Object.keys(runningStatus).length > 0;
+  const update = typeof runningStatus === 'string' || !hasNamedRunningStatuses
     ? {
         $set: { status: runningStatus, workerId, claimToken, leaseExpiresAt, startedAt: now, updatedAt: now },
         $inc: { attempts: 1 }
