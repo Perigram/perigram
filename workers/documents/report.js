@@ -94,7 +94,7 @@ function inlineOf(token, diagnostics) {
     case 'em':
       return [{ type: 'emphasis', children: inlineTokens(token.tokens, diagnostics) }];
     case 'codespan':
-      return [{ type: 'code', text: decodeMarkdownEntities(token.text) }];
+      return [{ type: 'code', text: token.text ?? '' }];
     case 'link':
       return [{ type: 'link', href: token.href || '', children: inlineTokens(token.tokens, diagnostics) }];
     case 'escape':
