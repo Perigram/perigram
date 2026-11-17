@@ -3,8 +3,7 @@ import * as XLSX from '../assets/vendor/xlsx.mjs';
 import { composeReport, extractTable, renderReportHtml, renderDocumentHtml, exportMarkdown, composeDocument, appendDocumentBlock, createDocumentBlock, createInlineValue } from '../report-ir.mjs';
 
 export function createRuntime() {
-  const runtime = {
-    execute(operationId, input = {}) {
+  const executeOperation = (operationId, input = {}) => {
       if (operationId === 'csv-text') {
         const rows = input.rows ?? [];
         if (!Array.isArray(rows)) {
@@ -30,16 +29,16 @@ export function createRuntime() {
       if (operationId === 'export-markdown-file') return filePayload(exportMarkdown(input.document), 'text/markdown', input.name || input.document?.title || 'document');
       if (operationId === 'export-html-file') return filePayload(renderDocumentHtml(input.document), 'text/html', input.name || input.document?.title || 'document');
       return exportMarkdown(input.document);
-    }
   };
   return {
-    ...runtime,
+    execute(operationId, input = {}) {
+      const graphInvocation = input?.mode === 'preview' && input?.inputs && typeof input.inputs === 'object';
+      const value = executeOperation(operationId, graphInvocation ? input.inputs : input);
+      return graphInvocation ? { value } : value;
+    },
     providers: [{
       provider: 'plugin.documents',
-      definitions: documentsNodeDefinitions(listing, 'documents-shared'),
-      execute: async (definition, { inputs = {} } = {}) => ({
-        value: await runtime.execute(definition.id, inputs)
-      })
+      definitions: documentsNodeDefinitions(listing, 'documents-shared')
     }]
   };
 }
