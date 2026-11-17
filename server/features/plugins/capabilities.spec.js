@@ -15,6 +15,7 @@ const install = {
   pluginId: 'demo', version: '4',
   declarations: { runtimes: [{ id: 'javascript', targets: ['browser', 'server'] }] },
   services: [
+    { id: 'nesting-solve', execution: { runtime: 'javascript', targets: ['server'], kind: 'read', capabilities: ['facade.nesting.solve'] } },
     { id: 'read', execution: { runtime: 'javascript', targets: ['browser', 'server'], kind: 'read', capabilities: ['organization.instances.query'] } },
     { id: 'write', execution: { runtime: 'javascript', targets: ['server'], kind: 'effect', capabilities: ['organization.instances.update'] } }
   ]
@@ -49,6 +50,43 @@ describe('managed plugin host capabilities', () => {
       auth, organizationId: 'org-1', expectedRevision: 4
     });
   });
+  it('routes the declared Facade nesting capability through the platform endpoint', async () => {
+    findInstall.mockResolvedValue({
+      ...install,
+      pluginId: 'facade'
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'ok', layouts: [] })
+    });
+    vi.stubEnv('NESTING_WORKER_URL', 'https://nesting.internal/nest');
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await expect(invokePluginCapability({
+        organizationId: 'org-1', pluginId: 'facade', version: '4', runtimeId: 'javascript',
+        operationId: 'nesting-solve', name: 'facade.nesting.solve',
+        input: { items: [{ id: 1 }], params: { width: 100, height: 100 } },
+        target: 'server', auth
+      })).resolves.toEqual({ status: 'ok', layouts: [] });
+      expect(fetchMock).toHaveBeenCalledWith(new URL('https://nesting.internal/nest'), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ items: [{ id: 1 }], params: { width: 100, height: 100 } })
+      });
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('does not let another plugin invoke the Facade-specific adapter', async () => {
+    await expect(invokePluginCapability({
+      organizationId: 'org-1', pluginId: 'demo', version: '4', runtimeId: 'javascript',
+      operationId: 'nesting-solve', name: 'facade.nesting.solve',
+      input: {}, target: 'server', auth
+    })).rejects.toMatchObject({ statusCode: 403 });
+  });
+
   it('refuses capabilities absent from the operation declaration', async () => {
     await expect(invokePluginCapability({
       organizationId: 'org-1', pluginId: 'demo', version: '4', runtimeId: 'javascript',
