@@ -47,10 +47,41 @@
       </div>
     </template>
     <template v-else-if="node.data.definition">
-      <label class="text-supporting text-muted" for="graph-node-config">{{ $t('processDesigner.graphConfiguration') }}</label>
-      <Textarea id="graph-node-config" v-model="configText" rows="8" auto-resize class="w-full text-supporting" />
-      <Message v-if="configError" severity="error">{{ configError }}</Message>
-      <Button size="small" :label="$t('processDesigner.graphApplyConfiguration')" @click="applyConfig" />
+      <div v-if="configFields.length" class="flex flex-col gap-3">
+        <div v-for="field in configFields" :key="field.id" class="flex min-w-0 flex-col gap-1">
+          <label class="text-supporting text-muted">{{ field.label }}</label>
+          <Select
+            v-if="Array.isArray(field.schema.enum)"
+            :model-value="configFieldValue(field)"
+            :options="field.schema.enum.map(value => ({ label: String(value), value }))"
+            option-label="label"
+            option-value="value"
+            size="small"
+            class="w-full"
+            @update:model-value="value => updateConfigField(field.id, value)"
+          />
+          <InputNumber
+            v-else-if="['integer', 'number'].includes(field.schema.type)"
+            :model-value="configFieldValue(field)"
+            :min="field.schema.minimum"
+            :max="field.schema.maximum"
+            :use-grouping="false"
+            size="small"
+            class="w-full"
+            @update:model-value="value => updateConfigField(field.id, value)"
+          />
+          <TypedValueControl
+            v-else
+            :base="configBase(field.schema)"
+            :model-value="configFieldValue(field)"
+            @update:model-value="value => updateConfigField(field.id, value)"
+          />
+          <span v-if="field.schema.description" class="text-xs text-muted">{{ field.schema.description }}</span>
+        </div>
+      </div>
+      <p v-else-if="node.data.definition.description" class="text-supporting text-muted">
+        {{ node.data.definition.description }}
+      </p>
     </template>
     <Message v-else severity="warn">{{ $t('processDesigner.graphUnavailableNode') }}</Message>
     <div v-if="node.data.definition" class="flex flex-col gap-2">
@@ -75,8 +106,11 @@
 import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
+import Select from 'primevue/select';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
+import TypedValueControl from '~/components/process-designer/TypedValueControl.vue';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
@@ -92,8 +126,7 @@ const props = defineProps({
   graphRevisionsError: { type: String, default: '' }
 });
 const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration', 'hydrate-graph', 'select-graph-document']);
-const configText = ref('{}');
-const configError = ref('');
+const configDraft = ref({});
 const declarationText = ref('{}');
 const declarationError = ref('');
 const label = ref('');
@@ -101,16 +134,17 @@ const label = ref('');
 const selectedGraphId = ref('');
 const selectedRevisionId = ref('');
 const isGraphInvocation = computed(() => props.node?.data?.operation?.id === 'perigram.core.use-graph');
+const configFields = computed(() => Object.entries(props.node?.data?.definition?.configuration?.properties || {})
+  .map(([id, schema]) => ({ id, label: schema.title || id, schema })));
 const isBoundary = computed(() => [
   GRAPH_INPUT_OPERATION,
   GRAPH_OUTPUT_OPERATION
 ].includes(props.node?.data?.operation?.id));
 
 watch(
-  [() => props.node?.id, () => props.node?.data?.config?.graphId, () => props.boundaryDeclaration, () => props.graphDocuments],
+  [() => props.node?.id, () => props.node?.data?.config, () => props.boundaryDeclaration, () => props.graphDocuments],
   () => {
-    configText.value = JSON.stringify(props.node?.data?.config || {}, null, 2);
-    configError.value = '';
+    configDraft.value = { ...(props.node?.data?.config || {}) };
     declarationError.value = '';
     declarationText.value = JSON.stringify({
       contract: props.boundaryDeclaration?.contract || { shape: 'item', semantic: { base: 'json' } },
@@ -144,17 +178,22 @@ function selectGraphDocument(id) {
   emit('select-graph-document', selectedGraphId.value);
 }
 
-function applyConfig() {
-  try {
-    const value = JSON.parse(configText.value || '{}');
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      throw new Error('Configuration must be a JSON object');
-    }
-    configError.value = '';
-    emit('update-config', { nodeId: props.node.id, config: value });
-  } catch (error) {
-    configError.value = error.message;
-  }
+function configFieldValue(field) {
+  return Object.hasOwn(configDraft.value, field.id)
+    ? configDraft.value[field.id]
+    : field.schema.default ?? null;
+}
+
+function configBase(schema = {}) {
+  if (schema.type === 'array' || schema.type === 'object') return 'json';
+  if (schema.type === 'integer' || schema.type === 'number') return schema.type;
+  if (schema.type === 'boolean') return 'boolean';
+  return 'string';
+}
+
+function updateConfigField(id, value) {
+  configDraft.value = { ...configDraft.value, [id]: value };
+  emit('update-config', { nodeId: props.node.id, config: { ...configDraft.value } });
 }
 
 function applyDeclaration() {
