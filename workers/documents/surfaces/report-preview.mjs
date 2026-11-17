@@ -1,5 +1,3 @@
-import { parseMarkdown } from '../markdown-ir.mjs';
-
 // The Documents preview channel renders flowing-document, report, and file values
 // from the whole-graph evaluation. The host owns the preview workspace;
 // this surface only renders the provider's read-only representations.
@@ -80,9 +78,6 @@ export default function createSurface(ctx) {
       return h('div', { key, class: 'text-supporting text-muted' }, 'The file payload could not be decoded');
     }
     if (typeof ctx?.renderMarkdown !== 'function') {
-      if (mime === 'text/markdown') {
-        try { return renderDocument(parseMarkdown(source), key); } catch { /* fall through to text */ }
-      }
       return h('pre', { key, class: 'whitespace-pre-wrap break-words' }, source);
     }
     let sanitized = '';
