@@ -741,6 +741,15 @@
           "output": {
             "base": "json"
           }
+        },
+        "execution": {
+          "runtime": "facade-server",
+          "kind": "read",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true
         }
       }
     ],
