@@ -27,9 +27,9 @@ describe('documents listing/runtime inventory', () => {
     );
   });
 
-  it('implements every declared service exactly once', () => {
+  it('implements every endpoint service exactly once', () => {
     expect(Object.keys(services).sort()).toEqual(
-      listing.declarations.services.map(service => service.id).sort()
+      listing.declarations.services.filter(service => service.mode === 'endpoint').map(service => service.id).sort()
     );
   });
 

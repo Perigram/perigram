@@ -22,7 +22,7 @@ import {
   renderPdfFromWorkbook,
   workbookTemplateTokens
 } from './fill.js';
-import { composeReport, exportMarkdown, extractTable, parseMarkdown, renderReportHtml, renderReportPdf } from './report.js';
+import { parseMarkdown, renderReportPdf } from './report.js';
 
 function badRequest(message) {
   const error = new Error(message);
@@ -139,19 +139,7 @@ export const services = {
   'table-rows': async input => recordsByHeader(await sheetMatrix(input)),
   'table-cells': async input => recordsByPosition(await sheetMatrix(input)),
   text: async input => new TextDecoder().decode(bufferOf(input)),
-  // The composition twin of the rows decomposition: rows back into CSV
-  // text (RFC 4180).
-  'csv-text': async ({ rows = [] } = {}) => {
-    if (!Array.isArray(rows)) badRequest('csv-text requires a rows array');
-    return XLSX.utils.sheet_to_csv(
-      XLSX.utils.json_to_sheet(rows.map(row => (row && typeof row === 'object') ? row : {}))
-    );
-  },
   'parse-markdown': async ({ text } = {}) => parseMarkdown(text),
-  'export-markdown': async ({ document } = {}) => exportMarkdown(document),
-  'compose-report': async (input = {}) => composeReport(input),
-  'extract-table': async ({ document } = {}) => extractTable(document),
-  'render-html': async ({ report } = {}) => renderReportHtml(report),
   'render-report-pdf': async ({ report, name } = {}) => toPayload(
     await renderReportPdf(report),
     'application/pdf',
