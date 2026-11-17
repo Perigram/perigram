@@ -130,9 +130,9 @@ export function nestingSheetCount(items = []) {
   ), 0));
 }
 
-export async function nestingSolve({ items, sheetWidth, sheetHeight, space } = {}) {
+export function normalizeNestingItems(items) {
   if (!Array.isArray(items) || !items.length) badRequest('The nesting run has no parts to place');
-  const normalizedItems = items.map((item, index) => {
+  return items.map((item, index) => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) {
       badRequest(`Item ${index} is not a part`);
     }
@@ -141,6 +141,10 @@ export async function nestingSolve({ items, sheetWidth, sheetHeight, space } = {
       count: Math.max(1, Math.trunc(Number(item.count) || 1))
     };
   });
+}
+
+export async function nestingSolve({ items, sheetWidth, sheetHeight, space } = {}) {
+  const normalizedItems = normalizeNestingItems(items);
   const params = {
     width: Number(sheetWidth),
     height: Number(sheetHeight),

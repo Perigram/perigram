@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bake, constructSheet, extractGeometry, generateSheetDxf, matchSheet, nestingParts, nestingSheetCount, nestingSolve, services } from './services.js';
+import { bake, constructSheet, extractGeometry, generateSheetDxf, matchSheet, nestingParts, nestingSheetCount, nestingSolve, normalizeNestingItems, services } from './services.js';
 import listing from './listing.json';
 import { createDefaultOccsCassetteTemplateDefinition } from './occs/templates.js';
 import { generateLayeredDxf } from './vendor/dxf-writer.js';
@@ -139,6 +139,8 @@ describe('nesting sheet stock', () => {
   it('normalizes nesting item counts without mutating graph input values', () => {
     const item = Object.freeze({ id: 'part-1', count: '3', geometry: Object.freeze({ area: 12 }) });
     const items = Object.freeze([item]);
+    const normalized = normalizeNestingItems(items);
+    expect(normalized).toEqual([{ id: 'part-1', count: 3, geometry: { area: 12 } }]);
     expect(nestingSheetCount(items)).toBe(3);
     expect(item.count).toBe('3');
     expect(item.geometry).toEqual({ area: 12 });
