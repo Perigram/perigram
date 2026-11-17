@@ -53,17 +53,17 @@ function inlineMarkdown(nodes = []) {
   return nodes.map(node => {
     switch (node.type) {
       case 'text': return escapeMarkdownText(node.text);
-      case 'strong': return \`**\${inlineMarkdown(node.children)}**\`;
-      case 'emphasis': return \`*\${inlineMarkdown(node.children)}*\`;
+      case 'strong': return '**' + inlineMarkdown(node.children) + '**';
+      case 'emphasis': return '*' + inlineMarkdown(node.children) + '*';
       case 'code': return codeSpan(node.text);
-      case 'link': return \`[\${inlineMarkdown(node.children)}](\${markdownDestination(node.href)})\`;
+      case 'link': return '[' + inlineMarkdown(node.children) + '](' + markdownDestination(node.href) + ')';
       default: return '';
     }
   }).join('');
 }
 
 function escapeMarkdownText(value) {
-  return String(value ?? '').replace(/([\\\\\`*_{}\\[\\]()#+\\-.!|>])/g, '\\\\$1');
+  return String(value ?? '').replace(/([\\\`*_{}\[\]()#+\-.!|>])/g, '\\$1');
 }
 
 function codeSpan(value) {
@@ -71,11 +71,11 @@ function codeSpan(value) {
   const runs = text.match(/\`+/g) || [];
   const fence = '\`'.repeat(Math.max(1, ...runs.map(run => run.length + 1)));
   const padding = text && ((text.startsWith(' ') && text.endsWith(' ') && text.trim()) || text.startsWith('\`') || text.endsWith('\`')) ? ' ' : '';
-  return \`\${fence}\${padding}\${text}\${padding}\${fence}\`;
+  return fence + padding + text + padding + fence;
 }
 
 function markdownDestination(value) {
-  return String(value ?? '').replaceAll(' ', '%20').replace(/([\\\\()])/g, '\\\\$1');
+  return String(value ?? '').replaceAll(' ', '%20').replace(/([\\()])/g, '\\$1');
 }
 
 export const DOCUMENT_BLOCK_TYPE = 'text.document-block';
