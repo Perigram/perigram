@@ -51,6 +51,22 @@ describe('procedural graph preview evaluator', () => {
     expect(result.nodeOutputs.double).toEqual({ result: 42 });
   });
 
+  it('rejects a missing optional graph input when it feeds a required node input', async () => {
+    const document = graph({
+      inputs: [{
+        id: 'number',
+        required: false,
+        contract: { shape: 'item', semantic: { base: 'number' } }
+      }]
+    });
+    await expect(evaluateProceduralGraph({
+      graph: document,
+      inputBindings: {},
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
+    })).rejects.toThrow(/required input value received no value/);
+  });
+
   it('shares one execution id across every node in a graph preview', async () => {
     const document = graph({
       nodes: [
