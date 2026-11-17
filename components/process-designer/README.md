@@ -57,6 +57,10 @@ and group identities. Socket gestures, persisted-edge validation, and preview
 preflight use the SDK's canonical semantic port compatibility result. Both
 the main palette and socket-context palette use the same search contract.
 
+Preview input controls follow the interface contract: strings, numbers,
+integers, and booleans use native controls, while structured and collection
+values use a JSON editor with declared type and nullability checks.
+
 The inspector renders node configuration properties from each
 definition's JSON schema and edits graph interface transport shape,
 semantic base/kind/nullability, required status, and optional defaults. Socket gestures,

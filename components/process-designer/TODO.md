@@ -180,3 +180,6 @@ gestures, persisted-edge validation, and preview preflight. The inspector
 renders configuration schema properties as typed controls and exposes
 graph interface contracts as shape/base/kind/nullability and required/default fields.
 Regression coverage was added; execution remains unverified.
+
+- [ ] Verify typed graph preview inputs for primitive, nullable, and collection
+  interface contracts, including clear validation for malformed values.

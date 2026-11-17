@@ -3540,7 +3540,9 @@
     "graphConfigurationFieldRequired": "Поле «{field}» обязательно",
     "graphConfigurationFieldInvalid": "Поле «{field}» содержит недопустимое значение",
     "graphConfigurationFieldOutOfRange": "Значение поля «{field}» вне допустимого диапазона",
-    "graphNullable": "Допускает null"
+    "graphNullable": "Допускает null",
+    "graphInputNullNotAllowed": "Это поле не допускает null",
+    "graphInputInvalid": "Значение не соответствует объявленному типу поля"
   },
   "generatedScreen": {
     "home": "Главная",

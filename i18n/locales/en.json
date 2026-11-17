@@ -3540,7 +3540,9 @@
     "graphConfigurationFieldRequired": "{field} is required",
     "graphConfigurationFieldInvalid": "{field} has an invalid value",
     "graphConfigurationFieldOutOfRange": "{field} is outside its allowed range",
-    "graphNullable": "Allows null"
+    "graphNullable": "Allows null",
+    "graphInputNullNotAllowed": "This input does not accept null",
+    "graphInputInvalid": "The value does not match this input's declared type"
   },
   "generatedScreen": {
     "home": "Home",
