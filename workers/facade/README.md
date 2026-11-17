@@ -33,6 +33,8 @@ gets). Each module targets a surface mount contract
 | `cassette-preview` | preview | 1 | Read-only cassette-template/cassette-design preview as in-place SVG on the shared drawing canvas: the record's OCCS payload through the plugin tree renderer — the same render the designer's template-picker thumbnails use — with baked geometry rows when the payload is absent; the preview layer law (`CASSETTE_PREVIEW_LAYERS` in [`surfaces/lib/drawingPreview.js`](./surfaces/lib/drawingPreview.js) — outline and folds) gates the visible layers. A record whose payload reference names an OCCS document shows the loader until the host hands the parsed document. The band is inert; card and record clicks stay with the host layout. |
 | `profile-preview` | preview | 1 | The profile library type's preview: the stored sketch through the boolean fold (`resolveOccsProfileSketchLayerData`) and the shared drawing-preview normalizer; blank when the sketch does not resolve. |
 
+Preview surfaces are checked as installed plugin modules: the cassette preview resolves OCCS payloads or baked geometry through the drawing normalizer, and the profile preview resolves the saved sketch through the same geometry-preview path. Their module import graphs and surface factory contracts are covered by the facade preview-surface test.
+
 ## Graph operation palette
 
 The graph palette exposes user-invokable operations by workflow rather than
