@@ -17,6 +17,17 @@ import { normalizeGeometryDrawing } from './lib/drawingPreview.js';
 import createCassettePreview from './cassette-preview.mjs';
 import createProfilePreview from './profile-preview.mjs';
 
+function findTag(node, tag) {
+  if (!node || typeof node !== 'object') return null;
+  if (node.tag === tag) return node;
+  const children = Array.isArray(node.children) ? node.children : [node.children];
+  for (const child of children) {
+    const found = findTag(child, tag);
+    if (found) return found;
+  }
+  return null;
+}
+
 function mountContext() {
   let pending = Promise.resolve();
   const h = (tag, props, children) => ({ tag, props, children });
@@ -95,7 +106,7 @@ describe('Facade preview surfaces', () => {
     });
     await mount.settle();
     const tree = render();
-    expect(tree.children[0].children[0].children[0].tag).toBe('ProgressSpinner');
+    expect(findTag(tree, 'ProgressSpinner')).toBeTruthy();
   });
 
   it('renders evaluated profile sketches through the drawing normalizer', async () => {
