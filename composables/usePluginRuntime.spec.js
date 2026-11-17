@@ -18,6 +18,11 @@ class FakeWorker {
         data: { type: 'result', invocationId: message.invocationId, value: { operationId: message.operationId, input: message.input } }
       }));
     }
+    if (message.type === 'clear-execution') {
+      queueMicrotask(() => this.onmessage?.({
+        data: { type: 'result', invocationId: message.invocationId, value: true }
+      }));
+    }
   }
 
   terminate() {
@@ -57,6 +62,17 @@ describe('usePluginRuntime', () => {
     expect(provider.provider).toBe('plugin.demo');
     await expect(provider.execute({ id: 'math.double', execution }, { input: 2 }))
       .resolves.toEqual({ operationId: 'math.double', input: { input: 2 } });
+  });
+
+  it('finalizes execution-scoped native values across loaded runtimes', async () => {
+    const worker = new FakeWorker();
+    const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
+    await pluginRuntime.execute(binding, runtime, 'transform', { value: 1 }, { execution });
+    await expect(pluginRuntime.finalizeExecution('preview-run-1')).resolves.toEqual([true]);
+    expect(worker.messages.find(message => message.type === 'clear-execution')).toMatchObject({
+      executionId: 'preview-run-1'
+    });
+    pluginRuntime.dispose();
   });
 
   it('strips host-only graph read-set recorders before worker dispatch', async () => {
