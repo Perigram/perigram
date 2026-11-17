@@ -14,7 +14,7 @@ export function normalizeNestingItems(items) {
       nestingError(`Item ${index} is not a part`);
     }
     const authoredCount = Number(item.count);
-    const count = item.count == null || item.count === '' || authoredCount === 0
+    const count = item.count == null || item.count === ''
       ? 1
       : authoredCount;
     if (typeof item.count === 'boolean' || !Number.isSafeInteger(count) || count < 1) {
