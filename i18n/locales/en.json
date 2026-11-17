@@ -3542,7 +3542,10 @@
     "graphConfigurationFieldOutOfRange": "{field} is outside its allowed range",
     "graphNullable": "Allows null",
     "graphInputNullNotAllowed": "This input does not accept null",
-    "graphInputInvalid": "The value does not match this input's declared type"
+    "graphInputInvalid": "The value does not match this input's declared type",
+    "selectFile": "Select a file",
+    "noFilesAvailable": "No readable files are available",
+    "filesCouldNotLoad": "Readable files could not be loaded"
   },
   "generatedScreen": {
     "home": "Home",

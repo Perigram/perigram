@@ -3542,7 +3542,10 @@
     "graphConfigurationFieldOutOfRange": "Значение поля «{field}» вне допустимого диапазона",
     "graphNullable": "Допускает null",
     "graphInputNullNotAllowed": "Это поле не допускает null",
-    "graphInputInvalid": "Значение не соответствует объявленному типу поля"
+    "graphInputInvalid": "Значение не соответствует объявленному типу поля",
+    "selectFile": "Выберите файл",
+    "noFilesAvailable": "Нет доступных для чтения файлов",
+    "filesCouldNotLoad": "Не удалось загрузить список файлов"
   },
   "generatedScreen": {
     "home": "Главная",

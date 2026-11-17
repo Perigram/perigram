@@ -12,7 +12,7 @@ describe('Documents shared runtime', () => {
     for (const service of listing.declarations.services.filter(item => item.execution?.runtime === 'documents-shared')) {
       expect(service.execution.targets).toEqual(['browser', 'server']);
       expect(service.execution.capabilities).toEqual(
-        ['read-text-file', 'read-table-rows', 'read-table-cells'].includes(service.id)
+        ['read-file', 'read-text-file', 'read-table-rows', 'read-table-cells'].includes(service.id)
           ? ['files.read']
           : []
       );
@@ -27,6 +27,7 @@ describe('Documents shared runtime', () => {
     const cases = [
       ['csv-text', { rows: [{ value: '1' }] }],
       ['parse-markdown', { text: '# Hello\n\nA **formatted** paragraph.' }],
+      ['read-file', { payload: { base64: btoa('raw'), mime: 'application/octet-stream', name: 'raw.bin' } }],
       ['fill-markdown-template', { templateText: '# {title}\n\nHello {name}', values: { title: 'Report', name: 'Ada' } }],
       ['read-text-file', { payload: { base64: btoa('Hello'), mime: 'text/plain' } }],
       ['read-table-rows', { payload: { base64: btoa('sku,qty\nA-1,2\n'), mime: 'text/csv' } }],
@@ -70,6 +71,8 @@ describe('Documents shared runtime', () => {
       base64: btoa(csv)
     }));
     const capabilities = { 'files.read': readFile };
+    const file = await runtime.execute('read-file', { fileId: 'file-1' }, { capabilities });
+    expect(file.payload).toMatchObject({ mime: 'text/csv', name: 'inventory.csv', base64: btoa(csv) });
     await expect(runtime.execute('read-text-file', { fileId: 'file-1' }, { capabilities }))
       .resolves.toBe(csv);
     const rows = await runtime.execute('read-table-rows', { fileId: 'file-1' }, { capabilities });
@@ -79,7 +82,7 @@ describe('Documents shared runtime', () => {
     const cells = await runtime.execute('read-table-cells', { fileId: 'file-1' }, { capabilities });
     expect(cells[0]).toMatchObject({ A: 'sku', B: 'qty' });
     expect(cells[1]).toMatchObject({ A: 'A-1' });
-    expect(readFile).toHaveBeenCalledTimes(3);
+    expect(readFile).toHaveBeenCalledTimes(4);
     const graphValue = await runtime.execute('read-table-rows', {
       mode: 'preview', inputs: { fileId: 'file-1' }
     }, { capabilities });

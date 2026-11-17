@@ -38,7 +38,7 @@ export function createRuntime() {
     execute(operationId, input = {}, options = {}) {
       const graphInvocation = input?.mode === 'preview' && input?.inputs && typeof input.inputs === 'object';
       const args = graphInvocation ? input.inputs : input;
-      const value = ['read-text-file', 'read-table-rows', 'read-table-cells'].includes(operationId)
+      const value = ['read-file', 'read-text-file', 'read-table-rows', 'read-table-cells'].includes(operationId)
         ? executeFileRead(operationId, args, options.capabilities || {})
         : executeOperation(operationId, args);
       return graphInvocation ? Promise.resolve(value).then(result => ({ value: result })) : value;
@@ -127,6 +127,7 @@ async function executeFileRead(operationId, input = {}, capabilities = {}) {
     throw new Error('The file payload is not valid base64');
   }
   const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+  if (operationId === 'read-file') return binaryFilePayload(bytes, file.mime || 'application/octet-stream', file.name || 'file');
   if (operationId === 'read-text-file') return new TextDecoder().decode(bytes);
 
   const csv = input.typeId === 'csv-table'
@@ -172,6 +173,14 @@ function columnLetter(index) {
     n = Math.floor(n / 26) - 1;
   } while (n >= 0);
   return letter;
+}
+
+function binaryFilePayload(bytes, mime, name) {
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return { payload: { base64: btoa(binary), mime, name } };
 }
 
 function filePayload(content, mime, name) {

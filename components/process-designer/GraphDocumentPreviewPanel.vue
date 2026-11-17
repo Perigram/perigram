@@ -8,8 +8,20 @@
       <strong class="text-supporting">{{ $t('processDesigner.graphInputValues') }}</strong>
       <div v-for="port in graph.interface.inputs" :key="port.id" class="flex flex-col gap-1">
         <label class="text-supporting text-muted" :for="`graph-input-${port.id}`">{{ port.label || port.id }}{{ port.required ? ' *' : '' }}</label>
+        <InstanceSelect
+          v-if="port.contract?.semantic?.kind === 'documents.file-id'"
+          :id="`graph-input-${port.id}`"
+          :model-value="inputDrafts[port.id] ?? null"
+          :options="fileOptions"
+          option-label="name"
+          option-value="payload.fileId"
+          :placeholder="t('processDesigner.selectFile')"
+          :disabled="fileOptionsLoading || !fileOptions.length"
+          class="w-full"
+          @update:model-value="inputDrafts[port.id] = $event"
+        />
         <InputText
-          v-if="port.contract?.shape === 'item' && port.contract?.semantic?.base === 'string'"
+          v-else-if="port.contract?.shape === 'item' && port.contract?.semantic?.base === 'string'"
           :id="`graph-input-${port.id}`"
           :model-value="inputDrafts[port.id] ?? ''"
           class="w-full"
@@ -37,6 +49,8 @@
           auto-resize
           class="w-full text-supporting"
         />
+        <Message v-if="port.contract?.semantic?.kind === 'documents.file-id' && fileOptionsError" severity="error">{{ fileOptionsError }}</Message>
+        <Message v-else-if="port.contract?.semantic?.kind === 'documents.file-id' && !fileOptionsLoading && !fileOptions.length" severity="info">{{ t('processDesigner.noFilesAvailable') }}</Message>
         <Message v-if="inputErrors[port.id]" severity="error">{{ inputErrors[port.id] }}</Message>
         <Button size="small" severity="secondary" :label="$t('processDesigner.applyGraphInput')" @click="applyInput(port)" />
       </div>
@@ -194,6 +208,9 @@ import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import PreviewChannelMount from '~/components/process-designer/PreviewChannelMount.vue';
 import { GRAPH_OUTPUT_OPERATION } from '@perigram/core';
+import { useInstancesStore } from '~/stores/instances';
+import { useRegistryStore } from '~/stores/registry';
+import { graphFileOptions } from '~/utils/graph-file-options.js';
 
 const props = defineProps({
   result: { type: Object, default: null },
@@ -210,7 +227,17 @@ const props = defineProps({
 });
 const emit = defineEmits(['refresh', 'update-input-binding', 'bake']);
 const { t } = useI18n();
+const instances = useInstancesStore();
+const registry = useRegistryStore();
 const inputDrafts = reactive({});
+const fileOptionsLoading = ref(false);
+const fileOptionsError = ref('');
+const fileInputPorts = computed(() => (props.graph.interface?.inputs || [])
+  .filter(port => port.contract?.semantic?.kind === 'documents.file-id'));
+const fileTypeIds = computed(() => [...registry.typesById.values()]
+  .filter(type => type.class === 'file')
+  .map(type => type.id));
+const fileOptions = computed(() => graphFileOptions(fileTypeIds.value, instances.instancePool));
 const inputJsonDrafts = reactive({});
 const inputErrors = reactive({});
 const selectedOutputId = ref('');
@@ -306,6 +333,21 @@ const availableViews = computed(() => {
   return views;
 });
 const tableColumns = computed(() => [...new Set((Array.isArray(selectedValue.value) ? selectedValue.value : []).flatMap(row => Object.keys(row || {})))]);
+watch([fileInputPorts, fileTypeIds], async ([ports, typeIds]) => {
+  if (!ports.length || !typeIds.length) {
+    fileOptionsError.value = '';
+    return;
+  }
+  fileOptionsLoading.value = true;
+  fileOptionsError.value = '';
+  const results = await Promise.allSettled(typeIds.map(typeId => (
+    instances.listInstances(typeId, { limit: 100 }, { silent: true })
+  )));
+  if (results.every(result => result.status === 'rejected')) {
+    fileOptionsError.value = t('processDesigner.filesCouldNotLoad');
+  }
+  fileOptionsLoading.value = false;
+}, { immediate: true });
 watch(outputOptions, options => {
   if (!options.some(option => option._id === selectedOutputId.value)) selectedOutputId.value = options[0]?._id || '';
 }, { immediate: true });
@@ -387,6 +429,9 @@ function applyInput(port) {
           ? Boolean(inputDrafts[portId])
           : JSON.parse(inputJsonDrafts[portId] || 'null');
     const semantic = port.contract?.semantic || {};
+    if (port.required && base === 'string' && typeof value === 'string' && !value.trim()) {
+      throw new Error(t('processDesigner.graphInputInvalid'));
+    }
     if (value === null && semantic.nullable !== true) {
       throw new Error(t('processDesigner.graphInputNullNotAllowed'));
     }
