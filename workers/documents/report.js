@@ -88,15 +88,17 @@ function inlineOf(token, diagnostics) {
     case 'text':
       return token.tokens?.length
         ? inlineTokens(token.tokens, diagnostics)
-        : [{ type: 'text', text: token.text ?? '' }];
+        : [{ type: 'text', text: decodeMarkdownEntities(token.text) }];
     case 'strong':
       return [{ type: 'strong', children: inlineTokens(token.tokens, diagnostics) }];
     case 'em':
       return [{ type: 'emphasis', children: inlineTokens(token.tokens, diagnostics) }];
     case 'codespan':
-      return [{ type: 'code', text: token.text ?? '' }];
+      return [{ type: 'code', text: decodeMarkdownEntities(token.text) }];
     case 'link':
       return [{ type: 'link', href: token.href || '', children: inlineTokens(token.tokens, diagnostics) }];
+    case 'escape':
+      return [{ type: 'text', text: decodeMarkdownEntities(token.text) }];
     case 'br':
       return [{ type: 'text', text: '\n' }];
     case 'image':
@@ -105,6 +107,14 @@ function inlineOf(token, diagnostics) {
     default:
       return [{ type: 'text', text: token.text ?? '' }];
   }
+}
+
+function decodeMarkdownEntities(value) {
+  return String(value ?? '').replace(/&(amp|lt|gt);/gi, (_match, entity) => ({
+    amp: '&',
+    lt: '<',
+    gt: '>'
+  })[entity.toLowerCase()]);
 }
 
 // Plain text of inline tokens (table cells keep their string value).
