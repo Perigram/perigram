@@ -59,6 +59,8 @@ providers.
 
 Progress (2026-11-17): Documents list construction accepts typed `text.inline` values through the declared `inlineItems` input as well as plain text items. A graph-level regression covers typed construction, document composition, preview rendering, and Markdown/HTML/PDF file payload generation; test execution and generic Bake materialization remain to be verified.
 
+Progress (2026-11-17): Markdown table export escapes backslashes and pipe delimiters and flattens embedded cell line breaks. Regression coverage checks parse/export round-trip; test execution remains unverified.
+
 Progress (2026-11-17): Documents `extract-table`, `compose-report`, `export-markdown`, and `render-html` now run in the managed server runtime rather than per-service endpoints. Their shared, dependency-free `report-ir.mjs` module owns the report/flow contracts, table extraction, composition, Markdown serialization, and escaped HTML representation. Standalone HTML now strips unsafe link schemes while preserving safe HTTP(S), mailto, and local fragment/path links.
 
 Progress (2026-11-17): Plugin connection settings now explain that executor origins apply only to separately hosted endpoint-mode services; the bearer-token field is hidden unless such services exist, uses password input, and explains that the secret stays server-side. Managed/local package installs no longer return an irrelevant auth token to the settings UI. This is a UX clarification, not completion of the endpoint-to-managed-runtime migration.
