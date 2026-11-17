@@ -23,12 +23,12 @@ const props = defineProps({ collection: { type: Object, required: true } });
 const result = ref(null);
 const loading = ref(false);
 const error = ref(false);
-watch(() => [props.collection?.source?.executionInstanceId, props.collection?.source?.outputId], async ([executionId, outputId]) => {
+watch(() => [props.collection?.source?.executionInstanceId, props.collection?.source?.outputId, props.collection?.source?.graphDocumentInstanceId, props.collection?.source?.graphId, props.collection?.source?.graphRevision], async ([executionId, outputId, graphDocumentInstanceId, graphId, graphRevision]) => {
   if (!executionId || !outputId) { result.value = null; error.value = true; return; }
   loading.value = true;
   error.value = false;
   try {
-    result.value = await $fetch(`/api/graph-executions/collection-outputs/${encodeURIComponent(executionId)}/${encodeURIComponent(outputId)}`, { query: { graphDocumentInstanceId: props.collection.source.graphDocumentInstanceId, graphId: props.collection.source.graphId, graphRevision: props.collection.source.graphRevision } });
+    result.value = await $fetch(`/api/graph-executions/collection-outputs/${encodeURIComponent(executionId)}/${encodeURIComponent(outputId)}`, { query: { graphDocumentInstanceId, graphId, graphRevision } });
   } catch {
     result.value = null;
     error.value = true;
