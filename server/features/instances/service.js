@@ -1290,35 +1290,41 @@ function instanceService(typeId) {
     // record death behind the same write gate the patch transport
     // takes — the loaded entity against the compiled grant.
     async removeForHttp(id, { auth = null, organizationId = null } = {}) {
-      // Resolve the record before the declaration: process callers may carry
-      // memberships without an active organization, while the record itself
-      // determines which organization's declaration and grant apply.
-      const doc = await repository.findInstanceAnywhere(id, typeId);
-      if (!doc) {
-        throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
-      }
-      const targetOrganizationId = doc.organizationId ?? organizationId ?? null;
-      const declaration = await requireDeclaration(typeId, targetOrganizationId);
-      if (declaration.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
-      const target = await writeGrantTarget(declaration, targetOrganizationId);
-      if (!target || !hasInstanceAccess({ entity: toDto(doc), typeId: target.typeId, feature: target.feature, level: 'write', action: 'delete', auth })) {
-        throw createError({ statusCode: 403, message: 'Permission denied' });
-      }
-      const pendingEvents = [];
-      const removed = await withMongoSnapshotTransaction(session => {
-        pendingEvents.length = 0;
-        return this.remove(id, {
-        actor: auth?.userId || null,
-        organizationId: doc.organizationId ?? null,
-        session,
-        pendingEvents
+      const result = await withMongoSnapshotTransaction(async session => {
+        const doc = await repository.findInstanceAnywhere(id, typeId, { session });
+        if (!doc) {
+          throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
+        }
+        const targetOrganizationId = doc.organizationId ?? organizationId ?? null;
+        const declaration = await requireDeclaration(typeId, targetOrganizationId);
+        if (declaration.mutability === 'append-only') {
+          throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
+        }
+        const target = await writeGrantTarget(declaration, targetOrganizationId);
+        if (!target || !hasInstanceAccess({
+          entity: toDto(doc),
+          typeId: target.typeId,
+          feature: target.feature,
+          level: 'write',
+          action: 'delete',
+          auth
+        })) {
+          throw createError({ statusCode: 403, message: 'Permission denied' });
+        }
+        const pendingEvents = [];
+        const removed = await this.remove(id, {
+          actor: auth?.userId || null,
+          organizationId: doc.organizationId ?? null,
+          session,
+          pendingEvents
         });
+        return { removed, pendingEvents };
       });
-      for (const event of pendingEvents) {
+      for (const event of result.pendingEvents) {
         await entityEventService.publishEntityChanged(event.auth, event.detail);
       }
-      return removed;
-    },
+      return result.removed;
+    }
 
     // The sweep runs before the delete (SPEC §22.12); the doc's own
     // organization scopes the referrer scan, so a system target sweeps
