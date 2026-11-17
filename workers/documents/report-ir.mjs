@@ -101,9 +101,24 @@ export function createDocumentBlock(operationId, input = {}) {
       if (!Number.isInteger(level) || level < 1 || level > 6) throw badInput('document-heading level must be an integer from 1 to 6');
       return { type: 'heading', level, children };
     }
-    case 'document-list':
-      if (!Array.isArray(input.items) || !input.items.length) throw badInput('document-list requires a non-empty items list');
-      return { type: 'list', ordered: input.ordered === true, items: input.items.map(item => Array.isArray(item) ? requireInlineList(item, 'list item') : [inlineText(item)]) };
+    case 'document-list': {
+      const items = input.items ?? [];
+      const inlineItems = input.inlineItems ?? [];
+      if (!Array.isArray(items) || !Array.isArray(inlineItems) || (!items.length && !inlineItems.length)) {
+        throw badInput('document-list requires text items or inline items');
+      }
+      if (inlineItems.some(item => !isInlineValue(item))) {
+        throw badInput('document-list inlineItems must contain text.inline values');
+      }
+      return {
+        type: 'list',
+        ordered: input.ordered === true,
+        items: [
+          ...items.map(item => Array.isArray(item) ? requireInlineList(item, 'list item') : [inlineText(item)]),
+          ...inlineItems.map(item => [structuredClone(item)])
+        ]
+      };
+    }
     case 'document-table':
       if (!Array.isArray(input.rows) || input.rows.some(row => !row || typeof row !== 'object' || Array.isArray(row))) throw badInput('document-table requires a list of row records');
       return { type: 'table', rows: input.rows.map(row => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, String(value ?? '')]))) };
