@@ -35,7 +35,7 @@ describe('Facade plugin node palette contribution', () => {
     ]);
     expect(production.items.map(item => item.id)).toContain('service:facade:generate-sheet-dxf');
     expect(nesting.items.find(item => item.id === 'service:facade:nesting-solve').searchTerms).toContain('nesting-solve');
-    expect(nesting.items.find(item => item.id === 'service:nesting-solve')).toMatchObject({
+    expect(nesting.items.find(item => item.id === 'service:facade:nesting-solve')).toMatchObject({
       label: 'Solve sheet nesting',
       description: 'Arrange cassette-design parts on available sheet stock'
     });
@@ -49,11 +49,11 @@ describe('Facade plugin node palette contribution', () => {
     const items = groups.flatMap(group => group.items);
     const projections = new Set(listing.declarations.types.flatMap(type => (type.projections || [])
       .filter(projection => projection.palette?.group && projection.palette.visible !== false)
-      .map(projection => `${projection.group}:${projection.id}`)));
+      .map(projection => `${projection.palette.group}:${projection.id}`)));
     expect(items.filter(item => item.kind === 'cts.read')).toHaveLength(projections.size);
     expect(items.filter(item => item.kind === 'cts.service')).toHaveLength(listing.declarations.services.filter(service => service.palette?.group && service.palette.visible !== false).length);
-    expect(items.map(item => item.id)).not.toContain('service:extract-geometry');
-    expect(items.map(item => item.id)).not.toContain('service:bake');
-    expect(items.map(item => item.id)).not.toContain('service:nesting-parts');
+    expect(items.map(item => item.id)).not.toContain('service:facade:extract-geometry');
+    expect(items.map(item => item.id)).not.toContain('service:facade:bake');
+    expect(items.map(item => item.id)).not.toContain('service:facade:nesting-parts');
   });
 });

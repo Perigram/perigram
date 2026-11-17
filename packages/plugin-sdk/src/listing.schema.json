@@ -117,6 +117,11 @@
                     "palette": {
                       "$ref": "#/$defs/palette"
                     }
+                  },
+                  "not": {
+                    "required": [
+                      "group"
+                    ]
                   }
                 }
               }
@@ -226,6 +231,11 @@
               "palette": {
                 "$ref": "#/$defs/palette"
               }
+            },
+            "not": {
+              "required": [
+                "group"
+              ]
             }
           }
         },
@@ -518,7 +528,7 @@
       "properties": {
         "group": {
           "type": "string",
-          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$",
           "description": "Stable semantic palette category slug"
         },
         "label": {

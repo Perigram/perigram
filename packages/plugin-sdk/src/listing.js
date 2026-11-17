@@ -535,7 +535,7 @@ function validatePalette(palette, context) {
   const allowed = new Set(['group', 'label', 'keywords', 'visible']);
   const unknown = Object.keys(palette).filter(key => !allowed.has(key));
   if (unknown.length) throw listingError(`${context} palette has unsupported fields: ${unknown.join(', ')}`);
-  if (palette.group !== undefined && !/^[a-z0-9][a-z0-9-]*$/.test(String(palette.group))) {
+  if (palette.group !== undefined && !/^[a-z][a-z0-9-]{0,63}$/.test(String(palette.group))) {
     throw listingError(`${context} palette.group must be a stable lowercase slug`);
   }
   if (palette.label !== undefined && (typeof palette.label !== 'string' || !palette.label.trim())) {

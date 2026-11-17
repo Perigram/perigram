@@ -40,11 +40,15 @@ describe('Documents plugin node palette contribution', () => {
     const items = groups.flatMap(group => group.items);
     const projections = new Set(listing.declarations.types.flatMap(type => type.projections || [])
       .filter(projection => projection.palette?.group && projection.palette.visible !== false)
-      .map(projection => `${projection.group}:${projection.id}`));
+      .map(projection => `${projection.palette.group}:${projection.id}`));
     const services = listing.declarations.services
-      .filter(service => service.palette?.group);
+      .filter(service => service.palette?.group && service.palette.visible !== false);
 
     expect(items.filter(item => item.kind === 'cts.read')).toHaveLength(projections.size);
     expect(items.filter(item => item.kind === 'cts.service')).toHaveLength(services.length);
+    expect(items.map(item => item.id)).not.toEqual(expect.arrayContaining([
+      'service:documents:table-rows', 'service:documents:table-cells', 'service:documents:text',
+      'service:documents:fill', 'service:documents:render-pdf'
+    ]));
   });
 });
