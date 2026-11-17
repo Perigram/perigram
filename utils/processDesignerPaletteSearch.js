@@ -1,6 +1,6 @@
 // One search contract for the canvas dock and socket-context palette.
 // Indexes user-facing copy, stable operation identity, provider/group ids,
-// and provider-authored aliases without changing what the palette displays.
+// and provider-authored aliases while preserving the displayed labels.
 export function matchesPaletteSearch(item = {}, query = '', groupId = '', groupLabel = '') {
   const needle = String(query || '').trim().toLocaleLowerCase();
   if (!needle) return true;
