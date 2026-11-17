@@ -149,30 +149,39 @@ export function compareNodePorts(source, target) {
   const sourceShape = source.shape || 'item';
   const targetShape = target.shape || 'item';
   const collectionShapes = new Set(['list', 'tuple', 'tree', 'map']);
+  const transportWidening = sourceShape === 'item' && collectionShapes.has(targetShape);
   if (sourceShape === 'stream' || targetShape === 'stream') {
     if (sourceShape !== targetShape) {
       return { status: 'incompatible', compatible: false, reason: 'Stream ports connect only to stream ports', conversions: [] };
     }
-  } else if (sourceShape !== targetShape
-    && !(sourceShape === 'item' && collectionShapes.has(targetShape))) {
-    return { status: 'conversion-required', compatible: false, reason: `Transport shape ${sourceShape} requires an explicit conversion to ${targetShape}`, conversions: [] };
+  } else if (sourceShape !== targetShape && !transportWidening) {
+    return {
+      status: 'conversion-required',
+      compatible: false,
+      reason: `Transport shape ${sourceShape} requires an explicit conversion to ${targetShape}`,
+      conversions: []
+    };
   }
 
   const from = source.semantic || {};
   const to = target.semantic || {};
-  if (to.base === 'json' && !to.kind) {
+  if (typeof from.base !== 'string' || typeof to.base !== 'string') {
+    return { status: 'incompatible', compatible: false, reason: 'Both ports require a semantic base', conversions: [] };
+  }
+  if (to.base === 'json' && !to.kind && !to.schema && !to.nominal) {
     return {
-      status: sourceShape === targetShape ? 'safe-coercion' : 'safe-coercion',
+      status: 'safe-coercion',
       compatible: true,
       reason: 'The target accepts any JSON value',
       conversions: []
     };
   }
-  if (from.base === 'json' && !from.kind && (to.base !== 'json' || to.kind)) {
+  if (from.base === 'json' && !from.kind && !from.schema && !from.nominal
+    && (to.base !== 'json' || to.kind || to.schema || to.nominal)) {
     return {
       status: 'conditional',
       compatible: false,
-      reason: 'The source has no declared semantic kind; runtime validation is required',
+      reason: 'The source has no declared semantic identity; runtime validation is required',
       conversions: []
     };
   }
@@ -180,26 +189,46 @@ export function compareNodePorts(source, target) {
     return {
       status: 'incompatible',
       compatible: false,
-      reason: `Semantic base ${from.base || 'unknown'} does not match ${to.base || 'unknown'}`,
+      reason: `Semantic base ${from.base} does not match ${to.base}`,
       conversions: []
     };
   }
-  for (const key of ['kind', 'nominal', 'provider', 'unit']) {
+  if (from.unit !== to.unit) {
+    return {
+      status: 'conversion-required',
+      compatible: false,
+      reason: `Unit ${from.unit || 'unspecified'} requires conversion to ${to.unit || 'unspecified'}`,
+      conversions: []
+    };
+  }
+  for (const key of ['kind', 'nominal', 'provider', 'schema', 'entityType', 'identity']) {
     if (from[key] !== to[key]) {
-      const status = key === 'unit' ? 'conversion-required' : 'incompatible';
       return {
-        status,
+        status: from[key] == null ? 'conditional' : 'incompatible',
         compatible: false,
-        reason: key === 'kind'
-          ? `Representation kind ${from[key] || 'unspecified'} does not match ${to[key] || 'unspecified'}`
-          : key === 'unit'
-            ? `Unit ${from[key] || 'unspecified'} requires conversion to ${to[key] || 'unspecified'}`
-            : `Semantic identity ${key} does not match`,
+        reason: from[key] == null
+          ? `The source does not declare target semantic identity ${key}`
+          : `Semantic identity ${key} does not match`,
         conversions: []
       };
     }
   }
-  return { status: 'exact', compatible: true, reason: 'Transport and semantic contracts match', conversions: [] };
+  if (JSON.stringify(from.constraints ?? null) !== JSON.stringify(to.constraints ?? null)) {
+    return {
+      status: 'conditional',
+      compatible: false,
+      reason: 'Semantic constraints differ and require runtime validation',
+      conversions: []
+    };
+  }
+  return {
+    status: transportWidening ? 'safe-coercion' : 'exact',
+    compatible: true,
+    reason: transportWidening
+      ? 'An item value is accepted by the collection input'
+      : 'Transport and semantic contracts match',
+    conversions: []
+  };
 }
 
 export function normalizeNodeProvider(source = {}) {
