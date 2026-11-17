@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """The build123d plugin's endpoint-mode executor.
 
-Serves every discovered operation at `POST /<op-id>` with the service
-input record as the JSON body (the plugin Connection contract): one
-process, the engine imported once, each request dispatched generically
-through dispatch.py. Env: BUILD123D_EXECUTOR_PORT (default 8793),
+Serves every discovered operation through one `POST /` provider endpoint.
+The JSON envelope carries `operationId` and `input`; one process imports
+the engine once and dispatches generically through dispatch.py. Env: BUILD123D_EXECUTOR_PORT (default 8793),
 BUILD123D_EXECUTOR_KEY (optional bearer).
 """
 import json
@@ -26,16 +25,18 @@ class Executor(BaseHTTPRequestHandler):
         if KEY and self.headers.get("authorization") != f"Bearer {KEY}":
             self.fail(401, "invalid or missing executor key")
             return
-        op_id = self.path.lstrip("/").split("?")[0].strip("/")
-        if op_id not in OPS:
-            self.fail(404, f"unknown service {op_id or '(root)'} — declared: {', '.join(sorted(OPS))}")
-            return
+        path_op = self.path.lstrip("/").split("?")[0].strip("/")
         try:
             length = int(self.headers.get("content-length") or 0)
-            body = json.loads(self.rfile.read(length).decode("utf-8")) if length else None
+            envelope = json.loads(self.rfile.read(length).decode("utf-8")) if length else None
         except (ValueError, UnicodeDecodeError):
             self.fail(400, "request body is not valid JSON")
             return
+        op_id = path_op or (envelope or {}).get("operationId")
+        if not isinstance(op_id, str) or op_id not in OPS:
+            self.fail(404, f"unknown service {op_id or '(missing operationId)'} — declared: {', '.join(sorted(OPS))}")
+            return
+        body = envelope if path_op else (envelope or {}).get("input")
         try:
             result = dispatch({"op": op_id, "args": body or {}})
         except DispatchError as error:
