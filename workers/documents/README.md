@@ -41,6 +41,15 @@ the plugin's surface modules, and types ride the generic instance machinery.
 
 - Document and report operations (`report.js` and `report-ir.mjs`, grouped by inline content, blocks, composition, and export): `parse-markdown` (text → `text.flow-document@1`), typed inline and block constructors (`text.inline` and `text.document-block`), `compose-document` and `append-document-block` (blocks → flowing document), `export-markdown` (flow document → markdown text), Markdown/HTML file exports, and `render-document-html` (flow document → safe HTML). The `document.report@1` composition remains available for explicitly sectioned reports. The Documents preview channel renders flowing documents and reports from the unified graph evaluator's `outputs`/`nodeOutputs` envelope, with the selected graph output first; it retains the legacy branch-tree envelope for older hosts. The IR is the source and Markdown, HTML, and PDF are representations.
 
+### XLSX template graph operation
+
+`fill-workbook-template` runs in the shared browser/server runtime and
+accepts a typed `documents.file` workbook payload plus a record of values.
+It preserves cell styles and formulas, substitutes scalar tokens, and
+expands one-level row sections while carrying row heights and valid merged
+ranges forward. Connect `read-file` to this operation and Bake its resulting
+`documents.file` output through the generic page-file destination.
+
 ### Graph file preview
 
 The Documents preview channel accepts actual `text/markdown` and

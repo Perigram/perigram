@@ -7924,10 +7924,10 @@ graphs:
 - [ ] Add a typed file-reference input control to the graph preview panel.
   Derive readable file options from the user's registry and use the
   authorized file read capability; do not make users paste opaque file IDs.
-- [ ] Add a generic `read-file` graph operation returning a typed file
+- [x] Add a generic `read-file` graph operation returning a typed file
   payload, so binary templates can flow through nodes without endpoint
   coupling.
-- [ ] Move XLSX template filling into the shared browser/server runtime,
+- [x] Move XLSX template filling into the shared browser/server runtime,
   preserving cell formatting, formulas, row sections, merged cells, and
   worksheet dimensions. Connect it to `read-file` and generic Bake.
 - [ ] Keep PDF template filling server-managed, but expose it as a typed
@@ -7946,3 +7946,13 @@ payloads render through the host sanitizer in a sandboxed iframe with a
 restrictive CSP; the graph output panel selects the Documents channel
 automatically for document/report/file values. A server Bake regression now
 starts from a real file payload emitted by the Documents shared runtime.
+
+Progress (2026-11-17): Added `read-file` as a managed read operation with
+the authorized `files.read` capability, typed `documents.file-id` input,
+and `documents.file` output. Graph preview now offers a readable file
+instance picker for file-id interface inputs; it uses the registry's file
+types and the store's access-filtered instance lists, while the executor
+rechecks file access at read time. Added `fill-workbook-template` to the
+shared browser/server runtime. It accepts the typed file payload and values,
+preserves styles/formulas, expands row sections, and emits a real XLSX file
+payload. Runtime regressions verify the binary output.

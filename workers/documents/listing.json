@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, HTML, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "27",
+  "version": "28",
   "requires": [
     "tech-drawing"
   ],
@@ -1715,6 +1715,60 @@
             "file",
             "binary",
             "payload"
+          ]
+        }
+      },
+      {
+        "id": "fill-workbook-template",
+        "label": "Fill XLSX template",
+        "description": "Fill named values and repeated row sections in an XLSX workbook template",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "template": {
+                "base": "json",
+                "kind": "documents.file",
+                "label": "Workbook template"
+              },
+              "values": {
+                "base": "record",
+                "nullable": true,
+                "default": {},
+                "label": "Values"
+              },
+              "name": {
+                "base": "string",
+                "nullable": true,
+                "label": "Output file name"
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "documents.file"
+          }
+        },
+        "execution": {
+          "runtime": "documents-shared",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
+        },
+        "palette": {
+          "group": "document-templates",
+          "label": "Document templates",
+          "keywords": [
+            "template",
+            "fill",
+            "xlsx",
+            "workbook",
+            "sections"
           ]
         }
       }

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createRuntime } from './shared.mjs';
+import * as XLSX from '../assets/vendor/xlsx.mjs';
 import listing from '../listing.json';
 
 describe('Documents shared runtime', () => {
@@ -24,11 +25,22 @@ describe('Documents shared runtime', () => {
     const paragraph = { type: 'paragraph', children: [inline] };
     const document = { type: 'text.flow-document', schemaVersion: 1, blocks: [{ type: 'table', rows: [{ value: '1' }] }] };
     const report = { type: 'document.report', schemaVersion: 1, sections: [{ blocks: [{ type: 'flow', document }] }] };
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([['Hello {name}']]), 'Sheet1');
+    const workbookBytes = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const workbookTemplate = {
+      payload: {
+        base64: Buffer.from(workbookBytes).toString('base64'),
+        mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        name: 'template.xlsx'
+      }
+    };
     const cases = [
       ['csv-text', { rows: [{ value: '1' }] }],
       ['parse-markdown', { text: '# Hello\n\nA **formatted** paragraph.' }],
       ['read-file', { payload: { base64: btoa('raw'), mime: 'application/octet-stream', name: 'raw.bin' } }],
       ['fill-markdown-template', { templateText: '# {title}\n\nHello {name}', values: { title: 'Report', name: 'Ada' } }],
+      ['fill-workbook-template', { template: workbookTemplate, values: { name: 'Ada' }, name: 'filled' }],
       ['read-text-file', { payload: { base64: btoa('Hello'), mime: 'text/plain' } }],
       ['read-table-rows', { payload: { base64: btoa('sku,qty\nA-1,2\n'), mime: 'text/csv' } }],
       ['read-table-cells', { payload: { base64: btoa('sku,qty\nA-1,2\n'), mime: 'text/csv' } }],
@@ -126,6 +138,30 @@ describe('Documents shared runtime', () => {
     expect(block).toEqual({
       value: { type: 'paragraph', children: [{ type: 'text', text: 'From graph' }] }
     });
+  });
+
+  it('fills XLSX templates in the shared runtime and returns a real workbook payload', () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([['Hello {name}']]), 'Sheet1');
+    const bytes = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const template = {
+      payload: {
+        base64: Buffer.from(bytes).toString('base64'),
+        mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        name: 'template.xlsx'
+      }
+    };
+    const result = runtime.execute('fill-workbook-template', {
+      template, values: { name: 'Ada' }, name: 'filled'
+    });
+    expect(result.payload).toMatchObject({
+      mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      name: 'filled.xlsx'
+    });
+    const binary = atob(result.payload.base64);
+    const filledBytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+    const filled = XLSX.read(filledBytes, { type: 'array' });
+    expect(filled.Sheets.Sheet1.A1.v).toBe('Hello Ada');
   });
 
   it('fills Markdown templates and returns a real Markdown file payload', () => {
