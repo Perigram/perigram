@@ -45,6 +45,26 @@ beforeEach(() => {
 });
 
 describe('cts type storage', () => {
+  it('reserves one stable organization sequence for a declaration write', async () => {
+    const instances = await import('../instances/index.js');
+
+    await defineType({
+      id: 'gadget',
+      name: 'Gadget',
+      class: 'file',
+      fields: { code: { base: 'string', identifier: true } }
+    }, { organizationId: ORG });
+
+    expect(instances.getOrganizationChangeSequence).toHaveBeenCalledWith(ORG);
+    expect(instances.runOrganizationChange).toHaveBeenCalledTimes(1);
+    expect(instances.runOrganizationChange).toHaveBeenCalledWith(
+      ORG,
+      expect.objectContaining({ kind: 'cts-type-declared', typeId: 'gadget' }),
+      expect.any(Function),
+      { expectedSequence: 0 }
+    );
+  });
+
   it('compiles the org view as system types plus the org overlay', async () => {
     repository.listByOrganization.mockResolvedValue([
       { id: 'widget', name: 'Widget', class: 'file', scope: 'org', organizationId: ORG, version: 1, fields: { code: { base: 'string', identifier: true } } }
