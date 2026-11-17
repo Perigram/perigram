@@ -77,6 +77,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { signalBgClass } from '~/utils/processDesignerSignals.js';
 import { processNodeGlyphClass } from '~/utils/processDesignerGlyphs.js';
+import { matchesPaletteSearch } from '~/utils/processDesignerPaletteSearch.js';
 
 // The canvas-top palette dock (SPEC §28 interaction model): provenance
 // tiers as labels, one chip per palette section; a chip opens the

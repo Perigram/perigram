@@ -49,6 +49,7 @@ import InputText from 'primevue/inputtext';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { signalBgClass } from '~/utils/processDesignerSignals.js';
+import { matchesPaletteSearch } from '~/utils/processDesignerPaletteSearch.js';
 
 // The context palette's list (right-click, wire drop): searchable chips
 // over two provenance tiers — the platform's built-in categories and
@@ -73,14 +74,7 @@ const filteredGroups = computed(() => {
     .map(group => ({
       ...group,
       items: needle
-        ? group.items.filter(item =>
-          item.label.toLowerCase().includes(needle)
-          || (item.description || '').toLowerCase().includes(needle)
-          || group.id.toLowerCase().includes(needle)
-          || (item.id || '').toLowerCase().includes(needle)
-          || (item.kind || '').toLowerCase().includes(needle)
-          || (item.keywords || []).some(keyword => keyword.toLowerCase().includes(needle))
-          || (item.searchTerms || []).some(term => String(term).toLowerCase().includes(needle))
+        ? group.items.filter(item => matchesPaletteSearch(item, needle, group.id))
         : group.items
     }))
     .filter(group => group.items.length);
