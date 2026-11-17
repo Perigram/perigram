@@ -50,6 +50,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { signalBgClass } from '~/utils/processDesignerSignals.js';
 import { matchesPaletteSearch } from '~/utils/processDesignerPaletteSearch.js';
+import { processDesignerPaletteTiers } from '~/utils/processDesignerPaletteTiers.js';
 
 // The context palette's list (right-click, wire drop): searchable chips
 // over two provenance tiers — the platform's built-in categories and
@@ -79,16 +80,9 @@ const filteredGroups = computed(() => {
     }))
     .filter(group => group.items.length);
 });
-const tiers = computed(() => [
-  {
-    id: 'pack',
-    label: t('processDesigner.palettePluginSections'),
-    groups: filteredGroups.value.filter(group => group.source === 'plugin')
-  },
-  {
-    id: 'framework',
-    label: t('processDesigner.palettePlatformSections'),
-    groups: filteredGroups.value.filter(group => group.source !== 'plugin')
-  }
-]);
+const tiers = computed(() => processDesignerPaletteTiers(filteredGroups.value, {
+  graphs: t('processDesigner.paletteGraphSections'),
+  plugins: t('processDesigner.palettePluginSections'),
+  framework: t('processDesigner.palettePlatformSections')
+}));
 </script>

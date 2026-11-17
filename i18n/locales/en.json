@@ -3424,6 +3424,7 @@
     "edgeKey": "key",
     "edgeOnRemove": "on remove",
     "palettePluginSections": "Plugins",
+    "paletteGraphSections": "Reusable graphs",
     "palettePlatformSections": "Platform",
     "previewTab": "Preview",
     "previewChannels": "Graph preview",

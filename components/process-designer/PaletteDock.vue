@@ -78,6 +78,7 @@ import { useI18n } from 'vue-i18n';
 import { signalBgClass } from '~/utils/processDesignerSignals.js';
 import { processNodeGlyphClass } from '~/utils/processDesignerGlyphs.js';
 import { matchesPaletteSearch } from '~/utils/processDesignerPaletteSearch.js';
+import { processDesignerPaletteTiers } from '~/utils/processDesignerPaletteTiers.js';
 
 // The canvas-top palette dock (SPEC §28 interaction model): provenance
 // tiers as labels, one chip per palette section; a chip opens the
@@ -97,18 +98,11 @@ const popover = ref(null);
 const query = ref('');
 const activeGroupId = ref('');
 
-const tiers = computed(() => [
-  {
-    id: 'pack',
-    label: t('processDesigner.palettePluginSections'),
-    groups: props.groups.filter(group => group.source === 'plugin')
-  },
-  {
-    id: 'framework',
-    label: t('processDesigner.palettePlatformSections'),
-    groups: props.groups.filter(group => group.source !== 'plugin')
-  }
-].filter(tier => tier.groups.length));
+const tiers = computed(() => processDesignerPaletteTiers(props.groups, {
+  graphs: t('processDesigner.paletteGraphSections'),
+  plugins: t('processDesigner.palettePluginSections'),
+  framework: t('processDesigner.palettePlatformSections')
+}));
 
 const sections = computed(() => {
   const needle = query.value.trim().toLowerCase();

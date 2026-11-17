@@ -3424,6 +3424,7 @@
     "edgeKey": "ключ",
     "edgeOnRemove": "при удалении",
     "palettePluginSections": "Плагины",
+    "paletteGraphSections": "Повторно используемые графы",
     "palettePlatformSections": "Платформа",
     "previewTab": "Предпросмотр",
     "previewChannels": "Предпросмотр графа",
