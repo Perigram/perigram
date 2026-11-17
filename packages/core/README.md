@@ -45,6 +45,8 @@ Parent: [packages README](../README.md).
   `validateTransition`, `validateLifecyclePayload`, `hasLifecyclePayload`,
   `resolveWorkflowStatePath`
 
+The provider-neutral node contract is owned by [@perigram/plugin-sdk](../plugin-sdk/README.md#node-provider-palette-contract). Every registered definition carries an explicit semantic palette group; the host derives palette grouping and search from that declaration rather than operation-id prefixes.
+
 ## Canonical graph documents
 
 Core owns the versioned `perigram.graph` JSON document and its preview evaluator.

@@ -29,6 +29,8 @@ service entries retain their operation identity and preset. The surface search
 indexes labels, descriptions, operation ids, group ids, and provider-authored
 search terms.
 
+The canonical procedural node-provider contract is owned by [@perigram/plugin-sdk](../plugin-sdk/README.md#node-provider-palette-contract). The process adapter declares each operation's semantic palette group explicitly from its catalog family; graph palette categories are not inferred from operation-id prefixes. The canvas node's group label is projected from that same definition.
+
 ## Authoring seam
 
 A process definition is data and its authoring path is one seam:

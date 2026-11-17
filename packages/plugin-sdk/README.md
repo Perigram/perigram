@@ -51,6 +51,10 @@ The package export map is the supported boundary. Browser consumers import
 the dedicated `./listing` entry rather than reaching into `src/` or
 importing the Node-bound root barrel.
 
+## Node provider palette contract
+
+Every node definition declares `palette.group` as a stable lowercase semantic slug. `palette.label` is the optional human-facing group name and `palette.keywords` are provider-authored search aliases. The SDK rejects missing or malformed group metadata; operation-id prefixes are never inferred as palette categories. Providers keep their operation and port identities independent of labels and grouping.
+
 ## Surface mount contracts
 
 A surface module default-exports the factory `createSurface(ctx) ->

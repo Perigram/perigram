@@ -84,6 +84,8 @@ obsolete paths and update docs. Keep the two plugin reviews coordinated so
 shared palette changes are designed once.
 
 ### Agent Notes (2026-11-17, endpoint/runtime ownership audit)
+- Palette contract review (2026-11-17): provider-neutral graph nodes now require an explicit semantic `palette.group`; process and core-data providers declare their groups, and the graph editor no longer infers group labels from operation-id prefixes or displays provider ids as group labels. SDK, process adapter, and graph palette contract tests/docs were updated. Full plugin workflow review and Documents/Facade palette reconciliation remain open.
+
 
 - Documents and Facade endpoint hosts now expose only services declared with `mode: endpoint`. Managed operations are covered by their browser/server runtime test suites; duplicate managed implementations were removed from the endpoint service modules.
 - Documents endpoint dispatch derives from its listing. Facade's endpoint inventory remains `extract-geometry` and `nesting-parts`.

@@ -36,6 +36,8 @@ may declare `palette.group`, `palette.label`, and `palette.keywords`;
 the session groups operations by provider and semantic group, then exposes
 provider id, operation id, group id, and keywords to palette search.
 
+Every registered operation must declare `palette.group`; the host does not infer categories from operation-id prefixes. Provider ids remain stable search terms and registry identities, not visible palette group labels. Group labels and search aliases come from the normalized declaration.
+
 The `graphDocuments` input is the authorized catalog projection from the
 graph workspace. Each available entry carries its validated payload as
 `graph`; the dedicated Use Graph palette group places an invocation already
