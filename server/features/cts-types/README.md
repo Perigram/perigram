@@ -79,7 +79,7 @@ the response (root SPEC §15 abandoned data, promoted to a gate).
 
 ### Organization data sequence
 
-Successful `defineType` and `removeType` writes advance the organization's durable data sequence through [instances](../instances/README.md#organization-change-sequence). A graph read captures this sequence beside the compiled registry view, so declaration changes invalidate a read set alongside instance, relation, and collection changes.
+`defineType` and `removeType` capture the organization sequence before validation and reserve it with compare-and-swap for the declaration write. The reservation covers unique-index changes and the full instance migration; concurrent organization writes make the declaration request return `409`. Each successful declaration mutation advances the sequence once through [instances](../instances/README.md#organization-change-sequence). A graph read captures this sequence beside the compiled registry view, so declaration changes invalidate a read set alongside instance, relation, and collection changes.
 
 ### Client bundle
 
