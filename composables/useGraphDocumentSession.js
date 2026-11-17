@@ -536,13 +536,34 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     return problems;
   }
 
+  function semanticEdgeWarnings(graph = serializeGraph()) {
+    const byId = new Map(nodes.value.map(node => [node.id, node]));
+    const warnings = [];
+    for (const edge of graph.edges) {
+      const source = byId.get(edge.source.node);
+      const target = byId.get(edge.target.node);
+      const sourcePort = definitionFor(source)?.outputs?.find(port => port.id === edge.source.port);
+      const targetPort = definitionFor(target)?.inputs?.find(port => port.id === edge.target.port);
+      if (!sourcePort || !targetPort) continue;
+      const result = compareNodePorts(sourcePort, targetPort);
+      if (result.compatible && result.status === 'conditional') {
+        warnings.push({
+          code: 'edge-conditional',
+          path: `edges.${edge.id}`,
+          message: `Connection ${sourcePort.label || sourcePort.id} → ${targetPort.label || targetPort.id} requires runtime value validation: ${result.reason}`
+        });
+      }
+    }
+    return warnings;
+  }
+
   function validateCurrentGraph() {
     const graph = serializeGraph();
     const problems = [...validateGraphDocument(graph), ...semanticEdgeProblems(graph)];
     return {
       ok: problems.length === 0,
       errors: problems.map(problem => problem.message),
-      warnings: []
+      warnings: semanticEdgeWarnings(graph).map(warning => warning.message)
     };
   }
 
