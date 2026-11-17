@@ -24,7 +24,6 @@
         />
       </div>
       <Message v-if="declarationError" severity="error">{{ declarationError }}</Message>
-      <Message v-if="configError" severity="error">{{ configError }}</Message>
       <Button size="small" :label="$t('processDesigner.graphApplyInterfaceDeclaration')" @click="applyDeclaration" />
     </template>
     <template v-else-if="isGraphInvocation">

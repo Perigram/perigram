@@ -3536,7 +3536,10 @@
     "pinToRevision": "Закрепить за версией",
     "noRetainedRevisions": "Нет сохранённых версий.",
     "revisionLabel": "Версия {number} · {createdAt}",
-    "graphApplyInterfaceDeclaration": "Применить объявление интерфейса"
+    "graphApplyInterfaceDeclaration": "Применить объявление интерфейса",
+    "graphConfigurationFieldRequired": "Поле «{field}» обязательно",
+    "graphConfigurationFieldInvalid": "Поле «{field}» содержит недопустимое значение",
+    "graphConfigurationFieldOutOfRange": "Значение поля «{field}» вне допустимого диапазона"
   },
   "generatedScreen": {
     "home": "Главная",

@@ -3536,7 +3536,10 @@
     "pinToRevision": "Pin to revision",
     "noRetainedRevisions": "No retained revisions are available.",
     "revisionLabel": "Revision {number} · {createdAt}",
-    "graphApplyInterfaceDeclaration": "Apply interface declaration"
+    "graphApplyInterfaceDeclaration": "Apply interface declaration",
+    "graphConfigurationFieldRequired": "{field} is required",
+    "graphConfigurationFieldInvalid": "{field} has an invalid value",
+    "graphConfigurationFieldOutOfRange": "{field} is outside its allowed range"
   },
   "generatedScreen": {
     "home": "Home",
