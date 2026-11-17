@@ -57,7 +57,9 @@ providers.
 - [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO after
   behavior verification; record remaining owner decisions explicitly.
 
-Progress (2026-11-17): Documents list construction accepts typed `text.inline` values through the declared `inlineItems` input as well as plain text items. A graph-level regression covers typed construction, document composition, preview rendering, and Markdown/HTML/PDF file payload generation; test execution remains unverified; a graph-executions regression now covers materialization into a `text-document` instance.
+Progress (2026-11-17): Documents list construction accepts typed `text.inline` values through the declared `inlineItems` input as well as plain text items.
+
+Progress (2026-11-17): The Documents List node's plain-text `items` socket is now optional and labeled separately from typed `inlineItems`, so a formatted-only list is authorable without an unused required input. The listing version advanced to 18; a declaration-contract regression covers the optional typed-input path. A graph-level regression covers typed construction, document composition, preview rendering, and Markdown/HTML/PDF file payload generation; test execution remains unverified; a graph-executions regression now covers materialization into a `text-document` instance.
 
 Progress (2026-11-17): Markdown table export escapes backslashes and pipe delimiters and flattens embedded cell line breaks.
 
