@@ -61,11 +61,15 @@ function inlineMarkdown(nodes = []) {
 export const DOCUMENT_BLOCK_TYPE = 'text.document-block';
 export const INLINE_VALUE_TYPE = 'text.inline';
 function inlineText(text) { return { type: 'text', text: String(text ?? '') }; }
+function isSafeDocumentHref(value) {
+  const href = String(value || '').trim();
+  return Boolean(href && /^(https?:|mailto:|\\/|#|\\?)/i.test(href) && !href.startsWith('//'));
+}
 function isInlineValue(node) {
   if (!node || typeof node !== 'object' || Array.isArray(node)) return false;
   if (node.type === 'text' || node.type === 'code') return typeof node.text === 'string';
   if (node.type === 'strong' || node.type === 'emphasis') return Array.isArray(node.children) && node.children.every(isInlineValue);
-  if (node.type === 'link') return typeof node.href === 'string' && Array.isArray(node.children) && node.children.every(isInlineValue);
+  if (node.type === 'link') return isSafeDocumentHref(node.href) && Array.isArray(node.children) && node.children.every(isInlineValue);
   return false;
 }
 function requireInlineList(value, label = 'children') {

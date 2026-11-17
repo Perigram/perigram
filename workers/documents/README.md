@@ -16,24 +16,20 @@ the plugin's surface modules, and types ride the generic instance machinery.
   text-document starter construct (markdown stays visible-by-default
   through the default installs). `requires` names tech-drawing: the
   PDF render construction accepts `dxf-source` sources.
-- Services (`services.js`, with pure CSV and document operations executed by the
-  shared browser/server runtime; only endpoint-mode operations are served
-  by `index.js`;
-  the projection helper services are synchronous endpoint handlers, not
-  graph palette items; the declared projections are the graph nodes):
-  `table-rows`/`table-cells`
-  (payload → first sheet as header-keyed / positional row records),
-  `text` (payload → string), `csv-text` (rows → CSV text, serialized by
-  `/runtime/shared.mjs` using the bundled XLSX engine) — the
-  extraction trio takes one `payload` field declared `blob`: composed
-  on the process canvas the platform hydrates the payload handle with
-  its bytes (`payloadBase64`), projected the platform sends the
-  instance envelope (`{ typeId, payloadBase64 }`), and one normalizer
-  serves both. `fill` (template ref
-  payload + values → filled file payload, dispatched on the template
-  kind), and `render-pdf` (source ref payload → rendered PDF payload,
-  dispatched on the source kind) stay implementation executors for
-  their construction and conversion bindings.
+- Services (`services.js`): pure CSV and document IR operations execute
+  through `/runtime/shared.mjs` on both browser and server. Payload projections,
+  Markdown parsing, template filling, and binary PDF generation remain
+  endpoint handlers; projection helpers are synchronous provider dispatches,
+  not palette items. The declared projections are the graph read nodes:
+  `table-rows`/`table-cells` (payload → header-keyed / positional row
+  records), `text` (payload → string), and `csv-text` (rows → CSV text).
+  The extraction trio takes one `payload` field declared `blob`: composed
+  on the process canvas the host hydrates the payload handle with its bytes
+  (`payloadBase64`), projected the host sends the instance envelope
+  (`{ typeId, payloadBase64 }`), and one normalizer serves both. `fill`
+  (template ref payload + values → filled file payload) and `render-pdf`
+  (source ref payload → PDF payload) remain construction/conversion bindings.
+
 - Document and report operations (`report.js` and `report-ir.mjs`, grouped by inline content, blocks, composition, and export): `parse-markdown` (text → `text.flow-document@1`), typed inline and block constructors (`text.inline` and `text.document-block`), `compose-document` and `append-document-block` (blocks → flowing document), `export-markdown` (flow document → markdown text), Markdown/HTML file exports, and `render-document-html` (flow document → safe HTML). The `document.report@1` composition remains available for explicitly sectioned reports. The Documents preview channel renders flowing documents directly as well as report values; the IR is the source and Markdown, HTML, and PDF are representations.
 
 ### Graph operation palette
