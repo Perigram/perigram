@@ -3,8 +3,26 @@
     <strong class="text-label">{{ node.data.label }}</strong>
     <template v-if="isBoundary">
       <InputText v-model="label" size="small" @blur="applyLabel" @keydown.enter.prevent="applyLabel" />
-      <label class="text-supporting text-muted" for="graph-boundary-declaration">{{ $t('processDesigner.graphInterfaceDeclaration') }}</label>
-      <Textarea id="graph-boundary-declaration" v-model="declarationText" rows="8" auto-resize class="w-full text-supporting" />
+      <div class="flex flex-col gap-2">
+        <label class="text-supporting text-muted">{{ $t('processDesigner.graphInterfaceDeclaration') }}</label>
+        <Select v-model="declarationShape" :options="shapeOptions" option-label="label" option-value="value" size="small" class="w-full" />
+        <InputText v-model="declarationBase" size="small" placeholder="Semantic base" />
+        <InputText v-model="declarationKind" size="small" placeholder="Semantic kind" />
+        <div class="flex items-center justify-between">
+          <label class="text-supporting">{{ $t('processDesigner.required') }}</label>
+          <ToggleSwitch v-model="declarationRequired" />
+        </div>
+        <div class="flex items-center justify-between">
+          <label class="text-supporting">{{ $t('processDesigner.defaultValue') }}</label>
+          <ToggleSwitch v-model="declarationHasDefault" />
+        </div>
+        <TypedValueControl
+          v-if="declarationHasDefault"
+          :base="configBase({ type: declarationBase })"
+          :model-value="declarationDefault"
+          @update:model-value="declarationDefault = $event"
+        />
+      </div>
       <Message v-if="declarationError" severity="error">{{ declarationError }}</Message>
       <Button size="small" :label="$t('processDesigner.graphApplyInterfaceDeclaration')" @click="applyDeclaration" />
     </template>
@@ -108,6 +126,7 @@ import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Select from 'primevue/select';
+import ToggleSwitch from 'primevue/toggleswitch';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
 import TypedValueControl from '~/components/process-designer/TypedValueControl.vue';
@@ -127,8 +146,14 @@ const props = defineProps({
 });
 const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration', 'hydrate-graph', 'select-graph-document']);
 const configDraft = ref({});
-const declarationText = ref('{}');
+const declarationShape = ref('item');
+const declarationBase = ref('json');
+const declarationKind = ref('');
+const declarationRequired = ref(true);
+const declarationHasDefault = ref(false);
+const declarationDefault = ref(null);
 const declarationError = ref('');
+const shapeOptions = ['item', 'list', 'tree', 'map', 'tuple', 'stream'].map(value => ({ label: value, value }));
 const label = ref('');
 
 const selectedGraphId = ref('');
@@ -146,13 +171,13 @@ watch(
   () => {
     configDraft.value = { ...(props.node?.data?.config || {}) };
     declarationError.value = '';
-    declarationText.value = JSON.stringify({
-      contract: props.boundaryDeclaration?.contract || { shape: 'item', semantic: { base: 'json' } },
-      required: props.boundaryDeclaration?.required !== false,
-      ...(Object.hasOwn(props.boundaryDeclaration || {}, 'default')
-        ? { default: props.boundaryDeclaration.default }
-        : {})
-    }, null, 2);
+    const contract = props.boundaryDeclaration?.contract || { shape: 'item', semantic: { base: 'json' } };
+    declarationShape.value = contract.shape || 'item';
+    declarationBase.value = contract.semantic?.base || 'json';
+    declarationKind.value = contract.semantic?.kind || '';
+    declarationRequired.value = props.boundaryDeclaration?.required !== false;
+    declarationHasDefault.value = Object.hasOwn(props.boundaryDeclaration || {}, 'default');
+    declarationDefault.value = props.boundaryDeclaration?.default ?? null;
     label.value = props.node?.data?.label || '';
     const canonicalGraphId = String(props.node?.data?.config?.graphId || '');
     const stored = props.graphDocuments.find(item => String(item.fields?.graphId || '') === canonicalGraphId);
@@ -197,11 +222,23 @@ function updateConfigField(id, value) {
 }
 
 function applyDeclaration() {
+  const base = declarationBase.value.trim();
+  if (!base) {
+    declarationError.value = 'Semantic base is required';
+    return;
+  }
+  const declaration = {
+    contract: {
+      shape: declarationShape.value,
+      semantic: {
+        base,
+        ...(declarationKind.value.trim() ? { kind: declarationKind.value.trim() } : {})
+      }
+    },
+    required: declarationRequired.value,
+    ...(declarationHasDefault.value ? { default: declarationDefault.value } : {})
+  };
   try {
-    const declaration = JSON.parse(declarationText.value || '{}');
-    if (!declaration || typeof declaration !== 'object' || Array.isArray(declaration)) {
-      throw new Error('Declaration must be a JSON object');
-    }
     emit('update-boundary-declaration', { nodeId: props.node.id, declaration });
     declarationError.value = '';
   } catch (error) {
