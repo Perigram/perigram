@@ -16,7 +16,7 @@ const server = createEndpointExecutor({
   token,
   staticRoot: fileURLToPath(new URL('.', import.meta.url))
 }).listen(port, () => {
-  const served = Object.keys(services).map(id => `  POST http://localhost:${port}/${id}`).join('\n');
+  const served = `  POST http://localhost:${port}/ (operationId + input envelope)`;
   process.stdout.write(`tech-drawing executor on :${port}${token ? ' (key required)' : ''}\n${served}\n  GET  http://localhost:${port}/surfaces/*\n  GET  http://localhost:${port}/dxf-markers.js\n  GET  http://localhost:${port}/assets/vendor/*\n`);
 });
 

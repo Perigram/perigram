@@ -18,7 +18,7 @@ const server = createEndpointExecutor({
   token,
   staticRoot: fileURLToPath(new URL('.', import.meta.url))
 }).listen(port, () => {
-  const served = Object.keys(endpointServices).map(id => `  POST http://localhost:${port}/${id}`).join('\n');
+  const served = `  POST http://localhost:${port}/ (operationId + input envelope)`;
   process.stdout.write(`facade executor on :${port}${token ? ' (key required)' : ''}\n${served}\n  GET  http://localhost:${port}/surfaces/*\n`);
 });
 
