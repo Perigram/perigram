@@ -6,6 +6,7 @@ import { withOrganizationChangeSequence, withOrganizationDataSnapshot } from '..
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '../files/service.js';
 import * as pagesService from '../pages/service.js';
+import * as instanceRevisionsService from '../instance-revisions/service.js';
 
 function parseRecord(value) {
   try {
@@ -689,6 +690,7 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
       throw createError({ statusCode: 404, message: 'CTS instance creation service is unavailable' });
     }
     const filename = materializedFilename;
+    await instanceRevisionsService.ensureRevisionIndexes();
     const stored = await filesService.uploadFile(buffer, filename, {
       userId: auth.userId,
       organizationId,

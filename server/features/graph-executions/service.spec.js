@@ -29,6 +29,7 @@ vi.mock('../files/service.js', () => ({
   uploadFile: mocks.uploadFile,
   deleteFile: mocks.deleteFile
 }));
+vi.mock('../instance-revisions/service.js', () => ({ ensureRevisionIndexes: vi.fn(async () => {}) }));
 vi.mock('../pages/service.js', () => ({
   bakeFile: mocks.bakeFile,
   retractBakedFile: mocks.retractBakedFile

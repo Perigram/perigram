@@ -76,6 +76,10 @@ export function derivedFromRevision(revision, parameters = {}) {
   );
 }
 
+export async function ensureRevisionIndexes() {
+  await repository.ensureIndexes();
+}
+
 export async function ensureForEntitySnapshot({
   typeId,
   entity,
@@ -93,7 +97,7 @@ export async function ensureForEntitySnapshot({
   if (!entity?._id) throw createError({ statusCode: 400, message: 'Revision entity is required' });
   if (!content) throw createError({ statusCode: 400, message: 'Revision content is required' });
 
-  await repository.ensureIndexes();
+  if (!session) await ensureRevisionIndexes();
 
   const instanceId = toFlexibleId(entity._id);
   const contentHash = hashRevisionContent(content);
