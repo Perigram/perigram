@@ -19,7 +19,7 @@ describe('Documents shared runtime', () => {
     }
   });
 
-  it('implements every operation declared for the shared Documents runtime', () => {
+  it('implements every operation declared for the shared Documents runtime', async () => {
     const inline = { type: 'text', text: 'Hello' };
     const paragraph = { type: 'paragraph', children: [inline] };
     const document = { type: 'text.flow-document', schemaVersion: 1, blocks: [{ type: 'table', rows: [{ value: '1' }] }] };
