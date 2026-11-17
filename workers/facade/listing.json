@@ -663,7 +663,6 @@
       {
         "id": "generate-sheet-dxf",
         "label": "Export sheet DXF",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "json"
@@ -678,6 +677,7 @@
           "runtime": "facade-server",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -687,7 +687,6 @@
       {
         "id": "construct-sheet",
         "label": "Create sheet design",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "json"
@@ -702,6 +701,7 @@
           "runtime": "facade-server",
           "kind": "pure",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [],
@@ -711,7 +711,6 @@
       {
         "id": "match-sheet",
         "label": "Find reusable sheet design",
-        "mode": "endpoint",
         "group": "sheet-planning",
         "signature": {
           "input": {
@@ -746,7 +745,8 @@
             "server"
           ],
           "capabilities": [],
-          "deterministic": true
+          "deterministic": true,
+          "idempotent": true
         }
       },
       {
