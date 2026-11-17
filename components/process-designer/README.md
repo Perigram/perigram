@@ -53,8 +53,9 @@ finalizes that id across every loaded plugin runtime after evaluation settles. E
 the host mounts that surface with the selected graph output as its payload.
 Plugin node providers declare semantic palette groups and searchable
 keywords; the shared palette search also indexes stable operation, provider,
-and group identities. Both the main palette and socket-context palette use
-the same search contract.
+and group identities. Socket gestures, persisted-edge validation, and preview
+preflight use the SDK's canonical semantic port compatibility result. Both
+the main palette and socket-context palette use the same search contract.
 
 The graph session contract lives in
 [composables](../../composables/README.md#usegraphdocumentsession--canonical-procedural-graph-editor);
