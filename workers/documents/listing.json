@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, HTML, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "24",
+  "version": "25",
   "requires": [
     "tech-drawing"
   ],
@@ -588,7 +588,6 @@
       {
         "id": "parse-markdown",
         "label": "Parse markdown",
-        "mode": "endpoint",
         "cache": "deterministic",
         "render": {
           "label": "Parse markdown",
@@ -612,6 +611,17 @@
         "palette": {
           "group": "document-composition",
           "label": "Document composition"
+        },
+        "execution": {
+          "runtime": "documents-shared",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
         }
       },
       {
