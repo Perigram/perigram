@@ -602,6 +602,21 @@ function configuredEndpointsFor(services = [], endpoints = {}) {
   return configured;
 }
 
+function configuredExecutorOriginFor(services = [], executorOrigin = null) {
+  if (!executorOrigin) return null;
+  if (!(services || []).some(service => serviceModeOf(service) === 'endpoint')) {
+    throw createError({ statusCode: 400, message: 'This plugin has no remote endpoint services' });
+  }
+  let parsed;
+  try { parsed = new URL(String(executorOrigin)); } catch {
+    throw createError({ statusCode: 400, message: 'Executor origin must be an absolute http(s) URL' });
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password || parsed.search || parsed.hash) {
+    throw createError({ statusCode: 400, message: 'Executor origin must be an http(s) URL without credentials, query, or fragment' });
+  }
+  return parsed.toString().replace(/\/$/, '');
+}
+
 // The surface origin (owner decision 2026-10-17): executors with
 // surfaces but no endpoint services still need a reachable origin for
 // the module proxy. Only a plugin that declares surfaces may carry one.
@@ -632,13 +647,7 @@ export async function updateSettings({ organizationId, pluginId, executorOrigin 
   let configuredOrigin = install.executorOrigin || legacyExecutorOrigin(install);
   if (requestedOrigin !== undefined) {
     if (!requestedOrigin) configuredOrigin = null;
-    else {
-      let parsed;
-      try { parsed = new URL(String(requestedOrigin)); } catch { throw createError({ statusCode: 400, message: 'Executor origin must be an absolute http(s) URL' }); }
-      if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password || parsed.search || parsed.hash) throw createError({ statusCode: 400, message: 'Executor origin must be an http(s) URL without credentials, query, or fragment' });
-      if (!(install.services || []).some(service => serviceModeOf(service) === 'endpoint')) throw createError({ statusCode: 400, message: 'This plugin has no remote endpoint services' });
-      configuredOrigin = parsed.toString().replace(/\/$/, '');
-    }
+    else configuredOrigin = configuredExecutorOriginFor(install.services, requestedOrigin);
   }
   const packageOwned = Number(install.packageAssets?.count) > 0
     || Boolean(install.declarations?.engine)
