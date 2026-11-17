@@ -834,7 +834,7 @@ function instanceService(typeId) {
     }, async () => {
       await repository.insertInstance(repository.collectionForClass(declaration.class), doc, { session });
       await recordPayloadRevision(typeId, doc, declaration, payload, userId, 'created', { session });
-    }, { session, expectedSequence: expectedOrganizationSequence });
+    }, { session, expectedSequence });
     return toDto(doc);
   }
 
