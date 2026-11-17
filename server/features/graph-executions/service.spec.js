@@ -147,6 +147,7 @@ describe('graph execution service', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    delete payloadService.processGetById;
     session.withTransaction.mockImplementation(async callback => await callback());
     mocks.connectDB.mockResolvedValue({ client: { startSession: () => session } });
     graphService.processGetById.mockResolvedValue(graphDocument);
