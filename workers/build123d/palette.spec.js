@@ -6,18 +6,18 @@ describe('build123d plugin node palette contribution', () => {
   it('keeps every graph-composable operation in its declared semantic group', () => {
     const services = Object.fromEntries(listing.declarations.services.map(service => [
       service.id,
-      { ...service, command: service.id, group: service.group }
+      { ...service, command: service.id, group: service.group, pluginId: listing.pluginId }
     ]));
     const groups = pluginPaletteGroups({}, services);
     const items = groups.flatMap(group => group.items);
     expect(groups.map(group => group.id).sort()).toEqual([
-      'build123d-algebra',
-      'build123d-curve',
-      'build123d-drafting',
-      'build123d-operations',
-      'build123d-part',
-      'build123d-sketch',
-      'build123d-text'
+      'plugin-build123d-algebra',
+      'plugin-build123d-curve',
+      'plugin-build123d-drafting',
+      'plugin-build123d-operations',
+      'plugin-build123d-part',
+      'plugin-build123d-sketch',
+      'plugin-build123d-text'
     ]);
     const declaredIds = listing.declarations.services.map(service => `service:${service.id}`).sort();
     expect(items.map(item => item.id).sort()).toEqual(declaredIds);

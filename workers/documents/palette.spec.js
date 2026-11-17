@@ -6,7 +6,7 @@ function declaredPaletteGroups() {
   const projections = Object.fromEntries(
     listing.declarations.types.flatMap(type => (type.projections || []).map(projection => [
       `${type.id}:${projection.id}`,
-      { ...projection, typeId: type.id }
+      { ...projection, typeId: type.id, pluginId: listing.pluginId }
     ]))
   );
   const services = Object.fromEntries(
@@ -25,8 +25,8 @@ function declaredPaletteGroups() {
 describe('Documents plugin node palette contribution', () => {
   it('exposes declared table extraction and document operations as plugin-owned groups', () => {
     const groups = declaredPaletteGroups();
-    const tableData = groups.find(group => group.id === 'table-data');
-    const documentCompose = groups.find(group => group.id === 'document-compose');
+    const tableData = groups.find(group => group.id === 'plugin-documents-table-data');
+    const documentCompose = groups.find(group => group.id === 'plugin-documents-document-compose');
 
     expect(groups.every(group => group.source === 'plugin')).toBe(true);
     expect(tableData.items.map(item => item.id)).toContain('extract:rows');

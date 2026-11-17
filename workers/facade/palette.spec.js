@@ -6,7 +6,7 @@ function declaredPaletteGroups() {
   const projections = Object.fromEntries(
     listing.declarations.types.flatMap(type => (type.projections || []).map(projection => [
       `${type.id}:${projection.id}`,
-      { ...projection, typeId: type.id }
+      { ...projection, typeId: type.id, pluginId: listing.pluginId }
     ]))
   );
   const services = Object.fromEntries(
@@ -25,9 +25,9 @@ function declaredPaletteGroups() {
 describe('Facade plugin node palette contribution', () => {
   it('groups sheet planning, nesting, and production export by workflow', () => {
     const groups = declaredPaletteGroups();
-    const nesting = groups.find(group => group.id === 'nesting');
-    const planning = groups.find(group => group.id === 'sheet-planning');
-    const production = groups.find(group => group.id === 'production-export');
+    const nesting = groups.find(group => group.id === 'plugin-facade-nesting');
+    const planning = groups.find(group => group.id === 'plugin-facade-sheet-planning');
+    const production = groups.find(group => group.id === 'plugin-facade-production-export');
     expect(nesting.items.map(item => item.id)).toContain('service:nesting-solve');
     expect(planning.items.map(item => item.id)).toEqual([
       'service:construct-sheet',

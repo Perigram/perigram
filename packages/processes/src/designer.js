@@ -834,36 +834,61 @@ export function servicesPaletteGroups(serviceContracts = {}) {
 // preset covers them).
 export function pluginPaletteGroups(projectionContracts = {}, serviceContracts = {}) {
   const sections = new Map();
-  const section = (id, label = '') => {
-    if (!sections.has(id)) sections.set(id, { id, ...(label ? { label } : {}), items: [], source: 'plugin' });
-    else if (label && !sections.get(id).label) sections.get(id).label = label;
-    return sections.get(id);
+  const section = (provider, group, label = '') => {
+    const key = `${provider}:${group}`;
+    if (!sections.has(key)) sections.set(key, {
+      id: `plugin-${provider}-${group}`,
+      label: label || humanizePaletteGroup(group),
+      items: [],
+      source: 'plugin'
+    });
+    return sections.get(key);
   };
   const seenProjections = new Set();
   for (const projection of Object.values(projectionContracts || {})) {
     if (!projection?.group || !projection.id) continue;
-    const key = `${projection.group}:${projection.id}`;
+    const provider = pluginProviderId(projection);
+    if (!provider) continue;
+    const key = `${provider}:${projection.id}`;
     if (seenProjections.has(key)) continue;
     seenProjections.add(key);
-    section(projection.group).items.push(paletteItem(`extract:${projection.id}`, 'cts.read', {
+    section(provider, projection.group, projection.groupLabel).items.push(paletteItem(`extract:${provider}:${projection.id}`, 'cts.read', {
       label: projection.label,
       description: projection.description || projection.label,
-      searchTerms: [projection.id, projection.typeId, projection.service, ...(projection.keywords || [])].filter(Boolean),
+      searchTerms: [provider, projection.id, projection.typeId, projection.service, ...(projection.keywords || [])].filter(Boolean),
       icon: 'pi pi-table',
       preset: { select: 'extract', projection: projection.id }
     }));
   }
   for (const service of Object.values(serviceContracts || {})) {
     if (!service?.group || !service?.id || !service.command) continue;
-    section(service.group, service.groupLabel).items.push(paletteItem(`service:${service.id}`, 'cts.service', {
-      label: service.label || service.render?.label || service.id,
-      description: service.description || service.render?.description || service.render?.label || service.id,
-      searchTerms: [service.id, service.command, service.provider, service.pluginId].filter(Boolean),
+    const provider = pluginProviderId(service);
+    if (!provider) continue;
+    const localId = String(service.id).startsWith(`plugin.${provider}.`)
+      ? String(service.id).slice(`plugin.${provider}.`.length)
+      : String(service.id);
+    section(provider, service.group, service.groupLabel).items.push(paletteItem(`service:${provider}:${localId}`, 'cts.service', {
+      label: service.label || service.render?.label || localId,
+      description: service.description || service.render?.description || service.render?.label || localId,
+      searchTerms: [provider, service.id, service.command, ...(service.keywords || [])].filter(Boolean),
       icon: service.render?.icon || 'pi pi-bolt',
       preset: { operator: service.id }
     }));
   }
   return [...sections.values()].filter(group => group.items.length);
+}
+
+function pluginProviderId(source = {}) {
+  const direct = String(source.pluginId || source.provider || '');
+  const directMatch = /^(?:plugin\\.)?([a-z0-9-]+)$/.exec(direct);
+  if (directMatch) return directMatch[1];
+  const reference = String(source.resolve?.service || source.command || source.id || '');
+  return /^plugin\\.([a-z0-9-]+)\\./.exec(reference)?.[1] || '';
+}
+
+function humanizePaletteGroup(value = '') {
+  return String(value).split(/[-_.]+/).filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 }
 
 // Type catalog palette (SPEC §20/§21, L2): registry types are draggable
