@@ -124,7 +124,7 @@ describe('Facade managed server runtime', () => {
 
   it('refuses operations outside the managed runtime declaration', async () => {
     const runtime = createRuntime();
-    await expect(runtime.execute('bake', {}, { capabilities: { call: vi.fn() } }))
+    await expect(runtime.execute('unknown-operation', {}, { capabilities: { call: vi.fn() } }))
       .rejects.toThrow(/Unsupported Facade managed operation/);
   });
 });
