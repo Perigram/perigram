@@ -59,7 +59,9 @@ providers.
 
 Progress (2026-11-17): Documents list construction accepts typed `text.inline` values through the declared `inlineItems` input as well as plain text items. A graph-level regression covers typed construction, document composition, preview rendering, and Markdown/HTML/PDF file payload generation; test execution remains unverified; a graph-executions regression now covers materialization into a `text-document` instance.
 
-Progress (2026-11-17): Markdown table export escapes backslashes and pipe delimiters and flattens embedded cell line breaks. Regression coverage checks parse/export round-trip; test execution remains unverified.
+Progress (2026-11-17): Markdown table export escapes backslashes and pipe delimiters and flattens embedded cell line breaks.
+
+Progress (2026-11-17): Markdown inline export now escapes literal Markdown punctuation, chooses code-span delimiters longer than any embedded backtick run, and encodes spaces/escapes parentheses in link destinations. A round-trip regression covers punctuation, code, and links. Facade cassette/profile preview modules now have SDK surface-factory/import-graph smoke tests; existing drawing normalization and cassette renderer suites cover the preview geometry paths. Test execution remains unverified. Regression coverage checks parse/export round-trip; test execution remains unverified.
 
 Progress (2026-11-17): Documents `extract-table`, `compose-report`, `export-markdown`, and `render-html` now run in the managed server runtime rather than per-service endpoints. Their shared, dependency-free `report-ir.mjs` module owns the report/flow contracts, table extraction, composition, Markdown serialization, and escaped HTML representation. Standalone HTML now strips unsafe link schemes while preserving safe HTTP(S), mailto, and local fragment/path links.
 
