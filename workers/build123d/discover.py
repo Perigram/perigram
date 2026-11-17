@@ -3,7 +3,7 @@
 
 The catalog is parsed from the real library (SPEC §28): every operation
 records its provenance (source package + version) and its palette
-placement (the group its service registers under). Nothing here is
+placement (the shared semantic palette declaration). Nothing here is
 hand-authored per operation — the policy below decides which modules
 and signatures are representable, and the installed API supplies the
 rest.
@@ -226,7 +226,7 @@ def main():
             params=params,
             returns="shape",
             summary=doc_summary(method),
-            group="build123d-algebra",
+            group="algebra",
         )
 
     # Deterministic ids: collisions get a stable numeric suffix and the

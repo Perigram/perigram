@@ -6,11 +6,11 @@ import { pluginPaletteGroups, servicesPaletteGroups } from './designer.js';
 // projection switch is the single mode selector.
 describe('pluginPaletteGroups', () => {
   const projections = {
-    'csv-table/rows': { typeId: 'csv-table', id: 'rows', label: 'Table rows', palette: { group: 'table-data' }, pluginId: 'documents' },
-    'xlsx-workbook/rows': { typeId: 'xlsx-workbook', id: 'rows', label: 'Table rows', group: 'table-data', pluginId: 'documents' },
-    'csv-table/cells': { typeId: 'csv-table', id: 'cells', label: 'Table cells (positional)', group: 'table-data', pluginId: 'documents' },
-    'xlsx-workbook/cells': { typeId: 'xlsx-workbook', id: 'cells', label: 'Table cells (positional)', group: 'table-data', pluginId: 'documents' },
-    'text-document/text': { typeId: 'text-document', id: 'text', label: 'Text', group: 'table-data', pluginId: 'documents' },
+    'csv-table/rows': { typeId: 'csv-table', id: 'rows', label: 'Table rows', palette: { palette: { group: 'table-data' } }, pluginId: 'documents' },
+    'xlsx-workbook/rows': { typeId: 'xlsx-workbook', id: 'rows', label: 'Table rows', palette: { group: 'table-data' }, pluginId: 'documents' },
+    'csv-table/cells': { typeId: 'csv-table', id: 'cells', label: 'Table cells (positional)', palette: { group: 'table-data' }, pluginId: 'documents' },
+    'xlsx-workbook/cells': { typeId: 'xlsx-workbook', id: 'cells', label: 'Table cells (positional)', palette: { group: 'table-data' }, pluginId: 'documents' },
+    'text-document/text': { typeId: 'text-document', id: 'text', label: 'Text', palette: { group: 'table-data' }, pluginId: 'documents' },
     'cassette/polygons': { typeId: 'cassette', id: 'polygons', label: 'Polygons', palette: { group: 'facade' }, pluginId: 'facade' },
     'un grouped': { typeId: 'misc', id: 'ungrouped', label: 'Ungrouped' }
   };
@@ -38,8 +38,8 @@ describe('pluginPaletteGroups', () => {
 
   it('keeps identical group slugs isolated by provider', () => {
     const groups = pluginPaletteGroups({}, {
-      first: { id: 'one', command: 'plugin.documents.one', group: 'operations' },
-      second: { id: 'one', command: 'plugin.facade.one', group: 'operations' }
+      first: { id: 'one', command: 'plugin.documents.one', palette: { group: 'operations' } },
+      second: { id: 'one', command: 'plugin.facade.one', palette: { group: 'operations' } }
     });
     expect(groups.map(group => group.id)).toEqual(['plugin-documents-operations', 'plugin-facade-operations']);
     expect(groups.map(group => group.items[0].id)).toEqual(['service:documents:one', 'service:facade:one']);
@@ -51,10 +51,9 @@ describe('pluginPaletteGroups', () => {
       'nesting-solve': {
         id: 'nesting-solve',
         command: 'nesting-solve', pluginId: 'facade',
-        palette: { group: 'nesting' },
+        palette: { group: 'nesting', keywords: ['cutting', 'stock layout'] },
         label: 'Solve sheet nesting',
         description: 'Arrange parts on sheet stock',
-        keywords: ['cutting', 'stock layout'],
         render: { label: 'Legacy fallback label', description: 'Legacy fallback description' }
       }
     });

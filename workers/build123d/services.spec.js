@@ -33,7 +33,8 @@ describe('catalog', () => {
       expect(op.id).toMatch(/^[a-z0-9-]+$/);
       expect(ids.has(op.id), op.id).toBe(false);
       ids.add(op.id);
-      expect(op.group).toMatch(/^build123d-[a-z-]+$/);
+      expect(op.palette.group).toMatch(/^[a-z][a-z0-9-]{0,63}$/);
+      expect(op.palette.keywords).toContain(op.id);
       expect(op.target).toMatch(/^build123d(?:\.[a-z_0-9]+)+:[A-Za-z_.]+$/);
       for (const param of op.params) {
         expect(['number', 'boolean', 'string', 'shape', 'json']).toContain(param.type);

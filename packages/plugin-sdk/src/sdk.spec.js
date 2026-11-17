@@ -283,7 +283,7 @@ describe('parseListing', () => {
       }
     });
     expect(withProjectionGroup('table-data').types[0].projections[0].palette.group).toBe('table-data');
-    expect(() => withProjectionGroup('table data')).toThrow(/palette-section slug/);
+    expect(() => withProjectionGroup('table data')).toThrow(/palette.group/);
   });
 
   it('validates signature field kinds as namespaced value slugs', () => {
@@ -992,8 +992,8 @@ function stopAfter(target, calls) {
       declarations: { ...fullListing.declarations, services: [{ ...fullListing.declarations.services[0], palette: { group } }] }
     });
     expect(withServiceGroup('facade').services[0].palette.group).toBe('facade');
-    expect(() => withServiceGroup('Facade Tab')).toThrow(/palette-section slug/);
-    expect(() => withServiceGroup('')).toThrow(/palette-section slug/);
+    expect(() => withServiceGroup('Facade Tab')).toThrow(/palette.group/);
+    expect(() => withServiceGroup('')).toThrow(/palette.group/);
     const withProjectionGroup = group => parseListing({
       ...fullListing,
       declarations: {
@@ -1002,7 +1002,7 @@ function stopAfter(target, calls) {
       }
     });
     expect(withProjectionGroup('table-data').types[0].projections[0].palette.group).toBe('table-data');
-    expect(() => withProjectionGroup('table data')).toThrow(/palette-section slug/);
+    expect(() => withProjectionGroup('table data')).toThrow(/palette.group/);
   });
 
   it('validates signature field kinds as namespaced value slugs', () => {
