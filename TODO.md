@@ -16,6 +16,15 @@ plugins as product capabilities and as graph-node providers; do not treat
   surfaces, preview renderers, cross-plugin dependencies, data revisions,
   and every declared construction/service. Identify dead, duplicated,
   unreachable, or UI-only functionality and close behavior/spec gaps.
+- [ ] Migrate the two plugin service surfaces away from per-service endpoint
+  hosting. Current inventory: all 12 Documents services and all 7 Facade
+  services are still `mode: endpoint`, and both packages still start
+  standalone HTTP executors. Classify every operation by execution target:
+  browser-local pure compute, platform-managed server compute, or an explicit
+  remote integration. Move local-eligible operations behind the shared
+  provider/runtime contract; keep nesting solver transport behind a managed
+  server adapter rather than a user-owned endpoint. Preserve identical
+  operation semantics across client and server execution where supported.
 - [ ] Refactor the node catalog and palette around one coherent provider
   contract. Review discovery, grouping, search, filtering, socket/type
   compatibility, operation signatures, labels/descriptions, provenance,
@@ -48,6 +57,10 @@ The graph-output/reference/view picker surfaces were also brought back under
 semantic typography and the locale contract; Documents and Facade service
 inventories now have declaration-to-runtime coverage, and Facade's main
 construct/export/nesting paths have direct service tests.
+
+Execution migration is a prerequisite to calling either plugin review complete:
+the palette must represent the same operation contract that runtime discovery
+and execution actually expose, not a separate list of UI-only commands.
 
 Review order: (1) inventory declarations and actual behavior; (2) trace
 palette/provider discovery and graph execution; (3) validate end-to-end
