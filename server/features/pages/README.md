@@ -15,7 +15,7 @@ One `items` document of type `page` per page or section:
 |---|---|
 | `organizationId` | Owning organization (flexible id). |
 | `fields.name` | String, the Page identifier; may be empty. |
-| `fields.blocks` | Ordered block records: `{ id, kind: 'text', text }`, `{ id, kind: 'view', view }`, or `{ id, kind: 'file', file }`; sections carry an empty list. File blocks point to immutable `files`-bucket blobs by id and keep a safe page-relative path plus revision history. |
+| `fields.blocks` | Ordered block records: `{ id, kind: 'text', text }`, `{ id, kind: 'view', view }`, `{ id, kind: 'reference', ref: { typeId, instanceId, revisionId? } }`, or `{ id, kind: 'file', file }`; sections carry an empty list. File blocks point to immutable `files`-bucket blobs by id and keep a safe page-relative path plus revision history. |
 | `fields.order` | Block ids in document order. |
 | `fields.section` | Boolean; sections are `true`, pages `false`. |
 | `fields.classTypeId` | Optional class binding; a class page is the one page bound to that organization class. |
@@ -81,6 +81,8 @@ Service seam: `listTree`, `getById`, `create`, `update`, `remove`; `retractBaked
 | `GET /api/pages` | The organization's rows in the tree projection, `createdAt` ascending. |
 | `POST /api/pages` | Create (`{ kind?, name?, parentId?, classTypeId?, blocks?, order? }`, org member). |
 | `GET /api/pages/:id` | One full page (`blocks` and `order` included). |
+| `GET /api/pages/:id/references` | Resolve typed reference blocks through the target's authorized read boundary; pinned references require the exact retained revision. |
+| `GET /api/pages/backlinks/:typeId/:instanceId` | Discover derived page backlinks from the owning organization's page documents. |
 | `PATCH /api/pages/:id` | Rename / move / save the block document (`{ name?, parentId?, blocks?, order? }`, any subset); removing file blocks retracts page-owned blobs that no longer have references. |
 | `POST /api/pages/:id/files` | Attach a baked file to this exact page at a validated relative path, with explicit conflict policy (`fail`, `create-revision`, admin-only `replace`, or `create-distinct-name`); GridFS bytes and page document references are updated with a compare-and-swap write. |
 | `DELETE /api/pages/:id` | Delete; children become roots. |
@@ -94,3 +96,10 @@ Service seam: `listTree`, `getById`, `create`, `update`, `remove`; `retractBaked
 ## Baked page files
 
 A file block is a page-owned artifact reference, not a path on the application host. Its logical path is relative to the exact Page id and rejects absolute paths, traversal segments, backslashes, control characters, empty segments, and paths longer than 240 characters. The blob is stored in the organization-scoped `files` bucket with SHA-256 content addressing and provenance metadata (graph identity/revision, execution id, and output id). A path collision must select an explicit policy: fail, append an immutable file revision, replace (organization admin only), or generate a distinct sibling name. Page writes use an `updatedAt` compare-and-swap and the organization's durable change sequence; a race removes the just-uploaded blob and returns 409. Removing a file block or page retracts its page-owned current and historical blobs.
+
+
+## Typed references
+
+A reference block stores only stable type and instance identity plus an optional retained revision id; it never copies target fields into the page. The references endpoint resolves live targets through their ordinary authorized instance read service. Pinned targets first pass the same current-source authorization check, then resolve the exact retained revision and verify that it belongs to the requested source. Missing, deleted, cross-tenant, or inaccessible targets return an explicit unavailable state without exposing target data. A missing pinned revision never falls forward to current content.
+
+Backlinks are derived from reference blocks in the organization's pages. They are rebuildable discovery data, not a second source of truth. The page document remains authoritative for the forward reference.

@@ -1,4 +1,7 @@
 import { createError } from 'h3';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import * as instanceRevisionsService from '../instance-revisions/service.js';
+import { assertRevisionSourceReadable } from '~/server/utils/revision-access.js';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 import { resolveOrganizationId } from '~/server/utils/organization-scope.js';
@@ -138,6 +141,83 @@ export async function update(id, { name, parentId, blocks, order } = {}, auth = 
     await prunePageFiles(page._id, document, organizationId);
   }
   return repository.serializeFull(updated);
+}
+
+function referenceSourceIdentity(reference = {}) {
+  const typeId = String(reference.typeId || '').trim();
+  const instanceId = String(reference.instanceId || '').trim();
+  if (!typeId || !instanceId) throw createError({ statusCode: 400, message: 'Typed reference requires typeId and instanceId' });
+  return { typeId, instanceId };
+}
+
+export async function resolveReferences(pageId, auth = {}) {
+  const organizationId = resolveOrganizationId(auth);
+  await preparePages(organizationId, auth.userId);
+  const page = await requireOwnPage(pageId, organizationId);
+  const document = normalizePageDocument({ blocks: page.fields?.blocks, order: page.fields?.order });
+  const registry = getAppRegistry();
+  const resolved = [];
+  for (const block of document.blocks) {
+    if (block.kind !== 'reference') continue;
+    const { typeId, instanceId } = referenceSourceIdentity(block.ref);
+    const service = registry.getInstanceService(typeId);
+    if (typeof service?.processGetById !== 'function') {
+      resolved.push({ blockId: block.id, status: 'unavailable', reason: 'missing' });
+      continue;
+    }
+    let current;
+    try {
+      current = await service.processGetById(instanceId, auth);
+    } catch (error) {
+      if ([403, 404].includes(Number(error?.statusCode || error?.status))) {
+        resolved.push({ blockId: block.id, status: 'unavailable', reason: 'inaccessible' });
+        continue;
+      }
+      throw error;
+    }
+    if (!current) {
+      resolved.push({ blockId: block.id, status: 'unavailable', reason: 'missing' });
+      continue;
+    }
+    if (!block.ref.revisionId) {
+      resolved.push({ blockId: block.id, status: 'resolved', mode: 'live', typeId, instanceId, instance: current });
+      continue;
+    }
+    try {
+      const revision = await instanceRevisionsService.getById(block.ref.revisionId, auth.userId, auth.role, auth);
+      await assertRevisionSourceReadable(revision, auth);
+      const source = revision?.data?.source || {};
+      if (String(source.type) !== typeId || String(source.id) !== instanceId) {
+        resolved.push({ blockId: block.id, status: 'unavailable', reason: 'revision-source-mismatch' });
+        continue;
+      }
+      resolved.push({ blockId: block.id, status: 'resolved', mode: 'pinned', typeId, instanceId, revisionId: block.ref.revisionId, revision });
+    } catch (error) {
+      if ([403, 404].includes(Number(error?.statusCode || error?.status))) {
+        resolved.push({ blockId: block.id, status: 'unavailable', reason: 'revision-unavailable' });
+        continue;
+      }
+      throw error;
+    }
+  }
+  return resolved;
+}
+
+export async function findBacklinks(typeId, instanceId, auth = {}) {
+  const organizationId = resolveOrganizationId(auth);
+  await preparePages(organizationId, auth.userId);
+  const pages = await repository.findByOrganization(organizationId);
+  const backlinks = [];
+  for (const page of pages) {
+    const document = normalizePageDocument({ blocks: page.fields?.blocks, order: page.fields?.order });
+    for (const block of document.blocks) {
+      if (block.kind !== 'reference') continue;
+      if (block.ref.typeId === String(typeId) && block.ref.instanceId === String(instanceId)) {
+        backlinks.push({ pageId: String(page._id), pageName: String(page.fields?.name || page.name || ''), blockId: block.id, mode: block.ref.revisionId ? 'pinned' : 'live', ...(block.ref.revisionId ? { revisionId: block.ref.revisionId } : {}) });
+      }
+    }
+  }
+  return backlinks;
 }
 
 export async function bakeFile({

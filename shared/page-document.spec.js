@@ -36,6 +36,20 @@ describe('page document', () => {
     }]);
   });
 
+  it('normalizes typed live and pinned references without accepting malformed identities', () => {
+    const document = normalizePageDocument({ blocks: [
+      { id: 'live', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-1' } },
+      { id: 'pinned', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-2', revisionId: 'revision:part:part-2:content:3' } },
+      { id: 'bad-type', kind: 'reference', ref: { typeId: '../files', instanceId: 'x' } },
+      { id: 'bad-id', kind: 'reference', ref: { typeId: 'part', instanceId: '' } }
+    ], order: ['live', 'pinned', 'bad-type', 'bad-id'] });
+    expect(document.order).toEqual(['live', 'pinned']);
+    expect(document.blocks).toEqual([
+      { id: 'live', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-1' } },
+      { id: 'pinned', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-2', revisionId: 'revision:part:part-2:content:3' } }
+    ]);
+  });
+
   it('rejects unsafe, absolute, empty, and overlong logical paths', () => {
     expect(normalizePageFilePath('models/part.glb')).toBe('models/part.glb');
     expect(normalizePageFilePath('../part.glb')).toBe('');

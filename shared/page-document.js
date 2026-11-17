@@ -29,7 +29,7 @@ export function normalizePageFilePath(value) {
 export function normalizePageDocument(document = {}) {
   const source = Array.isArray(document.blocks) ? document.blocks : [];
   const blocks = source
-    .filter(block => block && typeof block === 'object' && (block.kind === 'text' || block.kind === 'view' || block.kind === 'file'))
+    .filter(block => block && typeof block === 'object' && (block.kind === 'text' || block.kind === 'view' || block.kind === 'file' || block.kind === 'reference'))
     .map(block => {
       const id = String(block.id || createBlockId(block.kind === 'view' ? 'v' : block.kind === 'file' ? 'f' : 't'));
       if (block.kind === 'view') {
@@ -46,6 +46,15 @@ export function normalizePageDocument(document = {}) {
             ...(view.sourceId ? { sourceId: String(view.sourceId) } : {})
           }
         };
+      }
+      if (block.kind === 'reference') {
+        const ref = block.ref && typeof block.ref === 'object' ? block.ref : {};
+        const typeId = String(ref.typeId || '').trim();
+        const instanceId = String(ref.instanceId || '').trim();
+        if (!/^[A-Za-z][A-Za-z0-9_.-]{0,127}$/.test(typeId) || !instanceId || instanceId.length > 256) return null;
+        const revisionId = ref.revisionId == null || ref.revisionId === '' ? null : String(ref.revisionId).trim();
+        if (revisionId && revisionId.length > 256) return null;
+        return { id, kind: 'reference', ref: { typeId, instanceId, ...(revisionId ? { revisionId } : {}) } };
       }
       if (block.kind === 'file') {
         const file = fileRefOfBlock(block) || {};
