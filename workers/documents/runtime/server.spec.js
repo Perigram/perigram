@@ -28,6 +28,6 @@ describe('Documents server runtime', () => {
   });
 
   it('rejects unknown operations', () => {
-    expect(() => runtime.execute('render-html', {})).toThrow(/Unsupported Documents server operation/);
+    expect(() => runtime.execute('unknown-operation', {})).toThrow(/Unsupported Documents server operation/);
   });
 });
