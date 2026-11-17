@@ -445,7 +445,6 @@
       {
         "id": "csv-text",
         "label": "CSV text",
-        "mode": "endpoint",
         "group": "table-data",
         "render": {
           "label": "CSV text",
@@ -468,7 +467,16 @@
           }
         },
         "cache": "deterministic",
-        "description": "Serialize row records as CSV text"
+        "description": "Serialize row records as CSV text",
+        "execution": {
+          "runtime": "documents-browser",
+          "kind": "pure",
+          "targets": [
+            "browser"
+          ],
+          "capabilities": [],
+          "idempotent": true
+        }
       },
       {
         "id": "fill",
@@ -810,6 +818,17 @@
         "id": "report",
         "surface": "report-preview",
         "label": "Report"
+      }
+    ],
+    "runtimes": [
+      {
+        "id": "documents-browser",
+        "language": "javascript",
+        "version": "1",
+        "entry": "/runtime/browser.mjs",
+        "targets": [
+          "browser"
+        ]
       }
     ]
   }
