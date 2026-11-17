@@ -48,7 +48,7 @@ export async function beginOrganizationChange(organizationId, { session = null, 
     ? {
         organizationId: String(organizationId),
         sequence: Number(expectedSequence),
-        pendingCount: 0,
+        pendingCount: { $in: [0, null] },
         $or: [{ exclusiveToken: { $exists: false } }, { exclusiveToken: null }]
       }
     : {
