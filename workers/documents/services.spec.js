@@ -94,23 +94,7 @@ describe('documents extraction payload contract', () => {
     expect(text).toBe('hello');
   });
 
-  it('fills a Markdown file produced by the document graph as a real template', async () => {
-    const template = Buffer.from('# {title}\n\nHello {name}.\n');
-    const result = await services.fill({
-      refs: {
-        template: {
-          payloadBase64: template.toString('base64'),
-          payloadMime: 'text/markdown',
-          name: 'welcome-template.md'
-        }
-      },
-      draft: { data: { name: 'welcome', values: { title: 'Welcome', name: 'Ada' } } }
-    });
-    expect(result.payload.mime).toBe('text/markdown');
-    expect(result.payload.name).toBe('welcome.md');
-    expect(Buffer.from(result.payload.base64, 'base64').toString()).toBe('# Welcome\n\nHello Ada.\n');
-    expect(result.meta.tokens).toEqual(['title', 'name']);
-  });
+
 
   it('refuses a payload-less dispatch naming the service', async () => {
     await expect(services['table-rows']({})).rejects.toThrow('requires a payload');

@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, HTML, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "19",
+  "version": "21",
   "requires": [
     "tech-drawing"
   ],
@@ -552,7 +552,6 @@
       {
         "id": "fill",
         "label": "Fill template",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "json"
@@ -563,6 +562,17 @@
         },
         "palette": {
           "visible": false
+        },
+        "execution": {
+          "runtime": "documents-shared",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true,
+          "deterministic": true
         }
       },
       {

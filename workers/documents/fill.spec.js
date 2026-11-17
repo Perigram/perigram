@@ -13,6 +13,9 @@ import {
   renderPdfFromWorkbook
 } from './fill.js';
 import { services } from './services.js';
+import { createRuntime } from './runtime/shared.mjs';
+
+const runtime = createRuntime();
 
 const b64 = value => Buffer.from(value, 'utf8').toString('base64');
 
@@ -181,7 +184,7 @@ describe('pdf template fill', () => {
 
 describe('services dispatch', () => {
   it('fill names the composed file for the operator\'s typed name and returns the template tokens', async () => {
-    const output = await services.fill({
+    const output = await runtime.execute('fill', {
       refs: { template: { name: 'spec.md', payloadMime: 'text/markdown', payloadBase64: b64('# {a}\n{b} and {a}') } },
       draft: { data: { name: 'Out', values: { a: 1 } } }
     });
@@ -192,7 +195,7 @@ describe('services dispatch', () => {
   });
 
   it('fill returns a filled workbook payload named for the template when no name is typed', async () => {
-    const output = await services.fill({
+    const output = await runtime.execute('fill', {
       refs: { template: { name: 'spec.xlsx', payloadMime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', payloadBase64: workbookBuffer([['{x}']]).toString('base64') } },
       draft: { data: { values: { x: 'ok' } } }
     });
@@ -212,12 +215,12 @@ describe('services dispatch', () => {
   });
 
   it('fill refuses an unsupported template kind', async () => {
-    await expect(services.fill({
+    await expect(runtime.execute('fill', {
       refs: { template: { name: 'spec.txt', payloadMime: 'text/plain', payloadBase64: b64('x') } }
     })).rejects.toThrow(/accepts markdown, xlsx, or pdf/);
   });
 
   it('fill refuses a template ref without a payload', async () => {
-    await expect(services.fill({ refs: { template: { name: 'x.md' } } })).rejects.toThrow(/template ref with a payload/);
+    await expect(runtime.execute('fill', { refs: { template: { name: 'x.md' } } })).rejects.toThrow(/template ref with a payload/);
   });
 });

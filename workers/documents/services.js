@@ -10,17 +10,11 @@ import * as XLSX from 'xlsx/xlsx.mjs';
 import {
   DXF_MIME_TYPES,
   XLSX_MIME,
-  fillMarkdown,
-  fillPdfTemplate,
-  fillWorkbook,
-  markdownTemplateTokens,
-  pdfTemplateTokens,
   renderPdfFromCsv,
   renderPdfFromDxf,
   renderPdfFromImage,
   renderPdfFromMarkdown,
   renderPdfFromWorkbook,
-  workbookTemplateTokens
 } from './fill.js';
 import { parseMarkdown, renderReportPdf, renderDocumentPdf } from './report.js';
 
@@ -156,22 +150,6 @@ export const services = {
   // names the composed file; the template's name is the fallback. The
   // template's token keys ride the ephemeral meta channel — the fill
   // dialog's per-token form reads them, records never store them.
-  fill: async (input = {}) => {
-    const template = requireRef(input, 'template', 'fill');
-    const values = input.draft?.data?.values ?? {};
-    const name = draftName(input, template.name);
-    const kind = fileKindOf(input?.refs?.template);
-    if (kind === 'markdown') {
-      return { ...toPayload(fillMarkdown(template.text(), values), 'text/markdown', `${name}.md`), meta: { tokens: markdownTemplateTokens(template.text()) } };
-    }
-    if (kind === 'workbook') {
-      return { ...toPayload(fillWorkbook(template.buffer, values), XLSX_MIME, `${name}.xlsx`), meta: { tokens: workbookTemplateTokens(template.buffer) } };
-    }
-    if (kind === 'pdf') {
-      return { ...toPayload(await fillPdfTemplate(template.buffer, values), 'application/pdf', `${name}.pdf`), meta: { tokens: await pdfTemplateTokens(template.buffer) } };
-    }
-    badRequest('fill accepts markdown, xlsx, or pdf templates');
-  },
   // PDF rendering from other file types (SPEC §24): the source ref in,
   // a rendered PDF payload out.
   'render-pdf': async (input = {}) => {

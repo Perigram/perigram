@@ -17,11 +17,11 @@ the plugin's surface modules, and types ride the generic instance machinery.
   text-document starter construct (markdown stays visible-by-default
   through the default installs). `requires` names tech-drawing: the
   PDF render construction accepts `dxf-source` sources.
-- Services (`services.js`): pure CSV and document IR operations execute
-  through `/runtime/shared.mjs` on both browser and server. Payload projections,
-  Markdown parsing, template filling, and binary PDF generation remain
-  endpoint handlers; projection helpers are synchronous provider dispatches,
-  not palette items. The declared projections are the graph read nodes:
+- Services (`services.js`): CSV serialization, Markdown/XLSX template fills, and document IR operations
+  execute through `/runtime/shared.mjs` on both browser and server. Payload
+  projections, Markdown parsing, and binary PDF generation remain endpoint
+  handlers; projection helpers are synchronous provider dispatches, not
+  palette items. The declared projections are the graph read nodes:
   `table-rows`/`table-cells` (payload → header-keyed / positional row
   records), `text` (payload → string), and `csv-text` (rows → CSV text).
   The extraction trio takes one `payload` field declared `blob`: composed

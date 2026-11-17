@@ -22,6 +22,7 @@ describe('Documents shared runtime', () => {
     const report = { type: 'document.report', schemaVersion: 1, sections: [{ blocks: [{ type: 'flow', document }] }] };
     const cases = [
       ['csv-text', { rows: [{ value: '1' }] }],
+      ['fill', { refs: { template: { name: 'brief.md', payloadMime: 'text/markdown', payloadBase64: 'SGVsbG8ge3RpdGxlfQ==' } }, draft: { data: { values: { title: 'world' } } } }],
       ['export-markdown', { document }],
       ['compose-report', { rows: [{ value: '1' }] }],
       ['extract-table', { document }],
