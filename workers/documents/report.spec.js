@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { composeReport, exportMarkdown, extractTable, parseMarkdown, renderReportHtml, renderReportPdf } from './report.js';
 import { services } from './services.js';
+import { createRuntime } from './runtime/server.mjs';
 import { checkSurfaceModule } from '@perigram/plugin-sdk/surface-check';
 import createReportSurface, { reportsOf } from './surfaces/report-preview.mjs';
 
@@ -27,6 +28,7 @@ const SOURCE = [
 ].join('\n');
 
 describe('markdown ↔ flow-document', () => {
+  const runtime = createRuntime();
   it('parses the supported vocabulary into typed blocks', () => {
     const document = parseMarkdown(SOURCE);
     expect(document.type).toBe('text.flow-document');
@@ -103,17 +105,18 @@ describe('report composition', () => {
     expect(() => composeReport({})).toThrow('flow document or row records');
   });
 
-  it('serves the vertical through the services map', async () => {
+  it('composes and exports the report through the managed runtime', async () => {
     const document = await services['parse-markdown']({ text: '# Title' });
     expect(document.blocks[0].type).toBe('heading');
-    const text = await services['export-markdown']({ document });
+    const text = await runtime.execute('export-markdown', { document });
     expect(text).toBe('# Title\n');
-    const report = await services['compose-report']({ flow: document, rows: [{ x: 1 }] });
+    const report = await runtime.execute('compose-report', { flow: document, rows: [{ x: 1 }] });
     expect(report.type).toBe('document.report');
   });
 });
 
 describe('report export representations', () => {
+  const runtime = createRuntime();
   const report = composeReport({
     title: 'Materials <Q3>',
     sectionTitle: 'Takeoff',
@@ -149,10 +152,10 @@ describe('report export representations', () => {
     expect(bytes.length).toBeGreaterThan(500);
   });
 
-  it('serves the representations through the services map', async () => {
+  it('serves the report representations through the managed runtime', async () => {
     const flow = parseMarkdown('| k | v |\n| --- | --- |\n| x | 1 |');
-    expect(await services['extract-table']({ document: flow })).toEqual([{ k: 'x', v: '1' }]);
-    const html = await services['render-html']({ report });
+    expect(await runtime.execute('extract-table', { document: flow })).toEqual([{ k: 'x', v: '1' }]);
+    const html = await runtime.execute('render-html', { report });
     expect(html).toContain('<!doctype html>');
   });
 });
