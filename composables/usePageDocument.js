@@ -143,6 +143,17 @@ export function usePageDocumentSession({ docId, tabKey }) {
     insertBlock({ id: createBlockId('v'), kind: 'view', view }, at);
   }
 
+  function insertReference(ref = {}) {
+    const typeId = String(ref.typeId || '').trim();
+    const instanceId = String(ref.instanceId || '').trim();
+    if (!typeId || !instanceId) return null;
+    const revisionId = ref.revisionId ? String(ref.revisionId) : '';
+    const block = { id: createBlockId('r'), kind: 'reference', ref: { typeId, instanceId, ...(revisionId ? { revisionId } : {}) } };
+    const last = draftOrder.value[draftOrder.value.length - 1];
+    const at = isEmptyText(blockById.value.get(last)) ? draftOrder.value.length - 1 : draftOrder.value.length;
+    return insertBlock(block, at);
+  }
+
   function removeBlock(blockId) {
     draftBlocks.value = draftBlocks.value.filter(block => block.id !== blockId);
     draftOrder.value = draftOrder.value.filter(key => key !== blockId);
@@ -258,6 +269,7 @@ export function usePageDocumentSession({ docId, tabKey }) {
     openViewPickerAfter,
     openViewPickerAtEnd,
     pickView,
+    insertReference,
     closeViewPicker: () => { viewPickerAt.value = null; },
     moveCaret,
     removeBlock,
