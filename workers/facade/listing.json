@@ -673,7 +673,16 @@
           }
         },
         "group": "production-export",
-        "description": "Generate a production-layer DXF from a sheet design"
+        "description": "Generate a production-layer DXF from a sheet design",
+        "execution": {
+          "runtime": "facade-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true
+        }
       },
       {
         "id": "construct-sheet",

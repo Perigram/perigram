@@ -18,8 +18,8 @@ providers.
   and every declared construction/service. Verify each workflow and close
   behavior/spec gaps.
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
-  hosting. Current inventory: all 12 Documents services and 3 of 7 Facade services remain
-  `mode: endpoint`; Facade `nesting-solve`, `match-sheet`, `nesting-parts`, and `construct-sheet` now run in the managed server
+  hosting. Current inventory: all 12 Documents services and 2 of 7 Facade services remain
+  `mode: endpoint`; Facade `nesting-solve`, `match-sheet`, `nesting-parts`, `construct-sheet`, and `generate-sheet-dxf` now run in the managed server
   runtime through the platform-owned `facade.nesting.solve` capability, and both packages start standalone
   HTTP executors. Classify each operation by execution target: browser-local
   pure compute, platform-managed server compute, or explicit remote

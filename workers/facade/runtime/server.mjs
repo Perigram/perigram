@@ -1,4 +1,6 @@
 import { nestingResultToPreview, sheetDesignParts } from '../surfaces/lib/sheetLayout.js';
+import { generateLayeredDxf } from '../vendor/dxf-writer.js';
+import { occsLayerExportName, occsLayerStandard } from '../occs/layerStandards.js';
 import {
   buildValueWorkerRequest,
   enrichNestingResult,
@@ -20,6 +22,46 @@ function sheetPolygonBounds(polygon) {
   const xs = outer.map(point => Number(point?.[0]) || 0);
   const ys = outer.map(point => Number(point?.[1]) || 0);
   return { width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
+}
+
+function base64OfUtf8(value) {
+  const bytes = new TextEncoder().encode(String(value));
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function generateSheetDxf({ fields, refs = {}, draft = {} } = {}) {
+  const sheetFields = refs?.sheet?.fields || fields || {};
+  const sheetName = refs?.sheet?.name || sheetFields.name || draft?.data?.name || null;
+  const toExportLayer = layer => (layer && occsLayerStandard(layer) ? occsLayerExportName(layer) : layer);
+  const dxf = generateLayeredDxf({
+    layers: (sheetFields.geometry?.preview?.layers || []).map(layer => {
+      const code = layer?.standardCode || layer?.name;
+      return occsLayerStandard(code) ? { ...layer, name: occsLayerExportName(code) } : layer;
+    }),
+    layerData: (sheetFields.geometry?.data?.layerData || []).map(item => ({
+      ...item,
+      layer: toExportLayer(item.layer || item.standardCode || item.name)
+    })),
+    polygonParts: sheetFields.geometry?.data?.polygonParts || []
+  });
+  if (!dxf) {
+    const error = new Error('Sheet design has no exportable geometry');
+    error.status = 404;
+    error.statusCode = 404;
+    throw error;
+  }
+  return {
+    payload: {
+      base64: base64OfUtf8(dxf),
+      mime: 'application/dxf',
+      ...(sheetName ? { name: `${sheetName}.dxf` } : {})
+    }
+  };
 }
 
 function constructSheet({ refs = {}, draft = {} } = {}) {
@@ -99,6 +141,7 @@ export function createRuntime() {
       if (operationId === 'match-sheet') return matchSheet(input);
       if (operationId === 'nesting-parts') return nestingParts(input);
       if (operationId === 'construct-sheet') return constructSheet(input);
+      if (operationId === 'generate-sheet-dxf') return generateSheetDxf(input);
       if (operationId !== 'nesting-solve') {
         throw new Error(`Unsupported Facade managed operation: ${operationId}`);
       }

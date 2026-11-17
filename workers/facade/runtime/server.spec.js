@@ -74,6 +74,18 @@ describe('Facade managed server runtime', () => {
     expect(result.relations.parts).toEqual([{ type: 'cassette-design', id: 'design-1', revision: '7' }]);
   });
 
+  it('exports the sheet drawing as a base64 DXF payload in the managed runtime', async () => {
+    const runtime = createRuntime();
+    const result = await runtime.execute('generate-sheet-dxf', {
+      fields: { name: 'Panel', geometry: { data: {
+        polygonParts: [{ layer: 'cut.outer', coordinates: [[0, 0], [100, 0], [100, 100], [0, 100], [0, 0]] }]
+      } } }
+    });
+    expect(result.payload.mime).toBe('application/dxf');
+    expect(result.payload.name).toBe('Panel.dxf');
+    expect(atob(result.payload.base64)).toContain('SECTION');
+  });
+
   it('refuses operations outside the managed runtime declaration', async () => {
     const runtime = createRuntime();
     await expect(runtime.execute('bake', {}, { capabilities: { call: vi.fn() } }))
