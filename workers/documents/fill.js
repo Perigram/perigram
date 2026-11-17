@@ -6,6 +6,8 @@ import fontkit from '@pdf-lib/fontkit';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { marked } from 'marked';
+import { substitute, fillMarkdown } from './template-ir.mjs';
+export { substitute, fillMarkdown };
 
 const TOKEN = /\{([A-Za-z_][A-Za-z0-9_.-]*)\}/g;
 const SECTION_OPEN = /^\{#([A-Za-z_][A-Za-z0-9_.-]*)\}$/;
@@ -18,12 +20,6 @@ function badRequest(message) {
   const error = new Error(message);
   error.status = 400;
   throw error;
-}
-
-export function substitute(text, scope = {}) {
-  return String(text ?? '').replace(TOKEN, (raw, key) => (
-    scope[key] === undefined || scope[key] === null ? raw : String(scope[key])
-  ));
 }
 
 // The template's token keys (SPEC §24): the fill dialog's per-token value
@@ -54,10 +50,6 @@ export function workbookTemplateTokens(buffer) {
 export async function pdfTemplateTokens(buffer) {
   const pages = await pdfTextRuns(buffer);
   return tokenKeysOf(...pages.flatMap(runs => runs.map(run => run.text)));
-}
-
-export function fillMarkdown(templateText, values = {}) {
-  return substitute(String(templateText ?? ''), values);
 }
 
 // ---------------------------------------------------------------------------

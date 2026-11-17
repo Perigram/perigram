@@ -7902,3 +7902,9 @@ Progress (2026-11-17): Markdown parsing was extracted into the dependency-light
 adapter re-exports the parser for existing consumers. Runtime and report
 regressions cover typed parsing and the existing Markdown vocabulary. Test
 execution and installed-organization upgrade verification remain open.
+
+Progress (2026-11-17): Added `fill-markdown-template` as a pure, listing-derived
+Documents graph operation in the shared browser/server runtime. It returns a
+real Markdown file payload; template text can come from the authorized
+`read-text-file` operation and values remain explicit graph inputs. XLSX/PDF
+template engines are still endpoint-backed. CI verification is pending.

@@ -27,6 +27,7 @@ describe('Documents shared runtime', () => {
     const cases = [
       ['csv-text', { rows: [{ value: '1' }] }],
       ['parse-markdown', { text: '# Hello\n\nA **formatted** paragraph.' }],
+      ['fill-markdown-template', { templateText: '# {title}\n\nHello {name}', values: { title: 'Report', name: 'Ada' } }],
       ['read-text-file', { payload: { base64: btoa('Hello'), mime: 'text/plain' } }],
       ['read-table-rows', { payload: { base64: btoa('sku,qty\nA-1,2\n'), mime: 'text/csv' } }],
       ['read-table-cells', { payload: { base64: btoa('sku,qty\nA-1,2\n'), mime: 'text/csv' } }],
@@ -122,6 +123,17 @@ describe('Documents shared runtime', () => {
     expect(block).toEqual({
       value: { type: 'paragraph', children: [{ type: 'text', text: 'From graph' }] }
     });
+  });
+
+  it('fills Markdown templates and returns a real Markdown file payload', () => {
+    const result = runtime.execute('fill-markdown-template', {
+      templateText: '# {title}\n\nHello {name}; missing {missing}',
+      values: { title: 'Report', name: 'Ada' },
+      name: 'welcome-report'
+    });
+    expect(result.payload.mime).toBe('text/markdown');
+    expect(result.payload.name).toBe('welcome-report.md');
+    expect(atob(result.payload.base64)).toBe('# Report\n\nHello Ada; missing {missing}');
   });
 
   it('parses Markdown into typed flow-document values in the shared runtime', () => {
