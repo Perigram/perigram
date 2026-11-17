@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bake, extractGeometry, nestingParts, nestingSheetCount, services } from './services.js';
+import { bake, constructSheet, extractGeometry, generateSheetDxf, matchSheet, nestingParts, nestingSheetCount, nestingSolve, services } from './services.js';
 import listing from './listing.json';
 import { createDefaultOccsCassetteTemplateDefinition } from './occs/templates.js';
 import { generateLayeredDxf } from './vendor/dxf-writer.js';
@@ -26,6 +26,57 @@ describe('facade listing/runtime inventory', () => {
         expect(serviceIds.has(String(serviceId).replace('plugin.facade.', ''))).toBe(true);
       }
     }
+  });
+});
+
+describe('facade graph service behavior', () => {
+  it('matches a sheet only by its exact composition key', () => {
+    const sheet = { _id: 'sheet-1', fields: { compositionKey: 'composition-a' } };
+    expect(matchSheet({ layoutKey: 'composition-a', sheets: [sheet] })).toEqual({ found: true, design: sheet });
+    expect(matchSheet({ layoutKey: 'composition-b', sheets: [sheet] })).toEqual({ found: false, design: null });
+    expect(matchSheet({ layoutKey: '', sheets: [sheet] })).toEqual({ found: false, design: null });
+  });
+
+  it('constructs a sheet with pinned design relations from a solved layout', async () => {
+    const result = await constructSheet({
+      refs: { designs: [{ id: 'design-1', revision: '7' }] },
+      draft: { data: { layout: {
+        compositionKey: 'composition-a',
+        sourceItems: [{ id: 'item-1', design_id: 'design-1' }],
+        placed_items: [{ item_id: 'item-1', x: 10, y: 20 }],
+        sheetPolygon: { outer: [[0, 0], [100, 0], [100, 200], [0, 200]] }
+      } } }
+    });
+    expect(result.data.compositionKey).toBe('composition-a');
+    expect(result.data.geometry.data.items).toHaveLength(1);
+    expect(result.data.geometry.data.sheetPolygon.outer).toHaveLength(4);
+    expect(result.relations.parts).toHaveLength(1);
+    expect(result.relations.parts[0]).toMatchObject({ type: 'cassette-design', id: 'design-1', revision: '7' });
+  });
+
+  it('refuses to construct placements without their source design references', async () => {
+    await expect(constructSheet({
+      draft: { data: { layout: {
+        sourceItems: [{ id: 'item-1' }],
+        placed_items: [{ item_id: 'item-1' }]
+      } } }
+    })).rejects.toThrow(/cassette-design behind every placement/);
+  });
+
+  it('exports a sheet drawing as an application/dxf payload', async () => {
+    const result = await generateSheetDxf({
+      fields: { name: 'Panel', geometry: { data: {
+        polygonParts: [{ layer: 'cut.outer', coordinates: SQUARE }]
+      } } }
+    });
+    expect(result.payload.mime).toBe('application/dxf');
+    expect(result.payload.name).toBe('Panel.dxf');
+    expect(Buffer.from(result.payload.base64, 'base64').toString('utf8')).toContain('SECTION');
+  });
+
+  it('rejects invalid nesting inputs before contacting the external solver', async () => {
+    await expect(nestingSolve({ items: [], sheetWidth: 100, sheetHeight: 100 })).rejects.toThrow(/no parts to place/);
+    await expect(nestingSolve({ items: [{ id: 'part-1' }], sheetWidth: 0, sheetHeight: 100 })).rejects.toThrow(/positive width/);
   });
 });
 
