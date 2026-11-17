@@ -190,7 +190,7 @@ describe('pages', () => {
     ], order: ['pinned'] }, memberOf(ORG_A));
     getRevisionById.mockRejectedValueOnce(Object.assign(new Error('not found'), { statusCode: 404 }));
     const result = await pagesService.resolveReferences(page._id, memberOf(ORG_A));
-    expect(result).toEqual([{ blockId: 'pinned', status: 'unavailable', reason: 'revision-unavailable' }]);
+    expect(result).toEqual([{ blockId: 'pinned', status: 'unavailable' }]);
   });
 
   it('derives backlinks from page reference blocks, including pinned references', async () => {

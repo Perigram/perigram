@@ -2,7 +2,7 @@
   <div class="my-2 rounded-lg border border-surface p-3">
     <div v-if="!result" class="text-sm text-muted">Loading reference…</div>
     <div v-else-if="result.status !== 'resolved'" class="text-sm text-muted">
-      Referenced item is {{ result.reason === 'missing' ? 'missing' : 'unavailable' }}
+      Referenced item is unavailable
     </div>
     <template v-else>
       <div class="mb-2 flex items-center gap-2">

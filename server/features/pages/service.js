@@ -162,7 +162,7 @@ export async function resolveReferences(pageId, auth = {}) {
     const { typeId, instanceId } = referenceSourceIdentity(block.ref);
     const service = registry.getInstanceService(typeId);
     if (typeof service?.processGetById !== 'function') {
-      resolved.push({ blockId: block.id, status: 'unavailable', reason: 'missing' });
+      resolved.push({ blockId: block.id, status: 'unavailable' });
       continue;
     }
     let current;
@@ -170,7 +170,7 @@ export async function resolveReferences(pageId, auth = {}) {
       current = await service.processGetById(instanceId, auth);
     } catch (error) {
       if ([403, 404].includes(Number(error?.statusCode || error?.status))) {
-        resolved.push({ blockId: block.id, status: 'unavailable', reason: 'inaccessible' });
+        resolved.push({ blockId: block.id, status: 'unavailable' });
         continue;
       }
       throw error;
@@ -188,13 +188,13 @@ export async function resolveReferences(pageId, auth = {}) {
       await assertRevisionSourceReadable(revision, auth);
       const source = revision?.data?.source || {};
       if (String(source.type) !== typeId || String(source.id) !== instanceId) {
-        resolved.push({ blockId: block.id, status: 'unavailable', reason: 'revision-source-mismatch' });
+        resolved.push({ blockId: block.id, status: 'unavailable' });
         continue;
       }
       resolved.push({ blockId: block.id, status: 'resolved', mode: 'pinned', typeId, instanceId, revisionId: block.ref.revisionId, revision });
     } catch (error) {
       if ([403, 404].includes(Number(error?.statusCode || error?.status))) {
-        resolved.push({ blockId: block.id, status: 'unavailable', reason: 'revision-unavailable' });
+        resolved.push({ blockId: block.id, status: 'unavailable' });
         continue;
       }
       throw error;
