@@ -53,6 +53,8 @@ Worker-specific payloads and IO live in worker processes or feature adapters.
 | non-terminal | `cancelTaskRun` | cancelled |
 | failed / retryWait | `retryTaskRun` | queued |
 
+When no static task definitions are registered, claim updates use the default `RUNNING` status.
+
 Status names come from the task definition's six `status` entries
 (`queued`, `running`, `retryWait`, `succeeded`, `failed`, `cancelled`);
 the runtime defaults to the uppercase spelling. The terminal kinds are
