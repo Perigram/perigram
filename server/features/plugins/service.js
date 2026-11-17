@@ -583,7 +583,8 @@ function legacyExecutorOrigin(install) {
 }
 
 function endpointUrlFor(install, service) {
-  return install.executorOrigin || legacyExecutorOrigin(install);
+  return install.executorOrigin || legacyExecutorOrigin(install)
+    || ((install.platformManaged === true || install.builtin === true) ? builtinExecutorOrigin(install.pluginId) : null);
 }
 
 export async function settingsFor({ organizationId, pluginId, auth = {} }) {
@@ -593,7 +594,7 @@ export async function settingsFor({ organizationId, pluginId, auth = {} }) {
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
   const packageOwned = Number(install.packageAssets?.count) > 0 || Boolean(install.declarations?.engine) || Boolean(install.declarations?.runtimes?.length);
   const endpointServices = (install.services || []).filter(service => serviceModeOf(service) === 'endpoint');
-  const inferredOrigin = install.executorOrigin || legacyExecutorOrigin(install);
+  const inferredOrigin = endpointUrlFor(install, endpointServices[0]);
   return {
     pluginId: install.pluginId,
     platformManaged: install.platformManaged === true || install.builtin === true,

@@ -1158,6 +1158,32 @@ describe('endpoint-mode services', () => {
     expect(repository.updateSettings).not.toHaveBeenCalled();
   });
 
+  it('resolves a platform-managed executor origin for existing installs missing the persisted value', async () => {
+    vi.stubEnv('DOCUMENTS_EXECUTOR_URL', 'http://documents-executor:8791');
+    const documentsInstall = {
+      ...endpointInstall,
+      pluginId: 'documents',
+      platformManaged: true,
+      executorOrigin: null,
+      services: [{ id: 'parse-markdown', label: 'Parse markdown', mode: 'endpoint', signature: { input: { base: 'record' }, output: { base: 'json' } } }]
+    };
+    repository.findInstall.mockResolvedValue(documentsInstall);
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ type: 'text.flow-document', blocks: [] }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const result = await invokeEndpointValueService('plugin.documents.parse-markdown', { text: '# Hello' }, AUTH);
+      expect(result.type).toBe('text.flow-document');
+      expect(fetchMock).toHaveBeenCalledWith('http://documents-executor:8791', expect.objectContaining({
+        body: JSON.stringify({ operationId: 'parse-markdown', input: { text: '# Hello' } })
+      }));
+      const settings = await settingsFor({ organizationId: ORG, pluginId: 'documents', auth: AUTH });
+      expect(settings.executorOrigin).toBe('http://documents-executor:8791');
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('calls the configured endpoint with the service input and API key', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ shade: 'matte' }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
