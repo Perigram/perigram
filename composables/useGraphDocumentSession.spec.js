@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { useGraphDocumentSession } from './useGraphDocumentSession.js';
+import { createRuntime as createDocumentsRuntime } from '../workers/documents/runtime/shared.mjs';
 
 function createSession() {
   return useGraphDocumentSession({ t: key => key });
@@ -104,6 +105,59 @@ describe('useGraphDocumentSession', () => {
     expect(result.outputs).toEqual({ [session.graphDocument.value.interface.outputs[0].id]: 18 });
     expect(session.executionRecord.value).toMatchObject({ profile: 'procedural-preview', status: 'succeeded', graph: { id: session.graphDocument.value.id } });
     expect(session.executionRecord.value.provenance.nodes.some(item => item.operation?.provider === 'plugin.example')).toBe(true);
+  });
+
+  it('composes and exports a Documents flow through listing-derived unified graph nodes', async () => {
+    const runtime = createDocumentsRuntime();
+    const contribution = runtime.providers[0];
+    const session = useGraphDocumentSession({
+      t: key => key,
+      providers: [{
+        ...contribution,
+        execute: (definition, invocation) => runtime.execute(definition.id, invocation)
+      }]
+    });
+    const core = session.paletteGroups.value[0].items;
+    const input = session.addNode(core[0], { x: 0, y: 0 });
+    const outputDocument = session.addNode(core[1], { x: 900, y: 0 });
+    const inputPort = session.graphDocument.value.interface.inputs[0].id;
+    const outputDocumentPort = session.graphDocument.value.interface.outputs[0].id;
+    session.updateBoundaryDeclaration(input.id, {
+      contract: { shape: 'item', semantic: { base: 'string' } },
+      required: true
+    });
+    session.updateBoundaryDeclaration(outputDocument.id, {
+      contract: { shape: 'item', semantic: { base: 'json', kind: 'text.flow-document' } },
+      required: true
+    });
+
+    const items = session.paletteGroups.value.flatMap(group => group.items);
+    const paragraph = session.addNode(items.find(item => item.operation?.id === 'document-paragraph'), { x: 220, y: 0 });
+    const compose = session.addNode(items.find(item => item.operation?.id === 'compose-document'), { x: 460, y: 0 });
+    const exportFile = session.addNode(items.find(item => item.operation?.id === 'export-markdown-file'), { x: 680, y: 220 });
+    const outputFile = session.addNode(core[1], { x: 900, y: 220 });
+    session.updateBoundaryDeclaration(outputFile.id, {
+      contract: { shape: 'item', semantic: { base: 'json', kind: 'documents.file' } },
+      required: true
+    });
+
+    session.onConnect({ source: input.id, sourceHandle: 'value', target: paragraph.id, targetHandle: 'text' });
+    session.onConnect({ source: paragraph.id, sourceHandle: 'value', target: compose.id, targetHandle: 'blocks' });
+    session.onConnect({ source: compose.id, sourceHandle: 'value', target: outputDocument.id, targetHandle: 'value' });
+    session.onConnect({ source: compose.id, sourceHandle: 'value', target: exportFile.id, targetHandle: 'document' });
+    session.onConnect({ source: exportFile.id, sourceHandle: 'value', target: outputFile.id, targetHandle: 'value' });
+    session.setGraphInputBinding({ portId: inputPort, value: 'Documents graph is live' });
+
+    expect(session.edges.value).toHaveLength(5);
+    const result = await session.refreshPreview();
+    expect(result.outputs[outputDocumentPort]).toMatchObject({
+      type: 'text.flow-document',
+      blocks: [{ type: 'paragraph', children: [{ type: 'text', text: 'Documents graph is live' }] }]
+    });
+    const file = result.outputs[session.graphDocument.value.interface.outputs.find(port => port.id !== outputDocumentPort).id];
+    expect(file.payload.mime).toBe('text/markdown');
+    expect(Buffer.from(file.payload.base64, 'base64').toString()).toContain('Documents graph is live');
+    expect(session.previewError.value).toBe('');
   });
 
   it('uses one execution identity and finalizes plugin runtimes after a preview', async () => {
