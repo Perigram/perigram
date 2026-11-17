@@ -12,8 +12,8 @@ describe('process designer palette search', () => {
   };
 
   it('searches visible copy, stable operation identity, provider, group, and aliases', () => {
-    for (const query of ['compose report', 'cts.service', 'document.compose', 'plugin.documents', 'document-compose', 'markdown']) {
-      expect(matchesPaletteSearch(item, query, 'document-compose')).toBe(true);
+    for (const query of ['compose report', 'cts.service', 'document.compose', 'plugin.documents', 'document-compose', 'Document authoring', 'markdown']) {
+      expect(matchesPaletteSearch(item, query, 'document-compose', 'Document authoring')).toBe(true);
     }
   });
 

@@ -117,7 +117,7 @@ const sections = computed(() => {
       .map(group => ({
         id: group.id,
         label: group.label,
-        items: group.items.filter(item => matchesPaletteSearch(item, needle, group.id))
+        items: group.items.filter(item => matchesPaletteSearch(item, needle, group.id, group.label))
       }))
       .filter(group => group.items.length);
   }

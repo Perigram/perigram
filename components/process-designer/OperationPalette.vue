@@ -74,7 +74,7 @@ const filteredGroups = computed(() => {
     .map(group => ({
       ...group,
       items: needle
-        ? group.items.filter(item => matchesPaletteSearch(item, needle, group.id))
+        ? group.items.filter(item => matchesPaletteSearch(item, needle, group.id, group.label))
         : group.items
     }))
     .filter(group => group.items.length);
