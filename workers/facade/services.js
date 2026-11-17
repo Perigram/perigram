@@ -16,6 +16,8 @@ import {
 } from './nesting-projections.js';
 import { nestingResultToPreview, sheetDesignParts } from './surfaces/lib/sheetLayout.js';
 
+export { normalizeNestingItems, nestingSheetCount };
+
 function badRequest(message) {
   const error = new Error(message);
   error.status = 400;
