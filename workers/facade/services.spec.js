@@ -154,6 +154,13 @@ describe('nesting sheet stock', () => {
     expect(item.geometry).toEqual({ area: 12 });
   });
 
+  it('rejects a total sheet count beyond the safe integer range', () => {
+    expect(() => nestingSheetCount([
+      { count: Number.MAX_SAFE_INTEGER },
+      { count: 1 }
+    ])).toThrow(/safe integer limit/);
+  });
+
   it('uses the item count as the worst-case sheet stock', () => {
     expect(nestingSheetCount([{ count: 2 }, { count: 1 }, {}, { count: '3' }])).toBe(7);
   });

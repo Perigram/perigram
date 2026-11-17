@@ -125,9 +125,13 @@ export async function bake({ refs = {}, draft = {} } = {}) {
 // and summarizes. Sheet stock is the worst-case count (one part per
 // sheet); the solver uses only the sheets it needs.
 export function nestingSheetCount(items = []) {
-  return Math.max(1, items.reduce((total, item) => (
-    total + Math.max(1, Math.trunc(Number(item?.count) || 1))
-  ), 0));
+  const total = items.reduce((sum, item) => (
+    sum + Math.max(1, Math.trunc(Number(item?.count) || 1))
+  ), 0);
+  if (!Number.isSafeInteger(total)) {
+    badRequest('Nesting sheet count exceeds the safe integer limit');
+  }
+  return Math.max(1, total);
 }
 
 export function normalizeNestingItems(items) {
