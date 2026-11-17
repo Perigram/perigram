@@ -30,6 +30,7 @@ export async function evaluateProceduralGraph({
   if (typeof executeNode !== 'function') throw new Error('executeNode callback is required');
   const readSetRecorder = createGraphReadSetRecorder(context?.readSetBoundary || {});
   const executionId = executionIdFor(context);
+  let primaryError = null;
   try {
     return await evaluateGraph({
       source,
@@ -44,6 +45,7 @@ export async function evaluateProceduralGraph({
     });
   } catch (error) {
     const failure = asError(error);
+    primaryError = failure;
     if (!Array.isArray(failure.diagnostics)) {
       failure.diagnostics = [{
         code: typeof failure.code === 'string' ? failure.code : 'graph-evaluation-failed',
@@ -57,6 +59,18 @@ export async function evaluateProceduralGraph({
     }
     failure.readSet = readSetRecorder.toJSON();
     throw failure;
+  } finally {
+    if (typeof context?.finalizeExecution === 'function') {
+      try {
+        await context.finalizeExecution(executionId);
+      } catch (cleanupError) {
+        if (primaryError) {
+          primaryError.cleanupError = cleanupError?.message || String(cleanupError);
+        } else {
+          throw cleanupError;
+        }
+      }
+    }
   }
 }
 
