@@ -3514,7 +3514,6 @@
     "pinGraphRevision": "Pin selected revision",
     "graphPinned": "Graph revision pinned",
     "graphUnavailable": "Graph could not be loaded",
-    "graphOutput": "Graph output",
     "referenceButton": "Reference",
     "loadingCollectionOutput": "Loading collection…",
     "collectionOutputUnavailable": "Collection output is unavailable",

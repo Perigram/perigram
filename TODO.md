@@ -44,6 +44,10 @@ stable semantic palette group, optional group label, and normalized search
 keywords. Graph palette grouping uses that declaration rather than parsing
 operation ids, and search indexes provider id, operation id, group, and
 keywords. Existing providers retain the id-prefix fallback until migrated.
+The graph-output/reference/view picker surfaces were also brought back under
+semantic typography and the locale contract; Documents and Facade service
+inventories now have declaration-to-runtime coverage, and Facade's main
+construct/export/nesting paths have direct service tests.
 
 Review order: (1) inventory declarations and actual behavior; (2) trace
 palette/provider discovery and graph execution; (3) validate end-to-end

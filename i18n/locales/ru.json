@@ -3466,7 +3466,6 @@
     "startOnEvent": "Запуск по событию",
     "graphBoundaries": "Границы графа",
     "graphInput": "Вход графа",
-    "graphOutput": "Выход графа",
     "graphInputDescription": "Опубликовать значение как вход графа",
     "graphOutputDescription": "Опубликовать значение как выход графа",
     "graphSources": "Источники",
