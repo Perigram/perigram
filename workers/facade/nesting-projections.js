@@ -13,11 +13,9 @@ export function normalizeNestingItems(items) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) {
       nestingError(`Item ${index} is not a part`);
     }
-    const authoredCount = Number(item.count);
-    const count = item.count == null || item.count === ''
-      ? 1
-      : authoredCount;
-    if (typeof item.count === 'boolean' || !Number.isSafeInteger(count) || count < 1) {
+    const authored = item.count == null || item.count === '' ? item.quantity : item.count;
+    const count = authored == null || authored === '' ? 1 : Number(authored);
+    if (typeof authored === 'boolean' || !Number.isSafeInteger(count) || count < 1) {
       nestingError(`Item ${index} count must be a positive safe integer`);
     }
     return { ...item, count };
@@ -25,9 +23,8 @@ export function normalizeNestingItems(items) {
 }
 
 export function nestingSheetCount(items = []) {
-  const total = items.reduce((sum, item) => (
-    sum + Math.max(1, Math.trunc(Number(item?.count) || 1))
-  ), 0);
+  const normalized = Array.isArray(items) && items.length ? normalizeNestingItems(items) : [];
+  const total = normalized.reduce((sum, item) => sum + item.count, 0);
   if (!Number.isSafeInteger(total)) nestingError('Nesting sheet count exceeds the safe integer limit');
   return Math.max(1, total);
 }
@@ -45,7 +42,7 @@ export function stableSheetName(layout = null, draft = {}) {
 }
 
 export function buildValueWorkerRequest(jobFiles, params = {}) {
-  const items = buildNestingItems(jobFiles);
+  const items = buildNestingItems(normalizeNestingItems(jobFiles));
   if (!items.length) throw nestingError('No nestable cassette-design geometry found');
   return {
     items,
