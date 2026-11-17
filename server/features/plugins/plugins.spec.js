@@ -236,6 +236,9 @@ describe('plugin installs', () => {
     });
     const settings = await settingsFor({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
     expect(settings.services).toEqual([expect.objectContaining({ id: 'transform', mode: 'managed' })]);
+    expect(settings.hasEndpointServices).toBe(false);
+    expect(settings.authToken).toBeNull();
+    expect(settings.executorOrigin).toBe('');
     expect(settings.surfaces).toBe(false);
     expect(settings.surfaceOrigin).toBeNull();
   });

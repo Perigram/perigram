@@ -51,6 +51,8 @@ providers.
 - [ ] Update both plugin READMEs/SPECs and the platform SPEC/TODO after
   behavior verification; record remaining owner decisions explicitly.
 
+Progress (2026-11-17): Plugin connection settings now explain that executor origins apply only to separately hosted endpoint-mode services; the bearer-token field is hidden unless such services exist, uses password input, and explains that the secret stays server-side. Managed/local package installs no longer return an irrelevant auth token to the settings UI. This is a UX clarification, not completion of the endpoint-to-managed-runtime migration.
+
 Progress (2026-11-17): Facade `nesting-solve` is the first operation moved off the plugin endpoint into the managed JavaScript server runtime. Its isolated runtime calls a plugin/version/operation-scoped host capability; the platform owns the configured nesting-worker URL and transport. Runtime and capability tests cover request normalization, dispatch, and adapter scoping. Pure sheet matching, sheet construction, and DXF export now share one browser/server runtime; the other 13 Documents/Facade services still need execution-target classification and migration.
 
 Progress (2026-11-17): Facade nesting input normalization now clones authored item records, rejects invalid/non-finite counts and dimensions, and rejects unsafe aggregate sheet counts before contacting the external solver. Regression tests cover frozen input records and numeric boundaries.
