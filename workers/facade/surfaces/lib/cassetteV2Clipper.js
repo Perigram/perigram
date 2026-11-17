@@ -6,15 +6,10 @@ export const CASSETTE_V2_CLIPPER_PRECISION = 3;
 
 let clipperPromise = null;
 
-const runtimeImport = (specifier) => {
-  return import(/* @vite-ignore */ specifier);
-};
-
-// The clipper2 runtime ships beside the plugin: the executor serves it
-// (and the browser module resolves it) from the plugin's assets tree.
-const clipperModuleSpecifier = () => (
-  new URL('../../assets/vendor/clipper2/clipper2z.js', import.meta.url).href
-);
+// The clipper2 runtime ships beside the plugin. Keep this a literal
+// relative import so managed-runtime asset collection can include both
+// the JavaScript glue and its import.meta.url-resolved WASM binary.
+const runtimeImport = () => import(/* @vite-ignore */ '../../assets/vendor/clipper2/clipper2z.js');
 
 const numeric = (value, fallback = 0) => {
   const next = Number(value);

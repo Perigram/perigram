@@ -23,6 +23,21 @@ describe('managed plugin runtime asset collection', () => {
     expect(assets.find(asset => asset.path === 'runtime/server.mjs').contentType).toBe('text/javascript');
   });
 
+  it('collects static assets resolved relative to import.meta.url', () => {
+    root = mkdtempSync(join(tmpdir(), 'perigram-runtime-assets-'));
+    mkdirSync(join(root, 'runtime'), { recursive: true });
+    writeFileSync(join(root, 'runtime/server.mjs'), "import './engine.js';\n");
+    writeFileSync(join(root, 'runtime/engine.js'), "export const wasm = new URL('./engine.wasm', import.meta.url);\n");
+    writeFileSync(join(root, 'runtime/engine.wasm'), Buffer.from([0, 97, 115, 109]));
+    const assets = collectRuntimeAssetFiles(root, '/runtime/server.mjs');
+    expect(assets.map(asset => asset.path)).toEqual([
+      'runtime/engine.js',
+      'runtime/engine.wasm',
+      'runtime/server.mjs'
+    ]);
+    expect(assets.find(asset => asset.path === 'runtime/engine.wasm').contentType).toBe('application/wasm');
+  });
+
   it('refuses runtime entry paths that escape the plugin package', () => {
     root = mkdtempSync(join(tmpdir(), 'perigram-runtime-assets-'));
     expect(() => collectRuntimeAssetFiles(root, '/../outside.mjs')).toThrow(/escapes plugin package/);

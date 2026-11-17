@@ -52,6 +52,14 @@ export function collectRuntimeAssetFiles(packageRoot, entry, language = 'javascr
       const dependency = resolve(dirname(resolved.absolute), specifier);
       pending.push(dependency);
     }
+    // WASM and other package assets are commonly resolved relative to the
+    // importing module at runtime rather than imported as JavaScript.
+    const relativeAssets = source.matchAll(/\bnew\s+URL\(\s*['"]([^'"]+)['"]\s*,\s*import\.meta\.url\s*\)/g);
+    for (const match of relativeAssets) {
+      const specifier = match[1];
+      if (specifier.startsWith('/') || /^[a-z][a-z0-9+.-]*:/i.test(specifier)) continue;
+      pending.push(resolve(dirname(resolved.absolute), specifier));
+    }
   }
   return assets.sort((a, b) => a.path.localeCompare(b.path));
 }
