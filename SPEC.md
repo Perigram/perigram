@@ -1821,18 +1821,6 @@ previewing a document value does not itself create a file. The plugin owns
 format semantics and rendering, while the host owns artifact identity,
 authorization, destinations, and persistence.
 
-Document graph values are authored documents, not generic record-shaped
-placeholders. The Documents provider owns a versioned flowing-document value
-with typed block values. Graph authors can create paragraphs, headings,
-lists, tables, quotes, code blocks, and dividers as nodes, compose those
-blocks into a document, and pass the document through document operations.
-Parsing an existing Markdown file is one source of the same value, not its
-only constructor. Export operations produce format-identified file payloads
-that the generic Bake/Export lifecycle can materialize as actual files;
-previewing a document value does not itself create a file. The plugin owns
-format semantics and rendering, while the host owns artifact identity,
-authorization, destinations, and persistence.
-
 The preview workspace is distinct from the inspector. It presents an
 output selector and tabs for available representations or graph-level
 diagnostics. Tabs represent views/channels, not plugin identities. The
