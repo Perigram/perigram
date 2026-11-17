@@ -75,7 +75,7 @@ plus `children`. Paragraphs and headings accept inline-value lists; list
 blocks accept plain text items or typed inline items through `inlineItems`.
 The provider validates nested inline and block values when constructing,
 composing, appending, previewing, or exporting a document. Unsafe link
-schemes are rejected or dropped with a parse diagnostic.
+schemes are rejected or dropped with a parse diagnostic. Markdown table export escapes cell delimiters and flattens embedded line breaks.
 
 A document can be authored entirely from nodes: create typed inline values
 and blocks, put block outputs into `Make List` configured for
