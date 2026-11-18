@@ -161,3 +161,5 @@ export {
   processDefinitionToGraphDocument,
   graphDocumentToProcessDefinition
 } from './process-graph.js';
+
+export { PROCESS_PORT_COMPATIBILITY_PROFILE, registerProcessPortCompatibilityProfile } from './port-compatibility.js';
