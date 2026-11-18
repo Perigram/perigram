@@ -270,6 +270,9 @@ async function executeIsolated(packageData, run, setChild) {
               capabilityEvidence.push({
                 name: String(message.name || ''),
                 input: capabilityInputEvidence(message.name, message.input),
+                ...(String(message.name || '') === 'files.read'
+                  ? { organizationId: value?.organizationId ?? null }
+                  : {}),
                 ...(value?.readSet ? { readSet: value.readSet } : {}),
                 ...(value?.contentHash ? { contentHash: String(value.contentHash) } : {})
               });
