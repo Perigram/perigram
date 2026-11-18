@@ -878,23 +878,30 @@ through the plugin's export binding (owner decision 2026-10-10).
 - `sheet-instance` (item) — the digital twin of a physical sheet: a
   plain record, referred by many.
 
-Nesting produces the sheet designs with quantities: the
-`nesting-polygons` projection turns one baked cassette design into one
-nesting item carrying the design ref and every workpiece's polygon
-parts, and the solve consumes the queue entry's design item beside that
-entry's count — a design item without its design ref refuses. The
-solve groups the resulting sheets by composition, joining sheets that
-cut the same designs the same way into one sheet design carrying the
-group's count. Composition is the sheet shape and the multiset of
-placement design keys; placement order, rotation, and translation are
-the solver's arrangement. Sheet stock is the item count as the
+The independent Nesting plugin solves the generic polygon parts;
+Facade constructs the resulting sheet designs with quantities. The
+Facade `nesting-polygons` projection adapts one baked cassette design
+into a source item: `sourceId` and `sourceKey` identify the design,
+and `parts` carries each workpiece's coordinates, handles, and layer
+metadata. A queue entry's count is joined by the Facade graph before
+those generic items reach Nesting. A design item without its design ref
+refuses at the Facade boundary.
+
+The Nesting plugin accepts only generic source items and stock geometry.
+It preserves each source ID and its opaque part metadata, solves the
+placements, and groups layouts by sheet shape and the multiset of source
+keys; placement order, rotation, and translation are the solver's
+arrangement. It knows nothing about cassette-design or queue-entry
+types. Facade resolves returned source IDs back to cassette-design refs
+when constructing sheet designs. Sheet stock is the item count as the
 worst case (one sheet per part); the solver uses only the sheets it
-needs, so a run prompts no sheet count. A supplied `designKey` names the
-cassette-design composition; absent one, the design reference is the
-key. An organization's queue entry holds one design beside its count;
-that design may be a library record outside the queue, so nesting
+needs, so a run prompts no sheet count. The generic `sourceKey` is
+provided by Facade as the cassette-design composition identity.
+
+An organization's queue entry holds one design beside its count; that
+design may be a library record outside the queue, so the Facade graph
 projects every cassette design and joins each entry's stored design id
-to its item. Nesting reads those entries.
+to its generic source item.
 
 An XLSX order table becomes queue entries through the organization's
 process definition: the table's rows fan out into a design render
