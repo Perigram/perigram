@@ -1044,7 +1044,10 @@ async function waitForManagedNodeTask(run, { signal, timeoutMs = PLUGIN_RUNTIME_
     }
     if (Date.now() >= deadline) {
       await cancelTaskRun(run._id, 'Managed graph node deadline exceeded').catch(() => {});
-      throw createError({ statusCode: 504, message: 'Managed graph node execution deadline exceeded' });
+      const error = createError({ statusCode: 504, message: 'Managed graph node execution deadline exceeded' });
+      error.name = 'TimeoutError';
+      error.code = 'PLUGIN_EXECUTION_TIMEOUT';
+      throw error;
     }
     await new Promise(resolve => setTimeout(resolve, 100));
   }
