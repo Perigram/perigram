@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { inferProcessDataflowContracts, portSpecsCompatible, resolveNodePort, resolveProcessNodePorts, validateProcessEdges } from './ports.js';
 import { processSocketsCompatible } from './types.js';
-import { createPortCompatibilityRegistry } from '../../plugin-sdk/src/node-contract.js';
 import { registerProcessPortCompatibilityProfile, PROCESS_PORT_COMPATIBILITY_PROFILE } from './port-compatibility.js';
 
 describe('process programming node ports', () => {
@@ -282,4 +281,26 @@ describe('process programming node ports', () => {
     expect(process.processNodes.compare).toMatchObject({ structure: 'list', valueType: 'number' });
     expect(process.processNodes.cast.structure).toBe('list');
   });
+  it('registers CTS socket semantics through the provider-neutral compatibility contract', () => {
+    let registeredProfile = null;
+    let registeredComparator = null;
+    const registry = {
+      register(id, compare) {
+        registeredProfile = id;
+        registeredComparator = compare;
+        return () => {};
+      }
+    };
+    registerProcessPortCompatibilityProfile(registry);
+    expect(registeredProfile).toBe(PROCESS_PORT_COMPATIBILITY_PROFILE);
+    expect(registeredComparator(
+      { id: 'entity', kind: 'entity', typeId: 'part' },
+      { id: 'entity', kind: 'entity', typeId: 'part' }
+    )).toMatchObject({ status: 'exact', compatible: true });
+    expect(registeredComparator(
+      { id: 'entity', kind: 'entity', typeId: 'part' },
+      { id: 'entity', kind: 'entity', typeId: 'customer' }
+    )).toMatchObject({ status: 'incompatible', compatible: false });
+  });
+
 });
