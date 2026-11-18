@@ -1447,6 +1447,31 @@ describe('graph execution service', () => {
     expect(executionService.create).not.toHaveBeenCalled();
   });
 
+  it('revalidates a personal file dependency using its owner grant', async () => {
+    const metadata = { userId: 'user-1' };
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      readSet: {
+        ...preview().readSet,
+        files: [{ fileId: 'personal-source', contentHash: 'sha256:source', organizationId: null }]
+      }
+    });
+    mocks.findFileMeta.mockImplementation(async fileId => fileId === 'personal-source'
+      ? { metadata }
+      : { metadata: { organizationId: 'org-1' }, contentType: 'application/json' });
+    mocks.getFileBuffer.mockImplementation(async fileId => Buffer.from(
+      fileId === 'personal-source' ? 'source' : JSON.stringify(graph())
+    ));
+    mocks.contentHash.mockImplementation(buffer => `sha256:${buffer.toString('utf8')}`);
+
+    await expect(graphExecutionsService.exportOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'document'
+    }, auth)).resolves.toMatchObject({ buffer: Buffer.from('Generated document') });
+    expect(mocks.assertFileReadAccess).toHaveBeenCalledWith(metadata, auth);
+  });
+
   it('exports a selected output as a safe download and records procedural-export provenance', async () => {
     const result = await graphExecutionsService.exportOutput({
       graphDocumentInstanceId: 'graph-instance-1',
