@@ -27,14 +27,14 @@ const NODE_RECORD_COLLECTIONS = Object.freeze({
  */
 export function createProcessGraphDocument(definition = {}, options = {}) {
   const source = definition.data || definition;
-  const legacy = normalizeGraph(source.graph || {});
+  const authoredGraph = normalizeGraph(source.graph || {});
   const sourceDataForRevision = cloneJson(Object.fromEntries(
     Object.entries(source).filter(([key]) => key !== 'graph')
   ));
   const referencedRecords = Object.fromEntries(
     [...new Set(Object.values(NODE_RECORD_COLLECTIONS))].map(collection => [collection, new Set()])
   );
-  for (const node of legacy.nodes) {
+  for (const node of authoredGraph.nodes) {
     const collection = NODE_RECORD_COLLECTIONS[node.type];
     const refId = String(node.data?.refId || node.id);
     if (collection && sourceDataForRevision[collection]?.[refId]) referencedRecords[collection].add(refId);
@@ -51,7 +51,7 @@ export function createProcessGraphDocument(definition = {}, options = {}) {
       })
       .filter(Boolean)
   ));
-  const nodes = legacy.nodes.map(node => {
+  const nodes = authoredGraph.nodes.map(node => {
     const refId = String(node.data?.refId || node.id);
     const collection = NODE_RECORD_COLLECTIONS[node.type];
     const record = collection ? sourceDataForRevision[collection]?.[refId] : null;
@@ -66,7 +66,7 @@ export function createProcessGraphDocument(definition = {}, options = {}) {
     };
   });
 
-  const edges = legacy.edges.map((edge, index) => {
+  const edges = authoredGraph.edges.map((edge, index) => {
     const sourceEdge = source.graph?.edges?.[index] || {};
     const declaredSourcePort = edge.sourceHandle || edge.data?.sourceHandle;
     const declaredTargetPort = edge.targetHandle || edge.data?.targetHandle;
@@ -96,7 +96,7 @@ export function createProcessGraphDocument(definition = {}, options = {}) {
 
   const id = options.id || graphIdFor(definition, source);
   const revision = options.revision || 'process-' + hash(stableStringify({
-    graph: legacy,
+    graph: authoredGraph,
     sourceData: sourceDataForRevision,
     dataflowVersion: source.dataflowVersion ?? PROCESS_DATAFLOW_VERSION
   }));
@@ -113,7 +113,7 @@ export function createProcessGraphDocument(definition = {}, options = {}) {
       [PROCESS_GRAPH_METADATA_KEY]: {
         schemaVersion: Number(source.schemaVersion || 1),
         dataflowVersion: Number(source.dataflowVersion || PROCESS_DATAFLOW_VERSION),
-        viewport: cloneJson(legacy.viewport),
+        viewport: cloneJson(authoredGraph.viewport),
         sourceData: preservedSourceData
       }
     }
