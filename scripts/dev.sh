@@ -86,6 +86,9 @@ case "$command" in
     ensure_image perigram-nesting-worker:latest nesting-worker
     ensure_image perigram-plugin-runtime:latest plugin-runtime
     ensure_image perigram-build123d-executor:latest build123d-executor
+    # Stop any previous app first: an old root-running container can otherwise
+    # recreate root-owned .nuxt files after the ownership repair has completed.
+    compose stop app >/dev/null 2>&1 || true
     repair_app_generated_ownership
     compose up -d --no-build
     compose ps
