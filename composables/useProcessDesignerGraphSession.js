@@ -27,13 +27,12 @@ import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { commandInputs, commandOutputs } from '~/utils/processDesignerCommandPorts.js';
 import { createService, createSocket } from '~/utils/processDesignerDefinitionRecords.js';
 import { isSecondaryPopulationKind } from '~/utils/processDesignerPopulation.js';
-import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
+import { useGraphAuthoringSession } from '~/composables/useGraphAuthoringSession.js';
 import { useProcessDesignerConnectionInference } from '~/composables/useProcessDesignerConnectionInference.js';
 import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
 import { useProcessDesignerNodeRecords } from '~/composables/useProcessDesignerNodeRecords.js';
 import { useProcessDesignerNodeSync } from '~/composables/useProcessDesignerNodeSync.js';
 import { useProcessDesignerTypes } from '~/composables/useProcessDesignerTypes.js';
-import { useProcessDesignerCanvas } from '~/composables/useProcessDesignerCanvas.js';
 import { useProcessDesignerContextPalette } from '~/composables/useProcessDesignerContextPalette.js';
 import { useProcessDesignerPalette } from '~/composables/useProcessDesignerPalette.js';
 import { useProcessDesignerPreview } from '~/composables/useProcessDesignerPreview.js';
@@ -140,6 +139,17 @@ export function useProcessDesignerGraphSession({
   });
   syncProcessNodeImpl = syncProcessNode;
 
+  const authoring = useGraphAuthoringSession({
+    nodes,
+    edges,
+    draft,
+    decorateEdge: value => decorateEdge(value),
+    closePalette: () => closeContextPalette(),
+    syncEdges: () => syncEdgeSelection(),
+    selectedGraphNodes: () => selectedGraphNodes(),
+    selectedGraphEdges: () => selectedGraphEdges(),
+    deleteGraphSelection: () => deleteGraphSelection()
+  });
   const {
     clearGraphSelection,
     reset: resetGraphSelection,
@@ -148,13 +158,7 @@ export function useProcessDesignerGraphSession({
     selectedNode,
     selectedNodeId,
     selectNode
-  } = useProcessDesignerSelection({
-    nodes,
-    edges,
-    decorateEdge: value => decorateEdge(value),
-    closePalette: () => closeContextPalette(),
-    syncEdges: () => syncEdgeSelection()
-  });
+  } = authoring;
   const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInference({
     nodes,
     draft,
@@ -221,18 +225,7 @@ export function useProcessDesignerGraphSession({
     fitInitialCanvas,
     snapshotViewport,
     designerViewport
-  } = useProcessDesignerCanvas({
-    nodes,
-    edges,
-    draft,
-    selectedNodeId,
-    selectedEdgeId,
-    selectedGraphNodes,
-    selectedGraphEdges,
-    deleteGraphSelection,
-    clearGraphSelection,
-    decorateEdge: value => decorateEdge(value)
-  });
+  } = authoring;
 
   const {
     validationDiffLines,
