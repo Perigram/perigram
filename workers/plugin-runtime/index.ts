@@ -33,20 +33,15 @@ async function readResponses() {
     for (const line of lines) {
       let message;
       try { message = JSON.parse(line); } catch { continue; }
-      if (message.type === 'cancel') {
+      if (message.type === 'cancel' && !controller.signal.aborted) {
         const error = new Error(message.reason || 'Managed plugin execution was cancelled');
         error.name = 'AbortError';
         error.code = 'PLUGIN_EXECUTION_ABORTED';
         controller.abort(error);
-        for (const [callId, deferred] of pending) {
-          pending.delete(callId);
-          deferred.reject(error);
-        }
       }
       if (message.type !== 'capability-result') continue;
       const deferred = pending.get(message.callId);
       if (!deferred) continue;
-      pending.delete(message.callId);
       if (message.error) deferred.reject(new Error(message.error.message || 'Host capability failed'));
       else deferred.resolve(message.value);
     }
@@ -63,10 +58,28 @@ try {
   const responseLoop = readResponses();
   const capabilities = {
     call(name, input) {
+      if (controller.signal.aborted) {
+        return Promise.reject(controller.signal.reason || Object.assign(new Error('Managed plugin execution was cancelled'), {
+          name: 'AbortError',
+          code: 'PLUGIN_EXECUTION_ABORTED'
+        }));
+      }
       const callId = 'cap-' + (++callSequence);
       return new Promise((resolve, reject) => {
-        pending.set(callId, { resolve, reject });
-        void send({ type: 'capability', callId, name, input });
+        const cleanup = () => controller.signal.removeEventListener('abort', onAbort);
+        const settle = (handler, value) => {
+          if (!pending.has(callId)) return;
+          pending.delete(callId);
+          cleanup();
+          handler(value);
+        };
+        const onAbort = () => settle(reject, controller.signal.reason || new Error('Managed plugin execution was cancelled'));
+        pending.set(callId, {
+          resolve: value => settle(resolve, value),
+          reject: error => settle(reject, error)
+        });
+        controller.signal.addEventListener('abort', onAbort, { once: true });
+        void send({ type: 'capability', callId, name, input }).catch(error => settle(reject, error));
       });
     }
   };

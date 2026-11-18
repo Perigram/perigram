@@ -38,6 +38,18 @@
 
 ### Additions
 
+- [ ] Add managed plugin-runtime cancellation integration tests: pending
+  capability calls reject on cancellation, calls after abort fail immediately,
+  parent capability HTTP requests abort, and an unresponsive child is killed
+  after the cooperative grace period. The runtime behavior is implemented;
+  test execution/coverage remains open.
+
+- [ ] Add managed Python/WASM runtime adapters only after platform-owned
+  runtime images, dependency resolution, capability bridging, resource limits,
+  and install-time compatibility checks exist. The current managed worker
+  install gate accepts JavaScript runtime entries only; do not treat the SDK's
+  broader descriptor grammar as runtime support.
+
 - [x] Guard coverage: scripts/check-docs.js:209 `SOURCE_ROOTS` excludes `workers/`, so contract-shaped comments there are never scanned; fix owned by the root TODO ([TODO.md](../TODO.md), scripts/ item) — this folder's folds above remove the known instances.
   Landed 2026-10-25 (655938b35): `workers` is in `SOURCE_ROOTS` (check-docs.js:243).
 

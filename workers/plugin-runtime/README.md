@@ -18,7 +18,12 @@ allowlist before executing a handler.
 
 Runtime modules export `createRuntime()` (or a default factory) returning
 an object with `execute(operationId, input, { capabilities, signal })`.
-The same operation contract is used by the browser Worker adapter. Browser
+The same operation contract is used by the browser Worker adapter. Cancellation aborts the runtime signal and rejects every outstanding
+capability call with an `AbortError`; calls made after cancellation reject
+immediately. The parent also aborts in-flight capability HTTP requests and
+allows a one-second cooperative shutdown before terminating an unresponsive
+child process. Runtime operations must observe `signal` and stop their own
+work promptly; the hard process deadline remains the final containment boundary. Browser
 runtime factories may also return a structured-cloneable `providers` array
 containing provider ids and node definitions. Package
 dependencies resolve from installed local assets through the generated
