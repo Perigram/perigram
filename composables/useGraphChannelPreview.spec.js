@@ -149,3 +149,38 @@ describe('useGraphChannelPreview', () => {
     }
   });
 });
+
+
+describe('preview evaluation lifecycle', () => {
+  it('does not let an older in-flight evaluation overwrite a newer preview', async () => {
+    const pending = [];
+    const preview = vi.fn(() => new Promise(resolve => pending.push(resolve)));
+    const channel = composable(preview);
+
+    const first = channel.run();
+    const second = channel.run();
+    pending[1](evaluation());
+    await second;
+    expect(channel.payload.value.nodes.a.outputs.value).toBe(1);
+
+    const stale = { nodes: { a: { outputs: { value: 'stale' } } } };
+    pending[0](stale);
+    await first;
+    expect(channel.payload.value.nodes.a.outputs.value).toBe(1);
+    expect(channel.running.value).toBe(false);
+  });
+
+  it('invalidates an in-flight evaluation when the preview tab becomes inactive', async () => {
+    let resolvePreview;
+    const channel = composable(() => new Promise(resolve => { resolvePreview = resolve; }));
+    const running = channel.run();
+    expect(channel.running.value).toBe(true);
+
+    channel.schedule(false);
+    resolvePreview(evaluation());
+    await running;
+
+    expect(channel.payload.value).toBe(null);
+    expect(channel.running.value).toBe(false);
+  });
+});

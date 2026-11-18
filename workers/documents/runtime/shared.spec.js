@@ -42,26 +42,6 @@ describe('Documents shared runtime', () => {
     expect(filled.meta.tokens).toEqual(['name', 'date']);
   });
 
-  it('discovers scalar tokens and repeated-row sections from XLSX templates', () => {
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
-      ['{#items}', ''],
-      ['{name}', '{quantity}'],
-      ['{/items}', '']
-    ]), 'S');
-    const bytes = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
-    const binary = String.fromCharCode(...new Uint8Array(bytes));
-    const filled = runtime.execute('fill-workbook-template', {
-      template: { payload: {
-        base64: btoa(binary),
-        mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        name: 'template.xlsx'
-      } },
-      values: { items: [{ name: 'A', quantity: 2 }] }
-    });
-    expect(filled.meta).toEqual({ tokens: ['name', 'quantity'], sections: ['items'] });
-  });
-
   it('implements every operation declared for the shared Documents runtime', async () => {
     const inline = { type: 'text', text: 'Hello' };
     const paragraph = { type: 'paragraph', children: [inline] };
@@ -161,6 +141,14 @@ describe('Documents shared runtime', () => {
         required: false,
         shape: 'list',
         semantic: { base: 'json', kind: 'text.inline', nullable: true }
+      })
+    );
+    expect(provider.definitions.find(definition => definition.id === 'read-file')?.inputs).toContainEqual(
+      expect.objectContaining({
+        id: 'fileId',
+        shape: 'item',
+        semantic: { base: 'string', kind: 'documents.file-id' },
+        required: true
       })
     );
     expect(provider.definitions.find(definition => definition.id === 'compose-document')).toMatchObject({

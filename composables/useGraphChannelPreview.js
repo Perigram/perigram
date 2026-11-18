@@ -18,6 +18,8 @@ export function useGraphChannelPreview({ persistence, serializeProcess, clientEn
   const running = ref(false);
   const error = ref('');
   let timer = null;
+  let runToken = 0;
+  let disposed = false;
 
   const enginesHolder = ref([]);
   const loader = useClientEngines(loadModule === undefined ? { engines: enginesHolder } : { engines: enginesHolder, loadModule });
@@ -51,6 +53,8 @@ export function useGraphChannelPreview({ persistence, serializeProcess, clientEn
   }
 
   async function run() {
+    const token = ++runToken;
+    if (disposed) return;
     running.value = true;
     error.value = '';
     try {
@@ -60,22 +64,28 @@ export function useGraphChannelPreview({ persistence, serializeProcess, clientEn
       const evaluation = client && evaluatesClientSide(definition)
         ? await evaluateClientSide(definition, client.domain)
         : await persistence.previewDraft(definition, undefined);
+      if (disposed || token !== runToken) return;
       payload.value = visiblePreviewOutputs(evaluation, definition);
     } catch (cause) {
+      if (disposed || token !== runToken) return;
       error.value = cause?.data?.message || cause.message;
     } finally {
-      running.value = false;
+      if (!disposed && token === runToken) running.value = false;
     }
   }
 
   // One debounced seam: the run lands only while the preview tab is the
-  // active one; leaving it cancels the pending pass.
+  // active one; leaving it invalidates both pending and in-flight work.
   function schedule(active, { debounceMs = 300 } = {}) {
     if (timer) {
       clearTimeout(timer);
       timer = null;
     }
-    if (!active) return;
+    if (!active) {
+      runToken += 1;
+      running.value = false;
+      return;
+    }
     timer = setTimeout(() => {
       timer = null;
       run();
@@ -84,7 +94,11 @@ export function useGraphChannelPreview({ persistence, serializeProcess, clientEn
 
   if (getCurrentScope()) {
     onScopeDispose(() => {
+      disposed = true;
+      runToken += 1;
       if (timer) clearTimeout(timer);
+      timer = null;
+      running.value = false;
     });
   }
 
