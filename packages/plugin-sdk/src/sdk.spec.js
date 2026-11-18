@@ -41,6 +41,35 @@ describe('parseListing', () => {
     expect(layer.requires).toEqual(['documents']);
   });
 
+  it('validates and preserves service node configuration schemas', () => {
+    const configuration = {
+      type: 'object',
+      properties: {
+        values: {
+          type: 'object',
+          title: 'Template values',
+          default: {},
+          semantic: { kind: 'documents.template-values' }
+        }
+      }
+    };
+    const listing = {
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        services: [{ ...fullListing.declarations.services[0], configuration }]
+      }
+    };
+    expect(parseListing(listing).services[0].configuration).toEqual(configuration);
+    expect(() => parseListing({
+      ...listing,
+      declarations: {
+        ...listing.declarations,
+        services: [{ ...listing.declarations.services[0], configuration: { type: 'object', properties: { values: { type: 'unknown' } } } }]
+      }
+    })).toThrow(/configuration property values needs a supported schema type/);
+  });
+
   it('refuses an editor binding for a type the plugin does not declare', () => {
     expect(() => parseListing({
       ...fullListing,

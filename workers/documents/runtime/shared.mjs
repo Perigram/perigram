@@ -88,6 +88,7 @@ function documentsNodeDefinitions(source, runtimeId) {
         ...nodePortContract(service.signature?.output || {}),
         required: true
       }],
+      ...(service.configuration ? { configuration: service.configuration } : {}),
       execution: {
         runtime: runtimeId,
         kind: service.execution.kind,

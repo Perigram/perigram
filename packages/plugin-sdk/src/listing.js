@@ -233,6 +233,31 @@ export function parseListing(listing = {}) {
     if (service.group !== undefined) {
       throw listingError(`service ${service.id} uses retired group metadata — use palette.group`);
     }
+    if (service.configuration !== undefined) {
+      const configuration = service.configuration;
+      if (!configuration || typeof configuration !== 'object' || Array.isArray(configuration)
+        || configuration.type !== 'object'
+        || !configuration.properties || typeof configuration.properties !== 'object'
+        || Array.isArray(configuration.properties)) {
+        throw listingError(`service ${service.id} configuration must be an object schema with properties`);
+      }
+      if (configuration.required !== undefined
+        && (!Array.isArray(configuration.required)
+          || configuration.required.some(field => typeof field !== 'string' || !Object.hasOwn(configuration.properties, field)))) {
+        throw listingError(`service ${service.id} configuration required must name declared properties`);
+      }
+      for (const [fieldId, field] of Object.entries(configuration.properties)) {
+        if (!/^[a-z][a-z0-9-]*$/.test(fieldId)
+          || !field || typeof field !== 'object' || Array.isArray(field)
+          || !['string', 'number', 'integer', 'boolean', 'object', 'array'].includes(field.type)) {
+          throw listingError(`service ${service.id} configuration property ${fieldId} needs a supported schema type`);
+        }
+        if (field.semantic?.kind !== undefined
+          && !/^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$/.test(String(field.semantic.kind))) {
+          throw listingError(`service ${service.id} configuration property ${fieldId} semantic kind must be namespaced`);
+        }
+      }
+    }
     validatePalette(service.palette, `service ${service.id}`, paletteLabels);
     if (service.cache !== undefined) {
       if (service.cache !== 'deterministic') {
