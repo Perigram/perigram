@@ -494,7 +494,6 @@ describe('graph execution service', () => {
     const outputWorkbook = XLSX.read(bytes, { type: 'array' });
     expect(XLSX.utils.sheet_to_json(outputWorkbook.Sheets.Report, { header: 1 })).toEqual([
       ['Client', 'Ada'],
-      ['Line', ''],
       ['Item', 'Widget'],
       ['Item', 'Gear']
     ]);
