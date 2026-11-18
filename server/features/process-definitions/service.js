@@ -246,11 +246,8 @@ function assertGraphIntegrity(data) {
   if (problems.length) {
     throw createError({ statusCode: 400, message: `Graph integrity: ${problems.slice(0, 5).join('; ')}` });
   }
-  // The legacy record projection is still required by CTS declaration
-  // validation, but it is no longer the structural graph authority. Compile
-  // the same authored graph through the canonical Core codec at the server
-  // persistence boundary; this catches invalid operation identities,
-  // endpoints, ports, ids, and non-JSON configuration before storage.
+  // Validate the authored process graph through the shared canonical graph
+  // compiler before persistence.
   try {
     createProcessGraphDocument(data);
   } catch (error) {
@@ -648,9 +645,8 @@ async function evaluateDataflow(definition, payload = {}, { auth, actor, domain 
     data: currentProcessDefinition(definition.data, projectedDomain)
   };
   const base = manualRunEnvironment(runnableDefinition, auth, projectedDomain);
-  // Durable traversal consumes the same canonical graph document as graph
-  // authoring and validation. The persisted process-definition envelope stays
-  // legacy-shaped; this projection is in-memory and does not rewrite records.
+  // Durable traversal consumes the canonical graph document used by graph
+  // authoring and validation.
   const canonicalGraph = createProcessGraphDocument(runnableDefinition);
   const run = createProcessRun(canonicalGraph, payload.trigger || {}, {
     processDefinitionId: runnableDefinition._id || runnableDefinition.id,
