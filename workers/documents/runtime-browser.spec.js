@@ -7,7 +7,21 @@ const bundlePath = fileURLToPath(new URL('./runtime/shared.bundle.mjs', import.m
 
 test('Documents runtime loads and executes in Chromium without Node module resolution', async ({ page }) => {
   const bundle = readFileSync(bundlePath);
-  const workerSource = "import { createRuntime } from '/runtime/shared.bundle.mjs';\\nself.onmessage = async () => { const runtime = createRuntime(); const parsed = await runtime.execute('parse-markdown', { mode: 'preview', inputs: { text: '# Browser runtime\\n\\nA **real** browser parse.' } }); const filled = runtime.execute('fill-markdown-template', { templateText: '# {title}\\n\\nHello {name}', values: { title: 'Report', name: 'Ada' } }); self.postMessage({ parsed, filled }); };";
+  const workerSource = `
+import { createRuntime } from '/runtime/shared.bundle.mjs';
+self.onmessage = async () => {
+  const runtime = createRuntime();
+  const parsed = await runtime.execute('parse-markdown', {
+    mode: 'preview',
+    inputs: { text: '# Browser runtime\\n\\nA **real** browser parse.' }
+  });
+  const filled = runtime.execute('fill-markdown-template', {
+    templateText: '# {title}\\n\\nHello {name}',
+    values: { title: 'Report', name: 'Ada' }
+  });
+  self.postMessage({ parsed, filled });
+};
+`;
   const server = createServer((request, response) => {
     if (request.url === '/runtime-smoke.worker.js') {
       response.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8' });
