@@ -22,7 +22,8 @@ import {
   registerProcessGraphNodes,
   createProcessGraphNodeResolver,
   createProcessProceduralNodeResolver,
-  portSpecsCompatible
+  registerProcessPortCompatibilityProfile,
+  PROCESS_PORT_COMPATIBILITY_PROFILE
 } from '@perigram/processes';
 import { useProcessDesignerCanvas } from '~/composables/useProcessDesignerCanvas.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
@@ -84,15 +85,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
 
   const registry = createNodeProviderRegistry();
   const portCompatibility = createPortCompatibilityRegistry();
-  portCompatibility.register('perigram.cts', (source, target) => {
-    const result = portSpecsCompatible(source, target);
-    return {
-      status: result.ok ? 'exact' : 'incompatible',
-      compatible: result.ok,
-      reason: result.reason || (result.ok ? 'CTS process port contracts match' : 'CTS process port contracts do not match'),
-      conversions: []
-    };
-  });
+  registerProcessPortCompatibilityProfile(portCompatibility);
   registerProcessGraphNodes(registry);
   const processGraphResolver = createProcessGraphNodeResolver();
   const processProceduralResolver = createProcessProceduralNodeResolver();
@@ -268,7 +261,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     if (op.provider !== PROCESS_PROCEDURAL_PROVIDER || !resolved) return resolved;
     const withCtsCompatibility = ports => (ports || []).map(port => ({
       ...port,
-      compatibility: { profile: 'perigram.cts' }
+      compatibility: { profile: PROCESS_PORT_COMPATIBILITY_PROFILE }
     }));
     return {
       ...resolved,
