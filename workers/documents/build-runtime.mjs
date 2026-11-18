@@ -38,7 +38,7 @@ export async function buildDocumentsRuntime() {
     ].map(match => match[1])
       .filter(specifier => !specifier.startsWith('.') && !specifier.startsWith('/') && !/^[a-z][a-z0-9+.-]*:/i.test(specifier));
     if (bareImports.length) {
-      throw new Error(\`Documents browser runtime contains unresolved bare imports: \${[...new Set(bareImports)].join(', ')}\`);
+      throw new Error('Documents browser runtime contains unresolved bare imports: ' + [...new Set(bareImports)].join(', '));
     }
     // Atomic replacement means concurrent test/seed builds never expose a
     // partially written runtime asset to the package collector.
