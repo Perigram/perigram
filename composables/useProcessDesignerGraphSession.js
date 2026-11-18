@@ -13,7 +13,6 @@ import {
   definitionToCanvas,
   isProcessDataHandle,
   parseProcessSocketHandleId,
-  processSocketsCompatible,
   registerProcessPortCompatibilityProfile,
   PROCESS_PORT_COMPATIBILITY_PROFILE,
   compileTreeDeclarations,
@@ -1243,6 +1242,14 @@ export function useProcessDesignerGraphSession({
     syncEdgeSelection();
   }
 
+  function sharedPortCompatibility(source, target) {
+    const result = portCompatibility.compare(
+      { ...source, compatibility: { profile: PROCESS_PORT_COMPATIBILITY_PROFILE } },
+      { ...target, compatibility: { profile: PROCESS_PORT_COMPATIBILITY_PROFILE } }
+    );
+    return { ok: result.compatible, reason: result.reason };
+  }
+
   function connectionCompatibility(connection = {}) {
     const source = nodes.value.find(item => item.id === connection.source);
     const target = nodes.value.find(item => item.id === connection.target);
@@ -1268,7 +1275,7 @@ export function useProcessDesignerGraphSession({
             return { ok: false, reason: t('processDesigner.connectReasons.declareSocket') };
           }
           return {
-            ...processSocketsCompatible(sourcePort, targetPort),
+            ...sharedPortCompatibility(sourcePort, targetPort),
             source: sourcePort,
             target: targetPort
           };
@@ -1287,7 +1294,7 @@ export function useProcessDesignerGraphSession({
             return { ok: false, reason: t('processDesigner.connectReasons.typePinOnly') };
           }
           return {
-            ...processSocketsCompatible(sourcePort, pin),
+            ...sharedPortCompatibility(sourcePort, pin),
             source: sourcePort,
             target: pin
           };
