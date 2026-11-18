@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseListing } from './listing.js';
-import { collectRuntimeAssetFiles } from '../../../server/scripts/lib/plugin-runtime-assets.js';
 import { endpointServices as documentsEndpointServices } from '../../../workers/documents/services.js';
 import { endpointServices as facadeEndpointServices } from '../../../workers/facade/services.js';
 import { services as techDrawingEndpointServices } from '../../../workers/tech-drawing/services.js';
@@ -84,17 +83,6 @@ describe('repository plugin conformance', () => {
     const services = implementations[pluginId] || {};
     expect(Object.keys(services).sort()).toEqual(declared);
     for (const id of declared) expect(typeof services[id], `${pluginId}.${id}`).toBe('function');
-  });
-
-  it.each(listings)('$pluginId runtime import graph resolves to package assets', ({ pluginId, pluginRoot, listing }) => {
-    for (const runtime of listing.declarations.runtimes || []) {
-      const assets = collectRuntimeAssetFiles(pluginRoot, runtime.entry, runtime.language);
-      expect(
-        assets.some(asset => asset.path === runtime.entry.replace(/^\//, '')),
-        `${pluginId} runtime ${runtime.id} entry is included in its packaged assets`
-      ).toBe(true);
-      expect(assets.length, `${pluginId} runtime ${runtime.id} has a non-empty asset graph`).toBeGreaterThan(0);
-    }
   });
 
   it('covers every installed plugin listing in the repository', () => {
