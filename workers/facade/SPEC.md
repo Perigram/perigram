@@ -10,7 +10,11 @@ updated: 2026-11-02
 ```
 
 Desired state of the facade fabrication domain: its type family,
-cassette and profile authoring, nesting, and the sheet-design editor.
+cassette and profile authoring, sheet-design editor, and production export.
+Generic polygon nesting is owned by the independently installable Nesting plugin.
+Facade adapts OCCS workpiece geometry to Nesting's generic source-part contract
+and consumes its layouts; it does not own the solver, worker transport, or
+generic nesting operations.
 The marketplace contract (listings, installs, connectors, surfaces) is
 the root SPEC.md §20; the domain law lives here, in the plugin.
 

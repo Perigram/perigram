@@ -1,9 +1,8 @@
 # CONTAINER: Facade Plugin Executor
 
-The facade fabrication domain as a third-party plugin (SPEC §20): `listing.json` declares its types, services, editor bindings, preview bindings, construction bindings, and exports. The shared `palette` declaration exposes nesting, sheet-planning, and production-export operations; `visible: false` keeps `bake`, `extract-geometry`, and `nesting-parts` as construction/projection helpers rather than graph nodes. Managed operations execute from the installed package in browser Workers or the shared server runtime. The endpoint host serves `extract-geometry`, `nesting-parts`, and the plugin's surface modules. The graph palette uses the shared declaration `palette` object: nesting, sheet planning, and production export are visible; `bake`, `extract-geometry`, and `nesting-parts` remain hidden construction/projection helpers.
+The Facade fabrication domain is an independently installable plugin (SPEC §20). `listing.json` declares cassette/sheet types, services, editor bindings, previews, constructions, and exports. It requires `tech-drawing` and the independent `nesting` plugin. Generic polygon solving is not implemented or hosted by Facade: its `nesting-parts` projection adapts baked OCCS geometry to Nesting's generic `sourceId`/`parts` contract; the Nesting plugin contributes the `nesting-solve` graph operation. Facade retains cassette/sheet-specific construction, preview, and production-export behavior.
 
-The endpoint host runs from the repo mount (compose `facade-executor`, port 8790) or as
-its own deployment. The OCCS
+The endpoint host runs from the repo mount (compose `facade-executor`, port 8790) or as its own deployment. It serves only Facade's `extract-geometry` and `nesting-parts` projections plus its surface modules; the solver runs through the platform-owned Nesting capability. The OCCS
 engine (`occs/`) is the domain's single copy: the executor's
 construction services and the browser-side surfaces both use it, the
 executor serves it statically, and
