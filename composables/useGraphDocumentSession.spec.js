@@ -6,7 +6,6 @@ import {
   processDefinitionToGraphDocument,
   graphDocumentToProcessDefinition,
   createProcessGraphNodeDefinition,
-  createProcessProceduralNodeDefinition,
   createProcessGraphNodeResolver,
   createProcessProceduralNodeResolver,
   createProcessProceduralExecutor,
@@ -22,7 +21,7 @@ function createProcessSession() {
   return useGraphDocumentSession({
     t: key => key,
     definitions: PROCESS_NODE_CATALOG
-      .map(catalog => createProcessProceduralNodeDefinition(catalog.kind) || createProcessGraphNodeDefinition(catalog.kind))
+      .map(catalog => createProcessGraphNodeDefinition(catalog.kind, { kind: catalog.kind }))
       .filter(Boolean),
     nodeResolvers: [createProcessGraphNodeResolver()],
     previewResolvers: [createProcessProceduralNodeResolver()],
