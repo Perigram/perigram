@@ -22,7 +22,8 @@ const mocks = vi.hoisted(() => ({
   withOrganizationChangeSequence: vi.fn(),
   connectDB: vi.fn(),
   declarationForType: vi.fn(),
-  runOrganizationChange: vi.fn()
+  runOrganizationChange: vi.fn(),
+  resolveInstalledGraphNodeDefinition: vi.fn()
 }));
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: mocks.getAppRegistry }));
 vi.mock('~/server/db/mongo', () => ({ connectDB: mocks.connectDB }));
@@ -32,6 +33,9 @@ vi.mock('../files/service.js', () => ({
   getFileBuffer: mocks.getFileBuffer,
   uploadFile: mocks.uploadFile,
   deleteFile: mocks.deleteFile
+}));
+vi.mock('../plugins/service.js', () => ({
+  resolveInstalledGraphNodeDefinition: mocks.resolveInstalledGraphNodeDefinition
 }));
 vi.mock('../instance-revisions/service.js', () => ({ ensureRevisionIndexes: vi.fn(async () => {}) }));
 vi.mock('../pages/service.js', () => ({
@@ -166,6 +170,7 @@ describe('graph execution service', () => {
     dataService.patch.mockResolvedValue({ _id: 'item-1', type: 'part', typeVersion: 2, organizationId: 'org-1', revision: 4, updatedAt: '2026-11-16T10:01:00Z', fields: { code: 'B' } });
     dataService.patch.mockResolvedValue({ _id: 'item-1', type: 'part', revision: 4, fields: { status: 'approved' } });
     mocks.runOrganizationChange.mockImplementation(async (_organizationId, _metadata, mutate) => await mutate());
+    mocks.resolveInstalledGraphNodeDefinition.mockReset();
     mocks.withOrganizationChangeSequence.mockImplementation(async (_organizationId, read) => ({
       value: await read(),
       boundary: { consistency: 'sequence-bracketed', snapshotId: null, organizationSequenceStart: 4, organizationSequenceEnd: 4 }
@@ -202,16 +207,23 @@ describe('graph execution service', () => {
       inputs: [{ id: 'source', required: true }],
       outputs: [{ id: 'document', required: true }]
     };
-    const resolveNodeDefinition = vi.fn(async () => definition);
-    const executeNode = vi.fn(async (_definition, invocation) => ({
+    mocks.resolveInstalledGraphNodeDefinition.mockResolvedValue({
+      ...definition,
+      packagePin: {
+        pluginId: 'documents',
+        version: '31',
+        runtimeId: 'documents-shared',
+        operationId: 'document.compose'
+      }
+    });
+    const executeManagedNode = vi.fn(async (_definition, invocation) => ({
       document: { kind: 'document', source: invocation.inputs.source }
     }));
 
     const result = await graphExecutionsService.evaluateSavedGraph({
       graphDocumentInstanceId: 'graph-instance-1',
       inputBindings: { source: { type: 'text-document', id: 'source-file' } },
-      resolveNodeDefinition,
-      executeNode,
+      executeManagedNode,
       context: { executionId: 'server-preview-1' }
     }, auth);
 
@@ -219,15 +231,28 @@ describe('graph execution service', () => {
       graphDocument,
       graphId: 'graph.document',
       graphRevision: 'rev-01',
+      executionId: 'server-preview-1',
+      providerPins: [{
+        pluginId: 'documents',
+        version: '31',
+        runtimeId: 'documents-shared',
+        operationId: 'document.compose',
+        operations: ['document.compose']
+      }],
       outputs: {
         document: { kind: 'document', source: { type: 'text-document', id: 'source-file' } }
       }
     });
-    expect(resolveNodeDefinition).toHaveBeenCalledWith(
-      { provider: 'plugin.documents', id: 'document.compose', version: '3' },
-      expect.objectContaining({ node: expect.objectContaining({ id: 'format-1' }) })
-    );
-    expect(executeNode).toHaveBeenCalledWith(definition, expect.objectContaining({
+    expect(mocks.resolveInstalledGraphNodeDefinition).toHaveBeenCalledWith({
+      provider: 'plugin.documents',
+      id: 'document.compose',
+      version: '3',
+      auth
+    });
+    expect(executeManagedNode).toHaveBeenCalledWith(expect.objectContaining({
+      ...definition,
+      packagePin: expect.objectContaining({ pluginId: 'documents', version: '31' })
+    }), expect.objectContaining({
       target: 'server',
       mode: 'preview',
       context: expect.objectContaining({
