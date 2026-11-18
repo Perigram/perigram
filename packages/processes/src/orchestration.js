@@ -1,3 +1,4 @@
+import { graphDocumentToProcessDefinition } from './process-graph.js';
 import { createDataPacket, isDataTree, packetValue } from './data-tree.js';
 import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
 import { resolveCatalogNodePorts, EFFECT_SPECIES_KINDS, constructionInputsForContract, resolveConstructionMode } from './node-catalog.js';
@@ -689,7 +690,12 @@ function resolveDataOutputId(outputs = [], requestedId = '', record = {}) {
 }
 
 function processData(definition) {
-  const process = definition?.data?.graph ? definition.data : definition;
+  const source = definition?.format === 'perigram.graph'
+    ? graphDocumentToProcessDefinition(definition)
+    : (definition?.data?.format === 'perigram.graph'
+      ? { ...definition, data: graphDocumentToProcessDefinition(definition.data) }
+      : definition);
+  const process = source?.data?.graph ? source.data : source;
   if (Number(process?.dataflowVersion) !== 4) throw new Error('Durable orchestration requires process dataflow version 4');
   return process;
 }
