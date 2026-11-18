@@ -10,6 +10,9 @@ import TemplateValuesControl from '../process-designer/TemplateValuesControl.vue
 async function render(component, props) {
   const app = createSSRApp({ render: () => h(component, props) });
   app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
+  // PrimeVue's BaseInput reads the legacy global config facade during SSR;
+  // keep the harness deterministic when the plugin only installs provide().
+  app.config.globalProperties.$primevue ||= { config: {} };
   app.config.globalProperties.$t = key => key;
   return await renderToString(app);
 }
