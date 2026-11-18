@@ -595,8 +595,9 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       const result = await evaluateProceduralGraph({
         graph,
         inputBindings: inputBindings.value,
-        resolveNodeDefinition: (op, invocation) => processProceduralResolver(op, invocation)
-          || registry.resolve(op.provider, op.id, op.version),
+        resolveNodeDefinition: (op, invocation) => op.provider === PROCESS_PROCEDURAL_PROVIDER
+          ? processProceduralResolver(op, invocation)
+          : registry.resolve(op.provider, op.id, op.version),
         executeNode: async (definition, invocation) => {
           const executor = providerExecutors.get(definition.provider);
           if (!executor) throw new Error(`No runtime is registered for provider ${definition.provider}`);
