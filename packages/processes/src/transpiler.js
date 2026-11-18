@@ -1,4 +1,4 @@
-import { normalizeGraph as normalizeStoredGraph } from './compiler-core.js';
+import { normalizeGraph as normalizeStoredGraph, normalizeRecord } from './compiler-core.js';
 import { normalizeRowRelativeFieldRefs, orientChildrenEdgesChildFirst } from '@perigram/cts';
 
 const CANVAS_RECORD_KEYS = {
@@ -331,6 +331,4 @@ function sortObject(value) {
   return Object.fromEntries(Object.keys(value).sort().map(key => [key, sortObject(value[key])]));
 }
 
-function normalizeRecord(value) {
-  return value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
-}
+
