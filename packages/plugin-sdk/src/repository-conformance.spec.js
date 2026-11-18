@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseListing } from './listing.js';
@@ -83,6 +83,21 @@ describe('repository plugin conformance', () => {
     const services = implementations[pluginId] || {};
     expect(Object.keys(services).sort()).toEqual(declared);
     for (const id of declared) expect(typeof services[id], `${pluginId}.${id}`).toBe('function');
+  });
+
+  it('packages every built-in listing and runtime source in the catalog seed image', () => {
+    const dockerfile = readFileSync(resolve(repositoryRoot, 'deploy/seed.Dockerfile'), 'utf8');
+    for (const { pluginId, listing } of listings) {
+      const sourceTreeCopy = `COPY workers/${pluginId} ./workers/${pluginId}`;
+      const listingCopy = `COPY workers/${pluginId}/listing.json ./workers/${pluginId}/listing.json`;
+      expect(
+        dockerfile.includes(sourceTreeCopy) || dockerfile.includes(listingCopy),
+        `${pluginId} listing must be present in the seed image`
+      ).toBe(true);
+      if ((listing.declarations.runtimes || []).length) {
+        expect(dockerfile, `${pluginId} runtime sources must be present in the seed image`).toContain(sourceTreeCopy);
+      }
+    }
   });
 
   it('covers every installed plugin listing in the repository', () => {
