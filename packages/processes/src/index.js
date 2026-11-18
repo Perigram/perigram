@@ -156,7 +156,7 @@ export {
   PROCESS_GRAPH_PROVIDER,
   PROCESS_GRAPH_NODE_VERSION,
   PROCESS_GRAPH_METADATA_KEY,
-  processDefinitionToGraphDocument
+  createProcessGraphDocument
 } from './process-graph.js';
 
 export { PROCESS_PORT_COMPATIBILITY_PROFILE, registerProcessPortCompatibilityProfile } from './port-compatibility.js';
