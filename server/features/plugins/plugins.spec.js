@@ -250,7 +250,7 @@ describe('managed plugin runtime package loading', () => {
       config: { mode: 'compact' },
       inputs: { source: 'hello' },
       invocationPath,
-      context: { executionId: 'execution-1' }
+      context: { executionId: 'execution-1', nodeInvocations: [] }
     }, AUTH);
 
     expect(result).toEqual({ value: 'managed-result' });
