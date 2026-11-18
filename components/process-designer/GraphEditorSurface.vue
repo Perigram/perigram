@@ -47,6 +47,7 @@
         <div class="flex h-full min-h-0 flex-col overflow-y-auto p-3">
           <GraphDocumentInspector
             :node="selectedNode"
+            :node-output="previewResult?.nodeOutputs?.[selectedNode?.id] || null"
             :boundary-declaration="selectedBoundaryDeclaration"
             :graph-documents="graphDocuments"
             :graph-documents-loading="graphDocumentsLoading"

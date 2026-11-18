@@ -92,6 +92,12 @@
             class="w-full"
             @update:model-value="value => updateConfigField(field.id, value)"
           />
+          <TemplateValuesControl
+            v-else-if="field.schema.semantic?.kind === 'documents.template-values'"
+            :tokens="templateTokens"
+            :model-value="configFieldValue(field)"
+            @update:model-value="value => updateConfigField(field.id, value)"
+          />
           <TypedValueControl
             v-else
             :base="configBase(field.schema)"
@@ -135,6 +141,7 @@ import ValueSelect from '~/components/shared/ValueSelect.vue';
 import ToggleSwitch from 'primevue/toggleswitch';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import TypedValueControl from '~/components/process-designer/TypedValueControl.vue';
+import TemplateValuesControl from '~/components/process-designer/TemplateValuesControl.vue';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
@@ -149,7 +156,8 @@ const props = defineProps({
   graphDocumentsError: { type: String, default: '' },
   graphRevisions: { type: Array, default: () => [] },
   graphRevisionsLoading: { type: Boolean, default: false },
-  graphRevisionsError: { type: String, default: '' }
+  graphRevisionsError: { type: String, default: '' },
+  nodeOutput: { type: [Object, String, Number, Boolean], default: null }
 });
 const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration', 'hydrate-graph', 'select-graph-document']);
 const configDraft = ref({});
@@ -168,6 +176,10 @@ const label = ref('');
 const selectedGraphId = ref('');
 const selectedRevisionId = ref('');
 const isGraphInvocation = computed(() => props.node?.data?.operation?.id === 'perigram.core.use-graph');
+const templateTokens = computed(() => {
+  const output = props.nodeOutput?.value ?? props.nodeOutput;
+  return Array.isArray(output?.meta?.tokens) ? output.meta.tokens : [];
+});
 const configFields = computed(() => Object.entries(props.node?.data?.definition?.configuration?.properties || {})
   .map(([id, schema]) => ({
     id,

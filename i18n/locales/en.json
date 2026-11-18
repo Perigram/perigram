@@ -3545,7 +3545,8 @@
     "graphInputInvalid": "The value does not match this input's declared type",
     "selectFile": "Select a file",
     "noFilesAvailable": "No readable files are available",
-    "filesCouldNotLoad": "Readable files could not be loaded"
+    "filesCouldNotLoad": "Readable files could not be loaded",
+    "templateValuesNeedPreview": "Run preview after connecting a template to discover its fields."
   },
   "generatedScreen": {
     "home": "Home",
