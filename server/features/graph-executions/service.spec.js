@@ -209,6 +209,19 @@ describe('graph execution service', () => {
     expect(result).toEqual({ graphDocument: childDocument, graph: graph() });
   });
 
+  it('refuses a graph document whose saved payload has a different pinned revision', async () => {
+    graphService.processList.mockResolvedValue([{
+      _id: 'child-graph-instance',
+      fields: { graphId: 'graph.document' },
+      payload: { fileId: 'child-graph-file' }
+    }]);
+    const otherRevision = { ...graph(), revision: 'rev-02' };
+    mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(otherRevision)));
+
+    await expect(graphExecutionsService.resolvePinnedGraph('graph.document', 'rev-01', auth))
+      .rejects.toMatchObject({ statusCode:  404 });
+  });
+
   it('does not resolve a pinned graph revision outside the caller readable set', async () => {
     graphService.processList.mockResolvedValue([]);
 
