@@ -15,7 +15,7 @@ import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { getEntityFieldAccessPolicy } from '~/shared/field-access-policies.js';
 import {
   compileProcessDefinition,
-  processDefinitionToGraphDocument,
+  createProcessGraphDocument,
   constructionInputsForContract,
   diffProcessContracts,
   hasCanonicalProcessSource,
@@ -252,7 +252,7 @@ function assertGraphIntegrity(data) {
   // persistence boundary; this catches invalid operation identities,
   // endpoints, ports, ids, and non-JSON configuration before storage.
   try {
-    processDefinitionToGraphDocument(data);
+    createProcessGraphDocument(data);
   } catch (error) {
     throw createError({
       statusCode: 400,
@@ -651,7 +651,7 @@ async function evaluateDataflow(definition, payload = {}, { auth, actor, domain 
   // Durable traversal consumes the same canonical graph document as graph
   // authoring and validation. The persisted process-definition envelope stays
   // legacy-shaped; this projection is in-memory and does not rewrite records.
-  const canonicalGraph = processDefinitionToGraphDocument(runnableDefinition);
+  const canonicalGraph = createProcessGraphDocument(runnableDefinition);
   const run = createProcessRun(canonicalGraph, payload.trigger || {}, {
     processDefinitionId: runnableDefinition._id || runnableDefinition.id,
     context: { inputs: payload.inputs || {}, actor: actor || buildRunActor(auth, resolveOrganizationId(auth)) }
@@ -737,7 +737,7 @@ export async function resumeParkedRun(record) {
   const auth = await resolveRunActor(record.run?.context?.actor, record.organizationId);
   const domain = await getProjectedDomain(record.organizationId);
   const base = manualRunEnvironment(definitionLike, auth, domain);
-  const canonicalGraph = processDefinitionToGraphDocument(definitionLike);
+  const canonicalGraph = createProcessGraphDocument(definitionLike);
   const resumedRun = {
     ...record.run,
     context: { ...(record.run?.context || {}), actor: auth }
@@ -790,7 +790,7 @@ export async function continueActionFromTask({ taskRunId, taskResult = {} } = {}
     ...run,
     context: { ...(run?.context || {}), actor: executionAuth }
   };
-  const canonicalGraph = processDefinitionToGraphDocument(definition);
+  const canonicalGraph = createProcessGraphDocument(definition);
   const resumed = await resumeProcessRun(resumedRun, canonicalGraph, {
     output: projectedCompletionOutput(snapshot, taskResult)
   }, {
@@ -960,7 +960,7 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
   // produced by the evaluator are converted to their serializable tag here —
   // the single emission conversion point shared with any runtime result
   // emission (see packages/processes/src/missing-field.js).
-  const canonicalGraph = processDefinitionToGraphDocument(previewDefinition);
+  const canonicalGraph = createProcessGraphDocument(previewDefinition);
   return serializeProcessResult(await previewProcessDataflow(canonicalGraph, { trigger, inputs }, {
     targetNodeId: nodeId,
     previewLimit: 100,
