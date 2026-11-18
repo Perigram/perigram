@@ -3,8 +3,7 @@ import { useGraphDocumentSession } from './useGraphDocumentSession.js';
 import {
   PROCESS_NODE_CATALOG,
   PROCESS_PROCEDURAL_PROVIDER,
-  processDefinitionToGraphDocument,
-  graphDocumentToProcessDefinition,
+  createProcessGraphDocument,
   createProcessGraphNodeDefinition,
   createProcessGraphNodeResolver,
   createProcessProceduralNodeResolver,
@@ -192,7 +191,7 @@ describe('useGraphDocumentSession', () => {
   });
 
   it('resolves canonical process operations through the shared plugin-SDK node contracts', () => {
-    const graph = processDefinitionToGraphDocument({
+    const graph = createProcessGraphDocument({
       id: 'process.shared-node',
       dataflowVersion: 4,
       processNodes: {
@@ -215,7 +214,7 @@ describe('useGraphDocumentSession', () => {
   });
 
   it('loads durable control operations through the shared process node registry', () => {
-    const graph = processDefinitionToGraphDocument({
+    const graph = createProcessGraphDocument({
       id: 'process.shared-control',
       dataflowVersion: 4,
       processNodes: {
@@ -242,15 +241,15 @@ describe('useGraphDocumentSession', () => {
       .find(item => item.operation?.id === 'control.if');
     expect(controlItem.config).toEqual({ kind: 'control.if' });
     const added = session.addNode(controlItem);
-    const restored = graphDocumentToProcessDefinition(session.serializeGraph());
-    expect(restored.processNodes[added.id]).toMatchObject({
-      id: added.id,
-      kind: 'control.if'
+    const serialized = session.serializeGraph();
+    expect(serialized.nodes.find(node => node.id === added.id)).toMatchObject({
+      operation: { provider: 'perigram.processes', id: 'control.if', version: '1' },
+      config: { kind: 'control.if' }
     });
   });
 
   it('does not execute durable process control nodes in procedural graph preview', async () => {
-    const graph = processDefinitionToGraphDocument({
+    const graph = createProcessGraphDocument({
       id: 'process.preview-boundary',
       dataflowVersion: 4,
       processNodes: {
