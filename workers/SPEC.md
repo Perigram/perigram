@@ -54,7 +54,7 @@ in the root [SPEC.md](../SPEC.md) §20.
 
 - `NESTING_WORKER_URL` is the full endpoint including `/nest` (default
   `http://nesting-worker:8000/nest`; a base URL 404s).
-- `POST /nest`: `items[]` (`id`, `coords`, `handles`, `count`) + `params`
+- `POST /nest`: `items[]` (`id`, `source_id`, `coords`, `handles`, `count`) + `params`
   (`width`, `height`, `space`, `sheetCount`, optional `sheet_polygon` as a
   flat outer-ring list or `{ outer, inner }`; inner rings become
   container holes).
@@ -82,7 +82,7 @@ in the root [SPEC.md](../SPEC.md) §20.
 
 | Path | Homes |
 |---|---|
-| `facade/` | entry `index.js`; `services.js` (the seven services); `nesting-projections.js` (value→value purity); `occs/` the domain's single geometry engine — executor services and browser surfaces share it, and it is served statically; `surfaces/` + `surfaces/lib/` editor and preview modules; `vendor/` DXF engines; `assets/vendor/{three,clipper2}` |
+| `facade/` | entry `index.js`; `services.js` (the six services); `nesting-projections.js` (value→value purity); `occs/` the domain's single geometry engine — executor services and browser surfaces share it, and it is served statically; `surfaces/` + `surfaces/lib/` editor and preview modules; `vendor/` DXF engines; `assets/vendor/{three,clipper2}` |
 | `documents/` | entry, services, text/csv surfaces, vendored editor runtimes |
 | `tech-drawing/` | declarations listing + sketch and DXF editor surfaces + the vendored CadCraft edition |
 | `nesting/` | installable generic Nesting plugin (`listing.json`, managed `runtime/server.mjs`) plus isolated `worker_service.py`; `core/nesting_input_builder.py`, `core/geometry_utils.py`; `jagua-rs/` + `lbf` |

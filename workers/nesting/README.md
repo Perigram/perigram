@@ -31,7 +31,7 @@ The platform-owned capability adapter reaches `NESTING_WORKER_URL` — the full 
   "items": [
     {
       "id": 1,
-      "design_id": "...",
+      "source_id": "...",
       "coords": [[x,y], ...],
       "handles": ["..."],
       "count": 5
@@ -56,8 +56,7 @@ Standard `lbf` JSON output containing layouts and placed items with transformati
 When no item passes geometry validation, the service still returns
 HTTP 200 with `{ "status": "error", "message": "No valid items to nest
 (all items failed geometry validation)", "solution": { "layouts": [] } }`;
-the facade executor branches on `status === "error"` and fails its
-service call with the message.
+the Nesting managed runtime converts `status === "error"` into a 502 operation failure.
 
 `sheet_polygon` is optional. It may be omitted for rectangular stock, provided
 as a legacy outer ring list, or provided as `{ outer, inner }`. Inner rings are

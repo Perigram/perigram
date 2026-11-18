@@ -202,14 +202,14 @@ providers.
   and every declared construction/service. Verify each workflow and close
   behavior/spec gaps.
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
-  hosting. Current inventory: 7 of 28 Documents services and 2 of 7 Facade services remain
+  hosting. Current inventory: 7 of 28 Documents services and 2 of 6 Facade services remain
   `mode: endpoint`; The independent Nesting plugin owns `nesting-solve` in its managed server runtime
   through the platform-owned `nesting.solve` capability; Facade requires Nesting
   and adapts OCCS geometry into generic source parts. Pure
   `bake`, `match-sheet`, `construct-sheet`, `generate-sheet-dxf`, and all
   declared Documents `documents-shared` operations run in their shared
-  browser/server runtimes; `nesting-solve` runs server-only through the managed
-  host capability. `nesting-parts` remains a synchronous endpoint-backed
+  browser/server runtimes; the Nesting plugin's `nesting-solve` runs server-only
+  through the managed host capability. `nesting-parts` remains a synchronous endpoint-backed
   projection pending a provider-compatible synchronous host boundary. Classify each operation by execution target: browser-local
   pure compute, platform-managed server compute, or explicit remote
   integration. Move local-eligible operations behind the shared

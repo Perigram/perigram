@@ -77,6 +77,8 @@ services:
         condition: service_completed_successfully
       livekit:
         condition: service_started
+      nesting-worker:
+        condition: service_started
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: sh -c 'npm run dev -- --host 0.0.0.0 $( [ "$NUXT_DEV_HTTPS" = "true" ] && echo --https )'
@@ -199,9 +201,6 @@ services:
       - .:/src
     environment:
       - FACADE_EXECUTOR_PORT=8790
-      - NESTING_WORKER_URL=http://nesting-worker:8000/nest
-    depends_on:
-      - nesting-worker
     command: node workers/facade/index.js
     restart: unless-stopped
 
