@@ -7,7 +7,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, shallowRef, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, shallowRef, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useInstancesStore } from '~/stores/instances';
 import { instancePayloadFileUrl, parsePluginPreviewPayload } from './file-preview-contract.js';
@@ -43,6 +43,8 @@ const { t, te, locale } = useI18n();
 const mounted = shallowRef(null);
 const payloadDocument = ref(null);
 let payloadToken = 0;
+let surfaceToken = 0;
+let disposed = false;
 
 async function loadPayload() {
   const token = ++payloadToken;
@@ -51,28 +53,50 @@ async function loadPayload() {
   if (!url) return;
   try {
     const text = await $fetch(url, { responseType: 'text' });
-    if (token !== payloadToken) return;
+    if (disposed || token !== payloadToken) return;
     payloadDocument.value = parsePluginPreviewPayload(text, props.record?.payload?.mime);
   } catch {
     // A payload that will not parse leaves the module the record alone.
   }
 }
 
-onMounted(async () => {
-  if (!isSupportedSurfaceContract(props.preview?.surfaceContract) || !props.preview?.url) return;
-  loadPayload();
-  try {
-    const [{ surfaceHostContext }, module] = await Promise.all([
-      import('~/components/generated/remote-surface-mount.js'),
-      import(/* @vite-ignore */ props.preview.url)
-    ]);
-    const createSurface = module.default;
-    if (typeof createSurface !== 'function') return;
-    mounted.value = createSurface(surfaceHostContext({ t, te, locale }, props.preview.surfaceContract));
-  } catch {
-    // Unreachable executor: the generic fallback keeps rendering.
-  }
-});
+watch(
+  () => [
+    props.record?.payload?.fileId,
+    props.record?.payload?.mime,
+    props.record?.payload?.revision,
+    props.record?.updatedAt
+  ],
+  loadPayload,
+  { immediate: true }
+);
 
-watch(() => [props.record?.payload?.fileId, props.record?.payload?.mime], loadPayload);
+watch(
+  () => [props.preview?.url, props.preview?.surfaceContract],
+  async ([url, surfaceContract]) => {
+    const token = ++surfaceToken;
+    mounted.value = null;
+    if (!isSupportedSurfaceContract(surfaceContract) || !url) return;
+    try {
+      const [{ surfaceHostContext }, module] = await Promise.all([
+        import('~/components/generated/remote-surface-mount.js'),
+        import(/* @vite-ignore */ url)
+      ]);
+      if (disposed || token !== surfaceToken) return;
+      const createSurface = module.default;
+      if (typeof createSurface !== 'function') return;
+      mounted.value = createSurface(surfaceHostContext({ t, te, locale }, surfaceContract));
+    } catch {
+      // Unreachable executor: the generic fallback keeps rendering.
+    }
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  disposed = true;
+  payloadToken += 1;
+  surfaceToken += 1;
+  mounted.value = null;
+});
 </script>
