@@ -4,10 +4,11 @@ The Documents plugin owns office/media file formats, typed document values,
 template engines, and editor/preview surfaces. The platform owns graph
 authoring, execution policy, file authorization, and Bake/Export destinations.
 
-- Listing: `listing.json` (v31). Its `documents-shared` runtime entry is
-  `runtime/shared.mjs`; provider definitions are derived from the listing's
-  service signatures, palette metadata, and execution declarations. There is
-  no second hand-authored graph operation catalog.
+- Listing: `listing.json` (v33). Its `documents-shared` runtime entry is the
+  built `runtime/shared-bundle.mjs`, produced from `runtime/shared.mjs` by
+  `npm run documents:runtime:build`; provider definitions are derived from
+  the listing's service signatures, palette metadata, and execution
+  declarations. There is no second hand-authored graph operation catalog.
 - Browser graph runtime: the plugin Worker loads the pinned runtime assets.
   Pure document IR, Markdown parsing, Markdown/XLSX template fill, and
   file/table reads execute through this provider. File reads request the

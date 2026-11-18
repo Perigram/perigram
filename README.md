@@ -51,6 +51,7 @@ Install host dependencies with `npm ci`, then run:
 npm test -- --run
 npx vitest run --config vitest.ssr.config.js
 npm run framework:validate
+node scripts/check-arch.js
 npm run docs:validate
 npm run plugin-deps:check
 E2E_BASE_URL=http://localhost:3001 npm run test:e2e
@@ -79,11 +80,13 @@ Optional integrations can remain unset. Keep credentials in Forgejo secrets, nev
 
 - `SPEC.md` — product and architecture contracts.
 - `TODO.md` — active implementation plan.
+- `TESTING.md` — test-layer acceptance policy and CI scope.
 - `packages/` — shared contracts, type system, process compiler and plugin SDK.
 - `server/` — API, persistence and runtime services.
 - `workers/` — plugin declarations and executors.
 - `components/`, `pages/`, `composables/`, `stores/` — Nuxt application.
 - `e2e/`, `test-data/`, `test-tools/` — tests and fixtures.
+- `scripts/` — repository guards and maintenance entry points ([inventory](./scripts/README.md)).
 
 Start with the [package overview](./packages/README.md), [server overview](./server/README.md), and [worker overview](./workers/README.md). The [cluster infrastructure contract](./k8s/README.md) and [repository agent assets](./.codex/README.md) document their respective areas.
 

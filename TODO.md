@@ -915,6 +915,19 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   process dataflow evaluator, duplicate preview path, and legacy runtime
   readers/writers. No permanent dual-format mode.
 
+### Agent Notes (2026-11-18, legacy process stack inventory)
+
+- Runtime process execution already consumes `createProcessGraphDocument`; the
+  reverse adapter is deleted. The remaining migration source is the persisted
+  canvas format (`data.graph` nodes/edges, `data:`/`control:` handles,
+  `dataflowVersion` 4) and its machinery in `packages/processes`: process-graph,
+  transpiler, normalization, compiler-core, evaluator, ports, and types
+  (≈4.4k maintained lines).
+- G10 stays open: an inventory of stored definitions, the semantic mapping,
+  dry-run/backup, fixture-corpus comparison, and owner acceptance need the live
+  database and a running application stack. None of those were available in
+  this session.
+
 ### Agent Notes (2026-11-17, atomic graph Commit)
 
 - The `commitProposal` and `commitOutput` paths revalidate the saved graph and preview read set, apply the authorized exact-instance patch, and insert the append-only `graph-execution` evidence inside one Mongo snapshot transaction.

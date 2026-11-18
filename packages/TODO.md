@@ -36,11 +36,10 @@
 
 - None.
 
-- [ ] WAITING — owner verification: read the 8 packages READMEs (root,
-  processes, cts, core, workflows, devtools, mcp, plugin-sdk);
-  queryDocs/query_docs dead at every site, processes migration residue +
-  2 dead script refs dropped, cts folded to a module map, workflows
-  deadline citation repointed to server/core/machines.
+- [ ] WAITING — owner verification: read the packages root README and the
+  four package READMEs (core, cts, processes, plugin-sdk); queryDocs/query_docs
+  dead at every site, processes migration residue + 2 dead script refs dropped,
+  cts folded to a module map.
 
 ### Agent Notes (2026-10-24)
 
