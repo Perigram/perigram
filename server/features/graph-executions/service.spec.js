@@ -126,7 +126,7 @@ describe('graph execution service', () => {
     payload: { fileId: 'graph-file-1' }
   };
   const executionService = { create: vi.fn(), processList: vi.fn(), processGetById: vi.fn() };
-  const graphService = { processGetById: vi.fn() };
+  const graphService = { processGetById: vi.fn(), processList: vi.fn() };
   const dataService = { processList: vi.fn(), processGetById: vi.fn(), patch: vi.fn() };
   const payloadService = { replacePayload: vi.fn(), createForHttp: vi.fn(), patch: vi.fn(), linkRelationForHttp: vi.fn() };
   const partService = {
@@ -153,6 +153,7 @@ describe('graph execution service', () => {
     session.withTransaction.mockImplementation(async callback => await callback());
     mocks.connectDB.mockResolvedValue({ client: { startSession: () => session } });
     graphService.processGetById.mockResolvedValue(graphDocument);
+    graphService.processList.mockResolvedValue([]);
     executionService.create.mockResolvedValue({ _id: 'execution-instance-1' });
     executionService.processList.mockResolvedValue([]);
     executionService.processGetById.mockResolvedValue(null);
@@ -188,6 +189,44 @@ describe('graph execution service', () => {
       file: { path: 'exports/document.txt', fileId: 'baked-file-1', mime: 'text/plain', size: 18, revision: 1 }
     });
     mocks.retractBakedFile.mockResolvedValue({ success: true });
+  });
+
+  it('resolves a pinned child graph from an authorized saved revision', async () => {
+    const childDocument = {
+      _id: 'child-graph-instance',
+      organizationId: 'org-1',
+      fields: { graphId: 'graph.document' },
+      payload: { fileId: 'child-graph-file' }
+    };
+    graphService.processList.mockResolvedValue([childDocument]);
+    mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
+
+    const result = await graphExecutionsService.resolvePinnedGraph('graph.document', 'rev-01', auth);
+
+    expect(graphService.processList).toHaveBeenCalledWith({ graphId: 'graph.document', limit: 1000 }, auth);
+    expect(mocks.findFileMeta).toHaveBeenCalledWith('child-graph-file', 'files');
+    expect(mocks.assertFileReadAccess).toHaveBeenCalledWith({ organizationId: 'org-1' }, auth);
+    expect(result).toEqual({ graphDocument: childDocument, graph: graph() });
+  });
+
+  it('does not resolve a pinned graph revision outside the caller readable set', async () => {
+    graphService.processList.mockResolvedValue([]);
+
+    await expect(graphExecutionsService.resolvePinnedGraph('graph.document', 'rev-01', auth))
+      .rejects.toMatchObject({ statusCode: 404 });
+    expect(mocks.findFileMeta).not.toHaveBeenCalled();
+  });
+
+  it('refuses ambiguous or excessive pinned graph candidate sets', async () => {
+    graphService.processList.mockResolvedValue(Array.from({ length: 1000 }, (_, index) => ({
+      _id: `graph-${index}`,
+      fields: { graphId: 'graph.document' },
+      payload: { fileId: `graph-file-${index}` }
+    })));
+
+    await expect(graphExecutionsService.resolvePinnedGraph('graph.document', 'rev-01', auth))
+      .rejects.toMatchObject({ statusCode: 409 });
+    expect(mocks.findFileMeta).not.toHaveBeenCalled();
   });
 
   it('lists only authorized pinned graph collection outputs from saved graph revisions', async () => {
