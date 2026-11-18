@@ -66,7 +66,7 @@ boundary node. Use Graph nodes pin an immutable graph revision.
   path. Connected required inputs fail when their source output is absent or
   undefined; non-nullable inputs reject null values and null defaults, and primitive/record bases are checked against runtime values. The same execution id is exposed to every node invocation and
   the finalizer. It returns graph outputs and per-node outputs for host preview
-  channels.
+  channels. Hosts can select `executionTarget: 'browser' | 'server'`; server evaluation requires every operation to explicitly declare server support. `context.signal` cooperatively cancels provider resolution and node execution, and the execution finalizer still runs on cancellation.
 - `createGraphExecutionRecord`, `validateGraphExecutionRecord`, and
   `assertValidGraphExecutionRecord` own immutable, versioned execution
   envelopes with pinned graph revisions, inputs, outputs, diagnostics,

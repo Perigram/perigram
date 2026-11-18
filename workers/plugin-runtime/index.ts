@@ -33,7 +33,16 @@ async function readResponses() {
     for (const line of lines) {
       let message;
       try { message = JSON.parse(line); } catch { continue; }
-      if (message.type === 'cancel') controller.abort();
+      if (message.type === 'cancel') {
+        const error = new Error(message.reason || 'Managed plugin execution was cancelled');
+        error.name = 'AbortError';
+        error.code = 'PLUGIN_EXECUTION_ABORTED';
+        controller.abort(error);
+        for (const [callId, deferred] of pending) {
+          pending.delete(callId);
+          deferred.reject(error);
+        }
+      }
       if (message.type !== 'capability-result') continue;
       const deferred = pending.get(message.callId);
       if (!deferred) continue;
@@ -120,16 +129,16 @@ async function claimNext() {
 
 async function executeRun(run) {
   const claimToken = run.claimToken;
-  let child = null;
+  let childControl = null;
   let heartbeatError = null;
   const heartbeat = setInterval(async () => {
     try {
       await postJson(`/api/tasks/${run._id}/heartbeat`, { claimToken });
     } catch (error) {
       heartbeatError = error;
-      try { child?.kill('SIGKILL'); } catch {}
+      try { childControl?.cancel('Task claim was lost or cancelled'); } catch {}
     }
-  }, 20_000);
+  }, 5_000);
 
   try {
     const packageResponse = await fetch(
@@ -138,7 +147,10 @@ async function executeRun(run) {
     );
     if (!packageResponse.ok) throw new Error(await packageResponse.text() || `Package read failed: ${packageResponse.status}`);
     const packageData = (await packageResponse.json()).package;
-    const value = await executeIsolated(packageData, run, childRef => { child = childRef; });
+    const value = await executeIsolated(packageData, run, control => {
+      childControl = control;
+      if (heartbeatError) control.cancel('Task claim was lost or cancelled');
+    });
     if (heartbeatError) throw heartbeatError;
     await postJson(`/api/tasks/${run._id}/complete`, {
       claimToken,
@@ -154,7 +166,7 @@ async function executeRun(run) {
     console.error(`run ${run._id} failed: ${error?.message || error}`);
   } finally {
     clearInterval(heartbeat);
-    try { child?.kill('SIGKILL'); } catch {}
+    try { childControl?.kill(); } catch {}
   }
 }
 
@@ -213,9 +225,15 @@ async function executeIsolated(packageData, run, setChild) {
     const reader = child.stdout.pipeThrough(new TextDecoderStream()).getReader();
     let buffer = '';
     let resultMessage = null;
-    const timeout = setTimeout(() => {
-      try { child.kill('SIGKILL'); } catch {}
-    }, PLUGIN_RUNTIME_MAX_EXECUTION_MS);
+    let timedOut = false;
+    let killTimer = null;
+    const cancel = reason => {
+      if (killTimer) return;
+      void stdin.write(new TextEncoder().encode(JSON.stringify({ type: 'cancel', reason }) + '\n')).catch(() => {});
+      killTimer = setTimeout(() => { try { child.kill('SIGKILL'); } catch {} }, 1000);
+    };
+    const timeout = setTimeout(() => { timedOut = true; cancel('Managed plugin execution deadline exceeded'); }, PLUGIN_RUNTIME_MAX_EXECUTION_MS);
+    setChild({ cancel, kill() { try { child.kill('SIGKILL'); } catch {} } });
 
     try {
       while (true) {
@@ -252,11 +270,13 @@ async function executeIsolated(packageData, run, setChild) {
       }
       const status = await child.status;
       const stderr = await stderrPromise;
+      if (timedOut) throw new Error('Managed plugin execution deadline exceeded');
       if (status.code !== 0) throw new Error(stderr.trim() || `Plugin runtime exited with code ${status.code}`);
       if (!resultMessage) throw new Error('Plugin runtime exited without a result');
       return resultMessage.value;
     } finally {
       clearTimeout(timeout);
+      if (killTimer) clearTimeout(killTimer);
       try { stdin.close(); } catch {}
     }
   } finally {

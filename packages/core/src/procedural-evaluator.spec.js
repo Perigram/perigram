@@ -238,6 +238,30 @@ describe('procedural graph preview evaluator', () => {
   });
 
 
+  it('refuses an already-aborted run and still finalizes it', async () => {
+    const controller = new AbortController(); controller.abort('cancelled before start');
+    const resolveNodeDefinition = vi.fn(); const finalizeExecution = vi.fn();
+    await expect(evaluateProceduralGraph({ graph: graph(), context: { signal: controller.signal, finalizeExecution }, resolveNodeDefinition, executeNode: vi.fn() })).rejects.toMatchObject({ name: 'AbortError', code: 'GRAPH_EXECUTION_ABORTED' });
+    expect(resolveNodeDefinition).not.toHaveBeenCalled(); expect(finalizeExecution).toHaveBeenCalledTimes(1);
+  });
+
+  it('interrupts a pending node executor and does not start later nodes', async () => {
+    const controller = new AbortController(); let started; const entered = new Promise(resolve => { started = resolve; });
+    const executeNode = vi.fn(() => { started(); return new Promise(() => {}); });
+    const pending = evaluateProceduralGraph({ graph: graph(), context: { signal: controller.signal }, resolveNodeDefinition: () => doubleDefinition, executeNode });
+    await entered; controller.abort('cancelled during execution');
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError', code: 'GRAPH_EXECUTION_ABORTED' });
+    expect(executeNode).toHaveBeenCalledTimes(1);
+  });
+
+  it('requires server target declarations and passes the selected target to the adapter', async () => {
+    const executeNode = vi.fn((_definition, { inputs, target }) => { expect(target).toBe('server'); return { result: inputs.value * 2 }; });
+    await expect(evaluateProceduralGraph({ graph: graph(), inputBindings: { number: 2 }, executionTarget: 'server', resolveNodeDefinition: () => ({ ...doubleDefinition, execution: { kind: 'pure', targets: ['browser'] } }), executeNode })).rejects.toThrow(/does not support server execution/);
+    expect(executeNode).not.toHaveBeenCalled();
+    const result = await evaluateProceduralGraph({ graph: graph(), inputBindings: { number: 2 }, executionTarget: 'server', resolveNodeDefinition: () => ({ ...doubleDefinition, execution: { kind: 'pure', targets: ['server'] } }), executeNode });
+    expect(result.outputs).toEqual({ result: 4 });
+  });
+
   it('returns an empty diagnostics list on success', async () => {
     const result = await evaluateProceduralGraph({
       graph: graph(),

@@ -23,15 +23,18 @@ export async function evaluateProceduralGraph({
   resolveGraph,
   context = {},
   mode = 'preview',
+  executionTarget = 'browser',
   maxGraphDepth = 32
 } = {}) {
   if (mode !== 'preview') throw new Error('The procedural evaluator currently supports preview mode only');
+  if (!['browser', 'server'].includes(executionTarget)) throw new Error(`Unsupported graph execution target: ${executionTarget}`);
   if (typeof resolveNodeDefinition !== 'function') throw new Error('resolveNodeDefinition callback is required');
   if (typeof executeNode !== 'function') throw new Error('executeNode callback is required');
   const readSetRecorder = createGraphReadSetRecorder(context?.readSetBoundary || {});
   const executionId = executionIdFor(context);
   let primaryError = null;
   try {
+    throwIfAborted(context?.signal);
     return await evaluateGraph({
       source,
       inputBindings,
@@ -41,6 +44,7 @@ export async function evaluateProceduralGraph({
       context: { ...context, executionId, readSet: readSetRecorder },
       readSetRecorder,
       stack: [],
+      executionTarget,
       maxGraphDepth
     });
   } catch (error) {
@@ -75,6 +79,7 @@ export async function evaluateProceduralGraph({
 }
 
 async function evaluateGraph(options) {
+  throwIfAborted(options.context?.signal);
   const graph = assertValidGraphDocument(options.source);
   const graphKey = `${graph.id}@${graph.revision}`;
   if (options.stack.includes(graphKey)) {
@@ -102,6 +107,7 @@ async function evaluateGraph(options) {
   const seenOutputs = new Set();
 
   for (const nodeId of order) {
+    throwIfAborted(options.context?.signal);
     const node = nodes.get(nodeId);
     let phase = 'boundary';
     try {
@@ -145,7 +151,8 @@ async function evaluateGraph(options) {
     if (operationId === GRAPH_INVOKE_OPERATION) {
       phase = 'resolve-subgraph';
       if (typeof options.resolveGraph !== 'function') throw new Error('Use Graph requires a resolveGraph callback');
-      const child = await options.resolveGraph(node.config.graphId, node.config.revision);
+      const child = await awaitWithSignal(options.resolveGraph(node.config.graphId, node.config.revision), options.context?.signal);
+      throwIfAborted(options.context?.signal);
       if (!child) throw new Error(`Pinned subgraph ${node.config.graphId}@${node.config.revision} is unavailable`);
       phase = 'validate-subgraph';
       const childGraph = assertValidGraphDocument(child);
@@ -183,7 +190,8 @@ async function evaluateGraph(options) {
     }
 
     phase = 'resolve-definition';
-    const definition = await options.resolveNodeDefinition(node.operation, { node, config: node.config, context: options.context });
+    const definition = await awaitWithSignal(options.resolveNodeDefinition(node.operation, { node, config: node.config, context: options.context }), options.context?.signal);
+    throwIfAborted(options.context?.signal);
     if (!definition) {
       throw new Error(`Node definition unavailable: ${node.operation.provider}/${node.operation.id}@${node.operation.version}`);
     }
@@ -193,6 +201,13 @@ async function evaluateGraph(options) {
       String(definition.version) !== String(node.operation.version)
     ) {
       throw new Error(`Node resolver returned a mismatched definition for ${node.id}`);
+    }
+    const declaredTargets = definition.execution?.targets;
+    if (options.executionTarget === 'server' && (!Array.isArray(declaredTargets) || !declaredTargets.includes('server'))) {
+      throw new Error(`Node ${node.id} does not support server execution; declare execution.targets including server`);
+    }
+    if (Array.isArray(declaredTargets) && !declaredTargets.includes(options.executionTarget)) {
+      throw new Error(`Node ${node.id} does not support ${options.executionTarget} execution`);
     }
     const kind = definition.execution?.kind;
     if (!['pure', 'read'].includes(kind)) {
@@ -213,13 +228,15 @@ async function evaluateGraph(options) {
       if (value !== undefined) inputs[port.id] = value;
     }
     phase = 'execute';
-    const result = await options.executeNode(definition, {
+    const result = await awaitWithSignal(options.executeNode(definition, {
       node,
       config: node.config,
       inputs,
       context: options.context,
-      mode: 'preview'
-    });
+      mode: 'preview',
+      target: options.executionTarget
+    }), options.context?.signal);
+    throwIfAborted(options.context?.signal);
     phase = 'validate-outputs';
     if (!isRecord(result)) throw new Error(`Node ${node.id} executor must return an object keyed by output port id`);
     const declaredOutputs = new Set((definition.outputs || []).map(port => port.id));
@@ -262,6 +279,22 @@ async function evaluateGraph(options) {
   };
 }
 
+
+function awaitWithSignal(value, signal) {
+  if (!signal) return Promise.resolve(value);
+  if (signal.aborted) return Promise.reject(abortError(signal));
+  return new Promise((resolve, reject) => {
+    const cleanup = () => signal.removeEventListener('abort', onAbort);
+    const onAbort = () => { cleanup(); reject(abortError(signal)); };
+    signal.addEventListener('abort', onAbort, { once: true });
+    Promise.resolve(value).then(result => { cleanup(); resolve(result); }, error => { cleanup(); reject(error); });
+  });
+}
+function abortError(signal) {
+  const error = new Error(signal.reason == null ? 'Graph execution was cancelled' : String(signal.reason));
+  error.name = 'AbortError'; error.code = 'GRAPH_EXECUTION_ABORTED'; return error;
+}
+function throwIfAborted(signal) { if (signal?.aborted) throw abortError(signal); }
 
 function asError(error) {
   if (error instanceof Error && Object.isExtensible(error)) return error;
