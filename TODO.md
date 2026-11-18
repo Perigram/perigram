@@ -8076,3 +8076,16 @@ template fill nodes expose discovered `meta.tokens`, and the graph inspector
 renders per-token scalar inputs into `configuration.values`. Remaining HAG
 acceptance covers missing/unknown token behavior, XLSX section validation,
 and parity/round-trip against the legacy construction form.
+
+### Agent Notes (2026-11-18, managed process-preview dispatch)
+
+Fixed the legacy process-definition preview adapter that rejected Documents
+managed services with "server preview evaluates endpoint services only".
+Process preview now dispatches endpoint services through the existing
+endpoint adapter and pure/read managed services through the installed,
+version-pinned plugin-runtime worker. The worker receives the same
+mode: preview / inputs envelope as managed graph execution, and the Documents
+runtime result envelope is unwrapped at the process-service boundary.
+Effectful managed services remain explicitly refused in preview. Regression
+tests cover managed pure execution and effect refusal. CI and browser-level
+acceptance are pending on the current staging head.
