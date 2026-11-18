@@ -39,8 +39,10 @@ provider discovery → typed authoring → preview → file export → Bake.
   regression coverage.
 - [ ] Finish the Documents execution classification and endpoint migration.
   Current inventory: 27 `documents-shared` managed operations are exposed as
-  browser graph nodes; their listing also declares `server`, but saved-graph
-  server execution is not available until the managed graph evaluator lands.
+  browser graph nodes; their listing also declares `server`. The authenticated
+  managed server evaluator now runs installed JavaScript pure/read nodes and
+  persists preview evidence; the broader execution matrix, capability policy,
+  non-JavaScript runtimes, and lifecycle/effect semantics remain open below.
   Seven endpoint-mode services remain: `table-rows`, `table-cells`, and
   `text` (legacy type projections); `fill` (legacy HAG construction, sharing
   Markdown/XLSX engines with graph nodes); and `render-pdf`,
@@ -107,8 +109,10 @@ provider discovery → typed authoring → preview → file export → Bake.
   dependency checks passed on staging commit `37b8e8f`. The subsequent
   Markdown graph-file E2E provenance assertion and this TODO reconciliation
   are newer and await their own CI run. Remaining: template graph fill preview/Bake/reopen parity and
-  its persisted provenance. PDF graph exposure remains gated on managed
-  server graph execution; DOCX stays out of scope until separately approved.
+  its persisted provenance. PDF graph exposure remains open pending a typed
+  PDF operation/provider, compatible managed runtime adapter, and format
+  acceptance; server execution now exists for managed JavaScript pure/read
+  nodes. DOCX stays out of scope until separately approved.
 
 - [x] Reconcile HAG acceptance notes with the unified graph provider and
   runtime contracts. HAG construction and graph operations share the
@@ -123,7 +127,7 @@ Implementation order:
 2. Schema-driven inspector and end-to-end Markdown/HTML workflow.
 3. Authorized file/table projections and installed-plugin upgrade coverage.
 4. Remaining Documents formats and template behavior.
-5. Managed server graph evaluator and cross-target acceptance.
+5. Complete managed server graph lifecycle, effect policy, and cross-target acceptance.
 6. HAG/process integration and obsolete-path retirement.
 
 ### Agent Notes (2026-11-17, first implementation slice)
@@ -266,7 +270,7 @@ Progress (2026-11-18): Documents graph ports now preserve nested semantic metada
 
 Progress (2026-11-18): Built-in plugin connection settings are now read-only in the organization UI: platform-managed executor/surface origins and credentials are hidden behind an explicit platform-managed explanation, and the settings API refuses organization attempts to change surface origins as well as executor origins and credentials. The settings regression verifies the returned state and rejected writes.
 
-Progress (2026-11-18): Repository-wide plugin conformance coverage now validates all four installed plugin listings through the canonical SDK parser, checks declared runtime/surface module paths, and checks the current `palette.group` contract. The installed service projection now consumes `palette.group`/`palette.label` rather than retired service-level `group` metadata; regression coverage also proves legacy snapshots cannot resurrect that retired field. The broader client/server execution matrix and managed server graph evaluator remain open.
+Progress (2026-11-18): Repository-wide plugin conformance coverage now validates all four installed plugin listings through the canonical SDK parser, checks declared runtime/surface module paths, and checks the current `palette.group` contract. The installed service projection now consumes `palette.group`/`palette.label` rather than retired service-level `group` metadata; regression coverage also proves legacy snapshots cannot resurrect that retired field. The broader client/server execution matrix, lifecycle/effect policy, and cross-target parity remain open.
 
 Progress (2026-11-17): The graph-node palette and plugin listing now share
 one declaration contract: `palette.group`, optional `label`, `keywords`,
