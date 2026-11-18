@@ -3,19 +3,11 @@ import { generateLayeredDxf } from '../vendor/dxf-writer.js';
 import { occsLayerExportName, occsLayerStandard } from '../occs/layerStandards.js';
 import { evaluateOccsCassetteTemplate } from '../occs/evaluate.js';
 import { isOccsDocument } from '../occs/parameters.js';
-import {
-  buildValueWorkerRequest,
-  enrichNestingResult,
-  groupNestingLayouts,
-  summarizeNestingResult,
-  normalizeNestingItems,
-  nestingSheetCount,
-  stableSheetName
-} from '../nesting-projections.js';
+import { stableSheetName } from '../nesting-projections.js';
 
 function designIdOfPlacement(items = [], placed = {}) {
   const source = items.find(item => String(item.id) === String(placed.item_id ?? placed.itemId ?? placed.id));
-  return String(source?.design_id ?? placed.design_id ?? '') || null;
+  return String(source?.design_id ?? source?.sourceId ?? placed.design_id ?? placed.sourceId ?? '') || null;
 }
 
 function sheetPolygonBounds(polygon) {
@@ -135,7 +127,10 @@ function constructSheet({ refs = {}, draft = {} } = {}) {
     ? { outer: solvedPolygon.outer, inner: Array.isArray(solvedPolygon.inner) ? solvedPolygon.inner : [] }
     : null;
   const { width, height } = sheetPolygonBounds(sheetPolygon);
-  const result = { items, solution: { layouts: [storedLayout] } };
+  const result = {
+    items: items.map(item => ({ ...item, design_id: item.design_id || item.sourceId })),
+    solution: { layouts: [storedLayout] }
+  };
   return {
     data: {
       name: stableSheetName(layout, draft),
@@ -166,44 +161,12 @@ function badRequest(message) {
 
 export function createRuntime() {
   return {
-    async execute(operationId, input = {}, { capabilities } = {}) {
+    async execute(operationId, input = {}) {
       if (operationId === 'match-sheet') return matchSheet(input);
       if (operationId === 'construct-sheet') return constructSheet(input);
       if (operationId === 'generate-sheet-dxf') return generateSheetDxf(input);
       if (operationId === 'bake') return await bake(input);
-      if (operationId !== 'nesting-solve') {
-        throw new Error(`Unsupported Facade managed operation: ${operationId}`);
-      }
-      if (!capabilities || typeof capabilities.call !== 'function') {
-        throw new Error('Facade nesting requires the platform nesting capability');
-      }
-      const items = normalizeNestingItems(input.items);
-      const params = {
-        width: Number(input.sheetWidth),
-        height: Number(input.sheetHeight),
-        space: Number(input.space ?? 3),
-        sheetCount: nestingSheetCount(items)
-      };
-      for (const key of ['width', 'height', 'space', 'sheetCount']) {
-        if (!Number.isFinite(params[key]) || params[key] <= 0) {
-          badRequest(`Nesting params require a finite positive ${key}`);
-        }
-      }
-      const request = buildValueWorkerRequest(items, params);
-      const result = enrichNestingResult(
-        await capabilities.call('facade.nesting.solve', request),
-        request
-      );
-      if (result.status === 'error') {
-        const error = new Error(result.message || 'Nesting worker failed');
-        error.status = 502;
-        error.statusCode = 502;
-        throw error;
-      }
-      return {
-        layouts: groupNestingLayouts(result),
-        summary: summarizeNestingResult(result, request.params)
-      };
+      throw new Error(`Unsupported Facade managed operation: ${operationId}`);
     }
   };
 }

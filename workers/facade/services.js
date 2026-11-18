@@ -86,9 +86,12 @@ export async function nestingParts({ instanceId, fields = {} } = {}) {
   if (!geometry || !Array.isArray(geometry.nestingPolygons) || !geometry.nestingPolygons.length) {
     badRequest('Cassette design has no baked geometry — bake the template or import the DXF before nesting');
   }
-  const polygonParts = nestingPartsProjection(geometry)
-    .map(part => ({ ...part, designId }));
-  return { designId, polygonParts };
+  const parts = nestingPartsProjection(geometry).map(part => ({
+    coordinates: part.coordinates,
+    handles: Array.isArray(part.handles) ? part.handles : [],
+    sourceLayers: Array.isArray(part.sourceLayers) ? part.sourceLayers : []
+  }));
+  return { sourceId: designId, sourceKey: designId, parts, count: 1 };
 }
 
 export const endpointServices = {

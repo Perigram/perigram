@@ -1,10 +1,11 @@
 {
   "pluginId": "facade",
   "name": "Facade fabrication",
-  "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, sheet instances, and the nesting solver as an installable plugin with an external executor",
-  "version": "46",
+  "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, and sheet instances as an installable fabrication plugin; generic polygon nesting is provided by the Nesting plugin",
+  "version": "47",
   "requires": [
-    "tech-drawing"
+    "tech-drawing",
+    "nesting"
   ],
   "declarations": {
     "types": [
@@ -541,107 +542,6 @@
       }
     ],
     "services": [
-      {
-        "id": "nesting-solve",
-        "label": "Solve sheet nesting",
-        "render": {
-          "label": "Nesting solver",
-          "icon": "pi pi-compass"
-        },
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {
-              "items": {
-                "base": "list",
-                "itemType": {
-                  "base": "record",
-                  "fields": {
-                    "designId": {
-                      "base": "id",
-                      "nullable": true
-                    },
-                    "designKey": {
-                      "base": "string",
-                      "nullable": true
-                    },
-                    "polygonParts": {
-                      "base": "list",
-                      "itemType": {
-                        "base": "record",
-                        "fields": {
-                          "coordinates": {
-                            "base": "list",
-                            "itemType": {
-                              "base": "record",
-                              "fields": {
-                                "x": {
-                                  "base": "quantity",
-                                  "unit": "mm"
-                                },
-                                "y": {
-                                  "base": "quantity",
-                                  "unit": "mm"
-                                }
-                              }
-                            }
-                          },
-                          "sourceLayers": {
-                            "base": "list",
-                            "nullable": true,
-                            "itemType": {
-                              "base": "json"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "count": {
-                      "base": "quantity",
-                      "unit": "count"
-                    }
-                  }
-                }
-              },
-              "sheetWidth": {
-                "base": "quantity",
-                "unit": "mm",
-                "default": 1220
-              },
-              "sheetHeight": {
-                "base": "quantity",
-                "unit": "mm",
-                "default": 2440
-              },
-              "space": {
-                "base": "quantity",
-                "unit": "mm",
-                "nullable": true,
-                "default": 3
-              }
-            }
-          },
-          "output": {
-            "base": "json"
-          }
-        },
-        "description": "Arrange cassette-design parts on available sheet stock",
-        "execution": {
-          "runtime": "facade-server",
-          "kind": "read",
-          "targets": [
-            "server"
-          ],
-          "capabilities": [
-            "facade.nesting.solve"
-          ],
-          "idempotent": true
-        },
-        "palette": {
-          "group": "nesting",
-          "label": "Nesting"
-        }
-      },
       {
         "id": "extract-geometry",
         "label": "Extract cassette-design geometry",
