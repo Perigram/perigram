@@ -23,6 +23,14 @@ ENV NODE_USE_SYSTEM_CA=1
 
 WORKDIR /src
 
+# Match the image user to the host user supplied by scripts/dev.sh. The named
+# /src/node_modules volume is initialized from this image, so its files are
+# writable by the same UID that runs Nuxt.
+ARG DEV_UID=1000
+ARG DEV_GID=1000
+RUN if [ "$(id -g node)" != "$DEV_GID" ]; then groupmod --non-unique --gid "$DEV_GID" node; fi && \\
+    if [ "$(id -u node)" != "$DEV_UID" ]; then usermod --non-unique --uid "$DEV_UID" --gid "$DEV_GID" node; fi
+
 # Copy package files
 COPY package.json package-lock.json ./
 
@@ -38,6 +46,9 @@ RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=
 
 # Copy source code
 COPY . .
+RUN chown -R node:node /src
+
+USER node
 
 EXPOSE 3000
 
