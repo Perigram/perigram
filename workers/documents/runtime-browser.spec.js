@@ -31,19 +31,12 @@ test('Documents runtime loads and executes in Chromium without Node module resol
   try {
     const address = server.address();
     await page.goto(`http://127.0.0.1:${address.port}/`);
-    const result = await page.evaluate(async () => {
-      const { createRuntime } = await import('/runtime/shared.bundle.mjs');
-      const runtime = createRuntime();
-      const parsed = await runtime.execute('parse-markdown', {
-        mode: 'preview',
-        inputs: { text: '# Browser runtime\n\nA **real** browser parse.' }
-      });
-      const filled = runtime.execute('fill-markdown-template', {
-        templateText: '# {title}\n\nHello {name}',
-        values: { title: 'Report', name: 'Ada' }
-      });
-      return { parsed, filled };
-    });
+    const result = await page.evaluate(() => new Promise((resolve, reject) => {
+      const worker = new Worker('/runtime-smoke.worker.js', { type: 'module' });
+      worker.onmessage = event => { worker.terminate(); resolve(event.data); };
+      worker.onerror = event => { worker.terminate(); reject(new Error(event.message)); };
+      worker.postMessage({ type: 'run' });
+    }));
     expect(result.parsed.value).toMatchObject({
       type: 'text.flow-document',
       blocks: [
