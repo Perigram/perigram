@@ -101,8 +101,6 @@ export {
   missingFieldMarker,
   serializeProcessResult
 } from './missing-field.js';
-export { migrateProcessDefinitionV4 } from './migration-v4.js';
-export { migrateProducerOutputIdentities } from './migration-producer-identities.js';
 export {
   CONSUMER_SPECIES_KINDS,
   EFFECT_SPECIES_KINDS,
