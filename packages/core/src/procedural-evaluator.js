@@ -160,6 +160,16 @@ async function evaluateGraph(options) {
       if (childGraph.id !== node.config.graphId || childGraph.revision !== node.config.revision) {
         throw new Error(`Subgraph resolver returned the wrong graph revision for node ${node.id}`);
       }
+      options.context?.graphInvocations?.push({
+        graphId: childGraph.id,
+        graphRevision: childGraph.revision,
+        nodeId: node.id,
+        invocationPath: [...options.invocationPath, {
+          graphId: graph.id,
+          graphRevision: graph.revision,
+          nodeId: node.id
+        }]
+      });
       phase = 'map-subgraph-inputs';
       const childInputs = {};
       const childInputIds = new Set(childGraph.interface.inputs.map(port => port.id));
