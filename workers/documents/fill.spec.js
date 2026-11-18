@@ -88,6 +88,37 @@ describe('xlsx fill', () => {
     expect(rows).toEqual([['A', 'v']]);
   });
 
+  it('translates relative formulas and preserves repeated-row merges and metadata', () => {
+    const workbook = XLSX.utils.book_new();
+    const sheet = XLSX.utils.aoa_to_sheet([
+      ['Client', '{client}'],
+      ['{#items}', ''],
+      ['{name}', 0],
+      ['{/items}', '']
+    ]);
+    sheet.B3 = { t: 'n', v: 0, f: 'A3*2' };
+    sheet['!merges'] = [{ s: { r: 2, c: 0 }, e: { r: 2, c: 1 } }];
+    sheet['!rows'] = [];
+    sheet['!rows'][2] = { hpx: 32, hidden: true, level: 1 };
+    sheet['!cols'] = [{ wch: 24 }];
+    XLSX.utils.book_append_sheet(workbook, sheet, 'S');
+    const filled = fillWorkbook(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx', cellStyles: true }), {
+      client: 'Ada',
+      items: [{ name: 'X' }, { name: 'Y' }]
+    });
+    const output = XLSX.read(filled, { type: 'buffer', cellStyles: true });
+    const result = output.Sheets.S;
+    expect(result.B2.f).toBe('A2*2');
+    expect(result.B3.f).toBe('A3*2');
+    expect(result['!merges']).toEqual([
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 1 } }
+    ]);
+    expect(result['!rows'][1]).toMatchObject({ hpx: 32, hidden: true, level: 1 });
+    expect(result['!rows'][2]).toMatchObject({ hpx: 32, hidden: true, level: 1 });
+    expect(result['!cols'][0].wch).toBe(24);
+  });
+
   it('refuses nested sections', () => {
     const nested = [['{#a}'], ['{#b}'], ['{name}'], ['{/b}'], ['{/a}']];
     expect(() => fillWorkbook(workbookBuffer(nested), { a: [{}], b: [{}] }))
