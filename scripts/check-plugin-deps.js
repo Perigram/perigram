@@ -23,7 +23,7 @@ function jsFiles(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.isDirectory()) {
       if (!SKIP_DIRS.has(entry.name)) files.push(...jsFiles(join(dir, entry.name)));
-    } else if (/\.(?:m?js)$/.test(entry.name) && !/\.spec\.(?:m?js)$/.test(entry.name)) {
+    } else if (/\.(?:m?js)$/.test(entry.name) && !/\.spec\.(?:m?js)$/.test(entry.name) && entry.name !== 'build-runtime.mjs') {
       files.push(join(dir, entry.name));
     }
   }

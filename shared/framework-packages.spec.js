@@ -296,6 +296,7 @@ describe('Framework package contracts', () => {
     } = await import('../utils/design-system-contract.js');
     const { createTypeRegistry, frameworkTypes, projectDomainFromView } = await import('@perigram/cts');
     const techDrawingListing = (await import('../workers/tech-drawing/listing.json', { with: { type: 'json' } })).default;
+    const nestingListing = (await import('../workers/nesting/listing.json', { with: { type: 'json' } })).default;
     const techDrawingTypes = techDrawingListing.declarations.types;
     const { createReadOnlyToolHandlers } = await import('../scripts/mcp-handlers.js');
     const { createFrameworkManifest, summarizeRoutes, summarizeSummaries, validateUiPrimitives } = await import('../scripts/framework-inspect-lib.js');
