@@ -14,7 +14,9 @@ import {
   parseProcessSocketHandleId,
   processSocketsCompatible,
   compileTreeDeclarations,
-  PROCESS_DATAFLOW_VERSION
+  PROCESS_DATAFLOW_VERSION,
+  processDefinitionToGraphDocument,
+  graphDocumentToProcessDefinition
 } from '#packages/processes';
 import { normalizeType, operationKindOf } from '#packages/cts';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
@@ -1064,6 +1066,15 @@ export function useProcessDesignerGraphSession({
     }
   }
 
+  function serializeCanonicalGraph(options = {}) {
+    return processDefinitionToGraphDocument(serializeProcess(), options);
+  }
+
+  function loadCanonicalGraph(graph, options = {}) {
+    const data = graphDocumentToProcessDefinition(graph);
+    return loadDocument({ ...(draft.value || {}), data }, options);
+  }
+
   function processDefinitionSnapshot() {
     return {
       ...canvasToDefinition(
@@ -1421,6 +1432,8 @@ export function useProcessDesignerGraphSession({
     designerSignature,
     loadDocument,
     serializeProcess,
+    serializeCanonicalGraph,
+    loadCanonicalGraph,
     processDefinitionSnapshot,
     // types plane
     designer,
