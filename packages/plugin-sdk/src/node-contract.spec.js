@@ -163,6 +163,27 @@ describe('provider-neutral node contract', () => {
     expect(Object.isFrozen(normalized.inputs[0].semantic)).toBe(true);
   });
 
+  it('preserves and validates provider-owned compatibility profiles on normalized ports', () => {
+    const candidate = definition({
+      inputs: [{ id: 'source', semantic: { base: 'json', nominal: 'invoice' }, compatibility: { profile: 'perigram.cts' } }]
+    });
+    const normalized = normalizeNodeDefinition(candidate);
+    expect(normalized.inputs[0].compatibility).toEqual({ profile: 'perigram.cts' });
+    expect(validateNodeDefinition(definition({
+      inputs: [{ id: 'source', semantic: { base: 'json' }, compatibility: { profile: 'not a profile' } }]
+    })).map(problem => problem.code)).toContain('invalid-port-compatibility');
+    const registry = createPortCompatibilityRegistry();
+    registry.register('perigram.cts', (source, target) => ({
+      status: source.semantic.nominal === target.semantic.nominal ? 'exact' : 'incompatible',
+      compatible: source.semantic.nominal === target.semantic.nominal,
+      reason: 'CTS nominal type compatibility',
+      conversions: []
+    }));
+    expect(registry.compare(normalized.inputs[0], {
+      compatibility: { profile: 'perigram.cts' }, semantic: { base: 'json', nominal: 'invoice' }
+    })).toMatchObject({ status: 'exact', compatible: true });
+  });
+
   it('requires an explicit semantic palette group and normalizes searchable keywords', () => {
     expect(validateNodeDefinition(definition({ palette: undefined })).map(problem => problem.code)).toContain('missing-palette');
     const normalized = normalizeNodeDefinition(definition({
