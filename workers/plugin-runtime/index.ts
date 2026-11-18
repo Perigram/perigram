@@ -160,14 +160,17 @@ async function executeRun(run) {
     );
     if (!packageResponse.ok) throw new Error(await packageResponse.text() || `Package read failed: ${packageResponse.status}`);
     const packageData = (await packageResponse.json()).package;
-    const value = await executeIsolated(packageData, run, control => {
+    const execution = await executeIsolated(packageData, run, control => {
       childControl = control;
       if (heartbeatError) control.cancel('Task claim was lost or cancelled');
     });
     if (heartbeatError) throw heartbeatError;
     await postJson(`/api/tasks/${run._id}/complete`, {
       claimToken,
-      result: { output: value === undefined ? null : value }
+      result: {
+        output: execution.value === undefined ? null : execution.value,
+        capabilityEvidence: execution.capabilityEvidence
+      }
     });
     console.log(`completed ${run.taskId} run ${run._id}`);
   } catch (error) {
@@ -238,6 +241,7 @@ async function executeIsolated(packageData, run, setChild) {
     const reader = child.stdout.pipeThrough(new TextDecoderStream()).getReader();
     let buffer = '';
     let resultMessage = null;
+    const capabilityEvidence = [];
     let timedOut = false;
     let killTimer = null;
     const executionController = new AbortController();
@@ -263,6 +267,11 @@ async function executeIsolated(packageData, run, setChild) {
           if (message.type === 'capability') {
             try {
               const value = await callCapability(run, message.name, message.input, executionController.signal);
+              capabilityEvidence.push({
+                name: String(message.name || ''),
+                input: capabilityInputEvidence(message.name, message.input),
+                ...(value?.readSet ? { readSet: value.readSet } : {})
+              });
               await stdin.write(new TextEncoder().encode(JSON.stringify({ type: 'capability-result', callId: message.callId, value }) + '\n'));
             } catch (error) {
               await stdin.write(new TextEncoder().encode(JSON.stringify({
@@ -288,7 +297,7 @@ async function executeIsolated(packageData, run, setChild) {
       if (timedOut) throw new Error('Managed plugin execution deadline exceeded');
       if (status.code !== 0) throw new Error(stderr.trim() || `Plugin runtime exited with code ${status.code}`);
       if (!resultMessage) throw new Error('Plugin runtime exited without a result');
-      return resultMessage.value;
+      return { value: resultMessage.value, capabilityEvidence };
     } finally {
       clearTimeout(timeout);
       if (killTimer) clearTimeout(killTimer);
@@ -297,6 +306,18 @@ async function executeIsolated(packageData, run, setChild) {
   } finally {
     await Deno.remove(directory, { recursive: true }).catch(() => {});
   }
+}
+
+function capabilityInputEvidence(name, input = {}) {
+  if (name === 'files.read') return { fileId: String(input?.fileId || '') };
+  if (name === 'organization.instances.read' || name === 'organization.instances.query') {
+    return {
+      typeId: String(input?.typeId || ''),
+      ...(input?.instanceId ? { instanceId: String(input.instanceId) } : {}),
+      ...(input?.projection ? { projection: input.projection } : {})
+    };
+  }
+  return {};
 }
 
 async function callCapability(run, name, input, signal) {
