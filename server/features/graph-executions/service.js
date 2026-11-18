@@ -134,6 +134,7 @@ export async function evaluateSavedGraph({
   ]));
   const providerPins = new Map();
   const providerCapabilities = new Set();
+  const capabilityEvidence = [];
   const nodeInvocations = [];
   const graphInvocations = [];
   const resolveNodeDefinition = async operation => {
@@ -150,7 +151,9 @@ export async function evaluateSavedGraph({
       auth
     });
     for (const capability of definition.execution?.capabilities || []) {
-      if (capability !== 'cts.instances.read') providerCapabilities.add(String(capability));
+      if (!['cts.instances.read', 'organization.instances.query', 'organization.instances.read'].includes(String(capability))) {
+        providerCapabilities.add(String(capability));
+      }
     }
     const pin = definition.packagePin;
     if (!pin?.pluginId || !pin.version || !pin.runtimeId || !pin.operationId) {
@@ -211,6 +214,7 @@ export async function evaluateSavedGraph({
         remainingExecutionMs: () => Math.max(0, deadline - Date.now()),
         nodeInvocations,
         graphInvocations,
+        capabilityEvidence,
         data: {
           ...(context.data || {}),
           queryInstances: query => queryOrganizationData(query, auth)
@@ -219,12 +223,19 @@ export async function evaluateSavedGraph({
       mode: 'preview',
       executionTarget: 'server'
     });
+    for (const evidence of capabilityEvidence) {
+      if (['organization.instances.query', 'organization.instances.read'].includes(evidence.name)
+        && (!evidence.readSet || !Array.isArray(evidence.readSet.queries))) {
+        providerCapabilities.add(evidence.name);
+      }
+    }
     return {
       ...source,
       ...result,
       executionId,
       providerPins: [...providerPins.values()],
       providerCapabilities: [...providerCapabilities].sort(),
+      capabilityEvidence,
       nodeInvocations,
       graphInvocations,
       readSet: {
@@ -238,6 +249,7 @@ export async function evaluateSavedGraph({
       executionId,
       providerPins: [...providerPins.values()],
       providerCapabilities: [...providerCapabilities].sort(),
+      capabilityEvidence,
       nodeInvocations,
       graphInvocations
     };
@@ -295,7 +307,8 @@ export async function evaluateAndRecordSavedGraphPreview(args = {}, auth = {}) {
       nodes: result.nodeInvocations || [],
       invocations: result.graphInvocations || [],
       providers: result.providerPins || [],
-      capabilities: result.providerCapabilities || []
+      capabilities: result.capabilityEvidence || [],
+      unverifiedCapabilities: result.providerCapabilities || []
     },
     readSet,
     artifacts: []
