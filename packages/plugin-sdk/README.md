@@ -189,14 +189,14 @@ declared endpoint-mode `service` (`resolve: { service:
 and the service's JSON response is the projection value; `handler`
 resolves are the pack-mount binding and refuse here).
 `parseListing` throws on every violation; `normalizeListing` returns the
-catalog document the publish API stores. A service or projection may
-declare `group` — a slug naming the process-designer palette section its
-operation drops into (SPEC §8 plugin-tab law: grouped operations render
-in the plugin's own tab; an ungrouped service falls to the services
-tab, an ungrouped projection stays palette-unlisted); `parseListing`
-rejects a malformed slug, and `group` is mirrored in
-[`src/listing.schema.json`](./src/listing.schema.json) for editors and
-agents authoring listings. A signature field may declare `kind` — a
+catalog document the publish API stores. Service and projection declarations
+use the same `palette` object as node definitions: `palette.group` is the
+stable lowercase slug used to group an operation in the process designer,
+`palette.label` is its optional human-facing label, and
+`palette.keywords` are search aliases. A visible service must declare
+`palette.group`; `palette.visible: false` excludes an internal operation
+from discovery. The retired service-level `group` field is rejected.
+This shape is mirrored in [`src/listing.schema.json`](./src/listing.schema.json). A signature field may declare `kind` — a
 namespaced value slug (`document.report`, `text.flow-document`) that
 gates socket compatibility: a kinded socket accepts its own kind alone,
 an unkinded `json` socket accepts everything, so conversion between
