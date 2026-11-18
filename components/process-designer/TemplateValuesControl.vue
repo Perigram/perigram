@@ -14,7 +14,7 @@
       <label class="text-supporting text-muted" :for="`template-section-${section}`">{{ section }}</label>
       <Textarea
         :id="`template-section-${section}`"
-        :model-value="JSON.stringify(Array.isArray(draft[section]) ? draft[section] : [], null, 2)"
+        :model-value="sectionDrafts[section] ?? JSON.stringify(Array.isArray(draft[section]) ? draft[section] : [], null, 2)"
         rows="4"
         auto-resize
         class="w-full"
@@ -41,6 +41,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 const draft = ref({ ...(props.modelValue || {}) });
 const sectionErrors = ref({});
+const sectionDrafts = ref({});
 const sectionNames = computed(() => new Set(props.sections.map(section => String(section))));
 const fields = computed(() => [...new Set([
   ...props.tokens.map(token => String(token)),
@@ -48,7 +49,10 @@ const fields = computed(() => [...new Set([
 ])].filter(token => !sectionNames.value.has(token)));
 watch(() => props.modelValue, value => {
   draft.value = { ...(value || {}) };
+}, { deep: true });
+watch(() => JSON.stringify([props.sections, props.sections.map(section => props.modelValue?.[section])]), () => {
   sectionErrors.value = {};
+  sectionDrafts.value = {};
 }, { deep: true });
 
 function updateToken(token, value) {
@@ -58,6 +62,7 @@ function updateToken(token, value) {
 }
 
 function updateSection(section, source) {
+  sectionDrafts.value = { ...sectionDrafts.value, [section]: source };
   try {
     const value = JSON.parse(source);
     if (!Array.isArray(value)) throw new Error('Expected a JSON array');

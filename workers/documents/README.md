@@ -35,8 +35,9 @@ surface assets on port 8791.
 
 ### XLSX template graph operation
 
-`fill-workbook-template` runs in the shared browser/server runtime and
-accepts a typed `documents.file` workbook payload plus a record of values.
+`fill-workbook-template` is declared for browser/server execution in the
+shared runtime, but saved graph invocations currently run through the browser
+provider only. It accepts a typed `documents.file` workbook payload plus a record of values.
 It preserves cell styles, row and column metadata, translates relative A1
 row references when rows move, and expands one-level row sections. Repeated
 rows receive their own merged ranges; ambiguous merges crossing a section
@@ -75,7 +76,8 @@ this channel for supported file values instead of exposing base64 JSON.
 ### Markdown template graph operation
 
 `fill-markdown-template` is a pure operation in the shared runtime and
-currently executes through the browser graph provider. It accepts template
+currently executes through the browser graph provider only; its declared
+server target is not runnable until the managed server graph evaluator exists. It accepts template
 text, a record of named values, and an optional output name; unresolved
 placeholders remain visible. Its result is a real
 `text/markdown` file payload and can flow directly into the generic Bake
@@ -318,9 +320,16 @@ A graph-authored document becomes a reusable Markdown template through
 the template input of the `text-document.fill` construction; no parallel
 template record or document-specific storage path is introduced.
 
-The `fill` service answers the template's token keys beside the payload
-(`meta.tokens`, the ephemeral channel the preview passes verbatim) — the
-fill dialog renders one scalar input per token.
+The `fill` service answers template metadata beside the payload (`meta.tokens`
+and, for XLSX, `meta.sections`; this is an ephemeral channel the preview
+passes verbatim). The graph inspector and legacy HAG construction form render one scalar input
+per token and a JSON-array editor per repeat section. Both consume the same
+transient `tokens` and `sections` metadata; repeat values remain authored
+configuration/draft data and are never written into the template file. Missing scalar values deliberately leave their
+placeholders visible; malformed section markers fail validation. The legacy
+HAG construction and graph operation call the same Markdown/XLSX fill engines.
+Their shared XLSX behavior has parity coverage; saved-graph preview → Bake →
+reopen provenance remains a separate platform acceptance item.
 
 Behavior and traps:
 

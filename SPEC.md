@@ -1492,13 +1492,17 @@ graph operations; PDF remains in the managed construction/executor path
 until server graph execution and its typed capability boundary are
 implemented. DOCX fill/export is not part of the current supported scope.
 
-The HAG fill form and graph authoring share format-specific token extractors
-and substitution rules. The legacy construction's `meta.tokens` channel
-and graph template outputs expose the same token list; the graph inspector
-renders per-token scalar inputs into `configuration.values`. A connected
-values record takes precedence over those authored defaults. Token metadata
-is execution-only and is not persisted into the file. Do not duplicate
-template storage, token grammar, or format engines to bridge the surfaces.
+The HAG fill form and graph authoring share format-specific token
+extractors and substitution rules. For XLSX, scalar `{key}` tokens render
+as scalar fields and `{#key}` repeat sections render as JSON-array editors;
+section markers are metadata, not scalar placeholders. Missing scalar values
+preserve the original token, empty repeat arrays remove the section body, and
+malformed or nested sections fail rather than silently producing a partial
+workbook. The legacy construction and graph runtime expose the same
+`meta.tokens` and `meta.sections` metadata. A connected values record takes
+precedence over authored defaults. Token metadata is execution-only and is
+not persisted into the file. Do not duplicate template storage, token grammar,
+or format engines to bridge the surfaces.
 
 ## 25. Stateful lifecycles are explicit machines (owner direction 2026-11-02)
 

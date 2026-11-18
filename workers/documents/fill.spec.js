@@ -14,6 +14,7 @@ import {
 } from './fill.js';
 import { services } from './services.js';
 import { workbookTemplateMetadata } from './workbook-template.mjs';
+import { createRuntime } from './runtime/shared.mjs';
 
 const b64 = value => Buffer.from(value, 'utf8').toString('base64');
 
@@ -138,6 +139,23 @@ describe('xlsx fill', () => {
   it('refuses a section close without its open', () => {
     expect(() => fillWorkbook(workbookBuffer([['x'], ['{/items}'], ['{name}']]), {}))
       .toThrow(/has no matching open/);
+  });
+  it('refuses unclosed and mismatched repeat-section markers', () => {
+    expect(() => fillWorkbook(workbookBuffer([['{#items}'], ['{name}']]), {})).toThrow(/has no matching close/);
+    expect(() => fillWorkbook(workbookBuffer([['{#items}'], ['{name}'], ['{/other}']]), {})).toThrow(/has no matching open/);
+  });
+  it('keeps missing tokens visible and removes an empty repeat-section body', () => {
+    const rows = rowsOf(fillWorkbook(workbookBuffer([['{title}'], ['{#items}'], ['{name}'], ['{/items}'], ['{footer}']]), { items: [] }));
+    expect(rows).toEqual([['{title}'], ['{footer}']]);
+  });
+  it('keeps HAG construction and graph runtime XLSX output and token metadata in parity', async () => {
+    const template = workbookBuffer([['{title}'], ['{#items}'], ['{name}', '{qty}'], ['{/items}']]);
+    const values = { title: 'Report', items: [{ name: 'A', qty: 2 }, { name: 'B', qty: 3 }] };
+    const legacy = await services.fill({ refs: { template: { name: 'source.xlsx', payloadMime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', payloadBase64: template.toString('base64') } }, draft: { data: { values } } });
+    const graph = await createRuntime().execute('fill-workbook-template', { template: { payload: { base64: template.toString('base64'), mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', name: 'source.xlsx' } }, values });
+    expect(rowsOf(Buffer.from(legacy.payload.base64, 'base64'))).toEqual(rowsOf(Buffer.from(graph.payload.base64, 'base64')));
+    expect(legacy.meta).toEqual(graph.meta);
+    expect(graph.meta).toEqual({ tokens: ['title', 'name', 'qty'], sections: ['items'] });
   });
 });
 

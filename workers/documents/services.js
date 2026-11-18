@@ -20,7 +20,7 @@ import {
   renderPdfFromImage,
   renderPdfFromMarkdown,
   renderPdfFromWorkbook,
-  workbookTemplateTokens
+  workbookTemplateMetadata
 } from './fill.js';
 import { renderReportPdf, renderDocumentPdf } from './report.js';
 
@@ -164,7 +164,7 @@ export const services = {
       return { ...toPayload(fillMarkdown(template.text(), values), 'text/markdown', `${name}.md`), meta: { tokens: markdownTemplateTokens(template.text()) } };
     }
     if (kind === 'workbook') {
-      return { ...toPayload(fillWorkbook(template.buffer, values), XLSX_MIME, `${name}.xlsx`), meta: { tokens: workbookTemplateTokens(template.buffer) } };
+      return { ...toPayload(fillWorkbook(template.buffer, values), XLSX_MIME, `${name}.xlsx`), meta: workbookTemplateMetadata(template.buffer) };
     }
     if (kind === 'pdf') {
       return { ...toPayload(await fillPdfTemplate(template.buffer, values), 'application/pdf', `${name}.pdf`), meta: { tokens: await pdfTemplateTokens(template.buffer) } };

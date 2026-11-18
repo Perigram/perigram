@@ -219,11 +219,11 @@ add a generic file-payload read operation for binary templates.
 ### Agent Notes (2026-11-18, verification)
 
 The unified graph authoring and typed preview-input paths are covered by
-the current full Vitest and SSR suites. The Documents runtime's XLSX file
-preview is also covered. Provider errors are still aggregated into the
-workspace-level load error rather than surfaced per provider/operation.
-Persisted Documents graph-workspace acceptance and server graph execution
-remain open; browser runtime declarations do not imply a server evaluator.
+the then-current Vitest and SSR suites. The Documents runtime's XLSX file
+preview is also covered. The provider-error aggregation note was superseded
+by the provider-isolation slice below. Persisted Documents graph-workspace
+acceptance and server graph execution remain open; browser runtime
+declarations do not imply a server evaluator.
 
 
 ### Agent Notes (2026-11-18, provider isolation)
@@ -237,8 +237,10 @@ unrelated providers from the palette.
 
 ### Agent Notes (2026-11-18, HAG template fields)
 
-Documents Markdown/XLSX graph template operations now expose the shared
-token list in output metadata. The inspector renders per-token text fields
-into the node configuration values record; a connected values input
-overrides the authored record. Token metadata is not baked into the file.
-Round-trip and missing/unknown-token acceptance remain open.
+Documents Markdown/XLSX graph template operations expose transient token
+metadata. The inspector renders scalar token fields and a JSON-array editor
+for XLSX repeat sections; a connected values input overrides the authored
+configuration. The legacy XLSX HAG construction now returns both tokens and
+section names, matching the graph runtime. Engine parity tests cover missing
+placeholders, repeat rows, invalid section markers, and identical HAG/graph
+outputs. Saved graph preview → Bake → reopen provenance remains open.

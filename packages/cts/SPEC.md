@@ -654,6 +654,8 @@ readable) and ride the registered party services.
 
 ## 14. Graph protocol: declaration-bound process definitions
 
+This section specifies CTS process-definition graphs. It is distinct from the portable `perigram.graph` procedural dataflow document contract owned by `@perigram/core` (root SPEC §28); the two formats do not share node species or execution lifecycles.
+
 Process definitions stop speaking the entity/block/status vocabulary. The
 stored records of every entity-bound node reference declarations; the pure
 value algebra (`source.*`, `value.*`, `collection.*`/`tree.*`, `control.*`,

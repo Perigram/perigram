@@ -37,41 +37,67 @@ provider discovery → typed authoring → preview → file export → Bake.
   snapshots. Verify upgrade behavior against an installation carrying the
   previous declaration version; record catalog and installed versions in
   regression coverage.
-- [ ] Classify every Documents operation by browser, managed-server, or
-  external-integration execution. Move local-eligible parsing, template,
-  projection, and rendering work to managed runtimes as dependencies permit.
-  Keep endpoint mode only for an explicitly declared remote boundary.
-- [ ] Implement server-side procedural graph evaluation using the canonical
-  core graph evaluator, the same pinned provider definitions, managed
-  plugin runtimes, host capabilities, read-set recorder, and execution
-  envelope. Keep browser preview and server execution on the same graph and
-  node contracts.
-- [ ] Gate server graph execution by operation kind, target, capabilities,
-  authorization, and effect policy. Define how read, proposal, commit, and
-  effect nodes cross the execution boundary; preserve explicit Commit/Bake/
-  Export lifecycles and execution provenance.
-- [ ] Add server graph acceptance tests for the same Documents workflow,
-  including pinned package versions, authorized file reads, cancellation,
-  timeout, cleanup, and deterministic output comparison with browser mode.
+- [ ] Finish the Documents execution classification and endpoint migration.
+  Current inventory: 27 `documents-shared` managed operations are exposed as
+  browser graph nodes; their listing also declares `server`, but saved-graph
+  server execution is not available until the managed graph evaluator lands.
+  Seven endpoint-mode services remain: `table-rows`, `table-cells`, and
+  `text` (legacy type projections); `fill` (legacy HAG construction, sharing
+  Markdown/XLSX engines with graph nodes); and `render-pdf`,
+  `render-report-pdf`, `render-document-pdf` (PDF construction/render paths).
+  For each, decide whether to move it behind a managed runtime/capability or
+  retire it after its consumer migrates. Built-in platform executor endpoints
+  are not external integrations and must not require organization URL setup.
+- [ ] Implement the managed server graph execution path. Split acceptance:
+  - [ ] Resolve the exact saved graph revision and recursively pinned Use Graph
+    revisions under the caller's organization read grants.
+  - [ ] Resolve each provider definition from the install's immutable package
+    snapshot (plugin id, version, runtime id, operation id); never resolve from
+    the mutable catalog or browser registry.
+  - [ ] Execute each node through the managed plugin runtime with one graph
+    execution id, cancellation signal, deadline, and shared capability scope.
+  - [ ] Adapt host capabilities for authorized CTS/file reads and collect one
+    read set across parent and child graphs; fail closed on missing grants or
+    unverified consistency boundaries before durable materialization.
+  - [ ] Persist the canonical execution envelope with graph/package/runtime
+    pins, inputs/outputs, diagnostics, invocation path, capability evidence,
+    read set, and lifecycle profile.
+  - [ ] Define server policy for pure/read/proposal/commit/effect/stateful nodes;
+    preview may run only pure/read, and durable writes remain explicit
+    Commit/Bake/Export operations with idempotency and revision checks.
+  - [ ] Add managed execution integration tests for pinned versions, nested
+    graphs, authorized file reads, cancellation, timeout, cleanup, partial
+    failure, and browser/server deterministic output parity.
 - [ ] Complete format-specific template acceptance for Markdown, XLSX, and
-  PDF; document each engine's supported token/section semantics and test
-  missing values, invalid structures, and output round-trips. Decide and
-  track DOCX fill/export scope separately.
-- [x] Integrate graph template nodes with the HAG fill form: reuse the
-  existing Markdown/XLSX token extractors and `meta.tokens` semantics to
-  expose named scalar fields that produce the node's `values` record.
+  PDF. Focused engine coverage exercises Markdown missing-token preservation,
+  XLSX repeat rows, missing values, nested/unclosed/mismatched sections, and
+  legacy-HAG ↔ graph-runtime XLSX output/token-metadata parity; PDF legacy fill
+  has focused rendering coverage. Still add PDF missing-token/round-trip and
+  graph preview → Bake → reopen checks. DOCX remains out of scope pending a
+  separate owner decision.
+- [x] Integrate graph template nodes with HAG authoring: reuse the existing
+  Markdown/XLSX token extractors and `meta.tokens`/`meta.sections` semantics
+  to expose scalar fields and repeat-section arrays in the node's `values` record.
   Resolve the template input from the graph's connected file value or
   selected file reference; never persist discovered tokens as document data.
   Keep one token grammar and one fill engine per format.
-- [ ] Add HAG acceptance tests for missing/unknown tokens, nested/invalid
-  XLSX sections, repeat rows, and preview/Bake parity between the legacy
-  construction and graph operation. PDF remains gated on server graph
-  execution; DOCX stays explicitly out of scope until separately approved.
+- [ ] Finish HAG acceptance at the product boundary. Focused tests now cover
+  missing/unknown scalar placeholders, nested/unclosed/mismatched XLSX
+  sections, repeat-row expansion (including empty sections), and parity
+  between legacy HAG construction and the graph runtime's XLSX engine and
+  token metadata. They have not yet been run on the current staging head.
+  Also add component tests for metadata-to-form wiring and invalid/in-progress
+  JSON-array edits. Remaining: saved graph preview/Bake/reopen parity and
+  persisted provenance. PDF graph exposure remains gated on managed server
+  graph execution; DOCX stays out of scope until separately approved.
 
-- [ ] Reconcile HAG acceptance notes with the unified graph provider and
-  runtime contracts. Mark each slice by implementation, test execution, and
-  owner verification; remove obsolete duplicate paths after their consumers
-  migrate.
+- [x] Reconcile HAG acceptance notes with the unified graph provider and
+  runtime contracts. HAG construction and graph operations share the
+  Markdown/XLSX engines; `meta.tokens`/`meta.sections` are transient inspection
+  metadata; authored scalar values and repeat-section arrays live only in the
+  construction draft or graph configuration. There is no duplicate template
+  store or token grammar. Saved-graph preview/Bake/reopen remains a separate
+  acceptance item above.
 
 Implementation order:
 1. Documents browser provider and canonical type compatibility.
@@ -95,7 +121,7 @@ port-compatibility result for new wires, persisted-wire validation, and
 preview preflight. The graph inspector renders declared configuration
 properties as typed controls and exposes graph interface shape/base/kind,
 required, and default fields. Provider and graph integration regressions
-were added; Authorized text/CSV/XLSX file-read nodes now use the managed `files.read` capability. The legacy endpoint projections remain for type projection dispatch; Markdown parsing now runs in the shared browser/server provider; template fill and PDF rendering remain the next Documents provider migration. Test execution and deployed workflow verification remain open.
+were added; Authorized text/CSV/XLSX file-read nodes now use the managed `files.read` capability. The legacy endpoint projections remain for type projection dispatch; Markdown parsing and Markdown/XLSX template fill now run in the shared graph runtime. PDF fill/render remains endpoint-backed pending a typed graph capability boundary and managed server graph evaluation. Test execution and deployed workflow verification remain open.
 
 ### Agent Notes (2026-11-18, file-backed graph and XLSX template slice)
 
@@ -119,9 +145,11 @@ dependency gates passed on staging commit `952e5a3f`.
 
 Still open: saved graph-workspace acceptance including reopen/provenance;
 organization catalog/install upgrade verification; PDF graph operation
-exposure; canonical managed server graph evaluation and effect policy;
-DOCX scope; and HAG/process integration. The runtime's declared server
-target is not proof that server graph evaluation is available.
+exposure; canonical managed server graph evaluation and effect policy; and
+DOCX scope. HAG token/form engine interop is now implemented; saved-graph
+preview/Bake/reopen and process-level lifecycle acceptance remain open. The
+runtime's declared server target is not proof that server graph evaluation is
+available.
 
 ## Priority: Documents and Facade plugin review/refactor (owner direction 2026-11-17)
 

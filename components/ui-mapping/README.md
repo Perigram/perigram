@@ -11,6 +11,18 @@ the only handwritten part. The display helpers (`titleFor`,
 
 Parent: [components](../README.md); its [SPEC](../SPEC.md).
 
+## Construction fill values
+
+The generated construction dialog composes a live preview through
+`FillDialogBody` and consumes its ephemeral `meta` response. For Documents
+templates, `ActionFormDialog` passes `meta.tokens` and `meta.sections`
+to `TemplateValuesRow`: scalar tokens render as text inputs, while XLSX
+repeat sections render as JSON-array editors. Invalid JSON or a non-array
+value is rejected locally and does not replace the last valid draft value.
+The values remain in the construction draft; token/section metadata and
+substituted values are not persisted as a separate template record.
+
+
 ## Composition flow
 
 `GeneratedMappingScreen.vue` composes the compiled screen contract

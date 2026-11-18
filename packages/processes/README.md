@@ -11,6 +11,13 @@ structure and type identity come from the declaration graph. The normative
 state and species contracts live in
 [CTS SPEC §7 and §14](../cts/SPEC.md).
 
+These are CTS process-definition graphs, not the portable procedural graph
+documents (`perigram.graph`) owned by [@perigram/core](../core/README.md#canonical-graph-documents)
+and specified in the root [SPEC §28](../../SPEC.md). They have different
+stored formats, node vocabularies, execution semantics, and persistence
+lifecycles; do not conflate process-definition compilation with procedural
+dataflow evaluation.
+
 Executable records remain species records from authored graph through
 resolution, validation, compilation, orchestration, server execution, and
 round-trip. `operationKindOf` is a classification helper; the species kind

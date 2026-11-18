@@ -15,6 +15,19 @@ it renders — palette membership, node/edge species, wire legality — is autho
 designer contract owned by [packages/processes](../../packages/processes/README.md); this folder
 owns the surface: channels, arrangement, gestures.
 
+## Scope boundary
+
+The primary canvas in this component is the CTS process-definition designer:
+its declaration graph and process graph follow the
+[CTS graph protocol](../../packages/cts/SPEC.md#14-graph-protocol-declaration-bound-process-definitions).
+It is not the editor/runtime for portable `perigram.graph` documents, whose
+canonical format and evaluator belong to
+[@perigram/core](../../packages/core/README.md#canonical-graph-documents)
+(root SPEC §28). The `GraphDocument*` components in this directory are
+support surfaces for that separate procedural-graph workspace; their
+execution and persistence contracts are not inherited from the CTS process
+graph protocol.
+
 ## Contracts owned here
 
 ### Canvas channel vocabulary

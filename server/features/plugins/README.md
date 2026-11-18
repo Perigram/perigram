@@ -98,10 +98,11 @@ construction table (`projectedDomainsForOrganization`).
 ### Managed service tasks versus graph execution
 
 The shared `plugin-runtime` worker executes one declared plugin service
-operation per task. The current managed worker and install gate support JavaScript
-runtime entries only; Python and WASM may appear in the broader package
-grammar but cannot currently be installed for managed execution. It validates the installed package pin and operation
-declaration, then mediates that operation's capability calls. This is not
+operation per task. The current managed worker and install gate support
+JavaScript runtime entries only; Python and WASM may appear in the broader
+package grammar but cannot currently be installed for managed execution. It
+validates the installed package pin and operation declaration, then mediates
+that operation's capability calls. This is not
 the same as evaluating a saved procedural graph: graph execution must
 resolve the saved graph and pinned subgraphs, schedule every node in
 dependency order, share one execution context/read set, and persist one

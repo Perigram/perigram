@@ -63,3 +63,16 @@ The canonical execution envelope lives in [@perigram/core](../../../packages/cor
 
 
 Page collection embeds can pin one successful graph execution and one collection output. The saved graph document and revision are revalidated when the output is read; each referenced CTS instance is resolved through its ordinary read grant. The execution pins output membership, while referenced instance projections remain current authorized reads.
+
+## Execution boundary status
+
+This feature is the authorization, evidence, and materialization boundary;
+it is not itself a procedural graph evaluator. `POST /api/graph-executions`
+validates and records an execution envelope supplied by a caller. The query,
+Commit, Bake, and Export routes authorize their respective operations, but
+there is currently no server route that loads a saved graph, resolves its
+pinned plugin providers, and evaluates its nodes through the managed plugin
+runtime. A provider's `execution.targets: ['server']` declaration and the
+existence of the managed plugin task worker do not make saved graph execution
+available. The missing orchestration and acceptance criteria are tracked in
+the root [TODO](../../../TODO.md).

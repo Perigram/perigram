@@ -93,6 +93,7 @@
             v-else
             :model-value="draft[row.id] || {}"
             :tokens="previewTokens"
+            :sections="previewSections"
             @update:model-value="value => (draft[row.id] = value)"
           />
         </div>
@@ -180,6 +181,10 @@ const previewTokens = computed(() => {
   const tokens = previewMeta.value?.tokens;
   return Array.isArray(tokens) ? tokens.map(String) : [];
 });
+const previewSections = computed(() => {
+  const sections = previewMeta.value?.sections;
+  return Array.isArray(sections) ? sections.map(String) : [];
+});
 
 // The create's uploaded file feeds the mapping control beside it.
 const fileRef = computed(() => {
@@ -196,10 +201,15 @@ const templateDraftRef = computed(() => {
   return value && typeof value === 'object' && value.id ? value : null;
 });
 
+// A newly selected template has a different token/section vocabulary; do not
+// leave the previous template's controls visible while its preview is loading.
+watch(() => templateDraftRef.value?.id || '', () => { previewMeta.value = null; });
+
 const visible = computed(() => Boolean(props.action));
 
 watch(() => props.action, (action) => {
   if (!action) return;
+  previewMeta.value = null;
   seedDraft();
   // The context supplies every row: the create runs with no form (SPEC §4).
   if (!visibleRows.value.length) {
