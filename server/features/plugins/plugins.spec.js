@@ -865,6 +865,25 @@ describe('connector services', () => {
     });
   });
 
+  it('ignores retired service-level group metadata in legacy install snapshots', async () => {
+    repository.listInstallsByOrganization.mockResolvedValue([{
+      ...coatingInstall,
+      name: 'Coatings',
+      services: [{
+        id: 'legacy-render',
+        label: 'Legacy render',
+        group: 'retired-group',
+        signature: { input: { base: 'record', fields: {} }, output: { base: 'json' } }
+      }]
+    }]);
+    const [service] = await servicesForOrganization(ORG);
+    expect(service).toMatchObject({
+      id: 'plugin.coatings.legacy-render',
+      group: 'coatings',
+      groupLabel: 'Coatings'
+    });
+  });
+
   it('projects scalar signature fields as the plugin command parameters', async () => {
     repository.listInstallsByOrganization.mockResolvedValue([{
       ...coatingInstall,
