@@ -71,19 +71,29 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
   });
 
   const edges = legacy.edges.map(edge => {
-    const sourcePort = edge.sourceHandle || edge.data?.sourceHandle;
-    const targetPort = edge.targetHandle || edge.data?.targetHandle;
-    if (!sourcePort || !targetPort) {
+    const declaredSourcePort = edge.sourceHandle || edge.data?.sourceHandle;
+    const declaredTargetPort = edge.targetHandle || edge.data?.targetHandle;
+    // CTS declaration relations are node-to-node semantic edges, not data
+    // socket connections. The canonical graph envelope requires endpoint
+    // ports, so give these relations a reserved synthetic endpoint and mark
+    // it explicitly; the reverse adapter removes it rather than exposing a
+    // fake socket to the process authoring model.
+    const declarationEdge = !declaredSourcePort && !declaredTargetPort
+      && (edge.role === 'type' || edge.role === 'declaration' || String(edge.id || '').startsWith('decl:'));
+    if ((!declaredSourcePort || !declaredTargetPort) && !declarationEdge) {
       throw new Error('Process edge ' + edge.id + ' has no source or target port; refusing a lossy graph migration');
     }
+    const sourcePort = declaredSourcePort || '$declaration';
+    const targetPort = declaredTargetPort || '$declaration';
     return {
       id: edge.id,
       source: { node: edge.source, port: String(sourcePort) },
       target: { node: edge.target, port: String(targetPort) },
-      kind: edge.role || 'data',
+      kind: declarationEdge ? 'type' : (edge.role || 'data'),
       metadata: {
         ...(edge.label ? { label: edge.label } : {}),
         ...(edge.type ? { type: edge.type } : {}),
+        ...(declarationEdge ? { syntheticDeclarationPorts: true } : {}),
         data: cloneJson(edge.data || {})
       }
     };
@@ -154,9 +164,9 @@ export function graphDocumentToProcessDefinition(graphSource) {
     return {
       id: edge.id,
       source: edge.source.node,
-      sourceHandle: edge.source.port,
+      ...(!annotation.syntheticDeclarationPorts ? { sourceHandle: edge.source.port } : {}),
       target: edge.target.node,
-      targetHandle: edge.target.port,
+      ...(!annotation.syntheticDeclarationPorts ? { targetHandle: edge.target.port } : {}),
       ...(annotation.type ? { type: annotation.type } : {}),
       ...(edge.kind && edge.kind !== 'data' ? { role: edge.kind } : {}),
       ...(annotation.label ? { label: annotation.label } : {}),
