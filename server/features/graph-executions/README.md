@@ -52,6 +52,7 @@ and relation commits remain gated on transactionally validated write sets.
 | Endpoint | Responsibility |
 |---|---|
 | `POST /api/graph-executions/query` | Execute a bounded, authorized CTS instance query and return its read-set evidence. |
+| `POST /api/graph-executions/evaluate` | Evaluate a saved graph on the server through installed managed providers and persist a procedural-preview execution record. |
 | `GET /api/graph-executions/collection-outputs` | List readable collection outputs from successful saved graph executions. |
 | `GET /api/graph-executions/collection-outputs/:executionInstanceId/:outputId` | Resolve one pinned execution output through the saved graph revision and each referenced instance's read grant. |
 | `POST /api/graph-executions` | Record a validated execution envelope against its saved graph revision. |
@@ -66,31 +67,22 @@ Page collection embeds can pin one successful graph execution and one collection
 
 ## Execution boundary status
 
-This feature is the authorization, evidence, and materialization boundary.
-`POST /api/graph-executions` still validates and records an execution envelope
-supplied by a caller. The service now has an `evaluateSavedGraph` preview
-orchestration seam: it loads the caller-readable saved graph, resolves nested
-Use Graph pins by exact payload revision through the same read boundary, and
-delegates provider definition resolution and node execution to injected host
-handlers. The core evaluator supplies cycle/depth checks, server-target
-validation, cancellation, and one shared read set across nested graphs.
-Plugin node definitions resolve from the organization's installed service and
-runtime declarations (not the mutable catalog), and the evaluation result
-collects the exact installed package/runtime/operation pins.
+`POST /api/graph-executions/evaluate` now loads the caller-readable saved
+graph, recursively resolves exact Use Graph revisions through the same
+organization read boundary, resolves plugin node definitions from installed
+organization declarations (not the mutable catalog), and executes pure/read
+operations through the shared `plugin-runtime` worker. Each node revalidates
+its installed package/runtime/operation pin and runs in an isolated child
+process. The evaluator supplies one graph execution id, a graph-wide deadline,
+cancellation propagation, nested invocation paths, and a shared CTS query
+read-set recorder. Successful and failed/cancelled previews are persisted as
+append-only `procedural-preview` execution records with graph/package pins,
+node task evidence, diagnostics, outputs, and read-set data.
 
-This is not yet managed server graph execution. The managed node execution
-callback is still injected rather than connected to the plugin-runtime worker;
-the service-level seam is not exposed as an authenticated execution route/task
-lifecycle, and it does not persist the resulting execution envelope. A provider's
-`execution.targets: ['server']` declaration and the existence of the managed
-plugin task worker do not make saved-graph server execution available. The
-remaining work is tracked in the root [TODO](../../../TODO.md).
-
-The service-level evaluator now resolves provider definitions from installed
-organization declarations and executes pure/read operations by enqueueing
-claim-bound tasks on the shared `plugin-runtime` worker. Each node task
-revalidates the installed package/runtime/operation pin, carries the graph
-execution id and nested invocation path, and is cancelled when the graph signal
-aborts or its deadline expires. The result includes the package/runtime pins
-used by the evaluation. Capability scopes are currently task-local, and this
-result is not yet persisted as an execution record or exposed through a route.
+This is an initial server preview path, not the complete durable execution
+profile. Capability scopes remain task-local; declared capabilities other
+than the tracked CTS query capability are marked unverified, and Commit/Bake/
+Export refuse previews carrying those markers. File-read dependency evidence
+and shared capability scope still need implementation. Proposal/effect/
+stateful execution remains refused by preview policy. The remaining work is
+tracked in the root [TODO](../../../TODO.md).

@@ -56,9 +56,9 @@ provider discovery → typed authoring → preview → file export → Bake.
     snapshot, never the mutable catalog or browser registry. Each resolution
     returns a package pin (plugin id, installed version, runtime id, operation
     id); graph evaluation collects those pins for execution evidence.
-  - [ ] Wire the service-level evaluator to the managed runtime task lifecycle
-    and an authenticated server entry point; provider handlers are still
-    injected and no user-facing server graph execution route exists.
+  - [x] Expose the service-level evaluator through authenticated
+    `POST /api/graph-executions/evaluate` and persist successful, failed, and
+    cancelled procedural-preview records.
   - [x] Execute pure/read nodes through the managed plugin-runtime worker.
     Every node task carries the graph execution id and nested invocation path,
     is bound to the installed package pin, and is cancelled on graph abort or
@@ -66,10 +66,12 @@ provider discovery → typed authoring → preview → file export → Bake.
   - [ ] Unify capability scope/evidence across node tasks and extend the shared
     read set to authorized file reads. CTS instance queries already use the
     caller's read grant and the evaluator's shared parent/child read recorder;
-    durable materialization must still fail closed on unstable boundaries.
-  - [ ] Persist the canonical execution envelope with graph/package/runtime
-    pins, inputs/outputs, diagnostics, invocation path, capability evidence,
-    read set, and lifecycle profile.
+    unverified capability use is marked in the read set and blocks
+    Commit/Bake/Export.
+  - [x] Persist procedural-preview records with graph/package/runtime pins,
+    inputs/outputs, diagnostics, node task and nested invocation evidence, and
+    read sets. Per-call capability evidence and durable lifecycle profiles
+    remain open.
   - [ ] Define server policy for pure/read/proposal/commit/effect/stateful nodes;
     preview may run only pure/read, and durable writes remain explicit
     Commit/Bake/Export operations with idempotency and revision checks.
