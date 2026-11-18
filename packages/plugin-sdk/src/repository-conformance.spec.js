@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,16 +11,22 @@ import build123dListing from '../../../workers/build123d/listing.json' with { ty
 import documentsListing from '../../../workers/documents/listing.json' with { type: 'json' };
 import facadeListing from '../../../workers/facade/listing.json' with { type: 'json' };
 import techDrawingListing from '../../../workers/tech-drawing/listing.json' with { type: 'json' };
+import nestingListing from '../../../workers/nesting/listing.json' with { type: 'json' };
+import { buildDocumentsRuntime } from '../../../workers/documents/build-runtime.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const listings = [
   { pluginId: 'build123d', pluginRoot: resolve(repositoryRoot, 'workers/build123d'), listing: build123dListing },
   { pluginId: 'documents', pluginRoot: resolve(repositoryRoot, 'workers/documents'), listing: documentsListing },
   { pluginId: 'facade', pluginRoot: resolve(repositoryRoot, 'workers/facade'), listing: facadeListing },
+  { pluginId: 'nesting', pluginRoot: resolve(repositoryRoot, 'workers/nesting'), listing: nestingListing },
   { pluginId: 'tech-drawing', pluginRoot: resolve(repositoryRoot, 'workers/tech-drawing'), listing: techDrawingListing }
 ];
 
 describe('repository plugin conformance', () => {
+  beforeAll(async () => {
+    await buildDocumentsRuntime();
+  });
   it.each(listings)('$pluginId listing passes the canonical plugin SDK validator', ({ listing }) => {
     expect(() => parseListing(listing)).not.toThrow();
   });
@@ -86,7 +92,7 @@ describe('repository plugin conformance', () => {
   });
 
   it('covers every installed plugin listing in the repository', () => {
-    const discovered = ['build123d', 'documents', 'facade', 'tech-drawing'];
+    const discovered = ['build123d', 'documents', 'facade', 'nesting', 'tech-drawing'];
     expect(listings.map(item => item.listing.pluginId).sort()).toEqual(discovered.sort());
   });
 });

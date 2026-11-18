@@ -9,6 +9,7 @@ import build123dListing from '../../../workers/build123d/listing.json' with { ty
 import documentsListing from '../../../workers/documents/listing.json' with { type: 'json' };
 import facadeListing from '../../../workers/facade/listing.json' with { type: 'json' };
 import techDrawingListing from '../../../workers/tech-drawing/listing.json' with { type: 'json' };
+import nestingListing from '../../../workers/nesting/listing.json' with { type: 'json' };
 
 let root;
 beforeAll(async () => {
@@ -51,6 +52,7 @@ describe('managed plugin runtime asset collection', () => {
     ['build123d', build123dListing],
     ['documents', documentsListing],
     ['facade', facadeListing],
+    ['nesting', nestingListing],
     ['tech-drawing', techDrawingListing]
   ])('collects every declared %s runtime import graph', (pluginId, listing) => {
     const packageRoot = fileURLToPath(new URL(`../../../workers/${pluginId}`, import.meta.url));
