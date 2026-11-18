@@ -99,7 +99,7 @@ were added; Authorized text/CSV/XLSX file-read nodes now use the managed `files.
 
 ### Agent Notes (2026-11-18, file-backed graph and XLSX template slice)
 
-The Documents listing v28 derives 27 browser graph operations from the
+The Documents listing v31 derives 27 browser graph operations from the
 installed package runtime declaration. The graph editor registers those
 provider contributions through the plugin runtime worker and the SDK node
 contract. The shared runtime includes typed document construction,
@@ -212,6 +212,12 @@ Progress (2026-11-17): Facade nesting quantity normalization no longer truncates
 Progress (2026-11-17): Facade `sheet-dxf` now declares `content` revisions, completing the revision-scope declaration for all payload-bearing Facade file types. A contract test rejects any payload-bearing file type without a `content` or `geometry` revision scope; Facade listing version advanced to 46.
 
 Progress (2026-11-17): Documents and Facade palette contributions now use the actual listing declarations in contract tests (no synthetic fallback groups). Facade's graph-visible operations are grouped by workflow (nesting, sheet-planning, production-export); provider-authored operation labels and descriptions are now rendered by the shared palette projection. Internal construction/projection helpers stay out of the graph palette. Service execution migration is underway: Documents `csv-text` now runs in its browser runtime; 7 Documents operations remain endpoint-backed. Facade has five managed operations and two endpoint-backed operations.
+
+Progress (2026-11-18): Preview lifecycle repairs: graph preview scheduling now invalidates in-flight evaluations immediately when the graph changes or the preview tab closes; stale results cannot overwrite newer previews. Provider-declared preview channel modules reload when their URL or surface contract changes and pending loads are invalidated on unmount. Instance preview modules and payloads now reload safely when their binding or payload revision changes. Regression coverage is in `useGraphChannelPreview.spec.js`; an installed Documents graph-preview Playwright test was added in `e2e/graph-documents-preview.spec.js` and still needs execution in the full app environment.
+
+Progress (2026-11-18): Documents graph ports now preserve nested semantic metadata from listing schemas, including `documents.file-id`; a graph-session regression verifies that the semantic contract survives the interface boundary and reaches the authorized `files.read` capability. The Documents listing is v31. Endpoint-only deterministic-cache declarations were removed from its shared runtime services; endpoint service caches remain on endpoint-mode declarations. The README listing version was synchronized.
+
+Progress (2026-11-18): Repository-wide plugin conformance coverage now validates all four installed plugin listings through the canonical SDK parser, checks declared runtime/surface module paths, and checks the current `palette.group` contract. The installed service projection now consumes `palette.group`/`palette.label` rather than retired service-level `group` metadata; regression coverage also proves legacy snapshots cannot resurrect that retired field. The broader client/server execution matrix and managed server graph evaluator remain open.
 
 Progress (2026-11-17): The graph-node palette and plugin listing now share
 one declaration contract: `palette.group`, optional `label`, `keywords`,
