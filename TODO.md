@@ -7991,7 +7991,16 @@ Progress (2026-11-17): Added `fill-markdown-template` as a pure, listing-derived
 Documents graph operation in the shared browser/server runtime. It returns a
 real Markdown file payload; template text can come from the authorized
 `read-text-file` operation and values remain explicit graph inputs. XLSX/PDF
-template engines are still endpoint-backed. CI verification is pending.
+template engines are still endpoint-backed. The current staging CI run passes the full Vitest suite, SSR smoke tests, architecture, framework, documentation, and plugin-dependency checks. The browser acceptance spec is present but has not been executed.
+
+Progress (2026-11-18): Fixed the built-in catalog seed image's deployment
+dependency closure. It now includes the complete Documents and Facade source
+trees, all four built-in listing files, and the Node package aliases required
+by the seeder. The seeder preflights every listing and statically discoverable
+runtime asset graph before the first database write. The deployment script
+smoke-imports the SDK and CTS aliases before replacing running services.
+Published catalog contents and organization install pins still require live
+deployment verification.
 
 ### Documents graph delivery — next sequence
 
