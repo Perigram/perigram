@@ -6,6 +6,11 @@ COMPOSE_FILE="$ROOT/docker-compose.dev.yml"
 
 cd "$ROOT"
 
+# Keep bind-mounted files owned by the invoking host user. Compose passes these
+# IDs to the app container and the dev image so Nuxt never writes root-owned files.
+export PERIGRAM_DEV_UID="$(id -u)"
+export PERIGRAM_DEV_GID="$(id -g)"
+
 compose() {
   docker compose --project-directory "$ROOT" -f "$COMPOSE_FILE" "$@"
 }
