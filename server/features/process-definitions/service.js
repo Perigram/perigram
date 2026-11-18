@@ -9,7 +9,7 @@ import { stateService } from '~/server/core/machines/service.js';
 import * as workflowOverridesService from '../workflow-overrides/service.js';
 import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
 import * as entityEventService from '~/server/features/instance-events/service.js';
-import { exportersForOrganization, invokeEndpointValueService } from '../plugins/service.js';
+import { exportersForOrganization, invokePreviewValueService } from '../plugins/service.js';
 import { declarationForType, writeGrantTarget } from '../instances/service.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { getEntityFieldAccessPolicy } from '~/shared/field-access-policies.js';
@@ -947,7 +947,7 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
     // Value services evaluate in preview scope (SPEC §28): the same
     // endpoint dispatch the command runtime uses, cache-replayed, with
     // no command_runs write.
-    previewService: (operatorId, parameters) => invokeEndpointValueService(operatorId, parameters, auth),
+    previewService: (operatorId, parameters) => invokePreviewValueService(operatorId, parameters, auth),
     catalogContext: record => {
       const structural = record.kind === 'cts.compose';
       return {
