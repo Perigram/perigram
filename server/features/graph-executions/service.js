@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
 import { withMongoSnapshotTransaction } from '~/server/db/transactions.js';
-import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder } from '#packages/core';
+import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder, evaluateProceduralGraph } from '#packages/core';
 import { ensureOrganizationChangeIndexes, withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
 import { declarationForType } from '../instances/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -71,19 +71,61 @@ export async function resolvePinnedGraph(graphId, revision, auth = {}) {
   return matches[0];
 }
 
-async function sourceFor(instanceId, record, auth) {
+async function savedGraphSource(instanceId, auth) {
   if (!instanceId) throw createError({ statusCode: 400, message: 'Graph document instance is required' });
-  const registry = getAppRegistry();
-  const graphDocument = await registry.getInstanceService('graph-document').processGetById(String(instanceId), auth);
+  const service = getAppRegistry().getInstanceService('graph-document');
+  const graphDocument = await service?.processGetById?.(String(instanceId), auth);
   if (!graphDocument) throw createError({ statusCode: 404, message: 'Graph document not found' });
-  if (String(graphDocument.fields?.graphId || '') !== record.graph.id || !graphDocument.payload?.fileId) {
-    throw createError({ statusCode: 409, message: 'Execution graph identity does not match the saved source document' });
-  }
   const graph = await readSavedGraph(graphDocument, auth);
-  if (graph.id !== record.graph.id || graph.revision !== record.graph.revision) {
+  if (String(graphDocument.fields?.graphId || '') !== graph.id) {
+    throw createError({ statusCode: 409, message: 'Saved graph identity does not match its graph document' });
+  }
+  return {
+    graphDocument,
+    graph,
+    organizationId: graphDocument.organizationId || auth.organizationId || auth.memberships?.[0]?.organizationId || null
+  };
+}
+
+async function sourceFor(instanceId, record, auth) {
+  const source = await savedGraphSource(instanceId, auth);
+  if (source.graph.id !== record.graph.id || source.graph.revision !== record.graph.revision) {
     throw createError({ statusCode: 409, message: 'Execution graph revision is stale; save and preview the current revision' });
   }
-  return { graphDocument, graph, organizationId: graphDocument.organizationId || auth.organizationId || auth.memberships?.[0]?.organizationId || null };
+  return source;
+}
+
+// Server-side saved-graph preview orchestration. Provider resolution and node
+// execution are injected by the managed runtime host; graph documents and
+// Use Graph revisions are always resolved through the caller's read grants.
+export async function evaluateSavedGraph({
+  graphDocumentInstanceId,
+  inputBindings = {},
+  resolveNodeDefinition,
+  executeNode,
+  context = {}
+} = {}, auth = {}) {
+  if (typeof resolveNodeDefinition !== 'function' || typeof executeNode !== 'function') {
+    throw createError({ statusCode: 400, message: 'Server graph evaluation requires provider resolution and node execution handlers' });
+  }
+  const source = await savedGraphSource(graphDocumentInstanceId, auth);
+  const result = await evaluateProceduralGraph({
+    graph: source.graph,
+    inputBindings,
+    resolveNodeDefinition,
+    executeNode,
+    resolveGraph: async (graphId, revision) => (await resolvePinnedGraph(graphId, revision, auth)).graph,
+    context: {
+      ...context,
+      data: {
+        ...(context.data || {}),
+        queryInstances: query => queryOrganizationData(query, auth)
+      }
+    },
+    mode: 'preview',
+    executionTarget: 'server'
+  });
+  return { ...source, ...result };
 }
 
 function expectedSequenceForReadSet(readSet) {
