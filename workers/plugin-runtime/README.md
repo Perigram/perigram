@@ -32,3 +32,9 @@ Deno import map.
 Perigram runs this worker as shared platform infrastructure across
 organizations. Each install carries immutable package assets and declared
 runtime requirements.
+
+For graph-node tasks, the worker returns per-call capability evidence alongside
+the operation output. Evidence records the capability name and safe identifying
+inputs; authorized CTS query/read responses also carry their read-set evidence
+back to the graph evaluator. File-read calls are identified but remain
+unverified for materialization until file content/version evidence is included.
