@@ -1034,7 +1034,10 @@ async function waitForManagedNodeTask(run, { signal, timeoutMs = PLUGIN_RUNTIME_
       if (!data || !Object.hasOwn(data, 'output')) {
         throw createError({ statusCode: 502, message: 'Managed graph node completed without an output value' });
       }
-      return data.output;
+      return {
+        output: data.output,
+        capabilityEvidence: Array.isArray(data.capabilityEvidence) ? data.capabilityEvidence : []
+      };
     }
     if (['FAILED', 'CANCELLED'].includes(current.status)) {
       throw createError({
@@ -1141,15 +1144,43 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
       error.code = 'GRAPH_EXECUTION_TIMEOUT';
       throw error;
     }
-    const value = await waitForManagedNodeTask(run, {
+    const taskResult = await waitForManagedNodeTask(run, {
       signal: invocation.context?.signal,
       timeoutMs: Math.min(
         Number.isFinite(remainingExecutionMs) ? remainingExecutionMs : PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000,
         PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000
       )
     });
-    invocation.context?.nodeInvocations?.push({ ...evidence, status: 'succeeded' });
-    return value;
+    for (const capability of taskResult.capabilityEvidence) {
+      const capabilityRecord = {
+        ...capability,
+        nodeId,
+        operation: evidence.operation,
+        packagePin: pin
+      };
+      invocation.context?.capabilityEvidence?.push(capabilityRecord);
+      const readSet = capability.readSet;
+      const recorder = invocation.context?.readSet;
+      if (readSet && recorder) {
+        if (readSet.consistency) {
+          recorder.setConsistency({
+            consistency: readSet.consistency,
+            snapshotId: readSet.snapshotId,
+            organizationSequenceStart: readSet.organizationSequenceStart,
+            organizationSequenceEnd: readSet.organizationSequenceEnd
+          });
+        }
+        for (const instance of readSet.instances || []) recorder.recordInstance(instance);
+        for (const relation of readSet.relations || []) recorder.recordRelation(relation);
+        for (const query of readSet.queries || []) recorder.recordQuery(query);
+      }
+    }
+    invocation.context?.nodeInvocations?.push({
+      ...evidence,
+      status: 'succeeded',
+      capabilities: taskResult.capabilityEvidence.map(item => item.name)
+    });
+    return taskResult.output;
   } catch (error) {
     invocation.context?.nodeInvocations?.push({
       ...evidence,
