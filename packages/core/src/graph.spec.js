@@ -26,7 +26,7 @@ const validGraph = () => ({
     { id: 'output-1', operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' }, config: { interfaceId: 'document' } }
   ],
   edges: [
-    { id: 'edge-1', source: { node: 'input-1', port: 'value' }, target: { node: 'format-1', port: 'source' } },
+    { id: 'edge-1', source: { node: 'input-1', port: 'value' }, target: { node: 'format-1', port: 'source' }, kind: 'data', metadata: { label: 'Source value' } },
     { id: 'edge-2', source: { node: 'format-1', port: 'document' }, target: { node: 'output-1', port: 'value' } }
   ]
 });
@@ -38,6 +38,8 @@ describe('canonical graph document', () => {
     expect(graph.nodes[1].operation).toEqual({ provider: 'plugin.documents', id: 'document.compose', version: '3' });
     expect(graph.nodes[1].config).toEqual({ template: 'brief' });
     expect(graph.edges[0].source).toEqual({ node: 'input-1', port: 'value' });
+    expect(graph.edges[0].kind).toBe('data');
+    expect(graph.edges[0].metadata).toEqual({ label: 'Source value' });
   });
 
   it('accepts a valid graph and returns its canonical normalized form', () => {
@@ -103,6 +105,12 @@ describe('canonical graph document', () => {
   it('requires semantic and transport contracts on public interface ports', () => {
     const graph = validGraph();
     graph.interface.inputs[0].contract = { shape: 'item' };
+    expect(validateGraphDocument(graph)[0].code).toBe('invalid-document');
+  });
+
+  it('rejects non-object or non-JSON edge metadata', () => {
+    const graph = validGraph();
+    graph.edges[0].metadata = 'not-an-object';
     expect(validateGraphDocument(graph)[0].code).toBe('invalid-document');
   });
 
