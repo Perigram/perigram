@@ -59,11 +59,14 @@ provider discovery → typed authoring → preview → file export → Bake.
   - [ ] Wire the service-level evaluator to the managed runtime task lifecycle
     and an authenticated server entry point; provider handlers are still
     injected and no user-facing server graph execution route exists.
-  - [ ] Execute each node through the managed plugin runtime with one graph
-    execution id, cancellation signal, deadline, and shared capability scope.
-  - [ ] Adapt host capabilities for authorized CTS/file reads and collect one
-    read set across parent and child graphs; fail closed on missing grants or
-    unverified consistency boundaries before durable materialization.
+  - [x] Execute pure/read nodes through the managed plugin-runtime worker.
+    Every node task carries the graph execution id and nested invocation path,
+    is bound to the installed package pin, and is cancelled on graph abort or
+    deadline. Each operation remains an isolated child process.
+  - [ ] Unify capability scope/evidence across node tasks and extend the shared
+    read set to authorized file reads. CTS instance queries already use the
+    caller's read grant and the evaluator's shared parent/child read recorder;
+    durable materialization must still fail closed on unstable boundaries.
   - [ ] Persist the canonical execution envelope with graph/package/runtime
     pins, inputs/outputs, diagnostics, invocation path, capability evidence,
     read set, and lifecycle profile.

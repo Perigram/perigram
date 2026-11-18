@@ -347,3 +347,8 @@ installed plugins and the central catalog.
 - [instances](../instances/README.md) — per-call declaration resolution.
 - [Plugin SDK](../../../packages/plugin-sdk/README.md) — authoring loop,
   surface mount contracts, CLI.
+
+Graph execution can invoke pure/read managed operations through the shared
+`plugin-runtime` worker. The graph host revalidates the installed package
+version, runtime, operation, and node-definition version before enqueueing a
+claim-bound task; each task carries the graph execution id and invocation path.

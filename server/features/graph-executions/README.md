@@ -85,3 +85,12 @@ lifecycle, and it does not persist the resulting execution envelope. A provider'
 `execution.targets: ['server']` declaration and the existence of the managed
 plugin task worker do not make saved-graph server execution available. The
 remaining work is tracked in the root [TODO](../../../TODO.md).
+
+The service-level evaluator now resolves provider definitions from installed
+organization declarations and executes pure/read operations by enqueueing
+claim-bound tasks on the shared `plugin-runtime` worker. Each node task
+revalidates the installed package/runtime/operation pin, carries the graph
+execution id and nested invocation path, and is cancelled when the graph signal
+aborts or its deadline expires. The result includes the package/runtime pins
+used by the evaluation. Capability scopes are currently task-local, and this
+result is not yet persisted as an execution record or exposed through a route.
