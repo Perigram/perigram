@@ -17,7 +17,7 @@ RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=
     apt-get install -y --no-install-recommends ca-certificates curl python3 python3-pip && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /src
+# Let Node use the trusted system CA store for build-time and runtime HTTPS.\nENV NODE_USE_SYSTEM_CA=1\n\nWORKDIR /src
 
 # Copy package files
 COPY package.json package-lock.json ./
