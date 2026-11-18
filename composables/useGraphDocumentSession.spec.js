@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { useGraphDocumentSession } from './useGraphDocumentSession.js';
-import { processDefinitionToGraphDocument } from '@perigram/processes';
+import { processDefinitionToGraphDocument, graphDocumentToProcessDefinition } from '@perigram/processes';
 import { createRuntime as createDocumentsRuntime } from '../workers/documents/runtime/shared.mjs';
 
 function createSession() {
@@ -212,6 +212,17 @@ describe('useGraphDocumentSession', () => {
       execution: { kind: 'control' }
     });
     expect(node.data.definition.inputs.length + node.data.definition.outputs.length).toBeGreaterThan(0);
+
+    const controlItem = session.paletteGroups.value
+      .flatMap(group => group.items)
+      .find(item => item.operation?.id === 'control.if');
+    expect(controlItem.config).toEqual({ kind: 'control.if' });
+    const added = session.addNode(controlItem);
+    const restored = graphDocumentToProcessDefinition(session.serializeGraph());
+    expect(restored.processNodes[added.id]).toMatchObject({
+      id: added.id,
+      kind: 'control.if'
+    });
   });
 
   it('preserves canonical edge kind and metadata through editor load/save', () => {
