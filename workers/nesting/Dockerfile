@@ -15,6 +15,7 @@ RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=
     apt-get update -o Acquire::https::CAInfo=/tmp/build-ca-bundle && \
     apt-get install -y --no-install-recommends ca-certificates \
       python3 python3-pip python3-dev build-essential libssl-dev && \
+    cat /tmp/build-ca-bundle >> /etc/ssl/certs/ca-certificates.crt && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -38,7 +39,13 @@ ARG no_proxy
 
 # Create a non-root user
 RUN groupadd -r appuser && useradd -m -r -g appuser appuser
-WORKDIR /app\n\n# Trust the same host CA bundle in the final runtime image.\nRUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \\\n    cat /tmp/build-ca-bundle >> /etc/ssl/certs/ca-certificates.crt\n\n# Upgrade pip
+WORKDIR /app
+
+# Trust the same host CA bundle in the final runtime image.
+RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \
+    cat /tmp/build-ca-bundle >> /etc/ssl/certs/ca-certificates.crt
+
+# Upgrade pip
 RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \
     PIP_CERT=/tmp/build-ca-bundle pip install --upgrade pip
 
