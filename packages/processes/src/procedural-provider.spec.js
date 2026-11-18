@@ -53,6 +53,8 @@ describe('process procedural provider adapter', () => {
     };
     const registered = registerProcessGraphNodes(registry);
     expect(registered.length).toBeGreaterThan(registerProcessProceduralNodes({ register: value => value }).length);
+    expect(definitions.get(`${PROCESS_PROCEDURAL_PROVIDER}/collection.count@${PROCESS_PROCEDURAL_VERSION}`).inputs[0].compatibility)
+      .toEqual({ profile: 'perigram.cts' });
     expect(definitions.get(`${PROCESS_PROCEDURAL_PROVIDER}/cts.read@${PROCESS_PROCEDURAL_VERSION}`)).toMatchObject({
       id: 'cts.read',
       execution: { kind: 'read' }
