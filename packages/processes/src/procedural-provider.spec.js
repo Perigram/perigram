@@ -104,6 +104,11 @@ describe('process procedural provider adapter', () => {
       execution: { kind: 'control' }
     });
     expect(createProcessProceduralNodeResolver()(operation, invocation)).toBeNull();
+    expect(createProcessProceduralNodeResolver()({
+      provider: PROCESS_PROCEDURAL_PROVIDER,
+      id: 'cts.field',
+      version: PROCESS_PROCEDURAL_VERSION
+    }, { node: { id: 'field' }, config: { kind: 'cts.field' } })).toBeNull();
   });
 
   it('executes a process list operation through the canonical graph evaluator', async () => {
