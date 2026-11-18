@@ -103,17 +103,17 @@
           "label": "Nesting"
         }
       }
+    ],
+    "runtimes": [
+      {
+        "id": "nesting-server",
+        "language": "javascript",
+        "version": "1",
+        "entry": "/runtime/server.mjs",
+        "targets": [
+          "server"
+        ]
+      }
     ]
-  },
-  "runtimes": [
-    {
-      "id": "nesting-server",
-      "language": "javascript",
-      "version": "1",
-      "entry": "/runtime/server.mjs",
-      "targets": [
-        "server"
-      ]
-    }
-  ]
+  }
 }
