@@ -41,8 +41,8 @@ describe('canonical process graph migration bridge', () => {
     const graph = processDefinitionToGraphDocument(definition());
     expect(graph.format).toBe(GRAPH_DOCUMENT_FORMAT);
     expect(graph.nodes.map(node => node.operation)).toEqual([
-      { provider: PROCESS_GRAPH_PROVIDER, id: 'process-node.collection.count', version: '1' },
-      { provider: PROCESS_GRAPH_PROVIDER, id: 'process-node.cts.construct', version: '1' },
+      { provider: PROCESS_GRAPH_PROVIDER, id: 'collection.count', version: '1' },
+      { provider: PROCESS_GRAPH_PROVIDER, id: 'cts.construct', version: '1' },
       { provider: PROCESS_GRAPH_PROVIDER, id: 'canvas-node.ctsClass', version: '1' }
     ]);
     expect(graph.edges[1]).toMatchObject({
