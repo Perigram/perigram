@@ -4,6 +4,7 @@ import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#pack
 import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
 import documentsListing from '../workers/documents/listing.json' with { type: 'json' };
 import techDrawingListing from '../workers/tech-drawing/listing.json' with { type: 'json' };
+import nestingListing from '../workers/nesting/listing.json' with { type: 'json' };
 import { composeNestingAttemptTree, composeNestingAttemptGraph } from '#test-data/nesting-attempt-authoring.js';
 import { compileTreeDeclarations } from '#packages/processes/src/designer.js';
 import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
@@ -21,7 +22,7 @@ const LAYER_DATA = [
 
 test('the solve action patches its attempt and constructs sheet designs from the layouts', async ({ app }) => {
   test.setTimeout(240_000);
-  await app.installPlugins(['tech-drawing', 'documents', 'facade']);
+  await app.installPlugins(['tech-drawing', 'documents', 'nesting', 'facade']);
   await app.connectPlugin('facade', 'http://facade-executor:8790');
 
   const authoring = createDefinitionAuthoring({ entities: [], fieldSchemas: {}, workflows: {}, construction: {}, relations: [], projectionContracts: {}, serviceContracts: {} });
@@ -58,6 +59,10 @@ test('the solve action patches its attempt and constructs sheet designs from the
   const packServices = [
     ...(documentsListing.declarations.services || []),
     ...(techDrawingListing.declarations.services || []),
+    ...(nestingListing.declarations.services || []).map(service => ({
+      id: `plugin.nesting.${service.id}`, species: 'service', command: `plugin.nesting.${service.id}`,
+      palette: service.palette, signature: service.signature, render: service.render || { label: service.label || service.id }
+    })),
     ...(facadePackContent.services || [])
   ];
   const domain = projectDomainFromView(registry, organizationId, facadeDomain, { packServices });
