@@ -43,7 +43,8 @@ export function normalizeNodeDefinition(source = {}) {
     semantic: cloneJson(port.semantic),
     required: port.required !== false,
     ...(Object.hasOwn(port, 'default') ? { default: cloneJson(port.default) } : {}),
-    ...(port.description ? { description: String(port.description) } : {})
+    ...(port.description ? { description: String(port.description) } : {}),
+    ...(port.compatibility ? { compatibility: { profile: port.compatibility.profile } } : {})
   });
   return deepFreeze({
     provider: source.provider,
@@ -96,6 +97,10 @@ export function validateNodeDefinition(source) {
       if (seen.has(port.id)) problems.push(issue('duplicate-port-id', `${path}.id`, `Duplicate port id ${port.id}`));
       seen.add(port.id);
       if (port.shape != null && !SHAPES.has(port.shape)) problems.push(issue('invalid-port-shape', `${path}.shape`, `Unsupported transport shape ${port.shape}`));
+      if (port.compatibility != null && (!isRecord(port.compatibility)
+        || !/^[a-z0-9][a-z0-9._-]{0,127}$/.test(String(port.compatibility.profile || '')))) {
+        problems.push(issue('invalid-port-compatibility', `${path}.compatibility`, 'Compatibility profile must be a stable provider-qualified id'));
+      }
       if (!isRecord(port.semantic) || !Object.keys(port.semantic).length) problems.push(issue('missing-semantic', `${path}.semantic`, 'Port requires a non-empty semantic descriptor object'));
       else if (!isJsonValue(port.semantic)) problems.push(issue('invalid-semantic', `${path}.semantic`, 'Semantic descriptor must be JSON-compatible'));
       if (Object.hasOwn(port, 'default') && !isJsonValue(port.default)) problems.push(issue('invalid-default', `${path}.default`, 'Port default must be JSON-compatible'));
