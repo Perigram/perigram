@@ -38,9 +38,10 @@ Progress (2026-11-18): Added Playwright coverage for an API-saved typed-block
 graph (paragraph → document composition → Markdown and HTML file outputs),
 including both preview channels, explicit Page Bake destinations, execution
 provenance, Page reopen, and downloaded bytes. The existing Markdown parse
-flow also asserts Bake provenance. These E2E scenarios are authored but have
-not been executed; the full palette-driven authoring, placement, inspector
-configuration, and wire-validation acceptance remains open.
+flow also asserts Bake provenance. A separate E2E searches the installed
+Documents palette and places a Paragraph node. These Playwright scenarios are
+authored but have not been executed; inspector schema configuration, valid/
+invalid wire authoring, and full UI-authored graph persistence remain open.
 - [ ] Reconcile Documents listing versions with installed organization
   snapshots. Verify upgrade behavior against an installation carrying the
   previous declaration version; record catalog and installed versions in
