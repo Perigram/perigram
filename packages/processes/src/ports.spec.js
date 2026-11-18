@@ -301,6 +301,10 @@ describe('process programming node ports', () => {
       { id: 'entity', kind: 'entity', typeId: 'part' },
       { id: 'entity', kind: 'entity', typeId: 'customer' }
     )).toMatchObject({ status: 'incompatible', compatible: false });
+    expect(registeredComparator(
+      { id: 'entity', shape: 'item', semantic: { base: 'entity', kind: 'entity', typeId: 'part' } },
+      { id: 'entity', shape: 'item', semantic: { base: 'entity', kind: 'entity', typeId: 'customer' } }
+    )).toMatchObject({ status: 'incompatible', compatible: false });
   });
 
 });
