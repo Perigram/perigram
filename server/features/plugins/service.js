@@ -1138,9 +1138,10 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
     }
     const value = await waitForManagedNodeTask(run, {
       signal: invocation.context?.signal,
-      timeoutMs: Number.isFinite(remainingExecutionMs)
-        ? remainingExecutionMs
-        : PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000
+      timeoutMs: Math.min(
+        Number.isFinite(remainingExecutionMs) ? remainingExecutionMs : PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000,
+        PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000
+      )
     });
     invocation.context?.nodeInvocations?.push({ ...evidence, status: 'succeeded' });
     return value;
