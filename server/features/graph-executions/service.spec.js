@@ -23,7 +23,8 @@ const mocks = vi.hoisted(() => ({
   connectDB: vi.fn(),
   declarationForType: vi.fn(),
   runOrganizationChange: vi.fn(),
-  resolveInstalledGraphNodeDefinition: vi.fn()
+  resolveInstalledGraphNodeDefinition: vi.fn(),
+  executeManagedGraphNode: vi.fn()
 }));
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: mocks.getAppRegistry }));
 vi.mock('~/server/db/mongo', () => ({ connectDB: mocks.connectDB }));
@@ -35,7 +36,8 @@ vi.mock('../files/service.js', () => ({
   deleteFile: mocks.deleteFile
 }));
 vi.mock('../plugins/service.js', () => ({
-  resolveInstalledGraphNodeDefinition: mocks.resolveInstalledGraphNodeDefinition
+  resolveInstalledGraphNodeDefinition: mocks.resolveInstalledGraphNodeDefinition,
+  executeManagedGraphNode: mocks.executeManagedGraphNode
 }));
 vi.mock('../instance-revisions/service.js', () => ({ ensureRevisionIndexes: vi.fn(async () => {}) }));
 vi.mock('../pages/service.js', () => ({
@@ -255,6 +257,7 @@ describe('graph execution service', () => {
     }), expect.objectContaining({
       target: 'server',
       mode: 'preview',
+      invocationPath: [{ graphId: 'graph.document', graphRevision: 'rev-01', nodeId: 'format-1' }],
       context: expect.objectContaining({
         executionId: 'server-preview-1',
         data: expect.objectContaining({ queryInstances: expect.any(Function) })
@@ -302,8 +305,6 @@ describe('graph execution service', () => {
     const result = await graphExecutionsService.evaluateSavedGraph({
       graphDocumentInstanceId: 'graph-instance-1',
       inputBindings: { source: { type: 'text-document', id: 'source-file' } },
-      resolveNodeDefinition: vi.fn(),
-      executeNode: vi.fn()
     }, auth);
 
     expect(result.outputs.document).toEqual({ type: 'text-document', id: 'source-file' });
