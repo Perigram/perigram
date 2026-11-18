@@ -21,12 +21,13 @@ const NODE_RECORD_COLLECTIONS = Object.freeze({
 });
 
 /**
- * Lossless bridge from the legacy process-definition canvas into the
- * platform graph document envelope. Domain records remain process metadata;
- * canvas nodes and wires become provider-qualified operations and graph edges.
+ * Lossless migration adapter from legacy process-definition storage to the
+ * canonical graph document. Referenced node records move onto canonical node
+ * config; only process-domain declarations and unreferenced records remain
+ * in process metadata. Wires become canonical graph edges.
  *
- * This does not execute a process. Durable scheduling/effects remain the
- * process execution profile until the scheduler consumes this representation.
+ * This adapter is transitional. Durable scheduling/effects remain the
+ * process execution profile, but its graph input is the canonical document.
  */
 export function processDefinitionToGraphDocument(definition = {}, options = {}) {
   const source = definition.data || definition;
