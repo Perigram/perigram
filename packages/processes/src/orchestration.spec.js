@@ -192,29 +192,32 @@ describe('durable process orchestration', () => {
   });
 
   it('resolves a connected status definition at execution time', async () => {
-    const definition = process([{
-      id: 'update',
-      kind: 'cts.transition',
-      typeId: 'project',
-      trigger: { mode: 'manual' },
-      stateRef: 'ready'
-    }], ['update'], [{
-      id: 'ready-update',
-      source: 'ready',
-      sourceHandle: 'data:status',
-      target: 'update',
-      targetHandle: 'data:state',
-      role: 'data'
-    }]);
-    definition.stateDefinitions = {
+    const stateDefinitions = {
       ready: { id: 'ready', stateId: 'READY', label: 'Ready' }
     };
-    definition.metadata[PROCESS_GRAPH_METADATA_KEY].sourceData.stateDefinitions = definition.stateDefinitions;
-    definition.graph.nodes.unshift({
-      id: 'ready',
-      operation: { provider: PROCESS_GRAPH_PROVIDER, id: 'canvas-node.stateDefinition', version: '1' },
-      config: { refId: 'ready', record: definition.stateDefinitions.ready }
+    const definition = createProcessGraphDocument({
+      id: 'definition',
+      dataflowVersion: 4,
+      processNodes: {
+        update: { id: 'update', kind: 'cts.transition', typeId: 'project', trigger: { mode: 'manual' }, stateRef: 'ready' }
+      },
+      stateDefinitions,
+      graph: {
+        nodes: [
+          { id: 'ready', type: 'stateDefinition', data: { refId: 'ready' } },
+          { id: 'update', type: 'processNode', data: { refId: 'update' } }
+        ],
+        edges: [{
+          id: 'ready-update',
+          source: 'ready',
+          sourceHandle: 'data:status',
+          target: 'update',
+          targetHandle: 'data:state',
+          role: 'data'
+        }]
+      }
     });
+    definition.metadata[PROCESS_GRAPH_METADATA_KEY].sourceData.stateDefinitions = stateDefinitions;
     const executeEffect = vi.fn().mockResolvedValue({ type: 'project', id: 'project-1' });
 
     const completed = await runProcessUntilSettled(
