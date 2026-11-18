@@ -21,13 +21,13 @@ const NODE_RECORD_COLLECTIONS = Object.freeze({
 });
 
 /**
- * Lossless migration adapter from legacy process-definition storage to the
- * canonical graph document. Referenced node records move onto canonical node
- * config; only process-domain declarations and unreferenced records remain
- * in process metadata. Wires become canonical graph edges.
- *
- * This adapter is transitional. Durable scheduling/effects remain the
- * process execution profile, but its graph input is the canonical document.
+ * Lossless in-memory projection from the existing process-definition storage
+ * shape to the canonical graph document. Referenced node records move onto
+ * canonical node config; process-domain declarations and unreferenced records
+ * remain in process metadata. Wires become canonical graph edges. This does
+ * not rewrite persisted records: it is the compatibility boundary while the
+ * stored process-definition format remains unchanged. Durable scheduling and
+ * effects stay in the process execution profile; graph structure is canonical.
  */
 export function processDefinitionToGraphDocument(definition = {}, options = {}) {
   const source = definition.data || definition;
