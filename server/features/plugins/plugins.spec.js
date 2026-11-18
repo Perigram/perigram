@@ -273,6 +273,14 @@ describe('managed plugin runtime package loading', () => {
       packagePin: { pluginId: 'demo', version: '7', runtimeId: 'javascript', operationId: 'transform' }
     };
     const invocationPath = [{ graphId: 'parent', graphRevision: 'r1', nodeId: 'node-a' }];
+    const capabilityEvidence = [];
+    const nodeInvocations = [];
+    const readSetRecorder = {
+      setConsistency: vi.fn(),
+      recordInstance: vi.fn(),
+      recordRelation: vi.fn(),
+      recordQuery: vi.fn()
+    };
 
     const result = await executeManagedGraphNode(definition, {
       node: { id: 'node-a' },
@@ -281,14 +289,9 @@ describe('managed plugin runtime package loading', () => {
       invocationPath,
       context: {
         executionId: 'execution-1',
-        nodeInvocations: [],
-        capabilityEvidence: [],
-        readSet: {
-          setConsistency: vi.fn(),
-          recordInstance: vi.fn(),
-          recordRelation: vi.fn(),
-          recordQuery: vi.fn()
-        }
+        nodeInvocations,
+        capabilityEvidence,
+        readSet: readSetRecorder
       }
     }, AUTH);
 
@@ -313,8 +316,21 @@ describe('managed plugin runtime package loading', () => {
       idempotencyKey: expect.stringMatching(/^graph-node:execution-1:/)
     }));
     expect(repository.findInstall).toHaveBeenCalledWith(ORG, 'demo');
-    const invocation = enqueueTask.mock.calls[0];
-    expect(invocation).toBeTruthy();
+    expect(capabilityEvidence).toEqual([expect.objectContaining({
+      name: 'organization.instances.read',
+      nodeId: 'node-a',
+      input: { typeId: 'part', instanceId: 'part-1' },
+      packagePin: expect.objectContaining({ pluginId: 'demo', version: '7' })
+    })]);
+    expect(readSetRecorder.setConsistency).toHaveBeenCalledWith({
+      consistency: 'snapshot',
+      snapshotId: 'snapshot-graph-node',
+      organizationSequenceStart: 12,
+      organizationSequenceEnd: 12
+    });
+    expect(readSetRecorder.recordInstance).toHaveBeenCalledWith(capabilityReadSet.instances[0]);
+    expect(readSetRecorder.recordQuery).toHaveBeenCalledWith(capabilityReadSet.queries[0]);
+    expect(nodeInvocations[0].capabilities).toEqual(['organization.instances.read']);
   });
 
   it('cancels an active worker task when the graph signal aborts', async () => {
