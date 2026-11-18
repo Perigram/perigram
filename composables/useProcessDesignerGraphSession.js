@@ -39,13 +39,12 @@ import { useProcessDesignerPreview } from '~/composables/useProcessDesignerPrevi
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 import { useProcessDesignerLiveGraph } from '~/composables/useProcessDesignerLiveGraph.js';
 
-// Legacy process-definition authoring session. This owns the CTS/process
-// record projection, declaration editing, process-specific socket rules,
-// process palette, and process compiler diagnostics. Graph documents use
-// useGraphDocumentSession instead; the shared GraphCanvas is presentation,
-// not a shared graph protocol or session. This session is a migration source
-// and must not acquire generic graph-document, provider, or subgraph logic.
-// (roles, lanes, screens, apply) stay with the host.
+// Process-domain extension session. It owns CTS/process record projection,
+// declaration editing, process-specific socket rules, process palette, and
+// compiler diagnostics. Generic selection, canvas interaction, viewport,
+// framing, and keyboard deletion are supplied by useGraphAuthoringSession,
+// the same authoring core used by graph documents. (Roles, lanes, screens,
+// and apply remain host concerns.)
 export function useProcessDesignerGraphSession({
   t,
   te,
