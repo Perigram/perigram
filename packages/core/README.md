@@ -63,10 +63,17 @@ boundary node. Use Graph nodes pin an immutable graph revision.
 - `evaluateProceduralGraph` evaluates data dependencies in preview mode,
   resolves exact provider definitions, composes pinned subgraphs, and awaits
   the optional `context.finalizeExecution(executionId)` hook in its settlement
-  path. Connected required inputs fail when their source output is absent or
-  undefined; non-nullable inputs reject null values and null defaults, and primitive/record bases are checked against runtime values. The same execution id is exposed to every node invocation and
-  the finalizer. It returns graph outputs and per-node outputs for host preview
-  channels.
+  path. Hosts may pass an `AbortSignal` as `context.signal`; cancellation is
+  checked before evaluation, between nodes, and while awaiting asynchronous
+  provider resolution/execution, and is surfaced as an `AbortError` with code
+  `GRAPH_EXECUTION_ABORTED`. Providers receive the same signal in their
+  execution context and should pass it to cancellable work. Finalization still
+  runs when evaluation starts with an aborted signal. Connected required
+  inputs fail when their source output is absent or undefined; non-nullable
+  inputs reject null values and null defaults, and primitive/record bases are
+  checked against runtime values. The same execution id is exposed to every
+  node invocation and the finalizer. It returns graph outputs and per-node
+  outputs for host preview channels. Hosts select `executionTarget` (`browser` by default or `server`); server execution requires every resolved node to explicitly declare the server target, and the selected target is passed to the host adapter.
 - `createGraphExecutionRecord`, `validateGraphExecutionRecord`, and
   `assertValidGraphExecutionRecord` own immutable, versioned execution
   envelopes with pinned graph revisions, inputs, outputs, diagnostics,

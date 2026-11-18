@@ -10,7 +10,10 @@ operation.
 
 The parent worker retains the platform token and network access. The
 operation process receives the package directory as its read boundary and
-runs with a bounded V8 heap and wall time. The child process starts with a package-scoped read permission and bounded
+runs with a bounded V8 heap and wall time. Task cancellation and the execution
+deadline are first delivered as a cooperative `AbortSignal` to the runtime;
+the child is forcibly terminated only if it does not settle within the grace
+period. Claim heartbeats also stop a child whose task claim is no longer valid. The child process starts with a package-scoped read permission and bounded
 execution resources. The parent mediates organization data, files, and
 network access through capability requests; the server checks the active
 task claim, installed package version, operation declaration, and capability
