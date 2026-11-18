@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { invokePluginCapability } from './capabilities.js';
 
-const { findInstall, queryOrganizationData, getInstanceService, assertFileReadAccess, findFileMeta, getFileBuffer } = vi.hoisted(() => ({
+const { findInstall, queryOrganizationData, getInstanceService, assertFileReadAccess, findFileMeta, getFileBuffer, contentHash } = vi.hoisted(() => ({
   findInstall: vi.fn(), queryOrganizationData: vi.fn(), getInstanceService: vi.fn(),
-  assertFileReadAccess: vi.fn(), findFileMeta: vi.fn(), getFileBuffer: vi.fn()
+  assertFileReadAccess: vi.fn(), findFileMeta: vi.fn(), getFileBuffer: vi.fn(), contentHash: vi.fn()
 }));
 vi.mock('./repository.js', () => ({ findInstall }));
 vi.mock('../graph-executions/service.js', () => ({ queryOrganizationData }));
-vi.mock('../files/service.js', () => ({ assertFileReadAccess, findFileMeta, getFileBuffer }));
+vi.mock('../files/service.js', () => ({ assertFileReadAccess, findFileMeta, getFileBuffer, contentHash }));
 vi.mock('../../runtime/app-registry.js', () => ({ getAppRegistry: () => ({ getInstanceService }) }));
 
 const auth = { userId: 'user-1', organizationId: 'org-1', memberships: [{ organizationId: 'org-1' }] };
@@ -16,7 +16,7 @@ const install = {
   declarations: { runtimes: [{ id: 'javascript', targets: ['browser', 'server'] }] },
   services: [
     { id: 'nesting-solve', execution: { runtime: 'javascript', targets: ['server'], kind: 'read', capabilities: ['facade.nesting.solve'] } },
-    { id: 'read', execution: { runtime: 'javascript', targets: ['browser', 'server'], kind: 'read', capabilities: ['organization.instances.query'] } },
+    { id: 'read', execution: { runtime: 'javascript', targets: ['browser', 'server'], kind: 'read', capabilities: ['organization.instances.query', 'files.read'] } },
     { id: 'write', execution: { runtime: 'javascript', targets: ['server'], kind: 'effect', capabilities: ['organization.instances.update'] } }
   ]
 };
@@ -31,6 +31,33 @@ describe('managed plugin host capabilities', () => {
     })).resolves.toEqual({ items: [] });
     expect(queryOrganizationData).toHaveBeenCalledWith({ typeId: 'records' }, auth);
   });
+  it('returns the actual file ownership scope with verifiable read evidence', async () => {
+    const metadata = { organizationId: null, userId: 'user-1' };
+    findFileMeta.mockResolvedValue({
+      filename: 'source.md',
+      contentType: 'text/markdown',
+      length: 6,
+      metadata
+    });
+    getFileBuffer.mockResolvedValue(Buffer.from('source'));
+    contentHash.mockReturnValue('sha256:source');
+
+    await expect(invokePluginCapability({
+      organizationId: 'org-1', pluginId: 'demo', version: '4', runtimeId: 'javascript',
+      operationId: 'read', name: 'files.read', input: { fileId: 'file-1' },
+      target: 'server', auth
+    })).resolves.toEqual({
+      fileId: 'file-1',
+      name: 'source.md',
+      mime: 'text/markdown',
+      size: 6,
+      organizationId: null,
+      contentHash: 'sha256:source',
+      base64: 'c291cmNl'
+    });
+    expect(assertFileReadAccess).toHaveBeenCalledWith(metadata, auth);
+  });
+
   it('refuses durable writes from browser execution', async () => {
     await expect(invokePluginCapability({
       organizationId: 'org-1', pluginId: 'demo', version: '4', runtimeId: 'javascript',
