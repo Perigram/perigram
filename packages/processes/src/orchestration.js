@@ -59,7 +59,7 @@ export async function previewProcessDataflow(definition, sample = {}, environmen
   const tokenContext = { scope: 'preview', values: {} };
   const nodes = {};
   for (const node of processGraphNodes(process)) {
-    if (node.type !== 'processNode') continue;
+    if (processNodeType(process, node) !== 'processNode') continue;
     if (environment.targetNodeId && String(node.id) !== String(environment.targetNodeId)) continue;
     const record = processNodeRecord(process, node);
     if (!record || record.kind.startsWith('control.')) continue;
@@ -473,7 +473,7 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
       continue;
     }
     try {
-      inputs[port.id] = await evaluateNodeOutput(process, edge.source, cleanHandle(edge.sourceHandle), run, environment, tokenContext, new Set());
+      inputs[port.id] = await evaluateNodeOutput(process, edgeSource(edge), cleanHandle(edgeSourcePort(edge)), run, environment, tokenContext, new Set());
     } catch (error) {
       if (error?.code === 'PROCESS_OUTPUT_UNAVAILABLE') continue;
       throw error;
@@ -557,7 +557,7 @@ function readInputPath(value, path = '') {
 
 async function evaluateNodeOutput(process, nodeId, outputId, run, environment, tokenContext, resolving) {
   const graphNode = (processGraphNodes(process)).find(item => String(item.id) === String(nodeId));
-  if (graphNode?.type === 'stateDefinition') {
+  if (graphNode && processNodeType(process, graphNode) === 'stateDefinition') {
     const definition = process.stateDefinitions?.[recordId(graphNode)];
     if (!definition?.stateId) throw new Error(`Status definition ${recordId(graphNode)} does not exist`);
     return createDataPacket(definition.stateId);
@@ -610,7 +610,7 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
       continue;
     }
     try {
-      inputs[port.id] = await evaluateNodeOutput(process, edge.source, cleanHandle(edge.sourceHandle), run, environment, tokenContext, resolving);
+      inputs[port.id] = await evaluateNodeOutput(process, edgeSource(edge), cleanHandle(edgeSourcePort(edge)), run, environment, tokenContext, resolving);
     } catch (error) {
       if (error?.code === 'PROCESS_OUTPUT_UNAVAILABLE') continue;
       throw error;
@@ -736,78 +736,74 @@ function findTriggerNode(process, trigger) {
 }
 
 function processGraphNodes(process) {
-  const nodes = process.graph?.nodes || [];
-  if (!process.__canonicalGraph) return nodes;
-  return nodes.map(node => ({
-    id: node.id,
-    type: node.operation?.provider === PROCESS_GRAPH_PROVIDER && !String(node.operation?.id || '').startsWith('canvas-node.')
-      ? 'processNode'
-      : String(node.operation?.id || '').replace(/^canvas-node\./, ''),
-    data: { refId: String(node.config?.refId || node.id) }
-  }));
+  // Canonical documents stay canonical throughout durable evaluation. Do not
+  // allocate a second Vue-Flow-shaped node graph just to read the document.
+  return process.graph?.nodes || [];
 }
 
 function processGraphEdges(process) {
-  const edges = process.graph?.edges || [];
-  if (!process.__canonicalGraph) return edges;
-  return edges.map(edge => ({
-    id: edge.id,
-    source: edge.source.node,
-    sourceHandle: edge.source.port,
-    target: edge.target.node,
-    targetHandle: edge.target.port,
-    role: edge.kind || 'data',
-    data: structuredClone(edge.metadata?.data || {})
-  }));
+  // Keep canonical endpoint objects intact; accessors below handle the
+  // legacy process-definition projection only at the legacy boundary.
+  return process.graph?.edges || [];
+}
+
+function processNodeType(process, node) {
+  if (!process.__canonicalGraph) return node?.type;
+  const operationId = String(node?.operation?.id || '');
+  if (node?.operation?.provider === PROCESS_GRAPH_PROVIDER && !operationId.startsWith('canvas-node.')) return 'processNode';
+  return operationId.replace(/^canvas-node\./, '');
 }
 
 function processNodeRecord(process, node) {
   if (!process.__canonicalGraph) return process.processNodes?.[recordId(node)];
-  const raw = (process.graph?.nodes || []).find(item => String(item.id) === String(node?.id));
-  if (!raw) return null;
-  const refId = String(raw.config?.refId || raw.id);
-  const operationId = String(raw.operation?.id || '');
-  if (raw.operation?.provider === PROCESS_GRAPH_PROVIDER && !operationId.startsWith('canvas-node.')) {
-    return raw.config?.record
-      ? structuredClone(raw.config.record)
-      : { ...structuredClone(raw.config || {}), id: refId, kind: operationId.replace(/^process-node\./, '') };
+  const refId = String(node?.config?.refId || node?.id || '');
+  const operationId = String(node?.operation?.id || '');
+  if (node?.operation?.provider === PROCESS_GRAPH_PROVIDER && !operationId.startsWith('canvas-node.')) {
+    return node.config?.record
+      ? structuredClone(node.config.record)
+      : { ...structuredClone(node.config || {}), id: refId, kind: operationId.replace(/^process-node\./, '') };
   }
-  if (raw.operation?.id === 'canvas-node.stateDefinition') {
-    return raw.config?.record || process.stateDefinitions?.[refId] || null;
+  if (operationId === 'canvas-node.stateDefinition') {
+    return node.config?.record || process.stateDefinitions?.[refId] || null;
   }
   return null;
 }
 
 function processNode(process, id) {
   const node = processGraphNodes(process).find(item => String(item.id) === String(id));
-  if (!node || node.type !== 'processNode' || !processNodeRecord(process, node)) {
+  if (!node || processNodeType(process, node) !== 'processNode' || !processNodeRecord(process, node)) {
     throw new Error(`Process node ${id} does not exist`);
   }
   return node;
 }
 
+function edgeSource(edge) { return edge?.source?.node ?? edge?.source; }
+function edgeTarget(edge) { return edge?.target?.node ?? edge?.target; }
+function edgeSourcePort(edge) { return edge?.source?.port ?? edge?.sourceHandle; }
+function edgeTargetPort(edge) { return edge?.target?.port ?? edge?.targetHandle; }
+
 function outgoingControl(process, nodeId, handle) {
   return processGraphEdges(process).filter(edge => (
-    String(edge.source) === String(nodeId)
+    String(edgeSource(edge)) === String(nodeId)
     && edgeRole(edge) === 'control'
-    && (!handle || cleanHandle(edge.sourceHandle) === handle)
+    && (!handle || cleanHandle(edgeSourcePort(edge)) === handle)
   ));
 }
 
 function incomingControl(process, nodeId) {
-  return processGraphEdges(process).filter(edge => String(edge.target) === String(nodeId) && edgeRole(edge) === 'control');
+  return processGraphEdges(process).filter(edge => String(edgeTarget(edge)) === String(nodeId) && edgeRole(edge) === 'control');
 }
 
 function incomingData(process, nodeId, handle) {
   return processGraphEdges(process).find(edge => (
-    String(edge.target) === String(nodeId)
+    String(edgeTarget(edge)) === String(nodeId)
     && edgeRole(edge) === 'data'
-    && cleanHandle(edge.targetHandle) === handle
+    && cleanHandle(edgeTargetPort(edge)) === handle
   ));
 }
 
 function edgeRole(edge) {
-  return edge.role || (String(edge.sourceHandle || '').startsWith('control:') || String(edge.targetHandle || '').startsWith('control:') ? 'control' : 'data');
+  return edge?.kind || edge?.role || (String(edgeSourcePort(edge) || '').startsWith('control:') || String(edgeTargetPort(edge) || '').startsWith('control:') ? 'control' : 'data');
 }
 
 function cleanHandle(handle = '') {
@@ -828,15 +824,15 @@ function token(nodeId, targetHandle, inherited = {}) {
 
 function enqueueEdges(run, edges, inherited) {
   for (const edge of edges) {
-    run.tokens.push(token(edge.target, edge.targetHandle, {
+    run.tokens.push(token(edgeTarget(edge), edgeTargetPort(edge), {
       ...inherited,
-      sourceNodeId: edge.source
+      sourceNodeId: edgeSource(edge)
     }));
   }
 }
 
 function recordId(node) {
-  return String(node?.data?.refId || node?.id || '');
+  return String(node?.config?.refId || node?.data?.refId || node?.id || '');
 }
 
 function instant(now) {
