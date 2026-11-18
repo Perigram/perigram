@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { GRAPH_DOCUMENT_FORMAT, validateGraphDocument } from '@perigram/core';
 import {
-  GRAPH_DOCUMENT_FORMAT,
-  validateGraphDocument
-} from '@perigram/core';
-import {
-  graphDocumentToProcessDefinition,
   processDefinitionToGraphDocument,
   PROCESS_GRAPH_METADATA_KEY,
   PROCESS_GRAPH_PROVIDER
@@ -35,8 +31,8 @@ const definition = () => ({
   }
 });
 
-describe('canonical process graph migration bridge', () => {
-  it('represents every legacy canvas node and edge in the canonical graph envelope', () => {
+describe('canonical process graph document', () => {
+  it('emits canonical operations, endpoints, and process execution metadata', () => {
     const graph = processDefinitionToGraphDocument(definition());
     expect(graph.format).toBe(GRAPH_DOCUMENT_FORMAT);
     expect(graph.nodes.map(node => node.operation)).toEqual([
@@ -48,22 +44,11 @@ describe('canonical process graph migration bridge', () => {
       source: { node: 'class-node', port: 'type' },
       target: { node: 'effect-node', port: 'type' }
     });
+    expect(graph.metadata[PROCESS_GRAPH_METADATA_KEY].dataflowVersion).toBe(4);
     expect(validateGraphDocument(graph)).toEqual([]);
   });
 
-  it('round-trips process records, declaration wires, positions, and viewport without semantic loss', () => {
-    const source = definition();
-    const graph = processDefinitionToGraphDocument(source);
-    const restored = graphDocumentToProcessDefinition(graph);
-    expect(restored.processNodes).toEqual(source.processNodes);
-    expect(restored.ctsTypes).toEqual(source.ctsTypes);
-    expect(restored.roleGrants).toEqual(source.roleGrants);
-    expect(restored.screens).toEqual(source.screens);
-    expect(restored.graph).toEqual(source.graph);
-    expect(graph.metadata[PROCESS_GRAPH_METADATA_KEY].dataflowVersion).toBe(4);
-  });
-
-  it('creates a deterministic immutable revision for unchanged source and a new revision after edits', () => {
+  it('creates deterministic revisions and changes them when authored semantics change', () => {
     const source = definition();
     const first = processDefinitionToGraphDocument(source);
     expect(processDefinitionToGraphDocument(source).revision).toBe(first.revision);
@@ -71,7 +56,7 @@ describe('canonical process graph migration bridge', () => {
     expect(processDefinitionToGraphDocument(source).revision).not.toBe(first.revision);
   });
 
-  it('preserves CTS node-to-node declaration edges without inventing process sockets', () => {
+  it('represents declaration relations without inventing process sockets', () => {
     const source = definition();
     source.graph.edges[1] = {
       id: 'decl:binds:class-effect',
@@ -87,19 +72,11 @@ describe('canonical process graph migration bridge', () => {
       kind: 'type',
       metadata: { syntheticDeclarationPorts: true }
     });
-    const restored = graphDocumentToProcessDefinition(graph);
-    expect(restored.graph.edges[1]).toEqual(source.graph.edges[1]);
   });
 
-  it('refuses to migrate a wire whose port identity is missing', () => {
+  it('rejects edges without endpoint identity', () => {
     const source = definition();
     source.graph.edges[0].sourceHandle = null;
     expect(() => processDefinitionToGraphDocument(source)).toThrow(/no source or target port/);
-  });
-
-  it('rejects a canonical graph without process migration metadata when reconstructing', () => {
-    const graph = processDefinitionToGraphDocument(definition());
-    delete graph.metadata[PROCESS_GRAPH_METADATA_KEY];
-    expect(() => graphDocumentToProcessDefinition(graph)).toThrow(/does not contain Perigram process-definition metadata/);
   });
 });
