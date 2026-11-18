@@ -15,16 +15,6 @@ import {
   validateGraphDocument
 } from '@perigram/core';
 import { createNodeProviderRegistry, createPortCompatibilityRegistry, normalizeNodeProvider } from '@perigram/plugin-sdk/nodes';
-import {
-  PROCESS_PROCEDURAL_PROVIDER,
-  PROCESS_PROCEDURAL_VERSION,
-  createProcessProceduralExecutor,
-  registerProcessGraphNodes,
-  createProcessGraphNodeResolver,
-  createProcessProceduralNodeResolver,
-  registerProcessPortCompatibilityProfile,
-  PROCESS_PORT_COMPATIBILITY_PROFILE
-} from '@perigram/processes';
 import { createGraphAuthoringState, useGraphAuthoringSession } from '~/composables/useGraphAuthoringSession.js';
 import { mintId } from '~/utils/processDesignerIdentity.js';
 
@@ -63,7 +53,7 @@ export function createEmptyGraphDocument({ id = stableId('graph'), name = '' } =
   };
 }
 
-export function useGraphDocumentSession({ t, providers = [], graphDocuments = [], queryOrganizationData = null, finalizeExecution = null }) {
+export function useGraphDocumentSession({ t, providers = [], definitions = [], nodeResolvers = [], compatibilityProfiles = [], executors = {}, graphDocuments = [], queryOrganizationData = null, finalizeExecution = null }) {
   const graphDocument = ref(createEmptyGraphDocument());
   const { nodes, edges } = createGraphAuthoringState();
   const validation = ref(null);
@@ -83,12 +73,10 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
 
   const registry = createNodeProviderRegistry();
   const portCompatibility = createPortCompatibilityRegistry();
-  registerProcessPortCompatibilityProfile(portCompatibility);
-  registerProcessGraphNodes(registry);
-  const processGraphResolver = createProcessGraphNodeResolver();
-  const processProceduralResolver = createProcessProceduralNodeResolver();
-  const processExecutor = createProcessProceduralExecutor();
-  const providerExecutors = new Map([[PROCESS_PROCEDURAL_PROVIDER, processExecutor]]);
+  for (const registerProfile of compatibilityProfiles) registerProfile(portCompatibility);
+  for (const definition of definitions) registry.register(definition);
+  const providerResolvers = [...nodeResolvers].filter(resolver => typeof resolver === 'function');
+  const providerExecutors = new Map(Object.entries(executors));
   const providerPreviewRenderers = new Map();
   const providerGeneration = ref(0);
   const coreDataProvider = createCoreGraphDataProvider();
@@ -192,8 +180,8 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
           id: definition.id,
           version: definition.version
         },
-        config: definition.provider === PROCESS_PROCEDURAL_PROVIDER
-          ? { kind: definition.id }
+        config: definition.configuration?.default && typeof definition.configuration.default === 'object'
+          ? { ...definition.configuration.default }
           : {}
       });
     }
@@ -255,17 +243,11 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       };
     }
     const invocation = { node: { id: node.id }, config, context: {} };
-    const resolved = processGraphResolver(op, invocation) || registry.resolve(op.provider, op.id, op.version);
-    if (op.provider !== PROCESS_PROCEDURAL_PROVIDER || !resolved) return resolved;
-    const withCtsCompatibility = ports => (ports || []).map(port => ({
-      ...port,
-      compatibility: { profile: PROCESS_PORT_COMPATIBILITY_PROFILE }
-    }));
-    return {
-      ...resolved,
-      inputs: withCtsCompatibility(resolved.inputs),
-      outputs: withCtsCompatibility(resolved.outputs)
-    };
+    for (const resolver of providerResolvers) {
+      const resolved = resolver(op, invocation);
+      if (resolved) return resolved;
+    }
+    return registry.resolve(op.provider, op.id, op.version);
   }
 
   function enrichNode(node) {
@@ -601,9 +583,13 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       const result = await evaluateProceduralGraph({
         graph,
         inputBindings: inputBindings.value,
-        resolveNodeDefinition: (op, invocation) => op.provider === PROCESS_PROCEDURAL_PROVIDER
-          ? processProceduralResolver(op, invocation)
-          : registry.resolve(op.provider, op.id, op.version),
+        resolveNodeDefinition: (op, invocation) => {
+          for (const resolver of providerResolvers) {
+            const resolved = resolver(op, invocation);
+            if (resolved) return resolved;
+          }
+          return registry.resolve(op.provider, op.id, op.version);
+        },
         executeNode: async (definition, invocation) => {
           const executor = providerExecutors.get(definition.provider);
           if (!executor) throw new Error(`No runtime is registered for provider ${definition.provider}`);
