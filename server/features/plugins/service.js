@@ -1060,8 +1060,10 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
   const version = String(pin.version || '');
   const runtimeId = String(pin.runtimeId || '');
   const operationId = String(pin.operationId || definition?.id || '');
-  if (!organizationId || !pluginId || !version || !runtimeId || !operationId) {
-    throw createError({ statusCode: 400, message: 'Managed graph node package pin is incomplete' });
+  if (!organizationId || !pluginId || !version || !runtimeId || !operationId
+    || operationId !== String(definition.id || '')
+    || String(definition.provider || '') !== `plugin.${pluginId}`) {
+    throw createError({ statusCode: 400, message: 'Managed graph node package pin does not match its provider operation' });
   }
   if (!['pure', 'read'].includes(definition.execution?.kind)) {
     throw createError({ statusCode: 403, message: `Graph preview cannot execute ${definition.execution?.kind || 'unclassified'} operation ${definition.id}` });
