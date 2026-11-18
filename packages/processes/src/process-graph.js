@@ -40,23 +40,22 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
     };
   });
 
-  const edgeMetadata = {};
   const edges = legacy.edges.map(edge => {
     const sourcePort = edge.sourceHandle || edge.data?.sourceHandle;
     const targetPort = edge.targetHandle || edge.data?.targetHandle;
     if (!sourcePort || !targetPort) {
       throw new Error('Process edge ' + edge.id + ' has no source or target port; refusing a lossy graph migration');
     }
-    edgeMetadata[edge.id] = {
-      ...(edge.role ? { role: edge.role } : {}),
-      ...(edge.label ? { label: edge.label } : {}),
-      ...(edge.type ? { type: edge.type } : {}),
-      data: cloneJson(edge.data || {})
-    };
     return {
       id: edge.id,
       source: { node: edge.source, port: String(sourcePort) },
-      target: { node: edge.target, port: String(targetPort) }
+      target: { node: edge.target, port: String(targetPort) },
+      kind: edge.role || 'data',
+      metadata: {
+        ...(edge.label ? { label: edge.label } : {}),
+        ...(edge.type ? { type: edge.type } : {}),
+        data: cloneJson(edge.data || {})
+      }
     };
   });
 
@@ -80,7 +79,6 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
         schemaVersion: Number(source.schemaVersion || 1),
         dataflowVersion: Number(source.dataflowVersion || PROCESS_DATAFLOW_VERSION),
         nodeKinds,
-        edgeMetadata,
         viewport: cloneJson(legacy.viewport),
         sourceData: preservedSourceData
       }
@@ -110,7 +108,7 @@ export function graphDocumentToProcessDefinition(graphSource) {
       target: edge.target.node,
       targetHandle: edge.target.port,
       ...(annotation.type ? { type: annotation.type } : {}),
-      ...(annotation.role ? { role: annotation.role } : {}),
+      ...(edge.kind && edge.kind !== 'data' ? { role: edge.kind } : {}),
       ...(annotation.label ? { label: annotation.label } : {}),
       data: cloneJson(annotation.data || {})
     };
