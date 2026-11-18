@@ -34,14 +34,15 @@ provider discovery → typed authoring → preview → file export → Bake.
   placement, schema configuration, valid/invalid wires, execution, preview,
   export, and Bake.
 
-Progress (2026-11-18): Added Playwright coverage for an API-saved typed-block
-graph (paragraph → document composition → Markdown and HTML file outputs),
-including both preview channels, explicit Page Bake destinations, execution
-provenance, Page reopen, and downloaded bytes. The existing Markdown parse
-flow also asserts Bake provenance. A separate E2E searches the installed
-Documents palette and places a Paragraph node. These Playwright scenarios are
-authored but have not been executed; inspector schema configuration, valid/
-invalid wire authoring, and full UI-authored graph persistence remain open.
+Progress (2026-11-18): The graph-workspace acceptance suite now runs green
+against the dev stack. It covers an API-saved typed-block graph (paragraph →
+composition → Markdown and HTML file outputs), both preview channels,
+explicit Page Bake destinations, execution provenance, Page reopen, downloaded
+bytes, and palette search/placement. The same run fixed the graph-document
+collection route, the support-rail mount, preview-provider timing, accessible
+destination controls, the page-file Bake response shape, and catalog packaging
+of declared surface modules. Inspector schema configuration, valid/invalid
+wire authoring, and full UI-authored graph persistence remain open.
 - [ ] Reconcile Documents listing versions with installed organization
   snapshots. Verify upgrade behavior against an installation carrying the
   previous declaration version; record catalog and installed versions in

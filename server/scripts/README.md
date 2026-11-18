@@ -14,9 +14,10 @@ deployment's built-in listings from their `workers/<plugin>/listing.json`
 sources into `plugin_catalog` (validated by the SDK contract, marked
 `builtin`, retract-refused). Run it as a deploy step on fresh environments.
 Idempotent; it first validates every listing and resolves every declared
-JavaScript runtime entrypoint plus its transitive, statically discoverable
-relative imports, then writes the complete catalog set. A missing runtime
-source therefore aborts before any listing is updated. The seed image must
+JavaScript runtime entrypoint and surface module plus their transitive,
+statically discoverable relative imports, then writes the complete catalog
+set. A missing runtime or surface source therefore aborts before any listing
+is updated. The seed image must
 include the full `workers/documents` and `workers/facade` source trees because
 their runtime entrypoints import package-relative modules outside `runtime/`,
 and both other built-in listing files. Re-running refreshes pinned versions

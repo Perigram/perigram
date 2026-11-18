@@ -68,6 +68,11 @@ that drive executor-backed surfaces or services wire them through
   format controls and slash commands insert their blocks, a `.md`
   uploads through the protocol create dialog (the file input alone),
   and csv cell edits commit and serialize on save.
+- `graph-documents-preview.spec.js`: the saved Documents graph workspace
+  with the installed package runtime — a typed-block graph previews
+  through the Documents channel, Markdown and HTML outputs Bake to
+  explicit Page destinations with execution provenance, and the palette
+  searches and places a typed Paragraph node.
 - `plugin-surface.spec.js`: plugin-delivered surfaces end to end — the
   fixture plugin publishes through the real catalog API and installs
   through the real gate, and its editor surface mounts as the record

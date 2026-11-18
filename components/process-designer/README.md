@@ -576,7 +576,9 @@ validation feedback strip — over the session composable's state and
 verbs passed as props (`v-model:nodes`/`v-model:edges`, palette groups,
 gesture handlers). The `lane` slot carries a host's zoom-pane background
 (the process page's lane bands); the `inspector` slot carries the host's
-rail content. Function-ref props (`bindFrame`, `bindContextPaletteSearch`)
+rail content. The graph workspace mounts its preview/input rail in the
+canvas `support` slot; the canvas status control opens that rail beside
+the inspector. Function-ref props (`bindFrame`, `bindContextPaletteSearch`)
 hand the mounted instances to the session's refs — plain ref props would
 unwrap at the host template. `readOnly` renders the canvas alone: the
 palettes, the dial, node dragging, and the pane palette gesture are off.
