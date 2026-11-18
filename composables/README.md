@@ -406,7 +406,7 @@ input path before posting to the process runtime.
 
 ---
 
-## Process designer composables
+## Process profile
 
 The organization process page
 ([pages/organization](../pages/organization/README.md)) delegates process
@@ -422,12 +422,14 @@ rubber-band (`useProcessDesignerCanvasModel.spec.js` drives the full
 lifecycle — declaration authoring, wiring, renames, deletions — against this
 invariant).
 
-- `useProcessDesignerGraphSession` is the process-definition canvas
+- `useProcessProfile` is the process domain profile over the shared graph
   authoring core: nodes/edges/records, record sync and `enrichNodeData`,
   process wire legality and decoration, placement, declaration diagnostics,
-  and inspector seams. The process page composes it with the process
-  definition lifecycle, lanes, roles, screens, and Apply ceremony. It is
-  deliberately not the canonical graph-document session.
+  and inspector seams. It persists and loads the canonical process graph
+  envelope (`createProcessGraphDocument` /
+  `authoredProcessDataFromGraphDocument`) and reuses the shared selection,
+  canvas interaction, and viewport primitives. The process page composes it
+  with the definition lifecycle, lanes, roles, screens, and Apply ceremony.
 
 - `useGraphDocumentSession` is the canonical `perigram.graph` editor
   session (SPEC §28): it owns document load/normalize/serialize, stable
@@ -442,16 +444,13 @@ invariant).
   and the record header remain in `GraphEditorSurface.vue`.
 
 - `useGraphChannelPreview` is the whole-graph preview evaluation the
-  channel tabs ride (SPEC §28): `run()` evaluates the serialized graph
-  with no target node and filters each node's outputs by its authored
-  `previewVisible`, `schedule(active)` debounces one run while the
-  preview tab stays open. A graph whose service nodes all bind served
-  client engines — and whose other nodes are pure value species —
-  evaluates in the browser (SPEC §20): the one evaluator
-  (`previewProcessDataflow`) hosts client-side over the projected
-  domain with the engine loader as its preview service channel; every
-  other graph keeps the server evaluation. The returned `payload` ref
-  is the session's `graphEvaluation` (the canvas fault states read the
+  channel tabs ride (SPEC §28): `run()` evaluates the serialized process
+  graph with no target node and filters each node's outputs by its authored
+  `previewVisible`; `schedule(active)` debounces one run while the preview
+  tab stays open. Evaluation goes through the process-definition preview
+  endpoint, where CTS reads use the authorized data environment and services
+  dispatch through their installed managed runtime. The returned `payload`
+  ref is the session's `graphEvaluation` (the canvas fault states read the
   per-node errors from it).
 
 - `useClientEngines` loads served client-engine bindings (SPEC §20):

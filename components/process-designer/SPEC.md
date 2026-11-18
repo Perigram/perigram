@@ -17,11 +17,11 @@ owns the surface: channels, arrangement, gestures.
 
 ## Scope
 
-This component supplies shared canvas presentation and interaction primitives;
-it does not yet provide one shared authoring session. The process page and
-graph-document workspace still mount separate session composables. That
-session split is transitional and is part of the process migration, not a
-permanent architecture or permission to add a third session.
+This component supplies the one editor mount (`GraphEditorSurface`) over the
+shared canvas presentation. The process page mounts it with the process
+profile; graph-document files mount it with the canonical graph-document
+session. Both use the same canvas, selection, viewport, and provider
+protocols.
 
 The canonical persisted graph document, node/port contract, compatibility
 rules, provider discovery, validation, composition, and procedural execution
@@ -34,11 +34,10 @@ owned by [@perigram/cts](../../packages/cts/SPEC.md) and
 onto the shared graph surface; they do not justify a second canvas protocol,
 socket algebra, provider registry, or reusable-graph mechanism.
 
-The current process-definition persistence/compiler path is a migration
-source, not a second target architecture. Until its one-time migration is
-complete, its adapter must preserve existing authored records and runtime
-behavior. New graph features must be implemented against the canonical
-contract, not added to the legacy process representation.
+Process definitions persist the canonical graph envelope. The process
+compiler reads the authored projection of that envelope; process-specific
+declarations, authorization, workflow, and effects remain process-profile
+semantics.
 
 ## Contracts owned here
 

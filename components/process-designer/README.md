@@ -1,12 +1,13 @@
 # COMPONENT: Process Designer
 
 The authoring surface for CTS declarations and process graphs: a Vue Flow
-canvas with palette, inspector, lanes, and apply ceremonies, mounted by
-[pages/organization/process.vue](../../pages/organization/process.vue)
-over a process definition and by
-[`GraphEditorSurface.vue`](./GraphEditorSurface.vue) over a
-`graph-document` record through the
-[`graph-editor` file surface](../generated/file-surfaces.js) (SPEC §28 — one canvas law). The grammar it
+canvas with palette, inspector, lanes, and apply ceremonies.
+[`GraphEditorSurface.vue`](./GraphEditorSurface.vue) is the one editor mount:
+the process page composes it with
+[`useProcessProfile`](../../composables/README.md#process-profile), and a
+`graph-document` record mounts it through the
+[`graph-editor` file surface](../generated/file-surfaces.js) (SPEC §28 — one
+canvas law). The grammar it
 renders — palette membership, node/edge species, wire legality — is
 authored through the designer contract owned by
 [packages/processes](../../packages/processes/README.md); this README
@@ -67,8 +68,9 @@ semantic base/kind/nullability, required status, and optional defaults. Socket g
 persisted-edge validation, and preview preflight share the SDK compatibility
 relation.
 
-The graph session contract lives in
+The canonical graph session contract lives in
 [composables](../../composables/README.md#usegraphdocumentsession--canonical-procedural-graph-editor);
+the process profile in [composables](../../composables/README.md#process-profile);
 the canonical format and evaluator live in
 [packages/core](../../packages/core/README.md).
 
@@ -332,7 +334,7 @@ Inline authoring:
   All\<T\> binds through its Type pin like the unbound construct, and
   filtering is All\<T\> → Get field → Logic → Filter dataflow.
 
-Live evaluation (`useProcessDesignerLiveGraph` over
+Live declaration binding (`useProcessDesignerLiveGraph` over
 `interpretDeclarationEdges`): the designer behaves like a node editor.
 Authoring state (canvas nodes minus presentation, edges, draft records)
 folds into one semantic signature; any change — a wire, a rename, an
@@ -541,19 +543,18 @@ The preview tab always renders. The built-in outputs channel comes
 first: `GraphOutputsChannel.vue` over `graphOutputEntries`
 ([utils](../../utils/README.md)) lists every visible evaluated output
 under its card labels — section and node, socket label and type, branch
-paths, sampled items — and a hidden node's error alone. A graph whose
-service nodes all bind served client engines evaluates in the browser
-(SPEC §20): the evaluator hosts client-side with the engine loader as
-its service channel, so local-service graphs preview with zero server
-round-trips. Installed
+paths, sampled items — and a hidden node's error alone. The process channel
+preview evaluates through the process-definition preview endpoint: CTS reads
+resolve through the authorized data environment and services dispatch through
+their installed managed runtime. Installed
 plugins declare further channels (SPEC §28): each renders its plugin
 surface read-only (`PreviewChannelMount.vue`, the
 same contract-1 mount the generic preview slots ride) over the
 whole-graph preview evaluation — the evaluation runs when the tab opens
 and re-runs on authoring changes while it stays open (one debounced
 seam), with no target node, so every data node evaluates, no effect
-species executes, and an endpoint value service evaluates through its
-connector dispatch (a claim-mode service answers the node error);
+species executes, and a service evaluates through its installed managed
+runtime (a capability refusal answers the node error);
 the serialized
 result (`{ nodes: { [id]: { outputs, error? } } }`) is every channel's
 payload, and each node's `error` folds into the canvas fault states
@@ -569,7 +570,7 @@ fault states survive the hiding.
 
 ### Graph document surface (SPEC §28)
 
-Two mounts, one canvas. `GraphCanvas.vue` owns the canvas presentation —
+One editor, two hosts. `GraphCanvas.vue` owns the canvas presentation —
 the Vue Flow graph with node/edge templates, the palette dock, the
 context palette, the selection speed dial, the empty state, and the
 validation feedback strip — over the session composable's state and
@@ -589,16 +590,16 @@ tab shell around it. `GraphPreviewPanel.vue` renders the channel-tab
 strip over the whole-graph evaluation
 ([`useGraphChannelPreview`](../../composables/README.md)).
 
-`GraphEditorSurface.vue` is the graph-document editor mount registered as
-the `graph-editor` file surface
-([generated](../generated/README.md) owns the binding contract). It uses
-`useGraphDocumentSession`, not the process-definition session: payload
-text is parsed and validated as the canonical `perigram.graph` document
-owned by `@perigram/core`, and saves serialize that same format through
-the instance payload transport. It reuses `GraphCanvas.vue` for the
-canvas/palette/selection presentation, while provider contracts supply
-node sockets and the graph-specific inspector edits JSON configuration
-and boundary labels. Graph Input, Graph Output, and a distinct Use Graph
+`GraphEditorSurface.vue` is registered as the `graph-editor` file surface
+([generated](../generated/README.md) owns the binding contract) and is also
+the process page's editor mount. Without a supplied session it uses
+`useGraphDocumentSession`: payload text is parsed and validated as the
+canonical `perigram.graph` document owned by `@perigram/core`, and saves
+serialize that same format through the instance payload transport. With a
+supplied `session` it renders that host's canvas bindings and its
+`inspector`, `support`, and `lane` slots; the process page supplies the
+process profile and its tabs. Provider contracts supply node sockets and
+the graph-specific inspector edits JSON configuration and boundary labels. Graph Input, Graph Output, and a distinct Use Graph
 palette group are exposed. Preview invokes the core procedural evaluator
 with registered process data-node adapters; the preview panel accepts
 JSON graph-input bindings and displays graph outputs plus per-node outputs.
@@ -682,10 +683,11 @@ connection inference, palette queries, roles, screens, and panel state
 live in the focused `useProcessDesigner*` composables; pure projections
 in `utils/processDesigner*.js`:
 
-- `useProcessDesignerGraphSession` — the canvas authoring core
-  ([composables](../../composables/README.md) owns the contract): the
-  page composes it and owns the process plane — the definitions
-  lifecycle, lanes, roles, screens, and the Apply ceremony — around it.
+- `useProcessProfile` — the process domain profile over the shared graph
+  authoring core ([composables](../../composables/README.md) owns the
+  contract): the page composes it and owns the process plane — the
+  definitions lifecycle, lanes, roles, screens, and the Apply ceremony —
+  around it.
 - `useProcessDesignerTypes` — the CTS registry generation, the projected
   designer contract, and the live tree overlay (one registry per overlay
   signature; APPLY persists declarations through
@@ -730,16 +732,15 @@ in `utils/processDesigner*.js`:
 - Parent: [components](../README.md); its [SPEC](../SPEC.md).
 
 
-The graph-document file surface keeps procedural graph authoring in the
-file model: a graph document opens as a `graph-document` record, and the
-process-definition page keeps its own lifecycle chrome until the one-surface
-cutover in [SPEC §28.13](../../SPEC.md). Its inspector authors graph nodes and
-public interfaces; the support rail is a separate preview workspace with
-output selection, generic representations, and optional provider-owned
-read-only renderers. The graph session accepts validated provider
-contributions from the host (the `nodeProviders` prop) and keeps operation
-identity, executor ownership, and preview renderer identity
-provider-qualified. Stored graph documents are ordinary CTS
-`graph-document` instances; every payload save is an immutable content
-revision, and Use Graph pins a chosen revision rather than following the
-latest payload.
+Graph documents open as ordinary `graph-document` records through the file
+model. `GraphEditorSurface`'s inspector authors graph nodes and public
+interfaces; its support rail is a separate preview workspace with output
+selection, generic representations, and optional provider-owned read-only
+renderers. The graph session accepts validated provider contributions from
+the host (the `nodeProviders` prop) and keeps operation identity, executor
+ownership, and preview renderer identity provider-qualified. Stored graph
+documents are ordinary CTS `graph-document` instances; every payload save is
+an immutable content revision, and Use Graph pins a chosen revision rather
+than following the latest payload. Process definitions persist the same
+canonical `perigram.graph` envelope and their page composes the editor's
+process profile (SPEC §28.13).

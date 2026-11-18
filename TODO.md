@@ -20,17 +20,33 @@ and the graph-specific first-save endpoint are removed, not preserved.
 - [x] Add Page creation: the file insert flow offers **New graph**; it
   creates the graph document, inserts its instance reference, and opens the
   graph editor in place.
-- [ ] Make the process definition editor mount the same graph editor
+- [x] Make the process definition editor mount the same graph editor
   surface; delete `useProcessDesignerGraphSession`, the legacy process
   canvas model, and the duplicate process preview path. Process semantics
   become a domain profile over the canonical graph. Pre-alpha: delete, do
   not migrate stored process graphs.
-- [ ] Route CTS/organization-data nodes through the managed CTS executor and
+- [x] Route CTS/organization-data nodes through the managed CTS executor and
   Documents nodes through the Documents runtime; one provider registry and
   one canonical evaluator for preview and execution.
-- [ ] Acceptance: create a graph from a Page, edit/save/preview it in place,
+- [x] Acceptance: create a graph from a Page, edit/save/preview it in place,
   and author a process on the same surface; no second graph route, session,
   or evaluator.
+
+### Agent Notes (2026-11-18, one graph surface migration)
+
+- The process page mounts `GraphEditorSurface` with the process profile.
+  `useProcessDesignerGraphSession` is gone; `useProcessProfile` projects the
+  shared graph authoring core and persists the canonical graph envelope.
+- Process definitions store `perigram.graph`: nodes carry authored data and
+  records in node configuration, process-wide records live in graph metadata,
+  and the activation envelope stays top-level. The compiler and designer read
+  the authored projection through `authoredProcessDataFromGraphDocument`.
+- The process channel preview uses the process-definition preview endpoint;
+  the duplicate browser process preview path is deleted. CTS reads resolve
+  through the authorized data environment and services through their
+  installed managed runtime.
+- Validation: process-graph, process-profile, process-definitions, composable,
+  package, shared designer, and graph-canvas suites pass.
 
 ### Agent Notes (2026-11-18, file-native graphs landed)
 
@@ -55,10 +71,9 @@ and the graph-specific first-save endpoint are removed, not preserved.
   `graph-editor` file surface already existed (`caeea7c98`, 2026-11-14). It
   duplicates the file-surface mount with its own list, name, save, catalog,
   and first-save endpoint.
-- The process page still mounts `GraphCanvas` through
-  `useProcessDesignerGraphSession` and previews through the process dataflow
-  evaluator; the file surface mounts the canonical `useGraphDocumentSession`
-  and evaluator. That is the two-editor split.
+- The inventory recorded the two-editor split: the process page mounted
+  `GraphCanvas` through `useProcessDesignerGraphSession` while the file
+  surface mounted `useGraphDocumentSession`.
 
 ## Priority: Unified Documents graph usability (owner direction 2026-11-17)
 
