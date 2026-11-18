@@ -2,7 +2,7 @@ import listing from '../listing.json' with { type: 'json' };
 import * as XLSX from '../assets/vendor/xlsx.mjs';
 import { parseMarkdown } from '../markdown-ir.mjs';
 import { fillMarkdown, templateTokenKeys } from '../template-ir.mjs';
-import { fillWorkbook, workbookTemplateTokens } from '../workbook-template.mjs';
+import { fillWorkbook, workbookTemplateMetadata } from '../workbook-template.mjs';
 import { composeReport, extractTable, renderReportHtml, renderDocumentHtml, exportMarkdown, composeDocument, appendDocumentBlock, createDocumentBlock, createInlineValue } from '../report-ir.mjs';
 
 export function createRuntime() {
@@ -185,35 +185,36 @@ function columnLetter(index) {
   return letter;
 }
 
-function filePayload(content, mime, name) {
-  const extension = mime === 'text/markdown' ? '.md' : mime === 'text/html' ? '.html' : '';
-  const stem = String(name || 'document').replace(/\.(md|markdown|html?)$/i, '') || 'document';
-  return { payload: { base64: btoa(unescape(encodeURIComponent(String(content ?? '')))), mime, name: stem + extension } };
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+function fillWorkbookFile(input = {}) {
+  const template = input.template?.payload || input.template || {};
+  if (typeof template.base64 !== 'string') throw new Error('fill-workbook-template requires a file payload');
+  if (template.mime !== XLSX_MIME && !/\.xlsx$/i.test(String(template.name || ''))) {
+    throw new Error('fill-workbook-template accepts XLSX workbook templates only');
+  }
+  let binary;
+  try { binary = atob(template.base64); } catch { throw new Error('The workbook template is not valid base64'); }
+  const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+  const metadata = workbookTemplateMetadata(bytes);
+  const filled = fillWorkbook(bytes, input.values || {});
+  const requestedName = String(input.name || template.name || 'document').replace(/\.xlsx$/i, '');
+  return { ...binaryFilePayload(filled, XLSX_MIME, `${requestedName}.xlsx`), meta: metadata };
 }
 
 function binaryFilePayload(bytes, mime, name) {
+  const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   let binary = '';
-  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  for (let index = 0; index < data.length; index += 0x8000) {
+    binary += String.fromCharCode(...data.subarray(index, index + 0x8000));
   }
   return { payload: { base64: btoa(binary), mime, name } };
 }
 
-function fillWorkbookFile(input) {
-  const payload = input.template?.payload || input.template || {};
-  const encoded = payload.base64 || payload.payloadBase64;
-  if (typeof encoded !== 'string') throw new Error('fill-workbook-template requires a workbook file payload');
-  let binary;
-  try { binary = atob(encoded); } catch { throw new Error('Workbook payload is not valid base64'); }
-  const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
-  const result = fillWorkbook(bytes, input.values || {});
-  const tokens = workbookTemplateTokens(bytes);
-  return {
-    payload: {
-      base64: btoa(String.fromCharCode(...result.bytes)),
-      mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      name: `${String(input.name || payload.name || 'document').replace(/\.(xlsx|xls)$/i, '')}.xlsx`
-    },
-    meta: { tokens }
-  };
+function filePayload(content, mime, name) {
+  const bytes = new TextEncoder().encode(String(content));
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  const base = String(name || 'document').replace(/\.[^.]+$/, '');
+  return { payload: { base64: btoa(binary), mime, name: `${base}.${mime === 'text/markdown' ? 'md' : 'html'}` } };
 }
