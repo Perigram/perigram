@@ -80,9 +80,11 @@ append-only `procedural-preview` execution records with graph/package pins,
 node task evidence, diagnostics, outputs, and read-set data.
 
 This is an initial server preview path, not the complete durable execution
-profile. Capability scopes remain task-local; declared capabilities other
-than the tracked CTS query capability are marked unverified, and Commit/Bake/
-Export refuse previews carrying those markers. File-read dependency evidence
-and shared capability scope still need implementation. Proposal/effect/
+profile. Per-call capability evidence is captured from worker results, and authorized
+CTS query/read capability read sets merge into the shared parent/child recorder.
+Capability scopes remain task-local; file reads and other untracked capabilities
+are marked unverified, and Commit/Bake/Export refuse previews carrying those
+markers. Verifiable file-read dependencies and a shared capability scope still
+need implementation. Proposal/effect/
 stateful execution remains refused by preview policy. The remaining work is
 tracked in the root [TODO](../../../TODO.md).

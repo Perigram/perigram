@@ -63,11 +63,12 @@ provider discovery → typed authoring → preview → file export → Bake.
     Every node task carries the graph execution id and nested invocation path,
     is bound to the installed package pin, and is cancelled on graph abort or
     deadline. Each operation remains an isolated child process.
-  - [ ] Unify capability scope/evidence across node tasks and extend the shared
-    read set to authorized file reads. CTS instance queries already use the
-    caller's read grant and the evaluator's shared parent/child read recorder;
-    unverified capability use is marked in the read set and blocks
-    Commit/Bake/Export.
+  - [x] Capture per-call capability evidence from managed worker tasks.
+    Authorized CTS query/read capability results merge their read sets into the
+    shared parent/child recorder and are persisted in execution provenance.
+  - [ ] Unify the actual capability authorization scope across node tasks and
+    extend verifiable read evidence to files.read. File reads and other
+    untracked capabilities remain marked unverified and block Commit/Bake/Export.
   - [x] Persist procedural-preview records with graph/package/runtime pins,
     inputs/outputs, diagnostics, node task and nested invocation evidence, and
     read sets. Per-call capability evidence and durable lifecycle profiles
