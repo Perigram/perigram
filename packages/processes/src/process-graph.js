@@ -21,8 +21,9 @@ export const PROCESS_GRAPH_METADATA_KEY = 'perigram.process-definition';
 export function processDefinitionToGraphDocument(definition = {}, options = {}) {
   const source = definition.data || definition;
   const legacy = normalizeGraph(source.graph || {});
-  const { graph: ignoredGraph, ...sourceData } = source;
-  const preservedSourceData = cloneJson(sourceData);
+  const preservedSourceData = cloneJson(Object.fromEntries(
+    Object.entries(source).filter(([key]) => key !== 'graph')
+  ));
   const nodeKinds = {};
   const nodes = legacy.nodes.map(node => {
     const refId = String(node.data?.refId || node.id);
