@@ -14,14 +14,15 @@ import {
   normalizeGraphDocument,
   validateGraphDocument
 } from '@perigram/core';
-import { compareNodePorts, createNodeProviderRegistry, normalizeNodeProvider } from '@perigram/plugin-sdk/nodes';
+import { compareNodePorts, createNodeProviderRegistry, createPortCompatibilityRegistry, normalizeNodeProvider } from '@perigram/plugin-sdk/nodes';
 import {
   PROCESS_PROCEDURAL_PROVIDER,
   PROCESS_PROCEDURAL_VERSION,
   createProcessProceduralExecutor,
   registerProcessGraphNodes,
   createProcessGraphNodeResolver,
-  createProcessProceduralNodeResolver
+  createProcessProceduralNodeResolver,
+  portSpecsCompatible
 } from '@perigram/processes';
 import { useProcessDesignerCanvas } from '~/composables/useProcessDesignerCanvas.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
@@ -82,6 +83,16 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
   });
 
   const registry = createNodeProviderRegistry();
+  const portCompatibility = createPortCompatibilityRegistry();
+  portCompatibility.register('perigram.cts', (source, target) => {
+    const result = portSpecsCompatible(source, target);
+    return {
+      status: result.ok ? 'exact' : 'incompatible',
+      compatible: result.ok,
+      reason: result.reason || (result.ok ? 'CTS process port contracts match' : 'CTS process port contracts do not match'),
+      conversions: []
+    };
+  });
   registerProcessGraphNodes(registry);
   const processGraphResolver = createProcessGraphNodeResolver();
   const processProceduralResolver = createProcessProceduralNodeResolver();
@@ -253,7 +264,17 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       };
     }
     const invocation = { node: { id: node.id }, config, context: {} };
-    return processGraphResolver(op, invocation) || registry.resolve(op.provider, op.id, op.version);
+    const resolved = processGraphResolver(op, invocation) || registry.resolve(op.provider, op.id, op.version);
+    if (op.provider !== PROCESS_PROCEDURAL_PROVIDER || !resolved) return resolved;
+    const withCtsCompatibility = ports => (ports || []).map(port => ({
+      ...port,
+      compatibility: { profile: 'perigram.cts' }
+    }));
+    return {
+      ...resolved,
+      inputs: withCtsCompatibility(resolved.inputs),
+      outputs: withCtsCompatibility(resolved.outputs)
+    };
   }
 
   function enrichNode(node) {
@@ -761,7 +782,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
   }
 
   function compatible(source, target) {
-    return compareNodePorts(source, target).compatible;
+    return portCompatibility.compare(source, target).compatible;
   }
 
   const contextPaletteGroups = computed(() => paletteGroups.value);
