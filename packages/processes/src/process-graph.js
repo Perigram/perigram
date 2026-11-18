@@ -32,13 +32,13 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
     const refId = String(node.data?.refId || node.id);
     const record = sourceDataForRevision.processNodes?.[refId];
     const operationId = node.type === 'processNode'
-      ? 'process-node.' + requiredKind(record, refId)
+      ? requiredKind(record, refId)
       : 'canvas-node.' + String(node.type || 'default');
     nodeKinds[node.id] = node.type || 'default';
     return {
       id: node.id,
       operation: { provider: PROCESS_GRAPH_PROVIDER, id: operationId, version: PROCESS_GRAPH_NODE_VERSION },
-      config: { refId, data: cloneJson(node.data || {}), ...(record ? { record: cloneJson(record) } : {}) },
+      config: { ...(record ? cloneJson(record) : {}), refId, data: cloneJson(node.data || {}), ...(record ? { record: cloneJson(record) } : {}) },
       position: { x: Number(node.position?.x || 0), y: Number(node.position?.y || 0) }
     };
   });
@@ -99,7 +99,8 @@ export function graphDocumentToProcessDefinition(graphSource) {
   const processNodes = {};
   const nodes = graph.nodes.map(node => {
     const refId = String(node.config?.refId || node.id);
-    if (node.operation.id.startsWith('process-node.') && node.config?.record) {
+    if (node.operation.provider === PROCESS_GRAPH_PROVIDER && node.config?.record
+      && !node.operation.id.startsWith('canvas-node.')) {
       processNodes[refId] = cloneJson(node.config.record);
     }
     return {
