@@ -66,13 +66,19 @@ Page collection embeds can pin one successful graph execution and one collection
 
 ## Execution boundary status
 
-This feature is the authorization, evidence, and materialization boundary;
-it is not itself a procedural graph evaluator. `POST /api/graph-executions`
-validates and records an execution envelope supplied by a caller. The query,
-Commit, Bake, and Export routes authorize their respective operations, but
-there is currently no server route that loads a saved graph, resolves its
-pinned plugin providers, and evaluates its nodes through the managed plugin
-runtime. A provider's `execution.targets: ['server']` declaration and the
-existence of the managed plugin task worker do not make saved graph execution
-available. The missing orchestration and acceptance criteria are tracked in
-the root [TODO](../../../TODO.md).
+This feature is the authorization, evidence, and materialization boundary.
+`POST /api/graph-executions` still validates and records an execution envelope
+supplied by a caller. The service now has an `evaluateSavedGraph` preview
+orchestration seam: it loads the caller-readable saved graph, resolves nested
+Use Graph pins by exact payload revision through the same read boundary, and
+delegates provider definition resolution and node execution to injected host
+handlers. The core evaluator supplies cycle/depth checks, server-target
+validation, cancellation, and one shared read set across nested graphs.
+
+This is not yet managed server graph execution. Provider handlers are not yet
+resolved from immutable installed package snapshots, the service-level seam is
+not exposed as an authenticated execution route/task lifecycle, and it does
+not persist the resulting execution envelope. A provider's
+`execution.targets: ['server']` declaration and the existence of the managed
+plugin task worker do not make saved-graph server execution available. The
+remaining work is tracked in the root [TODO](../../../TODO.md).
