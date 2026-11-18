@@ -119,11 +119,18 @@ export function createProcessGraphNodeResolver({ catalogContext = {} } = {}) {
 
 /** Resolver for the procedural evaluator: durable reads, effects and control
  * operations are deliberately excluded from this execution profile. */
-export function createProcessProceduralNodeResolver(options = {}) {
-  const resolveGraphNode = createProcessGraphNodeResolver(options);
+export function createProcessProceduralNodeResolver({ catalogContext = {} } = {}) {
   return (operation, invocation = {}) => {
-    const definition = resolveGraphNode(operation, invocation);
-    return definition?.execution.kind === 'pure' ? definition : null;
+    if (operation?.provider !== PROCESS_PROCEDURAL_PROVIDER
+      || String(operation?.version) !== PROCESS_PROCEDURAL_VERSION) return null;
+    const resolvedContext = typeof catalogContext === 'function'
+      ? catalogContext(invocation)
+      : catalogContext;
+    return createProcessProceduralNodeDefinition(
+      operation.id,
+      invocation.config?.record || invocation.config || {},
+      resolvedContext || {}
+    );
   };
 }
 
