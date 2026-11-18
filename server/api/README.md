@@ -43,10 +43,12 @@ Routes are grouped into sub-directories corresponding to features:
 - `instances/`: The generic per-type instance transport (`/api/instances/:type`
   and `/api/instances/:type/:id`) serving every pack and org-authored type
   through the CTS instance machinery, including typed payload upload/download,
-  revision restore (`POST /api/instances/:type/:id/restore-revision`), and
+  revision restore (`POST /api/instances/:type/:id/restore-revision`),
   revision-checked relation link/unlink (`POST`/`DELETE
   /api/instances/:type/:id/relations/:key`, body `{ target, expectedRevision }`,
-  [instances feature](../features/instances/README.md)).
+  [instances feature](../features/instances/README.md)), and the one blank-editor
+  creation boundary (`POST /api/instances/:type/editor`, which creates an
+  editor-protocol file instance and its first payload together).
 - `files/`: Shared file transport — `POST /api/files/upload` and
   `GET /api/files/download/:id` for instance payloads and attachments; downloads require authentication and enforce the file's organization/uploader scope.
   Downloads serve HTTP byte ranges (`Range` → `206` + `Content-Range`,

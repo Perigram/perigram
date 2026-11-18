@@ -5,8 +5,8 @@ canvas with palette, inspector, lanes, and apply ceremonies, mounted by
 [pages/organization/process.vue](../../pages/organization/process.vue)
 over a process definition and by
 [`GraphEditorSurface.vue`](./GraphEditorSurface.vue) over a
-`graph-document` payload from the dedicated
-[organization graph workspace](../../pages/organization/graphs.vue) (SPEC §28 — one canvas law). The grammar it
+`graph-document` record through the
+[`graph-editor` file surface](../generated/file-surfaces.js) (SPEC §28 — one canvas law). The grammar it
 renders — palette membership, node/edge species, wire legality — is
 authored through the designer contract owned by
 [packages/processes](../../packages/processes/README.md); this README
@@ -38,12 +38,12 @@ last-writer-wins like the canvas itself).
 ## Canonical graph surface
 
 `GraphEditorSurface` mounts the shared canvas over a `graph-document`
-payload through the organization graph workspace. Its Use Graph palette
+record through the `graph-editor` file surface. Its Use Graph palette
 loads each readable graph payload through the file-read boundary and places
 an invocation pinned to the payload's graph identity, revision, and public
 interface. The inspector can select a historical source revision and refresh
 the invocation sockets from that frozen payload. The source storage-instance
-id remains a separate catalog locator. The workspace injects the authorized
+id remains a separate catalog locator. The editor host injects the authorized
 CTS query capability used by the core data-query node; preview read sets retain
 the returned instance versions and query boundary. Installed plugin runtimes
 contribute graph node definitions and preview renderer ids through the
@@ -576,7 +576,7 @@ validation feedback strip — over the session composable's state and
 verbs passed as props (`v-model:nodes`/`v-model:edges`, palette groups,
 gesture handlers). The `lane` slot carries a host's zoom-pane background
 (the process page's lane bands); the `inspector` slot carries the host's
-rail content. The graph workspace mounts its preview/input rail in the
+rail content. The graph file surface mounts its preview/input rail in the
 canvas `support` slot; the canvas status control opens that rail beside
 the inspector. Function-ref props (`bindFrame`, `bindContextPaletteSearch`)
 hand the mounted instances to the session's refs — plain ref props would
@@ -730,8 +730,10 @@ in `utils/processDesigner*.js`:
 - Parent: [components](../README.md); its [SPEC](../SPEC.md).
 
 
-The graph-document workspace keeps procedural graph authoring separate
-from process-definition lifecycle. Its inspector authors graph nodes and
+The graph-document file surface keeps procedural graph authoring in the
+file model: a graph document opens as a `graph-document` record, and the
+process-definition page keeps its own lifecycle chrome until the one-surface
+cutover in [SPEC §28.13](../../SPEC.md). Its inspector authors graph nodes and
 public interfaces; the support rail is a separate preview workspace with
 output selection, generic representations, and optional provider-owned
 read-only renderers. The graph session accepts validated provider

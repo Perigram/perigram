@@ -248,7 +248,10 @@ the `section` field set.
   engine's image node. The file entry opens `FileInsertDialog.vue` for any
   file and inserts a `file_ref` node (`file-ref-node.js`) rendering the
   shared `FileChip`; it serializes to a `#file:` link and the read
-  composition mounts the same chip. Every slash hand-off opens on the
+  composition mounts the same chip. The dialog also offers **New graph**:
+  it creates a `graph-document` through the generic editor-create
+  boundary, inserts its instance reference, and opens the graph editor in
+  a workspace pane. Every slash hand-off opens on the
   next task, so the selecting click cannot dismiss its popover or dialog
   as an outside click. Enter on an empty top-level paragraph keeps the
   caret in that paragraph. The page-link and AI-block entries stay dark
@@ -356,7 +359,13 @@ contract. It combines two halves:
   canvas surface `graph-editor`
   ([process-designer](../process-designer/README.md) owns it); its
   component resolves lazily so the canvas module tree stays out of the
-  app shell's eager graph. The header owns the document chrome through
+  app shell's eager graph. The blank editor's first save runs
+  `POST /api/instances/:type/editor`: the endpoint validates the type's
+  declared payload (mime, size, and the canonical graph for
+  `graph-document`), stores the payload, and creates the instance through
+  the generic create boundary. There is one first-save mechanism for every
+  editor-protocol file type, not a route per type. The header owns the
+  document chrome through
   the editor-page chrome channel (`editor-page-chrome.js`): an editor
   module declaring the `pageChrome` prop binds `{ name, dirty, saving,
   diverged, save(), rename(), reload() }`, the header renders the

@@ -7,16 +7,19 @@ creation mechanism. Graph documents are ordinary files, creatable from a
 Page and editable in place. The bespoke `/organization/graphs` workspace
 and the graph-specific first-save endpoint are removed, not preserved.
 
-- [ ] Remove `pages/organization/graphs.vue`, its process-dock link, and
+- [x] Remove `pages/organization/graphs.vue`, its process-dock link, and
   `server/api/instances/graph-document/editor.post.js`. Graph documents use
   the generic file creation/payload boundary and the registered
   `graph-editor` file surface.
-- [ ] Land graph documents in the normal file model: a type collection or
-  the generic Files collection, the editor surface mounted from the file
-  record, and in-place opening from a Page file reference.
-- [ ] Add Page creation: the file insert flow offers editor-protocol file
-  types; choosing Graph creates the file, inserts its file reference, and
-  the chip opens the editor in place.
+- [x] Land graph documents in the normal file model: the `graph-editor`
+  surface mounts from the file record, and a Page instance reference opens
+  the editor in place.
+- [ ] Add a browse surface for existing graph documents only if the owner
+  wants one: a generated type collection over `graph-document`, never a
+  hand-built page.
+- [x] Add Page creation: the file insert flow offers **New graph**; it
+  creates the graph document, inserts its instance reference, and opens the
+  graph editor in place.
 - [ ] Make the process definition editor mount the same graph editor
   surface; delete `useProcessDesignerGraphSession`, the legacy process
   canvas model, and the duplicate process preview path. Process semantics
@@ -28,6 +31,23 @@ and the graph-specific first-save endpoint are removed, not preserved.
 - [ ] Acceptance: create a graph from a Page, edit/save/preview it in place,
   and author a process on the same surface; no second graph route, session,
   or evaluator.
+
+### Agent Notes (2026-11-18, file-native graphs landed)
+
+- `POST /api/instances/:type/editor` is the one blank-editor creation
+  boundary: it validates the declared payload, stores it, and creates the
+  instance through `createForHttp`. The graph-specific route and the
+  `pages/organization/graphs.vue` host are gone; the static
+  `instances/graph-document` directory is gone with them.
+- The page file dialog's **New graph** creates a blank canonical graph,
+  inserts an `instance_ref`, and opens the `graph-editor` file surface in a
+  workspace pane. Clicking the instance reference opens the same record
+  path later.
+- `instancePayloadPersistence`'s blank first save now uses the generic
+  editor boundary instead of a compiled construct, so editor-protocol file
+  types share one creation mechanism.
+- Validation: the graph Documents E2E file passes 3/3 through the file
+  surface (no `/organization/graphs` navigation).
 
 ### Agent Notes (2026-11-18, surface inventory)
 
