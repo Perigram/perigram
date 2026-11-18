@@ -15,7 +15,7 @@ const install = {
   pluginId: 'demo', version: '4',
   declarations: { runtimes: [{ id: 'javascript', targets: ['browser', 'server'] }] },
   services: [
-    { id: 'nesting-solve', execution: { runtime: 'javascript', targets: ['server'], kind: 'read', capabilities: ['facade.nesting.solve'] } },
+    { id: 'nesting-solve', execution: { runtime: 'javascript', targets: ['server'], kind: 'read', capabilities: ['nesting.solve'] } },
     { id: 'read', execution: { runtime: 'javascript', targets: ['browser', 'server'], kind: 'read', capabilities: ['organization.instances.query', 'files.read'] } },
     { id: 'write', execution: { runtime: 'javascript', targets: ['server'], kind: 'effect', capabilities: ['organization.instances.update'] } }
   ]
@@ -77,10 +77,10 @@ describe('managed plugin host capabilities', () => {
       auth, organizationId: 'org-1', expectedRevision: 4
     });
   });
-  it('routes the declared Facade nesting capability through the platform endpoint', async () => {
+  it('routes the declared Nesting plugin capability through the platform endpoint', async () => {
     findInstall.mockResolvedValue({
       ...install,
-      pluginId: 'facade'
+      pluginId: 'nesting'
     });
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -91,7 +91,7 @@ describe('managed plugin host capabilities', () => {
     try {
       await expect(invokePluginCapability({
         organizationId: 'org-1', pluginId: 'facade', version: '4', runtimeId: 'javascript',
-        operationId: 'nesting-solve', name: 'facade.nesting.solve',
+        operationId: 'nesting-solve', name: 'nesting.solve',
         input: { items: [{ id: 1 }], params: { width: 100, height: 100 } },
         target: 'server', auth
       })).resolves.toEqual({ status: 'ok', layouts: [] });
@@ -106,10 +106,10 @@ describe('managed plugin host capabilities', () => {
     }
   });
 
-  it('does not let another plugin invoke the Facade-specific adapter', async () => {
+  it('does not let another plugin invoke the Nesting-specific adapter', async () => {
     await expect(invokePluginCapability({
       organizationId: 'org-1', pluginId: 'demo', version: '4', runtimeId: 'javascript',
-      operationId: 'nesting-solve', name: 'facade.nesting.solve',
+      operationId: 'nesting-solve', name: 'nesting.solve',
       input: {}, target: 'server', auth
     })).rejects.toMatchObject({ statusCode: 403 });
   });

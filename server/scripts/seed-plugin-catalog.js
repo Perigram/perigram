@@ -21,6 +21,7 @@ import { buildDocumentsRuntime } from '../../workers/documents/build-runtime.mjs
 const BUILTIN_LISTING_PATHS = [
   'workers/documents/listing.json',
   'workers/tech-drawing/listing.json',
+  'workers/nesting/listing.json',
   'workers/facade/listing.json',
   'workers/build123d/listing.json'
 ];

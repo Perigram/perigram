@@ -72,9 +72,9 @@ export async function invokePluginCapability({
     if (typeof instanceService?.removeForHttp !== 'function') throw createError({ statusCode: 404, message: 'Instance delete service is unavailable' });
     return await instanceService.removeForHttp(instanceId, { auth, organizationId: orgId });
   }
-  if (name === 'facade.nesting.solve') {
-    if (String(pluginId) !== 'facade' || String(operationId) !== 'nesting-solve') {
-      throw createError({ statusCode: 403, message: 'The facade nesting adapter is restricted to facade.nesting-solve' });
+  if (name === 'nesting.solve') {
+    if (String(pluginId) !== 'nesting' || String(operationId) !== 'nesting-solve') {
+      throw createError({ statusCode: 403, message: 'The nesting solver adapter is restricted to nesting.nesting-solve' });
     }
     const endpoint = process.env.NESTING_WORKER_URL || 'http://nesting-worker:8000/nest';
     let destination;

@@ -30,6 +30,7 @@ constructions, exports, dependencies, starter constructs), validated by
 
 | Executor | Port | Declarations | Services | Surfaces |
 |---|---|---|---|---|
+| [nesting](./nesting/README.md) | platform capability | generic polygon parts and stock geometry; no Facade type dependency | `nesting-solve` (managed server runtime; `nesting.solve` host capability) | — |
 | [facade](./facade/README.md) | 8790 | types `cassette-template`, `cassette-design`, `cassette-instance`, `sheet-design`, `sheet-cut-plan`, `sheet-instance`, `profile`, `hardware`; constructions `render`/`upload`/`convertDxf` (cassette-design), `fromLayout` (sheet-design); `dxf` export on sheet-design; `requires: ["tech-drawing"]` | `nesting-solve`, `extract-geometry`, `bake`, `generate-sheet-dxf`, `construct-sheet`, `match-sheet`, `nesting-parts` | `sheet-design-editor` (5), `cassette-designer` (2), `cassette-preview` (1), `profile-preview` (1) |
 | [documents](./documents/README.md) | 8791 | generic media/office file types; `fill` on text-document/xlsx-workbook/pdf-document, `render` on pdf-document; text-document starter construct; `requires: ["tech-drawing"]` | 27 listing-derived `documents-shared` graph operations (browser/server targets declared) plus 7 endpoint services: `table-rows`, `table-cells`, `text`, `fill`, `render-pdf`, `render-report-pdf`, `render-document-pdf` | `text-editor` (3), `csv-editor` (3), `document-preview`, `html-preview` |
 | [tech-drawing](./tech-drawing/README.md) | 8792 | drawing reference types, DXF/SVG sources (geometry revision scope on dxf-source), `fill` on dxf-source, the sketch type | `place-dxf` | `sketch-editor` (3) |
@@ -58,9 +59,9 @@ in the root [SPEC.md](../SPEC.md) §20.
   flat outer-ring list or `{ outer, inner }`; inner rings become
   container holes).
 - Response: `lbf` solution JSON (layouts, placed items, transformations).
-  When every item fails geometry validation the service answers HTTP 200
-  `{ status: 'error', message, solution: { layouts: [] } }`; the facade
-  executor maps `status === 'error'` to a 502 error.
+  When every item fails geometry validation the worker answers HTTP 200
+  `{ status: 'error', message, solution: { layouts: [] } }`; the Nesting
+  managed runtime maps `status === 'error'` to a 502 operation failure.
 - Pure algorithm service: buffer polygons by spacing, build the lbf
   config, run the vendored `lbf` binary as a subprocess; the solver holds
   no database client.
@@ -84,7 +85,7 @@ in the root [SPEC.md](../SPEC.md) §20.
 | `facade/` | entry `index.js`; `services.js` (the seven services); `nesting-projections.js` (value→value purity); `occs/` the domain's single geometry engine — executor services and browser surfaces share it, and it is served statically; `surfaces/` + `surfaces/lib/` editor and preview modules; `vendor/` DXF engines; `assets/vendor/{three,clipper2}` |
 | `documents/` | entry, services, text/csv surfaces, vendored editor runtimes |
 | `tech-drawing/` | declarations listing + sketch and DXF editor surfaces + the vendored CadCraft edition |
-| `nesting/` | `worker_service.py` entry; `core/nesting_input_builder.py`, `core/geometry_utils.py`; `jagua-rs/` + `lbf` |
+| `nesting/` | installable generic Nesting plugin (`listing.json`, managed `runtime/server.mjs`) plus isolated `worker_service.py`; `core/nesting_input_builder.py`, `core/geometry_utils.py`; `jagua-rs/` + `lbf` |
 | `plugin-executor.Dockerfile` | shared executor image; the nesting image builds from the repo-root context |
 
 ## Laws

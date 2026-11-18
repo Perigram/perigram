@@ -150,6 +150,7 @@ services:
       if (!primaryReady) throw new Error("Mongo replica set did not elect a primary within 60 seconds");
       print("Mongo replica set primary is ready");'
 
+  # Platform-owned execution adapter for the Nesting plugin's nesting.solve capability.
   nesting-worker:
     image: perigram-nesting-worker:latest
     build:

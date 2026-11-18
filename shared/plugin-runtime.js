@@ -9,7 +9,7 @@ export const PLUGIN_RUNTIME_CAPABILITIES = Object.freeze([
   'organization.instances.update',
   'organization.instances.delete',
   'files.read',
-  'facade.nesting.solve'
+  'nesting.solve'
 ]);
 
 export const PLUGIN_RUNTIME_BROWSER_CAPABILITIES = Object.freeze([
