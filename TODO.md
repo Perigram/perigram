@@ -57,6 +57,17 @@ provider discovery → typed authoring → preview → file export → Bake.
   PDF; document each engine's supported token/section semantics and test
   missing values, invalid structures, and output round-trips. Decide and
   track DOCX fill/export scope separately.
+- [ ] Integrate graph template nodes with the HAG fill form: reuse the
+  existing Markdown/XLSX token extractors and `meta.tokens` semantics to
+  expose named scalar fields that produce the node's `values` record.
+  Resolve the template input from the graph's connected file value or
+  selected file reference; never persist discovered tokens as document data.
+  Keep one token grammar and one fill engine per format.
+- [ ] Add HAG acceptance tests for missing/unknown tokens, nested/invalid
+  XLSX sections, repeat rows, and preview/Bake parity between the legacy
+  construction and graph operation. PDF remains gated on server graph
+  execution; DOCX stays explicitly out of scope until separately approved.
+
 - [ ] Reconcile HAG acceptance notes with the unified graph provider and
   runtime contracts. Mark each slice by implementation, test execution, and
   owner verification; remove obsolete duplicate paths after their consumers

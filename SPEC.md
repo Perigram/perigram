@@ -1481,6 +1481,24 @@ mode. A values input pinned `template-values` renders one scalar input
 per template token — the composition's meta channel names the tokens,
 and records never store them.
 
+### 24.1 Graph template interop (owner direction 2026-11-18)
+
+Graph template operations are transformations, not alternate persistence
+constructs. A graph reads an explicitly selected file through the authorized
+file capability, supplies a named values record, and returns a typed file
+payload. The graph host previews the result and persists it only through an
+explicit Bake/Export destination. Markdown and XLSX have shared-runtime
+graph operations; PDF remains in the managed construction/executor path
+until server graph execution and its typed capability boundary are
+implemented. DOCX fill/export is not part of the current supported scope.
+
+The HAG fill form and graph authoring must share the same format-specific
+token extractors and substitution rules. The legacy construction's
+`meta.tokens` channel currently renders per-token scalar inputs; graph
+template nodes currently accept a values record and still need an equivalent
+human authoring control. Do not duplicate template storage, token grammar,
+or format engines to bridge the two surfaces.
+
 ## 25. Stateful lifecycles are explicit machines (owner direction 2026-11-02)
 
 Every lifecycle the system exposes is an explicit state machine. One

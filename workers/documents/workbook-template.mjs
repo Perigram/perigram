@@ -19,13 +19,6 @@ export function fillWorkbook(buffer, values = {}) {
     const sheet = workbook.Sheets[sheetName];
     if (sheet && sheet['!ref']) fillWorksheet(sheet, values);
   }
-  workbook.Workbook ||= {};
-  workbook.Workbook.CalcPr = {
-    ...(workbook.Workbook.CalcPr || {}),
-    calcMode: 'auto',
-    calcOnSave: 'true',
-    fullCalcOnLoad: 'true'
-  };
   const output = XLSX.write(workbook, { bookType: 'xlsx', type: 'array', cellStyles: true });
   return output instanceof Uint8Array ? output : new Uint8Array(output);
 }
@@ -36,7 +29,12 @@ function cellText(cell) {
 
 function applyToCell(cell, scope, rowDelta = 0) {
   if (cell.f) {
-    if (rowDelta) cell.f = shiftFormulaRows(cell.f, rowDelta);
+    if (rowDelta) {
+      cell.f = shiftFormulaRows(cell.f, rowDelta);
+      // The old cached result belongs to the old references. Omitting it
+      // lets spreadsheet applications recalculate instead of showing stale data.
+      delete cell.v;
+    }
     delete cell.w;
     return;
   }

@@ -56,27 +56,28 @@ uses the authorized `files.read` capability and returns a
 or another file-aware operation, then flow into the generic graph Bake
 operation with an explicit destination page and path.
 
-The shared XLSX filler currently preserves cell style objects and existing
-formula strings while expanding one-level row sections. It does not yet
-translate formula references across repeated rows or guarantee merged-cell
-and complete row/column metadata fidelity. Treat complex workbooks as
-unsupported until those cases have dedicated regression fixtures.
+The shared XLSX filler translates relative A1 row references when rows move,
+invalidates cached results for moved formulas, preserves row/column metadata,
+and expands unambiguous merged ranges per repeated section instance. It
+preserves cell styles and one-level row sections. Shared/array formulas,
+external-workbook references, theme fills, charts, and images are not
+guaranteed; merges crossing a repeat boundary are intentionally omitted.
 
 ### Graph file preview
 
-The Documents preview channel accepts actual `text/markdown` and
-`text/html` file payload envelopes from selected graph outputs and node
-outputs. It decodes the payload and renders through the host's
-Markdown/DOMPurify pipeline in a sandboxed iframe with restrictive CSP.
-Document and report IR previews remain native read-only renderings. The
-graph output panel automatically selects the Documents channel for these
-values instead of leaving the user on a base64 JSON view.
+The Documents preview channel accepts Markdown, HTML, and XLSX file payloads
+from graph outputs and node outputs. Markdown/HTML render through the host
+Markdown/DOMPurify pipeline in a sandboxed iframe with restrictive CSP;
+XLSX renders the first worksheet as a bounded table. Document and report IR
+previews remain native read-only renderings. The graph output panel selects
+this channel for supported file values instead of exposing base64 JSON.
 
 ### Markdown template graph operation
 
-`fill-markdown-template` is a pure operation in the shared browser/server
-runtime. It accepts template text, a record of named values, and an optional
-output name; unresolved placeholders remain visible. Its result is a real
+`fill-markdown-template` is a pure operation in the shared runtime and
+currently executes through the browser graph provider. It accepts template
+text, a record of named values, and an optional output name; unresolved
+placeholders remain visible. Its result is a real
 `text/markdown` file payload and can flow directly into the generic Bake
 path. File selection/read remains an explicit preceding `read-text-file`
 operation using the authorized `files.read` capability.
@@ -84,12 +85,25 @@ operation using the authorized `files.read` capability.
 ### Markdown parsing in the shared provider
 
 `parse-markdown` is a pure Documents operation in the
-`documents-shared` runtime. The browser and managed server targets use the
-same `markdown-ir.mjs` adapter to turn Markdown into the typed
+`documents-shared` runtime. The browser graph runtime uses the
+`markdown-ir.mjs` adapter to turn Markdown into the typed
 `text.flow-document@1` value; the endpoint-only parser path is retired.
+The runtime declaration also names a server target, but the server
+procedural graph evaluator is not yet wired.
 Unsupported HTML and image constructs remain explicit diagnostics rather
 than silently disappearing. The report adapter re-exports the same parser
 for existing imports.
+
+### HAG and graph template inputs
+
+The legacy `fill` construction still exposes `meta.tokens` to the shared
+HAG fill form, which renders one scalar input per discovered template token.
+The graph operations currently accept an explicit `values` record input;
+they do not yet introspect a connected template and turn its token list into
+per-token authoring controls. Reuse the existing token extractors and HAG
+form contract when adding that graph inspector experience. Do not create a
+second template model or a second token grammar. Markdown/XLSX graph HAG
+controls and PDF graph exposure remain open work in the root TODO.
 
 ### PDF graph operation status
 
