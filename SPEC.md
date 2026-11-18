@@ -2228,6 +2228,34 @@ not one universal scheduler or domain model. CTS owns organization data
 truth; plugins own specialized operations; Pages link to authoritative
 instances; subgraphs are version-pinned programs; graph outputs remain
 transient until explicitly committed or baked.
+
+### 28.13 One graph surface and file-native graphs (owner direction 2026-11-18)
+
+There is one graph editor surface. Process authoring and every graph
+document mount that surface; process semantics are a domain profile over
+the same graph, not a second canvas, session, model, or evaluator. The
+legacy process canvas and its session are deleted, not migrated: the
+repository is pre-alpha and carries no stored-data compatibility duty.
+
+Graph documents are ordinary CTS file instances with a JSON payload. They
+are created through the same file creation mechanism as every other file
+type, including from a Page: a Page block can create a graph and insert
+its file reference. A graph opens in place through the file surface
+registry. There is no bespoke Graphs page, no second graph list, and no
+graph-specific first-save endpoint.
+
+Execution is provider-owned. CTS and organization-data nodes execute
+through the managed CTS capability boundary; Documents nodes execute
+through the Documents runtime; every provider declares its target and
+capabilities. Preview and execution use the one canonical evaluator and
+the one provider registry.
+
+Acceptance: one editor surface used by process authoring and graph files;
+one creation path through the generic file boundary; create a graph from a
+Page and edit it in place; no `/organization/graphs` route, no
+graph-specific create API, no second canvas/session/evaluator; CTS and
+Documents nodes execute in their declared runtimes.
+
 ## 29. Divide and conquer (owner direction 2026-11-12, sequenced after §28)
 
 The repository splits into independently developed services composing

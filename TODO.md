@@ -1,5 +1,45 @@
 # TODO
 
+## Priority: One graph surface and file-native graphs (SPEC §28.13, owner direction 2026-11-18)
+
+Process authoring and graph documents must share one editor surface and one
+creation mechanism. Graph documents are ordinary files, creatable from a
+Page and editable in place. The bespoke `/organization/graphs` workspace
+and the graph-specific first-save endpoint are removed, not preserved.
+
+- [ ] Remove `pages/organization/graphs.vue`, its process-dock link, and
+  `server/api/instances/graph-document/editor.post.js`. Graph documents use
+  the generic file creation/payload boundary and the registered
+  `graph-editor` file surface.
+- [ ] Land graph documents in the normal file model: a type collection or
+  the generic Files collection, the editor surface mounted from the file
+  record, and in-place opening from a Page file reference.
+- [ ] Add Page creation: the file insert flow offers editor-protocol file
+  types; choosing Graph creates the file, inserts its file reference, and
+  the chip opens the editor in place.
+- [ ] Make the process definition editor mount the same graph editor
+  surface; delete `useProcessDesignerGraphSession`, the legacy process
+  canvas model, and the duplicate process preview path. Process semantics
+  become a domain profile over the canonical graph. Pre-alpha: delete, do
+  not migrate stored process graphs.
+- [ ] Route CTS/organization-data nodes through the managed CTS executor and
+  Documents nodes through the Documents runtime; one provider registry and
+  one canonical evaluator for preview and execution.
+- [ ] Acceptance: create a graph from a Page, edit/save/preview it in place,
+  and author a process on the same surface; no second graph route, session,
+  or evaluator.
+
+### Agent Notes (2026-11-18, surface inventory)
+
+- `pages/organization/graphs.vue` was added 2026-11-16 (`295216885`) after the
+  `graph-editor` file surface already existed (`caeea7c98`, 2026-11-14). It
+  duplicates the file-surface mount with its own list, name, save, catalog,
+  and first-save endpoint.
+- The process page still mounts `GraphCanvas` through
+  `useProcessDesignerGraphSession` and previews through the process dataflow
+  evaluator; the file surface mounts the canonical `useGraphDocumentSession`
+  and evaluator. That is the two-editor split.
+
 ## Priority: Unified Documents graph usability (owner direction 2026-11-17)
 
 Deliver the first usable Documents graph workflow before broadening format
