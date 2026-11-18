@@ -1,4 +1,4 @@
-import { PROCESS_GRAPH_METADATA_KEY, PROCESS_GRAPH_PROVIDER } from './process-graph.js';
+import { PROCESS_GRAPH_METADATA_KEY } from './process-graph.js';
 import { createDataPacket, isDataTree, packetValue } from './data-tree.js';
 import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
 import { resolveCatalogNodePorts, EFFECT_SPECIES_KINDS, constructionInputsForContract, resolveConstructionMode } from './node-catalog.js';
