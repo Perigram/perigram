@@ -66,9 +66,13 @@ provider discovery → typed authoring → preview → file export → Bake.
   - [x] Capture per-call capability evidence from managed worker tasks.
     Authorized CTS query/read capability results merge their read sets into the
     shared parent/child recorder and are persisted in execution provenance.
-  - [ ] Unify the actual capability authorization scope across node tasks and
-    extend verifiable read evidence to files.read. File reads and other
-    untracked capabilities remain marked unverified and block Commit/Bake/Export.
+  - [x] Extend the shared read set to authorized file reads. Managed
+    `files.read` evidence carries the file id, content hash, and actual
+    organization ownership scope; the shared recorder persists it, and
+    Commit/Bake/Export recheck current read access and file bytes.
+  - [ ] Unify the actual capability authorization scope across node tasks.
+    Other untracked capabilities remain marked unverified and block
+    Commit/Bake/Export.
   - [x] Persist procedural-preview records with graph/package/runtime pins,
     inputs/outputs, diagnostics, node task and nested invocation evidence, and
     read sets. Per-call capability evidence and durable lifecycle profiles
