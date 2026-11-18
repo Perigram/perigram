@@ -693,9 +693,11 @@ function activeOrganizationId() {
     || null;
 }
 
-// The graph canvas session (SPEC §28): the one authoring core every graph
-// document mounts. This page owns the process plane around it — the
-// definitions lifecycle, lanes, roles, screens, and the apply ceremony.
+// The process-definition authoring session is still a separate migration
+// path from the canonical graph-document session. This page owns the CTS
+// declaration plane and process lifecycle around its canvas — definitions,
+// lanes, roles, screens, and the apply ceremony. The shared canvas component
+// is presentation reuse, not evidence that the authoring sessions are unified.
 const {
   nodes,
   edges,
