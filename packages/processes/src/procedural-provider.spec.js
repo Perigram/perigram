@@ -7,7 +7,9 @@ import {
   createProcessProceduralExecutor,
   createProcessProceduralNodeDefinition,
   createProcessProceduralNodeResolver,
+  createProcessGraphNodeDefinition,
   registerProcessProceduralNodes,
+  registerProcessGraphNodes,
   PROCESS_PROCEDURAL_PROVIDER,
   PROCESS_PROCEDURAL_VERSION
 } from './procedural-provider.js';
@@ -36,6 +38,39 @@ describe('process procedural provider adapter', () => {
     });
     expect(registry.resolve(PROCESS_PROCEDURAL_PROVIDER, 'cts.read', PROCESS_PROCEDURAL_VERSION)).toBeNull();
     expect(registry.resolve(PROCESS_PROCEDURAL_PROVIDER, 'control.if', PROCESS_PROCEDURAL_VERSION)).toBeNull();
+  });
+
+  it('registers the complete process catalog for shared graph authoring', () => {
+    const definitions = new Map();
+    const registry = {
+      register(definition) {
+        const key = `${definition.provider}/${definition.id}@${definition.version}`;
+        if (definitions.has(key)) throw new Error(`duplicate ${key}`);
+        definitions.set(key, definition);
+        return definition;
+      }
+    };
+    const registered = registerProcessGraphNodes(registry);
+    expect(registered.length).toBeGreaterThan(registerProcessProceduralNodes({ register: value => value }).length);
+    expect(definitions.get(`${PROCESS_PROCEDURAL_PROVIDER}/cts.read@${PROCESS_PROCEDURAL_VERSION}`)).toMatchObject({
+      id: 'cts.read',
+      execution: { kind: 'read' }
+    });
+    expect(definitions.get(`${PROCESS_PROCEDURAL_PROVIDER}/control.if@${PROCESS_PROCEDURAL_VERSION}`)).toMatchObject({
+      id: 'control.if',
+      execution: { kind: 'control' }
+    });
+  });
+
+  it('resolves authored control and effect nodes to provider-neutral port contracts', () => {
+    const definition = createProcessGraphNodeDefinition('control.if', { id: 'branch', kind: 'control.if' });
+    expect(definition).toMatchObject({
+      provider: PROCESS_PROCEDURAL_PROVIDER,
+      id: 'control.if',
+      execution: { kind: 'control' }
+    });
+    expect(definition.inputs.length + definition.outputs.length).toBeGreaterThan(0);
+    expect(definition.inputs[0].semantic).toHaveProperty('role');
   });
 
   it('exposes pure process catalog nodes as provider-qualified contracts', () => {
