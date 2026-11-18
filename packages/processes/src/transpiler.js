@@ -1,3 +1,4 @@
+import { normalizeGraph as normalizeStoredGraph } from './compiler-core.js';
 import { normalizeRowRelativeFieldRefs, orientChildrenEdgesChildFirst } from '@perigram/cts';
 
 const CANVAS_RECORD_KEYS = {
@@ -207,7 +208,7 @@ function normalizeProcessLike(definition = {}) {
     dataflowVersion: data.dataflowVersion,
     sourceTemplateId: data.sourceTemplateId || null,
     sourceProcessDefinitionId: data.sourceProcessDefinitionId || null,
-    graph: normalizeGraph(data.graph),
+    graph: normalizeStoredGraph(data.graph, { includeRefId: true }),
     roleGrants: normalizeRecord(data.roleGrants),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
     producerOutputs: normalizeRecord(data.producerOutputs),
@@ -328,73 +329,6 @@ function sortObject(value) {
   if (Array.isArray(value)) return value.map(sortObject);
   if (!value || typeof value !== 'object') return value;
   return Object.fromEntries(Object.keys(value).sort().map(key => [key, sortObject(value[key])]));
-}
-
-function normalizeGraph(graph = {}) {
-  return {
-    nodes: Array.isArray(graph.nodes) ? graph.nodes.map(normalizeCanvasNode) : [],
-    edges: Array.isArray(graph.edges) ? graph.edges.map(normalizeCanvasEdge) : [],
-    viewport: normalizeViewport(graph.viewport)
-  };
-}
-
-function normalizeCanvasNode(node = {}) {
-  const refId = String(node.data?.refId || node.id || '');
-  return {
-    id: String(node.id || refId),
-    type: node.type || 'default',
-    position: normalizePosition(node.position),
-    data: {
-      ...(node.data && typeof node.data === 'object' ? node.data : {}),
-      refId
-    }
-  };
-}
-
-function normalizeCanvasEdge(edge = {}) {
-  const sourceHandle = edge.sourceHandle || inferEdgeHandle(edge, 'source');
-  const targetHandle = edge.targetHandle || inferEdgeHandle(edge, 'target');
-  return {
-    id: String(edge.id || `${edge.source || ''}-${edge.target || ''}`),
-    source: String(edge.source || ''),
-    target: String(edge.target || ''),
-    sourceHandle,
-    targetHandle,
-    type: edge.type || 'default',
-    // A 'type'-role wire's label IS its semantics (children/declares/
-    // entry/targets) — compileTreeDeclarations matches declaration
-    // partners by it, so it must round-trip or the declaration tree
-    // hollows out after reload.
-    ...(edge.role ? { role: edge.role } : {}),
-    ...(edge.label ? { label: edge.label } : {}),
-    data: edge.data && typeof edge.data === 'object' ? edge.data : {}
-  };
-}
-
-function inferEdgeHandle(edge = {}, side = 'source') {
-  const dataKey = side === 'source' ? 'sourceHandle' : 'targetHandle';
-  if (edge.data?.[dataKey]) return edge.data[dataKey];
-  const id = String(edge.id || '');
-  const pattern = side === 'source'
-    ? /(?:^|[-])((?:output)(?::[A-Za-z0-9_.:]+)?)(?=[-]|$)/
-    : /(?:^|[-])((?:input|data)(?::[A-Za-z0-9_.:]+)?)(?=[-]|$)/;
-  const match = id.match(pattern);
-  return match?.[1] || null;
-}
-
-function normalizePosition(position = {}) {
-  return {
-    x: Number(position.x || 0),
-    y: Number(position.y || 0)
-  };
-}
-
-function normalizeViewport(viewport = {}) {
-  return {
-    x: Number(viewport?.x || 0),
-    y: Number(viewport?.y || 0),
-    zoom: Number(viewport?.zoom || 1)
-  };
 }
 
 function normalizeRecord(value) {
