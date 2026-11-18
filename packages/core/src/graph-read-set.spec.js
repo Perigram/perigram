@@ -10,8 +10,29 @@ describe('graph execution read set', () => {
       organizationSequenceEnd: null,
       instances: [],
       relations: [],
-      queries: []
+      queries: [],
+      files: []
     });
+  });
+
+  it('records file content hashes as execution dependencies', () => {
+    const recorder = createGraphReadSetRecorder();
+    recorder.recordFile({
+      fileId: 'file-1',
+      contentHash: 'sha256:abc',
+      organizationId: 'org-1'
+    });
+    recorder.recordFile({
+      fileId: 'file-1',
+      contentHash: 'sha256:abc',
+      organizationId: 'org-1'
+    });
+
+    expect(recorder.toJSON().files).toEqual([{
+      fileId: 'file-1',
+      contentHash: 'sha256:abc',
+      organizationId: 'org-1'
+    }]);
   });
 
   it('deduplicates exact instance, relation, and query dependencies deterministically', () => {
