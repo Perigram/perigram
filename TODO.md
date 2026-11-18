@@ -217,6 +217,8 @@ Progress (2026-11-18): Preview lifecycle repairs: graph preview scheduling now i
 
 Progress (2026-11-18): Documents graph ports now preserve nested semantic metadata from listing schemas, including `documents.file-id`; a graph-session regression verifies that the semantic contract survives the interface boundary and reaches the authorized `files.read` capability. The Documents listing is v31. Endpoint-only deterministic-cache declarations were removed from its shared runtime services; endpoint service caches remain on endpoint-mode declarations. The README listing version was synchronized.
 
+Progress (2026-11-18): Built-in plugin connection settings are now read-only in the organization UI: platform-managed executor/surface origins and credentials are hidden behind an explicit platform-managed explanation, and the settings API refuses organization attempts to change surface origins as well as executor origins and credentials. The settings regression verifies the returned state and rejected writes.
+
 Progress (2026-11-18): Repository-wide plugin conformance coverage now validates all four installed plugin listings through the canonical SDK parser, checks declared runtime/surface module paths, and checks the current `palette.group` contract. The installed service projection now consumes `palette.group`/`palette.label` rather than retired service-level `group` metadata; regression coverage also proves legacy snapshots cannot resurrect that retired field. The broader client/server execution matrix and managed server graph evaluator remain open.
 
 Progress (2026-11-17): The graph-node palette and plugin listing now share
