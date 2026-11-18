@@ -28,8 +28,7 @@ WORKDIR /src
 # writable by the same UID that runs Nuxt.
 ARG DEV_UID=1000
 ARG DEV_GID=1000
-RUN if [ "$(id -g node)" != "$DEV_GID" ]; then groupmod --non-unique --gid "$DEV_GID" node; fi && \\
-    if [ "$(id -u node)" != "$DEV_UID" ]; then usermod --non-unique --uid "$DEV_UID" --gid "$DEV_GID" node; fi
+RUN if [ "$(id -g node)" != "$DEV_GID" ]; then groupmod --non-unique --gid "$DEV_GID" node; fi && if [ "$(id -u node)" != "$DEV_UID" ]; then usermod --non-unique --uid "$DEV_UID" --gid "$DEV_GID" node; fi
 
 # Copy package files
 COPY package.json package-lock.json ./
