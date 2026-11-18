@@ -11,15 +11,18 @@ test('Documents runtime loads and executes in Chromium without Node module resol
 import { createRuntime } from '/runtime/shared.bundle.mjs';
 self.onmessage = async () => {
   const runtime = createRuntime();
-  const parsed = await runtime.execute('parse-markdown', {
-    mode: 'preview',
-    inputs: { text: '# Browser runtime\\n\\nA **real** browser parse.' }
+  const parsed = runtime.execute('parse-markdown', {
+    text: '# Browser runtime\\n\\nA **real** browser parse.'
+  });
+  const exported = runtime.execute('export-markdown-file', {
+    document: parsed,
+    name: 'browser-export.md'
   });
   const filled = runtime.execute('fill-markdown-template', {
     templateText: '# {title}\\n\\nHello {name}',
     values: { title: 'Report', name: 'Ada' }
   });
-  self.postMessage({ parsed, filled });
+  self.postMessage({ parsed, exported, filled });
 };
 `;
   const server = createServer((request, response) => {

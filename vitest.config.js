@@ -28,7 +28,9 @@ export default defineConfig({
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*',
       '**/.agent-worktrees/**',
       '**/.agent-wt*/**',
-      '**/e2e/**'
+      '**/e2e/**',
+      // Playwright owns the real-browser runtime smoke; Vitest must not collect it.
+      '**/workers/documents/runtime-browser.spec.js'
     ],
     alias: {
       '~': path.resolve(__dirname, './'),
