@@ -5,7 +5,30 @@
   "version": "1",
   "requires": [],
   "declarations": {
-    "types": [],
+    "types": [
+      {
+        "id": "nesting-layout-set",
+        "class": "item",
+        "scope": "system",
+        "version": 1,
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          },
+          "layouts": {
+            "base": "json",
+            "constructible": false
+          },
+          "summary": {
+            "base": "json",
+            "constructible": false
+          }
+        },
+        "name": "Nesting result",
+        "glyph": "pi pi-th-large"
+      }
+    ],
     "services": [
       {
         "id": "nesting-solve",
@@ -65,11 +88,13 @@
               },
               "sheetWidth": {
                 "base": "quantity",
-                "unit": "mm"
+                "unit": "mm",
+                "default": 1220
               },
               "sheetHeight": {
                 "base": "quantity",
-                "unit": "mm"
+                "unit": "mm",
+                "default": 2440
               },
               "space": {
                 "base": "quantity",
@@ -83,7 +108,8 @@
             }
           },
           "output": {
-            "base": "json"
+            "base": "json",
+            "kind": "nesting-layout-set"
           }
         },
         "description": "Arrange generic polygon parts on rectangular or polygonal stock, preserving source metadata for downstream fabrication workflows",

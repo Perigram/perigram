@@ -90,7 +90,7 @@ describe('managed plugin host capabilities', () => {
     vi.stubGlobal('fetch', fetchMock);
     try {
       await expect(invokePluginCapability({
-        organizationId: 'org-1', pluginId: 'facade', version: '4', runtimeId: 'javascript',
+        organizationId: 'org-1', pluginId: 'nesting', version: '4', runtimeId: 'javascript',
         operationId: 'nesting-solve', name: 'nesting.solve',
         input: { items: [{ id: 1 }], params: { width: 100, height: 100 } },
         target: 'server', auth

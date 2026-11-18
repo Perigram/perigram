@@ -1940,7 +1940,7 @@
         "id": "documents-shared",
         "language": "javascript",
         "version": "1",
-        "entry": "/runtime/shared.bundle.mjs",
+        "entry": "/runtime/shared-bundle.mjs",
         "targets": [
           "browser",
           "server"

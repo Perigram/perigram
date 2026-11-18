@@ -7,7 +7,7 @@ const root = fileURLToPath(new URL('.', import.meta.url));
 const entry = resolve(root, 'runtime/shared.mjs');
 
 export async function buildDocumentsRuntime() {
-  const output = resolve(root, 'runtime/shared.bundle.mjs');
+  const output = resolve(root, 'runtime/shared-bundle.mjs');
   const temporary = mkdtempSync(join(resolve(root, 'runtime'), '.build-'));
   try {
     await build({
@@ -20,16 +20,16 @@ export async function buildDocumentsRuntime() {
         sourcemap: false,
         emptyOutDir: true,
         outDir: temporary,
-        lib: { entry, formats: ['es'], fileName: () => 'shared.bundle.mjs' },
+        lib: { entry, formats: ['es'], fileName: () => 'shared-bundle.mjs' },
         rollupOptions: {
           // Browser Workers have no Node resolver or import map. Bundle every
           // dependency, especially marked, into this single portable asset.
           external: [],
-          output: { inlineDynamicImports: true, entryFileNames: 'shared.bundle.mjs' }
+          output: { inlineDynamicImports: true, entryFileNames: 'shared-bundle.mjs' }
         }
       }
     });
-    const built = resolve(temporary, 'shared.bundle.mjs');
+    const built = resolve(temporary, 'shared-bundle.mjs');
     const bundle = readFileSync(built, 'utf8');
     const bareImports = [
       ...bundle.matchAll(/\bfrom\s*['"]([^'"]+)['"]/g),
@@ -43,7 +43,7 @@ export async function buildDocumentsRuntime() {
     // Atomic replacement means concurrent test/seed builds never expose a
     // partially written runtime asset to the package collector.
     renameSync(built, output);
-    console.log('Built self-contained browser/server Documents runtime: runtime/shared.bundle.mjs');
+    console.log('Built self-contained browser/server Documents runtime: runtime/shared-bundle.mjs');
   } finally {
     rmSync(temporary, { recursive: true, force: true });
   }

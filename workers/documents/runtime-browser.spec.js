@@ -3,12 +3,12 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 
-const bundlePath = fileURLToPath(new URL('./runtime/shared.bundle.mjs', import.meta.url));
+const bundlePath = fileURLToPath(new URL('./runtime/shared-bundle.mjs', import.meta.url));
 
 test('Documents runtime loads and executes in Chromium without Node module resolution', async ({ page }) => {
   const bundle = readFileSync(bundlePath);
   const workerSource = `
-import { createRuntime } from '/runtime/shared.bundle.mjs';
+import { createRuntime } from '/runtime/shared-bundle.mjs';
 self.onmessage = async () => {
   const runtime = createRuntime();
   const parsed = runtime.execute('parse-markdown', {
@@ -31,7 +31,7 @@ self.onmessage = async () => {
       response.end(workerSource);
       return;
     }
-    if (request.url === '/runtime/shared.bundle.mjs') {
+    if (request.url === '/runtime/shared-bundle.mjs') {
       response.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8' });
       response.end(bundle);
       return;
