@@ -702,8 +702,7 @@ function processData(definition) {
   const process = {
     ...structuredClone(metadata?.sourceData || {}),
     dataflowVersion: Number(metadata?.dataflowVersion || 0),
-    graph: graphDocument,
-    __canonicalGraph: true
+    graph: graphDocument
   };
   if (process.dataflowVersion !== 4) throw new Error('Durable orchestration requires process dataflow version 4');
   return process;
@@ -746,25 +745,17 @@ function processGraphEdges(process) {
 }
 
 function processNodeType(process, node) {
-  if (!process.__canonicalGraph) return node?.type;
-  const operationId = String(node?.operation?.id || '');
-  if (node?.operation?.provider === PROCESS_GRAPH_PROVIDER && !operationId.startsWith('canvas-node.')) return 'processNode';
-  return operationId.replace(/^canvas-node\./, '');
+  return String(node?.operation?.id || '').replace(/^canvas-node\./, '');
 }
 
 function processNodeRecord(process, node) {
-  if (!process.__canonicalGraph) return process.processNodes?.[recordId(node)];
+  const record = node?.config?.record;
+  if (record) return structuredClone(record);
   const refId = String(node?.config?.refId || node?.id || '');
-  const operationId = String(node?.operation?.id || '');
-  if (node?.operation?.provider === PROCESS_GRAPH_PROVIDER && !operationId.startsWith('canvas-node.')) {
-    return node.config?.record
-      ? structuredClone(node.config.record)
-      : { ...structuredClone(node.config || {}), id: refId, kind: operationId.replace(/^process-node\./, '') };
-  }
-  if (operationId === 'canvas-node.stateDefinition') {
-    return node.config?.record || process.stateDefinitions?.[refId] || null;
-  }
-  return null;
+  const kind = String(node?.operation?.id || '');
+  return kind && kind !== 'canvas-node.stateDefinition'
+    ? { ...structuredClone(node?.config || {}), id: refId, kind }
+    : process.stateDefinitions?.[refId] || null;
 }
 
 function processNode(process, id) {
