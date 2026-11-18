@@ -13,8 +13,21 @@ export default defineEventHandler(async event => {
   if (!inputBindings || typeof inputBindings !== 'object' || Array.isArray(inputBindings)) {
     throw createError({ statusCode: 400, message: 'Graph input bindings must be an object' });
   }
-  return await graphExecutionsService.evaluateAndRecordSavedGraphPreview({
-    graphDocumentInstanceId,
-    inputBindings
-  }, auth);
+  const controller = new AbortController();
+  const response = event.node?.res;
+  const onClose = () => {
+    if (!response?.writableEnded && !controller.signal.aborted) {
+      controller.abort(new Error('Graph evaluation request was disconnected'));
+    }
+  };
+  response?.once('close', onClose);
+  try {
+    return await graphExecutionsService.evaluateAndRecordSavedGraphPreview({
+      graphDocumentInstanceId,
+      inputBindings,
+      context: { signal: controller.signal }
+    }, auth);
+  } finally {
+    response?.off('close', onClose);
+  }
 });
