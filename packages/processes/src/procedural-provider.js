@@ -11,6 +11,58 @@ export const PROCESS_PROCEDURAL_VERSION = '1';
 
 const CORE_FAMILIES = new Set(['sources', 'values', 'collections', 'records']);
 
+const executionKind = catalog => ({
+  control: 'control',
+  effect: 'effect',
+  read: 'read'
+})[catalog.level] || 'pure';
+
+export function createProcessGraphNodeDefinition(kind, record = {}, catalogContext = {}) {
+  const catalog = getProcessNodeDefinition(kind);
+  if (!catalog) return null;
+  const hasAuthoredRecord = record && Object.keys(record).length > 0;
+  const ports = hasAuthoredRecord
+    ? resolveCatalogNodePorts({ ...record, kind }, catalogContext)
+    : { inputs: [], outputs: [] };
+  return {
+    provider: PROCESS_PROCEDURAL_PROVIDER,
+    id: kind,
+    version: PROCESS_PROCEDURAL_VERSION,
+    label: catalog.label || kind,
+    description: `Perigram process operation: ${kind}`,
+    palette: { group: catalog.family, keywords: [kind, catalog.label, catalog.family] },
+    inputs: ports.inputs.map(toGraphContractPort),
+    outputs: ports.outputs.map(toGraphContractPort),
+    execution: {
+      kind: executionKind(catalog),
+      capabilities: [],
+      deterministic: catalog.pure === true,
+      idempotent: catalog.pure === true
+    },
+    configuration: { type: 'object', additionalProperties: true }
+  };
+}
+
+function toGraphContractPort(port) {
+  const type = port.type && typeof port.type === 'object' ? port.type : { base: 'json' };
+  const { base = 'json', ...qualifiers } = type;
+  return {
+    id: port.id,
+    label: port.label || port.id,
+    shape: port.access === 'list' || port.access === 'tree' ? port.access : 'item',
+    semantic: {
+      base,
+      ...qualifiers,
+      role: port.role || 'data',
+      ...(port.kind ? { kind: port.kind } : {}),
+      ...(port.typeId ? { typeId: port.typeId } : {}),
+      ...(port.block ? { block: port.block } : {}),
+      ...(port.multiple ? { multiple: true } : {})
+    },
+    required: port.required === true
+  };
+}
+
 export function createProcessProceduralNodeDefinition(kind, record = {}, catalogContext = {}) {
   const catalog = getProcessNodeDefinition(kind);
   if (!catalog || !catalog.pure || !CORE_FAMILIES.has(catalog.family) || kind.startsWith('cts.')) {
@@ -57,7 +109,7 @@ export function createProcessProceduralNodeResolver({ catalogContext = {} } = {}
     const resolvedContext = typeof catalogContext === 'function'
       ? catalogContext(invocation)
       : catalogContext;
-    return createProcessProceduralNodeDefinition(
+    return createProcessGraphNodeDefinition(
       operation.id,
       invocation.config?.record || invocation.config || {},
       resolvedContext || {}
@@ -81,6 +133,23 @@ export function registerProcessProceduralNodes(registry, { catalogContext = {} }
     registered.push(registry.register(definition));
   }
   return registered;
+}
+
+/**
+ * Register the complete process operation catalog for the shared graph
+ * authoring surface. Pure data operations keep their executable contracts;
+ * durable effects, reads and control nodes are registered as typed graph
+ * operations but are executed only by the process execution profile.
+ */
+export function registerProcessGraphNodes(registry, { catalogContext = {} } = {}) {
+  if (!registry || typeof registry.register !== 'function') {
+    throw new TypeError('A plugin-SDK node provider registry is required');
+  }
+  return PROCESS_NODE_CATALOG.map(catalog => {
+    const definition = createProcessProceduralNodeDefinition(catalog.kind, {}, catalogContext)
+      || createProcessGraphNodeDefinition(catalog.kind, {}, catalogContext);
+    return registry.register(definition);
+  });
 }
 
 export function createProcessProceduralExecutor({ context = {}, catalogContext = {} } = {}) {
