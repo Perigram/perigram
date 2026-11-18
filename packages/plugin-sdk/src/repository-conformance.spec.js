@@ -3,6 +3,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseListing } from './listing.js';
+import { endpointServices as documentsEndpointServices } from '../../../workers/documents/services.js';
+import { endpointServices as facadeEndpointServices } from '../../../workers/facade/services.js';
+import { services as techDrawingEndpointServices } from '../../../workers/tech-drawing/services.js';
+import build123dCatalog from '../../../workers/build123d/catalog.json' with { type: 'json' };
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const pluginIds = ['build123d', 'documents', 'facade', 'tech-drawing'];
@@ -40,6 +44,41 @@ describe('repository plugin conformance', () => {
         expect(service.palette.group).toMatch(/^[a-z][a-z0-9-]*$/);
       }
     }
+  });
+
+  it.each(listings)('$pluginId service targets are backed by their declared runtime', ({ listing }) => {
+    const runtimes = new Map((listing.declarations.runtimes || []).map(runtime => [runtime.id, runtime]));
+    for (const service of listing.declarations.services || []) {
+      if (!service.execution?.runtime) {
+        expect(service.mode, `${service.id} must declare an endpoint mode or runtime`).toBe('endpoint');
+        continue;
+      }
+      const runtime = runtimes.get(service.execution.runtime);
+      expect(runtime, `${service.id} references a declared runtime`).toBeDefined();
+      for (const target of service.execution.targets || []) {
+        expect(runtime.targets, `${service.id} target ${target} is supported by ${runtime.id}`).toContain(target);
+      }
+    }
+  });
+
+  it.each(listings)('$pluginId endpoint services resolve to real implementations', ({ pluginId, pluginRoot, listing }) => {
+    const declared = (listing.declarations.services || [])
+      .filter(service => service.mode === 'endpoint')
+      .map(service => service.id)
+      .sort();
+    const implementations = {
+      documents: documentsEndpointServices,
+      facade: facadeEndpointServices,
+      'tech-drawing': techDrawingEndpointServices
+    };
+    if (pluginId === 'build123d') {
+      expect(build123dCatalog.ops.map(operation => operation.id).sort()).toEqual(declared);
+      expect(existsSync(resolve(pluginRoot, 'dispatch.py'))).toBe(true);
+      return;
+    }
+    const services = implementations[pluginId] || {};
+    expect(Object.keys(services).sort()).toEqual(declared);
+    for (const id of declared) expect(typeof services[id], `${pluginId}.${id}`).toBe('function');
   });
 
   it('covers every installed plugin listing in the repository', () => {
