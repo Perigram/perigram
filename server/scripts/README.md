@@ -13,7 +13,16 @@ The plugin-catalog seeder is `seed-plugin-catalog.js`: it publishes the
 deployment's built-in listings from their `workers/<plugin>/listing.json`
 sources into `plugin_catalog` (validated by the SDK contract, marked
 `builtin`, retract-refused). Run it as a deploy step on fresh environments.
-Idempotent; re-running refreshes the pinned versions and uploads each declared JavaScript runtime entrypoint plus its transitive, statically discoverable relative imports into the catalog asset bucket. Keep runtime imports literal and package-relative; bare dependencies must be declared and published through the package dependency-asset path.
+Idempotent; it first validates every listing and resolves every declared
+JavaScript runtime entrypoint plus its transitive, statically discoverable
+relative imports, then writes the complete catalog set. A missing runtime
+source therefore aborts before any listing is updated. The seed image must
+include the full `workers/documents` and `workers/facade` source trees because
+their runtime entrypoints import package-relative modules outside `runtime/`,
+and both other built-in listing files. Re-running refreshes pinned versions
+and uploads runtime assets into the catalog asset bucket. Keep runtime imports
+literal and package-relative; bare dependencies must be declared and published
+through the package dependency-asset path.
 
 The only other live seeder is `seed-palette-colors.js`: it upserts the
 tech-drawing `color` type's system catalogue as SPEC §3 documents
