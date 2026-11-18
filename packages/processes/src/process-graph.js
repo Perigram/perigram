@@ -27,15 +27,13 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
   const preservedSourceData = cloneJson(Object.fromEntries(
     Object.entries(sourceDataForRevision).filter(([key]) => key !== 'processNodes')
   ));
-  const nodeKinds = {};
   const nodes = legacy.nodes.map(node => {
     const refId = String(node.data?.refId || node.id);
     const record = sourceDataForRevision.processNodes?.[refId];
     const operationId = node.type === 'processNode'
       ? requiredKind(record, refId)
       : 'canvas-node.' + String(node.type || 'default');
-    nodeKinds[node.id] = node.type || 'default';
-    return {
+     return {
       id: node.id,
       operation: { provider: PROCESS_GRAPH_PROVIDER, id: operationId, version: PROCESS_GRAPH_NODE_VERSION },
       config: { ...(record ? cloneJson(record) : {}), refId, data: cloneJson(node.data || {}), ...(record ? { record: cloneJson(record) } : {}) },
@@ -81,8 +79,7 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
       [PROCESS_GRAPH_METADATA_KEY]: {
         schemaVersion: Number(source.schemaVersion || 1),
         dataflowVersion: Number(source.dataflowVersion || PROCESS_DATAFLOW_VERSION),
-        nodeKinds,
-        viewport: cloneJson(legacy.viewport),
+         viewport: cloneJson(legacy.viewport),
         sourceData: preservedSourceData
       }
     }
@@ -93,7 +90,7 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
 export function graphDocumentToProcessDefinition(graphSource) {
   const graph = assertValidGraphDocument(graphSource);
   const metadata = graph.metadata?.[PROCESS_GRAPH_METADATA_KEY];
-  if (!metadata || !metadata.sourceData || !metadata.nodeKinds) {
+  if (!metadata || !metadata.sourceData) {
     throw new Error('Graph document does not contain Perigram process-definition metadata');
   }
   const processNodes = {};
@@ -105,7 +102,9 @@ export function graphDocumentToProcessDefinition(graphSource) {
     }
     return {
       id: node.id,
-      type: metadata.nodeKinds[node.id] || node.operation.id.replace(/^canvas-node\./, ''),
+      type: node.operation.provider === PROCESS_GRAPH_PROVIDER && !node.operation.id.startsWith('canvas-node.')
+        ? 'processNode'
+        : node.operation.id.replace(/^canvas-node\./, ''),
       position: { ...(node.position || { x: 0, y: 0 }) },
       data: cloneJson(node.config?.data || {})
     };
