@@ -136,7 +136,8 @@ export function useProcessDesignerGraphSession({
     nodeRecords,
     projectedDomain: ctsProjectedDomain,
     paletteLabel,
-    paletteDescription
+    paletteDescription,
+    portCompatibility
   });
   syncProcessNodeImpl = syncProcessNode;
 
