@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GRAPH_DOCUMENT_FORMAT, validateGraphDocument } from '@perigram/core';
 import {
-  processDefinitionToGraphDocument,
+  createProcessGraphDocument,
   PROCESS_GRAPH_METADATA_KEY,
   PROCESS_GRAPH_PROVIDER
 } from './process-graph.js';
@@ -33,7 +33,7 @@ const definition = () => ({
 
 describe('canonical process graph document', () => {
   it('emits canonical operations, endpoints, and process execution metadata', () => {
-    const graph = processDefinitionToGraphDocument(definition());
+    const graph = createProcessGraphDocument(definition());
     expect(graph.format).toBe(GRAPH_DOCUMENT_FORMAT);
     expect(graph.nodes.map(node => node.operation)).toEqual([
       { provider: PROCESS_GRAPH_PROVIDER, id: 'collection.count', version: '1' },
@@ -50,10 +50,10 @@ describe('canonical process graph document', () => {
 
   it('creates deterministic revisions and changes them when authored semantics change', () => {
     const source = definition();
-    const first = processDefinitionToGraphDocument(source);
-    expect(processDefinitionToGraphDocument(source).revision).toBe(first.revision);
+    const first = createProcessGraphDocument(source);
+    expect(createProcessGraphDocument(source).revision).toBe(first.revision);
     source.processNodes.source.label = 'Changed';
-    expect(processDefinitionToGraphDocument(source).revision).not.toBe(first.revision);
+    expect(createProcessGraphDocument(source).revision).not.toBe(first.revision);
   });
 
   it('represents declaration relations without inventing process sockets', () => {
@@ -65,7 +65,7 @@ describe('canonical process graph document', () => {
       label: 'declares',
       data: { relation: 'declares' }
     };
-    const graph = processDefinitionToGraphDocument(source);
+    const graph = createProcessGraphDocument(source);
     expect(graph.edges[1]).toMatchObject({
       source: { node: 'class-node', port: '$declaration' },
       target: { node: 'effect-node', port: '$declaration' },
@@ -77,6 +77,6 @@ describe('canonical process graph document', () => {
   it('rejects edges without endpoint identity', () => {
     const source = definition();
     source.graph.edges[0].sourceHandle = null;
-    expect(() => processDefinitionToGraphDocument(source)).toThrow(/no source or target port/);
+    expect(() => createProcessGraphDocument(source)).toThrow(/no source or target port/);
   });
 });
