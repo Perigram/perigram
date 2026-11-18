@@ -105,11 +105,15 @@ function nodePortContract(schema = {}) {
     ? schema.base
     : 'item';
   const semanticSource = shape === 'item' ? schema : (schema.itemType || { base: 'json' });
-  const semantic = {
-    base: semanticSource.base || 'json',
-    ...(semanticSource.kind ? { kind: semanticSource.kind } : {}),
-    ...(schema.nullable === true ? { nullable: true } : {})
-  };
+  const nestedSemantic = semanticSource.semantic && typeof semanticSource.semantic === 'object'
+    ? semanticSource.semantic
+    : {};
+  const semantic = { base: semanticSource.base || 'json' };
+  for (const key of ['kind', 'nominal', 'provider', 'schema', 'entityType', 'identity', 'constraints', 'unit']) {
+    if (Object.hasOwn(nestedSemantic, key)) semantic[key] = nestedSemantic[key];
+    if (Object.hasOwn(semanticSource, key)) semantic[key] = semanticSource[key];
+  }
+  if (schema.nullable === true || semanticSource.nullable === true) semantic.nullable = true;
   return { shape, semantic };
 }
 

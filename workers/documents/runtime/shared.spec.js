@@ -163,6 +163,14 @@ describe('Documents shared runtime', () => {
         semantic: { base: 'json', kind: 'text.inline', nullable: true }
       })
     );
+    expect(provider.definitions.find(definition => definition.id === 'read-file')?.inputs).toContainEqual(
+      expect.objectContaining({
+        id: 'fileId',
+        shape: 'item',
+        semantic: { base: 'string', kind: 'documents.file-id' },
+        required: true
+      })
+    );
     expect(provider.definitions.find(definition => definition.id === 'compose-document')).toMatchObject({
       provider: 'plugin.documents',
       version: '1',

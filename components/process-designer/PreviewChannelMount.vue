@@ -7,7 +7,7 @@
 </template>
 
 <script setup>
-import { onMounted, shallowRef } from 'vue';
+import { onBeforeUnmount, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
@@ -27,27 +27,40 @@ const props = defineProps({
 const { t, te, locale } = useI18n();
 const mounted = shallowRef(null);
 const loading = shallowRef(true);
+let loadToken = 0;
+let disposed = false;
 
-onMounted(async () => {
-  if (!isSupportedSurfaceContract(props.channel?.surfaceContract) || !props.channel?.url) {
-    loading.value = false;
-    return;
-  }
-  try {
-    const [{ surfaceHostContext }, module] = await Promise.all([
-      import('~/components/generated/remote-surface-mount.js'),
-      import(/* @vite-ignore */ props.channel.url)
-    ]);
-    const createSurface = module.default;
-    if (typeof createSurface !== 'function') {
+watch(
+  () => [props.channel?.url, props.channel?.surfaceContract],
+  async ([url, surfaceContract]) => {
+    const token = ++loadToken;
+    mounted.value = null;
+    loading.value = true;
+    if (!isSupportedSurfaceContract(surfaceContract) || !url) {
       loading.value = false;
       return;
     }
-    mounted.value = createSurface(surfaceHostContext({ t, te, locale }, props.channel.surfaceContract));
-  } catch {
-    // Unreachable executor: the unavailable state stays.
-  } finally {
-    loading.value = false;
-  }
+    try {
+      const [{ surfaceHostContext }, module] = await Promise.all([
+        import('~/components/generated/remote-surface-mount.js'),
+        import(/* @vite-ignore */ url)
+      ]);
+      if (disposed || token !== loadToken) return;
+      const createSurface = module.default;
+      if (typeof createSurface !== 'function') return;
+      mounted.value = createSurface(surfaceHostContext({ t, te, locale }, surfaceContract));
+    } catch {
+      // Unreachable executor: the unavailable state stays.
+    } finally {
+      if (!disposed && token === loadToken) loading.value = false;
+    }
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  disposed = true;
+  loadToken += 1;
+  mounted.value = null;
 });
 </script>
