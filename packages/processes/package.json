@@ -10,7 +10,8 @@
     "./node-catalog": "./src/node-catalog.js",
     "./screen-contract": "./src/screen-contract.js",
     "./types": "./src/types.js",
-    "./ui-contract-projection": "./src/ui-contract-projection.js"
+    "./ui-contract-projection": "./src/ui-contract-projection.js",
+    "./src/authoring.js": "./src/authoring.js"
   },
   "dependencies": {
     "@perigram/core": "0.1.0",
