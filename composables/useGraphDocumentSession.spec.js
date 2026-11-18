@@ -227,7 +227,7 @@ describe('useGraphDocumentSession', () => {
         edges: []
       }
     });
-    const session = createSession();
+    const session = createProcessSession();
     session.loadDocument(graph);
     const node = session.nodes.value.find(item => item.id === 'branch-node');
     expect(node.data.definition).toMatchObject({
@@ -262,7 +262,7 @@ describe('useGraphDocumentSession', () => {
         edges: []
       }
     });
-    const session = createSession();
+    const session = createProcessSession();
     session.loadDocument(graph);
     await session.refreshPreview();
     expect(session.previewError.value).toBeTruthy();
