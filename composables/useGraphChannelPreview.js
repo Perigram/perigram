@@ -1,6 +1,6 @@
 import { getCurrentScope, onScopeDispose, ref } from 'vue';
 import { visiblePreviewOutputs } from '~/composables/useProcessDesignerPreview.js';
-import { previewProcessDataflow, serializeProcessResult } from '@perigram/processes';
+import { createProcessGraphDocument, previewProcessDataflow, serializeProcessResult } from '@perigram/processes';
 import { engineBindingForService, useClientEngines } from '~/composables/useClientEngines.js';
 import { usePluginRuntime } from '~/composables/usePluginRuntime.js';
 
@@ -115,7 +115,7 @@ export function useGraphChannelPreview({
     // The same serialization boundary the server preview crosses: the
     // serialized draft carries reactive proxies the browser's structuredClone refuses.
     const plain = JSON.parse(JSON.stringify(definition));
-    return serializeProcessResult(await previewProcessDataflow(plain, {}, {
+    return serializeProcessResult(await previewProcessDataflow(createProcessGraphDocument(plain), {}, {
       previewLimit: 100,
       domain,
       previewService: dispatchPreviewService,
