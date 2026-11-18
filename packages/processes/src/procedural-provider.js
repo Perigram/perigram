@@ -165,11 +165,9 @@ export function registerProcessGraphNodes(registry, { catalogContext = {} } = {}
   if (!registry || typeof registry.register !== 'function') {
     throw new TypeError('A plugin-SDK node provider registry is required');
   }
-  return PROCESS_NODE_CATALOG.map(catalog => {
-    const definition = createProcessProceduralNodeDefinition(catalog.kind, {}, catalogContext)
-      || createProcessGraphNodeDefinition(catalog.kind, {}, catalogContext);
-    return registry.register(definition);
-  });
+  return PROCESS_NODE_CATALOG.map(catalog => registry.register(
+    createProcessGraphNodeDefinition(catalog.kind, { kind: catalog.kind }, catalogContext)
+  ));
 }
 
 export function createProcessProceduralExecutor({ context = {}, catalogContext = {} } = {}) {
