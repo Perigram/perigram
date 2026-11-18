@@ -742,7 +742,7 @@ function processGraphNodes(process) {
     id: node.id,
     type: node.operation?.provider === PROCESS_GRAPH_PROVIDER && !String(node.operation?.id || '').startsWith('canvas-node.')
       ? 'processNode'
-      : String(node.operation?.id || '').replace(/^canvas-node\\./, ''),
+      : String(node.operation?.id || '').replace(/^canvas-node\./, ''),
     data: { refId: String(node.config?.refId || node.id) }
   }));
 }
@@ -770,7 +770,7 @@ function processNodeRecord(process, node) {
   if (raw.operation?.provider === PROCESS_GRAPH_PROVIDER && !operationId.startsWith('canvas-node.')) {
     return raw.config?.record
       ? structuredClone(raw.config.record)
-      : { ...structuredClone(raw.config || {}), id: refId, kind: operationId.replace(/^process-node\\./, '') };
+      : { ...structuredClone(raw.config || {}), id: refId, kind: operationId.replace(/^process-node\./, '') };
   }
   if (raw.operation?.id === 'canvas-node.stateDefinition') {
     return raw.config?.record || process.stateDefinitions?.[refId] || null;
