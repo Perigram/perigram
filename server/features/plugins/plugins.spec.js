@@ -57,7 +57,13 @@ vi.mock('../../core/tasks/service.js', () => ({
     input,
     workerType: options?.workerType,
     status: 'QUEUED'
-  }))
+  })),
+  getTaskRunById: vi.fn(async () => ({
+    _id: 'run-1',
+    status: 'SUCCEEDED',
+    output: { ok: true, data: { output: { value: 'managed-result' } } }
+  })),
+  cancelTaskRun: vi.fn(async () => ({ status: 'CANCELLED' }))
 }));
 
 vi.mock('./repository.js', () => ({
@@ -96,9 +102,9 @@ import {
   projectedServicesForOrganization, projectedDomainsForOrganization, commandDefinitionFor, executeConnectorService, invokeEndpointValueService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings, publishPluginAsset,
-  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition
+  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition, executeManagedGraphNode
 } from './service.js';
-import { enqueueTask } from '../../core/tasks/service.js';
+import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
 import { invalidateInstanceDeclarations, instanceServiceResolver } from '../instances/service.js';
@@ -210,6 +216,79 @@ describe('managed plugin runtime package loading', () => {
     await expect(resolveInstalledGraphNodeDefinition({
       provider: 'plugin.demo', id: 'transform', version: '3', auth: AUTH
     })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('executes graph nodes through the pinned shared runtime task worker', async () => {
+    repository.findInstall.mockResolvedValue({
+      pluginId: 'demo',
+      version: '7',
+      services: [{
+        id: 'transform',
+        nodeVersion: '3',
+        signature: { input: { base: 'record', fields: {} }, output: { base: 'json' } },
+        execution: { runtime: 'javascript', targets: ['server'], kind: 'pure' }
+      }],
+      declarations: {
+        runtimes: [{ id: 'javascript', language: 'javascript', targets: ['server'], entry: '/runtime.mjs' }]
+      }
+    });
+    getTaskRunById.mockResolvedValue({
+      _id: 'run-1',
+      status: 'SUCCEEDED',
+      output: { ok: true, data: { output: { value: 'managed-result' } } }
+    });
+    const definition = {
+      id: 'transform',
+      version: '3',
+      execution: { kind: 'pure' },
+      packagePin: { pluginId: 'demo', version: '7', runtimeId: 'javascript', operationId: 'transform' }
+    };
+    const invocationPath = [{ graphId: 'parent', graphRevision: 'r1', nodeId: 'node-a' }];
+
+    const result = await executeManagedGraphNode(definition, {
+      node: { id: 'node-a' },
+      config: { mode: 'compact' },
+      inputs: { source: 'hello' },
+      invocationPath,
+      context: { executionId: 'execution-1' }
+    }, AUTH);
+
+    expect(result).toEqual({ value: 'managed-result' });
+    expect(enqueueTask).toHaveBeenCalledWith('plugin.demo.transform', expect.objectContaining({
+      parameters: { value: expect.objectContaining({
+        pluginId: 'demo',
+        version: '7',
+        runtimeId: 'javascript',
+        operationId: 'transform',
+        input: expect.objectContaining({
+          mode: 'preview',
+          config: { mode: 'compact' },
+          inputs: { source: 'hello' },
+          executionId: 'execution-1',
+          invocationPath
+        })
+      }) }
+    }), expect.objectContaining({ organizationId: ORG }), expect.objectContaining({
+      workerType: 'plugin-runtime',
+      maxAttempts: 1,
+      idempotencyKey: expect.stringMatching(/^graph-node:execution-1:/)
+    }));
+    expect(repository.findInstall).toHaveBeenCalledWith(ORG, 'demo');
+  });
+
+  it('does not enqueue a managed graph node after cancellation', async () => {
+    const controller = new AbortController();
+    controller.abort('cancelled');
+    await expect(executeManagedGraphNode({
+      id: 'transform',
+      version: '3',
+      execution: { kind: 'pure' },
+      packagePin: { pluginId: 'demo', version: '7', runtimeId: 'javascript', operationId: 'transform' }
+    }, { context: { signal: controller.signal } }, AUTH)).rejects.toMatchObject({
+      name: 'AbortError',
+      code: 'PLUGIN_EXECUTION_ABORTED'
+    });
+    expect(enqueueTask).not.toHaveBeenCalled();
   });
 
   it('loads only the pinned organization package and verifies its asset digest', async () => {
