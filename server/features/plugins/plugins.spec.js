@@ -263,6 +263,10 @@ describe('managed plugin runtime package loading', () => {
           name: 'organization.instances.read',
           input: { typeId: 'part', instanceId: 'part-1' },
           readSet: capabilityReadSet
+        }, {
+          name: 'files.read',
+          input: { fileId: 'file-2' },
+          contentHash: 'sha256:file'
         }]
       } }
     });
@@ -280,7 +284,8 @@ describe('managed plugin runtime package loading', () => {
       setConsistency: vi.fn(),
       recordInstance: vi.fn(),
       recordRelation: vi.fn(),
-      recordQuery: vi.fn()
+      recordQuery: vi.fn(),
+      recordFile: vi.fn()
     };
 
     const result = await executeManagedGraphNode(definition, {
@@ -317,12 +322,20 @@ describe('managed plugin runtime package loading', () => {
       idempotencyKey: expect.stringMatching(/^graph-node:execution-1:/)
     }));
     expect(repository.findInstall).toHaveBeenCalledWith(ORG, 'demo');
-    expect(capabilityEvidence).toEqual([expect.objectContaining({
-      name: 'organization.instances.read',
-      nodeId: 'node-a',
-      input: { typeId: 'part', instanceId: 'part-1' },
-      packagePin: expect.objectContaining({ pluginId: 'demo', version: '7' })
-    })]);
+    expect(capabilityEvidence).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        name: 'organization.instances.read',
+        nodeId: 'node-a',
+        input: { typeId: 'part', instanceId: 'part-1' },
+        packagePin: expect.objectContaining({ pluginId: 'demo', version: '7' })
+      }),
+      expect.objectContaining({
+        name: 'files.read',
+        nodeId: 'node-a',
+        input: { fileId: 'file-2' },
+        contentHash: 'sha256:file'
+      })
+    ]));
     expect(readSetRecorder.setConsistency).toHaveBeenCalledWith({
       consistency: 'snapshot',
       snapshotId: 'snapshot-graph-node',
@@ -331,7 +344,12 @@ describe('managed plugin runtime package loading', () => {
     });
     expect(readSetRecorder.recordInstance).toHaveBeenCalledWith(capabilityReadSet.instances[0]);
     expect(readSetRecorder.recordQuery).toHaveBeenCalledWith(capabilityReadSet.queries[0]);
-    expect(nodeInvocations[0].capabilities).toEqual(['organization.instances.read']);
+    expect(readSetRecorder.recordFile).toHaveBeenCalledWith({
+      fileId: 'file-2',
+      contentHash: 'sha256:file',
+      organizationId: ORG
+    });
+    expect(nodeInvocations[0].capabilities).toEqual(['organization.instances.read', 'files.read']);
   });
 
   it('cancels an active worker task when the graph signal aborts', async () => {
