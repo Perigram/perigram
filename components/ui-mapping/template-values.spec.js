@@ -45,6 +45,13 @@ describe('HAG and graph template value controls', () => {
     expect(html).toContain('processDesigner.templateSectionJsonHint');
   });
 
+  it('wires transient section metadata from the fill preview into the HAG form', async () => {
+    const dialog = await readFile(new URL('./ActionFormDialog.vue', import.meta.url), 'utf8');
+    expect(dialog).toContain(':sections="previewSections"');
+    expect(dialog).toContain('previewMeta.value?.sections');
+    expect(dialog).toContain("watch(() => templateDraftRef.value?.id || '', () => { previewMeta.value = null; })");
+  });
+
   it('keeps repeat-section JSON drafts local until they parse as arrays', async () => {
     const [hag, graph] = await Promise.all([
       readFile(new URL('./TemplateValuesRow.vue', import.meta.url), 'utf8'),
