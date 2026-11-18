@@ -100,7 +100,7 @@ export function graphDocumentToProcessDefinition(graphSource) {
     data: cloneJson(node.config?.data || {})
   }));
   const edges = graph.edges.map(edge => {
-    const annotation = metadata.edgeMetadata?.[edge.id] || {};
+    const annotation = edge.metadata || {};
     return {
       id: edge.id,
       source: edge.source.node,
@@ -108,7 +108,7 @@ export function graphDocumentToProcessDefinition(graphSource) {
       target: edge.target.node,
       targetHandle: edge.target.port,
       ...(annotation.type ? { type: annotation.type } : {}),
-      ...(edge.kind && edge.kind !== 'data' ? { role: edge.kind } : {}),
+      ...(edge.kind ? { role: edge.kind } : {}),
       ...(annotation.label ? { label: annotation.label } : {}),
       data: cloneJson(annotation.data || {})
     };
