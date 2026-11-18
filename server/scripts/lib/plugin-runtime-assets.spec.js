@@ -4,6 +4,10 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { collectRuntimeAssetFiles } from './plugin-runtime-assets.js';
+import build123dListing from '../../../workers/build123d/listing.json' with { type: 'json' };
+import documentsListing from '../../../workers/documents/listing.json' with { type: 'json' };
+import facadeListing from '../../../workers/facade/listing.json' with { type: 'json' };
+import techDrawingListing from '../../../workers/tech-drawing/listing.json' with { type: 'json' };
 
 let root;
 afterEach(() => {
@@ -37,6 +41,23 @@ describe('managed plugin runtime asset collection', () => {
       'runtime/server.mjs'
     ]);
     expect(assets.find(asset => asset.path === 'runtime/engine.wasm').contentType).toBe('application/wasm');
+  });
+
+  it.each([
+    ['build123d', build123dListing],
+    ['documents', documentsListing],
+    ['facade', facadeListing],
+    ['tech-drawing', techDrawingListing]
+  ])('collects every declared %s runtime import graph', (pluginId, listing) => {
+    const packageRoot = fileURLToPath(new URL(`../../../workers/${pluginId}`, import.meta.url));
+    for (const runtime of listing.declarations.runtimes || []) {
+      const assets = collectRuntimeAssetFiles(packageRoot, runtime.entry, runtime.language);
+      expect(
+        assets.some(asset => asset.path === runtime.entry.replace(/^\\//, '')),
+        `${pluginId} runtime ${runtime.id} entry is packaged`
+      ).toBe(true);
+      expect(assets.length).toBeGreaterThan(0);
+    }
   });
 
   it('collects the Facade browser runtime and its transitive Clipper WASM asset', () => {
