@@ -113,7 +113,14 @@ export async function invokePluginCapability({
     if (!meta) throw createError({ statusCode: 404, message: 'File not found' });
     filesService.assertFileReadAccess(meta.metadata, auth);
     const buffer = await filesService.getFileBuffer(fileId, 'files');
-    return { fileId, name: meta.filename, mime: meta.contentType, size: meta.length, base64: buffer.toString('base64') };
+    return {
+      fileId,
+      name: meta.filename,
+      mime: meta.contentType,
+      size: meta.length,
+      contentHash: filesService.contentHash(buffer),
+      base64: buffer.toString('base64')
+    };
   }
   throw createError({ statusCode: 501, message: `Capability ${name} has no host adapter yet` });
 }
