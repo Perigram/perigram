@@ -266,3 +266,35 @@ test('typed Documents blocks preview and Bake Markdown and HTML files with prove
   expect(pageErrors, 'client errors while authoring and baking typed Documents outputs').toEqual([]);
   await app.expectCleanRuntime();
 });
+
+
+test('the graph palette searches installed Documents operations and places a typed node', async ({ app }) => {
+  test.setTimeout(120_000);
+  await app.installPlugins(['tech-drawing', 'documents']);
+  const graph = {
+    format: 'perigram.graph',
+    version: 1,
+    id: 'documents-palette-e2e',
+    revision: 'documents-palette-e2e-r1',
+    name: 'Documents palette E2E',
+    interface: { inputs: [], outputs: [] },
+    nodes: [],
+    edges: []
+  };
+  const created = await app.request.post('/api/instances/graph-document/editor', { data: { name: graph.name, graph } });
+  expect(created.ok(), await created.text()).toBe(true);
+  await app.gotoClient('/organization/graphs');
+  await app.page.getByRole('option', { name: graph.name }).click();
+  await expect(app.page.locator('.process-designer-canvas').first()).toBeVisible({ timeout: 30_000 });
+
+  await app.page.getByRole('button', { name: 'Document blocks', exact: true }).click();
+  const search = app.page.getByRole('searchbox', { name: 'Search operations' });
+  await expect(search).toBeVisible();
+  await search.fill('Paragraph');
+  const paragraph = app.page.getByRole('button', { name: 'Paragraph', exact: true });
+  await expect(paragraph).toBeVisible();
+  await paragraph.click();
+  await expect(app.page.getByText('Paragraph', { exact: true })).toBeVisible();
+  await expect(app.page.locator('.vue-flow__node-graphNode')).toHaveCount(1);
+  await app.expectCleanRuntime();
+});
