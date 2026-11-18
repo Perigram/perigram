@@ -222,8 +222,11 @@ The unified graph authoring and typed preview-input paths are covered by
 the then-current Vitest and SSR suites. The Documents runtime's XLSX file
 preview is also covered. The provider-error aggregation note was superseded
 by the provider-isolation slice below. Persisted Documents graph-workspace
-acceptance and server graph execution remain open; browser runtime
-declarations do not imply a server evaluator.
+acceptance remains open. The authenticated server preview evaluator now runs
+installed JavaScript pure/read operations; capability-scope unification,
+effect/lifecycle policy, non-JavaScript runtimes, and cross-target parity
+remain open. A declared target still requires a compatible installed runtime
+and granted capabilities.
 
 
 ### Agent Notes (2026-11-18, provider isolation)
