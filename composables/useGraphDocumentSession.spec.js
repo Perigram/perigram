@@ -190,6 +190,30 @@ describe('useGraphDocumentSession', () => {
     });
   });
 
+  it('loads durable control operations through the shared process node registry', () => {
+    const graph = processDefinitionToGraphDocument({
+      id: 'process.shared-control',
+      dataflowVersion: 4,
+      processNodes: {
+        branch: { id: 'branch', kind: 'control.if', condition: 'truthy' }
+      },
+      graph: {
+        nodes: [{ id: 'branch-node', type: 'processNode', position: { x: 0, y: 0 }, data: { refId: 'branch' } }],
+        edges: []
+      }
+    });
+    const session = createSession();
+    session.loadDocument(graph);
+    const node = session.nodes.value.find(item => item.id === 'branch-node');
+    expect(node.data.definition).toMatchObject({
+      provider: 'perigram.processes',
+      id: 'control.if',
+      version: '1',
+      execution: { kind: 'control' }
+    });
+    expect(node.data.definition.inputs.length + node.data.definition.outputs.length).toBeGreaterThan(0);
+  });
+
   it('preserves canonical edge kind and metadata through editor load/save', () => {
     const session = createSession();
     const [inputDefinition, outputDefinition] = session.paletteGroups.value[0].items;
