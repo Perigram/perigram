@@ -17,7 +17,10 @@ export default defineEventHandler(async event => {
   const response = event.node?.res;
   const onClose = () => {
     if (!response?.writableEnded && !controller.signal.aborted) {
-      controller.abort(new Error('Graph evaluation request was disconnected'));
+      const error = new Error('Graph evaluation request was disconnected');
+      error.name = 'AbortError';
+      error.code = 'GRAPH_EXECUTION_ABORTED';
+      controller.abort(error);
     }
   };
   response?.once('close', onClose);
