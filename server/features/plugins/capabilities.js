@@ -118,6 +118,7 @@ export async function invokePluginCapability({
       name: meta.filename,
       mime: meta.contentType,
       size: meta.length,
+      organizationId: meta.metadata?.organizationId?.toString?.() || null,
       contentHash: filesService.contentHash(buffer),
       base64: buffer.toString('base64')
     };
