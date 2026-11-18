@@ -1067,13 +1067,14 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
     throw createError({ statusCode: 403, message: `Graph preview cannot execute ${definition.execution?.kind || 'unclassified'} operation ${definition.id}` });
   }
   if (invocation.context?.signal?.aborted) throw managedNodeAbortError(invocation.context.signal);
+  await resolveRunActor(auth, organizationId);
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install || String(install.version) !== version) {
     throw createError({ statusCode: 409, message: 'Installed plugin package changed after graph provider resolution' });
   }
   const service = (install.services || []).find(item => String(item.id) === operationId);
   const runtime = (install.declarations?.runtimes || []).find(item => String(item.id) === runtimeId);
-  if (!service || service.execution?.runtime !== runtimeId
+  if (!service || serviceModeOf(service) !== 'managed' || service.execution?.runtime !== runtimeId
     || !service.execution?.targets?.includes('server')
     || !runtime?.targets?.includes('server')
     || runtime.language !== 'javascript'

@@ -104,7 +104,7 @@ import {
   retractListing, settingsFor, updateSettings, publishPluginAsset,
   fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition, executeManagedGraphNode
 } from './service.js';
-import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
+import { enqueueTask, getTaskRunById } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
 import { invalidateInstanceDeclarations, instanceServiceResolver } from '../instances/service.js';
