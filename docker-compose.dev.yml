@@ -167,11 +167,6 @@ services:
         no_proxy: ${DOCKER_BUILD_NO_PROXY:-${NO_PROXY:-${no_proxy:-localhost,127.0.0.1,::1}}}
       extra_hosts:
         - "host.docker.internal:host-gateway"
-    environment:
-      - MONGO_URI=mongodb://mongo:27017/perigram_dev
-    depends_on:
-      mongo-init:
-        condition: service_completed_successfully
     restart: unless-stopped
 
   plugin-runtime:

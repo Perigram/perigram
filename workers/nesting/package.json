@@ -1,0 +1,6 @@
+{
+  "name": "@perigram/nesting-plugin",
+  "private": true,
+  "type": "module",
+  "dependencies": {}
+}

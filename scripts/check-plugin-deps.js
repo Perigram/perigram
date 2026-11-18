@@ -7,7 +7,7 @@
 //
 //   node scripts/check-plugin-deps.js
 //
-// Scans every workers/<plugin>/*.js (spec files excluded) for static
+// Scans every installed workers/<plugin>/*.js/.mjs (spec files excluded) for static
 // imports and requires; each bare specifier must be a key of that
 // plugin's package.json dependencies.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
@@ -23,7 +23,7 @@ function jsFiles(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.isDirectory()) {
       if (!SKIP_DIRS.has(entry.name)) files.push(...jsFiles(join(dir, entry.name)));
-    } else if (entry.name.endsWith('.js') && !entry.name.endsWith('.spec.js')) {
+    } else if (/\.(?:m?js)$/.test(entry.name) && !/\.spec\.(?:m?js)$/.test(entry.name)) {
       files.push(join(dir, entry.name));
     }
   }
@@ -31,7 +31,9 @@ function jsFiles(dir) {
 }
 
 const plugins = readdirSync(workersRoot, { withFileTypes: true })
-  .filter(entry => entry.isDirectory() && existsSync(join(workersRoot, entry.name, 'index.js')));
+  .filter(entry => entry.isDirectory()
+    && existsSync(join(workersRoot, entry.name, 'listing.json'))
+    && existsSync(join(workersRoot, entry.name, 'package.json')));
 
 const IMPORT = /(?:import[\s\S]*?from\s*|import\s*\(\s*|require\s*\(\s*)['"]([^'"]+)['"]/g;
 
