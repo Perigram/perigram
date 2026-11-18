@@ -188,7 +188,9 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
           id: definition.id,
           version: definition.version
         },
-        config: {}
+        config: definition.provider === PROCESS_PROCEDURAL_PROVIDER
+          ? { kind: definition.id }
+          : {}
       });
     }
     for (const { provider, family, label, items } of grouped.values()) {
