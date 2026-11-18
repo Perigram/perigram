@@ -506,7 +506,10 @@ describe('graph execution service', () => {
           label: 'Workbook',
           contract: { shape: 'item', semantic: { base: 'json', kind: 'documents.file' } }
         }]
-      }
+      },
+      nodes: graph().nodes.map(node => node.operation.id === GRAPH_OUTPUT_OPERATION
+        ? { ...node, config: { interfaceId: 'workbook' } }
+        : node)
     };
     mocks.getFileBuffer.mockResolvedValueOnce(Buffer.from(JSON.stringify(workbookGraph)));
     const record = createGraphExecutionRecord({ ...preview(), outputs: { workbook: filled } });
