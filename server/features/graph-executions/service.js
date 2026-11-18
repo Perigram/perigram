@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
 import { withMongoSnapshotTransaction } from '~/server/db/transactions.js';
-import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder, evaluateProceduralGraph } from '#packages/core';
+import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder, evaluateProceduralGraph, createCoreGraphDataProvider, CORE_DATA_PROVIDER } from '#packages/core';
 import { ensureOrganizationChangeIndexes, withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
 import { declarationForType } from '../instances/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '../files/service.js';
 import * as pagesService from '../pages/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
+import { resolveInstalledGraphNodeDefinition } from '../plugins/service.js';
 
 function parseRecord(value) {
   try {
@@ -101,14 +102,52 @@ async function sourceFor(instanceId, record, auth) {
 export async function evaluateSavedGraph({
   graphDocumentInstanceId,
   inputBindings = {},
-  resolveNodeDefinition,
-  executeNode,
+  executeManagedNode,
   context = {}
 } = {}, auth = {}) {
-  if (typeof resolveNodeDefinition !== 'function' || typeof executeNode !== 'function') {
-    throw createError({ statusCode: 400, message: 'Server graph evaluation requires provider resolution and node execution handlers' });
+  if (typeof executeManagedNode !== 'function') {
+    throw createError({ statusCode: 400, message: 'Server graph evaluation requires a managed node execution handler' });
   }
   const source = await savedGraphSource(graphDocumentInstanceId, auth);
+  const executionId = String(context.executionId || randomUUID());
+  const coreDataProvider = createCoreGraphDataProvider();
+  const coreDefinitions = new Map(coreDataProvider.definitions.map(definition => [
+    `${definition.provider}/${definition.id}@${definition.version}`,
+    definition
+  ]));
+  const providerPins = new Map();
+  const resolveNodeDefinition = async operation => {
+    const key = `${operation.provider}/${operation.id}@${operation.version}`;
+    if (operation.provider === CORE_DATA_PROVIDER) {
+      const definition = coreDefinitions.get(key);
+      if (!definition) throw createError({ statusCode: 409, message: `Unsupported core graph operation ${key}` });
+      return definition;
+    }
+    const definition = await resolveInstalledGraphNodeDefinition({
+      provider: operation.provider,
+      id: operation.id,
+      version: operation.version,
+      auth
+    });
+    const pin = definition.packagePin;
+    if (!pin?.pluginId || !pin.version || !pin.runtimeId || !pin.operationId) {
+      throw createError({ statusCode: 409, message: `Installed graph provider ${key} returned no immutable package pin` });
+    }
+    providerPins.set(`${pin.pluginId}@${pin.version}/${pin.runtimeId}`, {
+      ...pin,
+      operations: [...new Set([
+        ...(providerPins.get(`${pin.pluginId}@${pin.version}/${pin.runtimeId}`)?.operations || []),
+        pin.operationId
+      ])].sort()
+    });
+    return definition;
+  };
+  const executeNode = async (definition, invocation) => {
+    if (definition.provider === CORE_DATA_PROVIDER) {
+      return await coreDataProvider.execute(definition, invocation);
+    }
+    return await executeManagedNode(definition, invocation);
+  };
   const result = await evaluateProceduralGraph({
     graph: source.graph,
     inputBindings,
@@ -117,6 +156,7 @@ export async function evaluateSavedGraph({
     resolveGraph: async (graphId, revision) => (await resolvePinnedGraph(graphId, revision, auth)).graph,
     context: {
       ...context,
+      executionId,
       data: {
         ...(context.data || {}),
         queryInstances: query => queryOrganizationData(query, auth)
@@ -125,7 +165,12 @@ export async function evaluateSavedGraph({
     mode: 'preview',
     executionTarget: 'server'
   });
-  return { ...source, ...result };
+  return {
+    ...source,
+    ...result,
+    executionId,
+    providerPins: [...providerPins.values()]
+  };
 }
 
 function expectedSequenceForReadSet(readSet) {
