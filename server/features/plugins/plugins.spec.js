@@ -238,10 +238,33 @@ describe('managed plugin runtime package loading', () => {
         runtimes: [{ id: 'javascript', language: 'javascript', targets: ['server'], entry: '/runtime.mjs' }]
       }
     });
+    const capabilityReadSet = {
+      consistency: 'snapshot',
+      snapshotId: 'snapshot-graph-node',
+      organizationSequenceStart: 12,
+      organizationSequenceEnd: 12,
+      instances: [{
+        typeId: 'part', instanceId: 'part-1', revision: '4',
+        updatedAt: '2026-11-18T08:00:00Z', organizationId: ORG
+      }],
+      relations: [],
+      queries: [{
+        typeId: 'part', organizationId: ORG,
+        query: { typeId: 'part', instanceId: 'part-1' },
+        resultIds: ['part-1'], observedTotal: 1, sequence: 12
+      }]
+    };
     getTaskRunById.mockResolvedValue({
       _id: 'run-1',
       status: 'SUCCEEDED',
-      output: { ok: true, data: { output: { value: 'managed-result' } } }
+      output: { ok: true, data: {
+        output: { value: 'managed-result' },
+        capabilityEvidence: [{
+          name: 'organization.instances.read',
+          input: { typeId: 'part', instanceId: 'part-1' },
+          readSet: capabilityReadSet
+        }]
+      } }
     });
     const definition = {
       id: 'transform',
@@ -256,7 +279,17 @@ describe('managed plugin runtime package loading', () => {
       config: { mode: 'compact' },
       inputs: { source: 'hello' },
       invocationPath,
-      context: { executionId: 'execution-1', nodeInvocations: [] }
+      context: {
+        executionId: 'execution-1',
+        nodeInvocations: [],
+        capabilityEvidence: [],
+        readSet: {
+          setConsistency: vi.fn(),
+          recordInstance: vi.fn(),
+          recordRelation: vi.fn(),
+          recordQuery: vi.fn()
+        }
+      }
     }, AUTH);
 
     expect(result).toEqual({ value: 'managed-result' });
@@ -280,6 +313,8 @@ describe('managed plugin runtime package loading', () => {
       idempotencyKey: expect.stringMatching(/^graph-node:execution-1:/)
     }));
     expect(repository.findInstall).toHaveBeenCalledWith(ORG, 'demo');
+    const invocation = enqueueTask.mock.calls[0];
+    expect(invocation).toBeTruthy();
   });
 
   it('cancels an active worker task when the graph signal aborts', async () => {
