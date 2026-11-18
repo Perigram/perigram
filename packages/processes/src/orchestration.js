@@ -1,4 +1,4 @@
-import { graphDocumentToProcessDefinition } from './process-graph.js';
+import { PROCESS_GRAPH_METADATA_KEY, PROCESS_GRAPH_PROVIDER } from './process-graph.js';
 import { createDataPacket, isDataTree, packetValue } from './data-tree.js';
 import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
 import { resolveCatalogNodePorts, EFFECT_SPECIES_KINDS, constructionInputsForContract, resolveConstructionMode } from './node-catalog.js';
@@ -58,10 +58,10 @@ export async function previewProcessDataflow(definition, sample = {}, environmen
   };
   const tokenContext = { scope: 'preview', values: {} };
   const nodes = {};
-  for (const node of process.graph?.nodes || []) {
+  for (const node of processGraphNodes(process)) {
     if (node.type !== 'processNode') continue;
     if (environment.targetNodeId && String(node.id) !== String(environment.targetNodeId)) continue;
-    const record = process.processNodes?.[recordId(node)];
+    const record = processNodeRecord(process, node);
     if (!record || record.kind.startsWith('control.')) continue;
     const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
     const inputs = {};
@@ -160,7 +160,7 @@ export async function advanceProcessRun(runInput, definition, environment = {}) 
     return run;
   }
   const node = processNode(process, current.nodeId);
-  const record = process.processNodes[recordId(node)];
+  const record = processNodeRecord(process, node);
   const step = {
     id: `${run.id}:${run.steps.length + 1}`,
     nodeId: node.id,
@@ -201,7 +201,7 @@ export async function resumeProcessRun(runInput, definition, completion = {}, en
   const process = processData(definition);
   const node = processNode(process, pending.nodeId);
   if (!node) throw new Error(`Cannot resume pending effect: node ${pending.nodeId} is not in the process graph`);
-  const record = process.processNodes[recordId(node)];
+  const record = processNodeRecord(process, node);
   const step = run.steps.find(item => item.id === pending.stepId);
   if (!step) throw new Error(`Cannot resume pending effect: step ${pending.stepId} not found`);
   const now = instant(environment.now);
@@ -448,7 +448,7 @@ function isTriggerNode(run, node) {
 }
 
 async function resolveNodeInputs(process, node, run, environment, tokenContext) {
-  const record = process.processNodes[recordId(node)];
+  const record = processNodeRecord(process, node);
   const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
   const dataInputs = ports.inputs.filter(port => port.role === 'data');
   const inputs = {};
@@ -556,14 +556,14 @@ function readInputPath(value, path = '') {
 }
 
 async function evaluateNodeOutput(process, nodeId, outputId, run, environment, tokenContext, resolving) {
-  const graphNode = (process.graph?.nodes || []).find(item => String(item.id) === String(nodeId));
+  const graphNode = (processGraphNodes(process)).find(item => String(item.id) === String(nodeId));
   if (graphNode?.type === 'stateDefinition') {
     const definition = process.stateDefinitions?.[recordId(graphNode)];
     if (!definition?.stateId) throw new Error(`Status definition ${recordId(graphNode)} does not exist`);
     return createDataPacket(definition.stateId);
   }
   const node = processNode(process, nodeId);
-  const record = process.processNodes[recordId(node)];
+  const record = processNodeRecord(process, node);
   const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
   const resolvedOutputId = resolveDataOutputId(ports.outputs, outputId, record);
   const cacheKey = `${nodeId}:${resolvedOutputId}:${tokenContext.scope || 'root'}`;
@@ -690,12 +690,23 @@ function resolveDataOutputId(outputs = [], requestedId = '', record = {}) {
 }
 
 function processData(definition) {
-  const source = definition?.format === 'perigram.graph'
-    ? graphDocumentToProcessDefinition(definition)
-    : (definition?.data?.format === 'perigram.graph'
-      ? { ...definition, data: graphDocumentToProcessDefinition(definition.data) }
-      : definition);
-  const process = source?.data?.graph ? source.data : source;
+  const graphDocument = definition?.format === 'perigram.graph'
+    ? definition
+    : definition?.data?.format === 'perigram.graph'
+      ? definition.data
+      : null;
+  if (graphDocument) {
+    const metadata = graphDocument.metadata?.[PROCESS_GRAPH_METADATA_KEY];
+    const process = {
+      ...structuredClone(metadata?.sourceData || {}),
+      dataflowVersion: Number(metadata?.dataflowVersion || 0),
+      graph: graphDocument,
+      __canonicalGraph: true
+    };
+    if (process.dataflowVersion !== 4) throw new Error('Durable orchestration requires process dataflow version 4');
+    return process;
+  }
+  const process = definition?.data?.graph ? definition.data : definition;
   if (Number(process?.dataflowVersion) !== 4) throw new Error('Durable orchestration requires process dataflow version 4');
   return process;
 }
@@ -704,8 +715,8 @@ function findTriggerNode(process, trigger) {
   // Entry points (SPEC §20): a manual effect starts on user action; a
   // scheduled effect starts at its authored time; an event-subscribed
   // effect (authored `eventId`, no wire) starts when that event arrives.
-  const nodes = (process.graph?.nodes || []).filter(node => {
-    const record = process.processNodes?.[recordId(node)] || {};
+  const nodes = (processGraphNodes(process)).filter(node => {
+    const record = processNodeRecord(process, node) || {};
     if (!isEffectRecord(record)) return false;
     const mode = record.trigger?.mode || 'manual';
     return mode === 'manual' || mode === 'schedule' || (mode === 'event' && record.eventId);
@@ -713,7 +724,7 @@ function findTriggerNode(process, trigger) {
   const match = trigger.nodeId
     ? nodes.find(node => String(node.id) === String(trigger.nodeId))
     : nodes.find(node => {
-      const record = process.processNodes[recordId(node)];
+      const record = processNodeRecord(process, node);
       if (trigger.kind && record.kind !== trigger.kind) return false;
       if (trigger.eventId && record.eventId !== trigger.eventId) return false;
       if (trigger.typeId && record.typeId !== trigger.typeId) return false;
@@ -724,16 +735,59 @@ function findTriggerNode(process, trigger) {
   return match;
 }
 
+function processGraphNodes(process) {
+  const nodes = processGraphNodes(process);
+  if (!process.__canonicalGraph) return nodes;
+  return nodes.map(node => ({
+    id: node.id,
+    type: node.operation?.provider === PROCESS_GRAPH_PROVIDER && !String(node.operation?.id || '').startsWith('canvas-node.')
+      ? 'processNode'
+      : String(node.operation?.id || '').replace(/^canvas-node\\./, ''),
+    data: { refId: String(node.config?.refId || node.id) }
+  }));
+}
+
+function processGraphEdges(process) {
+  const edges = processGraphEdges(process);
+  if (!process.__canonicalGraph) return edges;
+  return edges.map(edge => ({
+    id: edge.id,
+    source: edge.source.node,
+    sourceHandle: edge.source.port,
+    target: edge.target.node,
+    targetHandle: edge.target.port,
+    role: edge.kind || 'data',
+    data: structuredClone(edge.metadata?.data || {})
+  }));
+}
+
+function processNodeRecord(process, node) {
+  if (!process.__canonicalGraph) return processNodeRecord(process, node);
+  const raw = (processGraphNodes(process)).find(item => String(item.id) === String(node?.id));
+  if (!raw) return null;
+  const refId = String(raw.config?.refId || raw.id);
+  const operationId = String(raw.operation?.id || '');
+  if (raw.operation?.provider === PROCESS_GRAPH_PROVIDER && !operationId.startsWith('canvas-node.')) {
+    return raw.config?.record
+      ? structuredClone(raw.config.record)
+      : { ...structuredClone(raw.config || {}), id: refId, kind: operationId };
+  }
+  if (raw.operation?.id === 'canvas-node.stateDefinition') {
+    return process.stateDefinitions?.[refId] || null;
+  }
+  return null;
+}
+
 function processNode(process, id) {
-  const node = (process.graph?.nodes || []).find(item => String(item.id) === String(id));
-  if (!node || node.type !== 'processNode' || !process.processNodes?.[recordId(node)]) {
+  const node = processGraphNodes(process).find(item => String(item.id) === String(id));
+  if (!node || node.type !== 'processNode' || !processNodeRecord(process, node)) {
     throw new Error(`Process node ${id} does not exist`);
   }
   return node;
 }
 
 function outgoingControl(process, nodeId, handle) {
-  return (process.graph?.edges || []).filter(edge => (
+  return processGraphEdges(process).filter(edge => (
     String(edge.source) === String(nodeId)
     && edgeRole(edge) === 'control'
     && (!handle || cleanHandle(edge.sourceHandle) === handle)
@@ -741,11 +795,11 @@ function outgoingControl(process, nodeId, handle) {
 }
 
 function incomingControl(process, nodeId) {
-  return (process.graph?.edges || []).filter(edge => String(edge.target) === String(nodeId) && edgeRole(edge) === 'control');
+  return processGraphEdges(process).filter(edge => String(edge.target) === String(nodeId) && edgeRole(edge) === 'control');
 }
 
 function incomingData(process, nodeId, handle) {
-  return (process.graph?.edges || []).find(edge => (
+  return processGraphEdges(process).find(edge => (
     String(edge.target) === String(nodeId)
     && edgeRole(edge) === 'data'
     && cleanHandle(edge.targetHandle) === handle
