@@ -656,9 +656,11 @@ readable) and ride the registered party services.
 
 This section specifies CTS declaration records and the domain semantics used
 by process definitions. It is not a second platform graph protocol. The
-canonical persisted graph format, node/port contract, provider registry,
-compatibility rules, and reusable-subgraph mechanism are owned by
-`@perigram/core` and `@perigram/plugin-sdk` (root SPEC §28).
+canonical persisted graph format, provider registry, and reusable-subgraph
+mechanism are owned by `@perigram/core` and `@perigram/plugin-sdk` (root SPEC
+§28). The Plugin SDK owns the provider-neutral port-compatibility registry;
+domain packages register their own semantic profiles, while CTS continues to
+own declaration meaning and type validation.
 
 CTS owns declaration meaning, type identity, state definitions, and domain
 validation. The process profile owns process-specific compilation,
