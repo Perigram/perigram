@@ -312,8 +312,11 @@ function awaitWithSignal(value, signal) {
   });
 }
 function abortError(signal) {
-  const error = new Error(signal.reason == null ? 'Graph execution was cancelled' : String(signal.reason));
-  error.name = 'AbortError'; error.code = 'GRAPH_EXECUTION_ABORTED'; return error;
+  const reason = signal?.reason;
+  const error = new Error(reason instanceof Error ? reason.message : (reason == null ? 'Graph execution was cancelled' : String(reason)));
+  error.name = reason instanceof Error && reason.name ? reason.name : 'AbortError';
+  error.code = reason && typeof reason.code === 'string' ? reason.code : 'GRAPH_EXECUTION_ABORTED';
+  return error;
 }
 function throwIfAborted(signal) { if (signal?.aborted) throw abortError(signal); }
 
