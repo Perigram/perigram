@@ -166,6 +166,24 @@ describe('useGraphDocumentSession', () => {
     expect(session.serializeGraph()).toEqual(graph);
   });
 
+  it('preserves canonical edge kind and metadata through editor load/save', () => {
+    const session = createSession();
+    const [inputDefinition, outputDefinition] = session.paletteGroups.value[0].items;
+    const input = session.addNode(inputDefinition, { x: 0, y: 0 });
+    const output = session.addNode(outputDefinition, { x: 240, y: 0 });
+    const graph = session.serializeGraph();
+    graph.edges = [{
+      id: 'semantic-wire',
+      source: { node: input.id, port: 'value' },
+      target: { node: output.id, port: 'value' },
+      kind: 'control',
+      metadata: { label: 'Continue', annotation: { source: 'migration' } }
+    }];
+
+    session.loadDocument(graph);
+    expect(session.serializeGraph().edges).toEqual(graph.edges);
+  });
+
   it('executes the core CTS query node through the injected authorized data capability', async () => {
     const calls = [];
     const session = useGraphDocumentSession({
