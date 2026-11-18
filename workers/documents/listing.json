@@ -587,7 +587,6 @@
       {
         "id": "parse-markdown",
         "label": "Parse markdown",
-        "cache": "deterministic",
         "render": {
           "label": "Parse markdown",
           "icon": "pi pi-book"
@@ -626,7 +625,6 @@
       {
         "id": "export-markdown",
         "label": "Export markdown",
-        "cache": "deterministic",
         "render": {
           "label": "Export markdown",
           "icon": "pi pi-download"
@@ -665,7 +663,6 @@
       {
         "id": "compose-report",
         "label": "Compose report",
-        "cache": "deterministic",
         "render": {
           "label": "Compose report",
           "icon": "pi pi-file"
@@ -718,7 +715,6 @@
       {
         "id": "extract-table",
         "label": "Extract table",
-        "cache": "deterministic",
         "render": {
           "label": "Extract table",
           "icon": "pi pi-table"
@@ -760,7 +756,6 @@
       {
         "id": "render-html",
         "label": "Render HTML",
-        "cache": "deterministic",
         "render": {
           "label": "Render HTML",
           "icon": "pi pi-html5"
@@ -1619,7 +1614,6 @@
         "id": "fill-markdown-template",
         "label": "Fill Markdown template",
         "description": "Fill named values in a Markdown template and return a Markdown file",
-        "cache": "deterministic",
         "signature": {
           "input": {
             "base": "record",
