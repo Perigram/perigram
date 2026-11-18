@@ -1066,6 +1066,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
   if (!['pure', 'read'].includes(definition.execution?.kind)) {
     throw createError({ statusCode: 403, message: `Graph preview cannot execute ${definition.execution?.kind || 'unclassified'} operation ${definition.id}` });
   }
+  if (invocation.context?.signal?.aborted) throw managedNodeAbortError(invocation.context.signal);
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install || String(install.version) !== version) {
     throw createError({ statusCode: 409, message: 'Installed plugin package changed after graph provider resolution' });
