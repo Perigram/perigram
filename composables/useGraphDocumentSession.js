@@ -14,7 +14,7 @@ import {
   normalizeGraphDocument,
   validateGraphDocument
 } from '@perigram/core';
-import { compareNodePorts, createNodeProviderRegistry, createPortCompatibilityRegistry, normalizeNodeProvider } from '@perigram/plugin-sdk/nodes';
+import { createNodeProviderRegistry, createPortCompatibilityRegistry, normalizeNodeProvider } from '@perigram/plugin-sdk/nodes';
 import {
   PROCESS_PROCEDURAL_PROVIDER,
   PROCESS_PROCEDURAL_VERSION,
@@ -553,7 +553,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       const sourcePort = definitionFor(source)?.outputs?.find(port => port.id === edge.source.port);
       const targetPort = definitionFor(target)?.inputs?.find(port => port.id === edge.target.port);
       if (!sourcePort || !targetPort) continue;
-      const result = compareNodePorts(sourcePort, targetPort);
+      const result = portCompatibility.compare(sourcePort, targetPort);
       if (!result.compatible) {
         problems.push({
           code: `edge-${result.status}`,
@@ -574,7 +574,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       const sourcePort = definitionFor(source)?.outputs?.find(port => port.id === edge.source.port);
       const targetPort = definitionFor(target)?.inputs?.find(port => port.id === edge.target.port);
       if (!sourcePort || !targetPort) continue;
-      const result = compareNodePorts(sourcePort, targetPort);
+      const result = portCompatibility.compare(sourcePort, targetPort);
       if (result.compatible && result.status === 'conditional') {
         warnings.push({
           code: 'edge-conditional',
