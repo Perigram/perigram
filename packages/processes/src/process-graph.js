@@ -21,13 +21,16 @@ export const PROCESS_GRAPH_METADATA_KEY = 'perigram.process-definition';
 export function processDefinitionToGraphDocument(definition = {}, options = {}) {
   const source = definition.data || definition;
   const legacy = normalizeGraph(source.graph || {});
-  const preservedSourceData = cloneJson(Object.fromEntries(
+  const sourceDataForRevision = cloneJson(Object.fromEntries(
     Object.entries(source).filter(([key]) => key !== 'graph')
+  ));
+  const preservedSourceData = cloneJson(Object.fromEntries(
+    Object.entries(sourceDataForRevision).filter(([key]) => key !== 'processNodes')
   ));
   const nodeKinds = {};
   const nodes = legacy.nodes.map(node => {
     const refId = String(node.data?.refId || node.id);
-    const record = preservedSourceData.processNodes?.[refId];
+    const record = sourceDataForRevision.processNodes?.[refId];
     const operationId = node.type === 'processNode'
       ? 'process-node.' + requiredKind(record, refId)
       : 'canvas-node.' + String(node.type || 'default');
@@ -35,7 +38,7 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
     return {
       id: node.id,
       operation: { provider: PROCESS_GRAPH_PROVIDER, id: operationId, version: PROCESS_GRAPH_NODE_VERSION },
-      config: { refId, data: cloneJson(node.data || {}) },
+      config: { refId, data: cloneJson(node.data || {}), ...(record ? { record: cloneJson(record) } : {}) },
       position: { x: Number(node.position?.x || 0), y: Number(node.position?.y || 0) }
     };
   });
@@ -62,7 +65,7 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
   const id = options.id || graphIdFor(definition, source);
   const revision = options.revision || 'legacy-' + hash(stableStringify({
     graph: legacy,
-    sourceData: preservedSourceData,
+    sourceData: sourceDataForRevision,
     dataflowVersion: source.dataflowVersion ?? PROCESS_DATAFLOW_VERSION
   }));
   return assertValidGraphDocument({
@@ -93,12 +96,19 @@ export function graphDocumentToProcessDefinition(graphSource) {
   if (!metadata || !metadata.sourceData || !metadata.nodeKinds) {
     throw new Error('Graph document does not contain Perigram process-definition metadata');
   }
-  const nodes = graph.nodes.map(node => ({
-    id: node.id,
-    type: metadata.nodeKinds[node.id] || node.operation.id.replace(/^canvas-node\./, ''),
-    position: { ...(node.position || { x: 0, y: 0 }) },
-    data: cloneJson(node.config?.data || {})
-  }));
+  const processNodes = {};
+  const nodes = graph.nodes.map(node => {
+    const refId = String(node.config?.refId || node.id);
+    if (node.operation.id.startsWith('process-node.') && node.config?.record) {
+      processNodes[refId] = cloneJson(node.config.record);
+    }
+    return {
+      id: node.id,
+      type: metadata.nodeKinds[node.id] || node.operation.id.replace(/^canvas-node\./, ''),
+      position: { ...(node.position || { x: 0, y: 0 }) },
+      data: cloneJson(node.config?.data || {})
+    };
+  });
   const edges = graph.edges.map(edge => {
     const annotation = edge.metadata || {};
     return {
@@ -115,6 +125,7 @@ export function graphDocumentToProcessDefinition(graphSource) {
   });
   return {
     ...cloneJson(metadata.sourceData),
+    processNodes,
     schemaVersion: metadata.schemaVersion || 1,
     dataflowVersion: metadata.dataflowVersion || PROCESS_DATAFLOW_VERSION,
     graph: {
