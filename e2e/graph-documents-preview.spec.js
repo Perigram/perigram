@@ -61,6 +61,13 @@ test('saved Documents graph renders its Markdown file through the Documents prev
     ]
   };
 
+  const pageName = `Documents preview destination ${Date.now()}`;
+  const destinationResponse = await app.request.post('/api/pages', {
+    data: { name: pageName }
+  });
+  expect(destinationResponse.ok(), await destinationResponse.text()).toBe(true);
+  const destinationPage = await destinationResponse.json();
+
   const created = await app.request.post('/api/instances/graph-document/editor', {
     data: { name: graph.name, graph }
   });
@@ -95,6 +102,26 @@ test('saved Documents graph renders its Markdown file through the Documents prev
   await expect(nodeOutputs.getByText('export-markdown-file', { exact: true })).toBeVisible();
   await expect(nodeOutputs).toContainText('text.flow-document');
   await expect(nodeOutputs).toContainText('text/markdown');
+
+  // Bake the selected Documents file into a real Page, then reopen the
+  // Page through the read API and verify the persisted file bytes.
+  await page.getByLabel('Page destination').click();
+  await page.getByRole('option', { name: pageName }).click();
+  const bakedPath = 'documents/preview-e2e.md';
+  await page.getByLabel('Page file path').fill(bakedPath);
+  await page.getByRole('button', { name: 'Bake output' }).click();
+  const pageDetailResponse = await app.request.get(`/api/pages/${encodeURIComponent(destinationPage._id)}`);
+  expect(pageDetailResponse.ok(), await pageDetailResponse.text()).toBe(true);
+  const pageDetail = await pageDetailResponse.json();
+  const bakedBlock = pageDetail.blocks.find(block => block.kind === 'file' && block.file?.path === bakedPath);
+  expect(bakedBlock?.file).toMatchObject({ path: bakedPath, mime: 'text/markdown' });
+  const bakedDownload = await app.request.get(
+    `/api/files/download/${encodeURIComponent(bakedBlock.file.fileId)}?bucket=files`
+  );
+  expect(bakedDownload.ok(), await bakedDownload.text()).toBe(true);
+  const bakedText = await bakedDownload.text();
+  expect(bakedText).toContain('# Graph preview E2E');
+  expect(bakedText).toContain('Rendered by the installed Documents plugin.');
 
   expect(pageErrors, 'client errors while loading and rendering the Documents preview').toEqual([]);
   await app.expectCleanRuntime();
