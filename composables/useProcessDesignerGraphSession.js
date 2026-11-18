@@ -36,13 +36,12 @@ import { useProcessDesignerPreview } from '~/composables/useProcessDesignerPrevi
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 import { useProcessDesignerLiveGraph } from '~/composables/useProcessDesignerLiveGraph.js';
 
-// The graph canvas session (SPEC §28): the one authoring core every graph
-// document mounts — the process designer page over a process definition,
-// the graph editor surface over a graph-document payload. Owns the canvas
-// graph (nodes, edges, records), the record sync and enrichment passes,
-// wire legality and decoration, placement, the palettes, declaration
-// diagnostics, and the node/preview inspector seams. The host owns the
-// document lifecycle: loading, saving, and every process-plane concern
+// Legacy process-definition authoring session. This owns the CTS/process
+// record projection, declaration editing, process-specific socket rules,
+// process palette, and process compiler diagnostics. Graph documents use
+// useGraphDocumentSession instead; the shared GraphCanvas is presentation,
+// not a shared graph protocol or session. This session is a migration source
+// and must not acquire generic graph-document, provider, or subgraph logic.
 // (roles, lanes, screens, apply) stay with the host.
 export function useProcessDesignerGraphSession({
   t,
