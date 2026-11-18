@@ -1114,10 +1114,32 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
       ? `graph-node:${executionId}:${invocationKey}`
       : null
   });
-  return await waitForManagedNodeTask(run, {
-    signal: invocation.context?.signal,
-    timeoutMs: invocation.context?.remainingExecutionMs || PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000
-  });
+  const evidence = {
+    taskRunId: String(run._id),
+    nodeId,
+    invocationPath,
+    operation: {
+      provider: definition.provider,
+      id: definition.id,
+      version: definition.version
+    },
+    packagePin: pin
+  };
+  try {
+    const value = await waitForManagedNodeTask(run, {
+      signal: invocation.context?.signal,
+      timeoutMs: invocation.context?.remainingExecutionMs || PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000
+    });
+    invocation.context?.nodeInvocations?.push({ ...evidence, status: 'succeeded' });
+    return value;
+  } catch (error) {
+    invocation.context?.nodeInvocations?.push({
+      ...evidence,
+      status: error?.name === 'AbortError' ? 'cancelled' : 'failed',
+      error: String(error?.message || error)
+    });
+    throw error;
+  }
 }
 
 export async function managedRuntimePackageForTask(run = {}) {
