@@ -8,7 +8,7 @@ import {
   getProcessNodeDefinition,
   humanizeNodeLabel,
   parseProcessSocketHandleId,
-  processSocketsCompatible
+  PROCESS_PORT_COMPATIBILITY_PROFILE
 } from '#packages/processes';
 
 // The node-sync adapter: record-level derivation lives in the package
@@ -27,7 +27,8 @@ export function useProcessDesignerNodeSync({
   nodeRecords,
   projectedDomain,
   paletteLabel,
-  paletteDescription
+  paletteDescription,
+  portCompatibility
 }) {
   const {
     processNodeOperations,
@@ -249,7 +250,11 @@ export function useProcessDesignerNodeSync({
 
   function socketPairCompatible(source, target) {
     if (!source || !target) return false;
-    return processSocketsCompatible(source, target).ok;
+    if (!portCompatibility) throw new Error('Shared graph port compatibility registry is required');
+    return portCompatibility.compare(
+      { ...source, compatibility: { profile: PROCESS_PORT_COMPATIBILITY_PROFILE } },
+      { ...target, compatibility: { profile: PROCESS_PORT_COMPATIBILITY_PROFILE } }
+    ).compatible;
   }
 
   return {
