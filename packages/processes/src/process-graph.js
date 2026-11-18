@@ -126,7 +126,7 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
   });
 }
 
-/** Reconstruct the legacy process-definition shape during compatibility migration reads. */
+/** Reconstruct the unchanged persisted process-definition shape at its boundary. */
 export function graphDocumentToProcessDefinition(graphSource) {
   const graph = assertValidGraphDocument(graphSource);
   const metadata = graph.metadata?.[PROCESS_GRAPH_METADATA_KEY];
