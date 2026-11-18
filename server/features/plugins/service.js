@@ -914,6 +914,101 @@ export { executorPayload } from './executor-payload.js';
 // Resolve and verify the immutable package snapshot for a claimed managed
 // runtime task. The API route owns worker authentication and claim lookup;
 // repository access and package integrity remain behind this feature service.
+const GRAPH_NODE_SEMANTIC_KEYS = [
+  'kind', 'nominal', 'provider', 'schema', 'entityType', 'identity', 'constraints', 'unit'
+];
+
+function graphNodePortContract(schema = {}) {
+  const shape = ['list', 'tree', 'map', 'tuple', 'stream'].includes(schema.base)
+    ? schema.base
+    : 'item';
+  const semanticSource = shape === 'item' ? schema : (schema.itemType || { base: 'json' });
+  const semantic = { base: semanticSource.base || 'json' };
+  for (const key of GRAPH_NODE_SEMANTIC_KEYS) {
+    if (Object.hasOwn(semanticSource.semantic || {}, key)) semantic[key] = semanticSource.semantic[key];
+    if (Object.hasOwn(semanticSource, key)) semantic[key] = semanticSource[key];
+  }
+  if (schema.nullable === true || semanticSource.nullable === true) semantic.nullable = true;
+  return { shape, semantic };
+}
+
+// Resolve provider metadata only from the caller's installed package snapshot.
+// The returned packagePin is carried into execution provenance by the graph host.
+export async function resolveInstalledGraphNodeDefinition({
+  provider = '',
+  id = '',
+  version = '',
+  auth = {}
+} = {}) {
+  const match = /^plugin\.([a-z0-9-]+)$/.exec(String(provider));
+  const organizationId = String(auth.organizationId || auth.memberships?.[0]?.organizationId || '');
+  if (!match || !organizationId || !id || !version) {
+    throw createError({ statusCode: 400, message: 'Installed graph node identity is incomplete' });
+  }
+  const pluginId = match[1];
+  await resolveRunActor(auth, organizationId);
+  const install = await repository.findInstall(organizationId, pluginId);
+  if (!install) {
+    throw createError({ statusCode: 404, message: `Graph provider ${provider} is not installed for this organization` });
+  }
+  const service = (install.services || []).find(item => String(item.id) === String(id));
+  const runtimeId = String(service?.execution?.runtime || '');
+  const runtime = (install.declarations?.runtimes || []).find(item => String(item.id) === runtimeId);
+  if (!service || serviceModeOf(service) !== 'managed'
+    || service.palette?.visible === false || !service.palette?.group
+    || !runtime || runtime.language !== 'javascript'
+    || !service.execution?.targets?.includes('server')
+    || !runtime.targets?.includes('server')) {
+    throw createError({ statusCode: 409, message: `Graph node ${provider}/${id} is not available for managed server execution` });
+  }
+  const definitionVersion = String(service.nodeVersion || '1');
+  if (definitionVersion !== String(version)) {
+    throw createError({ statusCode: 409, message: `Graph node ${provider}/${id}@${version} does not match the installed definition version ${definitionVersion}` });
+  }
+  const definition = {
+    provider: String(provider),
+    id: String(id),
+    version: definitionVersion,
+    label: service.label || service.id,
+    ...(service.description ? { description: service.description } : {}),
+    palette: {
+      group: service.palette.group,
+      ...(service.palette.label ? { label: service.palette.label } : {}),
+      keywords: service.palette.keywords || []
+    },
+    inputs: Object.entries(service.signature?.input?.fields || {}).map(([portId, field]) => ({
+      id: portId,
+      label: field.label || portId,
+      ...graphNodePortContract(field),
+      required: field.nullable !== true,
+      ...(Object.hasOwn(field, 'default') ? { default: field.default } : {}),
+      ...(field.description ? { description: field.description } : {})
+    })),
+    outputs: [{
+      id: 'value',
+      label: service.signature?.output?.label || 'Value',
+      ...graphNodePortContract(service.signature?.output || {}),
+      required: true
+    }],
+    ...(service.configuration ? { configuration: service.configuration } : {}),
+    execution: {
+      runtime: runtimeId,
+      kind: service.execution.kind,
+      targets: service.execution.targets,
+      capabilities: service.execution.capabilities || [],
+      deterministic: service.execution.deterministic === true,
+      idempotent: service.execution.idempotent === true
+    },
+    packagePin: {
+      pluginId,
+      version: String(install.version),
+      runtimeId,
+      operationId: String(id)
+    }
+  };
+  return definition;
+}
+
 export async function managedRuntimePackageForTask(run = {}) {
   const taskInput = run.input?.parameters?.value || {};
   const organizationId = String(run.auth?.organizationId || '');
