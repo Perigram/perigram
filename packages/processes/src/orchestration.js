@@ -736,7 +736,7 @@ function findTriggerNode(process, trigger) {
 }
 
 function processGraphNodes(process) {
-  const nodes = processGraphNodes(process);
+  const nodes = process.graph?.nodes || [];
   if (!process.__canonicalGraph) return nodes;
   return nodes.map(node => ({
     id: node.id,
@@ -748,7 +748,7 @@ function processGraphNodes(process) {
 }
 
 function processGraphEdges(process) {
-  const edges = processGraphEdges(process);
+  const edges = process.graph?.edges || [];
   if (!process.__canonicalGraph) return edges;
   return edges.map(edge => ({
     id: edge.id,
@@ -762,8 +762,8 @@ function processGraphEdges(process) {
 }
 
 function processNodeRecord(process, node) {
-  if (!process.__canonicalGraph) return processNodeRecord(process, node);
-  const raw = (processGraphNodes(process)).find(item => String(item.id) === String(node?.id));
+  if (!process.__canonicalGraph) return process.processNodes?.[recordId(node)];
+  const raw = (process.graph?.nodes || []).find(item => String(item.id) === String(node?.id));
   if (!raw) return null;
   const refId = String(raw.config?.refId || raw.id);
   const operationId = String(raw.operation?.id || '');
