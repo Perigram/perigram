@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { useGraphDocumentSession } from './useGraphDocumentSession.js';
+import { processDefinitionToGraphDocument } from '@perigram/processes';
 import { createRuntime as createDocumentsRuntime } from '../workers/documents/runtime/shared.mjs';
 
 function createSession() {
@@ -164,6 +165,29 @@ describe('useGraphDocumentSession', () => {
     expect(session.validation.value.ok).toBe(true);
     expect(session.loadDocument(graph).id).toBe(graph.id);
     expect(session.serializeGraph()).toEqual(graph);
+  });
+
+  it('resolves canonical process operations through the shared plugin-SDK node contracts', () => {
+    const graph = processDefinitionToGraphDocument({
+      id: 'process.shared-node',
+      dataflowVersion: 4,
+      processNodes: {
+        literal: { id: 'literal', kind: 'source.literalItem', value: 'shared' }
+      },
+      graph: {
+        nodes: [{ id: 'literal-node', type: 'processNode', position: { x: 0, y: 0 }, data: { refId: 'literal' } }],
+        edges: []
+      }
+    });
+    const session = createSession();
+    session.loadDocument(graph);
+    const node = session.nodes.value.find(item => item.id === 'literal-node');
+    expect(node.data.definition).toMatchObject({
+      provider: 'perigram.processes',
+      id: 'source.literalItem',
+      version: '1',
+      execution: { kind: 'pure' }
+    });
   });
 
   it('preserves canonical edge kind and metadata through editor load/save', () => {
