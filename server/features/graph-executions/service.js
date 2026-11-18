@@ -17,6 +17,60 @@ function parseRecord(value) {
   }
 }
 
+async function readSavedGraph(graphDocument, auth) {
+  if (!graphDocument?.payload?.fileId) {
+    throw createError({ statusCode: 409, message: 'Graph document has no saved payload' });
+  }
+  const file = await filesService.findFileMeta(graphDocument.payload.fileId, 'files');
+  if (!file) throw createError({ statusCode: 404, message: 'Graph payload not found' });
+  filesService.assertFileReadAccess(file.metadata, auth);
+  try {
+    return assertValidGraphDocument(JSON.parse(
+      (await filesService.getFileBuffer(graphDocument.payload.fileId, 'files')).toString('utf8')
+    ));
+  } catch (error) {
+    throw createError({
+      statusCode: 409,
+      message: 'Saved graph payload is unavailable or invalid',
+      data: { message: error.message }
+    });
+  }
+}
+
+// Resolve a Use Graph pin only from graph documents readable in the caller's
+// organization. Graph ids are not unique across revisions, so the immutable
+// revision is verified against each authorized document's actual payload.
+export async function resolvePinnedGraph(graphId, revision, auth = {}) {
+  const id = String(graphId || '').trim();
+  const pinnedRevision = String(revision || '').trim();
+  if (!id || !pinnedRevision) {
+    throw createError({ statusCode: 400, message: 'Pinned graph resolution requires graphId and revision' });
+  }
+  const service = getAppRegistry().getInstanceService('graph-document');
+  if (typeof service?.processList !== 'function') {
+    throw createError({ statusCode: 503, message: 'Graph document listing is unavailable' });
+  }
+  const candidates = await service.processList({ graphId: id, limit: 1000 }, auth);
+  if ((candidates || []).length >= 1000) {
+    throw createError({ statusCode: 409, message: 'Too many graph revisions to resolve this pin safely' });
+  }
+  const matches = [];
+  for (const candidate of candidates || []) {
+    if (String(candidate.fields?.graphId || '') !== id) continue;
+    const graph = await readSavedGraph(candidate, auth);
+    if (graph.id === id && String(graph.revision) === pinnedRevision) {
+      matches.push({ graphDocument: candidate, graph });
+    }
+  }
+  if (!matches.length) {
+    throw createError({ statusCode: 404, message: `Pinned graph ${id}@${pinnedRevision} is unavailable to this organization` });
+  }
+  if (matches.length !== 1) {
+    throw createError({ statusCode: 409, message: `Pinned graph ${id}@${pinnedRevision} is ambiguous` });
+  }
+  return matches[0];
+}
+
 async function sourceFor(instanceId, record, auth) {
   if (!instanceId) throw createError({ statusCode: 400, message: 'Graph document instance is required' });
   const registry = getAppRegistry();
@@ -25,15 +79,7 @@ async function sourceFor(instanceId, record, auth) {
   if (String(graphDocument.fields?.graphId || '') !== record.graph.id || !graphDocument.payload?.fileId) {
     throw createError({ statusCode: 409, message: 'Execution graph identity does not match the saved source document' });
   }
-  const file = await filesService.findFileMeta(graphDocument.payload.fileId, 'files');
-  if (!file) throw createError({ statusCode: 404, message: 'Graph payload not found' });
-  filesService.assertFileReadAccess(file.metadata, auth);
-  let graph;
-  try {
-    graph = assertValidGraphDocument(JSON.parse((await filesService.getFileBuffer(graphDocument.payload.fileId, 'files')).toString('utf8')));
-  } catch (error) {
-    throw createError({ statusCode: 409, message: 'Saved graph payload is unavailable or invalid', data: { message: error.message } });
-  }
+  const graph = await readSavedGraph(graphDocument, auth);
   if (graph.id !== record.graph.id || graph.revision !== record.graph.revision) {
     throw createError({ statusCode: 409, message: 'Execution graph revision is stale; save and preview the current revision' });
   }
