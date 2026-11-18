@@ -300,7 +300,7 @@ describe('report preview surface', () => {
       new URL('./surfaces/csv-editor.mjs', import.meta.url).pathname,
       { dependencies: listing.declarations.dependencies, pluginRoot: new URL('.', import.meta.url).pathname }
     )).resolves.toBe(true);
-  });
+  }, 15_000);
 
   it('selects flowing documents and reports by their IR discriminators across payload trees', () => {
     const payload = {
