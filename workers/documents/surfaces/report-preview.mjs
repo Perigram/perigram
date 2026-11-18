@@ -100,11 +100,12 @@ export default function createSurface(ctx) {
         h('p', null, mime || 'Unsupported document preview')
       ]);
     }
+    let bytes;
     let source = '';
     try {
       const binary = atob(payload.base64);
-      const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
-      source = new TextDecoder().decode(bytes);
+      bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+      if (!isWorkbook) source = new TextDecoder().decode(bytes);
     } catch {
       return h('div', { key, class: 'text-supporting text-muted' }, 'The file payload could not be decoded');
     }
