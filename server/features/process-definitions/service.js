@@ -15,6 +15,7 @@ import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { getEntityFieldAccessPolicy } from '~/shared/field-access-policies.js';
 import {
   compileProcessDefinition,
+  processDefinitionToGraphDocument,
   constructionInputsForContract,
   diffProcessContracts,
   hasCanonicalProcessSource,
@@ -244,6 +245,19 @@ function assertGraphIntegrity(data) {
   const problems = graphIntegrityProblems(data);
   if (problems.length) {
     throw createError({ statusCode: 400, message: `Graph integrity: ${problems.slice(0, 5).join('; ')}` });
+  }
+  // The legacy record projection is still required by CTS declaration
+  // validation, but it is no longer the structural graph authority. Compile
+  // the same authored graph through the canonical Core codec at the server
+  // persistence boundary; this catches invalid operation identities,
+  // endpoints, ports, ids, and non-JSON configuration before storage.
+  try {
+    processDefinitionToGraphDocument(data);
+  } catch (error) {
+    throw createError({
+      statusCode: 400,
+      message: `Canonical graph integrity: ${error?.message || String(error)}`
+    });
   }
 }
 
