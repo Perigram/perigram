@@ -273,7 +273,7 @@
             data-testid="plugin-surface-origin"
           />
         </div>
-        <div v-if="settings.hasEndpointServices" class="flex flex-col gap-2">
+        <div v-if="settings.hasEndpointServices && !settings.platformManaged" class="flex flex-col gap-2">
           <div class="text-muted text-label">{{ $t('plugins.apiKey') }}</div>
           <InputText
             v-model="settings.authToken"
