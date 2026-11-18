@@ -102,7 +102,7 @@ import {
   projectedServicesForOrganization, projectedDomainsForOrganization, commandDefinitionFor, executeConnectorService, invokeEndpointValueService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings, publishPluginAsset,
-  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition, executeManagedGraphNode
+  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition, executeManagedGraphNode, invokePreviewValueService
 } from './service.js';
 import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -1372,6 +1372,57 @@ describe('upgrades', () => {
     repository.findCatalogByPluginId.mockImplementation(async () => ({ ...listingV3, version: '2' }));
     await expect(upgradePreview({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
       .rejects.toMatchObject({ statusCode: 409 });
+  });
+});
+
+describe('managed value-service preview', () => {
+  const managedInstall = {
+    organizationId: ORG,
+    pluginId: 'documents',
+    version: '31',
+    services: [{
+      id: 'parse-markdown',
+      label: 'Parse markdown',
+      nodeVersion: '1',
+      palette: { group: 'document-composition' },
+      signature: {
+        input: { base: 'record', fields: { text: { base: 'string' } } },
+        output: { base: 'json', kind: 'text.flow-document' }
+      },
+      execution: { runtime: 'documents-shared', kind: 'pure', targets: ['browser', 'server'], capabilities: [] }
+    }],
+    declarations: {
+      runtimes: [{ id: 'documents-shared', language: 'javascript', targets: ['browser', 'server'], entry: '/runtime/shared.mjs' }]
+    }
+  };
+
+  it('executes a managed pure service through its installed package runtime during preview', async () => {
+    repository.findInstall.mockResolvedValue(managedInstall);
+    const result = await invokePreviewValueService(
+      'plugin.documents.parse-markdown',
+      { text: '# Hello' },
+      AUTH,
+      { executionId: 'preview-1', nodeId: 'parse-1' }
+    );
+
+    expect(result).toEqual('managed-result');
+    expect(enqueueTask).toHaveBeenCalledWith('plugin.documents.parse-markdown', expect.objectContaining({
+      parameters: { value: expect.objectContaining({
+        pluginId: 'documents', version: '31', runtimeId: 'documents-shared',
+        operationId: 'parse-markdown',
+        input: { mode: 'preview', config: {}, inputs: { text: '# Hello' }, nodeId: 'parse-1', executionId: 'preview-1', invocationPath: [] }
+      }) }
+    }), expect.objectContaining({ organizationId: ORG }), expect.objectContaining({ workerType: 'plugin-runtime' }));
+  });
+
+  it('refuses effectful managed services in preview', async () => {
+    repository.findInstall.mockResolvedValue({
+      ...managedInstall,
+      services: [{ ...managedInstall.services[0], execution: { ...managedInstall.services[0].execution, kind: 'effect' } }]
+    });
+    await expect(invokePreviewValueService('plugin.documents.parse-markdown', { text: 'x' }, AUTH))
+      .rejects.toMatchObject({ statusCode: 403, message: expect.stringContaining('cannot execute effect') });
+    expect(enqueueTask).not.toHaveBeenCalled();
   });
 });
 
