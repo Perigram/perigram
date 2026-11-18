@@ -1,10 +1,35 @@
 import { describe, expect, it } from 'vitest';
 import { useGraphDocumentSession } from './useGraphDocumentSession.js';
-import { processDefinitionToGraphDocument, graphDocumentToProcessDefinition } from '@perigram/processes';
+import {
+  PROCESS_NODE_CATALOG,
+  PROCESS_PROCEDURAL_PROVIDER,
+  processDefinitionToGraphDocument,
+  graphDocumentToProcessDefinition,
+  createProcessGraphNodeDefinition,
+  createProcessProceduralNodeDefinition,
+  createProcessGraphNodeResolver,
+  createProcessProceduralNodeResolver,
+  createProcessProceduralExecutor,
+  registerProcessPortCompatibilityProfile
+} from '@perigram/processes';
 import { createRuntime as createDocumentsRuntime } from '../workers/documents/runtime/shared.mjs';
 
 function createSession() {
   return useGraphDocumentSession({ t: key => key });
+}
+
+function createProcessSession() {
+  return useGraphDocumentSession({
+    t: key => key,
+    definitions: PROCESS_NODE_CATALOG
+      .map(catalog => createProcessProceduralNodeDefinition(catalog.kind) || createProcessGraphNodeDefinition(catalog.kind))
+      .filter(Boolean),
+    nodeResolvers: [createProcessGraphNodeResolver()],
+    previewResolvers: [createProcessProceduralNodeResolver()],
+    compatibilityProfiles: [registerProcessPortCompatibilityProfile],
+    frameworkProviders: [PROCESS_PROCEDURAL_PROVIDER],
+    executors: { [PROCESS_PROCEDURAL_PROVIDER]: createProcessProceduralExecutor() }
+  });
 }
 
 describe('useGraphDocumentSession', () => {
@@ -179,7 +204,7 @@ describe('useGraphDocumentSession', () => {
         edges: []
       }
     });
-    const session = createSession();
+    const session = createProcessSession();
     session.loadDocument(graph);
     const node = session.nodes.value.find(item => item.id === 'literal-node');
     expect(node.data.definition).toMatchObject({
