@@ -169,7 +169,33 @@ export async function evaluateSavedGraph({
     if (definition.provider === CORE_DATA_PROVIDER) {
       return await coreDataProvider.execute(definition, invocation);
     }
-    return await executeManagedNode(definition, invocation, auth);
+    const evidenceCount = nodeInvocations.length;
+    const evidence = {
+      nodeId: invocation.node?.id || null,
+      invocationPath: invocation.invocationPath || [],
+      operation: {
+        provider: definition.provider,
+        id: definition.id,
+        version: definition.version
+      },
+      ...(definition.packagePin ? { packagePin: definition.packagePin } : {})
+    };
+    try {
+      const output = await executeManagedNode(definition, invocation, auth);
+      if (nodeInvocations.length === evidenceCount) {
+        nodeInvocations.push({ ...evidence, status: 'succeeded' });
+      }
+      return output;
+    } catch (error) {
+      if (nodeInvocations.length === evidenceCount) {
+        nodeInvocations.push({
+          ...evidence,
+          status: error?.name === 'AbortError' ? 'cancelled' : error?.name === 'TimeoutError' ? 'timed-out' : 'failed',
+          error: String(error?.message || error)
+        });
+      }
+      throw error;
+    }
   };
   try {
     const result = await evaluateProceduralGraph({
