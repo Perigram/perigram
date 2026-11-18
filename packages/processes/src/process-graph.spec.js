@@ -72,6 +72,26 @@ describe('canonical process graph migration bridge', () => {
     expect(processDefinitionToGraphDocument(source).revision).not.toBe(first.revision);
   });
 
+  it('preserves CTS node-to-node declaration edges without inventing process sockets', () => {
+    const source = definition();
+    source.graph.edges[1] = {
+      id: 'decl:binds:class-effect',
+      source: 'class-node',
+      target: 'effect-node',
+      label: 'declares',
+      data: { relation: 'declares' }
+    };
+    const graph = processDefinitionToGraphDocument(source);
+    expect(graph.edges[1]).toMatchObject({
+      source: { node: 'class-node', port: '$declaration' },
+      target: { node: 'effect-node', port: '$declaration' },
+      kind: 'type',
+      metadata: { syntheticDeclarationPorts: true }
+    });
+    const restored = graphDocumentToProcessDefinition(graph);
+    expect(restored.graph.edges[1]).toEqual(source.graph.edges[1]);
+  });
+
   it('refuses to migrate a wire whose port identity is missing', () => {
     const source = definition();
     source.graph.edges[0].sourceHandle = null;
