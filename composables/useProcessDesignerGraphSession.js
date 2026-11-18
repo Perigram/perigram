@@ -1,4 +1,5 @@
 import { computed, nextTick, ref, watch } from 'vue';
+import { createPortCompatibilityRegistry } from '@perigram/plugin-sdk/nodes';
 import {
   EFFECT_SPECIES_KINDS,
   getProcessNodeDefinition,
@@ -13,6 +14,7 @@ import {
   isProcessDataHandle,
   parseProcessSocketHandleId,
   processSocketsCompatible,
+  portSpecsCompatible,
   compileTreeDeclarations,
   PROCESS_DATAFLOW_VERSION,
   processDefinitionToGraphDocument,
@@ -56,6 +58,16 @@ export function useProcessDesignerGraphSession({
   graphEvaluation = { value: null },
   seedPlacement = node => node
 }) {
+  const portCompatibility = createPortCompatibilityRegistry();
+  portCompatibility.register('perigram.cts', (source, target) => {
+    const result = portSpecsCompatible(source, target);
+    return {
+      status: result.ok ? 'exact' : 'incompatible',
+      compatible: result.ok,
+      reason: result.reason || (result.ok ? 'CTS process port contracts match' : 'CTS process port contracts do not match'),
+      conversions: []
+    };
+  });
   const nodes = ref([]);
   const edges = ref([]);
   const validation = ref(null);
@@ -1372,8 +1384,13 @@ export function useProcessDesignerGraphSession({
     const sourcePort = portForHandle(catalogPorts(sourceRecord).outputs, connection.sourceHandle, 'output');
     const targetPort = portForHandle(catalogPorts(targetRecord).inputs, connection.targetHandle, 'input');
     if (!sourcePort || !targetPort) return { ok: true };
+    const result = portCompatibility.compare(
+      { ...sourcePort, compatibility: { profile: 'perigram.cts' } },
+      { ...targetPort, compatibility: { profile: 'perigram.cts' } }
+    );
     return {
-      ...processSocketsCompatible(sourcePort, targetPort),
+      ok: result.compatible,
+      reason: result.reason,
       source: sourcePort,
       target: targetPort
     };
