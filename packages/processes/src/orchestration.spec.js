@@ -81,8 +81,12 @@ describe('durable process orchestration', () => {
   it('runs the durable process profile from the canonical graph document envelope', async () => {
     const definition = process([
       { id: 'values', kind: 'source.literalList', value: [{ type: 'project', id: 'p1' }] },
-      { id: 'mutation', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'manual' } }
-    ], ['values', 'mutation'], [data('values', 'mutation', 'entity')]);
+      { id: 'mutation', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'manual' } },
+      { id: 'stop', kind: 'control.stopSuccess' }
+    ], ['values', 'mutation', 'stop'], [
+      data('values', 'mutation', 'entity'),
+      control('mutation', 'completed', 'stop')
+    ]);
     const graph = processDefinitionToGraphDocument(definition);
     expect(graph.nodes.find(node => node.id === 'mutation')).toMatchObject({
       operation: { provider: 'perigram.processes', id: 'cts.mutate', version: '1' },
