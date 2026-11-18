@@ -78,8 +78,8 @@ test('saved Documents graph renders its Markdown file through the Documents prev
   const markdownInput = page.getByRole('textbox', { name: 'Markdown' });
   await expect(markdownInput).toBeVisible({ timeout: 15_000 });
   await markdownInput.fill('# Graph preview E2E\n\nRendered by the installed Documents plugin.');
-  await page.getByRole('button', { name: /apply graph input/i }).click();
-  await page.getByRole('button', { name: /refresh preview/i }).click();
+  await page.getByRole('button', { name: /apply input/i }).click();
+  await page.getByRole('button', { name: /inspect/i }).click();
 
   const previewFrame = page.locator('iframe[title="document.md"]');
   await expect(previewFrame).toBeVisible({ timeout: 45_000 });
