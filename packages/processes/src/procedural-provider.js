@@ -5,6 +5,7 @@ import {
 } from './node-catalog.js';
 import { executeProcessDataNode } from './evaluator.js';
 import { createDataPacket, packetValue } from './data-tree.js';
+import { PROCESS_PORT_COMPATIBILITY_PROFILE } from './port-compatibility.js';
 
 export const PROCESS_PROCEDURAL_PROVIDER = 'perigram.processes';
 export const PROCESS_PROCEDURAL_VERSION = '1';
@@ -39,7 +40,7 @@ export function createProcessGraphNodeDefinition(kind, record = {}, catalogConte
       deterministic: catalog.pure === true,
       idempotent: catalog.pure === true
     },
-    configuration: { type: 'object', additionalProperties: true }
+    configuration: { type: 'object', additionalProperties: true, default: { kind } }
   };
 }
 
@@ -59,7 +60,8 @@ function toGraphContractPort(port) {
       ...(port.block ? { block: port.block } : {}),
       ...(port.multiple ? { multiple: true } : {})
     },
-    required: port.required === true
+    required: port.required === true,
+    compatibility: { profile: PROCESS_PORT_COMPATIBILITY_PROFILE }
   };
 }
 
