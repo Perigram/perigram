@@ -1191,12 +1191,16 @@ their canonical temporal representation.
 
 ## Catalog and protocol
 
-`dataflowVersion: 4` is the sole current operation protocol
-(`PROCESS_PROTOCOL_VERSION = 4` in `types.js`). Every executable canvas
-record lives under `processNodes` with a namespaced kind from the catalog:
+Existing process-definition records currently carry the legacy storage marker
+`dataflowVersion: 4` (`PROCESS_PROTOCOL_VERSION = 4` in `types.js`).
+This marker is not a platform graph or node-operation protocol and must not
+be extended. During the G10 migration, these domain operations map to
+provider-qualified nodes under the canonical graph contract. Until cutover,
+the legacy compiler reads executable records under `processNodes` with a
+namespaced kind from the catalog:
 `source.*`, `value.*`, `collection.*`/`tree.*`, `record.construct`,
 `control.*`, and the CTS species (`cts.*`). The catalog and evaluator throw
-on retired kinds; persisted v4 drafts rewrite through
+on retired kinds; persisted legacy drafts rewrite through
 [`server/scripts/migrate-v4-drafts-native.js`](../../server/scripts/README.md)
 (the SPEC §14 kind table; unmigratable shapes are reported, and send-to-
 organization effects, patch algebra, and producer-path joins among them).
