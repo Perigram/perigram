@@ -1361,6 +1361,51 @@ export async function invokeEndpointValueService(commandId, parameters, auth = {
   return await callEndpointService(install, serviceId, await hydrateBlobParameters(service, parameters));
 }
 
+// Preview dispatch for value services: endpoint adapters keep their synchronous
+// endpoint path, while pure/read managed services execute through the installed,
+// version-pinned runtime worker. Managed services must never be sent through the
+// legacy endpoint-only preview adapter.
+export async function invokePreviewValueService(commandId, parameters, auth = {}, context = {}) {
+  const match = String(commandId || '').match(PLUGIN_COMMAND_PATTERN);
+  if (!match) throw createError({ statusCode: 404, message: `Command ${commandId} is not an installed plugin service` });
+  const [, pluginId, serviceId] = match;
+  const organizationId = String(auth.organizationId || auth.memberships?.[0]?.organizationId || '');
+  const install = organizationId ? await repository.findInstall(organizationId, pluginId) : null;
+  const service = (install?.services || []).find(item => String(item.id) === serviceId);
+  if (!install || !service) throw createError({ statusCode: 404, message: `Service ${serviceId} is not installed for this organization` });
+  const mode = serviceModeOf(service);
+  if (mode === 'endpoint') return await invokeEndpointValueService(commandId, parameters, auth);
+  if (mode !== 'managed') {
+    throw createError({ statusCode: 400, message: `Service ${serviceId} is ${mode} mode and cannot run in preview` });
+  }
+  if (!['pure', 'read'].includes(service.execution?.kind)) {
+    throw createError({ statusCode: 403, message: `Preview cannot execute ${service.execution?.kind || 'unclassified'} service ${serviceId}` });
+  }
+  const definition = await resolveInstalledGraphNodeDefinition({
+    provider: `plugin.${pluginId}`,
+    id: serviceId,
+    version: String(service.nodeVersion || '1'),
+    auth
+  });
+  const executionId = String(context.executionId || `process-preview-${randomBytes(12).toString('hex')}`);
+  const output = await executeManagedGraphNode(definition, {
+    node: { id: String(context.nodeId || serviceId) },
+    config: {},
+    inputs: parameters && typeof parameters === 'object' ? parameters : {},
+    invocationPath: context.invocationPath || [],
+    context: {
+      executionId,
+      signal: context.signal,
+      remainingExecutionMs: context.remainingExecutionMs
+    }
+  }, auth);
+  // The shared Documents runtime uses the graph invocation envelope so the
+  // same operation implementation serves browser and managed graph hosts.
+  return output && typeof output === 'object' && Object.hasOwn(output, 'value')
+    ? output.value
+    : output;
+}
+
 // A service input field declared with base `blob` receives a payload
 // handle `{ fileId, mime, size, name? }` on the wire; the dispatch
 // hydrates the handle with its bytes so the executor reads
