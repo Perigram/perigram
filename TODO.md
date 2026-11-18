@@ -8107,3 +8107,12 @@ runtime result envelope is unwrapped at the process-service boundary.
 Effectful managed services remain explicitly refused in preview. Regression
 tests cover managed pure execution and effect refusal. CI and browser-level
 acceptance are pending on the current staging head.
+
+
+### Execution-target routing correction (2026-11-18)
+
+- Root cause found: `describeOrganizationTypes()` already assembled organization-scoped `clientRuntimes`, including browser-capable managed JavaScript runtimes and their service execution metadata, but `/api/admin/cts/types` dropped that field from its response. The graph editor therefore received no browser runtime bindings and could not register managed plugin node providers; the HAG process designer likewise exposed only legacy client engines to its client-preview selector.
+- The endpoint now returns `clientRuntimes`. The process designer retains those bindings and its whole-graph preview can dispatch a managed service through its browser runtime when every service node in the preview graph has a browser binding. Server fallback remains for graphs outside that client-only lane; server execution still independently enforces declared server targets.
+- Added a regression to `useGraphChannelPreview.spec.js` proving a managed browser runtime service executes locally and does not call `previewDraft`. Existing `cts-types.spec.js` already pins the organization-scoped runtime binding shape.
+- The graph-document editor's existing runtime-provider loader now receives the bindings it was already written to consume, rather than an always-empty list.
+- Validation status: source changes committed to `staging`; tests have not yet been executed in this environment. Do not treat this as verified until CI passes and a browser acceptance run confirms a Documents pure node runs with the managed Docker worker stopped.
