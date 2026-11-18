@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   assertValidNodeDefinition,
   compareNodePorts,
+  createPortCompatibilityRegistry,
   createNodeProviderRegistry,
   normalizeNodeProvider,
   normalizeNodeDefinition,
@@ -282,5 +283,37 @@ describe('provider-neutral node contract', () => {
 
   it('returns the validated frozen definition from assert', () => {
     expect(assertValidNodeDefinition(definition()).provider).toBe('plugin.documents');
+  });
+});
+
+describe('provider-owned port compatibility profiles', () => {
+  it('delegates domain-specific compatibility through the shared graph contract', () => {
+    const registry = createPortCompatibilityRegistry();
+    registry.register('perigram.cts', (source, target) => ({
+      status: source.semantic?.nominal === target.semantic?.nominal ? 'exact' : 'incompatible',
+      compatible: source.semantic?.nominal === target.semantic?.nominal,
+      reason: 'CTS nominal type compatibility',
+      conversions: []
+    }));
+    expect(registry.compare(
+      { compatibility: { profile: 'perigram.cts' }, semantic: { nominal: 'invoice' } },
+      { compatibility: { profile: 'perigram.cts' }, semantic: { nominal: 'invoice' } }
+    )).toMatchObject({ status: 'exact', compatible: true });
+    expect(registry.compare(
+      { compatibility: { profile: 'perigram.cts' }, semantic: { nominal: 'invoice' } },
+      { compatibility: { profile: 'perigram.cts' }, semantic: { nominal: 'customer' } }
+    )).toMatchObject({ status: 'incompatible', compatible: false });
+    expect(registry.compare(
+      { compatibility: { profile: 'perigram.missing' }, semantic: { base: 'json' } },
+      { semantic: { base: 'json' } }
+    )).toMatchObject({ status: 'incompatible', compatible: false });
+  });
+
+  it('rejects profile collisions and invalid comparators', () => {
+    const registry = createPortCompatibilityRegistry();
+    registry.register('perigram.cts', () => ({ status: 'exact', compatible: true }));
+    expect(() => registry.register('perigram.cts', () => ({}))).toThrow(/already registered/);
+    expect(() => registry.register('bad profile', () => ({}))).toThrow(/stable id/);
+    expect(() => registry.register('perigram.other', null)).toThrow(/comparator/);
   });
 });
