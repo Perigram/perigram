@@ -19,7 +19,7 @@ import {
   PROCESS_PROCEDURAL_PROVIDER,
   PROCESS_PROCEDURAL_VERSION,
   createProcessProceduralExecutor,
-  createProcessProceduralNodeResolver,
+  createProcessGraphNodeResolver,
   registerProcessGraphNodes
 } from '@perigram/processes';
 import { useProcessDesignerCanvas } from '~/composables/useProcessDesignerCanvas.js';
@@ -82,7 +82,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
 
   const registry = createNodeProviderRegistry();
   registerProcessGraphNodes(registry);
-  const processResolver = createProcessProceduralNodeResolver();
+  const processResolver = createProcessGraphNodeResolver();
   const processExecutor = createProcessProceduralExecutor();
   const providerExecutors = new Map([[PROCESS_PROCEDURAL_PROVIDER, processExecutor]]);
   const providerPreviewRenderers = new Map();
