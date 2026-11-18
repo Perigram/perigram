@@ -1,8 +1,8 @@
 import listing from '../listing.json' with { type: 'json' };
 import * as XLSX from '../assets/vendor/xlsx.mjs';
 import { parseMarkdown } from '../markdown-ir.mjs';
-import { fillMarkdown } from '../template-ir.mjs';
-import { fillWorkbook } from '../workbook-template.mjs';
+import { fillMarkdown, templateTokenKeys } from '../template-ir.mjs';
+import { fillWorkbook, workbookTemplateTokens } from '../workbook-template.mjs';
 import { composeReport, extractTable, renderReportHtml, renderDocumentHtml, exportMarkdown, composeDocument, appendDocumentBlock, createDocumentBlock, createInlineValue } from '../report-ir.mjs';
 
 export function createRuntime() {
@@ -24,7 +24,10 @@ export function createRuntime() {
     if (blockOperations.includes(operationId)) return createDocumentBlock(operationId, input);
     if (inlineOperations.includes(operationId)) return createInlineValue(operationId, input);
     if (operationId === 'parse-markdown') return parseMarkdown(input.text);
-    if (operationId === 'fill-markdown-template') return filePayload(fillMarkdown(input.templateText, input.values || {}), 'text/markdown', input.name || 'document');
+    if (operationId === 'fill-markdown-template') {
+      const result = filePayload(fillMarkdown(input.templateText, input.values || {}), 'text/markdown', input.name || 'document');
+      return { ...result, meta: { tokens: templateTokenKeys(input.templateText) } };
+    }
     if (operationId === 'fill-workbook-template') return fillWorkbookFile(input);
     if (operationId === 'compose-document') return composeDocument(input);
     if (operationId === 'append-document-block') return appendDocumentBlock(input.document, input.block);
@@ -39,7 +42,7 @@ export function createRuntime() {
   return {
     execute(operationId, input = {}, options = {}) {
       const graphInvocation = input?.mode === 'preview' && input?.inputs && typeof input.inputs === 'object';
-      const args = graphInvocation ? input.inputs : input;
+      const args = graphInvocation ? { ...input.inputs, values: input.inputs?.values ?? input.config?.values ?? {} } : input;
       const value = ['read-file', 'read-text-file', 'read-table-rows', 'read-table-cells'].includes(operationId)
         ? executeFileRead(operationId, args, options.capabilities || {})
         : executeOperation(operationId, args);
@@ -188,9 +191,10 @@ function fillWorkbookFile(input = {}) {
   let binary;
   try { binary = atob(template.base64); } catch { throw new Error('The workbook template is not valid base64'); }
   const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+  const tokens = workbookTemplateTokens(bytes);
   const filled = fillWorkbook(bytes, input.values || {});
   const requestedName = String(input.name || template.name || 'document').replace(/\.xlsx$/i, '');
-  return binaryFilePayload(filled, XLSX_MIME, `${requestedName}.xlsx`);
+  return { ...binaryFilePayload(filled, XLSX_MIME, `${requestedName}.xlsx`), meta: { tokens } };
 }
 
 function binaryFilePayload(bytes, mime, name) {

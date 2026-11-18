@@ -6,8 +6,8 @@ import fontkit from '@pdf-lib/fontkit';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { marked } from 'marked';
-import { substitute, fillMarkdown } from './template-ir.mjs';
-import { fillWorkbook as fillWorkbookPortable } from './workbook-template.mjs';
+import { substitute, fillMarkdown, templateTokenKeys } from './template-ir.mjs';
+import { fillWorkbook as fillWorkbookPortable, workbookTemplateTokens as workbookTemplateTokensPortable } from './workbook-template.mjs';
 export { substitute, fillMarkdown };
 
 const TOKEN = /\{([A-Za-z_][A-Za-z0-9_.-]*)\}/g;
@@ -21,30 +21,10 @@ function badRequest(message) {
   throw error;
 }
 
-// The template's token keys (SPEC §24): the fill dialog's per-token value
-// form reads them through the composition's meta channel.
-export function tokenKeysOf(...texts) {
-  const keys = new Set();
-  for (const text of texts) {
-    const source = String(text ?? '');
-    TOKEN.lastIndex = 0;
-    for (const match of source.matchAll(TOKEN)) keys.add(match[1]);
-  }
-  return [...keys];
-}
-
-export const markdownTemplateTokens = text => tokenKeysOf(text);
-
-export function workbookTemplateTokens(buffer) {
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
-  const cells = [];
-  for (const sheetName of workbook.SheetNames) {
-    for (const row of XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, raw: true, defval: '' })) {
-      for (const cell of row) cells.push(cell);
-    }
-  }
-  return tokenKeysOf(...cells);
-}
+// Legacy construction and graph fills share the same token extractors.
+export const tokenKeysOf = templateTokenKeys;
+export const markdownTemplateTokens = text => templateTokenKeys(text);
+export const workbookTemplateTokens = workbookTemplateTokensPortable;
 
 export async function pdfTemplateTokens(buffer) {
   const pages = await pdfTextRuns(buffer);

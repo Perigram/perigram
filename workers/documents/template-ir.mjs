@@ -10,3 +10,12 @@ export function substitute(text, scope = {}) {
 export function fillMarkdown(templateText, values = {}) {
   return substitute(String(templateText ?? ''), values);
 }
+
+export function templateTokenKeys(...texts) {
+  const keys = new Set();
+  for (const text of texts) {
+    TOKEN.lastIndex = 0;
+    for (const match of String(text ?? '').matchAll(TOKEN)) keys.add(match[1]);
+  }
+  return [...keys];
+}

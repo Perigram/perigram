@@ -20,6 +20,28 @@ describe('Documents shared runtime', () => {
     }
   });
 
+  it('returns HAG token metadata for Markdown and XLSX graph file fills', async () => {
+    const markdown = runtime.execute('fill-markdown-template', {
+      templateText: '# {title}\\nHello {name}',
+      values: {}
+    });
+    expect(markdown.meta.tokens).toEqual(['title', 'name']);
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([['{name}', '{date}'], ['{name}', '']]), 'S');
+    const bytes = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+    const binary = String.fromCharCode(...new Uint8Array(bytes));
+    const filled = runtime.execute('fill-workbook-template', {
+      template: { payload: {
+        base64: btoa(binary),
+        mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        name: 'template.xlsx'
+      } },
+      values: {}
+    });
+    expect(filled.meta.tokens).toEqual(['name', 'date']);
+  });
+
   it('implements every operation declared for the shared Documents runtime', async () => {
     const inline = { type: 'text', text: 'Hello' };
     const paragraph = { type: 'paragraph', children: [inline] };

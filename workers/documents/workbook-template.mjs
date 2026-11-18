@@ -1,5 +1,6 @@
 // Browser/server-safe XLSX template fill engine.
 import * as XLSX from './assets/vendor/xlsx.mjs';
+import { templateTokenKeys } from './template-ir.mjs';
 import { substitute } from './template-ir.mjs';
 
 const TOKEN = /\{([A-Za-z_][A-Za-z0-9_.-]*)\}/g;
@@ -222,4 +223,17 @@ function fillWorksheet(sheet, values) {
     s: range.s,
     e: { r: range.s.r + Math.max(outRows.length - 1, 0), c: range.e.c }
   });
+}
+
+export function workbookTemplateTokens(buffer) {
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  const workbook = XLSX.read(bytes, { type: 'array' });
+  const values = [];
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    for (const row of XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' })) {
+      for (const cell of row) values.push(cell);
+    }
+  }
+  return templateTokenKeys(...values);
 }
