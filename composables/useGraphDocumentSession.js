@@ -25,8 +25,7 @@ import {
   registerProcessPortCompatibilityProfile,
   PROCESS_PORT_COMPATIBILITY_PROFILE
 } from '@perigram/processes';
-import { useProcessDesignerCanvas } from '~/composables/useProcessDesignerCanvas.js';
-import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
+import { useGraphAuthoringSession } from '~/composables/useGraphAuthoringSession.js';
 import { mintId } from '~/utils/processDesignerIdentity.js';
 
 const operation = (id, version = '1') => ({
@@ -319,13 +318,18 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       selected: edge.id === selection?.selectedEdgeId.value
     }));
   }
-  selection = useProcessDesignerSelection({
+  const authoring = useGraphAuthoringSession({
     nodes,
     edges,
+    draft,
     decorateEdge: edge => edge,
     closePalette: closeContextPalette,
-    syncEdges
+    syncEdges,
+    selectedGraphNodes: () => selectedGraphNodes(),
+    selectedGraphEdges: () => selectedGraphEdges(),
+    deleteGraphSelection: () => deleteGraphSelection()
   });
+  selection = authoring.selection;
 
   const selectedBoundaryDeclaration = computed(() => {
     const node = selection.selectedNode.value;
@@ -359,18 +363,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
     selection.reset();
   }
 
-  const canvas = useProcessDesignerCanvas({
-    nodes,
-    edges,
-    draft,
-    selectedNodeId: selection.selectedNodeId,
-    selectedEdgeId: selection.selectedEdgeId,
-    selectedGraphNodes,
-    selectedGraphEdges,
-    deleteGraphSelection,
-    clearGraphSelection: selection.clearGraphSelection,
-    decorateEdge: edge => edge
-  });
+  const canvas = authoring.canvas;
 
   function addNode(item, position = null) {
     const nodeId = stableId('node');
