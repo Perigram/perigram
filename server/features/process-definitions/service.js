@@ -944,9 +944,9 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
     targetNodeId: nodeId,
     previewLimit: 100,
     domain: previewDomain,
-    // Value services evaluate in preview scope (SPEC §28): the same
-    // endpoint dispatch the command runtime uses, cache-replayed, with
-    // no command_runs write.
+    // Value services evaluate in preview scope (SPEC §28): endpoint services
+    // use their synchronous adapter; managed pure/read services execute
+    // through the installed package worker. No command_runs write occurs.
     previewService: (operatorId, parameters) => invokePreviewValueService(operatorId, parameters, auth),
     catalogContext: record => {
       const structural = record.kind === 'cts.compose';
