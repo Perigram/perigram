@@ -1,12 +1,15 @@
 import { readFile } from 'node:fs/promises';
 import { createSSRApp, h } from 'vue';
 import { renderToString } from '@vue/server-renderer';
+import PrimeVue from 'primevue/config';
+import Re_L from '~/assets/presets/re_l';
 import { describe, expect, it } from 'vitest';
 import TemplateValuesRow from './TemplateValuesRow.vue';
 import TemplateValuesControl from '../process-designer/TemplateValuesControl.vue';
 
 async function render(component, props) {
   const app = createSSRApp({ render: () => h(component, props) });
+  app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
   app.config.globalProperties.$t = key => key;
   return await renderToString(app);
 }
