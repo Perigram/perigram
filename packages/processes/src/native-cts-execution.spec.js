@@ -19,7 +19,8 @@ import {
   validateProcessDefinition
 } from './index.js';
 import { createDataPacket } from './data-tree.js';
-import { runProcessUntilSettled } from './orchestration.js';
+import { runProcessUntilSettled, createProcessRun } from './orchestration.js';
+import { createProcessGraphDocument } from './process-graph.js';
 
 function nativeDomain() {
   const registry = createTypeRegistry({ id: 'native-cts-execution' });
@@ -462,12 +463,13 @@ describe('native CTS process execution contract', () => {
     const definition = graph([service, command], [
       { id: 'service-command', source: 'service', sourceHandle: 'control:completed', target: 'command', targetHandle: 'control:in', role: 'control' }
     ]);
+    const canonicalGraph = createProcessGraphDocument(definition);
     const executeEffect = vi.fn()
       .mockResolvedValueOnce({ value: 'ok' })
       .mockResolvedValueOnce({ value: 'done' });
     const completed = await runProcessUntilSettled(
-      (await import('./orchestration.js')).createProcessRun(definition, { nodeId: 'service' }),
-      definition,
+      createProcessRun(canonicalGraph, { nodeId: 'service' }),
+      canonicalGraph,
       {
         executeEffect,
         catalogContext: record => ({
