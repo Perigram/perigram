@@ -147,6 +147,7 @@ export {
   PROCESS_PROCEDURAL_VERSION,
   createProcessProceduralNodeDefinition,
   createProcessGraphNodeDefinition,
+  createProcessGraphNodeResolver,
   createProcessProceduralNodeResolver,
   createProcessProceduralExecutor,
   registerProcessProceduralNodes,
