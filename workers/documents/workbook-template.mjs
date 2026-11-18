@@ -188,6 +188,10 @@ function fillWorksheet(sheet, values) {
         mappings.push(targets);
       }
       if (!mappings.length) continue;
+      const copyCounts = new Set(mappings.map(targets => targets.length));
+      // A merge crossing a repeated-section boundary has no unambiguous
+      // one-to-one row mapping; omit it rather than create overlapping cells.
+      if (copyCounts.size > 1) continue;
       const copies = Math.max(...mappings.map(targets => targets.length));
       for (let copy = 0; copy < copies; copy += 1) {
         const targetRows = mappings.map(targets => targets[copy] ?? (targets.length === 1 ? targets[0] : null));
