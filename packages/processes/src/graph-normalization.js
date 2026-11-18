@@ -1,9 +1,8 @@
-// Legacy process-definition canvas normalization. This is not the
-// canonical perigram.graph codec (packages/core/src/graph.js). Keep this
-// adapter limited to reading/writing the existing process-definition shape;
-// new graph features belong to the core graph document and plugin-SDK
-// contracts. Remove this module after the one-time process migration (root
-// SPEC §28, TODO G10).
+// Legacy process-definition storage codec. This is not a second graph engine
+// and must not grow new graph behavior. Existing process records still store
+// this shape, so retain normalization at the persistence boundary until that
+// storage format is explicitly retired. Canonical graph behavior belongs to
+// packages/core and provider contracts belong to the Plugin SDK.
 
 export function normalizeGraph(graph = {}) {
   return {
