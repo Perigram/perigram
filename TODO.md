@@ -902,10 +902,18 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
   result data snapshots for referenced instances.
 - [ ] G9 Procedural vertical slices — document/data and geometry workflows
   exercise provider registration, preview, Commit/Bake, and provenance.
-- [ ] G10 Process migration — inventory all stored process graphs, produce
-  a deterministic migration with dry-run report and recovery path, cut over
-  all records, verify semantics and authorization, then remove the old
-  runtime format.
+- [ ] G10 Process migration — inventory every stored process definition and
+  every consumer of its legacy canvas nodes, edges, socket handles, process
+  type algebra, evaluator, and protocol marker. Define one deterministic
+  mapping from process semantics to canonical graph nodes/ports/edges while
+  keeping CTS declarations and process authorization as domain records.
+  Implement a dry-run report with per-record diagnostics and a recoverable
+  backup; migrate a fixture corpus and compare compiled actions, screens,
+  grants, workflows, and runtime results before touching live records.
+  Cut over reads and writes atomically, verify authorization and execution,
+  then remove the old graph normalizer, socket/type compatibility layer,
+  process dataflow evaluator, duplicate preview path, and legacy runtime
+  readers/writers. No permanent dual-format mode.
 
 ### Agent Notes (2026-11-17, atomic graph Commit)
 
@@ -1155,23 +1163,29 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
 
 ## Node system rework — artifact composition on the one graph (SPEC §28 + NOTES-templates.md, owner direction 2026-11-13)
 
-One meta-feature (owner ruling this session): the typed artifact
-composition of `NOTES-templates.md` (HAG) delivered through the one
-graph system of SPEC §28 — processes owns the calculus, format
-operations arrive as plugin palette services, previews ride the channel
-tabs; a second graph format, validator, or evaluator is the §28 defect
-law. HAG concepts map onto existing homes:
+One meta-feature: typed artifact composition from `NOTES-templates.md`
+(HAG) is delivered through the canonical graph system in root SPEC §28.
+The graph document and evaluator are owned by `packages/core`; normalized
+node definitions and provider registration are owned by `packages/plugin-sdk`.
+Documents, Facade, and engine plugins contribute operations. CTS supplies
+authorized data and persistence boundaries. Process-specific scheduling and
+durable effects remain in `packages/processes`, but do not define the graph
+calculus or a second procedural evaluator.
 
-| HAG concept | Perigram home |
+| HAG concept | Canonical home |
 |---|---|
-| Graph document / DAG evaluator | Process definition + the dataflow evaluator (`packages/processes`), preview scope for live composition |
-| Node definition registry | Operation catalog + plugin listing services (SPEC §8 signatures; palette `group` sections) |
-| Ports with semantic types | Signature-derived data sockets (CTS V-grammar); typed value contracts ride `json` values |
-| Artifacts, immutable + content-addressed | File instances + GridFS `contentHash` (§28 artifact contract); payload revisions |
-| Pure-node cache | `plugin_service_cache` deterministic replay |
-| Import/extract adapters | Plugin endpoint services over payloads (`resolve: { service }` projections; documents/facade executors) |
-| Diagnostics | Anchored validation diagnostics + node fault channel |
-| HTML/preview rendering | Preview channels + preview surfaces |
+| Graph document / DAG evaluator | `perigram.graph`, graph interfaces and subgraph evaluator in `packages/core` |
+| Node definition registry | Provider-neutral operation contracts and registry in `packages/plugin-sdk` |
+| Ports with semantic types | Shared SDK port contracts, compatibility and conversion declarations |
+| Artifacts, immutable + content-addressed | Core graph execution artifacts plus authorized CTS file instances and payload revisions |
+| Pure-node cache | Provider-declared deterministic execution/cache policy; no HAG-only evaluator |
+| Import/extract adapters | Documents/Facade/engine plugin operations |
+| Diagnostics | Core graph diagnostics anchored to graph/node/port plus provider diagnostics |
+| HTML/preview rendering | Shared graph preview channels and provider-declared renderers |
+
+The process-definition canvas, process graph normalizer, process socket
+algebra, and process dataflow evaluator are migration sources. They must not
+be extended to implement generic graph-document, template, or plugin features.
 
 Slices:
 
