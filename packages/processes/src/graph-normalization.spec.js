@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeActions, normalizeGraph, normalizeRecord } from './graph-normalization.js';
+import { normalizeActions, normalizeGraph, normalizeRecord } from './compiler-core.js';
 
 describe('graph and action normalization', () => {
   it('preserves declaration wire roles and authored labels', () => {
