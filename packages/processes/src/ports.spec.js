@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { inferProcessDataflowContracts, portSpecsCompatible, resolveNodePort, resolveProcessNodePorts, validateProcessEdges } from './ports.js';
 import { processSocketsCompatible } from './types.js';
+import { createPortCompatibilityRegistry } from '../../plugin-sdk/src/node-contract.js';
+import { registerProcessPortCompatibilityProfile, PROCESS_PORT_COMPATIBILITY_PROFILE } from './port-compatibility.js';
 
 describe('process programming node ports', () => {
   it('gives every string operation its actual input arity and scalar types', () => {
