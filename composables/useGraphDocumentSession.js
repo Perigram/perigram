@@ -19,7 +19,6 @@ import {
   PROCESS_PROCEDURAL_PROVIDER,
   PROCESS_PROCEDURAL_VERSION,
   createProcessProceduralExecutor,
-  createProcessGraphNodeResolver,
   registerProcessGraphNodes,
   createProcessGraphNodeResolver,
   createProcessProceduralNodeResolver
