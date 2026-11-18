@@ -63,6 +63,8 @@ self.onmessage = async () => {
         ]) }
       ]
     });
+    expect(result.exported.payload).toMatchObject({ mime: 'text/markdown', name: 'browser-export.md' });
+    expect(atob(result.exported.payload.base64)).toContain('# Browser runtime\n\nA **real** browser parse.');
     expect(atob(result.filled.payload.base64)).toBe('# Report\n\nHello Ada');
     expect(errors).toEqual([]);
   } finally {
