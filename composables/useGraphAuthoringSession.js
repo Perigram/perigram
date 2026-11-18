@@ -1,5 +1,10 @@
+import { ref } from 'vue';
 import { useProcessDesignerCanvas } from '~/composables/useProcessDesignerCanvas.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
+
+export function createGraphAuthoringState() {
+  return { nodes: ref([]), edges: ref([]) };
+}
 
 // Shared graph-authoring mechanics used by both graph documents and CTS
 // process graphs. Domain sessions provide node semantics and persistence;
