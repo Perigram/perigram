@@ -310,6 +310,11 @@ describe('graph execution service', () => {
     expect(result.outputs.document).toEqual({ type: 'text-document', id: 'source-file' });
     expect(graphService.processList).toHaveBeenCalledWith({ graphId: 'child.graph', limit: 1000 }, auth);
     expect(mocks.getFileBuffer).toHaveBeenCalledWith('child-graph-file', 'files');
+    expect(result.graphInvocations).toEqual([expect.objectContaining({
+      graphId: 'child.graph',
+      graphRevision: 'child-r1',
+      nodeId: 'format-1'
+    })]);
   });
 
   it('resolves a pinned child graph from an authorized saved revision', async () => {
@@ -1317,6 +1322,26 @@ describe('graph execution service', () => {
     }), 'user-1', 'org-1');
     expect(result.file.fileId).toBe('baked-file-1');
     expect(result.execution._id).toBe('execution-instance-1');
+  });
+
+  it('refuses Export when a preview consumed capabilities without verifiable read evidence', async () => {
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      readSet: {
+        ...preview().readSet,
+        unverifiedCapabilities: ['files.read']
+      }
+    });
+
+    await expect(graphExecutionsService.exportOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'document'
+    }, auth)).rejects.toMatchObject({
+      statusCode: 409,
+      message: expect.stringContaining('files.read')
+    });
+    expect(executionService.create).not.toHaveBeenCalled();
   });
 
   it('exports a selected output as a safe download and records procedural-export provenance', async () => {
