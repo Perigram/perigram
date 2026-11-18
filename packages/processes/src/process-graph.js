@@ -150,7 +150,7 @@ export function graphDocumentToProcessDefinition(graphSource) {
       target: edge.target.node,
       targetHandle: edge.target.port,
       ...(annotation.type ? { type: annotation.type } : {}),
-      ...(edge.kind ? { role: edge.kind } : {}),
+      ...(edge.kind && edge.kind !== 'data' ? { role: edge.kind } : {}),
       ...(annotation.label ? { label: annotation.label } : {}),
       data: cloneJson(annotation.data || {})
     };
