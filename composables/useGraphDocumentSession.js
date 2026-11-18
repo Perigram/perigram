@@ -25,7 +25,7 @@ import {
   registerProcessPortCompatibilityProfile,
   PROCESS_PORT_COMPATIBILITY_PROFILE
 } from '@perigram/processes';
-import { useGraphAuthoringSession } from '~/composables/useGraphAuthoringSession.js';
+import { createGraphAuthoringState, useGraphAuthoringSession } from '~/composables/useGraphAuthoringSession.js';
 import { mintId } from '~/utils/processDesignerIdentity.js';
 
 const operation = (id, version = '1') => ({
@@ -65,8 +65,7 @@ export function createEmptyGraphDocument({ id = stableId('graph'), name = '' } =
 
 export function useGraphDocumentSession({ t, providers = [], graphDocuments = [], queryOrganizationData = null, finalizeExecution = null }) {
   const graphDocument = ref(createEmptyGraphDocument());
-  const nodes = ref([]);
-  const edges = ref([]);
+  const { nodes, edges } = createGraphAuthoringState();
   const validation = ref(null);
   const previewResult = ref(null);
   const executionRecord = ref(null);
