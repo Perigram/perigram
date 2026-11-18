@@ -3546,7 +3546,9 @@
     "selectFile": "Select a file",
     "noFilesAvailable": "No readable files are available",
     "filesCouldNotLoad": "Readable files could not be loaded",
-    "templateValuesNeedPreview": "Run preview after connecting a template to discover its fields."
+    "templateValuesNeedPreview": "Run preview after connecting a template to discover its fields.",
+    "templateSectionJsonHint": "Enter a JSON array for repeated rows, for example [{\"name\":\"Ada\"}].",
+    "templateSectionJsonInvalid": "Section value must be a valid JSON array."
   },
   "generatedScreen": {
     "home": "Home",

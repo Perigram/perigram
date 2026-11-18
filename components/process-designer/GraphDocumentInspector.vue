@@ -95,6 +95,7 @@
           <TemplateValuesControl
             v-else-if="field.schema.semantic?.kind === 'documents.template-values'"
             :tokens="templateTokens"
+            :sections="templateSections"
             :model-value="configFieldValue(field)"
             @update:model-value="value => updateConfigField(field.id, value)"
           />
@@ -157,7 +158,7 @@ const props = defineProps({
   graphRevisions: { type: Array, default: () => [] },
   graphRevisionsLoading: { type: Boolean, default: false },
   graphRevisionsError: { type: String, default: '' },
-  nodeOutput: { type: [Object, String, Number, Boolean], default: null }
+  nodeOutput: { type: [Object, Array, String, Number, Boolean], default: null }
 });
 const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration', 'hydrate-graph', 'select-graph-document']);
 const configDraft = ref({});
@@ -176,10 +177,9 @@ const label = ref('');
 const selectedGraphId = ref('');
 const selectedRevisionId = ref('');
 const isGraphInvocation = computed(() => props.node?.data?.operation?.id === 'perigram.core.use-graph');
-const templateTokens = computed(() => {
-  const output = props.nodeOutput?.value ?? props.nodeOutput;
-  return Array.isArray(output?.meta?.tokens) ? output.meta.tokens : [];
-});
+const templateOutput = computed(() => props.nodeOutput?.value ?? props.nodeOutput);
+const templateTokens = computed(() => Array.isArray(templateOutput.value?.meta?.tokens) ? templateOutput.value.meta.tokens : []);
+const templateSections = computed(() => Array.isArray(templateOutput.value?.meta?.sections) ? templateOutput.value.meta.sections : []);
 const configFields = computed(() => Object.entries(props.node?.data?.definition?.configuration?.properties || {})
   .map(([id, schema]) => ({
     id,
