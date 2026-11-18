@@ -24,6 +24,12 @@ describe('useProcessDesignerGraphSession', () => {
     expect(typeof session.endSocketConnection).toBe('function');
   });
 
+  it('exposes canonical graph migration seams without replacing process-domain persistence', () => {
+    const session = createSession();
+    expect(typeof session.serializeCanonicalGraph).toBe('function');
+    expect(typeof session.loadCanonicalGraph).toBe('function');
+  });
+
   it('exports the preview and palette seams every host mounts', () => {
     const session = createSession();
     expect(typeof session.serializeProcess).toBe('function');
