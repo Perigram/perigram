@@ -177,7 +177,7 @@ from the Plugins page's connector panel. Authoring and hosting
 (including the executor implementations for both modes) is documented
 in the [plugin SDK](../../../packages/plugin-sdk/README.md).
 
-Built-in executor origins are deployment-owned: the documents/facade migration scripts persist `executorOrigin` and `platformManaged`, and the organization settings API refuses attempts to replace those origins or credentials. Third-party endpoint integrations remain configurable at provider scope.
+Built-in executor and surface origins are deployment-owned: the documents/facade migration scripts persist `executorOrigin` and `platformManaged`, and the organization settings API refuses attempts to replace those origins or credentials. The organization settings UI exposes these connections as read-only platform-managed state. Third-party endpoint integrations remain configurable at provider scope.
 
 ### Service-resolved projections
 
