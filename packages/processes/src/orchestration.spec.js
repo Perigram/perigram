@@ -84,8 +84,10 @@ describe('durable process orchestration', () => {
       { id: 'mutation', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'manual' } }
     ], ['values', 'mutation'], [data('values', 'mutation', 'entity')]);
     const graph = processDefinitionToGraphDocument(definition);
-    const executeEffect = vi.fn(async ({ inputs }) => inputs.entity);
+    const preview = await previewProcessDataflow(graph, {}, { catalogContext });
+    expect(preview.nodes.values).toBeDefined();
 
+    const executeEffect = vi.fn(async ({ inputs }) => inputs.entity);
     const run = createProcessRun(graph, {});
     const completed = await runProcessUntilSettled(run, graph, { executeEffect, catalogContext });
 
