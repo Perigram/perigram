@@ -7921,20 +7921,25 @@ Documents runtime rather than a hand-built fixture.
 Remaining work is ordered by the shortest path to human-usable file-backed
 graphs:
 
-- [ ] Add a typed file-reference input control to the graph preview panel.
-  Derive readable file options from the user's registry and use the
-  authorized file read capability; do not make users paste opaque file IDs.
+- [x] Add a typed file-reference input control to the graph preview panel.
+  It derives options from registry file types and access-filtered instance
+  lists; execution still rechecks access through `files.read`.
 - [x] Add a generic `read-file` graph operation returning a typed file
   payload, so binary templates can flow through nodes without endpoint
   coupling.
-- [x] Move XLSX template filling into the shared browser/server runtime,
-  preserving cell formatting, formulas, row sections, merged cells, and
-  worksheet dimensions. Connect it to `read-file` and generic Bake.
+- [x] Move the core XLSX template fill operation into the shared
+  browser/server runtime and connect it to `read-file` and generic Bake.
+  The current implementation copies cell styles and formulas and expands
+  row sections. It does not yet guarantee formula-reference translation,
+  merged-cell expansion, or full row/column metadata preservation; those
+  need focused fixtures before claiming fidelity.
 - [ ] Keep PDF template filling server-managed, but expose it as a typed
   graph operation using the same file/value contract and managed executor.
-- [ ] Add full acceptance coverage for Markdown and XLSX template graphs:
+- [ ] Complete persisted-graph acceptance coverage for Markdown and XLSX:
   select source file → read → fill → preview → Bake to an explicit page/path
-  → reopen the resulting file and verify execution provenance.
+  → reopen the resulting file and verify execution provenance. A server
+  regression now covers the XLSX runtime read → fill → Bake path, but does
+  not yet prove persisted graph authoring, preview, or reopen behavior.
 - [ ] Publish/upgrade the installed Documents catalog and verify the exact
   installed listing/runtime versions used by an organization. Source commits
   alone do not prove the catalog or running executor has upgraded.
@@ -7958,3 +7963,12 @@ preserves styles/formulas, expands row sections, and emits a real XLSX file
 payload. Runtime regressions verify the binary output.
 
 Progress (2026-11-17): The Documents preview channel also renders XLSX graph file payloads as a bounded worksheet table (first 200 rows, 30 columns), with no HTML injection path. The graph output panel selects this channel automatically for XLSX payloads.
+
+Progress (2026-11-18): The file-input picker is implemented in the graph
+preview panel. A new server regression exercises a real XLSX template
+through the Documents shared runtime: authorized `read-file`, section-aware
+`fill-workbook-template`, then generic Bake to an explicit page path. The
+baked bytes are decoded again and checked as an XLSX workbook. This is
+stronger than a hand-built output fixture, but persisted graph authoring and
+reopening the baked file remain outstanding.
+

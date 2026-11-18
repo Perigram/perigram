@@ -50,6 +50,22 @@ expands one-level row sections while carrying row heights and valid merged
 ranges forward. Connect `read-file` to this operation and Bake its resulting
 `documents.file` output through the generic page-file destination.
 
+### File-backed graph workflows
+
+Graph interface inputs whose contract is `documents.file-id` use a readable
+file-instance picker in the graph preview panel; users do not need to paste
+opaque file IDs. The graph can connect that input to `read-file`, which
+uses the authorized `files.read` capability and returns a
+`documents.file` payload. That payload can feed `fill-workbook-template`
+or another file-aware operation, then flow into the generic graph Bake
+operation with an explicit destination page and path.
+
+The shared XLSX filler currently preserves cell style objects and existing
+formula strings while expanding one-level row sections. It does not yet
+translate formula references across repeated rows or guarantee merged-cell
+and complete row/column metadata fidelity. Treat complex workbooks as
+unsupported until those cases have dedicated regression fixtures.
+
 ### Graph file preview
 
 The Documents preview channel accepts actual `text/markdown` and
