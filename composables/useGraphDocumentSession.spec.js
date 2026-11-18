@@ -225,6 +225,26 @@ describe('useGraphDocumentSession', () => {
     });
   });
 
+  it('does not execute durable process control nodes in procedural graph preview', async () => {
+    const graph = processDefinitionToGraphDocument({
+      id: 'process.preview-boundary',
+      dataflowVersion: 4,
+      processNodes: {
+        branch: { id: 'branch', kind: 'control.if', condition: 'truthy' }
+      },
+      graph: {
+        nodes: [{ id: 'branch-node', type: 'processNode', position: { x: 0, y: 0 }, data: { refId: 'branch' } }],
+        edges: []
+      }
+    });
+    const session = createSession();
+    session.loadDocument(graph);
+    await session.refreshPreview();
+    expect(session.previewError.value).toBeTruthy();
+    expect(session.executionRecord.value.status).toBe('failed');
+    expect(session.previewError.value).not.toContain('No runtime is registered');
+  });
+
   it('preserves canonical edge kind and metadata through editor load/save', () => {
     const session = createSession();
     const [inputDefinition, outputDefinition] = session.paletteGroups.value[0].items;
