@@ -50,6 +50,66 @@ describe('useGraphDocumentSession', () => {
     });
   });
 
+  it('preserves Documents file-id semantics through graph boundaries and authorized file reads', async () => {
+    const documents = createDocumentsRuntime();
+    const [provider] = documents.providers;
+    const reads = [];
+    const payload = {
+      fileId: 'file-docs-1',
+      name: 'source.md',
+      mime: 'text/markdown',
+      base64: btoa('# Source document')
+    };
+    const session = useGraphDocumentSession({
+      t: key => key,
+      providers: [{
+        ...provider,
+        execute: (definition, invocation) => documents.execute(definition.id, invocation, {
+          capabilities: {
+            'files.read': async ({ fileId }) => {
+              reads.push(fileId);
+              return payload;
+            }
+          }
+        })
+      }]
+    });
+    const operations = session.paletteGroups.value.flatMap(group => group.items);
+    const readDefinition = provider.definitions.find(definition => definition.id === 'read-file');
+    const fileIdPort = readDefinition.inputs.find(port => port.id === 'fileId');
+    expect(fileIdPort.semantic).toEqual({ base: 'string', kind: 'documents.file-id' });
+
+    const boundaries = session.paletteGroups.value.find(group => group.id === 'graph-boundaries');
+    const input = session.addNode(boundaries.items[0], { x: 0, y: 0 });
+    session.updateBoundaryDeclaration(input.id, {
+      contract: { shape: fileIdPort.shape, semantic: fileIdPort.semantic },
+      required: true
+    });
+    const output = session.addNode(boundaries.items[1], { x: 640, y: 0 });
+    session.updateBoundaryDeclaration(output.id, {
+      contract: { shape: 'item', semantic: { base: 'json', kind: 'documents.file' } },
+      required: true
+    });
+    const read = session.addNode(operations.find(item => item.operation?.id === 'read-file'), { x: 320, y: 0 });
+    session.onConnect({ source: input.id, sourceHandle: 'value', target: read.id, targetHandle: 'fileId' });
+    session.onConnect({ source: read.id, sourceHandle: 'value', target: output.id, targetHandle: 'value' });
+    const inputPortId = session.graphDocument.value.interface.inputs[0].id;
+    session.setGraphInputBinding({ portId: inputPortId, value: payload.fileId });
+
+    expect(session.graphDocument.value.interface.inputs[0].contract.semantic.kind).toBe('documents.file-id');
+    const result = await session.refreshPreview();
+    const outputPortId = session.graphDocument.value.interface.outputs[0].id;
+    expect(reads).toEqual([payload.fileId]);
+    expect(result.outputs[outputPortId].payload).toMatchObject({
+      mime: payload.mime,
+      name: payload.name,
+      base64: payload.base64
+    });
+    expect(session.executionRecord.value.provenance.nodes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ operation: { provider: 'plugin.documents', id: 'read-file', version: '1' } })
+    ]));
+  });
+
   it('uses HAG token metadata and node configuration values in the Markdown template graph operation', async () => {
     const documents = createDocumentsRuntime();
     const [provider] = documents.providers;
