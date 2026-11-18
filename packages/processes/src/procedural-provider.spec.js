@@ -72,6 +72,9 @@ describe('process procedural provider adapter', () => {
     });
     expect(definition.inputs.length + definition.outputs.length).toBeGreaterThan(0);
     expect(definition.inputs[0].semantic).toHaveProperty('role');
+    expect(createProcessGraphNodeDefinition('cts.mutate', {
+      id: 'mutation', kind: 'cts.mutate', typeId: 'type-a'
+    }).execution.kind).toBe('proposal');
   });
 
   it('exposes pure process catalog nodes as provider-qualified contracts', () => {
