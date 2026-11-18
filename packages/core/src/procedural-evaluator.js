@@ -44,6 +44,7 @@ export async function evaluateProceduralGraph({
       context: { ...context, executionId, readSet: readSetRecorder },
       readSetRecorder,
       stack: [],
+      invocationPath: [],
       executionTarget,
       maxGraphDepth
     });
@@ -178,7 +179,12 @@ async function evaluateGraph(options) {
         ...options,
         source: childGraph,
         inputBindings: childInputs,
-        stack: [...options.stack, graphKey]
+        stack: [...options.stack, graphKey],
+        invocationPath: [...options.invocationPath, {
+          graphId: graph.id,
+          graphRevision: graph.revision,
+          nodeId: node.id
+        }]
       });
       phase = 'map-subgraph-outputs';
       const result = childResult.outputs;
@@ -234,7 +240,12 @@ async function evaluateGraph(options) {
       inputs,
       context: options.context,
       mode: 'preview',
-      target: options.executionTarget
+      target: options.executionTarget,
+      invocationPath: [...options.invocationPath, {
+        graphId: graph.id,
+        graphRevision: graph.revision,
+        nodeId: node.id
+      }]
     }), options.context?.signal);
     throwIfAborted(options.context?.signal);
     phase = 'validate-outputs';
