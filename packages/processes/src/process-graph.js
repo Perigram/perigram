@@ -47,10 +47,12 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
       .filter(([key]) => key !== 'graph')
       .map(([key, value]) => {
         if (!referencedRecords[key]) return [key, value];
-        return [key, Object.fromEntries(
+        const remaining = Object.fromEntries(
           Object.entries(value || {}).filter(([id]) => !referencedRecords[key].has(id))
-        )];
+        );
+        return Object.keys(remaining).length ? [key, remaining] : null;
       })
+      .filter(Boolean)
   ));
   const nodes = legacy.nodes.map(node => {
     const refId = String(node.data?.refId || node.id);
