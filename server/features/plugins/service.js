@@ -1,7 +1,7 @@
 // Plugin marketplace service: catalog publication, organization installs,
 // declaration composition, managed execution, and remote service adapters.
 import { createError } from 'h3';
-import { PLUGIN_RUNTIME_WORKER_TYPE } from '#shared/plugin-runtime.js';
+import { PLUGIN_RUNTIME_WORKER_TYPE, PLUGIN_RUNTIME_MAX_EXECUTION_MS } from '#shared/plugin-runtime.js';
 import { createHash, randomBytes } from 'node:crypto';
 import * as repository from './repository.js';
 import { runOrganizationChange } from '../instances/index.js';
@@ -15,7 +15,7 @@ import { findTypeReferences, resolveRunActor } from '../process-definitions/serv
 import { applyTypeRename } from './type-rename.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
-import { enqueueTask } from '../../core/tasks/service.js';
+import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
 import * as filesService from '../files/service.js';
 import { parseListing, normalizeListing } from '#packages/plugin-sdk/listing';
 import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-surfaces.js';
@@ -1007,6 +1007,112 @@ export async function resolveInstalledGraphNodeDefinition({
     }
   };
   return definition;
+}
+
+function managedNodeAbortError(signal) {
+  if (signal?.reason instanceof Error) return signal.reason;
+  const error = new Error(signal?.reason == null ? 'Managed graph node execution was cancelled' : String(signal.reason));
+  error.name = 'AbortError';
+  error.code = 'PLUGIN_EXECUTION_ABORTED';
+  return error;
+}
+
+async function waitForManagedNodeTask(run, { signal, timeoutMs = PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000 } = {}) {
+  const deadline = Date.now() + Math.max(1000, Number(timeoutMs) || PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000);
+  while (true) {
+    if (signal?.aborted) {
+      await cancelTaskRun(run._id, 'Graph execution was cancelled').catch(() => {});
+      throw managedNodeAbortError(signal);
+    }
+    const current = await getTaskRunById(run._id);
+    if (!current) throw createError({ statusCode: 404, message: 'Managed graph node task disappeared' });
+    if (current.status === 'SUCCEEDED') {
+      if (current.output?.ok === false) {
+        throw createError({ statusCode: 502, message: current.output?.error?.message || 'Managed graph node failed' });
+      }
+      const data = current.output?.data;
+      if (!data || !Object.hasOwn(data, 'output')) {
+        throw createError({ statusCode: 502, message: 'Managed graph node completed without an output value' });
+      }
+      return data.output;
+    }
+    if (['FAILED', 'CANCELLED'].includes(current.status)) {
+      throw createError({
+        statusCode: current.status === 'CANCELLED' ? 409 : 502,
+        message: current.error?.message || current.output?.error?.message || `Managed graph node ended in ${current.status}`
+      });
+    }
+    if (Date.now() >= deadline) {
+      await cancelTaskRun(run._id, 'Managed graph node deadline exceeded').catch(() => {});
+      throw createError({ statusCode: 504, message: 'Managed graph node execution deadline exceeded' });
+    }
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+}
+
+// Execute one pure/read graph node through the same isolated platform worker
+// used by plugin services. Each child task carries the parent graph execution
+// id and the installed package pin; no user-supplied executor URL is involved.
+export async function executeManagedGraphNode(definition, invocation = {}, auth = {}) {
+  const pin = definition?.packagePin || {};
+  const organizationId = String(auth.organizationId || auth.memberships?.[0]?.organizationId || '');
+  const pluginId = String(pin.pluginId || '');
+  const version = String(pin.version || '');
+  const runtimeId = String(pin.runtimeId || '');
+  const operationId = String(pin.operationId || definition?.id || '');
+  if (!organizationId || !pluginId || !version || !runtimeId || !operationId) {
+    throw createError({ statusCode: 400, message: 'Managed graph node package pin is incomplete' });
+  }
+  if (!['pure', 'read'].includes(definition.execution?.kind)) {
+    throw createError({ statusCode: 403, message: `Graph preview cannot execute ${definition.execution?.kind || 'unclassified'} operation ${definition.id}` });
+  }
+  const install = await repository.findInstall(organizationId, pluginId);
+  if (!install || String(install.version) !== version) {
+    throw createError({ statusCode: 409, message: 'Installed plugin package changed after graph provider resolution' });
+  }
+  const service = (install.services || []).find(item => String(item.id) === operationId);
+  const runtime = (install.declarations?.runtimes || []).find(item => String(item.id) === runtimeId);
+  if (!service || service.execution?.runtime !== runtimeId
+    || !service.execution?.targets?.includes('server')
+    || !runtime?.targets?.includes('server')
+    || runtime.language !== 'javascript'
+    || String(service.nodeVersion || '1') !== String(definition.version)) {
+    throw createError({ statusCode: 409, message: 'Installed graph node declaration changed after provider resolution' });
+  }
+
+  const taskId = `plugin.${pluginId}.${operationId}`;
+  const executionId = String(invocation.context?.executionId || '');
+  const nodeId = String(invocation.node?.id || operationId);
+  const taskInput = {
+    parameters: {
+      value: {
+        pluginId,
+        version,
+        runtimeId,
+        operationId,
+        input: {
+          mode: 'preview',
+          config: invocation.config || {},
+          inputs: invocation.inputs || {},
+          nodeId,
+          executionId
+        }
+      }
+    }
+  };
+  const run = await enqueueTask(taskId, taskInput, { ...auth, organizationId }, {
+    definition: taskContractFor(taskId, install, organizationId),
+    workerType: PLUGIN_RUNTIME_WORKER_TYPE,
+    maxAttempts: 1,
+    parentRunId: invocation.context?.parentRunId || null,
+    idempotencyKey: executionId
+      ? `graph-node:${executionId}:${nodeId}`
+      : null
+  });
+  return await waitForManagedNodeTask(run, {
+    signal: invocation.context?.signal,
+    timeoutMs: invocation.context?.remainingExecutionMs || PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000
+  });
 }
 
 export async function managedRuntimePackageForTask(run = {}) {
