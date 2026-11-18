@@ -770,10 +770,10 @@ function processNodeRecord(process, node) {
   if (raw.operation?.provider === PROCESS_GRAPH_PROVIDER && !operationId.startsWith('canvas-node.')) {
     return raw.config?.record
       ? structuredClone(raw.config.record)
-      : { ...structuredClone(raw.config || {}), id: refId, kind: operationId };
+      : { ...structuredClone(raw.config || {}), id: refId, kind: operationId.replace(/^process-node\\./, '') };
   }
   if (raw.operation?.id === 'canvas-node.stateDefinition') {
-    return process.stateDefinitions?.[refId] || null;
+    return raw.config?.record || process.stateDefinitions?.[refId] || null;
   }
   return null;
 }
