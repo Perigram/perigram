@@ -206,10 +206,76 @@ export async function evaluateSavedGraph({
         unverifiedCapabilities: [...providerCapabilities].sort()
       }
     };
+  } catch (error) {
+    error.graphExecution = {
+      ...source,
+      executionId,
+      providerPins: [...providerPins.values()],
+      providerCapabilities: [...providerCapabilities].sort(),
+      nodeInvocations,
+      graphInvocations
+    };
+    throw error;
   } finally {
     clearTimeout(deadlineTimer);
     externalSignal?.removeEventListener('abort', abortFromExternal);
   }
+}
+
+export async function evaluateAndRecordSavedGraphPreview(args = {}, auth = {}) {
+  const executionId = randomUUID();
+  const startedAt = new Date().toISOString();
+  let result = null;
+  let failure = null;
+  try {
+    result = await evaluateSavedGraph({
+      ...args,
+      context: { ...(args.context || {}), executionId }
+    }, auth);
+  } catch (error) {
+    failure = error;
+    result = error.graphExecution || null;
+    if (!result) throw error;
+  }
+
+  const source = result;
+  const completedAt = new Date().toISOString();
+  const readSet = failure?.readSet || result.readSet || {
+    instances: [], relations: [], queries: [], unverifiedCapabilities: []
+  };
+  const diagnostics = failure
+    ? (Array.isArray(failure.diagnostics) ? failure.diagnostics : [{
+      code: failure.code || 'graph-evaluation-failed',
+      severity: 'error',
+      phase: 'graph',
+      graphId: source.graph.id,
+      graphRevision: source.graph.revision,
+      nodeId: failure.nodeId || null,
+      message: String(failure.message || failure)
+    }])
+    : (result.diagnostics || []);
+  const record = createGraphExecutionRecord({
+    id: executionId,
+    graph: { id: source.graph.id, revision: source.graph.revision },
+    profile: 'procedural-preview',
+    status: failure ? (failure.name === 'AbortError' ? 'cancelled' : 'failed') : 'succeeded',
+    startedAt,
+    completedAt,
+    inputs: args.inputBindings || {},
+    outputs: failure ? {} : result.outputs,
+    nodeOutputs: failure ? {} : result.nodeOutputs,
+    diagnostics,
+    provenance: {
+      nodes: result.nodeInvocations || [],
+      invocations: result.graphInvocations || [],
+      providers: result.providerPins || [],
+      capabilities: result.providerCapabilities || []
+    },
+    readSet,
+    artifacts: []
+  });
+  const instance = await persistRecord(record, source.graphDocument, source.organizationId, auth);
+  return { execution: record, instance };
 }
 
 function expectedSequenceForReadSet(readSet) {
