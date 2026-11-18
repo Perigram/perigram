@@ -154,11 +154,21 @@ function normalizeGraphEdge(edge = {}) {
   if (!isRecord(edge)) throw new Error('Graph edges must be objects');
   const source = isRecord(edge.source) ? edge.source : {};
   const target = isRecord(edge.target) ? edge.target : {};
-  return {
+  const normalized = {
     id: requiredString(edge.id, 'Edge id'),
     source: { node: requiredString(source.node, 'Edge source node'), port: requiredString(source.port, 'Edge source port') },
     target: { node: requiredString(target.node, 'Edge target node'), port: requiredString(target.port, 'Edge target port') }
   };
+  if (edge.kind != null) {
+    normalized.kind = requiredString(edge.kind, 'Edge kind');
+  }
+  if (edge.metadata != null) {
+    if (!isJsonValue(edge.metadata) || !isRecord(edge.metadata)) {
+      throw new Error(`Edge ${normalized.id} metadata must be a JSON object`);
+    }
+    normalized.metadata = cloneJson(edge.metadata);
+  }
+  return normalized;
 }
 
 function normalizeInterfacePorts(ports, direction) {
