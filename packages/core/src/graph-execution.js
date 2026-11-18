@@ -38,7 +38,7 @@ export function createGraphExecutionRecord(source = {}) {
     nodeOutputs: cloneJson(source.nodeOutputs || {}),
     diagnostics: cloneJson(source.diagnostics || []),
     provenance: cloneJson(source.provenance || { nodes: [], invocations: [] }),
-    readSet: cloneJson(source.readSet || { instances: [], relations: [], queries: [] }),
+    readSet: normalizeReadSet(source.readSet),
     artifacts: cloneJson(source.artifacts || [])
   };
   const problems = validateGraphExecutionRecord(record);
@@ -68,8 +68,9 @@ export function validateGraphExecutionRecord(record) {
   if (!isRecord(record.provenance) || !Array.isArray(record.provenance.nodes) || !Array.isArray(record.provenance.invocations)) {
     problems.push(issue('invalid-provenance', 'provenance', 'Provenance requires node and invocation arrays'));
   }
-  if (!isRecord(record.readSet) || !['instances', 'relations', 'queries'].every(key => Array.isArray(record.readSet[key]))) {
-    problems.push(issue('invalid-read-set', 'readSet', 'Read set requires instances, relations, and queries arrays'));
+  if (!isRecord(record.readSet) || !['instances', 'relations', 'queries'].every(key => Array.isArray(record.readSet[key]))
+    || (record.readSet.files !== undefined && !Array.isArray(record.readSet.files))) {
+    problems.push(issue('invalid-read-set', 'readSet', 'Read set requires instances, relations, and queries arrays; files must be an array when present'));
   }
   for (const key of ['startedAt', 'completedAt']) {
     if (record[key] != null && (!Number.isFinite(Date.parse(record[key])))) {
@@ -90,6 +91,15 @@ export function assertValidGraphExecutionRecord(record) {
     throw error;
   }
   return record;
+}
+
+function normalizeReadSet(source = {}) {
+  const readSet = cloneJson(source || {});
+  if (!Array.isArray(readSet.instances)) readSet.instances = [];
+  if (!Array.isArray(readSet.relations)) readSet.relations = [];
+  if (!Array.isArray(readSet.queries)) readSet.queries = [];
+  if (!Array.isArray(readSet.files)) readSet.files = [];
+  return readSet;
 }
 
 function isStableId(value) {

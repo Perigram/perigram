@@ -5,7 +5,8 @@ const EMPTY_READ_SET = Object.freeze({
   organizationSequenceEnd: null,
   instances: [],
   relations: [],
-  queries: []
+  queries: [],
+  files: []
 });
 
 // A single execution-scoped recorder shared by parent and pinned child
@@ -17,6 +18,7 @@ export function createGraphReadSetRecorder(initial = {}) {
   const instances = new Map();
   const relations = new Map();
   const queries = new Map();
+  const files = new Map();
 
   function recordInstance(read = {}) {
     const typeId = requiredString(read.typeId, 'instance typeId');
@@ -88,6 +90,16 @@ export function createGraphReadSetRecorder(initial = {}) {
     return entry;
   }
 
+  function recordFile(read = {}) {
+    const entry = {
+      fileId: requiredString(read.fileId, 'file id'),
+      contentHash: requiredString(read.contentHash, 'file content hash'),
+      organizationId: optionalString(read.organizationId)
+    };
+    files.set(stableJson(entry), entry);
+    return entry;
+  }
+
   function setConsistency(next = {}) {
     if (!hasBoundaryDeclaration(next)) return toJSON();
     const candidate = normalizeBoundary(next);
@@ -124,11 +136,12 @@ export function createGraphReadSetRecorder(initial = {}) {
       ...snapshot,
       instances: [...instances.values()].sort(compareEntry),
       relations: [...relations.values()].sort(compareEntry),
-      queries: [...queries.values()].sort(compareEntry)
+      queries: [...queries.values()].sort(compareEntry),
+      files: [...files.values()].sort(compareEntry)
     };
   }
 
-  return Object.freeze({ recordInstance, recordRelation, recordQuery, setConsistency, toJSON });
+  return Object.freeze({ recordInstance, recordRelation, recordQuery, recordFile, setConsistency, toJSON });
 }
 
 export function emptyGraphReadSet() {
