@@ -167,7 +167,7 @@ export function graphDocumentToProcessDefinition(graphSource) {
       ...(!annotation.syntheticDeclarationPorts ? { sourceHandle: edge.source.port } : {}),
       target: edge.target.node,
       ...(!annotation.syntheticDeclarationPorts ? { targetHandle: edge.target.port } : {}),
-      ...(annotation.type ? { type: annotation.type } : {}),
+      ...(annotation.type && annotation.type !== 'default' ? { type: annotation.type } : {}),
       ...(annotation.syntheticDeclarationPorts
         ? (annotation.originalRole ? { role: annotation.originalRole } : {})
         : (edge.kind && edge.kind !== 'data' ? { role: edge.kind } : {})),
