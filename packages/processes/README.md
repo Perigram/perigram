@@ -12,10 +12,13 @@ and procedural evaluator are owned by [@perigram/core](../core/README.md#canonic
 The existing CTS process-definition record shape and compiler are a legacy
 migration source. They preserve domain-specific declaration, authorization,
 and workflow semantics while being adapted to the canonical graph model.
-They are not a second graph platform: no new generic graph format, socket
-algebra, provider registry, canvas protocol, or reusable-subgraph mechanism
-may be added here. The process execution profile may retain durable scheduling
-and lifecycle semantics, but consumes the shared graph and node contracts.
+The Plugin SDK owns the provider-neutral compatibility registry; Processes
+registers the CTS-specific compatibility profile because its nominal type,
+block, access, and cardinality rules belong to this domain. The process
+execution profile may retain durable scheduling and lifecycle semantics,
+but consumes the shared graph and node contracts. No second generic graph
+format, socket algebra, provider registry, canvas protocol, or subgraph
+mechanism belongs here.
 
 Executable records remain species records from authored graph through
 resolution, validation, compilation, orchestration, server execution, and
@@ -55,7 +58,7 @@ Each gesture has its removal twin:
 | Declaration tree | `declareClass`/`declareField`/`declareTypeRef`/`declareState` plus `wireDeclaration` (declares/targets/children/binds/entry wires), gated by `declarationWireLegality`, interpreted by `interpretDeclarationEdges` | `unwireDeclaration` |
 | Palette drop | record factory + preset; a construct's type binding is its `binds` declaration wire (class or type reference wired onto the construct) — `configure` refuses `typeId` on a construct and validation reports an unbound one | `removeNode` — removes the node with its record, its wires, and the producer outputs it anchored (join selections pointing at removed outputs reset) |
 | Record configuration | the same writes the inspector performs — record semantics, socket input defaults (typed scalars; the entityRef picker writes `{type, id}`), and the declaration nodes' authored fields (state `value`/`label`/`severity`/`icon`, class `name`/`glyph`, field `name`/`descriptor`) | — |
-| Connection | `processSocketsCompatible` (the canvas gate); wire gestures address socket handles — `data:<id>` for data sockets, `control:<id>` for control; bare ids and the retired `input:`/`output:` spellings refuse; `ports.js` mints them on the stored edge; a typed source into a configured socket retypes the target record before the gate (`propagateConnectionType`, one home shared with the canvas gesture) | `disconnect` |
+| Connection | the shared Plugin SDK port-compatibility registry invokes the Processes CTS profile for nominal type, block, access, and cardinality checks; the process authoring adapter still projects legacy `data:<id>` and `control:<id>` handles until G10 removes that storage vocabulary; typed source inference remains a process-domain authoring rule | `disconnect` |
 
 An effect's trigger mode derives from the graph on every sync
 (`effectTriggerFor`): a wired event socket wins; an unwired entry with an
