@@ -54,7 +54,7 @@ self.onmessage = async () => {
       worker.onerror = event => { worker.terminate(); reject(new Error(event.message)); };
       worker.postMessage({ type: 'run' });
     }));
-    expect(result.parsed.value).toMatchObject({
+    expect(result.parsed).toMatchObject({
       type: 'text.flow-document',
       blocks: [
         { type: 'heading', level: 1 },
