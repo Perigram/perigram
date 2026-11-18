@@ -497,6 +497,18 @@ describe('graph execution service', () => {
       ['Item', 'Widget'],
       ['Item', 'Gear']
     ]);
+    const workbookGraph = {
+      ...graph(),
+      interface: {
+        ...graph().interface,
+        outputs: [{
+          id: 'workbook',
+          label: 'Workbook',
+          contract: { shape: 'item', semantic: { base: 'json', kind: 'documents.file' } }
+        }]
+      }
+    };
+    mocks.getFileBuffer.mockResolvedValueOnce(Buffer.from(JSON.stringify(workbookGraph)));
     const record = createGraphExecutionRecord({ ...preview(), outputs: { workbook: filled } });
     const result = await graphExecutionsService.bakeOutput({
       graphDocumentInstanceId: 'graph-instance-1',
