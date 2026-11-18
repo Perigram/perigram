@@ -9,15 +9,15 @@ import {
   transitionProcessStep
 } from './orchestration.js';
 import { isMissingField } from './missing-field.js';
-import { processDefinitionToGraphDocument, graphDocumentToProcessDefinition } from './process-graph.js';
+import { processDefinitionToGraphDocument } from './process-graph.js';
 
 function process(records, nodes, edges) {
-  return {
+  return processDefinitionToGraphDocument({
     id: 'definition',
     dataflowVersion: 4,
     processNodes: Object.fromEntries(records.map(record => [record.id, record])),
     graph: { nodes: nodes.map(id => ({ id, type: 'processNode', data: { refId: id } })), edges }
-  };
+  });
 }
 
 const control = (source, sourceHandle, target) => ({
@@ -87,7 +87,7 @@ describe('durable process orchestration', () => {
       data('values', 'mutation', 'entity'),
       control('mutation', 'completed', 'stop')
     ]);
-    const graph = processDefinitionToGraphDocument(definition);
+    const graph = definition;
     expect(graph.nodes.find(node => node.id === 'mutation')).toMatchObject({
       operation: { provider: 'perigram.processes', id: 'cts.mutate', version: '1' },
       config: { refId: 'mutation', record: { id: 'mutation', kind: 'cts.mutate' } }
