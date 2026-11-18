@@ -1399,7 +1399,13 @@ describe('graph execution service', () => {
       })
     }), 'user-1', 'org-1');
     expect(result.file.fileId).toBe('baked-file-1');
-    expect(result.execution._id).toBe('execution-instance-1');
+    expect(result.execution.artifacts).toEqual([expect.objectContaining({
+      kind: 'page-file',
+      pageId: 'page-1',
+      fileId: 'baked-file-1',
+      outputId: 'document'
+    })]);
+    expect(result.persisted._id).toBe('execution-instance-1');
   });
 
   it('refuses Export when a preview consumed capabilities without verifiable read evidence', async () => {

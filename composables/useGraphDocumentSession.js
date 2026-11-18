@@ -25,6 +25,9 @@ const operation = (id, version = '1') => ({
 });
 
 const stableId = prefix => mintId(prefix).replaceAll('_', '-');
+// Graph contracts are JSON data; clone through JSON so Vue reactive proxies
+// (the catalog projection) never reach structuredClone.
+const cloneJson = value => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)));
 const isJsonValue = (value, seen = new Set()) => {
   if (value === null || ['string', 'boolean'].includes(typeof value)) return true;
   if (typeof value === 'number') return Number.isFinite(value);
@@ -146,8 +149,8 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
               graphId: graph.id,
               revision: graph.revision,
               interface: {
-                inputs: graph.interface.inputs.map(port => structuredClone(port)),
-                outputs: graph.interface.outputs.map(port => structuredClone(port))
+                inputs: graph.interface.inputs.map(port => cloneJson(port)),
+                outputs: graph.interface.outputs.map(port => cloneJson(port))
               }
             }
           }))
@@ -426,14 +429,14 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
         inputs: graph.interface.inputs.map(port => ({
           id: port.id,
           label: port.label,
-          contract: structuredClone(port.contract),
+          contract: cloneJson(port.contract),
           required: port.required,
-          ...(Object.hasOwn(port, 'default') ? { default: structuredClone(port.default) } : {})
+          ...(Object.hasOwn(port, 'default') ? { default: cloneJson(port.default) } : {})
         })),
         outputs: graph.interface.outputs.map(port => ({
           id: port.id,
           label: port.label,
-          contract: structuredClone(port.contract),
+          contract: cloneJson(port.contract),
           required: port.required
         }))
       }
@@ -463,9 +466,9 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
     if (Object.hasOwn(declaration, 'default') && !isJsonValue(declaration.default)) {
       throw new Error('The default value must be JSON-compatible');
     }
-    port.contract = structuredClone(contract);
+    port.contract = cloneJson(contract);
     port.required = declaration.required !== false;
-    if (Object.hasOwn(declaration, 'default')) port.default = structuredClone(declaration.default);
+    if (Object.hasOwn(declaration, 'default')) port.default = cloneJson(declaration.default);
     else delete port.default;
     nodes.value = nodes.value.map(item => item.id === nodeId ? enrichNode(item) : item);
   }
@@ -501,7 +504,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
       target: edge.target.node,
       targetHandle: edge.target.port,
       ...(edge.kind ? { kind: edge.kind } : {}),
-      ...(edge.metadata ? { metadata: structuredClone(edge.metadata) } : {}),
+      ...(edge.metadata ? { metadata: cloneJson(edge.metadata) } : {}),
       type: 'default'
     }));
     selection.reset();

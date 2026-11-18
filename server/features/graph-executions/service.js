@@ -1370,8 +1370,8 @@ export async function bakeOutput({ graphDocumentInstanceId, record: value, outpu
     }]
   });
   try {
-    const execution = await persistRecord(bakeRecord, graphDocument, organizationId, auth);
-    return { ...baked, execution };
+    const persisted = await persistRecord(bakeRecord, graphDocument, organizationId, auth);
+    return { ...baked, execution: bakeRecord, persisted };
   } catch (error) {
     try {
       const rollback = await pagesService.retractBakedFile({ pageId: destination.pageId, fileId: baked.file.fileId }, auth);

@@ -26,16 +26,17 @@ export default async function globalSetup() {
       throw new Error(`App responded with ${health.status()} from /api/auth/me`);
     }
 
-    let login = await loginRequest(context, RUN_EMAIL);
-
-    if (login.status() === 401 && E2E_REGISTER_ON_LOGIN_FAILURE) {
+    // A fresh identity is provisioned through registration first: the dev
+    // error renderer turns a 401 POST into a 500, so probing login cannot
+    // distinguish a missing account from a server failure.
+    if (E2E_REGISTER_ON_LOGIN_FAILURE) {
       await registerE2eUser(context, RUN_EMAIL);
-      login = await loginRequest(context, RUN_EMAIL);
-    }
-
-    if (!login.ok()) {
-      const body = await safeResponseText(login);
-      throw new Error(`E2E login failed (${login.status()}). Check E2E_USER_EMAIL/E2E_USER_PASSWORD and E2E_ORG_ID. ${body}`);
+    } else {
+      const login = await loginRequest(context, RUN_EMAIL);
+      if (!login.ok()) {
+        const body = await safeResponseText(login);
+        throw new Error(`E2E login failed (${login.status()}). Check E2E_USER_EMAIL/E2E_USER_PASSWORD/E2E_ORG_ID. ${body}`);
+      }
     }
 
     await mkdir(dirname(E2E_AUTH_STATE), { recursive: true });

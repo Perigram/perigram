@@ -283,6 +283,7 @@ function bindCanvasFrame(instance) {
 }
 
 function openActivitySurface() {
+  canvasFrame?.setPanel?.('inspector', false);
   canvasFrame?.openPanel?.('support');
 }
 
@@ -583,5 +584,8 @@ props.pageChrome?.bind?.(Object.assign(
 
 onMounted(async () => {
   await Promise.all([loadGraphDocument(), loadGraphCatalog(), loadGraphProviders()]);
+  // A preview requested while the provider workers were still loading
+  // resolves again once every registered operation is available.
+  if (previewResult.value || previewError.value) await refreshPreviewAndRecord();
 });
 </script>

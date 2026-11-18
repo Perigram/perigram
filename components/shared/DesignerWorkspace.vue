@@ -49,6 +49,9 @@
       <aside v-if="hasInspector && !compact && panels.inspector" class="designer-workspace__rail absolute top-3 bottom-3 right-3 z-20 w-[22rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border shadow-overlay" :class="chromeVariant === 'floating' ? 'bg-content/85 backdrop-blur-md' : 'bg-content'">
         <slot name="inspector" />
       </aside>
+      <aside v-if="hasSupport && !compact && panels.support" class="designer-workspace__rail designer-workspace__support absolute top-3 bottom-3 right-3 z-20 w-[22rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border shadow-overlay" :class="chromeVariant === 'floating' ? 'bg-content/85 backdrop-blur-md' : 'bg-content'">
+        <slot name="support" />
+      </aside>
     </main>
 
     <!-- One floating toolbar owns every designer command: panel toggles and

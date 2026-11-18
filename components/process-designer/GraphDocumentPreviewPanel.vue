@@ -73,6 +73,7 @@
         :options="outputOptions"
         option-label="label"
         option-value="_id"
+        :aria-label="$t('processDesigner.graphOutput')"
         class="w-full"
       />
       <div v-if="execution" class="text-supporting text-muted">{{ $t('processDesigner.previewExecution') }} · {{ execution.status }} · {{ execution.id }}</div>
@@ -167,6 +168,7 @@
         :options="pageOptions"
         option-label="label"
         option-value="_id"
+        :aria-label="$t('processDesigner.pageDestination')"
         class="w-full"
         :placeholder="$t('processDesigner.selectPage')"
       />
@@ -179,6 +181,7 @@
         :options="conflictOptions"
         option-label="label"
         option-value="value"
+        :aria-label="$t('processDesigner.conflictPolicy')"
         class="w-full"
       />
       <Button

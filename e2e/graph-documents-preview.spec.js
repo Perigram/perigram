@@ -7,6 +7,7 @@ import { test, expect } from './fixtures.js';
 test('saved Documents graph renders its Markdown file through the Documents preview channel', async ({ app }) => {
   test.setTimeout(180_000);
   await app.installPlugins(['tech-drawing', 'documents']);
+  await app.seedSpeciesProcess({ types: ['graph-document'], via: { 'graph-document': 'editor' } });
 
   const graph = {
     format: 'perigram.graph',
@@ -86,7 +87,7 @@ test('saved Documents graph renders its Markdown file through the Documents prev
   await expect(markdownInput).toBeVisible({ timeout: 15_000 });
   await markdownInput.fill('# Graph preview E2E\n\nRendered by the installed Documents plugin.');
   await page.getByRole('button', { name: /apply input/i }).click();
-  await page.getByRole('button', { name: /inspect/i }).click();
+  await page.getByRole('button', { name: 'Inspect', exact: true }).click();
 
   const previewFrame = page.locator('iframe[title$=".md"]').first();
   await expect(previewFrame).toBeVisible({ timeout: 45_000 });
@@ -105,10 +106,10 @@ test('saved Documents graph renders its Markdown file through the Documents prev
 
   // Bake the selected Documents file into a real Page, then reopen the
   // Page through the read API and verify the persisted file bytes.
-  await page.getByLabel('Page destination').click();
+  await page.getByLabel('Destination page').click();
   await page.getByRole('option', { name: pageName }).click();
   const bakedPath = 'documents/preview-e2e.md';
-  await page.getByLabel('Page file path').fill(bakedPath);
+  await page.getByLabel('Relative file path').fill(bakedPath);
   const bakeResponse = page.waitForResponse(response => (
     response.url().includes('/api/graph-executions/bake') && response.request().method() === 'POST'
   ));
@@ -149,6 +150,7 @@ test('saved Documents graph renders its Markdown file through the Documents prev
 test('typed Documents blocks preview and Bake Markdown and HTML files with provenance', async ({ app }) => {
   test.setTimeout(240_000);
   await app.installPlugins(['tech-drawing', 'documents']);
+  await app.seedSpeciesProcess({ types: ['graph-document'], via: { 'graph-document': 'editor' } });
 
   const graph = {
     format: 'perigram.graph',
@@ -205,7 +207,7 @@ test('typed Documents blocks preview and Bake Markdown and HTML files with prove
   await expect(bodyInput).toBeVisible({ timeout: 15_000 });
   await bodyInput.fill('A typed paragraph from the Documents graph.');
   await page.getByRole('button', { name: /apply input/i }).click();
-  await page.getByRole('button', { name: /inspect/i }).click();
+  await page.getByRole('button', { name: 'Inspect', exact: true }).click();
 
   const markdownFrame = page.locator('iframe[title$=".md"]').first();
   await expect(markdownFrame).toBeVisible({ timeout: 45_000 });
@@ -224,9 +226,9 @@ test('typed Documents blocks preview and Bake Markdown and HTML files with prove
       await expect(htmlFrame).toBeVisible({ timeout: 45_000 });
       expect(await htmlFrame.getAttribute('srcdoc')).toContain('A typed paragraph from the Documents graph.');
     }
-    await page.getByLabel('Page destination').click();
+    await page.getByLabel('Destination page').click();
     await page.getByRole('option', { name: pageName }).click();
-    await page.getByLabel('Page file path').fill(filePath);
+    await page.getByLabel('Relative file path').fill(filePath);
     const responsePromise = page.waitForResponse(response => response.url().includes('/api/graph-executions/bake') && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Bake output' }).click();
     const response = await responsePromise;
@@ -271,6 +273,7 @@ test('typed Documents blocks preview and Bake Markdown and HTML files with prove
 test('the graph palette searches installed Documents operations and places a typed node', async ({ app }) => {
   test.setTimeout(120_000);
   await app.installPlugins(['tech-drawing', 'documents']);
+  await app.seedSpeciesProcess({ types: ['graph-document'], via: { 'graph-document': 'editor' } });
   const graph = {
     format: 'perigram.graph',
     version: 1,
@@ -288,13 +291,13 @@ test('the graph palette searches installed Documents operations and places a typ
   await expect(app.page.locator('.process-designer-canvas').first()).toBeVisible({ timeout: 30_000 });
 
   await app.page.getByRole('button', { name: 'Document blocks', exact: true }).click();
-  const search = app.page.getByRole('searchbox', { name: 'Search operations' });
+  const search = app.page.getByRole('searchbox', { name: 'Search nodes' });
   await expect(search).toBeVisible();
   await search.fill('Paragraph');
   const paragraph = app.page.getByRole('button', { name: 'Paragraph', exact: true });
   await expect(paragraph).toBeVisible();
   await paragraph.click();
-  await expect(app.page.getByText('Paragraph', { exact: true })).toBeVisible();
+  await expect(app.page.locator('.vue-flow__node-graphNode').filter({ hasText: 'Paragraph' })).toBeVisible();
   await expect(app.page.locator('.vue-flow__node-graphNode')).toHaveCount(1);
   await app.expectCleanRuntime();
 });

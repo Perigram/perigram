@@ -1,7 +1,7 @@
 <template>
   <nav
-    class="absolute left-3 top-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap items-start gap-x-4 gap-y-1"
-    :class="variant === 'floating' ? 'rounded-ui border border-content-border bg-content/85 p-2 shadow-overlay backdrop-blur-md' : ''"
+    class="absolute left-3 top-3 z-20 flex flex-wrap items-start gap-x-4 gap-y-1"
+    :class="variant === 'floating' ? 'max-w-[calc(50%-8rem)] rounded-ui border border-content-border bg-content/85 p-2 shadow-overlay backdrop-blur-md' : 'max-w-[calc(100%-1.5rem)]'"
     data-designer-palette-strip
     :aria-label="$t('processDesigner.paletteDock')"
   >

@@ -39,9 +39,18 @@ if (paths.some(path => resolve(path) === resolve('workers/documents/listing.json
 const prepared = paths.map(path => {
   const listing = normalizeListing(JSON.parse(readFileSync(path, 'utf8')));
   const packageRoot = resolve('workers', listing.pluginId);
-  const assets = (listing.declarations.runtimes || []).flatMap(runtime =>
-    collectRuntimeAssetFiles(packageRoot, runtime.entry, runtime.language)
-  );
+  const declaredAssets = [
+    ...(listing.declarations.runtimes || []).map(runtime => ({ entry: runtime.entry, language: runtime.language })),
+    ...(listing.declarations.surfaces || []).map(surface => ({ entry: surface.module, language: 'javascript' }))
+  ];
+  const byPath = new Map();
+  for (const { entry, language } of declaredAssets) {
+    if (!entry) continue;
+    for (const asset of collectRuntimeAssetFiles(packageRoot, entry, language)) {
+      byPath.set(asset.path, asset);
+    }
+  }
+  const assets = [...byPath.values()].sort((a, b) => a.path.localeCompare(b.path));
   return { listing, assets };
 });
 

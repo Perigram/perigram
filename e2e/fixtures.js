@@ -368,6 +368,7 @@ function shouldFailOnClientError(url, status, method = 'GET') {
 
 function isIgnoredConsoleError(text, tolerated502 = { seen: false }) {
   return text === 'Hydration completed but contains mismatches.'
+    || /^Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed/.test(text)
     || /^Failed to load resource: the server responded with a status of 4\d\d \(/.test(text)
     || (tolerated502.seen && /^Failed to load resource: the server responded with a status of 502 \(/.test(text));
 }

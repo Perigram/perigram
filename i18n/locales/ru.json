@@ -3547,7 +3547,7 @@
     "noFilesAvailable": "Нет доступных для чтения файлов",
     "filesCouldNotLoad": "Не удалось загрузить список файлов",
     "templateValuesNeedPreview": "Запустите предпросмотр после подключения шаблона, чтобы определить его поля.",
-    "templateSectionJsonHint": "Введите JSON-массив повторяющихся строк, например [{\"name\":\"Ада\"}].",
+    "templateSectionJsonHint": "Введите JSON-массив повторяющихся строк, например [{'{'}\"name\":\"Ада\"{'}'}].",
     "templateSectionJsonInvalid": "Значение секции должно быть корректным JSON-массивом."
   },
   "generatedScreen": {
