@@ -106,9 +106,10 @@ provider discovery → typed authoring → preview → file export → Bake.
   `c57487d`. Added SSR component coverage for metadata-to-form wiring in the
   legacy HAG dialog and graph inspector, plus the JSON-array draft contract.
   Full Vitest, SSR, architecture, framework, documentation, and plugin-
-  dependency checks passed on staging commit `37b8e8f`. The subsequent
-  Markdown graph-file E2E provenance assertion and this TODO reconciliation
-  are newer and await their own CI run. Remaining: template graph fill preview/Bake/reopen parity and
+  dependency checks passed on staging commit `37b8e8f`. Subsequent Markdown
+  Bake-provenance and XLSX HAG Playwright additions plus documentation
+  reconciliation are newer and await their own CI run; Playwright itself has
+  not been executed. Remaining: template graph fill preview/Bake/reopen parity and
   its persisted provenance. PDF graph exposure remains open pending a typed
   PDF operation/provider, compatible managed runtime adapter, and format
   acceptance; server execution now exists for managed JavaScript pure/read
