@@ -27,6 +27,7 @@ export function useProcessDesignerTypes({
   const servedEditors = ref([]);
   const servedPreviewChannels = ref([]);
   const servedClientEngines = ref([]);
+  const servedClientRuntimes = ref([]);
   const servedCommands = ref([]);
   const servedSystemTypes = ref([]);
   const designer = reactive({});
@@ -196,6 +197,7 @@ export function useProcessDesignerTypes({
         servedEditors.value = response.editors || [];
         servedPreviewChannels.value = response.previewChannels || [];
         servedClientEngines.value = response.clientEngines || [];
+        servedClientRuntimes.value = response.clientRuntimes || [];
         resetCtsRegistry();
         refreshDesignerFromTypes();
         syncNow();
@@ -313,6 +315,7 @@ export function useProcessDesignerTypes({
     servedCommands,
     servedPreviewChannels,
     servedClientEngines,
+    servedClientRuntimes,
     resetCtsRegistry,
     refreshTreeOverlay,
     refreshDesignerFromTypes,
