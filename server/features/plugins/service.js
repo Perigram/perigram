@@ -1083,6 +1083,8 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
   const taskId = `plugin.${pluginId}.${operationId}`;
   const executionId = String(invocation.context?.executionId || '');
   const nodeId = String(invocation.node?.id || operationId);
+  const invocationPath = Array.isArray(invocation.invocationPath) ? invocation.invocationPath : [];
+  const invocationKey = createHash('sha256').update(JSON.stringify(invocationPath)).digest('hex').slice(0, 24);
   const taskInput = {
     parameters: {
       value: {
@@ -1095,7 +1097,8 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
           config: invocation.config || {},
           inputs: invocation.inputs || {},
           nodeId,
-          executionId
+          executionId,
+          invocationPath
         }
       }
     }
@@ -1106,7 +1109,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
     maxAttempts: 1,
     parentRunId: invocation.context?.parentRunId || null,
     idempotencyKey: executionId
-      ? `graph-node:${executionId}:${nodeId}`
+      ? `graph-node:${executionId}:${invocationKey}`
       : null
   });
   return await waitForManagedNodeTask(run, {
