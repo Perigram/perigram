@@ -17,11 +17,15 @@ owns the surface: channels, arrangement, gestures.
 
 ## Scope
 
-This component is the shared graph-authoring surface. It must not define or
-select a graph protocol based on the page that mounts it. The canonical
-persisted graph document, node/port contract, compatibility rules, provider
-discovery, validation, composition, and procedural execution are owned by
-[@perigram/core](../../packages/core/README.md#canonical-graph-documents),
+This component supplies shared canvas presentation and interaction primitives;
+it does not yet provide one shared authoring session. The process page and
+graph-document workspace still mount separate session composables. That
+session split is transitional and is part of the process migration, not a
+permanent architecture or permission to add a third session.
+
+The canonical persisted graph document, node/port contract, compatibility
+rules, provider discovery, validation, composition, and procedural execution
+are owned by [@perigram/core](../../packages/core/README.md#canonical-graph-documents),
 [@perigram/plugin-sdk](../../packages/plugin-sdk/README.md), and root SPEC §28.
 
 CTS declarations remain domain records and process-specific semantics remain
