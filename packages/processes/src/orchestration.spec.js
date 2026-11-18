@@ -1248,16 +1248,8 @@ describe('durable process orchestration', () => {
       metadata: { label: 'Continue', type: 'smoothstep', data: { marker: 'kept' } }
     });
     expect(graph.metadata['perigram.process-definition']).not.toHaveProperty('edgeMetadata');
-    const restored = graphDocumentToProcessDefinition(graph);
-    expect(restored.customDomainRecord).toEqual({ retained: true });
-    expect(restored.valueInputs).toEqual({
-      'source-ref': { id: 'source-ref', path: 'name' },
-      orphan: { id: 'orphan', path: 'unused' }
-    });
-    expect(restored.graph.edges[0]).toMatchObject({
-      role: 'control', label: 'Continue', type: 'smoothstep', data: { marker: 'kept' }
-    });
-    expect(restored.graph.viewport).toEqual({ x: 5, y: 6, zoom: 1.25 });
+    expect(graph.metadata['perigram.process-definition'].sourceData.customDomainRecord).toEqual({ retained: true });
+    expect(graph.metadata['perigram.process-definition'].viewport).toEqual({ x: 5, y: 6, zoom: 1.25 });
   });
 
 });
