@@ -29,6 +29,7 @@ function toProcessPort(port = {}) {
   return {
     ...port,
     ...(semantic.kind && !port.kind ? { kind: semantic.kind } : {}),
+    ...(semantic.role && !port.role ? { role: semantic.role } : {}),
     ...(semantic.typeId && !port.typeId ? { typeId: semantic.typeId } : {}),
     ...(semantic.block && !port.block ? { block: semantic.block } : {}),
     ...(type ? { type } : {}),
