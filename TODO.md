@@ -49,8 +49,11 @@ provider discovery → typed authoring → preview → file export → Bake.
   retire it after its consumer migrates. Built-in platform executor endpoints
   are not external integrations and must not require organization URL setup.
 - [ ] Implement the managed server graph execution path. Split acceptance:
-  - [ ] Resolve the exact saved graph revision and recursively pinned Use Graph
-    revisions under the caller's organization read grants.
+  - [x] Add an authorized exact-revision resolver for saved graph documents;
+    it searches only the caller-readable organization view and verifies the
+    revision from the stored payload. This is not yet wired into evaluation.
+  - [ ] Wire the resolver into recursive Use Graph evaluation, including
+    cycle/depth handling, under the caller's organization read grants.
   - [ ] Resolve each provider definition from the install's immutable package
     snapshot (plugin id, version, runtime id, operation id); never resolve from
     the mutable catalog or browser registry.
