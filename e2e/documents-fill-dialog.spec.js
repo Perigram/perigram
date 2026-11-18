@@ -197,10 +197,14 @@ test.describe('documents fill dialog', () => {
     await expect(dialog.getByLabel('items', { exact: true })).toBeVisible({ timeout: 30_000 });
     await dialog.getByLabel('title', { exact: true }).fill('Quarterly report');
     await dialog.getByLabel('total', { exact: true }).fill('5');
-    await dialog.getByLabel('items', { exact: true }).fill(JSON.stringify([
+    const itemsInput = dialog.getByLabel('items', { exact: true });
+    await itemsInput.fill('[{"name":');
+    await expect(dialog.getByText('Section value must be a valid JSON array.')).toBeVisible();
+    await itemsInput.fill(JSON.stringify([
       { name: 'Part A', qty: 2 },
       { name: 'Part B', qty: 3 }
     ], null, 2));
+    await expect(dialog.getByText('Section value must be a valid JSON array.')).toHaveCount(0);
 
     const previewPane = dialog.locator('[data-file-payload-viewer]');
     await expect(previewPane).toBeVisible({ timeout: 30_000 });
