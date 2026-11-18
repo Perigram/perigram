@@ -33,10 +33,10 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
     const operationId = node.type === 'processNode'
       ? requiredKind(record, refId)
       : 'canvas-node.' + String(node.type || 'default');
-     return {
+    return {
       id: node.id,
       operation: { provider: PROCESS_GRAPH_PROVIDER, id: operationId, version: PROCESS_GRAPH_NODE_VERSION },
-      config: { ...(record ? cloneJson(record) : {}), refId, data: cloneJson(node.data || {}), ...(record ? { record: cloneJson(record) } : {}) },
+      config: { refId, data: cloneJson(node.data || {}), ...(record ? { record: cloneJson(record) } : {}) },
       position: { x: Number(node.position?.x || 0), y: Number(node.position?.y || 0) }
     };
   });
@@ -79,7 +79,7 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
       [PROCESS_GRAPH_METADATA_KEY]: {
         schemaVersion: Number(source.schemaVersion || 1),
         dataflowVersion: Number(source.dataflowVersion || PROCESS_DATAFLOW_VERSION),
-         viewport: cloneJson(legacy.viewport),
+        viewport: cloneJson(legacy.viewport),
         sourceData: preservedSourceData
       }
     }
