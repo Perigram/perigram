@@ -117,7 +117,9 @@ capabilities, deterministic?, idempotent? }`. The install snapshot pins
 the package runtime and operation contract. Server calls enqueue the shared
 `plugin-runtime` task; the Deno worker loads the pinned organization
 package into a restricted subprocess and requests host capabilities through
-claim-bound routes.
+claim-bound routes. Server-side process preview dispatches endpoint services
+through the endpoint adapter and managed pure/read services through this same
+pinned worker path; effectful services remain forbidden in preview.
 
 The capability adapter in `capabilities.js` validates the installed version,
 runtime target, operation declaration, and capability allowlist. It uses
