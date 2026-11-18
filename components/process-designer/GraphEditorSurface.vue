@@ -103,7 +103,6 @@ import {
   PROCESS_NODE_CATALOG,
   PROCESS_PROCEDURAL_PROVIDER,
   createProcessGraphNodeDefinition,
-  createProcessProceduralNodeDefinition,
   createProcessGraphNodeResolver,
   createProcessProceduralNodeResolver,
   createProcessProceduralExecutor,
@@ -161,7 +160,7 @@ let canvasFrame = null;
 let instanceId = String(props.record?._id || props.record?.id || '');
 
 const processNodeDefinitions = PROCESS_NODE_CATALOG
-  .map(catalog => createProcessProceduralNodeDefinition(catalog.kind) || createProcessGraphNodeDefinition(catalog.kind))
+  .map(catalog => createProcessGraphNodeDefinition(catalog.kind, { kind: catalog.kind }))
   .filter(Boolean);
 const processGraphResolver = createProcessGraphNodeResolver();
 const processPreviewResolver = createProcessProceduralNodeResolver();
