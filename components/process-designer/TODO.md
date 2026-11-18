@@ -164,7 +164,7 @@ process-designer). No code or README changes in this tree.
   connections.
 - [x] Render node configuration from normalized definition schemas and
   declarative controls. Keep JSON editing as an explicit advanced fallback.
-- [ ] Present provider loading failures per provider and operation, while
+- [x] Present provider loading failures per provider and operation, while
   keeping unrelated graph providers usable.
 - [ ] Verify installed Documents provider discovery through the graph
   workspace, including search, placement, typed sockets, preview channels,
@@ -224,3 +224,12 @@ preview is also covered. Provider errors are still aggregated into the
 workspace-level load error rather than surfaced per provider/operation.
 Persisted Documents graph-workspace acceptance and server graph execution
 remain open; browser runtime declarations do not imply a server evaluator.
+
+
+### Agent Notes (2026-11-18, provider isolation)
+
+Plugin runtime discovery now returns valid provider contributions alongside
+structured per-provider errors. The graph editor registers each valid
+contribution independently and shows failed plugin/runtime/provider
+operations in the preview workspace; one malformed provider no longer hides
+unrelated providers from the palette.

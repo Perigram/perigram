@@ -199,50 +199,79 @@ function transferableInvocation(input) {
     }
   }
 
-  async function loadProviders(binding, runtime) {
+  async function loadProvidersDetailed(binding, runtime) {
     if (!binding?.organizationId || !binding?.pluginId || !binding?.version) {
       throw new Error('Plugin runtime binding requires organizationId, pluginId, and version');
     }
-    if (!runtime?.targets?.includes('browser')) return [];
+    if (!runtime?.targets?.includes('browser')) return { providers: [], errors: [] };
     const instance = runtimeFor(binding, runtime);
     const contributions = await instance.providers();
     if (!Array.isArray(contributions)) throw new Error(`Runtime ${runtime.id} providers must be an array`);
-    return contributions.map(contribution => {
-      if (!Array.isArray(contribution.definitions) || !contribution.definitions.length) {
-        throw new Error(`Runtime ${runtime.id} provider ${contribution.provider} requires definitions`);
+    const providers = [];
+    const errors = [];
+    for (const contribution of contributions) {
+      const operations = Array.isArray(contribution?.definitions)
+        ? contribution.definitions.map(definition => String(definition?.id || '')).filter(Boolean)
+        : [];
+      try {
+        if (!Array.isArray(contribution?.definitions) || !contribution.definitions.length) {
+          throw new Error(`Runtime ${runtime.id} provider ${contribution?.provider || '(unknown)'} requires definitions`);
+        }
+        for (const definition of contribution.definitions) {
+          if (definition.execution?.runtime !== runtime.id || !definition.execution?.targets?.includes('browser')) {
+            throw new Error(`Node ${definition.id} must declare runtime ${runtime.id} and browser execution support`);
+          }
+        }
+        const previewRenderers = Object.fromEntries(Object.entries(contribution.previewRenderers || {}).map(([rendererId, surfaceId]) => {
+          if (typeof surfaceId !== 'string') {
+            throw new Error(`Runtime ${runtime.id} preview renderer ${rendererId} must name a declared preview surface`);
+          }
+          const surface = (binding.previewRenderers || []).find(item => item.id === surfaceId);
+          if (!surface) {
+            throw new Error(`Runtime ${runtime.id} preview renderer ${rendererId} references unavailable preview surface ${surfaceId}`);
+          }
+          return [rendererId, surface];
+        }));
+        providers.push({
+          provider: contribution.provider,
+          definitions: contribution.definitions,
+          previewRenderers,
+          execute: (definition, invocation) => {
+            const capabilities = Object.fromEntries((definition.execution.capabilities || []).map(name => [
+              name,
+              (input, context) => invokeCapability({ binding, runtime, operationId: definition.id, name, input, signal: context.signal })
+            ]));
+            return execute(binding, runtime, definition.id, invocation, {
+              execution: definition.execution,
+              capabilities,
+              signal: invocation?.signal
+            });
+          }
+        });
+      } catch (error) {
+        errors.push({
+          pluginId: String(binding.pluginId),
+          runtimeId: String(runtime.id),
+          provider: String(contribution?.provider || ''),
+          operations,
+          message: error?.message || String(error)
+        });
       }
-      for (const definition of contribution.definitions) {
-        if (definition.execution?.runtime !== runtime.id || !definition.execution?.targets?.includes('browser')) {
-          throw new Error(`Node ${definition.id} must declare runtime ${runtime.id} and browser execution support`);
-        }
-      }
-      const previewRenderers = Object.fromEntries(Object.entries(contribution.previewRenderers || {}).map(([rendererId, surfaceId]) => {
-        if (typeof surfaceId !== 'string') {
-          throw new Error(`Runtime ${runtime.id} preview renderer ${rendererId} must name a declared preview surface`);
-        }
-        const surface = (binding.previewRenderers || []).find(item => item.id === surfaceId);
-        if (!surface) {
-          throw new Error(`Runtime ${runtime.id} preview renderer ${rendererId} references unavailable preview surface ${surfaceId}`);
-        }
-        return [rendererId, surface];
-      }));
-      return {
-        provider: contribution.provider,
-        definitions: contribution.definitions,
-        previewRenderers,
-        execute: (definition, invocation) => {
-          const capabilities = Object.fromEntries((definition.execution.capabilities || []).map(name => [
-            name,
-            (input, context) => invokeCapability({ binding, runtime, operationId: definition.id, name, input, signal: context.signal })
-          ]));
-          return execute(binding, runtime, definition.id, invocation, {
-            execution: definition.execution,
-            capabilities,
-            signal: invocation?.signal
-          });
-        }
-      };
-    });
+    }
+    return { providers, errors };
+  }
+
+  async function loadProviders(binding, runtime) {
+    const result = await loadProvidersDetailed(binding, runtime);
+    if (result.errors.length) {
+      const error = new AggregateError(
+        result.errors.map(item => new Error(item.message)),
+        `Runtime ${runtime?.id || ''} contains invalid provider contributions`
+      );
+      error.providerErrors = result.errors;
+      throw error;
+    }
+    return result.providers;
   }
 
   async function finalizeExecution(executionId) {
@@ -261,5 +290,5 @@ function transferableInvocation(input) {
     runtimes.clear();
   }
 
-  return { errors, execute, loadProviders, finalizeExecution, dispose };
+  return { errors, execute, loadProviders, loadProvidersDetailed, finalizeExecution, dispose };
 }

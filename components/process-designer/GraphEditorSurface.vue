@@ -73,6 +73,7 @@
           :preview-renderers="previewRenderers"
           :node-definitions="nodeDefinitions"
           :channels="graphPreviewChannels"
+          :provider-errors="providerErrors"
           :can-bake-to-saved-graph="canBakeToSavedGraph"
           :baking="bakingOutput"
           @refresh="refreshPreviewAndRecord"
@@ -141,6 +142,7 @@ const pluginRuntime = usePluginRuntime({
 const graphDocumentsLoading = ref(false);
 const graphDocumentsError = ref('');
 const graphPreviewChannels = ref([]);
+const providerErrors = ref([]);
 const graphRevisions = ref([]);
 const graphRevisionsLoading = ref(false);
 const graphRevisionsError = ref('');
@@ -304,26 +306,60 @@ async function loadGraphCatalog() {
   }
 }
 
+function providerLoadFailure(binding, error, contribution = null) {
+  return {
+    pluginId: String(binding?.pluginId || 'unknown'),
+    runtimeId: String(binding?.runtime?.id || binding?.engineId || ''),
+    provider: String(contribution?.provider || ''),
+    operations: Array.isArray(contribution?.definitions)
+      ? contribution.definitions.map(definition => String(definition?.id || '')).filter(Boolean)
+      : [],
+    message: error?.message || String(error)
+  };
+}
+
 async function loadGraphProviders() {
+  providerErrors.value = [];
   try {
     const view = await $fetch('/api/admin/cts/types');
     clientEngineBindings.value = Array.isArray(view?.clientEngines) ? view.clientEngines : [];
     clientRuntimeBindings.value = Array.isArray(view?.clientRuntimes) ? view.clientRuntimes : [];
     graphPreviewChannels.value = Array.isArray(view?.previewChannels) ? view.previewChannels : [];
-    const results = await Promise.allSettled(clientEngineBindings.value.map(async binding => {
+    const failures = [];
+    const engineResults = await Promise.allSettled(clientEngineBindings.value.map(async binding => {
       const engine = await clientEngines.engineFor(binding);
       if (engine.nodeProviders == null) return;
       if (!Array.isArray(engine.nodeProviders)) throw new Error(`Engine ${binding.pluginId} nodeProviders must be an array`);
-      for (const contribution of engine.nodeProviders) registerNodeProvider(contribution, binding.pluginId);
+      for (const contribution of engine.nodeProviders) {
+        try {
+          registerNodeProvider(contribution, binding.pluginId);
+        } catch (error) {
+          failures.push(providerLoadFailure(binding, error, contribution));
+        }
+      }
     }));
+    engineResults.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        failures.push(providerLoadFailure(clientEngineBindings.value[index], result.reason));
+      }
+    });
     const runtimeResults = await Promise.allSettled(clientRuntimeBindings.value.map(async binding => {
-      const contributions = await pluginRuntime.loadProviders(binding, binding.runtime);
-      for (const contribution of contributions) registerNodeProvider(contribution, binding.pluginId);
+      const loaded = await pluginRuntime.loadProvidersDetailed(binding, binding.runtime);
+      failures.push(...loaded.errors);
+      for (const contribution of loaded.providers) {
+        try {
+          registerNodeProvider(contribution, binding.pluginId);
+        } catch (error) {
+          failures.push(providerLoadFailure(binding, error, contribution));
+        }
+      }
     }));
-    const failures = [...results, ...runtimeResults].filter(result => result.status === 'rejected');
-    if (failures.length) {
-      graphDocumentsError.value = [graphDocumentsError.value, failures.map(result => result.reason?.message || String(result.reason)).join('; ')].filter(Boolean).join(' · ');
-    }
+    runtimeResults.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        failures.push(providerLoadFailure(clientRuntimeBindings.value[index], result.reason));
+      }
+    });
+    providerErrors.value = failures;
   } catch (error) {
     graphDocumentsError.value = [graphDocumentsError.value, error?.data?.message || error?.message || String(error)].filter(Boolean).join(' · ');
   }

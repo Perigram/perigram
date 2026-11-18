@@ -56,6 +56,15 @@
       </div>
     </section>
     <Message v-if="error" severity="error">{{ error }}</Message>
+    <Message v-if="providerErrors.length" severity="warn">
+      <div class="flex flex-col gap-2">
+        <div v-for="(failure, index) in providerErrors" :key="`${failure.pluginId}:${failure.runtimeId}:${failure.provider}:${index}`" class="flex flex-col gap-1">
+          <strong>{{ failure.provider || failure.pluginId }}<span v-if="failure.runtimeId"> · {{ failure.runtimeId }}</span></strong>
+          <span>{{ failure.message }}</span>
+          <span v-if="failure.operations?.length" class="text-supporting text-muted">{{ failure.operations.join(', ') }}</span>
+        </div>
+      </div>
+    </Message>
     <section v-if="result && outputOptions.length" class="flex min-h-0 flex-col gap-2">
       <label class="text-supporting text-muted" for="graph-preview-output">{{ $t('processDesigner.graphOutput') }}</label>
       <InstanceSelect
@@ -223,7 +232,8 @@ const props = defineProps({
   nodeDefinitions: { type: Object, default: () => ({}) },
   canBakeToSavedGraph: { type: Boolean, default: false },
   baking: { type: Boolean, default: false },
-  channels: { type: Array, default: () => [] }
+  channels: { type: Array, default: () => [] },
+  providerErrors: { type: Array, default: () => [] }
 });
 const emit = defineEmits(['refresh', 'update-input-binding', 'bake']);
 const { t } = useI18n();
