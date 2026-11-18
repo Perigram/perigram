@@ -13,9 +13,13 @@ COPY server/utils ./server/utils
 COPY server/features ./server/features
 COPY packages/cts ./packages/cts
 COPY packages/plugin-sdk ./packages/plugin-sdk
-# The seed and migrations read the built-in listings at runtime (not
-# imports — file reads), each under its plugin's path.
-COPY workers/documents/listing.json ./workers/documents/listing.json
+# The catalog seeder validates each listing and packages the complete,
+# statically discoverable runtime import graph before publishing anything.
+# Keep the source trees for runtime entrypoints and their relative imports;
+# copying listing.json alone makes collectRuntimeAssetFiles fail before the
+# catalog upsert, silently leaving the previously published listing in place.
+COPY workers/documents ./workers/documents
+COPY workers/facade ./workers/facade
 COPY workers/tech-drawing/listing.json ./workers/tech-drawing/listing.json
-COPY workers/facade/listing.json ./workers/facade/listing.json
+COPY workers/build123d/listing.json ./workers/build123d/listing.json
 CMD ["node", "server/scripts/seed-plugin-catalog.js"]
