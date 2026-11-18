@@ -1161,6 +1161,14 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
       invocation.context?.capabilityEvidence?.push(capabilityRecord);
       const readSet = capability.readSet;
       const recorder = invocation.context?.readSet;
+      if (capability.name === 'files.read' && recorder
+        && capability.input?.fileId && capability.contentHash) {
+        recorder.recordFile({
+          fileId: capability.input.fileId,
+          contentHash: capability.contentHash,
+          organizationId
+        });
+      }
       if (readSet && recorder) {
         if (readSet.consistency) {
           recorder.setConsistency({
