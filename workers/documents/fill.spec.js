@@ -13,6 +13,7 @@ import {
   renderPdfFromWorkbook
 } from './fill.js';
 import { services } from './services.js';
+import { workbookTemplateMetadata } from './workbook-template.mjs';
 
 const b64 = value => Buffer.from(value, 'utf8').toString('base64');
 

@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, HTML, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "30",
+  "version": "31",
   "requires": [
     "tech-drawing"
   ],
@@ -535,7 +535,6 @@
             "base": "string"
           }
         },
-        "cache": "deterministic",
         "description": "Serialize row records as CSV text",
         "execution": {
           "runtime": "documents-shared",

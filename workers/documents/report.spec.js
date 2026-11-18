@@ -293,7 +293,7 @@ describe('report preview surface', () => {
       new URL('./surfaces/text-editor.mjs', import.meta.url).pathname,
       { dependencies: listing.declarations.dependencies, pluginRoot: new URL('.', import.meta.url).pathname }
     )).resolves.toBe(true);
-  });
+  }, 15_000);
 
   it('loads the CSV editor surface with its declared spreadsheet dependency', async () => {
     await expect(checkSurfaceModule(

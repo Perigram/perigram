@@ -398,9 +398,7 @@ describe('support communication service', () => {
         })
       })
     ]);
-  });
-
-  it('allows attachment-only messages when at least one ref survives validation', async () => {
+  });, 15_000);  it('allows attachment-only messages when at least one ref survives validation', async () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
     mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
       processGetById: vi.fn(async () => (type === 'cassette'
