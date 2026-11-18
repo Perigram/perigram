@@ -103,11 +103,12 @@ The report adapter re-exports the same parser for existing imports.
 
 The legacy `fill` construction and graph `fill-markdown-template` /
 `fill-workbook-template` operations share the same token grammar. Graph
-fills return `meta.tokens`; the node inspector renders one scalar field
-per discovered token and stores values as `configuration.values`. A
-connected values port takes precedence; otherwise HAG-authored values are
-used. Token metadata is execution metadata, not persisted document content.
-PDF graph exposure and round-trip parity acceptance remain open work.
+fills return `meta.tokens` and, for XLSX, `meta.sections`; the node inspector
+renders scalar token controls and JSON-array editors for repeat sections,
+storing authored values as `configuration.values`. A connected values port
+takes precedence; otherwise HAG-authored values are used. Token and section
+metadata are execution metadata, not persisted document content. PDF graph
+exposure and graph template fill round-trip acceptance remain open work.
 
 ### PDF graph operation status
 
