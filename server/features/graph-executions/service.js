@@ -452,6 +452,7 @@ async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, s
   const instances = Array.isArray(readSet.instances) ? readSet.instances : [];
   const relations = Array.isArray(readSet.relations) ? readSet.relations : [];
   const queries = Array.isArray(readSet.queries) ? readSet.queries : [];
+  const files = Array.isArray(readSet.files) ? readSet.files : [];
   const start = readSet.organizationSequenceStart;
   const end = readSet.organizationSequenceEnd;
   const hasStableSequence = Number.isSafeInteger(start) && start >= 0 && start === end;
@@ -517,6 +518,23 @@ async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, s
       if (dependency.organizationId != null
         && String(current.organizationId ?? '') !== String(dependency.organizationId)) {
         throw stalePreviewError('A graph data dependency changed organization after preview');
+      }
+    }
+
+    for (const dependency of files) {
+      if (!dependency.fileId || !dependency.contentHash) {
+        throw stalePreviewError('A graph file dependency has no verifiable content hash');
+      }
+      const currentFile = await filesService.findFileMeta(dependency.fileId, 'files');
+      if (!currentFile) throw stalePreviewError('A graph file dependency was deleted');
+      filesService.assertFileReadAccess(currentFile.metadata, auth);
+      if (dependency.organizationId != null
+        && String(currentFile.metadata?.organizationId ?? '') !== String(dependency.organizationId)) {
+        throw stalePreviewError('A graph file dependency changed organization after preview');
+      }
+      const currentBuffer = await filesService.getFileBuffer(dependency.fileId, 'files');
+      if (filesService.contentHash(currentBuffer) !== dependency.contentHash) {
+        throw stalePreviewError('A graph file dependency changed after preview');
       }
     }
 
