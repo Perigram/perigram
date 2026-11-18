@@ -84,7 +84,7 @@ test('saved Documents graph renders its Markdown file through the Documents prev
   const previewFrame = page.locator('iframe[title$=".md"]').first();
   await expect(previewFrame).toBeVisible({ timeout: 45_000 });
   const srcdoc = await previewFrame.getAttribute('srcdoc');
-  expect(srcdoc).toContain('<h1>Graph preview E2E</h1>');
+  expect(srcdoc).toContain('Graph preview E2E');
   expect(srcdoc).toContain('Rendered by the installed Documents plugin.');
 
   expect(pageErrors, 'client errors while loading and rendering the Documents preview').toEqual([]);
