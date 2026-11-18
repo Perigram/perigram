@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   findFileMeta: vi.fn(),
   assertFileReadAccess: vi.fn(),
   getFileBuffer: vi.fn(),
+  contentHash: vi.fn(),
   uploadFile: vi.fn(),
   deleteFile: vi.fn(),
   bakeFile: vi.fn(),
@@ -32,6 +33,7 @@ vi.mock('../files/service.js', () => ({
   findFileMeta: mocks.findFileMeta,
   assertFileReadAccess: mocks.assertFileReadAccess,
   getFileBuffer: mocks.getFileBuffer,
+  contentHash: mocks.contentHash,
   uploadFile: mocks.uploadFile,
   deleteFile: mocks.deleteFile
 }));
@@ -184,6 +186,7 @@ describe('graph execution service', () => {
     mocks.findFileMeta.mockResolvedValue({ metadata: { organizationId: 'org-1' }, contentType: 'application/json' });
     mocks.assertFileReadAccess.mockReturnValue(true);
     mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
+    mocks.contentHash.mockImplementation(buffer => `sha256:${buffer.toString('utf8')}`);
     mocks.uploadFile.mockResolvedValue({ id: 'baked-payload-1', filename: 'Document graph-document.txt' });
     mocks.deleteFile.mockResolvedValue(true);
     payloadService.replacePayload.mockResolvedValue({ _id: 'item-1', type: 'part', revision: 4, payload: { fileId: 'baked-payload-1', mime: 'text/plain; charset=utf-8' } });
@@ -1416,6 +1419,31 @@ describe('graph execution service', () => {
       statusCode: 409,
       message: expect.stringContaining('files.read')
     });
+    expect(executionService.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses Export when a file read dependency changed after preview', async () => {
+    const record = createGraphExecutionRecord({
+      ...preview(),
+      readSet: {
+        ...preview().readSet,
+        files: [{ fileId: 'source-file-1', contentHash: 'sha256:original', organizationId: 'org-1' }]
+      }
+    });
+    mocks.getFileBuffer.mockImplementation(async fileId => Buffer.from(
+      fileId === 'source-file-1' ? 'changed' : JSON.stringify(graph())
+    ));
+
+    await expect(graphExecutionsService.exportOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'document'
+    }, auth)).rejects.toMatchObject({
+      statusCode: 409,
+      message: expect.stringContaining('file dependency changed')
+    });
+    expect(mocks.findFileMeta).toHaveBeenCalledWith('source-file-1', 'files');
+    expect(mocks.assertFileReadAccess).toHaveBeenCalledWith({ organizationId: 'org-1' }, auth);
     expect(executionService.create).not.toHaveBeenCalled();
   });
 
