@@ -336,7 +336,7 @@ describe('graph execution service', () => {
         executionId: 'server-preview-1',
         data: expect.objectContaining({ queryInstances: expect.any(Function) })
       })
-    }));
+    }), auth);
   });
 
   it('recursively evaluates a Use Graph node against its exact authorized revision', async () => {
@@ -406,7 +406,8 @@ describe('graph execution service', () => {
     expect(graphService.processList).toHaveBeenCalledWith({ graphId: 'graph.document', limit: 1000 }, auth);
     expect(mocks.findFileMeta).toHaveBeenCalledWith('child-graph-file', 'files');
     expect(mocks.assertFileReadAccess).toHaveBeenCalledWith({ organizationId: 'org-1' }, auth);
-    expect(result).toEqual({ graphDocument: childDocument, graph: graph() });
+    expect(result).toMatchObject({ graphDocument: childDocument, graph: graph() });
+    expect(result.graph.interface.inputs[0].required).toBe(true);
   });
 
   it('refuses a graph document whose saved payload has a different pinned revision', async () => {
