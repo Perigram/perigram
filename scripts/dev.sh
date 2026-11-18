@@ -15,6 +15,19 @@ compose() {
   docker compose --project-directory "$ROOT" -f "$COMPOSE_FILE" "$@"
 }
 
+build_target() {
+  local target="$1"
+  docker buildx bake -f "$COMPOSE_FILE" --allow network.host --set "$target.network=host" "$target"
+}
+
+ensure_image() {
+  local image="$1" target="$2"
+  if ! docker image inspect "$image" >/dev/null 2>&1; then
+    echo "Building $target because $image is not present locally..."
+    build_target "$target"
+  fi
+}
+
 repair_app_generated_ownership() {
   # Older dev containers ran Nuxt as root and may have left .nuxt root-owned.
   # Repair it inside a disposable root container so developers never need sudo.
@@ -32,6 +45,7 @@ Commands:
   logs [service]      Follow logs
   ps                  Show service status
   restart [service]   Restart one service or the whole stack
+  rebuild [target]    Rebuild app, nesting, plugin-runtime, build123d, or all images
   deps                Rebuild/recreate app after package dependency changes
   shell               Open a shell in the app container
   mongo               Open the Mongo shell
@@ -65,7 +79,13 @@ case "$command" in
     mkdir -p "$ROOT/.local/cortex"
     # BuildKit otherwise sees a host-loopback proxy (for example 127.0.0.1:2081)
     # as its own loopback. Build with host networking so host proxy settings work.
-    docker buildx bake -f "$COMPOSE_FILE" --allow network.host --set '*.network=host'
+    # The app image is rebuilt for current app dependencies. Large engine/runtime
+    # images are built only on first use; rebuild them explicitly when their
+    # Dockerfile, Rust sources, or Python dependencies change.
+    build_target app
+    ensure_image perigram-nesting-worker:latest nesting-worker
+    ensure_image perigram-plugin-runtime:latest plugin-runtime
+    ensure_image perigram-build123d-executor:latest build123d-executor
     repair_app_generated_ownership
     compose up -d --no-build
     compose ps
@@ -116,8 +136,19 @@ case "$command" in
   restart)
     compose restart "$@"
     ;;
+  build|rebuild)
+    target="${1:-app}"
+    case "$target" in
+      app) build_target app ;;
+      nesting|nesting-worker) build_target nesting-worker ;;
+      plugin-runtime) build_target plugin-runtime ;;
+      build123d|build123d-executor) build_target build123d-executor ;;
+      all) docker buildx bake -f "$COMPOSE_FILE" --allow network.host --set '*.network=host' ;;
+      *) echo "Unknown image target: $target" >&2; usage >&2; exit 2 ;;
+    esac
+    ;;
   deps)
-    docker buildx bake -f "$COMPOSE_FILE" --allow network.host --set app.network=host app
+    build_target app
     repair_app_generated_ownership
     compose up -d --no-build --no-deps --force-recreate app
     ;;
