@@ -86,9 +86,10 @@ describe('durable process orchestration', () => {
     const graph = processDefinitionToGraphDocument(definition);
     expect(graph.nodes.find(node => node.id === 'mutation')).toMatchObject({
       operation: { provider: 'perigram.processes', id: 'cts.mutate', version: '1' },
-      config: { id: 'mutation', kind: 'cts.mutate', record: { id: 'mutation', kind: 'cts.mutate' } }
+      config: { refId: 'mutation', record: { id: 'mutation', kind: 'cts.mutate' } }
     });
     expect(graph.metadata['perigram.process-definition'].sourceData).not.toHaveProperty('processNodes');
+    expect(graph.metadata['perigram.process-definition']).not.toHaveProperty('nodeKinds');
     const preview = await previewProcessDataflow(graph, {}, { catalogContext });
     expect(preview.nodes.values).toBeDefined();
 
