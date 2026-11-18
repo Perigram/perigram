@@ -27,7 +27,7 @@ import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { commandInputs, commandOutputs } from '~/utils/processDesignerCommandPorts.js';
 import { createService, createSocket } from '~/utils/processDesignerDefinitionRecords.js';
 import { isSecondaryPopulationKind } from '~/utils/processDesignerPopulation.js';
-import { useGraphAuthoringSession } from '~/composables/useGraphAuthoringSession.js';
+import { createGraphAuthoringState, useGraphAuthoringSession } from '~/composables/useGraphAuthoringSession.js';
 import { useProcessDesignerConnectionInference } from '~/composables/useProcessDesignerConnectionInference.js';
 import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
 import { useProcessDesignerNodeRecords } from '~/composables/useProcessDesignerNodeRecords.js';
@@ -58,8 +58,7 @@ export function useProcessDesignerGraphSession({
 }) {
   const portCompatibility = createPortCompatibilityRegistry();
   registerProcessPortCompatibilityProfile(portCompatibility);
-  const nodes = ref([]);
-  const edges = ref([]);
+  const { nodes, edges } = createGraphAuthoringState();
   const validation = ref(null);
   const secondaryHidden = ref(false);
 
