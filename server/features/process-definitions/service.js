@@ -960,7 +960,8 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
   // produced by the evaluator are converted to their serializable tag here —
   // the single emission conversion point shared with any runtime result
   // emission (see packages/processes/src/missing-field.js).
-  return serializeProcessResult(await previewProcessDataflow(previewDefinition, { trigger, inputs }, {
+  const canonicalGraph = processDefinitionToGraphDocument(previewDefinition);
+  return serializeProcessResult(await previewProcessDataflow(canonicalGraph, { trigger, inputs }, {
     targetNodeId: nodeId,
     previewLimit: 100,
     domain: previewDomain,
