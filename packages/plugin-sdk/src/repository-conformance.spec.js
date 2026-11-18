@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseListing } from './listing.js';
@@ -7,14 +7,18 @@ import { endpointServices as documentsEndpointServices } from '../../../workers/
 import { endpointServices as facadeEndpointServices } from '../../../workers/facade/services.js';
 import { services as techDrawingEndpointServices } from '../../../workers/tech-drawing/services.js';
 import build123dCatalog from '../../../workers/build123d/catalog.json' with { type: 'json' };
+import build123dListing from '../../../workers/build123d/listing.json' with { type: 'json' };
+import documentsListing from '../../../workers/documents/listing.json' with { type: 'json' };
+import facadeListing from '../../../workers/facade/listing.json' with { type: 'json' };
+import techDrawingListing from '../../../workers/tech-drawing/listing.json' with { type: 'json' };
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-const pluginIds = ['build123d', 'documents', 'facade', 'tech-drawing'];
-const listings = pluginIds.map(pluginId => {
-  const pluginRoot = resolve(repositoryRoot, 'workers', pluginId);
-  const listing = JSON.parse(readFileSync(resolve(pluginRoot, 'listing.json'), 'utf8'));
-  return { pluginId, pluginRoot, listing };
-});
+const listings = [
+  { pluginId: 'build123d', pluginRoot: resolve(repositoryRoot, 'workers/build123d'), listing: build123dListing },
+  { pluginId: 'documents', pluginRoot: resolve(repositoryRoot, 'workers/documents'), listing: documentsListing },
+  { pluginId: 'facade', pluginRoot: resolve(repositoryRoot, 'workers/facade'), listing: facadeListing },
+  { pluginId: 'tech-drawing', pluginRoot: resolve(repositoryRoot, 'workers/tech-drawing'), listing: techDrawingListing }
+];
 
 describe('repository plugin conformance', () => {
   it.each(listings)('$pluginId listing passes the canonical plugin SDK validator', ({ listing }) => {

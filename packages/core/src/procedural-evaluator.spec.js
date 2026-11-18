@@ -248,7 +248,7 @@ describe('procedural graph preview evaluator', () => {
   it('interrupts a pending node executor and does not start later nodes', async () => {
     const controller = new AbortController(); let started; const entered = new Promise(resolve => { started = resolve; });
     const executeNode = vi.fn(() => { started(); return new Promise(() => {}); });
-    const pending = evaluateProceduralGraph({ graph: graph(), context: { signal: controller.signal }, resolveNodeDefinition: () => doubleDefinition, executeNode });
+    const pending = evaluateProceduralGraph({ graph: graph(), inputBindings: { number: 2 }, context: { signal: controller.signal }, resolveNodeDefinition: () => doubleDefinition, executeNode });
     await entered; controller.abort('cancelled during execution');
     await expect(pending).rejects.toMatchObject({ name: 'AbortError', code: 'GRAPH_EXECUTION_ABORTED' });
     expect(executeNode).toHaveBeenCalledTimes(1);
