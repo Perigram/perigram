@@ -820,7 +820,7 @@ describe('connector services', () => {
         {
           id: 'blend',
           label: 'Color blend',
-          group: 'mixing',
+          palette: { group: 'mixing', label: 'Mixing' },
           signature: {
             input: { base: 'record', fields: { base: { base: 'string' } } },
             output: { base: 'json' }
@@ -839,7 +839,8 @@ describe('connector services', () => {
     });
     expect(services[1]).toMatchObject({
       id: 'plugin.coatings.blend',
-      group: 'mixing'
+      group: 'mixing',
+      groupLabel: 'Mixing'
     });
     const merged = await projectedServicesForOrganization(ORG);
     expect(merged.some(service => service.id === 'plugin.coatings.mix')).toBe(true);

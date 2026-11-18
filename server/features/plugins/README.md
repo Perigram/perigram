@@ -129,10 +129,12 @@ Installed services compose into the projected domain's service list
 compiler, and admin domain route resolve), as species records whose id
 and command are the same plugin-qualified id
 `plugin.<pluginId>.<serviceId>`; they obey the same active-process
-service gating. A service's palette section is its declared listing
-`group` (a slug validated by the listing contract; absent falls to the
-services tab), and the section renders in the designer palette's plugin
-tier with pack provenance. The documents plugin's `table-data` section
+service gating. A service's palette section comes from its listing `palette.group`
+(stable slug), with the optional `palette.label` as its human-facing
+group label and `palette.keywords`/`palette.visible` controlling search
+and discovery. A service without a palette contribution falls to the
+services tab; the section renders in the designer palette's plugin tier
+with pack provenance. The documents plugin's `table-data` section
 carries the extraction trio beside the CSV composition. The same services compose
 into the projected command
 table (`projectedDomainsForOrganization`): a service's scalar signature
