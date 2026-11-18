@@ -133,7 +133,9 @@ export async function evaluateSavedGraph({
     definition
   ]));
   const providerPins = new Map();
+  const providerCapabilities = new Set();
   const nodeInvocations = [];
+  const graphInvocations = [];
   const resolveNodeDefinition = async operation => {
     const key = `${operation.provider}/${operation.id}@${operation.version}`;
     if (operation.provider === CORE_DATA_PROVIDER) {
@@ -147,6 +149,9 @@ export async function evaluateSavedGraph({
       version: operation.version,
       auth
     });
+    for (const capability of definition.execution?.capabilities || []) {
+      if (capability !== 'cts.instances.read') providerCapabilities.add(String(capability));
+    }
     const pin = definition.packagePin;
     if (!pin?.pluginId || !pin.version || !pin.runtimeId || !pin.operationId) {
       throw createError({ statusCode: 409, message: `Installed graph provider ${key} returned no immutable package pin` });
@@ -179,6 +184,7 @@ export async function evaluateSavedGraph({
         signal: controller.signal,
         remainingExecutionMs: () => Math.max(0, deadline - Date.now()),
         nodeInvocations,
+        graphInvocations,
         data: {
           ...(context.data || {}),
           queryInstances: query => queryOrganizationData(query, auth)
@@ -192,7 +198,13 @@ export async function evaluateSavedGraph({
       ...result,
       executionId,
       providerPins: [...providerPins.values()],
-      nodeInvocations
+      providerCapabilities: [...providerCapabilities].sort(),
+      nodeInvocations,
+      graphInvocations,
+      readSet: {
+        ...result.readSet,
+        unverifiedCapabilities: [...providerCapabilities].sort()
+      }
     };
   } finally {
     clearTimeout(deadlineTimer);
