@@ -219,6 +219,11 @@ test('typed Documents blocks preview and Bake Markdown and HTML files with prove
     const outputSelect = page.getByLabel('Graph output');
     await outputSelect.click();
     await page.getByRole('option', { name: outputLabel, exact: true }).click();
+    if (outputLabel === 'HTML file') {
+      const htmlFrame = page.locator('iframe[title$=".html"]').first();
+      await expect(htmlFrame).toBeVisible({ timeout: 45_000 });
+      expect(await htmlFrame.getAttribute('srcdoc')).toContain('A typed paragraph from the Documents graph.');
+    }
     await page.getByLabel('Page destination').click();
     await page.getByRole('option', { name: pageName }).click();
     await page.getByLabel('Page file path').fill(filePath);
