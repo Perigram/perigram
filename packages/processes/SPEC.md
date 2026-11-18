@@ -162,8 +162,9 @@ without claiming static guarantees the underlying data cannot support.
 
 | Aspect | Law |
 |---|---|
-| Protocol | `PROCESS_PROTOCOL_VERSION = 4` (`types.js`); `dataflowVersion: 4` is the sole operation protocol. Every executable record lives under `processNodes` with a namespaced kind — `source.*`, `value.*`, `collection.*`/`tree.*`, `record.construct`, `control.*`, `cts.*`; the catalog and evaluator throw on retired kinds. |
-| Socket types | `base` plus orthogonal qualifiers (nullable, entity type, schema, block, enum, unit, attachment, event, capability); `access` declares Item, List, or Tree. `ports.js` owns handle minting/parsing (`data:<id>`, `control:<id>`, legacy `input:`/`output:` accepted). |
+| Legacy storage | `PROCESS_PROTOCOL_VERSION = 4` and `dataflowVersion: 4` identify existing process-definition records only. They are not the canonical graph-document or node-definition versions; do not extend this storage protocol. Root SPEC §28 TODO G10 removes it after migration. |
+| Domain semantics during migration | Existing process records use namespaced kinds — `source.*`, `value.*`, `collection.*`/`tree.*`, `record.construct`, `control.*`, `cts.*`. Their behavior is preserved while mapping to provider-qualified canonical nodes and shared port contracts. |
+| Legacy socket adapter | `base` plus orthogonal qualifiers and `access` describe current stored process sockets. `ports.js` owns only legacy handle decoding/migration; canonical graph ports and compatibility belong to `packages/plugin-sdk`. |
 | Constructors | `collection.makeList` exposes exactly four optional item sockets (`MAKE_LIST_INPUTS`), consumed in socket order, an unconnected node yielding the empty list; `collection.concat` is the two-list join retaining element type, topology, order. |
 | Selectors | Filter, Dispatch, Sort, Distinct, and Group By share strict `alignSelectorPackets` alignment and reject mask or path mismatch. |
 
