@@ -13,7 +13,7 @@ const CORE_FAMILIES = new Set(['sources', 'values', 'collections', 'records']);
 
 const executionKind = catalog => ({
   control: 'control',
-  effect: 'effect',
+  effect: 'proposal',
   read: 'read'
 })[catalog.level] || 'pure';
 
