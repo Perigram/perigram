@@ -191,6 +191,51 @@ describe('graph execution service', () => {
     mocks.retractBakedFile.mockResolvedValue({ success: true });
   });
 
+  it('evaluates a saved graph through server-declared provider handlers', async () => {
+    mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
+    const definition = {
+      provider: 'plugin.documents',
+      id: 'document.compose',
+      version: '3',
+      execution: { kind: 'pure', targets: ['server'] },
+      inputs: [{ id: 'source', required: true }],
+      outputs: [{ id: 'document', required: true }]
+    };
+    const resolveNodeDefinition = vi.fn(async () => definition);
+    const executeNode = vi.fn(async (_definition, invocation) => ({
+      document: { kind: 'document', source: invocation.inputs.source }
+    }));
+
+    const result = await graphExecutionsService.evaluateSavedGraph({
+      graphDocumentInstanceId: 'graph-instance-1',
+      inputBindings: { source: { type: 'text-document', id: 'source-file' } },
+      resolveNodeDefinition,
+      executeNode,
+      context: { executionId: 'server-preview-1' }
+    }, auth);
+
+    expect(result).toMatchObject({
+      graphDocument,
+      graphId: 'graph.document',
+      graphRevision: 'rev-01',
+      outputs: {
+        document: { kind: 'document', source: { type: 'text-document', id: 'source-file' } }
+      }
+    });
+    expect(resolveNodeDefinition).toHaveBeenCalledWith(
+      { provider: 'plugin.documents', id: 'document.compose', version: '3' },
+      expect.objectContaining({ node: expect.objectContaining({ id: 'format-1' }) })
+    );
+    expect(executeNode).toHaveBeenCalledWith(definition, expect.objectContaining({
+      target: 'server',
+      mode: 'preview',
+      context: expect.objectContaining({
+        executionId: 'server-preview-1',
+        data: expect.objectContaining({ queryInstances: expect.any(Function) })
+      })
+    }));
+  });
+
   it('resolves a pinned child graph from an authorized saved revision', async () => {
     const childDocument = {
       _id: 'child-graph-instance',
