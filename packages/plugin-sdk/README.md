@@ -55,8 +55,11 @@ importing the Node-bound root barrel.
 
 Every node definition declares `palette.group` as a stable lowercase semantic slug. `palette.label` is the optional human-facing group name and `palette.keywords` are provider-authored search aliases. The same `palette` object is used by plugin service and projection declarations in `listing.json`: `group` is a stable semantic slug, `label` is the optional human-facing group label, `keywords` are provider-authored search aliases, and `visible: false` keeps construction/projection helpers out of graph-node discovery. The SDK rejects malformed metadata and retired `group` fields; operation-id prefixes are never inferred as palette categories. Providers keep their operation and port identities independent of labels and grouping.
 
-Node-port compatibility is owned by `compareNodePorts(source, target)`.
-It evaluates transport shape and semantic `base`, `kind`, nominal
+The SDK provides `compareNodePorts(source, target)` for provider-neutral
+transport and semantic checks, plus `createPortCompatibilityRegistry()` for
+registered domain-specific compatibility profiles. Domain packages own and
+register those profiles; the SDK does not import domain semantics. The default
+comparator evaluates transport shape and semantic `base`, `kind`, nominal
 identity, provider, unit, constraints, nullability, and output optionality. Results carry
 `status`, `compatible`, `reason`, and `conversions`; statuses are `exact`,
 `safe-coercion`, `conditional`, `conversion-required`, and
