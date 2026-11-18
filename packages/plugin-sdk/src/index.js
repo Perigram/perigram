@@ -10,5 +10,6 @@ export {
   validateNodeDefinition,
   assertValidNodeDefinition,
   createNodeProviderRegistry,
-  normalizeNodeProvider
+  normalizeNodeProvider,
+  createPortCompatibilityRegistry
 } from './node-contract.js';
