@@ -3,7 +3,7 @@ import {
   GRAPH_DOCUMENT_FORMAT,
   GRAPH_DOCUMENT_VERSION
 } from '@perigram/core';
-import { normalizeGraph } from './graph-normalization.js';
+import { normalizeGraph } from './compiler-core.js';
 import { PROCESS_DATAFLOW_VERSION } from './ports.js';
 
 export const PROCESS_GRAPH_PROVIDER = 'perigram.processes';
