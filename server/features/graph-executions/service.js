@@ -336,6 +336,10 @@ function relationContains(value, targetTypeId, targetId) {
 }
 
 async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, sourceGraphDocument, { session = null, requireStableReadSet = false } = {}) {
+  const unverifiedCapabilities = Array.isArray(readSet.unverifiedCapabilities) ? readSet.unverifiedCapabilities : [];
+  if (unverifiedCapabilities.length) {
+    throw stalePreviewError(`Graph preview consumed capabilities without verifiable read evidence: ${unverifiedCapabilities.join(', ')}`);
+  }
   const instances = Array.isArray(readSet.instances) ? readSet.instances : [];
   const relations = Array.isArray(readSet.relations) ? readSet.relations : [];
   const queries = Array.isArray(readSet.queries) ? readSet.queries : [];
