@@ -8,6 +8,7 @@ export {
 export { compileAssignmentAccess } from './access-compilation.js';
 export { compileScreens } from './screen-compilation.js';
 export { normalizeProcessDefinition } from './normalization.js';
+export { migrateProducerOutputIdentities } from './migration-producer-identities.js';
 export { detectRedundantScreens, redundantAuthoredScreens } from './screen-analysis.js';
 export {
   validateProcessDefinition,
