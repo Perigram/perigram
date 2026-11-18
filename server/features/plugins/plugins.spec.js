@@ -266,6 +266,7 @@ describe('managed plugin runtime package loading', () => {
         }, {
           name: 'files.read',
           input: { fileId: 'file-2' },
+          organizationId: null,
           contentHash: 'sha256:file'
         }]
       } }
@@ -347,7 +348,7 @@ describe('managed plugin runtime package loading', () => {
     expect(readSetRecorder.recordFile).toHaveBeenCalledWith({
       fileId: 'file-2',
       contentHash: 'sha256:file',
-      organizationId: ORG
+      organizationId: null
     });
     expect(nodeInvocations[0].capabilities).toEqual(['organization.instances.read', 'files.read']);
   });
