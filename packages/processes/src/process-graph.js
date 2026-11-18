@@ -133,8 +133,13 @@ export function graphDocumentToProcessDefinition(graphSource) {
       ? 'processNode'
       : node.operation.id.replace(/^canvas-node\./, '');
     const collection = NODE_RECORD_COLLECTIONS[type];
-    if (collection && node.config?.record) {
-      reconstructedRecords[collection][refId] = cloneJson(node.config.record);
+    if (collection) {
+      const record = node.config?.record || (
+        node.operation.provider === PROCESS_GRAPH_PROVIDER && !node.operation.id.startsWith('canvas-node.')
+          ? { ...cloneJson(node.config || {}), id: refId, kind: node.operation.id }
+          : null
+      );
+      if (record) reconstructedRecords[collection][refId] = cloneJson(record);
     }
     return {
       id: node.id,
