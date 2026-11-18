@@ -46,7 +46,9 @@
     "plugin-deps:check": "node scripts/check-plugin-deps.js",
     "dev:stack": "bash scripts/dev.sh up",
     "dev:stack:down": "bash scripts/dev.sh down",
-    "dev:stack:logs": "bash scripts/dev.sh logs"
+    "dev:stack:logs": "bash scripts/dev.sh logs",
+    "documents:runtime:build": "node workers/documents/build-runtime.mjs",
+    "test:runtime-browser": "playwright test --config playwright.runtime.config.js"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
