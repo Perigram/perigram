@@ -29,7 +29,7 @@ export function composeNestingAttemptGraph(authoring, { adminAccess = null } = {
   authoring.drop('recordField', { id: 'sourceKey' });
   authoring.configure('sourceKey', { path: 'sourceKey', type: { base: 'string' } });
   authoring.drop('recordField', { id: 'parts' });
-  authoring.configure('parts', { path: 'parts', type: { base: 'list', itemType: { base: 'record' } } });
+  authoring.configure('parts', { path: 'parts', type: { base: 'json' } });
   authoring.drop('constructRecord', { id: 'jobItems' });
   authoring.configure('jobItems', { fields: ['sourceId', 'sourceKey', 'parts', 'count'] });
   authoring.drop('literal', { id: 'one' });

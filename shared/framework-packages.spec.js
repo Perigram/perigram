@@ -346,10 +346,9 @@ describe('Framework package contracts', () => {
 
     expect(typeof handlers.list_entities).toBe('function');
     expect(entities.length).toBeGreaterThan(5);
-    expect(facadeServices.map(service => service.id)).toEqual(expect.arrayContaining([
-      'plugin.facade.nesting-solve',
-      'plugin.facade.bake'
-    ]));
+    expect(facadeServices.map(service => service.id)).toContain('plugin.facade.bake');
+    expect(facadeServices.map(service => service.id)).not.toContain('plugin.facade.nesting-solve');
+    expect(nestingListing.declarations.services.map(service => service.id)).toContain('nesting-solve');
     expect(typeof handlers.get_entity_schema).toBe('function');
   });
 

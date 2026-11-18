@@ -17,6 +17,11 @@ import { compileTreeDeclarations } from './designer.js';
 import { createTypeRegistry, projectDomainFromView, frameworkTypes, resolveCtsDefinition, checkCtsGraphBindings, rowFieldId } from '../../cts/src/index.js';
 import { cncTypePack } from '../../cts/src/pack/cnc.js';
 import { facadeDomain, facadeServices } from '../../../test-tools/facade-plugin.js';
+import nestingListing from '../../../workers/nesting/listing.json' with { type: 'json' };
+const nestingServices = nestingListing.declarations.services.map(service => ({
+  id: `plugin.nesting.${service.id}`, species: 'service', command: `plugin.nesting.${service.id}`,
+  palette: service.palette, signature: service.signature, render: service.render || { label: service.label || service.id }
+}));
 
 function projectedDomain() {
   const registry = createTypeRegistry({ id: 'authoring-spec' });
@@ -24,7 +29,7 @@ function projectedDomain() {
     registry.defineType(declaration);
   }
   return projectDomainFromView(registry, 'org-1', facadeDomain, {
-    packServices: facadeServices
+    packServices: [...facadeServices, ...nestingServices]
   });
 }
 
@@ -428,7 +433,7 @@ describe('headless definition authoring', () => {
     // when the sync was built left it with only its event contract.
     const contract = { domain: domainWithPackServices([], 'sync-bare'), fieldsForEntity: () => [] };
     const sync = createProcessRecordSync({ contract });
-    const record = { id: 'nest', kind: 'cts.service', operator: 'plugin.facade.nesting-solve' };
+    const record = { id: 'nest', kind: 'cts.service', operator: 'plugin.nesting.nesting-solve' };
 
     sync.syncProcessNode(record);
     expect(record.inputs.map(port => port.id)).toEqual(['in']);
@@ -436,10 +441,11 @@ describe('headless definition authoring', () => {
 
     contract.domain = domainWithPackServices(facadeServices, 'sync-served');
     sync.syncProcessNode(record);
-    expect(record.inputs.map(port => port.id)).toEqual(['in', 'items', 'sheetWidth', 'sheetHeight', 'space']);
+    expect(record.inputs.map(port => port.id)).toEqual(['in', 'items', 'sheetWidth', 'sheetHeight', 'space', 'sheetPolygon']);
     expect(record.outputs.map(port => port.id)).toEqual(['completed', 'result']);
     expect(record.inputs.find(port => port.id === 'sheetWidth')).toMatchObject({ required: false, default: 1220 });
     expect(record.inputs.find(port => port.id === 'sheetHeight')).toMatchObject({ required: false, default: 2440 });
+    expect(record.inputs.find(port => port.id === 'sheetPolygon')).toMatchObject({ required: false });
     expect(record.inputDefaults.sheetWidth).toEqual({ branches: [{ path: [], items: [1220] }] });
     expect(record.inputDefaults.sheetHeight).toEqual({ branches: [{ path: [], items: [2440] }] });
     expect(record.inputDefaults.space).toEqual({ branches: [{ path: [], items: [3] }] });
