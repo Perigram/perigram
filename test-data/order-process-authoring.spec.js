@@ -5,6 +5,7 @@ import { createDefinitionAuthoring } from '#packages/processes/authoring';
 import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
 import documentsListing from '../workers/documents/listing.json' with { type: 'json' };
 import techDrawingListing from '../workers/tech-drawing/listing.json' with { type: 'json' };
+import nestingListing from '../workers/nesting/listing.json' with { type: 'json' };
 import { composeOrderGraph, composeOrderTree, emptyAuthoringDomain } from './order-process-authoring.js';
 import { composeNestingAttemptGraph, composeNestingAttemptTree } from './nesting-attempt-authoring.js';
 
@@ -14,6 +15,7 @@ function domainWith(declarations) {
     ...frameworkTypes,
     ...documentsListing.declarations.types,
     ...techDrawingListing.declarations.types,
+    ...nestingListing.declarations.types,
     ...facadePackContent.types,
     ...declarations
   ]) {
@@ -23,6 +25,10 @@ function domainWith(declarations) {
     packServices: [
       ...(documentsListing.declarations.services || []),
       ...(techDrawingListing.declarations.services || []),
+      ...(nestingListing.declarations.services || []).map(service => ({
+        id: `plugin.nesting.${service.id}`, species: 'service', command: `plugin.nesting.${service.id}`,
+        palette: service.palette, signature: service.signature, render: service.render || { label: service.label || service.id }
+      })),
       ...facadePackContent.services
     ]
   });
@@ -51,8 +57,8 @@ describe('order process authoring', () => {
     expect(validation.errors.filter(error => !/must select a command/.test(error))).toEqual([]);
     expect(composed.processNodes.mkEntry.typeId).toBe('queue-entry');
     expect(composed.processNodes.entryParts.leftKey).toBe('fields.design');
-    expect(composed.processNodes.entryParts.rightKey).toBe('designId');
-    expect(composed.processNodes.jobItems.fields).toEqual(['designId', 'polygonParts', 'count']);
+    expect(composed.processNodes.entryParts.rightKey).toBe('sourceId');
+    expect(composed.processNodes.jobItems.fields).toEqual(['sourceId', 'sourceKey', 'parts', 'count']);
   });
 
   it('composes a valid manual solve over projection design items', () => {
@@ -72,6 +78,6 @@ describe('order process authoring', () => {
     });
 
     expect(validation.errors.filter(error => !/must select a command/.test(error))).toEqual([]);
-    expect(composed.processNodes.jobItems.fields).toEqual(['designId', 'polygonParts', 'count']);
+    expect(composed.processNodes.jobItems.fields).toEqual(['sourceId', 'sourceKey', 'parts', 'count']);
   });
 });

@@ -49,6 +49,7 @@ test('the solve action patches its attempt and constructs sheet designs from the
     ...frameworkTypes,
     ...documentsListing.declarations.types,
     ...techDrawingListing.declarations.types,
+    ...nestingListing.declarations.types,
     ...facadePackContent.types,
     ...declarations
   ]) {
