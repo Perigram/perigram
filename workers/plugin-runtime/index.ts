@@ -220,7 +220,6 @@ async function executeIsolated(packageData, run, setChild) {
     const child = new Deno.Command(Deno.execPath(), {
       args: [
         'run',
-        `--v8-flags=--max-old-space-size=${PLUGIN_RUNTIME_MAX_MEMORY_MB}`,
         '--no-prompt',
         `--allow-read=${directory}`,
         `--config=${directory}/deno.json`,
