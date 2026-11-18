@@ -21,3 +21,13 @@ A passing lower-level test must never be represented as proof of a higher-level 
 ## CI reporting
 
 CI reports each layer separately. A missing environment or skipped acceptance layer is a visible gap, not a passing result. Do not collapse source tests, SSR, browser runtime, application E2E, and deployed-artifact acceptance into one undifferentiated "tests passed" claim.
+
+## Current staging workflow scope
+
+The staging workflow currently runs the Documents browser Worker smoke against
+the built portable runtime, the Vitest suite, SSR smoke, and static discovery
+of the graph/HAG Playwright specs. That discovery command does not execute
+those application workflows. Full graph/HAG application E2E and a smoke
+against the deployed, installed catalog artifact remain separate acceptance
+gaps until the workflow provisions and tears down an isolated application
+stack and deployment target.
