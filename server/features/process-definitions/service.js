@@ -648,12 +648,16 @@ async function evaluateDataflow(definition, payload = {}, { auth, actor, domain 
     data: currentProcessDefinition(definition.data, projectedDomain)
   };
   const base = manualRunEnvironment(runnableDefinition, auth, projectedDomain);
-  const run = createProcessRun(runnableDefinition, payload.trigger || {}, {
+  // Durable traversal consumes the same canonical graph document as graph
+  // authoring and validation. The persisted process-definition envelope stays
+  // legacy-shaped; this projection is in-memory and does not rewrite records.
+  const canonicalGraph = processDefinitionToGraphDocument(runnableDefinition);
+  const run = createProcessRun(canonicalGraph, payload.trigger || {}, {
     processDefinitionId: runnableDefinition._id || runnableDefinition.id,
     context: { inputs: payload.inputs || {}, actor: actor || buildRunActor(auth, resolveOrganizationId(auth)) }
   });
   const environment = parkingEnvironment(runnableDefinition, base);
-  const settled = await advanceToBoundary(run, runnableDefinition.data, environment);
+  const settled = await advanceToBoundary(run, canonicalGraph, environment);
   if (settled.status === 'waiting' && settled.wakeAt) {
     // A Wait Until park is durable: the run store owns the wake.
     await persistRun(runnableDefinition, settled);
@@ -733,16 +737,17 @@ export async function resumeParkedRun(record) {
   const auth = await resolveRunActor(record.run?.context?.actor, record.organizationId);
   const domain = await getProjectedDomain(record.organizationId);
   const base = manualRunEnvironment(definitionLike, auth, domain);
+  const canonicalGraph = processDefinitionToGraphDocument(definitionLike);
   const resumedRun = {
     ...record.run,
     context: { ...(record.run?.context || {}), actor: auth }
   };
-  const resumed = await resumeProcessRun(resumedRun, record.definitionData, { output: {} }, {
+  const resumed = await resumeProcessRun(resumedRun, canonicalGraph, { output: {} }, {
     catalogContext: base.catalogContext,
     domain,
     data: base.data(resumedRun)
   });
-  const settled = await advanceToBoundary(resumed, record.definitionData, parkingEnvironment(definitionLike, base));
+  const settled = await advanceToBoundary(resumed, canonicalGraph, parkingEnvironment(definitionLike, base));
   await persistRun(definitionLike, settled, { kind: record.kind, nodeId: record.nodeId });
   return settled;
 }
@@ -785,14 +790,15 @@ export async function continueActionFromTask({ taskRunId, taskResult = {} } = {}
     ...run,
     context: { ...(run?.context || {}), actor: executionAuth }
   };
-  const resumed = await resumeProcessRun(resumedRun, definition.data, {
+  const canonicalGraph = processDefinitionToGraphDocument(definition);
+  const resumed = await resumeProcessRun(resumedRun, canonicalGraph, {
     output: projectedCompletionOutput(snapshot, taskResult)
   }, {
     catalogContext: catalogContextFromDefinition(definition.data, domain),
     domain,
     data: processDataEnvironment(executionAuth, resumedRun, domain)
   });
-  await advanceToBoundary(resumed, definition.data, current => ({
+  await advanceToBoundary(resumed, canonicalGraph, current => ({
     ...manualRunEnvironment(definition, executionAuth, domain),
     data: processDataEnvironment(executionAuth, current, domain)
   }));
