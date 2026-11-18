@@ -14,7 +14,7 @@ import {
   normalizeGraphDocument,
   validateGraphDocument
 } from '@perigram/core';
-import { createNodeProviderRegistry, createPortCompatibilityRegistry, normalizeNodeProvider } from '@perigram/plugin-sdk/nodes';
+import { createNodeProviderRegistry, createPortCompatibilityRegistry, normalizeNodeProvider, normalizeNodeDefinition } from '@perigram/plugin-sdk/nodes';
 import { createGraphAuthoringState, useGraphAuthoringSession } from '~/composables/useGraphAuthoringSession.js';
 import { mintId } from '~/utils/processDesignerIdentity.js';
 
@@ -199,6 +199,14 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
     return groups;
   });
 
+  function resolveProviderDefinition(resolvers, op, invocation) {
+    for (const resolver of resolvers) {
+      const resolved = resolver(op, invocation);
+      if (resolved) return normalizeNodeDefinition(resolved);
+    }
+    return registry.resolve(op.provider, op.id, op.version);
+  }
+
   function definitionFor(node) {
     const op = node?.data?.operation || node?.operation;
     const config = node?.data?.config || node?.config || {};
@@ -243,11 +251,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
       };
     }
     const invocation = { node: { id: node.id }, config, context: {} };
-    for (const resolver of providerResolvers) {
-      const resolved = resolver(op, invocation);
-      if (resolved) return resolved;
-    }
-    return registry.resolve(op.provider, op.id, op.version);
+    return resolveProviderDefinition(providerResolvers, op, invocation);
   }
 
   function enrichNode(node) {
@@ -583,13 +587,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
       const result = await evaluateProceduralGraph({
         graph,
         inputBindings: inputBindings.value,
-        resolveNodeDefinition: (op, invocation) => {
-          for (const resolver of providerPreviewResolvers) {
-            const resolved = resolver(op, invocation);
-            if (resolved) return resolved;
-          }
-          return registry.resolve(op.provider, op.id, op.version);
-        },
+        resolveNodeDefinition: (op, invocation) => resolveProviderDefinition(providerPreviewResolvers, op, invocation),
         executeNode: async (definition, invocation) => {
           const executor = providerExecutors.get(definition.provider);
           if (!executor) throw new Error(`No runtime is registered for provider ${definition.provider}`);
