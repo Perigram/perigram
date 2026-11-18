@@ -3673,7 +3673,8 @@
     "apiKeyPlaceholder": "Optional bearer token for the remote provider",
     "savedToast": "Connection saved",
     "uninstallAlso": "Will also be removed: {list}",
-    "uninstallBlocked": "Live data blocks removal — delete or migrate first: {detail}"
+    "uninstallBlocked": "Live data blocks removal — delete or migrate first: {detail}",
+    "platformManagedExecutorHelp": "This executor is managed by Perigram. Its origin, credentials, and surface hosting are configured by the platform and cannot be changed in organization settings."
   },
   "llm": {
     "provider": "AI provider",

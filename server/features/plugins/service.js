@@ -596,16 +596,17 @@ export async function settingsFor({ organizationId, pluginId, auth = {} }) {
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
   const packageOwned = Number(install.packageAssets?.count) > 0 || Boolean(install.declarations?.engine) || Boolean(install.declarations?.runtimes?.length);
+  const platformManaged = install.platformManaged === true || install.builtin === true;
   const endpointServices = (install.services || []).filter(service => serviceModeOf(service) === 'endpoint');
   const inferredOrigin = endpointUrlFor(install, endpointServices[0]);
   return {
     pluginId: install.pluginId,
-    platformManaged: install.platformManaged === true || install.builtin === true,
-    authToken: install.platformManaged || install.builtin ? null : (endpointServices.length ? (install.authToken || null) : null),
+    platformManaged,
+    authToken: platformManaged ? null : (endpointServices.length ? (install.authToken || null) : null),
     executorOrigin: inferredOrigin || '',
     legacyEndpointConflict: !install.executorOrigin && Object.keys(install.endpoints || {}).length > 0 && !inferredOrigin,
-    surfaceOrigin: packageOwned ? null : (install.surfaceOrigin || null),
-    surfaces: !packageOwned && (install.declarations?.surfaces || []).length > 0,
+    surfaceOrigin: packageOwned || platformManaged ? null : (install.surfaceOrigin || null),
+    surfaces: !packageOwned && !platformManaged && (install.declarations?.surfaces || []).length > 0,
     hasEndpointServices: endpointServices.length > 0,
     services: (install.services || []).map(service => ({ id: service.id, label: serviceSummary(service).label, mode: serviceModeOf(service) }))
   };
@@ -666,7 +667,7 @@ export async function updateSettings({ organizationId, pluginId, executorOrigin 
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
   if ((install.platformManaged === true || install.builtin === true)
-    && (executorOrigin !== undefined || endpoints !== undefined || authToken)) {
+    && (executorOrigin !== undefined || endpoints !== undefined || authToken || surfaceOrigin !== undefined)) {
     throw createError({ statusCode: 400, message: 'This plugin executor is managed by the platform and cannot be changed in organization settings' });
   }
   let requestedOrigin = executorOrigin;

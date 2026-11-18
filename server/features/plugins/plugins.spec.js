@@ -1166,14 +1166,23 @@ describe('endpoint-mode services', () => {
   it('does not expose platform-managed executor credentials as organization settings', async () => {
     repository.findInstall.mockResolvedValue({
       ...endpointInstall, platformManaged: true,
-      executorOrigin: 'http://documents-executor:8791', authToken: 'platform-secret'
+      executorOrigin: 'http://documents-executor:8791', authToken: 'platform-secret',
+      surfaceOrigin: 'https://platform-surfaces.example',
+      declarations: { ...endpointInstall.declarations, surfaces: [{ id: 'preview' }] }
     });
     const settings = await settingsFor({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
     expect(settings).toMatchObject({
-      platformManaged: true, executorOrigin: 'http://documents-executor:8791', authToken: null
+      platformManaged: true,
+      executorOrigin: 'http://documents-executor:8791',
+      authToken: null,
+      surfaceOrigin: null,
+      surfaces: false
     });
     await expect(updateSettings({
       organizationId: ORG, pluginId: 'coatings', executorOrigin: null, auth: AUTH
+    })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('managed by the platform') });
+    await expect(updateSettings({
+      organizationId: ORG, pluginId: 'coatings', surfaceOrigin: 'https://user-controlled.example', auth: AUTH
     })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('managed by the platform') });
     expect(repository.updateSettings).not.toHaveBeenCalled();
   });

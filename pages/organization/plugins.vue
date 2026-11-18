@@ -244,10 +244,13 @@
       size="md"
     >
       <div v-if="settings" class="flex flex-col gap-4">
-        <Message v-if="settings.hasEndpointServices" severity="info" size="small">
+        <Message v-if="settings.platformManaged" severity="info" size="small">
+          {{ $t('plugins.platformManagedExecutorHelp') }}
+        </Message>
+        <Message v-else-if="settings.hasEndpointServices" severity="info" size="small">
           {{ $t('plugins.remoteConnectionHelp', { services: settings.services.filter(service => service.mode === 'endpoint').map(service => service.label).join(', ') }) }}
         </Message>
-        <div v-if="settings.hasEndpointServices" class="flex flex-col gap-2">
+        <div v-if="settings.hasEndpointServices && !settings.platformManaged" class="flex flex-col gap-2">
           <div class="text-muted text-label">{{ $t('plugins.executorOrigin') }}</div>
           <InputText
             v-model="settings.executorOrigin"
@@ -260,7 +263,7 @@
             {{ $t('plugins.legacyEndpointConflict') }}
           </Message>
         </div>
-        <div v-if="settings.surfaces" class="flex flex-col gap-2">
+        <div v-if="settings.surfaces && !settings.platformManaged" class="flex flex-col gap-2">
           <div class="text-muted text-label">{{ $t('plugins.surfaceOrigin') }}</div>
           <InputText
             v-model="settings.surfaceOrigin"
@@ -285,6 +288,7 @@
       <template #footer>
         <Button :label="$t('common.cancel')" text severity="secondary" @click="settingsDialogVisible = false" />
         <Button
+          v-if="settings && !settings.platformManaged"
           :label="$t('common.save')"
           icon="pi pi-check"
           :loading="savingSettings"
