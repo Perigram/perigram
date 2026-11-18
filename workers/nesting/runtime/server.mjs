@@ -55,8 +55,6 @@ function buildRequest(items, input) {
   if (!Number.isFinite(width) || width <= 0) badRequest('sheetWidth must be finite and positive');
   if (!Number.isFinite(height) || height <= 0) badRequest('sheetHeight must be finite and positive');
   if (!Number.isFinite(space) || space < 0) badRequest('space must be finite and non-negative');
-  const sheetCount = items.reduce((sum, item) => sum + item.count, 0);
-  if (!Number.isSafeInteger(sheetCount) || sheetCount < 1) badRequest('Nesting sheet count exceeds the safe integer limit');
   let id = 0;
   const requestItems = [];
   for (const item of items) for (const part of item.parts) {
@@ -69,6 +67,10 @@ function buildRequest(items, input) {
     });
   }
   if (!requestItems.length) badRequest('No valid polygon parts were supplied for nesting');
+  // One sheet per physical polygon part is the safe upper bound. A source
+  // item can contain several polygons, so count parts rather than designs.
+  const sheetCount = requestItems.reduce((sum, item) => sum + item.count, 0);
+  if (!Number.isSafeInteger(sheetCount) || sheetCount < 1) badRequest('Nesting sheet count exceeds the safe integer limit');
   return {
     requestItems,
     params:{width,height,space,sheetCount,sheet_polygon:normalizeSheetPolygon(input.sheetPolygon,width,height)}
