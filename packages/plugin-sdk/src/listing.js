@@ -253,7 +253,7 @@ export function parseListing(listing = {}) {
           throw listingError(`service ${service.id} configuration property ${fieldId} needs a supported schema type`);
         }
         if (field.semantic?.kind !== undefined
-          && !/^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$/.test(String(field.semantic.kind))) {
+          && !/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/.test(String(field.semantic.kind))) {
           throw listingError(`service ${service.id} configuration property ${fieldId} semantic kind must be namespaced`);
         }
       }

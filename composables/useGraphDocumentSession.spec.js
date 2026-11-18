@@ -82,7 +82,7 @@ describe('useGraphDocumentSession', () => {
     const result = await session.refreshPreview();
     const file = result.outputs[session.graphDocument.value.interface.outputs[0].id];
     expect(Buffer.from(file.payload.base64, 'base64').toString('utf8')).toBe('# Hello Ada');
-    expect(result.nodeOutputs[fill.id].meta.tokens).toEqual(['name']);
+    expect(result.nodeOutputs[fill.id].value.meta.tokens).toEqual(['name']);
     expect(fill.data.definition.configuration.properties.values.semantic.kind).toBe('documents.template-values');
   });
 
