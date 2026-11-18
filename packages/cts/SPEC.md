@@ -652,9 +652,20 @@ render the assistant's face from it), and `avatarUrl` (the computed
 avatar serving route). Party reads gate on shared membership (self always
 readable) and ride the registered party services.
 
-## 14. Graph protocol: declaration-bound process definitions
+## 14. CTS declarations and process semantics on the shared graph
 
-This section specifies CTS process-definition graphs. It is distinct from the portable `perigram.graph` procedural dataflow document contract owned by `@perigram/core` (root SPEC §28); the two formats do not share node species or execution lifecycles.
+This section specifies CTS declaration records and the domain semantics used
+by process definitions. It is not a second platform graph protocol. The
+canonical persisted graph format, node/port contract, provider registry,
+compatibility rules, and reusable-subgraph mechanism are owned by
+`@perigram/core` and `@perigram/plugin-sdk` (root SPEC §28).
+
+CTS owns declaration meaning, type identity, state definitions, and domain
+validation. The process profile owns process-specific compilation,
+authorization, effects, and durable lifecycle semantics. Both are expressed
+through the shared graph contract. Legacy process-definition storage and
+compiler adapters exist only to migrate and preserve current definitions;
+they are not extension points for another graph format or evaluator.
 
 Process definitions stop speaking the entity/block/status vocabulary. The
 stored records of every entity-bound node reference declarations; the pure
