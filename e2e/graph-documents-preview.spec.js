@@ -110,7 +110,7 @@ test('saved Documents graph renders its Markdown file through the Documents prev
   const bakedPath = 'documents/preview-e2e.md';
   await page.getByLabel('Page file path').fill(bakedPath);
   const bakeResponse = page.waitForResponse(response => (
-    response.url().includes('/api/graph-bakes') && response.request().method() === 'POST'
+    response.url().includes('/api/graph-executions/bake') && response.request().method() === 'POST'
   ));
   await page.getByRole('button', { name: 'Bake output' }).click();
   const baked = await bakeResponse;
@@ -227,7 +227,7 @@ test('typed Documents blocks preview and Bake Markdown and HTML files with prove
     await page.getByLabel('Page destination').click();
     await page.getByRole('option', { name: pageName }).click();
     await page.getByLabel('Page file path').fill(filePath);
-    const responsePromise = page.waitForResponse(response => response.url().includes('/api/graph-bakes') && response.request().method() === 'POST');
+    const responsePromise = page.waitForResponse(response => response.url().includes('/api/graph-executions/bake') && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Bake output' }).click();
     const response = await responsePromise;
     expect(response.ok(), await response.text()).toBe(true);

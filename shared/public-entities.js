@@ -18,20 +18,3 @@ export function isPublicReadEntity({ entity = null, typeId = '', feature = '' } 
   return entity.lineage?.scope === 'system';
 }
 
-export function markPublicSystemData(data = {}) {
-  return {
-    ...data,
-    lineage: {
-      ...(data.lineage || {}),
-      scope: 'system',
-      public: true
-    },
-    data: {
-      ...(data.data || {}),
-      visibility: {
-        ...(data.data?.visibility || {}),
-        public: true
-      }
-    }
-  };
-}

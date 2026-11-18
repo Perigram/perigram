@@ -191,7 +191,7 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
       if (!Object.prototype.hasOwnProperty.call(previewRecord?.outputs || {}, outputId)) {
         throw new Error(`Graph output ${outputId} is unavailable`);
       }
-      return await $fetch('/api/graph-bakes', {
+      return await $fetch('/api/graph-executions/bake', {
         method: 'POST',
         headers: { 'Idempotency-Key': `graph-bake:${previewRecord.id}:${destination.pageId}:${destination.path}:${outputId}` },
         body: {

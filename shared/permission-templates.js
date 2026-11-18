@@ -51,14 +51,3 @@ export const PERMISSION_TEMPLATES = {
   }
 };
 
-export function materializeRolePermissions(role, permissions = {}) {
-  const template = PERMISSION_TEMPLATES[role] || PERMISSION_TEMPLATES.IndividualUser || {};
-  return {
-    ...clonePermissions(template),
-    ...clonePermissions(permissions)
-  };
-}
-
-export function clonePermissions(permissions = {}) {
-  return JSON.parse(JSON.stringify(permissions || {}));
-}

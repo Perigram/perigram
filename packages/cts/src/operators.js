@@ -56,13 +56,3 @@ function normalizeTriggers(operatorId, triggers = []) {
     return Object.freeze(event ? { event } : { schedule });
   }));
 }
-
-// Intents live on transition operators' output contracts (SPEC §7): the
-// producer owns its intents; there is no second lifecycle source.
-export function normalizeIntents(operator = {}, intent) {
-  if (!intent) return null;
-  if (operator.species !== 'transition') {
-    throw new Error(`operator ${operator.id}: intents are declared by transition operators only`);
-  }
-  return intent;
-}

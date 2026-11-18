@@ -7,7 +7,6 @@
 // `compileTreeDeclarations` (packages/processes) — nothing here
 // re-validates.
 import {
-  applyFieldDisplayRole,
   authoredSocketDefault,
   compileTreeDeclarations,
   createProcessNodeRecord,
@@ -212,12 +211,6 @@ export function newTransitionDeclaration({ id, typeId, stateNodeId = '', stateVa
         }
       : {})
   };
-}
-
-// The single-holder move (SPEC §4): the same display-role pass the class
-// inspector applies over the sibling field nodes.
-export function setIdentifierHolder(nodes, fieldNodeId, enabled) {
-  applyFieldDisplayRole(nodes, fieldNodeId, 'identifier', enabled);
 }
 
 // Declaration order is nodes-array order: a move swaps the field node with

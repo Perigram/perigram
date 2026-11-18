@@ -91,24 +91,6 @@ export async function claimNext({
   );
 }
 
-export async function startById(id, workerId) {
-  const db = await connectDB();
-  await db.collection(COLLECTION).updateOne(
-    { _id: id instanceof ObjectId ? id : toFlexibleId(id), status: { $in: ['QUEUED', 'RUNNING'] } },
-    {
-      $set: {
-        status: 'RUNNING',
-        lockedBy: workerId,
-        lockedAt: new Date(),
-        startedAt: new Date(),
-        updatedAt: new Date()
-      },
-      $inc: { attempts: 1 }
-    }
-  );
-  return await findById(id);
-}
-
 export async function updateById(id, update) {
   const db = await connectDB();
   await db.collection(COLLECTION).updateOne(

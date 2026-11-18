@@ -7,8 +7,6 @@
 export const VARIANTS = Object.freeze(['full', 'detail', 'row', 'inline']);
 const EDIT_VARIANTS = new Set(['full', 'detail']);
 
-export const SPANS = Object.freeze(['full', 'half']);
-
 // --- Fields -----------------------------------------------------------------
 
 // Editor-family entries. `long`, `enumSize`, and `itemBase` are
@@ -206,14 +204,6 @@ export const ROW_WEIGHT_BY_LAYOUT = Object.freeze({
   board: 4,
   gantt: 2,
   calendar: 3
-});
-
-// Card anatomy variants, selected by type shape: media cards for payloads,
-// stat cards for percent/quantity-dominant types, text cards otherwise.
-export const CARD_VARIANT_RULES = Object.freeze({
-  media: 'media',
-  statlike: 'stat',
-  default: 'text'
 });
 
 // Hierarchy-driven rhythm and type: the composed node's chrome level picks

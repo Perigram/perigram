@@ -45,7 +45,6 @@ export async function enqueueTask(taskId, input = {}, auth = {}, options = {}) {
   });
 }
 
-export const createTaskRun = enqueueTask;
 
 export async function claimTask({ taskId = null, workerType = null, workerId = 'worker', leaseMs = 60000 } = {}) {
   const definition = taskId ? getTaskDefinition(taskId) : null;
@@ -66,22 +65,6 @@ export async function claimTask({ taskId = null, workerType = null, workerId = '
     runningStatuses: definition ? [running] : runningStatusesForDefinitions(),
     runningStatus: definition ? running : runningStatusesByTaskId()
   });
-}
-
-export const claimNextTaskRun = (taskId, workerId) => claimTask({ taskId, workerId });
-
-export async function runClaimedTaskRun(run, executor, task = getTaskDefinition(run.taskId)) {
-  try {
-    const result = await executor({
-      task,
-      run,
-      input: run.input || {},
-      auth: run.auth || {}
-    });
-    return await completeTaskRun(run._id, result || {}, run.claimToken);
-  } catch (error) {
-    return await failTaskRun(run._id, error, run.claimToken);
-  }
 }
 
 export async function heartbeatTaskRun(id, claimToken, { leaseMs = 60000, workerType = null } = {}) {

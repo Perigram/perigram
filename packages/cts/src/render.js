@@ -10,10 +10,6 @@ const ICON_BY_CLASS = Object.freeze({
   group: 'pi pi-folder', process: 'pi pi-cog'
 });
 
-function startCase(value = '') {
-  return String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-}
-
 // Derived sections: total field assignment by base (SPEC §4).
 const SECTION_ORDER = Object.freeze(['summary', 'dimensions', 'media', 'relations', 'notes']);
 const LONG_STRING_AT = 120;
@@ -44,21 +40,6 @@ export function deriveSections(fields = {}) {
       .filter(id => bySection.get(id).length)
       .map(id => Object.freeze({ id, label: null, fields: Object.freeze(bySection.get(id)) }))
   );
-}
-
-// Per-state display policy resolved from a flat vocabulary (SPEC §7): the
-// value supplies the default label, terminal severity is explicit state
-// policy rather than inferred from missing transitions. Types declare no
-// vocabularies; this resolves the vocabulary a compiled contract carries.
-export function resolvedStateDisplay(vocabulary = {}) {
-  return Object.freeze(Object.fromEntries(Object.entries(vocabulary).map(([value, declaration = {}]) => {
-    const policy = declaration.policy || {};
-    return [value, Object.freeze({
-      label: policy.label || startCase(value),
-      icon: policy.icon || null,
-      severity: policy.severity || (declaration.terminal === true ? 'secondary' : 'info')
-    })];
-  })));
 }
 
 // Derivation-only display policy: the pieces the client bundle attaches

@@ -15,13 +15,6 @@ export function isUpdateAction(action = {}) {
   return UPDATE_KINDS.has(action?.actionKind);
 }
 
-// A stateless update is the field-edit affordance: detail fields are
-// inline-editable on their own, so it never renders as a header action —
-// editor-bound types carry the editor open action instead. State-carrying
-// updates are transitions and stay.
-export function isFieldEditAction(action = {}) {
-  return isUpdateAction(action) && !action?.state?.to;
-}
 
 export function isDeleteAction(action = {}) {
   return DELETE_KINDS.has(action?.actionKind);

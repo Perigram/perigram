@@ -1,7 +1,6 @@
 import {
   ACCESS_LEVELS,
   hasPermissionGrant,
-  levelAtLeast,
   resolveEffectivePermissions
 } from '#shared/access-control.js';
 import {
@@ -276,7 +275,3 @@ function copyAllowedPath(source, target, segments) {
   copyAllowedPath(value, target[segment], rest);
 }
 
-export function hasFieldPolicyLevel(typeId, path, level = 'read') {
-  const policy = findEntityFieldPolicy(typeId, path);
-  return Boolean(policy && levelAtLeast(policy.level, level));
-}

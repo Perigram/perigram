@@ -197,7 +197,7 @@ const persistence = {
     });
   },
   async bakeFile({ graphDocumentInstanceId, record, outputId, destination }) {
-    return await $fetch('/api/graph-bakes', {
+    return await $fetch('/api/graph-executions/bake', {
       method: 'POST',
       body: { graphDocumentInstanceId, record, outputId, destination }
     });

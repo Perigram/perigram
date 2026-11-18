@@ -5,10 +5,6 @@ export function normalizeHierarchyType(type = '') {
   return String(type || '').replace(/-/g, '_').replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
 }
 
-export function hierarchyTypeAlias(type = '') {
-  return normalizeHierarchyType(type);
-}
-
 export function instanceHierarchyId(entity = {}) {
   return entity._id?.toString?.() || entity.id?.toString?.() || '';
 }
@@ -62,14 +58,6 @@ export function containmentAncestors(entity = {}, typeId = '', containment = [])
   if (organizationId && !refs.some(ref => ref.type === 'organization' && ref.id?.toString() === String(organizationId))) {
     refs.unshift({ type: 'organization', id: organizationId, lineageKey: 'organizationId' });
   }
-  return refs;
-}
-
-export function hierarchyReferences(entity = {}, typeId = '', containment = []) {
-  const refs = containmentAncestors(entity, typeId, containment);
-  const id = instanceHierarchyId(entity);
-  const type = normalizeHierarchyType(typeId || entity?.typeId);
-  if (type && id) refs.push({ type, id, current: true });
   return refs;
 }
 
