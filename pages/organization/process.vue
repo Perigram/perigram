@@ -1,42 +1,14 @@
 <template>
   <StandardPage workspace>
-    <GraphCanvas
-      v-model:nodes="nodes"
-      v-model:edges="edges"
-      :bind-frame="instance => { canvasFrame = instance }"
-      :bind-context-palette-search="instance => { contextPaletteSearch = instance }"
+    <GraphEditorSurface
+      :session="processSession"
       :document-items="documentDockItems"
       :canvas-items="canvasDockItems"
-      :touch-pan-drag="touchPanDrag"
-      :default-edge-options="defaultEdgeOptions"
-      :palette-groups="paletteChipGroups"
       :palette-placeholder="$t('processDesigner.searchOperations')"
-      :context-palette="contextPalette"
-      :context-palette-groups="contextPaletteChipGroups"
       :empty-message="emptyCanvasMessage"
-      :validation="validation"
       :validation-diff-lines="validationDiffLines"
-      :selected-graph-nodes="selectedGraphNodes"
-      :selected-node-id="selectedNodeId"
-      :viewport="designerViewport"
-      :frame-selected-nodes="frameSelectedNodes"
-      :delete-graph-selection="deleteGraphSelection"
-      :add-node="addNode"
-      :add-context-node="addContextNode"
-      :close-context-palette="closeContextPalette"
-      :rename-declaration-node="renameDeclarationNode"
-      :handle-designer-pointer-down="handleDesignerPointerDown"
-      :handle-designer-focus="handleDesignerFocus"
-      :handle-designer-wheel="handleDesignerWheel"
-      :select-node="selectNode"
-      :select-edge="selectEdge"
-      :clear-graph-selection="clearGraphSelection"
-      :open-pane-palette="openPanePalette"
-      :begin-socket-connection="beginSocketConnection"
-      :end-socket-connection="endSocketConnection"
-      :on-connect="onConnect"
-      :handle-node-drag-stop="onNodeDragStop"
-      :handle-canvas-nodes-change="onCanvasNodesChange"
+      :node-drag-stop="onNodeDragStop"
+      :canvas-nodes-change="onCanvasNodesChange"
     >
       <template #lane>
         <LaneBands
@@ -537,7 +509,7 @@
         </div>
       </template>
 
-    </GraphCanvas>
+    </GraphEditorSurface>
 
     <StandardDialog v-model:visible="showGrantEditor" :header="$t('processDesigner.editGrantConditions')" size="xl">
       <PermissionEditor :permissions="grantEditorPermissions" :features="permissionFeatureOptions" @save="saveGrantEditor" />
@@ -593,7 +565,7 @@ import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
-import GraphCanvas from '~/components/process-designer/GraphCanvas.vue';
+import GraphEditorSurface from '~/components/process-designer/GraphEditorSurface.vue';
 import GraphInspector from '~/components/process-designer/GraphInspector.vue';
 import GraphPreviewPanel from '~/components/process-designer/GraphPreviewPanel.vue';
 import TypeMigrationStepsDialog from '~/components/process-designer/TypeMigrationStepsDialog.vue';
@@ -602,8 +574,10 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import PermissionEditor from '~/components/PermissionEditor.vue';
 import { projectUiAction } from '@perigram/processes/ui-contract-projection';
 import {
+  authoredProcessDataFromGraphDocument,
   canvasToDefinition,
   compileProcessDefinition,
+  createProcessGraphDocument,
   definitionToCanvas,
   normalizeDesignerAccess,
   prepareAuthoredDefinition,
@@ -622,7 +596,7 @@ import { useProcessDesignerPersistence } from '~/composables/useProcessDesignerP
 import { useProcessDesignerRoles } from '~/composables/useProcessDesignerRoles.js';
 import { useProcessDesignerScreens, withoutKeys } from '~/composables/useProcessDesignerScreens.js';
 import { useProcessDesignerApply } from '~/composables/useProcessDesignerApply.js';
-import { useProcessDesignerGraphSession } from '~/composables/useProcessDesignerGraphSession.js';
+import { useProcessProfile } from '~/composables/useProcessProfile.js';
 import { useGraphChannelPreview } from '~/composables/useGraphChannelPreview.js';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
 
@@ -660,7 +634,9 @@ const {
 
 const draft = ref(null);
 
-const { compareProcessDefinitions, normalizeProcessList, pickInitialProcess } = useProcessDefinitionCatalog({ definitionToCanvas });
+const { compareProcessDefinitions, normalizeProcessList, pickInitialProcess } = useProcessDefinitionCatalog({
+  definitionToCanvas: definition => definitionToCanvas(authoredProcessDataFromGraphDocument(definition) || definition)
+});
 const persistence = useProcessDesignerPersistence();
 const rolePersistence = useProcessDesignerRoles();
 
@@ -677,9 +653,7 @@ const {
   schedule: scheduleChannelPreview
 } = useGraphChannelPreview({
   persistence,
-  serializeProcess: () => serializeProcess(),
-  clientEngines: () => ({ engines: servedClientEngines.value, domain: ctsProjectedDomain() }),
-  clientRuntimes: () => servedClientRuntimes.value
+  serializeProcess: () => serializeProcess()
 });
 
 // The active organization for the registry view: the draft's lineage when a
@@ -693,11 +667,20 @@ function activeOrganizationId() {
     || null;
 }
 
-// The process-definition authoring session is still a separate migration
-// path from the canonical graph-document session. This page owns the CTS
-// declaration plane and process lifecycle around its canvas — definitions,
-// lanes, roles, screens, and the apply ceremony. The shared canvas component
-// is presentation reuse, not evidence that the authoring sessions are unified.
+// The process profile layers CTS declarations, process records, lanes, roles,
+// screens, and the apply ceremony onto the shared graph authoring core. The
+// page composes that profile with the process-definition lifecycle.
+const processSession = useProcessProfile({
+  t,
+  te,
+  toast,
+  draft,
+  roles: () => organizationRoles.value,
+  activeOrganizationId,
+  persistence,
+  graphEvaluation: channelPreviewPayload,
+  seedPlacement: node => seedLaneFacts(node)
+});
 const {
   nodes,
   edges,
@@ -707,6 +690,8 @@ const {
   designerSignature,
   loadDocument,
   serializeProcess,
+  serializeCanonicalGraph,
+  loadCanonicalGraph,
   processDefinitionSnapshot,
   designer,
   ctsRegistry,
@@ -855,17 +840,7 @@ const {
   nodeDiagnostics,
   focusValidationDiagnostic,
   focusFirstValidationDiagnostic
-} = useProcessDesignerGraphSession({
-  t,
-  te,
-  toast,
-  draft,
-  roles: () => organizationRoles.value,
-  activeOrganizationId,
-  persistence,
-  graphEvaluation: channelPreviewPayload,
-  seedPlacement: node => seedLaneFacts(node)
-});
+} = processSession;
 
 const {
   applyState,
@@ -884,7 +859,7 @@ const {
   draft,
   validation,
   isActiveProcess: () => isActiveProcess.value,
-  serializeProcess: () => serializeProcess(),
+  serializeProcess: () => serializeCanonicalGraph(),
   createDraft: options => createDraft(options),
   persistTreeDeclarations,
   focusFirstValidationDiagnostic,
@@ -1449,11 +1424,11 @@ async function createDraft({ empty = false } = {}) {
   const name = 'Organization process';
   const sourceId = null;
   const data = empty
-    ? canvasToDefinition(
+    ? createProcessGraphDocument(canvasToDefinition(
       { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
       { dataflowVersion: PROCESS_DATAFLOW_VERSION }
-    )
-    : serializeProcess();
+    ))
+    : serializeCanonicalGraph();
   const created = await persistence.createDraft({ name, data, sourceProcessDefinitionId: sourceId });
   upsertProcessDefinition(created);
   setDraft(created);
@@ -1652,7 +1627,10 @@ function reconcileOutOfBandDraft() {
   persistence.loadById(String(draft.value._id))
     .then(fresh => {
       if (!fresh?._id || String(fresh._id) !== String(draft.value?._id)) return;
-      if (JSON.stringify(fresh.data ?? null) === reconciledDataSignature) return;
+      const freshData = fresh?.data?.format === 'perigram.graph'
+        ? authoredProcessDataFromGraphDocument(fresh.data)
+        : fresh?.data;
+      if (JSON.stringify(freshData ?? null) === reconciledDataSignature) return;
       upsertProcessDefinition(fresh);
       setDraft(fresh);
     })
@@ -1660,7 +1638,14 @@ function reconcileOutOfBandDraft() {
 }
 
 function setDraft(value) {
-  loadDocument(value, {
+  const data = value?.data?.format === 'perigram.graph'
+    ? {
+        ...(authoredProcessDataFromGraphDocument(value.data) || {}),
+        ...Object.fromEntries(['migrations', 'history', 'activated'].filter(key => value.data[key] !== undefined).map(key => [key, value.data[key]]))
+      }
+    : value?.data;
+  const view = value?.data?.format === 'perigram.graph' ? { ...value, data } : value;
+  loadDocument(view, {
     seedNodes: seeded => deriveLaneFacts({
       nodes: seeded,
       bandIds: laneBandIds.value,

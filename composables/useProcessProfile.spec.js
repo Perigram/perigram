@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { ref } from 'vue';
-import { useProcessDesignerGraphSession } from './useProcessDesignerGraphSession.js';
+import { useProcessProfile } from './useProcessProfile.js';
 
 function createSession() {
-  return useProcessDesignerGraphSession({
+  return useProcessProfile({
     t: key => key,
     te: () => true,
     toast: { add: () => {} },
@@ -14,7 +14,7 @@ function createSession() {
   });
 }
 
-describe('useProcessDesignerGraphSession', () => {
+describe('useProcessProfile', () => {
   // GraphCanvas declares the connect handlers as required Function props —
   // a session export that misses its source composable breaks the
   // wire-drop palette on every host.

@@ -40,7 +40,7 @@ describe('process designer interaction boundaries', () => {
   });
 
   it('wires the live evaluation loop after every composable its sync pass reads', () => {
-    const graphSession = readFileSync(new URL('../composables/useProcessDesignerGraphSession.js', import.meta.url), 'utf8');
+    const graphSession = readFileSync(new URL('../composables/useProcessProfile.js', import.meta.url), 'utf8');
     const sync = graphSession.indexOf('useProcessDesignerNodeSync({');
     const preview = graphSession.indexOf('useProcessDesignerPreview({');
     const engine = graphSession.indexOf('useProcessDesignerLiveGraph({');

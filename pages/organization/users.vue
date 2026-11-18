@@ -318,7 +318,7 @@ import { useInstancesStore } from '~/stores/instances';
 import { useDirectoryUserSearch } from '~/composables/useDirectoryUserSearch.js';
 import { useRegistryStore } from '~/stores/registry';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
-import { discoverAssignmentBindingRequirements } from '#packages/processes';
+import { authoredProcessDataFromGraphDocument, discoverAssignmentBindingRequirements } from '#packages/processes';
 import { previewAssignmentAccess } from '~/shared/assignment-access-preview.js';
 
 definePageMeta({
@@ -519,7 +519,14 @@ async function loadInvitations() {
 
 async function loadActiveProcess() {
     try {
-        activeProcess.value = await $fetch('/api/process-definitions/active');
+        const active = await $fetch('/api/process-definitions/active');
+        if (active?.data?.format === 'perigram.graph') {
+            active.data = {
+                ...(authoredProcessDataFromGraphDocument(active.data) || {}),
+                ...Object.fromEntries(['migrations', 'history', 'activated', 'compiled'].filter(key => active.data[key] !== undefined).map(key => [key, active.data[key]]))
+            };
+        }
+        activeProcess.value = active;
     } catch (e) {
         activeProcess.value = null;
     }

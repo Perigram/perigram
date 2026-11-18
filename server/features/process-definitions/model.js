@@ -3,6 +3,7 @@ import { BaseEntity } from '~/server/core/blocks/index.js';
 export class ProcessDefinition extends BaseEntity {
   constructor(raw = {}) {
     super(raw);
+    if (this.data?.format === 'perigram.graph') return;
     this.data = {
       schemaVersion: 1,
       sourceTemplateId: null,

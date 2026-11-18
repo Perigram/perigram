@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GRAPH_DOCUMENT_FORMAT, validateGraphDocument } from '@perigram/core';
 import {
+  authoredProcessDataFromGraphDocument,
   createProcessGraphDocument,
   PROCESS_GRAPH_METADATA_KEY,
   PROCESS_GRAPH_PROVIDER
@@ -78,5 +79,17 @@ describe('canonical process graph document', () => {
     const source = definition();
     source.graph.edges[0].sourceHandle = null;
     expect(() => createProcessGraphDocument(source)).toThrow(/no source or target port/);
+  });
+
+  it('projects the canonical graph back to authored process data', () => {
+    const source = definition();
+    const restored = authoredProcessDataFromGraphDocument(createProcessGraphDocument(source));
+    expect(restored.processNodes).toEqual(source.processNodes);
+    expect(restored.ctsTypes).toEqual(source.ctsTypes);
+    expect(restored.roleGrants).toEqual(source.roleGrants);
+    expect(restored.screens).toEqual(source.screens);
+    expect(restored.graph.nodes).toEqual(source.graph.nodes);
+    expect(restored.graph.edges).toEqual(source.graph.edges);
+    expect(restored.graph.viewport).toEqual(source.graph.viewport);
   });
 });
