@@ -66,6 +66,10 @@ jobs:
         if: ${{ always() && steps.dependencies.outcome == 'success' }}
         run: npx vitest run --config vitest.ssr.config.js
 
+      - name: Validate graph and HAG Playwright spec discovery
+        if: ${{ always() && steps.dependencies.outcome == 'success' }}
+        run: npx playwright test --list e2e/documents-fill-dialog.spec.js e2e/graph-documents-preview.spec.js
+
       - name: Check architecture
         if: ${{ always() && steps.dependencies.outcome == 'success' }}
         run: node scripts/check-arch.js
