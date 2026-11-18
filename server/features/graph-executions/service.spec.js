@@ -47,6 +47,7 @@ vi.mock('../instances/index.js', () => ({
 
 import * as graphExecutionsService from './service.js';
 import { createRuntime as createDocumentsRuntime } from '../../../workers/documents/runtime/shared.mjs';
+import * as XLSX from '../../../workers/documents/assets/vendor/xlsx.mjs';
 
 const graph = () => ({
   format: GRAPH_DOCUMENT_FORMAT,
@@ -456,6 +457,58 @@ describe('graph execution service', () => {
       buffer: Buffer.from(content),
       mimeType: 'text/markdown',
       path: 'exports/generated.md'
+    }), auth);
+    expect(result.file.fileId).toBe('baked-file-1');
+  });
+
+  it('reads, fills, and bakes an XLSX template through the Documents graph runtime', async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+      ['Client', '{client}'],
+      ['Line', '{#items}'],
+      ['Item', '{name}'],
+      ['{/items}', '']
+    ]), 'Report');
+    const templateBytes = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const documents = createDocumentsRuntime();
+    const read = await documents.execute('read-file', { fileId: 'template-file' }, {
+      capabilities: {
+        'files.read': vi.fn(async () => ({
+          payloadBase64: Buffer.from(templateBytes).toString('base64'),
+          mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          name: 'template.xlsx'
+        }))
+      }
+    });
+    const filled = documents.execute('fill-workbook-template', {
+      template: read,
+      values: { client: 'Ada', items: [{ name: 'Widget' }, { name: 'Gear' }] },
+      name: 'filled-report'
+    });
+    expect(filled.payload).toMatchObject({
+      mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      name: 'filled-report.xlsx'
+    });
+    const binary = atob(filled.payload.base64);
+    const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+    const outputWorkbook = XLSX.read(bytes, { type: 'array' });
+    expect(XLSX.utils.sheet_to_json(outputWorkbook.Sheets.Report, { header: 1 })).toEqual([
+      ['Client', 'Ada'],
+      ['Line', ''],
+      ['Item', 'Widget'],
+      ['Item', 'Gear']
+    ]);
+    const record = createGraphExecutionRecord({ ...preview(), outputs: { workbook: filled } });
+    const result = await graphExecutionsService.bakeOutput({
+      graphDocumentInstanceId: 'graph-instance-1',
+      record,
+      outputId: 'workbook',
+      destination: { type: 'page-file', pageId: 'page-1', path: 'exports/filled-report.xlsx' }
+    }, auth);
+    expect(mocks.bakeFile).toHaveBeenCalledWith(expect.objectContaining({
+      buffer: Buffer.from(bytes),
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      path: 'exports/filled-report.xlsx'
     }), auth);
     expect(result.file.fileId).toBe('baked-file-1');
   });
