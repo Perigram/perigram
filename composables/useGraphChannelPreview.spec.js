@@ -58,12 +58,14 @@ describe('client-side evaluation (SPEC §20 client-carried engines)', () => {
     [{ id: 'e1', source: 'text', sourceHandle: 'data:value', target: 'echo', targetHandle: 'data:text', role: 'data' }]
   );
 
-  function channel({ graph = echoGraph(), engines = [engineBinding], previewDraft, loadModule }) {
+  function channel({ graph = echoGraph(), engines = [engineBinding], runtimes = [], previewDraft, loadModule, createPluginRuntime }) {
     return useGraphChannelPreview({
       persistence: { previewDraft },
       serializeProcess: () => graph,
       clientEngines: () => ({ engines, domain: domain() }),
-      ...(loadModule ? { loadModule } : {})
+      clientRuntimes: () => runtimes,
+      ...(loadModule ? { loadModule } : {}),
+      ...(createPluginRuntime ? { createPluginRuntime } : {})
     });
   }
 
@@ -77,6 +79,38 @@ describe('client-side evaluation (SPEC §20 client-carried engines)', () => {
     expect(previewDraft).not.toHaveBeenCalled();
     expect(result.error.value).toBe('');
     expect(result.payload.value.nodes.echo.outputs.result.branches[0].items).toEqual(['echo:ping']);
+  });
+
+  it('evaluates a managed browser runtime service in the browser without server preview', async () => {
+    const previewDraft = vi.fn();
+    const binding = {
+      organizationId: 'org-1',
+      pluginId: 'demo',
+      version: '4',
+      runtime: { id: 'shared', entryUrl: '/runtime.mjs', targets: ['browser', 'server'] },
+      services: [{
+        id: 'echo',
+        execution: { runtime: 'shared', kind: 'pure', targets: ['browser'], capabilities: [] }
+      }]
+    };
+    const execute = vi.fn(async (_binding, _runtime, _operation, input) => ({ value: `runtime:${input.inputs.text}` }));
+    const result = channel({
+      engines: [],
+      runtimes: [binding],
+      previewDraft,
+      createPluginRuntime: () => ({ execute, dispose: vi.fn() })
+    });
+    await result.run();
+    expect(previewDraft).not.toHaveBeenCalled();
+    expect(execute).toHaveBeenCalledWith(
+      binding,
+      binding.runtime,
+      'echo',
+      { mode: 'preview', inputs: { text: 'ping' } },
+      expect.objectContaining({ execution: binding.services[0].execution })
+    );
+    expect(result.error.value).toBe('');
+    expect(result.payload.value.nodes.echo.outputs.result.branches[0].items).toEqual(['runtime:ping']);
   });
 
   it('folds an engine dispatch failure into the node error', async () => {
