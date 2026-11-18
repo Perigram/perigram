@@ -90,7 +90,7 @@ describe('repository plugin conformance', () => {
     for (const runtime of listing.declarations.runtimes || []) {
       const assets = collectRuntimeAssetFiles(pluginRoot, runtime.entry, runtime.language);
       expect(
-        assets.some(asset => asset.path === runtime.entry.replace(/^\\//, '')),
+        assets.some(asset => asset.path === runtime.entry.replace(/^\//, '')),
         `${pluginId} runtime ${runtime.id} entry is included in its packaged assets`
       ).toBe(true);
       expect(assets.length, `${pluginId} runtime ${runtime.id} has a non-empty asset graph`).toBeGreaterThan(0);
