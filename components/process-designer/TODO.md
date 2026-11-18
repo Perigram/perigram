@@ -233,3 +233,12 @@ structured per-provider errors. The graph editor registers each valid
 contribution independently and shows failed plugin/runtime/provider
 operations in the preview workspace; one malformed provider no longer hides
 unrelated providers from the palette.
+
+
+### Agent Notes (2026-11-18, HAG template fields)
+
+Documents Markdown/XLSX graph template operations now expose the shared
+token list in output metadata. The inspector renders per-token text fields
+into the node configuration values record; a connected values input
+overrides the authored record. Token metadata is not baked into the file.
+Round-trip and missing/unknown-token acceptance remain open.

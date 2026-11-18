@@ -50,6 +50,42 @@ describe('useGraphDocumentSession', () => {
     });
   });
 
+  it('uses HAG token metadata and node configuration values in the Markdown template graph operation', async () => {
+    const documents = createDocumentsRuntime();
+    const [provider] = documents.providers;
+    const session = useGraphDocumentSession({
+      t: key => key,
+      providers: [{
+        ...provider,
+        execute: (definition, invocation) => documents.execute(definition.id, invocation)
+      }]
+    });
+    const boundaries = session.paletteGroups.value.find(group => group.id === 'graph-boundaries');
+    const input = session.addNode(boundaries.items[0], { x: 0, y: 0 });
+    session.updateBoundaryDeclaration(input.id, {
+      contract: { shape: 'item', semantic: { base: 'string' } },
+      required: true
+    });
+    const output = session.addNode(boundaries.items[1], { x: 900, y: 0 });
+    const fill = session.addNode(
+      session.paletteGroups.value.flatMap(group => group.items).find(item => item.operation?.id === 'fill-markdown-template'),
+      { x: 420, y: 0 }
+    );
+    session.updateNodeConfig(fill.id, { values: { name: 'Ada' } });
+    session.onConnect({ source: input.id, sourceHandle: 'value', target: fill.id, targetHandle: 'templateText' });
+    session.onConnect({ source: fill.id, sourceHandle: 'value', target: output.id, targetHandle: 'value' });
+    session.setGraphInputBinding({
+      portId: session.graphDocument.value.interface.inputs[0].id,
+      value: '# Hello {name}'
+    });
+
+    const result = await session.refreshPreview();
+    const file = result.outputs[session.graphDocument.value.interface.outputs[0].id];
+    expect(Buffer.from(file.payload.base64, 'base64').toString('utf8')).toBe('# Hello Ada');
+    expect(result.nodeOutputs[fill.id].meta.tokens).toEqual(['name']);
+    expect(fill.data.definition.configuration.properties.values.semantic.kind).toBe('documents.template-values');
+  });
+
   it('creates and round-trips canonical graph documents with boundary nodes', () => {
     const session = createSession();
     const [input, output] = session.paletteGroups.value[0].items;

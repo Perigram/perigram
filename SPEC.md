@@ -1492,12 +1492,13 @@ graph operations; PDF remains in the managed construction/executor path
 until server graph execution and its typed capability boundary are
 implemented. DOCX fill/export is not part of the current supported scope.
 
-The HAG fill form and graph authoring must share the same format-specific
-token extractors and substitution rules. The legacy construction's
-`meta.tokens` channel currently renders per-token scalar inputs; graph
-template nodes currently accept a values record and still need an equivalent
-human authoring control. Do not duplicate template storage, token grammar,
-or format engines to bridge the two surfaces.
+The HAG fill form and graph authoring share format-specific token extractors
+and substitution rules. The legacy construction's `meta.tokens` channel
+and graph template outputs expose the same token list; the graph inspector
+renders per-token scalar inputs into `configuration.values`. A connected
+values record takes precedence over those authored defaults. Token metadata
+is execution-only and is not persisted into the file. Do not duplicate
+template storage, token grammar, or format engines to bridge the surfaces.
 
 ## 25. Stateful lifecycles are explicit machines (owner direction 2026-11-02)
 

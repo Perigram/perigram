@@ -57,7 +57,7 @@ provider discovery → typed authoring → preview → file export → Bake.
   PDF; document each engine's supported token/section semantics and test
   missing values, invalid structures, and output round-trips. Decide and
   track DOCX fill/export scope separately.
-- [ ] Integrate graph template nodes with the HAG fill form: reuse the
+- [x] Integrate graph template nodes with the HAG fill form: reuse the
   existing Markdown/XLSX token extractors and `meta.tokens` semantics to
   expose named scalar fields that produce the node's `values` record.
   Resolve the template input from the graph's connected file value or
@@ -8009,3 +8009,10 @@ baked bytes are decoded again and checked as an XLSX workbook. This is
 stronger than a hand-built output fixture, but persisted graph authoring and
 reopening the baked file remain outstanding.
 
+
+
+HAG graph authoring now consumes the shared Markdown/XLSX token metadata:
+template fill nodes expose discovered `meta.tokens`, and the graph inspector
+renders per-token scalar inputs into `configuration.values`. Remaining HAG
+acceptance covers missing/unknown token behavior, XLSX section validation,
+and parity/round-trip against the legacy construction form.

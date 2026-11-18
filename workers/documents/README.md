@@ -96,14 +96,13 @@ for existing imports.
 
 ### HAG and graph template inputs
 
-The legacy `fill` construction still exposes `meta.tokens` to the shared
-HAG fill form, which renders one scalar input per discovered template token.
-The graph operations currently accept an explicit `values` record input;
-they do not yet introspect a connected template and turn its token list into
-per-token authoring controls. Reuse the existing token extractors and HAG
-form contract when adding that graph inspector experience. Do not create a
-second template model or a second token grammar. Markdown/XLSX graph HAG
-controls and PDF graph exposure remain open work in the root TODO.
+The legacy `fill` construction and graph `fill-markdown-template` /
+`fill-workbook-template` operations share the same token grammar. Graph
+fills return `meta.tokens`; the node inspector renders one scalar field
+per discovered token and stores values as `configuration.values`. A
+connected values port takes precedence; otherwise HAG-authored values are
+used. Token metadata is execution metadata, not persisted document content.
+PDF graph exposure and round-trip parity acceptance remain open work.
 
 ### PDF graph operation status
 
