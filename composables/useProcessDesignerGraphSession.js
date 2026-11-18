@@ -75,7 +75,8 @@ export function useProcessDesignerGraphSession({
     persistTreeDeclarations,
     servedCommands,
     servedPreviewChannels,
-    servedClientEngines
+    servedClientEngines,
+    servedClientRuntimes
   } = useProcessDesignerTypes({
     nodes,
     edges,
@@ -1436,6 +1437,7 @@ export function useProcessDesignerGraphSession({
     servedCommands,
     servedPreviewChannels,
     servedClientEngines,
+    servedClientRuntimes,
     // node records + sync
     nodeRecords,
     processNodeOperations,
