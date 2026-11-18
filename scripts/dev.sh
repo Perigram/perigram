@@ -15,6 +15,13 @@ compose() {
   docker compose --project-directory "$ROOT" -f "$COMPOSE_FILE" "$@"
 }
 
+repair_app_generated_ownership() {
+  # Older dev containers ran Nuxt as root and may have left .nuxt root-owned.
+  # Repair it inside a disposable root container so developers never need sudo.
+  docker run --rm --user 0:0 --volume "$ROOT:/src" --workdir /src perigram-app:latest \
+    sh -c "if [ -d .nuxt ]; then chown -R ${PERIGRAM_DEV_UID}:${PERIGRAM_DEV_GID} .nuxt; fi"
+}
+
 usage() {
   cat <<'HELP'
 Usage: ./scripts/dev.sh <command>
@@ -59,6 +66,7 @@ case "$command" in
     # BuildKit otherwise sees a host-loopback proxy (for example 127.0.0.1:2081)
     # as its own loopback. Build with host networking so host proxy settings work.
     docker buildx bake -f "$COMPOSE_FILE" --allow network.host --set '*.network=host'
+    repair_app_generated_ownership
     compose up -d --no-build
     compose ps
 
@@ -110,6 +118,7 @@ case "$command" in
     ;;
   deps)
     docker buildx bake -f "$COMPOSE_FILE" --allow network.host --set app.network=host app
+    repair_app_generated_ownership
     compose up -d --no-build --no-deps --force-recreate app
     ;;
   shell)
