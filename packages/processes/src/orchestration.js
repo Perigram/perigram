@@ -739,9 +739,7 @@ function processGraphNodes(process) {
 }
 
 function processGraphEdges(process) {
-  // Keep canonical endpoint objects intact; accessors below handle the
-  // legacy process-definition projection only at the legacy boundary.
-  return process.graph?.edges || [];
+  return process.graph.edges;
 }
 
 function processNodeType(process, node) {
@@ -768,10 +766,10 @@ function processNode(process, id) {
   return node;
 }
 
-function edgeSource(edge) { return edge?.source?.node ?? edge?.source; }
-function edgeTarget(edge) { return edge?.target?.node ?? edge?.target; }
-function edgeSourcePort(edge) { return edge?.source?.port ?? edge?.sourceHandle; }
-function edgeTargetPort(edge) { return edge?.target?.port ?? edge?.targetHandle; }
+function edgeSource(edge) { return edge.source.node; }
+function edgeTarget(edge) { return edge.target.node; }
+function edgeSourcePort(edge) { return edge.source.port; }
+function edgeTargetPort(edge) { return edge.target.port; }
 
 function outgoingControl(process, nodeId, handle) {
   return processGraphEdges(process).filter(edge => (
@@ -794,7 +792,7 @@ function incomingData(process, nodeId, handle) {
 }
 
 function edgeRole(edge) {
-  return edge?.kind || edge?.role || (String(edgeSourcePort(edge) || '').startsWith('control:') || String(edgeTargetPort(edge) || '').startsWith('control:') ? 'control' : 'data');
+  return edge.kind || 'data';
 }
 
 function cleanHandle(handle = '') {
@@ -823,7 +821,7 @@ function enqueueEdges(run, edges, inherited) {
 }
 
 function recordId(node) {
-  return String(node?.config?.refId || node?.data?.refId || node?.id || '');
+  return String(node?.config?.refId || node?.id || '');
 }
 
 function instant(now) {
