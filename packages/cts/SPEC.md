@@ -667,6 +667,14 @@ through the shared graph contract. Legacy process-definition storage and
 compiler adapters exist only to migrate and preserve current definitions;
 they are not extension points for another graph format or evaluator.
 
+The remaining subsections preserve the current process-domain vocabulary and
+document the legacy persisted process-graph representation where necessary
+for compatibility and migration. Their canvas node names, wire roles,
+socket handles, and `dataflowVersion` are not the canonical graph document
+schema and must not be copied into new graph features. During G10 migration,
+these domain semantics are mapped onto provider-qualified nodes and ports;
+only CTS/process meaning survives, not the parallel storage protocol.
+
 Process definitions stop speaking the entity/block/status vocabulary. The
 stored records of every entity-bound node reference declarations; the pure
 value algebra (`source.*`, `value.*`, `collection.*`/`tree.*`, `control.*`,
@@ -741,9 +749,10 @@ error. It is a palette item.
   it never changes a record kind or replaces its authored ports.
 - Authored definitions speak the current species vocabulary only; the
   retired executable kinds have no runtime fallback.
-- The protocol's version of record is the persisted integer
+- The legacy process-definition storage version is the persisted integer
   `PROCESS_PROTOCOL_VERSION` (`packages/processes/src/types.js`), stamped
-  as `dataflowVersion` on stored definitions.
+  as `dataflowVersion` on existing definitions. It is not the canonical
+  `perigram.graph` format version and is removed after G10 migration.
 - `checkCtsGraphBindings(definition, view)` validates type, field, state,
   transition, operator, and declared-edge bindings beside R1–R6.
 - Acceptance requires that resolution and compilation preserve every
