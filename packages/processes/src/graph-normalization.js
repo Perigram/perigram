@@ -1,3 +1,10 @@
+// Legacy process-definition canvas normalization. This is not the
+// canonical perigram.graph codec (packages/core/src/graph.js). Keep this
+// adapter limited to reading/writing the existing process-definition shape;
+// new graph features belong to the core graph document and plugin-SDK
+// contracts. Remove this module after the one-time process migration (root
+// SPEC §28, TODO G10).
+
 export function normalizeGraph(graph = {}) {
   return {
     nodes: Array.isArray(graph.nodes) ? graph.nodes.map(normalizeNode) : [],
