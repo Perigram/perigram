@@ -70,7 +70,8 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
     };
   });
 
-  const edges = legacy.edges.map(edge => {
+  const edges = legacy.edges.map((edge, index) => {
+    const sourceEdge = source.graph?.edges?.[index] || {};
     const declaredSourcePort = edge.sourceHandle || edge.data?.sourceHandle;
     const declaredTargetPort = edge.targetHandle || edge.data?.targetHandle;
     // CTS declaration relations are node-to-node semantic edges, not data
@@ -92,7 +93,7 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
       kind: declarationEdge ? 'type' : (edge.role || 'data'),
       metadata: {
         ...(edge.label ? { label: edge.label } : {}),
-        ...(edge.type ? { type: edge.type } : {}),
+        ...(Object.prototype.hasOwnProperty.call(sourceEdge, 'type') ? { type: edge.type } : {}),
         ...(declarationEdge ? { syntheticDeclarationPorts: true, originalRole: edge.role || null } : {}),
         data: cloneJson(edge.data || {})
       }
@@ -167,7 +168,7 @@ export function graphDocumentToProcessDefinition(graphSource) {
       ...(!annotation.syntheticDeclarationPorts ? { sourceHandle: edge.source.port } : {}),
       target: edge.target.node,
       ...(!annotation.syntheticDeclarationPorts ? { targetHandle: edge.target.port } : {}),
-      type: annotation.type || 'default',
+      ...(annotation.type ? { type: annotation.type } : {}),
       ...(annotation.syntheticDeclarationPorts
         ? (annotation.originalRole ? { role: annotation.originalRole } : {})
         : (edge.kind && edge.kind !== 'data' ? { role: edge.kind } : {})),
