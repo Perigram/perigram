@@ -104,7 +104,7 @@ import {
   retractListing, settingsFor, updateSettings, publishPluginAsset,
   fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition, executeManagedGraphNode
 } from './service.js';
-import { enqueueTask, getTaskRunById } from '../../core/tasks/service.js';
+import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
 import { invalidateInstanceDeclarations, instanceServiceResolver } from '../instances/service.js';
@@ -274,6 +274,37 @@ describe('managed plugin runtime package loading', () => {
       idempotencyKey: expect.stringMatching(/^graph-node:execution-1:/)
     }));
     expect(repository.findInstall).toHaveBeenCalledWith(ORG, 'demo');
+  });
+
+  it('cancels an active worker task when the graph signal aborts', async () => {
+    const controller = new AbortController();
+    repository.findInstall.mockResolvedValue({
+      pluginId: 'demo',
+      version: '7',
+      services: [{
+        id: 'transform',
+        nodeVersion: '3',
+        signature: { input: { base: 'record', fields: {} }, output: { base: 'json' } },
+        execution: { runtime: 'javascript', targets: ['server'], kind: 'pure' }
+      }],
+      declarations: {
+        runtimes: [{ id: 'javascript', language: 'javascript', targets: ['server'], entry: '/runtime.mjs' }]
+      }
+    });
+    getTaskRunById.mockImplementation(async () => {
+      controller.abort('graph cancelled');
+      return { _id: 'run-1', status: 'RUNNING' };
+    });
+
+    await expect(executeManagedGraphNode({
+      id: 'transform',
+      version: '3',
+      execution: { kind: 'pure' },
+      packagePin: { pluginId: 'demo', version: '7', runtimeId: 'javascript', operationId: 'transform' }
+    }, { context: { executionId: 'execution-1', signal: controller.signal } }, AUTH))
+      .rejects.toMatchObject({ name: 'AbortError', code: 'PLUGIN_EXECUTION_ABORTED' });
+
+    expect(cancelTaskRun).toHaveBeenCalledWith('run-1', 'Graph execution was cancelled');
   });
 
   it('does not enqueue a managed graph node after cancellation', async () => {
