@@ -29,7 +29,7 @@ const NODE_RECORD_COLLECTIONS = Object.freeze({
  * stored process-definition format remains unchanged. Durable scheduling and
  * effects stay in the process execution profile; graph structure is canonical.
  */
-export function processDefinitionToGraphDocument(definition = {}, options = {}) {
+export function createProcessGraphDocument(definition = {}, options = {}) {
   const source = definition.data || definition;
   const legacy = normalizeGraph(source.graph || {});
   const sourceDataForRevision = cloneJson(Object.fromEntries(
