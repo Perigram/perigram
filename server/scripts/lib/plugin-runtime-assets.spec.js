@@ -53,7 +53,7 @@ describe('managed plugin runtime asset collection', () => {
     for (const runtime of listing.declarations.runtimes || []) {
       const assets = collectRuntimeAssetFiles(packageRoot, runtime.entry, runtime.language);
       expect(
-        assets.some(asset => asset.path === runtime.entry.replace(/^\\//, '')),
+        assets.some(asset => asset.path === runtime.entry.replace(/^\//, '')),
         `${pluginId} runtime ${runtime.id} entry is packaged`
       ).toBe(true);
       expect(assets.length).toBeGreaterThan(0);
