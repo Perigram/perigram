@@ -1,3 +1,9 @@
+/**
+ * @deprecated Version marker for the legacy persisted process-definition
+ * dataflow format only. It is not the canonical graph-document version or
+ * a platform node/socket protocol. Do not extend this format; root SPEC §28
+ * TODO G10 removes it after the one-time process-definition migration.
+ */
 export const PROCESS_PROTOCOL_VERSION = 4;
 
 export const PROCESS_OPERATION_LEVELS = Object.freeze([
