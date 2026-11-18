@@ -58,6 +58,14 @@ jobs:
             exit 1
           fi
 
+      - name: Build portable Documents browser/server runtime
+        if: ${{ always() && steps.dependencies.outcome == 'success' }}
+        run: npm run documents:runtime:build
+
+      - name: Execute Documents runtime in Chromium
+        if: ${{ always() && steps.dependencies.outcome == 'success' }}
+        run: npm run test:runtime-browser
+
       - name: Run complete Vitest suite
         if: ${{ always() && steps.dependencies.outcome == 'success' }}
         run: npx vitest run
@@ -66,7 +74,7 @@ jobs:
         if: ${{ always() && steps.dependencies.outcome == 'success' }}
         run: npx vitest run --config vitest.ssr.config.js
 
-      - name: Validate graph and HAG Playwright spec discovery
+      - name: Discover graph and HAG Playwright specs (discovery only)
         if: ${{ always() && steps.dependencies.outcome == 'success' }}
         run: npx playwright test --list e2e/documents-fill-dialog.spec.js e2e/graph-documents-preview.spec.js
 
