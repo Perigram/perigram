@@ -38,9 +38,7 @@ ARG no_proxy
 
 # Create a non-root user
 RUN groupadd -r appuser && useradd -m -r -g appuser appuser
-WORKDIR /app
-
-# Upgrade pip
+WORKDIR /app\n\n# Trust the same host CA bundle in the final runtime image.\nRUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \\\n    cat /tmp/build-ca-bundle >> /etc/ssl/certs/ca-certificates.crt\n\n# Upgrade pip
 RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \
     PIP_CERT=/tmp/build-ca-bundle pip install --upgrade pip
 
