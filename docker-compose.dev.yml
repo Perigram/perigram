@@ -169,6 +169,11 @@ services:
         no_proxy: ${DOCKER_BUILD_NO_PROXY:-${NO_PROXY:-${no_proxy:-localhost,127.0.0.1,::1}}}
       extra_hosts:
         - "host.docker.internal:host-gateway"
+    volumes:
+      - ./workers/nesting:/app:ro
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+    command: uvicorn worker_service:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
 
   plugin-runtime:
