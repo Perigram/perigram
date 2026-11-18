@@ -270,7 +270,8 @@ async function executeIsolated(packageData, run, setChild) {
               capabilityEvidence.push({
                 name: String(message.name || ''),
                 input: capabilityInputEvidence(message.name, message.input),
-                ...(value?.readSet ? { readSet: value.readSet } : {})
+                ...(value?.readSet ? { readSet: value.readSet } : {}),
+                ...(value?.contentHash ? { contentHash: String(value.contentHash) } : {})
               });
               await stdin.write(new TextEncoder().encode(JSON.stringify({ type: 'capability-result', callId: message.callId, value }) + '\n'));
             } catch (error) {
