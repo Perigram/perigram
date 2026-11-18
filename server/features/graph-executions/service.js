@@ -151,7 +151,7 @@ export async function evaluateSavedGraph({
       auth
     });
     for (const capability of definition.execution?.capabilities || []) {
-      if (!['cts.instances.read', 'organization.instances.query', 'organization.instances.read'].includes(String(capability))) {
+      if (!['cts.instances.read', 'organization.instances.query', 'organization.instances.read', 'files.read'].includes(String(capability))) {
         providerCapabilities.add(String(capability));
       }
     }
@@ -227,6 +227,10 @@ export async function evaluateSavedGraph({
       if (['organization.instances.query', 'organization.instances.read'].includes(evidence.name)
         && (!evidence.readSet || !Array.isArray(evidence.readSet.queries))) {
         providerCapabilities.add(evidence.name);
+      }
+      if (evidence.name === 'files.read'
+        && (!evidence.input?.fileId || !evidence.contentHash)) {
+        providerCapabilities.add('files.read');
       }
     }
     return {
