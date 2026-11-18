@@ -15,9 +15,13 @@ ARG no_proxy
 RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \
     apt-get update -o Acquire::https::CAInfo=/tmp/build-ca-bundle && \
     apt-get install -y --no-install-recommends ca-certificates curl python3 python3-pip && \
+    cat /tmp/build-ca-bundle >> /etc/ssl/certs/ca-certificates.crt && \
     rm -rf /var/lib/apt/lists/*
 
-# Let Node use the trusted system CA store for build-time and runtime HTTPS.\nENV NODE_USE_SYSTEM_CA=1\n\nWORKDIR /src
+# Let Node use the trusted system CA store for build-time and runtime HTTPS.
+ENV NODE_USE_SYSTEM_CA=1
+
+WORKDIR /src
 
 # Copy package files
 COPY package.json package-lock.json ./
