@@ -9,7 +9,7 @@ import {
   transitionProcessStep
 } from './orchestration.js';
 import { isMissingField } from './missing-field.js';
-import { processDefinitionToGraphDocument } from './process-graph.js';
+import { processDefinitionToGraphDocument, graphDocumentToProcessDefinition } from './process-graph.js';
 
 function process(records, nodes, edges) {
   return {
@@ -1202,6 +1202,40 @@ describe('durable process orchestration', () => {
     const chainedEntity = executeEffect.mock.calls[1][0].inputs.entity;
     expect(triggerEntity).toMatchObject({ id: 'ctx-1' });
     expect(chainedEntity).toBeUndefined();
+  });
+
+  it('keeps process wire semantics in canonical edges without a parallel edge metadata table', () => {
+    const definition = {
+      id: 'process.sample',
+      dataflowVersion: 4,
+      processNodes: { operation: { id: 'operation', kind: 'source.literal', value: 'hello' } },
+      customDomainRecord: { retained: true },
+      graph: {
+        nodes: [
+          { id: 'source', type: 'valueInput', position: { x: 1, y: 2 }, data: { refId: 'source-ref' } },
+          { id: 'operation-node', type: 'processNode', position: { x: 3, y: 4 }, data: { refId: 'operation' } }
+        ],
+        edges: [{
+          id: 'wire', source: 'source', sourceHandle: 'output:value',
+          target: 'operation-node', targetHandle: 'input:value',
+          role: 'control', label: 'Continue', type: 'smoothstep',
+          data: { marker: 'kept' }
+        }],
+        viewport: { x: 5, y: 6, zoom: 1.25 }
+      }
+    };
+    const graph = processDefinitionToGraphDocument(definition);
+    expect(graph.edges[0]).toMatchObject({
+      kind: 'control',
+      metadata: { label: 'Continue', type: 'smoothstep', data: { marker: 'kept' } }
+    });
+    expect(graph.metadata['perigram.process-definition']).not.toHaveProperty('edgeMetadata');
+    const restored = graphDocumentToProcessDefinition(graph);
+    expect(restored.customDomainRecord).toEqual({ retained: true });
+    expect(restored.graph.edges[0]).toMatchObject({
+      role: 'control', label: 'Continue', type: 'smoothstep', data: { marker: 'kept' }
+    });
+    expect(restored.graph.viewport).toEqual({ x: 5, y: 6, zoom: 1.25 });
   });
 
 });
