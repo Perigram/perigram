@@ -109,7 +109,12 @@ test('saved Documents graph renders its Markdown file through the Documents prev
   await page.getByRole('option', { name: pageName }).click();
   const bakedPath = 'documents/preview-e2e.md';
   await page.getByLabel('Page file path').fill(bakedPath);
+  const bakeResponse = page.waitForResponse(response => (
+    response.url().includes('/api/graph-bakes') && response.request().method() === 'POST'
+  ));
   await page.getByRole('button', { name: 'Bake output' }).click();
+  const baked = await bakeResponse;
+  expect(baked.ok(), await baked.text()).toBe(true);
   const pageDetailResponse = await app.request.get(`/api/pages/${encodeURIComponent(destinationPage._id)}`);
   expect(pageDetailResponse.ok(), await pageDetailResponse.text()).toBe(true);
   const pageDetail = await pageDetailResponse.json();
