@@ -9,7 +9,7 @@ import {
   transitionProcessStep
 } from './orchestration.js';
 import { isMissingField } from './missing-field.js';
-import { createProcessGraphDocument } from './process-graph.js';
+import { createProcessGraphDocument, PROCESS_GRAPH_PROVIDER, PROCESS_GRAPH_METADATA_KEY } from './process-graph.js';
 
 function process(records, nodes, edges) {
   return createProcessGraphDocument({
@@ -209,10 +209,11 @@ describe('durable process orchestration', () => {
     definition.stateDefinitions = {
       ready: { id: 'ready', stateId: 'READY', label: 'Ready' }
     };
+    definition.metadata[PROCESS_GRAPH_METADATA_KEY].sourceData.stateDefinitions = definition.stateDefinitions;
     definition.graph.nodes.unshift({
       id: 'ready',
-      type: 'stateDefinition',
-      data: { refId: 'ready' }
+      operation: { provider: PROCESS_GRAPH_PROVIDER, id: 'canvas-node.stateDefinition', version: '1' },
+      config: { refId: 'ready', record: definition.stateDefinitions.ready }
     });
     const executeEffect = vi.fn().mockResolvedValue({ type: 'project', id: 'project-1' });
 
