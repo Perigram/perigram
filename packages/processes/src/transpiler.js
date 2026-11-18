@@ -331,4 +331,53 @@ function sortObject(value) {
   return Object.fromEntries(Object.keys(value).sort().map(key => [key, sortObject(value[key])]));
 }
 
+function normalizeCanvasNode(node = {}) {
+  const refId = String(node.data?.refId || node.id || '');
+  return {
+    id: String(node.id || refId),
+    type: node.type || 'default',
+    position: normalizePosition(node.position),
+    data: {
+      ...(node.data && typeof node.data === 'object' ? node.data : {}),
+      refId
+    }
+  };
+}
 
+function normalizeCanvasEdge(edge = {}) {
+  const sourceHandle = edge.sourceHandle || inferCanvasEdgeHandle(edge, 'source');
+  const targetHandle = edge.targetHandle || inferCanvasEdgeHandle(edge, 'target');
+  return {
+    id: String(edge.id || `${edge.source || ''}-${edge.target || ''}`),
+    source: String(edge.source || ''),
+    target: String(edge.target || ''),
+    sourceHandle,
+    targetHandle,
+    type: edge.type || 'default',
+    ...(edge.role ? { role: edge.role } : {}),
+    ...(edge.label ? { label: edge.label } : {}),
+    data: edge.data && typeof edge.data === 'object' ? edge.data : {}
+  };
+}
+
+function inferCanvasEdgeHandle(edge = {}, side = 'source') {
+  const dataKey = side === 'source' ? 'sourceHandle' : 'targetHandle';
+  if (edge.data?.[dataKey]) return edge.data[dataKey];
+  const id = String(edge.id || '');
+  const pattern = side === 'source'
+    ? /(?:^|[-])((?:output)(?::[A-Za-z0-9_.:]+)?)(?=[-]|$)/
+    : /(?:^|[-])((?:input|data)(?::[A-Za-z0-9_.:]+)?)(?=[-]|$)/;
+  return id.match(pattern)?.[1] || null;
+}
+
+function normalizePosition(position = {}) {
+  return { x: Number(position?.x || 0), y: Number(position?.y || 0) };
+}
+
+function normalizeViewport(viewport = {}) {
+  return {
+    x: Number(viewport?.x || 0),
+    y: Number(viewport?.y || 0),
+    zoom: Number(viewport?.zoom || 1)
+  };
+}
