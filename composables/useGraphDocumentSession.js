@@ -20,7 +20,9 @@ import {
   PROCESS_PROCEDURAL_VERSION,
   createProcessProceduralExecutor,
   createProcessGraphNodeResolver,
-  registerProcessGraphNodes
+  registerProcessGraphNodes,
+  createProcessGraphNodeResolver,
+  createProcessProceduralNodeResolver
 } from '@perigram/processes';
 import { useProcessDesignerCanvas } from '~/composables/useProcessDesignerCanvas.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
@@ -82,7 +84,8 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
 
   const registry = createNodeProviderRegistry();
   registerProcessGraphNodes(registry);
-  const processResolver = createProcessGraphNodeResolver();
+  const processGraphResolver = createProcessGraphNodeResolver();
+  const processProceduralResolver = createProcessProceduralNodeResolver();
   const processExecutor = createProcessProceduralExecutor();
   const providerExecutors = new Map([[PROCESS_PROCEDURAL_PROVIDER, processExecutor]]);
   const providerPreviewRenderers = new Map();
@@ -251,7 +254,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       };
     }
     const invocation = { node: { id: node.id }, config, context: {} };
-    return processResolver(op, invocation) || registry.resolve(op.provider, op.id, op.version);
+    return processGraphResolver(op, invocation) || registry.resolve(op.provider, op.id, op.version);
   }
 
   function enrichNode(node) {
@@ -593,7 +596,7 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       const result = await evaluateProceduralGraph({
         graph,
         inputBindings: inputBindings.value,
-        resolveNodeDefinition: (op, invocation) => processResolver(op, invocation)
+        resolveNodeDefinition: (op, invocation) => processProceduralResolver(op, invocation)
           || registry.resolve(op.provider, op.id, op.version),
         executeNode: async (definition, invocation) => {
           const executor = providerExecutors.get(definition.provider);
