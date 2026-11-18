@@ -317,8 +317,9 @@ and navigation; `screen-analysis.js` detects redundant authored screens;
 `access-compilation.js` owns role/assignment access compilation; and
 `access.js` owns role-assignment resolution and access projection.
 `action-labels.js` owns action target-state resolution, user-facing action
-captions, and the domain type-label lookup; `graph-normalization.js` owns
-canvas graph and legacy action-record normalization.
+captions, and the domain type-label lookup. `graph-normalization.js` is
+legacy process-definition storage normalization only; it is scheduled for
+removal with the one-time canonical graph migration (root SPEC §28 / TODO G10).
 `compiler-core.js` retains shared compiler primitives and the remaining
 non-screen compilation algorithms. `index.js` is the public barrel — there
 are no forwarding-only modules presented as architecture boundaries.
