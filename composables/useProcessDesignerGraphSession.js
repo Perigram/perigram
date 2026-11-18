@@ -14,7 +14,8 @@ import {
   isProcessDataHandle,
   parseProcessSocketHandleId,
   processSocketsCompatible,
-  portSpecsCompatible,
+  registerProcessPortCompatibilityProfile,
+  PROCESS_PORT_COMPATIBILITY_PROFILE,
   compileTreeDeclarations,
   PROCESS_DATAFLOW_VERSION,
   processDefinitionToGraphDocument,
@@ -59,15 +60,7 @@ export function useProcessDesignerGraphSession({
   seedPlacement = node => node
 }) {
   const portCompatibility = createPortCompatibilityRegistry();
-  portCompatibility.register('perigram.cts', (source, target) => {
-    const result = portSpecsCompatible(source, target);
-    return {
-      status: result.ok ? 'exact' : 'incompatible',
-      compatible: result.ok,
-      reason: result.reason || (result.ok ? 'CTS process port contracts match' : 'CTS process port contracts do not match'),
-      conversions: []
-    };
-  });
+  registerProcessPortCompatibilityProfile(portCompatibility);
   const nodes = ref([]);
   const edges = ref([]);
   const validation = ref(null);
@@ -1385,7 +1378,7 @@ export function useProcessDesignerGraphSession({
     const targetPort = portForHandle(catalogPorts(targetRecord).inputs, connection.targetHandle, 'input');
     if (!sourcePort || !targetPort) return { ok: true };
     const result = portCompatibility.compare(
-      { ...sourcePort, compatibility: { profile: 'perigram.cts' } },
+      { ...sourcePort, compatibility: { profile: PROCESS_PORT_COMPATIBILITY_PROFILE } },
       { ...targetPort, compatibility: { profile: 'perigram.cts' } }
     );
     return {
