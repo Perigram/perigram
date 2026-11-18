@@ -91,7 +91,8 @@ export function createProcessProceduralNodeDefinition(kind, record = {}, catalog
     },
     configuration: {
       type: 'object',
-      additionalProperties: true
+      additionalProperties: true,
+      default: { kind }
     }
   };
 }
