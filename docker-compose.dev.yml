@@ -5,6 +5,9 @@ name: perigram-dev
 
 services:
   app:
+    # The app writes Nuxt/Vite artifacts into the host-mounted repository.
+    # Match the host user to prevent root-owned .nuxt files.
+    user: "${PERIGRAM_DEV_UID:-1000}:${PERIGRAM_DEV_GID:-1000}"
     image: perigram-app:latest
     build:
       context: .
@@ -12,6 +15,8 @@ services:
       secrets:
         - build_ca_bundle
       args:
+        DEV_UID: ${PERIGRAM_DEV_UID:-1000}
+        DEV_GID: ${PERIGRAM_DEV_GID:-1000}
         HTTP_PROXY: ${DOCKER_BUILD_HTTP_PROXY:-${HTTP_PROXY:-${http_proxy:-}}}
         HTTPS_PROXY: ${DOCKER_BUILD_HTTPS_PROXY:-${HTTPS_PROXY:-${https_proxy:-}}}
         NO_PROXY: ${DOCKER_BUILD_NO_PROXY:-${NO_PROXY:-${no_proxy:-localhost,127.0.0.1,::1}}}
