@@ -148,6 +148,12 @@ beforeEach(() => {
   repository.listInstallsByOrganization.mockResolvedValue([]);
   repository.findCatalogByPluginId.mockResolvedValue(null);
   repository.materializePluginAssets.mockResolvedValue({ count: 0, assets: [] });
+  getTaskRunById.mockResolvedValue({
+    _id: 'run-1',
+    status: 'SUCCEEDED',
+    output: { ok: true, data: { output: { value: 'managed-result' } } }
+  });
+  cancelTaskRun.mockResolvedValue({ status: 'CANCELLED' });
   typeStore.findByTypeId.mockResolvedValue(null);
   typeStore.listByOrganization.mockResolvedValue([]);
 });
