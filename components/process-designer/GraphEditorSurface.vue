@@ -99,6 +99,16 @@ import { mintId } from '~/utils/processDesignerIdentity.js';
 import { assertValidGraphDocument } from '@perigram/core';
 import { useClientEngines } from '~/composables/useClientEngines.js';
 import { usePluginRuntime } from '~/composables/usePluginRuntime.js';
+import {
+  PROCESS_NODE_CATALOG,
+  PROCESS_PROCEDURAL_PROVIDER,
+  createProcessGraphNodeDefinition,
+  createProcessProceduralNodeDefinition,
+  createProcessGraphNodeResolver,
+  createProcessProceduralNodeResolver,
+  createProcessProceduralExecutor,
+  registerProcessPortCompatibilityProfile
+} from '#packages/processes';
 
 const props = defineProps({
   record: { type: Object, default: null },
@@ -150,6 +160,13 @@ const graphRevisionsError = ref('');
 let canvasFrame = null;
 let instanceId = String(props.record?._id || props.record?.id || '');
 
+const processNodeDefinitions = PROCESS_NODE_CATALOG
+  .map(catalog => createProcessProceduralNodeDefinition(catalog.kind) || createProcessGraphNodeDefinition(catalog.kind))
+  .filter(Boolean);
+const processGraphResolver = createProcessGraphNodeResolver();
+const processPreviewResolver = createProcessProceduralNodeResolver();
+const processExecutor = createProcessProceduralExecutor();
+
 const queryOrganizationData = query => $fetch('/api/graph-executions/query', {
   method: 'POST',
   body: query
@@ -157,6 +174,11 @@ const queryOrganizationData = query => $fetch('/api/graph-executions/query', {
 const session = useGraphDocumentSession({
   t,
   providers: props.nodeProviders,
+  definitions: processNodeDefinitions,
+  nodeResolvers: [processGraphResolver],
+  previewResolvers: [processPreviewResolver],
+  compatibilityProfiles: [registerProcessPortCompatibilityProfile],
+  executors: { [PROCESS_PROCEDURAL_PROVIDER]: processExecutor },
   graphDocuments,
   finalizeExecution: pluginRuntime.finalizeExecution,
   queryOrganizationData
