@@ -7,6 +7,7 @@ import {
   createProcessProceduralExecutor,
   createProcessProceduralNodeDefinition,
   createProcessProceduralNodeResolver,
+  createProcessGraphNodeResolver,
   createProcessGraphNodeDefinition,
   registerProcessProceduralNodes,
   registerProcessGraphNodes,
@@ -89,6 +90,20 @@ describe('process procedural provider adapter', () => {
     expect(createProcessProceduralNodeDefinition('control.if')).toBeNull();
     expect(createProcessProceduralNodeDefinition('cts.mutate')).toBeNull();
     expect(createProcessProceduralNodeDefinition('cts.read')).toBeNull();
+  });
+
+  it('keeps durable control contracts out of the procedural execution resolver', () => {
+    const operation = {
+      provider: PROCESS_PROCEDURAL_PROVIDER,
+      id: 'control.if',
+      version: PROCESS_PROCEDURAL_VERSION
+    };
+    const invocation = { node: { id: 'branch' }, config: { kind: 'control.if' } };
+    expect(createProcessGraphNodeResolver()(operation, invocation)).toMatchObject({
+      id: 'control.if',
+      execution: { kind: 'control' }
+    });
+    expect(createProcessProceduralNodeResolver()(operation, invocation)).toBeNull();
   });
 
   it('executes a process list operation through the canonical graph evaluator', async () => {
