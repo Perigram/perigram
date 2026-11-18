@@ -9,6 +9,7 @@ import {
   transitionProcessStep
 } from './orchestration.js';
 import { isMissingField } from './missing-field.js';
+import { processDefinitionToGraphDocument } from './process-graph.js';
 
 function process(records, nodes, edges) {
   return {
@@ -76,6 +77,22 @@ describe('durable process orchestration', () => {
         : [{ type: 'project', id: 'p1' }, { type: 'project', id: 'p2' }] }] });
     }
   );
+
+  it('runs the durable process profile from the canonical graph document envelope', async () => {
+    const definition = process([
+      { id: 'values', kind: 'source.literalList', value: [{ type: 'project', id: 'p1' }] },
+      { id: 'mutation', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'manual' } }
+    ], ['values', 'mutation'], [data('values', 'mutation', 'entity')]);
+    const graph = processDefinitionToGraphDocument(definition);
+    const executeEffect = vi.fn(async ({ inputs }) => inputs.entity);
+
+    const run = createProcessRun(graph, {});
+    const completed = await runProcessUntilSettled(run, graph, { executeEffect, catalogContext });
+
+    expect(completed.status).toBe('succeeded');
+    expect(completed.steps[0].kind).toBe('cts.mutate');
+    expect(executeEffect).toHaveBeenCalledOnce();
+  });
 
   it('keeps the bare effect result and idempotency key for a single mapped item', async () => {
     const definition = process([
