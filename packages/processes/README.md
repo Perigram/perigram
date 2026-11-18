@@ -3,20 +3,19 @@
 Parent: [packages README](../README.md). Target-state contract list:
 [SPEC.md](./SPEC.md).
 
-The designer shell has two semantic graphs. The declaration graph owns CTS
-classes, fields, edges, recursive state machines, transitions, and operator
-contracts. The process graph composes those declarations through native
-species records: a process node references a declaration, and lifecycle
-structure and type identity come from the declaration graph. The normative
-state and species contracts live in
-[CTS SPEC §7 and §14](../cts/SPEC.md).
+CTS declarations, process operations, and procedural/plugin operations are
+domain contributions to the shared graph foundation. The canonical persisted
+graph document, node/port contract, provider registry, compatibility rules,
+and procedural evaluator are owned by [@perigram/core](../core/README.md#canonical-graph-documents),
+[@perigram/plugin-sdk](../plugin-sdk/README.md), and root [SPEC §28](../../SPEC.md).
 
-These are CTS process-definition graphs, not the portable procedural graph
-documents (`perigram.graph`) owned by [@perigram/core](../core/README.md#canonical-graph-documents)
-and specified in the root [SPEC §28](../../SPEC.md). They have different
-stored formats, node vocabularies, execution semantics, and persistence
-lifecycles; do not conflate process-definition compilation with procedural
-dataflow evaluation.
+The existing CTS process-definition record shape and compiler are a legacy
+migration source. They preserve domain-specific declaration, authorization,
+and workflow semantics while being adapted to the canonical graph model.
+They are not a second graph platform: no new generic graph format, socket
+algebra, provider registry, canvas protocol, or reusable-subgraph mechanism
+may be added here. The process execution profile may retain durable scheduling
+and lifecycle semantics, but consumes the shared graph and node contracts.
 
 Executable records remain species records from authored graph through
 resolution, validation, compilation, orchestration, server execution, and
