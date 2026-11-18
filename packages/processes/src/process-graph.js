@@ -10,6 +10,16 @@ export const PROCESS_GRAPH_PROVIDER = 'perigram.processes';
 export const PROCESS_GRAPH_NODE_VERSION = '1';
 export const PROCESS_GRAPH_METADATA_KEY = 'perigram.process-definition';
 
+const NODE_RECORD_COLLECTIONS = Object.freeze({
+  entity: 'producerOutputs',
+  action: 'actions',
+  service: 'services',
+  socket: 'sockets',
+  stateDefinition: 'stateDefinitions',
+  valueInput: 'valueInputs',
+  processNode: 'processNodes'
+});
+
 /**
  * Lossless bridge from the legacy process-definition canvas into the
  * platform graph document envelope. Domain records remain process metadata;
@@ -24,12 +34,28 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
   const sourceDataForRevision = cloneJson(Object.fromEntries(
     Object.entries(source).filter(([key]) => key !== 'graph')
   ));
+  const referencedRecords = Object.fromEntries(
+    [...new Set(Object.values(NODE_RECORD_COLLECTIONS))].map(collection => [collection, new Set()])
+  );
+  for (const node of legacy.nodes) {
+    const collection = NODE_RECORD_COLLECTIONS[node.type];
+    const refId = String(node.data?.refId || node.id);
+    if (collection && sourceDataForRevision[collection]?.[refId]) referencedRecords[collection].add(refId);
+  }
   const preservedSourceData = cloneJson(Object.fromEntries(
-    Object.entries(sourceDataForRevision).filter(([key]) => key !== 'processNodes')
+    Object.entries(sourceDataForRevision)
+      .filter(([key]) => key !== 'graph')
+      .map(([key, value]) => {
+        if (!referencedRecords[key]) return [key, value];
+        return [key, Object.fromEntries(
+          Object.entries(value || {}).filter(([id]) => !referencedRecords[key].has(id))
+        )];
+      })
   ));
   const nodes = legacy.nodes.map(node => {
     const refId = String(node.data?.refId || node.id);
-    const record = sourceDataForRevision.processNodes?.[refId];
+    const collection = NODE_RECORD_COLLECTIONS[node.type];
+    const record = collection ? sourceDataForRevision[collection]?.[refId] : null;
     const operationId = node.type === 'processNode'
       ? requiredKind(record, refId)
       : 'canvas-node.' + String(node.type || 'default');
@@ -93,18 +119,24 @@ export function graphDocumentToProcessDefinition(graphSource) {
   if (!metadata || !metadata.sourceData) {
     throw new Error('Graph document does not contain Perigram process-definition metadata');
   }
-  const processNodes = {};
+  const reconstructedRecords = Object.fromEntries(
+    [...new Set(Object.values(NODE_RECORD_COLLECTIONS))].map(collection => [
+      collection,
+      cloneJson(metadata.sourceData[collection] || {})
+    ])
+  );
   const nodes = graph.nodes.map(node => {
     const refId = String(node.config?.refId || node.id);
-    if (node.operation.provider === PROCESS_GRAPH_PROVIDER && node.config?.record
-      && !node.operation.id.startsWith('canvas-node.')) {
-      processNodes[refId] = cloneJson(node.config.record);
+    const type = node.operation.provider === PROCESS_GRAPH_PROVIDER && !node.operation.id.startsWith('canvas-node.')
+      ? 'processNode'
+      : node.operation.id.replace(/^canvas-node\./, '');
+    const collection = NODE_RECORD_COLLECTIONS[type];
+    if (collection && node.config?.record) {
+      reconstructedRecords[collection][refId] = cloneJson(node.config.record);
     }
     return {
       id: node.id,
-      type: node.operation.provider === PROCESS_GRAPH_PROVIDER && !node.operation.id.startsWith('canvas-node.')
-        ? 'processNode'
-        : node.operation.id.replace(/^canvas-node\./, ''),
+      type,
       position: { ...(node.position || { x: 0, y: 0 }) },
       data: cloneJson(node.config?.data || {})
     };
@@ -125,7 +157,7 @@ export function graphDocumentToProcessDefinition(graphSource) {
   });
   return {
     ...cloneJson(metadata.sourceData),
-    processNodes,
+    ...reconstructedRecords,
     schemaVersion: metadata.schemaVersion || 1,
     dataflowVersion: metadata.dataflowVersion || PROCESS_DATAFLOW_VERSION,
     graph: {
