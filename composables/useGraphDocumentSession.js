@@ -283,7 +283,9 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       edges: edges.value.map(edge => ({
         id: edge.id,
         source: { node: edge.source, port: edge.sourceHandle },
-        target: { node: edge.target, port: edge.targetHandle }
+        target: { node: edge.target, port: edge.targetHandle },
+        ...(edge.kind ? { kind: edge.kind } : {}),
+        ...(edge.metadata ? { metadata: edge.metadata } : {})
       }))
     });
   }
@@ -502,6 +504,8 @@ export function useGraphDocumentSession({ t, providers = [], graphDocuments = []
       sourceHandle: edge.source.port,
       target: edge.target.node,
       targetHandle: edge.target.port,
+      ...(edge.kind ? { kind: edge.kind } : {}),
+      ...(edge.metadata ? { metadata: structuredClone(edge.metadata) } : {}),
       type: 'default'
     }));
     selection.reset();
