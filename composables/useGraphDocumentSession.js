@@ -53,7 +53,7 @@ export function createEmptyGraphDocument({ id = stableId('graph'), name = '' } =
   };
 }
 
-export function useGraphDocumentSession({ t, providers = [], definitions = [], nodeResolvers = [], previewResolvers = [], compatibilityProfiles = [], executors = {}, graphDocuments = [], queryOrganizationData = null, finalizeExecution = null }) {
+export function useGraphDocumentSession({ t, providers = [], definitions = [], nodeResolvers = [], previewResolvers = [], compatibilityProfiles = [], frameworkProviders = [], executors = {}, graphDocuments = [], queryOrganizationData = null, finalizeExecution = null }) {
   const graphDocument = ref(createEmptyGraphDocument());
   const { nodes, edges } = createGraphAuthoringState();
   const validation = ref(null);
@@ -78,6 +78,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
   const providerResolvers = [...nodeResolvers].filter(resolver => typeof resolver === 'function');
   const providerPreviewResolvers = [...(previewResolvers.length ? previewResolvers : nodeResolvers)].filter(resolver => typeof resolver === 'function');
   const providerExecutors = new Map(Object.entries(executors));
+  const frameworkProviderIds = new Set([CORE_DATA_PROVIDER, ...frameworkProviders]);
   const providerPreviewRenderers = new Map();
   const providerGeneration = ref(0);
   const coreDataProvider = createCoreGraphDataProvider();
@@ -187,10 +188,8 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
       });
     }
     for (const { provider, family, label, items } of grouped.values()) {
-      const processProvider = provider === PROCESS_PROCEDURAL_PROVIDER;
-      const coreData = provider === CORE_DATA_PROVIDER;
       groups.push({
-        source: processProvider || coreData ? 'framework' : 'plugin',
+        source: frameworkProviderIds.has(provider) ? 'framework' : 'plugin',
         id: `graph-${provider}-${family}`,
         label: label || groupLabels[family] || humanizePaletteGroup(family),
         signal: groupSignals[family] || 'data',
