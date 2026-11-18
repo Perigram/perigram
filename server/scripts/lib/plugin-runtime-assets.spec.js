@@ -2,7 +2,8 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { buildDocumentsRuntime } from '../../../workers/documents/build-runtime.mjs';
 import { collectRuntimeAssetFiles } from './plugin-runtime-assets.js';
 import build123dListing from '../../../workers/build123d/listing.json' with { type: 'json' };
 import documentsListing from '../../../workers/documents/listing.json' with { type: 'json' };
@@ -10,6 +11,9 @@ import facadeListing from '../../../workers/facade/listing.json' with { type: 'j
 import techDrawingListing from '../../../workers/tech-drawing/listing.json' with { type: 'json' };
 
 let root;
+beforeAll(async () => {
+  await buildDocumentsRuntime();
+});
 afterEach(() => {
   if (root) rmSync(root, { recursive: true, force: true });
   root = null;
