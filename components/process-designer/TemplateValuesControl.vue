@@ -32,6 +32,7 @@ import { computed, ref, watch } from 'vue';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import Textarea from 'primevue/textarea';
+import { templateSectionState, reconcileTemplateSectionDrafts } from '../../shared/ui-mapping/template-section-drafts.js';
 
 const props = defineProps({
   tokens: { type: Array, default: () => [] },
@@ -50,10 +51,15 @@ const fields = computed(() => [...new Set([
 watch(() => props.modelValue, value => {
   draft.value = { ...(value || {}) };
 }, { deep: true });
-watch(() => JSON.stringify([props.sections, props.sections.map(section => props.modelValue?.[section])]), () => {
-  sectionErrors.value = {};
-  sectionDrafts.value = {};
-}, { deep: true });
+watch(
+  () => templateSectionState(props.sections, props.modelValue),
+  (next, previous = []) => {
+    const state = reconcileTemplateSectionDrafts(next, previous, sectionDrafts.value, sectionErrors.value);
+    sectionDrafts.value = state.drafts;
+    sectionErrors.value = state.errors;
+  },
+  { deep: true }
+);
 
 function updateToken(token, value) {
   const next = { ...draft.value, [token]: value };

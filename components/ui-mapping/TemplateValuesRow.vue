@@ -34,6 +34,7 @@
 import { ref, watch } from 'vue';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
+import { templateSectionState, reconcileTemplateSectionDrafts } from '../../shared/ui-mapping/template-section-drafts.js';
 
 // The fill dialog's per-token values form (SPEC §24): the composition's
 // meta channel names scalar tokens and repeat sections; both update the
@@ -46,10 +47,15 @@ const props = defineProps({
 
 const sectionErrors = ref({});
 const sectionDrafts = ref({});
-watch(() => JSON.stringify([props.sections, props.sections.map(section => props.modelValue?.[section])]), () => {
-  sectionErrors.value = {};
-  sectionDrafts.value = {};
-}, { deep: true });
+watch(
+  () => templateSectionState(props.sections, props.modelValue),
+  (next, previous = []) => {
+    const state = reconcileTemplateSectionDrafts(next, previous, sectionDrafts.value, sectionErrors.value);
+    sectionDrafts.value = state.drafts;
+    sectionErrors.value = state.errors;
+  },
+  { deep: true }
+);
 
 const emit = defineEmits(['update:modelValue']);
 
