@@ -33,6 +33,14 @@ provider discovery → typed authoring → preview → file export → Bake.
   package and real provider/runtime discovery. Cover palette search,
   placement, schema configuration, valid/invalid wires, execution, preview,
   export, and Bake.
+
+Progress (2026-11-18): Added Playwright coverage for an API-saved typed-block
+graph (paragraph → document composition → Markdown and HTML file outputs),
+including both preview channels, explicit Page Bake destinations, execution
+provenance, Page reopen, and downloaded bytes. The existing Markdown parse
+flow also asserts Bake provenance. These E2E scenarios are authored but have
+not been executed; the full palette-driven authoring, placement, inspector
+configuration, and wire-validation acceptance remains open.
 - [ ] Reconcile Documents listing versions with installed organization
   snapshots. Verify upgrade behavior against an installation carrying the
   previous declaration version; record catalog and installed versions in
