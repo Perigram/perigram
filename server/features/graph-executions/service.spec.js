@@ -4,6 +4,7 @@ import {
   GRAPH_DOCUMENT_VERSION,
   GRAPH_INPUT_OPERATION,
   GRAPH_OUTPUT_OPERATION,
+  GRAPH_INVOKE_OPERATION,
   createGraphExecutionRecord
 } from '#packages/core';
 
@@ -234,6 +235,55 @@ describe('graph execution service', () => {
         data: expect.objectContaining({ queryInstances: expect.any(Function) })
       })
     }));
+  });
+
+  it('recursively evaluates a Use Graph node against its exact authorized revision', async () => {
+    const parent = graph();
+    parent.nodes[1].operation = {
+      provider: 'perigram.core',
+      id: GRAPH_INVOKE_OPERATION,
+      version: '1'
+    };
+    parent.nodes[1].config = { graphId: 'child.graph', revision: 'child-r1' };
+    const child = {
+      format: GRAPH_DOCUMENT_FORMAT,
+      version: GRAPH_DOCUMENT_VERSION,
+      id: 'child.graph',
+      revision: 'child-r1',
+      name: 'Child graph',
+      interface: {
+        inputs: [{ id: 'source', label: 'Source', contract: { shape: 'item', semantic: { base: 'entityRef' } } }],
+        outputs: [{ id: 'document', label: 'Document', contract: { shape: 'item', semantic: { base: 'document' } } }]
+      },
+      nodes: [
+        { id: 'child-input', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'source' } },
+        { id: 'child-output', operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' }, config: { interfaceId: 'document' } }
+      ],
+      edges: [
+        { id: 'child-edge', source: { node: 'child-input', port: 'value' }, target: { node: 'child-output', port: 'value' } }
+      ]
+    };
+    const childDocument = {
+      _id: 'child-graph-instance',
+      organizationId: 'org-1',
+      fields: { graphId: 'child.graph' },
+      payload: { fileId: 'child-graph-file' }
+    };
+    graphService.processList.mockResolvedValue([childDocument]);
+    mocks.getFileBuffer.mockImplementation(async fileId => Buffer.from(JSON.stringify(
+      fileId === 'graph-file-1' ? parent : child
+    )));
+
+    const result = await graphExecutionsService.evaluateSavedGraph({
+      graphDocumentInstanceId: 'graph-instance-1',
+      inputBindings: { source: { type: 'text-document', id: 'source-file' } },
+      resolveNodeDefinition: vi.fn(),
+      executeNode: vi.fn()
+    }, auth);
+
+    expect(result.outputs.document).toEqual({ type: 'text-document', id: 'source-file' });
+    expect(graphService.processList).toHaveBeenCalledWith({ graphId: 'child.graph', limit: 1000 }, auth);
+    expect(mocks.getFileBuffer).toHaveBeenCalledWith('child-graph-file', 'files');
   });
 
   it('resolves a pinned child graph from an authorized saved revision', async () => {
