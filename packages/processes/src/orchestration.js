@@ -695,19 +695,17 @@ function processData(definition) {
     : definition?.data?.format === 'perigram.graph'
       ? definition.data
       : null;
-  if (graphDocument) {
-    const metadata = graphDocument.metadata?.[PROCESS_GRAPH_METADATA_KEY];
-    const process = {
-      ...structuredClone(metadata?.sourceData || {}),
-      dataflowVersion: Number(metadata?.dataflowVersion || 0),
-      graph: graphDocument,
-      __canonicalGraph: true
-    };
-    if (process.dataflowVersion !== 4) throw new Error('Durable orchestration requires process dataflow version 4');
-    return process;
+  if (!graphDocument) {
+    throw new Error('Process orchestration requires a canonical graph document');
   }
-  const process = definition?.data?.graph ? definition.data : definition;
-  if (Number(process?.dataflowVersion) !== 4) throw new Error('Durable orchestration requires process dataflow version 4');
+  const metadata = graphDocument.metadata?.[PROCESS_GRAPH_METADATA_KEY];
+  const process = {
+    ...structuredClone(metadata?.sourceData || {}),
+    dataflowVersion: Number(metadata?.dataflowVersion || 0),
+    graph: graphDocument,
+    __canonicalGraph: true
+  };
+  if (process.dataflowVersion !== 4) throw new Error('Durable orchestration requires process dataflow version 4');
   return process;
 }
 
