@@ -20,6 +20,7 @@ import {
   diffProcessContracts,
   hasCanonicalProcessSource,
   normalizeProcessDefinition,
+  migrateProducerOutputIdentities,
   PROCESS_DATAFLOW_VERSION,
   previewProcessDataflow,
   resolveConstructionMode,
@@ -2499,12 +2500,13 @@ async function getProjectedDomain(organizationId = null) {
 // records only for identities; cts records carry their identities from the
 // designer). Protocol acceptance runs on a lowered copy.
 function persistedRewrites(data, domain) {
-  // Persist the authored definition directly. Legacy identity repair is not
-  // part of the write path: drafts must be valid by construction, not mutated
-  // by a compatibility migration on every save.
-  assertCurrentProcessDefinition(data);
-  tryAcceptGraphProtocol(data, domain);
-  return retireStateScopeAuthoring(rewriteRetiredWirePaths(orientChildrenEdgesChildFirst(collapseEffectAccessGrants(data))));
+  const identity = migrateProducerOutputIdentities(data, domain);
+  if (identity.errors.length) {
+    throw createError({ statusCode: 400, message: identity.errors.join('; '), data: { errors: identity.errors } });
+  }
+  assertCurrentProcessDefinition(identity.data);
+  tryAcceptGraphProtocol(identity.data, domain);
+  return retireStateScopeAuthoring(rewriteRetiredWirePaths(orientChildrenEdgesChildFirst(collapseEffectAccessGrants(identity.data))));
 }
 
 // One compile path: protocol acceptance (v5 lowering) through
