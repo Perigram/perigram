@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js';
+import * as XLSX from 'xlsx';
 
 // The documents markdown fill driven through the same generated create
 // dialog rails as the DXF fill (SPEC §24): the shell's preview pane
@@ -108,5 +109,124 @@ test.describe('documents fill dialog', () => {
 
     expect(composedText).toContain('# Offer Perigram');
     expect(composedText).not.toContain('{client}');
+  });
+
+  test('the XLSX fill dialog expands repeat-section JSON into workbook rows', async ({ app }) => {
+    test.setTimeout(240_000);
+    await app.installPlugins(['tech-drawing', 'documents']);
+    await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
+    await app.connectPlugin('documents', 'http://documents-executor:8791');
+
+    let rpcId = 0;
+    const call = async (name, args) => {
+      const response = await app.request.post('/api/mcp', {
+        data: { jsonrpc: '2.0', id: ++rpcId, method: 'tools/call', params: { name, arguments: args } }
+      });
+      expect(response.ok(), await response.text()).toBeTruthy();
+      const payload = await response.json();
+      return JSON.parse((payload.result?.content || []).map(part => part.text ?? '').join('\n'));
+    };
+
+    await call('create_process_definition', { name: 'XLSX repeat fill draft' });
+    const vocab = await call('get_authoring_vocabulary', {});
+    const roleId = vocab.roles?.[0]?.id;
+    const grant = { access: { grants: [{ roleId, level: 'write' }] } };
+    const composed = await call('compose_process_definition', {
+      name: 'XLSX repeat fill probe',
+      steps: [
+        { op: 'drop', item: 'construct', id: 'up' },
+        { op: 'declareTypeRef', id: 'book', typeId: 'xlsx-workbook' },
+        { op: 'wireDeclaration', from: 'book', to: 'up', role: 'binds' },
+        { op: 'configure', id: 'up', values: { construction: { mode: 'upload' } } },
+        { op: 'configure', id: 'up', values: grant },
+        { op: 'drop', item: 'construct', id: 'fill' },
+        { op: 'wireDeclaration', from: 'book', to: 'fill', role: 'binds' },
+        { op: 'configure', id: 'fill', values: { construction: { mode: 'fill' } } },
+        { op: 'configure', id: 'fill', values: grant }
+      ]
+    });
+    await call('activate_process_definition', { definitionId: composed.id || composed._id });
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+      ['Report', '{title}'],
+      ['{#items}'],
+      ['{name}', '{qty}'],
+      ['{/items}'],
+      ['Total', '{total}']
+    ]), 'Report');
+    const workbookBytes = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+    const uploadResponse = await app.request.post('/api/files/upload?bucket=files', {
+      multipart: { file: {
+        name: 'repeat-items.xlsx',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        buffer: workbookBytes
+      } }
+    });
+    expect(uploadResponse.ok(), await uploadResponse.text()).toBeTruthy();
+    const blob = await uploadResponse.json();
+    await call('run_action', {
+      actionId: 'up',
+      data: { payload: {
+        fileId: blob.id,
+        name: 'repeat-items.xlsx',
+        mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        size: workbookBytes.length
+      } }
+    });
+
+    await app.gotoClient('/screens/auto_xlsx-workbook');
+    const main = app.page.locator('main');
+    const modeSelect = main.getByLabel('Creation mode');
+    await expect(modeSelect).toBeVisible({ timeout: 30_000 });
+    await expect(async () => {
+      await modeSelect.click();
+      await app.page.waitForTimeout(400);
+      await app.page.getByRole('option', { name: 'Fill', exact: true }).click();
+      await expect(modeSelect).toContainText('Fill');
+    }).toPass({ timeout: 30_000 });
+    await main.locator('.p-inputgroup').getByRole('button').last().click();
+
+    const dialog = app.page.locator('.p-dialog').first();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('textbox').first().fill('repeat-items-filled');
+    const templateInput = dialog.locator('.p-autocomplete input');
+    await templateInput.fill('repeat-items');
+    await app.page.locator('.p-autocomplete-item, [role="option"]', { hasText: 'repeat-items' }).first().click();
+
+    await expect(dialog.getByLabel('items', { exact: true })).toBeVisible({ timeout: 30_000 });
+    await dialog.getByLabel('title', { exact: true }).fill('Quarterly report');
+    await dialog.getByLabel('total', { exact: true }).fill('5');
+    await dialog.getByLabel('items', { exact: true }).fill(JSON.stringify([
+      { name: 'Part A', qty: 2 },
+      { name: 'Part B', qty: 3 }
+    ], null, 2));
+
+    const previewPane = dialog.locator('[data-file-payload-viewer]');
+    await expect(previewPane).toBeVisible({ timeout: 30_000 });
+    await expect(previewPane).toContainText('Part A');
+    await expect(previewPane).toContainText('Part B');
+    await dialog.locator('.p-dialog-footer').getByRole('button').last().click();
+
+    let created = null;
+    for (let attempt = 0; attempt < 20 && !created; attempt += 1) {
+      const rows = await (await app.request.get('/api/instances/xlsx-workbook')).json();
+      created = (Array.isArray(rows) ? rows : []).find(row => row.name === 'repeat-items-filled');
+      if (!created) await app.page.waitForTimeout(1000);
+    }
+    expect(created, 'the repeat-section dialog run created the workbook instance').toBeTruthy();
+    const fileId = created?.payload?.fileId || created?.payload?.id;
+    expect(fileId).toBeTruthy();
+    const fileResponse = await app.request.get('/api/files/download/' + encodeURIComponent(String(fileId)) + '?bucket=files');
+    expect(fileResponse.ok(), await fileResponse.text()).toBeTruthy();
+    const filled = XLSX.read(await fileResponse.body(), { type: 'buffer' });
+    const rows = XLSX.utils.sheet_to_json(filled.Sheets[filled.SheetNames[0]], { header: 1, raw: false });
+    expect(rows).toEqual([
+      ['Report', 'Quarterly report'],
+      ['Part A', '2'],
+      ['Part B', '3'],
+      ['Total', '5']
+    ]);
+    await app.expectCleanRuntime();
   });
 });
