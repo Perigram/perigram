@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseListing } from './listing.js';
+import { collectRuntimeAssetFiles } from '../../../server/scripts/lib/plugin-runtime-assets.js';
 import { endpointServices as documentsEndpointServices } from '../../../workers/documents/services.js';
 import { endpointServices as facadeEndpointServices } from '../../../workers/facade/services.js';
 import { services as techDrawingEndpointServices } from '../../../workers/tech-drawing/services.js';
@@ -85,18 +86,14 @@ describe('repository plugin conformance', () => {
     for (const id of declared) expect(typeof services[id], `${pluginId}.${id}`).toBe('function');
   });
 
-  it('packages every built-in listing and runtime source in the catalog seed image', () => {
-    const dockerfile = readFileSync(resolve(repositoryRoot, 'deploy/seed.Dockerfile'), 'utf8');
-    for (const { pluginId, listing } of listings) {
-      const sourceTreeCopy = `COPY workers/${pluginId} ./workers/${pluginId}`;
-      const listingCopy = `COPY workers/${pluginId}/listing.json ./workers/${pluginId}/listing.json`;
+  it.each(listings)('$pluginId runtime import graph resolves to package assets', ({ pluginId, pluginRoot, listing }) => {
+    for (const runtime of listing.declarations.runtimes || []) {
+      const assets = collectRuntimeAssetFiles(pluginRoot, runtime.entry, runtime.language);
       expect(
-        dockerfile.includes(sourceTreeCopy) || dockerfile.includes(listingCopy),
-        `${pluginId} listing must be present in the seed image`
+        assets.some(asset => asset.path === runtime.entry.replace(/^\\//, '')),
+        `${pluginId} runtime ${runtime.id} entry is included in its packaged assets`
       ).toBe(true);
-      if ((listing.declarations.runtimes || []).length) {
-        expect(dockerfile, `${pluginId} runtime sources must be present in the seed image`).toContain(sourceTreeCopy);
-      }
+      expect(assets.length, `${pluginId} runtime ${runtime.id} has a non-empty asset graph`).toBeGreaterThan(0);
     }
   });
 
