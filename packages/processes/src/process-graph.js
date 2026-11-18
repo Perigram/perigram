@@ -10,11 +10,6 @@ export const PROCESS_GRAPH_PROVIDER = 'perigram.processes';
 export const PROCESS_GRAPH_NODE_VERSION = '1';
 export const PROCESS_GRAPH_METADATA_KEY = 'perigram.process-definition';
 
-const DOMAIN_RECORD_KEYS = [
-  'roleGrants', 'servicePrincipals', 'producerOutputs', 'actions', 'services',
-  'sockets', 'stateDefinitions', 'valueInputs', 'processNodes', 'screens', 'ctsTypes'
-];
-
 /**
  * Lossless bridge from the legacy process-definition canvas into the
  * platform graph document envelope. Domain records remain process metadata;
@@ -26,14 +21,12 @@ const DOMAIN_RECORD_KEYS = [
 export function processDefinitionToGraphDocument(definition = {}, options = {}) {
   const source = definition.data || definition;
   const legacy = normalizeGraph(source.graph || {});
-  const records = Object.fromEntries(DOMAIN_RECORD_KEYS.map(key => [
-    key,
-    cloneJson(source[key] || {})
-  ]));
+  const { graph: ignoredGraph, ...sourceData } = source;
+  const preservedSourceData = cloneJson(sourceData);
   const nodeKinds = {};
   const nodes = legacy.nodes.map(node => {
     const refId = String(node.data?.refId || node.id);
-    const record = records.processNodes?.[refId];
+    const record = preservedSourceData.processNodes?.[refId];
     const operationId = node.type === 'processNode'
       ? 'process-node.' + requiredKind(record, refId)
       : 'canvas-node.' + String(node.type || 'default');
@@ -69,7 +62,7 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
   const id = options.id || graphIdFor(definition, source);
   const revision = options.revision || 'legacy-' + hash(stableStringify({
     graph: legacy,
-    records,
+    sourceData: preservedSourceData,
     dataflowVersion: source.dataflowVersion ?? PROCESS_DATAFLOW_VERSION
   }));
   return assertValidGraphDocument({
@@ -88,11 +81,7 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
         nodeKinds,
         edgeMetadata,
         viewport: cloneJson(legacy.viewport),
-        records,
-        source: {
-          ...(source.sourceTemplateId ? { sourceTemplateId: source.sourceTemplateId } : {}),
-          ...(source.sourceProcessDefinitionId ? { sourceProcessDefinitionId: source.sourceProcessDefinitionId } : {})
-        }
+        sourceData: preservedSourceData
       }
     }
   });
@@ -102,7 +91,7 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
 export function graphDocumentToProcessDefinition(graphSource) {
   const graph = assertValidGraphDocument(graphSource);
   const metadata = graph.metadata?.[PROCESS_GRAPH_METADATA_KEY];
-  if (!metadata || !metadata.records || !metadata.nodeKinds) {
+  if (!metadata || !metadata.sourceData || !metadata.nodeKinds) {
     throw new Error('Graph document does not contain Perigram process-definition metadata');
   }
   const nodes = graph.nodes.map(node => ({
@@ -126,10 +115,9 @@ export function graphDocumentToProcessDefinition(graphSource) {
     };
   });
   return {
+    ...cloneJson(metadata.sourceData),
     schemaVersion: metadata.schemaVersion || 1,
     dataflowVersion: metadata.dataflowVersion || PROCESS_DATAFLOW_VERSION,
-    ...cloneJson(metadata.source || {}),
-    ...cloneJson(metadata.records),
     graph: {
       nodes,
       edges,
