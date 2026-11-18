@@ -93,7 +93,7 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
       metadata: {
         ...(edge.label ? { label: edge.label } : {}),
         ...(edge.type ? { type: edge.type } : {}),
-        ...(declarationEdge ? { syntheticDeclarationPorts: true } : {}),
+        ...(declarationEdge ? { syntheticDeclarationPorts: true, originalRole: edge.role || null } : {}),
         data: cloneJson(edge.data || {})
       }
     };
@@ -168,7 +168,9 @@ export function graphDocumentToProcessDefinition(graphSource) {
       target: edge.target.node,
       ...(!annotation.syntheticDeclarationPorts ? { targetHandle: edge.target.port } : {}),
       ...(annotation.type ? { type: annotation.type } : {}),
-      ...(edge.kind && edge.kind !== 'data' ? { role: edge.kind } : {}),
+      ...(annotation.syntheticDeclarationPorts
+        ? (annotation.originalRole ? { role: annotation.originalRole } : {})
+        : (edge.kind && edge.kind !== 'data' ? { role: edge.kind } : {})),
       ...(annotation.label ? { label: annotation.label } : {}),
       data: cloneJson(annotation.data || {})
     };
