@@ -8,7 +8,7 @@ import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '../files/service.js';
 import * as pagesService from '../pages/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
-import { resolveInstalledGraphNodeDefinition } from '../plugins/service.js';
+import { resolveInstalledGraphNodeDefinition, executeManagedGraphNode } from '../plugins/service.js';
 
 function parseRecord(value) {
   try {
@@ -102,11 +102,11 @@ async function sourceFor(instanceId, record, auth) {
 export async function evaluateSavedGraph({
   graphDocumentInstanceId,
   inputBindings = {},
-  executeManagedNode,
+  executeManagedNode = executeManagedGraphNode,
   context = {}
 } = {}, auth = {}) {
   if (typeof executeManagedNode !== 'function') {
-    throw createError({ statusCode: 400, message: 'Server graph evaluation requires a managed node execution handler' });
+    throw createError({ statusCode: 500, message: 'Managed graph node execution handler is unavailable' });
   }
   const source = await savedGraphSource(graphDocumentInstanceId, auth);
   const executionId = String(context.executionId || randomUUID());
@@ -146,7 +146,7 @@ export async function evaluateSavedGraph({
     if (definition.provider === CORE_DATA_PROVIDER) {
       return await coreDataProvider.execute(definition, invocation);
     }
-    return await executeManagedNode(definition, invocation);
+    return await executeManagedNode(definition, invocation, auth);
   };
   const result = await evaluateProceduralGraph({
     graph: source.graph,
