@@ -8,12 +8,12 @@ ARG http_proxy
 ARG https_proxy
 ARG no_proxy
 
-# Use HTTPS for Debian mirrors: some build networks block or time out on
-# the HTTP mirror endpoint, which otherwise leaves apt with empty package indexes.
-RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
-      sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
-    fi && \
-    apt-get update && apt-get install -y --no-install-recommends \
+# Use the host CA bundle for HTTPS through TLS-inspecting build proxies.
+# Keep certificate verification enabled; never work around proxy trust errors
+# by disabling TLS verification.
+RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \
+    apt-get update -o Acquire::https::CAInfo=/tmp/build-ca-bundle && \
+    apt-get install -y --no-install-recommends ca-certificates \
       python3 python3-pip python3-dev build-essential libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
@@ -23,7 +23,8 @@ WORKDIR /app
 COPY ./ ./
 
 WORKDIR /app/workers/nesting/jagua-rs
-RUN cargo build --release
+RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \
+    CARGO_HTTP_CAINFO=/tmp/build-ca-bundle SSL_CERT_FILE=/tmp/build-ca-bundle cargo build --release
 
 # Stage 2: Create the final runtime image
 FROM python:3.11-slim
@@ -40,18 +41,20 @@ RUN groupadd -r appuser && useradd -m -r -g appuser appuser
 WORKDIR /app
 
 # Upgrade pip
-RUN pip install --upgrade pip
+RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \
+    PIP_CERT=/tmp/build-ca-bundle pip install --upgrade pip
 
 # Copy requirements from local context
 COPY workers/nesting/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \
+    PIP_CERT=/tmp/build-ca-bundle pip install --no-cache-dir -r requirements.txt
 
 # Copy the built lbf binary
 COPY --from=builder /app/workers/nesting/jagua-rs/target/release/lbf /usr/local/bin/lbf
 RUN chmod +x /usr/local/bin/lbf
 
 # Copy the Python application code
-COPY workers/nesting/ .
+COPY workers/nesting/ ./
 
 # Change ownership of the app directory to the non-root user
 RUN chown -R appuser:appuser /app
