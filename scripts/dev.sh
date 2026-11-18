@@ -143,7 +143,10 @@ case "$command" in
     target="${1:-app}"
     case "$target" in
       app) build_target app ;;
-      nesting|nesting-worker) build_target nesting-worker ;;
+      nesting|nesting-worker)
+        build_target nesting-worker
+        compose up -d --no-build --force-recreate nesting-worker
+        ;;
       plugin-runtime) build_target plugin-runtime ;;
       build123d|build123d-executor) build_target build123d-executor ;;
       all) docker buildx bake -f "$COMPOSE_FILE" --allow network.host --set '*.network=host' ;;
