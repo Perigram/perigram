@@ -1215,6 +1215,10 @@ describe('durable process orchestration', () => {
       id: 'process.sample',
       dataflowVersion: 4,
       processNodes: { operation: { id: 'operation', kind: 'source.literal', value: 'hello' } },
+      valueInputs: {
+        'source-ref': { id: 'source-ref', path: 'name' },
+        orphan: { id: 'orphan', path: 'unused' }
+      },
       customDomainRecord: { retained: true },
       graph: {
         nodes: [
@@ -1231,6 +1235,10 @@ describe('durable process orchestration', () => {
       }
     };
     const graph = processDefinitionToGraphDocument(definition);
+    expect(graph.nodes.find(node => node.id === 'source').config.record).toEqual({ id: 'source-ref', path: 'name' });
+    expect(graph.metadata['perigram.process-definition'].sourceData.valueInputs).toEqual({
+      orphan: { id: 'orphan', path: 'unused' }
+    });
     expect(graph.edges[0]).toMatchObject({
       kind: 'control',
       metadata: { label: 'Continue', type: 'smoothstep', data: { marker: 'kept' } }
@@ -1238,6 +1246,10 @@ describe('durable process orchestration', () => {
     expect(graph.metadata['perigram.process-definition']).not.toHaveProperty('edgeMetadata');
     const restored = graphDocumentToProcessDefinition(graph);
     expect(restored.customDomainRecord).toEqual({ retained: true });
+    expect(restored.valueInputs).toEqual({
+      'source-ref': { id: 'source-ref', path: 'name' },
+      orphan: { id: 'orphan', path: 'unused' }
+    });
     expect(restored.graph.edges[0]).toMatchObject({
       role: 'control', label: 'Continue', type: 'smoothstep', data: { marker: 'kept' }
     });
