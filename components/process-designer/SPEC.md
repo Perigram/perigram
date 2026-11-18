@@ -15,18 +15,26 @@ it renders — palette membership, node/edge species, wire legality — is autho
 designer contract owned by [packages/processes](../../packages/processes/README.md); this folder
 owns the surface: channels, arrangement, gestures.
 
-## Scope boundary
+## Scope
 
-The primary canvas in this component is the CTS process-definition designer:
-its declaration graph and process graph follow the
-[CTS graph protocol](../../packages/cts/SPEC.md#14-graph-protocol-declaration-bound-process-definitions).
-It is not the editor/runtime for portable `perigram.graph` documents, whose
-canonical format and evaluator belong to
-[@perigram/core](../../packages/core/README.md#canonical-graph-documents)
-(root SPEC §28). The `GraphDocument*` components in this directory are
-support surfaces for that separate procedural-graph workspace; their
-execution and persistence contracts are not inherited from the CTS process
-graph protocol.
+This component is the shared graph-authoring surface. It must not define or
+select a graph protocol based on the page that mounts it. The canonical
+persisted graph document, node/port contract, compatibility rules, provider
+discovery, validation, composition, and procedural execution are owned by
+[@perigram/core](../../packages/core/README.md#canonical-graph-documents),
+[@perigram/plugin-sdk](../../packages/plugin-sdk/README.md), and root SPEC §28.
+
+CTS declarations remain domain records and process-specific semantics remain
+owned by [@perigram/cts](../../packages/cts/SPEC.md) and
+[@perigram/processes](../../packages/processes/SPEC.md). They are projected
+onto the shared graph surface; they do not justify a second canvas protocol,
+socket algebra, provider registry, or reusable-graph mechanism.
+
+The current process-definition persistence/compiler path is a migration
+source, not a second target architecture. Until its one-time migration is
+complete, its adapter must preserve existing authored records and runtime
+behavior. New graph features must be implemented against the canonical
+contract, not added to the legacy process representation.
 
 ## Contracts owned here
 
