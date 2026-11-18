@@ -227,8 +227,10 @@ async function executeIsolated(packageData, run, setChild) {
     let resultMessage = null;
     let timedOut = false;
     let killTimer = null;
+    const executionController = new AbortController();
     const cancel = reason => {
       if (killTimer) return;
+      executionController.abort(new Error(reason || 'Managed plugin execution was cancelled'));
       void stdin.write(new TextEncoder().encode(JSON.stringify({ type: 'cancel', reason }) + '\n')).catch(() => {});
       killTimer = setTimeout(() => { try { child.kill('SIGKILL'); } catch {} }, 1000);
     };
@@ -247,7 +249,7 @@ async function executeIsolated(packageData, run, setChild) {
           if (!message) continue;
           if (message.type === 'capability') {
             try {
-              const value = await callCapability(run, message.name, message.input);
+              const value = await callCapability(run, message.name, message.input, executionController.signal);
               await stdin.write(new TextEncoder().encode(JSON.stringify({ type: 'capability-result', callId: message.callId, value }) + '\n'));
             } catch (error) {
               await stdin.write(new TextEncoder().encode(JSON.stringify({
@@ -284,11 +286,12 @@ async function executeIsolated(packageData, run, setChild) {
   }
 }
 
-async function callCapability(run, name, input) {
+async function callCapability(run, name, input, signal) {
   const response = await fetch(`${appUrl}/api/tasks/${run._id}/plugin-capability`, {
     method: 'POST',
     headers: workerHeaders(),
-    body: JSON.stringify({ claimToken: run.claimToken, name, input })
+    body: JSON.stringify({ claimToken: run.claimToken, name, input }),
+    signal
   });
   if (!response.ok) throw new Error(await response.text() || `Capability ${name} failed: ${response.status}`);
   return await response.json();
