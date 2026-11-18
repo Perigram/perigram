@@ -21,13 +21,9 @@ const NODE_RECORD_COLLECTIONS = Object.freeze({
 });
 
 /**
- * Lossless in-memory projection from the existing process-definition storage
- * shape to the canonical graph document. Referenced node records move onto
- * canonical node config; process-domain declarations and unreferenced records
- * remain in process metadata. Wires become canonical graph edges. This does
- * not rewrite persisted records: it is the compatibility boundary while the
- * stored process-definition format remains unchanged. Durable scheduling and
- * effects stay in the process execution profile; graph structure is canonical.
+ * Compile authored process semantics into the shared, versioned graph model.
+ * Node records become operation configs; process-wide declarations remain
+ * execution metadata. Runtime traversal consumes this graph document directly.
  */
 export function createProcessGraphDocument(definition = {}, options = {}) {
   const source = definition.data || definition;
@@ -75,14 +71,12 @@ export function createProcessGraphDocument(definition = {}, options = {}) {
     const declaredSourcePort = edge.sourceHandle || edge.data?.sourceHandle;
     const declaredTargetPort = edge.targetHandle || edge.data?.targetHandle;
     // CTS declaration relations are node-to-node semantic edges, not data
-    // socket connections. The canonical graph envelope requires endpoint
-    // ports, so give these relations a reserved synthetic endpoint and mark
-    // it explicitly; the reverse adapter removes it rather than exposing a
-    // fake socket to the process authoring model.
+    // socket connections. Canonical endpoints still require explicit port
+    // identity, so declaration relations use a reserved semantic endpoint.
     const declarationEdge = !declaredSourcePort && !declaredTargetPort
       && (edge.role === 'type' || edge.role === 'declaration' || String(edge.id || '').startsWith('decl:'));
     if ((!declaredSourcePort || !declaredTargetPort) && !declarationEdge) {
-      throw new Error('Process edge ' + edge.id + ' has no source or target port; refusing a lossy graph migration');
+      throw new Error('Process edge ' + edge.id + ' has no source or target port; refusing an edge without endpoint identity');
     }
     const sourcePort = declaredSourcePort || '$declaration';
     const targetPort = declaredTargetPort || '$declaration';
@@ -101,7 +95,7 @@ export function createProcessGraphDocument(definition = {}, options = {}) {
   });
 
   const id = options.id || graphIdFor(definition, source);
-  const revision = options.revision || 'legacy-' + hash(stableStringify({
+  const revision = options.revision || 'process-' + hash(stableStringify({
     graph: legacy,
     sourceData: sourceDataForRevision,
     dataflowVersion: source.dataflowVersion ?? PROCESS_DATAFLOW_VERSION
