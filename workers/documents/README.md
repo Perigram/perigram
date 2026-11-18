@@ -327,9 +327,9 @@ Behavior and traps:
 
 - XLSX fills rewrite values in place and rebuild rows for repeated
   sections. Relative A1 row references shift with moved rows; absolute
-  row references and quoted formula strings stay fixed, and the workbook
-  requests recalculation on open. Cell styles, row metadata, column
-  metadata, and unambiguous merged ranges are carried forward. Merges
+  row references and quoted formula strings stay fixed, and moved formula cells are written without stale cached results so
+  spreadsheet applications can recalculate them. Cell styles, row metadata,
+  column metadata, and unambiguous merged ranges are carried forward. Merges
   crossing repeat boundaries are omitted. Theme fills, charts, images,
   shared/array formulas, and external-workbook formula fidelity may drop.
 - PDF template fill masks each token's text run with a white rectangle

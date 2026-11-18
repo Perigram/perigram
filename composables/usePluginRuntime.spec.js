@@ -65,11 +65,11 @@ describe('usePluginRuntime', () => {
       .resolves.toEqual({ operationId: 'math.double', input: { input: 2 } });
   });
 
-  it('loads the installed Documents listing-derived provider and dispatches a graph invocation', async () => {
+  it('loads the Documents listing-derived provider and dispatches a graph invocation', async () => {
     const documents = createDocumentsRuntime();
     const worker = new FakeWorker(documents.providers);
     const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
-    const documentsBinding = { organizationId: 'org-1', pluginId: 'documents', version: '23' };
+    const documentsBinding = { organizationId: 'org-1', pluginId: 'documents', version: '28' };
     const documentsRuntime = {
       id: 'documents-shared',
       version: '1',

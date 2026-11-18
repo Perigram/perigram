@@ -113,7 +113,7 @@ use readable file-instance options; the runtime rechecks access through
 
 The XLSX filler now translates relative A1 row references as rows move,
 preserves row/column metadata, duplicates unambiguous merged ranges for
-repeated sections, and requests formula recalculation on open. The complete
+repeated sections, and omits stale cached results for moved formulas so spreadsheet applications can recalculate them. The complete
 Vitest suite, SSR smoke tests, architecture, framework, docs, and plugin
 dependency gates passed on staging commit `952e5a3f`.
 

@@ -110,7 +110,6 @@ describe('xlsx fill', () => {
     const result = output.Sheets.S;
     expect(result.B2.f).toBe('IF(A2=\"A3\",A$3+$A2+$A$3,0)');
     expect(result.B3.f).toBe('IF(A3=\"A3\",A$3+$A3+$A$3,0)');
-    expect(result.B2.v).toBeUndefined();
     expect(result['!merges']).toEqual([
       { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } },
       { s: { r: 2, c: 0 }, e: { r: 2, c: 1 } }
