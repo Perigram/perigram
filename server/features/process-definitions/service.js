@@ -15,6 +15,7 @@ import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { getEntityFieldAccessPolicy } from '~/shared/field-access-policies.js';
 import {
   compileProcessDefinition,
+  authoredProcessDataFromGraphDocument,
   createProcessGraphDocument,
   constructionInputsForContract,
   diffProcessContracts,
@@ -147,7 +148,8 @@ export async function findTypeReferences(organizationId, typeId) {
     .map(raw => ({ id: String(raw._id), name: raw.identity?.name || '', status: raw.states?.main || '' }));
 }
 
-function definitionReferencesType(data = {}, typeId) {
+function definitionReferencesType(input = {}, typeId) {
+  const data = authoredProcessData(input);
   if (Object.values(data.processNodes || {}).some(node => node?.typeId === typeId)) return true;
   if (Object.values(data.screens || {}).some(screen => screen?.typeId === typeId)) return true;
   return Object.values(data.ctsTypes || {})
@@ -155,7 +157,8 @@ function definitionReferencesType(data = {}, typeId) {
       .some(edge => (edge?.types || []).includes(typeId)));
 }
 
-function definitionReferencesRole(data = {}, roleId) {
+function definitionReferencesRole(input = {}, roleId) {
+  const data = authoredProcessData(input);
   if (Object.hasOwn(data.roleGrants || {}, roleId)) return true;
   const serialized = JSON.stringify({
     graph: data.graph,
@@ -241,7 +244,8 @@ export async function executeDerivedExportAction({ typeId, kind, instanceId } = 
 // sockets the addressed record carries. Semantic validity stays the
 // validator's job (drafts may fail it mid-edit); integrity failures block
 // the save.
-function assertGraphIntegrity(data) {
+function assertGraphIntegrity(input) {
+  const data = authoredProcessData(input);
   if (!data || typeof data !== 'object' || !data.graph) return;
   const problems = graphIntegrityProblems(data);
   if (problems.length) {
@@ -259,12 +263,36 @@ function assertGraphIntegrity(data) {
   }
 }
 
-function assertEdgeSocketIntegrity(data) {
+function assertEdgeSocketIntegrity(input) {
+  const data = authoredProcessData(input);
   if (!data || typeof data !== 'object' || !data.graph) return;
   const problems = graphEdgeSocketProblems(data);
   if (problems.length) {
     throw createError({ statusCode: 400, message: `Graph integrity: ${problems.slice(0, 5).join('; ')}` });
   }
+}
+
+function isCanonicalProcessGraph(data = {}) {
+  return data?.format === 'perigram.graph';
+}
+
+function authoredProcessData(data = {}) {
+  return isCanonicalProcessGraph(data)
+    ? (authoredProcessDataFromGraphDocument(data) || data)
+    : data;
+}
+
+function storedProcessData(authored, source, existingId = null) {
+  const sourceId = source?.id && source.id !== 'process' ? source.id : existingId;
+  const graph = createProcessGraphDocument(authored, {
+    ...(sourceId ? { id: sourceId } : {}),
+    ...(source?.name && source.name !== 'Process graph' ? { name: source.name } : {})
+  });
+  for (const key of ['migrations', 'history', 'activated', 'compiled']) {
+    const value = authored[key] !== undefined ? authored[key] : source[key];
+    if (value !== undefined) graph[key] = value;
+  }
+  return graph;
 }
 
 export async function create(payload = {}, auth) {
@@ -277,18 +305,23 @@ export async function create(payload = {}, auth) {
   const domain = await getProjectedDomain(organizationId);
   // A create with no document (a bare name) starts from the empty
   // current-protocol draft; a raw document payload keeps its own shape.
-  const seed = payload.data || (payload.dataflowVersion ? payload : emptyAuthoredDocument());
-  assertGraphIntegrity(seed);
+  const source = payload.data || (payload.dataflowVersion ? payload : emptyAuthoredDocument());
+  const seed = authoredProcessData(source);
+  for (const key of ['sourceProcessDefinitionId', 'sourceTemplateId']) {
+    if (source[key] !== undefined) seed[key] = source[key];
+  }
+  assertGraphIntegrity(source);
   const authored = persistedRewrites(structuredClone(seed), domain);
   assertEdgeSocketIntegrity(authored);
+  const uid = `process-${new ObjectId().toString()}`;
   const process = new ProcessDefinition({
     identity: {
-      uid: `process-${new ObjectId().toString()}`,
+      uid,
       name,
       slug: standardSlugify(name, { keepCase: false })
     },
     lineage: { organizationId: toFlexibleId(organizationId) },
-    data: authored
+    data: storedProcessData(authored, { ...source, id: uid })
   });
   applyProcessState(process, 'DRAFT', auth.userId, 'Process draft created');
   setMigrationState(process, 'none');
@@ -309,10 +342,10 @@ export async function update(id, payload = {}, auth) {
   if (renaming) process.identity.name = renaming;
   assertGraphIntegrity(payload.data);
   const domain = await getProjectedDomain(process.lineage.organizationId);
-  const authored = persistedRewrites(structuredClone(payload.data), domain);
+  const authored = persistedRewrites(structuredClone(authoredProcessData(payload.data)), domain);
   assertEdgeSocketIntegrity(authored);
   const migrationState = process.data?.migrations?.state || null;
-  process.data = authored;
+  process.data = storedProcessData(authored, payload.data, process.data?.id);
   process.data.compiled = null;
   if (process.data.migrations?.state || migrationState) {
     setMigrationState(process, process.data.migrations?.state || migrationState);
@@ -604,7 +637,7 @@ export async function archive(id, auth) {
 
 function manualRunEnvironment(definition, auth = {}, domain = null) {
   return {
-    executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data, domain),
+    executeEffect: (request, run) => executeDurableEffect(request, auth, run, authoredProcessData(definition.data), domain),
     isAsyncBoundary: (request, result) => request.kind === 'cts.command' && hasAsyncOutputBoundary(result),
     catalogContext: catalogContextFromDefinition(definition.data, domain),
     // Evaluator-domain law: README §Socket projection and auth hydration.
@@ -760,7 +793,7 @@ export async function runDefinitionEntry(definition, trigger = {}, meta = {}) {
 export async function evaluateDefinitionDataflow(id, payload = {}, auth = {}) {
   const process = await loadAuthorized(id, auth, 'read');
   const definition = process.toJSON ? process.toJSON() : { ...process };
-  if (Number(definition.data?.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
+  if (Number(authoredProcessData(definition.data)?.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
     throw createError({ statusCode: 409, message: `Process must use dataflow version ${PROCESS_DATAFLOW_VERSION} before it can run` });
   }
   const run = await evaluateDataflow(definition, payload, { auth });
@@ -941,7 +974,7 @@ function failRunState(state, { error, cancelled }) {
 export async function preview({ definition, nodeId = '', trigger = {}, inputs = {} } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   await assertOrgAccess(auth, organizationId, 'read');
-  if (!definition || Number((definition.data || definition).dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
+  if (!definition || Number(authoredProcessData(definition.data || definition)?.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
     throw createError({ statusCode: 400, message: `Preview requires dataflow version ${PROCESS_DATAFLOW_VERSION}` });
   }
   // Preview receives client-authored definitions: protocol acceptance runs
@@ -987,7 +1020,7 @@ export async function projectEntityThroughSocket({ socketId, instanceId, targetO
   if (!instanceId) throw createError({ statusCode: 400, message: 'Entity id is required' });
 
   const process = await loadActiveSetProcess(auth);
-  const socket = process.data.sockets?.[socketId];
+  const socket = authoredProcessData(process.data).sockets?.[socketId];
   if (!socket) throw createError({ statusCode: 404, message: 'Socket not found in active process' });
   if (socket.direction === 'inbound') {
     throw createError({ statusCode: 400, message: 'Inbound sockets receive projected entities and cannot project source entities' });
@@ -1212,7 +1245,7 @@ async function resolveManualRelationMutation(typeId, targetId, mutation = {}, ac
 }
 
 async function executeDataflowActionRun({ process, actionId, instanceId, data, parameters, entities, targetOrganizationId, rerun = false }, auth) {
-  const effect = Object.values(process.data.processNodes || {})
+  const effect = Object.values(authoredProcessData(process.data).processNodes || {})
     .find(node => node.id === actionId && node.kind?.startsWith('cts.'));
   if (!effect || (effect.trigger?.mode || 'manual') !== 'manual') {
     throw createError({ statusCode: 409, message: `Action ${actionId} has no entry trigger` });
@@ -1240,7 +1273,7 @@ async function executeDataflowActionRun({ process, actionId, instanceId, data, p
     await publishActionEntityEvent(auth, effect.typeId, rederived, 'mutated', 'process-rederive');
     return rederived;
   }
-  const graphNode = (process.data.graph?.nodes || [])
+  const graphNode = (authoredProcessData(process.data).graph?.nodes || [])
     .find(node => String(node.data?.refId || node.id) === String(effect.id));
   if (!graphNode) throw createError({ statusCode: 409, message: `Action ${actionId} has no graph node` });
   const run = await evaluateDataflow(process, {
@@ -2421,19 +2454,20 @@ export async function declareStatusMappings({ definitionId = '', mappings = [] }
 export async function editDefinition({ definitionId = '', steps = [] } = {}, auth) {
   const id = String(definitionId || '');
   const stored = await getById(id, auth);
+  const storedData = authoredProcessData(stored?.data || {});
   const organizationId = resolveOrganizationId(auth);
   await assertOrgAccess(auth, organizationId, 'write');
   const domain = await getProjectedDomain(organizationId);
-  const authoring = createDefinitionAuthoring(domain, null, stored?.data || null);
+  const authoring = createDefinitionAuthoring(domain, null, storedData);
   // Stored-but-unapplied declarations resolve as ports from the first
   // step: the seam starts on the draft-overlay domain, not the raw
   // projection (an edited-in-a-later-session field wired the same wall
   // otherwise).
-  authoring.withDomain(declarationOverlayDomain(stored?.data || {}, domain));
+  authoring.withDomain(declarationOverlayDomain(storedData, domain));
   applyAuthoringSteps(authoring, steps, domain);
   const data = authoring.definition();
   for (const key of ['history', 'activated']) {
-    if (stored?.data?.[key] !== undefined) data[key] = stored.data[key];
+    if (storedData?.[key] !== undefined) data[key] = storedData[key];
   }
   return await update(id, { data }, auth);
 }
@@ -2452,11 +2486,12 @@ export async function editDefinition({ definitionId = '', steps = [] } = {}, aut
  */
 export async function applyTreeDeclarations(id, auth) {
   const process = await loadAuthorized(id, auth, 'write');
-  const graph = process.data?.graph || {};
+  const data = authoredProcessData(process.data);
+  const graph = data.graph || {};
   const { declarations, diagnostics } = compileTreeDeclarations(
     graph.nodes || [],
     graph.edges || [],
-    process.data?.processNodes || {}
+    data.processNodes || {}
   );
   if (diagnostics.length) {
     throw createError({ statusCode: 400, message: `Declaration errors: ${diagnostics.join('; ')}` });

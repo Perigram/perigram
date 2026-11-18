@@ -8,7 +8,7 @@ import * as webSearchService from '~/server/features/web-search/service.js';
 import * as filesService from '~/server/features/files/service.js';
 import { readAttachmentContent } from './attachment-read.js';
 import { buildPrincipalAuth } from './service.js';
-import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY, parseProcessSocketHandleId, resolveCatalogNodePorts } from '#packages/processes';
+import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY, authoredProcessDataFromGraphDocument, parseProcessSocketHandleId, resolveCatalogNodePorts } from '#packages/processes';
 import { FIELD_BASES } from '#packages/cts';
 import { iconFontGlyphs } from '#shared/icon-fonts.js';
 
@@ -139,9 +139,14 @@ const AUTHORING_GUIDE = [
     'Full document view only via get_process_definition {full: true}.'
 ].join('\n');
 
-const authoringData = (data = {}) => Object.fromEntries(
-    Object.entries(data || {}).filter(([key]) => !SERVER_OWNED_DATA_KEYS.includes(key))
-);
+const authoringData = (data = {}) => {
+    const authored = data?.format === 'perigram.graph'
+        ? (authoredProcessDataFromGraphDocument(data) || {})
+        : data;
+    return Object.fromEntries(
+        Object.entries(authored || {}).filter(([key]) => !SERVER_OWNED_DATA_KEYS.includes(key))
+    );
+};
 
 // No tool result may blind the model: one oversized payload evicts the
 // system prompt and tool schemas from a small context window, and the
@@ -177,7 +182,7 @@ async function livePrincipalAuth(auth) {
 // ids, value-input keys — the addresses gestures and validation
 // diagnostics use, without the full authored document.
 function definitionDigest(row) {
-    const data = row?.data || {};
+    const data = authoringData(row?.data || {});
     const records = data.processNodes || {};
     const nodes = (data.graph?.nodes || []).map(node => {
         if (node?.type === 'processNode') {

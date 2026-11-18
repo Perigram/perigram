@@ -39,11 +39,10 @@ those shared definitions; it must not fork or redefine them.
 
 Process orchestration remains a distinct execution profile. Its control
 tokens, durable task boundaries, event starts, waits, retries, workflow
-lifecycle, role grants, and effect guarantees remain process-owned. The
-procedural graph foundation is delivered and validated first. Process
-records are then migrated in one controlled, one-time cutover to the
-canonical graph format; after verification, old-format runtime readers and
-writers are removed. There is no permanent dual-format process runtime.
+lifecycle, role grants, and effect guarantees remain process-owned. Process
+definitions persist the canonical graph format; `createProcessGraphDocument`
+and `authoredProcessDataFromGraphDocument` are the two projections between
+the canonical envelope and the authored process domain.
 
 ### Kernel- and library-agnostic node model
 
@@ -162,8 +161,8 @@ without claiming static guarantees the underlying data cannot support.
 
 | Aspect | Law |
 |---|---|
-| Legacy storage | `PROCESS_PROTOCOL_VERSION = 4` and `dataflowVersion: 4` identify existing process-definition records only. They are not the canonical graph-document or node-definition versions; do not extend this storage protocol. Root SPEC §28 TODO G10 removes it after migration. |
-| Domain semantics during migration | Existing process records use namespaced kinds — `source.*`, `value.*`, `collection.*`/`tree.*`, `record.construct`, `control.*`, `cts.*`. Their behavior is preserved while mapping to provider-qualified canonical nodes and shared port contracts. |
+| Process storage | Process definitions persist the canonical `perigram.graph` envelope. `PROCESS_PROTOCOL_VERSION = 4` and `dataflowVersion: 4` identify the authored process projection inside graph metadata; the canonical graph format stays authoritative. |
+| Domain semantics | Authored process records use namespaced kinds — `source.*`, `value.*`, `collection.*`/`tree.*`, `record.construct`, `control.*`, `cts.*` — and map to provider-qualified canonical nodes and shared port contracts. The authored projection feeds the process compiler; the canonical envelope feeds the graph runtime. |
 | Legacy socket adapter | `base` plus orthogonal qualifiers and `access` describe current stored process sockets. `ports.js` owns only legacy handle decoding/migration. The Plugin SDK owns the provider-neutral compatibility registry; Processes registers the CTS profile that preserves nominal type, block, access, and cardinality semantics until G10 removes the legacy adapter. |
 | Constructors | `collection.makeList` exposes exactly four optional item sockets (`MAKE_LIST_INPUTS`), consumed in socket order, an unconnected node yielding the empty list; `collection.concat` is the two-list join retaining element type, topology, order. |
 | Selectors | Filter, Dispatch, Sort, Distinct, and Group By share strict `alignSelectorPackets` alignment and reject mask or path mismatch. |

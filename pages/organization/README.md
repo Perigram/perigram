@@ -120,8 +120,9 @@ The route expects `/api/users` to return canonical user DTO blocks with
 `users:read`; it derives the active organization id from the loaded organization
 store first and falls back to the auth membership list.
 
-`process.vue` is the visual process-designer surface. It edits organization
-process definitions with Vue Flow, persists drafts through
+`process.vue` is the visual process-designer surface. It mounts the shared
+`GraphEditorSurface` with the process profile, edits the canonical
+`perigram.graph` process envelope with Vue Flow, persists drafts through
 `/api/process-definitions`, validates them through the process compiler, and
 activates compiled runtime contracts for access, screen manifests, navigation,
 entity workflows, services, sockets, and field policies. The checkmark apply
@@ -151,8 +152,9 @@ declared containment/relation edges remain declaration/runtime contracts.
 Effects are construct, mutate, transition, remove, command, and registered
 service. Flow exposes conditional and bounded control operations.
 
-The route uses the authenticated app layout with a full canvas workspace and
-the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell.
+The route uses the authenticated app layout with a full canvas workspace, the
+same `GraphEditorSurface` mount as a graph-document file, and the shared
+`DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell.
 Document and canvas commands render in the shell's floating PrimeVue
 `Toolbar` (the shared designer contract in
 [components/shared](../../components/shared/README.md)); the cassette and

@@ -1,27 +1,27 @@
 <template>
   <div class="flex h-full min-h-0 flex-1 flex-col">
-    <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
-    <StateBlock v-else-if="loadError" :message="loadError" />
+    <StateBlock v-if="!props.session && loading" state="loading" :message="$t('common.loading')" />
+    <StateBlock v-else-if="!props.session && loadError" :message="loadError" />
     <GraphCanvas
       v-else
       v-model:nodes="nodes"
       v-model:edges="edges"
       :bind-frame="bindCanvasFrame"
       :bind-context-palette-search="bindContextPaletteSearch"
-      :document-items="[]"
-      :canvas-items="canvasItems"
+      :document-items="documentItems"
+      :canvas-items="activeCanvasItems"
       chrome-variant="floating"
-      :canvas-status="canvasStatus"
-      :on-activity-click="openActivitySurface"
+      :canvas-status="props.session ? props.canvasStatus : (props.canvasStatus || canvasStatus)"
+      :on-activity-click="props.session ? props.onActivityClick : (props.onActivityClick || openActivitySurface)"
       :touch-pan-drag="touchPanDrag"
       :default-edge-options="{ type: 'default' }"
       :palette-groups="paletteGroups"
-      :palette-placeholder="$t('processDesigner.searchOperations')"
+      :palette-placeholder="palettePlaceholder || $t('processDesigner.searchOperations')"
       :context-palette="contextPalette"
       :context-palette-groups="contextPaletteGroups"
-      :empty-message="$t('processDesigner.emptyGraph')"
+      :empty-message="emptyMessage || $t('processDesigner.emptyGraph')"
       :validation="validation"
-      :validation-diff-lines="[]"
+      :validation-diff-lines="validationDiffLines"
       :selected-graph-nodes="selectedGraphNodes"
       :selected-node-id="selectedNodeId"
       :viewport="designerViewport"
@@ -41,10 +41,14 @@
       :begin-socket-connection="beginSocketConnection"
       :end-socket-connection="endSocketConnection"
       :on-connect="onConnect"
+      :handle-node-drag-stop="nodeDragStop"
+      :handle-canvas-nodes-change="canvasNodesChange"
       :read-only="readOnly"
     >
+      <template #lane><slot name="lane" /></template>
       <template v-if="!readOnly" #inspector>
-        <div class="flex h-full min-h-0 flex-col overflow-y-auto p-3">
+        <slot v-if="$slots.inspector" name="inspector" />
+        <div v-else class="flex h-full min-h-0 flex-col overflow-y-auto p-3">
           <GraphDocumentInspector
             :node="selectedNode"
             :node-output="previewResult?.nodeOutputs?.[selectedNode?.id] || null"
@@ -64,7 +68,9 @@
         </div>
       </template>
       <template v-if="!readOnly" #support>
+        <slot v-if="$slots.support" name="support" />
         <GraphDocumentPreviewPanel
+          v-else-if="!props.session"
           :result="previewResult"
           :execution="executionRecord"
           :error="previewError"
@@ -112,10 +118,20 @@ import {
 const props = defineProps({
   record: { type: Object, default: null },
   typeId: { type: String, default: 'graph-document' },
-  persistence: { type: Object, required: true },
+  persistence: { type: Object, default: null },
   mode: { type: String, default: 'edit' },
   pageChrome: { type: Object, default: null },
-  nodeProviders: { type: Array, default: () => [] }
+  nodeProviders: { type: Array, default: () => [] },
+  session: { type: Object, default: null },
+  documentItems: { type: Array, default: () => [] },
+  canvasItems: { type: Array, default: null },
+  canvasStatus: { type: Object, default: null },
+  onActivityClick: { type: Function, default: null },
+  palettePlaceholder: { type: String, default: '' },
+  emptyMessage: { type: String, default: '' },
+  validationDiffLines: { type: Array, default: () => [] },
+  nodeDragStop: { type: Function, default: null },
+  canvasNodesChange: { type: Function, default: null }
 });
 
 const { t } = useI18n();
@@ -170,7 +186,7 @@ const queryOrganizationData = query => $fetch('/api/graph-executions/query', {
   method: 'POST',
   body: query
 });
-const session = useGraphDocumentSession({
+const defaultSession = props.session ? null : useGraphDocumentSession({
   t,
   providers: props.nodeProviders,
   definitions: processNodeDefinitions,
@@ -183,6 +199,7 @@ const session = useGraphDocumentSession({
   finalizeExecution: pluginRuntime.finalizeExecution,
   queryOrganizationData
 });
+const session = props.session || defaultSession;
 const {
   nodes,
   edges,
@@ -243,30 +260,31 @@ const {
 // editor dirty before the first user edit.
 savedSignature.value = designerSignature();
 
-const canvasItems = computed(() => [
+const defaultCanvasItems = computed(() => [
   { icon: 'pi pi-search-minus', label: t('drawing.zoomOut'), onClick: zoomCanvasOut },
   { icon: 'pi pi-search-plus', label: t('drawing.zoomIn'), onClick: zoomCanvasIn },
   { icon: 'pi pi-expand', label: t('processDesigner.frameAll'), onClick: frameAllNodes },
   { icon: 'pi pi-crosshairs', label: t('processDesigner.frameSelection'), onClick: frameSelectedNodes },
   { icon: 'pi pi-refresh', label: t('processDesigner.resetZoom'), onClick: resetCanvasZoom }
 ]);
+const activeCanvasItems = computed(() => props.canvasItems || defaultCanvasItems.value);
 
 const isDirty = computed(() => !readOnly.value
-  && Boolean(graphDocument.value)
+  && Boolean(graphDocument?.value)
   && designerSignature() !== savedSignature.value);
 const canBakeToSavedGraph = computed(() => Boolean(
   persisted.value && !isDirty.value
-  && executionRecord.value?.graph?.id === graphDocument.value.id
-  && executionRecord.value?.graph?.revision === graphDocument.value.revision
+  && executionRecord?.value?.graph?.id === graphDocument?.value?.id
+  && executionRecord?.value?.graph?.revision === graphDocument?.value?.revision
 ));
 
 const canvasStatus = computed(() => {
-  const evaluatedNodes = Object.keys(previewResult.value?.nodeOutputs || {});
-  const state = previewRunning.value
+  const evaluatedNodes = Object.keys(previewResult?.value?.nodeOutputs || {});
+  const state = previewRunning?.value
     ? 'running'
-    : previewError.value
+    : previewError?.value
       ? 'error'
-      : previewResult.value
+      : previewResult?.value
         ? 'ready'
         : 'idle';
   const suffix = state[0].toUpperCase() + state.slice(1);
@@ -583,6 +601,7 @@ props.pageChrome?.bind?.(Object.assign(
 ));
 
 onMounted(async () => {
+  if (props.session) return;
   await Promise.all([loadGraphDocument(), loadGraphCatalog(), loadGraphProviders()]);
   // A preview requested while the provider workers were still loading
   // resolves again once every registered operation is available.

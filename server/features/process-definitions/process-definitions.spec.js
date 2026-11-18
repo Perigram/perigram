@@ -26,7 +26,7 @@ import * as ctsTypes from '../cts-types/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { stateService } from '~/server/core/machines/service.js';
 import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
-import { PROCESS_DATAFLOW_VERSION } from '#packages/processes';
+import { authoredProcessDataFromGraphDocument, PROCESS_DATAFLOW_VERSION } from '#packages/processes';
 import { createTypeRegistry, frameworkTypes } from '#packages/cts';
 import { cncTypePack } from '@perigram/cts/pack/cnc';
 import { createPersistedAcceptanceFixture, PERSISTED_ACCEPTANCE_IDS } from '~/test-data/persisted-acceptance.js';
@@ -326,7 +326,7 @@ describe('current process-definition service contract', () => {
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
 
     const saved = await update('process-draft', { data: authored }, adminAuth());
-    expect(saved.data.processNodes.f1.access.grants).toEqual([{ roleId, level: 'read' }]);
+    expect(authoredProcessDataFromGraphDocument(saved.data).processNodes.f1.access.grants).toEqual([{ roleId, level: 'read' }]);
 
     // The binding diagnostic still surfaces at the validate boundary.
     await expect(validate('process-draft', adminAuth()))
@@ -340,8 +340,11 @@ describe('current process-definition service contract', () => {
 
     const result = await update('process-draft', { data: authored }, adminAuth());
 
-    expect(processRepository.updateById.mock.calls[0][1].data).toEqual({ ...authored, compiled: null });
-    expect(result.data.graph).toEqual(authored.graph);
+    const stored = processRepository.updateById.mock.calls[0][1].data;
+    expect(stored.format).toBe('perigram.graph');
+    expect(stored.compiled).toBeNull();
+    expect(authoredProcessDataFromGraphDocument(stored)).toEqual(authored);
+    expect(result.data.format).toBe('perigram.graph');
   });
 
   it('creates a draft from a bare name (the empty current-protocol document seeds)', async () => {
@@ -349,9 +352,10 @@ describe('current process-definition service contract', () => {
 
     const created = await create({ name: 'Bare draft' }, adminAuth());
 
-    expect(created.data.dataflowVersion).toBe(PROCESS_DATAFLOW_VERSION);
-    expect(created.data.graph).toEqual({ nodes: [], edges: [] });
-    expect(created.data.processNodes).toEqual({});
+    const createdData = authoredProcessDataFromGraphDocument(created.data);
+    expect(createdData.dataflowVersion).toBe(PROCESS_DATAFLOW_VERSION);
+    expect(createdData.graph).toMatchObject({ nodes: [], edges: [] });
+    expect(createdData.processNodes).toEqual({});
     expect(created.states?.main ?? created.status?.state?.primary ?? created.identity).toBeTruthy();
   });
 
@@ -369,15 +373,16 @@ describe('current process-definition service contract', () => {
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
 
     const saved = await update('process-draft', { data: authored }, adminAuth());
+    const savedData = authoredProcessDataFromGraphDocument(saved.data);
     const producerOutputId = 'create_cassette:result';
-    expect(saved.data.processNodes.create_cassette.producerOutputId).toBe(producerOutputId);
-    expect(saved.data.producerOutputs[producerOutputId]).toMatchObject({
+    expect(savedData.processNodes.create_cassette.producerOutputId).toBe(producerOutputId);
+    expect(savedData.producerOutputs[producerOutputId]).toMatchObject({
       producerOutputId,
       nodeId: 'create_cassette',
       outputSocketId: 'result',
       typeId: 'cassette-design'
     });
-    expect(saved.data).not.toHaveProperty('entityProfiles');
+    expect(savedData).not.toHaveProperty('entityProfiles');
 
     processRepository.findById.mockResolvedValue(draftRecord(saved.data));
     await expect(validate('process-draft', adminAuth())).resolves.toMatchObject({ ok: true });

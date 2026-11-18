@@ -17,8 +17,8 @@ import {
   PROCESS_PORT_COMPATIBILITY_PROFILE,
   compileTreeDeclarations,
   PROCESS_DATAFLOW_VERSION,
-  processDefinitionToGraphDocument,
-  graphDocumentToProcessDefinition
+  authoredProcessDataFromGraphDocument,
+  createProcessGraphDocument
 } from '#packages/processes';
 import { normalizeType, operationKindOf } from '#packages/cts';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
@@ -39,13 +39,8 @@ import { useProcessDesignerPreview } from '~/composables/useProcessDesignerPrevi
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 import { useProcessDesignerLiveGraph } from '~/composables/useProcessDesignerLiveGraph.js';
 
-// Process-domain extension session. It owns CTS/process record projection,
-// declaration editing, process-specific socket rules, process palette, and
-// compiler diagnostics. Generic selection, canvas interaction, viewport,
-// framing, and keyboard deletion are supplied by useGraphAuthoringSession,
-// the same authoring core used by graph documents. (Roles, lanes, screens,
-// and apply remain host concerns.)
-export function useProcessDesignerGraphSession({
+// Process profile over useGraphAuthoringSession (composables/README.md).
+export function useProcessProfile({
   t,
   te,
   toast,
@@ -224,6 +219,9 @@ export function useProcessDesignerGraphSession({
     snapshotViewport,
     designerViewport
   } = authoring;
+
+  const bindFrame = instance => { canvasFrame.value = instance; };
+  const bindContextPaletteSearch = instance => { contextPaletteSearch.value = instance; };
 
   const {
     validationDiffLines,
@@ -1063,11 +1061,11 @@ export function useProcessDesignerGraphSession({
   }
 
   function serializeCanonicalGraph(options = {}) {
-    return processDefinitionToGraphDocument(serializeProcess(), options);
+    return createProcessGraphDocument(serializeProcess(), options);
   }
 
   function loadCanonicalGraph(graph, options = {}) {
-    const data = graphDocumentToProcessDefinition(graph);
+    const data = authoredProcessDataFromGraphDocument(graph);
     return loadDocument({ ...(draft.value || {}), data }, options);
   }
 
@@ -1501,6 +1499,8 @@ export function useProcessDesignerGraphSession({
     resetGraphSelection,
     deleteGraphSelection,
     canvasFrame,
+    bindFrame,
+    bindContextPaletteSearch,
     touchPanDrag,
     handleDesignerPointerDown,
     handleDesignerFocus,

@@ -24,9 +24,9 @@ Target law: [SPEC.md](./SPEC.md).
 
 | Phase | Contract |
 |---|---|
-| Author | Definitions store current semantic records: the graph, its `processNodes`/`producerOutputs`/`screens`/`services`/`sockets`/`stateDefinitions`/`valueInputs`/`ctsTypes`/`servicePrincipals` maps, and `roleGrants`. Saves carry a structural floor — every graph node needs a unique id, a canvas type the designer renders, and a numeric position, and addresses its `processNodes`/`ctsTypes` record; every edge addresses existing nodes; every data edge names both sockets (`sourceHandle`/`targetHandle`) and, past the persisted rewrites, each handle addresses a socket the addressed record carries (`graphIntegrityProblems` and `graphEdgeSocketProblems` from [packages/processes](../../../packages/processes/README.md)). Declaration edges — the tree's `role: 'type'` wires — are node-to-node by design and exempt. An identity-only PATCH leaves data untouched; drafts may fail validation mid-edit and still save, since semantic validity is the validator's job. |
+| Author | Definitions store the canonical `perigram.graph` envelope from `createProcessGraphDocument`: nodes carry their authored data and process record, process-wide records and the authored viewport live in graph metadata, and the activation envelope fields stay top-level. Saves project the authored process domain and carry its structural floor — every graph node needs a unique id, a canvas type the designer renders, and a numeric position, and addresses its `processNodes`/`ctsTypes` record; every edge addresses existing nodes; every data edge names both sockets (`sourceHandle`/`targetHandle`) and, past the persisted rewrites, each handle addresses a socket the addressed record carries (`graphIntegrityProblems` and `graphEdgeSocketProblems` from [packages/processes](../../../packages/processes/README.md)). Declaration edges — the tree's `role: 'type'` wires — are node-to-node by design and exempt. An identity-only PATCH leaves data untouched; drafts may fail validation mid-edit and still save, since semantic validity is the validator's job. |
 | Validate | Recompiles both sides from canonical authored records and produces the semantic Apply diff through `diffProcessContracts` (`packages/processes/src/contract-diff.js`): added/removed/changed actions, screens, and role grants; per-typeId CRUD capability changes; per-producer workflow state/transition/entry changes; field-policy section changes; and the statuses the next contract removes, by typeId. Draft validation overlays the draft's declaration graph on the projected CTS domain and validates the same recursive state/edge records that APPLY posts. |
-| Activate | Requires canonical semantic process records, validates the draft, verifies the process transpiler round-trip, compiles the runtime contract, and marks the definition `ACTIVE`. Each activation writes the activated snapshot to `data.activated`; the runtime compiles `data.activated || data` for every active-set member, so live draft edits stay out of the runtime. Re-activation records the superseded snapshot in `data.history` (capped at 50); the Definitions pane restores a history entry as the definition's data, and restoring goes live through activation. |
+| Activate | Requires the canonical graph envelope, validates the authored projection, verifies the process transpiler round-trip, compiles the runtime contract, and marks the definition `ACTIVE`. Each activation writes the activated canonical snapshot to `data.activated`; the runtime compiles `data.activated || data` for every active-set member, so live draft edits stay out of the runtime. Re-activation records the superseded snapshot in `data.history` (capped at 50); the Definitions pane restores a history entry as the definition's data, and restoring goes live through activation. |
 | Deactivate | Removes one definition from the active set (state returns to `DRAFT`, editable and re-activatable) and re-derives the runtime contract. |
 | Archive | Moves a definition to `ARCHIVED` from `DRAFT`, `ACTIVE`, or `ARCHIVED`; the runtime contract drops an active definition on the same request. |
 | Type lifetime | Definitions reference type ids. An org type lives until explicitly deleted through the [cts-types](../cts-types/README.md) removal ceremony; activation and deletion leave types and their data untouched. |
@@ -133,9 +133,9 @@ Apply turns the removed-status gate into a confirmed migration.
   screens reconcile exactly as if the mutation happened through an
   action.
 
-Creation, update, validation, activation, and preview accept current
-semantic species records. Save and activation persist the current
-records.
+Creation, update, validation, activation, and preview accept the authored
+process projection; create and update persist the canonical graph envelope.
+Save and activation persist the current records.
 
 ## Action execution seam
 

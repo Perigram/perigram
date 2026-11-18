@@ -9,9 +9,9 @@ graph document, node/port contract, provider registry, compatibility rules,
 and procedural evaluator are owned by [@perigram/core](../core/README.md#canonical-graph-documents),
 [@perigram/plugin-sdk](../plugin-sdk/README.md), and root [SPEC §28](../../SPEC.md).
 
-The existing CTS process-definition record shape and compiler are a legacy
-migration source. They preserve domain-specific declaration, authorization,
-and workflow semantics while being adapted to the canonical graph model.
+The authored process projection and compiler preserve domain-specific
+declaration, authorization, and workflow semantics over the canonical graph
+model.
 The Plugin SDK owns the provider-neutral compatibility registry; Processes
 registers the CTS-specific compatibility profile because its nominal type,
 block, access, and cardinality rules belong to this domain. The process
@@ -186,12 +186,26 @@ skips kinded targets, so converting between value kinds stays an
 explicit operation the graph shows (the same lattice `entityRef`'s
 typeId already uses).
 
+## Canonical process graph document
+
+`createProcessGraphDocument()` emits the persisted process envelope: the
+canonical `perigram.graph` document. Executable nodes carry their authored
+configuration under `config.data` and their process record under
+`config.record`; process-wide records, schema/dataflow version, and the
+viewport live under `metadata['perigram.process-definition']`.
+
+`authoredProcessDataFromGraphDocument()` projects that envelope back into the
+authored process domain the compiler, validator, and designer read. The
+activation envelope fields (`migrations`, `history`, `activated`, `compiled`)
+stay top-level on the stored graph document. Process definitions persist this
+canonical envelope; `createProcessGraphDocument` also accepts an existing
+canonical graph unchanged for runtime and revision checks.
+
 ## Designer round trip
 
-Process definitions use canonical semantic records as the editing source of
-truth. `definitionToCanvas()` projects process nodes and status definitions
-into deterministic Vue Flow nodes and `canvasToDefinition()` writes canvas
-layout/edges back; deleting one of those canvas nodes deletes its record.
+The designer projects the authored process domain into deterministic Vue Flow
+nodes with `definitionToCanvas()` and writes canvas layout/edges back through
+`canvasToDefinition()`; deleting one of those canvas nodes deletes its record.
 Every other record kind — producer outputs, actions, services, sockets,
 value inputs — is panel-owned: it survives the canvas round trip untouched,
 so focused panels own its lifecycle.
@@ -320,9 +334,8 @@ and navigation; `screen-analysis.js` detects redundant authored screens;
 `access-compilation.js` owns role/assignment access compilation; and
 `access.js` owns role-assignment resolution and access projection.
 `action-labels.js` owns action target-state resolution, user-facing action
-captions, and the domain type-label lookup. `graph-normalization.js` is
-legacy process-definition storage normalization only; it is scheduled for
-removal with the one-time canonical graph migration (root SPEC §28 / TODO G10).
+captions, and the domain type-label lookup. `graph-normalization.js` owns the
+authored-view graph projection used by the compiler and designer.
 `compiler-core.js` retains shared compiler primitives and the remaining
 non-screen compilation algorithms. `index.js` is the public barrel — there
 are no forwarding-only modules presented as architecture boundaries.
@@ -1194,13 +1207,12 @@ their canonical temporal representation.
 
 ## Catalog and protocol
 
-Existing process-definition records currently carry the legacy storage marker
-`dataflowVersion: 4` (`PROCESS_PROTOCOL_VERSION = 4` in `types.js`).
-This marker is not a platform graph or node-operation protocol and must not
-be extended. During the G10 migration, these domain operations map to
-provider-qualified nodes under the canonical graph contract. Until cutover,
-the legacy compiler reads executable records under `processNodes` with a
-namespaced kind from the catalog:
+Process definitions store the canonical `perigram.graph` envelope. The
+authored projection carries `dataflowVersion: 4`
+(`PROCESS_PROTOCOL_VERSION = 4` in `types.js`) as process-profile metadata; the canonical graph format stays authoritative. Domain operations map to
+provider-qualified nodes under the canonical graph contract, and the compiler
+reads executable records under `processNodes` with a namespaced kind from the
+catalog:
 `source.*`, `value.*`, `collection.*`/`tree.*`, `record.construct`,
 `control.*`, and the CTS species (`cts.*`). The catalog and evaluator throw
 on retired kinds; persisted legacy drafts rewrite through
@@ -1501,13 +1513,12 @@ unsupplied vocabulary leaves the strict rewrite in place. Identity is an
 entity-emitting concern: a typed effect with only a value output carries
 no producer identity — its type places the run action and nothing more.
 
-Stored process-graph vocabularies migrate through the one-shot scripts in
+Stored process-graph maintenance scripts live in
 [server/scripts](../../server/scripts/README.md) — `migrate-v4-drafts-native.js`
 (retired executable kinds) and `migrate-process-transition-role-access.js`
-(stale compiled workflow `access.permissions` on process-role transitions
-in stored process definitions) among them — each runnable once, reporting
-unmigratable shapes. A stored process definition carrying `data.compiled`
-with canonical semantic records absent fails clearly at the designer and
+(stale compiled workflow `access.permissions` on process-role transitions)
+among them. A stored process definition carrying `data.compiled` with
+canonical semantic records absent fails clearly at the designer and
 activation path; runtime output is never re-inferred into a visual design.
 
 ## Validation
@@ -1549,7 +1560,9 @@ canonical graph evaluator under provider identity `perigram.processes`.
   CTS access, mutation, effects, and control-token operations remain owned by
   the process authorization and durable orchestration paths.
 
-The canonical graph document and preview evaluator are owned by
+The canonical graph document and procedural evaluator are owned by
 [`@perigram/core`](../core/README.md); provider declarations and registration
 are owned by [`@perigram/plugin-sdk`](../plugin-sdk/README.md). The process
-execution profile remains owned here. See [root SPEC §28](../../SPEC.md#28-unified-node-graph-system).
+execution profile remains owned here: process-definition preview dispatches
+CTS reads through the authorized data environment and services through their
+installed managed runtime. See [root SPEC §28](../../SPEC.md#28-unified-node-graph-system).

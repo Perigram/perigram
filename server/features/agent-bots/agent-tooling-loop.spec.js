@@ -145,6 +145,7 @@ import { createPersistedAcceptanceFixture } from '../../../test-data/persisted-a
 import { stateService } from '~/server/core/machines/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as processRepository from '../process-definitions/repository.js';
+import { authoredProcessDataFromGraphDocument } from '#packages/processes';
 
 const AUTH = {
     userId: 'admin',
@@ -236,8 +237,8 @@ describe('the compose → validate → activate loop over the tool catalog', () 
         expect(digest.counts.processNodes).toBe(1);
         expect(digest.status).toBe('DRAFT');
 
-        const stored = store().rows.get(digest.id);
-        expect(stored.data.dataflowVersion).toBe(4);
+        const stored = authoredProcessDataFromGraphDocument(store().rows.get(digest.id).data);
+        expect(stored.dataflowVersion).toBe(4);
         expect(JSON.stringify(digest).length).toBeLessThan(JSON.stringify(stored).length);
     });
 
@@ -349,8 +350,8 @@ describe('illegal wires never persist — the socket wall', () => {
             { roleId: 'fixture-role-operator', level: 'write' }
         ] };
         await call('update_process_definition', { definitionId: digest.id, data: multi });
-        const stored = store().rows.get(digest.id);
-        expect(stored.data.processNodes.make.access.grants).toEqual([{ roleId: 'role_admin', level: 'admin' }]);
+        const stored = authoredProcessDataFromGraphDocument(store().rows.get(digest.id).data);
+        expect(stored.processNodes.make.access.grants).toEqual([{ roleId: 'role_admin', level: 'admin' }]);
     });
 
     it('restructures an existing definition through the removal grammar', async () => {

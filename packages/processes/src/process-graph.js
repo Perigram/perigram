@@ -27,6 +27,9 @@ const NODE_RECORD_COLLECTIONS = Object.freeze({
  */
 export function createProcessGraphDocument(definition = {}, options = {}) {
   const source = definition.data || definition;
+  if (source?.format === GRAPH_DOCUMENT_FORMAT) {
+    return assertValidGraphDocument({ ...source, ...options });
+  }
   const authoredGraph = normalizeGraph(source.graph || {});
   const sourceDataForRevision = cloneJson(Object.fromEntries(
     Object.entries(source).filter(([key]) => key !== 'graph')
@@ -120,6 +123,64 @@ export function createProcessGraphDocument(definition = {}, options = {}) {
   });
 }
 
+
+/**
+ * Project a canonical process graph back into the authored process domain
+ * consumed by the compiler, validator, and designer. Records that live on
+ * node configuration during canonical storage are restored to their keyed
+ * collections; process-wide records come from graph metadata.
+ */
+export function authoredProcessDataFromGraphDocument(graphSource) {
+  const graph = assertValidGraphDocument(graphSource);
+  const metadata = graph.metadata?.[PROCESS_GRAPH_METADATA_KEY];
+  if (!metadata) return null;
+  const data = cloneJson(metadata.sourceData || {});
+  data.schemaVersion = Number(metadata.schemaVersion || 1);
+  data.dataflowVersion = Number(metadata.dataflowVersion || PROCESS_DATAFLOW_VERSION);
+  for (const [type, collection] of Object.entries(NODE_RECORD_COLLECTIONS)) {
+    if (!data[collection]) data[collection] = {};
+  }
+  const nodes = graph.nodes.map(node => {
+    const operationId = String(node.operation?.id || '');
+    const type = operationId.startsWith('canvas-node.')
+      ? operationId.slice('canvas-node.'.length)
+      : 'processNode';
+    const config = node.config || {};
+    const refId = String(config.refId || config.data?.refId || node.id);
+    const collection = NODE_RECORD_COLLECTIONS[type];
+    if (collection && config.record) data[collection][refId] = cloneJson(config.record);
+    return {
+      id: node.id,
+      type,
+      position: { x: Number(node.position?.x || 0), y: Number(node.position?.y || 0) },
+      data: { ...cloneJson(config.data || {}), ...(collection ? { refId } : {}) }
+    };
+  });
+  const edges = graph.edges.map(edge => {
+    const annotation = edge.metadata || {};
+    const declaration = annotation.syntheticDeclarationPorts === true
+      || edge.source.port === '$declaration'
+      || edge.target.port === '$declaration';
+    const role = declaration ? (annotation.originalRole || 'type') : (edge.kind !== 'data' ? edge.kind : undefined);
+    return {
+      id: edge.id,
+      source: edge.source.node,
+      target: edge.target.node,
+      ...(!declaration && edge.source.port ? { sourceHandle: edge.source.port } : {}),
+      ...(!declaration && edge.target.port ? { targetHandle: edge.target.port } : {}),
+      ...(annotation.type ? { type: annotation.type } : {}),
+      ...(role ? { role } : {}),
+      ...(annotation.label ? { label: annotation.label } : {}),
+      ...(annotation.data && typeof annotation.data === 'object' ? { data: cloneJson(annotation.data) } : {})
+    };
+  });
+  data.graph = {
+    nodes,
+    edges,
+    viewport: cloneJson(metadata.viewport || { x: 0, y: 0, zoom: 1 })
+  };
+  return data;
+}
 
 function requiredKind(record, refId) {
   const kind = String(record?.kind || '');

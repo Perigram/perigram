@@ -1,5 +1,6 @@
 import { createError } from 'h3';
 import {
+  authoredProcessDataFromGraphDocument,
   normalizeProcessDefinition,
   migrateProducerOutputIdentities,
   PROCESS_DATAFLOW_VERSION,
@@ -21,6 +22,7 @@ import { CLASS_COLLECTIONS, createTypeRegistry, declarationsFromCtsRecords, orie
 const DRAFT_OVERLAY_ORG = 'draft-overlay';
 
 export function declarationOverlayDomain(data = {}, domain = {}, { report = null } = {}) {
+  data = authoredProcessData(data);
   // Transition-node-declared target statuses ride the process records:
   // the overlay must know them or a draft binding check would refuse the
   // very target the transition node authors.
@@ -166,6 +168,7 @@ function capabilityBindings(domain = {}) {
 }
 
 export function validateActivatableProcess(data = {}, domain = {}, roles = {}) {
+  data = authoredProcessData(data);
   const accepted = acceptGraphProtocol(data, domain);
   const overlaid = overlaidDomainFor(data, domain);
   const capabilities = capabilityBindings(overlaid);
@@ -195,6 +198,7 @@ export function validateActivatableProcess(data = {}, domain = {}, roles = {}) {
 }
 
 export function assertCurrentProcessDefinition(data = {}) {
+  data = authoredProcessData(data);
   if (Number(data.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
     throw createError({
       statusCode: 409,
@@ -204,6 +208,7 @@ export function assertCurrentProcessDefinition(data = {}) {
 }
 
 export function currentProcessDefinition(data = {}, domain = {}) {
+  data = authoredProcessData(data);
   assertCurrentProcessDefinition(data);
   const accepted = acceptGraphProtocol(data, domain);
   const migration = migrateProducerOutputIdentities(accepted, overlaidDomainFor(data, domain));
@@ -215,6 +220,12 @@ export function currentProcessDefinition(data = {}, domain = {}) {
     });
   }
   return migration.data;
+}
+
+export function authoredProcessData(data = {}) {
+  return data?.format === 'perigram.graph'
+    ? (authoredProcessDataFromGraphDocument(data) || data)
+    : data;
 }
 
 // Additive activation (feature README "Activation"): merge the active
@@ -230,7 +241,7 @@ const MERGE_KEYED = [
 ];
 
 export function mergeActiveDefinitions(datas = []) {
-  const list = datas.filter(Boolean);
+  const list = datas.filter(Boolean).map(authoredProcessData);
   if (!list.length) return null;
   if (list.length === 1) return list[0];
   const merged = { ...list[0] };
