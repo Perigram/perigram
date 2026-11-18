@@ -199,6 +199,80 @@ describe('graph execution service', () => {
     mocks.retractBakedFile.mockResolvedValue({ success: true });
   });
 
+  it('persists a successful managed server preview with provider and invocation provenance', async () => {
+    mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
+    mocks.resolveInstalledGraphNodeDefinition.mockResolvedValue({
+      provider: 'plugin.documents',
+      id: 'document.compose',
+      version: '3',
+      execution: { kind: 'pure', targets: ['server'], capabilities: [] },
+      inputs: [{ id: 'source', required: true }],
+      outputs: [{ id: 'document', required: true }],
+      packagePin: { pluginId: 'documents', version: '31', runtimeId: 'documents-shared', operationId: 'document.compose' }
+    });
+    const executeManagedNode = vi.fn(async (_definition, invocation) => ({
+      document: { kind: 'document', source: invocation.inputs.source }
+    }));
+
+    const result = await graphExecutionsService.evaluateAndRecordSavedGraphPreview({
+      graphDocumentInstanceId: 'graph-instance-1',
+      inputBindings: { source: { type: 'text-document', id: 'source-file' } },
+      executeManagedNode
+    }, auth);
+
+    expect(result.execution).toMatchObject({
+      profile: 'procedural-preview',
+      status: 'succeeded',
+      graph: { id: 'graph.document', revision: 'rev-01' },
+      outputs: { document: { kind: 'document', source: { type: 'text-document', id: 'source-file' } } },
+      provenance: {
+        providers: [{ pluginId: 'documents', version: '31', runtimeId: 'documents-shared', operations: ['document.compose'] }],
+        nodes: [expect.objectContaining({ nodeId: 'format-1', status: 'succeeded' })]
+      }
+    });
+    expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
+      fields: expect.objectContaining({
+        profile: 'procedural-preview',
+        status: 'succeeded',
+        graphId: 'graph.document',
+        graphRevision: 'rev-01'
+      })
+    }), 'user-1', 'org-1');
+  });
+
+  it('persists failed server previews with evaluator diagnostics', async () => {
+    mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
+    mocks.resolveInstalledGraphNodeDefinition.mockResolvedValue({
+      provider: 'plugin.documents',
+      id: 'document.compose',
+      version: '3',
+      execution: { kind: 'pure', targets: ['server'], capabilities: [] },
+      inputs: [{ id: 'source', required: true }],
+      outputs: [{ id: 'document', required: true }],
+      packagePin: { pluginId: 'documents', version: '31', runtimeId: 'documents-shared', operationId: 'document.compose' }
+    });
+
+    const result = await graphExecutionsService.evaluateAndRecordSavedGraphPreview({
+      graphDocumentInstanceId: 'graph-instance-1',
+      inputBindings: { source: { type: 'text-document', id: 'source-file' } },
+      executeManagedNode: vi.fn(async () => { throw new Error('managed operation failed'); })
+    }, auth);
+
+    expect(result.execution).toMatchObject({
+      profile: 'procedural-preview',
+      status: 'failed',
+      outputs: {},
+      diagnostics: [expect.objectContaining({
+        phase: 'execute',
+        nodeId: 'format-1',
+        message: 'managed operation failed'
+      })]
+    });
+    expect(executionService.create).toHaveBeenCalledWith(expect.objectContaining({
+      fields: expect.objectContaining({ status: 'failed' })
+    }), 'user-1', 'org-1');
+  });
+
   it('evaluates a saved graph through server-declared provider handlers', async () => {
     mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
     const definition = {
