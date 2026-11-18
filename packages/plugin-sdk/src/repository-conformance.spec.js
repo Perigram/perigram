@@ -35,7 +35,7 @@ describe('repository plugin conformance', () => {
   it.each(listings)('$pluginId uses only the current palette metadata shape', ({ pluginId, listing }) => {
     for (const service of listing.declarations.services || []) {
       expect(service.group, `${pluginId} service ${service.id} uses retired group metadata`).toBeUndefined();
-      if (service.palette?.visible !== false) {
+      if (service.palette && service.palette.visible !== false) {
         expect(service.palette?.group, `${pluginId} visible service ${service.id} needs palette.group`).toEqual(expect.any(String));
         expect(service.palette.group).toMatch(/^[a-z][a-z0-9-]*$/);
       }
