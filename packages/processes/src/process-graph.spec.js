@@ -9,7 +9,6 @@ import {
   PROCESS_GRAPH_METADATA_KEY,
   PROCESS_GRAPH_PROVIDER
 } from './process-graph.js';
-import { normalizeGraph } from './graph-normalization.js';
 
 const definition = () => ({
   id: 'order-flow',
@@ -60,7 +59,7 @@ describe('canonical process graph migration bridge', () => {
     expect(restored.ctsTypes).toEqual(source.ctsTypes);
     expect(restored.roleGrants).toEqual(source.roleGrants);
     expect(restored.screens).toEqual(source.screens);
-    expect(restored.graph).toEqual(normalizeGraph(source.graph));
+    expect(restored.graph).toEqual(source.graph);
     expect(graph.metadata[PROCESS_GRAPH_METADATA_KEY].dataflowVersion).toBe(4);
   });
 
