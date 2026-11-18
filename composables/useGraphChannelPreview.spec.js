@@ -170,6 +170,23 @@ describe('preview evaluation lifecycle', () => {
     expect(channel.running.value).toBe(false);
   });
 
+  it('invalidates an in-flight evaluation as soon as a newer active preview is scheduled', async () => {
+    vi.useFakeTimers();
+    try {
+      let resolvePreview;
+      const channel = composable(() => new Promise(resolve => { resolvePreview = resolve; }));
+      const running = channel.run();
+      channel.schedule(true, { debounceMs: 100 });
+      resolvePreview(evaluation());
+      await running;
+      expect(channel.payload.value).toBe(null);
+      expect(channel.running.value).toBe(false);
+      channel.schedule(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('invalidates an in-flight evaluation when the preview tab becomes inactive', async () => {
     let resolvePreview;
     const channel = composable(() => new Promise(resolve => { resolvePreview = resolve; }));

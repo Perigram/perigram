@@ -81,11 +81,9 @@ export function useGraphChannelPreview({ persistence, serializeProcess, clientEn
       clearTimeout(timer);
       timer = null;
     }
-    if (!active) {
-      runToken += 1;
-      running.value = false;
-      return;
-    }
+    runToken += 1;
+    running.value = false;
+    if (!active) return;
     timer = setTimeout(() => {
       timer = null;
       run();
