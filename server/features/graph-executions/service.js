@@ -116,6 +116,7 @@ export async function evaluateSavedGraph({
     definition
   ]));
   const providerPins = new Map();
+  const nodeInvocations = [];
   const resolveNodeDefinition = async operation => {
     const key = `${operation.provider}/${operation.id}@${operation.version}`;
     if (operation.provider === CORE_DATA_PROVIDER) {
@@ -157,6 +158,7 @@ export async function evaluateSavedGraph({
     context: {
       ...context,
       executionId,
+      nodeInvocations,
       data: {
         ...(context.data || {}),
         queryInstances: query => queryOrganizationData(query, auth)
@@ -169,7 +171,8 @@ export async function evaluateSavedGraph({
     ...source,
     ...result,
     executionId,
-    providerPins: [...providerPins.values()]
+    providerPins: [...providerPins.values()],
+    nodeInvocations
   };
 }
 
