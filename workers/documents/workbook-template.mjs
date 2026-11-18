@@ -27,8 +27,12 @@ function cellText(cell) {
   return String(cell?.w ?? cell?.v ?? '').trim();
 }
 
-function applyToCell(cell, scope) {
-  if (cell.f) return;
+function applyToCell(cell, scope, rowDelta = 0) {
+  if (cell.f) {
+    if (rowDelta) cell.f = shiftFormulaRows(cell.f, rowDelta);
+    delete cell.w;
+    return;
+  }
   if (typeof cell.v !== 'string' || !TOKEN.test(cell.v)) return;
   TOKEN.lastIndex = 0;
   cell.v = substitute(cell.v, scope);
@@ -36,8 +40,71 @@ function applyToCell(cell, scope) {
   delete cell.h;
 }
 
+// Translate relative row references when a template row moves. Quoted
+// formula strings and structured-reference brackets are copied verbatim;
+// absolute row references ($A$3) remain fixed.
+function shiftFormulaRows(formula, rowDelta) {
+  const source = String(formula || '');
+  if (!rowDelta || !source) return source;
+  let output = '';
+  let index = 0;
+  while (index < source.length) {
+    const character = source[index];
+    if (character === '"' || character === "'") {
+      const quote = character;
+      output += character;
+      index += 1;
+      while (index < source.length) {
+        output += source[index];
+        if (source[index] === quote) {
+          if (source[index + 1] === quote) {
+            output += source[index + 1];
+            index += 2;
+            continue;
+          }
+          index += 1;
+          break;
+        }
+        index += 1;
+      }
+      continue;
+    }
+    if (character === '[') {
+      const end = source.indexOf(']', index);
+      if (end < 0) {
+        output += source.slice(index);
+        break;
+      }
+      output += source.slice(index, end + 1);
+      index = end + 1;
+      continue;
+    }
+    const previous = source[index - 1] || '';
+    const boundaryBefore = !/[A-Za-z0-9_.]/.test(previous);
+    if (boundaryBefore) {
+      const match = source.slice(index).match(/^(\$?)([A-Z]{1,3})(\$?)(\d+)/i);
+      if (match) {
+        const end = index + match[0].length;
+        const next = source[end] || '';
+        const column = match[2].toUpperCase().split('').reduce((value, letter) => value * 26 + letter.charCodeAt(0) - 64, 0);
+        if (!/[A-Za-z0-9_.!(]/.test(next) && column <= 16384) {
+          const row = Number(match[4]);
+          const shifted = match[3] || rowDelta === 0 ? row : Math.max(1, row + rowDelta);
+          output += `${match[1]}${match[2]}${match[3]}${shifted}`;
+          index = end;
+          continue;
+        }
+      }
+    }
+    output += character;
+    index += 1;
+  }
+  return output;
+}
+
 function fillWorksheet(sheet, values) {
   const range = XLSX.utils.decode_range(sheet['!ref']);
+  const originalRowMetadata = Array.isArray(sheet['!rows']) ? sheet['!rows'] : null;
   const rowEntries = [];
   for (let r = range.s.r; r <= range.e.r; r += 1) {
     const cells = [];
@@ -102,8 +169,8 @@ function fillWorksheet(sheet, values) {
     const targetRow = range.s.r + position;
     newRowsByOld.get(entry.row.r).push(targetRow);
     for (const { c, cell } of entry.row.cells) {
-      const cellObject = entry.scope ? structuredClone(cell) : cell;
-      applyToCell(cellObject, entry.scope || values);
+      const cellObject = entry.scope || cell.f ? structuredClone(cell) : cell;
+      applyToCell(cellObject, entry.scope || values, targetRow - entry.row.r);
       sheet[XLSX.utils.encode_cell({ r: targetRow, c })] = cellObject;
     }
   });
@@ -111,24 +178,35 @@ function fillWorksheet(sheet, values) {
   if (Array.isArray(sheet['!merges'])) {
     const kept = [];
     for (const merge of sheet['!merges']) {
-      const targetRows = [];
-      for (let r = merge.s.r; r <= merge.e.r; r += 1) targetRows.push(...(newRowsByOld.get(r) || []));
-      if (!targetRows.length || new Set(targetRows).size !== targetRows.length) continue;
-      const sorted = [...new Set(targetRows)].sort((a, b) => a - b);
-      if (sorted.some((row, i) => i && row - sorted[i - 1] !== 1)) continue;
-      kept.push({ s: { ...merge.s, r: sorted[0] }, e: { ...merge.e, r: sorted[sorted.length - 1] } });
+      const mappings = [];
+      for (let row = merge.s.r; row <= merge.e.r; row += 1) {
+        const targets = newRowsByOld.get(row) || [];
+        if (!targets.length) {
+          mappings.length = 0;
+          break;
+        }
+        mappings.push(targets);
+      }
+      if (!mappings.length) continue;
+      const copies = Math.max(...mappings.map(targets => targets.length));
+      for (let copy = 0; copy < copies; copy += 1) {
+        const targetRows = mappings.map(targets => targets[copy] ?? (targets.length === 1 ? targets[0] : null));
+        if (targetRows.some(row => row == null)) continue;
+        const sorted = [...new Set(targetRows)].sort((a, b) => a - b);
+        if (sorted.length !== targetRows.length || sorted.some((row, index) => index && row - sorted[index - 1] !== 1)) continue;
+        kept.push({ s: { ...merge.s, r: sorted[0] }, e: { ...merge.e, r: sorted[sorted.length - 1] } });
+      }
     }
     sheet['!merges'] = kept;
   }
 
-  if (Array.isArray(sheet['!rows'])) {
-    const heights = new Map();
+  if (originalRowMetadata) {
+    const rows = [];
     outRows.forEach((entry, position) => {
-      const height = sheet['!rows'][entry.row.r];
-      if (height && height.hpx !== undefined) heights.set(position, { hpx: height.hpx });
+      const metadata = originalRowMetadata[entry.row.r];
+      if (metadata) rows[range.s.r + position] = structuredClone(metadata);
     });
-    sheet['!rows'] = [];
-    for (const [position, height] of heights) sheet['!rows'][range.s.r + position] = height;
+    sheet['!rows'] = rows;
   }
 
   sheet['!ref'] = XLSX.utils.encode_range({
