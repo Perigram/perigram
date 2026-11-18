@@ -103,10 +103,10 @@ provider discovery → typed authoring → preview → file export → Bake.
   token metadata; these passed in the successful staging CI run at
   `c57487d`. Added SSR component coverage for metadata-to-form wiring in the
   legacy HAG dialog and graph inspector, plus the JSON-array draft contract.
-  The current staging CI run has passed Vitest, SSR, architecture, framework,
-  documentation, and plugin-dependency checks. The saved Markdown graph-file
-  E2E now also asserts the persisted Bake execution record and source-execution
-  provenance. Remaining: template graph fill preview/Bake/reopen parity and
+  Full Vitest, SSR, architecture, framework, documentation, and plugin-
+  dependency checks passed on staging commit `37b8e8f`. The subsequent
+  Markdown graph-file E2E provenance assertion and this TODO reconciliation
+  are newer and await their own CI run. Remaining: template graph fill preview/Bake/reopen parity and
   its persisted provenance. PDF graph exposure remains gated on managed
   server graph execution; DOCX stays out of scope until separately approved.
 
