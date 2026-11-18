@@ -59,7 +59,7 @@ export function createProcessProceduralNodeResolver({ catalogContext = {} } = {}
       : catalogContext;
     return createProcessProceduralNodeDefinition(
       operation.id,
-      invocation.config || {},
+      invocation.config?.record || invocation.config || {},
       resolvedContext || {}
     );
   };
