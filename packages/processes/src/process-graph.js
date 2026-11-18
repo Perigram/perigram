@@ -126,68 +126,6 @@ export function processDefinitionToGraphDocument(definition = {}, options = {}) 
   });
 }
 
-/** Reconstruct the unchanged persisted process-definition shape at its boundary. */
-export function graphDocumentToProcessDefinition(graphSource) {
-  const graph = assertValidGraphDocument(graphSource);
-  const metadata = graph.metadata?.[PROCESS_GRAPH_METADATA_KEY];
-  if (!metadata || !metadata.sourceData) {
-    throw new Error('Graph document does not contain Perigram process-definition metadata');
-  }
-  const reconstructedRecords = Object.fromEntries(
-    [...new Set(Object.values(NODE_RECORD_COLLECTIONS))].map(collection => [
-      collection,
-      cloneJson(metadata.sourceData[collection] || {})
-    ])
-  );
-  const nodes = graph.nodes.map(node => {
-    const refId = String(node.config?.refId || node.id);
-    const type = node.operation.provider === PROCESS_GRAPH_PROVIDER && !node.operation.id.startsWith('canvas-node.')
-      ? 'processNode'
-      : node.operation.id.replace(/^canvas-node\./, '');
-    const collection = NODE_RECORD_COLLECTIONS[type];
-    if (collection) {
-      const record = node.config?.record || (
-        node.operation.provider === PROCESS_GRAPH_PROVIDER && !node.operation.id.startsWith('canvas-node.')
-          ? { ...cloneJson(node.config || {}), id: refId, kind: node.operation.id }
-          : null
-      );
-      if (record) reconstructedRecords[collection][refId] = cloneJson(record);
-    }
-    return {
-      id: node.id,
-      type,
-      position: { ...(node.position || { x: 0, y: 0 }) },
-      data: cloneJson(node.config?.data || {})
-    };
-  });
-  const edges = graph.edges.map(edge => {
-    const annotation = edge.metadata || {};
-    return {
-      id: edge.id,
-      source: edge.source.node,
-      ...(!annotation.syntheticDeclarationPorts ? { sourceHandle: edge.source.port } : {}),
-      target: edge.target.node,
-      ...(!annotation.syntheticDeclarationPorts ? { targetHandle: edge.target.port } : {}),
-      ...(annotation.type ? { type: annotation.type } : {}),
-      ...(annotation.syntheticDeclarationPorts
-        ? (annotation.originalRole ? { role: annotation.originalRole } : {})
-        : (edge.kind && edge.kind !== 'data' ? { role: edge.kind } : {})),
-      ...(annotation.label ? { label: annotation.label } : {}),
-      data: cloneJson(annotation.data || {})
-    };
-  });
-  return {
-    ...cloneJson(metadata.sourceData),
-    ...reconstructedRecords,
-    schemaVersion: metadata.schemaVersion || 1,
-    dataflowVersion: metadata.dataflowVersion || PROCESS_DATAFLOW_VERSION,
-    graph: {
-      nodes,
-      edges,
-      viewport: cloneJson(metadata.viewport || { x: 0, y: 0, zoom: 1 })
-    }
-  };
-}
 
 function requiredKind(record, refId) {
   const kind = String(record?.kind || '');
