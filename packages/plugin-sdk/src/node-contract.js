@@ -4,6 +4,36 @@ const SHAPES = new Set(['item', 'list', 'tree', 'map', 'tuple', 'stream']);
 export const NODE_EXECUTION_KINDS = Object.freeze(['pure', 'read', 'stateful', 'proposal', 'commit', 'effect', 'control']);
 const EXECUTION_KINDS = new Set(NODE_EXECUTION_KINDS);
 
+
+// Provider-owned compatibility profiles extend the shared port contract without
+// teaching the graph engine domain-specific socket vocabularies.
+export function createPortCompatibilityRegistry() {
+  const profiles = new Map();
+  return Object.freeze({
+    register(id, compare) {
+      const key = String(id || '').trim();
+      if (!/^[a-z0-9][a-z0-9._-]{0,127}$/.test(key)) throw new Error('Port compatibility profile requires a stable id');
+      if (typeof compare !== 'function') throw new TypeError('Port compatibility profile requires a comparator');
+      if (profiles.has(key)) throw new Error(`Port compatibility profile already registered: ${key}`);
+      profiles.set(key, compare);
+      return () => profiles.delete(key);
+    },
+    compare(source, target) {
+      const sourceProfile = source?.compatibility?.profile || '';
+      const targetProfile = target?.compatibility?.profile || '';
+      if (sourceProfile && targetProfile && sourceProfile !== targetProfile) {
+        return { status: 'incompatible', compatible: false, reason: 'Port compatibility profiles do not match', conversions: [] };
+      }
+      const profile = sourceProfile || targetProfile;
+      const comparator = profile ? profiles.get(profile) : null;
+      if (profile && !comparator) {
+        return { status: 'incompatible', compatible: false, reason: `Unknown port compatibility profile: ${profile}`, conversions: [] };
+      }
+      return comparator ? comparator(source, target) : compareNodePorts(source, target);
+    }
+  });
+}
+
 export function normalizeNodeDefinition(source = {}) {
   validateNodeDefinition(source);
   const normalizePort = port => ({
