@@ -28,7 +28,9 @@ const BUILTIN_LISTING_PATHS = [
 const paths = process.argv.slice(2).length ? process.argv.slice(2) : BUILTIN_LISTING_PATHS;
 
 // Build the portable browser/server artifact before collecting package assets.
-await buildDocumentsRuntime();
+if (paths.some(path => resolve(path) === resolve('workers/documents/listing.json'))) {
+  await buildDocumentsRuntime();
+}
 
 // Prepare and validate the complete release set before the first database
 // write. In particular, a missing runtime source must not leave the catalog
