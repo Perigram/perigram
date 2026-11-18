@@ -9,10 +9,10 @@ import {
   transitionProcessStep
 } from './orchestration.js';
 import { isMissingField } from './missing-field.js';
-import { processDefinitionToGraphDocument } from './process-graph.js';
+import { createProcessGraphDocument } from './process-graph.js';
 
 function process(records, nodes, edges) {
-  return processDefinitionToGraphDocument({
+  return createProcessGraphDocument({
     id: 'definition',
     dataflowVersion: 4,
     processNodes: Object.fromEntries(records.map(record => [record.id, record])),
@@ -1238,7 +1238,7 @@ describe('durable process orchestration', () => {
         viewport: { x: 5, y: 6, zoom: 1.25 }
       }
     };
-    const graph = processDefinitionToGraphDocument(definition);
+    const graph = createProcessGraphDocument(definition);
     expect(graph.nodes.find(node => node.id === 'source').config.record).toEqual({ id: 'source-ref', path: 'name' });
     expect(graph.metadata['perigram.process-definition'].sourceData.valueInputs).toEqual({
       orphan: { id: 'orphan', path: 'unused' }
