@@ -13,7 +13,8 @@ export function useGraphChannelPreview({
   serializeProcess,
   clientEngines = null,
   clientRuntimes = null,
-  loadModule = undefined
+  loadModule = undefined,
+  createPluginRuntime = usePluginRuntime
 }) {
   const payload = ref(null);
   const running = ref(false);
@@ -25,7 +26,7 @@ export function useGraphChannelPreview({
   const enginesHolder = ref([]);
   const runtimesHolder = ref([]);
   const loader = useClientEngines(loadModule === undefined ? { engines: enginesHolder } : { engines: enginesHolder, loadModule });
-  const pluginRuntime = usePluginRuntime({
+  const pluginRuntime = createPluginRuntime({
     invokeCapability: ({ binding, runtime, operationId, name, input, signal }) => $fetch(
       `/api/organizations/${encodeURIComponent(binding.organizationId)}/plugins/${encodeURIComponent(binding.pluginId)}/capability`,
       {
