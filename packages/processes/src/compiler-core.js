@@ -155,7 +155,6 @@ export {
   processTypesCompatible
 } from './types.js';
 export * from './data-tree.js';
-export { migrateProcessDefinitionV4 } from './migration-v4.js';
 export {
   PROCESS_NODE_CATALOG,
   PROCESS_NODE_FAMILIES,
