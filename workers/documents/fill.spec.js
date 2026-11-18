@@ -64,6 +64,15 @@ describe('markdown fill', () => {
 });
 
 describe('xlsx fill', () => {
+  it('exposes both scalar tokens and repeat-section names for HAG forms', () => {
+    const metadata = workbookTemplateMetadata(workbookBuffer([
+      ['{#items}', ''],
+      ['{name}', '{qty}'],
+      ['{/items}', '']
+    ]));
+    expect(metadata).toEqual({ tokens: ['name', 'qty'], sections: ['items'] });
+  });
+
   it('substitutes scalar tokens and repeats section rows per element', () => {
     const rows = rowsOf(fillWorkbook(workbookBuffer(TEMPLATE_ROWS), TEMPLATE_VALUES));
     expect(rows).toEqual([

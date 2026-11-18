@@ -7,7 +7,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { marked } from 'marked';
 import { substitute, fillMarkdown, templateTokenKeys } from './template-ir.mjs';
-import { fillWorkbook as fillWorkbookPortable, workbookTemplateTokens as workbookTemplateTokensPortable } from './workbook-template.mjs';
+import { fillWorkbook as fillWorkbookPortable, workbookTemplateTokens as workbookTemplateTokensPortable, workbookTemplateSections as workbookTemplateSectionsPortable, workbookTemplateMetadata as workbookTemplateMetadataPortable } from './workbook-template.mjs';
 export { substitute, fillMarkdown };
 
 const TOKEN = /\{([A-Za-z_][A-Za-z0-9_.-]*)\}/g;
@@ -25,6 +25,8 @@ function badRequest(message) {
 export const tokenKeysOf = templateTokenKeys;
 export const markdownTemplateTokens = text => templateTokenKeys(text);
 export const workbookTemplateTokens = workbookTemplateTokensPortable;
+export const workbookTemplateSections = workbookTemplateSectionsPortable;
+export const workbookTemplateMetadata = workbookTemplateMetadataPortable;
 
 export async function pdfTemplateTokens(buffer) {
   const pages = await pdfTextRuns(buffer);

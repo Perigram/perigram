@@ -225,15 +225,30 @@ function fillWorksheet(sheet, values) {
   });
 }
 
-export function workbookTemplateTokens(buffer) {
+export function workbookTemplateMetadata(buffer) {
   const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
   const workbook = XLSX.read(bytes, { type: 'array' });
   const values = [];
+  const sections = new Set();
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     for (const row of XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' })) {
-      for (const cell of row) values.push(cell);
+      for (const cell of row) {
+        values.push(cell);
+        if (typeof cell === 'string') {
+          const open = cell.match(SECTION_OPEN);
+          if (open) sections.add(open[1]);
+        }
+      }
     }
   }
-  return templateTokenKeys(...values);
+  return { tokens: templateTokenKeys(...values), sections: [...sections] };
+}
+
+export function workbookTemplateTokens(buffer) {
+  return workbookTemplateMetadata(buffer).tokens;
+}
+
+export function workbookTemplateSections(buffer) {
+  return workbookTemplateMetadata(buffer).sections;
 }

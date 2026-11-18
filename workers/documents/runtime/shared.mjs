@@ -2,7 +2,7 @@ import listing from '../listing.json' with { type: 'json' };
 import * as XLSX from '../assets/vendor/xlsx.mjs';
 import { parseMarkdown } from '../markdown-ir.mjs';
 import { fillMarkdown, templateTokenKeys } from '../template-ir.mjs';
-import { fillWorkbook, workbookTemplateTokens } from '../workbook-template.mjs';
+import { fillWorkbook, workbookTemplateMetadata } from '../workbook-template.mjs';
 import { composeReport, extractTable, renderReportHtml, renderDocumentHtml, exportMarkdown, composeDocument, appendDocumentBlock, createDocumentBlock, createInlineValue } from '../report-ir.mjs';
 
 export function createRuntime() {
@@ -192,10 +192,10 @@ function fillWorkbookFile(input = {}) {
   let binary;
   try { binary = atob(template.base64); } catch { throw new Error('The workbook template is not valid base64'); }
   const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
-  const tokens = workbookTemplateTokens(bytes);
+  const metadata = workbookTemplateMetadata(bytes);
   const filled = fillWorkbook(bytes, input.values || {});
   const requestedName = String(input.name || template.name || 'document').replace(/\.xlsx$/i, '');
-  return { ...binaryFilePayload(filled, XLSX_MIME, `${requestedName}.xlsx`), meta: { tokens } };
+  return { ...binaryFilePayload(filled, XLSX_MIME, `${requestedName}.xlsx`), meta: metadata };
 }
 
 function binaryFilePayload(bytes, mime, name) {
