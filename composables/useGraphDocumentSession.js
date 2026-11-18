@@ -53,7 +53,7 @@ export function createEmptyGraphDocument({ id = stableId('graph'), name = '' } =
   };
 }
 
-export function useGraphDocumentSession({ t, providers = [], definitions = [], nodeResolvers = [], compatibilityProfiles = [], executors = {}, graphDocuments = [], queryOrganizationData = null, finalizeExecution = null }) {
+export function useGraphDocumentSession({ t, providers = [], definitions = [], nodeResolvers = [], previewResolvers = [], compatibilityProfiles = [], executors = {}, graphDocuments = [], queryOrganizationData = null, finalizeExecution = null }) {
   const graphDocument = ref(createEmptyGraphDocument());
   const { nodes, edges } = createGraphAuthoringState();
   const validation = ref(null);
@@ -76,6 +76,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
   for (const registerProfile of compatibilityProfiles) registerProfile(portCompatibility);
   for (const definition of definitions) registry.register(definition);
   const providerResolvers = [...nodeResolvers].filter(resolver => typeof resolver === 'function');
+  const providerPreviewResolvers = [...(previewResolvers.length ? previewResolvers : nodeResolvers)].filter(resolver => typeof resolver === 'function');
   const providerExecutors = new Map(Object.entries(executors));
   const providerPreviewRenderers = new Map();
   const providerGeneration = ref(0);
@@ -584,7 +585,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
         graph,
         inputBindings: inputBindings.value,
         resolveNodeDefinition: (op, invocation) => {
-          for (const resolver of providerResolvers) {
+          for (const resolver of providerPreviewResolvers) {
             const resolved = resolver(op, invocation);
             if (resolved) return resolved;
           }
