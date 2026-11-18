@@ -267,6 +267,7 @@ describe('managed plugin runtime package loading', () => {
       } }
     });
     const definition = {
+      provider: 'plugin.demo',
       id: 'transform',
       version: '3',
       execution: { kind: 'pure' },
@@ -354,6 +355,7 @@ describe('managed plugin runtime package loading', () => {
     });
 
     await expect(executeManagedGraphNode({
+      provider: 'plugin.demo',
       id: 'transform',
       version: '3',
       execution: { kind: 'pure' },
@@ -368,6 +370,7 @@ describe('managed plugin runtime package loading', () => {
     const controller = new AbortController();
     controller.abort('cancelled');
     await expect(executeManagedGraphNode({
+      provider: 'plugin.demo',
       id: 'transform',
       version: '3',
       execution: { kind: 'pure' },
