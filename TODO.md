@@ -313,7 +313,7 @@ shared palette changes are designed once.
 
 - Documents and Facade endpoint hosts now expose only services declared with `mode: endpoint`. Managed operations are covered by their browser/server runtime test suites; duplicate managed implementations were removed from the endpoint service modules.
 - Documents endpoint dispatch derives from its listing. Facade's endpoint inventory remains `extract-geometry` and `nesting-parts`.
-- Remaining migration gates are concrete: Documents table projections and Facade `nesting-parts` need the provider-compatible synchronous projection boundary; Documents fill/PDF/Markdown operations and Facade DXF extraction need their runtime dependencies packaged as organization-owned assets.
+- Remaining migration gates are concrete: Documents table projections and Facade `nesting-parts` need the provider-compatible synchronous projection boundary; Documents fill/PDF operations and Facade DXF extraction need their runtime dependencies packaged as organization-owned assets; Markdown parse/export now uses a self-contained browser bundle and has a real Worker export smoke test.
 - The staging workflow has not produced jobs or a completed status for this batch; test verification remains open.
 
 ## Portable plugins and platform-managed execution (SPEC §20, owner direction 2026-11-16)
