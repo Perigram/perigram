@@ -1018,7 +1018,7 @@ function managedNodeAbortError(signal) {
 }
 
 async function waitForManagedNodeTask(run, { signal, timeoutMs = PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000 } = {}) {
-  const deadline = Date.now() + Math.max(1000, Number(timeoutMs) || PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000);
+  const deadline = Date.now() + Math.max(1, Number(timeoutMs) || PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000);
   while (true) {
     if (signal?.aborted) {
       await cancelTaskRun(run._id, 'Graph execution was cancelled').catch(() => {});
@@ -1126,16 +1126,28 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
     packagePin: pin
   };
   try {
+    const remainingExecutionMs = typeof invocation.context?.remainingExecutionMs === 'function'
+      ? invocation.context.remainingExecutionMs()
+      : invocation.context?.remainingExecutionMs;
+    if (Number.isFinite(remainingExecutionMs) && remainingExecutionMs <= 0) {
+      await cancelTaskRun(run._id, 'Graph execution deadline exceeded').catch(() => {});
+      const error = new Error('Server graph execution deadline exceeded');
+      error.name = 'TimeoutError';
+      error.code = 'GRAPH_EXECUTION_TIMEOUT';
+      throw error;
+    }
     const value = await waitForManagedNodeTask(run, {
       signal: invocation.context?.signal,
-      timeoutMs: invocation.context?.remainingExecutionMs || PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000
+      timeoutMs: Number.isFinite(remainingExecutionMs)
+        ? remainingExecutionMs
+        : PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000
     });
     invocation.context?.nodeInvocations?.push({ ...evidence, status: 'succeeded' });
     return value;
   } catch (error) {
     invocation.context?.nodeInvocations?.push({
       ...evidence,
-      status: error?.name === 'AbortError' ? 'cancelled' : 'failed',
+      status: error?.name === 'AbortError' ? 'cancelled' : error?.name === 'TimeoutError' ? 'timed-out' : 'failed',
       error: String(error?.message || error)
     });
     throw error;
