@@ -87,6 +87,15 @@ test('saved Documents graph renders its Markdown file through the Documents prev
   expect(srcdoc).toContain('Graph preview E2E');
   expect(srcdoc).toContain('Rendered by the installed Documents plugin.');
 
+  // The same evaluation envelope must retain intermediate node values,
+  // not only the selected graph output consumed by the Documents channel.
+  const nodeOutputs = page.locator('details').filter({ hasText: 'Node outputs' });
+  await nodeOutputs.locator('summary').click();
+  await expect(nodeOutputs.getByText('parse-markdown', { exact: true })).toBeVisible();
+  await expect(nodeOutputs.getByText('export-markdown-file', { exact: true })).toBeVisible();
+  await expect(nodeOutputs).toContainText('text.flow-document');
+  await expect(nodeOutputs).toContainText('text/markdown');
+
   expect(pageErrors, 'client errors while loading and rendering the Documents preview').toEqual([]);
   await app.expectCleanRuntime();
 });
