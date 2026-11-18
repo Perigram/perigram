@@ -102,7 +102,7 @@ export function createProcessProceduralNodeDefinition(kind, record = {}, catalog
  * and the current invocation context (for example, organization type
  * contracts), so dynamic sockets are checked at evaluation time.
  */
-export function createProcessProceduralNodeResolver({ catalogContext = {} } = {}) {
+export function createProcessGraphNodeResolver({ catalogContext = {} } = {}) {
   return (operation, invocation = {}) => {
     if (operation?.provider !== PROCESS_PROCEDURAL_PROVIDER
       || String(operation?.version) !== PROCESS_PROCEDURAL_VERSION) return null;
@@ -114,6 +114,16 @@ export function createProcessProceduralNodeResolver({ catalogContext = {} } = {}
       invocation.config?.record || invocation.config || {},
       resolvedContext || {}
     );
+  };
+}
+
+/** Resolver for the procedural evaluator: durable reads, effects and control
+ * operations are deliberately excluded from this execution profile. */
+export function createProcessProceduralNodeResolver(options = {}) {
+  const resolveGraphNode = createProcessGraphNodeResolver(options);
+  return (operation, invocation = {}) => {
+    const definition = resolveGraphNode(operation, invocation);
+    return definition?.execution.kind === 'pure' ? definition : null;
   };
 }
 
