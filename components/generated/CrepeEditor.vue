@@ -63,6 +63,7 @@ import ImageInsertDialog from './ImageInsertDialog.vue';
 import FileInsertDialog from './FileInsertDialog.vue';
 import { createInstanceRefPlugins, insertInstanceRef } from './instance-ref-node.js';
 import { createFileRefPlugins, insertFileRef } from './file-ref-node.js';
+import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 
 defineOptions({ inheritAttrs: false });
 
@@ -251,7 +252,18 @@ function applyImage(src) {
 function applyFile(file) {
   withView(view => {
     restoreRange(view, pendingRange);
-    insertFileRef(view, file);
+    if (file?.typeId && file?.instanceId) {
+      insertInstanceRef(view, {
+        type: file.typeId,
+        id: file.instanceId,
+        label: file.entity?.name || file.name
+      });
+      if (file.entity) {
+        openWorkspacePageFromChrome({ pageId: 'graph-editor', typeId: file.typeId, entity: file.entity });
+      }
+    } else {
+      insertFileRef(view, file);
+    }
   });
   pendingRange = null;
   focus();

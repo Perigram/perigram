@@ -959,12 +959,6 @@ const documentDockItems = computed(() => [
     onClick: applyProcess,
     disabled: !draft.value?._id || applyBusy.value || creatingDraft.value,
     loading: applyState.value === 'applying'
-  },
-  { separator: true },
-  {
-    icon: 'pi pi-share-alt',
-    label: t('processDesigner.graphsTitle'),
-    onClick: () => navigateTo('/organization/graphs')
   }
 ]);
 // Lanes — the authorization surface, canonical in

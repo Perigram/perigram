@@ -1,5 +1,17 @@
 import { test, expect } from './fixtures.js';
 
+async function openGraphEditor(app, entity) {
+  await app.gotoClient('/');
+  await app.page.locator('[data-home-workspace]').first().waitFor({ state: 'visible' });
+  await app.page.evaluate(graphEntity => {
+    window.dispatchEvent(new CustomEvent('perigram:open-workspace-page', {
+      detail: { pageId: 'graph-editor', typeId: 'graph-document', entity: graphEntity },
+      cancelable: true
+    }));
+  }, entity);
+  await app.page.locator('.process-designer-canvas').first().waitFor({ state: 'visible' });
+}
+
 // Exercise the installed Documents provider, saved graph-document workspace,
 // graph evaluation, and the real provider-declared preview channel together.
 // The graph is created through the same first-save API the editor uses; the
@@ -70,16 +82,15 @@ test('saved Documents graph renders its Markdown file through the Documents prev
   const destinationPage = await destinationResponse.json();
 
   const created = await app.request.post('/api/instances/graph-document/editor', {
-    data: { name: graph.name, graph }
+    data: { name: graph.name, payload: JSON.stringify(graph) }
   });
   expect(created.ok(), await created.text()).toBe(true);
+  const createdEntity = await created.json();
 
   const { page } = app;
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
-  await app.gotoClient('/organization/graphs');
-  await page.getByRole('option', { name: graph.name }).click();
-  await expect(page.locator('.process-designer-canvas').first()).toBeVisible({ timeout: 30_000 });
+  await openGraphEditor(app, createdEntity);
 
   // Open the support rail from the canvas status affordance.
   await page.locator('[data-canvas-status]').click();
@@ -193,15 +204,14 @@ test('typed Documents blocks preview and Bake Markdown and HTML files with prove
   const destinationResponse = await app.request.post('/api/pages', { data: { name: pageName } });
   expect(destinationResponse.ok(), await destinationResponse.text()).toBe(true);
   const destinationPage = await destinationResponse.json();
-  const created = await app.request.post('/api/instances/graph-document/editor', { data: { name: graph.name, graph } });
+  const created = await app.request.post('/api/instances/graph-document/editor', { data: { name: graph.name, payload: JSON.stringify(graph) } });
   expect(created.ok(), await created.text()).toBe(true);
+  const createdEntity = await created.json();
 
   const { page } = app;
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
-  await app.gotoClient('/organization/graphs');
-  await page.getByRole('option', { name: graph.name }).click();
-  await expect(page.locator('.process-designer-canvas').first()).toBeVisible({ timeout: 30_000 });
+  await openGraphEditor(app, createdEntity);
   await page.locator('[data-canvas-status]').click();
   const bodyInput = page.getByRole('textbox', { name: 'Body' });
   await expect(bodyInput).toBeVisible({ timeout: 15_000 });
@@ -284,11 +294,10 @@ test('the graph palette searches installed Documents operations and places a typ
     nodes: [],
     edges: []
   };
-  const created = await app.request.post('/api/instances/graph-document/editor', { data: { name: graph.name, graph } });
+  const created = await app.request.post('/api/instances/graph-document/editor', { data: { name: graph.name, payload: JSON.stringify(graph) } });
   expect(created.ok(), await created.text()).toBe(true);
-  await app.gotoClient('/organization/graphs');
-  await app.page.getByRole('option', { name: graph.name }).click();
-  await expect(app.page.locator('.process-designer-canvas').first()).toBeVisible({ timeout: 30_000 });
+  const createdEntity = await created.json();
+  await openGraphEditor(app, createdEntity);
 
   await app.page.getByRole('button', { name: 'Document blocks', exact: true }).click();
   const search = app.page.getByRole('searchbox', { name: 'Search nodes' });

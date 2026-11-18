@@ -148,10 +148,23 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
     },
     save: async (text, filename) => {
       if (!instanceId) {
-        const created = await runBlankFileConstruct(typeId);
+        // The blank editor's first save creates the instance and its first
+        // payload through the one generic editor-create boundary. The type
+        // declaration owns mime/size validation; graph documents validate
+        // their canonical graph server-side.
+        const name = String(record.name || '').trim()
+          || String(filename || '').replace(/\.[^.]+$/, '')
+          || typeId;
+        const created = await $fetch(`/api/instances/${encodeURIComponent(typeId)}/editor`, {
+          method: 'POST',
+          body: { name, payload: text }
+        });
         instanceId = String(created._id || created.id || '');
         if (!instanceId) throw new Error(`${typeId} creation returned no instance`);
+        record.name = created.name || name;
+        record.payload = created.payload || null;
         notify(created, 'payload-create');
+        return created;
       }
       const form = new FormData();
       form.append('file', new File([text], filename, { type: mimeType }));

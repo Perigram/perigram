@@ -36,6 +36,16 @@
           @click="applyUrl"
         />
       </div>
+      <div class="border-t border-surface pt-3">
+        <Button
+          :label="t('processDesigner.newGraph')"
+          icon="pi pi-share-alt"
+          severity="secondary"
+          size="small"
+          :loading="creating"
+          @click="createGraph"
+        />
+      </div>
       <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
     </div>
   </StandardDialog>
@@ -49,6 +59,7 @@ import FileUpload from 'primevue/fileupload';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { mintId } from '~/utils/processDesignerIdentity.js';
 
 // The file entry's source chooser (SPEC §26): a stored upload or an
 // address, both landing at the caret as the shared file chip.
@@ -60,12 +71,14 @@ const emit = defineEmits(['close', 'insert']);
 const { t } = useI18n();
 const url = ref('');
 const uploading = ref(false);
+const creating = ref(false);
 const errorMessage = ref('');
 
 watch(() => props.visible, visible => {
   if (!visible) return;
   url.value = '';
   errorMessage.value = '';
+  creating.value = false;
 });
 
 function applyUrl() {
@@ -96,6 +109,42 @@ async function upload(event = {}) {
     errorMessage.value = error?.data?.message || error?.message || t('errors.uploadFailed');
   } finally {
     uploading.value = false;
+  }
+}
+
+async function createGraph() {
+  errorMessage.value = '';
+  creating.value = true;
+  try {
+    const name = t('processDesigner.newGraph');
+    const graph = {
+      format: 'perigram.graph',
+      version: 1,
+      id: mintId('graph').replaceAll('_', '-'),
+      revision: mintId('rev').replaceAll('_', '-'),
+      name,
+      interface: { inputs: [], outputs: [] },
+      nodes: [],
+      edges: []
+    };
+    const created = await $fetch('/api/instances/graph-document/editor', {
+      method: 'POST',
+      body: { name, payload: JSON.stringify(graph) }
+    });
+    emit('insert', {
+      href: `/api/files/download/${encodeURIComponent(created.payload.fileId)}?bucket=files`,
+      name: `${created.name || name}.json`,
+      mimeType: 'application/json',
+      size: created.payload?.size || 0,
+      typeId: 'graph-document',
+      instanceId: String(created._id || created.id || ''),
+      entity: created
+    });
+    emit('close');
+  } catch (error) {
+    errorMessage.value = error?.data?.message || error?.message || t('errors.uploadFailed');
+  } finally {
+    creating.value = false;
   }
 }
 </script>
