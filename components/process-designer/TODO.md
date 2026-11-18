@@ -158,11 +158,11 @@ process-designer). No code or README changes in this tree.
 
 ## Unified graph usability (2026-11-17)
 
-- [ ] Use the canonical plugin-sdk compatibility result for socket gestures,
+- [x] Use the canonical plugin-sdk compatibility result for socket gestures,
   palette compatibility filtering, graph validation, and execution preflight.
   Surface the reason and required conversion for incompatible or conditional
   connections.
-- [ ] Render node configuration from normalized definition schemas and
+- [x] Render node configuration from normalized definition schemas and
   declarative controls. Keep JSON editing as an explicit advanced fallback.
 - [ ] Present provider loading failures per provider and operation, while
   keeping unrelated graph providers usable.
@@ -181,7 +181,7 @@ renders configuration schema properties as typed controls and exposes
 graph interface contracts as shape/base/kind/nullability and required/default fields.
 Regression coverage was added; execution remains unverified.
 
-- [ ] Verify typed graph preview inputs for primitive, nullable, and collection
+- [x] Verify typed graph preview inputs for primitive, nullable, and collection
   interface contracts, including clear validation for malformed values.
 
 ### Agent Notes (2026-11-17, preview workflow)
@@ -214,3 +214,13 @@ prefers that channel for those values. The server Bake regression now starts
 with a real Markdown payload produced by the shared Documents runtime. Next:
 replace manual file-ID text inputs with a readable file-instance picker and
 add a generic file-payload read operation for binary templates.
+
+
+### Agent Notes (2026-11-18, verification)
+
+The unified graph authoring and typed preview-input paths are covered by
+the current full Vitest and SSR suites. The Documents runtime's XLSX file
+preview is also covered. Provider errors are still aggregated into the
+workspace-level load error rather than surfaced per provider/operation.
+Persisted Documents graph-workspace acceptance and server graph execution
+remain open; browser runtime declarations do not imply a server evaluator.

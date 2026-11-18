@@ -96,7 +96,7 @@ describe('xlsx fill', () => {
       ['{name}', 0],
       ['{/items}', '']
     ]);
-    sheet.B3 = { t: 'n', v: 0, f: 'A3*2' };
+    sheet.B3 = { t: 'n', v: 0, f: 'IF(A3=\"A3\",A$3+$A3+$A$3,0)' };
     sheet['!merges'] = [{ s: { r: 2, c: 0 }, e: { r: 2, c: 1 } }];
     sheet['!rows'] = [];
     sheet['!rows'][2] = { hpx: 32, hidden: true, level: 1 };
@@ -108,8 +108,9 @@ describe('xlsx fill', () => {
     });
     const output = XLSX.read(filled, { type: 'buffer', cellStyles: true });
     const result = output.Sheets.S;
-    expect(result.B2.f).toBe('A2*2');
-    expect(result.B3.f).toBe('A3*2');
+    expect(result.B2.f).toBe('IF(A2=\"A3\",A$3+$A2+$A$3,0)');
+    expect(result.B3.f).toBe('IF(A3=\"A3\",A$3+$A3+$A$3,0)');
+    expect(String(output.Workbook?.CalcPr?.fullCalcOnLoad)).toBe('true');
     expect(result['!merges']).toEqual([
       { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } },
       { s: { r: 2, c: 0 }, e: { r: 2, c: 1 } }

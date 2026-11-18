@@ -6,23 +6,23 @@ Deliver the first usable Documents graph workflow before broadening format
 coverage or completing the server execution profile. The acceptance path is
 provider discovery → typed authoring → preview → file export → Bake.
 
-- [ ] Publish Documents operations as provider-neutral node definitions
+- [x] Publish Documents operations as provider-neutral node definitions
   through the installed runtime contract. Reuse the listing's operation
   identities, signatures, palette declarations, and execution metadata as
   the source; do not maintain a second hand-authored operation catalog.
-- [ ] Move the browser-eligible document IR operations into the Documents
+- [x] Move the browser-eligible document IR operations into the Documents
   client runtime and expose them as graph provider contributions. Include
   typed inline/block constructors, Markdown parsing, composition, append,
   HTML rendering, and Markdown/HTML file export.
-- [ ] Make payload-backed text/table projections available through an
+- [x] Make payload-backed text/table projections available through an
   explicit graph read-provider boundary with authorized payload hydration.
   Keep synchronous projection semantics and declare the execution target.
-- [ ] Make graph compatibility canonical in plugin-sdk: evaluate transport
+- [x] Make graph compatibility canonical in plugin-sdk: evaluate transport
   shape and semantic base/kind/nominal identity, structural constraints,
   nullability, optionality, and explicit conversion requirements. Return a reasoned
   compatibility result and use it in connection gestures, graph validation,
   palette filtering, and execution preflight.
-- [ ] Derive Documents node configuration controls from normalized
+- [x] Derive Documents node configuration controls from normalized
   configuration/input schemas. Preserve useful defaults, optionality,
   descriptions, labels, and actionable validation errors.
 - [ ] Complete the first user workflow in the unified graph workspace:
@@ -85,6 +85,32 @@ preview preflight. The graph inspector renders declared configuration
 properties as typed controls and exposes graph interface shape/base/kind,
 required, and default fields. Provider and graph integration regressions
 were added; Authorized text/CSV/XLSX file-read nodes now use the managed `files.read` capability. The legacy endpoint projections remain for type projection dispatch; Markdown parsing now runs in the shared browser/server provider; template fill and PDF rendering remain the next Documents provider migration. Test execution and deployed workflow verification remain open.
+
+### Agent Notes (2026-11-18, file-backed graph and XLSX template slice)
+
+The Documents listing v28 derives 27 browser graph operations from the
+installed package runtime declaration. The graph editor registers those
+provider contributions through the plugin runtime worker and the SDK node
+contract. The shared runtime includes typed document construction,
+Markdown parsing, document/report composition, HTML rendering, Markdown/
+HTML file export, Markdown/XLSX template fill, and authorized file/text/
+table reads. The graph editor uses `compareNodePorts` for gestures,
+persisted-edge validation, and preview preflight; its inspector renders
+declared configuration schemas and graph interface contracts. File inputs
+use readable file-instance options; the runtime rechecks access through
+`files.read`.
+
+The XLSX filler now translates relative A1 row references as rows move,
+preserves row/column metadata, duplicates unambiguous merged ranges for
+repeated sections, and requests formula recalculation on open. The complete
+Vitest suite, SSR smoke tests, architecture, framework, docs, and plugin
+dependency gates passed on staging commit `952e5a3f`.
+
+Still open: saved graph-workspace acceptance including reopen/provenance;
+organization catalog/install upgrade verification; PDF graph operation
+exposure; canonical managed server graph evaluation and effect policy;
+DOCX scope; and HAG/process integration. The runtime's declared server
+target is not proof that server graph evaluation is available.
 
 ## Priority: Documents and Facade plugin review/refactor (owner direction 2026-11-17)
 

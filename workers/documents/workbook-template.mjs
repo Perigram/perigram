@@ -19,6 +19,13 @@ export function fillWorkbook(buffer, values = {}) {
     const sheet = workbook.Sheets[sheetName];
     if (sheet && sheet['!ref']) fillWorksheet(sheet, values);
   }
+  workbook.Workbook ||= {};
+  workbook.Workbook.CalcPr = {
+    ...(workbook.Workbook.CalcPr || {}),
+    calcMode: 'auto',
+    calcOnSave: 'true',
+    fullCalcOnLoad: 'true'
+  };
   const output = XLSX.write(workbook, { bookType: 'xlsx', type: 'array', cellStyles: true });
   return output instanceof Uint8Array ? output : new Uint8Array(output);
 }

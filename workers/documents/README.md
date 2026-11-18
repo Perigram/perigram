@@ -1,54 +1,50 @@
 # CONTAINER: Documents Plugin Executor
 
-The documents domain as a third-party plugin (SPEC §20): the generic
-media/office file types (image, PDF, markdown, HTML, CSV, XLSX, DOCX), their
-editor surfaces, the table projections, the CSV serialization, and the
-template fills (SPEC §24). The platform carries zero documents code: the plugin owns the file formats,
-projections, template fills, and rendering. Payload projections, Markdown
-parsing, template fills, and PDF generation use the platform-owned plugin
-executor at `DOCUMENTS_EXECUTOR_URL`; CSV serialization and the report/document IR operations run through
-one portable runtime on both browser and server. Editors ship as
-the plugin's surface modules, and types ride the generic instance machinery.
+The Documents plugin owns office/media file formats, typed document values,
+template engines, and editor/preview surfaces. The platform owns graph
+authoring, execution policy, file authorization, and Bake/Export destinations.
 
-- Listing: `workers/documents/listing.json` — types with
-  service-resolved projections (`resolve: { service:
-  'plugin.documents.<svc>' }` — synchronous provider dispatch), the service declarations,
-  editor bindings, the fill construction bindings, and the
-  text-document starter construct (markdown stays visible-by-default
-  through the default installs). `requires` names tech-drawing: the
-  PDF render construction accepts `dxf-source` sources.
-- Services (`services.js`): pure CSV and document IR operations execute
-  through `/runtime/shared.mjs` on both browser and server. Payload projections,
-  Markdown parsing, template filling, and binary PDF generation remain
-  endpoint handlers; projection helpers are synchronous provider dispatches,
-  not palette items. The declared projections are the graph read nodes:
-  `table-rows`/`table-cells` (payload → header-keyed / positional row
-  records), `text` (payload → string), and `csv-text` (rows → CSV text).
-  The extraction trio takes one `payload` field declared `blob`: composed
-  on the process canvas the host hydrates the payload handle with its bytes
-  (`payloadBase64`), projected the host sends the instance envelope
-  (`{ typeId, payloadBase64 }`), and one normalizer serves both. `fill`
-  (template ref payload + values → filled file payload) and `render-pdf`
-  (source ref payload → PDF payload) remain construction/conversion bindings.
+- Listing: `listing.json` (v28). Its `documents-shared` runtime entry is
+  `runtime/shared.mjs`; provider definitions are derived from the listing's
+  service signatures, palette metadata, and execution declarations. There is
+  no second hand-authored graph operation catalog.
+- Browser graph runtime: the plugin Worker loads the pinned runtime assets.
+  Pure document IR, Markdown parsing, Markdown/XLSX template fill, and
+  file/table reads execute through this provider. File reads request the
+  host's authorized `files.read` capability; the plugin receives bytes,
+  never platform credentials.
+- Server graph execution: the runtime declares browser/server targets, but
+  the canonical server procedural graph evaluator is not yet wired. Do not
+  interpret a `server` target declaration as proof that a saved graph can
+  currently be executed on the server. This remains an explicit root
+  [TODO](../../TODO.md) item.
+- Endpoint services: seven operations remain in the platform-managed
+  Documents executor for legacy projections and PDF/construction flows:
+  `table-rows`, `table-cells`, `text`, `fill`, `render-pdf`,
+  `render-report-pdf`, and `render-document-pdf`. Their executor origin is
+  platform-managed; organizations do not configure their own endpoint.
+- File lifecycle: graph file payloads use the generic `{ payload: { base64,
+  mime, name } }` envelope. The host owns file identity, access checks,
+  explicit destinations, and persistence through generic Bake/Export.
 
-- Unified graph provider (`runtime/shared.mjs`): `createRuntime()` publishes the
-  `plugin.documents` provider. Its node definitions are projected from the
-  listing services assigned to `documents-shared`, using each service's
-  signature (including nullable fields), execution declaration, and palette metadata. The runtime wraps
-  each operation result in the declared `value` output port for graph
-  evaluation. The browser graph editor consumes these definitions; browser and managed
-  server execution share the same operation implementation.
-
-- Document and report operations (`report.js` and `report-ir.mjs`, grouped by inline content, blocks, composition, and export): `parse-markdown` (text → `text.flow-document@1`), typed inline and block constructors (`text.inline` and `text.document-block`), `compose-document` and `append-document-block` (blocks → flowing document), `export-markdown` (flow document → markdown text), Markdown/HTML file exports, and `render-document-html` (flow document → safe HTML). The `document.report@1` composition remains available for explicitly sectioned reports. The Documents preview channel renders flowing documents and reports from the unified graph evaluator's `outputs`/`nodeOutputs` envelope, with the selected graph output first; it retains the legacy branch-tree envelope for older hosts. The IR is the source and Markdown, HTML, and PDF are representations.
+The plugin's `text-editor` and `csv-editor` surfaces remain package assets.
+The graph preview surface renders document/report IR directly and renders
+Markdown/HTML in a sanitized sandbox; XLSX outputs render as bounded
+worksheet tables. The executor serves legacy endpoint operations and static
+surface assets on port 8791.
 
 ### XLSX template graph operation
 
 `fill-workbook-template` runs in the shared browser/server runtime and
 accepts a typed `documents.file` workbook payload plus a record of values.
-It preserves cell styles and formulas, substitutes scalar tokens, and
-expands one-level row sections while carrying row heights and valid merged
-ranges forward. Connect `read-file` to this operation and Bake its resulting
-`documents.file` output through the generic page-file destination.
+It preserves cell styles, row and column metadata, translates relative A1
+row references when rows move, and expands one-level row sections. Repeated
+rows receive their own merged ranges; ambiguous merges crossing a section
+boundary are dropped rather than producing overlapping cells. Formula
+recalculation is requested on workbook open. Connect `read-file` to this
+operation and Bake its `documents.file` output through the generic
+page-file destination. Theme fills, charts, images, shared/array formulas,
+and external-workbook reference fidelity are not guaranteed.
 
 ### File-backed graph workflows
 
@@ -95,28 +91,40 @@ Unsupported HTML and image constructs remain explicit diagnostics rather
 than silently disappearing. The report adapter re-exports the same parser
 for existing imports.
 
+### PDF graph operation status
+
+PDF template filling and PDF rendering remain available through the
+existing platform-managed Documents executor and the SPEC §24 construction
+contract. They are not yet exposed as server-only procedural graph nodes:
+that depends on the canonical managed server graph evaluator and an
+explicit typed file/capability boundary. DOCX fill/export is not declared
+as a supported template workflow.
+
 ### Unified graph provider scope
 
-The `documents-shared` runtime currently publishes 23 browser graph
-operations: CSV serialization, inline/block constructors, document and report
-composition, table extraction from document values, HTML rendering, Markdown/HTML exports, and authorized text/CSV/XLSX file reads. Their definitions are derived from the installed
-listing's signatures, execution declarations, and palette metadata.
+The `documents-shared` runtime publishes 27 browser graph operations:
+CSV serialization; typed inline and block constructors; Markdown parsing;
+document/report composition and append; HTML rendering; Markdown/HTML file
+exports; Markdown/XLSX template fill; and authorized file, text, and table
+reads. Definitions derive from the installed listing's signatures,
+execution declarations, and palette metadata.
 
-The endpoint-mode `text`, `table-rows`, `table-cells`, `parse-markdown`,
-template-fill, and PDF-render services remain in the existing executor path.
-Their provider/runtime migration and authorized file-payload read boundary
-are the next Documents graph delivery slice in the root TODO.
+The seven endpoint-mode services are the legacy `text`/table projections,
+construction `fill`, and PDF render/fill operations listed above. The
+remaining work is not provider discovery: it is persisted graph-workspace
+acceptance, managed server graph evaluation, PDF graph-node exposure, and
+installed-catalog upgrade verification.
 
 ### Graph operation palette
 
 Documents exposes semantic operation groups from its listing:
 
-- **Document sources** — read text from an existing Markdown file
+- **Document sources** — select an existing file and read its bytes or text
 - **Table data** — extract header-keyed or positional rows and serialize rows to CSV
 - **Inline content** — create text, emphasis, strong/code marks, and safe links
 - **Document blocks** — create paragraphs, headings, lists, tables, quotes, code blocks, and dividers
 - **Document composition** — parse Markdown, compose/append flowing documents, and compose sectioned reports
-- **Document export** — render HTML/PDF and produce Markdown/HTML file payloads
+- **Document export** — render HTML and produce Markdown/HTML file payloads; PDF remains in the endpoint-backed construction path
 
 ### Document graph values
 
@@ -172,11 +180,12 @@ workflows; it is not a substitute for the generic authorable document value.
 ### File export and templates
 
 File-producing operations return the plugin SDK payload envelope
-`{ payload: { base64, mime, name } }`. The graph host materializes those
-bytes through the normal Bake/Export lifecycle: Markdown uses
-`text/markdown` and bakes into `text-document`, HTML uses `text/html`
-and bakes into `html-document`, and PDF uses `application/pdf` and
-bakes into `pdf-document`. The HTML type exposes a text projection and a plugin preview
+`{ payload: { base64, mime, name } }`. The graph host materializes Markdown (`text/markdown`),
+HTML (`text/html`), and XLSX
+(`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`)
+payloads through generic Bake/Export. PDF uses `application/pdf` in the
+existing endpoint-backed construction flow; a PDF graph operation is still
+open work. The HTML type exposes a text projection and a plugin preview
 that sanitizes through the host markdown pipeline, then renders in a sandboxed
 iframe with scripts and network access disabled. The plugin defines the
 format; the host owns file identity, authorization, destination, and
@@ -302,10 +311,13 @@ fill dialog renders one scalar input per token.
 
 Behavior and traps:
 
-- xlsx fills rewrite values in place and rebuild rows for repeated
-  sections; formulas (`f`) are left untouched. SheetJS community
-  round-trips values, number formats, and column/row sizes — theme
-  fills, charts, and images may drop.
+- XLSX fills rewrite values in place and rebuild rows for repeated
+  sections. Relative A1 row references shift with moved rows; absolute
+  row references and quoted formula strings stay fixed, and the workbook
+  requests recalculation on open. Cell styles, row metadata, column
+  metadata, and unambiguous merged ranges are carried forward. Merges
+  crossing repeat boundaries are omitted. Theme fills, charts, images,
+  shared/array formulas, and external-workbook formula fidelity may drop.
 - PDF template fill masks each token's text run with a white rectangle
   and redraws the substituted text in PT Sans at the same baseline; the
   masked original stays in the content stream (extractable text, hidden
@@ -332,6 +344,6 @@ Behavior and traps:
 Parent: [workers README](../README.md). Platform consumer:
 [plugins feature](../../server/features/plugins/README.md).
 
-The graph preview channel also renders Markdown, HTML, and XLSX file payloads from
-unified graph outputs through the host sanitizer in a sandboxed iframe. The
-same runtime file payload is accepted by the generic page-file Bake path.
+The graph preview channel renders Markdown/HTML in a sandboxed iframe and
+XLSX as a worksheet table. The shared file payload envelope is accepted by
+the generic page-file Bake path.
