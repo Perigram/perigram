@@ -17,7 +17,6 @@ import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, pr
 import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForTypeId, mergedHierarchyBindings } from './hierarchy-utils.js';
 import { actionTargetState, displayActionLabel } from './action-labels.js';
-import { normalizeRecord } from './graph-normalization.js';
 import {
   constructionContract,
   normalizeConstruction,
@@ -33,8 +32,74 @@ export {
 } from './construction-compilation.js';
 
 export { actionTargetState, displayActionLabel } from './action-labels.js';
-export { normalizeGraph, normalizeRecord, normalizeActions } from './graph-normalization.js';
 export { entityLabelOf } from './action-labels.js';
+
+
+/**
+ * Normalization for the existing process-definition storage envelope.
+ * Kept here as part of process definition semantics; graph structure and
+ * execution are owned by the canonical graph document in @perigram/core.
+ */
+export function normalizeGraph(graph = {}) {
+  return {
+    nodes: Array.isArray(graph.nodes) ? graph.nodes.map(node => ({
+      id: String(node.id || ''),
+      type: node.type || 'default',
+      position: { x: Number(node.position?.x || 0), y: Number(node.position?.y || 0) },
+      data: node.data && typeof node.data === 'object' ? node.data : {}
+    })) : [],
+    edges: Array.isArray(graph.edges) ? graph.edges.map(edge => {
+      const sourceHandle = edge.sourceHandle || inferStoredEdgeHandle(edge, 'source');
+      const targetHandle = edge.targetHandle || inferStoredEdgeHandle(edge, 'target');
+      return {
+        id: String(edge.id || `${edge.source || ''}-${edge.target || ''}`),
+        source: String(edge.source || ''),
+        target: String(edge.target || ''),
+        sourceHandle,
+        targetHandle,
+        type: edge.type || 'default',
+        ...(edge.role ? { role: edge.role } : {}),
+        ...(edge.label ? { label: edge.label } : {}),
+        data: edge.data && typeof edge.data === 'object' ? edge.data : {}
+      };
+    }) : [],
+    viewport: { x: Number(graph.viewport?.x || 0), y: Number(graph.viewport?.y || 0), zoom: Number(graph.viewport?.zoom || 1) }
+  };
+}
+
+function inferStoredEdgeHandle(edge = {}, side = 'source') {
+  const dataKey = side === 'source' ? 'sourceHandle' : 'targetHandle';
+  if (edge.data?.[dataKey]) return edge.data[dataKey];
+  const id = String(edge.id || '');
+  const pattern = side === 'source'
+    ? /(?:^|[-])((?:output)(?::[A-Za-z0-9_.:]+)?)(?=[-]|$)/
+    : /(?:^|[-])((?:input|data)(?::[A-Za-z0-9_.:]+)?)(?=[-]|$)/;
+  return id.match(pattern)?.[1] || null;
+}
+
+export function normalizeRecord(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
+}
+
+export function normalizeActions(value) {
+  return Object.fromEntries(Object.entries(normalizeRecord(value)).map(([id, action]) => [id, normalizeActionRecord(action)]));
+}
+
+function normalizeActionRecord(action = {}) {
+  if (action.actionKind !== 'changeStatus') return { ...action };
+  const typeId = action.typeId || action.inputs?.find(input => input.typeId)?.typeId || '';
+  const inputs = [...(action.inputs || [])];
+  if (!inputs.some(input => input.id === 'entity')) inputs.unshift({ id: 'entity', kind: 'entity', typeId, required: false });
+  if (!inputs.some(input => input.id === 'state')) inputs.push({
+    id: 'state', kind: 'state', stateRef: action.stateRef || null,
+    state: action.state?.to || action.access?.stateTo || '', required: false
+  });
+  return {
+    ...action, actionKind: 'updateEntity', typeId, inputs,
+    mutation: action.mutation || { fields: [] },
+    access: { ...(action.access || {}), stateFrom: action.access?.stateFrom || action.state?.from || '', stateTo: action.access?.stateTo || action.state?.to || '' }
+  };
+}
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
