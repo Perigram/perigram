@@ -678,7 +678,8 @@ const {
 } = useGraphChannelPreview({
   persistence,
   serializeProcess: () => serializeProcess(),
-  clientEngines: () => ({ engines: servedClientEngines.value, domain: ctsProjectedDomain() })
+  clientEngines: () => ({ engines: servedClientEngines.value, domain: ctsProjectedDomain() }),
+  clientRuntimes: () => servedClientRuntimes.value
 });
 
 // The active organization for the registry view: the draft's lineage when a
@@ -709,6 +710,7 @@ const {
   ctsRegistry,
   ctsProjectedDomain,
   servedClientEngines,
+  servedClientRuntimes,
   ctsTypeView,
   classNameMap,
   ctsOrgTypes,
