@@ -38,11 +38,15 @@
 
 ### Additions
 
-- [ ] Add managed plugin-runtime cancellation integration tests: pending
-  capability calls reject on cancellation, calls after abort fail immediately,
-  parent capability HTTP requests abort, and an unresponsive child is killed
-  after the cooperative grace period. The runtime behavior is implemented;
-  test execution/coverage remains open.
+- [x] Browser runtime capability calls are tied to the invocation
+  AbortSignal: pending calls reject and are removed on cancellation, calls
+  after abort fail immediately, and a runtime that resolves after abort cannot
+  report success. Unit coverage is in
+  `shared/plugin-runtime.spec.js`.
+- [ ] Add managed server-worker integration tests for parent capability HTTP
+  request abort and forced child termination after the cooperative grace
+  period. The behavior is implemented in `workers/plugin-runtime/index.ts`,
+  but these process-level paths remain unverified.
 
 - [ ] Add managed Python/WASM runtime adapters only after platform-owned
   runtime images, dependency resolution, capability bridging, resource limits,

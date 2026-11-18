@@ -1,3 +1,4 @@
+import { createAbortableCapabilityCaller, pluginExecutionAbortError } from '../shared/plugin-runtime.js';
 let runtime = null;
 let activeInvocations = new Map();
 let capabilitySequence = 0;
@@ -56,11 +57,9 @@ self.onmessage = async event => {
   }
 
   if (message.type === 'cancel') {
-    activeInvocations.get(message.invocationId)?.abort();
-    for (const [callId, pending] of capabilityCalls) {
-      if (pending.invocationId !== message.invocationId) continue;
-      capabilityCalls.delete(callId);
-      pending.reject(new Error('Plugin operation was cancelled'));
+    const controller = activeInvocations.get(message.invocationId);
+    if (controller && !controller.signal.aborted) {
+      controller.abort(pluginExecutionAbortError());
     }
     return;
   }
@@ -69,19 +68,12 @@ self.onmessage = async event => {
   const controller = new AbortController();
   activeInvocations.set(message.invocationId, controller);
   const capabilities = {
-    call(name, input) {
-      const callId = `cap-${++capabilitySequence}`;
-      return new Promise((resolve, reject) => {
-        capabilityCalls.set(callId, { resolve, reject, invocationId: message.invocationId });
-        self.postMessage({
-          type: 'capability-request',
-          callId,
-          invocationId: message.invocationId,
-          name,
-          input
-        });
-      });
-    }
+    call: createAbortableCapabilityCaller({
+      signal: controller.signal,
+      nextCallId: () => `cap-${++capabilitySequence}`,
+      pending: capabilityCalls,
+      send: request => self.postMessage({ ...request, invocationId: message.invocationId })
+    })
   };
 
   try {
@@ -89,6 +81,7 @@ self.onmessage = async event => {
       capabilities,
       signal: controller.signal
     });
+    if (controller.signal.aborted) throw pluginExecutionAbortError(controller.signal.reason);
     self.postMessage({ type: 'result', invocationId: message.invocationId, value });
   } catch (error) {
     self.postMessage({ type: 'result-error', invocationId: message.invocationId, error: serializeError(error) });
