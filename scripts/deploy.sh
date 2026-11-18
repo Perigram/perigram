@@ -74,6 +74,10 @@ retry docker build --network=host "${build_args[@]}" \
 retry docker build --network=host "${build_args[@]}" \
   -t perigram-seed:staging -f deploy/seed.Dockerfile .
 
+echo "Checking catalog seed image package imports..."
+docker run --rm --entrypoint node perigram-seed:staging --input-type=module -e \
+  "await import('#packages/plugin-sdk/listing'); await import('#packages/cts')"
+
 echo "Starting plugin executor plane..."
 docker rm -f perigram-nesting perigram-facade-executor \
   perigram-documents-executor perigram-tech-drawing-executor \
