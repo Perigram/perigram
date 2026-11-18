@@ -96,7 +96,7 @@ import {
   projectedServicesForOrganization, projectedDomainsForOrganization, commandDefinitionFor, executeConnectorService, invokeEndpointValueService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings, publishPluginAsset,
-  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask
+  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition
 } from './service.js';
 import { enqueueTask } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -147,6 +147,71 @@ beforeEach(() => {
 });
 
 describe('managed plugin runtime package loading', () => {
+  it('resolves graph node definitions from the installed package snapshot', async () => {
+    repository.findInstall.mockResolvedValue({
+      pluginId: 'demo',
+      version: '7',
+      services: [{
+        id: 'transform',
+        nodeVersion: '3',
+        label: 'Transform',
+        palette: { group: 'documents', label: 'Documents', keywords: ['format'] },
+        signature: {
+          input: { base: 'record', fields: {
+            source: { base: 'string', label: 'Source' },
+            options: { base: 'json', nullable: true, default: {} }
+          } },
+          output: { base: 'string', label: 'Text' }
+        },
+        execution: { runtime: 'javascript', targets: ['browser', 'server'], kind: 'pure', capabilities: [] }
+      }],
+      declarations: {
+        runtimes: [{ id: 'javascript', language: 'javascript', targets: ['browser', 'server'], entry: '/runtime.mjs' }]
+      }
+    });
+
+    const definition = await resolveInstalledGraphNodeDefinition({
+      provider: 'plugin.demo',
+      id: 'transform',
+      version: '3',
+      auth: AUTH
+    });
+
+    expect(repository.findInstall).toHaveBeenCalledWith(ORG, 'demo');
+    expect(repository.findCatalogByPluginId).not.toHaveBeenCalled();
+    expect(definition).toMatchObject({
+      provider: 'plugin.demo',
+      id: 'transform',
+      version: '3',
+      inputs: [
+        { id: 'source', shape: 'item', semantic: { base: 'string' }, required: true },
+        { id: 'options', shape: 'item', semantic: { base: 'json', nullable: true }, required: false, default: {} }
+      ],
+      outputs: [{ id: 'value', shape: 'item', semantic: { base: 'string' }, required: true }],
+      execution: { runtime: 'javascript', kind: 'pure', targets: ['browser', 'server'] },
+      packagePin: { pluginId: 'demo', version: '7', runtimeId: 'javascript', operationId: 'transform' }
+    });
+  });
+
+  it('rejects graph node definitions that do not match the installed node version', async () => {
+    repository.findInstall.mockResolvedValue({
+      pluginId: 'demo',
+      version: '7',
+      services: [{
+        id: 'transform',
+        nodeVersion: '4',
+        palette: { group: 'documents' },
+        signature: { input: { base: 'record', fields: {} }, output: { base: 'json' } },
+        execution: { runtime: 'javascript', targets: ['server'], kind: 'pure' }
+      }],
+      declarations: { runtimes: [{ id: 'javascript', language: 'javascript', targets: ['server'] }] }
+    });
+
+    await expect(resolveInstalledGraphNodeDefinition({
+      provider: 'plugin.demo', id: 'transform', version: '3', auth: AUTH
+    })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
   it('loads only the pinned organization package and verifies its asset digest', async () => {
     repository.findInstall.mockResolvedValue({
       pluginId: 'demo',
