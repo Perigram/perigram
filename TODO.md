@@ -52,9 +52,10 @@ provider discovery → typed authoring → preview → file export → Bake.
   - [x] Resolve the root saved graph and recursively pinned Use Graph
     revisions through the caller's organization read grants. The service-level
     evaluator uses the core cycle/depth checks and a shared read-set recorder.
-  - [ ] Resolve each provider definition from the install's immutable package
-    snapshot (plugin id, package version, runtime id, operation id); never
-    resolve from the mutable catalog or browser registry.
+  - [x] Resolve provider definitions from the installed declaration/service
+    snapshot, never the mutable catalog or browser registry. Each resolution
+    returns a package pin (plugin id, installed version, runtime id, operation
+    id); graph evaluation collects those pins for execution evidence.
   - [ ] Wire the service-level evaluator to the managed runtime task lifecycle
     and an authenticated server entry point; provider handlers are still
     injected and no user-facing server graph execution route exists.

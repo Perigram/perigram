@@ -74,11 +74,14 @@ Use Graph pins by exact payload revision through the same read boundary, and
 delegates provider definition resolution and node execution to injected host
 handlers. The core evaluator supplies cycle/depth checks, server-target
 validation, cancellation, and one shared read set across nested graphs.
+Plugin node definitions resolve from the organization's installed service and
+runtime declarations (not the mutable catalog), and the evaluation result
+collects the exact installed package/runtime/operation pins.
 
-This is not yet managed server graph execution. Provider handlers are not yet
-resolved from immutable installed package snapshots, the service-level seam is
-not exposed as an authenticated execution route/task lifecycle, and it does
-not persist the resulting execution envelope. A provider's
+This is not yet managed server graph execution. The managed node execution
+callback is still injected rather than connected to the plugin-runtime worker;
+the service-level seam is not exposed as an authenticated execution route/task
+lifecycle, and it does not persist the resulting execution envelope. A provider's
 `execution.targets: ['server']` declaration and the existence of the managed
 plugin task worker do not make saved-graph server execution available. The
 remaining work is tracked in the root [TODO](../../../TODO.md).
