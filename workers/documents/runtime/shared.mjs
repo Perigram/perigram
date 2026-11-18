@@ -123,10 +123,15 @@ async function executeFileRead(operationId, input = {}, capabilities = {}) {
   if (typeof (file.payloadBase64 || file.base64) !== 'string') {
     const fileId = String(input.fileId || input.payload?.fileId || '');
     if (!fileId) throw new Error(`${operationId} requires a fileId or hydrated payload`);
-    if (typeof capabilities['files.read'] !== 'function') {
+    const readCapability = typeof capabilities['files.read'] === 'function'
+      ? capabilities['files.read']
+      : (typeof capabilities.call === 'function'
+        ? input => capabilities.call('files.read', input)
+        : null);
+    if (!readCapability) {
       throw new Error('The authorized files.read capability is unavailable');
     }
-    file = await capabilities['files.read']({ fileId });
+    file = await readCapability({ fileId });
   }
   const encoded = file.payloadBase64 || file.base64;
   if (typeof encoded !== 'string') throw new Error('The file read capability returned no base64 payload');
