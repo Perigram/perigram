@@ -75,7 +75,7 @@ import {
   tryAcceptGraphProtocol,
   validateActivatableProcess
 } from './compiler-adapter.js';
-import { compileTreeDeclarations, createProcessRun, advanceProcessRun, migrateProducerOutputIdentities } from '#packages/processes';
+import { compileTreeDeclarations, createProcessRun, advanceProcessRun } from '#packages/processes';
 import {
   processChildEntities,
   processParentEntity,
@@ -2503,16 +2503,12 @@ async function getProjectedDomain(organizationId = null) {
 // records only for identities; cts records carry their identities from the
 // designer). Protocol acceptance runs on a lowered copy.
 function persistedRewrites(data, domain) {
-  const migration = migrateProducerOutputIdentities(data, domain);
-  if (migration.errors.length) {
-    throw createError({ statusCode: 400, message: migration.errors.join('; '), data: { errors: migration.errors } });
-  }
-  assertCurrentProcessDefinition(migration.data);
-  // Binding diagnostics stay authored at the save boundary; validate/apply
-  // own the report, so a draft with access rules on a still-unbound node
-  // remains savable.
-  tryAcceptGraphProtocol(migration.data, domain);
-  return retireStateScopeAuthoring(rewriteRetiredWirePaths(orientChildrenEdgesChildFirst(collapseEffectAccessGrants(migration.data))));
+  // Persist the authored definition directly. Legacy identity repair is not
+  // part of the write path: drafts must be valid by construction, not mutated
+  // by a compatibility migration on every save.
+  assertCurrentProcessDefinition(data);
+  tryAcceptGraphProtocol(data, domain);
+  return retireStateScopeAuthoring(rewriteRetiredWirePaths(orientChildrenEdgesChildFirst(collapseEffectAccessGrants(data))));
 }
 
 // One compile path: protocol acceptance (v5 lowering) through
