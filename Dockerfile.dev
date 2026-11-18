@@ -9,12 +9,13 @@ ARG http_proxy
 ARG https_proxy
 ARG no_proxy
 
-# Prefer HTTPS Debian mirrors; plain HTTP can time out on restricted build networks.
-RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
-      sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
-    fi && \
-    apt-get update && apt-get install -y --no-install-recommends curl python3 python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+# The host CA bundle is provided as a BuildKit secret. This preserves TLS
+# verification when builds use a TLS-inspecting proxy without baking trust
+# material or proxy credentials into image layers.
+RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \
+    apt-get update -o Acquire::https::CAInfo=/tmp/build-ca-bundle && \
+    apt-get install -y --no-install-recommends ca-certificates curl python3 python3-pip && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
 
@@ -22,12 +23,14 @@ WORKDIR /src
 COPY package.json package-lock.json ./
 
 # Install ALL dependencies (including dev dependencies)
-RUN npm ci
+RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \
+    NODE_EXTRA_CA_CERTS=/tmp/build-ca-bundle npm ci
 
 # Install python dependencies for local scripts (DXF generation)
 COPY workers/nesting/requirements.txt /tmp/requirements.txt
 # usage of --break-system-packages is necessary in newer debian/python versions or use venv
-RUN pip3 install -r /tmp/requirements.txt --break-system-packages
+RUN --mount=type=secret,id=build_ca_bundle,target=/tmp/build-ca-bundle,required=true \
+    PIP_CERT=/tmp/build-ca-bundle pip3 install -r /tmp/requirements.txt --break-system-packages
 
 # Copy source code
 COPY . .
