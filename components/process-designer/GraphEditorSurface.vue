@@ -178,6 +178,7 @@ const session = useGraphDocumentSession({
   nodeResolvers: [processGraphResolver],
   previewResolvers: [processPreviewResolver],
   compatibilityProfiles: [registerProcessPortCompatibilityProfile],
+  frameworkProviders: [PROCESS_PROCEDURAL_PROVIDER],
   executors: { [PROCESS_PROCEDURAL_PROVIDER]: processExecutor },
   graphDocuments,
   finalizeExecution: pluginRuntime.finalizeExecution,
