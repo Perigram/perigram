@@ -244,7 +244,7 @@ function transferableInvocation(input) {
             return execute(binding, runtime, definition.id, invocation, {
               execution: definition.execution,
               capabilities,
-              signal: invocation?.signal
+              signal: invocation?.context?.signal || invocation?.signal
             });
           }
         });

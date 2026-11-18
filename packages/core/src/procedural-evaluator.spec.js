@@ -238,6 +238,131 @@ describe('procedural graph preview evaluator', () => {
   });
 
 
+  it('refuses an already-aborted graph before resolving providers', async () => {
+    const controller = new AbortController();
+    controller.abort('caller cancelled');
+    const resolveNodeDefinition = vi.fn(() => doubleDefinition);
+    await expect(evaluateProceduralGraph({
+      graph: graph(),
+      inputBindings: { number: 1 },
+      context: { signal: controller.signal },
+      resolveNodeDefinition,
+      executeNode: vi.fn()
+    })).rejects.toMatchObject({
+      name: 'AbortError',
+      code: 'GRAPH_EXECUTION_ABORTED',
+      message: 'caller cancelled'
+    });
+    expect(resolveNodeDefinition).not.toHaveBeenCalled();
+  });
+
+  it('finalizes a graph session when cancellation is already signalled', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const finalizeExecution = vi.fn(async () => {});
+    await expect(evaluateProceduralGraph({
+      graph: graph(),
+      context: { signal: controller.signal, executionId: 'cancelled-run', finalizeExecution },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: vi.fn()
+    })).rejects.toMatchObject({ code: 'GRAPH_EXECUTION_ABORTED' });
+    expect(finalizeExecution).toHaveBeenCalledOnce();
+    expect(finalizeExecution).toHaveBeenCalledWith('cancelled-run');
+  });
+
+  it('propagates cancellation to providers and stops after an in-flight node', async () => {
+    const controller = new AbortController();
+    const document = graph({
+      nodes: [
+        { id: 'in', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'number' } },
+        { id: 'first', operation: { provider: 'plugin.math', id: 'double', version: '1' }, config: {} },
+        { id: 'second', operation: { provider: 'plugin.math', id: 'double', version: '1' }, config: {} },
+        { id: 'out', operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' }, config: { interfaceId: 'result' } }
+      ],
+      edges: [
+        { id: 'e1', source: { node: 'in', port: 'value' }, target: { node: 'first', port: 'value' } },
+        { id: 'e2', source: { node: 'first', port: 'result' }, target: { node: 'second', port: 'value' } },
+        { id: 'e3', source: { node: 'second', port: 'result' }, target: { node: 'out', port: 'value' } }
+      ]
+    });
+    const executeNode = vi.fn((_definition, { inputs, context }) => {
+      expect(context.signal).toBe(controller.signal);
+      controller.abort('stop after first provider');
+      return { result: inputs.value * 2 };
+    });
+    await expect(evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: 2 },
+      context: { signal: controller.signal },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode
+    })).rejects.toMatchObject({
+      name: 'AbortError',
+      code: 'GRAPH_EXECUTION_ABORTED',
+      message: 'stop after first provider'
+    });
+    expect(executeNode).toHaveBeenCalledTimes(1);
+  });
+
+  it('interrupts a provider promise when its graph signal aborts', async () => {
+    const controller = new AbortController();
+    const finalizeExecution = vi.fn(async () => {});
+    let markStarted;
+    const started = new Promise(resolve => { markStarted = resolve; });
+    const executeNode = vi.fn(() => {
+      markStarted();
+      return new Promise(() => {});
+    });
+    const pending = evaluateProceduralGraph({
+      graph: graph(),
+      inputBindings: { number: 2 },
+      context: { signal: controller.signal, finalizeExecution },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode
+    });
+    await started;
+    controller.abort('deadline exceeded');
+    await expect(pending).rejects.toMatchObject({
+      name: 'AbortError',
+      code: 'GRAPH_EXECUTION_ABORTED',
+      message: 'deadline exceeded'
+    });
+    expect(finalizeExecution).toHaveBeenCalledOnce();
+  });
+
+  it('requires explicit server target support before invoking a node', async () => {
+    const executeNode = vi.fn(() => ({ result: 4 }));
+    await expect(evaluateProceduralGraph({
+      graph: graph(),
+      inputBindings: { number: 2 },
+      executionTarget: 'server',
+      resolveNodeDefinition: () => ({
+        ...doubleDefinition,
+        execution: { kind: 'pure', targets: ['browser'] }
+      }),
+      executeNode
+    })).rejects.toThrow(/does not support server execution/);
+    expect(executeNode).not.toHaveBeenCalled();
+  });
+
+  it('passes the selected execution target to server node adapters', async () => {
+    const executeNode = vi.fn((_definition, { inputs, target }) => {
+      expect(target).toBe('server');
+      return { result: inputs.value * 2 };
+    });
+    const result = await evaluateProceduralGraph({
+      graph: graph(),
+      inputBindings: { number: 2 },
+      executionTarget: 'server',
+      resolveNodeDefinition: () => ({
+        ...doubleDefinition,
+        execution: { kind: 'pure', targets: ['server'] }
+      }),
+      executeNode
+    });
+    expect(result.outputs).toEqual({ result: 4 });
+  });
+
   it('returns an empty diagnostics list on success', async () => {
     const result = await evaluateProceduralGraph({
       graph: graph(),

@@ -94,6 +94,39 @@ describe('usePluginRuntime', () => {
     pluginRuntime.dispose();
   });
 
+  it('forwards the graph context signal to provider worker invocations', async () => {
+    class PendingWorker extends FakeWorker {
+      postMessage(message) {
+        this.messages.push(message);
+        if (message.type === 'initialize') {
+          queueMicrotask(() => this.onmessage?.({ data: { type: 'ready', providers: [{
+            provider: 'plugin.demo',
+            definitions: [{
+              provider: 'plugin.demo', id: 'math.double', version: '1', inputs: [], outputs: [],
+              execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] }
+            }]
+          }] } }));
+        }
+      }
+    }
+    const worker = new PendingWorker();
+    const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
+    const [provider] = await pluginRuntime.loadProviders(binding, runtime);
+    const controller = new AbortController();
+    const pending = provider.execute({ id: 'math.double', execution }, {
+      inputs: { value: 2 },
+      context: { signal: controller.signal }
+    });
+    await Promise.resolve();
+    controller.abort('graph cancelled');
+    await expect(pending).rejects.toThrow(/cancelled/);
+    expect(worker.messages).toContainEqual(expect.objectContaining({
+      type: 'cancel',
+      invocationId: expect.any(String)
+    }));
+    pluginRuntime.dispose();
+  });
+
   it('finalizes execution-scoped native values across loaded runtimes', async () => {
     const worker = new FakeWorker();
     const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
