@@ -110,6 +110,23 @@ export async function evaluateSavedGraph({
   }
   const source = await savedGraphSource(graphDocumentInstanceId, auth);
   const executionId = String(context.executionId || randomUUID());
+  const maxExecutionMs = Math.min(Math.max(Number(context.maxExecutionMs) || 300000, 1000), 300000);
+  const deadline = Date.now() + maxExecutionMs;
+  const controller = new AbortController();
+  const externalSignal = context.signal;
+  const abortFromExternal = () => {
+    if (!controller.signal.aborted) controller.abort(externalSignal.reason);
+  };
+  if (externalSignal?.aborted) abortFromExternal();
+  else externalSignal?.addEventListener('abort', abortFromExternal, { once: true });
+  const deadlineTimer = setTimeout(() => {
+    if (!controller.signal.aborted) {
+      const error = new Error('Server graph execution deadline exceeded');
+      error.name = 'TimeoutError';
+      error.code = 'GRAPH_EXECUTION_TIMEOUT';
+      controller.abort(error);
+    }
+  }, maxExecutionMs);
   const coreDataProvider = createCoreGraphDataProvider();
   const coreDefinitions = new Map(coreDataProvider.definitions.map(definition => [
     `${definition.provider}/${definition.id}@${definition.version}`,
@@ -149,31 +166,38 @@ export async function evaluateSavedGraph({
     }
     return await executeManagedNode(definition, invocation, auth);
   };
-  const result = await evaluateProceduralGraph({
-    graph: source.graph,
-    inputBindings,
-    resolveNodeDefinition,
-    executeNode,
-    resolveGraph: async (graphId, revision) => (await resolvePinnedGraph(graphId, revision, auth)).graph,
-    context: {
-      ...context,
+  try {
+    const result = await evaluateProceduralGraph({
+      graph: source.graph,
+      inputBindings,
+      resolveNodeDefinition,
+      executeNode,
+      resolveGraph: async (graphId, revision) => (await resolvePinnedGraph(graphId, revision, auth)).graph,
+      context: {
+        ...context,
+        executionId,
+        signal: controller.signal,
+        remainingExecutionMs: () => Math.max(0, deadline - Date.now()),
+        nodeInvocations,
+        data: {
+          ...(context.data || {}),
+          queryInstances: query => queryOrganizationData(query, auth)
+        }
+      },
+      mode: 'preview',
+      executionTarget: 'server'
+    });
+    return {
+      ...source,
+      ...result,
       executionId,
-      nodeInvocations,
-      data: {
-        ...(context.data || {}),
-        queryInstances: query => queryOrganizationData(query, auth)
-      }
-    },
-    mode: 'preview',
-    executionTarget: 'server'
-  });
-  return {
-    ...source,
-    ...result,
-    executionId,
-    providerPins: [...providerPins.values()],
-    nodeInvocations
-  };
+      providerPins: [...providerPins.values()],
+      nodeInvocations
+    };
+  } finally {
+    clearTimeout(deadlineTimer);
+    externalSignal?.removeEventListener('abort', abortFromExternal);
+  }
 }
 
 function expectedSequenceForReadSet(readSet) {
