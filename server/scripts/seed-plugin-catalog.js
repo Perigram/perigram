@@ -25,22 +25,30 @@ const BUILTIN_LISTING_PATHS = [
 ];
 
 const paths = process.argv.slice(2).length ? process.argv.slice(2) : BUILTIN_LISTING_PATHS;
-const db = await connectDB();
 
-for (const path of paths) {
+// Prepare and validate the complete release set before the first database
+// write. In particular, a missing runtime source must not leave the catalog
+// half-refreshed with a mixture of old and new built-in listings.
+const prepared = paths.map(path => {
   const listing = normalizeListing(JSON.parse(readFileSync(path, 'utf8')));
-  for (const runtime of listing.declarations.runtimes || []) {
-    const packageRoot = resolve('workers', listing.pluginId);
-    for (const asset of collectRuntimeAssetFiles(packageRoot, runtime.entry, runtime.language)) {
-      await pluginRepository.storePluginAsset({
-        pluginId: listing.pluginId,
-        version: listing.version,
-        path: asset.path,
-        buffer: asset.buffer,
-        contentType: asset.contentType
-      });
-      console.log(`asset: ${listing.pluginId}@${listing.version}/${asset.path}`);
-    }
+  const packageRoot = resolve('workers', listing.pluginId);
+  const assets = (listing.declarations.runtimes || []).flatMap(runtime =>
+    collectRuntimeAssetFiles(packageRoot, runtime.entry, runtime.language)
+  );
+  return { listing, assets };
+});
+
+const db = await connectDB();
+for (const { listing, assets } of prepared) {
+  for (const asset of assets) {
+    await pluginRepository.storePluginAsset({
+      pluginId: listing.pluginId,
+      version: listing.version,
+      path: asset.path,
+      buffer: asset.buffer,
+      contentType: asset.contentType
+    });
+    console.log(`asset: ${listing.pluginId}@${listing.version}/${asset.path}`);
   }
   await db.collection('plugin_catalog').updateOne(
     { pluginId: listing.pluginId },
