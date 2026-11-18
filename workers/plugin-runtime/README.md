@@ -35,6 +35,9 @@ runtime requirements.
 
 For graph-node tasks, the worker returns per-call capability evidence alongside
 the operation output. Evidence records the capability name and safe identifying
-inputs; authorized CTS query/read responses also carry their read-set evidence
-back to the graph evaluator. File-read calls are identified but remain
-unverified for materialization until file content/version evidence is included.
+inputs; authorized CTS query/read responses carry their read-set evidence back
+to the graph evaluator. `files.read` evidence includes the file id, content
+hash, and actual organization ownership scope. The evaluator records that
+dependency and rechecks current read access and file bytes before Commit, Bake,
+or Export. Capability authorization is still task-local; untracked capability
+scopes remain unverified and block materialization.
