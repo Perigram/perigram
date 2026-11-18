@@ -143,6 +143,28 @@ describe('Documents shared runtime', () => {
     expect(graphValue.value[0].sku).toBe('A-1');
   });
 
+  it('bridges the plugin-runtime call capability to Documents file reads', async () => {
+    const csv = 'sku,qty\nA-1,2\n';
+    const call = vi.fn(async (name, input) => {
+      expect(name).toBe('files.read');
+      expect(input).toEqual({ fileId: 'file-bridge-1' });
+      return {
+        fileId: input.fileId,
+        name: 'inventory.csv',
+        mime: 'text/csv',
+        base64: btoa(csv)
+      };
+    });
+
+    const result = await runtime.execute('read-text-file', {
+      mode: 'preview',
+      inputs: { fileId: 'file-bridge-1' }
+    }, { capabilities: { call } });
+
+    expect(result).toEqual({ value: csv });
+    expect(call).toHaveBeenCalledTimes(1);
+  });
+
   it('publishes listing-derived graph providers with serializable definitions and output envelopes', async () => {
     const provider = runtime.providers.find(item => item.provider === 'plugin.documents');
     expect(provider).toBeTruthy();
