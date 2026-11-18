@@ -23,22 +23,16 @@ function declaredPaletteGroups() {
 }
 
 describe('Facade plugin node palette contribution', () => {
-  it('groups sheet planning, nesting, and production export by workflow', () => {
+  it('groups sheet planning and production export by workflow', () => {
     const groups = declaredPaletteGroups();
-    const nesting = groups.find(group => group.id === 'plugin-facade-nesting');
     const planning = groups.find(group => group.id === 'plugin-facade-sheet-planning');
     const production = groups.find(group => group.id === 'plugin-facade-production-export');
-    expect(nesting.items.map(item => item.id)).toContain('service:facade:nesting-solve');
     expect(planning.items.map(item => item.id)).toEqual([
       'service:facade:construct-sheet',
       'service:facade:match-sheet'
     ]);
     expect(production.items.map(item => item.id)).toContain('service:facade:generate-sheet-dxf');
-    expect(nesting.items.find(item => item.id === 'service:facade:nesting-solve').searchTerms).toContain('nesting-solve');
-    expect(nesting.items.find(item => item.id === 'service:facade:nesting-solve')).toMatchObject({
-      label: 'Solve sheet nesting',
-      description: 'Arrange cassette-design parts on available sheet stock'
-    });
+    expect(groups.some(group => group.id === 'plugin-facade-nesting')).toBe(false);
     expect(groups.some(group => group.items.some(item => item.id === 'service:facade:extract-geometry'))).toBe(false);
     expect(groups.some(group => group.items.some(item => item.id === 'service:facade:bake'))).toBe(false);
     expect(groups.some(group => group.items.some(item => item.id === 'service:facade:nesting-parts'))).toBe(false);

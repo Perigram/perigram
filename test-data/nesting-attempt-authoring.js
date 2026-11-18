@@ -24,16 +24,18 @@ export function composeNestingAttemptGraph(authoring, { adminAccess = null } = {
   authoring.drop('extractProjection', { id: 'polygons' });
   authoring.configure('polygons', { typeId: 'cassette-design', projection: 'nesting-polygons' });
 
-  authoring.drop('recordField', { id: 'designId' });
-  authoring.configure('designId', { path: 'designId', type: { base: 'id' } });
-  authoring.drop('recordField', { id: 'designPolygonParts' });
-  authoring.configure('designPolygonParts', { path: 'polygonParts', type: { base: 'json' } });
+  authoring.drop('recordField', { id: 'sourceId' });
+  authoring.configure('sourceId', { path: 'sourceId', type: { base: 'string' } });
+  authoring.drop('recordField', { id: 'sourceKey' });
+  authoring.configure('sourceKey', { path: 'sourceKey', type: { base: 'string' } });
+  authoring.drop('recordField', { id: 'parts' });
+  authoring.configure('parts', { path: 'parts', type: { base: 'list', itemType: { base: 'record' } } });
   authoring.drop('constructRecord', { id: 'jobItems' });
-  authoring.configure('jobItems', { fields: ['designId', 'polygonParts', 'count'] });
+  authoring.configure('jobItems', { fields: ['sourceId', 'sourceKey', 'parts', 'count'] });
   authoring.drop('literal', { id: 'one' });
   authoring.configure('one', { type: { base: 'number', nullable: false, unit: 'count' }, value: 1 });
 
-  authoring.drop('service:facade:nesting-solve', { id: 'solve' });
+  authoring.drop('service:nesting:nesting-solve', { id: 'solve' });
   authoring.setInputDefault('solve', 'sheetWidth', 1220);
   authoring.setInputDefault('solve', 'sheetHeight', 2440);
   if (adminAccess) authoring.configure('solve', { access: adminAccess });
@@ -60,10 +62,12 @@ export function composeNestingAttemptGraph(authoring, { adminAccess = null } = {
   if (adminAccess) authoring.configure('attachDxf', { access: adminAccess });
 
   authoring.connect('designs', 'data:result', 'polygons', 'data:entity');
-  authoring.connect('polygons', 'data:result', 'designId', 'data:value');
-  authoring.connect('polygons', 'data:result', 'designPolygonParts', 'data:value');
-  authoring.connect('designId', 'data:value', 'jobItems', 'data:designId');
-  authoring.connect('designPolygonParts', 'data:value', 'jobItems', 'data:polygonParts');
+  authoring.connect('polygons', 'data:result', 'sourceId', 'data:value');
+  authoring.connect('polygons', 'data:result', 'sourceKey', 'data:value');
+  authoring.connect('polygons', 'data:result', 'parts', 'data:value');
+  authoring.connect('sourceId', 'data:value', 'jobItems', 'data:sourceId');
+  authoring.connect('sourceKey', 'data:value', 'jobItems', 'data:sourceKey');
+  authoring.connect('parts', 'data:value', 'jobItems', 'data:parts');
   authoring.connect('one', 'data:value', 'jobItems', 'data:count');
   authoring.connect('jobItems', 'data:record', 'solveItems', 'data:value');
   authoring.connect('solveItems', 'data:value', 'solve', 'data:items');

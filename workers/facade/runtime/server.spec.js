@@ -1,9 +1,7 @@
 import { readFile } from 'node:fs/promises';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { createRuntime } from './server.mjs';
 import listing from '../listing.json';
-
-const SQUARE = [[0, 0], [100, 0], [100, 100], [0, 100], [0, 0]];
 
 describe('Facade managed server runtime', () => {
   it('declares pure managed operations with explicit execution targets and no endpoint mode', () => {
@@ -30,34 +28,9 @@ describe('Facade managed server runtime', () => {
       'bake',
       'construct-sheet',
       'generate-sheet-dxf',
-      'match-sheet',
-      'nesting-solve'
+      'match-sheet'
     ]);
-  });
-
-  it('executes nesting through the host capability and returns graph values', async () => {
-    const call = vi.fn().mockResolvedValue({ items: [], layouts: [] });
-    const runtime = createRuntime();
-    const result = await runtime.execute('nesting-solve', {
-      items: [{
-        id: 'design-1',
-        designId: 'design-1',
-        count: '2',
-        polygonParts: [{ coordinates: SQUARE }]
-      }],
-      sheetWidth: 100,
-      sheetHeight: 100,
-      space: 3
-    }, { capabilities: { call } });
-    expect(call).toHaveBeenCalledOnce();
-    expect(call.mock.calls[0][0]).toBe('facade.nesting.solve');
-    expect(call.mock.calls[0][1].params).toMatchObject({
-      width: 100, height: 100, space: 3, sheetCount: 2
-    });
-    expect(result).toMatchObject({
-      layouts: [],
-      summary: { sheetCount: 0, placedCount: 0 }
-    });
+    expect(listing.declarations.services.some(service => service.id === 'nesting-solve')).toBe(false);
   });
 
   it('executes exact composition matching inside the managed runtime', async () => {

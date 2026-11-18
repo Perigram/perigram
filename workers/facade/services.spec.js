@@ -118,9 +118,9 @@ describe('Facade endpoint service behavior', () => {
         }
       }
     });
-    expect(result.designId).toBe('design-1');
-    expect(result.polygonParts).toHaveLength(2);
-    expect(result.polygonParts.every(part => part.designId === 'design-1')).toBe(true);
+    expect(result).toMatchObject({sourceId:'design-1',sourceKey:'design-1',count:1});
+    expect(result.parts).toHaveLength(2);
+    expect(result.parts.every(part => Array.isArray(part.coordinates) && Array.isArray(part.sourceLayers))).toBe(true);
   });
 
   it('requires an instance id for the nesting projection', async () => {
