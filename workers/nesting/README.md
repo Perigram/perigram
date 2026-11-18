@@ -1,11 +1,8 @@
-# COMPONENT: Nesting Worker
+# PLUGIN: Nesting
 
-The Nesting Worker is a Python FastAPI service executing the 2D
-bin-packing algorithm over HTTP: geometry in, placements out. The
-runtime entry point is `worker_service.py` (`POST /nest`); the live
-import path touches only `worker_service.py`,
-`core/nesting_input_builder.py`, and `core/geometry_utils.py` (pure
-algorithm, no DB access).
+Nesting is an independently installable plugin exposing a generic polygon-nesting graph operation. Its managed server runtime owns input validation, quantity handling, source-metadata preservation, layout grouping, and result summaries. The Rust/Python solver is an implementation detail behind the platform-owned `nesting.solve` capability; the plugin contract has no Facade types or Facade executor dependency.
+
+The isolated HTTP worker entry point is `worker_service.py` (`POST /nest`); its live import path touches only `worker_service.py`, `core/nesting_input_builder.py`, and `core/geometry_utils.py` (pure algorithm, no DB access). The installable contract is [`listing.json`](./listing.json), and its managed runtime is [`runtime/server.mjs`](./runtime/server.mjs).
 
 Parent: [workers README](../README.md).
 
@@ -25,9 +22,7 @@ The worker integrates with **[jagua-rs](./jagua-rs/README.md)**, a high-performa
 3.  **Output**: Returns nesting solution (layouts and transformations) as JSON.
 
 ## API
-Callers reach the solver at `NESTING_WORKER_URL` — the full endpoint
-including `/nest` (the facade executor's default
-`http://nesting-worker:8000/nest`; a base URL 404s).
+The platform-owned capability adapter reaches `NESTING_WORKER_URL` — the full endpoint including `/nest` (default `http://nesting-worker:8000/nest`; a base URL 404s). Plugin runtimes never call this URL directly.
 
 ### POST /nest
 **Request:**

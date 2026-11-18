@@ -25,7 +25,7 @@ app = FastAPI()
 
 class NestingItem(BaseModel):
     id: int
-    design_id: str
+    source_id: Optional[str] = None
     coords: List[Any] # [[x,y], ...]
     handles: List[str]
     count: int

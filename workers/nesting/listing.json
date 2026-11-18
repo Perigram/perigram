@@ -1,0 +1,119 @@
+{
+  "pluginId": "nesting",
+  "name": "Nesting",
+  "description": "Reusable 2D polygon nesting over generic source parts and stock-sheet geometry",
+  "version": "1",
+  "requires": [],
+  "declarations": {
+    "types": [],
+    "services": [
+      {
+        "id": "nesting-solve",
+        "label": "Solve polygon nesting",
+        "render": {
+          "label": "Nesting solver",
+          "icon": "pi pi-compass"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "items": {
+                "base": "list",
+                "itemType": {
+                  "base": "record",
+                  "fields": {
+                    "sourceId": {
+                      "base": "string"
+                    },
+                    "sourceKey": {
+                      "base": "string",
+                      "nullable": true
+                    },
+                    "parts": {
+                      "base": "list",
+                      "itemType": {
+                        "base": "record",
+                        "fields": {
+                          "coordinates": {
+                            "base": "json"
+                          },
+                          "handles": {
+                            "base": "list",
+                            "itemType": {
+                              "base": "string"
+                            },
+                            "nullable": true
+                          },
+                          "sourceLayers": {
+                            "base": "list",
+                            "itemType": {
+                              "base": "json"
+                            },
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "base": "quantity",
+                      "unit": "count",
+                      "default": 1
+                    }
+                  }
+                }
+              },
+              "sheetWidth": {
+                "base": "quantity",
+                "unit": "mm"
+              },
+              "sheetHeight": {
+                "base": "quantity",
+                "unit": "mm"
+              },
+              "space": {
+                "base": "quantity",
+                "unit": "mm",
+                "default": 3
+              },
+              "sheetPolygon": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        },
+        "description": "Arrange generic polygon parts on rectangular or polygonal stock, preserving source metadata for downstream fabrication workflows",
+        "execution": {
+          "runtime": "nesting-server",
+          "kind": "read",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [
+            "nesting.solve"
+          ],
+          "idempotent": true
+        },
+        "palette": {
+          "group": "nesting",
+          "label": "Nesting"
+        }
+      }
+    ]
+  },
+  "runtimes": [
+    {
+      "id": "nesting-server",
+      "language": "javascript",
+      "version": "1",
+      "entry": "/runtime/server.mjs",
+      "targets": [
+        "server"
+      ]
+    }
+  ]
+}
