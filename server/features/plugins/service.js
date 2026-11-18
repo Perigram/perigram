@@ -1166,7 +1166,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
         recorder.recordFile({
           fileId: capability.input.fileId,
           contentHash: capability.contentHash,
-          organizationId
+          organizationId: capability.organizationId ?? null
         });
       }
       if (readSet && recorder) {
