@@ -13,11 +13,14 @@ authoring, execution policy, file authorization, and Bake/Export destinations.
   file/table reads execute through this provider. File reads request the
   host's authorized `files.read` capability; the plugin receives bytes,
   never platform credentials.
-- Server graph execution: the runtime declares browser/server targets, but
-  the canonical server procedural graph evaluator is not yet wired. Do not
-  interpret a `server` target declaration as proof that a saved graph can
-  currently be executed on the server. This remains an explicit root
-  [TODO](../../TODO.md) item.
+- Server graph execution: saved graphs now execute through authenticated
+  `POST /api/graph-executions/evaluate`. The host resolves installed package
+  pins and runs server-targeted JavaScript pure/read operations through the
+  isolated shared `plugin-runtime` worker. Graph-wide cancellation/deadlines,
+  nested invocation evidence, and per-call capability read evidence are
+  recorded. Unverified capabilities block materialization; proposal/effect/
+  stateful nodes and non-JavaScript runtimes remain unsupported.
+
 - Endpoint services: seven operations remain in the platform-managed
   Documents executor for legacy projections and PDF/construction flows:
   `table-rows`, `table-cells`, `text`, `fill`, `render-pdf`,
@@ -36,16 +39,17 @@ surface assets on port 8791.
 ### XLSX template graph operation
 
 `fill-workbook-template` is declared for browser/server execution in the
-shared runtime, but saved graph invocations currently run through the browser
-provider only. It accepts a typed `documents.file` workbook payload plus a record of values.
-It preserves cell styles, row and column metadata, translates relative A1
-row references when rows move, and expands one-level row sections. Repeated
-rows receive their own merged ranges; ambiguous merges crossing a section
-boundary are dropped rather than producing overlapping cells. Formula
-recalculation is requested on workbook open. Connect `read-file` to this
-operation and Bake its `documents.file` output through the generic
-page-file destination. Theme fills, charts, images, shared/array formulas,
-and external-workbook reference fidelity are not guaranteed.
+shared runtime and can run on the server through the managed graph evaluator
+when the installed JavaScript package pin supports the operation. It accepts
+a typed `documents.file` workbook payload plus a record of values. It
+preserves cell styles, row and column metadata, translates relative A1 row
+references when rows move, and expands one-level row sections. Repeated rows
+receive their own merged ranges; ambiguous merges crossing a section boundary
+are dropped rather than producing overlapping cells. Formula recalculation
+is requested on workbook open. Connect `read-file` to this operation and Bake
+its `documents.file` output through the generic page-file destination. Theme
+fills, charts, images, shared/array formulas, and external-workbook reference
+fidelity are not guaranteed.
 
 ### File-backed graph workflows
 
@@ -76,25 +80,24 @@ this channel for supported file values instead of exposing base64 JSON.
 ### Markdown template graph operation
 
 `fill-markdown-template` is a pure operation in the shared runtime and
-currently executes through the browser graph provider only; its declared
-server target is not runnable until the managed server graph evaluator exists. It accepts template
-text, a record of named values, and an optional output name; unresolved
-placeholders remain visible. Its result is a real
-`text/markdown` file payload and can flow directly into the generic Bake
-path. File selection/read remains an explicit preceding `read-text-file`
-operation using the authorized `files.read` capability.
+executes through browser or managed server graph providers when the installed
+package declares the corresponding target. It accepts template text, a
+record of named values, and an optional output name; unresolved placeholders
+remain visible. Its result is a real `text/markdown` file payload and can flow
+directly into the generic Bake path. File selection/read remains an explicit
+preceding `read-text-file` operation using the authorized `files.read`
+capability.
 
 ### Markdown parsing in the shared provider
 
 `parse-markdown` is a pure Documents operation in the
 `documents-shared` runtime. The browser graph runtime uses the
 `markdown-ir.mjs` adapter to turn Markdown into the typed
-`text.flow-document@1` value; the endpoint-only parser path is retired.
-The runtime declaration also names a server target, but the server
-procedural graph evaluator is not yet wired.
-Unsupported HTML and image constructs remain explicit diagnostics rather
-than silently disappearing. The report adapter re-exports the same parser
-for existing imports.
+`text.flow-document@1` value; the endpoint-only parser path is retired. The
+server evaluator resolves the installed package declaration and executes the
+operation through the shared managed runtime. Unsupported HTML and image
+constructs remain explicit diagnostics rather than silently disappearing.
+The report adapter re-exports the same parser for existing imports.
 
 ### HAG and graph template inputs
 
@@ -108,27 +111,26 @@ PDF graph exposure and round-trip parity acceptance remain open work.
 
 ### PDF graph operation status
 
-PDF template filling and PDF rendering remain available through the
-existing platform-managed Documents executor and the SPEC §24 construction
-contract. They are not yet exposed as server-only procedural graph nodes:
-that depends on the canonical managed server graph evaluator and an
-explicit typed file/capability boundary. DOCX fill/export is not declared
-as a supported template workflow.
+PDF template filling and PDF rendering remain available through the existing
+platform-managed Documents executor and the SPEC §24 construction contract.
+They are not yet exposed as procedural graph nodes: this now depends on a
+typed PDF graph operation/provider and a compatible managed runtime/capability
+boundary. DOCX fill/export is not declared as a supported template workflow.
 
 ### Unified graph provider scope
 
-The `documents-shared` runtime publishes 27 browser graph operations:
-CSV serialization; typed inline and block constructors; Markdown parsing;
-document/report composition and append; HTML rendering; Markdown/HTML file
-exports; Markdown/XLSX template fill; and authorized file, text, and table
-reads. Definitions derive from the installed listing's signatures,
-execution declarations, and palette metadata.
+The `documents-shared` runtime publishes 27 graph operations from its
+installed listing. The managed server evaluator executes server-targeted
+JavaScript pure/read operations; browser/server target declarations alone do
+not grant unsupported capabilities or effect semantics. Definitions derive
+from the installed listing's signatures, execution declarations, and palette
+metadata.
 
 The seven endpoint-mode services are the legacy `text`/table projections,
-construction `fill`, and PDF render/fill operations listed above. The
-remaining work is not provider discovery: it is persisted graph-workspace
-acceptance, managed server graph evaluation, PDF graph-node exposure, and
-installed-catalog upgrade verification.
+construction `fill`, and PDF render/fill operations listed above. Remaining
+work is persisted graph-workspace acceptance, unified capability/effect
+policy and cross-target parity, PDF graph-node exposure, and installed-catalog
+upgrade verification.
 
 ### Graph operation palette
 

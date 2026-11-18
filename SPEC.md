@@ -1488,9 +1488,9 @@ constructs. A graph reads an explicitly selected file through the authorized
 file capability, supplies a named values record, and returns a typed file
 payload. The graph host previews the result and persists it only through an
 explicit Bake/Export destination. Markdown and XLSX have shared-runtime
-graph operations; PDF remains in the managed construction/executor path
-until server graph execution and its typed capability boundary are
-implemented. DOCX fill/export is not part of the current supported scope.
+graph operations; PDF remains in the managed construction/executor path until a typed PDF
+graph operation and compatible managed server provider/capability boundary
+are implemented and verified. DOCX fill/export is not part of the current supported scope.
 
 The HAG fill form and graph authoring share format-specific token
 extractors and substitution rules. For XLSX, scalar `{key}` tokens render
