@@ -115,6 +115,19 @@ test('saved Documents graph renders its Markdown file through the Documents prev
   await page.getByRole('button', { name: 'Bake output' }).click();
   const baked = await bakeResponse;
   expect(baked.ok(), await baked.text()).toBe(true);
+  const bakeResult = await baked.json();
+  expect(bakeResult.execution).toMatchObject({
+    profile: 'procedural-bake',
+    status: 'succeeded',
+    graph: { id: graph.id, revision: graph.revision },
+    artifacts: [expect.objectContaining({
+      kind: 'page-file',
+      pageId: String(destinationPage._id),
+      path: bakedPath,
+      outputId: 'file',
+      sourceExecutionId: expect.any(String)
+    })]
+  });
   const pageDetailResponse = await app.request.get(`/api/pages/${encodeURIComponent(destinationPage._id)}`);
   expect(pageDetailResponse.ok(), await pageDetailResponse.text()).toBe(true);
   const pageDetail = await pageDetailResponse.json();
