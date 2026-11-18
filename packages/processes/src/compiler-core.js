@@ -40,14 +40,17 @@ export { entityLabelOf } from './action-labels.js';
  * Kept here as part of process definition semantics; graph structure and
  * execution are owned by the canonical graph document in @perigram/core.
  */
-export function normalizeGraph(graph = {}) {
+export function normalizeGraph(graph = {}, { includeRefId = false } = {}) {
   return {
-    nodes: Array.isArray(graph.nodes) ? graph.nodes.map(node => ({
-      id: String(node.id || ''),
-      type: node.type || 'default',
-      position: { x: Number(node.position?.x || 0), y: Number(node.position?.y || 0) },
-      data: node.data && typeof node.data === 'object' ? node.data : {}
-    })) : [],
+    nodes: Array.isArray(graph.nodes) ? graph.nodes.map(node => {
+      const refId = String(node.data?.refId || node.id || '');
+      return {
+        id: String(node.id || refId),
+        type: node.type || 'default',
+        position: { x: Number(node.position?.x || 0), y: Number(node.position?.y || 0) },
+        data: { ...(node.data && typeof node.data === 'object' ? node.data : {}), ...(includeRefId ? { refId } : {}) }
+      };
+    }) : [],
     edges: Array.isArray(graph.edges) ? graph.edges.map(edge => {
       const sourceHandle = edge.sourceHandle || inferStoredEdgeHandle(edge, 'source');
       const targetHandle = edge.targetHandle || inferStoredEdgeHandle(edge, 'target');
