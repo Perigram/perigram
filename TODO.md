@@ -96,15 +96,17 @@ provider discovery → typed authoring → preview → file export → Bake.
   Resolve the template input from the graph's connected file value or
   selected file reference; never persist discovered tokens as document data.
   Keep one token grammar and one fill engine per format.
-- [ ] Finish HAG acceptance at the product boundary. Focused tests now cover
-  missing/unknown scalar placeholders, nested/unclosed/mismatched XLSX
+- [ ] Finish HAG acceptance at the product boundary. Focused engine tests
+  cover missing/unknown scalar placeholders, nested/unclosed/mismatched XLSX
   sections, repeat-row expansion (including empty sections), and parity
   between legacy HAG construction and the graph runtime's XLSX engine and
-  token metadata. They have not yet been run on the current staging head.
-  Also add component tests for metadata-to-form wiring and invalid/in-progress
-  JSON-array edits. Remaining: saved graph preview/Bake/reopen parity and
-  persisted provenance. PDF graph exposure remains gated on managed server
-  graph execution; DOCX stays out of scope until separately approved.
+  token metadata; these passed in the successful staging CI run at
+  `c57487d`. Added SSR component coverage for metadata-to-form wiring in the
+  legacy HAG dialog and graph inspector, plus the JSON-array draft contract.
+  Re-run CI on the current head after the PrimeVue test-app setup fix.
+  Remaining: saved graph preview/Bake/reopen parity and persisted provenance.
+  PDF graph exposure remains gated on managed server graph execution; DOCX
+  stays out of scope until separately approved.
 
 - [x] Reconcile HAG acceptance notes with the unified graph provider and
   runtime contracts. HAG construction and graph operations share the
