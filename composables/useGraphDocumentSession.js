@@ -11,6 +11,7 @@ import {
   CORE_DATA_PROVIDER,
   createGraphExecutionRecord,
   evaluateProceduralGraph,
+  lowerGraphToTypedIR,
   normalizeGraphDocument,
   validateGraphDocument
 } from '@perigram/core';
@@ -214,6 +215,15 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
       if (resolved) return normalizeNodeDefinition(resolved);
     }
     return registry.resolve(op.provider, op.id, op.version);
+  }
+
+  // Exact id+revision match against the catalog projection; the clone keeps
+  // core's deep-freeze off the reactive catalog entries.
+  function resolvePinnedGraph(graphId, revision) {
+    const graph = (unref(graphDocuments) || [])
+      .map(item => item?.graph)
+      .find(candidate => candidate?.id === graphId && candidate?.revision === revision);
+    return graph ? cloneJson(graph) : null;
   }
 
   function definitionFor(node) {
@@ -596,10 +606,26 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
       if (semanticProblems.length) {
         throw new Error(semanticProblems.map(problem => problem.message).join('; '));
       }
+      const { diagnostics: loweringDiagnostics } = await lowerGraphToTypedIR({
+        graph,
+        resolveNodeDefinition: (op, invocation) => resolveProviderDefinition(providerPreviewResolvers, op, invocation),
+        resolveGraph: resolvePinnedGraph,
+        resolveCompatibility: (sourcePort, targetPort) => (
+          sourcePort.semantic?.base && targetPort.semantic?.base
+            ? portCompatibility.compare(sourcePort, targetPort)
+            : { status: 'exact', compatible: true, reason: 'Port contracts carry no declared semantics', conversions: [] }
+        ),
+        executionTarget: 'browser'
+      });
+      const loweringErrors = loweringDiagnostics.filter(item => item.severity === 'error');
+      if (loweringErrors.length) {
+        throw new Error(loweringErrors.map(item => item.message).join('; '));
+      }
       const result = await evaluateProceduralGraph({
         graph,
         inputBindings: inputSnapshot,
         resolveNodeDefinition: (op, invocation) => resolveProviderDefinition(providerPreviewResolvers, op, invocation),
+        resolveGraph: resolvePinnedGraph,
         executeNode: async (definition, invocation) => {
           const executor = providerExecutors.get(definition.provider);
           if (!executor) throw new Error(`No runtime is registered for provider ${definition.provider}`);

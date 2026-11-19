@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ref } from 'vue';
 import { useGraphDocumentSession } from './useGraphDocumentSession.js';
 import {
   PROCESS_NODE_CATALOG,
@@ -767,5 +768,209 @@ describe('useGraphDocumentSession', () => {
     });
     expect(session.nodes.value[0].data.definition.inputs[0].shape).toBe('list');
     expect(session.serializeGraph().nodes[0].config.revision).toBe(pinned.revision);
+  });
+
+  it('blocks preview on an incompatible persisted edge before evaluation', async () => {
+    const executions = [];
+    const session = useGraphDocumentSession({
+      t: key => key,
+      providers: [{
+        provider: 'plugin.example',
+        definitions: [
+          {
+            provider: 'plugin.example', id: 'text.block', version: '1',
+            palette: { group: 'documents', label: 'Documents' },
+            inputs: [], outputs: [{ id: 'value', semantic: { base: 'json', kind: 'text.document-block' } }],
+            execution: { kind: 'pure' }
+          },
+          {
+            provider: 'plugin.example', id: 'document.consume', version: '1',
+            palette: { group: 'documents', label: 'Documents' },
+            inputs: [{ id: 'document', semantic: { base: 'json', kind: 'text.flow-document' } }],
+            outputs: [{ id: 'value', semantic: { base: 'json', kind: 'text.flow-document' } }],
+            execution: { kind: 'pure' }
+          }
+        ],
+        execute: (_definition, invocation) => {
+          executions.push(invocation);
+          return {};
+        }
+      }]
+    });
+    const items = session.paletteGroups.value.flatMap(group => group.items);
+    const block = session.addNode(items.find(item => item.operation?.id === 'text.block'), { x: 0, y: 0 });
+    const consumer = session.addNode(items.find(item => item.operation?.id === 'document.consume'), { x: 220, y: 0 });
+    session.edges.value = [{
+      id: 'incompatible-edge',
+      source: block.id,
+      sourceHandle: 'value',
+      target: consumer.id,
+      targetHandle: 'document'
+    }];
+
+    await expect(session.refreshPreview()).resolves.toBeNull();
+
+    expect(executions).toHaveLength(0);
+    expect(session.previewError.value).toContain('Cannot connect value to document');
+    expect(session.previewError.value).toContain('Representation kind does not match');
+    expect(session.executionRecord.value).toMatchObject({ status: 'failed' });
+  });
+
+  it('blocks preview when a node operation is unresolved, with the mapped lowering diagnostics', async () => {
+    const session = createSession();
+    const [input, output] = session.paletteGroups.value[0].items;
+    const inputNode = session.addNode(input, { x: 0, y: 0 });
+    session.updateBoundaryDeclaration(inputNode.id, {
+      contract: { shape: 'item', semantic: { base: 'string' } },
+      required: true
+    });
+    session.addNode(output, { x: 320, y: 0 });
+    const graph = session.serializeGraph();
+    graph.nodes.push({
+      id: 'node-ghost',
+      operation: { provider: 'plugin.missing', id: 'op.gone', version: '1' },
+      config: {},
+      position: { x: 160, y: 0 }
+    });
+    graph.edges.push({
+      id: 'edge-ghost',
+      source: { node: inputNode.id, port: 'value' },
+      target: { node: 'node-ghost', port: 'value' }
+    });
+    session.loadDocument(graph);
+
+    await expect(session.refreshPreview()).resolves.toBeNull();
+
+    expect(session.previewError.value).toContain('plugin.missing/op.gone@1 for node node-ghost is unresolved');
+    expect(session.previewError.value).toContain('Unresolved port contract on target node-ghost:value');
+    expect(session.previewResult.value).toBeNull();
+    expect(session.executionRecord.value).toMatchObject({ status: 'failed' });
+  });
+
+  it('lowers a valid graph and evaluates it through the preflight', async () => {
+    const session = useGraphDocumentSession({
+      t: key => key,
+      providers: [{
+        provider: 'plugin.example',
+        definitions: [{
+          provider: 'plugin.example', id: 'math.increment', version: '1',
+          palette: { group: 'numeric-operations', label: 'Numeric operations' },
+          inputs: [{ id: 'value', semantic: { base: 'number' }, required: true }],
+          outputs: [{ id: 'result', semantic: { base: 'number' }, required: true }],
+          execution: { kind: 'pure', deterministic: true }
+        }],
+        execute: (_definition, { inputs }) => ({ result: inputs.value + 1 })
+      }]
+    });
+    const boundaries = session.paletteGroups.value[0].items;
+    const input = session.addNode(boundaries[0], { x: 0, y: 0 });
+    session.updateBoundaryDeclaration(input.id, {
+      contract: { shape: 'item', semantic: { base: 'number' } },
+      required: true
+    });
+    const node = session.addNode(
+      session.paletteGroups.value.find(group => group.source === 'plugin').items[0],
+      { x: 200, y: 0 }
+    );
+    const output = session.addNode(boundaries[1], { x: 400, y: 0 });
+    session.onConnect({ source: input.id, sourceHandle: 'value', target: node.id, targetHandle: 'value' });
+    session.onConnect({ source: node.id, sourceHandle: 'result', target: output.id, targetHandle: 'value' });
+    session.setGraphInputBinding({ portId: session.graphDocument.value.interface.inputs[0].id, value: 41 });
+
+    const result = await session.refreshPreview();
+
+    expect(session.previewError.value).toBe('');
+    expect(result.outputs).toEqual({ [session.graphDocument.value.interface.outputs[0].id]: 42 });
+    expect(session.executionRecord.value).toMatchObject({ status: 'succeeded' });
+  });
+
+  it('feeds the Use Graph palette from the asynchronously loaded catalog with pinned revisions', async () => {
+    const source = createSession();
+    const [input, output] = source.paletteGroups.value[0].items;
+    source.addNode(input, { x: 0, y: 0 });
+    source.addNode(output, { x: 240, y: 0 });
+    const savedGraph = source.serializeGraph();
+
+    const graphDocuments = ref([]);
+    const session = useGraphDocumentSession({ t: key => key, graphDocuments });
+    const placeholder = session.paletteGroups.value.find(group => group.id === 'graph-invocation');
+    expect(placeholder.items).toHaveLength(1);
+    expect(placeholder.items[0]).toMatchObject({
+      id: 'use-graph',
+      operation: { id: 'perigram.core.use-graph' },
+      config: { graphId: '', revision: '' }
+    });
+
+    let releaseCatalog;
+    const catalog = new Promise(resolve => { releaseCatalog = resolve; });
+    catalog.then(entries => { graphDocuments.value = entries; });
+    releaseCatalog([{ graph: savedGraph }]);
+    await catalog;
+
+    const group = session.paletteGroups.value.find(item => item.id === 'graph-invocation');
+    expect(group.items).toHaveLength(1);
+    expect(group.items[0]).toMatchObject({
+      id: `use-graph:${savedGraph.id}@${savedGraph.revision}`,
+      label: savedGraph.id,
+      operation: { id: 'perigram.core.use-graph' },
+      config: {
+        graphId: savedGraph.id,
+        revision: savedGraph.revision,
+        interface: {
+          inputs: savedGraph.interface.inputs,
+          outputs: savedGraph.interface.outputs
+        }
+      }
+    });
+  });
+
+  it('previews a Use Graph invocation against the exact pinned catalog revision', async () => {
+    const child = createSession();
+    const [childInput, childOutput] = child.paletteGroups.value[0].items;
+    const childInputNode = child.addNode(childInput, { x: 0, y: 0 });
+    child.updateBoundaryDeclaration(childInputNode.id, {
+      contract: { shape: 'item', semantic: { base: 'number' } },
+      required: true
+    });
+    const childOutputNode = child.addNode(childOutput, { x: 240, y: 0 });
+    child.onConnect({
+      source: childInputNode.id, sourceHandle: 'value',
+      target: childOutputNode.id, targetHandle: 'value'
+    });
+    const childGraph = child.serializeGraph();
+    const childInputPort = childGraph.interface.inputs[0].id;
+    const childOutputPort = childGraph.interface.outputs[0].id;
+
+    const graphDocuments = ref([{ graph: childGraph }]);
+    const session = useGraphDocumentSession({ t: key => key, graphDocuments });
+    const invocation = session.addNode(
+      session.paletteGroups.value.find(group => group.id === 'graph-invocation').items[0],
+      { x: 200, y: 0 }
+    );
+    const [input, output] = session.paletteGroups.value[0].items;
+    const inputNode = session.addNode(input, { x: 0, y: 0 });
+    session.updateBoundaryDeclaration(inputNode.id, {
+      contract: { shape: 'item', semantic: { base: 'number' } },
+      required: true
+    });
+    const outputNode = session.addNode(output, { x: 420, y: 0 });
+    session.onConnect({ source: inputNode.id, sourceHandle: 'value', target: invocation.id, targetHandle: childInputPort });
+    session.onConnect({ source: invocation.id, sourceHandle: childOutputPort, target: outputNode.id, targetHandle: 'value' });
+    session.setGraphInputBinding({ portId: session.graphDocument.value.interface.inputs[0].id, value: 21 });
+
+    const result = await session.refreshPreview();
+
+    expect(session.previewError.value).toBe('');
+    expect(result.outputs).toEqual({ [session.graphDocument.value.interface.outputs[0].id]: 21 });
+    expect(session.executionRecord.value.provenance.invocations).toEqual([{
+      nodeId: invocation.id,
+      graphId: childGraph.id,
+      revision: childGraph.revision
+    }]);
+
+    graphDocuments.value = [{ graph: { ...childGraph, revision: 'rev-moved-on' } }];
+    await expect(session.refreshPreview()).resolves.toBeNull();
+    expect(session.previewError.value)
+      .toContain(`Pinned subgraph ${childGraph.id}@${childGraph.revision} is unavailable`);
   });
 });
