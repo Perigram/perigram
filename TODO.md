@@ -1,7 +1,5 @@
 # TODO
 
-
-
 ## Priority: Unified Documents graph usability (owner direction 2026-11-17)
 
 Deliver the first usable Documents graph workflow before broadening format
@@ -771,10 +769,6 @@ G0–G2 (shared canvas, file/surface scaffolding, and canonical graph foundation
 
 - [ ] WAITING — owner verification: G1 resource creation, payload revision
   behavior, record/pane editor mounts, and read-grant presentation.
-- [x] G2 Canonical graph foundation — core document codec, structural
-  validation, Graph Input/Output boundaries, pinned Use Graph evaluator,
-  preview-only procedural evaluation, plugin-SDK provider definitions and
-  exact-version registry, and process data-operation adapter with tests.
 - [ ] G3 Canonical graph editor — direct `perigram.graph` load/edit/save
   now uses a separate session and shared canvas presentation. Provider
   socket cards, graph inspector, Graph Input/Output, dedicated Use Graph
