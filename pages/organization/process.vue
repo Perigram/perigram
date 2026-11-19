@@ -634,8 +634,11 @@ const {
 
 const draft = ref(null);
 
+const processCanvasSource = data => (data?.format === 'perigram.graph'
+  ? (authoredProcessDataFromGraphDocument(data) || data)
+  : data || {});
 const { compareProcessDefinitions, normalizeProcessList, pickInitialProcess } = useProcessDefinitionCatalog({
-  definitionToCanvas: definition => definitionToCanvas(authoredProcessDataFromGraphDocument(definition) || definition)
+  definitionToCanvas: data => definitionToCanvas(processCanvasSource(data))
 });
 const persistence = useProcessDesignerPersistence();
 const rolePersistence = useProcessDesignerRoles();
@@ -788,8 +791,6 @@ const {
   declarationPlaneSignature,
   declarationNodeTypes,
   selectedDeclarationEdge,
-  paletteChipGroups,
-  contextPaletteChipGroups,
   contextPalette,
   openPanePalette,
   closeContextPalette,
@@ -1229,7 +1230,9 @@ const processOptions = computed(() => processDefinitions.value.map(process => ({
 const emptyCanvasMessage = computed(() => {
   if (loadingProcess.value) return t('common.loading');
   if (processLoadError.value) return processLoadError.value;
-  return t('processDesigner.noActiveDraft');
+  return draft.value
+    ? t('processDesigner.emptyGraph')
+    : t('processDesigner.noActiveDraft');
 });
 const roles = computed(() => organizationRoles.value);
 const screens = computed(() => draft.value?.data?.screens || {});

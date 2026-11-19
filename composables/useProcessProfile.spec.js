@@ -36,5 +36,7 @@ describe('useProcessProfile', () => {
     expect(typeof session.loadDocument).toBe('function');
     expect(typeof session.onConnect).toBe('function');
     expect(typeof session.addContextNode).toBe('function');
+    expect(Array.isArray(session.paletteGroups.value)).toBe(true);
+    expect(Array.isArray(session.contextPaletteGroups.value)).toBe(true);
   });
 });

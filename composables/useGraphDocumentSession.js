@@ -770,7 +770,6 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
   }
 
   const contextPaletteGroups = computed(() => paletteGroups.value);
-  const contextPaletteChipGroups = contextPaletteGroups;
 
   return {
     nodes,
@@ -789,7 +788,6 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
     }),
     nodeDefinitions: computed(() => Object.fromEntries(nodes.value.map(node => [node.id, definitionFor(node)]))),
     contextPaletteGroups,
-    contextPaletteChipGroups,
     contextPalette,
     contextPaletteSearch,
     selectedNode: selection.selectedNode,

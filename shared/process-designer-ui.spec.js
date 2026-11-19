@@ -77,6 +77,16 @@ describe('process designer interaction boundaries', () => {
     expect(catalog.pickInitialProcess(active, list)).toBe(active);
   });
 
+  it('keeps the full active record when the list repeats it as a summary', () => {
+    const catalog = useProcessDefinitionCatalog({ definitionToCanvas });
+    const current = createPersistedAcceptanceFixture().processDefinition;
+    const summary = { _id: current._id, states: { main: 'ACTIVE' } };
+
+    const list = catalog.normalizeProcessList(current, [summary]);
+
+    expect(list.find(item => item._id === current._id)).toBe(current);
+  });
+
   it('falls through an unprojectable active record to a current draft', () => {
     const catalog = useProcessDefinitionCatalog({
       definitionToCanvas: definition => {

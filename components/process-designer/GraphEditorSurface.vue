@@ -212,7 +212,6 @@ const {
   previewRunning,
   paletteGroups,
   contextPaletteGroups,
-  contextPaletteChipGroups,
   contextPalette,
   selectedNode,
   selectedBoundaryDeclaration,
