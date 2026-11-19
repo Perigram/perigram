@@ -41,12 +41,18 @@ const prepared = paths.map(path => {
   const packageRoot = resolve('workers', listing.pluginId);
   const declaredAssets = [
     ...(listing.declarations.runtimes || []).map(runtime => ({ entry: runtime.entry, language: runtime.language })),
-    ...(listing.declarations.surfaces || []).map(surface => ({ entry: surface.module, language: 'javascript' }))
+    ...(listing.declarations.surfaces || []).map(surface => ({ entry: surface.module, language: 'javascript' })),
+    // Declared dependency modules and their relative chunks are package
+    // assets: the managed runtime's import map and the module proxy's
+    // vendor scope both serve them from organization-owned storage.
+    ...(listing.declarations.dependencies || [])
+      .filter(dependency => dependency?.module && !String(dependency.module).startsWith('plugin:'))
+      .map(dependency => ({ entry: dependency.module, language: 'javascript', vendor: true }))
   ];
   const byPath = new Map();
-  for (const { entry, language } of declaredAssets) {
+  for (const { entry, language, vendor } of declaredAssets) {
     if (!entry) continue;
-    for (const asset of collectRuntimeAssetFiles(packageRoot, entry, language)) {
+    for (const asset of collectRuntimeAssetFiles(packageRoot, entry, language, { vendor })) {
       byPath.set(asset.path, asset);
     }
   }

@@ -243,7 +243,7 @@ wire authoring, and full UI-authored graph persistence remain open.
   snapshots. Verify upgrade behavior against an installation carrying the
   previous declaration version; record catalog and installed versions in
   regression coverage.
-- [ ] Finish the Documents execution classification and endpoint migration.
+- [ ] WAITING — owner verification: Finish the Documents execution classification and endpoint migration.
   Current inventory: 27 `documents-shared` managed operations are exposed as
   browser graph nodes; their listing also declares `server`. The authenticated
   managed server evaluator now runs installed JavaScript pure/read nodes and
@@ -256,6 +256,50 @@ wire authoring, and full UI-authored graph persistence remain open.
   For each, decide whether to move it behind a managed runtime/capability or
   retire it after its consumer migrates. Built-in platform executor endpoints
   are not external integrations and must not require organization URL setup.
+
+### Agent Notes (2026-11-19, agent/documents-migration-20261119-2115)
+
+All seven services migrated behind managed runtimes; the Documents
+endpoint executor deployment retired. Listing advanced v33 → v34 (one
+coherent version).
+
+| Service | Mechanism |
+|---|---|
+| `text`, `table-rows`, `table-cells` | pure server operations of `documents-shared`; `resolveProjectionValue` executes them through the new synchronous managed projection boundary (`server/features/plugins/sync-runtime.js`): in-process data:-URL import of the pinned organization package's runtime entry, manifest digest gate on the executed entry, capability-refusing context, bounded deadline |
+| `fill`, `render-pdf`, `render-report-pdf`, `render-document-pdf` | pure server operations of the new `documents-server` runtime (`workers/documents/runtime/server.mjs`, entry unbundled source); construction dispatch goes through `invokeConstructionValueService` → `invokeManagedValueService` (enqueue + await the isolated `plugin-runtime` task) |
+
+- pdf-lib (MIT), @pdf-lib/fontkit (MIT), pdfjs-dist legacy build
+  (Apache-2.0), and marked (MIT) ship as declared listing dependencies
+  vendored under `assets/vendor/`; the seed now collects declared
+  dependency modules and their chunks into the catalog package (also
+  closing the milkdown vendor-asset gap for org-owned surface serving);
+  the plugin-runtime Deno child resolves them through the generated
+  import map. PT Sans fonts ship as package assets via static
+  `new URL` references.
+- SDK contract: a projection service resolve accepts endpoint mode or a
+  managed pure server operation; `marked` may be declared as a
+  dependency for server runtimes while the surface check refuses it in
+  surface module graphs.
+- Retired: `workers/documents/index.js` + `services.js` (executor and
+  endpoint dispatch), the compose `documents-executor` service and
+  `DOCUMENTS_EXECUTOR_URL` wiring (dev compose + deploy.sh + seed env),
+  the `BUILTIN_EXECUTORS.documents` origin, and the
+  `app.connectPlugin('documents', …)` calls in e2e specs.
+- `render-document-pdf`/`render-report-pdf` now pass the server
+  graph-node gate (palette-grouped, managed, server target), so the
+  managed evaluator lists them as PDF export graph nodes;
+  graph-side PDF format acceptance stays open.
+- Validation: focused vitest 530 tests green across
+  workers/documents, packages/plugin-sdk, server/features/plugins,
+  server/features/instances, server/features/graph-executions (worktree
+  alias config per the root README caveat); `documents:runtime:build`
+  rebuilt self-contained (no bare imports). Live: catalog seeded at
+  v34 (173 package assets), fresh org install materialized the
+  organization package, `fill` and `render-document-pdf` executed
+  SUCCEEDED through the live plugin-runtime container with correct
+  markdown/PDF output bytes and token metadata. The running dev app
+  still executes the previous platform code, so the dev org's v33
+  install upgrades after this merges.
 - [ ] Implement the managed server graph execution path. Split acceptance:
   - [x] Resolve the root saved graph and recursively pinned Use Graph
     revisions through the caller's organization read grants. The service-level
@@ -457,15 +501,19 @@ providers.
   and every declared construction/service. Verify each workflow and close
   behavior/spec gaps.
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
-  hosting. Current inventory: 7 of 28 Documents services and 2 of 6 Facade services remain
-  `mode: endpoint`; The independent Nesting plugin owns `nesting-solve` in its managed server runtime
+  hosting. Current inventory: all 34 declared Documents services run behind
+  managed runtimes or the synchronous managed projection boundary; the
+  documents executor deployment is retired. Facade keeps 2 of 6 services in
+  `mode: endpoint`: `extract-geometry` and `nesting-parts`. The independent Nesting plugin owns `nesting-solve` in its managed server runtime
   through the platform-owned `nesting.solve` capability; Facade requires Nesting
   and adapts OCCS geometry into generic source parts. Pure
   `bake`, `match-sheet`, `construct-sheet`, `generate-sheet-dxf`, and all
   declared Documents `documents-shared` operations run in their shared
   browser/server runtimes; the Nesting plugin's `nesting-solve` runs server-only
   through the managed host capability. `nesting-parts` remains a synchronous endpoint-backed
-  projection pending a provider-compatible synchronous host boundary. Classify each operation by execution target: browser-local
+  projection pending adoption of the synchronous managed projection boundary
+  (`server/features/plugins/sync-runtime.js`, built for the Documents
+  migration). Classify each operation by execution target: browser-local
   pure compute, platform-managed server compute, or explicit remote
   integration. Move local-eligible operations behind the shared
   provider/runtime contract; route nesting solver transport through a
@@ -917,7 +965,7 @@ current home retires.
 | Process node catalog (`PROCESS_NODE_CATALOG`, species sets, `resolveCatalogNodePorts`) + value/collection operation registry | `packages/processes/src/{node-catalog,operations}.js` | migration subject → shared versioned operation contract | designer, evaluator, server, agent-bots | `procedural-provider.js` builds sdk definitions (production-unwired; spec-only consumers) | after §30.11 gate 5 parity |
 | Core data provider (`perigram.core.data/query.instances`) | `packages/core/src/graph-data-provider.js` | core ✓ | browser graph session, server evaluator | adapts host `queryInstances` capability + read set | capability id `cts.instances.read` diverges from runtime `organization.instances.read` (defect) |
 | Server-derived graph node definitions (`resolveInstalledGraphNodeDefinition`, `listInstalledGraphNodeDefinitions`) | `server/features/plugins/service.js` | plugin-sdk — derivation runs through `normalizeNodeDefinition` (same normalization as the browser session), `packagePin` carried on top | server graph evaluator, agent-bots discovery, preview value services | `graphNodePortContract` (signature → port contract) | converged on sdk normalization 2026-11-19; parity fixture in `plugins.spec.js` |
-| Endpoint-mode services (documents ×7: `table-rows`, `table-cells`, `text`, `fill`, `render-pdf`, `render-report-pdf`, `render-document-pdf`; facade ×2: `extract-geometry`, `nesting-parts`) | `workers/*/listing.json` | listing declarations (dispatch derived from listing) | endpoint executors, `callEndpointService` | — | per the endpoint-migration task in the Documents/Facade program |
+| Endpoint-mode services (facade ×2: `extract-geometry`, `nesting-parts`) | `workers/*/listing.json` | listing declarations (dispatch derived from listing) | endpoint executors, `callEndpointService` | — | per the endpoint-migration task in the Documents/Facade program; documents ×7 retired into managed runtimes + the synchronous managed projection boundary (2026-11-19) |
 
 #### Evaluators
 

@@ -30,7 +30,7 @@ vi.mock('../plugins/repository.js', () => ({
   findDeclarationByTypeId: vi.fn()
 }));
 vi.mock('../plugins/service.js', () => ({
-  executeConnectorService: vi.fn(),
+  invokeConstructionValueService: vi.fn(),
   constructionsForOrganization: vi.fn(async () => ({}))
 }));
 vi.mock('../workflow-overrides/service.js', () => ({
@@ -43,7 +43,7 @@ vi.mock('../cts-types/repository.js', () => ({
 }));
 
 import { applyConstructionService, previewConstructionService, serviceBackedConstruction, storedConstructionDraft } from './construction-services.js';
-import { executeConnectorService, constructionsForOrganization } from '../plugins/service.js';
+import { invokeConstructionValueService, constructionsForOrganization } from '../plugins/service.js';
 import * as filesService from '../files/service.js';
 import * as pluginInstalls from '../plugins/repository.js';
 import * as revisionService from '../instance-revisions/service.js';
@@ -110,13 +110,13 @@ const CONTEXT = { userId: 'u1', organizationId: 'org-1', role: 'admin' };
 const b64 = value => Buffer.from(value, 'utf8').toString('base64');
 
 function executorOutput(output) {
-  executeConnectorService.mockResolvedValueOnce(output);
+  invokeConstructionValueService.mockResolvedValueOnce(output);
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockedHasInstanceAccess.mockReturnValue(true);
-  executeConnectorService.mockReset();
+  invokeConstructionValueService.mockReset();
   connectDB.mockResolvedValue(db);
 });
 
@@ -189,9 +189,9 @@ describe('service-backed construction executor payloads (SPEC §24)', () => {
       mapping: { SOURCE: 'cut.outer' }
     }, CONTEXT);
 
-    const [, call] = executeConnectorService.mock.calls[0];
-    expect(call.parameters.mode).toBe('upload');
-    expect(call.parameters.draft.data).toEqual({ mapping: { SOURCE: 'cut.outer' } });
+    const [, call] = invokeConstructionValueService.mock.calls[0];
+    expect(call.mode).toBe('upload');
+    expect(call.draft.data).toEqual({ mapping: { SOURCE: 'cut.outer' } });
   });
 
   it('refuses an executor mime the declared traits reject and deletes the stored blob', async () => {
@@ -234,7 +234,7 @@ describe('service-backed construction executor payloads (SPEC §24)', () => {
     const draft = { name: 'X', fields: { a: 1 } };
     const merged = await applyConstructionService('report', 'fromTemplate', draft, { userId: 'u1', organizationId: 'org-2' });
     expect(merged).toBe(draft);
-    expect(executeConnectorService).not.toHaveBeenCalled();
+    expect(invokeConstructionValueService).not.toHaveBeenCalled();
   });
 
   it('refuses with the structured failures body an executor refusal names (SPEC §24)', async () => {
@@ -265,11 +265,11 @@ describe('service-backed construction executor payloads (SPEC §24)', () => {
       data: { template: 't1', parts: ['p1', 'p2'] }
     }, CONTEXT);
 
-    const [, call] = executeConnectorService.mock.calls[0];
-    expect(call.parameters.refs.template.name).toBe('Sheet template');
-    expect(call.parameters.refs.template.payloadBase64).toBe(b64('uploaded'));
-    expect(call.parameters.refs.parts.map(part => part.name)).toEqual(['frame', 'logo']);
-    expect(call.parameters.refs.parts.every(part => part.payloadBase64 === b64('uploaded'))).toBe(true);
+    const [, call] = invokeConstructionValueService.mock.calls[0];
+    expect(call.refs.template.name).toBe('Sheet template');
+    expect(call.refs.template.payloadBase64).toBe(b64('uploaded'));
+    expect(call.refs.parts.map(part => part.name)).toEqual(['frame', 'logo']);
+    expect(call.refs.parts.every(part => part.payloadBase64 === b64('uploaded'))).toBe(true);
     expect(merged.payload.fileId).toBe('stored-Site plan.dxf');
   });
 
@@ -287,7 +287,7 @@ describe('service-backed construction executor payloads (SPEC §24)', () => {
       ...CONTEXT,
       executionAuth: { userId: 'u1', organizationId: 'org-1', memberships: [] }
     })).rejects.toMatchObject({ statusCode: 403 });
-    expect(executeConnectorService).not.toHaveBeenCalled();
+    expect(invokeConstructionValueService).not.toHaveBeenCalled();
     expect(filesService.getFileBuffer).not.toHaveBeenCalled();
   });
 
@@ -343,7 +343,7 @@ describe('construction preview (SPEC §24)', () => {
   it('answers null when the org binds no service for the mode', async () => {
     await expect(previewConstructionService('drawing', 'fill', {}, CONTEXT)).resolves.toBe(null);
     await expect(previewConstructionService('drawing', 'place', {}, { userId: 'u1', organizationId: 'org-2' })).resolves.toBe(null);
-    expect(executeConnectorService).not.toHaveBeenCalled();
+    expect(invokeConstructionValueService).not.toHaveBeenCalled();
   });
 
   it('refuses 400 without organization context', async () => {
@@ -441,9 +441,9 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
       { type: 'dxftpl', id: 't1', revision: 'rev-9' },
       { type: 'dxftpl', id: 'p1', revision: 'rev-9' }
     ]);
-    const [, call] = executeConnectorService.mock.calls[0];
-    expect(call.parameters.refs.template.revision).toBe('rev-9');
-    expect(call.parameters.pins).toEqual({
+    const [, call] = invokeConstructionValueService.mock.calls[0];
+    expect(call.refs.template.revision).toBe('rev-9');
+    expect(call.pins).toEqual({
       template: { type: 'dxftpl', id: 't1', revision: 'rev-9' },
       parts: [{ type: 'dxftpl', id: 'p1', revision: 'rev-9' }]
     });
@@ -475,8 +475,8 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
       data: { template: 't1', parts: [{ id: 'p1', spot: 'Marker' }] }
     }, CONTEXT);
 
-    const [, call] = executeConnectorService.mock.calls[0];
-    expect(call.parameters.refs.parts[0]).toMatchObject({ id: 'p1', spot: 'Marker', revision: 'rev-9' });
+    const [, call] = invokeConstructionValueService.mock.calls[0];
+    expect(call.refs.parts[0]).toMatchObject({ id: 'p1', spot: 'Marker', revision: 'rev-9' });
     expect(merged.fields.parts).toEqual([{ type: 'dxftpl', id: 'p1', revision: 'rev-9' }]);
   });
 
@@ -494,9 +494,9 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
       data: { template: { type: 'dxftpl', id: 't1', revision: 'rev-3' } }
     }, CONTEXT);
 
-    const [, call] = executeConnectorService.mock.calls[0];
-    expect(call.parameters.refs.template.payloadBase64).toBe(b64('frozen'));
-    expect(call.parameters.refs.template.revision).toBe('rev-3');
+    const [, call] = invokeConstructionValueService.mock.calls[0];
+    expect(call.refs.template.payloadBase64).toBe(b64('frozen'));
+    expect(call.refs.template.revision).toBe('rev-3');
     expect(merged.fields.template).toEqual({ type: 'dxftpl', id: 't1', revision: 'rev-3' });
   });
 

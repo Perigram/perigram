@@ -132,6 +132,13 @@ package into a restricted subprocess and requests host capabilities through
 claim-bound routes. Server-side process preview dispatches endpoint services
 through the endpoint adapter and managed pure/read services through this same
 pinned worker path; effectful services remain forbidden in preview.
+Construction fills and renders (SPEC §24) dispatch through
+`invokeConstructionValueService` — endpoint services through the endpoint
+adapter, managed services through `invokeManagedValueService`, which
+enqueues the isolated task and awaits its value so the create and preview
+flows resolve in one request; the operation resolves from the installed
+service snapshot directly, so palette-hidden construction helpers stay
+dispatchable while staying out of graph-node discovery.
 
 The capability adapter in `capabilities.js` validates the installed version,
 runtime target, operation declaration, and capability allowlist
@@ -222,21 +229,36 @@ from the Plugins page's connector panel. Authoring and hosting
 (including the executor implementations for both modes) is documented
 in the [plugin SDK](../../../packages/plugin-sdk/README.md).
 
-Built-in executor and surface origins are deployment-owned: the documents/facade migration scripts persist `executorOrigin` and `platformManaged`, and the organization settings API refuses attempts to replace those origins or credentials. The organization settings UI exposes these connections as read-only platform-managed state. Third-party endpoint integrations remain configurable at provider scope.
+Built-in executor and surface origins are deployment-owned: the facade migration script persists `executorOrigin` and `platformManaged`, and the organization settings API refuses attempts to replace those origins or credentials. The organization settings UI exposes these connections as read-only platform-managed state. Third-party endpoint integrations remain configurable at provider scope. The documents plugin declares only managed runtimes; its migration script clears stale executor origins and its operations resolve through organization-owned package assets.
 
 ### Service-resolved projections
 
 SPEC §8 p extract: a listing's type projections may resolve through a
-declared plugin service (`resolve: { service: 'plugin.<id>.<svc>' }`)
-— transitional endpoint mode only, a projection is a synchronous read and cannot
-park on the claim queue (the SDK contract refuses the rest, including
-`handler` resolves, which only endpoint executors bind). The platform
+declared plugin service (`resolve: { service: 'plugin.<id>.<svc>' }`) —
+either an endpoint-mode service or a managed pure server operation (the
+SDK contract refuses the rest, including `handler` resolves, which only
+endpoint executors bind). A projection is a synchronous read inside the
+caller's request and parks on no queue. The platform
 reads the target instance and dispatches `{ typeId, instanceId, fields,
-payloadBase64? }` to the service — the instance's §3 field values and,
+payloadBase64? }` — the instance's §3 field values and,
 when it carries one, its payload as base64; the service's JSON response
 is the projection value (`resolveProjectionValue` here; the process
 runtime's `projectEntity` calls it). Pure compute over values — the
 platform carries no plugin code.
+
+A managed projection resolves through the synchronous managed boundary
+(`sync-runtime.js` here): it loads the pinned organization package's
+runtime entry in-process through a content-digest-keyed data:-URL import
+and executes the declared operation with a capability-refusing context
+and a bounded deadline. The gates mirror the async worker path — the
+installed pin, the manifest entry and its content digest, the operation
+declaration (pure kind, JavaScript runtime, server target) — with the
+entry's digest verified because it is the only asset the boundary
+executes. A projection runtime's entry must therefore be a
+self-contained module (the Documents shared bundle is built that way);
+a load failure answers `502` and a deadline answers `504`. The boundary
+serves any installed plugin's pure server operations; Facade's
+`nesting-parts` adopts it when that plugin migrates.
 
 ### Starter constructs
 

@@ -38,7 +38,6 @@ services:
       - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
       - PLATFORM_OPERATOR_TOKEN=${PLATFORM_OPERATOR_TOKEN:-perigram-dev-operator}
       - FACADE_EXECUTOR_URL=${FACADE_EXECUTOR_URL:-http://facade-executor:8790}
-      - DOCUMENTS_EXECUTOR_URL=${DOCUMENTS_EXECUTOR_URL:-http://documents-executor:8791}
       - TECH_DRAWING_EXECUTOR_URL=${TECH_DRAWING_EXECUTOR_URL:-http://tech-drawing-executor:8792}
       - BUILD123D_EXECUTOR_URL=${BUILD123D_EXECUTOR_URL:-http://build123d-executor:8793}
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
@@ -207,19 +206,6 @@ services:
     environment:
       - FACADE_EXECUTOR_PORT=8790
     command: node workers/facade/index.js
-    restart: unless-stopped
-
-  # The documents plugin's executor (endpoint mode): table projections,
-  # text extraction, and CSV composition over values; serves the text/csv
-  # editor surfaces and their vendored runtimes as static GETs.
-  documents-executor:
-    image: node:24-alpine
-    working_dir: /src
-    volumes:
-      - .:/src
-    environment:
-      - DOCUMENTS_EXECUTOR_PORT=8791
-    command: node workers/documents/index.js
     restart: unless-stopped
 
   # The tech-drawing plugin (declarations-only plugin, no
