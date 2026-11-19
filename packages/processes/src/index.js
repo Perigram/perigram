@@ -68,6 +68,7 @@ export {
   applyFieldDisplayRole,
   compileTreeDeclarations,
   declarationNodePorts,
+  genericPaletteItemForKind,
   interpretDeclarationEdges,
   prepareAuthoredDefinition,
   operationKindOf,

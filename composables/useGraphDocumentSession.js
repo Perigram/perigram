@@ -57,7 +57,7 @@ export function createEmptyGraphDocument({ id = stableId('graph'), name = '' } =
   };
 }
 
-export function useGraphDocumentSession({ t, providers = [], definitions = [], nodeResolvers = [], previewResolvers = [], compatibilityProfiles = [], frameworkProviders = [], executors = {}, graphDocuments = [], queryOrganizationData = null, finalizeExecution = null }) {
+export function useGraphDocumentSession({ t, te, providers = [], definitions = [], nodeResolvers = [], previewResolvers = [], compatibilityProfiles = [], frameworkProviders = [], executors = {}, graphDocuments = [], queryOrganizationData = null, finalizeExecution = null, definitionText = null }) {
   const graphDocument = ref(createEmptyGraphDocument());
   const { nodes, edges } = createGraphAuthoringState();
   const validation = ref(null);
@@ -82,6 +82,9 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
   });
 
   const registry = createNodeProviderRegistry();
+  // Host-supplied vocabulary for framework definitions: localized label
+  // and description overrides for palette rows and node cards.
+  const definitionTextOf = typeof definitionText === 'function' ? definitionText : () => null;
   const portCompatibility = createPortCompatibilityRegistry();
   for (const registerProfile of compatibilityProfiles) registerProfile(portCompatibility);
   for (const definition of definitions) registry.register(definition);
@@ -180,10 +183,11 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
         label: definition.palette?.label || '',
         items: []
       });
+      const text = definitionTextOf(definition);
       grouped.get(groupKey).items.push({
         id: `${definition.provider}:${definition.id}@${definition.version}`,
-        label: definition.label,
-        description: definition.description || '',
+        label: text?.label || definition.label,
+        description: text?.description || definition.description || '',
         keywords: definition.palette?.keywords || [],
         searchTerms: [definition.provider, definition.id, family],
         signal: groupSignals[family] || 'data',
@@ -276,13 +280,14 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
   function enrichNode(node) {
     const definition = definitionFor(node);
     const group = definition?.palette?.group || '';
+    const text = definitionTextOf(definition);
     return {
       ...node,
       type: 'graphNode',
       data: {
         ...node.data,
         definition,
-        label: definition?.label || node.data.label || node.data.operation?.id || t('processDesigner.unknownNode'),
+        label: text?.label || definition?.label || node.data.label || node.data.operation?.id || t('processDesigner.unknownNode'),
         groupLabel: definition?.palette?.label || groupLabels[group] || (group ? humanizePaletteGroup(group) : t('processDesigner.graphBoundaries')),
         error: node.data.error || ''
       }

@@ -111,8 +111,10 @@ import {
   createProcessGraphNodeResolver,
   createProcessProceduralNodeResolver,
   createProcessProceduralExecutor,
+  genericPaletteItemForKind,
   registerProcessPortCompatibilityProfile
 } from '#packages/processes';
+import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
 
 const props = defineProps({
   record: { type: Object, default: null },
@@ -132,9 +134,17 @@ const props = defineProps({
   canvasNodesChange: { type: Function, default: null }
 });
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const toast = useToast();
 const readOnly = computed(() => props.mode === 'read');
+const { paletteLabel, paletteDescription } = createPaletteText({ t, te });
+// The process provider's graph rows read the process palette vocabulary:
+// one concept one label in both editors (the kind's generic palette item).
+function processDefinitionText(definition) {
+  if (definition?.provider !== PROCESS_PROCEDURAL_PROVIDER) return null;
+  const item = genericPaletteItemForKind(definition.id);
+  return item ? { label: paletteLabel(item), description: paletteDescription(item) } : null;
+}
 const loading = ref(true);
 const loadError = ref('');
 const saving = ref(false);
@@ -186,6 +196,7 @@ const queryOrganizationData = query => $fetch('/api/graph-executions/query', {
 });
 const defaultSession = props.session ? null : useGraphDocumentSession({
   t,
+  te,
   providers: props.nodeProviders,
   definitions: processNodeDefinitions,
   nodeResolvers: [processGraphResolver],
@@ -195,7 +206,8 @@ const defaultSession = props.session ? null : useGraphDocumentSession({
   executors: { [PROCESS_PROCEDURAL_PROVIDER]: processExecutor },
   graphDocuments,
   finalizeExecution: pluginRuntime.finalizeExecution,
-  queryOrganizationData
+  queryOrganizationData,
+  definitionText: processDefinitionText
 });
 const session = props.session || defaultSession;
 const {

@@ -232,6 +232,19 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   items: Object.freeze(group.items)
 })));
 
+// The kind's generic palette vocabulary: the item a node of this kind
+// reads before authored variants specialize it. Preference: un-narrowed
+// presets, then non-entityRef presets (the entityRef-typed literal is
+// the pinned-entity variant), then the first item.
+export function genericPaletteItemForKind(kind = '') {
+  const candidates = PROCESS_DESIGNER_PALETTE_GROUPS
+    .flatMap(group => group.items)
+    .filter(item => item.kind === kind);
+  return candidates.find(item => !item.preset?.operator && !item.preset?.select && !item.preset?.type?.base)
+    || candidates.find(item => !item.preset?.operator && !item.preset?.select && item.preset?.type?.base !== 'entityRef')
+    || candidates[0] || null;
+}
+
 // Declaration-plane wire legality (SPEC §20/§21 one tree): declaration
 // canvas nodes wire only to declaration partners. Field/state nodes declare
 // on a class node; class/type-reference nodes bind the `type` of a cts.*
