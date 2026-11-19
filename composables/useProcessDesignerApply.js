@@ -79,7 +79,7 @@ export function useProcessDesignerApply({
     }
   }
 
-  async function saveDraftFromDock() {
+  async function saveDraftWithToast() {
     const createsDraft = !draft.value?._id;
     try {
       if (!await saveDraft()) return;
@@ -247,7 +247,7 @@ export function useProcessDesignerApply({
     applyState,
     applyDetail,
     saveDraft,
-    saveDraftFromDock,
+    saveDraftWithToast,
     activateDraft,
     applyProcess,
     confirmApplyMigration,
