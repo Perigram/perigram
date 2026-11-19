@@ -61,6 +61,10 @@ the main palette and socket-context palette use the same search contract.
 Preview input controls follow the interface contract: strings, numbers,
 integers, and booleans use native controls, while structured and collection
 values use a JSON editor with declared base, shape, and nullability checks.
+Output representations derive from the shared graph-output view contract
+([utils](../../utils/README.md) `graphOutputViews`): text, markdown,
+tables, images, documents, scene values, plugin renderers, with JSON as
+the explicit fallback view.
 
 The inspector renders node configuration properties from each
 definition's JSON schema and edits graph interface transport shape,
