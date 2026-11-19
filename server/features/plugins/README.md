@@ -115,7 +115,12 @@ definition only declares eligibility and is not an execution endpoint.
 installed graph-node definition that passes
 `resolveInstalledGraphNodeDefinition`'s own gate for the caller's
 organization — the discovery surface for graph authoring; services the
-gate refuses stay unlisted.
+gate refuses stay unlisted. Both derive the provider contract through the
+sdk node-contract normalizer
+([plugin-sdk](../../../packages/plugin-sdk/README.md#provider-neutral-node-contracts))
+— the same normalization the browser session applies to resolved
+definitions — with the server-side `packagePin` execution provenance
+carried on top.
 
 ### Service execution
 
