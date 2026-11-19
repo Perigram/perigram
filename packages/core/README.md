@@ -124,6 +124,141 @@ authorization, provider execution bindings, preview rendering, Commit, Bake,
 and Export are host responsibilities. The architecture contract is
 [ root SPEC §28](../../SPEC.md#28-unified-node-graph-system).
 
+## Authoring DSL
+
+One language-independent structured authoring schema underlies the textual
+syntax and JSON payload authoring described in
+[SPEC §30.9.1](../../SPEC.md#3091-textual-dsl-and-structured-authoring). Both
+encodings lower deterministically into a canonical `perigram.graph` document;
+the syntax stays replaceable behind the schema.
+
+### Structured schema (`perigram.graph-authoring` v1)
+
+`normalizeAuthoringDocument` and `validateAuthoringDocument` own the schema
+law. Normalized documents are deep-frozen and JSON-pure:
+
+```json
+{
+  "format": "perigram.graph-authoring",
+  "version": 1,
+  "id": "graph.document",
+  "revision": "rev-01",
+  "name": "Document graph",
+  "description": "Compose a document",
+  "interface": {
+    "inputs": [
+      { "id": "source",
+        "contract": { "shape": "item", "semantic": { "base": "entityRef" } },
+        "required": true, "label": "Source", "default": { "kind": "draft" } }
+    ],
+    "outputs": []
+  },
+  "nodes": [
+    { "id": "format-1",
+      "operation": { "provider": "plugin.documents", "id": "document.compose", "version": "3" },
+      "config": { "template": "brief" },
+      "capabilities": ["documents:read"], "effects": ["read"] },
+    { "id": "sub", "invoke": { "graphId": "graph.child", "revision": "rev-2" },
+      "capabilities": [], "effects": [] }
+  ],
+  "edges": [
+    { "id": "edge-1", "source": { "node": "source", "port": "value" },
+      "target": { "node": "format-1", "port": "source" } }
+  ],
+  "presentation": { "positions": { "format-1": { "x": 20, "y": 40 } } }
+}
+```
+
+| Rule | Law |
+|---|---|
+| Node kind | Each node declares exactly one of `operation` (provider-qualified, pinned version) or `invoke` (pinned subgraph revision). Core boundary and invocation operations are reserved: authoring rejects them as direct node operations. |
+| Declarations | `capabilities` and `effects` are arrays of non-empty strings the author declares for the invocation. |
+| `presentation` | Editor-only JSON object; evaluation and typed-IR lowering ignore it. |
+| Identities | Graph, node, and edge ids follow the graph id pattern; interface port ids are unique across both directions and distinct from node ids, because each port lowers to a boundary node under its port id. |
+| Edge ids | An omitted edge id synthesizes `edge-<position>` (1-based, document order). |
+| Unknown keys | Unknown keys at any level are validation problems (`unknown-key` with the document path); normalization drops them. |
+
+### Reader grammar
+
+`readRestrictedEdn(source)` returns `{ forms, diagnostics }` for the
+restricted EDN-inspired grammar: lists `()`, vectors `[]`, maps `{}`,
+double-quoted strings, integers and floats (optional `-`, optional exponent),
+`true`, `false`, `nil`, and simple or qualified keywords
+(`:base`, `:plugin.documents/document.compose`). Whitespace and commas
+separate forms; `;` comments run to end of line. Every other token — symbols,
+`#` reader macros, any other character — is a diagnostic. Every form carries
+`pos: { line, column, span: { start, end } }` (1-based line and column,
+0-based character offsets); every diagnostic carries the position of the
+offending form.
+
+### Form vocabulary
+
+```scheme
+(:graph "graph.document" "rev-01"
+  (:name "Document graph")
+  (:description "Compose a document")
+  (:interface
+    (:input "source" :item {:base "entityRef"}
+      {:label "Source" :required false :default {:kind "draft"}})
+    (:output "document" :item {:base "document"}))
+  (:node "format-1" :plugin.documents/document.compose "3"
+    {:template "brief"} {:capabilities ["documents:read"] :effects ["read"]})
+  (:invoke "sub" "graph.child" "rev-2" {:effects ["call"]})
+  (:connect :source/value :format-1/source)
+  (:connect "edge-2" :format-1/document :sub/source {:kind :control})
+  (:presentation {:positions {:format-1 {:x 20 :y 40}}}))
+```
+
+| Form | Shape | Lowers to |
+|---|---|---|
+| `(:graph id revision body*)` | exactly one, the document root | graph identity and revision |
+| `(:name s)`, `(:description s)` | once each | graph name / description |
+| `(:interface port*)` | once | declared interface ports |
+| `(:input id :shape semantic options?)`, `(:output …)` | inside `:interface` | port plus synthesized boundary node |
+| `(:node id :provider/op "version" config? options?)` | any count | node with pinned operation and JSON config |
+| `(:invoke id graphId revision options?)` | any count | `perigram.core.use-graph` node pinned to the subgraph revision |
+| `(:connect endpoint endpoint)`, `(:connect id endpoint endpoint options?)` | any count | edge; omitted ids synthesize `edge-<n>` in form order |
+| `(:presentation map)` | once | `metadata.presentation` |
+
+Connection endpoints are qualified keywords `:node-id/port` referencing an
+authored node or an interface port (its boundary node). Map keys are keywords
+or strings; keyword values normalize to their name strings, so `{:mode :fast}`
+and `{"mode" "fast"}` normalize identically. Option maps accept only the keys
+listed for their form; on `(:node …)` a lone trailing map is config, and the
+options map requires the config map to precede it. The transport `:shape`
+must be one of the graph transport shapes. `parseAuthoringDsl`
+returns `{ document, sourceMap, diagnostics }`; any syntax or shape problem
+yields `document: null` with each diagnostic carrying `{ code, message, pos }`
+(text layer) or `{ code, message, path }` (schema layer).
+
+### Lowering contract
+
+`lowerAuthoringDocument(document, sourceMap?)` returns
+`{ graph, sourceMap, diagnostics }`:
+
+- Boundary nodes are synthesized for every interface port (Graph Input and
+  Graph Output, node id = port id) ahead of authored nodes in document order;
+  `invoke` nodes lower to pinned `perigram.core.use-graph` operations.
+- `presentation` passes through as `metadata.presentation`; declared
+  capabilities and effects ride `metadata.authoring.declarations` keyed by
+  node id — authoring provenance for host-side capability checks, while the
+  execution-time capability law stays with operation contracts (§Typed IR).
+- The graph is the `assertValidGraphDocument` normalized document. Lowering
+  is deterministic; invalid input returns `{ graph: null, sourceMap: null,
+  diagnostics }`. A malformed `sourceMap` argument throws.
+- The sidecar (`perigram.authoring-sourcemap` v1) maps every lowered node and
+  edge id to its DSL form position, boundary nodes included; the graph
+  document itself carries only canonical fields.
+
+### Round-trip law
+
+`serializeAuthoringDsl(document)` regenerates text that re-parses to the same
+normalized structured document; semantic equality is the law, byte identity
+is an implementation detail. A valid DSL document lowers to a canonical
+document with no semantic loss. Canonical graphs using constructs beyond
+this vocabulary (node positions, edge metadata) stay editable through the
+other authoring surfaces.
+
 ## Internal module boundaries
 
 The public barrel is intentionally a compatibility surface; implementation
@@ -141,6 +276,10 @@ ownership is split by contract:
   `graph-read-set.js` the read-dependency recorder, and
   `graph-data-provider.js` the platform instance-query provider;
   `procedural-evaluator.js` composes them for preview evaluation.
+- `authoring-reader.js` owns the restricted reader grammar,
+  `authoring-schema.js` the structured authoring schema, and
+  `authoring-dsl.js` the form vocabulary, serialization, and lowering into
+  canonical graph documents.
 - `json.js` owns the shared JSON helpers (`isRecord`, `isJsonValue`,
   `cloneJson`, `deepFreeze`) used by the graph modules;
   `graph-execution.js` keeps its stricter plain-prototype `isRecord`.
