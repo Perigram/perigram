@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CONVERSION_FIDELITIES,
+  PORT_COMPATIBILITY_OUTCOMES,
   assertValidNodeDefinition,
   compareNodePorts,
   createPortCompatibilityRegistry,
@@ -105,6 +107,43 @@ describe('node port compatibility', () => {
       { semantic: { base: 'number', unit: 'm' } }
     )).toMatchObject({ status: 'conversion-required', compatible: false });
   });
+
+  it('emits only frozen-vocabulary outcomes across the case matrix', () => {
+    expect(PORT_COMPATIBILITY_OUTCOMES).toEqual(['exact', 'safe-coercion', 'conditional', 'conversion-required', 'incompatible']);
+    expect(Object.isFrozen(PORT_COMPATIBILITY_OUTCOMES)).toBe(true);
+    const block = { shape: 'item', semantic: { base: 'json', kind: 'text.document-block' } };
+    const document = { shape: 'item', semantic: { base: 'json', kind: 'text.flow-document' } };
+    const typed = { semantic: { base: 'json', kind: 'text.flow-document' } };
+    const generic = { semantic: { base: 'json' } };
+    const item = { shape: 'item', semantic: { base: 'record' } };
+    const list = { shape: 'list', semantic: { base: 'record' } };
+    const optional = { semantic: { base: 'string' }, required: false };
+    const required = { semantic: { base: 'string' }, required: true };
+    const nullable = { semantic: { base: 'string', nullable: true } };
+    const pairs = [
+      [block, block],
+      [block, document],
+      [typed, generic],
+      [generic, typed],
+      [item, list],
+      [list, item],
+      [optional, required],
+      [required, nullable],
+      [nullable, required],
+      [{ semantic: { base: 'number', unit: 'mm' } }, { semantic: { base: 'number', unit: 'm' } }],
+      [{ semantic: { base: 'string' } }, null]
+    ];
+    const emitted = new Set();
+    for (const [source, target] of pairs) {
+      const result = compareNodePorts(source, target);
+      expect(PORT_COMPATIBILITY_OUTCOMES).toContain(result.status);
+      expect(typeof result.compatible).toBe('boolean');
+      expect(typeof result.reason).toBe('string');
+      expect(Array.isArray(result.conversions)).toBe(true);
+      emitted.add(result.status);
+    }
+    expect([...emitted].sort()).toEqual([...PORT_COMPATIBILITY_OUTCOMES].sort());
+  });
 });
 
 describe('provider-neutral node contract', () => {
@@ -149,6 +188,49 @@ describe('provider-neutral node contract', () => {
       provider: 'plugin.example', definitions: [candidate], execute: () => ({}),
       previewRenderers: { mesh: 'Mesh Preview' }
     })).toThrow(/preview surface ids/);
+  });
+
+  it('normalizes and validates provider conversion declarations', () => {
+    expect(CONVERSION_FIDELITIES).toEqual(['lossless', 'semantically-lossy', 'visual-only']);
+    const nodeDefinition = {
+      provider: 'plugin.example', id: 'geometry.scale', version: '1',
+      palette: { group: 'geometry', label: 'Geometry' },
+      inputs: [], outputs: [],
+      execution: { kind: 'pure' }
+    };
+    const conversion = {
+      id: 'length.mm-to-m',
+      from: { base: 'number', unit: 'mm' },
+      to: { base: 'number', unit: 'm' },
+      runtime: 'javascript',
+      deterministic: true,
+      fidelity: 'lossless'
+    };
+    const provider = normalizeNodeProvider({
+      provider: 'plugin.example', definitions: [nodeDefinition], execute: () => ({}),
+      conversions: [conversion]
+    });
+    expect(provider.conversions).toEqual([{
+      id: 'length.mm-to-m',
+      from: { base: 'number', unit: 'mm' },
+      to: { base: 'number', unit: 'm' },
+      runtime: 'javascript',
+      deterministic: true,
+      fidelity: 'lossless'
+    }]);
+    expect(Object.isFrozen(provider.conversions[0])).toBe(true);
+    expect(() => normalizeNodeProvider({
+      provider: 'plugin.example', definitions: [nodeDefinition], execute: () => ({}),
+      conversions: [conversion, conversion]
+    })).toThrow(/Node provider plugin\.example declares duplicate conversion length\.mm-to-m/);
+    expect(() => normalizeNodeProvider({
+      provider: 'plugin.example', definitions: [nodeDefinition], execute: () => ({}),
+      conversions: [{ ...conversion, fidelity: 'magical' }]
+    })).toThrow(/Node provider plugin\.example conversion length\.mm-to-m fidelity/);
+    expect(() => normalizeNodeProvider({
+      provider: 'plugin.example', definitions: [nodeDefinition], execute: () => ({}),
+      conversions: [{ ...conversion, from: { unit: 'mm' } }]
+    })).toThrow(/Node provider plugin\.example conversion length\.mm-to-m requires a from descriptor/);
   });
 
   it('normalizes and freezes a provider-qualified operation definition', () => {
@@ -336,5 +418,61 @@ describe('provider-owned port compatibility profiles', () => {
     expect(() => registry.register('perigram.cts', () => ({}))).toThrow(/already registered/);
     expect(() => registry.register('bad profile', () => ({}))).toThrow(/stable id/);
     expect(() => registry.register('perigram.other', null)).toThrow(/comparator/);
+  });
+
+  it('throws when a profile comparator violates the comparison result contract', () => {
+    const registry = createPortCompatibilityRegistry();
+    registry.register('perigram.cts', () => ({ status: 'maybe', compatible: true, reason: 'Unknown verdict', conversions: [] }));
+    expect(() => registry.compare(
+      { compatibility: { profile: 'perigram.cts' }, semantic: { base: 'json' } },
+      { compatibility: { profile: 'perigram.cts' }, semantic: { base: 'json' } }
+    )).toThrow(/unknown compatibility status maybe/);
+    registry.register('perigram.other', () => ({ status: 'exact', compatible: true, reason: 'Missing conversions key' }));
+    expect(() => registry.compare(
+      { compatibility: { profile: 'perigram.other' }, semantic: { base: 'json' } },
+      { compatibility: { profile: 'perigram.other' }, semantic: { base: 'json' } }
+    )).toThrow(/requires a conversions array/);
+  });
+
+  it('passes well-formed profile results through', () => {
+    const registry = createPortCompatibilityRegistry();
+    const result = { status: 'exact', compatible: true, reason: 'CTS nominal type compatibility', conversions: [] };
+    registry.register('perigram.cts', () => result);
+    expect(registry.compare(
+      { compatibility: { profile: 'perigram.cts' }, semantic: { base: 'json' } },
+      { compatibility: { profile: 'perigram.cts' }, semantic: { base: 'json' } }
+    )).toBe(result);
+  });
+
+  it('attaches registered conversions to conversion-required verdicts by exact descriptor match', () => {
+    const registry = createPortCompatibilityRegistry();
+    registry.registerConversions([
+      { id: 'length.mm-to-m', from: { base: 'number', unit: 'mm' }, to: { base: 'number', unit: 'm' }, deterministic: true, fidelity: 'lossless' },
+      { id: 'length.m-to-ft', from: { base: 'number', unit: 'm' }, to: { base: 'number', unit: 'ft' }, deterministic: true, fidelity: 'lossless' }
+    ]);
+    const result = registry.compare(
+      { shape: 'item', semantic: { base: 'number', unit: 'mm' } },
+      { shape: 'item', semantic: { base: 'number', unit: 'm' } }
+    );
+    expect(result.status).toBe('conversion-required');
+    expect(result.compatible).toBe(false);
+    expect(result.conversions).toHaveLength(1);
+    expect(result.conversions[0].id).toBe('length.mm-to-m');
+    expect(registry.compare(
+      { shape: 'item', semantic: { base: 'number', unit: 's' } },
+      { shape: 'item', semantic: { base: 'number', unit: 'm' } }
+    ).conversions).toEqual([]);
+  });
+
+  it('enriches profile-returned conversion-required verdicts', () => {
+    const registry = createPortCompatibilityRegistry();
+    registry.register('perigram.cts', () => ({ status: 'conversion-required', compatible: false, reason: 'CTS units differ', conversions: [] }));
+    registry.registerConversions([
+      { id: 'length.mm-to-m', from: { base: 'number', unit: 'mm' }, to: { base: 'number', unit: 'm' }, deterministic: true, fidelity: 'lossless' }
+    ]);
+    expect(registry.compare(
+      { compatibility: { profile: 'perigram.cts' }, semantic: { base: 'number', unit: 'mm' } },
+      { compatibility: { profile: 'perigram.cts' }, semantic: { base: 'number', unit: 'm' } }
+    )).toMatchObject({ status: 'conversion-required', compatible: false, conversions: [{ id: 'length.mm-to-m' }] });
   });
 });

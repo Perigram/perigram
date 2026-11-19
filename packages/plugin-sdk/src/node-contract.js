@@ -4,12 +4,17 @@ export const TRANSPORT_SHAPES = Object.freeze(['item', 'list', 'tree', 'map', 't
 const SHAPES = new Set(TRANSPORT_SHAPES);
 export const NODE_EXECUTION_KINDS = Object.freeze(['pure', 'read', 'stateful', 'proposal', 'commit', 'effect', 'control']);
 const EXECUTION_KINDS = new Set(NODE_EXECUTION_KINDS);
+export const PORT_COMPATIBILITY_OUTCOMES = Object.freeze(['exact', 'safe-coercion', 'conditional', 'conversion-required', 'incompatible']);
+const OUTCOMES = new Set(PORT_COMPATIBILITY_OUTCOMES);
+export const CONVERSION_FIDELITIES = Object.freeze(['lossless', 'semantically-lossy', 'visual-only']);
+const FIDELITIES = new Set(CONVERSION_FIDELITIES);
 
 
 // Provider-owned compatibility profiles extend the shared port contract without
 // teaching the graph engine domain-specific socket vocabularies.
 export function createPortCompatibilityRegistry() {
   const profiles = new Map();
+  const conversions = [];
   return Object.freeze({
     register(id, compare) {
       const key = String(id || '').trim();
@@ -18,6 +23,9 @@ export function createPortCompatibilityRegistry() {
       if (profiles.has(key)) throw new Error(`Port compatibility profile already registered: ${key}`);
       profiles.set(key, compare);
       return () => profiles.delete(key);
+    },
+    registerConversions(list) {
+      conversions.push(...normalizeConversions(list, 'Port compatibility registry'));
     },
     compare(source, target) {
       const sourceProfile = source?.compatibility?.profile || '';
@@ -30,7 +38,16 @@ export function createPortCompatibilityRegistry() {
       if (profile && !comparator) {
         return { status: 'incompatible', compatible: false, reason: `Unknown port compatibility profile: ${profile}`, conversions: [] };
       }
-      return comparator ? comparator(source, target) : compareNodePorts(source, target);
+      const result = comparator
+        ? requireProfileResult(comparator(source, target), profile)
+        : compareNodePorts(source, target);
+      if (result.status !== 'conversion-required' || result.conversions.length) return result;
+      // Enrichment compares only the keys a conversion declares, by exact
+      // value equality against the port's semantic values.
+      const matches = conversions.filter(conversion => (
+        descriptorEquals(conversion.from, source?.semantic) && descriptorEquals(conversion.to, target?.semantic)
+      ));
+      return matches.length ? { ...result, conversions: matches } : result;
     }
   });
 }
@@ -324,7 +341,8 @@ export function normalizeNodeProvider(source = {}) {
     provider,
     definitions: Object.freeze(definitions),
     execute: source.execute,
-    previewRenderers: Object.freeze({ ...previewRenderers })
+    previewRenderers: Object.freeze({ ...previewRenderers }),
+    conversions: normalizeConversions(source.conversions || [], `Node provider ${provider}`)
   });
 }
 
@@ -354,6 +372,55 @@ export function createNodeProviderRegistry() {
 
 function operationKey(provider, id, version) {
   return `${provider}/${id}@${version}`;
+}
+
+function requireProfileResult(result, profile) {
+  if (!isRecord(result)) throw new TypeError(`Port compatibility profile ${profile} comparator must return a result object`);
+  if (!OUTCOMES.has(result.status)) throw new Error(`Port compatibility profile ${profile} returned unknown compatibility status ${String(result.status)}`);
+  if (typeof result.compatible !== 'boolean') throw new TypeError(`Port compatibility profile ${profile} result requires a boolean compatible`);
+  if (typeof result.reason !== 'string') throw new TypeError(`Port compatibility profile ${profile} result requires a string reason`);
+  if (!Array.isArray(result.conversions)) throw new TypeError(`Port compatibility profile ${profile} result requires a conversions array`);
+  return result;
+}
+
+function normalizeConversions(list, owner) {
+  if (!Array.isArray(list)) throw new TypeError(`${owner} conversions must be an array`);
+  const seen = new Set();
+  return Object.freeze(list.map(conversion => {
+    if (!isRecord(conversion)) throw new TypeError(`${owner} conversions must be conversion declarations`);
+    if (!IDENTIFIER.test(String(conversion.id || ''))) throw new Error(`${owner} conversions require stable conversion ids`);
+    if (seen.has(conversion.id)) throw new Error(`${owner} declares duplicate conversion ${conversion.id}`);
+    seen.add(conversion.id);
+    for (const side of ['from', 'to']) {
+      const descriptor = conversion[side];
+      if (!isRecord(descriptor) || typeof descriptor.base !== 'string' || !descriptor.base) {
+        throw new Error(`${owner} conversion ${conversion.id} requires a ${side} descriptor with a string base`);
+      }
+      if (!isJsonValue(descriptor)) throw new Error(`${owner} conversion ${conversion.id} ${side} descriptor must be JSON-compatible`);
+    }
+    if (conversion.provider != null && (typeof conversion.provider !== 'string' || !PROVIDER_IDENTIFIER.test(conversion.provider))) {
+      throw new Error(`${owner} conversion ${conversion.id} provider must be a stable lowercase identifier`);
+    }
+    if (conversion.runtime != null && (typeof conversion.runtime !== 'string' || !/^[a-z0-9-]+$/.test(conversion.runtime))) {
+      throw new Error(`${owner} conversion ${conversion.id} runtime must be a stable lowercase slug`);
+    }
+    if (!FIDELITIES.has(conversion.fidelity)) {
+      throw new Error(`${owner} conversion ${conversion.id} fidelity must be lossless, semantically-lossy, or visual-only`);
+    }
+    return deepFreeze({
+      id: conversion.id,
+      from: cloneJson(conversion.from),
+      to: cloneJson(conversion.to),
+      ...(conversion.provider ? { provider: conversion.provider } : {}),
+      ...(conversion.runtime ? { runtime: conversion.runtime } : {}),
+      deterministic: conversion.deterministic === true,
+      fidelity: conversion.fidelity
+    });
+  }));
+}
+
+function descriptorEquals(descriptor, semantic = {}) {
+  return Object.entries(descriptor).every(([key, value]) => stableJson(semantic[key] ?? null) === stableJson(value ?? null));
 }
 
 function stableJson(value) {
