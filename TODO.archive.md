@@ -651,3 +651,10 @@ Slices:
 
 - `archive/architecture/archive/architecture/NOTES-typesystem-and-nodes.md` preserves the broad type/engine interoperability exploration. Its durable decisions are consolidated in SPEC §30.13.
 - `archive/architecture/archive/architecture/NOTES-templates.md` preserves the HAG proposal. Its domain IR, adapter, fidelity, and rendering ideas are retained; its independent graph, evaluator, artifact-per-node, and project-package architecture is superseded by SPEC §§28 and 30.
+
+### Completed G2 — canonical graph foundation
+
+- [x] G2 Canonical graph foundation — core document codec, structural
+  validation, Graph Input/Output boundaries, pinned Use Graph evaluator,
+  preview-only procedural evaluation, plugin-SDK provider definitions and
+  exact-version registry, and process data-operation adapter with tests.
