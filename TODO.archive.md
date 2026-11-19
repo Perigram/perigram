@@ -220,9 +220,9 @@ These earlier plans are preserved as history. Their active requirements
 have been consolidated into the Documents graph acceptance section and
 SPEC §§28 and 30. HAG is no longer an independent graph architecture.
 
-## Node system rework — artifact composition on the one graph (SPEC §28 + NOTES-templates.md, owner direction 2026-11-13)
+## Node system rework — artifact composition on the one graph (SPEC §28 + archive/architecture/NOTES-templates.md, owner direction 2026-11-13)
 
-One meta-feature: typed artifact composition from `NOTES-templates.md`
+One meta-feature: typed artifact composition from `archive/architecture/NOTES-templates.md`
 (HAG) is delivered through the canonical graph system in root SPEC §28.
 The graph document and evaluator are owned by `packages/core`; normalized
 node definitions and provider registration are owned by `packages/plugin-sdk`.
@@ -532,8 +532,8 @@ Slices:
 
 ### Agent Notes (2026-11-12, agent/graph-unification-20261112)
 
-- Consultation session. Compared `NOTES-typesystem-and-nodes.md`,
-  `NOTES-templates.md` (HAG), and github.com/1suo/build123d-flow against
+- Consultation session. Compared `archive/architecture/NOTES-typesystem-and-nodes.md`,
+  `archive/architecture/NOTES-templates.md` (HAG), and github.com/1suo/build123d-flow against
   the process graph. Owner direction: keep one graph system — processes
   owns the calculus; build123d-flow contributes the canvas UX as a
   presentation adapter over the authoring seam; engines arrive as
@@ -649,5 +649,5 @@ Slices:
 
 ## Archived design notes (2026-11-19)
 
-- `archive/architecture/NOTES-typesystem-and-nodes.md` preserves the broad type/engine interoperability exploration. Its durable decisions are consolidated in SPEC §30.13.
-- `archive/architecture/NOTES-templates.md` preserves the HAG proposal. Its domain IR, adapter, fidelity, and rendering ideas are retained; its independent graph, evaluator, artifact-per-node, and project-package architecture is superseded by SPEC §§28 and 30.
+- `archive/architecture/archive/architecture/NOTES-typesystem-and-nodes.md` preserves the broad type/engine interoperability exploration. Its durable decisions are consolidated in SPEC §30.13.
+- `archive/architecture/archive/architecture/NOTES-templates.md` preserves the HAG proposal. Its domain IR, adapter, fidelity, and rendering ideas are retained; its independent graph, evaluator, artifact-per-node, and project-package architecture is superseded by SPEC §§28 and 30.
