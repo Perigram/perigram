@@ -74,7 +74,7 @@
             <InputText v-if="inputBase(port) === 'string'" v-model="parameterDrafts[port.id]" size="small" />
             <InputNumber v-else-if="inputBase(port) === 'number' || inputBase(port) === 'integer'" v-model="parameterDrafts[port.id]" size="small" />
             <Checkbox v-else-if="inputBase(port) === 'boolean'" :model-value="Boolean(parameterDrafts[port.id])" binary @update:model-value="value => (parameterDrafts[port.id] = value)" />
-            <Textarea v-else v-model="parameterDrafts[port.id]" auto-resize rows="2" class="text-sm" :invalid="!jsonInputValid(port)" />
+            <Textarea v-else v-model="parameterDrafts[port.id]" auto-resize rows="2" :invalid="!jsonInputValid(port)" />
           </label>
         </div>
 
