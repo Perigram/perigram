@@ -35,7 +35,7 @@ export function createCoreGraphDataProvider() {
     ],
     execution: {
       kind: 'read',
-      capabilities: ['cts.instances.read'],
+      capabilities: ['organization.instances.read'],
       deterministic: true,
       idempotent: true
     },

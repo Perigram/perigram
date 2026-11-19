@@ -151,7 +151,7 @@ export async function evaluateSavedGraph({
       auth
     });
     for (const capability of definition.execution?.capabilities || []) {
-      if (!['cts.instances.read', 'organization.instances.query', 'organization.instances.read', 'files.read'].includes(String(capability))) {
+      if (!['organization.instances.query', 'organization.instances.read', 'files.read'].includes(String(capability))) {
         providerCapabilities.add(String(capability));
       }
     }
