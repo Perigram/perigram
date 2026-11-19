@@ -80,6 +80,7 @@
           <GraphOutputEmbed
             v-else-if="session.blockByKey(key)?.kind === 'collection'"
             :collection="session.blockByKey(key).collection"
+            :resolution="referenceByBlockId[key] || null"
           />
         </DocumentSectionShell>
       </div>

@@ -11,6 +11,7 @@ import { hasPermission } from '../../utils/auth-helpers.js';
 import * as filesService from '../files/service.js';
 import { runOrganizationChange } from '../instances/index.js';
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
+import * as graphExecutionsService from '../graph-executions/service.js';
 import * as repository from './repository.js';
 
 const KINDS = new Set(['page', 'section']);
@@ -150,6 +151,105 @@ function referenceSourceIdentity(reference = {}) {
   return { typeId, instanceId };
 }
 
+function isUnavailableStatus(error, statuses) {
+  return statuses.includes(Number(error?.statusCode || error?.status));
+}
+
+// The graph-output parameter contract lives in this feature's README
+// (Typed references and collections).
+async function resolveParameterizedCollectionBlock(block, auth) {
+  const source = block.collection.source;
+  const parameters = block.collection.parameters;
+  const unavailable = { blockId: block.id, status: 'unavailable' };
+  const executionsService = getAppRegistry().getInstanceService('graph-execution');
+  let record = null;
+  if (typeof executionsService?.processGetById === 'function') {
+    try {
+      record = await executionsService.processGetById(source.executionInstanceId, auth);
+    } catch (error) {
+      if (isUnavailableStatus(error, [403, 404])) return unavailable;
+      throw error;
+    }
+  }
+  const fields = record?.fields || {};
+  if (!record
+    || fields.status !== 'succeeded'
+    || !fields.graphDocument?.id
+    || String(fields.graphDocument.id) !== String(source.graphDocumentInstanceId)
+    || String(fields.graphId) !== String(source.graphId)
+    || String(fields.graphRevision) !== String(source.graphRevision)) {
+    return unavailable;
+  }
+  let graph = null;
+  try {
+    ({ graph } = await graphExecutionsService.resolvePinnedGraph(source.graphId, source.graphRevision, auth));
+  } catch (error) {
+    if (isUnavailableStatus(error, [403, 404, 409])) return unavailable;
+    throw error;
+  }
+  const output = (graph.interface?.outputs || []).find(port => String(port.id) === String(source.outputId));
+  if (!output || output.contract?.shape !== 'list') return unavailable;
+  const declaredInputs = graph.interface?.inputs || [];
+  const declaredIds = new Set(declaredInputs.map(port => String(port.id)));
+  if (Object.keys(parameters).some(key => !declaredIds.has(String(key)))) return unavailable;
+  const bindings = { ...(fields.inputs && typeof fields.inputs === 'object' ? fields.inputs : {}), ...parameters };
+  for (const port of declaredInputs) {
+    if (!port.required) continue;
+    const bound = Object.hasOwn(bindings, String(port.id)) ? bindings[String(port.id)] : port.default;
+    if (bound === undefined) return unavailable;
+    if (bound === null && port.contract?.semantic?.nullable !== true) return unavailable;
+  }
+  let evaluation = null;
+  try {
+    evaluation = await graphExecutionsService.evaluateSavedGraph({
+      graphDocumentInstanceId: source.graphDocumentInstanceId,
+      inputBindings: bindings
+    }, auth);
+  } catch (error) {
+    if (isUnavailableStatus(error, [400, 403, 404, 409])) return unavailable;
+    throw error;
+  }
+  const values = evaluation?.outputs?.[String(source.outputId)];
+  if (!Array.isArray(values)) return unavailable;
+  return {
+    blockId: block.id,
+    status: 'resolved',
+    mode: 'parameterized',
+    executionInstanceId: String(record._id),
+    executionId: String(fields.executionId || ''),
+    graph: { id: String(fields.graphId), revision: String(fields.graphRevision) },
+    outputId: String(source.outputId),
+    label: String(output.label || source.outputId),
+    itemCount: values.length,
+    truncated: values.length > 100,
+    items: await resolveCollectionValues(values, auth)
+  };
+}
+
+async function resolveCollectionValues(values, auth) {
+  const registry = getAppRegistry();
+  const items = [];
+  for (const value of values.slice(0, 100)) {
+    const typeId = String(value?.type || value?.typeId || '');
+    const instanceId = String(value?.id || value?.instanceId || value?._id || '');
+    if (!typeId || !instanceId) {
+      items.push({ kind: 'value', value });
+      continue;
+    }
+    const target = registry.getInstanceService(typeId);
+    try {
+      const instance = await target?.processGetById?.(instanceId, auth);
+      items.push(instance
+        ? { kind: 'instance', typeId, instanceId, instance }
+        : { kind: 'unavailable' });
+    } catch (error) {
+      if (isUnavailableStatus(error, [403, 404])) items.push({ kind: 'unavailable' });
+      else throw error;
+    }
+  }
+  return items;
+}
+
 export async function resolveReferences(pageId, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   await preparePages(organizationId, auth.userId);
@@ -158,6 +258,12 @@ export async function resolveReferences(pageId, auth = {}) {
   const registry = getAppRegistry();
   const resolved = [];
   for (const block of document.blocks) {
+    if (block.kind === 'collection') {
+      if (Object.keys(block.collection.parameters || {}).length) {
+        resolved.push(await resolveParameterizedCollectionBlock(block, auth));
+      }
+      continue;
+    }
     if (block.kind !== 'reference') continue;
     const { typeId, instanceId } = referenceSourceIdentity(block.ref);
     const service = registry.getInstanceService(typeId);

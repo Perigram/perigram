@@ -3527,6 +3527,7 @@
     "noItems": "No items",
     "showingFirstItems": "Showing the first {count} items",
     "insertGraphOutput": "Insert graph output",
+    "freezeCollectionOutput": "Freeze collection results",
     "noSavedCollectionOutputs": "No saved collection outputs are available.",
     "loading": "Loading…",
     "loadingReference": "Loading reference…",

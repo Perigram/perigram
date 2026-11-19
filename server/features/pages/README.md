@@ -106,3 +106,5 @@ Backlinks are derived from reference blocks in the organization's pages. They ar
 
 
 A graph-output collection block pins a successful graph execution instance, graph document revision, and output id. The graph-executions feature validates the saved graph and output contract, then resolves referenced CTS items through their ordinary read grants. The execution fixes output membership; referenced item projections use current authorized reads.
+
+A collection block carries an optional `parameters` record bound against the pinned graph's declared inputs at resolution time; re-evaluation passes them as input bindings, revalidated against the saved graph revision. A declared input with no bound value renders the shared unavailable state. `resultPolicy: 'frozen'` stores the resolved collection snapshot (label, item count, truncated flag, and the first 100 items) inside the block; frozen blocks render the snapshot verbatim and produce no resolution entry, while pinned blocks re-resolve through the live execution.

@@ -46,6 +46,17 @@ describe('page document', () => {
     expect(document.blocks[0]).toMatchObject({ kind: 'collection', collection: { source: { kind: 'graph-output', executionInstanceId: 'execution-instance-1', graphDocumentInstanceId: 'graph-document-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows' }, parameters: { limit: 20 }, resultPolicy: 'pinned' } });
   });
 
+  it('retains a frozen collection snapshot and its frozen result policy', () => {
+    const items = [{ kind: 'value', value: 'row' }];
+    const document = normalizePageDocument({ blocks: [
+      { id: 'frozen', kind: 'collection', collection: { source: { kind: 'graph-output', executionInstanceId: 'e1', graphDocumentInstanceId: 'g1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows' }, parameters: {}, snapshot: { label: 'Rows', itemCount: 1, truncated: false, items }, resultPolicy: 'frozen' } },
+      { id: 'not-frozen', kind: 'collection', collection: { source: { kind: 'graph-output', executionInstanceId: 'e2', graphDocumentInstanceId: 'g1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows' }, parameters: {}, snapshot: { label: 'No items' } } }
+    ], order: ['frozen', 'not-frozen'] });
+    expect(document.blocks[0].collection).toMatchObject({ resultPolicy: 'frozen', snapshot: { label: 'Rows', itemCount: 1, truncated: false, items } });
+    expect(document.blocks[1].collection).toMatchObject({ resultPolicy: 'pinned' });
+    expect(document.blocks[1].collection.snapshot).toBeUndefined();
+  });
+
   it('normalizes typed live and pinned references without accepting malformed identities', () => {
     const document = normalizePageDocument({ blocks: [
       { id: 'live', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-1' } },

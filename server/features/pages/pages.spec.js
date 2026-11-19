@@ -4,17 +4,23 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { MongoClient, ObjectId } from 'mongodb';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-const { mockedConnectDB, getAppRegistry, getRevisionById, assertRevisionSourceReadable } = vi.hoisted(() => ({
+const { mockedConnectDB, getAppRegistry, getRevisionById, assertRevisionSourceReadable, resolvePinnedGraph, evaluateSavedGraph } = vi.hoisted(() => ({
   mockedConnectDB: vi.fn(),
   getAppRegistry: vi.fn(),
   getRevisionById: vi.fn(),
-  assertRevisionSourceReadable: vi.fn()
+  assertRevisionSourceReadable: vi.fn(),
+  resolvePinnedGraph: vi.fn(),
+  evaluateSavedGraph: vi.fn()
 }));
 
 vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry }));
 vi.mock('../instance-revisions/service.js', () => ({ getById: getRevisionById }));
 vi.mock('~/server/utils/revision-access.js', () => ({ assertRevisionSourceReadable }));
+vi.mock('../graph-executions/service.js', () => ({
+  resolvePinnedGraph: resolvePinnedGraph,
+  evaluateSavedGraph: evaluateSavedGraph
+}));
 
 vi.mock('../cts-types/service.js', () => ({
   compileRegistryForOrganization: vi.fn(async () => ({ getType: vi.fn(() => ({ id: 'page' })) })),
@@ -43,12 +49,14 @@ describe('pages', () => {
   let mongoServer;
   let db;
 
+  const defaultRegistry = () => ({ getInstanceService: () => ({ processGetById: vi.fn(async id => ({ _id: id, type: 'part', fields: { code: 'A' } })) }) });
+
   beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
     con = await MongoClient.connect(mongoServer.getUri());
     db = con.db();
     mockedConnectDB.mockReturnValue(db);
-    getAppRegistry.mockReturnValue({ getInstanceService: () => ({ processGetById: vi.fn(async id => ({ _id: id, type: 'part', fields: { code: 'A' } })) }) });
+    getAppRegistry.mockReturnValue(defaultRegistry());
     getRevisionById.mockResolvedValue({ _id: 'revision:part:part-2:content:3', data: { source: { type: 'part', id: 'part-2' }, snapshot: { fields: { code: 'B' } } } });
     assertRevisionSourceReadable.mockResolvedValue({ _id: 'part-2', type: 'part' });
   });
@@ -191,6 +199,7 @@ describe('pages', () => {
     getAppRegistry.mockReturnValue({ getInstanceService: () => ({ processGetById: vi.fn(async () => { throw Object.assign(new Error('denied'), { statusCode: 403 }); }) }) });
     const result = await pagesService.resolveReferences(page._id, memberOf(ORG_A));
     expect(result).toEqual([{ blockId: 'live', status: 'unavailable' }]);
+    getAppRegistry.mockReturnValue(defaultRegistry());
   });
 
   it('never falls a pinned reference forward when its exact revision is unavailable', async () => {
@@ -220,6 +229,156 @@ describe('pages', () => {
     expect(backlinks).toHaveLength(2);
     expect(backlinks.map(item => item.mode)).toEqual(['live', 'pinned']);
     expect(backlinks.every(item => item.pageName === 'Source page')).toBe(true);
+  });
+
+  const graphOutputSource = {
+    kind: 'graph-output',
+    executionInstanceId: 'execution-instance-1',
+    graphDocumentInstanceId: 'graph-instance-1',
+    graphId: 'graph.report',
+    graphRevision: 'rev-2',
+    outputId: 'rows'
+  };
+
+  const parameterizedGraphRegistry = (executionRecord, partFields) => getAppRegistry.mockReturnValue({
+    getInstanceService: typeId => ({
+      'graph-execution': { processGetById: vi.fn(async () => executionRecord) },
+      part: { processGetById: vi.fn(async id => ({ _id: id, type: 'part', fields: partFields(id) })) }
+    }[typeId] || null)
+  });
+
+  const parameterizedSavedGraph = inputs => ({
+    id: 'graph.report',
+    revision: 'rev-2',
+    interface: {
+      inputs,
+      outputs: [{ id: 'rows', label: 'Rows', contract: { shape: 'list' } }]
+    }
+  });
+
+  it('merges parameter overrides over the pinned execution inputs and changes the resolved results', async () => {
+    parameterizedGraphRegistry(
+      { _id: 'execution-instance-1', fields: {
+        executionId: 'execution-1', graphId: 'graph.report', graphRevision: 'rev-2',
+        graphDocument: { type: 'graph-document', id: 'graph-instance-1' },
+        status: 'succeeded', inputs: { limit: 5, region: 'eu' }
+      } },
+      id => ({ code: id })
+    );
+    resolvePinnedGraph.mockResolvedValue({
+      graph: parameterizedSavedGraph([
+        { id: 'limit', required: true, contract: { shape: 'item' } },
+        { id: 'region', contract: { shape: 'item' } },
+        { id: 'fresh', required: true, contract: { shape: 'item' }, default: true }
+      ])
+    });
+    evaluateSavedGraph.mockImplementation(async ({ inputBindings }) => ({
+      outputs: { rows: inputBindings.limit === 20 ? [{ type: 'part', id: 'item-2' }] : [{ type: 'part', id: 'item-1' }] }
+    }));
+    const auth = memberOf(ORG_A);
+    const page = await pagesService.create({ name: 'Bound', blocks: [
+      { id: 'c-overridden', kind: 'collection', collection: { source: graphOutputSource, parameters: { limit: 20 }, resultPolicy: 'pinned' } },
+      { id: 'c-standing', kind: 'collection', collection: { source: graphOutputSource, parameters: { limit: 5 }, resultPolicy: 'pinned' } }
+    ], order: ['c-overridden', 'c-standing'] }, auth);
+
+    const resolved = await pagesService.resolveReferences(page._id, auth);
+
+    expect(evaluateSavedGraph).toHaveBeenCalledWith({
+      graphDocumentInstanceId: 'graph-instance-1',
+      inputBindings: { limit: 20, region: 'eu' }
+    }, auth);
+    expect(evaluateSavedGraph).toHaveBeenLastCalledWith({
+      graphDocumentInstanceId: 'graph-instance-1',
+      inputBindings: { limit: 5, region: 'eu' }
+    }, auth);
+    expect(resolved).toEqual([
+      expect.objectContaining({ blockId: 'c-overridden', status: 'resolved', mode: 'parameterized', label: 'Rows', itemCount: 1, items: [{ kind: 'instance', typeId: 'part', instanceId: 'item-2', instance: { _id: 'item-2', type: 'part', fields: { code: 'item-2' } } }] }),
+      expect.objectContaining({ blockId: 'c-standing', status: 'resolved', mode: 'parameterized', items: [{ kind: 'instance', typeId: 'part', instanceId: 'item-1', instance: expect.objectContaining({ _id: 'item-1' }) }] })
+    ]);
+  });
+
+  it('renders the shared unavailable state for unbound or undeclared parameters', async () => {
+    evaluateSavedGraph.mockClear();
+    parameterizedGraphRegistry(
+      { _id: 'execution-instance-1', fields: {
+        executionId: 'execution-1', graphId: 'graph.report', graphRevision: 'rev-2',
+        graphDocument: { type: 'graph-document', id: 'graph-instance-1' },
+        status: 'succeeded', inputs: {}
+      } },
+      () => ({ code: 'A' })
+    );
+    resolvePinnedGraph.mockResolvedValue({
+      graph: parameterizedSavedGraph([
+        { id: 'limit', required: true, contract: { shape: 'item' } },
+        { id: 'region', contract: { shape: 'item' } }
+      ])
+    });
+    const auth = memberOf(ORG_A);
+    const page = await pagesService.create({ name: 'Unbound', blocks: [
+      { id: 'c-unbound', kind: 'collection', collection: { source: graphOutputSource, parameters: { region: 'eu' }, resultPolicy: 'pinned' } },
+      { id: 'c-undeclared', kind: 'collection', collection: { source: graphOutputSource, parameters: { limit: 20, mystery: 1 }, resultPolicy: 'pinned' } }
+    ], order: ['c-unbound', 'c-undeclared'] }, auth);
+
+    const resolved = await pagesService.resolveReferences(page._id, auth);
+
+    expect(resolved).toEqual([
+      { blockId: 'c-unbound', status: 'unavailable' },
+      { blockId: 'c-undeclared', status: 'unavailable' }
+    ]);
+    expect(evaluateSavedGraph).not.toHaveBeenCalled();
+  });
+
+  it('renders the shared unavailable state when the pinned execution drifts or is unreadable', async () => {
+    evaluateSavedGraph.mockClear();
+    const executionFields = {
+      executionId: 'execution-1', graphId: 'graph.report', graphRevision: 'rev-2',
+      graphDocument: { type: 'graph-document', id: 'graph-instance-1' },
+      status: 'succeeded', inputs: { limit: 5 }
+    };
+    parameterizedGraphRegistry({ _id: 'execution-instance-1', fields: executionFields }, () => ({ code: 'A' }));
+    resolvePinnedGraph.mockResolvedValue({ graph: parameterizedSavedGraph([{ id: 'limit', required: true, contract: { shape: 'item' } }]) });
+    evaluateSavedGraph.mockResolvedValue({ outputs: { rows: [] } });
+    const stale = await pagesService.create({ name: 'Stale pin', blocks: [
+      { id: 'c-stale', kind: 'collection', collection: { source: { ...graphOutputSource, graphRevision: 'rev-1' }, parameters: { limit: 20 }, resultPolicy: 'pinned' } }
+    ], order: ['c-stale'] }, memberOf(ORG_A));
+    expect(await pagesService.resolveReferences(stale._id, memberOf(ORG_A))).toEqual([{ blockId: 'c-stale', status: 'unavailable' }]);
+
+    getAppRegistry.mockReturnValue({
+      getInstanceService: typeId => (typeId === 'graph-execution'
+        ? { processGetById: vi.fn(async () => { throw Object.assign(new Error('denied'), { statusCode: 403 }); }) }
+        : { processGetById: vi.fn(async id => ({ _id: id, type: 'part', fields: { code: 'A' } })) })
+    });
+    const denied = await pagesService.create({ name: 'Denied pin', blocks: [
+      { id: 'c-denied', kind: 'collection', collection: { source: graphOutputSource, parameters: { limit: 20 }, resultPolicy: 'pinned' } }
+    ], order: ['c-denied'] }, memberOf(ORG_A));
+    expect(await pagesService.resolveReferences(denied._id, memberOf(ORG_A))).toEqual([{ blockId: 'c-denied', status: 'unavailable' }]);
+    expect(evaluateSavedGraph).not.toHaveBeenCalled();
+  });
+
+  it('renders a pinned reference from its retained revision while the live reference tracks the changed source', async () => {
+    getAppRegistry.mockReturnValue({
+      getInstanceService: () => ({ processGetById: vi.fn(async id => ({ _id: id, type: 'part', fields: { code: 'CHANGED' } })) })
+    });
+    getRevisionById.mockResolvedValue({ _id: 'revision:part:part-2:content:3', data: { source: { type: 'part', id: 'part-2' }, snapshot: { fields: { code: 'B' } } } });
+    const page = await pagesService.create({ name: 'Frozen reference', blocks: [
+      { id: 'live', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-2' } },
+      { id: 'pinned', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-2', revisionId: 'revision:part:part-2:content:3' } }
+    ], order: ['live', 'pinned'] }, memberOf(ORG_A));
+
+    const resolved = await pagesService.resolveReferences(page._id, memberOf(ORG_A));
+
+    expect(resolved[0]).toMatchObject({ blockId: 'live', status: 'resolved', mode: 'live', instance: { fields: { code: 'CHANGED' } } });
+    expect(resolved[1]).toMatchObject({ blockId: 'pinned', status: 'resolved', mode: 'pinned', revision: { data: { snapshot: { fields: { code: 'B' } } } } });
+  });
+
+  it('persists a frozen collection snapshot without a resolution entry', async () => {
+    const snapshot = { label: 'Rows', itemCount: 2, truncated: true, items: [{ kind: 'value', value: 'a' }, { kind: 'unavailable' }] };
+    const page = await pagesService.create({ name: 'Frozen', blocks: [
+      { id: 'c-frozen', kind: 'collection', collection: { source: graphOutputSource, parameters: {}, snapshot, resultPolicy: 'frozen' } }
+    ], order: ['c-frozen'] }, memberOf(ORG_A));
+    const read = await pagesService.getById(page._id, memberOf(ORG_A));
+    expect(read.blocks[0].collection).toMatchObject({ resultPolicy: 'frozen', snapshot });
+    await expect(pagesService.resolveReferences(page._id, memberOf(ORG_A))).resolves.toEqual([]);
   });
 
   it('bakes an output to a page path and creates immutable file revisions on conflict', async () => {
