@@ -23,6 +23,13 @@ export {
 } from './graph.js';
 export { evaluateProceduralGraph } from './procedural-evaluator.js';
 
+export {
+  TYPED_IR_FORMAT,
+  TYPED_IR_VERSION,
+  lowerGraphToTypedIR,
+  validateTypedIR
+} from './graph-ir.js';
+
 export * from './graph-execution.js';
 
 export * from './graph-read-set.js';

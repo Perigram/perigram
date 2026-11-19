@@ -85,6 +85,40 @@ boundary node. Use Graph nodes pin an immutable graph revision.
 - Preview accepts pure and read node definitions; effect, proposal, commit,
   stateful, and control operations are refused by the evaluator.
 
+## Typed IR
+
+`lowerGraphToTypedIR({ graph, resolveNodeDefinition, resolveGraph,
+resolveCompatibility?, executionTarget })` lowers one validated
+`perigram.graph` document into an immutable, JSON-pure
+`perigram.typed-ir` v1 document:
+
+- `source` pins the graph identity and revision the IR was lowered from;
+  `executionTarget` records the requested target.
+- `operations` carry, per node in document order: the operation identity,
+  the host-resolved package pin when the definition supplies one, the
+  execution declaration (kind, targets, capabilities, deterministic,
+  idempotent), typed input/output slot contracts, the authored config,
+  boundary interface bindings, and Use Graph invocation pins with the
+  pinned subgraph interface.
+- `dependencies` carry, per edge in document order: the edge kind, source
+  and target endpoints, and the resolved compatibility decision
+  (`{ status, compatible, reason, conversions }`).
+- `capabilities` and `executionKinds` aggregate the resolved operations;
+  `diagnostics` map every lowering problem to its node, edge, and port.
+
+Lowering is a pure function of the pinned document and the resolution
+callbacks: identical inputs construct an identical IR. Structural
+document failures return `{ ir: null, diagnostics }`; semantic problems
+(unresolved operations, unsupported targets, incompatible edges,
+unresolved subgraphs) lower an IR that carries the diagnostics.
+`validateTypedIR` checks format, version, and JSON purity. The default
+compatibility check compares transport shapes and semantic bases; hosts
+inject the shared comparator (`resolveCompatibility`) for the full
+semantic contract, so `@perigram/core` stays independent of
+`@perigram/plugin-sdk`. Control edges carry their authored `kind`;
+explicit iteration constructs enter the IR when the graph format
+declares them.
+
 The graph document and evaluator are application-neutral. Persistence,
 authorization, provider execution bindings, preview rendering, Commit, Bake,
 and Export are host responsibilities. The architecture contract is
@@ -102,6 +136,14 @@ ownership is split by contract:
 - `results.js` owns normalized command/task results and declared entity-output
   contract validation.
 - `status.js` and `workflows.js` own status and workflow lifecycle logic.
+- `graph.js` owns the canonical graph document contract, `graph-ir.js`
+  the typed IR and lowering, `graph-execution.js` the execution envelope,
+  `graph-read-set.js` the read-dependency recorder, and
+  `graph-data-provider.js` the platform instance-query provider;
+  `procedural-evaluator.js` composes them for preview evaluation.
+- `json.js` owns the shared JSON helpers (`isRecord`, `isJsonValue`,
+  `cloneJson`, `deepFreeze`) used by the graph modules;
+  `graph-execution.js` keeps its stricter plain-prototype `isRecord`.
 
 Keep new behavior in its owning module rather than extending the barrel.
 

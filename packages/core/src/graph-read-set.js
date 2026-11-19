@@ -1,3 +1,4 @@
+import { cloneJson } from './json.js';
 // A single execution-scoped recorder shared by parent and pinned child
 // graphs. Data adapters call these methods after their authorized read;
 // the core never infers a database snapshot that the adapter did not obtain.
@@ -189,9 +190,6 @@ function stableJson(value) {
     return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
   }
   return JSON.stringify(value);
-}
-function cloneJson(value) {
-  return JSON.parse(JSON.stringify(value));
 }
 function compareEntry(a, b) {
   return stableJson(a).localeCompare(stableJson(b));

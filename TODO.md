@@ -469,6 +469,29 @@ not a second graph implementation or a big-bang rewrite.
   `packages/core`: source mapping, pinned dependencies, typed ports,
   conversion decisions, data/control dependencies, iteration bounds,
   effects/capabilities, diagnostics, and provenance.
+  Progress (2026-11-19): `lowerGraphToTypedIR` in
+  `packages/core/src/graph-ir.js` lowers a validated `perigram.graph`
+  document into an immutable, deterministic `perigram.typed-ir` v1
+  document with source pins, host-resolved package pins, typed slot
+  contracts, per-edge compatibility decisions (host comparator seam —
+  default shape/semantic-base check), boundary and Use Graph invocation
+  pins with subgraph interfaces, aggregated capabilities and execution
+  kinds, and source-mapped diagnostics. Open: explicit control/iteration
+  semantics (the graph format declares edge `kind` alone today),
+  execution-plan provenance fields, and host wiring (server evaluate,
+  editor preflight) onto the IR.
+- [ ] Define the language-independent structured authoring schema shared
+  by textual DSL forms and JSON/API payloads (SPEC §30.9.1): both are
+  encodings of one schema flowing through the same normalization,
+  resolution, validation, and typed-IR lowering.
+- [ ] Prototype the restricted graph-isomorphic textual DSL (SPEC
+  §30.9.1): deterministic lowering into canonical definitions and the
+  typed IR, source-mapped diagnostics, round-trip guarantees, no
+  host-language evaluation or parallel persistence format.
+- [ ] Specify the agent MCP boundary (SPEC §30.9.2): task-oriented
+  discovery, validation, explanation, atomic revision-aware graph
+  patches, preview through the pure-evaluation boundary, and provenance
+  inspection as one adapter over the reflective environment operations.
 - [ ] Make Plugin SDK declarations the single provider contract consumed
   by palette discovery, authoring validation, compilation, runtime
   dispatch, and inspection. Remove duplicate operation catalogs and
@@ -584,7 +607,7 @@ as declared, leaving the sdk comparator the default for profile-less ports.
 1. Dual CTS evaluator (`expressions.js` sync/async twins).
 2. Two compatibility lattices in processes (`ports.js` kinds vs `types.js` bases); sdk profile collapses outcome grammar to exact/incompatible.
 3. Conversion declarations landed 2026-11-19 (sdk grammar + registry enrichment); wiring them into edge authoring remains open.
-4. Transport shapes: the session composable imports the sdk export (2026-11-19); the core copy is its graph-format law. JSON utils re-implemented ×5 across core/UI.
+4. Transport shapes: the session composable imports the sdk export (2026-11-19); the core copy is its graph-format law. JSON utils: the core graph modules share `packages/core/src/json.js` (2026-11-19); UI copies remain.
 5. Managed execution kinds single-homed server-side and the barrel carries `compareNodePorts` (2026-11-19); server-side node-definition derivation remains hand-rolled.
 6. Capability id divergence — resolved 2026-11-19: one `organization.instances.read` id everywhere.
 7. Browser/server preview parity: Use Graph fails browser preview (no `resolveGraph`).
@@ -595,6 +618,27 @@ as declared, leaving the sdk comparator the default for profile-less ports.
 12. `compileProcessNodes` retired-kind default removed 2026-11-19 (validation rejects kind-less records first).
 13. `graph-document.graphId` non-grammar `required` key removed 2026-11-19.
 14. Session cuts landed: dead per-node preview bindings removed from `pages/organization/process.vue`; plugins README graph-orchestration sentence corrected; processes README phantom `graph-normalization.js` renamed to `normalizeGraph` in `compiler-core.js`; the 2026-11-18 reverse-adapter claim corrected above.
+
+### Agent Notes (2026-11-19, agent/typed-ir-20261119)
+
+- `perigram.typed-ir` v1 + `lowerGraphToTypedIR` + `validateTypedIR`
+  landed in `packages/core/src/graph-ir.js`, exported through the
+  barrel, with the Typed IR README section as the contract home.
+  Determinism, pins, slots, decisions, invocation interfaces, aggregated
+  capabilities/kinds, and source-mapped diagnostics are spec-covered
+  (`graph-ir.spec.js`, 12 tests).
+- The compatibility decision seam is a host callback: hosts inject the
+  shared sdk registry comparator; the core default compares transport
+  shapes and semantic bases. This keeps the one-way package dependency
+  law intact while the IR records the shared outcome vocabulary.
+- Shared JSON helpers moved to `packages/core/src/json.js`
+  (cycle-safe `isJsonValue`, `cloneJson`, `deepFreeze`, loose
+  `isRecord`); `graph.js`, `graph-read-set.js`, `graph-execution.js`,
+  and `graph-ir.js` import them. `graph-execution.js` keeps its strict
+  plain-prototype `isRecord`.
+- New §30.9.1/§30.9.2 tasks recorded above from the owner's SPEC
+  commit; the merge conflict against the §30.9 deduplication fix was
+  resolved to one paragraph copy plus the owner's new sections.
 
 ### Agent Notes (2026-11-19, agent/semantic-cleanup-20261119)
 

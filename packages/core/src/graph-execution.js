@@ -1,3 +1,4 @@
+import { isJsonValue, cloneJson, deepFreeze } from './json.js';
 const GRAPH_EXECUTION_FORMAT = 'perigram.graph-execution';
 const GRAPH_EXECUTION_VERSION = 1;
 const GRAPH_EXECUTION_PROFILES = Object.freeze([
@@ -108,25 +109,6 @@ function isStableId(value) {
 function isRecord(value) {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value)
     && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null));
-}
-function isJsonValue(value, seen = new Set()) {
-  if (value === null || ['string', 'boolean'].includes(typeof value)) return true;
-  if (typeof value === 'number') return Number.isFinite(value);
-  if (typeof value !== 'object' || seen.has(value)) return false;
-  if (!Array.isArray(value) && !isRecord(value)) return false;
-  seen.add(value);
-  const valid = (Array.isArray(value) ? value : Object.values(value)).every(item => isJsonValue(item, seen));
-  seen.delete(value);
-  return valid;
-}
-function cloneJson(value) {
-  return JSON.parse(JSON.stringify(value));
-}
-function deepFreeze(value) {
-  if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
-  Object.freeze(value);
-  for (const nested of Object.values(value)) deepFreeze(nested);
-  return value;
 }
 function issue(code, path, message) {
   return { code, path, message };
