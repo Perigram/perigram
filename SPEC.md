@@ -2354,6 +2354,15 @@ The kernel owns a small set of concepts:
 10. **Artifact** — a persistent result deliberately committed or baked
     from an execution.
 
+These concepts form a data-oriented programming substrate. Definitions,
+schemas, graph transformations, migrations, execution plans, and
+application composition are themselves structured, versioned values.
+They can be queried, transformed, validated, composed, diffed, and
+inspected using the same semantic operations as ordinary application
+data. This is not a requirement to serialize live handles or executable
+closures as data: runtime bindings and authority remain explicit
+references resolved by the host.
+
 These are semantic concepts, not a mandate for ten separate runtime
 subsystems. The implementation should keep the kernel small and make
 higher-level concepts out of definitions and operations wherever
@@ -2520,11 +2529,41 @@ host services and authoritative boundaries.
 
 ### 30.9 Live environment and developer experience
 
+The environment is a reflective, REPL-like programming system,
+not merely a graph editor with a preview button. Every definition should
+be constructible, evaluated, inspected, queried, transformed, and revised
+interactively through stable environment operations. The common
+interaction loop is: define or change a value/definition; evaluate it
+against an explicit context; inspect the result and diagnostics; revise;
+and compare the new revision with prior results. This loop must not
+require a full application build or deployment for ordinary authoring,
+validation, pure evaluation, and preview. Operations that genuinely
+require packaging, remote infrastructure, privileged capabilities, or
+durable workflow execution retain those explicit boundaries.
+
 The environment should make definitions and executions inspectable:
 browse modules and types, inspect values and opaque handles through
 provider-owned inspectors, view graph inputs/outputs, follow provenance,
 see diagnostics at the responsible node, and debug a pinned execution.
-Editing and previewing should form a tight live loop.
+Types, operations, graphs, modules, applications, views, and workflows
+must share a discoverable reflective surface: common meta-operations
+for lookup, description, validation, dependency inspection, revision
+history, diff, and safe invocation. Domain-specific inspectors and
+editors extend this surface; they must not invent competing lifecycle,
+registry, or introspection semantics.
+
+Structured definitions are first-class data. The system must support
+programmatic construction and transformation of definitions, schemas,
+graphs, migrations, and execution plans, with the same validation and
+revision rules as interactive editing. The UI is one client of these
+operations, not their exclusive implementation.
+
+Inspection never grants additional authority. A debugger or inspector
+uses the same capability and redaction boundaries as ordinary reads.
+Opaque values expose safe provider-defined summaries and operations,
+not their private internal representation. Live editing creates a new
+revision; it does not silently rewrite the definition used by an
+in-flight execution.
 
 Inspection never grants additional authority. A debugger or inspector
 uses the same capability and redaction boundaries as ordinary reads.
@@ -2557,6 +2596,22 @@ No source is deleted merely because it resembles a new abstraction. Every
 replacement maps existing consumers, data, compatibility requirements,
 authorization invariants, and failure behavior before the old path is
 removed.
+
+**Deduplication law.** A shared semantic concept has one canonical
+definition, one authoritative implementation of its rules, and one
+explicit owner. Editors, compilers, runtimes, providers, CTS, and
+Processes consume that contract; they do not maintain parallel copies.
+Genuinely different domain behavior remains specialized behind explicit
+provider contracts. Deduplication must not erase meaningful domain
+distinctions or force unrelated behavior into a universal abstraction.
+
+**Repository hygiene law.** Dead code, unused dependencies, obsolete
+compatibility layers, speculative abstractions, redundant configuration,
+stale documentation, and tests for retired behavior are removed when
+evidence proves they are no longer needed. Public contracts, persisted
+data, authorization, auditability, and rollback paths are not cut merely
+to reduce line count. Every cleanup change includes the relevant tests,
+docs, manifests, generated registries, and migration handling.
 
 ### 30.11 Migration sequence and gates
 
