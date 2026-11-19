@@ -132,6 +132,24 @@ describe('derived instance indexes (SPEC §13)', () => {
     expect(dropIndex).toHaveBeenCalledWith('cts_u_g_stale');
   });
 
+  it('tolerates collections that do not exist yet while pruning', async () => {
+    const missing = {
+      listIndexes: () => ({ toArray: async () => { throw Object.assign(new Error('ns not found'), { code: 26 }); } }),
+      dropIndex: vi.fn()
+    };
+    const codeNameMissing = {
+      listIndexes: () => ({ toArray: async () => { throw Object.assign(new Error('ns not found'), { codeName: 'NamespaceNotFound' }); } }),
+      dropIndex: vi.fn()
+    };
+    (await connectDB).mockResolvedValue({
+      collection: name => name === 'items' ? missing : codeNameMissing
+    });
+    const dropped = await pruneInstanceUniqueIndexes(view, { organizationId: 'org-1' });
+    expect(dropped).toEqual([]);
+    expect(missing.dropIndex).not.toHaveBeenCalled();
+    expect(codeNameMissing.dropIndex).not.toHaveBeenCalled();
+  });
+
   it('applies every definition idempotently through createIndex', async () => {
     const createIndex = vi.fn();
     (await connectDB).mockResolvedValue({ collection: () => ({ createIndex }) });
