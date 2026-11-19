@@ -22,7 +22,12 @@ entity-event emission contract; process actions run through `runAction`.
 browser editing session for a canonical `perigram.graph` document:
 normalized graph state, stable node/edge identity, typed sockets, Graph
 Input/Output declarations, pinned subgraph interfaces, validation, and
-preview evaluation. Each preview receives one stable execution id and calls the injected
+preview evaluation. Every preview first lowers the document through the
+typed IR (`lowerGraphToTypedIR`): error-severity lowering diagnostics
+fail the preview before evaluation, edge decisions run through the
+session's port-compatibility registry, and pinned subgraphs resolve from
+the injected `graphDocuments` catalog by exact id and revision (pins
+outside the catalog fail with the mapped unavailable diagnostic). Each preview receives one stable execution id and calls the injected
 `finalizeExecution(executionId)` callback after evaluation settles, including
 failed evaluations. The graph workspace binds this callback to the loaded
 plugin runtimes so execution-scoped runtime resources are released. Its core CTS query node calls the injected
