@@ -164,10 +164,7 @@ a full canvas, such as process design.
 
 Toolbar commands split by concern into one floating PrimeVue `Toolbar`
 bottom-centered over the canvas. The **start group** carries the panel
-toggles
-plus document operations (`document-items` prop, grouped
-view/file/commit-last: open/load, rename, save/save-as, then destructive
-and utility items); the **end group** carries canvas and content commands
+toggles; the **end group** carries canvas and content commands
 (`canvas-items` prop). Every canvas-capable designer exposes the same
 first-level zoom cluster in the canvas group (zoom out, zoom in, reset/fit —
 plus frame selection on graph canvases), undo/redo where the editor owns a
@@ -184,11 +181,11 @@ confirm, selection, or outside click — pickers and rename prompts use
 `Popover`.
 
 Items are plain data —
-`{ icon, label, onClick, disabled?, loading?, pressed?, onIcon?, attention?, hasPopup?, separator? }`
+`{ icon, label, onClick, disabled?, loading?, pressed?, onIcon?, hasPopup?, separator? }`
 with `icon` a PrimeIcon class — rendered by `DesignerToolbarItems` as
 icon-only PrimeVue buttons: the label is the tooltip (`v-tooltip.bottom`)
 and the accessible name, `loading` swaps the icon for PrimeVue's spinner,
-`attention` renders the overlay badge dot, items carrying a boolean
+items carrying a boolean
 `pressed` render as the same button outlined with `aria-pressed`
 (`onIcon` optionally swaps the icon in the pressed state), and
 `hasPopup` sets `aria-haspopup="dialog"` for popover-hosting items. The

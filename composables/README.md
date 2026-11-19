@@ -496,7 +496,7 @@ invariant).
 ### Process designer Apply state machine
 
 `useProcessDesignerApply` owns one authoritative `applyState` value; the
-page renders dialogs and dock controls from it, and `applyDetail` carries
+page renders dialogs and header controls from it, and `applyDetail` carries
 the current gate's payload or the error message. The two gates share one
 transition table.
 
