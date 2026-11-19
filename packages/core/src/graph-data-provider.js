@@ -1,12 +1,10 @@
 export const CORE_DATA_PROVIDER = 'perigram.core.data';
-export const CORE_DATA_VERSION = '1';
-export const GRAPH_QUERY_INSTANCES_OPERATION = 'query.instances';
 
 export function createCoreGraphDataProvider() {
   const definition = {
     provider: CORE_DATA_PROVIDER,
-    id: GRAPH_QUERY_INSTANCES_OPERATION,
-    version: CORE_DATA_VERSION,
+    id: 'query.instances',
+    version: '1',
     label: 'Query instances',
     description: 'Read a bounded, authorized organization query with deterministic ordering',
     palette: { group: 'query', keywords: ['organization', 'instances', 'filter'] },
@@ -60,8 +58,8 @@ export function createCoreGraphDataProvider() {
     definitions: [definition],
     async execute(nodeDefinition, invocation = {}) {
       if (nodeDefinition.provider !== CORE_DATA_PROVIDER
-        || nodeDefinition.id !== GRAPH_QUERY_INSTANCES_OPERATION
-        || String(nodeDefinition.version) !== CORE_DATA_VERSION) {
+        || nodeDefinition.id !== 'query.instances'
+        || String(nodeDefinition.version) !== '1') {
         throw new Error('Unsupported core data query operation');
       }
       const queryInstances = invocation.context?.data?.queryInstances;
