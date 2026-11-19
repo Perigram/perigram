@@ -55,19 +55,66 @@ importing the Node-bound root barrel.
 
 Every node definition declares `palette.group` as a stable lowercase semantic slug. `palette.label` is the optional human-facing group name and `palette.keywords` are provider-authored search aliases. The same `palette` object is used by plugin service and projection declarations in `listing.json`: `group` is a stable semantic slug, `label` is the optional human-facing group label, `keywords` are provider-authored search aliases, and `visible: false` keeps construction/projection helpers out of graph-node discovery. The SDK rejects malformed metadata and retired `group` fields; operation-id prefixes are never inferred as palette categories. Providers keep their operation and port identities independent of labels and grouping.
 
+## Port compatibility
+
 The SDK provides `compareNodePorts(source, target)` for provider-neutral
 transport and semantic checks, plus `createPortCompatibilityRegistry()` for
 registered domain-specific compatibility profiles. Domain packages own and
-register those profiles; the SDK does not import domain semantics. The default
+register those profiles; the SDK stays domain-neutral. The default
 comparator evaluates transport shape and semantic `base`, `kind`, nominal
-identity, provider, unit, constraints, nullability, and output optionality. Results carry
-`status`, `compatible`, `reason`, and `conversions`; statuses are `exact`,
-`safe-coercion`, `conditional`, `conversion-required`, and
-`incompatible`. The graph editor uses `compatible` for connection gestures, persisted-edge
-validation, and preview preflight. A generic JSON target accepts typed JSON values. A specific semantic
-target requires a matching declared identity or a provider-declared runtime
-validator. Optional outputs and nullable values may connect to stricter inputs
-conditionally; the graph evaluator checks presence, nullability, and primitive/record base values at runtime.
+identity, provider, unit, constraints, nullability, and output optionality.
+A generic JSON target accepts typed JSON values. A specific semantic target
+requires a matching declared identity or a provider-declared runtime
+validator. Optional outputs and nullable values may connect to stricter
+inputs conditionally; the graph evaluator checks presence, nullability, and
+primitive/record base values at runtime. The graph editor uses `compatible`
+for connection gestures, persisted-edge validation, and preview preflight.
+
+Every comparator result — the default comparator's and every registered
+profile comparator's — is `{ status, compatible, reason, conversions }`: a
+`status` from the frozen `PORT_COMPATIBILITY_OUTCOMES` vocabulary, a boolean
+`compatible`, a string `reason`, and a `conversions` array. A profile
+comparator returning a result with an unknown status or a missing key throws
+at dispatch.
+
+| Outcome | Meaning |
+|---|---|
+| `exact` | Transport and semantic contracts match. |
+| `safe-coercion` | The target accepts the value through widening (item into a collection, non-null into nullable, typed into generic JSON). |
+| `conditional` | The connection holds after a runtime check (optional-source presence, nullable source, differing constraints, an untyped source against a typed target). |
+| `conversion-required` | The edge needs an explicit conversion; `conversions` carries the matching declared conversions. |
+| `incompatible` | The ports accept no connection. |
+
+### Declared conversions
+
+A node provider declares conversions alongside its definitions;
+`normalizeNodeProvider` validates and freezes them (ids unique within the
+provider), and `registry.registerConversions(list)` registers the flat list
+with a port compatibility registry:
+
+```js
+conversions: [
+  {
+    id: 'length.mm-to-m',
+    from: { base: 'number', unit: 'mm' },
+    to: { base: 'number', unit: 'm' },
+    runtime: 'javascript',
+    deterministic: true,
+    fidelity: 'lossless'
+  }
+]
+```
+
+`from` and `to` are partial semantic descriptors: a string `base` plus the
+keys the conversion compares. `provider` and `runtime` are optional ids
+naming the conversion's executor; `fidelity` comes from the frozen
+`CONVERSION_FIDELITIES` vocabulary (`lossless`, `semantically-lossy`,
+`visual-only`).
+
+When a comparison returns `conversion-required` with empty `conversions`, the
+registry attaches every registered conversion whose `from` keys all equal the
+source port's `semantic` values and whose `to` keys all equal the target's.
+Only the keys a declaration names are compared, by exact value equality.
 
 ## Surface mount contracts
 
@@ -232,6 +279,9 @@ qualified unique capability ids, determinism, idempotency, and optional preview 
 - Port transport shape and semantic meaning are independent fields;
   `TRANSPORT_SHAPES` is the frozen transport-shape vocabulary (`item`,
   `list`, `tree`, `map`, `tuple`, `stream`).
+- `PORT_COMPATIBILITY_OUTCOMES` is the frozen comparator-outcome vocabulary
+  and `CONVERSION_FIDELITIES` the frozen conversion-fidelity vocabulary
+  (§Port compatibility).
 
 The package root remains Node-bound. Browser consumers import the dedicated
 `./nodes` entry for graph authoring and provider discovery.
