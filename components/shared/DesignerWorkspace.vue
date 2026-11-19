@@ -5,11 +5,9 @@
     :class="[
       'designer-workspace flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
       compact ? 'designer-workspace--compact' : '',
-      chromeVariant === 'floating' ? 'designer-workspace--floating' : '',
       $attrs.class
     ]"
     :data-designer-layout="layout"
-    :data-designer-chrome="chromeVariant"
   >
     <!-- Lanes: the canvas is the workspace background, edge to edge; palette
          and inspector are floating rails docked over it. Panel visibility is
@@ -32,41 +30,51 @@
       >
         <slot name="inspector" />
       </aside>
-      <aside
-        v-if="hasSupport && !compact && panels.support"
-        class="designer-workspace__rail designer-workspace__support min-h-0 overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
-      >
-        <slot name="support" />
-      </aside>
 
     </div>
 
     <main v-else class="relative min-h-0 min-w-0 flex-1 overflow-hidden">
       <slot />
-      <div v-if="hasPalette && !compact && panels.palette" class="designer-workspace__rail absolute top-3 bottom-3 left-3 z-20 w-[17rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border shadow-overlay" :class="chromeVariant === 'floating' ? 'bg-content/85 backdrop-blur-md' : 'bg-content'">
+      <div v-if="hasPalette && !compact && panels.palette" class="designer-workspace__rail absolute top-3 bottom-3 left-3 z-20 w-[17rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
         <slot name="palette" />
       </div>
-      <aside v-if="hasInspector && !compact && panels.inspector" class="designer-workspace__rail absolute top-3 bottom-3 right-3 z-20 w-[22rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border shadow-overlay" :class="chromeVariant === 'floating' ? 'bg-content/85 backdrop-blur-md' : 'bg-content'">
+      <aside v-if="hasInspector && !compact && panels.inspector" class="designer-workspace__rail absolute top-3 bottom-3 right-3 z-20 w-[22rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
         <slot name="inspector" />
-      </aside>
-      <aside v-if="hasSupport && !compact && panels.support" class="designer-workspace__rail designer-workspace__support absolute top-3 bottom-3 right-3 z-20 w-[22rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border shadow-overlay" :class="chromeVariant === 'floating' ? 'bg-content/85 backdrop-blur-md' : 'bg-content'">
-        <slot name="support" />
       </aside>
     </main>
 
-    <!-- One floating toolbar owns every designer command: panel toggles and
-         document operations in the start group, canvas commands in the end
-         group. The wrapper spans the workspace but passes pointer events
-         through its empty sides so the canvas stays interactive. -->
+    <!-- The preview workspace (SPEC §28.14): a resizable bottom band with
+         real width and height for content viewers; its top edge drags. -->
+    <div
+      v-if="hasPreview && panels.preview && !compact"
+      data-designer-preview
+      class="designer-workspace__preview relative z-20 flex min-h-0 shrink-0 flex-col border-t border-content-border bg-content"
+      :style="{ height: `${previewHeight}px` }"
+    >
+      <div
+        class="absolute inset-x-0 top-0 z-10 h-2 -translate-y-1/2 cursor-row-resize"
+        role="separator"
+        :aria-label="$t('designer.preview')"
+        aria-orientation="horizontal"
+        @pointerdown="beginPreviewResize"
+      />
+      <slot name="preview" />
+    </div>
+
+    <!-- One floating toolbar owns every designer command: panel toggles in
+         the start group, canvas commands in the end group. The wrapper
+         spans the workspace but passes pointer events through its empty
+         sides so the canvas stays interactive, and rides above the
+         preview band while it is open. -->
     <div
       v-if="hasToolbarItems || $slots.toolbar"
       data-designer-toolbar
-      class="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center px-3"
+      class="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center px-3 transition-[bottom]"
+      :style="previewBandOpen ? { bottom: `${previewHeight + 12}px` } : undefined"
     >
       <Toolbar
         :aria-label="$t('designer.toolbar')"
         class="pointer-events-auto max-w-full overflow-x-auto p-1 gap-1"
-        :class="chromeVariant === 'floating' ? 'rounded-full border border-content-border bg-content/85 shadow-overlay backdrop-blur-md' : ''"
       >
         <template #start>
           <DesignerToolbarItems :items="toolbarStartItems" />
@@ -95,7 +103,7 @@
         <TabList>
           <Tab v-if="hasPalette" value="palette">{{ $t('designer.palette') }}</Tab>
           <Tab v-if="hasInspector" value="inspector">{{ $t('designer.inspector') }}</Tab>
-          <Tab v-if="hasSupport" value="support">{{ $t('designer.support') }}</Tab>
+          <Tab v-if="hasPreview" value="preview">{{ $t('designer.preview') }}</Tab>
         </TabList>
         <TabPanels class="min-h-0 flex-1 overflow-y-auto">
           <TabPanel v-if="hasPalette" value="palette">
@@ -104,8 +112,8 @@
           <TabPanel v-if="hasInspector" value="inspector">
             <slot name="inspector" />
           </TabPanel>
-          <TabPanel v-if="hasSupport" value="support">
-            <slot name="support" />
+          <TabPanel v-if="hasPreview" value="preview">
+            <slot name="preview" />
           </TabPanel>
         </TabPanels>
       </Tabs>
@@ -134,8 +142,7 @@ const props = defineProps({
   },
   // Canvas commands (zoom cluster, content operations) rendered as the
   // toolbar end group.
-  canvasItems: { type: Array, default: () => [] },
-  chromeVariant: { type: String, default: 'plane', validator: value => ['plane', 'floating'].includes(value) }
+  canvasItems: { type: Array, default: () => [] }
 });
 
 const slots = useSlots();
@@ -144,15 +151,17 @@ const workspace = ref(null);
 
 const hasPalette = computed(() => Boolean(slots.palette));
 const hasInspector = computed(() => Boolean(slots.inspector));
-const hasSupport = computed(() => Boolean(slots.support));
+const hasPreview = computed(() => Boolean(slots.preview));
 
 // Panel visibility is workspace-owned so every designer shares one contract:
 // lane chevrons, the compact overlay, and the toolbar toggles all drive this state.
-const panels = reactive({ palette: true, inspector: true, support: false });
+const panels = reactive({ palette: true, inspector: true, preview: false });
 const compact = ref(false);
 const compactTab = ref('palette');
+const previewHeight = ref(340);
+const previewBandOpen = computed(() => hasPreview.value && panels.preview && !compact.value);
 
-const PANEL_KEYS = ['palette', 'inspector', 'support'];
+const PANEL_KEYS = ['palette', 'inspector', 'preview'];
 
 function togglePanelFromToolbar(panel) {
   if (compact.value) {
@@ -177,11 +186,11 @@ const panelDockItems = computed(() => [
     pressed: panels.inspector,
     onClick: () => togglePanelFromToolbar('inspector')
   } : null,
-  hasSupport.value ? {
-    icon: 'pi pi-window-maximize',
-    label: t('designer.support'),
-    pressed: panels.support,
-    onClick: () => togglePanelFromToolbar('support')
+  hasPreview.value ? {
+    icon: 'pi pi-eye',
+    label: t('designer.preview'),
+    pressed: panels.preview,
+    onClick: () => togglePanelFromToolbar('preview')
   } : null
 ].filter(Boolean));
 
@@ -211,12 +220,31 @@ function openPanel(panel) {
   panels[panel] = true;
 }
 
-const compactPanelOpen = computed(() => panels.palette || panels.inspector || panels.support);
+const compactPanelOpen = computed(() => panels.palette || panels.inspector || panels.preview);
 
 function closeCompactPanels() {
   panels.palette = false;
   panels.inspector = false;
-  panels.support = false;
+  panels.preview = false;
+}
+
+// The preview band's drag handle: pointer-tracked height between the
+// content floor (160px) and the workspace minus the canvas floor.
+function beginPreviewResize(event) {
+  event.preventDefault();
+  const startY = event.clientY;
+  const startHeight = previewHeight.value;
+  const workspaceHeight = workspace.value?.getBoundingClientRect?.().height || 600;
+  const maxHeight = Math.max(180, workspaceHeight - 220);
+  const onMove = moveEvent => {
+    previewHeight.value = Math.round(Math.min(maxHeight, Math.max(160, startHeight + startY - moveEvent.clientY)));
+  };
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+  };
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
 }
 
 provide('designerWorkspacePanels', {
@@ -249,11 +277,11 @@ watch(compact, value => {
   if (value) {
     panels.palette = false;
     panels.inspector = false;
-    panels.support = false;
+    panels.preview = false;
   } else {
     panels.palette = hasPalette.value;
     panels.inspector = hasInspector.value;
-    panels.support = false;
+    panels.preview = false;
   }
 });
 
@@ -303,15 +331,5 @@ defineExpose({
 .designer-workspace__inspector {
   grid-area: 1 / 3;
   margin: 0.75rem 0.75rem 0.75rem 0;
-}
-
-.designer-workspace__support {
-  grid-area: 1 / 2;
-  align-self: end;
-  justify-self: start;
-  width: 17rem;
-  max-width: 42%;
-  max-height: 45%;
-  margin: 0 0 0.75rem 0.75rem;
 }
 </style>

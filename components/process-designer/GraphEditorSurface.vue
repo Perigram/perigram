@@ -9,7 +9,6 @@
       :bind-frame="bindCanvasFrame"
       :bind-context-palette-search="bindContextPaletteSearch"
       :canvas-items="activeCanvasItems"
-      chrome-variant="floating"
       :canvas-status="props.session ? props.canvasStatus : (props.canvasStatus || canvasStatus)"
       :on-activity-click="props.session ? props.onActivityClick : (props.onActivityClick || openActivitySurface)"
       :touch-pan-drag="touchPanDrag"
@@ -66,8 +65,8 @@
           />
         </div>
       </template>
-      <template v-if="!readOnly" #support>
-        <slot v-if="$slots.support" name="support" />
+      <template v-if="!readOnly" #preview>
+        <slot v-if="$slots.preview" name="preview" />
         <GraphDocumentPreviewPanel
           v-else-if="!props.session"
           :result="previewResult"
@@ -321,8 +320,7 @@ function bindCanvasFrame(instance) {
 }
 
 function openActivitySurface() {
-  canvasFrame?.setPanel?.('inspector', false);
-  canvasFrame?.openPanel?.('support');
+  canvasFrame?.openPanel?.('preview');
 }
 
 function parseGraphPayload(payload) {

@@ -404,13 +404,17 @@ before compiling the process graph.
 
 Chrome: the canvas uses its own token-backed work surface behind the
 shared `DesignerWorkspace` chrome
-([components/shared](../shared/README.md)). The palette is the
+([components/shared](../shared/README.md)) — the app's shared surface
+tokens alone. The palette is the
 canvas-top dock inside the canvas slot; the inspector is a non-modal
 overlay drawer rail the toolbar toggle owns — canvas clicks keep it
-open, and canvas Escape clears graph selection. The workspace header
+open, and canvas Escape clears graph selection. The preview workspace is
+the workspace's resizable bottom region (SPEC §28.14); the canvas status
+control opens it, and the floating `Toolbar` rides above the open
+region. The workspace header
 (unified `SurfaceHeader`, SPEC §28.14) owns the loaded definition's
 identity, in-place rename, New Draft, the dirty-gated Save, and Apply
-(the process lifecycle action); the floating `Toolbar`'s canvas group
+(the process lifecycle action). The floating `Toolbar`'s canvas group
 carries the view controls (zoom out/in, frame all, frame selection,
 reset zoom, Tidy), every item icon-only
 with its label as tooltip and accessible name, so the toolbar survives
@@ -544,7 +548,9 @@ normalizer and validator.
 
 ### Preview (channel tabs)
 
-The preview tab always renders. The built-in outputs channel comes
+The preview workspace region hosts the channel-tab strip
+(`GraphPreviewPanel.vue`); the canvas status control opens it. The
+built-in outputs channel comes
 first: `GraphOutputsChannel.vue` over `graphOutputEntries`
 ([utils](../../utils/README.md)) lists every visible evaluated output
 under its card labels — section and node, socket label and type, branch
@@ -555,7 +561,7 @@ their installed managed runtime. Installed
 plugins declare further channels (SPEC §28): each renders its plugin
 surface read-only (`PreviewChannelMount.vue`, the
 same contract-1 mount the generic preview slots ride) over the
-whole-graph preview evaluation — the evaluation runs when the tab opens
+whole-graph preview evaluation — the evaluation runs when the region opens
 and re-runs on authoring changes while it stays open (one debounced
 seam), with no target node, so every data node evaluates, no effect
 species executes, and a service evaluates through its installed managed
@@ -582,9 +588,10 @@ validation feedback strip — over the session composable's state and
 verbs passed as props (`v-model:nodes`/`v-model:edges`, palette groups,
 gesture handlers). The `lane` slot carries a host's zoom-pane background
 (the process page's lane bands); the `inspector` slot carries the host's
-rail content. The graph file surface mounts its preview/input rail in the
-canvas `support` slot; the canvas status control opens that rail beside
-the inspector. Function-ref props (`bindFrame`, `bindContextPaletteSearch`)
+rail content; the `preview` slot carries a host's preview workspace
+content. The graph file surface mounts its preview/input panel in the
+workspace preview region; the canvas status control opens that region.
+Function-ref props (`bindFrame`, `bindContextPaletteSearch`)
 hand the mounted instances to the session's refs — plain ref props would
 unwrap at the host template. `readOnly` renders the canvas alone: the
 palettes, the dial, node dragging, and the pane palette gesture are off.
@@ -602,13 +609,13 @@ the process page's editor mount. Without a supplied session it uses
 canonical `perigram.graph` document owned by `@perigram/core`, and saves
 serialize that same format through the instance payload transport. With a
 supplied `session` it renders that host's canvas bindings and its
-`inspector`, `support`, and `lane` slots; the process page supplies the
+`inspector`, `preview`, and `lane` slots; the process page supplies the
 process profile and its tabs. Provider contracts supply node sockets and
 the graph-specific inspector edits JSON configuration and boundary labels. Graph Input, Graph Output, and a distinct Use Graph
 palette group are exposed. Preview invokes the core procedural evaluator
 with registered process data-node adapters; the preview panel accepts
 JSON graph-input bindings and displays graph outputs plus per-node outputs.
-The canvas activity indicator opens that preview panel directly. Preview
+The canvas activity indicator opens the preview region directly. Preview
 is read-only and does not commit organization state. The Use Graph invocation UI
 authors its pinned graph ID, revision, and public-interface snapshot in
 the node's JSON configuration; the graph catalog feeds the invocation
@@ -740,7 +747,8 @@ in `utils/processDesigner*.js`:
 
 Graph documents open as ordinary `graph-document` records through the file
 model. `GraphEditorSurface`'s inspector authors graph nodes and public
-interfaces; its support rail is a separate preview workspace with output
+interfaces; the workspace preview region carries its preview panel with
+output
 selection, generic representations, and optional provider-owned read-only
 renderers. The graph session accepts validated provider contributions from
 the host (the `nodeProviders` prop) and keeps operation identity, executor

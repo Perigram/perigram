@@ -53,6 +53,16 @@
           :right="laneExtent.right"
         />
       </template>
+      <template #preview>
+        <GraphPreviewPanel
+          :channels="servedPreviewChannels"
+          :payload="channelPreviewPayload"
+          :nodes="nodes"
+          :running="channelPreviewRunning"
+          :error="channelPreviewError"
+          @refresh="runChannelPreview"
+        />
+      </template>
       <template #inspector>
         <div class="flex h-full min-h-0 flex-col">
           <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
@@ -60,7 +70,6 @@
               <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
               <Tab value="definitions">{{ $t('processDesigner.definitions') }}</Tab>
               <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
-              <Tab value="preview">{{ $t('processDesigner.previewTab') }}</Tab>
             </TabList>
             <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="definitions">
@@ -510,17 +519,6 @@
                   </div>
                 </Panel>
               </div>
-            </TabPanel>
-
-            <TabPanel value="preview">
-              <GraphPreviewPanel
-                :channels="servedPreviewChannels"
-                :payload="channelPreviewPayload"
-                :nodes="nodes"
-                :running="channelPreviewRunning"
-                :error="channelPreviewError"
-                @refresh="runChannelPreview"
-              />
             </TabPanel>
           </TabPanels>
         </Tabs>
