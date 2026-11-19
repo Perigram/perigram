@@ -50,6 +50,8 @@ describe('process designer page SSR smoke', () => {
     expect(html).toContain('designer-workspace');
     expect(html).toContain('designer-workspace__rail');
     expect(html).toContain('data-designer-toolbar');
+    expect(html).toContain('data-designer-palette-strip');
+    expect(html).toContain('>Types<');
     expect(html).toContain('processDesigner.selectNode');
     expect(html).toContain('processDesigner.addRole');
     expect(html).not.toContain('>organization.screens<');

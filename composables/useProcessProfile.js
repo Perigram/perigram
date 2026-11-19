@@ -274,7 +274,7 @@ export function useProcessProfile({
     onConnect: connection => onConnect(connection)
   });
 
-  const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = useProcessDesignerPalette({
+  const { filteredGroups: designerPaletteGroups, contextGroups: designerContextPaletteGroups } = useProcessDesignerPalette({
     // A getter, not the array: capability and type-catalog loads replace
     // designer.paletteGroups after mount, and the palette must follow without
     // a remount (the async-loaded case the composable resolves reactively).
@@ -297,8 +297,8 @@ export function useProcessProfile({
       signal: signalForPaletteGroup(group.id)
     }))
   })).filter(group => group.items.length);
-  const paletteChipGroups = computed(() => toPaletteGroups(paletteGroups.value));
-  const contextPaletteChipGroups = computed(() => toPaletteGroups(contextPaletteGroups.value));
+  const paletteGroups = computed(() => toPaletteGroups(designerPaletteGroups.value));
+  const contextPaletteGroups = computed(() => toPaletteGroups(designerContextPaletteGroups.value));
 
   const roleList = computed(() => Object.values(roles() || {}));
   const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
@@ -1545,8 +1545,8 @@ export function useProcessProfile({
     declarationNodeTypes,
     selectedDeclarationEdge,
     // palettes
-    paletteChipGroups,
-    contextPaletteChipGroups,
+    paletteGroups,
+    contextPaletteGroups,
     contextPalette,
     openPanePalette,
     closeContextPalette,

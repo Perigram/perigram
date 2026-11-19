@@ -2,7 +2,9 @@ export function useProcessDefinitionCatalog({ definitionToCanvas }) {
   function normalizeProcessList(active, all = []) {
     const byId = new Map();
     for (const process of [active, ...(Array.isArray(all) ? all : [])].filter(Boolean)) {
-      byId.set(String(process._id), process);
+      const id = String(process._id);
+      const held = byId.get(id);
+      if (!held || (!held.data && process.data)) byId.set(id, process);
     }
     return [...byId.values()].sort(compareProcessDefinitions);
   }
