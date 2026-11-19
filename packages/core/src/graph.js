@@ -1,3 +1,4 @@
+import { isRecord, isJsonValue, cloneJson } from './json.js';
 const FORMAT = 'perigram.graph';
 export const GRAPH_DOCUMENT_FORMAT = FORMAT;
 export const GRAPH_DOCUMENT_VERSION = 1;
@@ -204,24 +205,8 @@ function requiredString(value, label) {
   return value.trim();
 }
 
-function isRecord(value) {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null));
-}
 
-function isJsonValue(value, seen = new Set()) {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
-  if (typeof value === 'number') return Number.isFinite(value);
-  if (typeof value !== 'object' || seen.has(value)) return false;
-  if (!Array.isArray(value) && !isRecord(value)) return false;
-  seen.add(value);
-  const valid = (Array.isArray(value) ? value : Object.values(value)).every(item => isJsonValue(item, seen));
-  seen.delete(value);
-  return valid;
-}
 
-function cloneJson(value) {
-  return JSON.parse(JSON.stringify(value));
-}
 
 function problem(code, path, message) {
   return { code, path, message };
