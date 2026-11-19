@@ -66,7 +66,7 @@ const quantitative = computed(() => typeIsQuantitative(props.type));
 
 defineEmits(['open']);
 
-const { te, t } = useI18n();
+const { te, t, locale } = useI18n();
 
 // No #opposite column: hide PrimeVue's always-rendered empty one.
 const timelinePt = { eventOpposite: { style: { display: 'none' } } };
@@ -92,7 +92,7 @@ const bodyValue = (instance) => {
   if (!bodyField.value) return null;
   const raw = instance.fields?.[bodyField.value.name];
   const descriptor = { base: typeof raw === 'object' && raw !== null ? 'json' : 'string' };
-  return formatValue(descriptor, raw);
+  return formatValue(descriptor, raw, { locale: locale.value });
 };
 const scalarFields = computed(() => Object.entries(props.type?.fields || {})
   .filter(([name, descriptor]) => SCALAR_BASES.includes(descriptor.base)

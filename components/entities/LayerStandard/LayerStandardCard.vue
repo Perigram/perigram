@@ -1,30 +1,32 @@
 <template>
   <div :class="[`variant-${variant}`]">
     <InstanceCard :instance="standard" type-id="layer_standard" :variant="variant" :show-trace="false" :show-status="false">
-      <template #before-identity>
+      <template #before-identity v-if="variant !== 'inline'">
         <i class="pi pi-palette"></i>
       </template>
-      <template #subtitle v-if="variant !== 'card'">
+      <template #subtitle v-if="variant === 'compact'">
         <div class="flex flex-wrap gap-2">
           <Badge v-if="category" :value="category" severity="secondary" size="small" />
           <Badge v-if="standardCode" :value="standardCode" severity="info" size="small" />
         </div>
       </template>
-      <template #compact-content>
+      <template #compact-content v-if="variant === 'compact'">
         <div v-if="activePen" class="mt-3">
           <PenTemplateCard :pen="activePen" variant="inline" />
         </div>
       </template>
-      <Divider />
-      <div class="flex flex-col gap-2">
-        <div class="flex items-center justify-between gap-2">
-          <small class="text-muted">{{ standardCode || $t('layerStandard.defaultPen') }}</small>
-          <Badge v-if="standard.data?.orgPenId" :value="$t('layerStandard.overridden')" severity="warn" size="small" />
+      <template #default v-if="variant === 'card'">
+        <Divider />
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between gap-2">
+            <small class="text-muted">{{ standardCode || $t('layerStandard.defaultPen') }}</small>
+            <Badge v-if="standard.data?.orgPenId" :value="$t('layerStandard.overridden')" severity="warn" size="small" />
+          </div>
+          <PenTemplateCard v-if="activePen" :pen="activePen" variant="inline" />
+          <p v-else class="italic opacity-50">{{ $t('layerStandard.noDefaultPen') }}</p>
         </div>
-        <PenTemplateCard v-if="activePen" :pen="activePen" variant="inline" />
-        <p v-else class="italic opacity-50">{{ $t('layerStandard.noDefaultPen') }}</p>
-      </div>
-      <template #footer>
+      </template>
+      <template #footer v-if="variant === 'card'">
         <div v-if="canEdit" class="flex justify-end gap-2" @click.stop>
           <Button
             v-if="standard.data?.orgPenId"

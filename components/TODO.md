@@ -1,5 +1,70 @@
 # TODO
 
+## Design-system consistency plan ([SPEC](./SPEC.md), owner direction 2026-11-19)
+
+- [ ] WAITING — owner verification: Phase 1 (P0) — every `InstanceCard`
+  slot has an explicit per-variant contract with development warnings on
+  supplied-but-unsupported slots, and the five registry cards pass slots
+  gated to the variant; fact values carry semantic typography roles
+  resolved from the field/display contract; shared primitives expose no
+  hardcoded user-facing English and locale-sensitive dates follow the
+  active i18n locale.
+- [ ] Phase 2 (P1) — Establish one component contract model: audit the
+  design-system vocabularies, document each one's owner, make the
+  variant/surface/display-mode mapping explicit, make preview policy real
+  or remove it (SPEC Phase 2).
+- [ ] Phase 3 (P1) — Formalize composition recipes from repeated real
+  structures through existing primitives and slots (SPEC Phase 3).
+- [ ] Phase 4 (P1) — Extend enforcement from visual to behavioral
+  contracts: props/slot/variant matrix tests, rendered variant matrices
+  for registered cards, accessibility and theme coverage, UI lab
+  generated from the contract vocabulary (SPEC Phase 4).
+- [ ] Phase 5 (P2) — Repository-wide consistency audit against the
+  finalized contracts (SPEC Phase 5).
+
+### Agent Notes (2026-11-19, Phase 1)
+
+Session `agent/design-consistency-p1-20261119` (worktree
+`.agent-worktrees/design-consistency-p1-20261119`). Landed:
+
+- `InstanceCard` declares slot support per variant (`inline`:
+  `inline-extra`; `compact`: header/title/before-identity/subtitle/
+  compact-content; `card`: header/title/before-identity/subtitle/default/
+  footer); a supplied slot outside its variant logs a development warning
+  (conditional template slots compile to conditional slot registration, so
+  guards double as declarations). All five registry cards migrated:
+  identity chrome gated to compact+card, fact bodies through
+  `compact-content` (compact) and the default slot (card), footers and
+  the UserCard avatar dead inline branch cleaned.
+- `FactRows` renders row roles: `factRoleFor` in `utils/fact-rows.js`
+  resolves `technical` for number/quantity/instant bases and
+  `display: 'code'`, `body` otherwise — the measured-value mono face law
+  `FieldControl` already carried, now derived once for read-only facts.
+  EntityRevisionCard's hand rows carry explicit roles.
+- `formatDataValue` renders instants as locale dates (raw ISO strings
+  previously passed through) and quantity objects through the shared
+  `formatQuantity` (`{value, unit}` rows previously dropped); boolean
+  labels are required localized inputs (no English fallback).
+- Untranslated defaults removed: `StandardDialog` cancel/save resolve
+  through `common.cancel`/`common.save`; date formatting threads the
+  active i18n locale through `formatValue`/`formatQuantity`,
+  FieldControl, StatGrid, TimelineCollection, StateHistory,
+  PayloadRevisionPicker, TargetedInvitations, OrganizationCard, and the
+  `instanceFactRows` translator (`{ t, te, locale }`).
+- Tests: `components/shared/instance-card-slots.spec.js` (rendered
+  variant×slot matrix + warnings), `fact-rows.spec.js` (role typography),
+  `standard-dialog.spec.js` (i18n footer labels), fact-display-vocabulary
+  role/locale cases; the design-system guard pins the role split and the
+  compact-gated subtitle law.
+- READMEs updated: shared (InstanceCard slot table, popup expansion law,
+  FactRows row contract, StandardDialog labels), entities (card law),
+  utils (fact-rows derivation), shared/ui-mapping (formatValue locale).
+- Validation: instance-card-slots 5/5, fact-rows 2/2, standard-dialog
+  2/2, fact-display-vocabulary 10/10, design-system 34/34, localization,
+  SSR smoke 29/29, shared+components sweep 448 with the icon-fonts
+  worktree-node_modules artifact resolved by symlink; check-arch and
+  docs:validate green.
+
 ## components/ deslop delta (2026-10-24 audit)
 
 ### README

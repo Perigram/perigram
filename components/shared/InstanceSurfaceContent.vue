@@ -58,7 +58,7 @@ const props = defineProps({
   displayOverrides: { type: Object, default: null }
 });
 
-const { t, te } = useI18n();
+const { t, te, locale } = useI18n();
 // Fact rows resolve from the served org type view (the compiled CTS
 // client bundle cached by useFileTypeView); the registry store touch
 // keeps the declaration-derived display-access registration alive
@@ -89,7 +89,7 @@ const factRows = computed(() => instanceFactRows({
   entity: props.entity,
   accessEntity: props.accessEntity,
   auth: factGateAuth(),
-  translator: { t, te }
+  translator: { t, te, locale }
 }));
 const relationFields = computed(() => {
   if (!typeRecord.value) return [];

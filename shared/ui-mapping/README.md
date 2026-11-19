@@ -278,8 +278,10 @@ the declared storage key (the edge's map key is authoring identity). A
 lineage reference matches in both stored shapes, the `{ id }` ref and the
 normalized id.
 
-`formatValue(descriptor, value)` projects any field to display text (unit
-symbols, dates, enums, counts), which text surfaces (timeline meta) consume;
+`formatValue(descriptor, value, { locale })` projects any field to display
+text (unit symbols, dates, enums, counts); the optional `locale` drives
+date and number formatting and components thread the active i18n locale
+through it, which text surfaces (timeline meta) consume;
 structural displays render as labeled inline summaries (SPEC §22.8:
 wrapping rows, values on their own lines) bounded by `SUMMARY_BUDGET`.
 

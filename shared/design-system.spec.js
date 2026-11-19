@@ -411,7 +411,10 @@ describe('Design system manifest', () => {
     expect(fontsCss).toContain(':where(input, button, select, textarea)');
     expect(fontsCss).not.toMatch(/:where\((?:p|blockquote|h[1-6]|code|pre)/);
     expect(fontsCss).not.toContain('.ck-prose');
-    expect(factRows).toContain('text-technical');
+    // Fact value typography is semantic: measured values (number,
+    // quantity, instant) and code-shaped identifiers wear the technical
+    // mono face with tabular numerals; ordinary text wears the body face.
+    expect(factRows).toContain("row.role === 'technical' ? 'text-technical tabular-nums' : 'text-body'");
     expect(actionToolbar).toContain("props.level <= 1 ? 'text-page-title' : 'text-section-heading'");
     // Document surfaces read in the app's prose voice (serif), not the
     // technical mono role: file payload previews, the single-surface live
@@ -638,7 +641,7 @@ describe('Design system manifest', () => {
       .map((file) => path.relative(REPO_ROOT, file))
       .filter((file) => {
         const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
-        return /<template\s+#subtitle(?![^>]*variant !== 'card')/.test(source);
+        return /<template\s+#subtitle(?![^>]*v-if="variant (?:=== 'compact'|!== 'card')[^"]*")/.test(source);
       });
 
     expect(offenders).toEqual([]);

@@ -125,7 +125,7 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const toast = useToast();
 const instances = useInstancesStore();
 
@@ -179,7 +179,7 @@ function revisionActor(revision) {
 function revisionTime(revision) {
   const date = new Date(revision?.data?.createdAt || '');
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+  return date.toLocaleString(locale.value, { dateStyle: 'short', timeStyle: 'short' });
 }
 
 const canWrite = computed(() => editorWriteGranted(props.type?.id, props.entity));

@@ -1,6 +1,6 @@
 <template>
   <span v-if="outcome.component === 'ValueText'" :class="[densityScale.factValue, LAYOUT.cellText, numericValue ? 'text-technical tabular-nums' : '']">{{ displayValue }}</span>
-  <p v-else-if="outcome.component === 'ProseText'" class="text-prose line-clamp-4 w-full break-words">{{ formatValue({ base: 'string' }, model) }}</p>
+  <p v-else-if="outcome.component === 'ProseText'" class="text-prose line-clamp-4 w-full break-words">{{ formatValue({ base: 'string' }, model, { locale: locale }) }}</p>
   <MeterGroup
     v-else-if="outcome.component === 'MeterGroup'"
     :value="meterSegments"
@@ -230,6 +230,7 @@ import ObjectEditor from './ObjectEditor.vue';
 import MapEditor from './MapEditor.vue';
 import ListEditor from './ListEditor.vue';
 import VariantEditor from './VariantEditor.vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
   descriptor: { type: Object, required: true },
@@ -243,6 +244,7 @@ const props = defineProps({
 });
 
 const model = defineModel();
+const { locale } = useI18n();
 function openPayload() {
   const fileId = props.modelValue?.fileId;
   if (!fileId || typeof window === 'undefined') return;
@@ -269,16 +271,16 @@ const refValue = computed(() => {
     revision: value && typeof value === 'object' ? (value.revision ?? null) : null
   };
 });
-const displayValue = computed(() => formatValue({ base: 'string' }, props.modelValue));
+const displayValue = computed(() => formatValue({ base: 'string' }, props.modelValue, { locale: locale.value }));
 // Plain number fields land on ValueText too: the numeric face applies to
 // them, string fields keep the UI face.
 const numericValue = computed(() => props.descriptor?.base === 'number');
-const quantityValue = computed(() => formatQuantity(props.modelValue));
-const instantValue = computed(() => (props.modelValue ? new Date(props.modelValue).toLocaleDateString() : fallback));
-const compactValue = value => formatValue({ base: 'json' }, value) === '—'
+const quantityValue = computed(() => formatQuantity(props.modelValue, { locale: locale.value }));
+const instantValue = computed(() => (props.modelValue ? new Date(props.modelValue).toLocaleDateString(locale.value) : fallback));
+const compactValue = value => formatValue({ base: 'json' }, value, { locale: locale.value }) === '—'
   && value !== null && value !== undefined && typeof value === 'object'
   ? firstMeaningful(value)
-  : formatValue({ base: 'json' }, value);
+  : formatValue({ base: 'json' }, value, { locale: locale.value });
 
 const firstMeaningful = value => {
   const first = Object.values(value).find(entry => entry !== null && entry !== undefined);
@@ -362,7 +364,7 @@ const sliderWrite = value => (props.modelValue && typeof props.modelValue === 'o
   : value);
 const sliderLabel = computed(() => {
   const raw = props.modelValue;
-  if (raw && typeof raw === 'object') return formatQuantity(raw);
+  if (raw && typeof raw === 'object') return formatQuantity(raw, { locale: locale.value });
   return String(sliderValue.value ?? '—');
 });
 const chartData = computed(() => {

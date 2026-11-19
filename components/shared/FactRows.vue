@@ -15,8 +15,11 @@
           {{ row.label }}
         </dt>
         <dd
-          class="m-0 min-w-0 break-words text-technical"
-          :class="variant === 'compact' ? '' : 'mt-1'"
+          class="m-0 min-w-0 break-words"
+          :class="[
+            row.role === 'technical' ? 'text-technical tabular-nums' : 'text-body',
+            variant === 'compact' ? '' : 'mt-1'
+          ]"
         >
           <span v-if="row.swatch" class="mr-1.5 inline-block h-3 w-3 shrink-0 rounded-ui align-middle" :style="{ backgroundColor: row.swatch }" />
           {{ row.display }}
@@ -35,7 +38,6 @@ defineProps({
   variant: { type: String, default: 'default' }
 });
 </script>
-
 <style scoped>
 .fact-rows-container {
   container-type: inline-size;

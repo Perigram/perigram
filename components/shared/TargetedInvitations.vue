@@ -14,7 +14,7 @@
       </Column>
       <Column field="expiresAt" :header="$t('auth.expires')">
         <template #body="{ data }">
-          {{ new Date(data.expiresAt).toLocaleDateString() }}
+          {{ new Date(data.expiresAt).toLocaleDateString(locale) }}
         </template>
       </Column>
       <Column :header="$t('common.actions.title')" class="text-right">
@@ -40,7 +40,7 @@ import Tag from 'primevue/tag';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import { useAuthStore } from '~/stores/auth';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const toast = useToast();
 const authStore = useAuthStore();
 

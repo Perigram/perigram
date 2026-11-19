@@ -23,8 +23,8 @@
 
         <template #footer v-if="$slots.footer || showDefaultFooter">
             <slot name="footer">
-                <Button :label="cancelLabel" text severity="secondary" @click="$emit('cancel')" />
-                <Button :label="saveLabel" :loading="loading" :disabled="saveDisabled" @click="$emit('save')" />
+                <Button :label="resolvedCancelLabel" text severity="secondary" @click="$emit('cancel')" />
+                <Button :label="resolvedSaveLabel" :loading="loading" :disabled="saveDisabled" @click="$emit('save')" />
             </slot>
         </template>
     </Dialog>
@@ -34,6 +34,7 @@
 import { computed, useSlots } from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
     size: { type: String, default: 'md' }, // sm, md, lg, xl, full
@@ -48,13 +49,19 @@ const props = defineProps({
     title: { type: String, default: '' },
     subtitle: { type: String, default: '' },
     showDefaultFooter: { type: Boolean, default: false },
-    cancelLabel: { type: String, default: 'Cancel' },
-    saveLabel: { type: String, default: 'Save' },
+    // Default footer labels resolve through i18n (`common.cancel`,
+    // `common.save`); the props override for domain-specific verbs.
+    cancelLabel: { type: String, default: null },
+    saveLabel: { type: String, default: null },
     loading: { type: Boolean, default: false },
     saveDisabled: { type: Boolean, default: false }
 });
 
 defineEmits(['cancel', 'save']);
+
+const { t } = useI18n();
+const resolvedCancelLabel = computed(() => props.cancelLabel ?? t('common.cancel'));
+const resolvedSaveLabel = computed(() => props.saveLabel ?? t('common.save'));
 
 const slots = useSlots();
 const hasHeader = computed(() => Boolean(props.title || props.subtitle || slots['header-actions']));

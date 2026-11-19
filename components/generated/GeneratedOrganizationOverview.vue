@@ -43,7 +43,7 @@ const props = defineProps({
 });
 
 const authStore = useAuthStore();
-const { t, te } = useI18n();
+const { t, te, locale } = useI18n();
 
 const organization = computed(() => authStore.organizationData);
 const organizationName = computed(() => organization.value?.identity?.name || '');
@@ -59,7 +59,7 @@ const organizationRows = computed(() => instanceFactRows({
     fieldPolicies: authStore.fieldPolicies,
     stateFieldPolicies: authStore.stateFieldPolicies
   },
-  translator: { t, te }
+  translator: { t, te, locale }
 }));
 
 function systemLabel(key = '', fallback = '') {

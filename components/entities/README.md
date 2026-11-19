@@ -27,12 +27,13 @@ overrides need their DTO paths declared in the field-access policy.
 
 ## Card law
 
-- One `InstanceCard :variant="variant"` per card; the body passes once
-  through the default slot and is reused by card variants and
-  inline/compact popovers. Slots: `before-identity`, `subtitle`, body,
-  footer — `#title` belongs to the standard identity/status row. Subtitle
-  slots guard `v-if="variant !== 'card'"`; `compact-content` and
-  `inline-extra` carry short, stable cues only.
+- One `InstanceCard :variant="variant"` per card, slots gated to the
+  per-variant contract ([shared](../shared/README.md) → InstanceCard):
+  identity chrome renders in compact and card, the fact body renders
+  through `compact-content` in compact and the default slot in card,
+  footers render in card, `inline-extra` is the inline suffix — a slot
+  supplied outside its variant warns in development. `#title` belongs to
+  the standard identity/status row.
 - Facts resolve through the generated field derivation
   (`instanceFactRows` over the served type record); a card declares no
   local path arrays (`shared/instance-field-access.js` gates every row;
@@ -70,7 +71,7 @@ overrides need their DTO paths declared in the field-access policy.
 | `entityRevision` — `EntityRevisionCard` | Read-only provenance card: revision scope, number, and short hash under `data`; the source entity relation renders through `InstanceInlineRef` (cassette source revisions render as `cassetteTemplate` refs — templates are stored in the `cassettes` collection); status actions hidden, revisions are immutable. | registry; `InstanceInlineRef` |
 | `penTemplate` — `PenTemplateCard` | Master data: stroke settings in `data.stroke` drive a real color/weight/pattern line preview; status and trace hidden. | registry; `DrawingCanvas` |
 | `layerStandard` — `LayerStandardCard` | Master data: layer code, purpose, and default pen; status and trace hidden. Drawing surfaces reference layer standards through this card. | registry; `DrawingCanvas` |
-| `user` — `UserCard` | Identity/contact and permission-related facts; status and trace hidden — permission changes stay on the admin page endpoints. The inline variant serves status-history actor rows; the avatar stays compact there so audit rows stay dense. Record popup: the directory profile ([DirectoryDetailSurface](../directory/README.md)). | registry; `InstanceInlineRef`; directory popup |
+| `user` — `UserCard` | Identity/contact and permission-related facts; status and trace hidden — permission changes stay on the admin page endpoints. Record popup: the directory profile ([DirectoryDetailSurface](../directory/README.md)). | registry; `InstanceInlineRef`; directory popup |
 | `organization` — `OrganizationCard` | Identity and contact/role facts; status and trace hidden. `context`/`actions` slots carry membership state and caller-owned navigation as visible footer actions. Profile renders one action per membership opening that organization's pane: the active organization's pane is its generated overview (billing, team, and process screens are children of that overview); an inactive organization's pane is the directory profile carrying the switch action. Record popup: the directory profile ([DirectoryDetailSurface](../directory/README.md)). | registry; `InstanceInlineRef`; directory popup |
 
 ## Validation

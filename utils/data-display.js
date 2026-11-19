@@ -1,3 +1,5 @@
+import { formatQuantity } from '#shared/ui-mapping/index.js';
+
 export function resolveDataPath(obj, path) {
   if (!path) return undefined;
   return path.split('.').reduce((acc, key) => acc?.[key], obj);
@@ -26,8 +28,16 @@ export function formatDataValue(raw, field = {}) {
     return formatDimensions(raw, field);
   }
 
+  if (isQuantityValue(raw)) {
+    return formatQuantity(raw, { locale: field.locale || undefined });
+  }
+
   if (typeof raw === 'boolean') {
-    return raw ? (field.trueLabel || 'Yes') : (field.falseLabel || 'No');
+    return raw ? field.trueLabel ?? null : field.falseLabel ?? null;
+  }
+
+  if (field.base === 'instant') {
+    return new Date(raw).toLocaleDateString(field.locale || undefined);
   }
 
   if (typeof raw === 'number' || typeof raw === 'bigint') {
@@ -35,7 +45,7 @@ export function formatDataValue(raw, field = {}) {
   }
 
   if (raw instanceof Date) {
-    return raw.toLocaleDateString();
+    return raw.toLocaleDateString(field.locale || undefined);
   }
 
   if (Array.isArray(raw)) {
@@ -72,8 +82,16 @@ export function formatParameterMap(raw) {
 export function decorateDataValue(raw, field = {}) {
   const formatted = formatDataValue(raw, field);
   if (formatted == null || formatted === '') return null;
-  const suffix = field.suffix ?? (field.unit ? UNIT_SUFFIXES[field.unit] ?? ` ${field.unit}` : '');
+  // A quantity value carries its own unit; the descriptor suffix would
+  // repeat it.
+  const suffix = isQuantityValue(raw)
+    ? ''
+    : field.suffix ?? (field.unit ? UNIT_SUFFIXES[field.unit] ?? ` ${field.unit}` : '');
   return `${field.prefix ?? ''}${formatted}${suffix}`;
+}
+
+function isQuantityValue(raw) {
+  return Boolean(raw) && typeof raw === 'object' && Number.isFinite(raw.value);
 }
 
 // The one byte-size label (file chips, payload fact strips, revision

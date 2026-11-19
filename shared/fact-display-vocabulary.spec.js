@@ -37,7 +37,10 @@ function servedBundle() {
       name: { base: 'string', identifier: true },
       parts: { base: 'list', itemType: { base: 'string' }, nullable: true },
       mass: { base: 'number', label: 'Mass kg' },
-      code: { base: 'string', label: 'Code' }
+      code: { base: 'string', label: 'Code' },
+      serial: { base: 'string', label: 'Serial', display: 'code' },
+      width: { base: 'quantity', unit: 'mm', label: 'Width' },
+      due: { base: 'instant', label: 'Due' }
     },
     states: {
       main: {
@@ -118,6 +121,29 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     // Empty values and absent type views resolve no rows.
     expect(instanceFactRows({ typeId: 'widget', typeRecord: widget, entity: { fields: {} } })).toEqual([]);
     expect(instanceFactRows({ typeId: 'widget', typeRecord: null, entity })).toEqual([]);
+  });
+
+  it('resolves each fact value typography role from the field/display contract', () => {
+    const widget = typeRecordFor(bundle, 'widget');
+    const entity = { fields: { name: 'W', mass: 12, code: 'PC-9', serial: 'SN-77', width: { value: 42, unit: 'mm' }, due: '2026-11-01T09:30:00.000Z' } };
+    const rows = instanceFactRows({ typeId: 'widget', typeRecord: widget, entity });
+    const roleByLabel = Object.fromEntries(rows.map(row => [row.label, row.role]));
+    // Measured values wear the technical face; ordinary text the body face.
+    expect(roleByLabel['Mass kg']).toBe('technical');
+    expect(roleByLabel.Width).toBe('technical');
+    expect(roleByLabel.Due).toBe('technical');
+    expect(roleByLabel['Serial']).toBe('technical');
+    expect(roleByLabel.Code).toBe('body');
+    // Instants render locale dates: the runtime default without a
+    // translator, the translator's locale when it carries one.
+    const due = rows.find(row => row.label === 'Due');
+    expect(due.display).toBe(new Date('2026-11-01T09:30:00.000Z').toLocaleDateString());
+    expect(
+      instanceFactRows({
+        typeId: 'widget', typeRecord: widget, entity,
+        translator: { t: (key, fallback) => fallback ?? key, te: () => false, locale: 'ru-RU' }
+      }).find(row => row.label === 'Due').display
+    ).toBe(new Date('2026-11-01T09:30:00.000Z').toLocaleDateString('ru-RU'));
   });
 
   it('resolves record titles through the one title resolver (identifier or unnamed)', () => {

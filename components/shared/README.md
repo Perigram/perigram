@@ -44,11 +44,15 @@ const rows = computed(() => instanceFactRows({
 ```
 
 Props: `:rows` (required — `instanceFactRows` output; `{ group, label,
-display, swatch }` rows), `variant` (`default` definition grid or `compact`
+display, swatch, role }` rows), `variant` (`default` definition grid or `compact`
 inline facts). The default layout uses its own inline-size container, so
 columns follow the width assigned by a page or split pane; pass
 `variant="compact"` wherever a dense surface needs inline facts. Rows carry
-their `group` for sectioned surfaces (detail bodies chunk by group).
+their `group` for sectioned surfaces (detail bodies chunk by group). Each
+row's `role` resolves its value typography from the field/display contract
+(`factRoleFor`: `number`, `quantity`, `instant` bases and `display: 'code'`
+render the technical mono face with tabular numerals; every other value
+renders the body face). Hand-built rows omit `role` for the body face.
 Row gating and value decoration are the derivation's
 (`shared/instance-field-access.js` over the `auth` input): do not render
 sensitive facts beside `FactRows` unless the API DTO has already been
@@ -972,7 +976,9 @@ transcription stay in the host composer.
   muted subtitle (file mime/size, record meta), and trailing icon actions
   before the dialog's close button (EntityPopup's expand, the attachment
   preview's download). Static-label dialogs keep PrimeVue's own `header`
-  attr; hand-rolled `#header` rows are defects.
+  attr; hand-rolled `#header` rows are defects. The default footer's
+  cancel/save labels resolve through i18n (`common.cancel`, `common.save`);
+  `cancelLabel`/`saveLabel` override them for domain-specific verbs.
 - **Default confirmation host**: the app layout (`layouts/app.vue`) mounts the
   single default-group PrimeVue `ConfirmDialog`; feature surfaces call
   `useConfirm()` without a group and never mount their own host — a second
@@ -1046,12 +1052,19 @@ transcription stay in the host composer.
 - **`InstanceCard.vue`**: Shared entity card structure built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`) while the preset owns its border, radius, shadow, spacing, and interaction states. Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `stateActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title.
   Full-card footer actions render inline by default (`footer-display`);
   the ellipsis menu stays available for deliberately dense footers.
-  Inline and compact variants share one expansion surface defined once in
-  `InstanceCard`: a header row with the localized type-id label and the
-  inline status, the identity, lineage context when forced, the same
-  canonical body the full card uses, and a trailing inline action row
-  (generated commands, the cassette-designer action, and a labeled
-  open-detail control) — never a nested ellipsis inside the popover.
+  Slot support is a per-variant contract; a supplied slot outside its
+  variant warns in development:
+
+  | Slot | `inline` | `compact` | `card` |
+  |---|---|---|---|
+  | `title` | — | identity-row override | title-block override |
+  | `before-identity` | — | identity-row prefix | identity-row prefix |
+  | `subtitle` | — | row under identity | Card subtitle |
+  | `header` | — | above the content block | Card header |
+  | default body | — | — | Card content |
+  | `compact-content` | — | extra row in the content | — |
+  | `inline-extra` | suffix in the chip row | — | — |
+  | `footer` | — | — | footer actions |
 - **`NameEditPopover.vue`**: Compact single-field rename control for entity names and other one-field edits. Use it near identity or action clusters instead of opening a full dialog when the only editable field is a name.
 - **`FilterBuilder.vue`**: The filter builder panel — the user-facing surface for boolean composition over the canonical instance-filter tree ([shared/instance-filters](../../shared/instance-filters/README.md)), hosted inside a host-owned popover (the collection header's view control carries the condition count as its badge through `countPredicates`). Set conditions render as two content-driven zones — a header line where the field takes the leftover width and truncates (full label on hover) beside the intrinsic-size operator and remove, and a full-width value line where enum chips wrap; an `Add condition` button toggles an inline field list (inside the hosting popover — a nested overlay would trip its outside-click handling) whose buttons append rows, and the same list swaps a row's field. Every control is inline by construction — segmented operator/boolean buttons, text/number/native-date inputs, enum value chips — because a popover dismisses on document clicks outside its subtree (body-appended child overlays closed it mid-edit) while appending those overlays into the positioned panel displaced them (PrimeVue positions overlays document-absolute). One combinator (match all / match any) applies once more than one row exists; each row picks a field, an operator — including the negated twins (`is not`, `doesn't contain`, `is none of`) that compose `not` — and a value control by field kind (text, enum select/multi-select, boolean, number, date). Hosts supply the field list (`{ name, label, kind, values? }` — traversal names are plain names) and own the model plus its persistence; the builder owns no matching logic — every edit composes through `filterFromBuilderRows` and the host evaluates with the one matcher. Trees the builder did not compose (nested groups) decompose to nothing rather than corrupt, and incomplete rows live only in local state until complete.
 
@@ -1062,23 +1075,21 @@ part of the authenticated app context, so it is not repeated on generated
 cards, entity pages, or inline popovers.
 
 `InstanceCard` owns inline and compact expansion. Inline and compact variants open
-the shared entity popover on click/keyboard activation. Entity-specific card
-components should render one `InstanceCard :variant="variant"` and pass their
-canonical body once through the default slot. `InstanceCard` reuses that same
-body for full card content and for inline/compact expansion; do not duplicate
-card-only bodies into per-variant `expanded` slots.
+the shared entity popup on click/keyboard activation (the record's compiled
+detail surface in the standard dialog; a type with no record surface
+renders an inert chip). Entity-specific card components render one
+`InstanceCard :variant="variant"` and gate their slots to the variant:
+identity chrome (`before-identity`) renders in compact and card, the fact
+body renders through `compact-content` in compact and the default slot in
+card, footers render in card, and `inline-extra` is the inline suffix.
 Generated card surfaces that override `#title` must not reintroduce
 `TraceChain` or a stacked identity/status column. Keep those overrides limited
 to clickable identity wrappers while preserving the shared one-row
 identity/status layout.
-Entity-specific bodies own their own internal separators; inline/compact
-popovers do not inject an extra divider before the reused body.
-The entity popover shows status as the normal inline status control only;
+Entity-specific bodies own their own internal separators.
+The entity popup shows status as the normal inline status control only;
 expanded/full status history and actions remain owned by clicking the status
 control itself.
-Do not hide all meaningful body content behind `variant === 'card'`; relation
-popovers depend on the same default slot body being available in inline and
-compact cards.
 Nested interactive children such as `InstanceState`, `TraceChain`,
 `GeometryPreview`, buttons, and nested inline entity cards
 mark themselves as card-interactive targets. Parent card click handlers must use

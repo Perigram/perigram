@@ -125,22 +125,18 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, useSlots } from 'vue';
 /**
  * InstanceCard - v24 Standardized
  * Shared instance card structure: TraceChain + identity chrome + InstanceState.
  * Entity-specific cards use this as their container, providing only
  * instance-specific body/footer content via slots.
  *
- * Slots:
- *   header           — custom card header slot
- *   title            — overrides default identity/status row
- *   subtitle         — optional subtitle row
- *   before-identity  — prefix in title row (e.g. queue number badge)
- *   default          — body content (card variant)
- *   compact-content  — extra content in compact row
- *   inline-extra     — suffix in inline row
- *   footer           — footer actions (card variant; inline by default)
+ * Slot support is a per-variant contract (shared/README.md → InstanceCard):
+ *   inline  — inline-extra
+ *   compact — header, title, before-identity, subtitle, compact-content
+ *   card    — header, title, before-identity, subtitle, default, footer
+ * Supplying a slot outside its variant warns in development.
  */
 import InstanceState from '~/components/shared/state/InstanceState.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
@@ -176,6 +172,21 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['refresh']);
+
+const slots = useSlots();
+const SUPPORTED_SLOTS = Object.freeze({
+    inline: Object.freeze(['inline-extra']),
+    compact: Object.freeze(['header', 'title', 'before-identity', 'subtitle', 'compact-content']),
+    card: Object.freeze(['header', 'title', 'before-identity', 'subtitle', 'default', 'footer'])
+});
+if (import.meta.env.DEV) {
+    const supported = SUPPORTED_SLOTS[props.variant] || SUPPORTED_SLOTS.card;
+    for (const name of Object.keys(slots)) {
+        if (!supported.includes(name)) {
+            console.warn(`[InstanceCard] "${name}" slot is unsupported in variant "${props.variant}"`);
+        }
+    }
+}
 
 const cardInstanceId = computed(() => {
     const id = props.instance?._id ?? props.instance?.id;
