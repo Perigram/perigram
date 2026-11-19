@@ -648,13 +648,15 @@ not a second graph implementation or a big-bang rewrite.
   sdk comparator with the `perigram.cts` profile registered, and ports
   without declared semantics receive no static decision. The browser
   editor session runs the same preflight and resolves pinned subgraphs
-  from its graph catalog; the §30.13 convergence proof is spec-covered
-  end to end in
-  `server/features/graph-executions/convergence.spec.js` (org CTS type
-  as commit target, plugin ops, conversion-decision rejection, IR
+  from its graph catalog; the §30.13 convergence gate is PARTIAL:
+  `server/features/graph-executions/convergence.spec.js` covers points
+  2–8 (plugin-op composition, conversion-decision rejection, IR
   preflight, effect-free preview, authorized Commit with evidence,
-  deterministic reruns). Graph-backed type behavior and cross-target
-  parity remain open.
+  deterministic reruns; the core-data composition test runs enabled —
+  the provider declares its server target). Points 1 (graph-backed
+  validation/derived behavior on an org-defined CTS type) and
+  cross-target parity are UNIMPLEMENTED; the gate stays open until the
+  full vertical slice passes (GitHub issue #21).
 - [ ] Define the language-independent structured authoring schema shared
   by textual DSL forms and JSON/API payloads (SPEC §30.9.1): both are
   encodings of one schema flowing through the same normalization,

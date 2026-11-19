@@ -54,7 +54,9 @@ The document stores graph identity and revision, public input/output interfaces,
 provider-qualified nodes with pinned definition versions, JSON configuration,
 canvas positions, and typed edges. Public interface ports carry both transport
 shape and semantic descriptors; each port has one Graph Input or Graph Output
-boundary node. Use Graph nodes pin an immutable graph revision.
+boundary node. Use Graph nodes pin an immutable graph revision. Execution
+consumes this document; the [typed IR](#typed-ir) is its validation and
+preflight representation.
 
 - `normalizeGraphDocument`, `validateGraphDocument`,
   `assertValidGraphDocument` own document normalization and validation.
@@ -88,8 +90,8 @@ boundary node. Use Graph nodes pin an immutable graph revision.
 ## Typed IR
 
 `lowerGraphToTypedIR({ graph, resolveNodeDefinition, resolveGraph,
-resolveCompatibility?, executionTarget })` lowers one validated
-`perigram.graph` document into an immutable, JSON-pure
+resolveCompatibility?, executionTarget, maxGraphDepth? })` lowers one
+validated `perigram.graph` document into an immutable, JSON-pure
 `perigram.typed-ir` v1 document:
 
 - `source` pins the graph identity and revision the IR was lowered from;
@@ -111,13 +113,54 @@ callbacks: identical inputs construct an identical IR. Structural
 document failures return `{ ir: null, diagnostics }`; semantic problems
 (unresolved operations, unsupported targets, incompatible edges,
 unresolved subgraphs) lower an IR that carries the diagnostics.
-`validateTypedIR` checks format, version, and JSON purity. The default
-compatibility check compares transport shapes and semantic bases; hosts
-inject the shared comparator (`resolveCompatibility`) for the full
-semantic contract, so `@perigram/core` stays independent of
+The default compatibility check compares transport shapes and semantic
+bases; hosts inject the shared comparator (`resolveCompatibility`) for
+the full semantic contract, so `@perigram/core` stays independent of
 `@perigram/plugin-sdk`. Control edges carry their authored `kind`;
 explicit iteration constructs enter the IR when the graph format
 declares them.
+
+### Recursive pinned-subgraph preflight
+
+Every Use Graph node lowers its pinned child document with the same
+callbacks and `executionTarget`, so nested unresolved operations,
+unsupported targets, and incompatible edges fail the parent's preflight.
+
+| Rule | Behavior |
+|---|---|
+| Memoization | Lowerings are cached per `${id}@${revision}`; a shared dependency lowers once per `lowerGraphToTypedIR` call. |
+| Cycle detection | The invocation path (graph keys) is tracked; a repeated key reports the full path and the offending Use Graph node, and that branch skips recursion. |
+| Depth bound | `maxGraphDepth` (default `32`, matching the evaluator's) reports the full path on exceedance and skips recursion. |
+| Diagnostic surfacing | Child diagnostics surface into the parent diagnostics prefixed with the invocation path; surfaced entries carry an `invocationPath` array of `id@revision` keys. |
+| Invocation summary | Each lowered invocation entry records `invocation.lowering: { diagnostics: n }`; child IRs stay out of the parent IR. |
+
+### validateTypedIR
+
+`validateTypedIR` checks format, version, and JSON purity plus the
+structural invariants below; a clean lowered graph passes with zero
+problems.
+
+| Area | Invariant | Codes |
+|---|---|---|
+| Interface | port lists are arrays; port ids unique within and across directions; shape in the transport vocabulary or null; semantic record or null | `invalid-interface`, `invalid-interface-port`, `duplicate-interface-port`, `invalid-port-shape`, `invalid-port-semantic` |
+| Operations | entry shape; nodeId unique; identity keys present; slot lists well-formed with unique ports per direction; boundary direction valid and bound to a declared same-direction interface port; every declared interface port has its boundary operation; invocation pins `graphId`+`revision` with unique interface ports; execution block shape | `invalid-operations`, `invalid-operation`, `invalid-node-id`, `duplicate-node-id`, `invalid-slots`, `invalid-slot`, `duplicate-slot-port`, `invalid-boundary`, `unknown-boundary-port`, `missing-boundary-operation`, `invalid-invocation`, `invalid-execution`, `invalid-execution-kind`, `invalid-execution-capabilities`, `invalid-execution-flag` |
+| Dependencies | entry shape; edgeId unique; endpoints reference known operations and their declared slot ports (source from outputs, target from inputs); decision shape | `invalid-dependencies`, `invalid-edge-id`, `duplicate-edge-id`, `invalid-endpoint`, `unknown-endpoint-operation`, `unknown-endpoint-port`, `invalid-decision`, `invalid-decision-status`, `inconsistent-decision`, `invalid-decision-reason`, `invalid-decision-conversions` |
+| Aggregates and diagnostics | `capabilities`/`executionKinds` are sorted, unique string arrays; diagnostics entries carry `code`, `severity`, `phase`, `message` | `invalid-capabilities`, `unsorted-capabilities`, `invalid-execution-kinds`, `unsorted-execution-kinds`, `invalid-diagnostics`, `invalid-diagnostic` |
+
+Decision statuses and execution kinds accept the frozen
+[plugin-sdk vocabularies](../plugin-sdk/README.md#port-compatibility):
+the five outcome statuses with their fixed `compatible` booleans, and the
+node execution kinds ([node contracts](../plugin-sdk/README.md#provider-neutral-node-contracts)).
+Core declares matching values under the
+[one-way package graph](../README.md).
+
+### Execution role
+
+The typed IR is the validation and preflight representation. Execution
+consumes the canonical graph document through `evaluateProceduralGraph`;
+the parity between what preflight accepts and what the evaluator runs is
+enforced by the [server preflight gate](../../server/features/graph-executions/README.md#contract)
+and the [convergence suite](../../server/features/graph-executions/convergence.spec.js).
 
 The graph document and evaluator are application-neutral. Persistence,
 authorization, provider execution bindings, preview rendering, Commit, Bake,
