@@ -132,9 +132,6 @@ const props = defineProps({
     default: 'lanes',
     validator: value => ['lanes', 'canvas'].includes(value)
   },
-  // Document commands (open/load, rename, save...) rendered after the
-  // workspace-owned panel toggles in the toolbar start group.
-  documentItems: { type: Array, default: () => [] },
   // Canvas commands (zoom cluster, content operations) rendered as the
   // toolbar end group.
   canvasItems: { type: Array, default: () => [] },
@@ -185,13 +182,10 @@ const panelDockItems = computed(() => [
     label: t('designer.support'),
     pressed: panels.support,
     onClick: () => togglePanelFromToolbar('support')
-  } : null,
-  (hasPalette.value || hasInspector.value || hasSupport.value) && props.documentItems.length
-    ? { separator: true }
-    : null
+  } : null
 ].filter(Boolean));
 
-const toolbarStartItems = computed(() => [...panelDockItems.value, ...props.documentItems]);
+const toolbarStartItems = panelDockItems;
 
 const hasToolbarItems = computed(() => toolbarStartItems.value.length > 0 || props.canvasItems.length > 0 || Boolean(slots.toolbar));
 

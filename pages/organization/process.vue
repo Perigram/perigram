@@ -1,9 +1,45 @@
 <template>
   <StandardPage workspace>
-    <GraphEditorSurface
-      :session="processSession"
-      :document-items="documentDockItems"
-      :canvas-items="canvasDockItems"
+    <div class="flex h-full min-h-0 flex-1 flex-col">
+      <!-- The workspace header (SPEC §28.14): the loaded definition's
+           identity and rename, the dirty-gated save, and the process
+           lifecycle actions. File-level and lifecycle commands live here,
+           never in the canvas dock. -->
+      <SurfaceHeader :title="activeName" :on-rename="renameActiveDefinition">
+        <template #cluster>
+          <Button
+            :label="t('processDesigner.newDraft')"
+            icon="pi pi-file-plus"
+            size="small"
+            text
+            severity="secondary"
+            :disabled="creatingDraft || applyBusy"
+            :loading="creatingDraft"
+            @click="startNewDraft"
+          />
+          <Button
+            v-if="isDirty"
+            :label="t('common.save')"
+            icon="pi pi-save"
+            size="small"
+            text
+            severity="secondary"
+            :disabled="applyBusy || creatingDraft"
+            @click="saveDraftWithToast"
+          />
+          <Button
+            :label="t('processDesigner.apply')"
+            icon="pi pi-check"
+            size="small"
+            :disabled="!draft?._id || applyBusy || creatingDraft"
+            :loading="applyState === 'applying'"
+            @click="applyProcess"
+          />
+        </template>
+      </SurfaceHeader>
+      <GraphEditorSurface
+        :session="processSession"
+        :canvas-items="canvasDockItems"
       :palette-placeholder="$t('processDesigner.searchOperations')"
       :empty-message="emptyCanvasMessage"
       :validation-diff-lines="validationDiffLines"
@@ -507,6 +543,7 @@
       </template>
 
     </GraphEditorSurface>
+    </div>
 
     <StandardDialog v-model:visible="showGrantEditor" :header="$t('processDesigner.editGrantConditions')" size="xl">
       <PermissionEditor :permissions="grantEditorPermissions" :features="permissionFeatureOptions" @save="saveGrantEditor" />
@@ -560,6 +597,7 @@ import Tag from 'primevue/tag';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import SurfaceHeader from '~/components/ui-mapping/SurfaceHeader.vue';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
 import GraphEditorSurface from '~/components/process-designer/GraphEditorSurface.vue';
@@ -835,7 +873,7 @@ const {
   applyState,
   applyDetail,
   saveDraft,
-  saveDraftFromDock,
+  saveDraftWithToast,
   applyProcess,
   confirmApplyMigration,
   cancelApplyMigration,
@@ -901,30 +939,6 @@ const defaultEdgeOptions = {
 const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.states?.main === 'ACTIVE');
 const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
-const documentDockItems = computed(() => [
-  {
-    icon: 'pi pi-file-plus',
-    label: t('processDesigner.newDraft'),
-    onClick: createDraftFromDock,
-    disabled: creatingDraft.value || applyBusy.value,
-    loading: creatingDraft.value
-  },
-  { separator: true },
-  {
-    icon: 'pi pi-save',
-    label: t('common.save'),
-    onClick: saveDraftFromDock,
-    disabled: !draft.value || applyBusy.value || creatingDraft.value,
-    attention: isDirty.value
-  },
-  {
-    icon: 'pi pi-check',
-    label: t('processDesigner.apply'),
-    onClick: applyProcess,
-    disabled: !draft.value?._id || applyBusy.value || creatingDraft.value,
-    loading: applyState.value === 'applying'
-  }
-]);
 // Lanes — the authorization surface, canonical in
 // components/process-designer README "Lanes". ONLY effects participate
 // (they alone carry access): one lane per role in fixed order plus an
@@ -1420,7 +1434,7 @@ async function createDraft({ empty = false } = {}) {
   return created;
 }
 
-async function createDraftFromDock() {
+async function startNewDraft() {
   if (creatingDraft.value) return;
   creatingDraft.value = true;
   try {
@@ -1435,6 +1449,19 @@ async function createDraftFromDock() {
     });
   } finally {
     creatingDraft.value = false;
+  }
+}
+
+async function renameActiveDefinition(name) {
+  const trimmed = String(name || '').trim();
+  const id = String(draft.value?._id || '');
+  if (!trimmed || !id || trimmed === activeName.value) return;
+  try {
+    const updated = await persistence.renameDraft(id, trimmed);
+    upsertProcessDefinition(updated);
+    if (String(draft.value?._id) === id) setDraft(updated);
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.rename'), detail: error?.data?.message || error?.message || '', life: 4000 });
   }
 }
 

@@ -399,10 +399,11 @@ shared `DesignerWorkspace` chrome
 ([components/shared](../shared/README.md)). The palette is the
 canvas-top dock inside the canvas slot; the inspector is a non-modal
 overlay drawer rail the toolbar toggle owns — canvas clicks keep it
-open, and canvas Escape clears graph selection. The floating
-PrimeVue `Toolbar` (shared `DesignerWorkspace` chrome) owns the process
-lifecycle in its document group (New Draft, Save, Apply) and the view
-controls in its canvas group (zoom out/in, frame all, frame selection,
+open, and canvas Escape clears graph selection. The workspace header
+(unified `SurfaceHeader`, SPEC §28.14) owns the loaded definition's
+identity, in-place rename, New Draft, the dirty-gated Save, and Apply
+(the process lifecycle action); the floating `Toolbar`'s canvas group
+carries the view controls (zoom out/in, frame all, frame selection,
 reset zoom, Tidy), every item icon-only
 with its label as tooltip and accessible name, so the toolbar survives
 narrow layouts.

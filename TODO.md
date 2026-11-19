@@ -96,6 +96,23 @@ Landed this session: Hide secondary retired end to end
 en+ru locale keys, README law); `hidden` stays a stripped runtime key
 in `stripRuntimeNodeData`.
 
+### Agent Notes (2026-11-19, agent/editor-file-actions — header-own file actions)
+
+- Landed (audit slice 2): the process page renders the workspace
+  header (unified `SurfaceHeader`, SPEC §28.14) above the editor — the
+  loaded definition's identity, in-place rename through
+  `persistence.renameDraft`, New Draft, the dirty-gated Save, and Apply
+  as the labeled lifecycle action with its apply-state
+  loading/disabled wiring.
+- The `document-items` prop chain is dead and removed end to end
+  (process page → `GraphEditorSurface` → `GraphCanvas` →
+  `DesignerWorkspace`); the shared toolbar start group is panel toggles
+  alone (dock-mixing retired, SPEC §28.14). The shared README's
+  `attention` badge claim was phantom (no renderer, no producer) and is
+  deleted with it.
+- `saveDraftFromDock` renamed `saveDraftWithToast`;
+  `createDraftFromDock` renamed `startNewDraft`.
+
 ## Page and class-page composition (SPEC §27.1, owner direction 2026-11-19)
 
 - [ ] WAITING — owner verification: Page, class-page, and generated

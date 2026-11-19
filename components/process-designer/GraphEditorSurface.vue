@@ -8,7 +8,6 @@
       v-model:edges="edges"
       :bind-frame="bindCanvasFrame"
       :bind-context-palette-search="bindContextPaletteSearch"
-      :document-items="documentItems"
       :canvas-items="activeCanvasItems"
       chrome-variant="floating"
       :canvas-status="props.session ? props.canvasStatus : (props.canvasStatus || canvasStatus)"
@@ -123,7 +122,6 @@ const props = defineProps({
   pageChrome: { type: Object, default: null },
   nodeProviders: { type: Array, default: () => [] },
   session: { type: Object, default: null },
-  documentItems: { type: Array, default: () => [] },
   canvasItems: { type: Array, default: null },
   canvasStatus: { type: Object, default: null },
   onActivityClick: { type: Function, default: null },

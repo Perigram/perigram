@@ -3,7 +3,6 @@
     <DesignerWorkspace
       :ref="bindFrame"
       :chrome-variant="chromeVariant"
-      :document-items="documentItems"
       :canvas-items="canvasItems"
       layout="canvas"
       class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
@@ -180,7 +179,6 @@ const props = defineProps({
   // unwrap at the host's template).
   bindFrame: { type: Function, required: true },
   bindContextPaletteSearch: { type: Function, required: true },
-  documentItems: { type: Array, default: () => [] },
   canvasItems: { type: Array, default: () => [] },
   touchPanDrag: { type: Boolean, default: false },
   defaultEdgeOptions: { type: Object, default: () => ({ type: 'default' }) },
