@@ -8,7 +8,7 @@ export const GRAPH_OUTPUT_OPERATION = 'perigram.core.graph-output';
 export const GRAPH_INVOKE_OPERATION = 'perigram.core.use-graph';
 
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
-const TRANSPORT_SHAPES = new Set(['item', 'list', 'tree', 'map', 'tuple', 'stream']);
+export const TRANSPORT_SHAPES = new Set(['item', 'list', 'tree', 'map', 'tuple', 'stream']);
 
 export function normalizeGraphDocument(source = {}) {
   if (!isRecord(source)) throw new Error('Graph document must be an object');
