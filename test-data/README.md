@@ -46,6 +46,20 @@ non-spec files here.
   whose `compositionKey` matches, and cuts each new sheet through a
   sheet instance and cut plan. `e2e/order-process.spec.js` drives it
   through the real authoring API.
+- `graph-target-parity.js` — the cross-target parity fixture for SPEC §30.13
+  convergence proof point 7: one synthetic pure provider operation
+  (`parity.provider/math.double`, declared for both `browser` and `server`
+  targets), the canonical `perigram.graph` document wiring Graph Input →
+  double → Graph Output, the shared executor, deterministic input bindings,
+  and the expected outputs.
+  `composables/graph-target-parity.spec.js` (browser preview) and
+  `server/features/graph-executions/target-parity.spec.js` (server
+  evaluation) evaluate the same document against the same expectation.
+  Browser evaluation resolves pinned Use Graph subgraphs from the session's
+  graph catalog and cannot execute server-only managed operations; server
+  evaluation resolves installed packages and historical pinned revisions.
+  Parity is asserted over the intersection: canonical documents whose
+  operations declare both targets.
 - `ui-mapping-fixtures.js` / `ui-mapping-random.js` — synthetic compiler
   output for the UI mapping contract. The fixed world is a
   self-recursive filesystem-like graph: a forest of three top folders

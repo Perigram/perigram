@@ -63,10 +63,17 @@ modules onto its sections.
   types refused as children targets; relation `where` domains
   type-checked against every declared target, including nested relation/containment traversals), payload normalization to the canonical
   trait shape (including `payload.inputs`, the extra construction inputs
-  an upload-backed type prompts beside its file), and the SPEC §4
+  an upload-backed type prompts beside its file), the SPEC §4
   display-flag laws (exactly one authored
   `identifier` field, at most one `depiction`, a name on every
-  type). `defineType` gates redefinition per SPEC §11; the free paths
+  type), and the graph-validation pin facet (SPEC §30.3):
+  `graphValidation: { graphId, revision, outputId }` names the saved
+  graph whose declared boolean output an instance write must satisfy —
+  normalized as strings with all three keys required, `graphId` and
+  `outputId` compile-checked as stable identifiers, and the graph
+  resolving under the acting principal at the
+  [instance write boundary](../../server/features/instances/README.md)
+  (compile checks shape only). `defineType` gates redefinition per SPEC §11; the free paths
   are zero live instances (synchronous `hasInstances` probe) and repair
   of a stored declaration that violates class obligations or declares
   unresolvable children.

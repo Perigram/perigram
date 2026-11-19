@@ -684,15 +684,18 @@ not a second graph implementation or a big-bang rewrite.
   sdk comparator with the `perigram.cts` profile registered, and ports
   without declared semantics receive no static decision. The browser
   editor session runs the same preflight and resolves pinned subgraphs
-  from its graph catalog; the §30.13 convergence gate is PARTIAL:
+  from its graph catalog; the §30.13 convergence proof is COMPLETE:
   `server/features/graph-executions/convergence.spec.js` covers points
-  2–8 (plugin-op composition, conversion-decision rejection, IR
-  preflight, effect-free preview, authorized Commit with evidence,
-  deterministic reruns; the core-data composition test runs enabled —
-  the provider declares its server target). Points 1 (graph-backed
-  validation/derived behavior on an org-defined CTS type) and
-  cross-target parity are UNIMPLEMENTED; the gate stays open until the
-  full vertical slice passes (GitHub issue #21).
+  1–7 — graph-backed validation on an org-defined CTS type
+  (`graphValidation: { graphId, revision, outputId }` facet, fail-closed
+  at the instance write boundary under the acting principal),
+  core+plugin composition, conversion-decision rejection, IR preflight,
+  effect-free preview, authorized Commit with evidence, deterministic
+  reruns — and point 8 (parity) is proven over the both-target
+  intersection with the target-specific limitation documented in
+  `test-data/graph-target-parity.js` (browser catalog-scoped subgraph
+  resolution; server-only managed operations), per §30.13's own
+  alternative. GitHub issue #21 closed on this evidence.
 - [ ] Define the language-independent structured authoring schema shared
   by textual DSL forms and JSON/API payloads (SPEC §30.9.1): both are
   encodings of one schema flowing through the same normalization,
@@ -714,10 +717,15 @@ not a second graph implementation or a big-bang rewrite.
   relations, constraints, lifecycle, revisions, and persistence. Add
   graph-backed validation, derived values, construction, mutation, and
   lifecycle behavior through the shared graph/IR contract.
-- [ ] Build the convergence vertical slice: organization-defined type +
-  core operation + installed plugin operation; validate and lower to
-  typed IR; preview; execute through declared capabilities; Commit/Bake
-  through the authoritative host boundary; inspect provenance.
+- [ ] WAITING — owner verification: convergence vertical slice —
+  organization-defined type (graph-backed validation) + core operation +
+  installed plugin operation; validated and lowered to typed IR;
+  previewed without effects; committed through the authoritative host
+  boundary with pinned dependencies, read/capability evidence, and
+  provenance; cross-target parity asserted over the both-target
+  intersection with the documented limitation. Proven in
+  `server/features/graph-executions/convergence.spec.js` and
+  `test-data/graph-target-parity.js` consumers (2026-11-19).
 - [ ] Migrate CTS expressions and process graph evaluation incrementally
   to the shared semantic evaluator. Preserve the process durable
   execution profile (waits, leases, retries, event delivery, recovery)

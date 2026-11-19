@@ -314,6 +314,25 @@ change sequence around the mutation. The `validateCandidate` service seam
 also serves flat CTS lifecycle transitions; their status event and entity
 snapshot commit together against the loaded `updatedAt` value.
 
+## Graph-backed validation
+
+A type whose declaration carries `graphValidation: { graphId, revision,
+outputId }` (grammar: [packages/cts](../../../packages/cts/README.md)) has
+every generic create and field patch validated by that pinned saved graph:
+the pin resolves through the acting principal's read grant
+(`resolvePinnedGraph`), the graph evaluates through the saved-graph
+evaluator's preview boundary
+([graph-executions](../graph-executions/README.md)) — typed-IR preflight,
+pure/read-only operations, recorded execution evidence — and the write
+proceeds only when the declared output exists and evaluates to boolean
+`true`. Graph interface inputs bind by convention: a port named `instance`
+receives the candidate projection `{ fields }`, and a port whose id matches
+a declared field receives the candidate's field value; a required port with
+neither refuses the write naming the port. Unresolvable pins, evaluation
+failures, and every other verdict refuse the write with `400` diagnostics —
+fail closed. Validation runs entirely inside the evaluation boundary: the
+instance write under validation is the path's only mutation.
+
 ## Instance revisions
 
 Every stored CTS instance carries a numeric `revision` independent of
