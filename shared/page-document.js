@@ -68,24 +68,27 @@ export function normalizePageDocument(document = {}) {
       if (block.kind === 'collection') {
         const collection = block.collection && typeof block.collection === 'object' ? block.collection : {};
         const source = collection.source && typeof collection.source === 'object' ? collection.source : {};
-        const required = ['executionInstanceId', 'graphDocumentInstanceId', 'graphId', 'graphRevision', 'outputId'];
-        if (source.kind !== 'graph-output' || required.some(key => !String(source[key] || '').trim())) return null;
         const snapshot = normalizeCollectionSnapshot(collection.snapshot);
+        const policy = collection.resultPolicy === 'live' ? 'live' : (snapshot ? 'frozen' : 'pinned');
+        const required = policy === 'live'
+          ? ['graphDocumentInstanceId', 'graphId', 'graphRevision', 'outputId']
+          : ['executionInstanceId', 'graphDocumentInstanceId', 'graphId', 'graphRevision', 'outputId'];
+        if (source.kind !== 'graph-output' || required.some(key => !String(source[key] || '').trim())) return null;
         return {
           id,
           kind: 'collection',
           collection: {
             source: {
               kind: 'graph-output',
-              executionInstanceId: String(source.executionInstanceId),
+              ...(policy !== 'live' ? { executionInstanceId: String(source.executionInstanceId) } : {}),
               graphDocumentInstanceId: String(source.graphDocumentInstanceId),
               graphId: String(source.graphId),
               graphRevision: String(source.graphRevision),
               outputId: String(source.outputId)
             },
             parameters: collection.parameters && typeof collection.parameters === 'object' && !Array.isArray(collection.parameters) ? collection.parameters : {},
-            ...(snapshot ? { snapshot } : {}),
-            resultPolicy: snapshot ? 'frozen' : 'pinned'
+            ...(snapshot && policy === 'frozen' ? { snapshot } : {}),
+            resultPolicy: policy
           }
         };
       }

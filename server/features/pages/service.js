@@ -157,6 +157,43 @@ function isUnavailableStatus(error, statuses) {
 
 // The graph-output parameter contract lives in this feature's README
 // (Typed references and collections).
+async function resolveLiveCollectionBlock(block, auth) {
+  const source = block.collection.source;
+  const unavailable = { blockId: block.id, status: 'unavailable' };
+  let label = String(source.outputId);
+  try {
+    const { graph } = await graphExecutionsService.resolvePinnedGraph(source.graphId, source.graphRevision, auth);
+    const output = (graph.interface?.outputs || []).find(port => String(port.id) === String(source.outputId));
+    if (output) label = String(output.label || label);
+  } catch (error) {
+    if (!isUnavailableStatus(error, [400, 403, 404, 409])) throw error;
+  }
+  let evaluation = null;
+  try {
+    evaluation = await graphExecutionsService.evaluateSavedGraph({
+      graphDocumentInstanceId: source.graphDocumentInstanceId,
+      graphRevision: source.graphRevision,
+      inputBindings: block.collection.parameters || {}
+    }, auth);
+  } catch (error) {
+    if (isUnavailableStatus(error, [400, 403, 404, 409])) return unavailable;
+    throw error;
+  }
+  const values = evaluation?.outputs?.[String(source.outputId)];
+  if (!Array.isArray(values)) return unavailable;
+  return {
+    blockId: block.id,
+    status: 'resolved',
+    mode: 'live',
+    graph: { id: String(source.graphId), revision: String(source.graphRevision) },
+    outputId: String(source.outputId),
+    label,
+    itemCount: values.length,
+    truncated: values.length > 100,
+    items: await resolveCollectionValues(values, auth)
+  };
+}
+
 async function resolveParameterizedCollectionBlock(block, auth) {
   const source = block.collection.source;
   const parameters = block.collection.parameters;
@@ -259,7 +296,9 @@ export async function resolveReferences(pageId, auth = {}) {
   const resolved = [];
   for (const block of document.blocks) {
     if (block.kind === 'collection') {
-      if (Object.keys(block.collection.parameters || {}).length) {
+      if (block.collection.resultPolicy === 'live') {
+        resolved.push(await resolveLiveCollectionBlock(block, auth));
+      } else if (Object.keys(block.collection.parameters || {}).length) {
         resolved.push(await resolveParameterizedCollectionBlock(block, auth));
       }
       continue;

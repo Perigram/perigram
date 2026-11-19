@@ -10,6 +10,7 @@ import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as filesService from '../files/service.js';
 import * as pagesService from '../pages/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
+import { assertRevisionSourceReadable } from '~/server/utils/revision-access.js';
 import { resolveInstalledGraphNodeDefinition, executeManagedGraphNode } from '../plugins/service.js';
 
 function parseRecord(value) {
@@ -74,7 +75,7 @@ export async function resolvePinnedGraph(graphId, revision, auth = {}) {
   return matches[0];
 }
 
-async function savedGraphSource(instanceId, auth) {
+async function savedGraphSource(instanceId, auth, pinnedRevision = '') {
   if (!instanceId) throw createError({ statusCode: 400, message: 'Graph document instance is required' });
   const service = getAppRegistry().getInstanceService('graph-document');
   const graphDocument = await service?.processGetById?.(String(instanceId), auth);
@@ -83,11 +84,38 @@ async function savedGraphSource(instanceId, auth) {
   if (String(graphDocument.fields?.graphId || '') !== graph.id) {
     throw createError({ statusCode: 409, message: 'Saved graph identity does not match its graph document' });
   }
-  return {
-    graphDocument,
-    graph,
-    organizationId: graphDocument.organizationId || auth.organizationId || auth.memberships?.[0]?.organizationId || null
-  };
+  const organizationId = graphDocument.organizationId || auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+  const pin = String(pinnedRevision || '').trim();
+  if (!pin || String(graph.revision) === pin) {
+    return { graphDocument, graph, organizationId };
+  }
+  const revisions = await instanceRevisionsService.list(auth.userId, auth.organizationId, auth.role, auth, {
+    typeId: 'graph-document',
+    instanceId: String(instanceId),
+    scope: 'content'
+  });
+  for (const revision of revisions || []) {
+    try {
+      await assertRevisionSourceReadable(revision, auth);
+    } catch (error) {
+      if ([403, 404].includes(error?.statusCode)) continue;
+      throw error;
+    }
+    const file = await instanceRevisionsService.pinnedRevisionFile(String(revision._id));
+    if (!file) continue;
+    let pinned = null;
+    try {
+      pinned = assertValidGraphDocument(JSON.parse(
+        (await filesService.getFileBuffer(file.fileId, file.bucket)).toString('utf8')
+      ));
+    } catch {
+      continue;
+    }
+    if (pinned.id === graph.id && String(pinned.revision) === pin) {
+      return { graphDocument, graph: pinned, organizationId };
+    }
+  }
+  throw createError({ statusCode: 409, message: 'Pinned graph revision is unavailable for this document' });
 }
 
 async function sourceFor(instanceId, record, auth) {
@@ -103,6 +131,7 @@ async function sourceFor(instanceId, record, auth) {
 // Use Graph revisions are always resolved through the caller's read grants.
 export async function evaluateSavedGraph({
   graphDocumentInstanceId,
+  graphRevision = '',
   inputBindings = {},
   executeManagedNode = executeManagedGraphNode,
   context = {}
@@ -110,7 +139,7 @@ export async function evaluateSavedGraph({
   if (typeof executeManagedNode !== 'function') {
     throw createError({ statusCode: 500, message: 'Managed graph node execution handler is unavailable' });
   }
-  const source = await savedGraphSource(graphDocumentInstanceId, auth);
+  const source = await savedGraphSource(graphDocumentInstanceId, auth, graphRevision);
   const executionId = String(context.executionId || randomUUID());
   const maxExecutionMs = Math.min(Math.max(Number(context.maxExecutionMs) || 300000, 1000), 300000);
   const deadline = Date.now() + maxExecutionMs;

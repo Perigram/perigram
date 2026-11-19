@@ -224,6 +224,7 @@ import { useInstancesStore } from '~/stores/instances';
 import { useRegistryStore } from '~/stores/registry';
 import { graphFileOptions } from '~/utils/graph-file-options.js';
 import { isDocumentsPreviewValue } from '~/utils/documents-preview.js';
+import { graphOutputViews, graphOutputTableColumns } from '~/utils/graphOutputViews.js';
 
 const props = defineProps({
   result: { type: Object, default: null },
@@ -330,23 +331,11 @@ const channelPayload = computed(() => ({
   selectedOutput: selectedOutput.value ? { id: selectedOutput.value.id, label: selectedOutput.value.label, value: selectedValue.value } : null
 }));
 const availableViews = computed(() => {
-  const value = selectedValue.value;
-  const views = [{ value: 'json', label: 'JSON' }];
-  if (rendererForOutput.value) views.unshift({ value: 'plugin', label: 'Specialized' });
-  if (typeof value === 'string') views.unshift({ value: 'text', label: 'Text' }, { value: 'markdown', label: 'Markdown' });
-  if (Array.isArray(value) && value.length && value.every(item => item && typeof item === 'object' && !Array.isArray(item))) {
-    views.unshift({ value: 'table', label: 'Table' });
-  }
-  if (value && typeof value === 'object' && value.fileId) {
-    if (String(value.mime || '').startsWith('image/')) views.unshift({ value: 'image', label: 'Image' });
-    else views.unshift({ value: 'document', label: 'Document' });
-  }
-  if (value?.representation === 'perigram.scene-2d' && Array.isArray(value.primitives)) views.unshift({ value: 'scene-2d', label: '2D scene' });
-  if (value?.representation === 'perigram.scene-3d' && Array.isArray(value.vertices)) views.unshift({ value: 'scene-3d', label: '3D scene' });
+  const views = graphOutputViews(selectedValue.value, { hasPluginRenderer: Boolean(rendererForOutput.value) });
   for (const channel of props.channels) views.push({ value: `channel:${channel.id}`, label: channel.label });
   return views;
 });
-const tableColumns = computed(() => [...new Set((Array.isArray(selectedValue.value) ? selectedValue.value : []).flatMap(row => Object.keys(row || {})))]);
+const tableColumns = computed(() => graphOutputTableColumns(selectedValue.value));
 watch([fileInputPorts, fileTypeIds], async ([ports, typeIds]) => {
   if (!ports.length || !typeIds.length) {
     fileOptionsError.value = '';

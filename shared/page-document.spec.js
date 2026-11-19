@@ -41,9 +41,21 @@ describe('page document', () => {
     }]);
   });
 
-  it('normalizes pinned graph-output collection references with explicit parameters', () => {
+  it('normalizes live graph-output collection embeds and drops their execution anchor', () => {
     const document = normalizePageDocument({ blocks: [{ id: 'graph-output', kind: 'collection', collection: { source: { kind: 'graph-output', executionInstanceId: 'execution-instance-1', graphDocumentInstanceId: 'graph-document-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows' }, parameters: { limit: 20 }, resultPolicy: 'live' } }], order: ['graph-output'] });
-    expect(document.blocks[0]).toMatchObject({ kind: 'collection', collection: { source: { kind: 'graph-output', executionInstanceId: 'execution-instance-1', graphDocumentInstanceId: 'graph-document-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows' }, parameters: { limit: 20 }, resultPolicy: 'pinned' } });
+    expect(document.blocks[0]).toMatchObject({ kind: 'collection', collection: { source: { kind: 'graph-output', graphDocumentInstanceId: 'graph-document-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows' }, parameters: { limit: 20 }, resultPolicy: 'live' } });
+    expect(document.blocks[0].collection.source.executionInstanceId).toBeUndefined();
+  });
+
+  it('requires full graph identity for a live embed and an execution anchor for a retained one', () => {
+    const document = normalizePageDocument({
+      blocks: [
+        { id: 'live-missing-graph', kind: 'collection', collection: { source: { kind: 'graph-output', graphDocumentInstanceId: 'graph-document-1', outputId: 'rows' }, resultPolicy: 'live' } },
+        { id: 'retained-missing-execution', kind: 'collection', collection: { source: { kind: 'graph-output', graphDocumentInstanceId: 'graph-document-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows' } } }
+      ],
+      order: ['live-missing-graph', 'retained-missing-execution']
+    });
+    expect(document.order).toEqual([]);
   });
 
   it('retains a frozen collection snapshot and its frozen result policy', () => {

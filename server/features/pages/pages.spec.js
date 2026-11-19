@@ -328,6 +328,61 @@ describe('pages', () => {
     expect(evaluateSavedGraph).not.toHaveBeenCalled();
   });
 
+  it('resolves live embeds by evaluating the pinned graph revision with their parameters', async () => {
+    evaluateSavedGraph.mockClear();
+    parameterizedGraphRegistry(null, id => ({ code: id }));
+    resolvePinnedGraph.mockResolvedValue({ graph: parameterizedSavedGraph([{ id: 'limit', required: true, contract: { shape: 'item' } }]) });
+    evaluateSavedGraph.mockImplementation(async ({ inputBindings }) => ({
+      outputs: { rows: inputBindings.limit === 20 ? [{ type: 'part', id: 'live-item' }] : [] }
+    }));
+    const auth = memberOf(ORG_A);
+    const liveSource = {
+      kind: 'graph-output',
+      graphDocumentInstanceId: 'graph-instance-1',
+      graphId: 'graph.report',
+      graphRevision: 'rev-2',
+      outputId: 'rows'
+    };
+    const page = await pagesService.create({ name: 'Live', blocks: [
+      { id: 'c-live', kind: 'collection', collection: { source: liveSource, parameters: { limit: 20 }, resultPolicy: 'live' } }
+    ], order: ['c-live'] }, auth);
+
+    const resolved = await pagesService.resolveReferences(page._id, auth);
+
+    expect(evaluateSavedGraph).toHaveBeenCalledWith({
+      graphDocumentInstanceId: 'graph-instance-1',
+      graphRevision: 'rev-2',
+      inputBindings: { limit: 20 }
+    }, auth);
+    expect(resolved).toEqual([
+      expect.objectContaining({
+        blockId: 'c-live',
+        status: 'resolved',
+        mode: 'live',
+        label: 'Rows',
+        itemCount: 1,
+        items: [{ kind: 'instance', typeId: 'part', instanceId: 'live-item', instance: expect.objectContaining({ _id: 'live-item' }) }]
+      })
+    ]);
+  });
+
+  it('maps a failed live evaluation to the shared unavailable state', async () => {
+    evaluateSavedGraph.mockClear();
+    parameterizedGraphRegistry(null, () => ({ code: 'A' }));
+    resolvePinnedGraph.mockRejectedValue(Object.assign(new Error('gone'), { statusCode: 404 }));
+    evaluateSavedGraph.mockRejectedValue(Object.assign(new Error('invalid'), { statusCode: 400 }));
+    const auth = memberOf(ORG_A);
+    const page = await pagesService.create({ name: 'Live failed', blocks: [
+      { id: 'c-live-failed', kind: 'collection', collection: { source: {
+        kind: 'graph-output', graphDocumentInstanceId: 'graph-instance-1', graphId: 'graph.report', graphRevision: 'rev-9', outputId: 'rows'
+      }, parameters: {}, resultPolicy: 'live' } }
+    ], order: ['c-live-failed'] }, auth);
+
+    const resolved = await pagesService.resolveReferences(page._id, auth);
+
+    expect(resolved).toEqual([{ blockId: 'c-live-failed', status: 'unavailable' }]);
+  });
+
   it('renders the shared unavailable state when the pinned execution drifts or is unreadable', async () => {
     evaluateSavedGraph.mockClear();
     const executionFields = {

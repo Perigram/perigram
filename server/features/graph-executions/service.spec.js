@@ -25,7 +25,10 @@ const mocks = vi.hoisted(() => ({
   declarationForType: vi.fn(),
   runOrganizationChange: vi.fn(),
   resolveInstalledGraphNodeDefinition: vi.fn(),
-  executeManagedGraphNode: vi.fn()
+  executeManagedGraphNode: vi.fn(),
+  listRevisions: vi.fn(),
+  pinnedRevisionFile: vi.fn(),
+  assertRevisionSourceReadable: vi.fn()
 }));
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: mocks.getAppRegistry }));
 vi.mock('~/server/db/mongo', () => ({ connectDB: mocks.connectDB }));
@@ -41,7 +44,14 @@ vi.mock('../plugins/service.js', () => ({
   resolveInstalledGraphNodeDefinition: mocks.resolveInstalledGraphNodeDefinition,
   executeManagedGraphNode: mocks.executeManagedGraphNode
 }));
-vi.mock('../instance-revisions/service.js', () => ({ ensureRevisionIndexes: vi.fn(async () => {}) }));
+vi.mock('../instance-revisions/service.js', () => ({
+  ensureRevisionIndexes: vi.fn(async () => {}),
+  list: mocks.listRevisions,
+  pinnedRevisionFile: mocks.pinnedRevisionFile
+}));
+vi.mock('~/server/utils/revision-access.js', () => ({
+  assertRevisionSourceReadable: mocks.assertRevisionSourceReadable
+}));
 vi.mock('../pages/service.js', () => ({
   bakeFile: mocks.bakeFile,
   retractBakedFile: mocks.retractBakedFile
@@ -186,6 +196,9 @@ describe('graph execution service', () => {
     mocks.findFileMeta.mockResolvedValue({ metadata: { organizationId: 'org-1' }, contentType: 'application/json' });
     mocks.assertFileReadAccess.mockReturnValue(true);
     mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
+    mocks.assertRevisionSourceReadable.mockResolvedValue();
+    mocks.listRevisions.mockResolvedValue([]);
+    mocks.pinnedRevisionFile.mockResolvedValue(null);
     mocks.contentHash.mockImplementation(buffer => `sha256:${buffer.toString('utf8')}`);
     mocks.uploadFile.mockResolvedValue({ id: 'baked-payload-1', filename: 'Document graph-document.txt' });
     mocks.deleteFile.mockResolvedValue(true);
@@ -291,6 +304,50 @@ describe('graph execution service', () => {
         graphRevision: 'rev-01'
       })
     }), 'user-1', 'org-1');
+  });
+
+  it('evaluates a pinned historical revision from its frozen payload bytes', async () => {
+    const pinned = { ...graph(), revision: 'rev-00' };
+    mocks.getFileBuffer.mockImplementation(async fileId => Buffer.from(JSON.stringify(
+      fileId === 'rev-file-1' ? pinned : graph()
+    )));
+    mocks.listRevisions.mockResolvedValue([{ _id: 'rev-rec-1', data: { number: 4, scope: 'content' } }]);
+    mocks.pinnedRevisionFile.mockResolvedValue({ fileId: 'rev-file-1', bucket: 'files' });
+    mocks.resolveInstalledGraphNodeDefinition.mockResolvedValue({
+      provider: 'plugin.documents',
+      id: 'document.compose',
+      version: '3',
+      execution: { kind: 'pure', targets: ['server'], capabilities: [] },
+      inputs: [{ id: 'source', required: true }],
+      outputs: [{ id: 'document', required: true }],
+      packagePin: { pluginId: 'documents', version: '31', runtimeId: 'documents-shared', operationId: 'document.compose' }
+    });
+    const executeManagedNode = vi.fn(async (_definition, invocation) => ({
+      document: { kind: 'document', source: invocation.inputs.source }
+    }));
+
+    const result = await graphExecutionsService.evaluateAndRecordSavedGraphPreview({
+      graphDocumentInstanceId: 'graph-instance-1',
+      graphRevision: 'rev-00',
+      inputBindings: { source: { type: 'text-document', id: 'source-file' } },
+      executeManagedNode
+    }, auth);
+
+    expect(result.execution).toMatchObject({
+      status: 'succeeded',
+      graph: { id: 'graph.document', revision: 'rev-00' }
+    });
+    expect(mocks.assertRevisionSourceReadable).toHaveBeenCalledWith(expect.objectContaining({ _id: 'rev-rec-1' }), auth);
+  });
+
+  it('rejects a pinned revision the document no longer carries', async () => {
+    mocks.listRevisions.mockResolvedValue([]);
+    await expect(graphExecutionsService.evaluateSavedGraph({
+      graphDocumentInstanceId: 'graph-instance-1',
+      graphRevision: 'rev-00',
+      inputBindings: {},
+      executeManagedNode: vi.fn()
+    }, auth)).rejects.toMatchObject({ statusCode: 409 });
   });
 
   it('persists failed server previews with evaluator diagnostics', async () => {
