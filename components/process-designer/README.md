@@ -141,10 +141,13 @@ configuration (only species that author values in place), the socket rail
 (labeled rows, inputs left / outputs right, every handle centered on the
 outer node rail — socket labels render on every expanded node: a socket
 without its name is unreadable chrome), and the event section (effects
-only). A collapsed card folds to its title with every socket at a
-distinct position — inputs on the top rail, outputs on the bottom rail,
-the name centered between (names on the handle tooltips); the collapse
-state rides the canvas node data and persists with the draft.
+only). Socket rows carry the socket name; the element type, access, and
+qualifier ride the row's hover/focus tooltip — a per-socket connection
+icon is chrome encoding nothing. A collapsed card renders the name once
+with its header icons and keeps every socket handle on its side rail —
+inputs left, outputs right, in expanded order — so wires keep their
+anchors; the collapse state rides the canvas node data and persists with
+the draft.
 Sections separate by spacing alone (`mt-2`/`mt-3`, row `py-1.5`);
 separator lines would form a third visual system competing with stripes
 and wires while encoding nothing. Socket rows are one-sided by
@@ -154,7 +157,7 @@ opposite cell.
 The card header's hover/focus tooltip carries the node's socket contract
 (`Expects`/`Outputs`: name — type · access · optional) computed from the
 real ports, with the class-card meta rows (scope version tag, editor tag,
-field counts). Socket labels stay concise — the exact element
+field counts). Socket rows carry the name alone; the exact element
 type, access, qualifier, and description are available on hover and to
 assistive technology. Resolved input/output contracts are shown by the
 labelled socket rails and hover/focus metadata; the inspector does not
