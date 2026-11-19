@@ -50,6 +50,12 @@ Parent: [server/features](../README.md).
 | `ask_user` | pending-question registry | chat runs only |
 | `read_attachment` | support conversation attachments | chat runs only |
 | `read_instance_file` | registry instance services + attachment-read extraction | every surface |
+| `list_graph_catalog` / `get_graph` | [graph-executions](../graph-executions/README.md) saved-graph reads | every surface |
+| `discover_operations` | core graph provider + [plugins](../plugins/README.md) installed graph-node definitions | every surface |
+| `validate_graph` | [graph-executions](../graph-executions/README.md) typed-IR preflight | every surface |
+| `apply_graph_patch` | graph-document instance payload/revision boundary | every surface |
+| `preview_graph` | [graph-executions](../graph-executions/README.md) saved-graph preview | every surface |
+| `inspect_execution` | `graph-execution` instance read grant | every surface |
 
 The catalog is a curated vocabulary over existing service seams; tools
 run with the principal's auth they are given and the catalog owns no
@@ -89,6 +95,46 @@ Process-definition tools ride the authoring and lifecycle seam of
   them and their data untouched.
 - `update_definition_graph` is the graph-level save — nodes, wires, and
   value inputs — with activation gates returned as structured results.
+
+## Graph tools (`graph-tools.js`)
+
+The §30.9.2 agent surface over canonical graph documents: discovery,
+inspection, validation, transactional patching, pure preview, and
+provenance — one adapter over the seams
+[graph-executions](../graph-executions/README.md) owns, with the caller's
+auth on every call. Commit, Bake, and Export keep their explicit routes;
+no graph tool confers them.
+
+| Tool | Seam |
+|---|---|
+| `list_graph_catalog` | `graph-document` instance list + `readSavedGraph` per row (bounded; `query` filters name/graph id before payload reads; unreadable rows skip like collection outputs) |
+| `get_graph` | `savedGraphSource` + the canonical `validateGraphDocument`; a `revision` pin mismatch rejects 409 |
+| `discover_operations` | `createCoreGraphDataProvider` definitions + [plugins](../plugins/README.md) `listInstalledGraphNodeDefinitions` (the evaluator's resolution gate); `operation: provider/id` serves one full definition |
+| `validate_graph` | `preflightGraphForServer` — pure, nothing persists; edge diagnostics carry expected-vs-actual port contracts and the comparator decision with applicable conversions; `detail: 'ir'` adds the typed IR |
+| `apply_graph_patch` | see the transaction law below |
+| `preview_graph` | `evaluateAndRecordSavedGraphPreview` — the pure/read boundary is the service's own |
+| `inspect_execution` | `graph-execution` instance `processGetById` (the collection-outputs grant); output values stay keyed by id |
+
+`apply_graph_patch` is bounded and transactional: it takes the target
+graph-document instance, the exact graph `expectedRevision` last read,
+and an ordered edit set (`addNode`/`updateNode`/`removeNode` — removal
+drops every edge touching the node — `addEdge`/`removeEdge`, and
+`setInterface` replacing the interface inputs and/or outputs). Edits
+apply to the saved document, the server mints the next revision, and the
+result must pass the canonical validators plus the typed-IR preflight.
+Failure modes:
+
+- stale `expectedRevision` → 409 tool error, zero writes;
+- unknown edit references or a non-canonical result →
+  `{ applied: false, message/diagnostics }`, zero writes;
+- the instance payload swap rides `replacePayload` with the loaded
+  instance revision as its CAS (the editor save's own boundary), so a
+  concurrent save rejects with zero writes and the uploaded blob is
+  compensated by the service.
+
+Success persists through that one boundary (audit reason
+`graph-patched`) and answers the new revision, the document summary, and
+residual warning diagnostics.
 
 `get_authoring_vocabulary` serves the authoring skill: the domain model
 (the two layers, the class identity laws, containment and lineage,

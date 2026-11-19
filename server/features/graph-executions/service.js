@@ -20,7 +20,7 @@ function parseRecord(value) {
   }
 }
 
-async function readSavedGraph(graphDocument, auth) {
+export async function readSavedGraph(graphDocument, auth) {
   if (!graphDocument?.payload?.fileId) {
     throw createError({ statusCode: 409, message: 'Graph document has no saved payload' });
   }
@@ -74,7 +74,7 @@ export async function resolvePinnedGraph(graphId, revision, auth = {}) {
   return matches[0];
 }
 
-async function savedGraphSource(instanceId, auth) {
+export async function savedGraphSource(instanceId, auth) {
   if (!instanceId) throw createError({ statusCode: 400, message: 'Graph document instance is required' });
   const service = getAppRegistry().getInstanceService('graph-document');
   const graphDocument = await service?.processGetById?.(String(instanceId), auth);
@@ -101,34 +101,11 @@ async function sourceFor(instanceId, record, auth) {
 // Server-side saved-graph preview orchestration. Provider resolution and node
 // execution are injected by the managed runtime host; graph documents and
 // Use Graph revisions are always resolved through the caller's read grants.
-export async function evaluateSavedGraph({
-  graphDocumentInstanceId,
-  inputBindings = {},
-  executeManagedNode = executeManagedGraphNode,
-  context = {}
-} = {}, auth = {}) {
-  if (typeof executeManagedNode !== 'function') {
-    throw createError({ statusCode: 500, message: 'Managed graph node execution handler is unavailable' });
-  }
-  const source = await savedGraphSource(graphDocumentInstanceId, auth);
-  const executionId = String(context.executionId || randomUUID());
-  const maxExecutionMs = Math.min(Math.max(Number(context.maxExecutionMs) || 300000, 1000), 300000);
-  const deadline = Date.now() + maxExecutionMs;
-  const controller = new AbortController();
-  const externalSignal = context.signal;
-  const abortFromExternal = () => {
-    if (!controller.signal.aborted) controller.abort(externalSignal.reason);
-  };
-  if (externalSignal?.aborted) abortFromExternal();
-  else externalSignal?.addEventListener('abort', abortFromExternal, { once: true });
-  const deadlineTimer = setTimeout(() => {
-    if (!controller.signal.aborted) {
-      const error = new Error('Server graph execution deadline exceeded');
-      error.name = 'TimeoutError';
-      error.code = 'GRAPH_EXECUTION_TIMEOUT';
-      controller.abort(error);
-    }
-  }, maxExecutionMs);
+
+// The server graph resolution stack shared by evaluation and authoring
+// preflight: core provider definitions beside the caller's installed managed
+// providers, with package pins and capability tracking.
+function createServerGraphResolution(auth) {
   const coreDataProvider = createCoreGraphDataProvider();
   const coreDefinitions = new Map(coreDataProvider.definitions.map(definition => [
     `${definition.provider}/${definition.id}@${definition.version}`,
@@ -136,9 +113,6 @@ export async function evaluateSavedGraph({
   ]));
   const providerPins = new Map();
   const providerCapabilities = new Set();
-  const capabilityEvidence = [];
-  const nodeInvocations = [];
-  const graphInvocations = [];
   const resolveNodeDefinition = async operation => {
     const key = `${operation.provider}/${operation.id}@${operation.version}`;
     if (operation.provider === CORE_DATA_PROVIDER) {
@@ -170,6 +144,78 @@ export async function evaluateSavedGraph({
     });
     return definition;
   };
+  return { coreDataProvider, resolveNodeDefinition, providerPins, providerCapabilities };
+}
+
+// Lowering through the shared server stack; an unavailable pinned subgraph
+// lowers to a node-mapped diagnostic (README Contract).
+async function lowerGraphForServer(graph, resolution, auth) {
+  const compatibilityRegistry = createPortCompatibilityRegistry();
+  registerProcessPortCompatibilityProfile(compatibilityRegistry);
+  return await lowerGraphToTypedIR({
+    graph,
+    resolveNodeDefinition: resolution.resolveNodeDefinition,
+    resolveGraph: async (graphId, revision) => {
+      try {
+        return (await resolvePinnedGraph(graphId, revision, auth)).graph;
+      } catch (error) {
+        if ([400, 403, 404, 409].includes(Number(error?.statusCode))) return null;
+        throw error;
+      }
+    },
+    resolveCompatibility: (sourcePort, targetPort) => (
+      sourcePort.semantic?.base && targetPort.semantic?.base
+        ? compatibilityRegistry.compare(sourcePort, targetPort)
+        : { status: 'exact', compatible: true, reason: 'Port contracts carry no declared semantics', conversions: [] }
+    ),
+    executionTarget: 'server'
+  });
+}
+
+/**
+ * Typed-IR preflight over a submitted canonical graph document — the
+ * evaluator's own lowering (same resolution path, same compatibility
+ * profile) with no execution. Invalid documents answer validation-phase
+ * diagnostics; resolution, pin, and edge failures answer node/edge-mapped
+ * lowering diagnostics.
+ */
+export async function preflightGraphForServer(graph, auth = {}) {
+  return await lowerGraphForServer(graph, createServerGraphResolution(auth), auth);
+}
+
+export async function evaluateSavedGraph({
+  graphDocumentInstanceId,
+  inputBindings = {},
+  executeManagedNode = executeManagedGraphNode,
+  context = {}
+} = {}, auth = {}) {
+  if (typeof executeManagedNode !== 'function') {
+    throw createError({ statusCode: 500, message: 'Managed graph node execution handler is unavailable' });
+  }
+  const source = await savedGraphSource(graphDocumentInstanceId, auth);
+  const executionId = String(context.executionId || randomUUID());
+  const maxExecutionMs = Math.min(Math.max(Number(context.maxExecutionMs) || 300000, 1000), 300000);
+  const deadline = Date.now() + maxExecutionMs;
+  const controller = new AbortController();
+  const externalSignal = context.signal;
+  const abortFromExternal = () => {
+    if (!controller.signal.aborted) controller.abort(externalSignal.reason);
+  };
+  if (externalSignal?.aborted) abortFromExternal();
+  else externalSignal?.addEventListener('abort', abortFromExternal, { once: true });
+  const deadlineTimer = setTimeout(() => {
+    if (!controller.signal.aborted) {
+      const error = new Error('Server graph execution deadline exceeded');
+      error.name = 'TimeoutError';
+      error.code = 'GRAPH_EXECUTION_TIMEOUT';
+      controller.abort(error);
+    }
+  }, maxExecutionMs);
+  const resolution = createServerGraphResolution(auth);
+  const { coreDataProvider, resolveNodeDefinition, providerPins, providerCapabilities } = resolution;
+  const capabilityEvidence = [];
+  const nodeInvocations = [];
+  const graphInvocations = [];
   const executeNode = async (definition, invocation) => {
     if (definition.provider === CORE_DATA_PROVIDER) {
       return await coreDataProvider.execute(definition, invocation);
@@ -203,19 +249,7 @@ export async function evaluateSavedGraph({
     }
   };
   try {
-    const compatibilityRegistry = createPortCompatibilityRegistry();
-    registerProcessPortCompatibilityProfile(compatibilityRegistry);
-    const { diagnostics: loweringDiagnostics } = await lowerGraphToTypedIR({
-      graph: source.graph,
-      resolveNodeDefinition,
-      resolveGraph: async (graphId, revision) => (await resolvePinnedGraph(graphId, revision, auth)).graph,
-      resolveCompatibility: (sourcePort, targetPort) => (
-        sourcePort.semantic?.base && targetPort.semantic?.base
-          ? compatibilityRegistry.compare(sourcePort, targetPort)
-          : { status: 'exact', compatible: true, reason: 'Port contracts carry no declared semantics', conversions: [] }
-      ),
-      executionTarget: 'server'
-    });
+    const { diagnostics: loweringDiagnostics } = await lowerGraphForServer(source.graph, resolution, auth);
     const loweringErrors = loweringDiagnostics.filter(item => item.severity === 'error');
     if (loweringErrors.length) {
       throw createError({
@@ -309,15 +343,17 @@ export async function evaluateAndRecordSavedGraphPreview(args = {}, auth = {}) {
     instances: [], relations: [], queries: [], unverifiedCapabilities: []
   };
   const diagnostics = failure
-    ? (Array.isArray(failure.diagnostics) ? failure.diagnostics : [{
-      code: failure.code || 'graph-evaluation-failed',
-      severity: 'error',
-      phase: 'graph',
-      graphId: source.graph.id,
-      graphRevision: source.graph.revision,
-      nodeId: failure.nodeId || null,
-      message: String(failure.message || failure)
-    }])
+    ? (Array.isArray(failure.diagnostics) ? failure.diagnostics
+      : Array.isArray(failure.data?.diagnostics) ? failure.data.diagnostics
+      : [{
+        code: failure.code || 'graph-evaluation-failed',
+        severity: 'error',
+        phase: 'graph',
+        graphId: source.graph.id,
+        graphRevision: source.graph.revision,
+        nodeId: failure.nodeId || null,
+        message: String(failure.message || failure)
+      }])
     : (result.diagnostics || []);
   const record = createGraphExecutionRecord({
     id: executionId,

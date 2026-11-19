@@ -8,6 +8,7 @@ import * as webSearchService from '~/server/features/web-search/service.js';
 import * as filesService from '~/server/features/files/service.js';
 import { readAttachmentContent } from './attachment-read.js';
 import { buildPrincipalAuth } from './service.js';
+import { GRAPH_TOOL_SPECS } from './graph-tools.js';
 import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY, authoredProcessDataFromGraphDocument, parseProcessSocketHandleId, resolveCatalogNodePorts } from '#packages/processes';
 import { FIELD_BASES } from '#packages/cts';
 import { iconFontGlyphs } from '#shared/icon-fonts.js';
@@ -243,7 +244,7 @@ async function saveAuthoring(definitionId, { name = '', data: patch = {} } = {},
     );
 }
 
-export const TOOL_SPECS = [
+const BASE_TOOL_SPECS = [
     {
         name: 'list_process_definitions',
         description: 'Lists the organization\'s process definitions (id, name, status).',
@@ -900,7 +901,12 @@ export const TOOL_SPECS = [
     }
 ];
 
+// Graph authoring tools (SPEC §30.9.2) ride the same catalog; their seams
+// and transaction law live in ./graph-tools.js.
+export const TOOL_SPECS = [...BASE_TOOL_SPECS, ...GRAPH_TOOL_SPECS];
+
 const SPECS_BY_NAME = new Map(TOOL_SPECS.map(spec => [spec.name, spec]));
+
 
 // Org-gated tools: the descriptor surface reflects the organization's
 // configured capabilities — an org without a search provider offers no
