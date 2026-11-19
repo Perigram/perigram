@@ -1511,7 +1511,7 @@ export async function invokeManagedValueService(commandId, parameters, auth = {}
   if (serviceModeOf(service) !== 'managed') {
     throw createError({ statusCode: 400, message: `Service ${serviceId} is ${serviceModeOf(service)} mode and cannot run as a managed value service` });
   }
-  if (!MANAGED_EXECUTION_KINDS.includes(service.execution?.kind)) {
+  if (!PREVIEW_EXECUTION_KINDS.includes(service.execution?.kind)) {
     throw createError({ statusCode: 403, message: `Value service dispatch cannot execute ${service.execution?.kind || 'unclassified'} service ${serviceId}` });
   }
   const output = await executeManagedGraphNode({
