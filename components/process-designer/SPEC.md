@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-10-24
-updated: 2026-10-24
+updated: 2026-11-19
 ```
 
 # SPEC: Process Designer
@@ -148,6 +148,137 @@ selection, the transition guard AST editor, output inspection, and grant LEVELS;
 `DeclarationEdgeInspector` authors typed edge integrity. Pure and read nodes expose the
 on-demand Output data inspector (selected node + upstream dependencies; `missing(<path>)`
 distinguishes present null from absent field; secrets arrive redacted).
+
+## Unified editor workspace and migration
+
+This component implements root SPEC §28.14. The process designer and
+graph-document editor are two entry contexts for one graph authoring
+system, not two products that happen to share a Vue Flow canvas.
+
+### Surface composition
+
+The editor uses the application's shared visual system and primitives.
+It must not introduce a separate floating/glass visual language.
+
+The workspace has six distinct concerns:
+1. Header: graph identity, rename, dirty/saved state, save, and
+   file-level navigation/actions. Process Validate/Apply actions are
+   profile lifecycle actions.
+2. Node library: searchable semantic node catalog and insertion.
+3. Canvas: graph composition and navigation.
+4. Inspector: selected node/edge configuration only.
+5. Preview workspace: selected graph output and its available renderers,
+   in a resizable region with sufficient space for document and 3D views.
+6. Diagnostics: validation, execution errors, and optional intermediate
+   node-output inspection.
+
+The preview workspace is not an inspector tab or right-side inspector
+section. It is a separate bottom panel or dedicated workspace pane. The
+inspector never hosts the graph catalog or graph-file list. The Use Graph
+node's source graph/revision picker is node configuration and remains in
+that node's inspector.
+
+File creation/open/rename/save belongs to the file/workspace navigation
+and editor header. A dock must not combine those commands with panel
+toggles, support actions, and unrelated canvas controls. The generic
+Support panel/button is retired. Graph status and diagnostics have
+explicit, accurately named surfaces.
+
+### Node library and configuration
+
+The palette's user-facing umbrella is **Nodes**, not **Operations**.
+It is derived from the normalized registry and groups values/literals,
+data/queries, flow/collections, graph boundaries/reusable graphs, and
+installed plugin contributions. The dedicated Use Graph group remains
+distinct. Plugin attribution is retained, but plugin identity does not
+replace semantic grouping.
+
+Search indexes labels, descriptions, provider identity, stable operation
+identity, category, and declared keywords. Palette entries accurately
+represent the node they create. There is no UI-maintained duplicate
+operation catalog.
+
+The inspector derives configuration from normalized port contracts,
+configuration schemas, defaults, and declarative presentation hints.
+Generic code must not grow operation-ID/provider-specific branches.
+Specialized editors enter through an explicit provider or process-profile
+contribution contract with a named owner.
+
+Generic Create/Construct is driven by the target type's construction
+contract: type, construction mode, required fields, defaults, and typed
+output. It does not carry hardcoded event, trigger, schedule, or
+subscription fields. Those are process-profile semantics and must be
+authored by process-specific node definitions with schema-driven
+configuration. Do not erase legitimate process event/effect behavior;
+remove it from generic construction UI.
+
+Node cards remain socket manifests. Generic node configuration is not
+duplicated as ad-hoc inline fields on the canvas. Unknown definitions
+remain inspectable and preserve identity, configuration, and wires with
+actionable diagnostics.
+
+### Preview and diagnostics
+
+The preview workspace selects a declared graph output and then presents
+the representations available for that output. Its default is the best
+supported user-facing renderer. Raw JSON is an explicit structured-data
+or diagnostic view, never the universal default.
+
+The host owns output selection, representation tabs, layout, loading,
+errors, and empty states. Generic representations use platform viewers;
+specialized plugin values use the declared plugin renderer. Supported
+scene/geometry representations mount the actual host-provided interactive
+3D viewer. An SVG projection or a list of serialized node entries is not
+an acceptable substitute for a 3D viewer.
+
+Intermediate node outputs and execution traces are optional diagnostics.
+They must not replace the selected graph output, and they must not be
+rendered as though the entire execution envelope were the output value.
+Page graph-result embeds consume the selected declared output and its
+representation contract.
+
+### Process profile boundary
+
+The process profile may contribute declarations, lanes, grants, role
+semantics, event entry, durable effects, process validation, migration
+gates, and Apply/activation. It may not own a second generic graph
+document, generic canvas protocol, generic node catalog, generic
+inspector framework, or competing procedural evaluator.
+
+The procedural evaluator and durable-process execution profile retain
+their distinct scheduling guarantees. Shared authoring and graph semantics
+do not imply that ordinary preview runs durable process effects.
+
+The legacy Hide secondary toggle and its primary/secondary visibility
+state are removed from the generic editor. If node visibility is required,
+it must be designed as an explicit semantic layer/filter model. Do not
+reintroduce the old toggle under a new label.
+
+### Migration checklist
+
+- Inventory and classify both editor sessions, canvas adapters, palettes,
+  inspectors, preview components, toolbars, panel state, and node-specific
+  configuration branches.
+- Consolidate generic graph authoring on the canonical graph document and
+  session; retain process-only behavior as profile extensions.
+- Rebuild the workspace regions and responsive transitions without
+  overlapping overlays.
+- Move preview out of the inspector and connect declared output
+  representations to host/plugin viewers.
+- Replace Operations palette vocabulary with registry-derived Nodes
+  categories and plugin attribution.
+- Make Create/Construct schema-driven and remove generic event/schedule
+  fields.
+- Remove Support and Hide secondary affordances and dead state paths.
+- Replace source-text-only tests with rendered layout, interaction,
+  accessibility, responsive, preview, and process-profile acceptance
+  coverage.
+
+This section supersedes older surface descriptions that place preview
+inside the inspector/support rail, expose generic Support or Hide
+secondary controls, or treat the process and graph-document sessions as
+permanent parallel authoring implementations. Process-specific lanes and
+Apply semantics remain valid profile behavior.
 
 ## Structure
 

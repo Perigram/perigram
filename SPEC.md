@@ -1678,6 +1678,66 @@ The default page type is a Page class carrying block content. Custom
 pages migrate into Page-class instances with their sections and nesting
 preserved; the sidebar page tree is that instance tree.
 
+
+### 27.1 Page and class-page composition
+
+A class page is a Page surface with a class-bound collection as its first
+content section, followed by the ordinary Page document. It is not a
+different page template with an independently designed header or a
+full-width banner attached to a narrow document column.
+
+Page, class-page, and generated instance surfaces share the application's
+record-header anatomy, content frame, horizontal alignment, and responsive
+width rules. The header and body belong to the same surface frame. A
+readable document measure may constrain prose inside that frame, but it
+must not make the page header, collection, and document appear to belong
+to unrelated layouts. The class collection may use the available surface
+width appropriate to its list/table representation; the document follows
+the shared document measure. Both align to the same frame edges.
+
+The class collection precedes the document and remains a normal generated
+collection surface. The Page document is a sequence of authored blocks,
+not a second page shell. Its insertion affordances are contextual to the
+document editing position. The page header carries page-level actions
+(class dialog and dirty-gated save where applicable), not a competing
+toolbar of document-block constructors.
+
+The insertion experience uses user-facing content concepts, not internal
+storage block names. One contextual Insert affordance discovers ordinary
+text and structure blocks, media/files, links to records, collection
+embeds, and graph results. It explains the result of each choice before
+asking for its parameters. The internal block kinds remain typed and
+distinct.
+
+A typed reference is presented as **Link to record** (or equivalent
+plain-language wording), not as an unexplained **Reference** primitive.
+The author selects an authorized target record; live versus pinned
+revision behavior is explained at the point of choice. The underlying
+reference retains the type, instance, and optional revision semantics in
+§28.10.
+
+A graph-backed collection/result is presented as **Insert graph result**
+(or equivalent task language), not as an unexplained **Graph output**
+primitive. The author selects a saved graph, pinned graph revision,
+declared output, and any required parameters. The UI explains whether the
+embed displays a live evaluation or a retained result; pinning a graph
+definition alone must never be described as pinning its data result.
+The semantics remain those in §28.10 and graph execution remains subject
+to §28.6–§28.7. A graph result is not a dump of every node's debug output.
+
+Page acceptance:
+- Page and class-page headers share the same header component contract
+  and align with the content frame.
+- The class collection is first, the document follows, and both obey the
+  same frame alignment without forcing prose to full viewport width.
+- Page insertion is contextual and has one discoverable entry point.
+- No user-facing label requires knowledge of internal terms such as
+  block kind, reference DTO, graph output port, or execution envelope.
+- Live/pinned references and graph-definition/result pinning are
+  described accurately and remain distinguishable.
+- A graph-result block renders the selected declared output through its
+  representation viewer, not the execution's node-output/debug envelope.
+
 ## 28. Unified node graph system (owner direction 2026-11-16; decisions 2026-11-16)
 
 Perigram has one unified node-graph system. A graph is a first-class,
@@ -2263,6 +2323,188 @@ one creation path through the generic file boundary; create a graph from a
 Page and edit it in place; no `/organization/graphs` route, no
 graph-specific create API, no second canvas/session/evaluator; CTS and
 Documents nodes execute in their declared runtimes.
+
+
+### 28.14 Graph editor workspace and authoring UX
+
+This section makes the unified graph architecture usable as one coherent
+editor. It applies to graph files and process-profile authoring. It does
+not merge the procedural and durable-process execution profiles or move
+process-specific workflow semantics into generic nodes.
+
+**One authoring system.** The graph-document editor and process designer
+must converge on the canonical graph document, normalized node/port
+definitions, graph editing session, connection/validation rules, and
+shared authoring components. Process authoring supplies a profile over
+that system for declarations, roles, effects, event entry, and durable
+workflow behavior. A profile may contribute semantic node definitions,
+profile-specific inspectors, lanes, validation, and apply/activation
+ceremonies; it must not supply a second generic graph model, canvas
+protocol, palette implementation, node inspector framework, or duplicate
+graph evaluator. The procedural evaluator and durable-process scheduler
+remain distinct execution profiles as stated in §28.6. This is a
+convergence target and migration requirement, not permission to pretend
+the current parallel sessions already satisfy it.
+
+**Workspace anatomy.** The editor is a full working surface in the
+application's existing visual language, not a floating tool demo. Use the
+registered PrimeVue components, shared design-system primitives, and
+semantic tokens. Remove ad-hoc glass panels, floating mini-toolbar
+clusters, inconsistent spacing, and local chrome systems that do not
+belong to the app.
+
+The desktop workspace has stable, non-overlapping responsibilities:
+- **Header:** graph/document identity, rename, dirty/saved state, save,
+  and file-level actions. Process profile actions such as Validate and
+  Apply are presented as process lifecycle actions, not mixed into file
+  navigation.
+- **Node library:** searchable node discovery and insertion. It is a
+  dedicated, navigable library surface, not a collection of unrelated
+  floating buttons.
+- **Canvas:** graph composition, selection, connection, navigation, and
+  graph-level status. It remains the dominant working area.
+- **Inspector:** configuration and details for the selected node or edge.
+  It never hosts the graph catalog/file browser or the primary output
+  preview.
+- **Preview workspace:** evaluated graph outputs and representations,
+  with enough width and height for real content viewers, including
+  interactive 3D. It is a separate resizable workspace region (for
+  example a bottom panel or dedicated workspace pane), never a narrow
+  inspector sidebar. It may be collapsed when not in use.
+- **Graph navigation:** finding, opening, creating, and renaming graph
+  files belongs to the normal file/workspace navigation and header
+  actions. It is not duplicated in the node inspector. The selected
+  source graph/revision picker inside a Use Graph node's inspector is
+  valid node configuration and remains there.
+
+These regions must have an intentional responsive composition. On narrow
+screens, regions become explicit tabs or stacked panels with preserved
+context; they must not collapse into overlapping floating overlays. The
+canvas remains usable when the node library, inspector, or preview is
+opened. No panel may silently cover another panel's primary controls.
+
+**Node library vocabulary and grouping.** **Nodes** is the umbrella
+concept. The UI must not call the entire palette **Operations**: values,
+literals, boundaries, queries, control/collection constructs, reusable
+graphs, and plugin contributions are not all operations. Grouping is
+semantic and discoverable, at minimum:
+- Values and literals.
+- Data and queries.
+- Flow and collections.
+- Graph boundaries and reusable graphs (including the dedicated Use
+  Graph entry required by §28.4–§28.5).
+- Installed plugin contributions, grouped or filtered by provider while
+  retaining their semantic categories.
+
+Search indexes node names, descriptions, stable operation identities,
+provider names, categories, and declared keywords. Plugin nodes retain
+provider attribution without making provider identity the only organizing
+principle. Palette entries preview the actual node species they insert.
+The palette is defined by the normalized registry; no parallel hardcoded
+list of generic operations is maintained in the UI.
+
+**Inspector and procedural configuration.** The inspector is a projection
+of the selected normalized node definition and its current configuration.
+Inputs, defaults, configuration fields, structured values, and
+documentation derive from the declared port contracts, configuration
+schema, and declarative presentation hints. Generic inspector code must
+not contain a growing switch over operation IDs or provider-specific
+business concepts. Provider/profile-specific controls are permitted only
+through explicit declarative editor contributions or narrow profile
+extensions with a named owner and tests.
+
+A generic record-construction/create node is a procedural operation:
+its target type, construction mode, required values, defaults, and
+resulting typed output are derived from the selected type's construction
+contract. It must not expose hardcoded event, trigger, schedule, or
+subscription fields merely because those concepts exist elsewhere in
+process authoring. Event entry, scheduling, and durable effects belong
+to process-profile node definitions and their profile-owned configuration
+contracts. They are not implicit properties of generic Create.
+
+Node cards remain compact socket manifests. Configuration is authored
+in the inspector or through a declared specialized editor contribution;
+node cards do not grow ad-hoc forms. Empty, unavailable, or malformed
+node definitions retain identity and connections and display actionable
+diagnostics rather than degrading into arbitrary JSON forms.
+
+**Preview is a first-class workspace.** The preview workspace follows
+§28.4 and §28.6. It selects a declared graph output first, then exposes
+the representations available for that output. The default representation
+is the best supported user-facing renderer, not raw JSON. JSON/structured
+inspection remains an explicit diagnostic representation, not the
+default preview for every value.
+
+The host owns output selection, representation tabs, sizing, loading,
+errors, empty states, and viewer lifecycle. Generic viewers cover the
+supported common representations. Plugin renderers contribute specialized
+views through the declared preview contract. A standardized scene/geometry
+output mounts the host's actual interactive 3D viewer where its
+representation contract supports it; an SVG diagram or JSON listing is
+not a substitute for a requested 3D viewport. Plugin-native CAD/BIM
+values may use their plugin renderer. A renderer receives only the
+selected output reference and declared read-only capabilities.
+
+Intermediate node outputs and execution traces are diagnostics. They
+belong in an explicitly named, collapsible diagnostics view within or
+alongside the preview workspace, never in place of the selected graph
+output. The graph output preview must not serialize the entire execution
+envelope or all node values as if that were the result. A Page graph-result
+embed consumes the selected declared output and its renderer contract,
+not the diagnostic envelope.
+
+**Retire accidental and obsolete chrome.** Remove generic **Support**
+terminology and its status-button entry point; status/validation belongs
+in explicit graph status and diagnostics surfaces. Remove the obsolete
+**Hide secondary** toggle and its legacy state synchronization. If
+visibility management is needed, design a separate semantic layer/filter
+system with explicit categories and independent visibility state; do not
+retain the primary/secondary population shortcut as a generic editor
+feature. Do not keep controls merely because a previous canvas layout
+needed them.
+
+File management, panel navigation, node insertion, graph evaluation,
+preview, diagnostics, and process lifecycle must each have one clear
+home. A dock must not mix save/new/rename/file commands with panel
+toggles and unrelated support actions. A graph list/catalog must not be
+placed in the inspector merely because the inspector has spare space.
+
+**Migration and acceptance.** Audit the current process and graph-document
+implementations against this target before moving code. Inventory every
+session, canvas, palette, inspector, preview path, toolbar item, panel
+state, and node-specific branch. For each, classify it as shared graph
+infrastructure, process-profile behavior, plugin contribution, or
+obsolete duplicate. Migrate in vertical slices; do not preserve parallel
+generic implementations as a permanent compatibility layer.
+
+Acceptance requires:
+1. Opening a graph file and opening process authoring use the same
+   canonical graph document/session, canvas interaction protocol,
+   normalized node definitions, and generic inspector/preview workspace.
+2. Process-specific lanes, grants, declarations, event entry, durable
+   effects, validation, and Apply remain available through the process
+   profile without leaking into generic graph authoring.
+3. File create/open/rename/save/navigation are in the workspace header
+   and normal file navigation; the inspector contains only selected graph
+   element configuration.
+4. The node library uses Nodes vocabulary, semantic categories, plugin
+   attribution, and one registry-derived search/insertion contract.
+5. Generic Create/Construct is driven by type construction contracts;
+   event/schedule configuration is profile-specific and schema-driven.
+6. The preview workspace is separate from the inspector, displays the
+   selected declared output using the best available renderer, and
+   supports an actual interactive 3D viewer for supported scene outputs.
+7. Node-output traces are optional diagnostics and never the default
+   graph-output representation.
+8. No Support button/panel or Hide secondary control remains in the
+   generic editor. Any replacement visibility model is explicit and
+   semantic.
+9. Rendered tests cover the full workspace layout, responsive panel
+   transitions, file actions, palette search/insertion, node configuration,
+   output selection, viewer selection, 3D interaction, diagnostics, and
+   process-profile behavior.
+10. The editor passes the app's shared design-system visual compliance
+    checks; no editor-local visual language is introduced.
 
 ## 29. Divide and conquer (owner direction 2026-11-12, sequenced after §28)
 
