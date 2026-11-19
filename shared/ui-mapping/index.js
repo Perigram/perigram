@@ -460,11 +460,11 @@ const UNIT_SYMBOLS = Object.freeze({
   mm: 'mm', m2: 'm²', min: 'min', deg: '°', percent: '%', currency: '', count: ''
 });
 
-export function formatQuantity(quantity) {
+export function formatQuantity(quantity, { locale } = {}) {
   if (!quantity || !Number.isFinite(quantity.value)) return '—';
   const suffix = UNIT_SYMBOLS[quantity.unit];
   if (suffix === undefined) return `${quantity.value} ${quantity.unit}`;
-  const value = quantity.value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const value = quantity.value.toLocaleString(locale, { maximumFractionDigits: 2 });
   return suffix ? `${value} ${suffix}` : value;
 }
 
@@ -995,10 +995,10 @@ function runInputDescriptor(input = {}) {
 
 const VALUE_FALLBACK = '—';
 
-export function formatValue(descriptor = {}, value) {
+export function formatValue(descriptor = {}, value, { locale } = {}) {
   if (value === null || value === undefined || value === '') return VALUE_FALLBACK;
   if (typeof value === 'object' && !Array.isArray(value)) {
-    if (Number.isFinite(value.value)) return formatQuantity(value);
+    if (Number.isFinite(value.value)) return formatQuantity(value, { locale });
     if (value.tag) return String(value.tag);
     if (value.id) return String(value.id);
     if (value.fileId) return String(value.fileId);
@@ -1006,13 +1006,13 @@ export function formatValue(descriptor = {}, value) {
   }
   if (Array.isArray(value)) return `${value.length}`;
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
-    return new Date(value).toLocaleDateString();
+    return new Date(value).toLocaleDateString(locale);
   }
   switch (descriptor.base) {
     case 'quantity':
-      return formatQuantity(value);
+      return formatQuantity(value, { locale });
     case 'instant':
-      return new Date(value).toLocaleDateString();
+      return new Date(value).toLocaleDateString(locale);
     case 'boolean':
       return String(value);
     case 'enum':

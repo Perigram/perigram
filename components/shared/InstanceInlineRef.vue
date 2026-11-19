@@ -63,7 +63,7 @@ function factGateAuth() {
     stateFieldPolicies: authStore.stateFieldPolicies
   };
 }
-const { t, te } = useI18n();
+const { t, te, locale } = useI18n();
 const entityContext = inject('entityContext', null);
 const generatedExecuteAction = inject('generatedExecuteAction', null);
 const normalizedId = computed(() => props.id?.toString?.() || props.id || '');
@@ -134,7 +134,7 @@ const compactDataFields = computed(() => instanceFactRows({
   typeRecord: typeView.value,
   entity: resolved.value,
   auth: factGateAuth(),
-  translator: { t, te }
+  translator: { t, te, locale }
 }));
 const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.preview !== 'none');
 // The micro card earns its box: it renders only when the type's compact

@@ -36,7 +36,7 @@ const resolvedTargetId = computed(
   () => props.targetId || props.instance?._id?.toString() || props.instance?.id?.toString()
 );
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { events, isLoading, fetchHistory } = useStateHistory(props.typeId, resolvedTargetId.value);
 const supportDialog = useSupportDialog();
 const supportChatTarget = useSupportChatTarget();
@@ -61,7 +61,7 @@ watch(() => props.mockEvents, (newVal) => {
 const formatTime = (ts) => {
   const date = new Date(ts);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString(locale.value, {
     dateStyle: props.compact ? 'short' : 'medium',
     timeStyle: 'short'
   });

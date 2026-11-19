@@ -1,17 +1,22 @@
 <template>
   <div class="h-full">
     <InstanceCard :instance="revision" type-id="entity_revision" :variant="variant" :show-status="false">
-      <template #before-identity>
+      <template #before-identity v-if="variant !== 'inline'">
         <i class="pi pi-history"></i>
       </template>
-      <Divider />
-      <div class="grid grid-cols-1 gap-4">
-        <FactRows :rows="revisionRows" />
-        <div v-if="sourceType && sourceId" class="flex items-center justify-between gap-4">
-          <small class="text-muted">{{ $t('revision.source') }}</small>
-          <InstanceInlineRef :type="sourceType" :id="sourceId" />
+      <template #compact-content v-if="variant === 'compact'">
+        <FactRows :rows="revisionRows" variant="compact" />
+      </template>
+      <template #default v-if="variant === 'card'">
+        <Divider />
+        <div class="grid grid-cols-1 gap-4">
+          <FactRows :rows="revisionRows" />
+          <div v-if="sourceType && sourceId" class="flex items-center justify-between gap-4">
+            <small class="text-muted">{{ $t('revision.source') }}</small>
+            <InstanceInlineRef :type="sourceType" :id="sourceId" />
+          </div>
         </div>
-      </div>
+      </template>
     </InstanceCard>
   </div>
 </template>
@@ -44,9 +49,9 @@ const revisionRows = computed(() => {
   const data = props.revision?.data || {};
   const hash = data.contentHash ? String(data.contentHash).replace(/^sha256:/, '').slice(0, 12) : '';
   return [
-    data.scope ? { label: t('revision.scope'), display: String(data.scope) } : null,
-    data.number != null ? { label: t('revision.number'), display: `v${data.number}` } : null,
-    hash ? { label: t('revision.hash'), display: hash } : null
+    data.scope ? { label: t('revision.scope'), display: String(data.scope), role: 'body' } : null,
+    data.number != null ? { label: t('revision.number'), display: `v${data.number}`, role: 'technical' } : null,
+    hash ? { label: t('revision.hash'), display: hash, role: 'technical' } : null
   ].filter(Boolean);
 });
 </script>

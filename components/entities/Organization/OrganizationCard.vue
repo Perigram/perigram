@@ -1,30 +1,32 @@
 <template>
   <div :class="[`variant-${variant}`]">
     <InstanceCard :instance="organization" type-id="organization" :variant="variant" :show-trace="false" :show-status="false">
-      <template #before-identity>
+      <template #before-identity v-if="variant !== 'inline'">
         <Avatar :label="avatarLabel" shape="circle" size="large" />
       </template>
-      <template #subtitle v-if="variant !== 'card' && (organization.data?.type || $slots.context)">
+      <template #subtitle v-if="variant === 'compact' && (organization.data?.type || $slots.context)">
         <div class="flex flex-wrap gap-2">
           <Tag v-if="organization.data?.type" :value="organization.data.type" severity="secondary" size="small" />
           <slot name="context" />
         </div>
       </template>
-      <template #compact-content>
+      <template #compact-content v-if="variant === 'compact'">
         <div v-if="organization.data?.email" class="mt-3 text-muted text-body">{{ organization.data.email }}</div>
       </template>
-      <div v-if="$slots.context && variant === 'card'" class="mb-3 flex flex-wrap gap-2">
-        <slot name="context" />
-      </div>
-      <Divider />
-      <div class="flex flex-col gap-2">
-        <FactRows :rows="organizationRows" />
-        <div v-if="createdAt" class="flex justify-between items-center">
-          <small>{{ $t('common.created') }}</small>
-          <span>{{ createdAt }}</span>
+      <template #default v-if="variant === 'card'">
+        <div v-if="$slots.context" class="mb-3 flex flex-wrap gap-2">
+          <slot name="context" />
         </div>
-      </div>
-      <template v-if="$slots.actions" #footer>
+        <Divider />
+        <div class="flex flex-col gap-2">
+          <FactRows :rows="organizationRows" />
+          <div v-if="createdAt" class="flex justify-between items-center">
+            <small>{{ $t('common.created') }}</small>
+            <span>{{ createdAt }}</span>
+          </div>
+        </div>
+      </template>
+      <template #footer v-if="variant === 'card' && $slots.actions">
         <Divider />
         <slot name="actions" />
       </template>
@@ -56,7 +58,7 @@ const authStore = useAuthStore();
 
 const avatarLabel = computed(() => (props.organization.identity?.name || '?').charAt(0));
 
-const { t, te } = useI18n();
+const { t, te, locale } = useI18n();
 const { typeById } = useFileTypeView();
 const organizationRows = computed(() => instanceFactRows({
   typeId: 'organization',
@@ -67,11 +69,11 @@ const organizationRows = computed(() => instanceFactRows({
     fieldPolicies: authStore.fieldPolicies,
     stateFieldPolicies: authStore.stateFieldPolicies
   },
-  translator: { t, te }
+  translator: { t, te, locale }
 }));
 
 const createdAt = computed(() => {
     const ts = props.organization.lineage?.createdAt || props.organization.origin?.timestamp;
-    return ts ? new Date(ts).toLocaleDateString() : null;
+    return ts ? new Date(ts).toLocaleDateString(locale.value) : null;
 });
 </script>

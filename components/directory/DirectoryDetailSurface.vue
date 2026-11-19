@@ -208,7 +208,7 @@ const props = defineProps({
 const authStore = useAuthStore();
 const toast = useToast();
 const confirm = useConfirm();
-const { t, te } = useI18n();
+const { t, te, locale } = useI18n();
 const { onlineUserIds } = useConnections();
 
 // Menu rows sit inside a Panel body — the Panel owns the padding.
@@ -234,7 +234,7 @@ const detailRows = computed(() => (detailed.value?._id
         fieldPolicies: authStore.fieldPolicies,
         stateFieldPolicies: authStore.stateFieldPolicies
       },
-      translator: { t, te },
+      translator: { t, te, locale },
       skip: props.typeId === 'user' ? ['email'] : []
     })
   : []));

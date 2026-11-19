@@ -46,14 +46,14 @@ defineEmits(['open']);
 
 const shape = computed(() => analyzeTypeShape(props.type));
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const metricLabel = computed(() => (shape.value.metricField
   ? (props.type.fields[shape.value.metricField].label || startCase(shape.value.metricField))
   : null));
 const metricOf = (instance) => {
   const name = shape.value.metricField;
   const value = name ? instance.fields?.[name] : null;
-  return value && typeof value === 'object' ? formatQuantity(value) : (value ?? '—');
+  return value && typeof value === 'object' ? formatQuantity(value, { locale: locale.value }) : (value ?? '—');
 };
 const statusOf = instance => {
   const display = stateDisplayFor(props.statePolicy, instance?.state);

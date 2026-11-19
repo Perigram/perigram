@@ -17,12 +17,12 @@ import { decorateDataValue } from './data-display.js';
 import { filterEntityFields } from '#shared/instance-field-access.js';
 
 /**
- * Scalar fact rows for a record. `translator` is any `{ t, te }` pair;
- * labels resolve the generated keys first with the resolver-derived
- * label as fallback, the same law detail surfaces read. `auth` is the
- * field-access gate input (`{ permissions, fieldPolicies,
- * stateFieldPolicies }`); `cap` bounds the row count, `skip` names
- * fields that stay off display surfaces.
+ * Scalar fact rows for a record. `translator` is any `{ t, te, locale }`
+ * pair; labels resolve the generated keys first with the resolver-derived
+ * label as fallback, the same law detail surfaces read, `locale` drives
+ * date formatting. `auth` is the field-access gate input
+ * (`{ permissions, fieldPolicies, stateFieldPolicies }`); `cap` bounds
+ * the row count, `skip` names fields that stay off display surfaces.
  */
 export function instanceFactRows({
   typeId = '',
@@ -49,7 +49,7 @@ export function instanceFactRows({
       if (isLongText(field.descriptor)) continue;
       const value = entity.fields?.[field.name];
       if (value === null || value === undefined || value === '') continue;
-      const gateShape = { path: `fields.${field.name}`, label: field.label, ...(field.descriptor.display ? { display: field.descriptor.display } : {}) };
+      const gateShape = { path: `fields.${field.name}`, label: field.label, base: field.descriptor.base, ...(field.descriptor.display ? { display: field.descriptor.display } : {}) };
       if (auth && !filterEntityFields({
         fields: [gateShape],
         auth,
@@ -65,7 +65,8 @@ export function instanceFactRows({
       const display = decorateDataValue(value, {
         ...gateShape,
         ...(field.descriptor.unit ? { unit: field.descriptor.unit } : {}),
-        ...boolLabels(translator)
+        ...boolLabels(translator),
+        locale: localeOf(translator)
       });
       if (!display) return null;
       const swatch = gateShape.display === 'swatch' && /^[0-9a-f]{3,8}$/i.test(String(value).replace('#', ''))
@@ -75,15 +76,30 @@ export function instanceFactRows({
         group,
         label: localizedLabel(translator, fieldLabelKey(typeId, field.name), field.label || fieldLabel(field.name, field.descriptor)),
         display,
-        swatch
+        swatch,
+        role: factRoleFor(field.descriptor)
       };
     })
     .filter(Boolean);
 }
 
+// Semantic value typography resolved from the field/display contract:
+// measured values (number, quantity, instant) and code-shaped identifiers
+// render the technical mono face; every other value renders the body face.
+export function factRoleFor(descriptor = {}) {
+  return ['number', 'quantity', 'instant'].includes(descriptor.base) || descriptor.display === 'code'
+    ? 'technical'
+    : 'body';
+}
+
+function localeOf(translator) {
+  const locale = translator?.locale;
+  return locale?.value ?? locale ?? undefined;
+}
+
 function boolLabels(translator) {
   const yes = translator?.te?.('common.yes') ? translator.t('common.yes') : null;
   const no = translator?.te?.('common.no') ? translator.t('common.no') : null;
-  return { ...(yes ? { trueLabel: yes } : {}), ...(no ? { falseLabel: no } : {}) };
+  return { ...(yes ? { trueLabel: yes } : {}), ...(no ? { falseLabel: no } : {})};
 }
 
