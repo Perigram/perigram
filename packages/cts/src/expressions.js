@@ -108,6 +108,7 @@ export function evaluate(ast, scope = {}, budget = { steps: MAX_STEPS }) {
       const values = list.map(item => evaluate(ast.body, { ...scope, [variable]: item }, budget));
       if (ast.op === 'count') return values.filter(Boolean).length;
       if (!values.length) return ast.op === 'sum' ? 0 : null;
+      values.forEach(value => validateAggregateValue(ast.op, value));
       if (ast.op === 'sum') {
         return values.slice(1).reduce((total, value) => {
           if (isQuantity(total) || isQuantity(value)) {
@@ -241,6 +242,7 @@ export async function evaluateAsync(ast, scope = {}, budget = { steps: MAX_STEPS
       for (const item of list) values.push(await run(ast.body, { ...scope, [variable]: item }));
       if (ast.op === 'count') return values.filter(Boolean).length;
       if (!values.length) return ast.op === 'sum' ? 0 : null;
+      values.forEach(value => validateAggregateValue(ast.op, value));
       if (ast.op === 'sum') return values.slice(1).reduce((total, value) => {
         if (isQuantity(total) || isQuantity(value)) {
           const unified = unify(total, value);
@@ -377,6 +379,16 @@ function spend(budget, ast) {
 
 function isQuantity(value) {
   return value && typeof value === 'object' && typeof value.value === 'number' && typeof value.unit === 'string';
+}
+
+function validateAggregateValue(operation, value) {
+  if (isQuantity(value)) return;
+  if (operation === 'sum' && typeof value !== 'number') {
+    throw new Error('sum requires numeric values');
+  }
+  if (operation !== 'sum' && !['number', 'string'].includes(typeof value)) {
+    throw new Error(`${operation} requires comparable homogeneous values`);
+  }
 }
 
 function compare(a, b, op) {
