@@ -411,10 +411,7 @@ overlay drawer rail the toolbar toggle owns — canvas clicks keep it
 open, and canvas Escape clears graph selection. The preview workspace is
 the workspace's resizable bottom region (SPEC §28.14); the canvas status
 control opens it, and the floating `Toolbar` rides above the open
-region. The workspace header
-(unified `SurfaceHeader`, SPEC §28.14) owns the loaded definition's
-identity, in-place rename, New Draft, the dirty-gated Save, and Apply
-(the process lifecycle action). The floating `Toolbar`'s canvas group
+region. The floating `Toolbar`'s canvas group
 carries the view controls (zoom out/in, frame all, frame selection,
 reset zoom, Tidy), every item icon-only
 with its label as tooltip and accessible name, so the toolbar survives
@@ -494,17 +491,27 @@ marker is attention, never a persistence gate. Re-activation records the
 superseded graph in the definition's history. New Draft, Save, and Apply
 run independent of node selection or inspector tab.
 
-The right pane owns definitions management (the Definitions tab): a
-`Listbox` in the chats-inbox anatomy. Each option is one line: the name
+The right pane owns the graphs list (the Graphs tab, the file/lifecycle
+home — SPEC §28.14). Process definitions render as a `Listbox` in the
+chats-inbox anatomy: each option is one line — the name
 (option click loads the definition into the designer; inline rename swaps
 the name span for an input), the activation switch (on = member of the
 additive active set; the switch is the state signal), and the versions +
-ellipsis buttons. The versions button opens a `Popover` anchored at the
+ellipsis buttons. The loaded definition's lifecycle commands (New Draft,
+dirty-gated Save, Apply) ride the list header. The versions button opens a `Popover` anchored at the
 row listing activation versions (`data.history`, newest first) with
 restore — the snapshot becomes the definition's data and goes live
 through activation. History rows render the timestamp only. The
 activation contract lives in
 [server/features/process-definitions](../../server/features/process-definitions/README.md).
+
+Graph documents render as the list's second section (the
+`useGraphDocumentCatalog` fetch): one row per graph file — click loads
+it into the same editor through the canonical graph session (the process
+profile unmounts), the loaded row carries the dirty dot, the in-place
+save/rename from the editor's chrome channel, and the close control; the
+section's plus starts a blank graph document (the first save creates the
+instance through the deferred instance-payload save).
 
 ### Screens (Roles tab)
 

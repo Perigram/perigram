@@ -114,6 +114,76 @@ Landed this session: Hide secondary retired end to end
 en+ru locale keys, README law); `hidden` stays a stripped runtime key
 in `stripRuntimeNodeData`.
 
+### Agent Notes (2026-11-19, agent/graph-editor-unslop — owner defect report)
+
+Owner report: latest graph editor UI work carried no real improvements —
+editor header slop (belongs in a graphs list in the inspector), plugin
+palette groups all named "operations", preview still inside the
+inspector-side rail, editor chrome off app conventions, palette labels
+degraded ("Literal" rendering "Pinned entity" — full palette audit
+needed), node rows carrying a permanent link icon and truncating socket
+type, collapsed cards duplicating the name and re-railing sockets.
+Direction given: one editor UI total (choice delegated), plugin palette
+split by plugin with subgroups inside, no palette-wide "Nodes" rename.
+
+Landed this session:
+
+- Root SPEC §28.14 + component SPEC rewritten for the one-editor
+  direction: headerless unified editor, graphs list in the inspector,
+  per-plugin palette sections with declared semantic subgroups, node
+  card socket-row and collapsed-card laws.
+- Palette label disambiguation: `paletteEntryForNode` matched palette
+  items by kind alone, so `pinnedEntity` (first `source.literalItem`
+  item by group order) labeled every literal node "Pinned entity";
+  variants now disambiguate by operator, select, and literal type base
+  (entityRef = the pinned variant). `genericPaletteItemForKind` exported
+  as the kind-vocabulary single home; the graph editor's framework
+  palette rows and node cards read the localized process palette
+  vocabulary through the new `definitionText` session seam (raw
+  'literalItem'-style labels and "Perigram process operation: …"
+  descriptions gone).
+- Plugin palette: `pluginPaletteGroups`/`servicesPaletteGroups`
+  rebuilt — one section per installed plugin (label = listing name via
+  projected `plugin`/`pluginLabel`, engines/runtimes bindings now carry
+  `name`), declared groups as subgroups, ungrouped services on the
+  section root. Root cause of "all named operations": the projected
+  service shape carries flattened `group`/`groupLabel` while the
+  projection read `palette.group`, so every plugin service fell into a
+  hardcoded "Operations" section. PaletteDock/OperationPalette render
+  subgroups through the shared `paletteSectionView`/
+  `filterPaletteSections` util. build123d's blanket `operations` group
+  split semantically: `modify` (operations_generic), `solid`
+  (operations_part), `face` (operations_sketch) in discover.py +
+  catalog.json + listing.json; worker palette specs updated.
+- Node cards: per-socket link/unlink icon removed (connection reads
+  from the wire); socket rows carry the name with type/access on the
+  hover tooltip; collapsed card renders the name once with its header
+  icons and keeps every socket handle on its side rail (inputs left,
+  outputs right, in expanded order).
+- Preview workspace: `DesignerWorkspace` gained the resizable bottom
+  preview region (drag handle, toolbar rides above it, compact tab);
+  the support rail and `designer.support` retired; the graph editor
+  preview panel and the process channel strip both mount there; the
+  canvas status control opens it.
+- Editor chrome: the floating/glass variant retired everywhere
+  (`chrome-variant`, backdrop-blur classes, glass palette dock,
+  pill toolbar); the editor uses the app's shared surface tokens.
+- One editor (partial): the process page is headerless — New
+  Draft/Save/Apply moved onto the graphs list (the Graphs tab); the
+  list gained the graph documents section (open/create/rename/save
+  through the editor chrome channel + `useGraphDocumentCatalog`);
+  graph documents edit in place through the canonical graph session in
+  the same page.
+
+Still open from this report: retiring the graph-document file-surface
+mount (opening a graph file must deep-link into the unified page through
+the workspace open seam — GeneratedHomeWorkspace/
+`resolveFileSurface`/`fileWorkspacePages` + e2e open helper), the
+graph-document header chrome still riding EditorPageSurface on that
+host until it dies, and the remaining §28.14 checklist items (session
+consolidation, Create/Construct schema-driven, rendered acceptance
+coverage).
+
 ### Agent Notes (2026-11-19, agent/editor-file-actions — header-own file actions)
 
 - Landed (audit slice 2): the process page renders the workspace

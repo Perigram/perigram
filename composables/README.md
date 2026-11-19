@@ -52,6 +52,18 @@ graph workspace. Each available entry carries its validated payload as
 pinned to that graph identity, immutable revision, and public interface.
 The current graph is excluded from its own palette.
 
+`useGraphDocumentCatalog({ withPayloads })` is the one catalog fetch both
+consumers share: the graphs list on the process page (names and ids) and
+the Use Graph palette here (payloads validated through
+`assertValidGraphDocument`). `parseGraphPayload` is the shared payload
+parse seam.
+
+Plugin definitions group one palette section per installed plugin (the
+`pluginNames` map carries listing display names), the plugin's declared
+semantic groups as subgroups inside; `definitionText` supplies localized
+label/description overrides for framework definitions (the process
+provider reads the process palette vocabulary).
+
 ---
 
 ## usePluginRuntime — browser package execution
