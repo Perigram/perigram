@@ -1487,6 +1487,96 @@ URLs, `/home` is the live route, review-3 checked line 18 only);
 `home-calls` verified live and delisted. OPEN: repository shape cuts,
 guards, E2E rewrites, SPEC numbering, 8 owner decisions.
 
+## Repository-wide deduplication, deslopification, and simplification (SPEC §§23, 30; owner direction 2026-11-19)
+
+This is a current, repository-wide engineering program, not a claim that
+past cleanup or the semantic-model rewrite has already removed all
+duplication. It supersedes the old unbounded line-by-line audit as the
+active execution plan while preserving its useful evidence standards.
+Work in bounded package/folder waves; record coverage and findings so
+"total" means every first-party area is accounted for, not indiscriminate
+rewrites or a one-shot big-bang cleanup.
+
+### Scope and invariants
+
+- [ ] Establish a current first-party inventory: packages, apps, server
+  features, UI, scripts, tests, schemas, migrations, generated outputs,
+  documentation, build/deploy configuration, and runtime/provider
+  boundaries. Exclude vendored/generated material from source cleanup
+  unless its generator or ownership is itself the defect.
+- [ ] Assign every area an owner, audit status, last-reviewed revision,
+  and evidence link. Audit all areas; mark exclusions with a reason.
+- [ ] Identify duplicate sources of truth: type grammars, operation
+  catalogs, registries, validators, compatibility rules, serializers,
+  transport mappings, feature flags, configuration, UI projections,
+  and documentation contracts. Consolidate shared semantics into the
+  canonical owner defined by SPEC §30.
+- [ ] Remove dead exports, unreachable branches, unused files,
+  dependencies, assets, stale tests, obsolete comments, abandoned
+  adapters, and compatibility shims after proving zero live consumers
+  and checking dynamic registration, reflection, migrations, and
+  external contracts.
+- [ ] Simplify over-engineered abstractions, speculative frameworks,
+  needless indirection, duplicate state, redundant wire fields, and
+  unnecessarily complex APIs. Prefer the smallest design that meets
+  demonstrated requirements; do not replace concrete duplication with
+  a larger generic framework without evidence.
+- [ ] Reconcile documentation with actual behavior. Each durable
+  contract has one canonical home; remove stale copies and historical
+  narration from active docs while preserving useful rationale in the
+  archive.
+- [ ] Reconcile tests with current behavior: remove tests for retired
+  contracts, add coverage for surviving behavior, and avoid parallel
+  fixtures or helper implementations that recreate production logic.
+- [ ] Add or strengthen automated guards for duplicate declarations,
+  orphaned documentation, stale imports/exports, dependency direction,
+  package boundaries, unused dependencies, and forbidden legacy paths
+  where reliable detection is possible.
+- [ ] Complete a cross-package semantic convergence audit: Core,
+  Plugin SDK, CTS, Processes, and domain plugins must consume the same
+  semantic descriptors, compatibility decisions, effect declarations,
+  and typed IR. Track every remaining adapter and its retirement gate.
+- [ ] Publish an area-by-area conformance report: files/areas reviewed,
+  duplicate concepts found, dead code removed, abstractions simplified,
+  dependencies removed, tests/docs updated, unresolved decisions, and
+  remaining risk. Re-audit changed areas after major architectural
+  migrations.
+
+### Execution protocol
+
+- [ ] Run bounded waves by package or coherent subsystem. For each
+  finding record exact paths/symbols, evidence/search method, consumers,
+  risk, proposed canonical owner, and tests required.
+- [ ] Have an independent reviewer re-verify every DEAD, DUPLICATE, or
+  REMOVE finding before destructive changes. Do not infer deadness from
+  textual search alone where dynamic loading, reflection, persisted
+  identifiers, plugin discovery, or external callers may exist.
+- [ ] Execute low-risk, evidence-complete removals in the same wave;
+  separate architectural decisions and data migrations into explicit
+  reviewed changes.
+- [ ] Validate touched package suites, repository guards, build/type
+  checks, migration fixtures, and relevant end-to-end flows. Record
+  failures that predate the change rather than silently attributing or
+  ignoring them.
+- [ ] Preserve behavior and operational guarantees. Every consolidation
+  must account for persisted data, version compatibility, authorization,
+  audit/provenance, retries/idempotency, rollback, and user-visible UX.
+
+### Completion criteria
+
+The program is complete only when every first-party area has an
+auditable disposition; every shared semantic concept has one canonical
+owner and implementation; duplicate catalogs, evaluators, type rules,
+and compatibility paths are retired or explicitly justified; dead code
+and unused dependencies are removed or documented with evidence;
+active documentation describes current behavior; relevant automated
+guards prevent regressions; and the final conformance report lists
+remaining intentional specialization and accepted exceptions.
+
+This program does not require one implementation for genuinely
+different domain behavior. It requires one implementation for shared
+semantics and explicit, minimal extensions for real differences.
+
 ## Exhaustive first-party code audit (owner direction 2026-10-25)
 
 Status: superseded as an execution plan by [Architecture simplification, SPEC §30](./SPEC.md). The open unbounded line-by-line sweep is not the active sequence; any historical finding must be re-verified against the current tree before action.
