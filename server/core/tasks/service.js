@@ -214,6 +214,13 @@ export async function getTaskRunById(id) {
   return await repository.findById(id);
 }
 
+// Host capability evidence journal: the claim-bound capability route appends
+// one record per capability the host itself executed for a running task, so
+// graph execution evidence rests on host records rather than worker claims.
+export async function appendTaskRunCapabilityEvidence(id, claimToken, record) {
+  return await repository.pushClaimedById(id, claimToken, 'hostCapabilityEvidence', record);
+}
+
 export async function listTaskRuns(filter = {}) {
   return await repository.list(filter);
 }

@@ -28,6 +28,7 @@ export default defineEventHandler(async event => {
     name: body.name,
     input: body.input,
     target: 'server',
-    auth
+    auth,
+    taskRun: { id: run._id, claimToken: body.claimToken }
   });
 });

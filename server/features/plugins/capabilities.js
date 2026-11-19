@@ -3,12 +3,95 @@ import * as repository from './repository.js';
 import * as graphExecutionsService from '../graph-executions/service.js';
 import * as filesService from '../files/service.js';
 import { getAppRegistry } from '../../runtime/app-registry.js';
+import { appendTaskRunCapabilityEvidence } from '../../core/tasks/service.js';
 import {
   PLUGIN_RUNTIME_CAPABILITIES,
   PLUGIN_RUNTIME_BROWSER_CAPABILITIES
 } from '#shared/plugin-runtime.js';
 
+function instanceQueryInputEvidence(input = {}) {
+  return {
+    typeId: String(input.typeId || ''),
+    ...(input.instanceId ? { instanceId: String(input.instanceId) } : {}),
+    ...(input.projection ? { projection: input.projection } : {})
+  };
+}
+
+function instanceWriteEvidence(input, result) {
+  return {
+    instanceId: String(result?._id ?? result?.id ?? input?.instanceId ?? ''),
+    revision: result?.revision ?? null
+  };
+}
+
+// Host-verified evidence for one executed capability: the record derives
+// from the authorized host call's actual inputs and results, so package
+// code cannot forge or broaden it.
+function hostCapabilityEvidence({ organizationId, pluginId, operationId, name, input = {}, result }) {
+  if (name === 'organization.instances.query' || name === 'organization.instances.read') {
+    return {
+      name,
+      input: instanceQueryInputEvidence(input),
+      ...(result?.readSet ? { readSet: result.readSet } : {})
+    };
+  }
+  if (name === 'files.read') {
+    return {
+      name,
+      input: { fileId: String(input.fileId || '') },
+      organizationId: result?.organizationId ?? null,
+      contentHash: result?.contentHash
+    };
+  }
+  if (name === 'organization.instances.create') {
+    return {
+      name,
+      input: { typeId: String(input.typeId || '') },
+      organizationId,
+      instance: instanceWriteEvidence(input, result)
+    };
+  }
+  if (name === 'organization.instances.update') {
+    return {
+      name,
+      input: {
+        typeId: String(input.typeId || ''),
+        instanceId: String(input.instanceId || ''),
+        ...(input.expectedRevision != null ? { expectedRevision: String(input.expectedRevision) } : {})
+      },
+      organizationId,
+      instance: instanceWriteEvidence(input, result)
+    };
+  }
+  if (name === 'organization.instances.delete') {
+    return {
+      name,
+      input: { typeId: String(input.typeId || ''), instanceId: String(input.instanceId || '') },
+      organizationId
+    };
+  }
+  if (name === 'nesting.solve') {
+    return { name, adapter: { pluginId: String(pluginId || ''), operationId: String(operationId || '') } };
+  }
+  return { name };
+}
+
 export async function invokePluginCapability({
+  organizationId, pluginId, version, runtimeId, operationId,
+  name, input = {}, target, auth = {}, taskRun = null
+} = {}) {
+  const result = await executePluginCapability({
+    organizationId, pluginId, version, runtimeId, operationId, name, input, target, auth
+  });
+  if (taskRun?.id && taskRun?.claimToken) {
+    await appendTaskRunCapabilityEvidence(String(taskRun.id), String(taskRun.claimToken), hostCapabilityEvidence({
+      organizationId, pluginId, operationId, name, input, result
+    }));
+  }
+  return result;
+}
+
+async function executePluginCapability({
   organizationId, pluginId, version, runtimeId, operationId,
   name, input = {}, target, auth = {}
 } = {}) {
