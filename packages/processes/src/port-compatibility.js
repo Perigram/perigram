@@ -11,10 +11,13 @@ export function registerProcessPortCompatibilityProfile(registry) {
   return registry.register(PROCESS_PORT_COMPATIBILITY_PROFILE, (source, target) => {
     const result = portSpecsCompatible(toProcessPort(source), toProcessPort(target));
     return {
-      status: result.ok ? 'exact' : 'incompatible',
-      compatible: result.ok,
+      status: result.convertible
+        ? 'conversion-required'
+        : result.ok ? (result.coercion ? 'safe-coercion' : 'exact') : 'incompatible',
+      compatible: Boolean(result.ok),
       reason: result.reason || (result.ok ? 'CTS process port contracts match' : 'CTS process port contracts do not match'),
-      conversions: []
+      conversions: [],
+      ...(result.conversion ? { conversion: result.conversion } : {})
     };
   });
 }
@@ -24,6 +27,7 @@ function toProcessPort(port = {}) {
   const type = port.type || (semantic.base ? {
     base: semantic.base,
     ...(semantic.typeId ? { typeId: semantic.typeId } : {}),
+    ...(semantic.unit ? { unit: semantic.unit } : {}),
     ...(semantic.block ? { block: semantic.block } : {})
   } : undefined);
   return {

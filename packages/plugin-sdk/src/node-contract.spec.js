@@ -38,7 +38,7 @@ describe('node port compatibility', () => {
     const typed = { semantic: { base: 'json', kind: 'text.flow-document' } };
     const generic = { semantic: { base: 'json' } };
     expect(compareNodePorts(typed, generic)).toMatchObject({ status: 'safe-coercion', compatible: true });
-    expect(compareNodePorts(generic, typed)).toMatchObject({ status: 'conditional', compatible: false });
+    expect(compareNodePorts(generic, typed)).toMatchObject({ status: 'conditional', compatible: true });
   });
 
   it('checks transport shapes and reports conversions explicitly', () => {
@@ -69,7 +69,53 @@ describe('node port compatibility', () => {
     expect(compareNodePorts(source, equivalent).status).toBe('exact');
     expect(compareNodePorts(source, {
       semantic: { ...equivalent.semantic, constraints: { minimumItems: 1 } }
-    })).toMatchObject({ status: 'conditional', compatible: false });
+    })).toMatchObject({ status: 'conditional', compatible: true });
+  });
+
+  it('compares open-world semantic qualifiers beyond the identity key subset', () => {
+    const customer = { shape: 'item', semantic: { base: 'entityRef', typeId: 'customer' } };
+    const invoice = { shape: 'item', semantic: { base: 'entityRef', typeId: 'invoice' } };
+    expect(compareNodePorts(customer, { ...customer })).toMatchObject({ status: 'exact', compatible: true });
+    expect(compareNodePorts(customer, invoice)).toMatchObject({ status: 'incompatible', compatible: false });
+    expect(compareNodePorts(customer, invoice).reason).toContain('typeId');
+  });
+
+  it('compares known and unknown qualifiers by deep value equality', () => {
+    expect(compareNodePorts(
+      { semantic: { base: 'string', enumId: 'color' } },
+      { semantic: { base: 'string', enumId: 'size' } }
+    )).toMatchObject({ status: 'incompatible', compatible: false });
+    expect(compareNodePorts(
+      { semantic: { base: 'record', schema: { fields: { sku: { base: 'string' } } } } },
+      { semantic: { base: 'record', schema: { fields: { qty: { base: 'number' } } } } }
+    )).toMatchObject({ status: 'incompatible', compatible: false });
+    expect(compareNodePorts(
+      { semantic: { base: 'string', locale: 'en' } },
+      { semantic: { base: 'string', locale: 'de' } }
+    )).toMatchObject({ status: 'incompatible', compatible: false });
+    expect(compareNodePorts(
+      { semantic: { base: 'string', locale: 'en' } },
+      { semantic: { base: 'string', locale: 'en' } }
+    ).status).toBe('exact');
+    expect(compareNodePorts(
+      { semantic: { base: 'string', accepts: { csv: true, tsv: true } } },
+      { semantic: { base: 'string', accepts: { tsv: true, csv: true } } }
+    ).status).toBe('exact');
+    expect(compareNodePorts(
+      { semantic: { base: 'string', accepts: ['csv'] } },
+      { semantic: { base: 'string', accepts: ['csv', 'tsv'] } }
+    ).status).toBe('incompatible');
+  });
+
+  it('treats one-sided qualifiers by the documented rule', () => {
+    expect(compareNodePorts(
+      { semantic: { base: 'entityRef' } },
+      { semantic: { base: 'entityRef', typeId: 'customer' } }
+    )).toMatchObject({ status: 'conditional', compatible: true });
+    expect(compareNodePorts(
+      { semantic: { base: 'entityRef', typeId: 'customer' } },
+      { semantic: { base: 'entityRef' } }
+    )).toMatchObject({ status: 'incompatible', compatible: false });
   });
 
   it('marks optional outputs for runtime presence validation', () => {
@@ -131,13 +177,16 @@ describe('node port compatibility', () => {
       [required, nullable],
       [nullable, required],
       [{ semantic: { base: 'number', unit: 'mm' } }, { semantic: { base: 'number', unit: 'm' } }],
+      [{ semantic: { base: 'entityRef', typeId: 'customer' } }, { semantic: { base: 'entityRef', typeId: 'invoice' } }],
+      [{ semantic: { base: 'string', locale: 'en' } }, { semantic: { base: 'string', locale: 'en' } }],
+      [{ semantic: { base: 'entityRef' } }, { semantic: { base: 'entityRef', typeId: 'customer' } }],
       [{ semantic: { base: 'string' } }, null]
     ];
     const emitted = new Set();
     for (const [source, target] of pairs) {
       const result = compareNodePorts(source, target);
       expect(PORT_COMPATIBILITY_OUTCOMES).toContain(result.status);
-      expect(typeof result.compatible).toBe('boolean');
+      expect(result.compatible).toBe(['exact', 'safe-coercion', 'conditional'].includes(result.status));
       expect(typeof result.reason).toBe('string');
       expect(Array.isArray(result.conversions)).toBe(true);
       emitted.add(result.status);
@@ -442,6 +491,37 @@ describe('provider-owned port compatibility profiles', () => {
       { compatibility: { profile: 'perigram.cts' }, semantic: { base: 'json' } },
       { compatibility: { profile: 'perigram.cts' }, semantic: { base: 'json' } }
     )).toBe(result);
+  });
+
+  it('enforces the status/compatible invariant map at the profile boundary', () => {
+    const registry = createPortCompatibilityRegistry();
+    const compareThrough = profile => registry.compare(
+      { compatibility: { profile }, semantic: { base: 'json' } },
+      { semantic: { base: 'json' } }
+    );
+    const valid = [
+      ['exact', true],
+      ['safe-coercion', true],
+      ['conditional', true],
+      ['conversion-required', false],
+      ['incompatible', false]
+    ];
+    for (const [status, compatible] of valid) {
+      registry.register(`probe.${status}`, () => ({ status, compatible, reason: 'Probe verdict', conversions: [] }));
+      expect(compareThrough(`probe.${status}`).status).toBe(status);
+    }
+    const contradictions = [
+      ['incompatible', true],
+      ['conversion-required', true],
+      ['exact', false],
+      ['safe-coercion', false],
+      ['conditional', false]
+    ];
+    for (const [status, compatible] of contradictions) {
+      registry.register(`probe.bad-${status}`, () => ({ status, compatible, reason: 'Contradictory verdict', conversions: [] }));
+      expect(() => compareThrough(`probe.bad-${status}`))
+        .toThrow(new RegExp(`status ${status} with compatible ${compatible}; expected ${!compatible}`));
+    }
   });
 
   it('attaches registered conversions to conversion-required verdicts by exact descriptor match', () => {

@@ -50,6 +50,34 @@ describe('generalized finite constraint expressions', () => {
     expect(evaluate({ op: 'max', list, var: 'n', body: { op: 'var', name: 'n' } }, scope)).toBe(4);
   });
 
+  it('validates every aggregate input including singleton collections', async () => {
+    const aggregate = (operation) => ({ op: operation, list: { op: 'field', path: ['value'] }, var: 'n', body: { op: 'var', name: 'n' } });
+    const cases = [
+      ['sum', ['not-a-number']],
+      ['sum', [true]],
+      ['sum', [{ value: 'x', unit: 'mm' }]],
+      ['min', [false]],
+      ['max', [{ no: 'shape' }]]
+    ];
+    for (const [operation, items] of cases) {
+      expect(() => evaluate(aggregate(operation), { value: items }), `${operation} over ${JSON.stringify(items)}`).toThrow();
+      await expect(evaluateAsync(aggregate(operation), { value: items }), `${operation} async over ${JSON.stringify(items)}`).rejects.toThrow();
+    }
+  });
+
+  it('accepts valid singleton aggregates in both evaluators', async () => {
+    const sum = { op: 'sum', list: { op: 'field', path: ['value'] }, var: 'n', body: { op: 'var', name: 'n' } };
+    expect(evaluate(sum, { value: [7] })).toBe(7);
+    expect(await evaluateAsync(sum, { value: [7] })).toBe(7);
+    expect(evaluate(sum, { value: [{ value: 5, unit: 'mm' }] })).toEqual({ value: 5, unit: 'mm' });
+    expect(evaluate({ ...sum, op: 'min' }, { value: ['only'] })).toBe('only');
+  });
+
+  it('keeps rejecting invalid non-leading aggregate inputs', () => {
+    const sum = { op: 'sum', list: { op: 'field', path: ['value'] }, var: 'n', body: { op: 'var', name: 'n' } };
+    expect(() => evaluate(sum, { value: [1, 'two'] })).toThrow('sum requires numeric values');
+  });
+
   it('evaluates nested predicates with asynchronous authorized resolvers', async () => {
     const ast = {
       op: 'exists',

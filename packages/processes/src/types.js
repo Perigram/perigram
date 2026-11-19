@@ -4,6 +4,8 @@
  * a platform node/socket protocol. Do not extend this format; root SPEC §28
  * TODO G10 removes it after the one-time process-definition migration.
  */
+import { CONVERT_UNIT_FACTORS } from './operations.js';
+
 export const PROCESS_PROTOCOL_VERSION = 4;
 
 export const PROCESS_OPERATION_LEVELS = Object.freeze([
@@ -194,6 +196,11 @@ export function processTypesCompatible(sourceType, targetType) {
     return { ok: true, implicit: true, source, target, coercion: 'temporalToString' };
   }
   if (source.base === 'number' && target.base === 'number' && source.unit && target.unit && source.unit !== target.unit) {
+    // The shared factor table decides whether `value.convertUnit` can
+    // express the pair at all.
+    if (!CONVERT_UNIT_FACTORS[source.unit] || !CONVERT_UNIT_FACTORS[target.unit]) {
+      return incompatible(`Expected ${formatProcessType(target)}, received ${formatProcessType(source)}`, source, target);
+    }
     return convertible('value.convertUnit', `Unit conversion ${source.unit} → ${target.unit} must remain visible`, source, target);
   }
   // A unit-less number adopts the socket's declared unit: the unit is the

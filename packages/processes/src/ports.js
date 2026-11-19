@@ -98,10 +98,13 @@ function valuePlaneCompatible(source, target) {
   const sourceBase = baseOfPort(source);
   const targetBase = baseOfPort(target);
   if (!sourceBase || !targetBase) return { ok: false };
-  return processTypesCompatible(
-    { base: sourceBase, ...(source.typeId ? { typeId: source.typeId } : {}) },
-    { base: targetBase, ...(target.typeId ? { typeId: target.typeId } : {}) }
-  );
+  return processTypesCompatible(latticeType(source, sourceBase), latticeType(target, targetBase));
+}
+
+// The port's structured type is the lattice type: its qualifiers (unit,
+// enum, schema, value kind) ride it whole.
+function latticeType(spec, base) {
+  return spec.type?.base ? spec.type : { base, ...(spec.typeId ? { typeId: spec.typeId } : {}) };
 }
 
 export function portSpecsCompatible(source = {}, target = {}) {
@@ -118,9 +121,10 @@ export function portSpecsCompatible(source = {}, target = {}) {
       : incompatible(sourceSpec, targetSpec);
   }
   if (targetSpec.kind === 'data') return dataCompatible(sourceSpec, targetSpec);
-  if (targetSpec.kind === 'json' && ['data', 'list', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(value => `${value}_list`)].includes(sourceSpec.kind)) {
-    // A json socket is the value escape: any data-shaped source fits
-    // (the same json coercion the socket-contract gate applies).
+  if (targetSpec.kind === 'json' && !targetSpec.type?.kind && ['data', 'list', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(value => `${value}_list`)].includes(sourceSpec.kind)) {
+    // An unkinded json socket is the value escape: any data-shaped
+    // source fits (the same json coercion the socket-contract gate
+    // applies).
     return { ok: true };
   }
   if (sourceSpec.kind === 'data') return dataCompatible(sourceSpec, targetSpec);
@@ -152,9 +156,13 @@ export function portSpecsCompatible(source = {}, target = {}) {
   if (['entity', 'entity_list'].includes(sourceSpec.kind) || ['entity', 'entity_list'].includes(targetSpec.kind)) {
     return entityLikeCompatible(sourceSpec, targetSpec);
   }
-  if (sourceSpec.kind === targetSpec.kind) return { ok: true };
+  if (sourceSpec.kind === targetSpec.kind) {
+    // Qualifiers (unit, value kind) are lattice semantics; a typed
+    // same-kind pair passes through it.
+    if (!VALUE_PLANE_KINDS.has(sourceSpec.kind) || !sourceSpec.type?.base || !targetSpec.type?.base) return { ok: true };
+  }
   const coerced = valuePlaneCompatible(sourceSpec, targetSpec);
-  if (coerced.ok) return coerced;
+  if (coerced.ok || coerced.convertible || coerced.reason) return coerced;
   return incompatible(sourceSpec, targetSpec);
 }
 
@@ -600,7 +608,8 @@ function dataCompatible(source, target) {
   if (target.kind === 'data' && ['data', 'list', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(value => `${value}_list`)].includes(source.kind)) return { ok: true };
   if (source.kind === 'data' && target.kind === 'data') return { ok: true };
   if (source.kind === 'block' && ['data', 'block'].includes(target.kind)) return blockCompatible(source, target);
-  return valuePlaneCompatible(source, target).ok ? { ok: true } : incompatible(source, target);
+  const coerced = valuePlaneCompatible(source, target);
+  return coerced.ok || coerced.convertible || coerced.reason ? coerced : incompatible(source, target);
 }
 
 function scalarPorts(ids = [], kind = 'string') {
@@ -669,5 +678,5 @@ function portLabel(port = {}) {
 function portTypeLabel(port = {}) {
   const base = baseOfPort(port);
   if (!base) return port.kind || 'value';
-  return formatProcessType({ base, ...(port.typeId ? { typeId: port.typeId } : {}) });
+  return formatProcessType({ base, typeId: port.typeId, unit: port.type?.unit });
 }

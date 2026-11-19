@@ -57,13 +57,47 @@ describe('process programming node ports', () => {
     const socket = (id, type) => ({ id, label: id, type, role: 'data' });
     for (const [name, source, target] of [
       ['dateTime -> string (temporalToString)', socket('value', { base: 'dateTime' }), socket('left', { base: 'string' })],
-      ['integer -> number (integerToNumber)', socket('value', { base: 'integer' }), socket('left', { base: 'number' })]
+      ['integer -> number (integerToNumber)', socket('value', { base: 'integer' }), socket('left', { base: 'number' })],
+      ['same unit numbers', socket('value', { base: 'number', unit: 'mm' }), socket('left', { base: 'number', unit: 'mm' })]
     ]) {
       expect(processSocketsCompatible(source, target).ok, name).toBe(true);
       expect(portSpecsCompatible(source, target).ok, name).toBe(true);
     }
     // Refusals agree too, and the diagnostic names the types.
     expect(portSpecsCompatible(socket('value', { base: 'dateTime' }), socket('left', { base: 'number' })).ok).toBe(false);
+    // Unit mismatches refuse on both gates: a conversion the factor table
+    // expresses stays explicit, a unit pair outside it names both units.
+    const mmToM = portSpecsCompatible(socket('value', { base: 'number', unit: 'mm' }), socket('left', { base: 'number', unit: 'm' }));
+    expect(processSocketsCompatible(socket('value', { base: 'number', unit: 'mm' }), socket('left', { base: 'number', unit: 'm' })).ok).toBe(false);
+    expect(mmToM.ok).toBe(false);
+    expect(mmToM.convertible).toBe(true);
+    expect(mmToM.conversion).toMatchObject({ nodeKind: 'value.convertUnit' });
+    const mmToDeg = portSpecsCompatible(socket('value', { base: 'number', unit: 'mm' }), socket('left', { base: 'number', unit: 'deg' }));
+    expect(processSocketsCompatible(socket('value', { base: 'number', unit: 'mm' }), socket('left', { base: 'number', unit: 'deg' })).ok).toBe(false);
+    expect(mmToDeg.ok).toBe(false);
+    expect(mmToDeg.convertible).toBe(false);
+    expect(mmToDeg.reason).toContain('mm');
+    expect(mmToDeg.reason).toContain('deg');
+  });
+
+  it('keeps same-kind semantic checks behind the kind lattice', () => {
+    // Units and value kinds are semantic qualifiers of the same base kind:
+    // kind equality alone connects nothing.
+    expect(portSpecsCompatible(
+      { id: 'value', kind: 'number', type: { base: 'number', nullable: false, unit: 'mm' } },
+      { id: 'left', kind: 'number', type: { base: 'number', nullable: false, unit: 'm' } }
+    ).ok).toBe(false);
+    expect(portSpecsCompatible(
+      { id: 'value', kind: 'json', type: { base: 'json', nullable: false } },
+      { id: 'left', kind: 'json', type: { base: 'json', nullable: false, kind: 'document.report' } }
+    ).ok).toBe(false);
+    expect(portSpecsCompatible(
+      { id: 'value', kind: 'json', type: { base: 'json', nullable: false, kind: 'document.report' } },
+      { id: 'left', kind: 'json', type: { base: 'json', nullable: false, kind: 'document.report' } }
+    ).ok).toBe(true);
+    // Unit-less scalar ports keep today's outcomes.
+    expect(portSpecsCompatible({ kind: 'number' }, { kind: 'number' }).ok).toBe(true);
+    expect(portSpecsCompatible({ kind: 'string' }, { kind: 'number' }).ok).toBe(false);
   });
 
   it('exposes a status definition as a typed status output', () => {
@@ -305,6 +339,63 @@ describe('process programming node ports', () => {
       { id: 'entity', shape: 'item', semantic: { base: 'entity', kind: 'entity', typeId: 'part' } },
       { id: 'entity', shape: 'item', semantic: { base: 'entity', kind: 'entity', typeId: 'customer' } }
     )).toMatchObject({ status: 'incompatible', compatible: false });
+  });
+
+  it('reports the registry outcome vocabulary with the profile result shape', () => {
+    let comparator = null;
+    registerProcessPortCompatibilityProfile({
+      register(id, compare) {
+        comparator = compare;
+        return () => {};
+      }
+    });
+    const port = (id, type) => ({ id, type, role: 'data' });
+    const requireShape = (result) => {
+      expect(Object.keys(result)).toEqual(expect.arrayContaining(['status', 'compatible', 'reason', 'conversions']));
+      expect(typeof result.compatible).toBe('boolean');
+      expect(typeof result.reason).toBe('string');
+      expect(Array.isArray(result.conversions)).toBe(true);
+      return result;
+    };
+
+    const exact = requireShape(comparator(
+      port('value', { base: 'number', nullable: false, unit: 'mm' }),
+      port('left', { base: 'number', nullable: false, unit: 'mm' })
+    ));
+    expect(exact.status).toBe('exact');
+    expect(exact.compatible).toBe(true);
+
+    const coerced = requireShape(comparator(
+      port('value', { base: 'integer', nullable: false }),
+      port('left', { base: 'number', nullable: false })
+    ));
+    expect(coerced.status).toBe('safe-coercion');
+    expect(coerced.compatible).toBe(true);
+
+    const conversion = requireShape(comparator(
+      port('value', { base: 'number', nullable: false, unit: 'mm' }),
+      port('left', { base: 'number', nullable: false, unit: 'm' })
+    ));
+    expect(conversion.status).toBe('conversion-required');
+    expect(conversion.compatible).toBe(false);
+    expect(conversion.reason).toContain('mm');
+    expect(conversion.reason).toContain('m');
+    expect(conversion.conversions).toEqual([]);
+    expect(conversion.conversion).toMatchObject({
+      nodeKind: 'value.convertUnit',
+      sourceType: { base: 'number', unit: 'mm' },
+      targetType: { base: 'number', unit: 'm' }
+    });
+
+    const incompatible = requireShape(comparator(
+      port('value', { base: 'number', nullable: false, unit: 'mm' }),
+      port('left', { base: 'number', nullable: false, unit: 'deg' })
+    ));
+    expect(incompatible.status).toBe('incompatible');
+    expect(incompatible.compatible).toBe(false);
+    expect(incompatible.reason).toContain('mm');
+    expect(incompatible.reason).toContain('deg');
+    expect(incompatible.conversion).toBeUndefined();
   });
 
 });

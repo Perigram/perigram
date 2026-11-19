@@ -8,6 +8,13 @@ export const PORT_COMPATIBILITY_OUTCOMES = Object.freeze(['exact', 'safe-coercio
 const OUTCOMES = new Set(PORT_COMPATIBILITY_OUTCOMES);
 export const CONVERSION_FIDELITIES = Object.freeze(['lossless', 'semantically-lossy', 'visual-only']);
 const FIDELITIES = new Set(CONVERSION_FIDELITIES);
+const STATUS_COMPATIBILITY = Object.freeze({
+  exact: true,
+  'safe-coercion': true,
+  conditional: true,
+  'conversion-required': false,
+  incompatible: false
+});
 
 
 // Provider-owned compatibility profiles extend the shared port contract without
@@ -224,7 +231,7 @@ export function compareNodePorts(source, target) {
   }
   const nullableCheck = from.nullable === true && to.nullable !== true;
   const nullableWidening = from.nullable !== true && to.nullable === true;
-  if (to.base === 'json' && !to.kind && !to.schema && !to.nominal && !to.provider && !to.entityType && !to.identity && !to.constraints) {
+  if (isGenericJson(to)) {
     return {
       status: optionalSource || nullableCheck ? 'conditional' : 'safe-coercion',
       compatible: true,
@@ -236,11 +243,10 @@ export function compareNodePorts(source, target) {
       conversions: []
     };
   }
-  if (from.base === 'json' && !from.kind && !from.schema && !from.nominal && !from.provider && !from.entityType && !from.identity && !from.constraints
-    && (to.base !== 'json' || to.kind || to.schema || to.nominal || to.provider || to.entityType || to.identity || to.constraints)) {
+  if (isGenericJson(from)) {
     return {
       status: 'conditional',
-      compatible: false,
+      compatible: true,
       reason: 'The source has no declared semantic identity; runtime validation is required',
       conversions: []
     };
@@ -261,24 +267,27 @@ export function compareNodePorts(source, target) {
       conversions: []
     };
   }
-  for (const key of ['kind', 'nominal', 'provider', 'schema', 'entityType', 'identity']) {
-    if (stableJson(from[key] ?? null) !== stableJson(to[key] ?? null)) {
+  for (const key of qualifierKeys(from, to)) {
+    if (stableJson(from[key] ?? null) === stableJson(to[key] ?? null)) continue;
+    if (from[key] == null) {
       return {
-        status: from[key] == null ? 'conditional' : 'incompatible',
-        compatible: false,
-        reason: from[key] == null
-          ? `The source does not declare target semantic identity ${key}`
-          : key === 'kind'
-            ? 'Representation kind does not match'
-            : `Semantic identity ${key} does not match`,
+        status: 'conditional',
+        compatible: true,
+        reason: `The source does not declare target semantic qualifier ${key}`,
         conversions: []
       };
     }
+    return {
+      status: 'incompatible',
+      compatible: false,
+      reason: key === 'kind' ? 'Representation kind does not match' : `Semantic qualifier ${key} differs`,
+      conversions: []
+    };
   }
   if (stableJson(from.constraints ?? null) !== stableJson(to.constraints ?? null)) {
     return {
       status: 'conditional',
-      compatible: false,
+      compatible: true,
       reason: 'Semantic constraints differ and require runtime validation',
       conversions: []
     };
@@ -378,6 +387,9 @@ function requireProfileResult(result, profile) {
   if (!isRecord(result)) throw new TypeError(`Port compatibility profile ${profile} comparator must return a result object`);
   if (!OUTCOMES.has(result.status)) throw new Error(`Port compatibility profile ${profile} returned unknown compatibility status ${String(result.status)}`);
   if (typeof result.compatible !== 'boolean') throw new TypeError(`Port compatibility profile ${profile} result requires a boolean compatible`);
+  if (result.compatible !== STATUS_COMPATIBILITY[result.status]) {
+    throw new Error(`Port compatibility profile ${profile} returned status ${result.status} with compatible ${result.compatible}; expected ${STATUS_COMPATIBILITY[result.status]}`);
+  }
   if (typeof result.reason !== 'string') throw new TypeError(`Port compatibility profile ${profile} result requires a string reason`);
   if (!Array.isArray(result.conversions)) throw new TypeError(`Port compatibility profile ${profile} result requires a conversions array`);
   return result;
@@ -421,6 +433,16 @@ function normalizeConversions(list, owner) {
 
 function descriptorEquals(descriptor, semantic = {}) {
   return Object.entries(descriptor).every(([key, value]) => stableJson(semantic[key] ?? null) === stableJson(value ?? null));
+}
+
+function isGenericJson(semantic) {
+  return semantic.base === 'json'
+    && Object.keys(semantic).every(key => key === 'base' || key === 'nullable');
+}
+
+function qualifierKeys(from, to) {
+  const exceptions = new Set(['base', 'nullable', 'constraints', 'unit']);
+  return [...new Set([...Object.keys(from), ...Object.keys(to)])].filter(key => !exceptions.has(key));
 }
 
 function stableJson(value) {

@@ -370,6 +370,66 @@ describe('useGraphDocumentSession', () => {
     expect(session.executionRecord.value.provenance.nodes.some(item => item.operation?.provider === 'plugin.example')).toBe(true);
   });
 
+  it('discards stale preview results once input bindings change', async () => {
+    const definition = {
+      provider: 'plugin.deferred',
+      id: 'math.double',
+      version: '1',
+      label: 'Double',
+      palette: { group: 'numeric-operations' },
+      inputs: [{ id: 'value', shape: 'item', semantic: { base: 'number' }, required: true }],
+      outputs: [{ id: 'result', shape: 'item', semantic: { base: 'number' }, required: true }],
+      execution: { kind: 'pure', deterministic: true }
+    };
+    let pending = null;
+    const session = useGraphDocumentSession({
+      t: key => key,
+      providers: [{
+        provider: 'plugin.deferred',
+        definitions: [definition],
+        execute: (_definition, { inputs }) => new Promise(resolve => {
+          pending = () => resolve({ result: inputs.value * 2 });
+        })
+      }]
+    });
+    const input = session.addNode(session.paletteGroups.value[0].items[0], { x: 0, y: 0 });
+    session.updateBoundaryDeclaration(input.id, {
+      contract: { shape: 'item', semantic: { base: 'number' } },
+      required: true
+    });
+    const node = session.addNode(
+      session.paletteGroups.value.find(group => group.source === 'plugin').items[0],
+      { x: 200, y: 0 }
+    );
+    const output = session.addNode(session.paletteGroups.value[0].items[1], { x: 400, y: 0 });
+    session.onConnect({ source: input.id, sourceHandle: 'value', target: node.id, targetHandle: 'value' });
+    session.onConnect({ source: node.id, sourceHandle: 'result', target: output.id, targetHandle: 'value' });
+    const inputId = session.graphDocument.value.interface.inputs[0].id;
+
+    const waitForExecutor = () => new Promise(resolve => {
+      pending = null;
+      const check = () => (pending ? resolve(pending) : setTimeout(check, 0));
+      check();
+    });
+
+    session.setGraphInputBinding({ portId: inputId, value: 4 });
+    const staleRun = session.refreshPreview();
+    const releaseStale = await waitForExecutor();
+    session.setGraphInputBinding({ portId: inputId, value: 10 });
+
+    releaseStale();
+    await expect(staleRun).resolves.toBeNull();
+    expect(session.previewResult.value).toBeNull();
+    expect(session.executionRecord.value).toBeNull();
+
+    const currentRun = session.refreshPreview();
+    const releaseCurrent = await waitForExecutor();
+    releaseCurrent();
+    const result = await currentRun;
+    expect(result.outputs).toEqual({ [session.graphDocument.value.interface.outputs[0].id]: 20 });
+    expect(session.previewResult.value).toEqual(result);
+  });
+
   it('rejects semantically different JSON kinds and validates persisted wires', async () => {
     const session = useGraphDocumentSession({
       t: key => key,

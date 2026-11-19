@@ -60,11 +60,17 @@ Every node definition declares `palette.group` as a stable lowercase semantic sl
 The SDK provides `compareNodePorts(source, target)` for provider-neutral
 transport and semantic checks, plus `createPortCompatibilityRegistry()` for
 registered domain-specific compatibility profiles. Domain packages own and
-register those profiles; the SDK stays domain-neutral. The default
-comparator evaluates transport shape and semantic `base`, `kind`, nominal
-identity, provider, unit, constraints, nullability, and output optionality.
-A generic JSON target accepts typed JSON values. A specific semantic target
-requires a matching declared identity or a provider-declared runtime
+register those profiles; the SDK stays domain-neutral. Beyond the dedicated
+paths — transport shape, semantic `base` equality, `nullable` widening,
+`constraints` (conditional), and `unit` (conversion-required) — every
+semantic key, known or unknown, is a qualifier compared by deep value
+equality (object key order ignored, array order significant): equal values
+leave the verdict unchanged, differing values return `incompatible` with a
+reason naming the key. A qualifier declared by the target alone makes the
+result `conditional` (the runtime validates it); a qualifier declared by the
+source alone is `incompatible`. A generic JSON target — `base: 'json'`
+carrying at most `nullable` — accepts typed JSON values. A specific semantic
+target requires a matching declared identity or a provider-declared runtime
 validator. Optional outputs and nullable values may connect to stricter
 inputs conditionally; the graph evaluator checks presence, nullability, and
 primitive/record base values at runtime. The graph editor uses `compatible`
@@ -74,16 +80,16 @@ Every comparator result — the default comparator's and every registered
 profile comparator's — is `{ status, compatible, reason, conversions }`: a
 `status` from the frozen `PORT_COMPATIBILITY_OUTCOMES` vocabulary, a boolean
 `compatible`, a string `reason`, and a `conversions` array. A profile
-comparator returning a result with an unknown status or a missing key throws
-at dispatch.
+comparator result with an unknown status, a missing key, or a `compatible`
+flag contradicting its status throws at dispatch.
 
-| Outcome | Meaning |
-|---|---|
-| `exact` | Transport and semantic contracts match. |
-| `safe-coercion` | The target accepts the value through widening (item into a collection, non-null into nullable, typed into generic JSON). |
-| `conditional` | The connection holds after a runtime check (optional-source presence, nullable source, differing constraints, an untyped source against a typed target). |
-| `conversion-required` | The edge needs an explicit conversion; `conversions` carries the matching declared conversions. |
-| `incompatible` | The ports accept no connection. |
+| Outcome | `compatible` | Meaning |
+|---|---|---|
+| `exact` | `true` | Transport and semantic contracts match. |
+| `safe-coercion` | `true` | The target accepts the value through widening (item into a collection, non-null into nullable, typed into generic JSON). |
+| `conditional` | `true` | The connection holds after a runtime check (optional-source presence, nullable source, differing constraints, an undeclared target qualifier, an untyped source against a typed target). |
+| `conversion-required` | `false` | The edge needs an explicit conversion; `conversions` carries the matching declared conversions. |
+| `incompatible` | `false` | The ports accept no connection. |
 
 ### Declared conversions
 
