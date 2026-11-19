@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
 import { withMongoSnapshotTransaction } from '~/server/db/transactions.js';
 import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder, evaluateProceduralGraph, lowerGraphToTypedIR, createCoreGraphDataProvider, CORE_DATA_PROVIDER } from '#packages/core';
-import { createPortCompatibilityRegistry } from '@perigram/plugin-sdk/nodes';
+import { createPortCompatibilityRegistry } from '#packages/plugin-sdk/nodes';
 import { registerProcessPortCompatibilityProfile } from '#packages/processes';
 import { ensureOrganizationChangeIndexes, withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
 import { declarationForType } from '../instances/service.js';
