@@ -513,6 +513,99 @@ shared palette changes are designed once.
 - Remaining migration gates are concrete: Documents table projections and Facade `nesting-parts` need the provider-compatible synchronous projection boundary; Documents fill/PDF operations and Facade DXF extraction need their runtime dependencies packaged as organization-owned assets; Markdown parse/export now uses a self-contained browser bundle and has a real Worker export smoke test.
 - The staging workflow has not produced jobs or a completed status for this batch; test verification remains open.
 
+### Agent Notes (2026-11-19, agent/facade-review-20261119-2115)
+
+Facade end-to-end audit against `workers/facade/SPEC.md` and the listing, with
+focused fixes. Findings ranked; every claim carries file:line evidence at the
+audited revision (listing v47 unless noted).
+
+Defects fixed (each with a regression):
+
+- `convertDxf` could not reach its DXF bytes: `extractGeometry` read only the
+  envelope's top-level `payloadBase64` (workers/facade/services.js:26-30), but
+  the construction dispatch resolves the operator's `source` ref with its
+  payload attached (server/features/instances/construction-services.js:224-232,
+  371-396), so the graph construct over a `dxf-source` record always refused
+  with "Construction convertDxf requires payloadBase64". Fixed: the service
+  reads `refs.source.payloadBase64` for convertDxf and derives the record name
+  from the source record. Regression in workers/facade/services.spec.js.
+- Dead palette declarations on bare-value executors: `construct-sheet` and
+  `generate-sheet-dxf` declared `palette.group` sheet-planning/production-export
+  (listing v47:663-666, 635-638) while their `json` inputs are filtered out of
+  the palette by the platform's wireable gate
+  (server/features/plugins/service.js:723-733 — record-input services only),
+  matching the owner's 2026-10-14 direction that the export executor stays off
+  the palette (commit 13e4362e9). The README claimed both as palette entries
+  (workers/facade/README.md:37-48) and palette.spec.js "proved" it by feeding
+  unfiltered services into `pluginPaletteGroups`, bypassing the gate the
+  designer actually rides. Fixed: both services declare `palette.visible:
+  false`; the spec models the wireable filter; the README palette section now
+  lists the groups that actually compose (sheet-planning = match-sheet, facade
+  = nesting-polygons extraction) and names the construct/export paths that
+  carry creation and DXF export. Listing v48.
+- Dead `mapping` field on `cassette-template` (listing v47:33-36, snapshot
+  :67): a pack-era carry — the DXF mapping contract moved to cassette-design's
+  upload create in listing v29 (commit 9fbc3931e) and nothing in the repo
+  reads or writes template mapping. Removed with its snapshot entry; orgs
+  holding pack-migrated records see the field removal in the upgrade preview.
+- Profile preview rendered default-hanger geometry for records with no stored
+  sketch: `resolveOccsProfileSketchLayerData` fell through
+  `normalizeOccsProfileSketch`'s sketch-less fallback
+  (workers/facade/occs/profiles.js:306-320) for absent and unreadable sketches,
+  while the preview contract is "blank when the sketch does not resolve"
+  (workers/facade/README.md, profile-preview row). Fixed: the preview resolver
+  requires authored geometry (shapes list or legacy sketch); the fallback keeps
+  serving the designer's sketch-less workpieces. Regressions in
+  workers/facade/contract.spec.js.
+
+Drift reconciled (docs only):
+
+- The services table called construct-sheet's design pins "content revisions";
+  cassette-design pins `geometry` revisions (listing.json:127, fixed wording).
+- The extract-geometry row now names both payload channels (upload envelope
+  and convertDxf source ref) and the name-derivation rule.
+
+Verified clean (no action):
+
+- Six-type family + library types, `profile`/`hardware` access inheritance,
+  revision scopes on every payload-bearing file type (cassette-template,
+  cassette-design: geometry; sheet-dxf: content).
+- Every construction/projection/export binding resolves to a declared Facade
+  service (contract.spec.js), the upload create's layer-mapping targets are
+  all declared drawable OCCS layers, and DXF extraction/import round-trips
+  through the vendored writer/extractor.
+- Managed runtime implements exactly the four declared pure operations with
+  browser+server targets; the endpoint host serves exactly `extract-geometry`
+  and `nesting-parts`; runtime assets collect with the transitive Clipper
+  WASM graph (server/scripts/lib/plugin-runtime-assets.spec.js).
+- Cross-plugin seam: `requires` names tech-drawing and nesting; the cadcraft
+  dependency rides the `plugin:tech-drawing/...` specifier and the vendored
+  host exists (workers/tech-drawing/assets/vendor/cadcraft/host.mjs).
+- match-sheet's graph sockets project correctly through the s-species
+  port projection (`layoutKey` optional string, `sheets` optional
+  sheet-design entityRef list, `result` json output); bare-value services
+  project no data sockets (workers/facade/contract.spec.js).
+- OCCS evaluation refuses malformed templates/parameters at bake with named
+  errors; cassette/profile preview degradation to quiet blanks holds.
+
+Contract tests added: workers/facade/contract.spec.js — listing validation
+through the canonical SDK parser, declaration inventory, palette honesty
+through the wireable gate, socket projection, the fabrication chain
+(bake → nesting-parts → nesting-solve through the host `nesting.solve`
+capability seam → construct-sheet → match-sheet → generate-sheet-dxf), mapped
+DXF import, refusal guidance, and preview data shapes.
+
+Owner decisions required:
+
+- `nesting-parts` stays endpoint-mode pending the platform's synchronous
+  managed projection boundary (concurrent session owns that work); the
+  projection's resolve contract requires it.
+- Palette group naming is presentation: `facade` (geometry extraction) beside
+  `sheet-planning` — regrouping into pure workflow names is an owner call.
+- The cassette-template `mapping` field removal will surface in upgrade
+  previews for orgs holding pack-era records; clearing that data is an owner
+  operations call.
+
 ## Portable plugins and platform-managed execution (SPEC §20, owner direction 2026-11-16)
 
 Installed plugins are versioned organization-owned package data.
