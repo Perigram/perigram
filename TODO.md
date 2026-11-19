@@ -1,11 +1,12 @@
 # TODO
 
-## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24)
+## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
 The process designer and graph-document editor converge on one authoring
-system: canonical graph document and session, normalized node definitions,
-shared canvas protocol, generic inspector, and a preview workspace. Process
-authoring remains a profile over that system. The migration checklist in
+system AND one editor UI: the organization graphs page hosts both; the
+graph-document file-surface mount retires; the editor is headerless with
+the graphs list in the inspector owning open/create/rename/save and the
+process lifecycle actions. The migration checklist in
 [components/process-designer/SPEC.md](./components/process-designer/SPEC.md)
 owns the order; the inventory audit precedes any code move.
 
@@ -14,25 +15,42 @@ owns the order; the inventory audit precedes any code move.
   toolbars, panel state, and node-specific configuration branches as
   shared graph infrastructure, process-profile behavior, plugin
   contribution, or obsolete duplicate.
+- [ ] Palette correctness: same-kind palette entries must disambiguate
+  by authored shape (the literal/pinnedEntity collision relabeled every
+  literal node "Pinned entity"); the graph editor's framework palette
+  rows render the localized process palette vocabulary, one concept one
+  label everywhere.
+- [ ] Plugin palette sections: one section per installed plugin named by
+  the plugin, the plugin's declared semantic groups as subgroups inside
+  (process palette projection, graph editor palette, dock rendering);
+  blanket "operations" group names retire from plugin declarations
+  (build123d catalog/listing/discover).
+- [ ] Node cards: socket rows carry the name with type/access/connection
+  on hover (the per-socket link icon retires); a collapsed card renders
+  the name once with its header icons and keeps socket handles on the
+  side rails in expanded order.
 - [ ] Consolidate generic graph authoring on the canonical graph document
   and session; process-only behavior (lanes, grants, declarations, event
   entry, durable effects, validation, Apply) stays profile extensions.
-- [ ] Rebuild the workspace regions — header, node library, canvas,
+- [ ] Rebuild the workspace regions — graphs list, node library, canvas,
   inspector, preview workspace, diagnostics — with intentional responsive
-  composition; file create/open/rename/save live in the header and file
-  navigation.
-- [ ] Move preview out of the inspector/support rail into a separate
-  resizable workspace region: declared output selected first, best
+  composition; preview moves out of the inspector tab/support rail into a
+  separate resizable region: declared output selected first, best
   supported renderer as default, JSON as explicit diagnostics, host 3D
   viewer for supported scene outputs, node traces as optional diagnostics.
-- [ ] Replace Operations palette vocabulary with registry-derived Nodes
-  categories — values/literals, data/queries, flow/collections, graph
-  boundaries/reusable graphs, plugin contributions with attribution.
+- [ ] One editor: retire the graph-document file-surface mount; the
+  organization graphs page loads graph documents beside process
+  definitions through the graphs list; opening a graph file navigates
+  there; the editor header retires with its actions moving onto the
+  graphs list.
+- [ ] Editor chrome follows the app's shared visual system (the
+  floating/glass panel language retires).
 - [ ] Make generic Create/Construct schema-driven from type construction
   contracts; event/trigger/schedule/subscription fields move to
   process-profile node definitions.
 - [ ] Remove the generic Support button/panel and the Hide secondary
-  toggle with their dead state paths.
+  toggle with their dead state paths (Support panel retirement rides the
+  preview workspace slice).
 - [ ] Rendered acceptance coverage for workspace layout, responsive panel
   transitions, file actions, palette search/insertion, node configuration,
   output/viewer selection, diagnostics, and process-profile behavior;
