@@ -129,14 +129,29 @@ through the endpoint adapter and managed pure/read services through this same
 pinned worker path; effectful services remain forbidden in preview.
 
 The capability adapter in `capabilities.js` validates the installed version,
-runtime target, operation declaration, and capability allowlist. It uses
+runtime target, operation declaration, and capability allowlist
+(`PLUGIN_RUNTIME_CAPABILITIES` / `PLUGIN_RUNTIME_BROWSER_CAPABILITIES` in
+`shared/plugin-runtime.js` — the single allowlist home, read by this adapter,
+the browser capability route, and the graph evaluator's unverified-capability
+tracking). It uses
 authorized instance and file services. Browser calls use the authenticated
 organization capability route and expose query, read, and file-read
 capabilities. Server calls use the claimed task route and may invoke declared
-writes. The server rehydrates the run actor from current membership and
+writes; each claim-bound execution journals a host-verified evidence record
+onto the task run (`hostCapabilityEvidence`), which the graph host treats as
+the authority over worker-reported claims. The server rehydrates the run
+actor from current membership and
 grants before package delivery and capability calls. The instance-update
 capability accepts an optional `expectedRevision` precondition and forwards
 it to the generic instance compare-and-swap write boundary.
+
+Managed preview dispatch is declaration-driven over the sdk
+`NODE_EXECUTION_KINDS` vocabulary: `PREVIEW_EXECUTION_KINDS` (exported here)
+is the effect-free subset — `pure` and `read` — the only kinds preview
+dispatches and the task queue retries without an idempotency declaration.
+Every other kind (proposal, commit, effect, stateful, control) refuses
+preview; durable writes ride the explicit Commit/Bake/Export adapters owned
+by [graph executions](../graph-executions/README.md#execution-kind-policy).
 
 Remote service adapters currently retain a transitional endpoint mode and
 claim mode. Endpoint-mode operations share one provider-level `executorOrigin`;

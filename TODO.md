@@ -278,19 +278,77 @@ wire authoring, and full UI-authored graph persistence remain open.
     `files.read` evidence carries the file id, content hash, and actual
     organization ownership scope; the shared recorder persists it, and
     Commit/Bake/Export recheck current read access and file bytes.
-  - [ ] Unify the actual capability authorization scope across node tasks.
-    Other untracked capabilities remain marked unverified and block
-    Commit/Bake/Export.
+  - [x] Unify the actual capability authorization scope across node tasks.
+    The claim-bound capability route journals host-verified evidence per
+    task run; the graph host merges that journal as the authority over
+    worker claims. Capabilities outside the host adapter set and claims
+    without a journal entry stay unverified and block Commit/Bake/Export.
   - [x] Persist procedural-preview records with graph/package/runtime pins,
     inputs/outputs, diagnostics, node task and nested invocation evidence, and
     read sets. Per-call capability evidence and durable lifecycle profiles
     remain open.
-  - [ ] Define server policy for pure/read/proposal/commit/effect/stateful nodes;
+  - [x] Define server policy for pure/read/proposal/commit/effect/stateful nodes;
     preview may run only pure/read, and durable writes remain explicit
     Commit/Bake/Export operations with idempotency and revision checks.
-  - [ ] Add managed execution integration tests for pinned versions, nested
+    `PREVIEW_EXECUTION_KINDS` derives the dispatchable subset from the sdk
+    `NODE_EXECUTION_KINDS` vocabulary; unknown kinds fail closed.
+  - [x] Add managed execution integration tests for pinned versions, nested
     graphs, authorized file reads, cancellation, timeout, cleanup, partial
     failure, and browser/server deterministic output parity.
+
+### Agent Notes (2026-11-19, agent/managed-execution-20261119-2115)
+
+Capability scope: the claim-bound capability route now journals one
+host-verified evidence record per executed capability onto the task run
+(`task_runs.hostCapabilityEvidence`, appended through the task runtime's
+claim-guarded push). Records carry the capability id, authorized scope, and
+safe identifying inputs: query/read their read set, `files.read` the file
+id/content hash/ownership scope, instance create/update/delete the
+organization and instance identity, `nesting.solve` the enforced adapter
+restriction. `executeManagedGraphNode` merges the journal with worker
+claims — journaled records win, unmatched claims pass through unverified,
+and only journaled records merge into the shared read-set recorder. The
+graph evaluator's unverified marker now covers exactly: capabilities
+outside `PLUGIN_RUNTIME_CAPABILITIES` (single-homed in
+`shared/plugin-runtime.js`, replacing the evaluator's inline list), claims
+without a journal entry, and journaled records missing their identifying
+proof. Authorized create/update/delete/nesting.solve flows no longer trip
+the marker; the organization-sequence and revision fences still revalidate
+consumed state, so a preview whose own write advanced the sequence
+re-evaluates before Commit.
+
+Execution-kind policy: `PREVIEW_EXECUTION_KINDS` in the plugins service
+derives the dispatchable subset from the sdk `NODE_EXECUTION_KINDS`
+vocabulary and serves managed graph dispatch, process preview dispatch,
+and the connector retry policy; the sdk declaration normalizers stay the
+vocabulary's validation home. Node evidence records the declared
+`executionKind`. The evaluator now awaits in-flight node tasks before
+snapshotting failure evidence, so cancelled/timed-out previews persist each
+task's final state deterministically.
+
+Integration tests: `managed-execution.spec.js` runs the real evaluator over
+the real managed dispatch with a mocked task queue and install snapshot —
+package pins in provenance, stale-version refusal, nested Use Graph with
+host-verified read evidence, authorized file read through Export, authorized
+update unblocked by host evidence, worker-claim-only and untracked-capability
+markers refusing Export, effect-kind refusal before dispatch, cancellation
+(task cancelled, cancelled preview persisted, no durable writes), deadline
+timeout, and partial failure with downstream skip and consistent read set.
+Focused validation: graph-executions + plugins + capabilities + task-runtime
+spec dirs (212 tests), `node scripts/check-arch.js`.
+
+Non-JavaScript runtimes (left open): the listing grammar and install
+snapshot already carry `language: javascript|python|wasm` with entry
+extension checks. A python/wasm runtime id must flow through three seams
+before install and execution open: `resolveInstalledGraphNodeDefinition`
+and `executeConnectorService` (both hard-refuse non-JavaScript today),
+`managedRuntimePackageForTask` (passes the runtime declaration through),
+and `workers/plugin-runtime/index.ts` `executeIsolated`, which needs a
+language-dispatched child launcher speaking the same stdin/stdout capability
+protocol — a dependency-resolved Python environment or a WASI host, each
+under the per-run memory/wall-time containment. The install gate itself
+needs no grammar change; the blocker is worker-side launcher support and
+its containment story.
 - [ ] Complete format-specific template acceptance for Markdown, XLSX, and
   PDF. Focused engine coverage exercises Markdown missing-token preservation,
   XLSX repeat rows, missing values, nested/unclosed/mismatched sections, and
@@ -775,7 +833,7 @@ current home retires.
 | CTS expression evaluator ×2 (`evaluate` sync + `evaluateAsync`, ~125 duplicated lines) | `packages/cts/src/expressions.js` | stays behind adapter until §30.13 convergence proof | sync: machines transition guards, `relation-domain`, retype-field migrations; async: instance constraint validation | resolver hooks carry authorized collection readers | unify after proof |
 | Procedural graph evaluator (`evaluateProceduralGraph`, pure/read only, host-injected bindings) | `packages/core/src/procedural-evaluator.js` | core ✓ | browser graph session (passes no `resolveGraph`: Use Graph fails browser preview — parity gap), server graph-executions | provider binding host-injected | consults runtime base checks alone; sdk comparator unwired |
 | Process dataflow evaluator (`executeProcessDataNode` pure data + authorized reads; `executeProcessEffectNode` mutation mapper; `previewProcessDataflow` server-side, requires `perigram.graph` + `dataflowVersion === 4`) | `packages/processes/src/{evaluator,orchestration}.js` | migration subject → shared evaluator | process preview endpoint (`useGraphChannelPreview` posts to server), runtime action execution | `previewService` channel dispatches managed runtimes | after §30.11 gates 6–7 |
-| Managed worker execution (`executeManagedGraphNode` → plugin-runtime tasks; isolated Deno child, digest-verified package) | `server/features/plugins/service.js` + `workers/plugin-runtime` | app host ✓ — shared by graph and process paths | graph evaluator, process preview services | — | sdk `NODE_EXECUTION_KINDS` unconsumed |
+| Managed worker execution (`executeManagedGraphNode` → plugin-runtime tasks; isolated Deno child, digest-verified package) | `server/features/plugins/service.js` + `workers/plugin-runtime` | app host ✓ — shared by graph and process paths | graph evaluator, process preview services | — | kinds policy consumes sdk `NODE_EXECUTION_KINDS` (2026-11-19) |
 | Legacy v4 runtime evaluator (`resolveProcessActionInputContext`) | `packages/processes/src/algebra.js` | none — dead (spec-only), exported twice (index, compiler-core) | — | — | delete |
 | Browser engines and workers (`useClientEngines` dispatch, `usePluginRuntime` Workers, capability bridge) | `composables/` | app host ✓ | graph-document sessions (provider registration + execution) | module proxy URLs, capability route | — |
 
@@ -807,7 +865,7 @@ current home retires.
 | Package pins `{pluginId, version, runtimeId, operationId}` | resolved from install snapshot alone | ✓ per §30 | graph evaluator `resolveNodeDefinition`, evidence provenance | — | process preview path resolves the install three times per node (perf) |
 | Org-owned package assets + module proxy (digests, JS import rewrite, `plugin:` deps, ETag) | `server/features/plugins/{repository,service}.js` | app host ✓ | surface/engine/runtime module serving, browser workers | — | — |
 | `clientEngines` / `clientRuntimes` org-view bindings | `server/features/cts-types/service.js` | app host ✓ | `useClientEngines`, graph session registration | module proxy URL | — |
-| Capability host boundary (8 capabilities: org instance query/read/create/update/delete, `files.read`, `nesting.solve`; actor rehydrated per call) | `server/features/plugins/capabilities.js` + `shared/plugin-runtime.js` allowlists | app host ✓ | managed worker tasks, browser capability route | read sets merge into the shared recorder | allowlist homes duplicated |
+| Capability host boundary (8 capabilities: org instance query/read/create/update/delete, `files.read`, `nesting.solve`; actor rehydrated per call) | `server/features/plugins/capabilities.js` + `shared/plugin-runtime.js` allowlists | app host ✓ | managed worker tasks, browser capability route | read sets merge into the shared recorder; claim-bound executions journal host-verified evidence onto the task run (2026-11-19) | allowlist single-homed in `shared/plugin-runtime.js` (2026-11-19) |
 | Commit/Bake/Export boundary (5 bake destinations, read-set revalidation, transactional mutation + evidence, blob compensation) | `server/features/graph-executions/service.js` | app host ✓ | graph-executions routes; pages/files/instances downstream | CAS `expectedOrganizationSequence` fence | — |
 
 #### UI consumption findings
@@ -829,7 +887,7 @@ as declared, leaving the sdk comparator the default for profile-less ports.
 2. Two compatibility lattices in processes (`ports.js` kinds vs `types.js` bases); sdk profile collapses outcome grammar to exact/incompatible.
 3. Conversion declarations landed 2026-11-19 (sdk grammar + registry enrichment); wiring them into edge authoring remains open.
 4. Transport shapes: the session composable imports the sdk export (2026-11-19); the core copy is its graph-format law. JSON utils: the core graph modules share `packages/core/src/json.js` (2026-11-19); UI copies remain.
-5. Managed execution kinds single-homed server-side and the barrel carries `compareNodePorts` (2026-11-19); server-side node-definition derivation remains hand-rolled.
+5. Managed execution kinds single-homed server-side and the barrel carries `compareNodePorts` (2026-11-19); the server subset now derives from sdk `NODE_EXECUTION_KINDS` (`PREVIEW_EXECUTION_KINDS`, 2026-11-19); server-side node-definition derivation remains hand-rolled.
 6. Capability id divergence — resolved 2026-11-19: one `organization.instances.read` id everywhere.
 7. Browser/server preview parity: Use Graph fails browser preview (no `resolveGraph`).
 8. Typed IR absent from core.
