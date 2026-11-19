@@ -24,6 +24,9 @@ import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-sur
 // claim queue is plugin.<pluginId>@<organizationId>.
 const PLUGIN_COMMAND_PATTERN = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 
+// Execution kinds the managed server path may execute and retry.
+const MANAGED_EXECUTION_KINDS = Object.freeze(['pure', 'read']);
+
 const BUILTIN_EXECUTORS = Object.freeze({
   documents: ['DOCUMENTS_EXECUTOR_URL', 'http://documents-executor:8791'],
   facade: ['FACADE_EXECUTOR_URL', 'http://facade-executor:8790'],
@@ -1071,7 +1074,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
     || String(definition.provider || '') !== `plugin.${pluginId}`) {
     throw createError({ statusCode: 400, message: 'Managed graph node package pin does not match its provider operation' });
   }
-  if (!['pure', 'read'].includes(definition.execution?.kind)) {
+  if (!MANAGED_EXECUTION_KINDS.includes(definition.execution?.kind)) {
     throw createError({ statusCode: 403, message: `Graph preview cannot execute ${definition.execution?.kind || 'unclassified'} operation ${definition.id}` });
   }
   if (invocation.context?.signal?.aborted) throw managedNodeAbortError(invocation.context.signal);
@@ -1303,7 +1306,7 @@ export async function executeConnectorService(command, { parameters, auth = {}, 
     }, { ...auth, organizationId: String(organizationId) }, {
       definition: taskContractFor(command.id, install, String(organizationId)),
       workerType: PLUGIN_RUNTIME_WORKER_TYPE,
-      maxAttempts: ['pure', 'read'].includes(service.execution.kind) || service.execution.idempotent === true ? 3 : 1
+      maxAttempts: MANAGED_EXECUTION_KINDS.includes(service.execution.kind) || service.execution.idempotent === true ? 3 : 1
     });
     return { tasks: [run] };
   }
@@ -1378,7 +1381,7 @@ export async function invokePreviewValueService(commandId, parameters, auth = {}
   if (mode !== 'managed') {
     throw createError({ statusCode: 400, message: `Service ${serviceId} is ${mode} mode and cannot run in preview` });
   }
-  if (!['pure', 'read'].includes(service.execution?.kind)) {
+  if (!MANAGED_EXECUTION_KINDS.includes(service.execution?.kind)) {
     throw createError({ statusCode: 403, message: `Preview cannot execute ${service.execution?.kind || 'unclassified'} service ${serviceId}` });
   }
   const definition = await resolveInstalledGraphNodeDefinition({
