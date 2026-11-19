@@ -1247,16 +1247,20 @@ visual-designer view of these types is in
 [components/process-designer](../../components/process-designer/README.md).)
 
 Graph edges are validated through the typed port helpers
-`normalizePortSpec()`, `portSpecsCompatible()`, `resolveNodePort()`, and
-`validateProcessEdges()`. Value-plane mismatches delegate to the same
-coercion lattice as the canvas connect gate (`processSocketsCompatible`),
+`normalizePortSpec()`, `compareProcessPorts()`, `resolveNodePort()`, and
+`validateProcessEdges()`. `compareProcessPorts` (ports.js) is the one CTS
+port compatibility law: the port-contract rules — kind matching, broadcast,
+entity/projection/event/status/predicate/block contracts — delegate
+value-plane pairs to the process type lattice
+(`processTypesCompatible`, types.js), the same coercion lattice as the
+canvas connect gate (`processSocketsCompatible`),
 so a wire the canvas accepts validates; an incompatible-port diagnostic
 names the expected and received types, units included, beside the socket
 labels. Semantic qualifiers ride the port's structured type into the
 lattice whole: a same-kind value-plane pair with structured types on
 both sides re-checks through the lattice, and the json escape serves an
-unkinded target alone. The CTS profile
-(`port-compatibility.js`) reports that lattice through the SDK registry's
+unkinded target alone. The CTS profile seam
+(`port-compatibility.js`) registers that law with the SDK registry's
 frozen outcome vocabulary
 ([plugin-sdk](../plugin-sdk/README.md#port-compatibility)): `exact` for
 matching contracts, `safe-coercion` when an implicit lattice coercion

@@ -43,8 +43,12 @@ modules onto its sections.
 - `operators.js` — the six species with typed signatures and
   event/schedule triggers (SPEC §8); services and projections are
   ref-free.
-- `expressions.js` — CEL-semantics expression ASTs (SPEC §15): bounded
-  synchronous preview and asynchronous authoritative evaluation, finite
+- `expressions.js` — CEL-semantics expression ASTs (SPEC §15): one
+  evaluation engine — a generator walker whose only suspension points are
+  collection resolvers — driven by two public entries: `evaluate`
+  (bounded synchronous preview; fails closed on a resolver that returns a
+  promise) and `evaluateAsync` (authoritative evaluation awaiting
+  organization-scoped collection resolvers). Finite
   quantifiers/aggregates, relation/containment resolver hooks, membership
   `in`, and typed predicate/aggregate checks.
 - `diff.js` — version stamping, evolution classification, and the
@@ -114,12 +118,17 @@ adapter delegates flat CTS transition candidates to that same validator.
   shared with the instance repository.
 - `field-schema-rows.js` — the row ⇄ field-schema translation
   the domain projection synthesizes through: row fields mint flat
-  `fields.*` paths (SPEC §13), descriptor typing, nested-path
-  grouping.
-- `process-grammar.js` — CTS ⇄ `PROCESS_BASE_TYPES` adapter for
-  the declaration subset (SPEC §2 grammar relation): maps declaration
-  descriptors onto the process type grammar. Consumed by
-  `packages/processes` designer and node catalog.
+  `fields.*` paths (SPEC §13), nested-path
+  grouping; leaf types derive through the process adapter
+  (`ctsFieldToLegacyType`).
+- `process-grammar.js` — the one CTS ⇄ process adapter (SPEC §2 grammar
+  relation): `ctsFieldToProcessType` maps declaration descriptors onto
+  process socket types; `ctsFieldToLegacyType` maps them onto legacy
+  field-schema types; `ctsFieldToConstructionInput` and
+  `legacyTypeToConstructionInput` derive construction input kinds from
+  descriptors and legacy types; `CTS_UNIT_TO_LEGACY` is the one
+  unit-spelling table. Consumed by `packages/processes` (designer, node
+  catalog) and the in-package projection and field-schema synthesis.
 - `process-checks.js` — declaration checks against a registry
   view, run before the process compiler's graph validation: transition
   guards and state `fieldPolicy` lists row-checked against the bound

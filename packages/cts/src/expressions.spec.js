@@ -116,4 +116,29 @@ describe('generalized finite constraint expressions', () => {
       ] }
     })).toEqual([]);
   });
+
+  it('runs both entries over one engine: identical results and short-circuit budgets', async () => {
+    const asts = [
+      { op: 'in', args: [{ op: 'lit', value: 2 }, { op: 'field', path: ['value'] }] },
+      { op: 'match', expr: { op: 'lit', value: { tag: 'b' } }, arms: { a: { op: 'lit', value: 1 }, b: { op: 'lit', value: 2 } } },
+      { op: 'filter', list: { op: 'field', path: ['value'] }, var: 'x', body: { op: 'gt', args: [{ op: 'var', name: 'x' }, { op: 'lit', value: 1 }] } },
+      { op: 'add', args: [{ op: 'lit', value: { value: 1, unit: 'm' } }, { op: 'lit', value: { value: 500, unit: 'mm' } }] },
+      { op: 'and', args: [{ op: 'lit', value: true }, { op: 'or', args: [{ op: 'lit', value: false }, { op: 'lit', value: true }] }] },
+      { op: 'all', list: { op: 'field', path: ['value'] }, var: 'n', body: { op: 'gte', args: [{ op: 'var', name: 'n' }, { op: 'lit', value: 0 }] } }
+    ];
+    for (const ast of asts) {
+      const budget = { steps: 1000 };
+      expect(evaluate(ast, { value: [1, 2, 3] }, budget))
+        .toEqual(await evaluateAsync(ast, { value: [1, 2, 3] }, { steps: 1000 }));
+      expect(budget.steps).toBeGreaterThan(0);
+    }
+  });
+
+  it('fails closed when the synchronous entry meets an async-only resolver', async () => {
+    const ast = { op: 'exists', list: { op: 'related', key: 'invoices' }, var: 'i', body: { op: 'var', name: 'i' } };
+    const resolvers = { resolveRelation: async () => [true] };
+    expect(() => evaluate(ast, { value: { id: 'a' } }, { steps: 100, ...resolvers }))
+      .toThrow(/synchronously/);
+    await expect(evaluateAsync(ast, { value: { id: 'a' } }, { steps: 100, ...resolvers })).resolves.toBe(true);
+  });
 });

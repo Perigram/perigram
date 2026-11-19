@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ctsFieldToProcessType } from './process-grammar.js';
+import { ctsFieldToProcessType, ctsFieldToLegacyType, ctsFieldToConstructionInput, legacyTypeToConstructionInput, CTS_UNIT_TO_LEGACY } from './process-grammar.js';
 import { checkDeclarationsAgainstCts } from './process-checks.js';
 import { createTypeRegistry } from './index.js';
 import { cncTypePack } from './pack/cnc.js';
@@ -45,6 +45,34 @@ describe('grammar adapter (CTS <-> PROCESS_BASE_TYPES)', () => {
 
   it('reports bases with no process counterpart as lossy json', () => {
     expect(ctsFieldToProcessType({ base: 'variant', tags: ['a'] }).lossy).toBeTruthy();
+  });
+
+  it('translates descriptors onto legacy field-schema types through one unit-spelling table', () => {
+    expect(CTS_UNIT_TO_LEGACY).toMatchObject({ min: 'minute', deg: 'degree', mm: 'mm', currency: 'currency' });
+    expect(ctsFieldToLegacyType({ base: 'quantity', unit: 'min', nullable: true }))
+      .toEqual({ base: 'number', shape: 'item', nullable: true, unit: 'minute' });
+    expect(ctsFieldToLegacyType({ base: 'quantity', unit: 'deg' }))
+      .toEqual({ base: 'number', shape: 'item', nullable: false, unit: 'degree' });
+    expect(ctsFieldToLegacyType({ base: 'ref', accepts: ['queue'] }))
+      .toEqual({ base: 'entityRef', shape: 'item', nullable: false, typeId: 'queue' });
+    expect(ctsFieldToLegacyType({ base: 'list', itemType: { base: 'string' } }))
+      .toEqual({ base: 'array', shape: 'item', nullable: false, itemType: { base: 'string', shape: 'item', nullable: false } });
+  });
+
+  it('derives construction input kinds from descriptors and legacy types at one seam', () => {
+    expect(ctsFieldToConstructionInput({ base: 'ref', accepts: ['queue'] })).toEqual({ type: 'entity', typeId: 'queue' });
+    expect(ctsFieldToConstructionInput({ base: 'ref', accepts: ['a', 'b'] })).toEqual({ type: 'entity', accepts: ['a', 'b'] });
+    expect(ctsFieldToConstructionInput({ base: 'list', itemType: { base: 'ref', accepts: ['queue'] } }))
+      .toEqual({ type: 'typeList', typeId: 'queue' });
+    expect(ctsFieldToConstructionInput({ base: 'quantity', unit: 'mm' })).toEqual({ type: 'number' });
+    expect(ctsFieldToConstructionInput({ base: 'instant' })).toEqual({ type: 'date' });
+    expect(ctsFieldToConstructionInput({ base: 'blob' })).toEqual({ type: 'file' });
+    expect(ctsFieldToConstructionInput({ base: 'record' })).toEqual({ type: 'object' });
+    expect(legacyTypeToConstructionInput({ base: 'entityRef', typeId: 'queue' })).toEqual({ type: 'entity', typeId: 'queue' });
+    expect(legacyTypeToConstructionInput({ base: 'array', itemType: { base: 'entityRef', typeId: 'queue' } }))
+      .toEqual({ type: 'typeList', typeId: 'queue' });
+    expect(legacyTypeToConstructionInput({ base: 'number', unit: 'minute' })).toEqual({ type: 'number', unit: 'minute' });
+    expect(legacyTypeToConstructionInput({ base: 'dateTime' })).toEqual({ type: 'dateTime' });
   });
 });
 

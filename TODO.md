@@ -902,10 +902,10 @@ current home retires.
 |---|---|---|---|---|---|
 | Value universe V: 14 bases, descriptors, `FIELD_BASES`, `durationMs` | `packages/cts/src/values.js` | cts ✓ | processes designer + node-catalog, type-designer UI, agent-bots tools, deadline/run scanners | `process-grammar.js` → process sockets | stays canonical |
 | Type declaration grammar: `normalizeType`, classes/states/edges/rows, operators, diff gate R7 | `packages/cts/src/{registry,classes,states,edges,rows,operators,diff}.js` | cts ✓ | cts-types service, plugin upgrades (`planTypeMigration`), `stores/registry`, designer | — | stays canonical |
-| Process socket types: 27 bases + qualifiers, `processTypesCompatible` lattice, `PROCESS_PROTOCOL_VERSION = 4` | `packages/processes/src/types.js` | migration subject → shared semantic type contract | ports, node-catalog, validation, authoring, server process-definitions, `useProcessProfile` | `ctsFieldToProcessType` (cts) + `mapDomainInputType` (in-module) | with G10 canvas-format migration after §30.11 gates 6–7 |
-| Process kind lattice: `portSpecsCompatible` over legacy kinds | `packages/processes/src/ports.js` | migration subject — two compatibility laws coexist in the package | `port-compatibility.js` profile, headless seam (`processSocketsCompatible`) | `port-compatibility.js` → sdk registry (collapses outcomes to exact/incompatible) | one lattice survives after parity fixtures (§30.11 step 2) |
+| Process socket types: 27 bases + qualifiers, `processTypesCompatible` lattice, `PROCESS_PROTOCOL_VERSION = 4` | `packages/processes/src/types.js` | the type algebra of the one port law (`compareProcessPorts`) and the socket-dialect gate (`processSocketsCompatible`) | ports, node-catalog, validation, authoring, server process-definitions, `useProcessProfile` | `ctsFieldToProcessType` (cts) + `mapDomainInputType` (in-module) | with G10 canvas-format migration after §30.11 gates 6–7 |
+| Process port compatibility law: `compareProcessPorts` over port kinds + type-lattice delegation | `packages/processes/src/ports.js` | one law behind the sdk `perigram.cts` profile (port-compatibility.js); parity fixture pins the seam over the consumed matrix (`ports.spec.js`) | `validateProcessEdges`, canvas connect gate, server preflight | `port-compatibility.js` → sdk registry | one law since 2026-11-19; `portSpecsCompatible` retired |
 | Transport shapes (`item|list|tree|map|tuple|stream`) + semantic descriptor keys | `packages/plugin-sdk/src/node-contract.js` | plugin-sdk ✓ | node validation, comparator, processes profile | — | core `graph.js TRANSPORT_SHAPES` and the inline list in `useGraphDocumentSession.js` dedupe to the sdk export |
-| CTS→process translators ×3 + unit spellings ×2 | cts `process-grammar.js`, `field-schema-rows.js`, `projection.js` (`constructionInputKind`); units in `units.js` vs `LEGACY_UNIT_*` | one adapter after convergence | node-catalog, projection, field schemas | each is an adapter | consolidate when process grammar migrates |
+| CTS→process adapter + unit-spelling table | `packages/cts/src/process-grammar.js` (one adapter: `ctsFieldToProcessType`, `ctsFieldToLegacyType`, construction-input seam, `CTS_UNIT_TO_LEGACY`) | cts ✓ | node-catalog, projection, field schemas, designer | single home since 2026-11-19 | stays canonical |
 | Framework type declarations (`organization`, `user`, `entity-revision`, `process-definition`, `graph-document`, `graph-execution`) | `packages/cts/src/pack/framework.js` | cts ✓ | cts-types service seeds every org registry, party wire, designer, guards, e2e | — | `graph-document.graphId` carries non-grammar `required` key (defect) |
 
 #### Operation registries
@@ -916,14 +916,14 @@ current home retires.
 | Listing service declarations (`parseListing`/`normalizeListing`; modes endpoint/claim/local + `execution` metadata; palette contract) | `packages/plugin-sdk/src/listing.js` | plugin-sdk ✓ | plugins service publish/install gates, build123d generator, deploy smoke | — | `listing.schema.json` mirror kept in parity by spec |
 | Process node catalog (`PROCESS_NODE_CATALOG`, species sets, `resolveCatalogNodePorts`) + value/collection operation registry | `packages/processes/src/{node-catalog,operations}.js` | migration subject → shared versioned operation contract | designer, evaluator, server, agent-bots | `procedural-provider.js` builds sdk definitions (production-unwired; spec-only consumers) | after §30.11 gate 5 parity |
 | Core data provider (`perigram.core.data/query.instances`) | `packages/core/src/graph-data-provider.js` | core ✓ | browser graph session, server evaluator | adapts host `queryInstances` capability + read set | capability id `cts.instances.read` diverges from runtime `organization.instances.read` (defect) |
-| Server-derived graph node definitions (`graphNodePortContract`, `resolveInstalledGraphNodeDefinition`) | `server/features/plugins/service.js` | plugin-sdk (server hand-rolls port derivation from the install snapshot, bypassing sdk normalizers) | server graph evaluator | — | converge on sdk normalization |
+| Server-derived graph node definitions (`resolveInstalledGraphNodeDefinition`, `listInstalledGraphNodeDefinitions`) | `server/features/plugins/service.js` | plugin-sdk — derivation runs through `normalizeNodeDefinition` (same normalization as the browser session), `packagePin` carried on top | server graph evaluator, agent-bots discovery, preview value services | `graphNodePortContract` (signature → port contract) | converged on sdk normalization 2026-11-19; parity fixture in `plugins.spec.js` |
 | Endpoint-mode services (documents ×7: `table-rows`, `table-cells`, `text`, `fill`, `render-pdf`, `render-report-pdf`, `render-document-pdf`; facade ×2: `extract-geometry`, `nesting-parts`) | `workers/*/listing.json` | listing declarations (dispatch derived from listing) | endpoint executors, `callEndpointService` | — | per the endpoint-migration task in the Documents/Facade program |
 
 #### Evaluators
 
 | Concept | Home | Canonical | Key consumers | Adapter | Retirement |
 |---|---|---|---|---|---|
-| CTS expression evaluator ×2 (`evaluate` sync + `evaluateAsync`, ~125 duplicated lines) | `packages/cts/src/expressions.js` | stays behind adapter until §30.13 convergence proof | sync: machines transition guards, `relation-domain`, retype-field migrations; async: instance constraint validation | resolver hooks carry authorized collection readers | unify after proof |
+| CTS expression evaluator (`evaluate` + `evaluateAsync`, one generator walker) | `packages/cts/src/expressions.js` | stays behind adapter until §30.13 convergence proof | sync: machines transition guards, `relation-domain`, retype-field migrations; async: instance constraint validation | resolver hooks carry authorized collection readers; the sync entry fails closed on a promise-returning resolver | one engine since 2026-11-19 |
 | Procedural graph evaluator (`evaluateProceduralGraph`, pure/read only, host-injected bindings) | `packages/core/src/procedural-evaluator.js` | core ✓ | browser graph session (passes no `resolveGraph`: Use Graph fails browser preview — parity gap), server graph-executions | provider binding host-injected | consults runtime base checks alone; sdk comparator unwired |
 | Process dataflow evaluator (`executeProcessDataNode` pure data + authorized reads; `executeProcessEffectNode` mutation mapper; `previewProcessDataflow` server-side, requires `perigram.graph` + `dataflowVersion === 4`) | `packages/processes/src/{evaluator,orchestration}.js` | migration subject → shared evaluator | process preview endpoint (`useGraphChannelPreview` posts to server), runtime action execution | `previewService` channel dispatches managed runtimes | after §30.11 gates 6–7 |
 | Managed worker execution (`executeManagedGraphNode` → plugin-runtime tasks; isolated Deno child, digest-verified package) | `server/features/plugins/service.js` + `workers/plugin-runtime` | app host ✓ — shared by graph and process paths | graph evaluator, process preview services | — | kinds policy consumes sdk `NODE_EXECUTION_KINDS` (2026-11-19) |
@@ -976,11 +976,14 @@ as declared, leaving the sdk comparator the default for profile-less ports.
 
 #### Dedup/debt findings (program backlog)
 
-1. Dual CTS evaluator (`expressions.js` sync/async twins).
-2. Two compatibility lattices in processes (`ports.js` kinds vs `types.js` bases); sdk profile collapses outcome grammar to exact/incompatible.
+1. Dual CTS evaluator — resolved 2026-11-19: one generator walker drives
+   both entries; the sync entry fails closed on async-only resolvers.
+2. Two compatibility lattices in processes — resolved 2026-11-19: one port
+   law (`compareProcessPorts`) behind the sdk `perigram.cts` profile;
+   parity fixture in `ports.spec.js`.
 3. Conversion declarations landed 2026-11-19 (sdk grammar + registry enrichment); wiring them into edge authoring remains open.
 4. Transport shapes: the session composable imports the sdk export (2026-11-19); the core copy is its graph-format law. JSON utils: the core graph modules share `packages/core/src/json.js` (2026-11-19); UI copies remain.
-5. Managed execution kinds single-homed server-side and the barrel carries `compareNodePorts` (2026-11-19); the server subset now derives from sdk `NODE_EXECUTION_KINDS` (`PREVIEW_EXECUTION_KINDS`, 2026-11-19); server-side node-definition derivation remains hand-rolled.
+5. Managed execution kinds single-homed server-side and the barrel carries `compareNodePorts` (2026-11-19); the server subset derives from sdk `NODE_EXECUTION_KINDS` (`PREVIEW_EXECUTION_KINDS`, 2026-11-19); server-side node-definition derivation runs through the sdk normalizer (2026-11-19).
 6. Capability id divergence — resolved 2026-11-19: one `organization.instances.read` id everywhere.
 7. Browser/server preview parity: Use Graph fails browser preview (no `resolveGraph`).
 8. Typed IR absent from core.
@@ -1059,12 +1062,63 @@ cut list plus the first §30 task-3 slice.
   provider nodes.
 - Contradictions reconciled in this session are listed in finding 14.
 
+### Agent Notes (2026-11-19, agent/s30-tail-20261119-2115)
+
+§30 migration tail, four cuts; §30.13 gate had passed, §30.12 dedup law
+applied.
+
+- Cut 1 — server node definitions through the sdk normalizer:
+  `resolveInstalledGraphNodeDefinition`/`listInstalledGraphNodeDefinitions`
+  (server/features/plugins/service.js) build the raw provider contract from
+  the install snapshot and derive it through
+  `normalizeNodeDefinition` (`@perigram/plugin-sdk/nodes`), with the
+  server-side `packagePin` execution provenance carried on top. Gate
+  refusals unchanged; palette keywords now arrive lowercased/deduped and
+  capabilities sorted per the sdk vocabulary law (build123d's uppercase
+  keywords are the visible canonicalization — the browser palette already
+  served the normalized form). Parity fixture:
+  `server/features/plugins/plugins.spec.js` ("derives the sdk-normalized
+  contract without losing port semantics or the package pin").
+- Cut 2 — one CTS expression engine: `expressions.js` carries one
+  generator walker whose only suspension points are collection-resolver
+  results; `evaluate` and `evaluateAsync` are drivers over it. The sync
+  entry fails closed on a promise-returning resolver
+  (`expressions.spec.js`). Consumers unchanged (machines guards, retype
+  migrations, instance constraint validation).
+- Cut 3 — one process port compatibility law: `compareProcessPorts`
+  (ports.js) replaces the standalone `portSpecsCompatible`; rules and
+  outcomes unchanged; `validateProcessEdges` and the sdk `perigram.cts`
+  profile seam (port-compatibility.js) both evaluate through it.
+  `processTypesCompatible` stays the type algebra of the law and the
+  socket-dialect gate. Parity fixture over the consumed matrix
+  (kind specs, catalog sockets, registry outcomes):
+  `packages/processes/src/ports.spec.js`. Barrel: `compareProcessPorts`
+  exported; `portSpecsCompatible` removed with all consumers migrated.
+- Cut 4 — one CTS⇄process adapter: `process-grammar.js` owns
+  `ctsFieldToProcessType`, `ctsFieldToLegacyType` (moved from
+  field-schema-rows.js), `ctsFieldToConstructionInput` (extracted from
+  projection.js operatorModeInputs), `legacyTypeToConstructionInput`
+  (moved from projection.js), and the single unit-spelling table
+  `CTS_UNIT_TO_LEGACY`. Dead `leafDescriptor` removed; no legacy unit
+  spelling is persisted (grep over specs and test-data: empty). Consumers:
+  projection, field schemas, processes designer/node-catalog via the
+  barrel export.
+- Validation: focused vitest with the worktree alias config —
+  packages/cts 120, packages/processes 591, packages/plugin-sdk 108,
+  server plugins 101, graph-executions 65, core machines 39, instances
+  migrations+service 85, process-definitions authoring-overlay 5,
+  useProcessDesignerLiteralCompatibility 5. `node scripts/check-arch.js`
+  and `npm run docs:validate` pass.
+- Open: graph-editor ports whose `shape`/`semantic` reach the profile
+  through `toProcessPort` keep the sdk-port dialect mapping there; the
+  G10 canvas storage format stays per owner closure.
 
 Acceptance: a single canonical semantic contract and typed IR are used
 by one real cross-package vertical slice; CTS remains the application
 data authority; plugin operations remain provider-owned; pure preview
 cannot perform effects; durable workflow semantics remain correct; and
 no parallel evaluator or graph format is introduced.
+
 
 ## Internal-address scrub of tracked files (owner direction 2026-11-14)
 

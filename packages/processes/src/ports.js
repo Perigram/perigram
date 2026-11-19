@@ -107,7 +107,12 @@ function latticeType(spec, base) {
   return spec.type?.base ? spec.type : { base, ...(spec.typeId ? { typeId: spec.typeId } : {}) };
 }
 
-export function portSpecsCompatible(source = {}, target = {}) {
+// The one CTS port compatibility law (SPEC §30.13: the sdk comparator with
+// the perigram.cts profile, registered by port-compatibility.js): the
+// port-contract rules — kind matching, broadcast, entity/projection/
+// event/status/predicate/block contracts — with value-plane pairs delegated
+// to the process type lattice (`processTypesCompatible`).
+export function compareProcessPorts(source = {}, target = {}) {
   const sourceSpec = normalizePortSpec(source);
   const targetSpec = normalizePortSpec(target);
   if (!sourceSpec.kind || !targetSpec.kind) return { ok: true };
@@ -176,7 +181,7 @@ export function validateProcessEdges(process = {}) {
     const source = resolveNodePort(process, sourceNode, edge.sourceHandle, 'output');
     const target = resolveNodePort(process, targetNode, edge.targetHandle, 'input');
     if (!source || !target) continue;
-    const result = portSpecsCompatible(source, target);
+    const result = compareProcessPorts(source, target);
     if (!result.ok) {
       // Anchored like every other graph diagnostic (SPEC §20): the
       // designer focuses the responsible edge from these ids.
@@ -601,6 +606,10 @@ function valueInputKind(input = {}) {
   return structureKind(kind, input.structure);
 }
 
+function scalarPorts(ids = [], kind = 'string') {
+  return ids.map(id => normalizePortSpec({ id, label: id, kind, required: true }));
+}
+
 function dataCompatible(source, target) {
   // A generic data socket accepts every data-shaped source, lists
   // included: the value's structure is the runtime mapper's concern
@@ -610,10 +619,6 @@ function dataCompatible(source, target) {
   if (source.kind === 'block' && ['data', 'block'].includes(target.kind)) return blockCompatible(source, target);
   const coerced = valuePlaneCompatible(source, target);
   return coerced.ok || coerced.convertible || coerced.reason ? coerced : incompatible(source, target);
-}
-
-function scalarPorts(ids = [], kind = 'string') {
-  return ids.map(id => normalizePortSpec({ id, label: id, kind, required: true }));
 }
 
 function scalarValueKind(record = {}) {

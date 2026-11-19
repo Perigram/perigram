@@ -18,7 +18,7 @@ import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
 import * as filesService from '../files/service.js';
 import { parseListing, normalizeListing } from '#packages/plugin-sdk/listing';
-import { NODE_EXECUTION_KINDS } from '#packages/plugin-sdk/nodes';
+import { NODE_EXECUTION_KINDS, normalizeNodeDefinition } from '#packages/plugin-sdk/nodes';
 import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-surfaces.js';
 
 // Connector command ids: plugin.<pluginId>.<serviceId>; the install's
@@ -972,47 +972,52 @@ export async function resolveInstalledGraphNodeDefinition({
   if (definitionVersion !== String(version)) {
     throw createError({ statusCode: 409, message: `Graph node ${provider}/${id}@${version} does not match the installed definition version ${definitionVersion}` });
   }
-  const definition = {
-    provider: String(provider),
-    id: String(id),
-    version: definitionVersion,
-    label: service.label || service.id,
-    ...(service.description ? { description: service.description } : {}),
-    palette: {
-      group: service.palette.group,
-      ...(service.palette.label ? { label: service.palette.label } : {}),
-      keywords: service.palette.keywords || []
-    },
-    inputs: Object.entries(service.signature?.input?.fields || {}).map(([portId, field]) => ({
-      id: portId,
-      label: field.label || portId,
-      ...graphNodePortContract(field),
-      required: field.nullable !== true,
-      ...(Object.hasOwn(field, 'default') ? { default: field.default } : {}),
-      ...(field.description ? { description: field.description } : {})
-    })),
-    outputs: [{
-      id: 'value',
-      label: service.signature?.output?.label || 'Value',
-      ...graphNodePortContract(service.signature?.output || {}),
-      required: true
-    }],
-    ...(service.configuration ? { configuration: service.configuration } : {}),
-    execution: {
-      runtime: runtimeId,
-      kind: service.execution.kind,
-      targets: service.execution.targets,
-      capabilities: service.execution.capabilities || [],
-      deterministic: service.execution.deterministic === true,
-      idempotent: service.execution.idempotent === true
-    },
+  // The provider contract derives through the sdk normalizer — the same
+  // normalization the browser session applies to resolved definitions;
+  // `packagePin` is host execution provenance carried on top of it.
+  const definition = Object.freeze({
+    ...normalizeNodeDefinition({
+      provider: String(provider),
+      id: String(id),
+      version: definitionVersion,
+      label: service.label || service.id,
+      ...(service.description ? { description: service.description } : {}),
+      palette: {
+        group: service.palette.group,
+        ...(service.palette.label ? { label: service.palette.label } : {}),
+        keywords: service.palette.keywords || []
+      },
+      inputs: Object.entries(service.signature?.input?.fields || {}).map(([portId, field]) => ({
+        id: portId,
+        label: field.label || portId,
+        ...graphNodePortContract(field),
+        required: field.nullable !== true,
+        ...(Object.hasOwn(field, 'default') ? { default: field.default } : {}),
+        ...(field.description ? { description: field.description } : {})
+      })),
+      outputs: [{
+        id: 'value',
+        label: service.signature?.output?.label || 'Value',
+        ...graphNodePortContract(service.signature?.output || {}),
+        required: true
+      }],
+      ...(service.configuration ? { configuration: service.configuration } : {}),
+      execution: {
+        runtime: runtimeId,
+        kind: service.execution.kind,
+        targets: service.execution.targets,
+        capabilities: service.execution.capabilities || [],
+        deterministic: service.execution.deterministic === true,
+        idempotent: service.execution.idempotent === true
+      }
+    }),
     packagePin: {
       pluginId,
       version: String(install.version),
       runtimeId,
       operationId: String(id)
     }
-  };
+  });
   return definition;
 }
 

@@ -160,6 +160,67 @@ beforeEach(() => {
 });
 
 describe('managed plugin runtime package loading', () => {
+  // Parity pin (SPEC §30.12): the server derives installed graph node
+  // definitions through the sdk normalizer — the same normalization the
+  // browser session applies. Every port-contract fact the hand-rolled
+  // derivation produced is asserted verbatim; the sdk vocabulary law
+  // (lowercased/deduped keywords, sorted capabilities, frozen output) is
+  // the one accepted canonicalization.
+  it('derives the sdk-normalized contract without losing port semantics or the package pin', async () => {
+    repository.findInstall.mockResolvedValue({
+      pluginId: 'documents',
+      version: '9',
+      services: [{
+        id: 'read-text-file',
+        nodeVersion: '2',
+        label: 'Read text file',
+        description: 'Read a text file',
+        palette: { group: 'document-sources', label: 'Document sources', keywords: ['File', 'text', 'text'] },
+        signature: {
+          input: { base: 'record', fields: {
+            fileId: { base: 'string', label: 'File ID', semantic: { kind: 'documents.file-id' } },
+            typeId: { base: 'string', nullable: true, label: 'File type' },
+            rows: { base: 'list', itemType: { base: 'record' } }
+          } },
+          output: { base: 'json', kind: 'documents.file' }
+        },
+        execution: {
+          runtime: 'documents-shared', targets: ['browser', 'server'], kind: 'read',
+          capabilities: ['files.read'], deterministic: true, idempotent: true
+        }
+      }],
+      declarations: {
+        runtimes: [{ id: 'documents-shared', language: 'javascript', targets: ['browser', 'server'], entry: '/runtime.mjs' }]
+      }
+    });
+
+    const definition = await resolveInstalledGraphNodeDefinition({
+      provider: 'plugin.documents',
+      id: 'read-text-file',
+      version: '2',
+      auth: AUTH
+    });
+
+    expect(definition).toMatchObject({
+      provider: 'plugin.documents',
+      id: 'read-text-file',
+      version: '2',
+      label: 'Read text file',
+      description: 'Read a text file',
+      palette: { group: 'document-sources', label: 'Document sources', keywords: ['file', 'text'] },
+      inputs: [
+        { id: 'fileId', label: 'File ID', shape: 'item', semantic: { base: 'string', kind: 'documents.file-id' }, required: true },
+        { id: 'typeId', label: 'File type', shape: 'item', semantic: { base: 'string', nullable: true }, required: false },
+        { id: 'rows', shape: 'list', semantic: { base: 'record' }, required: true }
+      ],
+      outputs: [{ id: 'value', shape: 'item', semantic: { base: 'json', kind: 'documents.file' }, required: true }],
+      execution: { runtime: 'documents-shared', kind: 'read', targets: ['browser', 'server'], capabilities: ['files.read'], deterministic: true, idempotent: true },
+      packagePin: { pluginId: 'documents', version: '9', runtimeId: 'documents-shared', operationId: 'read-text-file' }
+    });
+    expect(Object.isFrozen(definition)).toBe(true);
+    expect(Object.isFrozen(definition.inputs[0])).toBe(true);
+  });
+
   it('resolves graph node definitions from the installed package snapshot', async () => {
     repository.findInstall.mockResolvedValue({
       pluginId: 'demo',
