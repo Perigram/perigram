@@ -455,10 +455,10 @@ not a second graph implementation or a big-bang rewrite.
   open-world semantic types, provider-qualified operation contracts,
   explicit effects/capabilities, domain IRs, and one typed IR. The
   architecture notes are archived as historical inputs.
-- [ ] Inventory every live type grammar, operation registry, evaluator,
-  compiler interpretation, graph persistence format, and provider
-  binding. For each concept name its canonical owner, current consumers,
-  compatibility adapter, and retirement condition.
+- [ ] WAITING — owner verification: semantic inventory below maps every
+  live type grammar, operation registry, evaluator, compiler
+  interpretation, graph persistence format, and provider binding with
+  canonical owner, consumers, adapter, and retirement condition.
 - [ ] Specify and test the semantic type contract across application,
   representation, engine-native, transport, port, and runtime-value
   layers. Include nominal identity, structural evidence, opaque values,
@@ -494,6 +494,121 @@ not a second graph implementation or a big-bang rewrite.
   compatibility adapters only after representative data/graph fixtures,
   authorization, deterministic behavior, performance, rollback, and
   full relevant CI gates pass.
+
+### Semantic inventory (2026-11-19)
+
+Canonical owners per [SPEC §30.13](./SPEC.md). "Migration subject" marks a
+concept whose rules must converge into the canonical contract before its
+current home retires.
+
+#### Type grammars
+
+| Concept | Home | Canonical | Key consumers | Adapter | Retirement |
+|---|---|---|---|---|---|
+| Value universe V: 14 bases, descriptors, `FIELD_BASES`, `durationMs` | `packages/cts/src/values.js` | cts ✓ | processes designer + node-catalog, type-designer UI, agent-bots tools, deadline/run scanners | `process-grammar.js` → process sockets | stays canonical |
+| Type declaration grammar: `normalizeType`, classes/states/edges/rows, operators, diff gate R7 | `packages/cts/src/{registry,classes,states,edges,rows,operators,diff}.js` | cts ✓ | cts-types service, plugin upgrades (`planTypeMigration`), `stores/registry`, designer | — | stays canonical |
+| Process socket types: 27 bases + qualifiers, `processTypesCompatible` lattice, `PROCESS_PROTOCOL_VERSION = 4` | `packages/processes/src/types.js` | migration subject → shared semantic type contract | ports, node-catalog, validation, authoring, server process-definitions, `useProcessProfile` | `ctsFieldToProcessType` (cts) + `mapDomainInputType` (in-module) | with G10 canvas-format migration after §30.11 gates 6–7 |
+| Process kind lattice: `portSpecsCompatible` over legacy kinds | `packages/processes/src/ports.js` | migration subject — two compatibility laws coexist in the package | `port-compatibility.js` profile, headless seam (`processSocketsCompatible`) | `port-compatibility.js` → sdk registry (collapses outcomes to exact/incompatible) | one lattice survives after parity fixtures (§30.11 step 2) |
+| Transport shapes (`item|list|tree|map|tuple|stream`) + semantic descriptor keys | `packages/plugin-sdk/src/node-contract.js` | plugin-sdk ✓ | node validation, comparator, processes profile | — | core `graph.js TRANSPORT_SHAPES` and the inline list in `useGraphDocumentSession.js` dedupe to the sdk export |
+| CTS→process translators ×3 + unit spellings ×2 | cts `process-grammar.js`, `field-schema-rows.js`, `projection.js` (`constructionInputKind`); units in `units.js` vs `LEGACY_UNIT_*` | one adapter after convergence | node-catalog, projection, field schemas | each is an adapter | consolidate when process grammar migrates |
+| Framework type declarations (`organization`, `user`, `entity-revision`, `process-definition`, `graph-document`, `graph-execution`) | `packages/cts/src/pack/framework.js` | cts ✓ | cts-types service seeds every org registry, party wire, designer, guards, e2e | — | `graph-document.graphId` carries non-grammar `required` key (defect) |
+
+#### Operation registries
+
+| Concept | Home | Canonical | Key consumers | Adapter | Retirement |
+|---|---|---|---|---|---|
+| Node definition grammar, provider registry, port compatibility (`compareNodePorts`, outcomes `exact/safe-coercion/conditional/conversion-required/incompatible`) | `packages/plugin-sdk/src/node-contract.js` | plugin-sdk ✓ | `useGraphDocumentSession`, `useProcessProfile`, node sync | processes `perigram.cts` profile via `toProcessPort` | `conversions: []` hardcoded — no conversion declaration grammar exists; outcomes are bare strings |
+| Listing service declarations (`parseListing`/`normalizeListing`; modes endpoint/claim/local + `execution` metadata; palette contract) | `packages/plugin-sdk/src/listing.js` | plugin-sdk ✓ | plugins service publish/install gates, build123d generator, deploy smoke | — | `listing.schema.json` mirror kept in parity by spec |
+| Process node catalog (`PROCESS_NODE_CATALOG`, species sets, `resolveCatalogNodePorts`) + value/collection operation registry | `packages/processes/src/{node-catalog,operations}.js` | migration subject → shared versioned operation contract | designer, evaluator, server, agent-bots | `procedural-provider.js` builds sdk definitions (production-unwired; spec-only consumers) | after §30.11 gate 5 parity |
+| Core data provider (`perigram.core.data/query.instances`) | `packages/core/src/graph-data-provider.js` | core ✓ | browser graph session, server evaluator | adapts host `queryInstances` capability + read set | capability id `cts.instances.read` diverges from runtime `organization.instances.read` (defect) |
+| Server-derived graph node definitions (`graphNodePortContract`, `resolveInstalledGraphNodeDefinition`) | `server/features/plugins/service.js` | plugin-sdk (server hand-rolls port derivation from the install snapshot, bypassing sdk normalizers) | server graph evaluator | — | converge on sdk normalization |
+| Endpoint-mode services (documents ×7: `table-rows`, `table-cells`, `text`, `fill`, `render-pdf`, `render-report-pdf`, `render-document-pdf`; facade ×2: `extract-geometry`, `nesting-parts`) | `workers/*/listing.json` | listing declarations (dispatch derived from listing) | endpoint executors, `callEndpointService` | — | per the endpoint-migration task in the Documents/Facade program |
+
+#### Evaluators
+
+| Concept | Home | Canonical | Key consumers | Adapter | Retirement |
+|---|---|---|---|---|---|
+| CTS expression evaluator ×2 (`evaluate` sync + `evaluateAsync`, ~125 duplicated lines) | `packages/cts/src/expressions.js` | stays behind adapter until §30.13 convergence proof | sync: machines transition guards, `relation-domain`, retype-field migrations; async: instance constraint validation | resolver hooks carry authorized collection readers | unify after proof |
+| Procedural graph evaluator (`evaluateProceduralGraph`, pure/read only, host-injected bindings) | `packages/core/src/procedural-evaluator.js` | core ✓ | browser graph session (passes no `resolveGraph`: Use Graph fails browser preview — parity gap), server graph-executions | provider binding host-injected | consults runtime base checks alone; sdk comparator unwired |
+| Process dataflow evaluator (`executeProcessDataNode` pure data + authorized reads; `executeProcessEffectNode` mutation mapper; `previewProcessDataflow` server-side, requires `perigram.graph` + `dataflowVersion === 4`) | `packages/processes/src/{evaluator,orchestration}.js` | migration subject → shared evaluator | process preview endpoint (`useGraphChannelPreview` posts to server), runtime action execution | `previewService` channel dispatches managed runtimes | after §30.11 gates 6–7 |
+| Managed worker execution (`executeManagedGraphNode` → plugin-runtime tasks; isolated Deno child, digest-verified package) | `server/features/plugins/service.js` + `workers/plugin-runtime` | app host ✓ — shared by graph and process paths | graph evaluator, process preview services | — | `['pure','read']` hardcoded ×3 in server; sdk `NODE_EXECUTION_KINDS` unconsumed |
+| Legacy v4 runtime evaluator (`resolveProcessActionInputContext`) | `packages/processes/src/algebra.js` | none — dead (spec-only), exported twice (index, compiler-core) | — | — | delete |
+| Browser engines and workers (`useClientEngines` dispatch, `usePluginRuntime` Workers, capability bridge) | `composables/` | app host ✓ | graph-document sessions (provider registration + execution) | module proxy URLs, capability route | — |
+
+#### Compiler interpretations
+
+| Concept | Home | Canonical | Key consumers | Adapter | Retirement |
+|---|---|---|---|---|---|
+| CTS registry compile (R1–R6, display laws, typed constraint checks) + `compileClientBundle` | `packages/cts/src/{registry,render}.js` | cts ✓ | cts-types served bundle, process runtime, designer, process page Roles recompile | client bundle is the transport shape | `compile().operatorSpecies` produced, zero readers |
+| Process compiler (`compileProcessDefinition`: normalization, validation, lineage, workflows, roles/grants, screens, actions) | `packages/processes/src/{compiler,compiler-core,normalization,validation,validation-rules,…}.js` | migration subject — rewrite incrementally per §30.10 | server service + compiler-adapter; client recompile in process.vue Roles tab | `prepareAuthoredDefinition` seam over cts graph-protocol | after §30.11 gate 7 |
+| Graph-protocol lowering + binding checks (`resolveCtsDefinition`, `checkCtsGraphBindings`, `declarationsFromCtsRecords`) | `packages/cts/src/graph-protocol.js` | cts ✓ | designer, authoring, transpiler, process-definitions service | draft-record projection at APPLY | `checkDeclarationsAgainstCts` (process-checks.js) re-walks rows/states with a second walker |
+| Access + screen compilation (`compileAssignmentAccess`, `compileRoles`, `compileScreens`, ui-contract projection) | `packages/processes/src/{access-compilation,screen-compilation,ui-contract-projection}.js` | app-host projection ✓ | auth hydration (`runtime.js`), generated screens/navigation | `projectUiAction` emit boundary | — |
+| Typed IR / lowering pipeline | absent from `packages/core` | core (§30.13) | — | — | first implementation deliverable per §30.12 |
+
+#### Graph persistence formats
+
+| Concept | Home | Canonical | Key consumers | Adapter | Retirement |
+|---|---|---|---|---|---|
+| `perigram.graph` v1 document (interface, pinned nodes/edges, boundary nodes, use-graph revision pins) | `packages/core/src/graph.js` | core ✓ | graph-document sessions, server evaluator, editor API, processes runtime (`processData` hard-gates format + version), agent-bots | persisted as `graph-document` CTS instance JSON payload | stays canonical |
+| Authored process canvas projection (`data.graph` nodes/edges, `data:`/`control:` handles; legacy `input:`/`output:` parsed) | `packages/processes/src/{ports,transpiler,process-graph}.js` | migration subject (G10) | authoring seam, canvas round-trip, agent-bots edits | `createProcessGraphDocument` (forward) + `authoredProcessDataFromGraphDocument` (reverse, 4 live consumers) | G10 deterministic mapping + dry-run + fixture corpus |
+| Execution evidence envelope (`perigram.graph-execution` v1: profiles, provenance, readSet) | `packages/core/src/graph-execution.js` | core ✓ | server persistRecord → hidden `graph-execution` CTS type; browser builds records unpersisted | server maps envelope → instance fields | `GRAPH_EXECUTION_*` constants exported dead |
+| Read-set recorder (instance/relation/query/file deps, consistency boundary) | `packages/core/src/graph-read-set.js` | core ✓ | server `queryOrganizationData`, capability adapters, parent/child evaluations | adapters record after authorized reads | `emptyGraphReadSet` dead export |
+| Process run/event ledger (`process_executions` parked runs, `process_events` delivery) | `server/features/process-definitions/run-store.js` | app host ✓ (durable profile) | run-scanner, service resume | — | async-command continuations live in an in-process Map; restart drops them (documented) |
+
+#### Provider bindings
+
+| Concept | Home | Canonical | Key consumers | Adapter | Retirement |
+|---|---|---|---|---|---|
+| Install snapshots (declarations layer, services, requires, platformManaged, executorOrigin, packageAssets manifest, connectorToken) | `server/features/plugins/service.js` | app host ✓ | evaluator resolution, module proxy, endpoint dispatch, upgrades | sdk `parseListing` gate | catalog-asset fallback retires after live asset migration confirms |
+| Package pins `{pluginId, version, runtimeId, operationId}` | resolved from install snapshot alone | ✓ per §30 | graph evaluator `resolveNodeDefinition`, evidence provenance | — | process preview path resolves the install three times per node (perf) |
+| Org-owned package assets + module proxy (digests, JS import rewrite, `plugin:` deps, ETag) | `server/features/plugins/{repository,service}.js` | app host ✓ | surface/engine/runtime module serving, browser workers | — | — |
+| `clientEngines` / `clientRuntimes` org-view bindings | `server/features/cts-types/service.js` | app host ✓ | `useClientEngines`, graph session registration | module proxy URL | — |
+| Capability host boundary (8 capabilities: org instance query/read/create/update/delete, `files.read`, `nesting.solve`; actor rehydrated per call) | `server/features/plugins/capabilities.js` + `shared/plugin-runtime.js` allowlists | app host ✓ | managed worker tasks, browser capability route | read sets merge into the shared recorder | allowlist homes duplicated; core provider declares the divergent `cts.instances.read` id |
+| Commit/Bake/Export boundary (5 bake destinations, read-set revalidation, transactional mutation + evidence, blob compensation) | `server/features/graph-executions/service.js` | app host ✓ | graph-executions routes; pages/files/instances downstream | CAS `expectedOrganizationSequence` fence | route-less `commitProposal` duplicates `cts.instance.patch` validation |
+
+#### UI consumption findings
+
+Palette derivation, record sync, socket algebra, operation catalog, and
+compiler outputs are consumed from the packages; the UI keeps small
+vocabulary copies: `TYPE_TONES` base-kind map
+(`utils/processDesignerSocketTone.js`), hardcoded operation labels
+(`useProcessDesignerNodeRecords.js`), glyph/signal maps keyed by group ids,
+documents value-kind slugs (`utils/documents-preview.js`), and
+`isSecondaryPopulationKind` pinning the legacy `effect.deleteEntity`
+spelling. Compatibility invocation differs per editor: the process profile
+force-stamps the `'perigram.cts'` literal; the graph session compares ports
+as declared, leaving the sdk comparator the default for profile-less ports.
+
+#### Dedup/debt findings (program backlog)
+
+1. Dual CTS evaluator (`expressions.js` sync/async twins).
+2. Two compatibility lattices in processes (`ports.js` kinds vs `types.js` bases); sdk profile collapses outcome grammar to exact/incompatible.
+3. Conversion declarations absent — `conversion-required` verdicts are unresolvable.
+4. Transport shapes in three homes (sdk, core, session composable); JSON utils re-implemented ×5 across core/UI.
+5. Server hand-rolls node-definition derivation and execution-kind classification; sdk exports unconsumed (`NODE_EXECUTION_KINDS`, barrel omits `compareNodePorts`).
+6. Capability id divergence silently double-whitelisted (`graph-executions/service.js:154`).
+7. Browser/server preview parity: Use Graph fails browser preview (no `resolveGraph`).
+8. Typed IR absent from core.
+9. Two `cts.instance.patch` validators; endpoint deterministic cache bypassed by projection reads (`resolveProjectionValue`).
+10. Two declaration-check walkers (graph-protocol vs process-checks).
+11. Dead exports: cts (`DISPLAY_KINDS`, `describeLabel`, `containsRef`, states readers, `OPERATOR_SPECIES`, rows/diff helpers, reverse process-grammar direction, cnc fixtures), core (`emptyGraphReadSet`, `CORE_DATA_VERSION`, `GRAPH_EXECUTION_*`), processes (`algebra.js`, `runProcessUntilSettled`, procedural-provider registrars/resolvers), sdk (`INJECTED_DEPENDENCIES`, `vendorSlug`, `collectBareImports`).
+12. `compileProcessNodes` defaults to retired kind `entityDecompose` (`compiler-core.js`).
+13. `graph-document.graphId` carries non-grammar `required` key (`pack/framework.js`).
+14. Session cuts landed: dead per-node preview bindings removed from `pages/organization/process.vue`; plugins README graph-orchestration sentence corrected; processes README phantom `graph-normalization.js` renamed to `normalizeGraph` in `compiler-core.js`; the 2026-11-18 reverse-adapter claim corrected above.
+
+### Agent Notes (2026-11-19, agent/semantic-inventory-20261119)
+
+- Inventory method: six parallel read-only audits (cts, processes, core,
+  plugin-sdk, server, UI), every row grep-verified with file references;
+  spot checks re-verified the load-bearing claims in the primary checkout.
+- The 2026-11-14 E4 note describes a browser-hosted
+  `previewProcessDataflow` variant; the current
+  `useGraphChannelPreview` posts every process-draft preview to the
+  server endpoint. Browser evaluation today is the graph-document session
+  path (`evaluateProceduralGraph`) plus engine/worker dispatch for
+  provider nodes.
+- Contradictions reconciled in this session are listed in finding 14.
+
 
 Acceptance: a single canonical semantic contract and typed IR are used
 by one real cross-package vertical slice; CTS remains the application
@@ -873,12 +988,15 @@ G0–G2 (shared canvas, file/surface scaffolding, and canonical graph foundation
 
 ### Agent Notes (2026-11-18, legacy process stack inventory)
 
-- Runtime process execution already consumes `createProcessGraphDocument`; the
-  reverse adapter is deleted. The remaining migration source is the persisted
+- Runtime process execution consumes `createProcessGraphDocument`; the
+  reverse adapter `authoredProcessDataFromGraphDocument` remains live with
+  four consumers (process-definitions service, compiler-adapter, agent-bots
+  tools, useProcessProfile). The remaining migration source is the persisted
   canvas format (`data.graph` nodes/edges, `data:`/`control:` handles,
   `dataflowVersion` 4) and its machinery in `packages/processes`: process-graph,
   transpiler, normalization, compiler-core, evaluator, ports, and types
-  (≈4.4k maintained lines).
+  (≈4.5k maintained lines; those modules also carry live compiler/evaluator
+  content beyond the canvas format).
 - G10 stays open: an inventory of stored definitions, the semantic mapping,
   dry-run/backup, fixture-corpus comparison, and owner acceptance need the live
   database and a running application stack. None of those were available in

@@ -106,8 +106,9 @@ that operation's capability calls. This is not
 the same as evaluating a saved procedural graph: graph execution must
 resolve the saved graph and pinned subgraphs, schedule every node in
 dependency order, share one execution context/read set, and persist one
-graph execution envelope. That graph orchestration path is not yet wired;
-see the root [graph TODO](../../../TODO.md). A server target on a node
+graph execution envelope. That orchestration lives in the
+[graph executions feature](../graph-executions/README.md); managed
+pure/read node tasks flow into this worker. A server target on a node
 definition only declares eligibility and is not an execution endpoint.
 
 ### Service execution

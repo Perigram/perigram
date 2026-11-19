@@ -2565,13 +2565,6 @@ not their private internal representation. Live editing creates a new
 revision; it does not silently rewrite the definition used by an
 in-flight execution.
 
-Inspection never grants additional authority. A debugger or inspector
-uses the same capability and redaction boundaries as ordinary reads.
-Opaque values expose safe provider-defined summaries and operations,
-not their private internal representation. Live editing creates a new
-revision; it does not silently rewrite the definition used by an
-in-flight execution.
-
 ### 30.10 Keep, evolve, rewrite, and retire
 
 The migration preserves proven domain knowledge and host boundaries

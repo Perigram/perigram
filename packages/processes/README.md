@@ -334,10 +334,10 @@ and navigation; `screen-analysis.js` detects redundant authored screens;
 `access-compilation.js` owns role/assignment access compilation; and
 `access.js` owns role-assignment resolution and access projection.
 `action-labels.js` owns action target-state resolution, user-facing action
-captions, and the domain type-label lookup. `graph-normalization.js` owns the
-authored-view graph projection used by the compiler and designer.
-`compiler-core.js` retains shared compiler primitives and the remaining
-non-screen compilation algorithms. `index.js` is the public barrel — there
+captions, and the domain type-label lookup. `compiler-core.js` owns the
+authored-view graph projection (`normalizeGraph`) beside its shared compiler
+primitives and the remaining non-screen compilation algorithms. `index.js` is
+the public barrel — there
 are no forwarding-only modules presented as architecture boundaries.
 The compiler turns current species records into runtime contracts for access,
 screens, navigation, declared workflow overlays, field policy, actions,
