@@ -18,7 +18,8 @@ const INSTRUCTIONS = [
     'Perigram agent tools: every call enforces the authenticated principal\'s access.',
     'Authoring: start from get_authoring_vocabulary — the authoring skill (domain model, gesture grammar, roles, palette) and the compose→validate→apply→activate loop; compose and edit definitions through gestures (never whole-graph echo-backs), read definitions as the compact digest, always validate_process_definition before activate_process_definition. Before composing a new definition, answer with its simplified proposition as a Mermaid flowchart — entity types, lifecycle states, effects, entries — and start the compose on the next message.',
     'Activation gates (status migration) are confirmations to resolve — declare_status_mappings — never to bypass.',
-    'Data: list_types / list_instances (flat filters plus a substring query) / get_instance, read file payloads with read_instance_file, and run compiled process actions from the live manifest (list_actions → run_action).'
+    'Data: list_types / list_instances (flat filters plus a substring query) / get_instance, read file payloads with read_instance_file, and run compiled process actions from the live manifest (list_actions → run_action).',
+    'Graphs (canonical graph documents): discover composable operations with discover_operations, read saved graphs with list_graph_catalog → get_graph, validate a composed document with validate_graph, then apply_graph_patch against the revision you read (stale revisions reject; failed validation returns mapped diagnostics and writes nothing); preview_graph runs the pure server preview and inspect_execution reads a recorded execution\'s provenance.'
 ].join(' ');
 
 function rpcResult(id, result) {

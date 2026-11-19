@@ -3,12 +3,13 @@ const FORMAT = 'perigram.graph';
 export const GRAPH_DOCUMENT_FORMAT = FORMAT;
 export const GRAPH_DOCUMENT_VERSION = 1;
 export const CORE_GRAPH_PROVIDER = 'perigram.core';
+export const CORE_GRAPH_OPERATION_VERSION = '1';
 export const GRAPH_INPUT_OPERATION = 'perigram.core.graph-input';
 export const GRAPH_OUTPUT_OPERATION = 'perigram.core.graph-output';
 export const GRAPH_INVOKE_OPERATION = 'perigram.core.use-graph';
-
-const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
-export const TRANSPORT_SHAPES = new Set(['item', 'list', 'tree', 'map', 'tuple', 'stream']);
+export const GRAPH_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+export const GRAPH_TRANSPORT_SHAPES = ['item', 'list', 'tree', 'map', 'tuple', 'stream'];
+export const TRANSPORT_SHAPES = new Set(GRAPH_TRANSPORT_SHAPES);
 
 export function normalizeGraphDocument(source = {}) {
   if (!isRecord(source)) throw new Error('Graph document must be an object');
@@ -46,7 +47,7 @@ export function validateGraphDocument(source) {
   if (graph.version !== GRAPH_DOCUMENT_VERSION) {
     problems.push(problem('unsupported-version', 'version', `Unsupported graph document version ${graph.version}`));
   }
-  if (!ID_PATTERN.test(graph.id)) problems.push(problem('invalid-id', 'id', 'Graph id must be a stable identifier'));
+  if (!GRAPH_ID_PATTERN.test(graph.id)) problems.push(problem('invalid-id', 'id', 'Graph id must be a stable identifier'));
   if (!graph.revision) problems.push(problem('missing-revision', 'revision', 'Graph revision is required'));
 
   validateInterface(graph.interface.inputs, 'interface.inputs', problems);
@@ -58,7 +59,7 @@ export function validateGraphDocument(source) {
   for (let index = 0; index < graph.nodes.length; index += 1) {
     const node = graph.nodes[index];
     const path = `nodes[${index}]`;
-    if (!ID_PATTERN.test(node.id)) problems.push(problem('invalid-node-id', `${path}.id`, 'Node id must be a stable identifier'));
+    if (!GRAPH_ID_PATTERN.test(node.id)) problems.push(problem('invalid-node-id', `${path}.id`, 'Node id must be a stable identifier'));
     if (nodeIds.has(node.id)) problems.push(problem('duplicate-node-id', `${path}.id`, `Duplicate node id ${node.id}`));
     nodeIds.add(node.id);
     if (!node.operation.provider || !node.operation.id || !node.operation.version) {
@@ -104,7 +105,7 @@ export function validateGraphDocument(source) {
   for (let index = 0; index < graph.edges.length; index += 1) {
     const edge = graph.edges[index];
     const path = `edges[${index}]`;
-    if (!ID_PATTERN.test(edge.id)) problems.push(problem('invalid-edge-id', `${path}.id`, 'Edge id must be a stable identifier'));
+    if (!GRAPH_ID_PATTERN.test(edge.id)) problems.push(problem('invalid-edge-id', `${path}.id`, 'Edge id must be a stable identifier'));
     if (edgeIds.has(edge.id)) problems.push(problem('duplicate-edge-id', `${path}.id`, `Duplicate edge id ${edge.id}`));
     edgeIds.add(edge.id);
     for (const [side, endpoint] of [['source', edge.source], ['target', edge.target]]) {
@@ -194,7 +195,7 @@ function normalizeInterfacePorts(ports, direction) {
 function validateInterface(ports, path, problems) {
   const seen = new Set();
   ports.forEach((port, index) => {
-    if (!ID_PATTERN.test(port.id)) problems.push(problem('invalid-interface-id', `${path}[${index}].id`, 'Interface port id must be a stable identifier'));
+    if (!GRAPH_ID_PATTERN.test(port.id)) problems.push(problem('invalid-interface-id', `${path}[${index}].id`, 'Interface port id must be a stable identifier'));
     if (seen.has(port.id)) problems.push(problem('duplicate-interface-id', `${path}[${index}].id`, `Duplicate interface port ${port.id}`));
     seen.add(port.id);
   });

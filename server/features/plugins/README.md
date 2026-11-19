@@ -111,6 +111,12 @@ graph execution envelope. That orchestration lives in the
 pure/read node tasks flow into this worker. A server target on a node
 definition only declares eligibility and is not an execution endpoint.
 
+`listInstalledGraphNodeDefinitions({ provider?, auth })` enumerates every
+installed graph-node definition that passes
+`resolveInstalledGraphNodeDefinition`'s own gate for the caller's
+organization — the discovery surface for graph authoring; services the
+gate refuses stay unlisted.
+
 ### Service execution
 
 Managed services declare `execution: { runtime, targets, kind,

@@ -102,13 +102,14 @@ import {
   projectedServicesForOrganization, projectedDomainsForOrganization, commandDefinitionFor, executeConnectorService, invokeEndpointValueService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings, publishPluginAsset,
-  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition, executeManagedGraphNode, invokePreviewValueService
+  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition, listInstalledGraphNodeDefinitions, executeManagedGraphNode, invokePreviewValueService
 } from './service.js';
 import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
 import { invalidateInstanceDeclarations, instanceServiceResolver } from '../instances/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
+import { resolveRunActor } from '../process-definitions/service.js';
 
 const ORG = 'org-1';
 const AUTH = { userId: 'user-1', organizationId: ORG };
@@ -222,6 +223,61 @@ describe('managed plugin runtime package loading', () => {
     await expect(resolveInstalledGraphNodeDefinition({
       provider: 'plugin.demo', id: 'transform', version: '3', auth: AUTH
     })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('enumerates installed graph node definitions through the resolution gate, skipping refused services', async () => {
+    const demoInstall = {
+      pluginId: 'demo',
+      version: '7',
+      services: [
+        {
+          id: 'transform',
+          nodeVersion: '3',
+          label: 'Transform',
+          palette: { group: 'documents' },
+          signature: { input: { base: 'record', fields: { source: { base: 'string' } } }, output: { base: 'string' } },
+          execution: { runtime: 'javascript', targets: ['browser', 'server'], kind: 'pure', capabilities: [] }
+        },
+        {
+          id: 'browser-only',
+          palette: { group: 'documents' },
+          signature: { input: { base: 'json' }, output: { base: 'json' } },
+          execution: { runtime: 'javascript', targets: ['browser'], kind: 'pure' }
+        }
+      ],
+      declarations: { runtimes: [{ id: 'javascript', language: 'javascript', targets: ['browser', 'server'] }] }
+    };
+    repository.listInstallsByOrganization.mockResolvedValue([demoInstall, { pluginId: 'other', version: '1', services: [], declarations: {} }]);
+    repository.findInstall.mockResolvedValue(demoInstall);
+
+    const definitions = await listInstalledGraphNodeDefinitions({ auth: AUTH });
+    expect(definitions.map(definition => `${definition.provider}/${definition.id}@${definition.version}`))
+      .toEqual(['plugin.demo/transform@3']);
+  });
+
+  it('propagates enumeration actor refusals and honors the provider filter', async () => {
+    repository.listInstallsByOrganization.mockResolvedValue([
+      {
+        pluginId: 'demo',
+        version: '7',
+        services: [{
+          id: 'transform',
+          nodeVersion: '1',
+          palette: { group: 'documents' },
+          signature: { input: { base: 'json' }, output: { base: 'json' } },
+          execution: { runtime: 'javascript', targets: ['server'], kind: 'pure' }
+        }],
+        declarations: { runtimes: [{ id: 'javascript', language: 'javascript', targets: ['server'] }] }
+      }
+    ]);
+
+    const narrowed = await listInstalledGraphNodeDefinitions({ provider: 'plugin.other', auth: AUTH });
+    expect(narrowed).toEqual([]);
+    expect(repository.findInstall).not.toHaveBeenCalled();
+
+    const { resolveRunActor } = await import('../process-definitions/service.js');
+    resolveRunActor.mockRejectedValueOnce(Object.assign(new Error('Permission denied'), { statusCode: 403 }));
+    await expect(listInstalledGraphNodeDefinitions({ auth: AUTH })).rejects.toMatchObject({ statusCode: 403 });
   });
 
   it('executes graph nodes through the pinned shared runtime task worker', async () => {

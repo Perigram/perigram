@@ -265,6 +265,84 @@ describe('graph execution service', () => {
     }, auth)).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('does not support server execution') });
   });
 
+  it('preflights a submitted graph through the shared server lowering', async () => {
+    mocks.resolveInstalledGraphNodeDefinition.mockResolvedValue({
+      provider: 'plugin.documents',
+      id: 'document.compose',
+      version: '3',
+      execution: { kind: 'pure', targets: ['server'], capabilities: [] },
+      inputs: [{ id: 'source', required: true, shape: 'item', semantic: { base: 'entityRef' } }],
+      outputs: [{ id: 'document', required: true, shape: 'item', semantic: { base: 'document' } }],
+      packagePin: { pluginId: 'documents', version: '31', runtimeId: 'documents-shared', operationId: 'document.compose' }
+    });
+    const { ir, diagnostics } = await graphExecutionsService.preflightGraphForServer(graph(), auth);
+    expect(diagnostics).toEqual([]);
+    expect(ir.operations.map(operation => operation.nodeId)).toEqual(['input-1', 'format-1', 'output-1']);
+    expect(ir.dependencies.map(dependency => dependency.edgeId)).toEqual(['edge-1', 'edge-2']);
+    expect(ir.executionTarget).toBe('server');
+  });
+
+  it('preflight maps unresolved operations and invalid documents as diagnostics, not throws', async () => {
+    mocks.resolveInstalledGraphNodeDefinition.mockResolvedValue(null);
+    const unresolved = await graphExecutionsService.preflightGraphForServer(graph(), auth);
+    expect(unresolved.ir).toBeDefined();
+    expect(unresolved.diagnostics.some(item => item.severity === 'error' && item.nodeId === 'format-1' && /is unresolved/.test(item.message))).toBe(true);
+
+    const invalid = await graphExecutionsService.preflightGraphForServer({ ...graph(), nodes: graph().nodes.filter(node => node.id !== 'output-1') }, auth);
+    expect(invalid.ir).toBeNull();
+    expect(invalid.diagnostics.some(item => item.phase === 'validation' && item.path === 'interface.outputs')).toBe(true);
+  });
+
+  it('preflight maps an unavailable Use Graph pin to the invoking node', async () => {
+    graphService.processList.mockResolvedValue([]);
+    const pinned = {
+      ...graph(),
+      nodes: [
+        graph().nodes[0],
+        {
+          id: 'invoke-1',
+          operation: { provider: 'perigram.core', id: GRAPH_INVOKE_OPERATION, version: '1' },
+          config: { graphId: 'graph.other', revision: 'rev-9' }
+        },
+        graph().nodes[2]
+      ],
+      edges: [
+        { id: 'edge-1', source: { node: 'input-1', port: 'value' }, target: { node: 'invoke-1', port: 'in-1' } },
+        { id: 'edge-2', source: { node: 'invoke-1', port: 'out-1' }, target: { node: 'output-1', port: 'value' } }
+      ]
+    };
+    const { diagnostics } = await graphExecutionsService.preflightGraphForServer(pinned, auth);
+    expect(diagnostics.some(item => item.severity === 'error' && item.nodeId === 'invoke-1' && /graph.other@rev-9 is unavailable/.test(item.message))).toBe(true);
+  });
+
+  it('rejects evaluation of an unavailable Use Graph pin with node-mapped lowering diagnostics', async () => {
+    graphService.processList.mockResolvedValue([]);
+    mocks.getFileBuffer.mockImplementation(async () => Buffer.from(JSON.stringify({
+      ...graph(),
+      nodes: [
+        graph().nodes[0],
+        {
+          id: 'invoke-1',
+          operation: { provider: 'perigram.core', id: GRAPH_INVOKE_OPERATION, version: '1' },
+          config: { graphId: 'graph.other', revision: 'rev-9' }
+        },
+        graph().nodes[2]
+      ],
+      edges: [
+        { id: 'edge-1', source: { node: 'input-1', port: 'value' }, target: { node: 'invoke-1', port: 'in-1' } },
+        { id: 'edge-2', source: { node: 'invoke-1', port: 'out-1' }, target: { node: 'output-1', port: 'value' } }
+      ]
+    })));
+    const rejection = await graphExecutionsService.evaluateSavedGraph({
+      graphDocumentInstanceId: 'graph-instance-1',
+      inputBindings: { source: null },
+      executeManagedNode: vi.fn()
+    }, auth).catch(error => error);
+    expect(rejection).toMatchObject({ statusCode: 400 });
+    expect(rejection.message).toContain('does not lower');
+    expect(rejection.data.diagnostics.some(item => item.nodeId === 'invoke-1' && /graph.other@rev-9 is unavailable/.test(item.message))).toBe(true);
+  });
+
   it('persists a successful managed server preview with provider and invocation provenance', async () => {
     mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
     mocks.resolveInstalledGraphNodeDefinition.mockResolvedValue({
@@ -451,6 +529,7 @@ describe('graph execution service', () => {
 
   it('recursively evaluates a Use Graph node against its exact authorized revision', async () => {
     const parent = graph();
+    parent.interface.outputs[0].contract.semantic = { base: 'entityRef' };
     parent.nodes[1].operation = {
       provider: 'perigram.core',
       id: GRAPH_INVOKE_OPERATION,
@@ -465,7 +544,7 @@ describe('graph execution service', () => {
       name: 'Child graph',
       interface: {
         inputs: [{ id: 'source', label: 'Source', contract: { shape: 'item', semantic: { base: 'entityRef' } } }],
-        outputs: [{ id: 'document', label: 'Document', contract: { shape: 'item', semantic: { base: 'document' } } }]
+        outputs: [{ id: 'document', label: 'Document', contract: { shape: 'item', semantic: { base: 'entityRef' } } }]
       },
       nodes: [
         { id: 'child-input', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'source' } },

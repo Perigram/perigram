@@ -1012,6 +1012,37 @@ export async function resolveInstalledGraphNodeDefinition({
   return definition;
 }
 
+// Every installed graph-node definition the server evaluator can resolve
+// for this caller: each candidate passes resolveInstalledGraphNodeDefinition's
+// own gate, so discovery and execution share the one resolution path.
+// Services the gate refuses are not server-authorable and stay unlisted.
+export async function listInstalledGraphNodeDefinitions({ provider = null, auth = {} } = {}) {
+  const organizationId = String(auth.organizationId || auth.memberships?.[0]?.organizationId || '');
+  if (!organizationId) return [];
+  const installs = await repository.listInstallsByOrganization(organizationId);
+  const definitions = [];
+  for (const install of installs) {
+    const installProvider = `plugin.${install.pluginId}`;
+    if (provider && installProvider !== String(provider)) continue;
+    for (const service of install.services || []) {
+      if (!service?.id) continue;
+      try {
+        definitions.push(await resolveInstalledGraphNodeDefinition({
+          provider: installProvider,
+          id: service.id,
+          version: String(service.nodeVersion || '1'),
+          auth
+        }));
+      } catch (error) {
+        // 409 (and 404) name services the resolution gate refuses — not
+        // server-authorable, so unlisted. Auth and actor refusals propagate.
+        if (![400, 404, 409].includes(Number(error?.statusCode))) throw error;
+      }
+    }
+  }
+  return definitions;
+}
+
 function managedNodeAbortError(signal) {
   if (signal?.reason instanceof Error) return signal.reason;
   const error = new Error(signal?.reason == null ? 'Managed graph node execution was cancelled' : String(signal.reason));
