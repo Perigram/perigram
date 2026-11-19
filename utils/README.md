@@ -84,7 +84,13 @@ Parent: [root README](../README.md).
   surfaces own them), prose, and structures; every row gates through
   `shared/instance-field-access.js` via the `auth` input, labels resolve
   the generated keys first (`fieldLabelKey`), and values render through
-  `decorateDataValue`. Rows carry their `group` for sectioned surfaces.
+  `decorateDataValue` (quantities through the shared `formatQuantity`,
+  instants as locale dates — the translator's `locale` drives formatting,
+  boolean labels are localized inputs). Rows carry their `group` for
+  sectioned surfaces and their `role` — `factRoleFor` resolves the value
+  typography from the field descriptor: `number`, `quantity`, `instant`
+  bases and `display: 'code'` are `technical`; every other value is
+  `body`.
 - `instance-select.js`: The entity-option seam of the entity dropdown
   wrappers ([shared](../components/shared/README.md)) and every instance
   picker: option→entity/type resolution over the record dialects (an
