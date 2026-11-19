@@ -57,7 +57,7 @@ export async function getById(id, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   await preparePages(organizationId, auth.userId);
   const page = await requireOwnPage(id, organizationId);
-  return repository.serializeFull(page);
+  return applySnapshotReadGrants(repository.serializeFull(page), auth);
 }
 
 export async function create({ kind = 'page', name = '', parentId = null, classTypeId = null, blocks = [], order = [] } = {}, auth = {}) {
@@ -116,10 +116,11 @@ export async function update(id, { name, parentId, blocks, order } = {}, auth = 
   let document = null;
   if (name !== undefined) changes.name = normalizeName(name);
   if (blocks !== undefined || order !== undefined) {
-    document = normalizePageDocument({
+    const storedDocument = normalizePageDocument({ blocks: page.fields?.blocks, order: page.fields?.order });
+    document = retainStoredSnapshots(normalizePageDocument({
       blocks: blocks !== undefined ? blocks : page.fields?.blocks,
       order: order !== undefined ? order : page.fields?.order
-    });
+    }), storedDocument);
     changes.blocks = document.blocks;
     changes.order = document.order;
   }
@@ -141,7 +142,7 @@ export async function update(id, { name, parentId, blocks, order } = {}, auth = 
   if (blocks !== undefined || order !== undefined) {
     await prunePageFiles(page._id, document, organizationId);
   }
-  return repository.serializeFull(updated);
+  return applySnapshotReadGrants(repository.serializeFull(updated), auth);
 }
 
 function referenceSourceIdentity(reference = {}) {
@@ -285,6 +286,53 @@ async function resolveCollectionValues(values, auth) {
     }
   }
   return items;
+}
+
+// The frozen snapshot read law (README, Typed references and collections):
+// the grant probe's fetched instance is discarded — an authorized viewer
+// receives the captured projection.
+async function applySnapshotReadGrants(document, auth) {
+  const registry = getAppRegistry();
+  const blocks = [];
+  for (const block of document.blocks) {
+    if (block.kind !== 'collection' || !block.collection.snapshot) {
+      blocks.push(block);
+      continue;
+    }
+    const items = [];
+    for (const item of block.collection.snapshot.items) {
+      if (item.kind !== 'record') {
+        items.push(item);
+        continue;
+      }
+      const service = registry.getInstanceService(item.typeId);
+      try {
+        const readable = await service?.processGetById?.(item.instanceId, auth);
+        items.push(readable ? item : { kind: 'unavailable' });
+      } catch (error) {
+        if (isUnavailableStatus(error, [403, 404])) items.push({ kind: 'unavailable' });
+        else throw error;
+      }
+    }
+    blocks.push({ ...block, collection: { ...block.collection, snapshot: { ...block.collection.snapshot, items } } });
+  }
+  return { ...document, blocks };
+}
+
+// A stored snapshot is write-immutable (README, Typed references and
+// collections): a round-trip of an existing frozen block keeps the stored
+// snapshot.
+function retainStoredSnapshots(document, storedDocument) {
+  const stored = new Map(storedDocument.blocks
+    .filter(block => block.kind === 'collection' && block.collection.snapshot)
+    .map(block => [block.id, block.collection.snapshot]));
+  if (!stored.size) return document;
+  return {
+    ...document,
+    blocks: document.blocks.map(block => block.kind === 'collection' && stored.has(block.id)
+      ? { ...block, collection: { ...block.collection, snapshot: stored.get(block.id) } }
+      : block)
+  };
 }
 
 export async function resolveReferences(pageId, auth = {}) {
@@ -473,7 +521,7 @@ export async function bakeFile({
     }
   }, { expectedSequence: expectedOrganizationSequence });
   return {
-    page: repository.serializeFull(baked.updated),
+    page: await applySnapshotReadGrants(repository.serializeFull(baked.updated), auth),
     file: baked.file,
     conflictPolicy
   };
@@ -524,7 +572,7 @@ export async function retractBakedFile({ pageId, fileId } = {}, auth = {}) {
     return result;
   });
   await filesService.deleteFile(fileId, 'files');
-  return { success: true, page: repository.serializeFull(updated) };
+  return { success: true, page: await applySnapshotReadGrants(repository.serializeFull(updated), auth) };
 }
 
 async function prunePageFiles(pageId, document, organizationId) {

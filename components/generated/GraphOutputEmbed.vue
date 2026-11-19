@@ -8,7 +8,7 @@
         <span v-if="view.mode === 'live'" class="text-muted">{{ t('editors.liveEvaluationMark') }}</span>
       </div>
       <div v-for="(item, index) in view.result.items" :key="index" class="py-1">
-        <InstanceInlineRef v-if="item.kind === 'instance'" :type="item.typeId" :id="item.instanceId" :entity="item.instance" :fetch="false" />
+        <InstanceInlineRef v-if="item.kind === 'instance' || item.kind === 'record'" :type="item.typeId" :id="item.instanceId" :entity="item.instance" :fetch="false" />
         <span v-else-if="item.kind === 'unavailable'" class="text-supporting text-muted">{{ t('editors.linkedRecordUnavailable') }}</span>
         <span v-else-if="bestView(item.value) === 'text'" class="text-supporting">{{ String(item.value) }}</span>
         <table v-else-if="bestView(item.value) === 'table'" class="w-full text-supporting">

@@ -26,15 +26,32 @@ export function normalizePageFilePath(value) {
   return path;
 }
 
-// A frozen collection snapshot keeps the resolved items verbatim inside the
-// resolution's 100-item window.
+// A frozen collection snapshot keeps the resolved items inside the
+// resolution's 100-item window: record items (source identity plus the
+// captured projection), plain values, and unavailable states. The pages
+// feature re-checks each record item's read grant at serve time.
+function normalizeSnapshotItem(item) {
+  if (item && typeof item === 'object' && !Array.isArray(item)) {
+    if (item.kind === 'unavailable') return { kind: 'unavailable' };
+    if (item.kind === 'record' || item.kind === 'instance') {
+      const typeId = String(item.typeId || '').trim();
+      const instanceId = String(item.instanceId || '').trim();
+      return typeId && instanceId && item.instance && typeof item.instance === 'object'
+        ? { kind: 'record', typeId, instanceId, instance: item.instance }
+        : { kind: 'unavailable' };
+    }
+    if (item.kind === 'value') return { kind: 'value', value: item.value };
+  }
+  return { kind: 'value', value: item };
+}
+
 function normalizeCollectionSnapshot(snapshot) {
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot) || !Array.isArray(snapshot.items)) return null;
   return {
     label: String(snapshot.label || ''),
     itemCount: Number.isInteger(Number(snapshot.itemCount)) && Number(snapshot.itemCount) >= 0 ? Number(snapshot.itemCount) : 0,
     truncated: snapshot.truncated === true,
-    items: snapshot.items.slice(0, 100)
+    items: snapshot.items.slice(0, 100).map(normalizeSnapshotItem)
   };
 }
 

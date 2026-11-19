@@ -2215,39 +2215,25 @@ This generalizes existing Page blocks, lineage, instance mentions, and
 class-page collection views into a coherent Wiki-like linking and embedding
 system.
 
-### 28.11 Process integration and one-time migration
+### 28.11 Process integration over shared semantics
 
 Process integration follows—not precedes—the procedural graph foundation.
-First prove the shared graph contract, procedural evaluator, plugin
-provider boundary, preview workspace, subgraph invocation, and Commit/Bake
-materialization with real vertical slices. Then migrate process semantics
-onto the shared graph representation and contracts while retaining a
-separate durable-process execution profile.
+Process definitions keep their persisted canvas projection as the
+process execution profile's storage format, and the durable-process
+scheduler remains a separate execution profile.
 
-The migration is a one-time cutover of all stored process graphs and
-related persisted graph records to the canonical format. It is not a
-permanent dual-format runtime and not a gradual compatibility mode:
-1. Inventory every persisted graph-bearing record and classify its format.
-2. Implement a deterministic migration from each known stored format,
-   including node/port identities, edges, configuration, revisions, and
-   references.
-3. Run a dry-run/report and validate migrated definitions against the
-   new schema, provider contracts, and process-specific invariants.
-4. Back up or otherwise preserve a recoverable pre-migration state.
-5. Perform a controlled all-record cutover; unmigratable records block
-   completion and require explicit repair rather than silent dropping.
-6. Verify counts, identities, graph connectivity, authored semantics,
-   authorization bindings, and executable behavior against migration
-   fixtures and representative real records.
-7. Only after successful verification, remove old-format readers,
-   writers, fallback paths, and obsolete schemas.
+What is shared: graph semantics, operation and type contracts, port
+compatibility, typed-IR lowering, and the authoring primitives declared
+in §28.14. Process execution consumes the shared semantic representation
+at the graph boundary — the process profile lowers its authored
+definitions into the canonical graph document and typed IR through the
+shared contracts, and must not independently reinterpret ordinary
+operation or dataflow semantics.
 
-After cutover, the canonical graph format is the only persisted and
-runtime graph format. Migration tooling may remain as an offline,
-one-time administrative utility if needed; old-format runtime support
-does not remain. Process-specific control tokens, durable task execution,
-workflow lifecycle, role grants, event triggering, retries, and effects
-remain process-profile concerns, not universal procedural scheduler rules.
+What remains process-specific: the persisted authoring projection,
+durable scheduling, control tokens, waits, leases, retries, event
+starts, recovery, workflow lifecycle, role grants, and effects. These
+are process-profile concerns, not universal procedural scheduler rules.
 
 ### 28.12 Delivery sequence and acceptance
 
@@ -2277,9 +2263,8 @@ Implementation proceeds in this order:
    destination; and a plugin geometry graph that previews in a 3D viewer,
    invokes a pinned reusable subgraph, and Bakes to an explicit CTS
    destination.
-9. Only after those slices pass, migrate all stored process graphs in the
-   one-time cutover described in §28.11 and integrate the durable-process
-   execution profile.
+9. Only after those slices pass, integrate the durable-process execution
+   profile over the shared semantic contracts as stated in §28.11.
 
 Acceptance requires one canonical graph format and shared node contract;
 a procedural runtime independent of process durability; mixed core/plugin
@@ -2288,8 +2273,8 @@ unavailable-provider diagnostics; read-only capability-restricted preview;
 explicit and provenance-bearing Commit/Bake destinations; deterministic
 organization queries with snapshot/read-set semantics; concurrency-safe
 CTS invariants; typed live/pinned Wiki references and rebuildable backlinks;
-and a verified all-record process migration with no old-format runtime
-fallback.
+and process execution consuming the shared semantic representation at the
+graph boundary while retaining its durable workflow profile.
 
 The governing principle is one graph language and shared provider contract,
 not one universal scheduler or domain model. CTS owns organization data
