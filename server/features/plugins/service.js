@@ -18,14 +18,18 @@ import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
 import * as filesService from '../files/service.js';
 import { parseListing, normalizeListing } from '#packages/plugin-sdk/listing';
+import { NODE_EXECUTION_KINDS } from '#packages/plugin-sdk/nodes';
 import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-surfaces.js';
 
 // Connector command ids: plugin.<pluginId>.<serviceId>; the install's
 // claim queue is plugin.<pluginId>@<organizationId>.
 const PLUGIN_COMMAND_PATTERN = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 
-// Execution kinds the managed server path may execute and retry.
-const MANAGED_EXECUTION_KINDS = Object.freeze(['pure', 'read']);
+// The server preview policy over the sdk execution-kind vocabulary: pure and
+// read are the effect-free kinds, the only ones preview dispatches and the
+// task queue retries without an idempotency declaration. Durable writes ride
+// the explicit Commit/Bake/Export adapters (graph-executions).
+export const PREVIEW_EXECUTION_KINDS = Object.freeze(NODE_EXECUTION_KINDS.filter(kind => kind === 'pure' || kind === 'read'));
 
 const BUILTIN_EXECUTORS = Object.freeze({
   documents: ['DOCUMENTS_EXECUTOR_URL', 'http://documents-executor:8791'],
@@ -1070,7 +1074,8 @@ async function waitForManagedNodeTask(run, { signal, timeoutMs = PLUGIN_RUNTIME_
       }
       return {
         output: data.output,
-        capabilityEvidence: Array.isArray(data.capabilityEvidence) ? data.capabilityEvidence : []
+        capabilityEvidence: Array.isArray(data.capabilityEvidence) ? data.capabilityEvidence : [],
+        hostCapabilityEvidence: Array.isArray(current.hostCapabilityEvidence) ? current.hostCapabilityEvidence : []
       };
     }
     if (['FAILED', 'CANCELLED'].includes(current.status)) {
@@ -1090,6 +1095,24 @@ async function waitForManagedNodeTask(run, { signal, timeoutMs = PLUGIN_RUNTIME_
   }
 }
 
+// Host authority over capability evidence: records journalled by the host
+// capability route (verified) override same-named worker claims in execution
+// order; a claim with no host journal entry passes through unverified, and
+// journaled records the worker never reported still count as executed.
+function mergeCapabilityEvidence({ capabilityEvidence = [], hostCapabilityEvidence = [] } = {}) {
+  const matched = new Set();
+  const merged = capabilityEvidence.map(claim => {
+    const index = hostCapabilityEvidence.findIndex((record, position) => record.name === claim.name && !matched.has(position));
+    if (index === -1) return { ...claim };
+    matched.add(index);
+    return { ...hostCapabilityEvidence[index], verified: true };
+  });
+  for (const [index, record] of hostCapabilityEvidence.entries()) {
+    if (!matched.has(index)) merged.push({ ...record, verified: true });
+  }
+  return merged;
+}
+
 // Execute one pure/read graph node through the same isolated platform worker
 // used by plugin services. Each child task carries the parent graph execution
 // id and the installed package pin; no user-supplied executor URL is involved.
@@ -1105,7 +1128,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
     || String(definition.provider || '') !== `plugin.${pluginId}`) {
     throw createError({ statusCode: 400, message: 'Managed graph node package pin does not match its provider operation' });
   }
-  if (!MANAGED_EXECUTION_KINDS.includes(definition.execution?.kind)) {
+  if (!PREVIEW_EXECUTION_KINDS.includes(definition.execution?.kind)) {
     throw createError({ statusCode: 403, message: `Graph preview cannot execute ${definition.execution?.kind || 'unclassified'} operation ${definition.id}` });
   }
   if (invocation.context?.signal?.aborted) throw managedNodeAbortError(invocation.context.signal);
@@ -1165,6 +1188,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
       id: definition.id,
       version: definition.version
     },
+    executionKind: definition.execution?.kind || null,
     packagePin: pin
   };
   try {
@@ -1185,7 +1209,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
         PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000
       )
     });
-    for (const capability of taskResult.capabilityEvidence) {
+    for (const capability of mergeCapabilityEvidence(taskResult)) {
       const capabilityRecord = {
         ...capability,
         nodeId,
@@ -1195,7 +1219,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
       invocation.context?.capabilityEvidence?.push(capabilityRecord);
       const readSet = capability.readSet;
       const recorder = invocation.context?.readSet;
-      if (capability.name === 'files.read' && recorder
+      if (capability.verified === true && capability.name === 'files.read' && recorder
         && capability.input?.fileId && capability.contentHash) {
         recorder.recordFile({
           fileId: capability.input.fileId,
@@ -1203,7 +1227,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
           organizationId: capability.organizationId ?? null
         });
       }
-      if (readSet && recorder) {
+      if (capability.verified === true && readSet && recorder) {
         if (readSet.consistency) {
           recorder.setConsistency({
             consistency: readSet.consistency,
@@ -1337,7 +1361,7 @@ export async function executeConnectorService(command, { parameters, auth = {}, 
     }, { ...auth, organizationId: String(organizationId) }, {
       definition: taskContractFor(command.id, install, String(organizationId)),
       workerType: PLUGIN_RUNTIME_WORKER_TYPE,
-      maxAttempts: MANAGED_EXECUTION_KINDS.includes(service.execution.kind) || service.execution.idempotent === true ? 3 : 1
+      maxAttempts: PREVIEW_EXECUTION_KINDS.includes(service.execution.kind) || service.execution.idempotent === true ? 3 : 1
     });
     return { tasks: [run] };
   }
@@ -1412,7 +1436,7 @@ export async function invokePreviewValueService(commandId, parameters, auth = {}
   if (mode !== 'managed') {
     throw createError({ statusCode: 400, message: `Service ${serviceId} is ${mode} mode and cannot run in preview` });
   }
-  if (!MANAGED_EXECUTION_KINDS.includes(service.execution?.kind)) {
+  if (!PREVIEW_EXECUTION_KINDS.includes(service.execution?.kind)) {
     throw createError({ statusCode: 403, message: `Preview cannot execute ${service.execution?.kind || 'unclassified'} service ${serviceId}` });
   }
   const definition = await resolveInstalledGraphNodeDefinition({

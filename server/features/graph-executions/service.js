@@ -12,6 +12,7 @@ import * as pagesService from '../pages/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import { assertRevisionSourceReadable } from '~/server/utils/revision-access.js';
 import { resolveInstalledGraphNodeDefinition, executeManagedGraphNode } from '../plugins/service.js';
+import { PLUGIN_RUNTIME_CAPABILITIES } from '#shared/plugin-runtime.js';
 
 function parseRecord(value) {
   try {
@@ -154,7 +155,9 @@ function createServerGraphResolution(auth) {
       auth
     });
     for (const capability of definition.execution?.capabilities || []) {
-      if (!['organization.instances.query', 'organization.instances.read', 'files.read'].includes(String(capability))) {
+      // Only capabilities with host adapters can gain host-verified evidence;
+      // anything else stays a permanent unverified marker (fail closed).
+      if (!PLUGIN_RUNTIME_CAPABILITIES.includes(String(capability))) {
         providerCapabilities.add(String(capability));
       }
     }
@@ -244,6 +247,15 @@ export async function evaluateSavedGraph({
   const capabilityEvidence = [];
   const nodeInvocations = [];
   const graphInvocations = [];
+  // The evaluator abandons a node's promise when the signal aborts; the
+  // in-flight registry lets the failure snapshot await those tasks so their
+  // cancellation evidence and task cleanup land in the persisted record.
+  const nodeTasksInFlight = new Set();
+  const trackNodeTask = promise => {
+    nodeTasksInFlight.add(promise);
+    promise.finally(() => nodeTasksInFlight.delete(promise)).catch(() => {});
+    return promise;
+  };
   const executeNode = async (definition, invocation) => {
     if (definition.provider === CORE_DATA_PROVIDER) {
       return await coreDataProvider.execute(definition, invocation);
@@ -257,24 +269,27 @@ export async function evaluateSavedGraph({
         id: definition.id,
         version: definition.version
       },
+      executionKind: definition.execution?.kind || null,
       ...(definition.packagePin ? { packagePin: definition.packagePin } : {})
     };
-    try {
-      const output = await executeManagedNode(definition, invocation, auth);
-      if (nodeInvocations.length === evidenceCount) {
-        nodeInvocations.push({ ...evidence, status: 'succeeded' });
+    return await trackNodeTask((async () => {
+      try {
+        const output = await executeManagedNode(definition, invocation, auth);
+        if (nodeInvocations.length === evidenceCount) {
+          nodeInvocations.push({ ...evidence, status: 'succeeded' });
+        }
+        return output;
+      } catch (error) {
+        if (nodeInvocations.length === evidenceCount) {
+          nodeInvocations.push({
+            ...evidence,
+            status: error?.name === 'AbortError' ? 'cancelled' : error?.name === 'TimeoutError' ? 'timed-out' : 'failed',
+            error: String(error?.message || error)
+          });
+        }
+        throw error;
       }
-      return output;
-    } catch (error) {
-      if (nodeInvocations.length === evidenceCount) {
-        nodeInvocations.push({
-          ...evidence,
-          status: error?.name === 'AbortError' ? 'cancelled' : error?.name === 'TimeoutError' ? 'timed-out' : 'failed',
-          error: String(error?.message || error)
-        });
-      }
-      throw error;
-    }
+    })());
   };
   try {
     const { diagnostics: loweringDiagnostics } = await lowerGraphForServer(source.graph, resolution, auth);
@@ -309,13 +324,27 @@ export async function evaluateSavedGraph({
       executionTarget: 'server'
     });
     for (const evidence of capabilityEvidence) {
-      if (['organization.instances.query', 'organization.instances.read'].includes(evidence.name)
-        && (!evidence.readSet || !Array.isArray(evidence.readSet.queries))) {
-        providerCapabilities.add(evidence.name);
+      const name = String(evidence.name || '');
+      if (!name) continue;
+      // Host-verified evidence relaxes the marker only when its shape carries
+      // the capability's identifying proof; worker-claimed or malformed
+      // evidence stays an unverified marker (fail closed).
+      if (evidence.verified !== true) {
+        providerCapabilities.add(name);
+        continue;
       }
-      if (evidence.name === 'files.read'
+      if (['organization.instances.query', 'organization.instances.read'].includes(name)
+        && (!evidence.readSet || !Array.isArray(evidence.readSet.queries))) {
+        providerCapabilities.add(name);
+      } else if (name === 'files.read'
         && (!evidence.input?.fileId || !evidence.contentHash)) {
         providerCapabilities.add('files.read');
+      } else if (['organization.instances.create', 'organization.instances.update'].includes(name)
+        && (!evidence.input?.typeId || !evidence.instance?.instanceId)) {
+        providerCapabilities.add(name);
+      } else if (name === 'organization.instances.delete'
+        && (!evidence.input?.typeId || !evidence.input?.instanceId)) {
+        providerCapabilities.add(name);
       }
     }
     return {
@@ -333,6 +362,9 @@ export async function evaluateSavedGraph({
       }
     };
   } catch (error) {
+    if (nodeTasksInFlight.size) {
+      await Promise.allSettled([...nodeTasksInFlight]);
+    }
     error.graphExecution = {
       ...source,
       executionId,

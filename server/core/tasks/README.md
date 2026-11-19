@@ -85,7 +85,8 @@ authenticated by the configured worker or connector token.
 - `POST /api/tasks/:id/complete`
 - `POST /api/tasks/:id/fail`
 - `GET /api/tasks/:id/plugin-package` (platform runtime claim only)
-- `POST /api/tasks/:id/plugin-capability` (platform runtime claim only)
+- `POST /api/tasks/:id/plugin-capability` (platform runtime claim only;
+  journals host-verified capability evidence onto the run)
 - `POST /api/tasks/:id/cancel`
 
 All worker endpoints accept two credentials (`server/core/tasks/worker-auth.js`):

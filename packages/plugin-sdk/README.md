@@ -288,6 +288,9 @@ qualified unique capability ids, determinism, idempotency, and optional preview 
 - `PORT_COMPATIBILITY_OUTCOMES` is the frozen comparator-outcome vocabulary
   and `CONVERSION_FIDELITIES` the frozen conversion-fidelity vocabulary
   (§Port compatibility).
+- `NODE_EXECUTION_KINDS` is the frozen execution-kind vocabulary
+  (`pure`, `read`, `stateful`, `proposal`, `commit`, `effect`, `control`);
+  the server preview policy derives its dispatchable subset from it.
 
 The package root remains Node-bound. Browser consumers import the dedicated
 `./nodes` entry for graph authoring and provider discovery.

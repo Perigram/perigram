@@ -313,6 +313,16 @@ describe('managed plugin runtime package loading', () => {
     getTaskRunById.mockResolvedValue({
       _id: 'run-1',
       status: 'SUCCEEDED',
+      hostCapabilityEvidence: [{
+        name: 'organization.instances.read',
+        input: { typeId: 'part', instanceId: 'part-1' },
+        readSet: capabilityReadSet
+      }, {
+        name: 'files.read',
+        input: { fileId: 'file-2' },
+        organizationId: null,
+        contentHash: 'sha256:file'
+      }],
       output: { ok: true, data: {
         output: { value: 'managed-result' },
         capabilityEvidence: [{
@@ -383,12 +393,14 @@ describe('managed plugin runtime package loading', () => {
       expect.objectContaining({
         name: 'organization.instances.read',
         nodeId: 'node-a',
+        verified: true,
         input: { typeId: 'part', instanceId: 'part-1' },
         packagePin: expect.objectContaining({ pluginId: 'demo', version: '7' })
       }),
       expect.objectContaining({
         name: 'files.read',
         nodeId: 'node-a',
+        verified: true,
         input: { fileId: 'file-2' },
         contentHash: 'sha256:file'
       })
@@ -407,6 +419,88 @@ describe('managed plugin runtime package loading', () => {
       organizationId: null
     });
     expect(nodeInvocations[0].capabilities).toEqual(['organization.instances.read', 'files.read']);
+  });
+
+  it('passes worker capability claims through unverified and merges nothing without a host journal', async () => {
+    repository.findInstall.mockResolvedValue({
+      pluginId: 'demo',
+      version: '7',
+      services: [{
+        id: 'transform',
+        nodeVersion: '3',
+        signature: { input: { base: 'record', fields: {} }, output: { base: 'json' } },
+        execution: { runtime: 'javascript', targets: ['server'], kind: 'pure' }
+      }],
+      declarations: {
+        runtimes: [{ id: 'javascript', language: 'javascript', targets: ['server'], entry: '/runtime.mjs' }]
+      }
+    });
+    const claim = {
+      name: 'files.read',
+      input: { fileId: 'file-2' },
+      organizationId: null,
+      contentHash: 'sha256:file'
+    };
+    getTaskRunById.mockResolvedValue({
+      _id: 'run-1',
+      status: 'SUCCEEDED',
+      output: { ok: true, data: { output: { value: 'managed-result' }, capabilityEvidence: [claim] } }
+    });
+    const capabilityEvidence = [];
+    const nodeInvocations = [];
+    const readSetRecorder = {
+      setConsistency: vi.fn(),
+      recordInstance: vi.fn(),
+      recordRelation: vi.fn(),
+      recordQuery: vi.fn(),
+      recordFile: vi.fn()
+    };
+
+    await executeManagedGraphNode({
+      provider: 'plugin.demo',
+      id: 'transform',
+      version: '3',
+      execution: { kind: 'pure' },
+      packagePin: { pluginId: 'demo', version: '7', runtimeId: 'javascript', operationId: 'transform' }
+    }, {
+      node: { id: 'node-a' },
+      invocationPath: [],
+      context: { executionId: 'execution-1', nodeInvocations, capabilityEvidence, readSet: readSetRecorder }
+    }, AUTH);
+
+    expect(capabilityEvidence).toHaveLength(1);
+    expect(capabilityEvidence[0]).toMatchObject({ name: 'files.read', nodeId: 'node-a', input: { fileId: 'file-2' } });
+    expect(capabilityEvidence[0]).not.toHaveProperty('verified');
+    expect(readSetRecorder.recordFile).not.toHaveBeenCalled();
+    expect(readSetRecorder.setConsistency).not.toHaveBeenCalled();
+    expect(nodeInvocations[0].capabilities).toEqual(['files.read']);
+  });
+
+  it('refuses to dispatch non-preview execution kinds', async () => {
+    repository.findInstall.mockResolvedValue({
+      pluginId: 'demo',
+      version: '7',
+      services: [{
+        id: 'propose',
+        nodeVersion: '1',
+        signature: { input: { base: 'record', fields: {} }, output: { base: 'json' } },
+        execution: { runtime: 'javascript', targets: ['server'], kind: 'proposal' }
+      }],
+      declarations: {
+        runtimes: [{ id: 'javascript', language: 'javascript', targets: ['server'], entry: '/runtime.mjs' }]
+      }
+    });
+    await expect(executeManagedGraphNode({
+      provider: 'plugin.demo',
+      id: 'propose',
+      version: '1',
+      execution: { kind: 'proposal' },
+      packagePin: { pluginId: 'demo', version: '7', runtimeId: 'javascript', operationId: 'propose' }
+    }, { context: {} }, AUTH)).rejects.toMatchObject({
+      statusCode: 403,
+      message: 'Graph preview cannot execute proposal operation propose'
+    });
+    expect(enqueueTask).not.toHaveBeenCalled();
   });
 
   it('cancels an active worker task when the graph signal aborts', async () => {

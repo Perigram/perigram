@@ -83,16 +83,44 @@ process. The evaluator supplies one graph execution id, a graph-wide deadline,
 cancellation propagation, nested invocation paths, and a shared CTS query
 read-set recorder. Successful and failed/cancelled previews are persisted as
 append-only `procedural-preview` execution records with graph/package pins,
-node task evidence, diagnostics, outputs, and read-set data.
+node task evidence (declared execution kind, task run id), diagnostics,
+outputs, and read-set data. When the signal aborts or the deadline fires,
+the evaluator awaits in-flight node tasks before snapshotting failure
+evidence, so cancellation and timeout records carry each task's final state.
 
-This is an initial server preview path, not the complete durable execution
-profile. Per-call capability evidence is captured from worker results, and
-authorized CTS query/read capability read sets merge into the shared parent/child
-recorder. Managed `files.read` evidence also carries the file id, content hash,
-and actual organization ownership scope; the shared read set persists it, and
-Commit/Bake/Export recheck current read access and file bytes before materializing
-outputs. Capability scopes remain task-local; other untracked capabilities are
-marked unverified, and Commit/Bake/Export refuse previews carrying those markers.
-Unifying capability authorization scope remains open. Proposal/effect/stateful
-execution remains refused by preview policy. The remaining work is tracked in
-the root [TODO](../../../TODO.md).
+### Capability evidence and the unverified marker
+
+Per-call capability evidence is host-verified. For every capability the host
+executes on a node task's behalf, the claim-bound capability route journals a
+record (`task_runs.hostCapabilityEvidence`) with the capability id, the
+authorized scope, and safe identifying inputs: CTS query/read carry their
+read set, `files.read` the file id/content hash/ownership scope, instance
+create/update/delete the organization and instance identity, `nesting.solve`
+the adapter restriction the host enforced. The graph host merges that journal
+with worker-reported claims: journaled records are authoritative and merge
+into the shared read-set recorder; a worker claim with no journal entry
+passes through unverified. Node provenance carries the merged evidence.
+
+Commit/Bake/Export refuse previews whose read set carries
+`unverifiedCapabilities`: capabilities outside the host adapter set
+(`PLUGIN_RUNTIME_CAPABILITIES` in `shared/plugin-runtime.js`, the single
+allowlist home), worker-claimed evidence with no host journal, and
+host-verified records missing their identifying proof. Authorized
+instance writes performed through host capabilities no longer trip the
+marker; the organization-sequence and revision fences still revalidate
+everything the preview consumed.
+
+### Execution-kind policy
+
+Preview dispatches `pure` and `read` operations only. The server derives
+that set (`PREVIEW_EXECUTION_KINDS` in
+[plugins](../plugins/README.md)) from the sdk
+`NODE_EXECUTION_KINDS` vocabulary, so an unknown or newly added kind fails
+closed. Proposal, commit, effect, stateful, and control nodes refuse preview
+at the evaluator and at managed dispatch; their durable path is explicit
+materialization: the `cts.instance.patch` Commit adapter and the Bake
+destinations (page-file, instance-payload, instance-field,
+instance-relation, instance-create), each behind idempotency keys,
+revision fences, and transactional evidence. Multi-object and relation
+commits remain refused. The remaining work is tracked in the root
+[TODO](../../../TODO.md).
