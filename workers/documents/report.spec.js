@@ -4,11 +4,17 @@
 // selects report values by their IR discriminator.
 import { describe, expect, it } from 'vitest';
 import { composeReport, exportMarkdown, extractTable, parseMarkdown, renderReportHtml, renderReportPdf } from './report.js';
-import { services } from './services.js';
 import { createRuntime } from './runtime/shared.mjs';
+import { createRuntime as createServerRuntime } from './runtime/server.mjs';
 import { checkSurfaceModule } from '@perigram/plugin-sdk/surface-check';
 import createReportSurface, { documentsOf } from './surfaces/report-preview.mjs';
 import listing from './listing.json';
+
+const serverRuntime = createServerRuntime();
+const services = {
+  'render-report-pdf': input => serverRuntime.execute('render-report-pdf', input),
+  'render-document-pdf': input => serverRuntime.execute('render-document-pdf', input)
+};
 
 const SOURCE = [
   '# Engineering report',

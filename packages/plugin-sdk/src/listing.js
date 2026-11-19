@@ -68,8 +68,10 @@ const SPDX_LIKE = /^[A-Za-z0-9.+-]+$/;
 // What the surface mount injects — a dependency naming one of these is a
 // bundled copy of a host external (the consistency law's refusal) or of
 // the host's single markdown pipeline. The mount provides them; the
-// listing may never vendor them.
-const INJECTED_DEPENDENCIES = ['vue', 'primevue', 'pinia', 'marked', 'dompurify', 'pele'];
+// listing may never vendor them. `marked` is the one exception a server
+// runtime may vendor (the managed child has no host pipeline); the
+// surface check refuses it inside surface module graphs.
+const INJECTED_DEPENDENCIES = ['vue', 'primevue', 'pinia', 'dompurify', 'pele'];
 
 export function parseListing(listing = {}) {
   const declarations = listing.declarations || {};
@@ -358,10 +360,11 @@ export function parseListing(listing = {}) {
 
   // Type projections (SPEC §8 p extract): a listing's projections resolve
   // a stored `field` path or a declared plugin service. A service resolve
-  // must be endpoint mode — a projection is a synchronous read and cannot
-  // park on the claim queue. A `handler` resolve is the pack-mount
-  // binding and refuses here: no platform handler would ever serve a
-  // plugin's id.
+  // must be endpoint mode or a managed pure server operation — a
+  // projection is a synchronous read and cannot park on the claim queue
+  // (the platform's synchronous managed boundary executes the latter).
+  // A `handler` resolve is the pack-mount binding and refuses here: no
+  // platform handler would ever serve a plugin's id.
   for (const type of types) {
     for (const projection of type?.projections || []) {
       const resolve = projection?.resolve || {};
@@ -371,8 +374,16 @@ export function parseListing(listing = {}) {
       if (resolve.service !== undefined) {
         const ref = serviceRefOf(resolve.service, `projection ${type.id}/${projection?.id}`);
         const service = services.find(item => item.id === ref.split('.').pop());
-        if (service?.mode !== 'endpoint') {
-          throw listingError(`projection ${type.id}/${projection?.id} binds service ${ref}, which is not endpoint mode — a projection is a synchronous read`);
+        const runtime = service?.execution ? runtimeById.get(service.execution.runtime) : undefined;
+        const managedPureServer = Boolean(
+          service?.execution
+          && service.execution.kind === 'pure'
+          && service.execution.targets?.includes('server')
+          && runtime?.language === 'javascript'
+          && runtime.targets?.includes('server')
+        );
+        if (service?.mode !== 'endpoint' && !managedPureServer) {
+          throw listingError(`projection ${type.id}/${projection?.id} binds service ${ref}, which is neither endpoint mode nor a managed pure server operation — a projection is a synchronous read`);
         }
       } else if (resolve.field === undefined) {
         throw listingError(`projection ${type.id}/${projection?.id} needs a field or service resolve (got ${JSON.stringify(resolve)})`);

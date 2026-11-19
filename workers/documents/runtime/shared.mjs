@@ -5,6 +5,15 @@ import { fillMarkdown, templateTokenKeys } from '../template-ir.mjs';
 import { fillWorkbook, workbookTemplateMetadata } from '../workbook-template.mjs';
 import { composeReport, extractTable, renderReportHtml, renderDocumentHtml, exportMarkdown, composeDocument, appendDocumentBlock, createDocumentBlock, createInlineValue } from '../report-ir.mjs';
 
+// Legacy type projections (`text`, `table-rows`, `table-cells`) map onto
+// the file-read twins: the synchronous projection boundary hydrates the
+// instance payload, so the operation is pure compute over the envelope.
+const PROJECTION_READS = {
+  text: 'read-text-file',
+  'table-rows': 'read-table-rows',
+  'table-cells': 'read-table-cells'
+};
+
 export function createRuntime() {
   const executeOperation = (operationId, input = {}) => {
     if (operationId === 'csv-text') {
@@ -43,8 +52,11 @@ export function createRuntime() {
     execute(operationId, input = {}, options = {}) {
       const graphInvocation = input?.mode === 'preview' && input?.inputs && typeof input.inputs === 'object';
       const args = graphInvocation ? { ...input.inputs, values: input.inputs?.values ?? input.config?.values ?? {} } : input;
-      const value = ['read-file', 'read-text-file', 'read-table-rows', 'read-table-cells'].includes(operationId)
-        ? executeFileRead(operationId, args, options.capabilities || {})
+      const readOperation = ['read-file', 'read-text-file', 'read-table-rows', 'read-table-cells'].includes(operationId)
+        ? operationId
+        : PROJECTION_READS[operationId];
+      const value = readOperation
+        ? executeFileRead(readOperation, args, options.capabilities || {})
         : executeOperation(operationId, args);
       return graphInvocation ? Promise.resolve(value).then(result => ({ value: result })) : value;
     },

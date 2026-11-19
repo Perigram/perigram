@@ -19,7 +19,11 @@ import { pathToFileURL } from 'node:url';
 // declared vendor module must exist under the plugin root.
 export async function checkSurfaceModule(path, { dependencies = [], pluginRoot = null } = {}) {
   const declared = new Set((dependencies || []).map(dependency => dependency.name));
-  const offenders = [...new Set(graphOffenders(resolve(path), { allowedBare: declared }))];
+  // The host markdown pipeline is mount-provided even when a server
+  // runtime legitimately vendors marked as a dependency: a surface that
+  // imports it loses the single shared instance.
+  const neverInSurfaces = new Set(['marked', 'dompurify', 'pele', 'vue', 'primevue', 'pinia']);
+  const offenders = [...new Set(graphOffenders(resolve(path), { allowedBare: declared, forbiddenBare: neverInSurfaces }))];
   if (offenders.length) {
     throw new Error(`surface module graph must be self-contained — vendor third-party code under the executor root and import it relatively (or declare it as a dependency), and never import host externals (found: ${offenders.join(', ')})`);
   }
@@ -64,10 +68,11 @@ export async function checkSurfaceModule(path, { dependencies = [], pluginRoot =
 
 // Collects every offender in the module's local import graph: bare
 // specifiers (npm packages, node builtins, host externals — unless the
-// listing declares them as dependencies) and relative
+// listing declares them as dependencies, and never the mount-injected
+// set) and relative
 // specifiers no browser could resolve (extension-less paths). The walk
 // is cycle-safe and skips what it cannot read.
-function graphOffenders(entry, { allowedBare = new Set(), seen = new Set() } = {}) {
+function graphOffenders(entry, { allowedBare = new Set(), forbiddenBare = new Set(), seen = new Set() } = {}) {
   if (seen.has(entry)) return [];
   seen.add(entry);
   let source;
@@ -81,7 +86,7 @@ function graphOffenders(entry, { allowedBare = new Set(), seen = new Set() } = {
   for (const match of code.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])([^'"]+)\1/g)) {
     const specifier = match[2];
     if (!specifier.startsWith('.') && !specifier.startsWith('/')) {
-      if (!allowedBare.has(specifier)) offenders.push(specifier);
+      if (forbiddenBare.has(specifier) || !allowedBare.has(specifier)) offenders.push(specifier);
       continue;
     }
     const resolved = resolveLocalModule(entry, specifier);
@@ -89,7 +94,7 @@ function graphOffenders(entry, { allowedBare = new Set(), seen = new Set() } = {
       offenders.push(specifier);
       continue;
     }
-    offenders.push(...graphOffenders(resolved, { allowedBare, seen }));
+    offenders.push(...graphOffenders(resolved, { allowedBare, forbiddenBare, seen }));
   }
   return offenders;
 }

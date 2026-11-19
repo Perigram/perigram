@@ -1,5 +1,5 @@
 {
-  "name": "@perigram/documents-executor",
+  "name": "@perigram/documents-plugin",
   "private": true,
   "type": "module",
   "dependencies": {

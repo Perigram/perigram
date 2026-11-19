@@ -8,10 +8,16 @@ describe('Documents shared runtime', () => {
 
   it('declares browser and server runtime operations with explicit read capabilities', () => {
     expect(listing.declarations.runtimes).toEqual([
-      expect.objectContaining({ id: 'documents-shared', targets: ['browser', 'server'] })
+      expect.objectContaining({ id: 'documents-shared', targets: ['browser', 'server'] }),
+      expect.objectContaining({ id: 'documents-server', targets: ['server'] })
     ]);
     for (const service of listing.declarations.services.filter(item => item.execution?.runtime === 'documents-shared')) {
-      expect(service.execution.targets).toEqual(['browser', 'server']);
+      // The legacy projection twins (`text`, `table-rows`, `table-cells`)
+      // are server-only synchronous reads; every graph operation keeps
+      // both targets.
+      expect(service.execution.targets).toEqual(
+        ['text', 'table-rows', 'table-cells'].includes(service.id) ? ['server'] : ['browser', 'server']
+      );
       expect(service.execution.capabilities).toEqual(
         ['read-file', 'read-text-file', 'read-table-rows', 'read-table-cells'].includes(service.id)
           ? ['files.read']
@@ -110,14 +116,45 @@ describe('Documents shared runtime', () => {
       .filter(service => service.execution?.runtime === 'documents-shared')
       .map(service => service.id)
       .sort();
-    expect(cases.map(([id]) => id).sort()).toEqual(declared);
-    for (const [id, input] of cases) {
+    const projectionCases = [
+      ['text', { payloadBase64: btoa('hello') }],
+      ['table-rows', { payloadBase64: btoa('sku,qty\nA-1,2\n'), typeId: 'csv-table' }],
+      ['table-cells', { payloadBase64: btoa('sku,qty\nA-1,2\n'), typeId: 'csv-table' }]
+    ];
+    expect([...cases, ...projectionCases].map(([id]) => id).sort()).toEqual(declared);
+    for (const [id, input] of [...cases, ...projectionCases]) {
       await expect(Promise.resolve(runtime.execute(id, input)), id).resolves.toBeDefined();
     }
   });
 
-  it('reads text and tabular files through the authorized files.read capability', async () => {
-    const csv = 'sku,qty\nA-1,2\n';
+  it('projection envelopes and composed blob hydrations read alike for the extraction twins', async () => {
+    const csv = 'name,qty\naluminium,12\nsteel,3\n';
+    const encoded = btoa(csv);
+    const fromEnvelope = await runtime.execute('table-rows', { payloadBase64: encoded, typeId: 'csv-table' });
+    const fromHandle = await runtime.execute('table-rows', {
+      payload: { payloadBase64: encoded, mime: 'text/csv', name: 'stock.csv' }
+    });
+    expect(fromHandle).toEqual(fromEnvelope);
+    expect(fromEnvelope).toEqual([
+      { name: 'aluminium', qty: 12 },
+      { name: 'steel', qty: 3 }
+    ]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([['name', 'qty'], ['aluminium', 12]]), 'S');
+    const workbookBytes = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+    const binary = String.fromCharCode(...new Uint8Array(workbookBytes));
+    const rows = await runtime.execute('table-rows', {
+      payloadBase64: btoa(binary),
+      typeId: 'xlsx-workbook'
+    });
+    expect(rows).toEqual([{ name: 'aluminium', qty: 12 }]);
+    const cells = await runtime.execute('table-cells', { payloadBase64: encoded, typeId: 'csv-table' });
+    expect(cells[0]).toEqual({ A: 'name', B: 'qty' });
+    expect(cells).toHaveLength(3);
+    await expect(runtime.execute('text', {})).rejects.toThrow(/requires a fileId or hydrated payload/);
+  });
+
+  it('reads text and tabular files through the authorized files.read capability', async () => {    const csv = 'sku,qty\nA-1,2\n';
     const readFile = vi.fn(async ({ fileId }) => ({
       fileId,
       name: 'inventory.csv',

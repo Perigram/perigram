@@ -209,7 +209,7 @@ describe('parseListing', () => {
       { name: '@milkdown/crepe', version: '7.22.3', module: '/assets/vendor/milkdown-crepe.mjs', license: 'MIT' }
     ];
     expect(withDeps(good).dependencies).toEqual(good);
-    for (const injected of ['vue', 'primevue', 'pinia', 'marked', 'dompurify', 'pele']) {
+    for (const injected of ['vue', 'primevue', 'pinia', 'dompurify', 'pele']) {
       expect(() => withDeps([{ name: injected, version: '1.0.0', module: `/assets/vendor/${injected}.mjs`, license: 'MIT' }]))
         .toThrow(/host-injected external/);
     }
@@ -286,6 +286,32 @@ describe('parseListing', () => {
     expect(() => withProjections([{ id: 'p', resolve: { service: 'plugin.coatings.match' } }])).toThrow(/endpoint mode/);
     expect(() => withProjections([{ id: 'p', resolve: { service: 'plugin.other.extract' } }])).toThrow(/names plugin other/);
     expect(() => withProjections([{ id: 'p', resolve: {} }])).toThrow(/field or service resolve/);
+  });
+
+  it('accepts a managed pure server operation as a projection resolve (the synchronous managed boundary)', () => {
+    const runtime = { id: 'coatings-shared', language: 'javascript', version: '1', entry: '/runtime/shared.mjs', targets: ['browser', 'server'] };
+    const managedService = (execution) => ({
+      id: 'extract',
+      signature: { input: { base: 'json' }, output: { base: 'json' } },
+      execution
+    });
+    const withService = execution => parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        runtimes: [runtime],
+        services: [managedService(execution)],
+        types: [{
+          id: 'coating-sheet',
+          class: 'file',
+          fields: { code: { base: 'string' } },
+          projections: [{ id: 'p', resolve: { service: 'plugin.coatings.extract' } }]
+        }]
+      }
+    });
+    expect(withService({ runtime: 'coatings-shared', kind: 'pure', targets: ['server'] }).types[0].projections).toHaveLength(1);
+    expect(() => withService({ runtime: 'coatings-shared', kind: 'read', targets: ['server'], capabilities: ['files.read'] })).toThrow(/synchronous read/);
+    expect(() => withService({ runtime: 'coatings-shared', kind: 'pure', targets: ['browser'] })).toThrow(/synchronous read/);
   });
 
   it('validates palette-section groups on services and projections (SPEC §8 plugin-tab law)', () => {
@@ -540,6 +566,9 @@ describe('checkSurfaceModule', () => {
     await expect(checkSurfaceModule(vueImport)).rejects.toThrow(/self-contained.*found: vue/);
     const primeImport = writeModule(`import Button from 'primevue/button';\nexport default () => ({ render: () => null });`);
     await expect(checkSurfaceModule(primeImport)).rejects.toThrow(/primevue/);
+    const declaredMarked = writeModule(`import { marked } from 'marked';\nexport default () => ({ render: () => null });`);
+    await expect(checkSurfaceModule(declaredMarked, { dependencies: [{ name: 'marked', version: '12.0.2', module: '/assets/vendor/marked.mjs', license: 'MIT' }] }))
+      .rejects.toThrow(/found: marked/);
   });
 
   it('refuses npm dependencies anywhere in the module graph, not just the entry', async () => {

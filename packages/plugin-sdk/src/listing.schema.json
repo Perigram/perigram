@@ -439,7 +439,7 @@
         },
         "dependencies": {
           "type": "array",
-          "description": "Declared runtime dependencies (owner decision 2026-10-17): one flat vendor bundle per npm name served by the executor; host-injected externals (vue, primevue, pinia, marked, dompurify) refuse",
+          "description": "Declared runtime dependencies (owner decision 2026-10-17): one flat vendor bundle per npm name served by the executor; host-injected externals (vue, primevue, pinia, dompurify) refuse (marked vendors only for server runtimes and never loads inside a surface — the surface check refuses it)",
           "items": {
             "type": "object",
             "required": [

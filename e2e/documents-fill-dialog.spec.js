@@ -13,7 +13,6 @@ test.describe('documents fill dialog', () => {
     test.setTimeout(240_000);
     await app.installPlugins(['tech-drawing', 'documents']);
     await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
-    await app.connectPlugin('documents', 'http://documents-executor:8791');
 
     let rpcId = 0;
     const call = async (name, args) => {
@@ -115,7 +114,6 @@ test.describe('documents fill dialog', () => {
     test.setTimeout(240_000);
     await app.installPlugins(['tech-drawing', 'documents']);
     await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
-    await app.connectPlugin('documents', 'http://documents-executor:8791');
 
     let rpcId = 0;
     const call = async (name, args) => {

@@ -62,9 +62,6 @@ retry docker build --network=host "${build_args[@]}" \
   --build-arg PLUGIN=facade -t perigram-executor-facade:staging \
   -f workers/plugin-executor.Dockerfile .
 retry docker build --network=host "${build_args[@]}" \
-  --build-arg PLUGIN=documents -t perigram-executor-documents:staging \
-  -f workers/plugin-executor.Dockerfile .
-retry docker build --network=host "${build_args[@]}" \
   --build-arg PLUGIN=tech-drawing -t perigram-executor-tech-drawing:staging \
   -f workers/plugin-executor.Dockerfile .
 retry docker build --network=host "${build_args[@]}" \
@@ -88,9 +85,6 @@ docker run -d --name perigram-facade-executor --restart unless-stopped \
   --network host -e FACADE_EXECUTOR_PORT=8790 \
   -e NESTING_WORKER_URL=http://127.0.0.1:8000/nest \
   perigram-executor-facade:staging
-docker run -d --name perigram-documents-executor --restart unless-stopped \
-  --network host -e DOCUMENTS_EXECUTOR_PORT=8791 \
-  perigram-executor-documents:staging
 docker run -d --name perigram-tech-drawing-executor --restart unless-stopped \
   --network host -e TECH_DRAWING_EXECUTOR_PORT=8792 \
   perigram-executor-tech-drawing:staging
@@ -100,7 +94,7 @@ docker run -d --name perigram-build123d-executor --restart unless-stopped \
 
 echo "Checking plugin executor plane..."
 docker run --rm --network host perigram:staging sh -ec '
-  for port in 8000 8790 8791 8792; do
+  for port in 8000 8790 8792; do
     attempt=0
     until curl -fsS -o /dev/null "http://127.0.0.1:$port/"; do
       attempt=$((attempt + 1))
@@ -122,7 +116,6 @@ echo "Publishing plugin catalog and applying idempotent installs..."
 docker run --rm --network host \
   -e "NUXT_MONGODB_URI=$NUXT_MONGODB_URI" \
   -e FACADE_EXECUTOR_URL=http://127.0.0.1:8790 \
-  -e DOCUMENTS_EXECUTOR_URL=http://127.0.0.1:8791 \
   -e TECH_DRAWING_EXECUTOR_URL=http://127.0.0.1:8792 \
   -e BUILD123D_EXECUTOR_URL=http://127.0.0.1:8793 \
   perigram-seed:staging sh -ec '
@@ -148,7 +141,6 @@ docker run -d --name perigram-staging --restart unless-stopped \
   -e "BASE_URL=$BASE_URL" \
   -e "NUXT_PUBLIC_BASE_URL=$BASE_URL" \
   -e FACADE_EXECUTOR_URL=http://127.0.0.1:8790 \
-  -e DOCUMENTS_EXECUTOR_URL=http://127.0.0.1:8791 \
   -e TECH_DRAWING_EXECUTOR_URL=http://127.0.0.1:8792 \
   -e BUILD123D_EXECUTOR_URL=http://127.0.0.1:8793 \
   -e "LIVEKIT_PUBLIC_URL=$LIVEKIT_PUBLIC_URL" \

@@ -1,18 +1,18 @@
 // Service-backed construction (SPEC §Plugin marketplace): construction
 // modes of installed-plugin types whose compute lives in the plugin's
-// external executor. The platform resolves the operator's inputs as
-// VALUES — referenced instances (with their payload documents) and the
-// draft's uploaded payload, all base64 — calls the executor through the
-// connector service path, and merges the returned fields into the record
-// created through the generic §13 machinery. The executor never receives
-// ids it must dereference: values in, values out.
+// runtime or external executor. The platform resolves the operator's
+// inputs as VALUES — referenced instances (with their payload documents)
+// and the draft's uploaded payload, all base64 — calls the bound service
+// through the synchronous value dispatch, and merges the returned fields
+// into the record created through the generic §13 machinery. The service
+// never receives ids it must dereference: values in, values out.
 //
 // Dynamic imports of ./service.js follow the command runtime's
 // cycle-breaking precedent (the instance machinery imports this module at
 // module scope; the resolver is only called at construction time).
 import { createError } from 'h3';
 import * as filesService from '../files/service.js';
-import { executeConnectorService, constructionsForOrganization } from '../plugins/service.js';
+import { invokeConstructionValueService, constructionsForOrganization } from '../plugins/service.js';
 import { executorPayload } from '../plugins/executor-payload.js';
 
 const EXECUTOR_FIELD_IDS = Symbol('executorFieldIds');
@@ -67,10 +67,7 @@ async function invokeConstructionService(typeId, mode, draft = {}, context = {})
   if (!serviceRef) return null;
 
   const parameters = await buildServiceInput(typeId, mode, draft, context, organizationId);
-  const output = await executeConnectorService(
-    { id: serviceRef },
-    { parameters, auth: serviceAuth(context) }
-  );
+  const output = await invokeConstructionValueService(serviceRef, parameters, serviceAuth(context));
   if (!output || typeof output !== 'object' || Array.isArray(output)) {
     throw createError({ statusCode: 502, message: `Construction service ${serviceRef} returned no object output` });
   }

@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, HTML, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "33",
+  "version": "34",
   "requires": [
     "tech-drawing"
   ],
@@ -424,7 +424,6 @@
       {
         "id": "table-rows",
         "label": "Table rows",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "record",
@@ -441,7 +440,6 @@
             }
           }
         },
-        "cache": "deterministic",
         "render": {
           "label": "Table rows",
           "icon": "pi pi-table"
@@ -451,12 +449,21 @@
           "group": "table-data",
           "label": "Table data",
           "visible": false
+        },
+        "execution": {
+          "runtime": "documents-shared",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
         }
       },
       {
         "id": "table-cells",
         "label": "Table cells (positional)",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "record",
@@ -473,7 +480,6 @@
             }
           }
         },
-        "cache": "deterministic",
         "render": {
           "label": "Table cells (positional)",
           "icon": "pi pi-table"
@@ -483,12 +489,21 @@
           "group": "table-data",
           "label": "Table data",
           "visible": false
+        },
+        "execution": {
+          "runtime": "documents-shared",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
         }
       },
       {
         "id": "text",
         "label": "Document text",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "record",
@@ -502,7 +517,6 @@
             "base": "string"
           }
         },
-        "cache": "deterministic",
         "render": {
           "label": "Document text",
           "icon": "pi pi-table"
@@ -510,6 +524,16 @@
         "description": "Extract the text content from a document payload",
         "palette": {
           "visible": false
+        },
+        "execution": {
+          "runtime": "documents-shared",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
         }
       },
       {
@@ -555,7 +579,6 @@
       {
         "id": "fill",
         "label": "Fill template",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "json"
@@ -566,12 +589,20 @@
         },
         "palette": {
           "visible": false
+        },
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true
         }
       },
       {
         "id": "render-pdf",
         "label": "Render PDF",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "json"
@@ -582,6 +613,15 @@
         },
         "palette": {
           "visible": false
+        },
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true
         }
       },
       {
@@ -794,8 +834,6 @@
       {
         "id": "render-report-pdf",
         "label": "Render PDF",
-        "mode": "endpoint",
-        "cache": "deterministic",
         "render": {
           "label": "Render PDF",
           "icon": "pi pi-file-pdf"
@@ -822,6 +860,15 @@
         "palette": {
           "group": "document-export",
           "label": "Document export"
+        },
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true
         }
       },
       {
@@ -1426,7 +1473,6 @@
       {
         "id": "render-document-pdf",
         "label": "Export PDF file",
-        "mode": "endpoint",
         "signature": {
           "input": {
             "base": "record",
@@ -1450,6 +1496,15 @@
         "palette": {
           "group": "document-export",
           "label": "Document export"
+        },
+        "execution": {
+          "runtime": "documents-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true
         }
       },
       {
@@ -1926,6 +1981,30 @@
         "version": "7.22.3",
         "module": "/assets/vendor/milkdown-prose-commands.mjs",
         "license": "MIT"
+      },
+      {
+        "name": "pdf-lib",
+        "version": "1.17.1",
+        "module": "/assets/vendor/pdf-lib.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "@pdf-lib/fontkit",
+        "version": "1.1.1",
+        "module": "/assets/vendor/pdf-lib-fontkit.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "pdfjs-dist/legacy/build/pdf.mjs",
+        "version": "5.4.149",
+        "module": "/assets/vendor/pdfjs-dist-legacy.mjs",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "marked",
+        "version": "12.0.2",
+        "module": "/assets/vendor/marked.mjs",
+        "license": "MIT"
       }
     ],
     "previewChannels": [
@@ -1943,6 +2022,15 @@
         "entry": "/runtime/shared-bundle.mjs",
         "targets": [
           "browser",
+          "server"
+        ]
+      },
+      {
+        "id": "documents-server",
+        "language": "javascript",
+        "version": "1",
+        "entry": "/runtime/server.mjs",
+        "targets": [
           "server"
         ]
       }

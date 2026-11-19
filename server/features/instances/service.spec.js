@@ -17,7 +17,8 @@ vi.mock('../../core/access/service.js', () => ({
 }));
 vi.mock('../plugins/repository.js', () => ({
   listDeclarationsByOrganization: vi.fn(async () => []),
-  findDeclarationByTypeId: vi.fn(async () => null)
+  findDeclarationByTypeId: vi.fn(async () => null),
+  findInstall: vi.fn(async () => null)
 }));
 vi.mock('../workflow-overrides/service.js', () => ({
   resolveActiveWorkflow: vi.fn(async () => null)
@@ -1395,7 +1396,7 @@ describe('version fabric (SPEC §24)', () => {
     coll.findOneAndUpdate.mockResolvedValue({ _id: new ObjectId('0123456789abcdef01234567'), type: 'pdf-document', fields: { name: 'Filled report' } });
     const constructions = vi.spyOn(pluginsService, 'constructionsForOrganization')
       .mockResolvedValue({ 'pdf-document': { fill: 'plugin.documents.fill' } });
-    const execute = vi.spyOn(pluginsService, 'executeConnectorService')
+    const execute = vi.spyOn(pluginsService, 'invokeConstructionValueService')
       .mockResolvedValue({ data: { pages: 2 }, payload: { base64: Buffer.from('%PDF-1.4 new').toString('base64'), mime: 'application/pdf' } });
 
     const service = instanceServiceResolver('pdf-document');
@@ -1406,7 +1407,7 @@ describe('version fabric (SPEC §24)', () => {
     });
 
     expect(execute).toHaveBeenCalledTimes(1);
-    const parameters = execute.mock.calls[0][1].parameters;
+    const parameters = execute.mock.calls[0][1];
     expect(parameters.mode).toBe('fill');
     expect(parameters.draft.data.values).toEqual({ title: 'Old' });
     const patch = coll.findOneAndUpdate.mock.calls[0][1].$set;
@@ -1448,7 +1449,7 @@ describe('version fabric (SPEC §24)', () => {
     coll.findOneAndUpdate.mockResolvedValue(null);
     const constructions = vi.spyOn(pluginsService, 'constructionsForOrganization')
       .mockResolvedValue({ 'pdf-document': { fill: 'plugin.documents.fill' } });
-    const execute = vi.spyOn(pluginsService, 'executeConnectorService')
+    const execute = vi.spyOn(pluginsService, 'invokeConstructionValueService')
       .mockResolvedValue({ data: { pages: 2 } });
     const service = instanceServiceResolver('pdf-document');
 

@@ -22,8 +22,13 @@ function contentTypeFor(path) {
 
 // Collect a managed runtime's entrypoint and its statically imported,
 // package-relative modules. Bare imports are resolved by the listing's
-// declared dependency map in the isolated runtime worker.
-export function collectRuntimeAssetFiles(packageRoot, entry, language = 'javascript') {
+// declared dependency map in the isolated runtime worker. `vendor`
+// marks a declared dependency bundle: third-party code may carry
+// runtime-computed dynamic imports (worker URLs) whose targets are
+// never package assets, so only the static relative-import walk
+// applies there; first-party runtime entries keep the literal-import
+// law.
+export function collectRuntimeAssetFiles(packageRoot, entry, language = 'javascript', { vendor = false } = {}) {
   const root = resolve(packageRoot);
   const first = safePackagePath(root, resolve(root, String(entry || '').replace(/^\/+/, '')));
   const pending = [first.absolute];
@@ -42,7 +47,7 @@ export function collectRuntimeAssetFiles(packageRoot, entry, language = 'javascr
     });
     if (language !== 'javascript' || !/\.(?:m?js)$/.test(resolved.path)) continue;
     const source = buffer.toString('utf8');
-    if (/\bimport\s*\(\s*(?!['"])/.test(source)) {
+    if (!vendor && /\bimport\s*\(\s*(?!['"])/.test(source)) {
       throw new Error(`Managed runtime ${entry} uses a non-literal dynamic import; runtime assets must be statically discoverable`);
     }
     const imports = source.matchAll(/(?:\bimport|\bexport)\s+(?:[^'"]*?\s+from\s*)?['"]([^'"]+)['"]|\bimport\(\s*['"]([^'"]+)['"]\s*\)/g);
