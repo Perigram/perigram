@@ -133,14 +133,23 @@ export const test = base.extend({
         });
         return assigned;
       },
-      // Installs catalog plugins for the current org; requires gates fire
-      // on install order (documents and facade require tech-drawing).
-      // Orgs get no plugins at creation: every spec that reads a
-      // pack/plugin type installs it explicitly. Idempotent — 409 means
-      // already installed.
+      // Installs catalog plugins for the current org, resolving each
+      // request's transitive `requires` chain from the catalog (facade
+      // requires tech-drawing and nesting). Orgs get no plugins at
+      // creation: every spec that reads a pack/plugin type installs it
+      // explicitly. Idempotent — 409 means already installed.
       async installPlugins(pluginIds = []) {
         const me = await (await request.get('/api/auth/me')).json();
-        for (const pluginId of pluginIds) {
+        const catalog = await (await request.get('/api/plugins/catalog')).json();
+        const requiresByPlugin = new Map((catalog || []).map(item => [item.pluginId, item.requires || []]));
+        const ordered = [];
+        const visit = pluginId => {
+          if (ordered.includes(pluginId)) return;
+          for (const requirement of requiresByPlugin.get(pluginId) || []) visit(requirement);
+          if (!ordered.includes(pluginId)) ordered.push(pluginId);
+        };
+        pluginIds.forEach(visit);
+        for (const pluginId of ordered) {
           const response = await request.post(`/api/organizations/${me.organizationId}/plugins`, {
             data: { pluginId },
             failOnStatusCode: false
@@ -154,9 +163,15 @@ export const test = base.extend({
       // Wires the plugin's endpoint-mode service URLs (the module proxy
       // derives the surface origin from the first endpoint) — specs that
       // drive plugin surfaces or executor services need this beside the
-      // install.
+      // install. Platform-managed executors carry their deployment origin
+      // at install and the settings boundary refuses organization writes,
+      // so wiring applies to third-party plugins alone.
       async connectPlugin(pluginId, baseUrl) {
         const me = await (await request.get('/api/auth/me')).json();
+        const settingsResponse = await request.get(`/api/organizations/${me.organizationId}/plugins/${pluginId}/settings`);
+        expect(settingsResponse.ok(), await settingsResponse.text()).toBeTruthy();
+        const settings = await settingsResponse.json();
+        if (settings.platformManaged) return settings;
         const catalog = await (await request.get('/api/plugins/catalog')).json();
         const listing = (catalog || []).find(item => item.pluginId === pluginId);
         const services = (listing && (listing.services || listing.declarations?.services)) || [];
@@ -172,6 +187,7 @@ export const test = base.extend({
           failOnStatusCode: false
         });
         expect(response.ok(), await response.text()).toBeTruthy();
+        return await response.json();
       },
       // Authors an organization type declaration (validated + versioned
       // by the CTS registry). Child types must be declared before the

@@ -6,7 +6,7 @@ import documentsListing from '../workers/documents/listing.json' with { type: 'j
 import techDrawingListing from '../workers/tech-drawing/listing.json' with { type: 'json' };
 import nestingListing from '../workers/nesting/listing.json' with { type: 'json' };
 import { composeNestingAttemptTree, composeNestingAttemptGraph } from '#test-data/nesting-attempt-authoring.js';
-import { compileTreeDeclarations } from '#packages/processes/src/designer.js';
+import { compileTreeDeclarations } from '#packages/processes/designer';
 import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
 
 // Org1's nesting flow: a manual solve over the attempt's designs, with the
