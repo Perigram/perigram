@@ -349,7 +349,8 @@ describe('useGraphDocumentSession', () => {
       }]
     });
     const pluginGroup = session.paletteGroups.value.find(group => group.source === 'plugin');
-    expect(pluginGroup).toMatchObject({ id: 'graph-plugin.example-numeric-operations', label: 'Numeric operations' });
+    expect(pluginGroup).toMatchObject({ id: 'plugin-example', label: 'Example' });
+    expect(pluginGroup.subgroups[0]).toMatchObject({ id: 'numeric-operations', label: 'Numeric operations' });
     expect(pluginGroup.items[0]).toMatchObject({ keywords: ['arithmetic', 'math'], searchTerms: ['plugin.example', 'math.double', 'numeric-operations'] });
     expect(pluginGroup.items[0].operation).toEqual({
       provider: 'plugin.example', id: 'math.double', version: '1'

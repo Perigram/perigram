@@ -23,19 +23,21 @@ function declaredPaletteGroups() {
 }
 
 describe('Facade plugin node palette contribution', () => {
-  it('groups sheet planning and production export by workflow', () => {
+  it('exposes one plugin section with sheet planning and production export subgroups', () => {
     const groups = declaredPaletteGroups();
-    const planning = groups.find(group => group.id === 'plugin-facade-sheet-planning');
-    const production = groups.find(group => group.id === 'plugin-facade-production-export');
-    expect(planning.items.map(item => item.id)).toEqual([
+    expect(groups).toHaveLength(1);
+    const section = groups[0];
+    expect(section).toMatchObject({ id: 'plugin-facade', source: 'plugin' });
+    const subgroup = id => section.subgroups.find(group => group.id === id);
+    expect(subgroup('sheet-planning').items.map(item => item.id)).toEqual([
       'service:facade:construct-sheet',
       'service:facade:match-sheet'
     ]);
-    expect(production.items.map(item => item.id)).toContain('service:facade:generate-sheet-dxf');
-    expect(groups.some(group => group.id === 'plugin-facade-nesting')).toBe(false);
-    expect(groups.some(group => group.items.some(item => item.id === 'service:facade:extract-geometry'))).toBe(false);
-    expect(groups.some(group => group.items.some(item => item.id === 'service:facade:bake'))).toBe(false);
-    expect(groups.some(group => group.items.some(item => item.id === 'service:facade:nesting-parts'))).toBe(false);
+    expect(subgroup('production-export').items.map(item => item.id)).toContain('service:facade:generate-sheet-dxf');
+    expect(subgroup('nesting')).toBeUndefined();
+    expect(section.items.map(item => item.id)).not.toContain('service:facade:extract-geometry');
+    expect(section.items.map(item => item.id)).not.toContain('service:facade:bake');
+    expect(section.items.map(item => item.id)).not.toContain('service:facade:nesting-parts');
   });
 
   it('keeps every declared projection and service reachable from the plugin palette', () => {

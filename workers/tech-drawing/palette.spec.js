@@ -1,16 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import listing from './listing.json';
-import { servicesPaletteGroups } from '#packages/processes';
+import { pluginPaletteGroups } from '#packages/processes';
 
 describe('Technical drawing plugin node palette contribution', () => {
-  it('keeps its ungrouped operation under a stable provider-owned section', () => {
+  it('exposes one plugin section: declared groups as subgroups, its ungrouped operation on the root', () => {
     const services = Object.fromEntries(listing.declarations.services.map(service => [
       service.id,
       { ...service, command: `plugin.${listing.pluginId}.${service.id}`, pluginId: listing.pluginId }
     ]));
-    const groups = servicesPaletteGroups(services);
+    const groups = pluginPaletteGroups({}, services);
     expect(groups).toHaveLength(1);
-    expect(groups[0]).toMatchObject({ id: 'plugin-tech-drawing-operations', label: 'Operations', source: 'plugin' });
-    expect(groups[0].items.map(item => item.id)).toEqual(['service:tech-drawing:place-dxf']);
+    const section = groups[0];
+    expect(section).toMatchObject({ id: 'plugin-tech-drawing', source: 'plugin' });
+    expect(section.subgroups).toBeUndefined();
+    expect(section.items.map(item => item.id)).toEqual(['service:tech-drawing:place-dxf']);
   });
 });

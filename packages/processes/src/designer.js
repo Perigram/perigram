@@ -815,73 +815,52 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
   return [...outputIds];
 }
 
-// Services group from the operator registry (SPEC §8 s species): one item
-// per registered service — dropping one binds the operator; the executable
-// twin is the operator's declared command. The projected domain's
-// `serviceContracts` is the single source: what is not registered is not
-// offered.
+// Framework services (SPEC §8 s species): providerless service
+// contracts keep one platform Services group. Plugin-owned services
+// belong to `pluginPaletteGroups`.
 export function servicesPaletteGroups(serviceContracts = {}) {
-  const pluginGroups = new Map();
   const frameworkItems = [];
   for (const service of Object.values(serviceContracts || {})) {
-    if (!service?.id || !service.command || service.palette?.visible === false || service.palette?.group) continue;
-    const provider = pluginProviderId(service);
-    const localId = provider && String(service.id).startsWith(`plugin.${provider}.`)
-      ? String(service.id).slice(`plugin.${provider}.`.length)
-      : String(service.id);
-    const item = paletteItem(
-      provider ? `service:${provider}:${localId}` : `service:${service.id}`,
+    if (!service?.id || !service.command || service.palette?.visible === false) continue;
+    if (String(service.plugin || '') || pluginProviderId(service)) continue;
+    frameworkItems.push(paletteItem(
+      `service:${service.id}`,
       'cts.service',
       {
-        label: service.label || service.render?.label || localId,
-        description: service.description || service.render?.description || service.label || service.render?.label || localId,
-        searchTerms: [provider, service.id, service.command, ...Object.keys(service.signature?.input?.fields || {}), ...Object.keys(service.signature?.output?.fields || {}), ...(service.palette?.keywords || [])].filter(Boolean),
+        label: service.label || service.render?.label || service.id,
+        description: service.description || service.render?.description || service.label || service.render?.label || service.id,
+        searchTerms: [service.id, service.command, ...Object.keys(service.signature?.input?.fields || {}), ...Object.keys(service.signature?.output?.fields || {}), ...(service.palette?.keywords || [])].filter(Boolean),
         icon: service.render?.icon || 'pi pi-bolt',
         preset: { operator: service.id }
       }
-    );
-    if (!provider) {
-      frameworkItems.push(item);
-      continue;
-    }
-    if (!pluginGroups.has(provider)) {
-      pluginGroups.set(provider, {
-        id: `plugin-${provider}-operations`,
-        label: 'Operations',
-        items: [],
-        source: 'plugin'
-      });
-    }
-    pluginGroups.get(provider).items.push(item);
+    ));
   }
-  return [
-    ...pluginGroups.values(),
-    ...(frameworkItems.length ? [{ id: 'services', label: 'Services', items: frameworkItems, source: 'framework' }] : [])
-  ];
+  return frameworkItems.length
+    ? [{ id: 'services', label: 'Services', items: frameworkItems, source: 'framework' }]
+    : [];
 }
 
-// Plugin-owned palette sections — the provider contribution law (SPEC §28):
-// a plugin's declared data operations surface under its own semantic group,
-// alongside the platform's native operation families. One item per OPERATION, never
-// per-type copies: the extract preset binds the projection, the type
-// binds at configure time (Type pin / inspector), and the inspector's
-// projection switch is the single mode selector. The Documents plugin's
-// `table-data` group carries table decomposition (rows, cells, text); the
-// Facade plugin's `facade` group carries cassette geometry extraction beside
-// the solver. Ungrouped projections stay unlisted (the generic extract
-// preset covers them).
+// Plugin palette sections (SPEC §28.14): one section per installed
+// plugin, named by the plugin, the plugin's declared groups as subgroups
+// inside; ungrouped contributions sit on the section root. Services
+// arrive in the projected shape (`group`, `groupLabel`, `plugin`,
+// `pluginLabel`) or the listing shape (`palette.group`); projection
+// contracts carry `palette`.
 export function pluginPaletteGroups(projectionContracts = {}, serviceContracts = {}) {
   const sections = new Map();
-  const section = (provider, group, label = '') => {
-    const key = `${provider}:${group}`;
-    if (!sections.has(key)) sections.set(key, {
-      id: `plugin-${provider}-${group}`,
-      label: label || humanizePaletteGroup(group),
-      items: [],
-      source: 'plugin'
-    });
-    else if (label) sections.get(key).label = label;
-    return sections.get(key);
+  const sectionFor = (provider, pluginLabel = '') => {
+    const id = `plugin-${provider}`;
+    if (!sections.has(id)) {
+      sections.set(id, { id, label: pluginLabel || humanizePaletteGroup(provider), source: 'plugin', root: [], subgroups: new Map() });
+    } else if (pluginLabel) sections.get(id).label = pluginLabel;
+    return sections.get(id);
+  };
+  const itemsFor = (section, group, label = '') => {
+    if (!group) return section.root;
+    if (!section.subgroups.has(group)) {
+      section.subgroups.set(group, { id: group, label: label || humanizePaletteGroup(group), items: [] });
+    } else if (label) section.subgroups.get(group).label = label;
+    return section.subgroups.get(group).items;
   };
   const seenProjections = new Set();
   for (const projection of Object.values(projectionContracts || {})) {
@@ -891,7 +870,7 @@ export function pluginPaletteGroups(projectionContracts = {}, serviceContracts =
     const key = `${provider}:${projection.id}`;
     if (seenProjections.has(key)) continue;
     seenProjections.add(key);
-    section(provider, projection.palette.group, projection.palette.label).items.push(paletteItem(`extract:${provider}:${projection.id}`, 'cts.read', {
+    itemsFor(sectionFor(provider), projection.palette.group, projection.palette.label).push(paletteItem(`extract:${provider}:${projection.id}`, 'cts.read', {
       label: projection.label,
       description: projection.description || projection.label,
       searchTerms: [provider, projection.id, projection.typeId, projection.service, ...(projection.palette.keywords || [])].filter(Boolean),
@@ -900,21 +879,34 @@ export function pluginPaletteGroups(projectionContracts = {}, serviceContracts =
     }));
   }
   for (const service of Object.values(serviceContracts || {})) {
-    if (!service?.id || !service.command || service.palette?.visible === false || !service.palette?.group) continue;
-    const provider = pluginProviderId(service);
+    if (!service?.id || !service.command || service.palette?.visible === false) continue;
+    const provider = String(service.plugin || '') || pluginProviderId(service);
     if (!provider) continue;
+    const group = String(service.palette?.group || service.group || '');
+    const groupLabel = String(service.palette?.label || service.groupLabel || '');
     const localId = String(service.id).startsWith(`plugin.${provider}.`)
       ? String(service.id).slice(`plugin.${provider}.`.length)
       : String(service.id);
-    section(provider, service.palette.group, service.palette.label).items.push(paletteItem(`service:${provider}:${localId}`, 'cts.service', {
+    itemsFor(sectionFor(provider, String(service.pluginLabel || '')), group === provider ? '' : group, groupLabel).push(paletteItem(`service:${provider}:${localId}`, 'cts.service', {
       label: service.label || service.render?.label || localId,
       description: service.description || service.render?.description || service.render?.label || localId,
-      searchTerms: [provider, service.id, service.command, ...Object.keys(service.signature?.input?.fields || {}), ...Object.keys(service.signature?.output?.fields || {}), ...(service.palette.keywords || [])].filter(Boolean),
+      searchTerms: [provider, service.id, service.command, ...Object.keys(service.signature?.input?.fields || {}), ...Object.keys(service.signature?.output?.fields || {}), ...(service.palette?.keywords || [])].filter(Boolean),
       icon: service.render?.icon || 'pi pi-bolt',
       preset: { operator: service.id }
     }));
   }
-  return [...sections.values()].filter(group => group.items.length);
+  return [...sections.values()]
+    .map(({ id, label, source, root, subgroups }) => {
+      const groups = [...subgroups.values()];
+      return {
+        id,
+        label,
+        source,
+        items: [...root, ...groups.flatMap(group => group.items)],
+        ...(groups.length ? { subgroups: groups } : {})
+      };
+    })
+    .filter(section => section.items.length);
 }
 
 function pluginProviderId(source = {}) {

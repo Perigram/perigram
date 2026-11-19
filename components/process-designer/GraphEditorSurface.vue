@@ -145,6 +145,16 @@ function processDefinitionText(definition) {
   const item = genericPaletteItemForKind(definition.id);
   return item ? { label: paletteLabel(item), description: paletteDescription(item) } : null;
 }
+
+// Installed plugin display names (the listing `name`): one per pluginId
+// across engine and runtime bindings.
+const pluginDisplayNames = computed(() => {
+  const names = {};
+  for (const binding of [...clientEngineBindings.value, ...clientRuntimeBindings.value]) {
+    if (binding?.pluginId && binding.name) names[binding.pluginId] = binding.name;
+  }
+  return names;
+});
 const loading = ref(true);
 const loadError = ref('');
 const saving = ref(false);
@@ -207,7 +217,8 @@ const defaultSession = props.session ? null : useGraphDocumentSession({
   graphDocuments,
   finalizeExecution: pluginRuntime.finalizeExecution,
   queryOrganizationData,
-  definitionText: processDefinitionText
+  definitionText: processDefinitionText,
+  pluginNames: pluginDisplayNames
 });
 const session = props.session || defaultSession;
 const {

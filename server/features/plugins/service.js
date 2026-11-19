@@ -736,6 +736,8 @@ export async function servicesForOrganization(organizationId) {
         id,
         species: 'service',
         command: id,
+        plugin: install.pluginId,
+        pluginLabel: install.name,
         group: service.palette?.group || install.pluginId,
         ...((service.palette?.label || (!service.palette?.group && install.name)) ? {
           groupLabel: service.palette?.label || install.name
