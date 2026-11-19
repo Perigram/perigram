@@ -478,8 +478,15 @@ not a second graph implementation or a big-bang rewrite.
   pins with subgraph interfaces, aggregated capabilities and execution
   kinds, and source-mapped diagnostics. Open: explicit control/iteration
   semantics (the graph format declares edge `kind` alone today),
-  execution-plan provenance fields, and host wiring (server evaluate,
-  editor preflight) onto the IR.
+  execution-plan provenance fields, and editor-preflight wiring onto the
+  IR.
+  Progress (2026-11-19, later session): server evaluation now lowers
+  through the IR as its preflight — `evaluateSavedGraph` refuses
+  unresolved operations, non-server targets, incompatible edges, and
+  unresolved Use Graph pins with `400` plus node/edge-mapped diagnostics
+  before any managed task starts; edge decisions run through the shared
+  sdk comparator with the `perigram.cts` profile registered, and ports
+  without declared semantics receive no static decision.
 - [ ] Define the language-independent structured authoring schema shared
   by textual DSL forms and JSON/API payloads (SPEC §30.9.1): both are
   encodings of one schema flowing through the same normalization,
