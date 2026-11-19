@@ -2777,8 +2777,6 @@
   "processDesigner": {
     "classNamePlaceholder": "Widget name",
     "socketSingleWire": "“{socket}” accepts one wire — connect a list source or use a collection node instead.",
-    "socketConnected": "Connected",
-    "socketUnconnected": "Not connected",
     "inputDefaults": "Input defaults",
     "valueType": "Value type",
     "editStructuredValue": "Edit structured value",

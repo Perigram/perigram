@@ -17,7 +17,7 @@
         @click.stop="toggleCollapsed"
       />
       <div v-tooltip.bottom="nodeSpecTooltip" class="min-w-0 flex-1">
-        <div v-if="data.groupLabel" class="truncate text-supporting text-muted">{{ data.groupLabel }}</div>
+        <div v-if="data.groupLabel && !collapsed" class="truncate text-supporting text-muted">{{ data.groupLabel }}</div>
         <div class="flex min-w-0 items-center gap-2">
           <i v-if="data.processNodeGlyph"  :class="processNodeGlyphClass(data.processNodeGlyph)" class="shrink-0 text-muted" aria-hidden="true" />
           <strong class="block min-w-0 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
@@ -67,47 +67,33 @@
       />
     </div>
 
-    <!-- Collapsed (§28 canvas rethinking): the card folds to its title
-         with every socket at a distinct position — inputs on the top
-         rail, outputs on the bottom rail, the name centered between. -->
-    <div v-if="collapsed" class="mt-1 flex flex-col items-center gap-1 py-0.5">
-      <div class="flex items-center gap-1.5">
-        <DesignerSocketHandle
-          v-for="input in collapseInputs"
-          :key="`ci-${input.id}`"
-          :socket="input"
-          side="top"
-          :title="socketTitle(input)"
-        />
-      </div>
-      <div class="max-w-44 truncate text-label" :title="data.kindLabel || record.kind">{{ data.kindLabel || record.kind }}</div>
-      <div class="flex items-center gap-1.5">
-        <DesignerSocketHandle
-          v-for="output in collapseOutputs"
-          :key="`co-${output.id}`"
-          :socket="output"
-          side="bottom"
-          :title="socketTitle(output)"
-        />
+    <!-- Collapsed: the name once with its header icons; every socket keeps
+         its side rail and expanded order, names on the hover tooltips, so
+         wires keep their anchors. -->
+    <div v-if="collapsed" class="-mx-2.5 mt-1 flex flex-col">
+      <div v-for="row in collapseSocketRows" :key="row.key" class="flex min-h-3.5 items-center">
+        <div v-if="row.input" class="relative w-full py-0.5 pl-3" :title="socketTitle(row.input)">
+          <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
+        </div>
+        <div v-if="row.output" class="relative ml-auto w-full py-0.5 pr-3" :title="socketTitle(row.output)">
+          <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
+        </div>
       </div>
     </div>
 
     <div v-if="socketRows.length && !collapsed" class="-mx-2.5 mt-2 flex flex-col">
       <!-- One-sided rows render without their empty opposite cell; row
-           labels ALWAYS render — quiet cards keep their sockets named
-           (owner corrective 2026-09-28, node UI contract). -->
+           labels ALWAYS render and carry the socket contract on hover
+           (type · access) — the row itself stays the name (node UI
+           contract). -->
       <div v-for="row in socketRows" :key="row.key" class="flex min-h-7 items-center gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
-          <span class="truncate text-supporting text-muted">{{ row.input.typeLabel }}</span>
-          <i :class="row.input.connected ? 'pi pi-link text-muted' : 'pi pi-unlink text-muted'" :title="row.input.connected ? t('processDesigner.socketConnected') : t('processDesigner.socketUnconnected')" aria-hidden="true" />
         </div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
           <span class="block truncate text-supporting">{{ row.output.label }}</span>
-          <span class="truncate text-supporting text-muted">{{ row.output.typeLabel }}</span>
-          <i :class="row.output.connected ? 'pi pi-link text-muted' : 'pi pi-unlink text-muted'" :title="row.output.connected ? t('processDesigner.socketConnected') : t('processDesigner.socketUnconnected')" aria-hidden="true" />
         </div>
       </div>
     </div>
@@ -120,14 +106,10 @@
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
-          <span class="truncate text-supporting text-muted">{{ row.input.typeLabel }}</span>
-          <i :class="row.input.connected ? 'pi pi-link text-muted' : 'pi pi-unlink text-muted'" :title="row.input.connected ? t('processDesigner.socketConnected') : t('processDesigner.socketUnconnected')" aria-hidden="true" />
         </div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
           <span class="block truncate text-supporting">{{ row.output.label }}</span>
-          <span class="truncate text-supporting text-muted">{{ row.output.typeLabel }}</span>
-          <i :class="row.output.connected ? 'pi pi-link text-muted' : 'pi pi-unlink text-muted'" :title="row.output.connected ? t('processDesigner.socketConnected') : t('processDesigner.socketUnconnected')" aria-hidden="true" />
         </div>
       </div>
     </div>
@@ -140,7 +122,6 @@ import { operationKindOf } from '@perigram/cts';
 import { computed, ref } from 'vue';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
-import { useI18n } from 'vue-i18n';
 import {
   EFFECT_SPECIES_KINDS,
   formatProcessType } from '@perigram/processes';
@@ -152,15 +133,12 @@ const props = defineProps({
   data: { type: Object, default: () => ({}) },
   selected: { type: Boolean, default: false }
 });
-const { t } = useI18n();
 
 const record = computed(() => props.data.processNodeRecord || props.data);
 const opKind = computed(() => operationKindOf(record.value || {}));
 const isOperation = computed(() => EFFECT_SPECIES_KINDS.has(opKind.value));
-const connectedInputIds = computed(() => new Set(props.data.processConnectedInputIds || []));
-const connectedOutputIds = computed(() => new Set(props.data.processConnectedOutputIds || []));
-const inputSpecs = computed(() => normalizeSpecs(record.value.inputs || props.data.inputSpecs || [], 'input'));
-const outputSpecs = computed(() => normalizeSpecs(record.value.outputs || props.data.outputSpecs || [], 'output'));
+const inputSpecs = computed(() => normalizeSpecs(record.value.inputs || props.data.inputSpecs || []));
+const outputSpecs = computed(() => normalizeSpecs(record.value.outputs || props.data.outputSpecs || []));
 const dataInputs = computed(() => inputSpecs.value.filter(input => input.role === 'data'));
 const dataOutputs = computed(() => outputSpecs.value.filter(output => output.role === 'data'));
 const eventInputs = computed(() => inputSpecs.value.filter(input => input.role !== 'data'));
@@ -188,9 +166,13 @@ const faultMessages = computed(() => (Array.isArray(props.data.diagnostics) ? pr
 const faulted = computed(() => Boolean(faultMessages.value?.length));
 const errorPopover = ref(null);
 const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutputs.value, 'event'));
-// The collapsed card's edge sockets: every socket, data and event alike.
-const collapseInputs = computed(() => [...dataInputs.value, ...eventInputs.value]);
-const collapseOutputs = computed(() => [...dataOutputs.value, ...eventOutputs.value]);
+// The collapsed card's socket rows: every socket, data and event alike,
+// keeping its side rail and expanded order.
+const collapseSocketRows = computed(() => alignSockets(
+  [...dataInputs.value, ...eventInputs.value],
+  [...dataOutputs.value, ...eventOutputs.value],
+  'collapse'
+));
 const collapsed = computed(() => Boolean(props.data.collapsed));
 
 function toggleCollapsed() {
@@ -209,8 +191,7 @@ function togglePreviewVisible() {
   update({ previewVisible: previewVisible.value ? false : null });
 }
 
-function normalizeSpecs(items, direction) {
-  const connectedIds = direction === 'output' ? connectedOutputIds.value : connectedInputIds.value;
+function normalizeSpecs(items) {
   return items.map((item, index) => ({
     ...item,
     id: item.id || item.label || index,
@@ -218,7 +199,6 @@ function normalizeSpecs(items, direction) {
     base: item.type?.base || 'json',
     type: item.type || {},
     role: item.role || 'data',
-    connected: connectedIds.has(item.id),
     typeLabel: formatProcessType(item.type)
   }));
 }
@@ -232,7 +212,8 @@ function alignSockets(inputs, outputs, prefix) {
 }
 
 function socketTitle(item) {
-  return [item.label, item.typeLabel, item.description].filter(Boolean).join(' · ');
+  return [item.label, item.typeLabel, item.access && item.access !== 'item' ? item.access : '', item.description]
+    .filter(Boolean).join(' · ');
 }
 
 function socketClass(item, side) {
