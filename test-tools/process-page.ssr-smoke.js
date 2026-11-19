@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createSSRApp, h } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import { createI18n } from 'vue-i18n';
+import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
 import Re_L from '~/assets/presets/re_l';
@@ -36,6 +37,7 @@ describe('process designer page SSR smoke', () => {
     });
     const app = createSSRApp({ render: () => h(ProcessPage) });
     app.use(i18n);
+    app.use(createPinia());
     app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
     app.use(ToastService);
     app.directive('tooltip', { getSSRProps: () => ({}) });
