@@ -2606,6 +2606,35 @@ are usable; performance is measured; rollback or compatibility behavior
 is documented. A parallel implementation may exist during migration
 only with a named owner, parity tests, and a removal condition.
 
+### 30.12 Non-negotiable architecture laws
+
+1. One canonical semantic model for types, operations, definitions,
+   and graphs.
+2. Definitions are versioned data; graphs compose definitions.
+3. Types themselves are programmable through the same model.
+4. Platform, plugin, and organization-defined capabilities differ by
+   provider and authority, not by language.
+5. Values may be structured data or explicitly managed opaque runtime
+   values; JSON is not the universal runtime value model.
+6. Immutable values and pure evaluation are the default; persistent
+   mutation is an explicit authorized effect.
+7. Capabilities are checked at authoritative host boundaries; no
+   plugin, graph, compiler, or inspector receives ambient authority.
+8. Pure evaluation is deterministic for pinned inputs and versions;
+   effects carry explicit execution evidence.
+9. The compiler and IR do not depend on a particular editor or UI
+   framework.
+10. Definitions, values, executions, diagnostics, and provenance are
+    inspectable subject to the same access and redaction rules.
+11. Durable workflow execution remains a profile over shared graph
+    semantics, not a competing language or a universal scheduler.
+12. Migration is evidence-driven; no big-bang rewrite and no deletion
+    before parity, authorization, data, and recovery gates pass.
+
+The first implementation deliverable is the semantic model and IR
+specification plus a vertical-slice plan. It is not a new editor, a
+second evaluator, or a broad rewrite of the existing application.
+
 ### 30.13 Normative semantic model, type layers, and typed IR
 
 This subsection makes the shared model implementable. It is normative
@@ -2780,35 +2809,6 @@ vertical slice that:
 The CTS expression evaluator, process evaluator, and any legacy HAG
 construction path remain behind adapters until this proof and the
 migration gates in §30.11 pass.
-
-### 30.12 Non-negotiable architecture laws
-
-1. One canonical semantic model for types, operations, definitions,
-   and graphs.
-2. Definitions are versioned data; graphs compose definitions.
-3. Types themselves are programmable through the same model.
-4. Platform, plugin, and organization-defined capabilities differ by
-   provider and authority, not by language.
-5. Values may be structured data or explicitly managed opaque runtime
-   values; JSON is not the universal runtime value model.
-6. Immutable values and pure evaluation are the default; persistent
-   mutation is an explicit authorized effect.
-7. Capabilities are checked at authoritative host boundaries; no
-   plugin, graph, compiler, or inspector receives ambient authority.
-8. Pure evaluation is deterministic for pinned inputs and versions;
-   effects carry explicit execution evidence.
-9. The compiler and IR do not depend on a particular editor or UI
-   framework.
-10. Definitions, values, executions, diagnostics, and provenance are
-    inspectable subject to the same access and redaction rules.
-11. Durable workflow execution remains a profile over shared graph
-    semantics, not a competing language or a universal scheduler.
-12. Migration is evidence-driven; no big-bang rewrite and no deletion
-    before parity, authorization, data, and recovery gates pass.
-
-The first implementation deliverable is the semantic model and IR
-specification plus a vertical-slice plan. It is not a new editor, a
-second evaluator, or a broad rewrite of the existing application.
 
 ## 31. Architecture simplification and extraction sequence (historical implementation plan)
 
