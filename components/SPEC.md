@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-10-24
-updated: 2026-10-24
+updated: 2026-11-19
 ```
 
 # SPEC: Components
@@ -34,14 +34,6 @@ feature surface.
 | Localization | All user-facing strings through i18n. |
 | Sizing | Rem basis shared with PrimeVue; mobile scales through root font-size. |
 
-### Component inventory (parent README owns)
-
-- Top-level loose SFCs (`AuthProgress`, `ChatSupport`, `Footer`,
-  `LanguageSwitcher`, `PermissionEditor`, `PermissionRuleBuilder`,
-  `ThemeSwitcher`) are inventoried in the parent README.
-- Every child folder is registered in the parent's map with a one-line
-  owns-statement linking its README.
-
 ### Single card/surface registry
 
 `utils/design-system.js` builds the one entity-surface registry:
@@ -69,6 +61,172 @@ their own routes; the overload registry carries only `home`).
 entity-card family: a surface table (surface key → DTO contract → live
 consumers) plus each card's real invariants. Cards are registry-bound
 surfaces; adding an entity type registers a card and a contract entry.
+
+## Design-system consistency plan
+
+The design system already has a coherent foundation: semantic token
+projections, Aura-owned generic chrome, registered shared primitives,
+entity surface contracts, a UI lab, and static visual-drift checks.
+The next step is to make semantic composition and behavior as consistent
+and enforceable as visual styling. This is an implementation plan, not
+authorization to replace PrimeVue, rewrite the component tree, or add a
+second component framework.
+
+### Target component layers
+
+1. **Foundations** — semantic tokens, typography roles, color, density,
+   spacing, sizing, themes. Owned by `assets/tokens/`.
+2. **Framework primitives** — raw PrimeVue/Aura components and their
+   approved shared wrappers. PrimeVue owns generic component chrome.
+3. **Shared semantic components** — registered components such as
+   `InstanceCard`, `FactRows`, `StandardDialog`, and state primitives.
+   They own reusable application semantics and behavior.
+4. **Composition recipes** — documented slot contracts for recurring
+   structures such as identity, metadata, facts, headers, forms, collections,
+   and actions. Implement recipes with existing Vue components and slots;
+   do not introduce a new runtime or universal prop-heavy component.
+5. **Feature surfaces** — pages, workspaces, and entity-specific components.
+   They own domain data and genuinely domain-specific composition, not
+   generic chrome or independent visual conventions.
+
+A component or rule has one authoritative owner. Registries may project
+that contract for discovery and rendering, but must not duplicate its
+meaning in parallel vocabularies.
+
+### Implementation phases
+
+#### Phase 1 — Repair existing contract violations (P0)
+
+- Define the supported slots and their rendering semantics for each
+  `InstanceCard` variant (`inline`, `compact`, `card`). Either preserve
+  a slot consistently or explicitly mark it unsupported; do not silently
+  drop supplied content. Check current consumers, including UserCard and
+  OrganizationCard, and migrate them to the declared contract.
+- Make `FactRows` render values according to semantic field/display roles.
+  Ordinary text, supporting values, technical identifiers and measured
+  values must not all inherit `text-technical`. Resolve the role from the
+  existing field/display contract where possible; do not infer semantics
+  from ad hoc component-local path lists.
+- Remove untranslated English defaults from shared primitives.
+  Generic labels such as dialog cancel/save must resolve through i18n or
+  be required localized inputs. Locale-sensitive date formatting must use
+  the application's active locale.
+- Add focused regression tests for each repaired behavior.
+
+**Exit criteria:** every supplied slot has an explicit per-variant
+contract; representative entity cards retain their contextual content in
+all supported variants; fact values use semantic typography; shared
+controls expose no hardcoded user-facing English; locale formatting follows
+the active application locale.
+
+#### Phase 2 — Establish one component contract model (P1)
+
+- Audit the relationship between
+  `DESIGN_SYSTEM_VARIANTS`, `DESIGN_SYSTEM_PRIMITIVES`,
+  `DESIGN_SYSTEM_ENTITY_CONTRACTS`, `DESIGN_SYSTEM_SURFACES`,
+  `DESIGN_SYSTEM_SURFACE_CONTRACTS`, runtime display contracts, and
+  component props/slots.
+- For each vocabulary, document its owner, consumers, and whether it is
+  authored input or derived projection. Remove duplicate vocabularies
+  only where they express the same fact; keep distinct runtime and
+  authoring concerns separate.
+- Clarify the difference between component variants, host surface
+  contexts, placement, and data-display modes. In particular, state
+  whether `table`, `picker`, and `workspace` are component contracts,
+  runtime contexts, or both through an explicit mapping.
+- Make preview policy real and declarative per entity/surface, or remove
+  the unused preview vocabulary from this contract and name its actual
+  owner. A constant `previewFor() => 'none'` must not masquerade as a
+  configurable policy.
+- Keep `utils/design-system.js` as the single entity-card registry;
+  do not add a second card map.
+
+**Exit criteria:** every contract vocabulary has one documented owner;
+every mapping between variants, surfaces and runtime display modes is
+explicit; no dead or misleading contract field remains; registry tests
+prove the single-card-registry law.
+
+#### Phase 3 — Formalize composition recipes (P1)
+
+- Identify recurring structures from existing components before creating
+  abstractions: identity blocks, contextual metadata, fact groups,
+  section headers, action areas, form rows, and collection headers.
+- For each recipe, specify semantic purpose, slots, supported variants,
+  ordering, empty-state behavior, density, typography roles, localization,
+  and accessibility obligations.
+- Implement recipes through existing shared primitives and Vue slot
+  composition. Extract only patterns with multiple real consumers.
+- Keep domain-specific content and actions in entity/feature components.
+  Do not create a universal card or a large prop matrix to cover unrelated
+  layouts.
+- Update the relevant child README as the canonical home for each recipe
+  family; keep the parent component inventory and UI law concise.
+
+**Exit criteria:** repeated generic composition has one shared contract;
+feature components compose it without duplicating generic markup or
+chrome; domain-specific composition remains possible without exceptions
+to the token and PrimeVue laws.
+
+#### Phase 4 — Extend enforcement from visual to behavioral contracts (P1)
+
+- Retain and extend `scripts/ui-visual-inventory.js` and
+  `shared/design-system.spec.js`; do not replace the existing visual
+  guardrails.
+- Add component contract tests for props, slots, variants, required
+  inputs, and unsupported combinations.
+- Add rendered variant/slot matrix tests for every registered entity card.
+- Add behavioral and accessibility tests: keyboard activation, accessible
+  names, focus visibility and restoration, disabled/loading behavior,
+  and nested interactive-element correctness.
+- Add theme and responsive coverage for canonical primitives and recipes.
+- Test rendered output and interactions, not only source-code strings.
+- Use the UI lab as the inspectable catalog of canonical examples and
+  variants; examples must be generated from the same contract vocabulary
+  they demonstrate.
+
+**Exit criteria:** violations of visual, semantic, accessibility, or
+behavioral contracts fail automated checks; the UI lab covers every
+registered shared primitive and supported variant; no test relies solely
+on source-text coincidence where rendered behavior is the contract.
+
+#### Phase 5 — Repository-wide consistency audit (P2)
+
+- Audit shared primitives, entity cards, ui-mapping materializations,
+  generated surfaces, pages and layouts against the finalized contracts.
+- Classify each finding as a shared-system defect, legitimate
+  domain-specific behavior, or an explicit documented exception.
+- Fix systemic causes before applying consumer-by-consumer patches.
+- Remove obsolete local styling and compatibility branches after their
+  consumers migrate.
+- Update component READMEs and the design-system agent skill to describe
+  the implemented contracts, not aspirational or stale behavior.
+
+**Exit criteria:** all active UI surfaces comply or have a narrow,
+documented exception with an owner; no broad allowlist hides recurring
+drift; documentation, UI lab, tests and implementation describe the same
+system.
+
+### Enforcement laws
+
+- Tokens are the only source of visual design values; semantic roles are
+  selected by meaning, not by convenience or the primitive currently
+  rendering the value.
+- PrimeVue/Aura owns generic control and container internals. Shared
+  wrappers own application semantics, not reimplemented generic chrome.
+- Shared primitives must localize all user-facing text and provide
+  consistent accessibility and interaction behavior.
+- A declared component variant is a behavioral and composition contract,
+  not merely a CSS switch.
+- Slots are public APIs: supported content must render predictably;
+  unsupported content must be explicit and detectable.
+- Composition recipes are extracted from repeated real use, not invented
+  speculatively. Feature components retain domain-specific data and logic.
+- Every contract has one authoritative owner. Derived registries and UI
+  lab manifests consume that owner rather than becoming parallel sources.
+- Static visual checks and rendered behavioral tests are complementary;
+  neither substitutes for the other.
+- Exceptions are narrow, justified, and owned. No feature-level styling
+  exemption may become a general escape hatch.
 
 ## Structure
 
