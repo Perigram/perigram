@@ -34,10 +34,12 @@ organizations. Each install carries immutable package assets and declared
 runtime requirements.
 
 For graph-node tasks, the worker returns per-call capability evidence alongside
-the operation output. Evidence records the capability name and safe identifying
-inputs; authorized CTS query/read responses carry their read-set evidence back
-to the graph evaluator. `files.read` evidence includes the file id, content
-hash, and actual organization ownership scope. The evaluator records that
-dependency and rechecks current read access and file bytes before Commit, Bake,
-or Export. Capability authorization is still task-local; untracked capability
-scopes remain unverified and block materialization.
+the operation output. Host authority lives in the task-run evidence journal:
+the claim-bound capability route records what the host itself executed
+(capability id, authorized scope, safe identifying inputs, and read-set or
+file-hash proof), and the graph evaluator merges that journal as the
+authoritative evidence. Worker-reported claims carry the same fields from the
+host responses, but a claim with no journal entry stays unverified and blocks
+materialization. The evaluator records that dependency and rechecks current
+read access and file bytes before Commit, Bake, or Export; capabilities
+outside the host adapter set stay unverified and block materialization.

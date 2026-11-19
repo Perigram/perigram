@@ -114,6 +114,20 @@ export async function updateClaimedById(id, claimToken, update, claimedStatus = 
   return await findById(id);
 }
 
+export async function pushClaimedById(id, claimToken, field, value, claimedStatus = 'RUNNING') {
+  const db = await connectDB();
+  const result = await db.collection(COLLECTION).updateOne(
+    { _id: id instanceof ObjectId ? id : toFlexibleId(id), claimToken, status: claimedStatus },
+    { $push: { [field]: value }, $set: { updatedAt: new Date() } }
+  );
+  if (result.matchedCount !== 1) {
+    const error = new Error('Task run claim was lost');
+    error.statusCode = 409;
+    throw error;
+  }
+  return await findById(id);
+}
+
 export async function list(filter = {}) {
   const db = await connectDB();
   const { limit = 50, organizationId, ...query } = filter;

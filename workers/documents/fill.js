@@ -1,14 +1,18 @@
 // The documents plugin's fill engines (SPEC §24); the token law and the
 // per-format behavior traps live in the plugin README.
 import { readFileSync } from 'node:fs';
-import * as XLSX from 'xlsx/xlsx.mjs';
+import * as XLSX from 'xlsx';
 import fontkit from '@pdf-lib/fontkit';
-import { PDFDocument, rgb } from 'pdf-lib';
+import * as pdfLib from 'pdf-lib';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { marked } from 'marked';
 import { substitute, fillMarkdown, templateTokenKeys } from './template-ir.mjs';
 import { fillWorkbook as fillWorkbookPortable, workbookTemplateTokens as workbookTemplateTokensPortable, workbookTemplateSections as workbookTemplateSectionsPortable, workbookTemplateMetadata as workbookTemplateMetadataPortable } from './workbook-template.mjs';
 export { substitute, fillMarkdown };
+
+// pdf-lib ships CommonJS; the vendored dependency bundle exposes it as a
+// default export while Node's interop also provides named exports.
+const { PDFDocument, rgb } = pdfLib.default ?? pdfLib;
 
 const TOKEN = /\{([A-Za-z_][A-Za-z0-9_.-]*)\}/g;
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -50,8 +54,16 @@ const GRID = rgb(0.72, 0.72, 0.72);
 const SHADE = rgb(0.93, 0.93, 0.95);
 const CODE_SHADE = rgb(0.95, 0.95, 0.95);
 
+// Static font URLs keep the package collector's `new URL(...,
+// import.meta.url)` scan working — a template literal would hide the
+// assets from the seeded package.
+const FONT_URLS = {
+  'pt-sans-regular.ttf': new URL('./assets/fonts/pt-sans-regular.ttf', import.meta.url),
+  'pt-sans-bold.ttf': new URL('./assets/fonts/pt-sans-bold.ttf', import.meta.url)
+};
+
 function fontBytes(name) {
-  return readFileSync(new URL(`./assets/fonts/${name}`, import.meta.url));
+  return readFileSync(FONT_URLS[name]);
 }
 
 async function createPdfDocument() {

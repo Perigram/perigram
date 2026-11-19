@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseListing } from './listing.js';
-import { endpointServices as documentsEndpointServices } from '../../../workers/documents/services.js';
 import { endpointServices as facadeEndpointServices } from '../../../workers/facade/services.js';
 import { services as techDrawingEndpointServices } from '../../../workers/tech-drawing/services.js';
 import build123dCatalog from '../../../workers/build123d/catalog.json' with { type: 'json' };
@@ -77,7 +76,6 @@ describe('repository plugin conformance', () => {
       .map(service => service.id)
       .sort();
     const implementations = {
-      documents: documentsEndpointServices,
       facade: facadeEndpointServices,
       'tech-drawing': techDrawingEndpointServices
     };
@@ -89,6 +87,14 @@ describe('repository plugin conformance', () => {
     const services = implementations[pluginId] || {};
     expect(Object.keys(services).sort()).toEqual(declared);
     for (const id of declared) expect(typeof services[id], `${pluginId}.${id}`).toBe('function');
+  });
+
+  it('documents ships every declared dependency module under its plugin root', () => {
+    const pluginRoot = resolve(repositoryRoot, 'workers/documents');
+    for (const dependency of documentsListing.declarations.dependencies || []) {
+      if (String(dependency.module).startsWith('plugin:')) continue;
+      expect(existsSync(resolve(pluginRoot, `.${dependency.module}`)), `${dependency.name} at ${dependency.module}`).toBe(true);
+    }
   });
 
   it('covers every installed plugin listing in the repository', () => {

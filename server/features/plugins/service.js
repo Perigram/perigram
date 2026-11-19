@@ -18,17 +18,21 @@ import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
 import * as filesService from '../files/service.js';
 import { parseListing, normalizeListing } from '#packages/plugin-sdk/listing';
+import { NODE_EXECUTION_KINDS, normalizeNodeDefinition } from '#packages/plugin-sdk/nodes';
 import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-surfaces.js';
+import { executeSyncManagedOperation } from './sync-runtime.js';
 
 // Connector command ids: plugin.<pluginId>.<serviceId>; the install's
 // claim queue is plugin.<pluginId>@<organizationId>.
 const PLUGIN_COMMAND_PATTERN = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 
-// Execution kinds the managed server path may execute and retry.
-const MANAGED_EXECUTION_KINDS = Object.freeze(['pure', 'read']);
+// The server preview policy over the sdk execution-kind vocabulary: pure and
+// read are the effect-free kinds, the only ones preview dispatches and the
+// task queue retries without an idempotency declaration. Durable writes ride
+// the explicit Commit/Bake/Export adapters (graph-executions).
+export const PREVIEW_EXECUTION_KINDS = Object.freeze(NODE_EXECUTION_KINDS.filter(kind => kind === 'pure' || kind === 'read'));
 
 const BUILTIN_EXECUTORS = Object.freeze({
-  documents: ['DOCUMENTS_EXECUTOR_URL', 'http://documents-executor:8791'],
   facade: ['FACADE_EXECUTOR_URL', 'http://facade-executor:8790'],
   'tech-drawing': ['TECH_DRAWING_EXECUTOR_URL', 'http://tech-drawing-executor:8792'],
   build123d: ['BUILD123D_EXECUTOR_URL', 'http://build123d-executor:8793']
@@ -858,10 +862,13 @@ export async function starterConstructsForOrganization(organizationId) {
 }
 
 // Service-resolved projections (SPEC §8 p extract): the platform reads
-// the target instance, and the plugin's endpoint-mode service computes
-// the projected value over the instance's own values — its §3 fields and,
-// when it carries one, its payload as base64; the service response is
-// the projection value.
+// the target instance, and the plugin's declared pure server operation
+// computes the projected value over the instance's own values — its §3
+// fields and, when it carries one, its payload as base64. The operation
+// runs through the synchronous managed boundary (an in-process load of
+// the pinned organization package — projections cannot park on the
+// claim queue); endpoint-mode projection services keep the endpoint
+// adapter.
 export async function resolveProjectionValue({ organizationId, commandId, typeId, instanceId }) {
   const install = await installForCommand(commandId, organizationId);
   if (!install) {
@@ -869,20 +876,42 @@ export async function resolveProjectionValue({ organizationId, commandId, typeId
   }
   const serviceId = commandId.match(PLUGIN_COMMAND_PATTERN)[2];
   const service = (install.services || []).find(item => item.id === serviceId);
-  if (serviceModeOf(service) !== 'endpoint') {
-    throw createError({ statusCode: 400, message: `Projection service ${serviceId} is not endpoint mode` });
-  }
+  const mode = serviceModeOf(service);
   const instance = await instanceServiceResolver(typeId).getById(String(instanceId)).catch(() => null);
   if (!instance) throw createError({ statusCode: 400, message: `Instance ${instanceId} not found for projection` });
   const payloadRef = instance.payload || null;
   const fileId = payloadRef?.fileId || payloadRef?.id || null;
   const buffer = fileId ? await filesService.getFileBuffer(fileId, 'files') : null;
-  return await callEndpointService(install, serviceId, {
+  const envelope = {
     typeId: String(typeId),
     instanceId: String(instanceId),
     fields: instance.fields || {},
     ...(buffer ? { payloadBase64: Buffer.from(buffer).toString('base64') } : {})
-  });
+  };
+  if (mode === 'managed') {
+    const runtime = (install.declarations?.runtimes || []).find(item => item.id === service?.execution?.runtime);
+    if (!service?.execution
+      || service.execution.kind !== 'pure'
+      || !service.execution.targets?.includes('server')
+      || runtime?.language !== 'javascript'
+      || !runtime?.targets?.includes('server')) {
+      throw createError({
+        statusCode: 400,
+        message: `Projection service ${serviceId} is not a managed pure server operation`
+      });
+    }
+    return await executeSyncManagedOperation({
+      organizationId,
+      install,
+      runtime,
+      operationId: serviceId,
+      input: envelope
+    });
+  }
+  if (mode !== 'endpoint') {
+    throw createError({ statusCode: 400, message: `Projection service ${serviceId} is ${mode} mode` });
+  }
+  return await callEndpointService(install, serviceId, envelope);
 }
 
 // Attachment export bindings (installed plugins): the plugin services
@@ -968,47 +997,52 @@ export async function resolveInstalledGraphNodeDefinition({
   if (definitionVersion !== String(version)) {
     throw createError({ statusCode: 409, message: `Graph node ${provider}/${id}@${version} does not match the installed definition version ${definitionVersion}` });
   }
-  const definition = {
-    provider: String(provider),
-    id: String(id),
-    version: definitionVersion,
-    label: service.label || service.id,
-    ...(service.description ? { description: service.description } : {}),
-    palette: {
-      group: service.palette.group,
-      ...(service.palette.label ? { label: service.palette.label } : {}),
-      keywords: service.palette.keywords || []
-    },
-    inputs: Object.entries(service.signature?.input?.fields || {}).map(([portId, field]) => ({
-      id: portId,
-      label: field.label || portId,
-      ...graphNodePortContract(field),
-      required: field.nullable !== true,
-      ...(Object.hasOwn(field, 'default') ? { default: field.default } : {}),
-      ...(field.description ? { description: field.description } : {})
-    })),
-    outputs: [{
-      id: 'value',
-      label: service.signature?.output?.label || 'Value',
-      ...graphNodePortContract(service.signature?.output || {}),
-      required: true
-    }],
-    ...(service.configuration ? { configuration: service.configuration } : {}),
-    execution: {
-      runtime: runtimeId,
-      kind: service.execution.kind,
-      targets: service.execution.targets,
-      capabilities: service.execution.capabilities || [],
-      deterministic: service.execution.deterministic === true,
-      idempotent: service.execution.idempotent === true
-    },
+  // The provider contract derives through the sdk normalizer — the same
+  // normalization the browser session applies to resolved definitions;
+  // `packagePin` is host execution provenance carried on top of it.
+  const definition = Object.freeze({
+    ...normalizeNodeDefinition({
+      provider: String(provider),
+      id: String(id),
+      version: definitionVersion,
+      label: service.label || service.id,
+      ...(service.description ? { description: service.description } : {}),
+      palette: {
+        group: service.palette.group,
+        ...(service.palette.label ? { label: service.palette.label } : {}),
+        keywords: service.palette.keywords || []
+      },
+      inputs: Object.entries(service.signature?.input?.fields || {}).map(([portId, field]) => ({
+        id: portId,
+        label: field.label || portId,
+        ...graphNodePortContract(field),
+        required: field.nullable !== true,
+        ...(Object.hasOwn(field, 'default') ? { default: field.default } : {}),
+        ...(field.description ? { description: field.description } : {})
+      })),
+      outputs: [{
+        id: 'value',
+        label: service.signature?.output?.label || 'Value',
+        ...graphNodePortContract(service.signature?.output || {}),
+        required: true
+      }],
+      ...(service.configuration ? { configuration: service.configuration } : {}),
+      execution: {
+        runtime: runtimeId,
+        kind: service.execution.kind,
+        targets: service.execution.targets,
+        capabilities: service.execution.capabilities || [],
+        deterministic: service.execution.deterministic === true,
+        idempotent: service.execution.idempotent === true
+      }
+    }),
     packagePin: {
       pluginId,
       version: String(install.version),
       runtimeId,
       operationId: String(id)
     }
-  };
+  });
   return definition;
 }
 
@@ -1070,7 +1104,8 @@ async function waitForManagedNodeTask(run, { signal, timeoutMs = PLUGIN_RUNTIME_
       }
       return {
         output: data.output,
-        capabilityEvidence: Array.isArray(data.capabilityEvidence) ? data.capabilityEvidence : []
+        capabilityEvidence: Array.isArray(data.capabilityEvidence) ? data.capabilityEvidence : [],
+        hostCapabilityEvidence: Array.isArray(current.hostCapabilityEvidence) ? current.hostCapabilityEvidence : []
       };
     }
     if (['FAILED', 'CANCELLED'].includes(current.status)) {
@@ -1090,6 +1125,24 @@ async function waitForManagedNodeTask(run, { signal, timeoutMs = PLUGIN_RUNTIME_
   }
 }
 
+// Host authority over capability evidence: records journalled by the host
+// capability route (verified) override same-named worker claims in execution
+// order; a claim with no host journal entry passes through unverified, and
+// journaled records the worker never reported still count as executed.
+function mergeCapabilityEvidence({ capabilityEvidence = [], hostCapabilityEvidence = [] } = {}) {
+  const matched = new Set();
+  const merged = capabilityEvidence.map(claim => {
+    const index = hostCapabilityEvidence.findIndex((record, position) => record.name === claim.name && !matched.has(position));
+    if (index === -1) return { ...claim };
+    matched.add(index);
+    return { ...hostCapabilityEvidence[index], verified: true };
+  });
+  for (const [index, record] of hostCapabilityEvidence.entries()) {
+    if (!matched.has(index)) merged.push({ ...record, verified: true });
+  }
+  return merged;
+}
+
 // Execute one pure/read graph node through the same isolated platform worker
 // used by plugin services. Each child task carries the parent graph execution
 // id and the installed package pin; no user-supplied executor URL is involved.
@@ -1105,7 +1158,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
     || String(definition.provider || '') !== `plugin.${pluginId}`) {
     throw createError({ statusCode: 400, message: 'Managed graph node package pin does not match its provider operation' });
   }
-  if (!MANAGED_EXECUTION_KINDS.includes(definition.execution?.kind)) {
+  if (!PREVIEW_EXECUTION_KINDS.includes(definition.execution?.kind)) {
     throw createError({ statusCode: 403, message: `Graph preview cannot execute ${definition.execution?.kind || 'unclassified'} operation ${definition.id}` });
   }
   if (invocation.context?.signal?.aborted) throw managedNodeAbortError(invocation.context.signal);
@@ -1165,6 +1218,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
       id: definition.id,
       version: definition.version
     },
+    executionKind: definition.execution?.kind || null,
     packagePin: pin
   };
   try {
@@ -1185,7 +1239,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
         PLUGIN_RUNTIME_MAX_EXECUTION_MS + 10000
       )
     });
-    for (const capability of taskResult.capabilityEvidence) {
+    for (const capability of mergeCapabilityEvidence(taskResult)) {
       const capabilityRecord = {
         ...capability,
         nodeId,
@@ -1195,7 +1249,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
       invocation.context?.capabilityEvidence?.push(capabilityRecord);
       const readSet = capability.readSet;
       const recorder = invocation.context?.readSet;
-      if (capability.name === 'files.read' && recorder
+      if (capability.verified === true && capability.name === 'files.read' && recorder
         && capability.input?.fileId && capability.contentHash) {
         recorder.recordFile({
           fileId: capability.input.fileId,
@@ -1203,7 +1257,7 @@ export async function executeManagedGraphNode(definition, invocation = {}, auth 
           organizationId: capability.organizationId ?? null
         });
       }
-      if (readSet && recorder) {
+      if (capability.verified === true && readSet && recorder) {
         if (readSet.consistency) {
           recorder.setConsistency({
             consistency: readSet.consistency,
@@ -1337,7 +1391,7 @@ export async function executeConnectorService(command, { parameters, auth = {}, 
     }, { ...auth, organizationId: String(organizationId) }, {
       definition: taskContractFor(command.id, install, String(organizationId)),
       workerType: PLUGIN_RUNTIME_WORKER_TYPE,
-      maxAttempts: MANAGED_EXECUTION_KINDS.includes(service.execution.kind) || service.execution.idempotent === true ? 3 : 1
+      maxAttempts: PREVIEW_EXECUTION_KINDS.includes(service.execution.kind) || service.execution.idempotent === true ? 3 : 1
     });
     return { tasks: [run] };
   }
@@ -1412,7 +1466,7 @@ export async function invokePreviewValueService(commandId, parameters, auth = {}
   if (mode !== 'managed') {
     throw createError({ statusCode: 400, message: `Service ${serviceId} is ${mode} mode and cannot run in preview` });
   }
-  if (!MANAGED_EXECUTION_KINDS.includes(service.execution?.kind)) {
+  if (!PREVIEW_EXECUTION_KINDS.includes(service.execution?.kind)) {
     throw createError({ statusCode: 403, message: `Preview cannot execute ${service.execution?.kind || 'unclassified'} service ${serviceId}` });
   }
   const definition = await resolveInstalledGraphNodeDefinition({
@@ -1438,6 +1492,81 @@ export async function invokePreviewValueService(commandId, parameters, auth = {}
   return output && typeof output === 'object' && Object.hasOwn(output, 'value')
     ? output.value
     : output;
+}
+
+// The synchronous managed dispatch for value services the caller awaits
+// in one request — construction fills and renders (SPEC §24). Enqueues
+// the isolated plugin-runtime task like the graph node path and waits
+// for its value; the operation resolves from the installed service
+// snapshot directly, so palette-hidden construction helpers stay
+// dispatchable without being graph nodes.
+export async function invokeManagedValueService(commandId, parameters, auth = {}, context = {}) {
+  const match = String(commandId || '').match(PLUGIN_COMMAND_PATTERN);
+  if (!match) throw createError({ statusCode: 404, message: `Command ${commandId} is not an installed plugin service` });
+  const [, pluginId, serviceId] = match;
+  const organizationId = String(auth.organizationId || auth.memberships?.[0]?.organizationId || '');
+  const install = organizationId ? await repository.findInstall(organizationId, pluginId) : null;
+  const service = (install?.services || []).find(item => String(item.id) === serviceId);
+  if (!install || !service) throw createError({ statusCode: 404, message: `Service ${serviceId} is not installed for this organization` });
+  if (serviceModeOf(service) !== 'managed') {
+    throw createError({ statusCode: 400, message: `Service ${serviceId} is ${serviceModeOf(service)} mode and cannot run as a managed value service` });
+  }
+  if (!PREVIEW_EXECUTION_KINDS.includes(service.execution?.kind)) {
+    throw createError({ statusCode: 403, message: `Value service dispatch cannot execute ${service.execution?.kind || 'unclassified'} service ${serviceId}` });
+  }
+  const output = await executeManagedGraphNode({
+    provider: `plugin.${pluginId}`,
+    id: serviceId,
+    version: String(service.nodeVersion || '1'),
+    label: service.label || serviceId,
+    execution: {
+      runtime: service.execution.runtime,
+      kind: service.execution.kind,
+      targets: service.execution.targets,
+      capabilities: service.execution.capabilities || [],
+      deterministic: service.execution.deterministic === true,
+      idempotent: service.execution.idempotent === true
+    },
+    packagePin: {
+      pluginId,
+      version: String(install.version),
+      runtimeId: service.execution.runtime,
+      operationId: serviceId
+    }
+  }, {
+    node: { id: String(context.nodeId || serviceId) },
+    inputs: parameters && typeof parameters === 'object' ? parameters : {},
+    invocationPath: context.invocationPath || [],
+    context: {
+      executionId: String(context.executionId || `construction-${randomBytes(12).toString('hex')}`),
+      signal: context.signal,
+      remainingExecutionMs: context.remainingExecutionMs
+    }
+  }, auth);
+  return output && typeof output === 'object' && Object.hasOwn(output, 'value')
+    ? output.value
+    : output;
+}
+
+// Construction dispatch (SPEC §24): value services the create/preview
+// flows await synchronously in one request — endpoint adapters keep
+// their endpoint path, managed operations run through the pinned
+// plugin-runtime worker.
+export async function invokeConstructionValueService(commandId, parameters, auth = {}, context = {}) {
+  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+  const install = await installForCommand(commandId, organizationId);
+  if (!install) {
+    throw createError({ statusCode: 404, message: `Command ${commandId} is not installed for this organization` });
+  }
+  const serviceId = commandId.match(PLUGIN_COMMAND_PATTERN)[2];
+  const service = (install.services || []).find(item => item.id === serviceId);
+  const mode = serviceModeOf(service);
+  if (mode === 'endpoint') return await invokeEndpointValueService(commandId, parameters, auth);
+  if (mode === 'managed') return await invokeManagedValueService(commandId, parameters, auth, context);
+  throw createError({
+    statusCode: 400,
+    message: `Construction service ${serviceId} is ${mode} mode — constructions dispatch value services synchronously`
+  });
 }
 
 // A service input field declared with base `blob` receives a payload

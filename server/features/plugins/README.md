@@ -115,7 +115,12 @@ definition only declares eligibility and is not an execution endpoint.
 installed graph-node definition that passes
 `resolveInstalledGraphNodeDefinition`'s own gate for the caller's
 organization — the discovery surface for graph authoring; services the
-gate refuses stay unlisted.
+gate refuses stay unlisted. Both derive the provider contract through the
+sdk node-contract normalizer
+([plugin-sdk](../../../packages/plugin-sdk/README.md#provider-neutral-node-contracts))
+— the same normalization the browser session applies to resolved
+definitions — with the server-side `packagePin` execution provenance
+carried on top.
 
 ### Service execution
 
@@ -127,16 +132,38 @@ package into a restricted subprocess and requests host capabilities through
 claim-bound routes. Server-side process preview dispatches endpoint services
 through the endpoint adapter and managed pure/read services through this same
 pinned worker path; effectful services remain forbidden in preview.
+Construction fills and renders (SPEC §24) dispatch through
+`invokeConstructionValueService` — endpoint services through the endpoint
+adapter, managed services through `invokeManagedValueService`, which
+enqueues the isolated task and awaits its value so the create and preview
+flows resolve in one request; the operation resolves from the installed
+service snapshot directly, so palette-hidden construction helpers stay
+dispatchable while staying out of graph-node discovery.
 
 The capability adapter in `capabilities.js` validates the installed version,
-runtime target, operation declaration, and capability allowlist. It uses
+runtime target, operation declaration, and capability allowlist
+(`PLUGIN_RUNTIME_CAPABILITIES` / `PLUGIN_RUNTIME_BROWSER_CAPABILITIES` in
+`shared/plugin-runtime.js` — the single allowlist home, read by this adapter,
+the browser capability route, and the graph evaluator's unverified-capability
+tracking). It uses
 authorized instance and file services. Browser calls use the authenticated
 organization capability route and expose query, read, and file-read
 capabilities. Server calls use the claimed task route and may invoke declared
-writes. The server rehydrates the run actor from current membership and
+writes; each claim-bound execution journals a host-verified evidence record
+onto the task run (`hostCapabilityEvidence`), which the graph host treats as
+the authority over worker-reported claims. The server rehydrates the run
+actor from current membership and
 grants before package delivery and capability calls. The instance-update
 capability accepts an optional `expectedRevision` precondition and forwards
 it to the generic instance compare-and-swap write boundary.
+
+Managed preview dispatch is declaration-driven over the sdk
+`NODE_EXECUTION_KINDS` vocabulary: `PREVIEW_EXECUTION_KINDS` (exported here)
+is the effect-free subset — `pure` and `read` — the only kinds preview
+dispatches and the task queue retries without an idempotency declaration.
+Every other kind (proposal, commit, effect, stateful, control) refuses
+preview; durable writes ride the explicit Commit/Bake/Export adapters owned
+by [graph executions](../graph-executions/README.md#execution-kind-policy).
 
 Remote service adapters currently retain a transitional endpoint mode and
 claim mode. Endpoint-mode operations share one provider-level `executorOrigin`;
@@ -202,21 +229,36 @@ from the Plugins page's connector panel. Authoring and hosting
 (including the executor implementations for both modes) is documented
 in the [plugin SDK](../../../packages/plugin-sdk/README.md).
 
-Built-in executor and surface origins are deployment-owned: the documents/facade migration scripts persist `executorOrigin` and `platformManaged`, and the organization settings API refuses attempts to replace those origins or credentials. The organization settings UI exposes these connections as read-only platform-managed state. Third-party endpoint integrations remain configurable at provider scope.
+Built-in executor and surface origins are deployment-owned: the facade migration script persists `executorOrigin` and `platformManaged`, and the organization settings API refuses attempts to replace those origins or credentials. The organization settings UI exposes these connections as read-only platform-managed state. Third-party endpoint integrations remain configurable at provider scope. The documents plugin declares only managed runtimes; its migration script clears stale executor origins and its operations resolve through organization-owned package assets.
 
 ### Service-resolved projections
 
 SPEC §8 p extract: a listing's type projections may resolve through a
-declared plugin service (`resolve: { service: 'plugin.<id>.<svc>' }`)
-— transitional endpoint mode only, a projection is a synchronous read and cannot
-park on the claim queue (the SDK contract refuses the rest, including
-`handler` resolves, which only endpoint executors bind). The platform
+declared plugin service (`resolve: { service: 'plugin.<id>.<svc>' }`) —
+either an endpoint-mode service or a managed pure server operation (the
+SDK contract refuses the rest, including `handler` resolves, which only
+endpoint executors bind). A projection is a synchronous read inside the
+caller's request and parks on no queue. The platform
 reads the target instance and dispatches `{ typeId, instanceId, fields,
-payloadBase64? }` to the service — the instance's §3 field values and,
+payloadBase64? }` — the instance's §3 field values and,
 when it carries one, its payload as base64; the service's JSON response
 is the projection value (`resolveProjectionValue` here; the process
 runtime's `projectEntity` calls it). Pure compute over values — the
 platform carries no plugin code.
+
+A managed projection resolves through the synchronous managed boundary
+(`sync-runtime.js` here): it loads the pinned organization package's
+runtime entry in-process through a content-digest-keyed data:-URL import
+and executes the declared operation with a capability-refusing context
+and a bounded deadline. The gates mirror the async worker path — the
+installed pin, the manifest entry and its content digest, the operation
+declaration (pure kind, JavaScript runtime, server target) — with the
+entry's digest verified because it is the only asset the boundary
+executes. A projection runtime's entry must therefore be a
+self-contained module (the Documents shared bundle is built that way);
+a load failure answers `502` and a deadline answers `504`. The boundary
+serves any installed plugin's pure server operations; Facade's
+`nesting-parts` adopts it when that plugin migrates.
 
 ### Starter constructs
 

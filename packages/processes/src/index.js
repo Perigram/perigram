@@ -57,7 +57,6 @@ export {
   mintProcessSocketHandle,
   normalizePortSpec,
   parseProcessSocketHandleId,
-  portSpecsCompatible,
   resolveProcessNodePorts,
   resolveNodePort,
   validateProcessEdges
@@ -158,4 +157,8 @@ export {
   createProcessGraphDocument
 } from './process-graph.js';
 
-export { PROCESS_PORT_COMPATIBILITY_PROFILE, registerProcessPortCompatibilityProfile } from './port-compatibility.js';
+export {
+  PROCESS_PORT_COMPATIBILITY_PROFILE,
+  compareProcessPorts,
+  registerProcessPortCompatibilityProfile
+} from './port-compatibility.js';

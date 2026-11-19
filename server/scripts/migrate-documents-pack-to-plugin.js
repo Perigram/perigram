@@ -17,7 +17,8 @@
 //   docker compose -f docker-compose.dev.yml restart app
 //
 // Idempotent: re-running refreshes the catalog pin and the install
-// wiring (endpoints from DOCUMENTS_EXECUTOR_URL), held pins stay, and
+// wiring (stale platform executor origins are cleared — the plugin's
+// operations all run behind managed runtimes), held pins stay, and
 // rewrites only remaining old-command nodes.
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -28,7 +29,6 @@ const SERVICE_REWRITES = {
   'documents.csvText': 'plugin.documents.csv-text'
 };
 
-const executorUrl = process.env.DOCUMENTS_EXECUTOR_URL || 'http://documents-executor:8791';
 const listingPath = process.argv[2] || 'workers/documents/listing.json';
 const listing = normalizeListing(JSON.parse(readFileSync(listingPath, 'utf8')));
 
@@ -55,7 +55,7 @@ for (const org of orgs) {
   if (existing) {
     await db.collection('plugin_installs').updateOne(
       { organizationId, pluginId: listing.pluginId },
-      { $set: { executorOrigin: executorUrl, platformManaged: true }, $unset: { endpoints: '' } }
+      { $set: { platformManaged: true }, $unset: { endpoints: '', executorOrigin: '' } }
     );
     alreadyInstalled += 1;
   } else {
@@ -67,7 +67,6 @@ for (const org of orgs) {
       declarations: listing.declarations,
       services: listing.declarations.services,
       requires: listing.requires,
-      executorOrigin: executorUrl,
       platformManaged: true,
       connectorToken: randomBytes(24).toString('base64url'),
       installedAt: new Date()

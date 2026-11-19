@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import documentsListingV34 from '../../../workers/documents/listing.json';
 
 vi.mock('../instances/index.js', () => ({ runOrganizationChange: vi.fn(async (_organizationId, _metadata, mutate) => await mutate()) }));
 vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
@@ -102,7 +105,7 @@ import {
   projectedServicesForOrganization, projectedDomainsForOrganization, commandDefinitionFor, executeConnectorService, invokeEndpointValueService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings, publishPluginAsset,
-  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition, listInstalledGraphNodeDefinitions, executeManagedGraphNode, invokePreviewValueService
+  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition, listInstalledGraphNodeDefinitions, executeManagedGraphNode, invokePreviewValueService, invokeConstructionValueService
 } from './service.js';
 import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -110,6 +113,7 @@ import { applyTypeMigrationSteps } from '../instances/migrations.js';
 import { invalidateInstanceDeclarations, instanceServiceResolver } from '../instances/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
 import { resolveRunActor } from '../process-definitions/service.js';
+import * as filesService from '../files/service.js';
 
 const ORG = 'org-1';
 const AUTH = { userId: 'user-1', organizationId: ORG };
@@ -160,6 +164,67 @@ beforeEach(() => {
 });
 
 describe('managed plugin runtime package loading', () => {
+  // Parity pin (SPEC §30.12): the server derives installed graph node
+  // definitions through the sdk normalizer — the same normalization the
+  // browser session applies. Every port-contract fact the hand-rolled
+  // derivation produced is asserted verbatim; the sdk vocabulary law
+  // (lowercased/deduped keywords, sorted capabilities, frozen output) is
+  // the one accepted canonicalization.
+  it('derives the sdk-normalized contract without losing port semantics or the package pin', async () => {
+    repository.findInstall.mockResolvedValue({
+      pluginId: 'documents',
+      version: '9',
+      services: [{
+        id: 'read-text-file',
+        nodeVersion: '2',
+        label: 'Read text file',
+        description: 'Read a text file',
+        palette: { group: 'document-sources', label: 'Document sources', keywords: ['File', 'text', 'text'] },
+        signature: {
+          input: { base: 'record', fields: {
+            fileId: { base: 'string', label: 'File ID', semantic: { kind: 'documents.file-id' } },
+            typeId: { base: 'string', nullable: true, label: 'File type' },
+            rows: { base: 'list', itemType: { base: 'record' } }
+          } },
+          output: { base: 'json', kind: 'documents.file' }
+        },
+        execution: {
+          runtime: 'documents-shared', targets: ['browser', 'server'], kind: 'read',
+          capabilities: ['files.read'], deterministic: true, idempotent: true
+        }
+      }],
+      declarations: {
+        runtimes: [{ id: 'documents-shared', language: 'javascript', targets: ['browser', 'server'], entry: '/runtime.mjs' }]
+      }
+    });
+
+    const definition = await resolveInstalledGraphNodeDefinition({
+      provider: 'plugin.documents',
+      id: 'read-text-file',
+      version: '2',
+      auth: AUTH
+    });
+
+    expect(definition).toMatchObject({
+      provider: 'plugin.documents',
+      id: 'read-text-file',
+      version: '2',
+      label: 'Read text file',
+      description: 'Read a text file',
+      palette: { group: 'document-sources', label: 'Document sources', keywords: ['file', 'text'] },
+      inputs: [
+        { id: 'fileId', label: 'File ID', shape: 'item', semantic: { base: 'string', kind: 'documents.file-id' }, required: true },
+        { id: 'typeId', label: 'File type', shape: 'item', semantic: { base: 'string', nullable: true }, required: false },
+        { id: 'rows', shape: 'list', semantic: { base: 'record' }, required: true }
+      ],
+      outputs: [{ id: 'value', shape: 'item', semantic: { base: 'json', kind: 'documents.file' }, required: true }],
+      execution: { runtime: 'documents-shared', kind: 'read', targets: ['browser', 'server'], capabilities: ['files.read'], deterministic: true, idempotent: true },
+      packagePin: { pluginId: 'documents', version: '9', runtimeId: 'documents-shared', operationId: 'read-text-file' }
+    });
+    expect(Object.isFrozen(definition)).toBe(true);
+    expect(Object.isFrozen(definition.inputs[0])).toBe(true);
+  });
+
   it('resolves graph node definitions from the installed package snapshot', async () => {
     repository.findInstall.mockResolvedValue({
       pluginId: 'demo',
@@ -313,6 +378,16 @@ describe('managed plugin runtime package loading', () => {
     getTaskRunById.mockResolvedValue({
       _id: 'run-1',
       status: 'SUCCEEDED',
+      hostCapabilityEvidence: [{
+        name: 'organization.instances.read',
+        input: { typeId: 'part', instanceId: 'part-1' },
+        readSet: capabilityReadSet
+      }, {
+        name: 'files.read',
+        input: { fileId: 'file-2' },
+        organizationId: null,
+        contentHash: 'sha256:file'
+      }],
       output: { ok: true, data: {
         output: { value: 'managed-result' },
         capabilityEvidence: [{
@@ -383,12 +458,14 @@ describe('managed plugin runtime package loading', () => {
       expect.objectContaining({
         name: 'organization.instances.read',
         nodeId: 'node-a',
+        verified: true,
         input: { typeId: 'part', instanceId: 'part-1' },
         packagePin: expect.objectContaining({ pluginId: 'demo', version: '7' })
       }),
       expect.objectContaining({
         name: 'files.read',
         nodeId: 'node-a',
+        verified: true,
         input: { fileId: 'file-2' },
         contentHash: 'sha256:file'
       })
@@ -407,6 +484,88 @@ describe('managed plugin runtime package loading', () => {
       organizationId: null
     });
     expect(nodeInvocations[0].capabilities).toEqual(['organization.instances.read', 'files.read']);
+  });
+
+  it('passes worker capability claims through unverified and merges nothing without a host journal', async () => {
+    repository.findInstall.mockResolvedValue({
+      pluginId: 'demo',
+      version: '7',
+      services: [{
+        id: 'transform',
+        nodeVersion: '3',
+        signature: { input: { base: 'record', fields: {} }, output: { base: 'json' } },
+        execution: { runtime: 'javascript', targets: ['server'], kind: 'pure' }
+      }],
+      declarations: {
+        runtimes: [{ id: 'javascript', language: 'javascript', targets: ['server'], entry: '/runtime.mjs' }]
+      }
+    });
+    const claim = {
+      name: 'files.read',
+      input: { fileId: 'file-2' },
+      organizationId: null,
+      contentHash: 'sha256:file'
+    };
+    getTaskRunById.mockResolvedValue({
+      _id: 'run-1',
+      status: 'SUCCEEDED',
+      output: { ok: true, data: { output: { value: 'managed-result' }, capabilityEvidence: [claim] } }
+    });
+    const capabilityEvidence = [];
+    const nodeInvocations = [];
+    const readSetRecorder = {
+      setConsistency: vi.fn(),
+      recordInstance: vi.fn(),
+      recordRelation: vi.fn(),
+      recordQuery: vi.fn(),
+      recordFile: vi.fn()
+    };
+
+    await executeManagedGraphNode({
+      provider: 'plugin.demo',
+      id: 'transform',
+      version: '3',
+      execution: { kind: 'pure' },
+      packagePin: { pluginId: 'demo', version: '7', runtimeId: 'javascript', operationId: 'transform' }
+    }, {
+      node: { id: 'node-a' },
+      invocationPath: [],
+      context: { executionId: 'execution-1', nodeInvocations, capabilityEvidence, readSet: readSetRecorder }
+    }, AUTH);
+
+    expect(capabilityEvidence).toHaveLength(1);
+    expect(capabilityEvidence[0]).toMatchObject({ name: 'files.read', nodeId: 'node-a', input: { fileId: 'file-2' } });
+    expect(capabilityEvidence[0]).not.toHaveProperty('verified');
+    expect(readSetRecorder.recordFile).not.toHaveBeenCalled();
+    expect(readSetRecorder.setConsistency).not.toHaveBeenCalled();
+    expect(nodeInvocations[0].capabilities).toEqual(['files.read']);
+  });
+
+  it('refuses to dispatch non-preview execution kinds', async () => {
+    repository.findInstall.mockResolvedValue({
+      pluginId: 'demo',
+      version: '7',
+      services: [{
+        id: 'propose',
+        nodeVersion: '1',
+        signature: { input: { base: 'record', fields: {} }, output: { base: 'json' } },
+        execution: { runtime: 'javascript', targets: ['server'], kind: 'proposal' }
+      }],
+      declarations: {
+        runtimes: [{ id: 'javascript', language: 'javascript', targets: ['server'], entry: '/runtime.mjs' }]
+      }
+    });
+    await expect(executeManagedGraphNode({
+      provider: 'plugin.demo',
+      id: 'propose',
+      version: '1',
+      execution: { kind: 'proposal' },
+      packagePin: { pluginId: 'demo', version: '7', runtimeId: 'javascript', operationId: 'propose' }
+    }, { context: {} }, AUTH)).rejects.toMatchObject({
+      statusCode: 403,
+      message: 'Graph preview cannot execute proposal operation propose'
+    });
+    expect(enqueueTask).not.toHaveBeenCalled();
   });
 
   it('cancels an active worker task when the graph signal aborts', async () => {
@@ -1482,6 +1641,50 @@ describe('managed value-service preview', () => {
   });
 });
 
+describe('construction value dispatch', () => {
+  const constructionInstall = {
+    organizationId: ORG,
+    pluginId: 'documents',
+    version: '34',
+    services: [{
+      id: 'fill',
+      label: 'Fill template',
+      nodeVersion: '1',
+      signature: { input: { base: 'json' }, output: { base: 'json' } },
+      execution: { runtime: 'documents-server', kind: 'pure', targets: ['server'], capabilities: [] }
+    }],
+    declarations: {
+      runtimes: [{ id: 'documents-server', language: 'javascript', targets: ['server'], entry: '/runtime/server.mjs' }]
+    }
+  };
+
+  it('waits for a managed construction service and unwraps its value', async () => {
+    repository.findInstall.mockResolvedValue(constructionInstall);
+    const output = await invokeConstructionValueService(
+      'plugin.documents.fill',
+      { mode: 'fill', refs: {}, draft: { data: {} } },
+      AUTH
+    );
+    expect(output).toBe('managed-result');
+    expect(enqueueTask).toHaveBeenCalledWith('plugin.documents.fill', expect.objectContaining({
+      parameters: { value: expect.objectContaining({
+        pluginId: 'documents', version: '34', runtimeId: 'documents-server', operationId: 'fill',
+        input: expect.objectContaining({ inputs: { mode: 'fill', refs: {}, draft: { data: {} } } })
+      }) }
+    }), expect.objectContaining({ organizationId: ORG }), expect.objectContaining({ workerType: 'plugin-runtime' }));
+  });
+
+  it('refuses a claim-mode construction service', async () => {
+    repository.findInstall.mockResolvedValue({
+      ...constructionInstall,
+      services: [{ id: 'fill', label: 'Fill template', signature: { input: { base: 'json' }, output: { base: 'json' } } }]
+    });
+    await expect(invokeConstructionValueService('plugin.documents.fill', {}, AUTH))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('claim mode') });
+    expect(enqueueTask).not.toHaveBeenCalled();
+  });
+});
+
 describe('endpoint-mode services', () => {
   const endpointInstall = {
     organizationId: ORG,
@@ -1502,22 +1705,22 @@ describe('endpoint-mode services', () => {
     ));
   });
 
-  it('pre-wires built-in Documents executors without asking an organization for an endpoint', async () => {
-    vi.stubEnv('DOCUMENTS_EXECUTOR_URL', 'http://documents-executor:8791');
+  it('pre-wires built-in plugin executors without asking an organization for an endpoint', async () => {
+    vi.stubEnv('FACADE_EXECUTOR_URL', 'http://facade-executor:8790');
     try {
       repository.findCatalogByPluginId.mockResolvedValue({
         ...coatingListing,
-        pluginId: 'documents',
-        name: 'Documents',
+        pluginId: 'facade',
+        name: 'Facade',
         builtin: true,
         declarations: {
           ...coatingListing.declarations,
           services: [{ id: 'render', mode: 'endpoint', signature: { input: { base: 'json' }, output: { base: 'json' } } }]
         }
       });
-      await installFromCatalog({ organizationId: ORG, pluginId: 'documents' });
+      await installFromCatalog({ organizationId: ORG, pluginId: 'facade' });
       expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
-        pluginId: 'documents', platformManaged: true, executorOrigin: 'http://documents-executor:8791'
+        pluginId: 'facade', platformManaged: true, executorOrigin: 'http://facade-executor:8790'
       }));
     } finally {
       vi.unstubAllEnvs();
@@ -1527,14 +1730,14 @@ describe('endpoint-mode services', () => {
   it('does not expose platform-managed executor credentials as organization settings', async () => {
     repository.findInstall.mockResolvedValue({
       ...endpointInstall, platformManaged: true,
-      executorOrigin: 'http://documents-executor:8791', authToken: 'platform-secret',
+      executorOrigin: 'http://facade-executor:8790', authToken: 'platform-secret',
       surfaceOrigin: 'https://platform-surfaces.example',
       declarations: { ...endpointInstall.declarations, surfaces: [{ id: 'preview' }] }
     });
     const settings = await settingsFor({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
     expect(settings).toMatchObject({
       platformManaged: true,
-      executorOrigin: 'http://documents-executor:8791',
+      executorOrigin: 'http://facade-executor:8790',
       authToken: null,
       surfaceOrigin: null,
       surfaces: false
@@ -1549,24 +1752,24 @@ describe('endpoint-mode services', () => {
   });
 
   it('resolves a built-in executor origin for legacy installs missing the persisted value', async () => {
-    vi.stubEnv('DOCUMENTS_EXECUTOR_URL', 'http://documents-executor:8791');
-    const documentsInstall = {
+    vi.stubEnv('FACADE_EXECUTOR_URL', 'http://facade-executor:8790');
+    const facadeInstall = {
       ...endpointInstall,
-      pluginId: 'documents',
+      pluginId: 'facade',
       executorOrigin: null,
-      services: [{ id: 'parse-markdown', label: 'Parse markdown', mode: 'endpoint', signature: { input: { base: 'record' }, output: { base: 'json' } } }]
+      services: [{ id: 'render', label: 'Render', mode: 'endpoint', signature: { input: { base: 'record' }, output: { base: 'json' } } }]
     };
-    repository.findInstall.mockResolvedValue(documentsInstall);
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ type: 'text.flow-document', blocks: [] }), { status: 200 }));
+    repository.findInstall.mockResolvedValue(facadeInstall);
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ shade: 'matte' }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     try {
-      const result = await invokeEndpointValueService('plugin.documents.parse-markdown', { text: '# Hello' }, AUTH);
-      expect(result.type).toBe('text.flow-document');
-      expect(fetchMock).toHaveBeenCalledWith('http://documents-executor:8791', expect.objectContaining({
-        body: JSON.stringify({ operationId: 'parse-markdown', input: { text: '# Hello' } })
+      const result = await invokeEndpointValueService('plugin.facade.render', { code: 'C-1' }, AUTH);
+      expect(result).toEqual({ shade: 'matte' });
+      expect(fetchMock).toHaveBeenCalledWith('http://facade-executor:8790', expect.objectContaining({
+        body: JSON.stringify({ operationId: 'render', input: { code: 'C-1' } })
       }));
-      const settings = await settingsFor({ organizationId: ORG, pluginId: 'documents', auth: AUTH });
-      expect(settings.executorOrigin).toBe('http://documents-executor:8791');
+      const settings = await settingsFor({ organizationId: ORG, pluginId: 'facade', auth: AUTH });
+      expect(settings.executorOrigin).toBe('http://facade-executor:8790');
     } finally {
       vi.unstubAllGlobals();
       vi.unstubAllEnvs();
@@ -1948,7 +2151,134 @@ describe('starter constructs and service-resolved projections', () => {
     endpoints: { 'table-rows': 'https://executor.example/table-rows' }
   };
 
-  it('dispatches a service-resolved projection with the instance fields and payload', async () => {
+  const projectionRuntimeSource = 'export function createRuntime() { return { execute: (operationId, input) => ({ operationId, input }) }; }';
+  const managedProjectionInstall = {
+    organizationId: ORG,
+    pluginId: 'coatings',
+    name: 'Coatings',
+    version: '3',
+    declarations: {
+      ...coatingListing.declarations,
+      runtimes: [{ id: 'coatings-shared', language: 'javascript', version: '1', entry: '/runtime/shared-bundle.mjs', targets: ['server'] }]
+    },
+    services: [
+      { id: 'table-rows', label: 'Table rows', execution: { runtime: 'coatings-shared', kind: 'pure', targets: ['server'] }, signature: { input: { base: 'json' }, output: { base: 'json' } } }
+    ],
+    packageAssets: { count: 1, assets: [{ path: 'runtime/shared-bundle.mjs', contentHash: 'sha256:abc' }] }
+  };
+
+  it('executes a managed pure projection through the synchronous boundary with the instance envelope', async () => {
+    repository.findInstall.mockResolvedValue(managedProjectionInstall);
+    repository.findOrganizationPluginAssetMeta.mockResolvedValue({ id: 'asset-1', contentType: 'text/javascript' });
+    repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.from(projectionRuntimeSource));
+    instanceServiceResolver.mockReturnValue({
+      getById: vi.fn(async () => ({ _id: 'inst-1', fields: { name: 'Sheet 1' }, payload: { fileId: 'file-1' } }))
+    });
+    try {
+      const value = await resolveProjectionValue({
+        organizationId: ORG,
+        commandId: 'plugin.coatings.table-rows',
+        typeId: 'csv-table',
+        instanceId: 'inst-1'
+      });
+      expect(value).toEqual({
+        operationId: 'table-rows',
+        input: {
+          typeId: 'csv-table',
+          instanceId: 'inst-1',
+          fields: { name: 'Sheet 1' },
+          payloadBase64: Buffer.from('payload').toString('base64')
+        }
+      });
+      expect(repository.findOrganizationPluginAssetMeta).toHaveBeenCalledWith(ORG, 'coatings', '3', 'runtime/shared-bundle.mjs');
+    } finally {
+      repository.findOrganizationPluginAssetMeta.mockResolvedValue(null);
+      repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.alloc(0));
+    }
+  });
+
+  it('executes the real Documents shared bundle through the boundary over a hydrated instance payload', async () => {
+    const bundle = await readFile(resolve(__dirname, '../../../workers/documents/runtime/shared-bundle.mjs'));
+    const services = documentsListingV34.declarations.services.filter(item => ['text', 'table-rows', 'table-cells'].includes(item.id));
+    const install = {
+      ...managedProjectionInstall,
+      pluginId: 'documents',
+      declarations: { ...managedProjectionInstall.declarations, runtimes: documentsListingV34.declarations.runtimes },
+      services,
+      packageAssets: { count: 1, assets: [{ path: 'runtime/shared-bundle.mjs', contentHash: 'sha256:abc' }] }
+    };
+    repository.findInstall.mockResolvedValue(install);
+    repository.findOrganizationPluginAssetMeta.mockResolvedValue({ id: 'asset-1', contentType: 'text/javascript' });
+    repository.readOrganizationPluginAsset.mockResolvedValue(bundle);
+    instanceServiceResolver.mockReturnValue({
+      getById: vi.fn(async () => ({ _id: 'inst-9', fields: { name: 'Stock' }, payload: { fileId: 'file-9' } }))
+    });
+    filesService.getFileBuffer
+      .mockResolvedValueOnce(Buffer.from('name,qty\naluminium,12\nsteel,3\n', 'utf8'))
+      .mockResolvedValueOnce(Buffer.from('name,qty\naluminium,12\nsteel,3\n', 'utf8'));
+    try {
+      const rows = await resolveProjectionValue({
+        organizationId: ORG,
+        commandId: 'plugin.documents.table-rows',
+        typeId: 'csv-table',
+        instanceId: 'inst-9'
+      });
+      expect(rows).toEqual([
+        { name: 'aluminium', qty: 12 },
+        { name: 'steel', qty: 3 }
+      ]);
+      const text = await resolveProjectionValue({
+        organizationId: ORG,
+        commandId: 'plugin.documents.text',
+        typeId: 'text-document',
+        instanceId: 'inst-9'
+      });
+      expect(text).toBe('name,qty\naluminium,12\nsteel,3\n');
+    } finally {
+      repository.findOrganizationPluginAssetMeta.mockResolvedValue(null);
+      repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.alloc(0));
+    }
+  });
+
+  it('refuses a managed projection whose installed entry fails its digest check', async () => {
+    repository.findInstall.mockResolvedValue({
+      ...managedProjectionInstall,
+      packageAssets: { count: 1, assets: [{ path: 'runtime/shared-bundle.mjs', contentHash: 'sha256:different' }] }
+    });
+    repository.findOrganizationPluginAssetMeta.mockResolvedValue({ id: 'asset-1' });
+    repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.from(projectionRuntimeSource));
+    try {
+      await expect(resolveProjectionValue({
+        organizationId: ORG,
+        commandId: 'plugin.coatings.table-rows',
+        typeId: 'csv-table',
+        instanceId: 'inst-1'
+      })).rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('content digest') });
+    } finally {
+      repository.findOrganizationPluginAssetMeta.mockResolvedValue(null);
+      repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.alloc(0));
+    }
+  });
+
+  it('refuses a managed projection that is not a pure server operation', async () => {
+    repository.findInstall.mockResolvedValue({
+      ...managedProjectionInstall,
+      services: [
+        { id: 'table-rows', label: 'Table rows', execution: { runtime: 'coatings-shared', kind: 'read', targets: ['server'], capabilities: ['files.read'] }, signature: { input: { base: 'json' }, output: { base: 'json' } } }
+      ]
+    });
+    instanceServiceResolver.mockReturnValue({
+      getById: vi.fn(async () => ({ _id: 'inst-1', fields: { name: 'Sheet 1' } }))
+    });
+    await expect(resolveProjectionValue({
+      organizationId: ORG,
+      commandId: 'plugin.coatings.table-rows',
+      typeId: 'csv-table',
+      instanceId: 'inst-1'
+    })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('managed pure server operation') });
+  });
+
+  it('dispatches an endpoint-resolved projection with the instance fields and payload', async () => {
     repository.findInstall.mockResolvedValue(projectionInstall);
     instanceServiceResolver.mockReturnValue({
       getById: vi.fn(async () => ({ _id: 'inst-1', fields: { name: 'Sheet 1' }, payload: { fileId: 'file-1' } }))
@@ -2003,12 +2333,15 @@ describe('starter constructs and service-resolved projections', () => {
       ...projectionInstall,
       services: [{ id: 'table-rows', label: 'Table rows', signature: { input: { base: 'json' }, output: { base: 'json' } } }]
     });
+    instanceServiceResolver.mockReturnValue({
+      getById: vi.fn(async () => ({ _id: 'inst-1', fields: { name: 'Sheet 1' } }))
+    });
     await expect(resolveProjectionValue({
       organizationId: ORG,
       commandId: 'plugin.coatings.table-rows',
       typeId: 'csv-table',
       instanceId: 'inst-1'
-    })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('endpoint mode') });
+    })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('claim mode') });
   });
 });
 

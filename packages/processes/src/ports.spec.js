@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { inferProcessDataflowContracts, portSpecsCompatible, resolveNodePort, resolveProcessNodePorts, validateProcessEdges } from './ports.js';
+import { inferProcessDataflowContracts, resolveNodePort, resolveProcessNodePorts, validateProcessEdges } from './ports.js';
 import { processSocketsCompatible } from './types.js';
-import { registerProcessPortCompatibilityProfile, PROCESS_PORT_COMPATIBILITY_PROFILE } from './port-compatibility.js';
+import { compareProcessPorts, registerProcessPortCompatibilityProfile, PROCESS_PORT_COMPATIBILITY_PROFILE } from './port-compatibility.js';
 
 describe('process programming node ports', () => {
   it('gives every string operation its actual input arity and scalar types', () => {
@@ -49,8 +49,8 @@ describe('process programming node ports', () => {
   });
 
   it('rejects wiring unlike scalar types while allowing typed values into generic data inputs', () => {
-    expect(portSpecsCompatible({ kind: 'string' }, { kind: 'number' }).ok).toBe(false);
-    expect(portSpecsCompatible({ kind: 'string' }, { kind: 'data' }).ok).toBe(true);
+    expect(compareProcessPorts({ kind: 'string' }, { kind: 'number' }).ok).toBe(false);
+    expect(compareProcessPorts({ kind: 'string' }, { kind: 'data' }).ok).toBe(true);
   });
 
   it('honors the wire law: the validator accepts what the canvas gate accepts', () => {
@@ -61,18 +61,18 @@ describe('process programming node ports', () => {
       ['same unit numbers', socket('value', { base: 'number', unit: 'mm' }), socket('left', { base: 'number', unit: 'mm' })]
     ]) {
       expect(processSocketsCompatible(source, target).ok, name).toBe(true);
-      expect(portSpecsCompatible(source, target).ok, name).toBe(true);
+      expect(compareProcessPorts(source, target).ok, name).toBe(true);
     }
     // Refusals agree too, and the diagnostic names the types.
-    expect(portSpecsCompatible(socket('value', { base: 'dateTime' }), socket('left', { base: 'number' })).ok).toBe(false);
+    expect(compareProcessPorts(socket('value', { base: 'dateTime' }), socket('left', { base: 'number' })).ok).toBe(false);
     // Unit mismatches refuse on both gates: a conversion the factor table
     // expresses stays explicit, a unit pair outside it names both units.
-    const mmToM = portSpecsCompatible(socket('value', { base: 'number', unit: 'mm' }), socket('left', { base: 'number', unit: 'm' }));
+    const mmToM = compareProcessPorts(socket('value', { base: 'number', unit: 'mm' }), socket('left', { base: 'number', unit: 'm' }));
     expect(processSocketsCompatible(socket('value', { base: 'number', unit: 'mm' }), socket('left', { base: 'number', unit: 'm' })).ok).toBe(false);
     expect(mmToM.ok).toBe(false);
     expect(mmToM.convertible).toBe(true);
     expect(mmToM.conversion).toMatchObject({ nodeKind: 'value.convertUnit' });
-    const mmToDeg = portSpecsCompatible(socket('value', { base: 'number', unit: 'mm' }), socket('left', { base: 'number', unit: 'deg' }));
+    const mmToDeg = compareProcessPorts(socket('value', { base: 'number', unit: 'mm' }), socket('left', { base: 'number', unit: 'deg' }));
     expect(processSocketsCompatible(socket('value', { base: 'number', unit: 'mm' }), socket('left', { base: 'number', unit: 'deg' })).ok).toBe(false);
     expect(mmToDeg.ok).toBe(false);
     expect(mmToDeg.convertible).toBe(false);
@@ -83,21 +83,21 @@ describe('process programming node ports', () => {
   it('keeps same-kind semantic checks behind the kind lattice', () => {
     // Units and value kinds are semantic qualifiers of the same base kind:
     // kind equality alone connects nothing.
-    expect(portSpecsCompatible(
+    expect(compareProcessPorts(
       { id: 'value', kind: 'number', type: { base: 'number', nullable: false, unit: 'mm' } },
       { id: 'left', kind: 'number', type: { base: 'number', nullable: false, unit: 'm' } }
     ).ok).toBe(false);
-    expect(portSpecsCompatible(
+    expect(compareProcessPorts(
       { id: 'value', kind: 'json', type: { base: 'json', nullable: false } },
       { id: 'left', kind: 'json', type: { base: 'json', nullable: false, kind: 'document.report' } }
     ).ok).toBe(false);
-    expect(portSpecsCompatible(
+    expect(compareProcessPorts(
       { id: 'value', kind: 'json', type: { base: 'json', nullable: false, kind: 'document.report' } },
       { id: 'left', kind: 'json', type: { base: 'json', nullable: false, kind: 'document.report' } }
     ).ok).toBe(true);
     // Unit-less scalar ports keep today's outcomes.
-    expect(portSpecsCompatible({ kind: 'number' }, { kind: 'number' }).ok).toBe(true);
-    expect(portSpecsCompatible({ kind: 'string' }, { kind: 'number' }).ok).toBe(false);
+    expect(compareProcessPorts({ kind: 'number' }, { kind: 'number' }).ok).toBe(true);
+    expect(compareProcessPorts({ kind: 'string' }, { kind: 'number' }).ok).toBe(false);
   });
 
   it('exposes a status definition as a typed status output', () => {
@@ -116,8 +116,8 @@ describe('process programming node ports', () => {
       label: 'Ready',
       kind: 'status'
     });
-    expect(portSpecsCompatible(output, { id: 'target', kind: 'status' }).ok).toBe(true);
-    expect(portSpecsCompatible(output, { id: 'target', kind: 'number' }).ok).toBe(false);
+    expect(compareProcessPorts(output, { id: 'target', kind: 'status' }).ok).toBe(true);
+    expect(compareProcessPorts(output, { id: 'target', kind: 'number' }).ok).toBe(false);
   });
 
   it('connects a status definition to a structured v3 status input', () => {
@@ -286,7 +286,7 @@ describe('process programming node ports', () => {
       expect.objectContaining({ id: 'left', kind: 'predicate', typeId: 'queue' }),
       expect.objectContaining({ id: 'right', kind: 'predicate', typeId: 'queue' })
     ]);
-    expect(portSpecsCompatible(
+    expect(compareProcessPorts(
       { kind: 'predicate', typeId: 'queue' },
       { kind: 'predicate', typeId: 'project' }
     ).ok).toBe(false);
@@ -396,6 +396,44 @@ describe('process programming node ports', () => {
     expect(incompatible.reason).toContain('mm');
     expect(incompatible.reason).toContain('deg');
     expect(incompatible.conversion).toBeUndefined();
+  });
+
+  // Parity over the consumed compatibility matrix (SPEC §30.12): the sdk
+  // profile seam and the direct port law agree on every consumed port
+  // dialect — legacy kind specs, catalog sockets with structured types,
+  // and sdk node-contract ports.
+  it('proves profile-seam parity with the one port law over the consumed matrix', () => {
+    let comparator = null;
+    registerProcessPortCompatibilityProfile({
+      register(id, compare) {
+        comparator = compare;
+        return () => {};
+      }
+    });
+    const ports = [
+      { id: 'value', kind: 'string' },
+      { id: 'value', kind: 'number', type: { base: 'number', unit: 'mm' } },
+      { id: 'value', kind: 'entity', typeId: 'part' },
+      { id: 'value', kind: 'entity_list', typeId: 'part' },
+      { id: 'value', kind: 'block', block: 'data' },
+      { id: 'value', kind: 'status' },
+      { id: 'value', kind: 'event' },
+      { id: 'value', kind: 'predicate', typeId: 'queue' },
+      { id: 'value', kind: 'data' },
+      { id: 'value', kind: 'list' },
+      { id: 'value', kind: 'json', type: { base: 'json', kind: 'document.report' } },
+      { id: 'value', type: { base: 'integer' }, role: 'data' },
+      { id: 'value', type: { base: 'entityRef', typeId: 'queue' }, role: 'data' }
+    ];
+    for (const source of ports) {
+      for (const target of ports) {
+        const direct = compareProcessPorts(source, target);
+        const throughSeam = comparator(source, target);
+        expect(throughSeam.compatible, `${JSON.stringify(source)} -> ${JSON.stringify(target)}`).toBe(Boolean(direct.ok));
+        expect(throughSeam.status, `${JSON.stringify(source)} -> ${JSON.stringify(target)}`)
+          .toBe(direct.convertible ? 'conversion-required' : direct.ok ? (direct.coercion ? 'safe-coercion' : 'exact') : 'incompatible');
+      }
+    }
   });
 
 });

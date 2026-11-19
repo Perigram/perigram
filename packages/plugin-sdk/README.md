@@ -234,15 +234,19 @@ import the bare `name` and the platform's module proxy resolves it to
 the plugin's own vendor scope, or — for a `module` of the form
 `plugin:<id><path>` — to the required plugin's scope (`<id>` must appear
 in `requires`); what the mount injects — `vue`,
-`primevue`, `pinia`, and the host markdown pipeline
-`marked`/`dompurify`/`pele` — refuses as a dependency;
+`primevue`, `pinia`, `dompurify`, and `pele` — refuses as a dependency
+(`marked` vendors only for a server runtime the managed child executes;
+the surface check refuses it inside surface module graphs, which receive
+the host's `renderMarkdown`);
 `perigram-plugin vendor`
 builds the bundles and writes the manifest), and `exports` (attachment
 exports bound to plugin services). A type's `projections` resolve a
 stored `field` path or a
-declared endpoint-mode `service` (`resolve: { service:
+declared `service` (`resolve: { service:
 'plugin.<id>.<svc>' }` — the platform sends `{ typeId, payloadBase64 }`
-and the service's JSON response is the projection value; `handler`
+and the service's JSON response is the projection value; the bound
+service is endpoint mode or a managed pure server operation, and
+`handler`
 resolves are the pack-mount binding and refuse here).
 `parseListing` throws on every violation; `normalizeListing` returns the
 catalog document the publish API stores. Service and projection declarations
@@ -256,14 +260,18 @@ This shape is mirrored in [`src/listing.schema.json`](./src/listing.schema.json)
 namespaced value slug (`document.report`, `text.flow-document`) that
 gates socket compatibility: a kinded socket accepts its own kind alone,
 an unkinded `json` socket accepts everything, so conversion between
-value kinds stays an explicit graph operation (HAG P1/P4). An endpoint service may declare
-`cache: 'deterministic'` (SPEC §28): the platform replays same-input
+value kinds stays an explicit graph operation (HAG P1/P4). A service
+declaring `cache: 'deterministic'` must be endpoint mode (SPEC §28): the
+platform replays same-input
 executions through its service cache — the key covers the service
 identity, the installed version, and the canonical input — so the
 executor sees each distinct input once; the declaration is a promise
 the service makes about its own output, and a claim-mode service
 refuses it (its run parks on the queue and replays through its own
-task record). `previewChannels`
+task record). A type projection's service resolve binds an endpoint-mode
+service or a managed pure server operation — the platform's synchronous
+managed projection boundary executes the latter in-process.
+`previewChannels`
 (`[{ id, surface, label }]`, SPEC §28) declares the plugin's designer
 preview tabs: each binds a preview-kind surface the designer mounts
 read-only over the graph's preview evaluation — the channel id is a
@@ -288,6 +296,9 @@ qualified unique capability ids, determinism, idempotency, and optional preview 
 - `PORT_COMPATIBILITY_OUTCOMES` is the frozen comparator-outcome vocabulary
   and `CONVERSION_FIDELITIES` the frozen conversion-fidelity vocabulary
   (§Port compatibility).
+- `NODE_EXECUTION_KINDS` is the frozen execution-kind vocabulary
+  (`pure`, `read`, `stateful`, `proposal`, `commit`, `effect`, `control`);
+  the server preview policy derives its dispatchable subset from it.
 
 The package root remains Node-bound. Browser consumers import the dedicated
 `./nodes` entry for graph authoring and provider discovery.

@@ -1,15 +1,19 @@
-import { portSpecsCompatible } from './ports.js';
+import { compareProcessPorts } from './ports.js';
 
 export const PROCESS_PORT_COMPATIBILITY_PROFILE = 'perigram.cts';
 
-// CTS retains its domain-specific compatibility law, but the graph editor
-// invokes it through the plugin-SDK's provider-owned compatibility registry.
+// The sdk registry seam over the one CTS port compatibility law
+// (`compareProcessPorts`, ports.js): the graph editor and the server
+// preflight invoke the same law through the plugin-SDK's provider-owned
+// compatibility registry, in its frozen outcome vocabulary.
+export { compareProcessPorts };
+
 export function registerProcessPortCompatibilityProfile(registry) {
   if (!registry || typeof registry.register !== 'function') {
     throw new TypeError('A shared graph port compatibility registry is required');
   }
   return registry.register(PROCESS_PORT_COMPATIBILITY_PROFILE, (source, target) => {
-    const result = portSpecsCompatible(toProcessPort(source), toProcessPort(target));
+    const result = compareProcessPorts(toProcessPort(source), toProcessPort(target));
     return {
       status: result.convertible
         ? 'conversion-required'

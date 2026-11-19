@@ -15,15 +15,18 @@ sources into `plugin_catalog` (validated by the SDK contract, marked
 `builtin`, retract-refused). Run it as a deploy step on fresh environments.
 Idempotent; it first validates every listing and resolves every declared
 JavaScript runtime entrypoint and surface module plus their transitive,
-statically discoverable relative imports, then writes the complete catalog
-set. A missing runtime or surface source therefore aborts before any listing
+statically discoverable relative imports and every declared dependency's
+vendor module (with its relative chunks), then writes the complete catalog
+set. A missing runtime, surface, or dependency source therefore aborts
+before any listing
 is updated. The seed image must
 include the full `workers/documents` and `workers/facade` source trees because
 their runtime entrypoints import package-relative modules outside `runtime/`,
 and both other built-in listing files. Re-running refreshes pinned versions
 and uploads runtime assets into the catalog asset bucket. Keep runtime imports
-literal and package-relative; bare dependencies must be declared and published
-through the package dependency-asset path.
+literal and package-relative: first-party runtime entries refuse non-literal
+dynamic imports, and declared dependency bundles (vendored third-party
+graphs) collect through the static relative-import walk alone.
 
 The only other live seeder is `seed-palette-colors.js`: it upserts the
 tech-drawing `color` type's system catalogue as SPEC §3 documents
@@ -36,7 +39,7 @@ persists.
 | Script | When to run | What it does |
 |---|---|---|
 | `migrate-plugin-assets-to-organization-storage.js` | Adopting organization-owned plugin packages (SPEC §20) | Materializes every installed pin's exact catalog release into its organization-owned asset bucket, verifies the copied bytes against manifest digests and all declared entrypoints, then records the install marker. Idempotent; run from the updated app container after the organization-owned reader is deployed. A failed pin remains unmarked and fails deployment. |
-| `migrate-documents-pack-to-plugin.js` | Adopting the documents plugin | Publishes the built-in listing, installs it per org with the deployment's `DOCUMENTS_EXECUTOR_URL` as a platform-managed provider origin, and rewrites `documents.csvText` service nodes to `plugin.documents.csv-text`. Idempotent; restart the app after. |
+| `migrate-documents-pack-to-plugin.js` | Adopting the documents plugin | Publishes the built-in listing, installs it per org as a platform-managed package (organization-owned assets materialize at install or through the storage migration), rewrites `documents.csvText` service nodes to `plugin.documents.csv-text`, and clears stale platform executor origins. Idempotent; restart the app after. |
 | `station-documents-types.js` | Repair | Stations the documents pack starter constructs into org processes as an additive ACTIVE definition through the real definition API. `--dry-run`; `--org <id> ...` limits scope. |
 | `author-org-sheet-machine.js` | Nesting vocabulary repair | Defines the org `sheet` and `machine` types, adds the nesting attempt's `sheet`/`machine` relations, wires the attempt's dimensions and tool diameter into the nesting solve instead of manual prompts, keeps the solve action runnable after a run, projects every cassette design so entries may reference library designs, joins the entry's stored design id (`fields.design`, the construct scalarize law) to the projection's `designId`, and normalizes queue-entry rows (typed-ref designs and `{ value }` counts back to the stored spellings). Dry-run by default; `--org <id> --apply` persists through the definition API. |
 | `retire-nesting-sheet-count.js` | Repair | Strips the retired `sheetCount` parameter from installed facade nesting-solve snapshots; sheet stock is evaluated from the items. Re-activate the organization's process definitions afterwards. Dry-run by default; `--org <id> --apply` persists. |
