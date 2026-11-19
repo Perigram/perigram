@@ -5,7 +5,7 @@
     <template v-else>
       <div class="mb-2 text-supporting"><strong>{{ view.result.label }} · {{ view.result.itemCount }}</strong></div>
       <div v-for="(item, index) in view.result.items" :key="index" class="py-1">
-        <InstanceInlineRef v-if="item.kind === 'instance'" :type="item.typeId" :id="item.instanceId" :entity="item.instance" :fetch="false" />
+        <InstanceInlineRef v-if="item.kind === 'instance' || item.kind === 'record'" :type="item.typeId" :id="item.instanceId" :entity="item.instance" :fetch="false" />
         <span v-else-if="item.kind === 'unavailable'" class="text-supporting text-muted">{{ t('editors.linkedRecordUnavailable') }}</span>
         <span v-else class="text-supporting">{{ displayValue(item.value) }}</span>
       </div>

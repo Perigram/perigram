@@ -16,6 +16,23 @@ import GraphOutputEmbed from './GraphOutputEmbed.vue';
 import { collectionEmbedView, frozenCollectionEmbed, liveCollectionEmbed } from './graph-output-embed-contract.js';
 import en from '~/i18n/locales/en.json';
 
+vi.mock('~/components/shared/InstanceInlineRef.vue', async () => {
+  const { defineComponent, h: render } = await import('vue');
+  return {
+    default: defineComponent({
+      props: ['type', 'id', 'entity', 'fetch'],
+      setup(props) {
+        return () => render('article', {
+          'data-instance-ref': props.id,
+          'data-type-id': props.type,
+          'data-entity-id': props.entity?._id,
+          'data-fetch': String(props.fetch)
+        });
+      }
+    })
+  };
+});
+
 globalThis.$fetch = vi.fn(async () => ({}));
 globalThis.useState = (_key, init) => ref(typeof init === 'function' ? init() : init || {});
 
@@ -80,6 +97,21 @@ describe('graph output embed', () => {
     const html = await renderEmbed({ collection: { source: SOURCE, parameters: {}, snapshot: SNAPSHOT, resultPolicy: 'frozen' } });
     expect(html).toContain('>Rows · 2<');
     expect(html).toContain('>frozen-row<');
+    expect(html).toContain('unavailable');
+    expect(globalThis.$fetch).not.toHaveBeenCalled();
+  });
+
+  it('renders frozen record items through the instance ref with the captured projection', async () => {
+    globalThis.$fetch.mockClear();
+    const snapshot = { label: 'Rows', itemCount: 2, truncated: false, items: [
+      { kind: 'record', typeId: 'part', instanceId: 'part-1', instance: { _id: 'part-1', type: 'part', fields: { code: 'A' } } },
+      { kind: 'unavailable' }
+    ] };
+    const html = await renderEmbed({ collection: { source: SOURCE, parameters: {}, snapshot, resultPolicy: 'frozen' } });
+    expect(html).toContain('data-instance-ref="part-1"');
+    expect(html).toContain('data-type-id="part"');
+    expect(html).toContain('data-entity-id="part-1"');
+    expect(html).toContain('data-fetch="false"');
     expect(html).toContain('unavailable');
     expect(globalThis.$fetch).not.toHaveBeenCalled();
   });

@@ -381,6 +381,70 @@ describe('pages', () => {
     await expect(pagesService.resolveReferences(page._id, memberOf(ORG_A))).resolves.toEqual([]);
   });
 
+  const snapshotGrantsRegistry = () => getAppRegistry.mockReturnValue({
+    getInstanceService: typeId => (typeId === 'part' ? {
+      processGetById: vi.fn(async (id, auth) => {
+        if (id === 'part-deleted') return null;
+        if (auth.userId === 'user-b' && id === 'part-2') throw Object.assign(new Error('denied'), { statusCode: 403 });
+        return { _id: id, type: 'part', fields: { code: 'CHANGED' } };
+      })
+    } : null)
+  });
+
+  it('serves frozen record items through the current viewer read grants', async () => {
+    snapshotGrantsRegistry();
+    const memberA = { userId: 'user-a', organizationId: ORG_A };
+    const memberB = { userId: 'user-b', organizationId: ORG_A };
+    const page = await pagesService.create({ name: 'Frozen grants', blocks: [
+      { id: 'c-frozen', kind: 'collection', collection: { source: graphOutputSource, parameters: {}, resultPolicy: 'frozen', snapshot: { label: 'Rows', itemCount: 4, truncated: false, items: [
+        { kind: 'instance', typeId: 'part', instanceId: 'part-1', instance: { _id: 'part-1', type: 'part', fields: { code: 'A' } } },
+        { kind: 'record', typeId: 'part', instanceId: 'part-2', instance: { _id: 'part-2', type: 'part', fields: { code: 'SECRET' } } },
+        { kind: 'record', typeId: 'part', instanceId: 'part-deleted', instance: { _id: 'part-deleted', type: 'part', fields: { code: 'GONE' } } },
+        { kind: 'value', value: 'plain' }
+      ] } } }
+    ], order: ['c-frozen'] }, memberA);
+
+    const servedItems = async auth => (await pagesService.getById(page._id, auth)).blocks[0].collection.snapshot.items;
+    const capturedPart1 = { kind: 'record', typeId: 'part', instanceId: 'part-1', instance: { _id: 'part-1', type: 'part', fields: { code: 'A' } } };
+    expect(await servedItems(memberA)).toEqual([
+      capturedPart1,
+      { kind: 'record', typeId: 'part', instanceId: 'part-2', instance: { _id: 'part-2', type: 'part', fields: { code: 'SECRET' } } },
+      { kind: 'unavailable' },
+      { kind: 'value', value: 'plain' }
+    ]);
+    const deniedRead = await pagesService.getById(page._id, memberB);
+    expect(deniedRead.blocks[0].collection.snapshot.items).toEqual([
+      capturedPart1,
+      { kind: 'unavailable' },
+      { kind: 'unavailable' },
+      { kind: 'value', value: 'plain' }
+    ]);
+    expect(JSON.stringify(deniedRead)).not.toContain('SECRET');
+    getAppRegistry.mockReturnValue(defaultRegistry());
+  });
+
+  it('keeps the stored snapshot when a member without the record grant saves the page', async () => {
+    snapshotGrantsRegistry();
+    const memberA = { userId: 'user-a', organizationId: ORG_A };
+    const memberB = { userId: 'user-b', organizationId: ORG_A };
+    const page = await pagesService.create({ name: 'Frozen round-trip', blocks: [
+      { id: 'c-frozen', kind: 'collection', collection: { source: graphOutputSource, parameters: {}, resultPolicy: 'frozen', snapshot: { label: 'Rows', itemCount: 2, truncated: false, items: [
+        { kind: 'record', typeId: 'part', instanceId: 'part-2', instance: { _id: 'part-2', type: 'part', fields: { code: 'SECRET' } } },
+        { kind: 'value', value: 'plain' }
+      ] } } }
+    ], order: ['c-frozen'] }, memberA);
+
+    const maskedRead = await pagesService.getById(page._id, memberB);
+    await pagesService.update(page._id, { blocks: maskedRead.blocks, order: maskedRead.order }, memberB);
+
+    const read = await pagesService.getById(page._id, memberA);
+    expect(read.blocks[0].collection.snapshot.items).toEqual([
+      { kind: 'record', typeId: 'part', instanceId: 'part-2', instance: { _id: 'part-2', type: 'part', fields: { code: 'SECRET' } } },
+      { kind: 'value', value: 'plain' }
+    ]);
+    getAppRegistry.mockReturnValue(defaultRegistry());
+  });
+
   it('bakes an output to a page path and creates immutable file revisions on conflict', async () => {
     const page = await pagesService.create({ name: 'Artifacts' }, memberOf(ORG_A));
     const expectedOrganizationSequence = await getOrganizationChangeSequence(ORG_A);

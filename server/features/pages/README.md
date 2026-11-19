@@ -107,4 +107,14 @@ Backlinks are derived from reference blocks in the organization's pages. They ar
 
 A graph-output collection block pins a successful graph execution instance, graph document revision, and output id. The graph-executions feature validates the saved graph and output contract, then resolves referenced CTS items through their ordinary read grants. The execution fixes output membership; referenced item projections use current authorized reads.
 
-A collection block carries an optional `parameters` record bound against the pinned graph's declared inputs at resolution time; re-evaluation passes them as input bindings, revalidated against the saved graph revision. A declared input with no bound value renders the shared unavailable state. `resultPolicy: 'frozen'` stores the resolved collection snapshot (label, item count, truncated flag, and the first 100 items) inside the block; frozen blocks render the snapshot verbatim and produce no resolution entry, while pinned blocks re-resolve through the live execution.
+A collection block carries an optional `parameters` record bound against the pinned graph's declared inputs at resolution time; re-evaluation passes them as input bindings, revalidated against the saved graph revision. A declared input with no bound value renders the shared unavailable state. `resultPolicy: 'frozen'` stores the resolved collection snapshot (label, item count, truncated flag, and the first 100 items) inside the block; pinned blocks re-resolve through the live execution. Frozen blocks produce no resolution entry; the page serve renders the snapshot.
+
+A snapshot item is record-shaped when it carries type and instance identity (a CTS instance projection), and stores the captured projection beside the reference. Every page serve re-checks each record item against the current viewer:
+
+| Item | Shape | Serving rule |
+|---|---|---|
+| record | `{ kind: 'record', typeId, instanceId, instance }` | The current viewer's read grant on the source instance is re-checked through the ordinary instance read service; an authorized viewer receives the captured projection verbatim, a denied or deleted source serves `{ kind: 'unavailable' }` for that item. |
+| value | `{ kind: 'value', value }` — plain computed output | Served verbatim. |
+| unavailable | `{ kind: 'unavailable' }` | Served verbatim. |
+
+A stored snapshot is write-immutable: a page update that round-trips an existing frozen block keeps the stored snapshot; a new freeze is a new block.

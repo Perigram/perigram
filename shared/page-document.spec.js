@@ -57,6 +57,25 @@ describe('page document', () => {
     expect(document.blocks[1].collection.snapshot).toBeUndefined();
   });
 
+  it('normalizes snapshot items with record identity into the record kind', () => {
+    const document = normalizePageDocument({ blocks: [
+      { id: 'frozen', kind: 'collection', collection: { source: { kind: 'graph-output', executionInstanceId: 'e1', graphDocumentInstanceId: 'g1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows' }, parameters: {}, snapshot: { label: 'Rows', itemCount: 5, truncated: false, items: [
+        { kind: 'instance', typeId: 'part', instanceId: 'p1', instance: { _id: 'p1', fields: { code: 'A' } } },
+        { kind: 'record', typeId: 'part', instanceId: 'p2', instance: { _id: 'p2', fields: { code: 'B' } } },
+        { kind: 'value', value: 7 },
+        { kind: 'unavailable' },
+        { kind: 'record', typeId: 'part' }
+      ] }, resultPolicy: 'frozen' } }
+    ], order: ['frozen'] });
+    expect(document.blocks[0].collection.snapshot.items).toEqual([
+      { kind: 'record', typeId: 'part', instanceId: 'p1', instance: { _id: 'p1', fields: { code: 'A' } } },
+      { kind: 'record', typeId: 'part', instanceId: 'p2', instance: { _id: 'p2', fields: { code: 'B' } } },
+      { kind: 'value', value: 7 },
+      { kind: 'unavailable' },
+      { kind: 'unavailable' }
+    ]);
+  });
+
   it('normalizes typed live and pinned references without accepting malformed identities', () => {
     const document = normalizePageDocument({ blocks: [
       { id: 'live', kind: 'reference', ref: { typeId: 'part', instanceId: 'part-1' } },
