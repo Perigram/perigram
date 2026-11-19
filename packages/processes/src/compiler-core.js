@@ -127,7 +127,6 @@ export {
   PROCESS_STRUCTURES,
   inferProcessDataflowContracts,
   normalizePortSpec,
-  portSpecsCompatible,
   resolveProcessNodePorts,
   resolveNodePort,
   validateProcessEdges

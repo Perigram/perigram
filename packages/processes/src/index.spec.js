@@ -4,7 +4,7 @@ import {
   compileProcessDefinition as compileContract,
   definitionToCanvas,
   normalizeProcessDefinition,
-  portSpecsCompatible,
+  compareProcessPorts,
   resolveRoleAssignmentAccess,
   resolveScreens as resolveAccessScreens,
   validateProcessDefinition as validateContract,
@@ -867,35 +867,35 @@ describe('@perigram/processes compiler', () => {
   });
 
   it('checks typed port compatibility for core process values', () => {
-    expect(portSpecsCompatible(
+    expect(compareProcessPorts(
       { id: 'created', kind: 'entity', typeId: 'project' },
       { id: 'entity', kind: 'entity', typeId: 'project' }
     ).ok).toBe(true);
-    expect(portSpecsCompatible(
+    expect(compareProcessPorts(
       { id: 'created', kind: 'entity', typeId: 'project' },
       { id: 'entity', kind: 'entity', typeId: 'queue' }
     ).ok).toBe(false);
-    expect(portSpecsCompatible(
+    expect(compareProcessPorts(
       { id: 'created', kind: 'entity', typeId: 'project' },
       { id: 'items', kind: 'entity_list', typeId: 'project' }
     ).ok).toBe(true);
-    expect(portSpecsCompatible(
+    expect(compareProcessPorts(
       { id: 'created', kind: 'entity', typeId: 'project' },
       { id: 'items', kind: 'entity_list', typeId: 'queue' }
     ).ok).toBe(false);
-    expect(portSpecsCompatible(
+    expect(compareProcessPorts(
       { id: 'completed', kind: 'event' },
       { id: 'trigger', kind: 'event' }
     ).ok).toBe(true);
-    expect(portSpecsCompatible(
+    expect(compareProcessPorts(
       { id: 'completed', kind: 'event' },
       { id: 'entity', kind: 'entity', typeId: 'project' }
     ).ok).toBe(false);
-    expect(portSpecsCompatible(
+    expect(compareProcessPorts(
       { id: 'status', kind: 'status' },
       { id: 'status', kind: 'status' }
     ).ok).toBe(true);
-    expect(portSpecsCompatible(
+    expect(compareProcessPorts(
       { id: 'name', kind: 'block', block: 'fields', dataPath: 'name' },
       { id: 'name', kind: 'data', dataPath: 'name' }
     ).ok).toBe(true);
