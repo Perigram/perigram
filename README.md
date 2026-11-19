@@ -43,6 +43,10 @@ MongoDB data survives `down` and normal restarts. To delete the local database a
 
 Optional local settings go in the root `.env` file. Defaults work for the standard local stack. Common overrides are `NUXT_DEV_HMR_HOST` (browser access from another device), `WORKER_TOKEN`, `OLLAMA_BASE_URL`, and the `TRANSCRIPTION_*`, `MEETINGS_*`, and `LIVEKIT_RECORDINGS_S3_*` integration settings. A local Cortex checkout can be mounted with `CONFIG_BOT_CORTEX_HOST_PATH`.
 
+### Agent worktrees and package resolution
+
+Agent sessions run in git worktrees (`.agent-worktrees/`, protocol in [AGENTS.md](./AGENTS.md)). The root `package.json` maps `#packages/*` to the `@perigram/*` workspace names, and `@perigram/*` resolves through `node_modules`: a worktree that symlinks the primary checkout's `node_modules` loads the primary checkout's package sources for every `#packages/*` import. Edits to `packages/**` inside such a worktree therefore do not reach its own test runs. Validate package changes from a worktree with a throwaway vitest config aliasing `@perigram/*` to the worktree's package entry points, and treat the post-merge run from the primary checkout as the authoritative validation.
+
 ## Checks
 
 Install host dependencies with `npm ci`, then run:
