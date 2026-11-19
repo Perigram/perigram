@@ -65,6 +65,12 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
   const inputBindings = ref({});
   const previewError = ref('');
   const previewRunning = ref(false);
+  let previewGeneration = 0;
+
+  function invalidatePreview() {
+    previewGeneration += 1;
+    previewRunning.value = false;
+  }
   const contextPaletteSearch = ref(null);
   const contextPalette = ref({
     open: false,
@@ -488,6 +494,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
   }
 
   function loadDocument(source) {
+    invalidatePreview();
     const graph = assertValidGraphDocument(source);
     inputBindings.value = {};
     graphDocument.value = graph;
@@ -575,6 +582,8 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
   }
 
   async function refreshPreview() {
+    const generation = ++previewGeneration;
+    const inputSnapshot = cloneJson(inputBindings.value);
     previewRunning.value = true;
     previewError.value = '';
     executionRecord.value = null;
@@ -589,7 +598,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
       }
       const result = await evaluateProceduralGraph({
         graph,
-        inputBindings: inputBindings.value,
+        inputBindings: inputSnapshot,
         resolveNodeDefinition: (op, invocation) => resolveProviderDefinition(providerPreviewResolvers, op, invocation),
         executeNode: async (definition, invocation) => {
           const executor = providerExecutors.get(definition.provider);
@@ -602,6 +611,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
           data: { queryInstances: queryOrganizationData }
         }
       });
+      if (generation !== previewGeneration) return null;
       const completedAt = new Date().toISOString();
       executionRecord.value = createGraphExecutionRecord({
         id: executionId,
@@ -610,7 +620,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
         status: 'succeeded',
         startedAt,
         completedAt,
-        inputs: inputBindings.value,
+        inputs: inputSnapshot,
         outputs: result.outputs,
         nodeOutputs: result.nodeOutputs,
         diagnostics: [],
@@ -634,6 +644,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
       previewResult.value = result;
       return result;
     } catch (error) {
+      if (generation !== previewGeneration) return null;
       previewError.value = error?.message || String(error);
       previewResult.value = null;
       if (graph) {
@@ -645,7 +656,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
             status: 'failed',
             startedAt,
             completedAt: new Date().toISOString(),
-            inputs: inputBindings.value,
+            inputs: inputSnapshot,
             outputs: {},
             nodeOutputs: {},
             diagnostics: [{ message: previewError.value }],
@@ -665,11 +676,12 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
       }
       return null;
     } finally {
-      previewRunning.value = false;
+      if (generation === previewGeneration) previewRunning.value = false;
     }
   }
 
   function setGraphInputBinding(portId, value) {
+    invalidatePreview();
     if (portId && typeof portId === 'object') ({ portId, value } = portId);
     inputBindings.value = { ...inputBindings.value, [portId]: value };
     previewResult.value = null;
