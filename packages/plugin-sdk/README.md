@@ -276,7 +276,7 @@ The browser-safe `@perigram/plugin-sdk/nodes` entry owns normalized node
 provider definitions and exact-version registration. A definition declares
 provider and operation identity, its own version, JSON configuration schema,
 input/output ports, semantic descriptors, transport shapes, execution kind,
-qualified unique capability ids, determinism, idempotency, and optional preview metadata. Provider IDs are lowercase; operation and port IDs preserve the existing stable identifier grammar, including camel-case names.
+qualified unique capability ids, determinism, idempotency, and optional preview metadata. Provider IDs are lowercase; operation and port IDs preserve the existing stable identifier grammar, including camel-case names. A runtime-bound definition declares `execution.targets` beside its `runtime`; a host-native definition (a platform provider whose host executes it directly) declares `execution.targets` alone.
 
 - `validateNodeDefinition`, `normalizeNodeDefinition`, and
   `assertValidNodeDefinition` validate and freeze declarations.

@@ -162,9 +162,6 @@ export function validateNodeDefinition(source) {
   if (source.execution?.runtime != null && source.execution?.targets == null) {
     problems.push(issue('missing-targets', 'execution.targets', 'A runtime-bound node must declare its execution targets'));
   }
-  if (source.execution?.runtime == null && source.execution?.targets != null) {
-    problems.push(issue('missing-runtime', 'execution.runtime', 'Execution targets require a declared runtime id'));
-  }
   if (source.execution && !Array.isArray(source.execution.capabilities || [])) {
     problems.push(issue('invalid-capabilities', 'execution.capabilities', 'Execution capabilities must be an array'));
   }
