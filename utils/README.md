@@ -30,6 +30,9 @@ Parent: [root README](../README.md).
 - `processDesignerPaletteSearch.js`: The shared search predicate for the
   process palette and socket-context palette; it indexes display text,
   stable operation identity, provider/group ids, and declared aliases.
+- `processDesignerPaletteSections.js`: The palette section views — a
+  section's subgroups beside its root items, and the section filter both
+  palette renderers (the dock popover and the context palette) share.
 - `processDesignerSocketTone.js`: Pure process-port resolver used by every
   designer node form and source edge. It maps structured port type/role data to a
   semantic signal token so a socket and the wire it produces cannot drift

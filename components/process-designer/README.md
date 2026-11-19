@@ -279,9 +279,10 @@ The pass is the pure `utils/processDesignerArrangement.js`:
   selection; edge selections keep the keyboard bindings.
 
 The palette is the canvas-top dock (`PaletteDock.vue`): provenance tiers
-as labels — plugin sections first (palette groups whose registration
-declares the pack source), then the platform categories — with one chip
-per palette section opening the popover palette. An empty query lists
+as labels — plugin sections first (one section per installed plugin,
+named by the plugin, the plugin's declared groups as subgroups inside
+its popover), then the platform categories — with one chip per palette
+section opening the popover palette. An empty query lists
 the active section; a query searches the full catalog. Each row's dot
 carries the item's category signal
 (`utils/processDesignerSignals.js` is the single group→signal map; its
