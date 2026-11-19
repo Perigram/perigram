@@ -52,6 +52,29 @@ describe('Facade endpoint service behavior', () => {
     expect(result.data.geometry.nestingPolygons).toHaveLength(1);
   });
 
+  it('reads the convertDxf construct through its resolved source ref', async () => {
+    const dxf = generateLayeredDxf({
+      polygonParts: [{ layer: 'cut.outer', coordinates: SQUARE }]
+    });
+    const result = await extractGeometry({
+      mode: 'convertDxf',
+      typeId: 'cassette-design',
+      refs: {
+        source: {
+          id: 'dxf-1',
+          name: 'tray-right',
+          fields: {},
+          payloadBase64: Buffer.from(dxf).toString('base64'),
+          payloadMime: 'application/dxf'
+        }
+      },
+      draft: { identity: null, data: { name: null, source: 'dxf-1' }, lineage: null }
+    });
+    expect(result.data.name).toBe('tray-right');
+    expect(result.data.geometry.nestingPolygons).toHaveLength(1);
+    expect(result.data.mapping).toEqual({ 'cut.outer': 'cut.outer' });
+  });
+
   it('preserves an authored mapping for the default outer-cut source layer', async () => {
     const dxf = generateLayeredDxf({
       polygonParts: [{ layer: 'cut.outer', coordinates: SQUARE }]

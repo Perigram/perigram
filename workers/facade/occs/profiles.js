@@ -579,6 +579,9 @@ export const resolveOccsProfileSectionPolygons = async (section = {}) => {
 // blank, never an error state.
 export const resolveOccsProfileSketchLayerData = async (sketch = {}) => {
   try {
+    // The preview draws authored geometry alone; the default-hanger
+    // fallback serves the designer's sketch-less workpieces.
+    if (!Array.isArray(sketch?.shapes) && !upgradeLegacyOccsProfileSketch(sketch)) return null;
     const { section } = occsProfileFromSketch(sketch, {});
     if (section.type === 'polyline') {
       const vertices = (section.vertices || [])

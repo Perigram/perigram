@@ -23,11 +23,15 @@ function uploadedDesignName(payloadMeta = {}) {
   return String(payloadMeta.name || '').trim().replace(/\.[a-z0-9]+$/i, '') || 'Cassette design';
 }
 
-export async function extractGeometry({ mode, payloadBase64, mapping, payloadMeta = {}, draft = {} } = {}) {
+export async function extractGeometry({ mode, payloadBase64, mapping, payloadMeta = {}, refs = {}, draft = {} } = {}) {
   if (!['upload', 'convertDxf'].includes(mode)) {
     badRequest(`DXF geometry extraction does not support construction mode ${String(mode || '')}`);
   }
-  const buffer = bufferOf(payloadBase64, `Construction ${mode}`);
+  // The upload protocol hands the file as the envelope's payload; the
+  // convertDxf construct resolves its `source` ref with the payload
+  // attached (construction-services' referencedValue).
+  const source = mode === 'convertDxf' ? (refs.source || null) : null;
+  const buffer = bufferOf(source?.payloadBase64 ?? payloadBase64, `Construction ${mode}`);
   const authored = mapping && typeof mapping === 'object' ? mapping : draft?.data?.mapping;
   const layerMapping = Object.fromEntries(
     Object.entries(authored && typeof authored === 'object' && !Array.isArray(authored) ? authored : {})
@@ -72,7 +76,7 @@ export async function extractGeometry({ mode, payloadBase64, mapping, payloadMet
   ));
   return {
     data: {
-      name: uploadedDesignName(payloadMeta),
+      name: uploadedDesignName({ name: source?.name ?? payloadMeta.name }),
       geometry: { polygons: polygonParts, nestingPolygons: polygonParts, layerData },
       mapping: layerMapping
     }
