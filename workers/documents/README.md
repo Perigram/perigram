@@ -248,7 +248,7 @@ template record or document-specific storage path is introduced.
   | Instance | the host instance tree (`@` and the entry share it); the pick inserts an atomic chip serialized as an inline `#instance:<type>/<id>` link |
   | Collection view | the host picker browses the shared instance tree to the parent record, then lists the record's child collections with their saved views; the pick inserts a `view` block carrying the collection ref (`{ typeId, name, parentTypeId, parentId, sourceId }`) or a saved lens ref (`{ id, typeId, name, parentTypeId, parentId, sourceId }`) beside the text blocks, and the host mounts `ViewEmbed` |
   | Link to record | the host record picker; the pick inserts a `reference` block beside the text blocks — live or pinned to an exact revision |
-  | Graph result | the host graph-result picker; the pick inserts a `collection` block embedding the retained output of a finished graph run |
+  | Graph result | the host graph-result picker; the pick inserts a `collection` block embedding a live evaluation at a pinned graph revision or a retained/frozen run result |
 
   Inline marks (bold, italic, inline code) author through input rules.
   The entry table lives in `surfaces/lib/block-vocabulary-data.mjs`; the

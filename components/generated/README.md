@@ -224,11 +224,19 @@ the `section` field set.
   live link (follows the record's saved changes) or an exact-revision
   pin, explained at the point of choice; the page surface resolves the
   block through the pages API and renders its authorized projection.
-  The Graph result picker embeds the retained collection output of a
-  finished graph run, pinned to its execution/output identity; the
-  freeze action captures the current result items as a snapshot carried
-  by the block, and a parameterized embed resolves through the pages
-  references seam.
+  The Graph result picker selects the saved graph, its definition
+  revision (current or a historical payload revision), the declared
+  output, and parameters for the graph's declared inputs. The embed
+  mode is explicit: a live evaluation re-runs the pinned revision on
+  every page load (marked Live on the embed); a retained result serves
+  one finished run's recorded output, with the freeze action capturing
+  the current items as a snapshot carried by the block; a
+  parameterized retained embed resolves through the pages references
+  seam. Structured item values render through the shared
+  representation contract
+  ([utils](../../utils/README.md) `graphOutputViews`): text, tables,
+  and an explicit JSON fallback — the same derivation the graph
+  preview panel uses.
   The crepe configuration follows the documents plugin's reference mount
   (`workers/documents/surfaces/text-editor.mjs` — every engine chrome
   off), and the block vocabulary, the slash panel, the source-markers

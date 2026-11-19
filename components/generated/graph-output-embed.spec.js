@@ -13,7 +13,7 @@ import ToastService from 'primevue/toastservice';
 import ConfirmationService from 'primevue/confirmationservice';
 import Re_L from '~/assets/presets/re_l';
 import GraphOutputEmbed from './GraphOutputEmbed.vue';
-import { collectionEmbedView, frozenCollectionEmbed, liveCollectionEmbed } from './graph-output-embed-contract.js';
+import { collectionEmbedView, frozenCollectionEmbed, liveGraphEmbed, retainedCollectionEmbed } from './graph-output-embed-contract.js';
 import en from '~/i18n/locales/en.json';
 
 globalThis.$fetch = vi.fn(async () => ({}));
@@ -49,25 +49,42 @@ async function renderEmbed({ collection, resolution = null } = {}) {
 describe('graph output embed', () => {
   it('serves the frozen snapshot, the page resolution, or the live fetch by block mode', () => {
     expect(collectionEmbedView({ collection: { source: SOURCE, parameters: {}, snapshot: SNAPSHOT } }))
-      .toEqual({ phase: 'ready', result: SNAPSHOT });
+      .toEqual({ phase: 'ready', mode: 'frozen', result: SNAPSHOT });
     expect(collectionEmbedView({ collection: { source: SOURCE, parameters: { limit: 20 } } }))
-      .toEqual({ phase: 'loading' });
+      .toEqual({ phase: 'loading', mode: 'parameterized' });
     expect(collectionEmbedView({ collection: { source: SOURCE, parameters: { limit: 20 } }, resolution: { blockId: 'c', status: 'unavailable' } }))
-      .toEqual({ phase: 'unavailable' });
+      .toEqual({ phase: 'unavailable', mode: 'parameterized' });
     const resolved = { blockId: 'c', status: 'resolved', label: 'Rows', itemCount: 1, items: [{ kind: 'value', value: 'bound' }] };
     expect(collectionEmbedView({ collection: { source: SOURCE, parameters: { limit: 20 } }, resolution: resolved }))
-      .toEqual({ phase: 'ready', result: resolved });
+      .toEqual({ phase: 'ready', mode: 'parameterized', result: resolved });
     expect(collectionEmbedView({ collection: { source: SOURCE, parameters: {} }, loading: true }))
-      .toEqual({ phase: 'loading' });
+      .toEqual({ phase: 'loading', mode: 'pinned' });
     const live = { label: 'Rows', itemCount: 0, items: [] };
     expect(collectionEmbedView({ collection: { source: SOURCE, parameters: {} }, live }))
-      .toEqual({ phase: 'ready', result: live });
+      .toEqual({ phase: 'ready', mode: 'pinned', result: live });
     expect(collectionEmbedView({ collection: { source: SOURCE, parameters: {} } }))
-      .toEqual({ phase: 'unavailable' });
+      .toEqual({ phase: 'unavailable', mode: 'pinned' });
   });
 
-  it('authors live picks without a snapshot and frozen picks with the captured collection', () => {
-    expect(liveCollectionEmbed({ executionInstanceId: 'execution-1', graphDocumentInstanceId: 'graph-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows', label: 'Rows' }))
+  it('serves a live embed from its page resolution entry alone', () => {
+    const liveSource = {
+      kind: 'graph-output',
+      graphDocumentInstanceId: 'graph-1',
+      graphId: 'graph.report',
+      graphRevision: 'rev-2',
+      outputId: 'rows'
+    };
+    expect(collectionEmbedView({ collection: { source: liveSource, parameters: {}, resultPolicy: 'live' } }))
+      .toEqual({ phase: 'loading', mode: 'live' });
+    expect(collectionEmbedView({ collection: { source: liveSource, parameters: { limit: 2 }, resultPolicy: 'live' }, resolution: { blockId: 'c', status: 'unavailable' } }))
+      .toEqual({ phase: 'unavailable', mode: 'live' });
+    const resolved = { blockId: 'c', status: 'resolved', label: 'Rows', itemCount: 1, items: [] };
+    expect(collectionEmbedView({ collection: { source: liveSource, parameters: {}, resultPolicy: 'live' }, resolution: resolved }))
+      .toEqual({ phase: 'ready', mode: 'live', result: resolved });
+  });
+
+  it('authors live picks at the pinned revision and frozen picks with the captured collection', () => {
+    expect(retainedCollectionEmbed({ executionInstanceId: 'execution-1', graphDocumentInstanceId: 'graph-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows', label: 'Rows' }))
       .toEqual({ source: SOURCE, parameters: {}, resultPolicy: 'pinned' });
     expect(frozenCollectionEmbed(
       { executionInstanceId: 'execution-1', graphDocumentInstanceId: 'graph-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows', label: 'Rows' },
@@ -108,5 +125,56 @@ describe('graph output embed', () => {
     expect(globalThis.$fetch).toHaveBeenCalledWith('/api/graph-executions/collection-outputs/execution-1/rows', {
       query: { graphDocumentInstanceId: 'graph-1', graphId: 'graph.report', graphRevision: 'rev-2' }
     });
+  });
+
+  it('authors a live embed from the graph, revision, output, and parameters', () => {
+    expect(liveGraphEmbed(
+      { graphDocumentInstanceId: 'graph-1', graphId: 'graph.report', graphRevision: 'rev-2' },
+      { id: 'rows' },
+      { limit: 2 }
+    )).toEqual({
+      source: {
+        kind: 'graph-output',
+        graphDocumentInstanceId: 'graph-1',
+        graphId: 'graph.report',
+        graphRevision: 'rev-2',
+        outputId: 'rows'
+      },
+      parameters: { limit: 2 },
+      resultPolicy: 'live'
+    });
+  });
+
+  it('renders a live embed from its resolution entry without fetching', async () => {
+    globalThis.$fetch.mockClear();
+    const html = await renderEmbed({
+      collection: {
+        source: { kind: 'graph-output', graphDocumentInstanceId: 'graph-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows' },
+        parameters: {},
+        resultPolicy: 'live'
+      },
+      resolution: { blockId: 'c', status: 'resolved', label: 'Rows', itemCount: 2, items: [{ kind: 'value', value: 'live-row' }] }
+    });
+    expect(html).toContain('>live-row<');
+    expect(globalThis.$fetch).not.toHaveBeenCalled();
+  });
+
+  it('renders structured values through the representation contract', async () => {
+    globalThis.$fetch.mockClear();
+    const html = await renderEmbed({
+      collection: { source: SOURCE, parameters: {}, snapshot: {
+        label: 'Rows', itemCount: 3, truncated: false,
+        items: [
+          { kind: 'value', value: 'plain text' },
+          { kind: 'value', value: [{ name: 'a', qty: 1 }, { name: 'b', qty: 2 }] },
+          { kind: 'value', value: { nested: true } }
+        ]
+      }, resultPolicy: 'frozen' }
+    });
+    expect(html).toContain('plain text');
+    expect(html).toContain('<td');
+    expect(html).toContain('>a<');
+    expect(html).toMatch(/<pre[^>]*>\s*\{\s*(?:&quot;|")nested(?:&quot;|")\s*:\s*true/);
+    expect(globalThis.$fetch).not.toHaveBeenCalled();
   });
 });

@@ -9,6 +9,11 @@ Parent: [root README](../README.md).
   `workspacePageKey` by the page mount), and the workspace's pane/tab
   close paths confirm through the shared dialog before closing a dirty
   tab.
+- `graphOutputViews.js`: The graph-output representation contract — the
+  ordered views a graph output value supports (text, markdown, table,
+  image, document, scene-2d, scene-3d, plugin, JSON fallback) and the
+  table-column derivation. The graph preview panel and the Page
+  graph-result embed both derive their renderers through it.
 - `instance-hierarchy.js`: The containment walk — ancestor refs carry the
   declaration's canonical type id so breadcrumb labels, glyphs, and popup
   targets resolve through the served type view.

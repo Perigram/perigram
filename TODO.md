@@ -125,13 +125,49 @@ in `stripRuntimeNodeData`.
   before asking for its parameters.
 - [ ] WAITING — owner verification: Typed references present as Link to
   record with live/pinned behavior explained at the point of choice.
-- [ ] Graph-backed results present as Insert graph result with
-  graph-definition pinning distinguished from data-result pinning; the
-  block renders the selected declared output through its representation
-  viewer.
+- [ ] WAITING — owner verification: Graph-backed results present as Insert
+  graph result with graph-definition pinning distinguished from
+  data-result pinning; the block renders the selected declared output
+  through its representation viewer (GitHub issue #23).
 - [ ] WAITING — owner verification: Audit user-facing Page labels for
   internal vocabulary (block kind, reference DTO, graph output port,
   execution envelope).
+
+### Agent Notes (2026-11-19, agent/graph-embed-contract — issue #23)
+
+- Landed: the graph-result picker walks graph → definition revision
+  (current or a historical payload revision) → declared output →
+  parameters (declared inputs, schema-driven controls, defaults
+  pre-filled) → explicit embed mode. Live evaluation re-runs the pinned
+  revision on every page load and is marked Live on the embed; a
+  retained result serves one finished run's recorded output (filtered
+  to the picked graph/revision/output) with the freeze bookmark
+  capturing a snapshot. Both mode hints explain refresh behavior at the
+  point of choice (en+ru).
+- Block grammar (`shared/page-document.js`): `resultPolicy: 'live'`
+  carries graph identity + revision + output + parameters with no
+  execution anchor; `pinned`/`frozen` keep the execution anchor.
+  Parameterized retained blocks keep their execution-anchored
+  resolution.
+- Server: `evaluateSavedGraph` accepts `graphRevision` and evaluates
+  the revision's frozen payload bytes through the instance-revisions
+  boundary (source-read assertion per revision); the pages references
+  seam resolves live blocks by evaluating the pinned revision with the
+  block parameters and returns the declared output's items, mapping
+  failure to the shared unavailable state.
+- Representation: `utils/graphOutputViews.js` is the shared
+  graph-output representation contract (ordered views + table columns);
+  the graph preview panel consumes it (dedupe) and the page embed
+  renders text, tables, and an explicit JSON fallback through it.
+- Tests: block grammar (live/retained required identity), pages live
+  resolution (happy + failure), revision-pinned evaluation (frozen
+  bytes + missing-revision 409), embed view policy per mode, structured
+  value rendering, `liveGraphEmbed`/`retainedCollectionEmbed` payload
+  shapes.
+- Still open for a later slice: the picker renders image/document/scene
+  item values through the JSON fallback (the embed mounts text/table
+  renderers today); mounting the host viewers for those item kinds
+  belongs with the §28.14 preview-workspace slice.
 
 ### Agent Notes (2026-11-19, agent/spec-ux-convergence)
 

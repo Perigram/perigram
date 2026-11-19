@@ -72,7 +72,11 @@ Page collection embeds can pin one successful graph execution and one collection
 graph, recursively resolves exact Use Graph revisions through the same
 organization read boundary, resolves plugin node definitions from installed
 organization declarations (not the mutable catalog), and executes pure/read
-operations through the shared `plugin-runtime` worker. Each node revalidates
+operations through the shared `plugin-runtime` worker. A `graphRevision`
+body field evaluates one immutable historical revision instead of the
+current payload: the revision's frozen payload bytes are read through the
+instance-revisions boundary (source-read assertion included), and the
+evaluation record pins that revision. Each node revalidates
 its installed package/runtime/operation pin and runs in an isolated child
 process. The evaluator supplies one graph execution id, a graph-wide deadline,
 cancellation propagation, nested invocation paths, and a shared CTS query
