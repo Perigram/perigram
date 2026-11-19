@@ -241,6 +241,7 @@ async function resolveParameterizedCollectionBlock(block, auth) {
   try {
     evaluation = await graphExecutionsService.evaluateSavedGraph({
       graphDocumentInstanceId: source.graphDocumentInstanceId,
+      graphRevision: source.graphRevision,
       inputBindings: bindings
     }, auth);
   } catch (error) {

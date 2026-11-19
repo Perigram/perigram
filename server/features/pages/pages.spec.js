@@ -285,10 +285,12 @@ describe('pages', () => {
 
     expect(evaluateSavedGraph).toHaveBeenCalledWith({
       graphDocumentInstanceId: 'graph-instance-1',
+      graphRevision: graphOutputSource.graphRevision,
       inputBindings: { limit: 20, region: 'eu' }
     }, auth);
     expect(evaluateSavedGraph).toHaveBeenLastCalledWith({
       graphDocumentInstanceId: 'graph-instance-1',
+      graphRevision: graphOutputSource.graphRevision,
       inputBindings: { limit: 5, region: 'eu' }
     }, auth);
     expect(resolved).toEqual([
