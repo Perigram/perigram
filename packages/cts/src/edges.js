@@ -1,6 +1,6 @@
 // Edges (SPEC §6): exactly three kinds — children (lineage), relations,
 // provenance — every declaration carries integrity.
-export const EDGE_KINDS = Object.freeze(['children', 'relations', 'provenance']);
+const EDGE_KINDS = Object.freeze(['children', 'relations', 'provenance']);
 export const ON_REMOVE = Object.freeze(['restrict', 'cascade', 'detach']);
 export const UNLINK_POLICIES = Object.freeze(['detach', 'delete']);
 

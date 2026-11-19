@@ -118,7 +118,6 @@ export {
   canvasToDefinition,
   definitionToCanvas,
   hasCanonicalProcessSource,
-  validateCanvasSemantics,
   validateRoundTrip
 } from './transpiler.js';
 
@@ -139,7 +138,6 @@ export {
   createProcessDesignerContract
 } from './designer.js';
 
-export { resolveProcessActionInputContext } from './algebra.js';
 export {
   PROCESS_PROTOCOL_VERSION,
   PROCESS_OPERATION_LEVELS,
@@ -171,8 +169,7 @@ export {
   PROCESS_STEP_STATUSES,
   advanceProcessRun,
   createProcessRun,
-  previewProcessDataflow,
-  runProcessUntilSettled
+  previewProcessDataflow
 } from './orchestration.js';
 
 export function processDefaultValue(value) {
@@ -1388,7 +1385,7 @@ export function compileProcessNodes(processNodes = {}) {
   return Object.fromEntries(Object.entries(processNodes).map(([id, node]) => [id, {
     id: node.id || id,
     label: node.label || node.kind || id,
-    kind: node.kind || 'entityDecompose',
+    kind: node.kind || '',
     mode: node.mode || '',
     typeId: node.typeId || '',
     relationTypeId: node.relationTypeId || '',

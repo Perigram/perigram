@@ -49,9 +49,6 @@ Parent: [root README](../README.md).
   (nodes/edges/lane bands → positions) and the lane container projection
   (`laneContainerLayout`, `deriveLaneFacts`), both contracted in
   [components/process-designer](../components/process-designer/README.md).
-- `processDesignerPopulation.js`: The one presentation-primacy predicate
-  (operation kind → presentation-secondary): the remove operation renders
-  the plain surface and hides in the clean view while keeping its lane.
 - `processDesignerTypeMigrations.js`: Pure seam of the type-migration
   authoring loop (CTS SPEC §11/§14): a refused declaration post's plan
   payload becomes step rows labeled by the authored vocabulary

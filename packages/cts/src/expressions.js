@@ -285,13 +285,6 @@ export async function evaluateAsync(ast, scope = {}, budget = { steps: MAX_STEPS
   }
 }
 
-export function checkMatch(ast, variantDescriptor) {
-  if (ast?.op !== 'match') return [];
-  const arms = Object.keys(ast.arms || {});
-  const missing = (variantDescriptor?.tags || []).filter(tag => !arms.includes(tag));
-  return missing.map(tag => `match missing arm for ${tag}`);
-}
-
 // The boolean-subset checker (SPEC §7 guards, SPEC §6 relation target
 // domains): comparisons, membership, and/or/not, field paths rooted at
 // `value`, literals. Row-checking is best-effort — callers without a

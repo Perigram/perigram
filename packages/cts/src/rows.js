@@ -1,7 +1,6 @@
-// Rows (SPEC §2, §4): closed field sets. Rows compile to JSON Schema 2020-12
-// (the substrate for validators and designer form generation); instance
-// checking here is a total walker — no dependency required.
-import { describeType, checkValue } from './values.js';
+// Rows (SPEC §2, §4): closed field sets, compiled to JSON Schema 2020-12
+// (the substrate for validators and designer form generation).
+import { describeType } from './values.js';
 
 export function isRowKeyId(name = '') {
   return /^[a-z][a-zA-Z0-9]*$/.test(name);
@@ -77,16 +76,4 @@ function descriptorToSchema(descriptor = {}) {
     return { anyOf: [schema, { type: 'null' }] };
   }
   return schema;
-}
-
-// R1: closed rows — unknown or ill-typed fields are errors, not passthrough.
-export function checkFields(row, fields) {
-  const errors = [];
-  for (const name of Object.keys(fields || {})) {
-    if (!Object.hasOwn(row, name)) errors.push(`closed row: unknown field ${name}`);
-  }
-  for (const [name, descriptor] of Object.entries(row)) {
-    errors.push(...checkValue(descriptor, (fields || {})[name]).map(e => `fields.${name}: ${e}`));
-  }
-  return errors;
 }

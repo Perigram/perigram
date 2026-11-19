@@ -531,7 +531,7 @@ current home retires.
 | CTS expression evaluator ×2 (`evaluate` sync + `evaluateAsync`, ~125 duplicated lines) | `packages/cts/src/expressions.js` | stays behind adapter until §30.13 convergence proof | sync: machines transition guards, `relation-domain`, retype-field migrations; async: instance constraint validation | resolver hooks carry authorized collection readers | unify after proof |
 | Procedural graph evaluator (`evaluateProceduralGraph`, pure/read only, host-injected bindings) | `packages/core/src/procedural-evaluator.js` | core ✓ | browser graph session (passes no `resolveGraph`: Use Graph fails browser preview — parity gap), server graph-executions | provider binding host-injected | consults runtime base checks alone; sdk comparator unwired |
 | Process dataflow evaluator (`executeProcessDataNode` pure data + authorized reads; `executeProcessEffectNode` mutation mapper; `previewProcessDataflow` server-side, requires `perigram.graph` + `dataflowVersion === 4`) | `packages/processes/src/{evaluator,orchestration}.js` | migration subject → shared evaluator | process preview endpoint (`useGraphChannelPreview` posts to server), runtime action execution | `previewService` channel dispatches managed runtimes | after §30.11 gates 6–7 |
-| Managed worker execution (`executeManagedGraphNode` → plugin-runtime tasks; isolated Deno child, digest-verified package) | `server/features/plugins/service.js` + `workers/plugin-runtime` | app host ✓ — shared by graph and process paths | graph evaluator, process preview services | — | `['pure','read']` hardcoded ×3 in server; sdk `NODE_EXECUTION_KINDS` unconsumed |
+| Managed worker execution (`executeManagedGraphNode` → plugin-runtime tasks; isolated Deno child, digest-verified package) | `server/features/plugins/service.js` + `workers/plugin-runtime` | app host ✓ — shared by graph and process paths | graph evaluator, process preview services | — | sdk `NODE_EXECUTION_KINDS` unconsumed |
 | Legacy v4 runtime evaluator (`resolveProcessActionInputContext`) | `packages/processes/src/algebra.js` | none — dead (spec-only), exported twice (index, compiler-core) | — | — | delete |
 | Browser engines and workers (`useClientEngines` dispatch, `usePluginRuntime` Workers, capability bridge) | `composables/` | app host ✓ | graph-document sessions (provider registration + execution) | module proxy URLs, capability route | — |
 
@@ -563,8 +563,8 @@ current home retires.
 | Package pins `{pluginId, version, runtimeId, operationId}` | resolved from install snapshot alone | ✓ per §30 | graph evaluator `resolveNodeDefinition`, evidence provenance | — | process preview path resolves the install three times per node (perf) |
 | Org-owned package assets + module proxy (digests, JS import rewrite, `plugin:` deps, ETag) | `server/features/plugins/{repository,service}.js` | app host ✓ | surface/engine/runtime module serving, browser workers | — | — |
 | `clientEngines` / `clientRuntimes` org-view bindings | `server/features/cts-types/service.js` | app host ✓ | `useClientEngines`, graph session registration | module proxy URL | — |
-| Capability host boundary (8 capabilities: org instance query/read/create/update/delete, `files.read`, `nesting.solve`; actor rehydrated per call) | `server/features/plugins/capabilities.js` + `shared/plugin-runtime.js` allowlists | app host ✓ | managed worker tasks, browser capability route | read sets merge into the shared recorder | allowlist homes duplicated; core provider declares the divergent `cts.instances.read` id |
-| Commit/Bake/Export boundary (5 bake destinations, read-set revalidation, transactional mutation + evidence, blob compensation) | `server/features/graph-executions/service.js` | app host ✓ | graph-executions routes; pages/files/instances downstream | CAS `expectedOrganizationSequence` fence | route-less `commitProposal` duplicates `cts.instance.patch` validation |
+| Capability host boundary (8 capabilities: org instance query/read/create/update/delete, `files.read`, `nesting.solve`; actor rehydrated per call) | `server/features/plugins/capabilities.js` + `shared/plugin-runtime.js` allowlists | app host ✓ | managed worker tasks, browser capability route | read sets merge into the shared recorder | allowlist homes duplicated |
+| Commit/Bake/Export boundary (5 bake destinations, read-set revalidation, transactional mutation + evidence, blob compensation) | `server/features/graph-executions/service.js` | app host ✓ | graph-executions routes; pages/files/instances downstream | CAS `expectedOrganizationSequence` fence | — |
 
 #### UI consumption findings
 
@@ -583,18 +583,52 @@ as declared, leaving the sdk comparator the default for profile-less ports.
 
 1. Dual CTS evaluator (`expressions.js` sync/async twins).
 2. Two compatibility lattices in processes (`ports.js` kinds vs `types.js` bases); sdk profile collapses outcome grammar to exact/incompatible.
-3. Conversion declarations absent — `conversion-required` verdicts are unresolvable.
-4. Transport shapes in three homes (sdk, core, session composable); JSON utils re-implemented ×5 across core/UI.
-5. Server hand-rolls node-definition derivation and execution-kind classification; sdk exports unconsumed (`NODE_EXECUTION_KINDS`, barrel omits `compareNodePorts`).
-6. Capability id divergence silently double-whitelisted (`graph-executions/service.js:154`).
+3. Conversion declarations landed 2026-11-19 (sdk grammar + registry enrichment); wiring them into edge authoring remains open.
+4. Transport shapes: the session composable imports the sdk export (2026-11-19); the core copy is its graph-format law. JSON utils re-implemented ×5 across core/UI.
+5. Managed execution kinds single-homed server-side and the barrel carries `compareNodePorts` (2026-11-19); server-side node-definition derivation remains hand-rolled.
+6. Capability id divergence — resolved 2026-11-19: one `organization.instances.read` id everywhere.
 7. Browser/server preview parity: Use Graph fails browser preview (no `resolveGraph`).
 8. Typed IR absent from core.
-9. Two `cts.instance.patch` validators; endpoint deterministic cache bypassed by projection reads (`resolveProjectionValue`).
+9. The route-less duplicate `cts.instance.patch` validator was deleted 2026-11-19; endpoint deterministic cache bypassed by projection reads (`resolveProjectionValue`) remains.
 10. Two declaration-check walkers (graph-protocol vs process-checks).
-11. Dead exports: cts (`DISPLAY_KINDS`, `describeLabel`, `containsRef`, states readers, `OPERATOR_SPECIES`, rows/diff helpers, reverse process-grammar direction, cnc fixtures), core (`emptyGraphReadSet`, `CORE_DATA_VERSION`, `GRAPH_EXECUTION_*`), processes (`algebra.js`, `runProcessUntilSettled`, procedural-provider registrars/resolvers), sdk (`INJECTED_DEPENDENCIES`, `vendorSlug`, `collectBareImports`).
-12. `compileProcessNodes` defaults to retired kind `entityDecompose` (`compiler-core.js`).
-13. `graph-document.graphId` carries non-grammar `required` key (`pack/framework.js`).
+11. Dead exports cut 2026-11-19 across all four packages; `resolveCtsRecord` (cross-package spec consumer) and the procedural-provider bridge (forward §30 wiring) stay.
+12. `compileProcessNodes` retired-kind default removed 2026-11-19 (validation rejects kind-less records first).
+13. `graph-document.graphId` non-grammar `required` key removed 2026-11-19.
 14. Session cuts landed: dead per-node preview bindings removed from `pages/organization/process.vue`; plugins README graph-orchestration sentence corrected; processes README phantom `graph-normalization.js` renamed to `normalizeGraph` in `compiler-core.js`; the 2026-11-18 reverse-adapter claim corrected above.
+
+### Agent Notes (2026-11-19, agent/semantic-cleanup-20261119)
+
+Owner ordered cleanup with no legacy support; executed the inventory's
+cut list plus the first §30 task-3 slice.
+
+- Dead exports cut: cts (display kinds, state readers, class/edge/row/diff
+  barrel surfaces, reverse process-grammar direction, cnc fixtures,
+  `validateInstance`, `compile().operatorSpecies`), core
+  (`emptyGraphReadSet`, exported `GRAPH_EXECUTION_*` localized),
+  sdk (`INJECTED_DEPENDENCIES`, vendor internals localized, root barrel
+  now carries `compareNodePorts`), processes (`algebra.js` deleted with
+  both re-exports, `runProcessUntilSettled`, `validateCanvasSemantics`,
+  `isSecondaryPopulationKind` — retired v4 `effect.deleteEntity` had no
+  live producer), server (route-less `commitProposal` with its spec
+  coverage rewritten against `commitOutput`).
+- `cts.instances.read` → `organization.instances.read`: core data
+  provider and the graph-executions capability filter converged on the
+  runtime vocabulary id.
+- `graph-document.graphId` non-grammar `required` key removed;
+  `compileProcessNodes` retired-kind default removed (validation rejects
+  kind-less records on both branches before compilation).
+- Task-3 slice in plugin-sdk: `PORT_COMPATIBILITY_OUTCOMES` and
+  `CONVERSION_FIDELITIES` vocabularies, a result contract enforced at
+  the registry profile seam, and the §30.13 conversion declaration
+  grammar (`normalizeNodeProvider` + `registry.registerConversions`,
+  strict descriptor-match enrichment of `conversion-required` results).
+  Declared conversions exist; wiring them into edge authoring and the
+  editor UI is follow-up §30 work.
+- Transport shapes: sdk export is canonical for UI consumers; core keeps
+  its own format-law copy (package dependency law keeps core off sdk
+  imports).
+- `resolveCtsRecord` stays exported: `palette-trace.spec.js` in
+  processes consumes it; cutting it requires a cross-package spec move.
 
 ### Agent Notes (2026-11-19, agent/semantic-inventory-20261119)
 

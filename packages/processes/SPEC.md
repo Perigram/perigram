@@ -212,7 +212,7 @@ without claiming static guarantees the underlying data cannot support.
 | `screen-analysis.js` | authored-versus-inferred screen redundancy detection |
 | `screen-contract.js`, `ui-contract-projection.js`, `assignment-bindings.js`, `contract-diff.js` | screen contract, manifest projection, binding discovery, Apply diff |
 | `evaluator.js`, `data-tree.js`, `orchestration.js` | dataflow evaluation, packet-tree solver, control plane |
-| `transpiler.js`, `missing-field.js`, `migration-v4.js`, `migration-producer-identities.js`, `capabilities.js`, `algebra.js`, `hierarchy-utils.js`, `test-support.js` | round trip, missing marker, persisted rewrites, helpers, fixtures |
+| `transpiler.js`, `missing-field.js`, `migration-v4.js`, `migration-producer-identities.js`, `capabilities.js`, `hierarchy-utils.js`, `test-support.js` | round trip, missing marker, persisted rewrites, helpers, fixtures |
 
 ## Laws
 

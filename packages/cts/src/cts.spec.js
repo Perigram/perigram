@@ -1,23 +1,27 @@
 import { describe, it, expect } from 'vitest';
 import {
   quantity, convert, unify,
-  rowToSchema, checkFields,
-  createTypeRegistry, validateInstance, schemaFor, normalizeType,
-  diffTypes, requireCompatible, normalizeMigrateSteps, planTypeMigration,
-  evaluate, checkMatch, checkValue, validateConstraints,
+  createTypeRegistry, schemaFor, normalizeType,
+  planTypeMigration,
+  evaluate, checkValue, validateConstraints,
   normalizeOperator,
-  renderPolicyFor, compileClientBundle,
-  cncTypePack, partyTypes, frameworkTypes, nestingOperators, packFixtures,
+  compileClientBundle,
+  cncTypePack, frameworkTypes,
   classMayDeclareChildren, lineageKeyForParent,
   declarationsFromCtsRecords,
   projectDomainFromView,
   payloadAccepts
 } from './index.js';
+import { rowToSchema } from './rows.js';
+import { diffTypes, requireCompatible } from './diff.js';
 
 function packRegistry() {
   const registry = createTypeRegistry({ id: 'cnc-pack' });
-  for (const type of [...partyTypes, ...cncTypePack]) registry.defineType(type);
-  for (const operator of nestingOperators) normalizeOperator(operator);
+  for (const type of [
+    { id: 'organization', class: 'party', name: 'Organization', fields: { name: { base: 'string', identifier: true }, email: { base: 'string', nullable: true } } },
+    { id: 'user', class: 'party', name: 'User', fields: { email: { base: 'string' }, name: { base: 'string', nullable: true, identifier: true } } },
+    ...cncTypePack
+  ]) registry.defineType(type);
   return registry;
 }
 
@@ -51,19 +55,6 @@ describe('append-only mutability capability', () => {
 });
 
 describe('closed rows (R1)', () => {
-  it('rejects unknown and ill-typed fields', () => {
-    const registry = packRegistry();
-    const sheet = registry.getType('sheet');
-    expect(validateInstance(sheet, {
-      ...packFixtures.sheetInstance,
-      fields: { ...packFixtures.sheetInstance.fields, rogue: 1 }
-    })).toContain('closed row: unknown field rogue');
-    expect(validateInstance(sheet, {
-      ...packFixtures.sheetInstance,
-      fields: { ...packFixtures.sheetInstance.fields, serial: quantity(1, 'mm') }
-    })).toContainEqual(expect.stringMatching(/fields.serial/));
-  });
-
   it('emits JSON Schema 2020-12 with closed rows and custom keywords', () => {
     const schema = schemaFor(packRegistry().getType('sheet'));
     expect(schema.$schema).toContain('2020-12');
@@ -450,7 +441,6 @@ describe('operators (R5, triggers)', () => {
       id: 'leaky', species: 'service',
       input: { base: 'ref', accepts: ['queue'] }
     })).toThrow(/must not contain Ref/);
-    expect(nestingOperators.every(operator => normalizeOperator(operator).species)).toBeTruthy();
   });
 
   it('mutate/transition require Ref inputs; triggers are event-or-schedule', () => {
@@ -507,10 +497,8 @@ describe('expressions (totality, CEL semantics)', () => {
       .toEqual(['ref revision pin must be a non-empty revision id']);
   });
 
-  it('match exhaustiveness is compile-checked', () => {
-    const variant = { base: 'variant', tags: ['circle', 'rect'] };
+  it('match evaluates the armed tag and throws on a missing arm', () => {
     const partial = { op: 'match', expr: { op: 'lit', value: { tag: 'circle' } }, arms: { circle: { op: 'lit', value: 1 } } };
-    expect(checkMatch(partial, variant)).toEqual(['match missing arm for rect']);
     expect(evaluate(partial)).toBe(1);
     expect(() => evaluate({ ...partial, expr: { op: 'lit', value: { tag: 'rect' } } })).toThrow(/not exhaustive/);
   });
@@ -675,13 +663,6 @@ describe('evolution (R7, refuse-on-diff)', () => {
       fields: {}
     })).toThrow(/breaking change/);
   });
-
-  it('instances behind typeVersion are ill-typed', () => {
-    const registry = packRegistry();
-    const sheet = registry.getType('sheet');
-    expect(validateInstance(sheet, { ...packFixtures.sheetInstance, typeVersion: 0 }))
-      .toContainEqual(expect.stringMatching(/behind 1/));
-  });
 });
 
 describe('tenancy (SPEC §4)', () => {
@@ -699,7 +680,7 @@ describe('tenancy (SPEC §4)', () => {
 });
 
 describe('collapse table acceptance (SPEC §15, §19 core tier)', () => {
-  it('the CNC pack compiles clean and instances validate', () => {
+  it('the CNC pack compiles clean', () => {
     const registry = packRegistry();
     const compiled = registry.compile();
     expect(compiled.errors).toEqual([]);
@@ -707,12 +688,6 @@ describe('collapse table acceptance (SPEC §15, §19 core tier)', () => {
       'cut-plan', 'facade', 'material', 'occs', 'organization', 'part', 'photo',
       'project', 'queue', 'sheet', 'solve-run', 'user'
     ]);
-    expect(validateInstance(registry.getType('sheet'), packFixtures.sheetInstance)).toEqual([]);
-    expect(validateInstance(registry.getType('queue'), packFixtures.queueInstance)).toEqual([]);
-    expect(validateInstance(registry.getType('queue'), {
-      ...packFixtures.queueInstance,
-      fields: { ...packFixtures.queueInstance.fields, job: [{ item: { type: 'sheet', id: 'x' }, qty: 1 }] }
-    })).toContainEqual(expect.stringMatching(/ref target sheet not in accepts/));
   });
 });
 

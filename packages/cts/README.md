@@ -20,7 +20,7 @@ modules onto its sections.
   the single home of the authorable field-base list.
 - `rows.js` — closed field rows (SPEC §2), compiled to JSON Schema
   2020-12 with `x-quantity`/`x-ref` keywords (the substrate for standard
-  validators and designer form generation); total instance walker (R1).
+  validators and designer form generation).
 - `classes.js` — the five class presets, their structural obligations,
   and `classMayDeclareChildren` (the SPEC §5 containment predicate
   authoring surfaces gate on); `DECLARABLE_CLASSES` — party is
@@ -37,7 +37,7 @@ modules onto its sections.
   covers ref-field entries the same way); lineage
   acyclicity (R2) with recursive self-containment compiling clean.
 - `states.js` — the state-vocabulary facet of type declarations:
-  normalization (flat values, per-state display policy) and its readers.
+  normalization (flat values, per-state display policy).
   Class declarations carry the vocabulary and policy; transitions stay
   graph-derived (SPEC §7).
 - `operators.js` — the six species with typed signatures and
@@ -61,8 +61,7 @@ modules onto its sections.
 - `registry.js` — type records as data, tenancy resolution (system
   first, one org overlay, SPEC §4), `compile()` running R1–R6 (party
   types refused as children targets; relation `where` domains
-  type-checked against every declared target, including nested relation/containment traversals), instance validation with
-  `typeVersion` ill-typing, payload normalization to the canonical
+  type-checked against every declared target, including nested relation/containment traversals), payload normalization to the canonical
   trait shape (including `payload.inputs`, the extra construction inputs
   an upload-backed type prompts beside its file), and the SPEC §4
   display-flag laws (exactly one authored
@@ -112,10 +111,8 @@ adapter delegates flat CTS transition candidates to that same validator.
   grouping.
 - `process-grammar.js` — CTS ⇄ `PROCESS_BASE_TYPES` adapter for
   the declaration subset (SPEC §2 grammar relation): maps declaration
-  descriptors onto the process type grammar and back, reports
-  runtime-only bases as unmappable, and derives the enum registry ids
-  both sides share. Consumed by `packages/processes` designer and node
-  catalog.
+  descriptors onto the process type grammar. Consumed by
+  `packages/processes` designer and node catalog.
 - `process-checks.js` — declaration checks against a registry
   view, run before the process compiler's graph validation: transition
   guards and state `fieldPolicy` lists row-checked against the bound
@@ -142,8 +139,8 @@ adapter delegates flat CTS transition candidates to that same validator.
   and migration); `renameLegacyTypeKeys` is the pure key rewriter for
   the one-shot persisted-data migration script.
 - `pack/cnc.js` — the CNC starter type pack: the collapse-table
-  acceptance fixture (file/item/group/process families, the typed
-  nesting seam, sample instances).
+  acceptance fixture (file/item/group/process families, edges, operators,
+  triggers, payload traits).
 - `pack/page.js` — `pageTypeDeclaration`/`PAGE_TYPE_ID`: the default Page
   class seeded as an organization type by the pages feature.
 - `pack/framework.js` — `frameworkTypes`: the framework's own type

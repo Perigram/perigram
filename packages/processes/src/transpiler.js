@@ -190,11 +190,6 @@ export function validateRoundTrip(definition = {}) {
   };
 }
 
-export function validateCanvasSemantics(canvas = {}, previousDefinition = {}) {
-  const definition = canvasToDefinition(canvas, previousDefinition);
-  return validateRoundTrip(definition);
-}
-
 function assertEditableSource(process = {}) {
   if (process.compiled && !hasCanonicalProcessSource(process)) {
     throw new Error('Process definition has only a compiled runtime contract; canonical semantic records are required for editing');

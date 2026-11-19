@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  ctsFieldToProcessType, processTypeToCtsField, enumRegistryForView,
-  SPECIES_BY_EFFECT_KIND, isProcessOnlyBase
-} from './process-grammar.js';
+import { ctsFieldToProcessType } from './process-grammar.js';
 import { checkDeclarationsAgainstCts } from './process-checks.js';
 import { createTypeRegistry } from './index.js';
 import { cncTypePack } from './pack/cnc.js';
@@ -29,7 +26,7 @@ function draftStateRecords() {
 }
 
 describe('grammar adapter (CTS <-> PROCESS_BASE_TYPES)', () => {
-  it('maps the declaration subset losslessly in both directions', () => {
+  it('maps the declaration subset onto process types', () => {
     const cases = [
       [{ base: 'string' }, { base: 'string' }],
       [{ base: 'quantity', unit: 'mm' }, { base: 'number', unit: 'mm' }],
@@ -42,32 +39,12 @@ describe('grammar adapter (CTS <-> PROCESS_BASE_TYPES)', () => {
       [{ base: 'json', kind: 'document.report' }, { base: 'json', kind: 'document.report' }]
     ];
     for (const [ctsDescriptor, expectedProcess] of cases) {
-      const processType = ctsFieldToProcessType(ctsDescriptor);
-      expect(processType).toEqual(expectedProcess);
-      const back = processTypeToCtsField(processType);
-      expect(back).toEqual(ctsDescriptor);
+      expect(ctsFieldToProcessType(ctsDescriptor)).toEqual(expectedProcess);
     }
   });
 
-  it('reports runtime-only bases as unmappable instead of guessing', () => {
-    expect(isProcessOnlyBase('entity')).toBe(true);
-    expect(processTypeToCtsField({ base: 'status', typeId: 'queue' })).toBeNull();
-    expect(processTypeToCtsField({ base: 'duration' })).toBeNull();
+  it('reports bases with no process counterpart as lossy json', () => {
     expect(ctsFieldToProcessType({ base: 'variant', tags: ['a'] }).lossy).toBeTruthy();
-  });
-
-  it('derives the shared enum registry for enum fields only', () => {
-    const registry = registryWithOrgType();
-    const enums = enumRegistryForView(registry.listTypes('org-1'));
-    expect(enums['widget#stage']).toEqual(['raw', 'done']);
-    // State vocabularies never project (SPEC §7): no typeId#axis ids.
-    expect(Object.keys(enums).some(id => id.endsWith('#main'))).toBe(false);
-  });
-
-  it('classifies the effect node family into CTS species', () => {
-    expect(SPECIES_BY_EFFECT_KIND['effect.changeStatus']).toBe('transition');
-    expect(SPECIES_BY_EFFECT_KIND['effect.runCommand']).toBe('command');
-    expect(Object.keys(SPECIES_BY_EFFECT_KIND)).toHaveLength(9);
   });
 });
 

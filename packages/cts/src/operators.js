@@ -2,10 +2,7 @@
 // Reaction, not observation: only a call, a trigger, or a task retry wakes one.
 import { describeType, containsRef } from './values.js';
 
-export const OPERATOR_SPECIES = Object.freeze(['construct', 'mutate', 'transition', 'conversion', 'projection', 'service']);
-export const OPERATOR_SPECIES_BY_LETTER = Object.freeze({
-  c: 'construct', m: 'mutate', d: 'transition', k: 'conversion', p: 'projection', s: 'service'
-});
+const OPERATOR_SPECIES = Object.freeze(['construct', 'mutate', 'transition', 'conversion', 'projection', 'service']);
 
 export function normalizeOperator(operator = {}) {
   const { id, species, input, output, triggers = [], declaringType = null } = operator;

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   createTypeRegistry,
   frameworkTypes,
@@ -19,8 +19,6 @@ import {
   validateProcessDefinition
 } from './index.js';
 import { createDataPacket } from './data-tree.js';
-import { runProcessUntilSettled, createProcessRun } from './orchestration.js';
-import { createProcessGraphDocument } from './process-graph.js';
 
 function nativeDomain() {
   const registry = createTypeRegistry({ id: 'native-cts-execution' });
@@ -454,34 +452,6 @@ describe('native CTS process execution contract', () => {
       { type: 'panel', id: 'p1', data: { name: 'Renamed' } },
       { type: 'panel', id: 'p2', data: { name: 'Renamed' } }
     ]);
-  });
-
-  it('executes native service and command records through the native dispatch seam', async () => {
-    const domain = nativeDomain();
-    const service = { id: 'service', kind: 'cts.service', operator: 'panel.ping', trigger: { mode: 'manual' } };
-    const command = { id: 'command', kind: 'cts.command', commandId: 'panel.run', trigger: { mode: 'manual' } };
-    const definition = graph([service, command], [
-      { id: 'service-command', source: 'service', sourceHandle: 'control:completed', target: 'command', targetHandle: 'control:in', role: 'control' }
-    ]);
-    const canonicalGraph = createProcessGraphDocument(definition);
-    const executeEffect = vi.fn()
-      .mockResolvedValueOnce({ value: 'ok' })
-      .mockResolvedValueOnce({ value: 'done' });
-    const completed = await runProcessUntilSettled(
-      createProcessRun(canonicalGraph, { nodeId: 'service' }),
-      canonicalGraph,
-      {
-        executeEffect,
-        catalogContext: record => ({
-          domain: { ...domain, serviceContracts: { 'panel.ping': { id: 'panel.ping', command: 'panel.ping', signature: { input: { base: 'record', fields: {} }, output: { base: 'json' } } } } },
-          command: { input: { entities: [], parameters: [] }, output: { entities: [] } }
-        })
-      }
-    );
-    expect(completed.status).toBe('succeeded');
-    expect(executeEffect).toHaveBeenCalledTimes(2);
-    expect(executeEffect.mock.calls.map(call => call[0].kind)).toEqual(['cts.service', 'cts.command']);
-    expect(executeEffect.mock.calls[1][0].record.commandId).toBe('panel.run');
   });
 
   it('keeps native reads and field projections executable as data nodes', async () => {

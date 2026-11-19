@@ -12,14 +12,6 @@ const BASES = Object.freeze([
 // canvas consumes; no page keeps its own base list.
 export const FIELD_BASES = Object.freeze(BASES.filter(base => base !== 'id'));
 
-// Closed `display` kind vocabulary (SPEC §4 naming facet): passed through
-// verbatim on descriptors (never validated as an enum here), but authoring
-// surfaces offer exactly this list. `display` is absent when derived.
-export const DISPLAY_KINDS = Object.freeze([
-  'text', 'number', 'code', 'email', 'phone', 'date', 'area', 'percent',
-  'dimensions', 'parameterMap', 'count', 'geometry', 'entityRef', 'entityRefList'
-]);
-
 export function describeType(descriptor = {}) {
   const base = descriptor.base;
   if (!BASES.includes(base)) throw new Error(`Unknown base type ${JSON.stringify(base)}`);
@@ -143,7 +135,7 @@ export function checkValue(descriptor, value) {
   }
 }
 
-export function describeLabel(descriptor = {}) {
+function describeLabel(descriptor = {}) {
   switch (descriptor.base) {
     case 'ref': return `Ref(${descriptor.accepts?.join(' | ')})`;
     case 'quantity': return `Quantity(${descriptor.unit})`;

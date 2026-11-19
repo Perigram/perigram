@@ -13,7 +13,7 @@ describe('graph-document framework type', () => {
       class: 'file',
       scope: 'system',
       payload: { mime: ['application/json'], creation: ['upload', 'editor'] },
-      fields: { name: { base: 'string', identifier: true }, graphId: { base: 'string', required: false } }
+      fields: { name: { base: 'string', identifier: true }, graphId: { base: 'string' } }
     });
     expect(graphDocument.framework).toBeUndefined();
   });

@@ -118,18 +118,15 @@ so the canvas stays legible across application themes.
 | Channel | Encodes | Values |
 |---|---|
 | Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation, `inline` = the one-line literal |
-| Card surface | population primacy | the effect species except remove render the primary-tinted surface (`--ck-surface-primary`) — the primary nodes; every other node keeps the plain content surface. One predicate: `utils/processDesignerPopulation.js` |
+| Card surface | population primacy | the effect species render the primary-tinted surface (`--ck-surface-primary`) — the primary nodes; every other node keeps the plain content surface |
 | Card border | chrome + selection + fault | the quiet content border for every card; the selected border is the selection state; the danger border marks a faulted node — one carrying anchored validation diagnostics for itself or a wire at its endpoint, or its own whole-graph evaluation error (the messages render in the header's fault popover) |
 
 Canvas nodes carry no category accent — the frame is plain; card concern
 rides the label and icon. Effects and state declarations are the primary
-populations — they carry the access/workflow story. The remove operation
-is an effect by population and presentation-secondary: plain content
-surface, hidden by the secondary visibility toggle; the rest of the
-effect family stays visible. Every other node (classes, fields, type
-references, non-effect process nodes) is secondary: unaffected by grants,
-hidden by the same toggle (`hidden` is runtime state, stripped before
-serialization).
+populations — they carry the access/workflow story. Every other node
+(classes, fields, type references, non-effect process nodes) is
+secondary: unaffected by grants, hidden by the secondary visibility
+toggle (`hidden` is runtime state, stripped before serialization).
 
 ### Card anatomy
 

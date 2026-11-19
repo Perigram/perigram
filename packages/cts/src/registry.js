@@ -1,9 +1,9 @@
 // Type records + registry (SPEC §4, §13): declarations as data, tenancy
 // (system first, org overlay, no shadowing), compile = R1-R6.
-import { normalizeRow, checkFields, rowToSchema } from './rows.js';
+import { normalizeRow, rowToSchema } from './rows.js';
 import { normalizeEdges, checkLineageAcyclic, UNLINK_POLICIES } from './edges.js';
 import { checkClassObligations } from './classes.js';
-import { normalizeOperator, OPERATOR_SPECIES_BY_LETTER } from './operators.js';
+import { normalizeOperator } from './operators.js';
 import { describeType } from './values.js';
 import { requireCompatible, normalizeMigrateSteps } from './diff.js';
 import { checkTypedBooleanExpression, evaluateAsync, MAX_STEPS } from './expressions.js';
@@ -400,8 +400,7 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
     return Object.freeze({
       ok: errors.length === 0,
       errors: Object.freeze(errors),
-      types: view,
-      operatorSpecies: OPERATOR_SPECIES_BY_LETTER
+      types: view
     });
   }
 
@@ -530,17 +529,6 @@ function checkRelationDomains(type, view) {
   return registry;
 }
 
-export function validateInstance(type, instance = {}) {
-  if (instance.type !== type.id) return [`instance type ${instance.type} does not match ${type.id}`];
-  if (instance.typeVersion !== type.version) {
-    return [`instance typeVersion ${instance.typeVersion} behind ${type.version} — ill-typed by definition (SPEC §11)`];
-  }
-  const errors = [...checkFields(type.fields, instance.fields)];
-  return errors;
-}
-
 export function schemaFor(type) {
   return rowToSchema(type.id, type.fields);
 }
-
-export { OPERATOR_SPECIES_BY_LETTER };

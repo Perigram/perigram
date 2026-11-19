@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createCoreGraphDataProvider, CORE_DATA_PROVIDER, GRAPH_QUERY_INSTANCES_OPERATION } from './graph-data-provider.js';
+import { createCoreGraphDataProvider, CORE_DATA_PROVIDER } from './graph-data-provider.js';
 
 describe('core graph data provider', () => {
   it('forwards exact-instance selection to the authorized host query capability', async () => {
@@ -12,7 +12,7 @@ describe('core graph data provider', () => {
     });
     expect(definition).toMatchObject({
       provider: CORE_DATA_PROVIDER,
-      id: GRAPH_QUERY_INSTANCES_OPERATION,
+      id: 'query.instances',
       configuration: { properties: { instanceId: { type: 'string', maxLength: 256 } } }
     });
     expect(queryInstances).toHaveBeenCalledWith({
