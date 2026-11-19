@@ -156,11 +156,9 @@
                 :inputs="selectedNode?.type === 'processNode' ? processNodeInputs(selectedProcessNode) : []"
                 :preview="{
                   supported: selectedNodeSupportsPreview,
-                  running: previewingData || channelPreviewRunning,
-                  state: selectedChannelNode || selectedNodePreview,
-                  outputs: selectedNode?.type === 'processNode'
-                    ? (selectedChannelOutputs.length ? selectedChannelOutputs : selectedNodePreviewOutputs)
-                    : []
+                  running: channelPreviewRunning,
+                  state: selectedChannelNode,
+                  outputs: selectedNode?.type === 'processNode' ? selectedChannelOutputs : []
                 }"
                 :format-preview-path="formatPreviewPath"
                 :format-preview-items="formatPreviewItems"
@@ -169,7 +167,6 @@
                 @update-identifier-field="value => setClassIdentifierField(selectedNode, value)"
                 @update-grant-level="({ index, level }) => updateSelectedProcessNodeGrantLevel(index, level)"
                 @update-construction-mode="mode => updateProcessNodeConstructionMode(selectedProcessNode, mode)"
-                @run-preview="previewDataflow"
                 @create-command-service="createCommandServiceForSelectedNode"
                 @remove-command-service="removeSelectedCommandService"
               />
@@ -827,15 +824,10 @@ const {
   selectedProcessNodeGrants,
   selectedProcessNodeEffectiveAccess,
   updateSelectedProcessNodeGrantLevel,
-  dataflowPreview,
-  previewingData,
   validationDiffLines,
-  selectedNodePreview,
   selectedNodeSupportsPreview,
-  selectedNodePreviewOutputs,
   selectedChannelNode,
   selectedChannelOutputs,
-  previewDataflow,
   formatPreviewPath,
   formatPreviewItems,
   nodeDiagnostics,
