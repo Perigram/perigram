@@ -22,5 +22,7 @@ export const BLOCK_VOCABULARY = [
   { id: 'table', labelKey: 'editors.table', glyph: 'pi pi-table', match: ['table'], insertable: true },
   { id: 'instance', labelKey: 'editors.instance', glyph: 'pi pi-at', match: ['instance', 'ref', 'mention'], insertable: true },
   { id: 'link', labelKey: 'editors.link', glyph: 'pi pi-link', match: ['link', 'url'], insertable: false },
-  { id: 'view', labelKey: 'editors.collectionView', glyph: 'pi pi-objects-column', match: ['view', 'collection'], insertable: true }
+  { id: 'view', labelKey: 'editors.collectionView', glyph: 'pi pi-objects-column', match: ['view', 'collection'], insertable: true },
+  { id: 'reference', labelKey: 'editors.linkToRecord', glyph: 'pi pi-link', match: ['reference', 'record', 'ref'], insertable: true },
+  { id: 'graph-output', labelKey: 'editors.graphResult', glyph: 'pi pi-sitemap', match: ['graph', 'result', 'output'], insertable: true }
 ];

@@ -1,18 +1,22 @@
 <template>
-  <StandardDialog :visible="visible" size="sm"  :title="t('processDesigner.insertReference')" @update:visible="shown => { if (!shown) close(); }">
+  <StandardDialog :visible="visible" size="sm"  :title="t('editors.linkToRecord')" @update:visible="shown => { if (!shown) close(); }">
     <div class="flex max-h-[70vh] min-w-72 flex-col gap-3 overflow-y-auto">
-      <InstanceTree v-if="!selected" :show-create="false"  :aria-label="t('processDesigner.chooseInstance')" @select="selectRecord" />
+      <InstanceTree v-if="!selected" :show-create="false"  :aria-label="t('editors.chooseRecord')" @select="selectRecord" />
       <template v-else>
         <div class="flex items-center gap-2">
           <Button icon="pi pi-arrow-left" text rounded size="small" severity="secondary" @click="selected = null" />
           <InstanceInlineRef :type="selected.type" :entity="selected.entity" :fetch="false" :interactive="false" />
         </div>
-        <Button  :label="t('processDesigner.insertLiveReference')" icon="pi pi-link" text class="w-full justify-start" @click="pick()" />
-        <div v-if="revisions.length" class="flex flex-col gap-1">
-          <div class="text-supporting"><strong>{{ t('processDesigner.pinToRevision') }}</strong></div>
-          <Button v-for="revision in revisions" :key="revision._id" :label="t('processDesigner.revisionLabel', { number: revision.data?.number || '', createdAt: revision.data?.createdAt || '' })" icon="pi pi-bookmark" text class="w-full justify-start" @click="pick(revision._id)" />
+        <div class="flex flex-col gap-1">
+          <Button  :label="t('editors.insertLiveReference')" icon="pi pi-link" text class="w-full justify-start" @click="pick()" />
+          <div class="px-2 text-supporting text-muted">{{ t('editors.liveReferenceHint') }}</div>
         </div>
-        <div v-else class="text-supporting text-muted">{{ t('processDesigner.noRetainedRevisions') }}</div>
+        <div v-if="revisions.length" class="flex flex-col gap-1">
+          <div class="text-supporting"><strong>{{ t('editors.pinToRevision') }}</strong></div>
+          <div class="text-supporting text-muted">{{ t('editors.pinnedReferenceHint') }}</div>
+          <Button v-for="revision in revisions" :key="revision._id" :label="t('editors.revisionLabel', { number: revision.data?.number || '', createdAt: revision.data?.createdAt || '' })" icon="pi pi-bookmark" text class="w-full justify-start" @click="pick(revision._id)" />
+        </div>
+        <div v-else class="text-supporting text-muted">{{ t('editors.noRetainedRevisions') }}</div>
       </template>
     </div>
   </StandardDialog>

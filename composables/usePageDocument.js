@@ -147,24 +147,69 @@ export function usePageDocumentSession({ docId, tabKey }) {
     insertBlock({ id: createBlockId('v'), kind: 'view', view }, at);
   }
 
-  function insertReference(ref = {}) {
+  const referencePickerAt = ref(null);
+  const graphOutputPickerAt = ref(null);
+
+  function openReferencePicker(at) {
+    referencePickerAt.value = at;
+  }
+
+  function openReferencePickerAfter(blockId) {
+    const index = draftOrder.value.indexOf(blockId);
+    openReferencePicker(index < 0 ? draftOrder.value.length : index + 1);
+  }
+
+  function openReferencePickerAtEnd() {
+    openReferencePicker(draftOrder.value.length);
+  }
+
+  function closeReferencePicker() {
+    referencePickerAt.value = null;
+  }
+
+  function pickReference(ref = {}) {
+    const at = referencePickerAt.value;
+    referencePickerAt.value = null;
+    if (at === null || !ref) return null;
     const typeId = String(ref.typeId || '').trim();
     const instanceId = String(ref.instanceId || '').trim();
     if (!typeId || !instanceId) return null;
     const revisionId = ref.revisionId ? String(ref.revisionId) : '';
-    const block = { id: createBlockId('r'), kind: 'reference', ref: { typeId, instanceId, ...(revisionId ? { revisionId } : {}) } };
-    const last = draftOrder.value[draftOrder.value.length - 1];
-    const at = isEmptyText(blockById.value.get(last)) ? draftOrder.value.length - 1 : draftOrder.value.length;
-    return insertBlock(block, at);
+    return insertBlock({
+      id: createBlockId('r'),
+      kind: 'reference',
+      ref: { typeId, instanceId, ...(revisionId ? { revisionId } : {}) }
+    }, at);
   }
 
-  function insertCollection(collection = {}) {
+  function openGraphOutputPicker(at) {
+    graphOutputPickerAt.value = at;
+  }
+
+  function openGraphOutputPickerAfter(blockId) {
+    const index = draftOrder.value.indexOf(blockId);
+    openGraphOutputPicker(index < 0 ? draftOrder.value.length : index + 1);
+  }
+
+  function openGraphOutputPickerAtEnd() {
+    openGraphOutputPicker(draftOrder.value.length);
+  }
+
+  function closeGraphOutputPicker() {
+    graphOutputPickerAt.value = null;
+  }
+
+  function pickGraphOutput(collection = {}) {
+    const at = graphOutputPickerAt.value;
+    graphOutputPickerAt.value = null;
+    if (at === null || !collection) return null;
     const source = collection.source && typeof collection.source === 'object' ? collection.source : {};
     if (source.kind !== 'graph-output' || !source.executionInstanceId || !source.outputId) return null;
-    const block = { id: createBlockId('c'), kind: 'collection', collection: { source: { ...source }, parameters: collection.parameters || {}, resultPolicy: 'pinned' } };
-    const last = draftOrder.value[draftOrder.value.length - 1];
-    const at = isEmptyText(blockById.value.get(last)) ? draftOrder.value.length - 1 : draftOrder.value.length;
-    return insertBlock(block, at);
+    return insertBlock({
+      id: createBlockId('c'),
+      kind: 'collection',
+      collection: { source: { ...source }, parameters: collection.parameters || {}, resultPolicy: 'pinned' }
+    }, at);
   }
 
   function removeBlock(blockId) {
@@ -273,6 +318,8 @@ export function usePageDocumentSession({ docId, tabKey }) {
     beginDrag: key => { dragKey.value = key; },
     endDrag: () => { dragKey.value = null; },
     viewPickerAt: computed(() => viewPickerAt.value),
+    referencePickerAt: computed(() => referencePickerAt.value),
+    graphOutputPickerAt: computed(() => graphOutputPickerAt.value),
     move,
     moveToIndex,
     insertText,
@@ -282,9 +329,17 @@ export function usePageDocumentSession({ docId, tabKey }) {
     openViewPickerAfter,
     openViewPickerAtEnd,
     pickView,
-    insertReference,
-    insertCollection,
     closeViewPicker: () => { viewPickerAt.value = null; },
+    openReferencePicker,
+    openReferencePickerAfter,
+    openReferencePickerAtEnd,
+    closeReferencePicker,
+    pickReference,
+    openGraphOutputPicker,
+    openGraphOutputPickerAfter,
+    openGraphOutputPickerAtEnd,
+    closeGraphOutputPicker,
+    pickGraphOutput,
     moveCaret,
     removeBlock,
     removeEmptyBlock,

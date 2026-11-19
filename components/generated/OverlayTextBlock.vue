@@ -23,6 +23,8 @@
       @delete-empty="deleteBlock"
       @caret-boundary="moveCaret"
       @request-view="requestView"
+      @request-reference="requestReference"
+      @request-graph-output="requestGraphOutput"
     />
     <MarkdownBlocks v-else-if="block.text" :source="block.text" />
   </div>
@@ -87,6 +89,14 @@ function deleteBlock() {
 
 function requestView() {
   props.session?.openViewPickerAfter?.(props.block.id);
+}
+
+function requestReference() {
+  props.session?.openReferencePickerAfter?.(props.block.id);
+}
+
+function requestGraphOutput() {
+  props.session?.openGraphOutputPickerAfter?.(props.block.id);
 }
 
 function closeEditor() {

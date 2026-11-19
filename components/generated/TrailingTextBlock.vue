@@ -14,6 +14,8 @@
       @enter="commit(true)"
       @delete-empty="resumePrevious"
       @request-view="requestView"
+      @request-reference="requestReference"
+      @request-graph-output="requestGraphOutput"
     />
     <!-- The idle line is the placeholder alone (owner direction
          2026-11-13), rendered as plain document text exactly where the
@@ -81,6 +83,14 @@ function resumePrevious() {
 
 function requestView() {
   props.session.openViewPickerAtEnd?.();
+}
+
+function requestReference() {
+  props.session.openReferencePickerAtEnd?.();
+}
+
+function requestGraphOutput() {
+  props.session.openGraphOutputPickerAtEnd?.();
 }
 
 function focusIfRequested() {

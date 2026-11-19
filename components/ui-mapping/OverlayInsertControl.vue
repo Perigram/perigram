@@ -31,7 +31,8 @@
 <script setup>
 // The document gutter's insert menu: the same block vocabulary the slash
 // panel offers. Text entries insert a text block opened at that block
-// kind; the view entry opens the saved-view picker.
+// kind; the picker entries (view, reference, graph result) hand off to
+// the page session's pickers.
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Popover from 'primevue/popover';
@@ -50,6 +51,8 @@ const items = computed(() => BLOCK_VOCABULARY.filter(item => item.insertable));
 function pick(item) {
   menu.value?.hide();
   if (item.id === 'view') props.session.openViewPicker(props.at);
+  else if (item.id === 'reference') props.session.openReferencePicker(props.at);
+  else if (item.id === 'graph-output') props.session.openGraphOutputPicker(props.at);
   else props.session.insertText(props.at, item.id);
 }
 </script>
