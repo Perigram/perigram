@@ -833,22 +833,7 @@ describe('declared runtime dependencies (owner decision 2026-10-17)', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
-
-  it('collects the bare imports of a plugin graph and slugs vendor bundles', async () => {
-    const { collectBareImports, vendorSlug } = await import('./vendor.js');
-    const dir = mkdtempSync(join(tmpdir(), 'vendor-'));
-    try {
-      writeFileSync(join(dir, 'editor.mjs'), 'import * as THREE from \'three\';\nimport { lib } from \'./lib.js\';\nexport default function createSurface() { return lib(THREE); }\n');
-      writeFileSync(join(dir, 'lib.js'), 'import \'@milkdown/crepe\';\nexport const lib = () => null;\n');
-      expect(collectBareImports([join(dir, 'editor.mjs')]).sort()).toEqual(['@milkdown/crepe', 'three']);
-      expect(vendorSlug('@milkdown/crepe')).toBe('milkdown-crepe.mjs');
-      expect(vendorSlug('three')).toBe('three.mjs');
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
 });
-
 // A stop signal that aborts once the mock platform has seen `target`
 // requests, so each executor test observes exactly one claimed run.
 function stopAfter(target, calls) {

@@ -1,13 +1,13 @@
-export const GRAPH_EXECUTION_FORMAT = 'perigram.graph-execution';
-export const GRAPH_EXECUTION_VERSION = 1;
-export const GRAPH_EXECUTION_PROFILES = Object.freeze([
+const GRAPH_EXECUTION_FORMAT = 'perigram.graph-execution';
+const GRAPH_EXECUTION_VERSION = 1;
+const GRAPH_EXECUTION_PROFILES = Object.freeze([
   'procedural-preview',
   'procedural-commit',
   'procedural-bake',
   'procedural-export',
   'process'
 ]);
-export const GRAPH_EXECUTION_STATUSES = Object.freeze([
+const GRAPH_EXECUTION_STATUSES = Object.freeze([
   'succeeded',
   'failed',
   'stale',

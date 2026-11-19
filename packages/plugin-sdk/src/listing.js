@@ -69,7 +69,7 @@ const SPDX_LIKE = /^[A-Za-z0-9.+-]+$/;
 // bundled copy of a host external (the consistency law's refusal) or of
 // the host's single markdown pipeline. The mount provides them; the
 // listing may never vendor them.
-export const INJECTED_DEPENDENCIES = ['vue', 'primevue', 'pinia', 'marked', 'dompurify', 'pele'];
+const INJECTED_DEPENDENCIES = ['vue', 'primevue', 'pinia', 'marked', 'dompurify', 'pele'];
 
 export function parseListing(listing = {}) {
   const declarations = listing.declarations || {};

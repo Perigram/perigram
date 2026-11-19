@@ -13,14 +13,14 @@ import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, dirname, relative, join } from 'node:path';
 import { createRequire } from 'node:module';
 
-export function vendorSlug(name) {
+function vendorSlug(name) {
   return `${String(name).replace(/^@/, '').replace(/\//g, '-')}.mjs`;
 }
 
 // Every bare specifier across the plugin's own module graph (relative
 // imports walk; extension-less relatives are ignored the way the browser
 // would).
-export function collectBareImports(entries, seen = new Set(), bare = new Set()) {
+function collectBareImports(entries, seen = new Set(), bare = new Set()) {
   for (const entry of entries) {
     if (seen.has(entry)) continue;
     seen.add(entry);

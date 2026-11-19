@@ -1,14 +1,3 @@
-const EMPTY_READ_SET = Object.freeze({
-  consistency: 'unverified',
-  snapshotId: null,
-  organizationSequenceStart: null,
-  organizationSequenceEnd: null,
-  instances: [],
-  relations: [],
-  queries: [],
-  files: []
-});
-
 // A single execution-scoped recorder shared by parent and pinned child
 // graphs. Data adapters call these methods after their authorized read;
 // the core never infers a database snapshot that the adapter did not obtain.
@@ -142,10 +131,6 @@ export function createGraphReadSetRecorder(initial = {}) {
   }
 
   return Object.freeze({ recordInstance, recordRelation, recordQuery, recordFile, setConsistency, toJSON });
-}
-
-export function emptyGraphReadSet() {
-  return cloneJson(EMPTY_READ_SET);
 }
 
 function sameOrganizationSequence(left = {}, right = {}) {

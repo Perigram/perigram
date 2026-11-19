@@ -1,20 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createGraphReadSetRecorder, emptyGraphReadSet } from './graph-read-set.js';
+import { createGraphReadSetRecorder } from './graph-read-set.js';
 
 describe('graph execution read set', () => {
-  it('starts with an explicitly unverified consistency boundary', () => {
-    expect(emptyGraphReadSet()).toEqual({
-      consistency: 'unverified',
-      snapshotId: null,
-      organizationSequenceStart: null,
-      organizationSequenceEnd: null,
-      instances: [],
-      relations: [],
-      queries: [],
-      files: []
-    });
-  });
-
   it('records file content hashes as execution dependencies', () => {
     const recorder = createGraphReadSetRecorder();
     recorder.recordFile({

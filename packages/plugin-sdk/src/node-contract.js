@@ -1,6 +1,7 @@
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const PROVIDER_IDENTIFIER = /^[a-z0-9][a-z0-9._-]{0,127}$/;
-const SHAPES = new Set(['item', 'list', 'tree', 'map', 'tuple', 'stream']);
+export const TRANSPORT_SHAPES = Object.freeze(['item', 'list', 'tree', 'map', 'tuple', 'stream']);
+const SHAPES = new Set(TRANSPORT_SHAPES);
 export const NODE_EXECUTION_KINDS = Object.freeze(['pure', 'read', 'stateful', 'proposal', 'commit', 'effect', 'control']);
 const EXECUTION_KINDS = new Set(NODE_EXECUTION_KINDS);
 

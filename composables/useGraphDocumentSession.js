@@ -14,7 +14,7 @@ import {
   normalizeGraphDocument,
   validateGraphDocument
 } from '@perigram/core';
-import { createNodeProviderRegistry, createPortCompatibilityRegistry, normalizeNodeProvider, normalizeNodeDefinition } from '@perigram/plugin-sdk/nodes';
+import { createNodeProviderRegistry, createPortCompatibilityRegistry, normalizeNodeProvider, normalizeNodeDefinition, TRANSPORT_SHAPES } from '@perigram/plugin-sdk/nodes';
 import { createGraphAuthoringState, useGraphAuthoringSession } from '~/composables/useGraphAuthoringSession.js';
 import { mintId } from '~/utils/processDesignerIdentity.js';
 
@@ -464,7 +464,7 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
     if (!port || !declaration || typeof declaration !== 'object' || Array.isArray(declaration)) return;
     const contract = declaration.contract;
     if (!contract || typeof contract !== 'object' || Array.isArray(contract)
-      || !['item', 'list', 'tree', 'map', 'tuple', 'stream'].includes(contract.shape)
+      || !TRANSPORT_SHAPES.includes(contract.shape)
       || !contract.semantic || typeof contract.semantic !== 'object' || Array.isArray(contract.semantic)
       || !Object.keys(contract.semantic).length) {
       throw new Error('A declaration requires a supported shape and a non-empty semantic descriptor');
