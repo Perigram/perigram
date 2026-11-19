@@ -12,6 +12,7 @@
 // This is the single translator between the declaration layer and the
 // process grammar — the designer and the compiler consume only this.
 import { rowToFieldSchemas } from './field-schema-rows.js';
+import { ctsFieldToConstructionInput, legacyTypeToConstructionInput } from './process-grammar.js';
 import { lineageKeyForParent } from './edges.js';
 import { renderPolicyFor } from './render.js';
 
@@ -419,7 +420,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
               typeId: schema.type?.typeId
             }, labelByType),
             path: schema.path,
-            ...constructionInputKind(schema.type),
+            ...legacyTypeToConstructionInput(schema.type),
             required: false,
             prompt: true
           })),
@@ -427,7 +428,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
           id: schema.path,
           label: constructionInputLabel({ path: schema.path, label: schema.label }, labelByType),
           path: schema.path,
-          ...constructionInputKind(schema.type),
+          ...legacyTypeToConstructionInput(schema.type),
           required: false,
           prompt: true,
           ...(schema.constructible === false ? { constructible: false } : {})
@@ -438,7 +439,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
             id: schema.path,
             label: constructionInputLabel({ path: schema.path, label: schema.label }, labelByType),
             path: schema.path,
-            ...constructionInputKind(schema.type),
+            ...legacyTypeToConstructionInput(schema.type),
             required: schema.type?.nullable !== true,
             prompt: true
           }))
@@ -570,27 +571,9 @@ function orgLineageFieldsDeep(type, view, visited = new Set()) {
 }
 
 // A construct operator's signature record fields become construction mode
-// inputs (the org-authored `via`): V descriptors translate to the domain
-// input kinds at this seam — ref accepts become typed entity constraints,
-// quantity stays a unit-bearing number, structural bases ride as object
-// payloads. Required follows the row: a descriptor is required unless it
-// declares itself nullable.
-// Field-schema type -> construction input kind (the same seam
-// operatorModeInputs uses for operator signatures): entity refs carry their
-// typed constraint, everything structural rides as an object payload.
-function constructionInputKind(type = {}) {
-  if (type.base === 'array' && ['entityRef', 'entity'].includes(type.itemType?.base || '')) {
-    return { type: 'typeList', ...(type.itemType.typeId ? { typeId: type.itemType.typeId } : {}) };
-  }
-  if (type.base === 'entityRef' || type.base === 'entity') {
-    return { type: 'entity', ...(type.typeId ? { typeId: type.typeId } : {}) };
-  }
-  if (['string', 'boolean'].includes(type.base)) return { type: type.base };
-  if (type.base === 'number') return { type: 'number', ...(type.unit ? { unit: type.unit } : {}) };
-  if (type.base === 'dateTime' || type.base === 'date') return { type: 'dateTime' };
-  return { type: 'object' };
-}
-
+// inputs (the org-authored `via`): the descriptor translation lives in the
+// process adapter (`ctsFieldToConstructionInput`). Required follows the row:
+// a descriptor is required unless it declares itself nullable.
 function operatorModeInputs(operator = {}) {
   const fields = operator.input?.base === 'record' ? operator.input.fields || {} : {};
   return Object.entries(fields).map(([name, descriptor]) => {
@@ -598,32 +581,13 @@ function operatorModeInputs(operator = {}) {
       id: name,
       label: descriptor.label || name,
       path: name,
-      required: descriptor.nullable !== true
+      required: descriptor.nullable !== true,
+      // The naming facet's control pin rides verbatim (SPEC §4): the
+      // dialog decides how a ref input is picked, the type stays the type.
+      ...(descriptor.control ? { control: descriptor.control } : {}),
+      ...(descriptor.controlOptions ? { controlOptions: descriptor.controlOptions } : {}),
+      ...ctsFieldToConstructionInput(descriptor)
     };
-    // The naming facet's control pin rides verbatim (SPEC §4): the
-    // dialog decides how a ref input is picked, the type stays the type.
-    if (descriptor.control) input.control = descriptor.control;
-    if (descriptor.controlOptions) input.controlOptions = descriptor.controlOptions;
-    if (descriptor.base === 'ref') {
-      input.type = 'entity';
-      if (descriptor.accepts?.length === 1) input.typeId = descriptor.accepts[0];
-      else if (descriptor.accepts?.length) input.accepts = [...descriptor.accepts];
-    } else if (descriptor.base === 'list' && descriptor.itemType?.base === 'ref') {
-      input.type = 'typeList';
-      const accepts = descriptor.itemType.accepts || [];
-      if (accepts.length === 1) input.typeId = accepts[0];
-      else if (accepts.length) input.accepts = [...accepts];
-    } else if (descriptor.base === 'quantity') {
-      input.type = 'number';
-    } else if (descriptor.base === 'instant') {
-      input.type = 'date';
-    } else if (descriptor.base === 'blob') {
-      input.type = 'file';
-    } else if (['string', 'number', 'boolean'].includes(descriptor.base)) {
-      input.type = descriptor.base;
-    } else {
-      input.type = 'object';
-    }
     return input;
   });
 }
