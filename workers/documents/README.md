@@ -1,41 +1,49 @@
-# CONTAINER: Documents Plugin Executor
+# CONTAINER: Documents Plugin
 
 The Documents plugin owns office/media file formats, typed document values,
 template engines, and editor/preview surfaces. The platform owns graph
 authoring, execution policy, file authorization, and Bake/Export destinations.
 
-- Listing: `listing.json` (v33). Its `documents-shared` runtime entry is the
+- Listing: `listing.json` (v34). Its `documents-shared` runtime entry is the
   built `runtime/shared-bundle.mjs`, produced from `runtime/shared.mjs` by
-  `npm run documents:runtime:build`; provider definitions are derived from
-  the listing's service signatures, palette metadata, and execution
+  `npm run documents:runtime:build`; its `documents-server` runtime entry is
+  the source module `runtime/server.mjs`. Provider definitions are derived
+  from the listing's service signatures, palette metadata, and execution
   declarations. There is no second hand-authored graph operation catalog.
 - Browser graph runtime: the plugin Worker loads the pinned runtime assets.
   Pure document IR, Markdown parsing, Markdown/XLSX template fill, and
   file/table reads execute through this provider. File reads request the
   host's authorized `files.read` capability; the plugin receives bytes,
   never platform credentials.
-- Server graph execution: saved graphs now execute through authenticated
+- Server graph execution: saved graphs execute through authenticated
   `POST /api/graph-executions/evaluate`. The host resolves installed package
   pins and runs server-targeted JavaScript pure/read operations through the
   isolated shared `plugin-runtime` worker. Graph-wide cancellation/deadlines,
   nested invocation evidence, and per-call capability read evidence are
   recorded. Unverified capabilities block materialization; proposal/effect/
   stateful nodes and non-JavaScript runtimes remain unsupported.
-
-- Endpoint services: seven operations remain in the platform-managed
-  Documents executor for legacy projections and PDF/construction flows:
-  `table-rows`, `table-cells`, `text`, `fill`, `render-pdf`,
-  `render-report-pdf`, and `render-document-pdf`. Their executor origin is
-  platform-managed; organizations do not configure their own endpoint.
+- Legacy type projections: `text`, `table-rows`, and `table-cells` are pure
+  server operations of the shared runtime; the platform's synchronous
+  managed boundary executes them in-process over the hydrated instance
+  envelope (plugins feature README, "Service-resolved projections").
+- Constructions: `fill`, `render-pdf`, `render-report-pdf`, and
+  `render-document-pdf` are pure server operations of the
+  `documents-server` runtime. The construction dispatch awaits the isolated
+  `plugin-runtime` task. The engines (`fill.js`, `report.js`) import their
+  npm dependencies as declared listing dependencies, so the Deno child
+  resolves pdf-lib, @pdf-lib/fontkit, the pdfjs-dist legacy build, marked,
+  and xlsx from the materialized organization package through the generated
+  import map; the PT Sans fonts ship as package assets referenced through
+  static `new URL(..., import.meta.url)` constants.
 - File lifecycle: graph file payloads use the generic `{ payload: { base64,
   mime, name } }` envelope. The host owns file identity, access checks,
   explicit destinations, and persistence through generic Bake/Export.
 
-The plugin's `text-editor` and `csv-editor` surfaces remain package assets.
-The graph preview surface renders document/report IR directly and renders
-Markdown/HTML in a sanitized sandbox; XLSX outputs render as bounded
-worksheet tables. The executor serves legacy endpoint operations and static
-surface assets on port 8791.
+The plugin's `text-editor` and `csv-editor` surfaces are package assets the
+module proxy serves same-origin from the installing organization's
+materialized package. The graph preview surface renders document/report IR
+directly and renders Markdown/HTML in a sanitized sandbox; XLSX outputs
+render as bounded worksheet tables.
 
 ### XLSX template graph operation
 
@@ -94,7 +102,7 @@ capability.
 `parse-markdown` is a pure Documents operation in the
 `documents-shared` runtime. The browser graph runtime uses the
 `markdown-ir.mjs` adapter to turn Markdown into the typed
-`text.flow-document@1` value; the endpoint-only parser path is retired. The
+`text.flow-document@1` value. The
 server evaluator resolves the installed package declaration and executes the
 operation through the shared managed runtime. Unsupported HTML and image
 constructs remain explicit diagnostics rather than silently disappearing.
@@ -113,11 +121,13 @@ exposure and graph template fill round-trip acceptance remain open work.
 
 ### PDF graph operation status
 
-PDF template filling and PDF rendering remain available through the existing
-platform-managed Documents executor and the SPEC §24 construction contract.
-They are not yet exposed as procedural graph nodes: this now depends on a
-typed PDF graph operation/provider and a compatible managed runtime/capability
-boundary. DOCX fill/export is not declared as a supported template workflow.
+PDF template filling and PDF rendering run as pure server operations of the
+`documents-server` runtime through the SPEC §24 construction contract.
+`render-document-pdf` and `render-report-pdf` carry palette groups and pass
+the server node gate, so the managed server evaluator lists them as PDF
+export graph nodes; `fill` and `render-pdf` stay palette-hidden construction
+helpers. Graph-side PDF format acceptance remains open work. DOCX fill/export
+is not declared as a supported template workflow.
 
 ### Unified graph provider scope
 
@@ -128,11 +138,11 @@ not grant unsupported capabilities or effect semantics. Definitions derive
 from the installed listing's signatures, execution declarations, and palette
 metadata.
 
-The seven endpoint-mode services are the legacy `text`/table projections,
-construction `fill`, and PDF render/fill operations listed above. Remaining
+Every declared service runs behind the browser Worker, the managed server
+runtime, or the synchronous managed projection boundary. Remaining
 work is persisted graph-workspace acceptance, unified capability/effect
-policy and cross-target parity, PDF graph-node exposure, and installed-catalog
-upgrade verification.
+policy and cross-target parity, graph-side PDF format acceptance, and
+installed-catalog upgrade verification.
 
 ### Graph operation palette
 
@@ -143,7 +153,7 @@ Documents exposes semantic operation groups from its listing:
 - **Inline content** — create text, emphasis, strong/code marks, and safe links
 - **Document blocks** — create paragraphs, headings, lists, tables, quotes, code blocks, and dividers
 - **Document composition** — parse Markdown, compose/append flowing documents, and compose sectioned reports
-- **Document export** — render HTML and produce Markdown/HTML file payloads; PDF remains in the endpoint-backed construction path
+- **Document export** — render HTML and produce Markdown/HTML file payloads; `render-document-pdf` adds the managed server PDF export node
 
 ### Document graph values
 
@@ -200,11 +210,10 @@ workflows; it is not a substitute for the generic authorable document value.
 
 File-producing operations return the plugin SDK payload envelope
 `{ payload: { base64, mime, name } }`. The graph host materializes Markdown (`text/markdown`),
-HTML (`text/html`), and XLSX
-(`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`)
-payloads through generic Bake/Export. PDF uses `application/pdf` in the
-existing endpoint-backed construction flow; a PDF graph operation is still
-open work. The HTML type exposes a text projection and a plugin preview
+HTML (`text/html`), XLSX
+(`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`), and
+PDF (`application/pdf`) payloads through generic Bake/Export. The HTML type
+exposes a text projection and a plugin preview
 that sanitizes through the host markdown pipeline, then renders in a sandboxed
 iframe with scripts and network access disabled. The plugin defines the
 format; the host owns file identity, authorization, destination, and
@@ -287,8 +296,14 @@ template record or document-specific storage path is introduced.
   npx esbuild --bundle /tmp/crepe-entry.css --outfile=assets/vendor/crepe-theme.css
   ```
 
-Runs from the repo mount (compose `documents-executor`, port 8791) —
-nothing here imports platform code.
+  Runs from the repo root (host or any node environment carrying the
+  repo's `node_modules`) — nothing here imports platform code. The
+  server-runtime dependency bundles
+  (`pdf-lib.mjs`, `pdf-lib-fontkit.mjs`, `pdfjs-dist-legacy.mjs`,
+  `marked.mjs`) build the same way with `esbuild --bundle --format=esm
+  --platform=node --external:canvas`, one entry per declared dependency
+  name; `plugin-deps:check` keeps their package.json declarations
+  honest.
 
 Every payload-bearing type declares the `content` revision scope: the
 revisioned payload channel serves replace-in-place and construction-time
@@ -305,7 +320,9 @@ carries the authored `Source` label). The construction dispatch sends
 contract, [plugin-sdk](../../packages/plugin-sdk/README.md)) and the
 platform stores it as the created instance's payload. The composed
 file's name is the operator's typed create name (`draft.data.name`, a
-declared input) over the source file's own name.
+declared input) over the source file's own name. Both services run as
+`documents-server` managed operations; the create and preview flows
+await the isolated `plugin-runtime` task.
 
 Token law:
 
@@ -361,12 +378,15 @@ Behavior and traps:
 
 ## Publish, install, migrate
 
-- Deploy + seed: `node server/scripts/seed-plugin-catalog.js`;
-  organizations install explicitly from the Plugins section.
+- Deploy + seed: `node server/scripts/seed-plugin-catalog.js` (publishes the
+  listing, the runtime entries, the surfaces, and every declared dependency
+  bundle as catalog assets); organizations install explicitly from the
+  Plugins section.
 - Existing orgs: `server/scripts/migrate-documents-pack-to-plugin.js`
   rewrites `documents.csvText` service nodes to
-  `plugin.documents.csv-text` (type ids unchanged). Restart the app
-  after — per-org declaration caches rebuild on boot.
+  `plugin.documents.csv-text` (type ids unchanged) and clears stale
+  platform executor origins. Restart the app after — per-org declaration
+  caches rebuild on boot.
 - Upgrades apply through the
   [plugins feature](../../server/features/plugins/README.md)
   (diff preview plus migration steps).
