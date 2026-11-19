@@ -685,7 +685,6 @@ const {
   nodes,
   edges,
   validation,
-  secondaryHidden,
   draftDataSignature,
   designerSignature,
   loadDocument,
@@ -773,11 +772,8 @@ const {
   evaluateNow,
   applyGraphInterpretation,
   incomingEntityContract,
-  isSecondaryNode,
   isEffectNode,
   nodeOperationKind,
-  syncSecondaryHidden,
-  toggleSecondaryHidden,
   suggestTreeTypeId,
   updateClassName,
   setClassIdentifierField,
@@ -1173,12 +1169,6 @@ function tidyCanvas() {
 }
 
 const canvasDockItems = computed(() => [
-  {
-    icon: 'pi pi-eye-slash',
-    label: t('processDesigner.hideSecondary'),
-    pressed: secondaryHidden.value,
-    onClick: toggleSecondaryHidden
-  },
   {
     icon: 'pi pi-objects-column',
     label: t('processDesigner.tidy'),

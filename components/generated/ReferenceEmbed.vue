@@ -1,7 +1,7 @@
 <template>
   <div class="my-2">
-    <div v-if="!result" class="text-supporting text-muted">{{ t('processDesigner.loadingReference') }}</div>
-    <div v-else-if="result.status !== 'resolved'" class="text-supporting text-muted">{{ t('processDesigner.referencedItemUnavailable') }}</div>
+    <div v-if="!result" class="text-supporting text-muted">{{ t('editors.loadingReference') }}</div>
+    <div v-else-if="result.status !== 'resolved'" class="text-supporting text-muted">{{ t('editors.linkedRecordUnavailable') }}</div>
     <InstanceInlineRef
       v-else
       :type="result.typeId"

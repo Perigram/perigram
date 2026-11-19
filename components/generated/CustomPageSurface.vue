@@ -1,97 +1,100 @@
 <template>
   <div class="flex h-full min-h-0 flex-1 flex-col">
-    <!-- The custom page's header (SPEC §22.3): the unified anatomy with
-         the page's own concerns — in-place name editing, the class dialog
-         entry on a class page, and the dirty-gated save. A page is no
-         instance: no type label, no state surface, no comments entry. -->
-    <SurfaceHeader
-      :title="displayName"
-      :on-rename="commitName"
-    >
-      <template #cluster>
-        <Button
-          v-if="classEditAvailable"
-          :label="t('classes.editTitle')"
-          icon="pi pi-pencil"
-          size="small"
-          text
-          severity="secondary"
-          @click="classEditorOpen = true"
-        />
-        <Button  :label="t('processDesigner.referenceButton')" icon="pi pi-link" size="small" text severity="secondary" @click="referencePickerOpen = true" />
-        <Button  :label="t('processDesigner.graphOutput')" icon="pi pi-sitemap" size="small" text severity="secondary" @click="graphOutputPickerOpen = true" />
-        <Button
-          v-if="session.dirty"
-          :label="t('common.save')"
-          icon="pi pi-save"
-          size="small"
-          text
-          severity="secondary"
-          :loading="session.saving"
-          @click="session.save"
-        />
-      </template>
-    </SurfaceHeader>
+    <!-- The custom page's header (SPEC §22.3, §27.1): the unified
+         anatomy with the page's own concerns — in-place name editing,
+         the class dialog entry on a class page, and the dirty-gated
+         save. A page is no instance: no type label, no state surface,
+         no comments entry. Header, collection, and document share one
+         surface frame (SPEC §27.1). -->
     <div
-      class="text-prose min-h-0 flex-1 overflow-y-auto p-6"
+      class="text-prose min-h-0 flex-1 overflow-y-auto"
       :aria-label="t('pages.page')"
     >
-      <GeneratedScreenHost
-        v-if="classListScreen"
-        :screen="classListScreen"
-        class="mb-6"
-        keep-empty-lists
-        @open-instance="openClassInstance"
-      />
-      <div v-if="session.loaded" class="mx-auto flex w-full max-w-[72ch] flex-col gap-2">
-        <DocumentSectionShell
-          v-for="(key, index) in session.order"
-          :key="key"
-          :session="session"
-          :section-key="key"
-          :index="index"
-          :block="session.blockByKey(key)"
+      <div :class="[LAYOUT.measure, 'flex flex-col']">
+        <SurfaceHeader
+          :title="displayName"
+          :on-rename="commitName"
+          class="mb-6"
         >
-          <OverlayTextBlock
-            v-if="session.blockByKey(key)?.kind === 'text'"
-            :block="session.blockByKey(key)"
+          <template #cluster>
+            <Button
+              v-if="classEditAvailable"
+              :label="t('classes.editTitle')"
+              icon="pi pi-pencil"
+              size="small"
+              text
+              severity="secondary"
+              @click="classEditorOpen = true"
+            />
+            <Button
+              v-if="session.dirty"
+              :label="t('common.save')"
+              icon="pi pi-save"
+              size="small"
+              text
+              severity="secondary"
+              :loading="session.saving"
+              @click="session.save"
+            />
+          </template>
+        </SurfaceHeader>
+        <GeneratedScreenHost
+          v-if="classListScreen"
+          :screen="classListScreen"
+          class="mb-6"
+          keep-empty-lists
+          @open-instance="openClassInstance"
+        />
+        <div v-if="session.loaded" class="flex w-full flex-col gap-2">
+          <DocumentSectionShell
+            v-for="(key, index) in session.order"
+            :key="key"
             :session="session"
-            :placeholder="session.isTrailingBlock(key) ? t('editors.slashHint') : ''"
-          />
-          <ViewEmbed
-            v-else-if="session.blockByKey(key)?.kind === 'view'"
-            :view-id="session.blockByKey(key).view?.definitionSnapshot ? '' : (session.blockByKey(key).view?.id || '')"
-            :type-id="session.blockByKey(key).view?.typeId || ''"
-            :parent-type-id="session.blockByKey(key).view?.parentTypeId || ''"
-            :parent-id="session.blockByKey(key).view?.parentId || ''"
-            :source-id="session.blockByKey(key).view?.sourceId || ''"
-            :fallback-name="session.blockByKey(key).view?.name || ''"
-            :pinned-view-state="session.blockByKey(key).view?.definitionSnapshot?.viewState || null"
-            :definition-revision="session.blockByKey(key).view?.definitionRevision || ''"
-          />
-          <PageFileEmbed
-            v-else-if="session.blockByKey(key)?.kind === 'file'"
-            :file="session.blockByKey(key).file"
-          />
-          <ReferenceEmbed
-            v-else-if="session.blockByKey(key)?.kind === 'reference'"
-            :result="referenceByBlockId[key] || null"
-          />
-          <GraphOutputEmbed
-            v-else-if="session.blockByKey(key)?.kind === 'collection'"
-            :collection="session.blockByKey(key).collection"
-            :resolution="referenceByBlockId[key] || null"
-          />
-        </DocumentSectionShell>
+            :section-key="key"
+            :index="index"
+            :block="session.blockByKey(key)"
+          >
+            <OverlayTextBlock
+              v-if="session.blockByKey(key)?.kind === 'text'"
+              :block="session.blockByKey(key)"
+              :session="session"
+              :placeholder="session.isTrailingBlock(key) ? t('editors.slashHint') : ''"
+            />
+            <ViewEmbed
+              v-else-if="session.blockByKey(key)?.kind === 'view'"
+              :view-id="session.blockByKey(key).view?.definitionSnapshot ? '' : (session.blockByKey(key).view?.id || '')"
+              :type-id="session.blockByKey(key).view?.typeId || ''"
+              :parent-type-id="session.blockByKey(key).view?.parentTypeId || ''"
+              :parent-id="session.blockByKey(key).view?.parentId || ''"
+              :source-id="session.blockByKey(key).view?.sourceId || ''"
+              :fallback-name="session.blockByKey(key).view?.name || ''"
+              :pinned-view-state="session.blockByKey(key).view?.definitionSnapshot?.viewState || null"
+              :definition-revision="session.blockByKey(key).view?.definitionRevision || ''"
+            />
+            <PageFileEmbed
+              v-else-if="session.blockByKey(key)?.kind === 'file'"
+              :file="session.blockByKey(key).file"
+            />
+            <ReferenceEmbed
+              v-else-if="session.blockByKey(key)?.kind === 'reference'"
+              :result="referenceByBlockId[key] || null"
+            />
+            <GraphOutputEmbed
+              v-else-if="session.blockByKey(key)?.kind === 'collection'"
+              :collection="session.blockByKey(key).collection"
+              :resolution="referenceByBlockId[key] || null"
+            />
+          </DocumentSectionShell>
+        </div>
       </div>
-      <ReferencePickerDialog :visible="referencePickerOpen" @close="referencePickerOpen = false" @pick="pickReference" />
-      <GraphOutputPickerDialog :visible="graphOutputPickerOpen" @close="graphOutputPickerOpen = false" @pick="pickCollection" />
-      <ViewPickerDialog
-        :visible="session.viewPickerAt !== null"
-        @close="session.closeViewPicker"
-        @pick="session.pickView"
-      />
     </div>
+    <ReferencePickerDialog :visible="session.referencePickerAt !== null" @close="session.closeReferencePicker" @pick="session.pickReference" />
+    <GraphOutputPickerDialog :visible="session.graphOutputPickerAt !== null" @close="session.closeGraphOutputPicker" @pick="session.pickGraphOutput" />
+    <ViewPickerDialog
+      :visible="session.viewPickerAt !== null"
+      @close="session.closeViewPicker"
+      @pick="session.pickView"
+    />
     <ClassDialog
       v-if="classType"
       v-model:visible="classEditorOpen"
@@ -128,7 +131,7 @@ import { usePagesStore } from '~/stores/pages';
 import { useAuthStore } from '~/stores/auth';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
-import { spacingClasses } from '#shared/ui-mapping/index.js';
+import { spacingClasses, LAYOUT } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   docId: { type: String, required: true }
@@ -143,8 +146,6 @@ const session = usePageDocumentSession({ docId: computed(() => props.docId), tab
 provide('uiMappingSpacing', reactive(spacingClasses(1)));
 
 const classEditorOpen = ref(false);
-const referencePickerOpen = ref(false);
-const graphOutputPickerOpen = ref(false);
 const referenceResults = ref([]);
 const referenceByBlockId = computed(() => Object.fromEntries(referenceResults.value.map(result => [result.blockId, result])));
 const page = computed(() => pagesStore.pageById(props.docId));
@@ -168,16 +169,6 @@ async function commitName(name) {
   } catch (error) {
     console.error('Failed to rename page:', error?.message || error);
   }
-}
-
-function pickReference(reference) {
-  session.insertReference(reference);
-  referencePickerOpen.value = false;
-}
-
-function pickCollection(collection) {
-  session.insertCollection(collection);
-  graphOutputPickerOpen.value = false;
 }
 
 function openClassInstance({ typeId, instanceId } = {}) {

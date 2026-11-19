@@ -91,7 +91,7 @@ const props = defineProps({
   scroll: { type: Boolean, default: true }
 });
 
-const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty', 'caret-boundary', 'request-view']);
+const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty', 'caret-boundary', 'request-view', 'request-reference', 'request-graph-output']);
 
 const { t } = useI18n();
 const instance = getCurrentInstance();
@@ -292,6 +292,14 @@ async function applyAddress() {
 function runSlashPick(id, view) {
   if (id === 'view') {
     emit('request-view');
+    return;
+  }
+  if (id === 'reference') {
+    emit('request-reference');
+    return;
+  }
+  if (id === 'graph-output') {
+    emit('request-graph-output');
     return;
   }
   const kind = applyBlockAt(id, view);

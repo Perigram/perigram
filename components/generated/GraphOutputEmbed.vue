@@ -1,16 +1,16 @@
 <template>
   <div class="my-2 rounded border border-surface p-3">
-    <div v-if="view.phase === 'loading'" class="text-supporting text-muted">{{ t('processDesigner.loadingCollectionOutput') }}</div>
-    <div v-else-if="view.phase === 'unavailable'" class="text-supporting text-muted">{{ t('processDesigner.collectionOutputUnavailable') }}</div>
+    <div v-if="view.phase === 'loading'" class="text-supporting text-muted">{{ t('editors.loadingGraphResult') }}</div>
+    <div v-else-if="view.phase === 'unavailable'" class="text-supporting text-muted">{{ t('editors.graphResultUnavailable') }}</div>
     <template v-else>
       <div class="mb-2 text-supporting"><strong>{{ view.result.label }} · {{ view.result.itemCount }}</strong></div>
       <div v-for="(item, index) in view.result.items" :key="index" class="py-1">
         <InstanceInlineRef v-if="item.kind === 'instance'" :type="item.typeId" :id="item.instanceId" :entity="item.instance" :fetch="false" />
-        <span v-else-if="item.kind === 'unavailable'" class="text-supporting text-muted">{{ t('processDesigner.referencedItemUnavailable') }}</span>
+        <span v-else-if="item.kind === 'unavailable'" class="text-supporting text-muted">{{ t('editors.linkedRecordUnavailable') }}</span>
         <span v-else class="text-supporting">{{ displayValue(item.value) }}</span>
       </div>
-      <div v-if="!view.result.items.length" class="text-supporting text-muted">{{ t('processDesigner.noItems') }}</div>
-      <div v-if="view.result.truncated" class="mt-2 text-supporting text-muted">{{ t('processDesigner.showingFirstItems', { count: view.result.items.length }) }}</div>
+      <div v-if="!view.result.items.length" class="text-supporting text-muted">{{ t('editors.noItems') }}</div>
+      <div v-if="view.result.truncated" class="mt-2 text-supporting text-muted">{{ t('editors.showingFirstItems', { count: view.result.items.length }) }}</div>
     </template>
   </div>
 </template>

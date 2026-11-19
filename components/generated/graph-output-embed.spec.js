@@ -99,7 +99,7 @@ describe('graph output embed', () => {
       collection: { source: SOURCE, parameters: { limit: 20 }, resultPolicy: 'pinned' },
       resolution: { blockId: 'c', status: 'unavailable' }
     });
-    expect(html).toContain('Collection output is unavailable');
+    expect(html).toContain('Graph result is unavailable');
   });
 
   it('resolves an unparameterized embed live through the collection-outputs transport', async () => {    globalThis.$fetch.mockClear();

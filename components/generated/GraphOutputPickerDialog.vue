@@ -1,6 +1,7 @@
 <template>
-  <StandardDialog :visible="visible" size="sm"  :title="t('processDesigner.insertGraphOutput')" @update:visible="shown => { if (!shown) emit('close'); }">
+  <StandardDialog :visible="visible" size="sm"  :title="t('editors.insertGraphResult')" @update:visible="shown => { if (!shown) emit('close'); }">
     <div class="flex max-h-[70vh] min-w-72 flex-col gap-1 overflow-y-auto">
+      <div class="pb-2 text-supporting text-muted">{{ t('editors.graphResultHint') }}</div>
       <div v-for="output in outputs" :key="output.executionInstanceId + ':' + output.outputId" class="flex items-center gap-1">
         <Button :label="output.label + ' · ' + output.count" icon="pi pi-sitemap" text class="min-w-0 flex-1 justify-start" @click="emit('pick', liveCollectionEmbed(output))" />
         <Button
@@ -8,15 +9,15 @@
           text
           size="small"
           severity="secondary"
-          :aria-label="t('processDesigner.freezeCollectionOutput')"
-          :title="t('processDesigner.freezeCollectionOutput')"
+          :aria-label="t('editors.freezeGraphResult')"
+          :title="t('editors.freezeGraphResult')"
           :loading="capturingKey === output.executionInstanceId + ':' + output.outputId"
           @click="pickFrozen(output)"
         />
       </div>
-      <div v-if="!loading && !outputs.length" class="py-3 text-supporting text-muted">{{ t('processDesigner.noSavedCollectionOutputs') }}</div>
-      <div v-if="loading" class="py-3 text-supporting text-muted">{{ t('processDesigner.loading') }}</div>
-      <div v-if="captureFailed" class="py-1 text-supporting text-muted">{{ t('processDesigner.collectionOutputUnavailable') }}</div>
+      <div v-if="!loading && !outputs.length" class="py-3 text-supporting text-muted">{{ t('editors.noGraphResults') }}</div>
+      <div v-if="loading" class="py-3 text-supporting text-muted">{{ t('common.loading') }}</div>
+      <div v-if="captureFailed" class="py-1 text-supporting text-muted">{{ t('editors.graphResultUnavailable') }}</div>
     </div>
   </StandardDialog>
 </template>

@@ -1,5 +1,148 @@
 # TODO
 
+## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19)
+
+The process designer and graph-document editor converge on one authoring
+system: canonical graph document and session, normalized node definitions,
+shared canvas protocol, generic inspector, and a preview workspace. Process
+authoring remains a profile over that system. The migration checklist in
+[components/process-designer/SPEC.md](./components/process-designer/SPEC.md)
+owns the order; the inventory audit precedes any code move.
+
+- [ ] WAITING — owner verification: Inventory and classify both editor
+  sessions, canvas adapters, palettes, inspectors, preview components,
+  toolbars, panel state, and node-specific configuration branches as
+  shared graph infrastructure, process-profile behavior, plugin
+  contribution, or obsolete duplicate.
+- [ ] Consolidate generic graph authoring on the canonical graph document
+  and session; process-only behavior (lanes, grants, declarations, event
+  entry, durable effects, validation, Apply) stays profile extensions.
+- [ ] Rebuild the workspace regions — header, node library, canvas,
+  inspector, preview workspace, diagnostics — with intentional responsive
+  composition; file create/open/rename/save live in the header and file
+  navigation.
+- [ ] Move preview out of the inspector/support rail into a separate
+  resizable workspace region: declared output selected first, best
+  supported renderer as default, JSON as explicit diagnostics, host 3D
+  viewer for supported scene outputs, node traces as optional diagnostics.
+- [ ] Replace Operations palette vocabulary with registry-derived Nodes
+  categories — values/literals, data/queries, flow/collections, graph
+  boundaries/reusable graphs, plugin contributions with attribution.
+- [ ] Make generic Create/Construct schema-driven from type construction
+  contracts; event/trigger/schedule/subscription fields move to
+  process-profile node definitions.
+- [ ] Remove the generic Support button/panel and the Hide secondary
+  toggle with their dead state paths.
+- [ ] Rendered acceptance coverage for workspace layout, responsive panel
+  transitions, file actions, palette search/insertion, node configuration,
+  output/viewer selection, diagnostics, and process-profile behavior;
+  design-system visual compliance.
+
+### Agent Notes (2026-11-19, agent/spec-ux-convergence — inventory audit)
+
+Classification inventory complete (file:line-evidenced). Digest:
+
+- Sessions: `useGraphAuthoringSession` [SHARED core seam];
+  `useGraphDocumentSession` [SHARED, but carries an inline second
+  context-palette copy at :717-766 — OBSOLETE duplicate of
+  `useProcessDesignerContextPalette`]; `useProcessProfile` [PROFILE,
+  secondary-visibility block OBSOLETE]; `process.vue` [PROFILE host];
+  `GraphEditorSurface` + `file-surfaces` binding [SHARED mount].
+- Canvas: `GraphCanvas`, `GraphDocumentNode`, `SelfLoopEdge` [SHARED];
+  `ProcessNode`, `CtsTypeNode`, type-designer cards, `LaneBands`
+  [PROFILE].
+- Palettes: registry-derived groups in `useGraphDocumentSession`
+  [SHARED model]; `PROCESS_DESIGNER_PALETTE_GROUPS` group id
+  `operations` + i18n umbrella `paletteGroups.operations` and
+  `addOperation`/`compatibleOperations`/`paletteNoMatches` copy
+  [OBSOLETE vocabulary]; plugin attribution under one "Plugins" tier
+  [contradicts semantic-grouping law].
+- Inspectors: `GraphDocumentInspector` [SHARED, schema-driven] with a
+  hardcoded `'perigram.core.use-graph'` literal and a
+  `documents.template-values` plugin branch [defects];
+  `ProcessNodeInspector` per-kind tree [PROFILE].
+- Preview: `GraphDocumentPreviewPanel` [SHARED] — declared-output-first,
+  but JSON stays the universal default and scene-3d mounts an SVG
+  isometric projection (no host 3D viewer); placement in the 17rem
+  support rail [OBSOLETE]; process preview in an inspector tab
+  [OBSOLETE placement].
+- Chrome: `DesignerWorkspace` support panel + locale `designer.support`
+  + `openActivitySurface` opener [OBSOLETE]; floating toolbar mixes
+  panel toggles with `documentDockItems` (New/Save/Apply) [OBSOLETE
+  mixing]; graph-document file actions already ride the header
+  `pageChrome` seam [target pattern].
+- Create/Construct: construction modes are contract-driven, but the
+  effect-wide schedule/event block in `ProcessNodeInspector` :337-371
+  applies to `cts.construct` [OBSOLETE as authored].
+- Tests: `GraphCanvas.spec.js` and `ProcessNode.spec.js` are
+  source-text-only and pin the retired chrome; rendered editor-mount
+  coverage absent; `e2e/graph-documents-preview.spec.js` drives the
+  Support rail and must move with the workspace slice.
+
+Ranked migration slices (audit output): (1) retire Hide secondary
+[landed this session]; (2) header-own file actions on the process page
+via `pageChrome`; (3) retire Support, create the resizable preview
+workspace region; (4) move process preview out of the inspector tab;
+(5) definitions catalog out of the inspector; (6) Nodes vocabulary
+taxonomy; (7) dedupe the context palette; (8) declared
+control-contribution contract for plugin inspector/preview branches;
+(9) Create/Construct event/schedule extraction with stored-record
+migration; (10) preview defaults + host 3D viewer; (11) rendered test
+lift. Slices 2/5/6 are independent; 3→4→10 chain on the workspace
+region; 7/8/9 interleave.
+
+Landed this session: Hide secondary retired end to end
+(`useProcessProfile` state/logic/exports, the process page dock item,
+en+ru locale keys, README law); `hidden` stays a stripped runtime key
+in `stripRuntimeNodeData`.
+
+## Page and class-page composition (SPEC §27.1, owner direction 2026-11-19)
+
+- [ ] WAITING — owner verification: Page, class-page, and generated
+  instance surfaces share the record-header anatomy, content frame, and
+  responsive width rules; the class collection precedes the document
+  inside one surface frame.
+- [ ] WAITING — owner verification: One contextual Insert affordance
+  covering text/structure blocks, media/files, Link to record,
+  collection embeds, and Insert graph result, explaining each choice
+  before asking for its parameters.
+- [ ] WAITING — owner verification: Typed references present as Link to
+  record with live/pinned behavior explained at the point of choice.
+- [ ] Graph-backed results present as Insert graph result with
+  graph-definition pinning distinguished from data-result pinning; the
+  block renders the selected declared output through its representation
+  viewer.
+- [ ] WAITING — owner verification: Audit user-facing Page labels for
+  internal vocabulary (block kind, reference DTO, graph output port,
+  execution envelope).
+
+### Agent Notes (2026-11-19, agent/spec-ux-convergence)
+
+- Audit (read-only, file:line-evidenced) against every §27.1 acceptance
+  bullet: headers/collection/document sat in three different frames
+  (host `p-4`, body `p-6`, hand-rolled `max-w-[72ch]` column); the page
+  header carried Reference/Graph Output constructor buttons that
+  appended at document end; the slash/gutter vocabulary had no
+  record-link or graph-result entries; labels borrowed the
+  `processDesigner.*` namespace ("Reference", "Graph Output",
+  "Collection output is unavailable"); no insertion choice explained
+  live/pinned or retained-result semantics; `GraphOutputEmbed` renders
+  the declared list output as chips/`JSON.stringify`.
+- Landed: the two header constructor buttons are gone (page header =
+  class dialog + dirty-gated save); Link to record and Graph result are
+  vocabulary entries served by the slash panel and the gutter plus;
+  every picker inserts at its opened position (session-owned
+  `referencePickerAt`/`graphOutputPickerAt` mirroring `viewPickerAt`);
+  pickers explain live-vs-pinned and retained-result semantics at the
+  point of choice (en+ru); page picker/embed labels moved out of
+  `processDesigner.*` into `editors.*`; header, class collection, and
+  document share one `LAYOUT.measure` frame.
+- Still open from the audit: `GraphOutputEmbed` renders structured
+  values via `JSON.stringify` — the representation-viewer rendering and
+  the graph→revision→output picker semantics are the remaining
+  §27.1 work (both sequenced after the §28.14 preview-workspace slice
+  so the embed consumes the same representation contract).
+
 ## Priority: Unified Documents graph usability (owner direction 2026-11-17)
 
 Deliver the first usable Documents graph workflow before broadening format

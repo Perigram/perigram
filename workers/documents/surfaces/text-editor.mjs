@@ -219,11 +219,12 @@ export default function createSurface({ vue, components, locale, sync, renderMar
           onSelectionState: next => { blockState.value = next; }
         })));
         slashMenu = createSlashMenu({
-          // The view entry rides hosts that own the saved-view picker
-          // (the custom-page surface); this editor keeps it out until
-          // its surfaces mount live embeds.
+          // The picker entries (view, reference, graph-output) and the
+          // record/file entries ride hosts that own those pickers (the
+          // custom-page surface); this editor keeps them out until its
+          // surfaces mount the same embeds.
           items: BLOCK_VOCABULARY
-            .filter(({ id }) => id !== 'view' && id !== 'instance' && id !== 'file')
+            .filter(({ id }) => id !== 'view' && id !== 'instance' && id !== 'file' && id !== 'reference' && id !== 'graph-output')
             .map(({ id, labelKey, glyph, glyphText, match }) => ({ id, label: t(labelKey), glyph, glyphText, match })),
           onPick: runSlashPick
         });

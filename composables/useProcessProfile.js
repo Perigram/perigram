@@ -55,7 +55,6 @@ export function useProcessProfile({
   registerProcessPortCompatibilityProfile(portCompatibility);
   const { nodes, edges } = createGraphAuthoringState();
   const validation = ref(null);
-  const secondaryHidden = ref(false);
 
   const { paletteLabel, paletteDescription, paletteGroupLabel } = createPaletteText({ t, te });
 
@@ -782,8 +781,8 @@ export function useProcessProfile({
     delete runtimeFreeNode.selected;
     delete runtimeFreeNode.dragging;
     delete runtimeFreeNode.resizing;
-    // The lanes view's definitions toggle is runtime presentation state —
-    // it never persists into the draft graph.
+    // The canvas node's `hidden` flag is runtime presentation state — it
+    // never persists into the draft graph.
     delete runtimeFreeNode.hidden;
     const data = { ...(node.data || {}) };
     // Declaration nodes carry authored state in keys the derived list also
@@ -816,14 +815,6 @@ export function useProcessProfile({
     return JSON.parse(JSON.stringify(value || {}));
   }
 
-  // The visibility grouping (node UI contract "Lanes"): effects and state
-  // declarations are primary; classes, fields, type references, and
-  // non-effect process nodes are secondary and hide in the clean view.
-  function isSecondaryNode(node) {
-    if (DECLARATION_NODE_TYPES.includes(node.type)) return node.type !== 'ctsState';
-    return node.type === 'processNode' && !isEffectNode(node);
-  }
-
   function isEffectNode(node) {
     const record = draft.value?.data?.processNodes?.[node.data?.refId];
     return Boolean(record) && EFFECT_SPECIES_KINDS.has(String(operationKindOf(record) || ''));
@@ -832,20 +823,6 @@ export function useProcessProfile({
   function nodeOperationKind(node) {
     const record = draft.value?.data?.processNodes?.[node.data?.refId];
     return record ? operationKindOf(record) : '';
-  }
-
-  // The secondary toggle hides the secondary group (nodes and their wires)
-  // without deleting anything; `hidden` is runtime state and is stripped
-  // before serialization.
-  function syncSecondaryHidden() {
-    nodes.value = nodes.value.map(node => (
-      isSecondaryNode(node) ? { ...node, hidden: secondaryHidden.value } : { ...node, hidden: false }
-    ));
-  }
-
-  function toggleSecondaryHidden() {
-    secondaryHidden.value = !secondaryHidden.value;
-    syncSecondaryHidden();
   }
 
   // A fresh declaration in the tree gets a suggested kebab id unique among
@@ -920,10 +897,6 @@ export function useProcessProfile({
         type,
         position,
         selected: true,
-        // A secondary declaration authored while the secondary group is
-        // hidden stays hidden (runtime state, stripped before
-        // serialization); states are primary and never seed hidden.
-        ...(secondaryHidden.value && type !== 'ctsState' ? { hidden: true } : {}),
         data: {
           refId: id,
           ...(type === 'ctsClass'
@@ -964,13 +937,6 @@ export function useProcessProfile({
       const pairedRecord = ensureRecord('processNodes', pairedNode, createProcessNode);
       pairedRecord.kind = pairedKind;
       syncProcessNode(pairedRecord);
-      if (secondaryHidden.value && isSecondaryNode(pairedNode)) pairedNode.hidden = true;
-    }
-    // A secondary node (reads, values, control — and the remove operation)
-    // authored while the secondary group is hidden stays hidden with its
-    // group.
-    if (secondaryHidden.value && isSecondaryNode(node)) {
-      node.hidden = true;
     }
     nodes.value = [
       ...nodes.value.map(item => ({ ...item, selected: false })),
@@ -1431,7 +1397,6 @@ export function useProcessProfile({
     nodes,
     edges,
     validation,
-    secondaryHidden,
     draftDataSignature,
     designerSignature,
     loadDocument,
@@ -1526,11 +1491,8 @@ export function useProcessProfile({
     evaluateNow,
     applyGraphInterpretation,
     incomingEntityContract,
-    isSecondaryNode,
     isEffectNode,
     nodeOperationKind,
-    syncSecondaryHidden,
-    toggleSecondaryHidden,
     suggestTreeTypeId,
     updateClassName,
     setClassIdentifierField,

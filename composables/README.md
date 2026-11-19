@@ -92,8 +92,9 @@ imports it); instance cards and pages consume the composables instead. See
 
 `usePageDocumentSession({ docId, tabKey })` owns a custom page's ordered
 text and collection blocks: block insert/reorder/remove, per-text-block
-editing state, the page-level collection picker, autosave through
-`stores/pages.js`, and the workspace dirty registry. Text blocks mount
+editing state, the block pickers' open positions (view, link-to-record,
+graph result — each pick inserts at its opened position), autosave
+through `stores/pages.js`, and the workspace dirty registry. Text blocks mount
 `OverlayTextBlock` editors; collection blocks mount `ViewEmbed` as
 siblings, outside every editor. The document always ends with one empty
 text block; typing in it appends a fresh empty block.

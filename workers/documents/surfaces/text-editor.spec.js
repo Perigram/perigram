@@ -88,7 +88,8 @@ describe('block vocabulary', () => {
     expect(BLOCK_VOCABULARY.map(entry => entry.id)).toEqual([
       'paragraph', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'bullet', 'ordered', 'todo', 'quote', 'callout',
-      'codeblock', 'image', 'file', 'diagram', 'divider', 'table', 'instance', 'link', 'view'
+      'codeblock', 'image', 'file', 'diagram', 'divider', 'table', 'instance', 'link', 'view',
+      'reference', 'graph-output'
     ]);
     for (const entry of BLOCK_VOCABULARY) {
       expect(entry.labelKey, `${entry.id} carries a label key`).toMatch(/^editors\./);
