@@ -53,7 +53,7 @@ One channel encodes exactly one fact; anything unlisted is chrome.
 | Handle position | direction: left input, right output |
 | Wire selection | primary color, 3px |
 | Card size | species family: `sm` declaration leaf, `md` type/class reference, `lg` operation, `inline` one-line literal |
-| Card surface | population primacy via the one predicate `utils/processDesignerPopulation.js`: effect species (except remove) primary-tinted, everything else plain content surface |
+| Card surface | population primacy: effect species primary-tinted, everything else plain content surface |
 | Card border | quiet content border; selection is the single card state |
 
 Canvas nodes carry no category accent; the frame is plain. Wires are bezier, one elliptical arc
