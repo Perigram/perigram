@@ -1579,7 +1579,7 @@ semantics and explicit, minimal extensions for real differences.
 
 ## Exhaustive first-party code audit (owner direction 2026-10-25)
 
-Status: superseded as an execution plan by [Architecture simplification, SPEC §30](./SPEC.md). The open unbounded line-by-line sweep is not the active sequence; any historical finding must be re-verified against the current tree before action.
+Status: superseded as an execution plan by [Repository-wide deduplication, deslopification, and simplification](#repository-wide-deduplication-deslopification-and-simplification-spec-23-30-owner-direction-2026-11-19). Its evidence standards and historical findings are retained; any finding must be re-verified against the current tree before action.
 
 Scope: every first-party line read once — one deep pass per component
 folder (~30 folders, ~177k lines; vendored bundles excluded). The
