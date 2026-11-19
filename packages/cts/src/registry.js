@@ -87,6 +87,24 @@ function normalizeAccess(access = {}) {
   return { inherits };
 }
 
+// Graph-backed validation facet (SPEC §30.3/§30.13): the pin resolves and
+// evaluates under the acting principal at the instance write boundary;
+// compile checks shape only.
+const GRAPH_PIN_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+
+function normalizeGraphValidation(facet, typeId) {
+  if (!facet || typeof facet !== 'object' || Array.isArray(facet)) {
+    throw new Error(`type ${typeId}: graphValidation must be { graphId, revision, outputId }`);
+  }
+  const graphId = String(facet.graphId || '').trim();
+  const revision = String(facet.revision || '').trim();
+  const outputId = String(facet.outputId || '').trim();
+  if (!graphId || !revision || !outputId) {
+    throw new Error(`type ${typeId}: graphValidation requires graphId, revision, and outputId`);
+  }
+  return Object.freeze({ graphId, revision, outputId });
+}
+
 // Legacy `render` facet adoption (SPEC §4 boundary migration,
 // adopt-and-delete): both pack seeds and stored org docs normalize here,
 // so the retired keys convert exactly once and never reach the compiled
@@ -232,6 +250,7 @@ export function normalizeType(declaration = {}) {
     // transports consume). Validated here so the upgrade path's
     // defineType round-trip cannot strip it.
     ...(declaration.access !== undefined ? { access: normalizeAccess(declaration.access) } : {}),
+    ...(declaration.graphValidation != null ? { graphValidation: normalizeGraphValidation(declaration.graphValidation, declaration.id) } : {}),
     // Declared extract projections (SPEC §8 p): the entity→value gates
     // this type owns — output descriptor plus resolve (stored field path
     // or pack handler id). Validated at the authoring boundary like every
@@ -386,6 +405,7 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
       errors.push(...checkChildrenDeclared(type, view));
       errors.push(...checkRelationDomains(type, view));
       errors.push(...checkUniqueConstraints(type));
+      errors.push(...checkGraphValidationFacet(type));
       for (const constraint of type.constraints || []) {
         if (constraint.kind === 'unique') continue;
         errors.push(...checkTypedBooleanExpression(constraint.expression, {
@@ -499,6 +519,19 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
     } else if (!['string', 'id', 'instant', 'number', 'boolean', 'enum'].includes(descriptor.base)) {
       errors.push(`type ${type.id}: unique constraint ${constraint.id} requires a scalar indexable field, got fields.${constraint.field} (${descriptor.base})`);
     }
+  }
+  return errors;
+}
+
+function checkGraphValidationFacet(type) {
+  const facet = type.graphValidation;
+  if (!facet) return [];
+  const errors = [];
+  if (!GRAPH_PIN_ID_PATTERN.test(facet.graphId)) {
+    errors.push(`type ${type.id}: graphValidation.graphId must be a stable identifier`);
+  }
+  if (!GRAPH_PIN_ID_PATTERN.test(facet.outputId)) {
+    errors.push(`type ${type.id}: graphValidation.outputId must be a stable identifier`);
   }
   return errors;
 }

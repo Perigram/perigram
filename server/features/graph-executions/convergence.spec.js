@@ -23,7 +23,18 @@ const mocks = vi.hoisted(() => ({
   declarationForType: vi.fn(),
   runOrganizationChange: vi.fn(),
   resolveInstalledGraphNodeDefinition: vi.fn(),
-  executeManagedGraphNode: vi.fn()
+  executeManagedGraphNode: vi.fn(),
+  findByTypeId: vi.fn(),
+  listByOrganization: vi.fn(),
+  listDeclarationsByOrganization: vi.fn(),
+  findDeclarationByTypeId: vi.fn(),
+  hasInstanceAccess: vi.fn(),
+  resolveActiveWorkflow: vi.fn(),
+  publishEntityChanged: vi.fn(),
+  sequenceGetOrganizationChangeSequence: vi.fn(),
+  sequenceRecordOrganizationChange: vi.fn(),
+  sequenceRunOrganizationChange: vi.fn(),
+  sequenceWithOrganizationChangeSequence: vi.fn()
 }));
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: mocks.getAppRegistry }));
 vi.mock('~/server/db/mongo', () => ({ connectDB: mocks.connectDB }));
@@ -37,22 +48,50 @@ vi.mock('../files/service.js', () => ({
 }));
 vi.mock('../plugins/service.js', () => ({
   resolveInstalledGraphNodeDefinition: mocks.resolveInstalledGraphNodeDefinition,
-  executeManagedGraphNode: mocks.executeManagedGraphNode
+  executeManagedGraphNode: mocks.executeManagedGraphNode,
+  executeConnectorService: vi.fn(),
+  constructionsForOrganization: vi.fn(async () => ({}))
 }));
-vi.mock('../instance-revisions/service.js', () => ({ ensureRevisionIndexes: vi.fn(async () => {}) }));
+vi.mock('../instance-revisions/service.js', () => ({
+  ensureRevisionIndexes: vi.fn(async () => {}),
+  ensureForEntitySnapshot: vi.fn(async () => ({ _id: 'rev-1', data: { number: 1 } }))
+}));
 vi.mock('../pages/service.js', () => ({
   bakeFile: mocks.bakeFile,
   retractBakedFile: mocks.retractBakedFile
 }));
-vi.mock('../instances/service.js', () => ({ declarationForType: mocks.declarationForType }));
+// The real generic instance service loads beside its declarationForType
+// override: proof point 1 drives its create path with graph validation.
+vi.mock('../instances/service.js', async importOriginal => ({
+  ...(await importOriginal()),
+  declarationForType: mocks.declarationForType
+}));
 vi.mock('../instances/index.js', () => ({
   ensureOrganizationChangeIndexes: mocks.ensureOrganizationChangeIndexes,
   withOrganizationDataSnapshot: mocks.withOrganizationDataSnapshot,
   withOrganizationChangeSequence: mocks.withOrganizationChangeSequence,
   runOrganizationChange: mocks.runOrganizationChange
 }));
+vi.mock('../instances/organization-sequence.js', () => ({
+  getOrganizationChangeSequence: mocks.sequenceGetOrganizationChangeSequence,
+  recordOrganizationChange: mocks.sequenceRecordOrganizationChange,
+  runOrganizationChange: mocks.sequenceRunOrganizationChange,
+  withOrganizationChangeSequence: mocks.sequenceWithOrganizationChangeSequence
+}));
+vi.mock('../cts-types/repository.js', () => ({
+  findByTypeId: mocks.findByTypeId,
+  listByOrganization: mocks.listByOrganization
+}));
+vi.mock('../plugins/repository.js', () => ({
+  listDeclarationsByOrganization: mocks.listDeclarationsByOrganization,
+  findDeclarationByTypeId: mocks.findDeclarationByTypeId
+}));
+vi.mock('../../core/access/service.js', () => ({ hasInstanceAccess: mocks.hasInstanceAccess }));
+vi.mock('../workflow-overrides/service.js', () => ({ resolveActiveWorkflow: mocks.resolveActiveWorkflow }));
+vi.mock('../instance-events/service.js', () => ({ publishEntityChanged: mocks.publishEntityChanged }));
 
 import * as graphExecutionsService from './service.js';
+import { instanceServiceResolver, invalidateInstanceDeclarations } from '../instances/service.js';
 
 const PART_READ_PIN = { pluginId: 'reports', version: '12', runtimeId: 'reports-worker', operationId: 'part.read' };
 const APPROVAL_PIN = { pluginId: 'reports', version: '12', runtimeId: 'reports-js', operationId: 'approval.compose' };
@@ -147,6 +186,75 @@ const convergenceGraph = ({ measureUnit = 'mm' } = {}) => ({
   ]
 });
 
+// Proof point 1: the org type `part` pins this graph as its validation
+// facet — the core data provider reads the reference instance, the
+// installed plugin op composes it with the draft projection, and the
+// boolean `valid` output gates the instance write.
+const VALIDATE_PIN = { pluginId: 'reports', version: '12', runtimeId: 'reports-js', operationId: 'part.validate' };
+
+const partValidateDefinition = () => ({
+  provider: 'plugin.reports',
+  id: 'part.validate',
+  version: '1',
+  label: 'Validate a part draft',
+  execution: { kind: 'pure', targets: ['browser', 'server'], capabilities: [], deterministic: true, idempotent: true },
+  inputs: [
+    { id: 'instance', required: true, shape: 'item', semantic: { base: 'json' } },
+    { id: 'reference', required: false, shape: 'list', semantic: { base: 'json' } }
+  ],
+  outputs: [{ id: 'valid', required: true, shape: 'item', semantic: { base: 'boolean' } }],
+  packagePin: VALIDATE_PIN
+});
+
+const validationGraph = () => ({
+  format: GRAPH_DOCUMENT_FORMAT,
+  version: GRAPH_DOCUMENT_VERSION,
+  id: 'graph.part-validation',
+  revision: 'rev-01',
+  name: 'Part validation',
+  interface: {
+    inputs: [{ id: 'instance', label: 'Draft', contract: { shape: 'item', semantic: { base: 'json' } } }],
+    outputs: [{ id: 'valid', label: 'Valid', contract: { shape: 'item', semantic: { base: 'boolean' } } }]
+  },
+  nodes: [
+    { id: 'input-instance', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'instance' } },
+    { id: 'query-reference', operation: { provider: 'perigram.core.data', id: 'query.instances', version: '1' }, config: { typeId: 'part', instanceId: 'item-1' } },
+    { id: 'validate-part', operation: { provider: 'plugin.reports', id: 'part.validate', version: '1' }, config: {} },
+    { id: 'output-valid', operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' }, config: { interfaceId: 'valid' } }
+  ],
+  edges: [
+    { id: 'edge-draft', source: { node: 'input-instance', port: 'value' }, target: { node: 'validate-part', port: 'instance' } },
+    { id: 'edge-reference', source: { node: 'query-reference', port: 'items' }, target: { node: 'validate-part', port: 'reference' } },
+    { id: 'edge-valid', source: { node: 'validate-part', port: 'valid' }, target: { node: 'output-valid', port: 'value' } }
+  ]
+});
+
+const partDeclaration = () => ({
+  id: 'part',
+  class: 'item',
+  version: 2,
+  name: 'Part',
+  fields: { code: { base: 'string', identifier: true } },
+  graphValidation: { graphId: 'graph.part-validation', revision: 'rev-01', outputId: 'valid' }
+});
+
+const validationGraphDocument = {
+  _id: 'validation-graph-1',
+  organizationId: 'org-1',
+  fields: { graphId: 'graph.part-validation' },
+  payload: { fileId: 'validation-graph-file-1' }
+};
+
+// SPEC §30.13 required convergence proof — coverage:
+// 1. org-defined CTS type with graph-backed validation (the `part`
+//    graphValidation pin, evaluated inside the generic instance create)
+// 2. core + installed plugin operation composition (both graphs)
+// 3. semantic resolution and conversion-decision rejection (unit edge)
+// 4. typed-IR lowering preflight (every evaluation lowers first)
+// 5. effect-free preview with an explicitly authorized Commit
+// 6. pinned dependencies, read-set evidence, provenance (execution records)
+// 7. deterministic re-runs on the server target (cross-target parity: the
+//    browser session runs no server install resolver — precise limitation)
 describe('SPEC §30.13 required convergence proof', () => {
   const auth = { userId: 'user-1', organizationId: 'org-1' };
   const graphDocument = {
@@ -175,6 +283,20 @@ describe('SPEC §30.13 required convergence proof', () => {
     withTransaction: vi.fn(async callback => await callback()),
     endSession: vi.fn(async () => {})
   };
+  const instanceCollections = new Map();
+  const collectionStub = name => {
+    if (!instanceCollections.has(name)) {
+      instanceCollections.set(name, {
+        insertOne: vi.fn(async () => ({ acknowledged: true })),
+        findOne: vi.fn(async () => null),
+        findOneAndUpdate: vi.fn(async () => null),
+        find: vi.fn(() => ({ sort: () => ({ limit: () => ({ toArray: async () => [] }) }) })),
+        deleteOne: vi.fn(async () => ({ deletedCount: 0 })),
+        updateOne: vi.fn(async () => ({ modifiedCount: 0 }))
+      });
+    }
+    return instanceCollections.get(name);
+  };
 
   const previewSlice = () => graphExecutionsService.evaluateAndRecordSavedGraphPreview({
     graphDocumentInstanceId: 'graph-instance-1',
@@ -184,9 +306,15 @@ describe('SPEC §30.13 required convergence proof', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    instanceCollections.clear();
     session.withTransaction.mockImplementation(async callback => await callback());
-    mocks.connectDB.mockResolvedValue({ client: { startSession: () => session } });
-    graphService.processGetById.mockResolvedValue(graphDocument);
+    mocks.connectDB.mockResolvedValue({
+      client: { startSession: () => session },
+      collection: name => collectionStub(name)
+    });
+    graphService.processGetById.mockImplementation(async id => (
+      id === 'validation-graph-1' ? validationGraphDocument : graphDocument
+    ));
     graphService.processList.mockResolvedValue([]);
     executionService.create.mockResolvedValue({ _id: 'execution-instance-1' });
     executionService.processList.mockResolvedValue([]);
@@ -203,8 +331,28 @@ describe('SPEC §30.13 required convergence proof', () => {
     mocks.resolveInstalledGraphNodeDefinition.mockImplementation(async operation => {
       if (operation.id === 'part.read') return partReadDefinition();
       if (operation.id === 'approval.compose') return approvalComposeDefinition();
+      if (operation.id === 'part.validate') return partValidateDefinition();
       return null;
     });
+    mocks.findByTypeId.mockImplementation(async (organizationId, typeId) => (
+      typeId === 'part' ? partDeclaration() : null
+    ));
+    mocks.listByOrganization.mockImplementation(async organizationId => (
+      organizationId === 'org-1' ? [partDeclaration()] : []
+    ));
+    mocks.listDeclarationsByOrganization.mockResolvedValue([]);
+    mocks.findDeclarationByTypeId.mockResolvedValue(null);
+    mocks.hasInstanceAccess.mockReturnValue(true);
+    mocks.resolveActiveWorkflow.mockResolvedValue(null);
+    mocks.publishEntityChanged.mockResolvedValue(null);
+    mocks.sequenceGetOrganizationChangeSequence.mockResolvedValue(0);
+    mocks.sequenceRecordOrganizationChange.mockResolvedValue(1);
+    mocks.sequenceRunOrganizationChange.mockImplementation(async (_organizationId, _metadata, mutate) => await mutate());
+    mocks.sequenceWithOrganizationChangeSequence.mockImplementation(async (_organizationId, read) => ({
+      value: await read(),
+      boundary: { consistency: 'sequence-bracketed', snapshotId: null, organizationSequenceStart: 4, organizationSequenceEnd: 4 }
+    }));
+    mocks.runOrganizationChange.mockImplementation(async (_organizationId, _metadata, mutate) => await mutate());
     mocks.withOrganizationChangeSequence.mockImplementation(async (_organizationId, read) => ({
       value: await read(),
       boundary: { consistency: 'sequence-bracketed', snapshotId: null, organizationSequenceStart: 4, organizationSequenceEnd: 4 }
@@ -215,7 +363,11 @@ describe('SPEC §30.13 required convergence proof', () => {
     }));
     mocks.findFileMeta.mockResolvedValue({ metadata: { organizationId: 'org-1' }, contentType: 'application/json' });
     mocks.assertFileReadAccess.mockReturnValue(true);
-    mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(convergenceGraph())));
+    mocks.getFileBuffer.mockImplementation(async fileId => (
+      fileId === 'validation-graph-file-1'
+        ? Buffer.from(JSON.stringify(validationGraph()))
+        : Buffer.from(JSON.stringify(convergenceGraph()))
+    ));
     mocks.contentHash.mockImplementation(buffer => `sha256:${buffer.toString('utf8')}`);
     mocks.uploadFile.mockResolvedValue({ id: 'baked-payload-1' });
     mocks.deleteFile.mockResolvedValue(true);
@@ -506,5 +658,208 @@ describe('SPEC §30.13 required convergence proof', () => {
         measurement: 1
       }
     });
+  });
+
+  // Proof point 1: the organization type `part` pins a saved graph as its
+  // validation facet; the generic instance create resolves the pin under
+  // the acting principal, evaluates core + plugin composition, and writes
+  // only when the declared boolean output is true.
+  it('enforces an org-defined CTS type graphValidation pin during the generic instance create', async () => {
+    graphService.processList.mockImplementation(async filters => (
+      String(filters?.graphId) === 'graph.part-validation' ? [validationGraphDocument] : []
+    ));
+    const items = collectionStub('items');
+    const actingPrincipal = { userId: 'user-1', organizationId: 'org-1' };
+    const validationEvidence = [];
+    mocks.executeManagedGraphNode.mockReset();
+    mocks.executeManagedGraphNode.mockImplementation(async (definition, invocation) => {
+      validationEvidence.push({
+        packagePin: definition.packagePin,
+        executionId: invocation.context.executionId,
+        readSet: invocation.context.readSet.toJSON(),
+        inputs: invocation.inputs
+      });
+      return {
+        valid: Boolean(invocation.inputs.reference?.length)
+          && invocation.inputs.instance.fields.code !== 'B'
+      };
+    });
+
+    const created = await instanceServiceResolver('part').create(
+      { name: 'Checked part', fields: { code: 'C' } },
+      'user-1',
+      'org-1'
+    );
+
+    expect(items.insertOne).toHaveBeenCalledTimes(1);
+    expect(created).toMatchObject({
+      type: 'part',
+      typeVersion: 2,
+      revision: 1,
+      organizationId: 'org-1',
+      name: 'Checked part',
+      fields: { code: 'C' }
+    });
+    expect(dataService.processGetById).toHaveBeenCalledWith('item-1', actingPrincipal, { session: undefined });
+    expect(mocks.resolveInstalledGraphNodeDefinition).toHaveBeenCalledWith({
+      provider: 'plugin.reports',
+      id: 'part.validate',
+      version: '1',
+      auth: actingPrincipal
+    });
+    expect(validationEvidence).toEqual([{
+      packagePin: VALIDATE_PIN,
+      executionId: expect.any(String),
+      inputs: {
+        instance: { fields: { code: 'C' } },
+        reference: [partInstance('item-1')]
+      },
+      readSet: expect.objectContaining({
+        consistency: 'snapshot',
+        snapshotId: 'snapshot-42',
+        organizationSequenceStart: 4,
+        organizationSequenceEnd: 4,
+        instances: [expect.objectContaining({ typeId: 'part', instanceId: 'item-1', revision: '3' })],
+        queries: [expect.objectContaining({ typeId: 'part', resultIds: ['item-1'], observedTotal: 1 })]
+      })
+    }]);
+
+    const rejection = await instanceServiceResolver('part').create(
+      { name: 'Bad part', fields: { code: 'B' } },
+      'user-1',
+      'org-1'
+    ).catch(error => error);
+    expect(rejection).toMatchObject({ statusCode: 400 });
+    expect(rejection.data.errors).toEqual(['graph validation output valid did not evaluate to true']);
+    expect(items.insertOne).toHaveBeenCalledTimes(1);
+  });
+
+  it('validates a field patch against the merged candidate before the write', async () => {
+    graphService.processList.mockImplementation(async filters => (
+      String(filters?.graphId) === 'graph.part-validation' ? [validationGraphDocument] : []
+    ));
+    const items = collectionStub('items');
+    const current = { ...partInstance('item-1'), name: 'Part', updatedAt: '2026-11-16T10:00:00Z' };
+    items.findOne.mockResolvedValue(current);
+    items.findOneAndUpdate.mockImplementation(async (filter, update) => ({
+      ...current,
+      fields: { ...current.fields, code: update.$set['fields.code'] },
+      revision: current.revision + 1
+    }));
+    const draftBindings = [];
+    mocks.executeManagedGraphNode.mockReset();
+    mocks.executeManagedGraphNode.mockImplementation(async (_definition, invocation) => {
+      draftBindings.push(invocation.inputs.instance);
+      return { valid: invocation.inputs.instance.fields.code !== 'B' };
+    });
+
+    const updated = await instanceServiceResolver('part').processUpdate('item-1', { fields: { code: 'C' } }, {
+      organizationId: 'org-1',
+      userId: 'user-1',
+      auth
+    });
+
+    expect(draftBindings).toEqual([{ fields: { code: 'C' } }]);
+    expect(items.findOneAndUpdate).toHaveBeenCalledTimes(1);
+    expect(updated).toMatchObject({ _id: 'item-1', revision: 4, fields: { code: 'C' } });
+
+    const refused = await instanceServiceResolver('part').processUpdate('item-1', { fields: { code: 'B' } }, {
+      organizationId: 'org-1',
+      userId: 'user-1',
+      auth
+    }).catch(error => error);
+    expect(refused).toMatchObject({ statusCode: 400 });
+    expect(refused.data.errors).toEqual(['graph validation output valid did not evaluate to true']);
+    expect(items.findOneAndUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed when a graphValidation pin cannot resolve or bind its inputs', async () => {
+    const items = collectionStub('items');
+
+    // Unreadable pinned graph: no graph document matches the pin.
+    graphService.processList.mockResolvedValue([]);
+    const unavailable = await instanceServiceResolver('part').create(
+      { name: 'Part', fields: { code: 'C' } },
+      'user-1',
+      'org-1'
+    ).catch(error => error);
+    expect(unavailable).toMatchObject({ statusCode: 400 });
+    expect(unavailable.data.errors[0]).toContain('graph graph.part-validation@rev-01 is unavailable');
+    expect(items.insertOne).not.toHaveBeenCalled();
+
+    graphService.processList.mockImplementation(async filters => (
+      String(filters?.graphId) === 'graph.part-validation' ? [validationGraphDocument] : []
+    ));
+
+    // A required graph input port with no binding convention refuses the
+    // write naming the port.
+    const withExtraPort = validationGraph();
+    withExtraPort.interface.inputs.push({ id: 'undeclared-port', label: 'Extra', contract: { shape: 'item', semantic: { base: 'json' } } });
+    withExtraPort.nodes.push({ id: 'input-extra', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'undeclared-port' } });
+    mocks.getFileBuffer.mockImplementation(async fileId => (
+      fileId === 'validation-graph-file-1'
+        ? Buffer.from(JSON.stringify(withExtraPort))
+        : Buffer.from(JSON.stringify(convergenceGraph()))
+    ));
+    const refused = await instanceServiceResolver('part').create(
+      { name: 'Part', fields: { code: 'C' } },
+      'user-1',
+      'org-1'
+    ).catch(error => error);
+    expect(refused).toMatchObject({ statusCode: 400 });
+    expect(refused.data.errors).toEqual(['graph input undeclared-port is required and unbound for type part']);
+    expect(items.insertOne).not.toHaveBeenCalled();
+    expect(mocks.executeManagedGraphNode).not.toHaveBeenCalled();
+
+    // A pinned output the graph does not declare refuses the write.
+    mocks.getFileBuffer.mockImplementation(async fileId => (
+      fileId === 'validation-graph-file-1'
+        ? Buffer.from(JSON.stringify(validationGraph()))
+        : Buffer.from(JSON.stringify(convergenceGraph()))
+    ));
+    invalidateInstanceDeclarations('org-1');
+    mocks.findByTypeId.mockImplementation(async (organizationId, typeId) => (
+      typeId === 'part'
+        ? { ...partDeclaration(), graphValidation: { graphId: 'graph.part-validation', revision: 'rev-01', outputId: 'missing' } }
+        : null
+    ));
+    const noOutput = await instanceServiceResolver('part').create(
+      { name: 'Part', fields: { code: 'C' } },
+      'user-1',
+      'org-1'
+    ).catch(error => error);
+    expect(noOutput).toMatchObject({ statusCode: 400 });
+    expect(noOutput.data.errors).toEqual(['graph graph.part-validation@rev-01 declares no output missing']);
+    expect(items.insertOne).not.toHaveBeenCalled();
+
+    // A non-boolean verdict is caught by the evaluator's typed output check
+    // and maps to the same fail-closed 400 as a thrown evaluation error.
+    invalidateInstanceDeclarations('org-1');
+    mocks.findByTypeId.mockImplementation(async (organizationId, typeId) => (
+      typeId === 'part' ? partDeclaration() : null
+    ));
+    const verdicts = ['yes', null, 1];
+    for (const verdict of verdicts) {
+      mocks.executeManagedGraphNode.mockReset();
+      mocks.executeManagedGraphNode.mockResolvedValue({ valid: verdict });
+      const nonBoolean = await instanceServiceResolver('part').create(
+        { name: 'Part', fields: { code: 'C' } },
+        'user-1',
+        'org-1'
+      ).catch(error => error);
+      expect(nonBoolean).toMatchObject({ statusCode: 400 });
+      expect(nonBoolean.data.errors[0]).toContain('graph graph.part-validation@rev-01 failed to evaluate');
+      expect(items.insertOne).not.toHaveBeenCalled();
+    }
+    mocks.executeManagedGraphNode.mockReset();
+    mocks.executeManagedGraphNode.mockRejectedValue(new Error('plugin worker exploded'));
+    const evaluationFailure = await instanceServiceResolver('part').create(
+      { name: 'Part', fields: { code: 'C' } },
+      'user-1',
+      'org-1'
+    ).catch(error => error);
+    expect(evaluationFailure).toMatchObject({ statusCode: 400 });
+    expect(evaluationFailure.data.errors[0]).toContain('failed to evaluate');
+    expect(items.insertOne).not.toHaveBeenCalled();
   });
 });

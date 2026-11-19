@@ -725,6 +725,43 @@ describe('payload traits (SPEC §4)', () => {
     })).toThrow(/access\.inherits/);
   });
 
+  it('normalizes the graph-validation pin and refuses malformed facets', () => {
+    const registry = createTypeRegistry({ id: 'graph-validation-spec' });
+    const type = registry.defineType({
+      id: 'validated-part',
+      name: 'Validated part',
+      class: 'item',
+      fields: { code: { base: 'string', identifier: true } },
+      graphValidation: { graphId: 'graph.part-validation', revision: 'rev-01', outputId: 'valid' }
+    });
+    expect(type.graphValidation).toEqual({ graphId: 'graph.part-validation', revision: 'rev-01', outputId: 'valid' });
+    expect(registry.compile().errors).toEqual([]);
+    expect(() => normalizeType({
+      id: 'no-revision',
+      class: 'item',
+      fields: { code: { base: 'string', identifier: true } },
+      graphValidation: { graphId: 'graph.part-validation', outputId: 'valid' }
+    })).toThrow(/graphValidation requires graphId, revision, and outputId/);
+    expect(() => normalizeType({
+      id: 'bad-facet',
+      class: 'item',
+      fields: { code: { base: 'string', identifier: true } },
+      graphValidation: 'graph.part-validation'
+    })).toThrow(/graphValidation must be/);
+    const unstable = createTypeRegistry({ id: 'graph-validation-unstable' });
+    unstable.defineType({
+      id: 'unstable-pin',
+      name: 'Unstable pin',
+      class: 'item',
+      fields: { code: { base: 'string', identifier: true } },
+      graphValidation: { graphId: 'graph id!', revision: 'rev-01', outputId: 'not an id!' }
+    });
+    expect(unstable.compile().errors).toEqual([
+      'type unstable-pin: graphValidation.graphId must be a stable identifier',
+      'type unstable-pin: graphValidation.outputId must be a stable identifier'
+    ]);
+  });
+
   it('normalizes and validates the creation protocol list', () => {
     expect(normalizeType({ id: 'photo-doc', class: 'file', payload: { mime: ['image/*'], creation: ['upload', 'capture'] } }).payload.creation)
       .toEqual(['upload', 'capture']);

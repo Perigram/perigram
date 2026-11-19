@@ -628,6 +628,60 @@ async function assertPermanentConstraints(declaration, instance, organizationId,
   }
 }
 
+// Graph-backed validation (SPEC §30.3/§30.13) — law: this feature's README
+// (Graph-backed validation). The pin resolves and evaluates under the
+// acting principal through the saved-graph evaluator's preview boundary;
+// fail closed on every outcome except the declared output evaluating to
+// true.
+async function assertGraphValidated(declaration, instance, organizationId, { auth = null, userId = null } = {}) {
+  const facet = declaration?.graphValidation;
+  if (!facet) return;
+  const { resolvePinnedGraph, evaluateSavedGraph } = await import('../graph-executions/service.js');
+  const principal = auth && typeof auth === 'object'
+    ? auth
+    : { userId, organizationId };
+  const refuse = message => {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'CTS graph validation failed',
+      data: { errors: [message] }
+    });
+  };
+  let resolved;
+  try {
+    resolved = await resolvePinnedGraph(facet.graphId, facet.revision, principal);
+  } catch (error) {
+    refuse(`graph ${facet.graphId}@${facet.revision} is unavailable: ${error?.message || String(error)}`);
+  }
+  const { graph, graphDocument } = resolved;
+  const inputBindings = {};
+  for (const port of graph.interface?.inputs || []) {
+    if (port.id === 'instance') {
+      inputBindings.instance = { fields: { ...(instance.fields || {}) } };
+    } else if (Object.hasOwn(declaration.fields || {}, port.id) && Object.hasOwn(instance.fields || {}, port.id)) {
+      inputBindings[port.id] = instance.fields[port.id];
+    } else if (port.required) {
+      refuse(`graph input ${port.id} is required and unbound for type ${declaration.id}`);
+    }
+  }
+  if (!(graph.interface?.outputs || []).some(port => port.id === facet.outputId)) {
+    refuse(`graph ${facet.graphId}@${facet.revision} declares no output ${facet.outputId}`);
+  }
+  let evaluation = null;
+  try {
+    evaluation = await evaluateSavedGraph({
+      graphDocumentInstanceId: String(graphDocument._id),
+      graphRevision: String(graph.revision),
+      inputBindings
+    }, principal);
+  } catch (error) {
+    refuse(`graph ${facet.graphId}@${facet.revision} failed to evaluate: ${error?.message || String(error)}`);
+  }
+  if (evaluation?.outputs?.[facet.outputId] !== true) {
+    refuse(`graph validation output ${facet.outputId} did not evaluate to true`);
+  }
+}
+
 async function requireDeclaration(typeId, organizationId) {
   const declaration = await declarationFor(typeId, organizationId);
   if (!declaration) {
@@ -770,7 +824,7 @@ function instanceService(typeId) {
   // construction mode. The wire draft IS the stored shape: tenancy
   // travels as `organizationId`, the payload as `payload`, rows as flat
   // `fields`, the rename channel as `name`.
-  async function createValidated(draft, declaration, userId, organizationId, { executorFieldIds = [], session = null, expectedOrganizationSequence = null } = {}) {
+  async function createValidated(draft, declaration, userId, organizationId, { executorFieldIds = [], session = null, expectedOrganizationSequence = null, auth = null } = {}) {
     const payload = payloadFromWire(draft, declaration);
     const provenance = provenanceFromWire(draft);
     const now = new Date().toISOString();
@@ -825,6 +879,7 @@ function instanceService(typeId) {
     }
     await assertDeclaredRelationSlots(declaration, doc, effectiveOrganizationId, [...relationKeys], { session });
     await assertPermanentConstraints(declaration, toDto(doc), effectiveOrganizationId, { session });
+    await assertGraphValidated(declaration, toDto(doc), effectiveOrganizationId, { auth, userId });
     await runOrganizationChange(effectiveOrganizationId, {
       kind: 'instance-created',
       typeId,
@@ -952,7 +1007,8 @@ function instanceService(typeId) {
         && Object.hasOwn(context, 'expectedUpdatedAt'));
       let expectedUpdatedAt = hasExpectedUpdatedAt ? context.expectedUpdatedAt : undefined;
       const constrained = Boolean(declaration.constraints?.length);
-      if (constrained) {
+      const graphValidated = Boolean(declaration.graphValidation);
+      if (constrained || graphValidated) {
         const currentDoc = await repository.findInstance(collection, id, typeId, { session });
         if (!currentDoc) throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
         expectedUpdatedAt = currentDoc.updatedAt;
@@ -969,6 +1025,7 @@ function instanceService(typeId) {
           relations: { ...current.relations, ...(patch.relations || {}) }
         };
         await assertPermanentConstraints(declaration, candidate, organizationId, { session });
+        await assertGraphValidated(declaration, candidate, organizationId, { auth: context?.auth, userId: context?.userId });
       }
       const patchedFieldIds = Object.keys(patch.fields || {}).filter(key => patch.fields[key] !== undefined);
       await assertStateEditableFields(typeId, organizationId, collection, id, patchedFieldIds, { session });
@@ -999,7 +1056,7 @@ function instanceService(typeId) {
         }
       }
       const write = async () => {
-        const compareRevision = constrained || hasExpectedUpdatedAt;
+        const compareRevision = constrained || graphValidated || hasExpectedUpdatedAt;
         const updated = await repository.updateInstanceFields(
           collection,
           id,
@@ -1059,6 +1116,7 @@ function instanceService(typeId) {
       const updated = await this.processUpdate(id, patch, {
         organizationId,
         userId: auth?.userId || null,
+        auth,
         expectedUpdatedAt: doc.updatedAt,
         expectedRevision,
         expectedOrganizationSequence,
@@ -1157,6 +1215,7 @@ function instanceService(typeId) {
       const updated = await instanceService(typeId).processUpdate(id, patch, {
         organizationId,
         userId: auth?.userId || null,
+        auth,
         expectedUpdatedAt: doc.updatedAt,
         expectedRevision,
         expectedOrganizationSequence: expectedSequence,
@@ -1252,6 +1311,7 @@ function instanceService(typeId) {
       const updated = await instanceService(typeId).processUpdate(id, patch, {
         organizationId,
         userId: auth?.userId || null,
+        auth,
         expectedUpdatedAt: doc.updatedAt,
         expectedRevision,
         expectedOrganizationSequence: expectedSequence,
@@ -1288,7 +1348,7 @@ function instanceService(typeId) {
       if (!target || !hasInstanceAccess({ entity: scopeEntity, typeId: target.typeId, feature: target.feature, level: 'write', action: 'create', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
-      return await createValidated(draft, declaration, auth?.userId || null, targetOrganizationId, { session, expectedOrganizationSequence });
+      return await createValidated(draft, declaration, auth?.userId || null, targetOrganizationId, { session, expectedOrganizationSequence, auth });
     },
 
     // HTTP remove transport (`DELETE /api/instances/:type/:id`): the
