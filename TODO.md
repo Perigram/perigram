@@ -1,6 +1,6 @@
 # TODO
 
-## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19)
+## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24)
 
 The process designer and graph-document editor converge on one authoring
 system: canonical graph document and session, normalized node definitions,
