@@ -2565,6 +2565,106 @@ not their private internal representation. Live editing creates a new
 revision; it does not silently rewrite the definition used by an
 in-flight execution.
 
+### 30.9.1 Textual DSL and structured authoring
+
+Perigram supports multiple authoring surfaces over the same canonical
+semantic model: visual editors, structured data APIs, and a textual DSL.
+These are projections and construction interfaces, not separate
+programming languages or execution models. The canonical, versioned
+definition and graph contracts remain authoritative.
+
+The textual DSL is a graph-isomorphic authoring surface. Every
+construct that affects program meaning must lower deterministically
+into constructs already defined by the canonical model: definitions,
+graph interfaces, operation invocations, typed values, connections,
+control/collection constructs, and explicit effect/capability
+declarations. Surface syntax may provide concise binding or grouping
+sugar only where its lowering is deterministic, source-mapped, and
+introduces no independent runtime semantics. The DSL must not become
+a second source of truth or a parallel persistence format.
+
+The initial syntax candidate is restricted and Clojure/EDN-inspired:
+forms are structured data, composition is explicit, and immutable
+definition transformations are ordinary inspectable operations. This
+is an influence and an experiment, not a requirement to implement the
+language in Clojure or to embed a general-purpose Clojure runtime.
+The syntax and parser implementation remain replaceable behind the
+language-independent semantic representation.
+
+The DSL is deliberately not arbitrary Clojure. It provides no general
+host-language evaluation, unrestricted macros, ambient mutable state,
+implicit I/O, hidden effects, or uninspectable executable closures.
+Calls resolve to stable provider-qualified operation identities and
+pinned versions. Types, conversions, collection behavior, branching,
+iteration, graph invocation, and effects have explicit semantics and
+are validated by the same contracts as visual authoring. Opaque
+provider values remain subject to the same explicit handle and
+capability rules as every other authoring surface.
+
+The representation must cover every semantically meaningful canonical
+graph construct. Parsing and lowering preserve stable identities,
+revision pins, interfaces, configuration, and source locations needed
+for diagnostics. Editor-only layout and presentation metadata may be
+kept as a separate projection where it has no execution meaning.
+Diagnostics map back to the relevant source form and, where applicable,
+the canonical node, port, or edge. A valid DSL definition round-trips
+through the canonical representation without semantic loss; canonical
+graphs that cannot be represented by the DSL remain fully editable
+through other surfaces and must not be silently simplified.
+
+A single language-independent structured schema underlies both textual
+and machine-oriented authoring. EDN-like text and JSON/API payloads are
+encodings of that same schema, not separately maintained semantic
+contracts. Agents may use whichever representation is more reliable
+for a task; both pass through the same normalization, resolution,
+validation, typed-IR lowering, and execution pipeline described in
+§30.7.
+
+### 30.9.2 Agent interface and MCP boundary
+
+MCP is an integration and transport interface for agents, not the
+Perigram programming language, graph model, or execution engine.
+MCP tools expose the same reflective environment operations available
+to other clients. They do not define alternate graph semantics or
+bypass validation, authorization, revisioning, or host-owned effects.
+
+The agent interface is task-oriented and supports batched, revision-aware
+composition rather than requiring a long sequence of fragile
+single-node gestures. Its capabilities include discovering available
+types, operations, graph interfaces, and modules; inspecting existing
+definitions and graph revisions; submitting textual DSL or structured
+graph composition; validating and explaining diagnostics; applying
+atomic graph patches against an expected revision; previewing pure
+results; and inspecting diffs and execution provenance. Long-running
+or stateful work uses explicit graph, revision, and execution handles,
+not hidden conversational state.
+
+Composition and patch operations are bounded and transactional:
+they declare the target graph and expected revision, apply a coherent
+set of edits atomically, and return the resulting revision plus
+structured diagnostics. A stale revision or failed precondition
+rejects the mutation rather than overwriting concurrent work. Responses
+identify affected nodes, ports, edges, and source expressions, and
+report expected versus actual contracts, applicable conversions, and
+whether a correction requires agent action or user input.
+
+Discovery and explanation are read operations, not grants of authority.
+Preview remains subject to the pure-evaluation boundary. Commit, Bake,
+and external effects require the existing explicit capability,
+authorization, destination, confirmation, and audit contracts; an MCP
+tool call does not itself confer permission. Tool schemas should be
+small, stable, composable, and machine-readable, with detailed inspection
+available on demand rather than requiring agents to carry the entire
+catalog or graph in every response.
+
+The same authoring and environment operations must remain usable
+outside MCP by the visual editor, IDEs, local agents, and other clients.
+MCP is one adapter over those operations, not their owner. Agent
+composition quality is validated empirically against representative
+graph tasks and compared with direct structured authoring and existing
+tool workflows before the DSL syntax or tool catalog is treated as
+settled.
+
 ### 30.10 Keep, evolve, rewrite, and retire
 
 The migration preserves proven domain knowledge and host boundaries
