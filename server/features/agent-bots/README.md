@@ -52,7 +52,7 @@ Parent: [server/features](../README.md).
 | `read_instance_file` | registry instance services + attachment-read extraction | every surface |
 | `list_graph_catalog` / `get_graph` | [graph-executions](../graph-executions/README.md) saved-graph reads | every surface |
 | `discover_operations` | core graph provider + [plugins](../plugins/README.md) installed graph-node definitions | every surface |
-| `validate_graph` | [graph-executions](../graph-executions/README.md) typed-IR preflight | every surface |
+| `validate_graph` | [graph-executions](../graph-executions/README.md) typed-IR preflight; accepts a structured canonical document or authoring DSL source ([packages/core](../../../packages/core/README.md#authoring-dsl)) — both encodings lower through the one authoring schema | every surface |
 | `apply_graph_patch` | graph-document instance payload/revision boundary | every surface |
 | `preview_graph` | [graph-executions](../graph-executions/README.md) saved-graph preview | every surface |
 | `inspect_execution` | `graph-execution` instance read grant | every surface |

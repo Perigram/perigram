@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
-import { normalizeGraphDocument, validateGraphDocument, createCoreGraphDataProvider, CORE_DATA_PROVIDER } from '#packages/core';
+import { normalizeGraphDocument, validateGraphDocument, createCoreGraphDataProvider, CORE_DATA_PROVIDER, parseAuthoringDsl, lowerAuthoringDocument } from '#packages/core';
 import * as graphExecutionsService from '~/server/features/graph-executions/service.js';
 import { listInstalledGraphNodeDefinitions } from '~/server/features/plugins/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -39,6 +39,35 @@ function graphDocumentService() {
 
 // Port rows stay summary-level: the transport shape and the semantic base
 // are the authoring facts; full semantic descriptors ride the payloads
+// SPEC 30.9.2: agents submit textual DSL or structured graph composition —
+// both encodings of the one authoring schema reach validation identically.
+async function resolveGraphArgument(args) {
+    if (args.dsl != null) {
+        if (typeof args.dsl !== 'string' || args.graph != null) {
+            throw createError({ statusCode: 400, message: 'Pass either dsl source text or a structured graph document, not both' });
+        }
+        const { document, diagnostics } = parseAuthoringDsl(args.dsl);
+        const errors = (diagnostics || []).filter(item => item.severity === 'error');
+        if (errors.length || !document) {
+            const error = createError({ statusCode: 400, message: `DSL parse failed: ${errors.map(item => item.message).join('; ')}` });
+            error.data = { diagnostics };
+            throw error;
+        }
+        const { graph, diagnostics: lowering } = lowerAuthoringDocument(document);
+        const loweringErrors = (lowering || []).filter(item => item.severity === 'error');
+        if (!graph || loweringErrors.length) {
+            const error = createError({ statusCode: 400, message: `DSL lowering failed: ${loweringErrors.map(item => item.message).join('; ')}` });
+            error.data = { diagnostics: lowering };
+            throw error;
+        }
+        return graph;
+    }
+    if (!args.graph || typeof args.graph !== 'object' || Array.isArray(args.graph)) {
+        throw createError({ statusCode: 400, message: 'graph must be a canonical graph document object' });
+    }
+    return args.graph;
+}
+
 // (get_graph, validate_graph detail, discover_operations detail).
 function interfaceRow(port) {
     return {
@@ -310,16 +339,14 @@ export const GRAPH_TOOL_SPECS = [
             type: 'object',
             properties: {
                 graph: { type: 'object' },
+                dsl: { type: 'string', description: 'Authoring DSL source (SPEC 30.9.1); parsed and lowered to the canonical document before validation' },
                 detail: { type: 'string', enum: ['ir'] }
             },
-            required: ['graph'],
             additionalProperties: false
         },
         execute: async (args, auth) => {
-            if (!args.graph || typeof args.graph !== 'object' || Array.isArray(args.graph)) {
-                throw createError({ statusCode: 400, message: 'graph must be a canonical graph document object' });
-            }
-            const { ir, diagnostics } = await graphExecutionsService.preflightGraphForServer(args.graph, auth);
+            const graph = await resolveGraphArgument(args);
+            const { ir, diagnostics } = await graphExecutionsService.preflightGraphForServer(graph, auth);
             const mapped = mappedDiagnostics(ir, diagnostics);
             return {
                 ok: !mapped.some(item => item.severity === 'error'),

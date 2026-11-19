@@ -230,6 +230,32 @@ describe('validate_graph', () => {
         expect(result.ir).toBeUndefined();
     });
 
+    it('accepts authoring DSL source through the same validation path', async () => {
+        const dsl = [
+          '(:graph "graph.document" "rev-01"',
+          '  (:interface',
+          '    (:input "source" :item {:base "entityRef"})',
+          '    (:output "document" :item {:base "document"}))',
+          '  (:node "format-1" :plugin.documents/document.compose "3")',
+          '  (:connect :source/value :format-1/source)',
+          '  (:connect :format-1/document :document/value))'
+        ].join('\n');
+        const result = await executeTool('validate_graph', { dsl }, AUTH);
+        expect(mockedGraphExecutions.preflightGraphForServer).toHaveBeenCalledWith(expect.objectContaining({
+            format: 'perigram.graph',
+            id: 'graph.document',
+            revision: 'rev-01'
+        }), AUTH);
+        expect(result.ok).toBe(true);
+    });
+
+    it('rejects malformed DSL with its source-mapped diagnostics', async () => {
+        const rejection = await executeTool('validate_graph', { dsl: '(:graph' }, AUTH).catch(error => error);
+        expect(rejection).toMatchObject({ statusCode: 400 });
+        expect(rejection.message).toContain('DSL parse failed');
+        expect(mockedGraphExecutions.preflightGraphForServer).not.toHaveBeenCalled();
+    });
+
     it('maps edge diagnostics to expected-versus-actual contracts with the conversion decision', async () => {
         const conversion = { convert: 'unit', from: 'mm', to: 'm' };
         mockedGraphExecutions.preflightGraphForServer.mockResolvedValue({
