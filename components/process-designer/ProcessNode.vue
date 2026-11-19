@@ -136,7 +136,6 @@
 
 <script setup>
 import { operationKindOf } from '@perigram/cts';
-import { isSecondaryPopulationKind } from '~/utils/processDesignerPopulation.js';
 
 import { computed, ref } from 'vue';
 import Button from 'primevue/button';
@@ -157,13 +156,7 @@ const { t } = useI18n();
 
 const record = computed(() => props.data.processNodeRecord || props.data);
 const opKind = computed(() => operationKindOf(record.value || {}));
-// Population primacy (node UI contract): operations are the primary
-// nodes and render the primary-tinted surface — except the remove
-// operation, which is presentation-secondary (the one predicate in
-// utils/processDesignerPopulation.js).
-// species is secondary surface.
-const isOperation = computed(() => EFFECT_SPECIES_KINDS.has(opKind.value)
-  && !isSecondaryPopulationKind(opKind.value));
+const isOperation = computed(() => EFFECT_SPECIES_KINDS.has(opKind.value));
 const connectedInputIds = computed(() => new Set(props.data.processConnectedInputIds || []));
 const connectedOutputIds = computed(() => new Set(props.data.processConnectedOutputIds || []));
 const inputSpecs = computed(() => normalizeSpecs(record.value.inputs || props.data.inputSpecs || [], 'input'));

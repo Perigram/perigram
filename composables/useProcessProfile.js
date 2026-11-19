@@ -26,7 +26,7 @@ import { signalForPaletteGroup } from '~/utils/processDesignerSignals.js';
 import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { commandInputs, commandOutputs } from '~/utils/processDesignerCommandPorts.js';
 import { createService, createSocket } from '~/utils/processDesignerDefinitionRecords.js';
-import { isSecondaryPopulationKind } from '~/utils/processDesignerPopulation.js';
+
 import { createGraphAuthoringState, useGraphAuthoringSession } from '~/composables/useGraphAuthoringSession.js';
 import { useProcessDesignerConnectionInference } from '~/composables/useProcessDesignerConnectionInference.js';
 import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
@@ -817,14 +817,11 @@ export function useProcessProfile({
   }
 
   // The visibility grouping (node UI contract "Lanes"): effects and state
-  // declarations are primary; classes, fields, type references, non-effect
-  // process nodes, and the remove operation (presentation-secondary — the
-  // one predicate in utils/processDesignerPopulation.js) are secondary and
-  // hide in the clean view.
+  // declarations are primary; classes, fields, type references, and
+  // non-effect process nodes are secondary and hide in the clean view.
   function isSecondaryNode(node) {
     if (DECLARATION_NODE_TYPES.includes(node.type)) return node.type !== 'ctsState';
-    return node.type === 'processNode'
-      && (!isEffectNode(node) || isSecondaryPopulationKind(nodeOperationKind(node)));
+    return node.type === 'processNode' && !isEffectNode(node);
   }
 
   function isEffectNode(node) {
@@ -1376,7 +1373,7 @@ export function useProcessProfile({
     if (!sourcePort || !targetPort) return { ok: true };
     const result = portCompatibility.compare(
       { ...sourcePort, compatibility: { profile: PROCESS_PORT_COMPATIBILITY_PROFILE } },
-      { ...targetPort, compatibility: { profile: 'perigram.cts' } }
+      { ...targetPort, compatibility: { profile: PROCESS_PORT_COMPATIBILITY_PROFILE } }
     );
     return {
       ok: result.compatible,

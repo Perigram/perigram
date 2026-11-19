@@ -225,18 +225,6 @@ export async function resumeProcessRun(runInput, definition, completion = {}, en
   return run;
 }
 
-export async function runProcessUntilSettled(run, definition, environment = {}, options = {}) {
-  const maxSteps = Number(options.maxSteps) || 1000;
-  let current = run;
-  for (let index = 0; index < maxSteps && ['running', 'waiting'].includes(current.status); index += 1) {
-    const previous = current;
-    current = await advanceProcessRun(current, definition, environment);
-    if (current.status === 'waiting' && current.updatedAt === previous.updatedAt) return current;
-  }
-  if (current.status === 'running') throw new Error(`Process run exceeded ${maxSteps} steps`);
-  return current;
-}
-
 async function executeOperationalNode({ run, process, node, record, current, step, environment }) {
   const inputs = await resolveNodeInputs(process, node, run, environment, current);
   if (isEffectRecord(record)) {

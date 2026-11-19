@@ -4,7 +4,6 @@ import {
   createProcessRun,
   previewProcessDataflow,
   resumeProcessRun,
-  runProcessUntilSettled,
   transitionProcessRun,
   transitionProcessStep
 } from './orchestration.js';
@@ -40,6 +39,18 @@ const catalogContext = () => ({
   fieldSchemas: [{ path: 'name', block: 'identity', type: { base: 'string', shape: 'item' } }]
 });
 
+async function runUntilSettled(run, definition, environment = {}, options = {}) {
+  const maxSteps = Number(options.maxSteps) || 1000;
+  let current = run;
+  for (let index = 0; index < maxSteps && ['running', 'waiting'].includes(current.status); index += 1) {
+    const previous = current;
+    current = await advanceProcessRun(current, definition, environment);
+    if (current.status === 'waiting' && current.updatedAt === previous.updatedAt) return current;
+  }
+  if (current.status === 'running') throw new Error(`Process run exceeded ${maxSteps} steps`);
+  return current;
+}
+
 describe('durable process orchestration', () => {
   it.each(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove'])(
     'routes %s through the shared mapped mutation boundary',
@@ -65,7 +76,7 @@ describe('durable process orchestration', () => {
         ? { type: 'project', id: inputs.identity.name }
         : inputs.entity);
 
-      const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+      const completed = await runUntilSettled(createProcessRun(definition, {}), definition, {
         executeEffect,
         catalogContext
       });
@@ -99,7 +110,7 @@ describe('durable process orchestration', () => {
 
     const executeEffect = vi.fn(async ({ inputs }) => inputs.entity);
     const run = createProcessRun(graph, {});
-    const completed = await runProcessUntilSettled(run, graph, { executeEffect, catalogContext });
+    const completed = await runUntilSettled(run, graph, { executeEffect, catalogContext });
 
     expect(completed.status).toBe('succeeded');
     expect(completed.steps[0].kind).toBe('cts.mutate');
@@ -113,7 +124,7 @@ describe('durable process orchestration', () => {
     const updated = { type: 'project', id: 'project-1', identity: { name: 'Renamed' } };
     const executeEffect = vi.fn().mockResolvedValue(updated);
 
-    const completed = await runProcessUntilSettled(
+    const completed = await runUntilSettled(
       createProcessRun(definition, { nodeId: 'modify' }, {
         context: { inputs: { entity: { type: 'project', id: 'project-1' } } }
       }),
@@ -145,7 +156,7 @@ describe('durable process orchestration', () => {
       return inputs.entity;
     });
 
-    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+    const completed = await runUntilSettled(createProcessRun(definition, {}), definition, {
       executeEffect,
       catalogContext
     });
@@ -181,7 +192,7 @@ describe('durable process orchestration', () => {
     ]);
     const executeEffect = vi.fn();
 
-    const failed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+    const failed = await runUntilSettled(createProcessRun(definition, {}), definition, {
       executeEffect,
       catalogContext
     });
@@ -220,7 +231,7 @@ describe('durable process orchestration', () => {
     definition.metadata[PROCESS_GRAPH_METADATA_KEY].sourceData.stateDefinitions = stateDefinitions;
     const executeEffect = vi.fn().mockResolvedValue({ type: 'project', id: 'project-1' });
 
-    const completed = await runProcessUntilSettled(
+    const completed = await runUntilSettled(
       createProcessRun(definition, { nodeId: 'update' }, {
         context: { inputs: { entity: { type: 'project', id: 'project-1' } } }
       }),
@@ -304,7 +315,7 @@ describe('durable process orchestration', () => {
       .mockResolvedValueOnce({ type: 'project', _id: 'project-1', name: 'Original', fields: { name: 'Original' } })
       .mockResolvedValueOnce({ type: 'project', _id: 'project-1', name: 'Original', fields: { name: 'Original' } });
 
-    const completed = await runProcessUntilSettled(
+    const completed = await runUntilSettled(
       createProcessRun(definition, { nodeId: 'create' }),
       definition,
       { executeEffect, catalogContext }
@@ -333,7 +344,7 @@ describe('durable process orchestration', () => {
       control('effect', 'completed', 'stop')
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ ok: true });
-    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, { executeEffect });
+    const completed = await runUntilSettled(createProcessRun(definition, {}), definition, { executeEffect });
     expect(completed.status).toBe('succeeded');
     expect(executeEffect).toHaveBeenCalledTimes(2);
     expect(executeEffect.mock.calls[1][0].idempotencyKey).toContain(completed.id);
@@ -353,7 +364,7 @@ describe('durable process orchestration', () => {
     ]);
     const executeEffect = vi.fn().mockRejectedValue(new Error('command failed'));
 
-    const failed = await runProcessUntilSettled(
+    const failed = await runUntilSettled(
       createProcessRun(definition, {}),
       definition,
       { executeEffect }
@@ -420,7 +431,7 @@ describe('durable process orchestration', () => {
     expect(resumed.tokens[0].nodeId).toBe('stop');
     expect(resumed.tokens[0].values['start:sheet']).toBeTruthy();
 
-    const finished = await runProcessUntilSettled(resumed, definition, {});
+    const finished = await runUntilSettled(resumed, definition, {});
     expect(finished.status).toBe('succeeded');
   });
 
@@ -453,13 +464,13 @@ describe('durable process orchestration', () => {
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ ok: true });
 
-    let run = await runProcessUntilSettled(createProcessRun(definition, {}), definition, { executeEffect });
+    let run = await runUntilSettled(createProcessRun(definition, {}), definition, { executeEffect });
     expect(run.status).toBe('waiting');
     expect(run.wakeAt).toBe('2030-01-01T00:00:00.000Z');
     expect(run.pendingEffect).toMatchObject({ nodeId: 'wait' });
 
     run = await resumeProcessRun(run, definition, { output: {} }, { executeEffect });
-    const finished = await runProcessUntilSettled(run, definition, { executeEffect });
+    const finished = await runUntilSettled(run, definition, { executeEffect });
     expect(finished.status).toBe('succeeded');
     expect(finished.pendingEffect).toBeUndefined();
   });
@@ -469,7 +480,7 @@ describe('durable process orchestration', () => {
       { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } },
       { id: 'wait', kind: 'control.waitUntil' }
     ], ['start', 'wait'], [control('start', 'completed', 'wait')]);
-    const run = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+    const run = await runUntilSettled(createProcessRun(definition, {}), definition, {
       executeEffect: vi.fn().mockResolvedValue({})
     });
     expect(run.status).toBe('failed');
@@ -482,7 +493,7 @@ describe('durable process orchestration', () => {
     ], ['start'], []);
     const refusal = new Error('logo: spot logo has no matching part');
     refusal.data = { failures: [{ name: 'logo', message: 'spot logo has no matching part' }] };
-    const run = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+    const run = await runUntilSettled(createProcessRun(definition, {}), definition, {
       executeEffect: vi.fn().mockRejectedValue(refusal)
     });
     expect(run.status).toBe('failed');
@@ -525,7 +536,7 @@ describe('durable process orchestration', () => {
     const definition = process([
       { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } }
     ], ['start'], []);
-    const failed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+    const failed = await runUntilSettled(createProcessRun(definition, {}), definition, {
       executeEffect: vi.fn().mockRejectedValue(new Error('boom'))
     });
     expect(failed.status).toBe('failed');
@@ -537,7 +548,7 @@ describe('durable process orchestration', () => {
       { id: 'daily', kind: 'cts.command', commandId: 'ping', trigger: { mode: 'schedule', schedule: { interval: 'P1D' } } }
     ], ['daily'], []);
     const executeEffect = vi.fn().mockResolvedValue({ ok: true });
-    const run = await runProcessUntilSettled(createProcessRun(definition, { nodeId: 'daily' }), definition, { executeEffect });
+    const run = await runUntilSettled(createProcessRun(definition, { nodeId: 'daily' }), definition, { executeEffect });
     expect(run.status).toBe('succeeded');
     expect(executeEffect).toHaveBeenCalledOnce();
   });
@@ -547,7 +558,7 @@ describe('durable process orchestration', () => {
       { id: 'onEvent', kind: 'cts.command', commandId: 'ping', eventId: 'order.shipped', trigger: { mode: 'event', eventId: 'order.shipped' } },
       { id: 'payload', kind: 'source.triggerPayload', path: 'event.payload.order' }
     ], ['onEvent', 'payload'], []);
-    const run = await runProcessUntilSettled(
+    const run = await runUntilSettled(
       createProcessRun(definition, { nodeId: 'onEvent', eventId: 'order.shipped', event: { type: 'order.shipped', payload: { order: 'o-1' } } }),
       definition,
       { executeEffect: vi.fn().mockResolvedValue({}) }
@@ -572,7 +583,7 @@ describe('durable process orchestration', () => {
       control('join', 'out', 'stop')
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ ok: true });
-    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, { executeEffect });
+    const completed = await runUntilSettled(createProcessRun(definition, {}), definition, { executeEffect });
     expect(completed.status).toBe('succeeded');
     expect(executeEffect.mock.calls.map(call => call[0].record.commandId).sort()).toEqual(['left', 'right', 'start']);
     expect(completed.steps.filter(step => step.nodeId === 'join')).toHaveLength(2);
@@ -600,7 +611,7 @@ describe('durable process orchestration', () => {
       control('loop', 'done', 'stop')
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ ok: true });
-    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+    const completed = await runUntilSettled(createProcessRun(definition, {}), definition, {
       executeEffect,
       catalogContext: record => record.commandId === 'each'
         ? { command: { input: { parameters: [{ name: 'parameters', type: 'object' }] } } }
@@ -643,7 +654,7 @@ describe('durable process orchestration', () => {
     const catalogContext = record => record.commandId === 'createProject'
       ? { command: { output: { entities: [{ type: 'project', persistenceOwner: 'commandOwned', timing: 'immediate' }] } } }
       : {};
-    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+    const completed = await runUntilSettled(createProcessRun(definition, {}), definition, {
       executeEffect,
       catalogContext,
       data: { resolveEntityRef: async ref => ({ _id: ref.id, type: ref.type, identity: { name: 'Project' } }) }
@@ -695,7 +706,7 @@ describe('durable process orchestration', () => {
     ]);
     const entity = { _id: 'project-1', identity: { name: 'Original' } };
     const executeEffect = vi.fn().mockResolvedValue({ ...entity, identity: { name: 'Renamed' } });
-    const completed = await runProcessUntilSettled(
+    const completed = await runUntilSettled(
       createProcessRun(definition, { nodeId: 'modify' }, {
         context: { inputs: { entity } }
       }),
@@ -730,7 +741,7 @@ describe('durable process orchestration', () => {
     const project = { _id: 'project-1', identity: { name: 'Project' } };
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'queue-1' });
 
-    const completed = await runProcessUntilSettled(
+    const completed = await runUntilSettled(
       createProcessRun(definition, { payload: project }),
       definition,
       { executeEffect, catalogContext }
@@ -766,7 +777,7 @@ describe('durable process orchestration', () => {
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'queue-1' });
 
-    const completed = await runProcessUntilSettled(
+    const completed = await runUntilSettled(
       createProcessRun(definition, { nodeId: 'create-queue' }, {
         context: { inputs: { entities: { project: 'project-1' } } }
       }),
@@ -804,7 +815,7 @@ describe('durable process orchestration', () => {
     const project = { _id: 'project-1', type: 'project', lineage: {} };
     const parents = { queue: project };
 
-    const completed = await runProcessUntilSettled(
+    const completed = await runUntilSettled(
       createProcessRun(definition, { nodeId: 'create-queue' }, {
         context: { inputs: { entity: { type: 'queue', id: 'queue-1' } } }
       }),
@@ -845,7 +856,7 @@ describe('durable process orchestration', () => {
     const project = { _id: 'project-1', type: 'project', lineage: {} };
     const parents = { attempt: queue, queue: project };
 
-    const completed = await runProcessUntilSettled(
+    const completed = await runUntilSettled(
       createProcessRun(definition, { nodeId: 'create-sheet' }, {
         context: { inputs: { entity: { type: 'attempt', id: 'attempt-1' } } }
       }),
@@ -891,7 +902,7 @@ describe('durable process orchestration', () => {
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'project-1' });
 
-    const completed = await runProcessUntilSettled(
+    const completed = await runUntilSettled(
       createProcessRun(definition, { nodeId: 'create-project' }),
       definition,
       { executeEffect, catalogContext }
@@ -933,7 +944,7 @@ describe('durable process orchestration', () => {
       role: 'data'
     }]);
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'project-1' });
-    const completed = await runProcessUntilSettled(
+    const completed = await runUntilSettled(
       createProcessRun(definition, { nodeId: 'create' }, {
         context: { inputs: { data: { name: 'Manual project' } } }
       }),
@@ -959,7 +970,7 @@ describe('durable process orchestration', () => {
       }
     }], ['create'], []);
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'project-1' });
-    const completed = await runProcessUntilSettled(
+    const completed = await runUntilSettled(
       createProcessRun(definition, { nodeId: 'create' }, {
         context: { inputs: { data: { name: 'Manual project' } } }
       }),
@@ -1002,7 +1013,7 @@ describe('durable process orchestration', () => {
     }]);
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'design-1' });
 
-    const completed = await runProcessUntilSettled(
+    const completed = await runUntilSettled(
       createProcessRun(definition, { nodeId: 'create-design' }, {
         context: { inputs: { data: { templateId: 'cassette-1' } } }
       }),
@@ -1210,7 +1221,7 @@ describe('durable process orchestration', () => {
     });
     run.trigger = { nodeId: 'act' };
 
-    await runProcessUntilSettled(run, definition, { executeEffect, catalogContext: catalogContext });
+    await runUntilSettled(run, definition, { executeEffect, catalogContext: catalogContext });
 
     const triggerEntity = executeEffect.mock.calls[0][0].inputs.entity;
     const chainedEntity = executeEffect.mock.calls[1][0].inputs.entity;

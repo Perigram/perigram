@@ -29,7 +29,6 @@ export {
   canvasToDefinition,
   definitionToCanvas,
   hasCanonicalProcessSource,
-  validateCanvasSemantics,
   validateRoundTrip
 } from './transpiler.js';
 export {
@@ -80,7 +79,6 @@ export {
   syncProcessNodeProducerOutputs,
   effectTriggerFor
 } from './designer.js';
-export { resolveProcessActionInputContext } from './algebra.js';
 export {
   PROCESS_PROTOCOL_VERSION,
   PROCESS_OPERATION_LEVELS,
@@ -137,7 +135,6 @@ export {
   resumeProcessRun,
   createProcessRun,
   previewProcessDataflow,
-  runProcessUntilSettled,
   transitionProcessRun,
   transitionProcessStep
 } from './orchestration.js';
