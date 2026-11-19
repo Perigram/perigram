@@ -58,7 +58,7 @@ Each gesture has its removal twin:
 | Declaration tree | `declareClass`/`declareField`/`declareTypeRef`/`declareState` plus `wireDeclaration` (declares/targets/children/binds/entry wires), gated by `declarationWireLegality`, interpreted by `interpretDeclarationEdges` | `unwireDeclaration` |
 | Palette drop | record factory + preset; a construct's type binding is its `binds` declaration wire (class or type reference wired onto the construct) — `configure` refuses `typeId` on a construct and validation reports an unbound one | `removeNode` — removes the node with its record, its wires, and the producer outputs it anchored (join selections pointing at removed outputs reset) |
 | Record configuration | the same writes the inspector performs — record semantics, socket input defaults (typed scalars; the entityRef picker writes `{type, id}`), and the declaration nodes' authored fields (state `value`/`label`/`severity`/`icon`, class `name`/`glyph`, field `name`/`descriptor`) | — |
-| Connection | the canvas host registers the Processes CTS profile (`port-compatibility.js`) with the shared Plugin SDK registry; the headless seam applies the process socket rule (`processSocketsCompatible`) to the legacy socket dialect; both check nominal type, block, access, and cardinality. The authoring adapter still projects legacy `data:<id>` and `control:<id>` handles until G10 removes that storage vocabulary; typed source inference remains a process-domain authoring rule | `disconnect` |
+| Connection | the canvas host registers the Processes CTS profile (`port-compatibility.js`) with the shared Plugin SDK registry; the headless seam applies the process socket rule (`processSocketsCompatible`) to the legacy socket dialect; both check nominal type, block, access, cardinality, and unit qualifiers. The authoring adapter still projects legacy `data:<id>` and `control:<id>` handles until G10 removes that storage vocabulary; typed source inference remains a process-domain authoring rule | `disconnect` |
 
 An effect's trigger mode derives from the graph on every sync
 (`effectTriggerFor`): a wired event socket wins; an unwired entry with an
@@ -1251,7 +1251,21 @@ Graph edges are validated through the typed port helpers
 `validateProcessEdges()`. Value-plane mismatches delegate to the same
 coercion lattice as the canvas connect gate (`processSocketsCompatible`),
 so a wire the canvas accepts validates; an incompatible-port diagnostic
-names the expected and received types beside the socket labels. Canvas
+names the expected and received types, units included, beside the socket
+labels. Semantic qualifiers ride the port's structured type into the
+lattice whole: a same-kind value-plane pair with structured types on
+both sides re-checks through the lattice, and the json escape serves an
+unkinded target alone. The CTS profile
+(`port-compatibility.js`) reports that lattice through the SDK registry's
+frozen outcome vocabulary
+([plugin-sdk](../plugin-sdk/README.md#port-compatibility)): `exact` for
+matching contracts, `safe-coercion` when an implicit lattice coercion
+carries the value, `conversion-required` when a unit pair converts
+through the shared factor table, `incompatible` otherwise. `compatible`
+is true for `exact` and `safe-coercion`, false for `conversion-required`
+and `incompatible`; a `conversion-required` result carries the
+`value.convertUnit` hint verbatim beside its empty `conversions` array,
+and a unit pair outside the factor table names both units in its reason. Canvas
 socket handles have one vocabulary home,
 `ports.js`: `mintProcessSocketHandle()` mints `data:<id>`/`control:<id>`
 by port role and `parseProcessSocketHandleId()` strips it (plus the legacy

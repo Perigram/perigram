@@ -77,6 +77,30 @@ describe('process v4 type algebra', () => {
     expect(processTypesCompatible(array, processType('array', { itemType: processType('entityRef', { typeId: 'project' }) })).ok).toBe(false);
   });
 
+  it('keeps unit changes explicit and names the units either way', () => {
+    const mm = processType('number', { unit: 'mm' });
+    const m = processType('number', { unit: 'm' });
+    const deg = processType('number', { unit: 'deg' });
+
+    expect(processTypesCompatible(mm, mm)).toMatchObject({ ok: true, implicit: true });
+    const converted = processTypesCompatible(mm, m);
+    expect(converted.ok).toBe(false);
+    expect(converted.convertible).toBe(true);
+    expect(converted.conversion).toMatchObject({
+      nodeKind: 'value.convertUnit',
+      sourceType: { base: 'number', unit: 'mm' },
+      targetType: { base: 'number', unit: 'm' }
+    });
+    expect(converted.reason).toContain('mm');
+    expect(converted.reason).toContain('m');
+
+    const noConversion = processTypesCompatible(mm, deg);
+    expect(noConversion.ok).toBe(false);
+    expect(noConversion.convertible).toBe(false);
+    expect(noConversion.reason).toContain('mm');
+    expect(noConversion.reason).toContain('deg');
+  });
+
   it('wraps a single value into the array its socket carries', () => {
     const entity = processType('entityRef', { typeId: 'queue' });
     const array = processType('array', { itemType: processType('entityRef', { typeId: 'queue' }) });
