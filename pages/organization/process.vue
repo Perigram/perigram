@@ -1,43 +1,20 @@
 <template>
   <StandardPage workspace>
     <div class="flex h-full min-h-0 flex-1 flex-col">
-      <!-- The workspace header (SPEC §28.14): the loaded definition's
-           identity and rename, the dirty-gated save, and the process
-           lifecycle actions. File-level and lifecycle commands live here,
-           never in the canvas dock. -->
-      <SurfaceHeader :title="activeName" :on-rename="renameActiveDefinition">
-        <template #cluster>
-          <Button
-            :label="t('processDesigner.newDraft')"
-            icon="pi pi-file-plus"
-            size="small"
-            text
-            severity="secondary"
-            :disabled="creatingDraft || applyBusy"
-            :loading="creatingDraft"
-            @click="startNewDraft"
-          />
-          <Button
-            v-if="isDirty"
-            :label="t('common.save')"
-            icon="pi pi-save"
-            size="small"
-            text
-            severity="secondary"
-            :disabled="applyBusy || creatingDraft"
-            @click="saveDraftWithToast"
-          />
-          <Button
-            :label="t('processDesigner.apply')"
-            icon="pi pi-check"
-            size="small"
-            :disabled="!draft?._id || applyBusy || creatingDraft"
-            :loading="applyState === 'applying'"
-            @click="applyProcess"
-          />
-        </template>
-      </SurfaceHeader>
+      <!-- The one editor (SPEC §28.14): the loaded graph document edits
+           through the canonical graph session; the process profile rides
+           the same page for process definitions. The graphs list in the
+           inspector owns file and lifecycle commands. -->
       <GraphEditorSurface
+        v-if="activeGraphDocument"
+        :key="activeGraphDocument._id || 'blank-graph'"
+        :record="activeGraphDocument"
+        :persistence="graphDocumentPersistence"
+        :mode="'edit'"
+        :page-chrome="graphDocumentChromeChannel"
+      />
+      <GraphEditorSurface
+        v-else
         :session="processSession"
         :canvas-items="canvasDockItems"
       :palette-placeholder="$t('processDesigner.searchOperations')"
@@ -68,11 +45,42 @@
           <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
             <TabList>
               <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
-              <Tab value="definitions">{{ $t('processDesigner.definitions') }}</Tab>
+              <Tab value="definitions">{{ $t('processDesigner.graphs') }}</Tab>
               <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
             </TabList>
             <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="definitions">
+              <!-- The graphs list (SPEC §28.14): the loaded definition's
+                   lifecycle commands ride the list, one home for file and
+                   process actions. -->
+              <div class="mb-2 flex flex-wrap items-center gap-1.5">
+                <Button
+                  :label="t('processDesigner.newDraft')"
+                  icon="pi pi-file-plus"
+                  size="small"
+                  severity="secondary"
+                  :disabled="creatingDraft || applyBusy"
+                  :loading="creatingDraft"
+                  @click="startNewDraft"
+                />
+                <Button
+                  v-if="isDirty"
+                  :label="t('common.save')"
+                  icon="pi pi-save"
+                  size="small"
+                  severity="secondary"
+                  :disabled="applyBusy || creatingDraft"
+                  @click="saveDraftWithToast"
+                />
+                <Button
+                  :label="t('processDesigner.apply')"
+                  icon="pi pi-check"
+                  size="small"
+                  :disabled="!draft?._id || applyBusy || creatingDraft"
+                  :loading="applyState === 'applying'"
+                  @click="applyProcess"
+                />
+              </div>
               <Listbox
                 :model-value="selectedProcessId"
                 :options="processDefinitions"
@@ -170,6 +178,85 @@
                   <div v-else class="text-muted text-supporting">—</div>
                 </div>
               </Popover>
+
+              <!-- Graph documents: the same graphs list carries the
+                   organization's graph files; the loaded one edits in
+                   place, its save/rename riding the editor chrome. -->
+              <div class="mt-3 flex flex-col gap-1.5" data-graph-documents>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-label">{{ $t('processDesigner.graphDocuments') }}</span>
+                  <Button
+                    icon="pi pi-plus"
+                    size="small"
+                    text
+                    severity="secondary"
+                    :aria-label="$t('processDesigner.newGraphDocument')"
+                    @click="openBlankGraphDocument"
+                  />
+                </div>
+                <div v-if="graphDocumentsLoading" class="text-supporting text-muted">…</div>
+                <Message v-else-if="graphDocumentsError" severity="error">{{ graphDocumentsError }}</Message>
+                <div
+                  v-for="doc in graphDocuments"
+                  v-else
+                  :key="doc._id"
+                  class="flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-ui px-2 py-1.5"
+                  :class="isActiveGraphDocument(doc) ? 'bg-subtle' : 'hover:bg-subtle'"
+                  @click="openGraphDocument(doc)"
+                >
+                  <template v-if="renamingGraphId === String(doc._id)">
+                    <InputText
+                      v-model="renamingGraphName"
+                      class="min-w-0 flex-1"
+                      size="small"
+                      :aria-label="$t('common.rename')"
+                      @click.stop
+                      @keydown.enter.prevent.stop="applyGraphRename(doc)"
+                    />
+                    <Button
+                      icon="pi pi-check"
+                      class="shrink-0"
+                      size="small"
+                      text
+                      :disabled="!renamingGraphName.trim()"
+                      @click.stop="applyGraphRename(doc)"
+                    />
+                  </template>
+                  <template v-else>
+                    <span class="min-w-0 flex-1 truncate" :title="doc.name">{{ doc.name }}</span>
+                    <span
+                      v-if="isActiveGraphDocument(doc) && graphDocumentChrome?.dirty"
+                      class="h-2 w-2 shrink-0 rounded-full bg-primary"
+                      :title="$t('common.unsavedChanges')"
+                      aria-hidden="true"
+                    />
+                    <span
+                      v-if="isActiveGraphDocument(doc) && graphDocumentChrome?.saving"
+                      class="pi pi-spin pi-spinner shrink-0 text-muted"
+                      aria-hidden="true"
+                    />
+                    <Button
+                      v-if="isActiveGraphDocument(doc)"
+                      icon="pi pi-times"
+                      class="shrink-0"
+                      size="small"
+                      text
+                      severity="secondary"
+                      :aria-label="$t('processDesigner.closeGraphDocument')"
+                      @click.stop="closeGraphDocument"
+                    />
+                    <Button
+                      icon="pi pi-pencil"
+                      class="shrink-0"
+                      size="small"
+                      text
+                      severity="secondary"
+                      :aria-label="$t('common.rename')"
+                      @click.stop="beginGraphRename(doc)"
+                    />
+                  </template>
+                </div>
+              </div>
             </TabPanel>
             <TabPanel value="inspector">
               <GraphInspector
@@ -595,7 +682,8 @@ import Tag from 'primevue/tag';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
-import SurfaceHeader from '~/components/ui-mapping/SurfaceHeader.vue';
+import { instancePayloadPersistence } from '~/components/generated/file-surfaces.js';
+import { useGraphDocumentCatalog } from '~/composables/useGraphDocumentCatalog.js';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
 import GraphEditorSurface from '~/components/process-designer/GraphEditorSurface.vue';
@@ -934,7 +1022,6 @@ const defaultEdgeOptions = {
   type: 'default'
 };
 
-const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.states?.main === 'ACTIVE');
 const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
 // Lanes — the authorization surface, canonical in
@@ -1341,6 +1428,7 @@ onMounted(() => {
   loadActiveOrCreateLocal();
   loadProcessCapabilities();
   loadOrgTypes();
+  loadGraphDocuments(t);
   window.addEventListener('focus', reconcileOutOfBandDraft);
   reconcilePollTimer = setInterval(reconcileOutOfBandDraft, RECONCILE_POLL_MS);
 });
@@ -1450,14 +1538,61 @@ async function startNewDraft() {
   }
 }
 
-async function renameActiveDefinition(name) {
-  const trimmed = String(name || '').trim();
-  const id = String(draft.value?._id || '');
-  if (!trimmed || !id || trimmed === activeName.value) return;
+// Graph documents (the graphs list's second section, SPEC §28.14): the
+// loaded one edits in place through the canonical graph session; its
+// save/rename/dirty facts ride the editor chrome channel.
+const {
+  documents: graphDocuments,
+  loading: graphDocumentsLoading,
+  error: graphDocumentsError,
+  load: loadGraphDocuments
+} = useGraphDocumentCatalog();
+const activeGraphDocument = ref(null);
+const graphDocumentChrome = ref(null);
+const graphDocumentChromeChannel = { bind: chrome => { graphDocumentChrome.value = chrome; } };
+const graphDocumentPersistence = computed(() => instancePayloadPersistence(
+  activeGraphDocument.value || null,
+  'graph-document',
+  'application/json'
+));
+const renamingGraphId = ref('');
+const renamingGraphName = ref('');
+
+function isActiveGraphDocument(doc) {
+  return Boolean(activeGraphDocument.value)
+    && String(activeGraphDocument.value._id || '') === String(doc._id);
+}
+
+function openGraphDocument(doc) {
+  activeGraphDocument.value = doc;
+}
+
+function openBlankGraphDocument() {
+  activeGraphDocument.value = {};
+}
+
+function closeGraphDocument() {
+  activeGraphDocument.value = null;
+  graphDocumentChrome.value = null;
+  loadGraphDocuments(t);
+}
+
+function beginGraphRename(doc) {
+  renamingGraphId.value = String(doc._id);
+  renamingGraphName.value = doc.name;
+}
+
+async function applyGraphRename(doc) {
+  const name = renamingGraphName.value.trim();
+  renamingGraphId.value = '';
+  if (!name || name === doc.name) return;
   try {
-    const updated = await persistence.renameDraft(id, trimmed);
-    upsertProcessDefinition(updated);
-    if (String(draft.value?._id) === id) setDraft(updated);
+    if (isActiveGraphDocument(doc) && typeof graphDocumentChrome.value?.rename === 'function') {
+      await graphDocumentChrome.value.rename(name);
+    } else {
+      await instancePayloadPersistence(doc, 'graph-document', 'application/json').rename(name);
+    }
+    await loadGraphDocuments(t);
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.rename'), detail: error?.data?.message || error?.message || '', life: 4000 });
   }

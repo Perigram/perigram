@@ -99,8 +99,8 @@ import GraphCanvas from '~/components/process-designer/GraphCanvas.vue';
 import GraphDocumentInspector from '~/components/process-designer/GraphDocumentInspector.vue';
 import GraphDocumentPreviewPanel from '~/components/process-designer/GraphDocumentPreviewPanel.vue';
 import { useGraphDocumentSession } from '~/composables/useGraphDocumentSession.js';
+import { parseGraphPayload, useGraphDocumentCatalog } from '~/composables/useGraphDocumentCatalog.js';
 import { mintId } from '~/utils/processDesignerIdentity.js';
-import { assertValidGraphDocument } from '@perigram/core';
 import { useClientEngines } from '~/composables/useClientEngines.js';
 import { usePluginRuntime } from '~/composables/usePluginRuntime.js';
 import {
@@ -162,10 +162,15 @@ const bakingOutput = ref(false);
 const recordName = ref(props.record?.name || '');
 const savedSignature = ref('');
 const inspectTab = ref('inspector');
-const graphDocuments = ref([]);
 const clientEngineBindings = ref([]);
 const clientEngines = useClientEngines({ engines: clientEngineBindings });
 const clientRuntimeBindings = ref([]);
+const {
+  documents: graphDocuments,
+  loading: graphDocumentsLoading,
+  error: graphDocumentsError,
+  load: loadGraphCatalog
+} = useGraphDocumentCatalog({ withPayloads: true });
 const pluginRuntime = usePluginRuntime({
   invokeCapability: ({ binding, runtime, operationId, name, input, signal }) => $fetch(
     `/api/organizations/${encodeURIComponent(binding.organizationId)}/plugins/${encodeURIComponent(binding.pluginId)}/capability`,
@@ -182,8 +187,6 @@ const pluginRuntime = usePluginRuntime({
     }
   )
 });
-const graphDocumentsLoading = ref(false);
-const graphDocumentsError = ref('');
 const graphPreviewChannels = ref([]);
 const providerErrors = ref([]);
 const graphRevisions = ref([]);
@@ -323,49 +326,6 @@ function openActivitySurface() {
   canvasFrame?.openPanel?.('preview');
 }
 
-function parseGraphPayload(payload) {
-  const graph = JSON.parse(payload);
-  if (!graph || typeof graph !== 'object' || Array.isArray(graph)) {
-    throw new Error(t('processDesigner.invalidGraphPayload'));
-  }
-  return graph;
-}
-
-async function loadGraphCatalog() {
-  graphDocumentsLoading.value = true;
-  graphDocumentsError.value = '';
-  try {
-    const items = await $fetch('/api/instances/graph-document');
-    graphDocuments.value = await Promise.all((Array.isArray(items) ? items : [])
-      .filter(item => item?.payload?.fileId && item?._id)
-      .map(async item => {
-        const record = {
-          ...item,
-          _id: String(item._id),
-          name: String(item.name || 'Graph'),
-          fields: { ...(item.fields || {}), graphId: String(item.fields?.graphId || '') }
-        };
-        try {
-          const payload = await $fetch(
-            `/api/files/download/${encodeURIComponent(record.payload.fileId)}?bucket=files`,
-            { responseType: 'text' }
-          );
-          const graph = assertValidGraphDocument(parseGraphPayload(payload));
-          if (record.fields.graphId && record.fields.graphId !== graph.id) {
-            throw new Error('Stored graph identity does not match its payload');
-          }
-          return { ...record, graph };
-        } catch {
-          return { ...record, graph: null };
-        }
-      }));
-  } catch (error) {
-    graphDocumentsError.value = error?.data?.message || error?.message || '';
-  } finally {
-    graphDocumentsLoading.value = false;
-  }
-}
-
 function providerLoadFailure(binding, error, contribution = null) {
   return {
     pluginId: String(binding?.pluginId || 'unknown'),
@@ -459,7 +419,7 @@ async function hydrateSelectedGraph({ nodeId, graphId, revisionId }) {
     const payload = revisionId
       ? await $fetch(`/api/instance-revisions/${encodeURIComponent(revisionId)}/file`, { responseType: 'text' })
       : await $fetch(`/api/files/download/${encodeURIComponent(record.payload.fileId)}?bucket=files`, { responseType: 'text' });
-    const graph = parseGraphPayload(payload);
+    const graph = parseGraphPayload(payload, t);
     hydrateGraphInvocation(nodeId, graph);
     toast.add({ severity: 'success', summary: t('processDesigner.graphPinned'), life: 2400 });
   } catch (error) {
@@ -478,7 +438,7 @@ async function loadGraphDocument() {
   try {
     const payload = await props.persistence.load();
     if (payload) {
-      loadDocument(parseGraphPayload(payload));
+      loadDocument(parseGraphPayload(payload, t));
     } else {
       loadEmpty({
         id: instanceId || undefined,
@@ -620,7 +580,7 @@ props.pageChrome?.bind?.(Object.assign(
 
 onMounted(async () => {
   if (props.session) return;
-  await Promise.all([loadGraphDocument(), loadGraphCatalog(), loadGraphProviders()]);
+  await Promise.all([loadGraphDocument(), loadGraphCatalog(t), loadGraphProviders()]);
   // A preview requested while the provider workers were still loading
   // resolves again once every registered operation is available.
   if (previewResult.value || previewError.value) await refreshPreviewAndRecord();
