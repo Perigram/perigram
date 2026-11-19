@@ -217,11 +217,15 @@ the `section` field set.
   `ReferenceEmbed.vue` as sibling components outside any editor. `DocumentSectionShell` and
   `OverlayInsertControl` provide the gutter plus, drag reorder, and
   delete; the document's last text block is a real empty block, and
-  typing in it appends a fresh empty block. The header's Graph output picker
-  selects a readable collection output from a saved execution and pins its
-  execution/output identity. The Reference picker
-  inserts a live or exact-revision typed-reference block; the page surface
-  resolves it through the pages API and renders its authorized projection.
+  typing in it appends a fresh empty block. Insertion is contextual
+  (SPEC §27.1): the slash panel and the gutter plus carry Link to record
+  and Graph result beside the block vocabulary, and each picker inserts
+  at the position it was opened at. The Link to record picker offers a
+  live link (follows the record's saved changes) or an exact-revision
+  pin, explained at the point of choice; the page surface resolves the
+  block through the pages API and renders its authorized projection.
+  The Graph result picker embeds the retained collection output of a
+  finished graph run, pinned to its execution/output identity.
   The crepe configuration follows the documents plugin's reference mount
   (`workers/documents/surfaces/text-editor.mjs` — every engine chrome
   off), and the block vocabulary, the slash panel, the source-markers
@@ -257,11 +261,15 @@ the `section` field set.
   caret in that paragraph. The page-link and AI-block entries stay dark
   until phase K. The page's header is the unified page header
   ([ui-mapping](../ui-mapping/README.md) `SurfaceHeader` with `title` +
-  `onRename`, no type or instance): the name edits in place through the
+  `onRename`, no type or instance) and carries page-level actions alone
+  (the class dialog entry, the dirty-gated save): the name edits in place through the
   pages rename channel and the save patches `blocks`/`order` through the
   pages API from the header's cluster, dirty-gated, registered on the
   workspace page-dirty registry so pane-close confirms; a new page
-  starts blank — unnamed document, empty block list.
+  starts blank — unnamed document, empty block list. Header, class
+  collection, and document sit in one surface frame on the shared
+  record measure (`LAYOUT.measure`), aligned to the same frame edges
+  (SPEC §27.1).
 - A page view block carries a view ref — `{"id":"…","name":"…"}` for a
   saved lens or a collection body (`{"typeId":"…","name":"…"}` for a
   type entry, with `parentTypeId`, `parentId`, and `sourceId` for a

@@ -125,8 +125,7 @@ Canvas nodes carry no category accent — the frame is plain; card concern
 rides the label and icon. Effects and state declarations are the primary
 populations — they carry the access/workflow story. Every other node
 (classes, fields, type references, non-effect process nodes) is
-secondary: unaffected by grants, hidden by the secondary visibility
-toggle (`hidden` is runtime state, stripped before serialization).
+secondary: unaffected by grants.
 
 ### Card anatomy
 
@@ -404,7 +403,7 @@ open, and canvas Escape clears graph selection. The floating
 PrimeVue `Toolbar` (shared `DesignerWorkspace` chrome) owns the process
 lifecycle in its document group (New Draft, Save, Apply) and the view
 controls in its canvas group (zoom out/in, frame all, frame selection,
-reset zoom, the secondary visibility toggle, Tidy), every item icon-only
+reset zoom, Tidy), every item icon-only
 with its label as tooltip and accessible name, so the toolbar survives
 narrow layouts.
 
