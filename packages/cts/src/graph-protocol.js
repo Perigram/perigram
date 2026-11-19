@@ -721,26 +721,6 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
   return declarations;
 }
 
-// Transition-node target statuses (SPEC §20): a bound, non-archive
-// A transition node's authored target (SPEC §7): the `state.to` payload or
-// the state socket's authored default. Extracted per bound type as the set
-// of target values — the vocabulary seam the compiled contract consumes.
-// A record without a binding or target contributes nothing (unfinished
-// authoring, like an unnamed field).
-export function transitionNodeStateTargets(processNodes = {}) {
-  const byType = new Map();
-  for (const record of Object.values(processNodes || {})) {
-    if (operationKindOf(record || {}) !== 'cts.transition') continue;
-    const typeId = String(record.typeId || '');
-    const to = String(record.state?.to || record.inputDefaults?.state || record.target || '').trim();
-    if (!typeId || !to) continue;
-    const values = byType.get(typeId) || new Set();
-    values.add(to);
-    byType.set(typeId, values);
-  }
-  return byType;
-}
-
 // -- binding checks (SPEC §20, beside R1-R6) --
 
 export function checkCtsGraphBindings(definition = {}, domain = {}) {

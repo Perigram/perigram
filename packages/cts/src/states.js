@@ -16,10 +16,6 @@ function normalizePolicy(policy = {}) {
   return Object.keys(normalized).length ? Object.freeze(normalized) : null;
 }
 
-export function normalizeStatePolicy(policy) {
-  return normalizePolicy(policy);
-}
-
 // One flat segment: a value never carries a path separator; structure is
 // authored wiring, not a separator in the value.
 export function normalizeStateVocabulary(vocabulary = {}) {
@@ -51,18 +47,4 @@ export function normalizeStateVocabulary(vocabulary = {}) {
     });
   }
   return Object.freeze(normalized);
-}
-
-export function stateValues(vocabulary = {}) {
-  return Object.keys(vocabulary || {});
-}
-
-export function statePolicy(vocabulary = {}, value) {
-  const declaration = (vocabulary || {})[String(value ?? '')] || null;
-  return declaration?.policy || null;
-}
-
-export function isTerminalState(vocabulary = {}, value) {
-  const declaration = (vocabulary || {})[String(value ?? '')] || null;
-  return declaration?.terminal === true;
 }

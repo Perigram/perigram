@@ -4,25 +4,22 @@
 // compiled contract. Failure modes first: nesting keys, dotted values,
 // non-true terminal, malformed policy, non-object vocabulary.
 import { describe, expect, it } from 'vitest';
-import {
-  normalizeStateVocabulary, normalizeStatePolicy,
-  stateValues, statePolicy, isTerminalState
-} from './states.js';
+import { normalizeStateVocabulary } from './states.js';
 import { normalizeType } from './registry.js';
 
 describe('flat state vocabularies', () => {
   it('normalizes a flat vocabulary with terminal flags and policy', () => {
-    const vocabulary = normalizeStateVocabulary({
+    expect(normalizeStateVocabulary({
       draft: {},
       active: true,
       archived: { terminal: true, policy: { label: 'Archived', severity: 'secondary' } }
+    })).toEqual({
+      draft: {},
+      active: {},
+      archived: { terminal: true, policy: { label: 'Archived', severity: 'secondary' } }
     });
-    expect(stateValues(vocabulary)).toEqual(['draft', 'active', 'archived']);
-    expect(isTerminalState(vocabulary, 'archived')).toBe(true);
-    expect(isTerminalState(vocabulary, 'draft')).toBe(false);
-    expect(isTerminalState(vocabulary, 'missing')).toBe(false);
-    expect(statePolicy(vocabulary, 'archived')).toEqual({ label: 'Archived', severity: 'secondary' });
-    expect(statePolicy(vocabulary, 'draft')).toBeNull();
+    expect(normalizeStateVocabulary({ muted: { policy: { label: 4, icon: null, severity: 'info' } } }))
+      .toEqual({ muted: { policy: { label: '4', severity: 'info' } } });
   });
 
   it('rejects every nesting key — states, initial, and parent are retired', () => {
@@ -47,8 +44,7 @@ describe('flat state vocabularies', () => {
     expect(() => normalizeStateVocabulary(null)).toThrow(/must be an object/);
     expect(() => normalizeStateVocabulary(['ready'])).toThrow(/must be an object/);
     expect(() => normalizeStateVocabulary({ ready: 'yes' })).toThrow(/must be an object or true/);
-    expect(() => normalizeStatePolicy('bold')).toThrow(/must be an object/);
-    expect(normalizeStatePolicy({ label: 4, icon: null, severity: 'info' })).toEqual({ label: '4', severity: 'info' });
+    expect(() => normalizeStateVocabulary({ ready: { policy: 'bold' } })).toThrow(/must be an object/);
   });
 });
 

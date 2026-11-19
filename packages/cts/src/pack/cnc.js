@@ -2,12 +2,6 @@
 // the collapse table (§15) appears: file, item, group, process, edges,
 // operators, triggers, payload traits. State vocabularies are process-graph
 // authoring (SPEC §7) and never ride pack declarations.
-import { quantity } from '../units.js';
-
-export const partyTypes = [
-  { id: 'organization', class: 'party', name: 'Organization', fields: { name: { base: 'string', identifier: true }, email: { base: 'string', nullable: true } } },
-  { id: 'user', class: 'party', name: 'User', fields: { email: { base: 'string' }, name: { base: 'string', nullable: true, identifier: true } } }
-];
 
 export const cncTypePack = [
   {
@@ -146,51 +140,3 @@ export const cncTypePack = [
     edges: { provenance: { solved: { types: ['queue'], onRemove: 'restrict' } } }
   }
 ];
-
-// The nesting seam (SPEC §16): three declarations and one pure function.
-export const nestingOperators = [
-  {
-    id: 'extract',
-    species: 'projection',
-    declaringType: 'occs',
-    input: { base: 'record', fields: {
-      parameters: { base: 'map', itemType: { base: 'quantity', unit: 'mm' } } } },
-    output: { base: 'list', itemType: { base: 'record', fields: {
-      x: { base: 'quantity', unit: 'mm' }, y: { base: 'quantity', unit: 'mm' } } } }
-  },
-  {
-    id: 'solve',
-    species: 'service',
-    input: { base: 'record', fields: {
-      sheets: { base: 'list', itemType: { base: 'record', fields: {
-        width: { base: 'quantity', unit: 'mm' }, length: { base: 'quantity', unit: 'mm' } } } },
-      parts: { base: 'list', itemType: { base: 'record', fields: {
-        x: { base: 'quantity', unit: 'mm' }, y: { base: 'quantity', unit: 'mm' } } } },
-      kerf: { base: 'quantity', unit: 'mm' } } },
-    output: { base: 'record', fields: {
-      placed: { base: 'number' }, efficiency: { base: 'quantity', unit: 'percent' } } }
-  }
-];
-
-export const packFixtures = {
-  sheetInstance: {
-    type: 'sheet',
-    typeVersion: 1,
-    fields: {
-      serial: 'SH-0001',
-      specs: { width: quantity(2500, 'mm'), length: quantity(1250, 'mm'), area: quantity(3.125, 'm2') },
-      material: { type: 'material', id: 'mat-1' },
-      placed: []
-    },
-    state: 'queued'
-  },
-  queueInstance: {
-    type: 'queue',
-    typeVersion: 1,
-    fields: {
-      job: [{ item: { type: 'occs', id: 'occ-1' }, qty: 4, params: { t: quantity(19, 'mm') } }],
-      materialPool: null
-    },
-    state: 'draft'
-  }
-};

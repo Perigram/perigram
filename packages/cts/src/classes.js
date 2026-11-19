@@ -1,5 +1,5 @@
 // Classes (SPEC §5): declaration presets — obligations over facets, no machinery.
-export const CLASSES = Object.freeze(['party', 'file', 'item', 'group', 'process']);
+const CLASSES = Object.freeze(['party', 'file', 'item', 'group', 'process']);
 
 // Authorable classes: party types are framework-only (R6), so org
 // declarations and every class picker offer exactly these four. Single
