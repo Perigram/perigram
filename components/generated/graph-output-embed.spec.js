@@ -1,0 +1,112 @@
+// The graph-output embed's render policy: a frozen block renders its
+// retained snapshot with no resolution, a parameterized block renders the
+// pages references seam's answer for its block, and every other block
+// resolves its pinned execution live through the collection-outputs
+// transport.
+import { describe, expect, it, vi } from 'vitest';
+import { createSSRApp, h, ref } from 'vue';
+import { renderToString } from '@vue/server-renderer';
+import { createI18n } from 'vue-i18n';
+import { createPinia } from 'pinia';
+import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
+import ConfirmationService from 'primevue/confirmationservice';
+import Re_L from '~/assets/presets/re_l';
+import GraphOutputEmbed from './GraphOutputEmbed.vue';
+import { collectionEmbedView, frozenCollectionEmbed, liveCollectionEmbed } from './graph-output-embed-contract.js';
+import en from '~/i18n/locales/en.json';
+
+globalThis.$fetch = vi.fn(async () => ({}));
+globalThis.useState = (_key, init) => ref(typeof init === 'function' ? init() : init || {});
+
+const SOURCE = {
+  kind: 'graph-output',
+  executionInstanceId: 'execution-1',
+  graphDocumentInstanceId: 'graph-1',
+  graphId: 'graph.report',
+  graphRevision: 'rev-2',
+  outputId: 'rows'
+};
+
+const SNAPSHOT = {
+  label: 'Rows',
+  itemCount: 2,
+  truncated: true,
+  items: [{ kind: 'value', value: 'frozen-row' }, { kind: 'unavailable' }]
+};
+
+async function renderEmbed({ collection, resolution = null } = {}) {
+  const i18n = createI18n({ legacy: false, missingWarn: false, fallbackWarn: false, messages: { en } });
+  const app = createSSRApp({ render: () => h(GraphOutputEmbed, { collection, resolution }) });
+  app.use(i18n);
+  app.use(createPinia());
+  app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
+  app.use(ToastService);
+  app.use(ConfirmationService);
+  return await renderToString(app);
+}
+
+describe('graph output embed', () => {
+  it('serves the frozen snapshot, the page resolution, or the live fetch by block mode', () => {
+    expect(collectionEmbedView({ collection: { source: SOURCE, parameters: {}, snapshot: SNAPSHOT } }))
+      .toEqual({ phase: 'ready', result: SNAPSHOT });
+    expect(collectionEmbedView({ collection: { source: SOURCE, parameters: { limit: 20 } } }))
+      .toEqual({ phase: 'loading' });
+    expect(collectionEmbedView({ collection: { source: SOURCE, parameters: { limit: 20 } }, resolution: { blockId: 'c', status: 'unavailable' } }))
+      .toEqual({ phase: 'unavailable' });
+    const resolved = { blockId: 'c', status: 'resolved', label: 'Rows', itemCount: 1, items: [{ kind: 'value', value: 'bound' }] };
+    expect(collectionEmbedView({ collection: { source: SOURCE, parameters: { limit: 20 } }, resolution: resolved }))
+      .toEqual({ phase: 'ready', result: resolved });
+    expect(collectionEmbedView({ collection: { source: SOURCE, parameters: {} }, loading: true }))
+      .toEqual({ phase: 'loading' });
+    const live = { label: 'Rows', itemCount: 0, items: [] };
+    expect(collectionEmbedView({ collection: { source: SOURCE, parameters: {} }, live }))
+      .toEqual({ phase: 'ready', result: live });
+    expect(collectionEmbedView({ collection: { source: SOURCE, parameters: {} } }))
+      .toEqual({ phase: 'unavailable' });
+  });
+
+  it('authors live picks without a snapshot and frozen picks with the captured collection', () => {
+    expect(liveCollectionEmbed({ executionInstanceId: 'execution-1', graphDocumentInstanceId: 'graph-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows', label: 'Rows' }))
+      .toEqual({ source: SOURCE, parameters: {}, resultPolicy: 'pinned' });
+    expect(frozenCollectionEmbed(
+      { executionInstanceId: 'execution-1', graphDocumentInstanceId: 'graph-1', graphId: 'graph.report', graphRevision: 'rev-2', outputId: 'rows', label: 'Rows' },
+      { label: 'Rows', itemCount: 2, truncated: true, items: SNAPSHOT.items }
+    )).toEqual({ source: SOURCE, parameters: {}, resultPolicy: 'frozen', snapshot: SNAPSHOT });
+  });
+
+  it('renders a frozen snapshot without resolving anything', async () => {
+    globalThis.$fetch.mockClear();
+    const html = await renderEmbed({ collection: { source: SOURCE, parameters: {}, snapshot: SNAPSHOT, resultPolicy: 'frozen' } });
+    expect(html).toContain('>Rows · 2<');
+    expect(html).toContain('>frozen-row<');
+    expect(html).toContain('unavailable');
+    expect(globalThis.$fetch).not.toHaveBeenCalled();
+  });
+
+  it('renders a parameterized embed from its page resolution entry without fetching', async () => {
+    globalThis.$fetch.mockClear();
+    const html = await renderEmbed({
+      collection: { source: SOURCE, parameters: { limit: 20 }, resultPolicy: 'pinned' },
+      resolution: { blockId: 'c', status: 'resolved', label: 'Rows', itemCount: 1, items: [{ kind: 'value', value: 'bound-row' }] }
+    });
+    expect(html).toContain('>bound-row<');
+    expect(globalThis.$fetch).not.toHaveBeenCalled();
+  });
+
+  it('renders the unavailable state for a parameterized embed the page could not resolve', async () => {
+    const html = await renderEmbed({
+      collection: { source: SOURCE, parameters: { limit: 20 }, resultPolicy: 'pinned' },
+      resolution: { blockId: 'c', status: 'unavailable' }
+    });
+    expect(html).toContain('Collection output is unavailable');
+  });
+
+  it('resolves an unparameterized embed live through the collection-outputs transport', async () => {    globalThis.$fetch.mockClear();
+    await renderEmbed({ collection: { source: SOURCE, parameters: {}, resultPolicy: 'pinned' } });
+    expect(globalThis.$fetch).toHaveBeenCalledTimes(1);
+    expect(globalThis.$fetch).toHaveBeenCalledWith('/api/graph-executions/collection-outputs/execution-1/rows', {
+      query: { graphDocumentInstanceId: 'graph-1', graphId: 'graph.report', graphRevision: 'rev-2' }
+    });
+  });
+});

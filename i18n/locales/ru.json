@@ -3527,6 +3527,7 @@
     "noItems": "Нет элементов",
     "showingFirstItems": "Показаны первые {count} элементов",
     "insertGraphOutput": "Вставить выход графа",
+    "freezeCollectionOutput": "Заморозить результаты коллекции",
     "noSavedCollectionOutputs": "Нет сохранённых выходов коллекций.",
     "loading": "Загрузка…",
     "loadingReference": "Загрузка ссылки…",

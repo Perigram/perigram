@@ -601,10 +601,11 @@ palette group are exposed. Preview invokes the core procedural evaluator
 with registered process data-node adapters; the preview panel accepts
 JSON graph-input bindings and displays graph outputs plus per-node outputs.
 The canvas activity indicator opens that preview panel directly. Preview
-is read-only and does not commit organization state. The Use Graph invocation UI currently
+is read-only and does not commit organization state. The Use Graph invocation UI
 authors its pinned graph ID, revision, and public-interface snapshot in
-the node's JSON configuration; graph-document discovery and automatic
-revision/interface hydration remain follow-up work. The header chrome
+the node's JSON configuration; the graph catalog feeds the invocation
+palette with pinned revisions, and preview resolves pinned subgraphs from
+that catalog by exact id and revision. The header chrome
 channel binds `{ name, dirty, saving, save(), rename() }`; a read grant
 binds the name alone and mounts the canvas read-only.
 

@@ -26,6 +26,18 @@ export function normalizePageFilePath(value) {
   return path;
 }
 
+// A frozen collection snapshot keeps the resolved items verbatim inside the
+// resolution's 100-item window.
+function normalizeCollectionSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot) || !Array.isArray(snapshot.items)) return null;
+  return {
+    label: String(snapshot.label || ''),
+    itemCount: Number.isInteger(Number(snapshot.itemCount)) && Number(snapshot.itemCount) >= 0 ? Number(snapshot.itemCount) : 0,
+    truncated: snapshot.truncated === true,
+    items: snapshot.items.slice(0, 100)
+  };
+}
+
 export function normalizePageDocument(document = {}) {
   const source = Array.isArray(document.blocks) ? document.blocks : [];
   const blocks = source
@@ -58,6 +70,7 @@ export function normalizePageDocument(document = {}) {
         const source = collection.source && typeof collection.source === 'object' ? collection.source : {};
         const required = ['executionInstanceId', 'graphDocumentInstanceId', 'graphId', 'graphRevision', 'outputId'];
         if (source.kind !== 'graph-output' || required.some(key => !String(source[key] || '').trim())) return null;
+        const snapshot = normalizeCollectionSnapshot(collection.snapshot);
         return {
           id,
           kind: 'collection',
@@ -71,7 +84,8 @@ export function normalizePageDocument(document = {}) {
               outputId: String(source.outputId)
             },
             parameters: collection.parameters && typeof collection.parameters === 'object' && !Array.isArray(collection.parameters) ? collection.parameters : {},
-            resultPolicy: 'pinned'
+            ...(snapshot ? { snapshot } : {}),
+            resultPolicy: snapshot ? 'frozen' : 'pinned'
           }
         };
       }

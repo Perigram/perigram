@@ -486,7 +486,15 @@ not a second graph implementation or a big-bang rewrite.
   unresolved Use Graph pins with `400` plus node/edge-mapped diagnostics
   before any managed task starts; edge decisions run through the shared
   sdk comparator with the `perigram.cts` profile registered, and ports
-  without declared semantics receive no static decision.
+  without declared semantics receive no static decision. The browser
+  editor session runs the same preflight and resolves pinned subgraphs
+  from its graph catalog; the §30.13 convergence proof is spec-covered
+  end to end in
+  `server/features/graph-executions/convergence.spec.js` (org CTS type
+  as commit target, plugin ops, conversion-decision rejection, IR
+  preflight, effect-free preview, authorized Commit with evidence,
+  deterministic reruns). Graph-backed type behavior and cross-target
+  parity remain open.
 - [ ] Define the language-independent structured authoring schema shared
   by textual DSL forms and JSON/API payloads (SPEC §30.9.1): both are
   encodings of one schema flowing through the same normalization,
@@ -969,7 +977,7 @@ G0–G2 (shared canvas, file/surface scaffolding, and canonical graph foundation
 
 - [ ] WAITING — owner verification: G1 resource creation, payload revision
   behavior, record/pane editor mounts, and read-grant presentation.
-- [ ] G3 Canonical graph editor — direct `perigram.graph` load/edit/save
+- [x] G3 Canonical graph editor — direct `perigram.graph` load/edit/save
   now uses a separate session and shared canvas presentation. Provider
   socket cards, graph inspector, Graph Input/Output, dedicated Use Graph
   palette group, and editable boundary semantic/transport/default
@@ -977,13 +985,20 @@ G0–G2 (shared canvas, file/surface scaffolding, and canonical graph foundation
   graph revision are wired. The organization graph catalog and historical
   revision picker feed both the inspector and Use Graph palette. Remaining:
   component-level tests for async catalog, revision hydration, and save lifecycle.
+  Closed 2026-11-19: catalog-driven invocation palette with pinned revisions,
+  resolveGraph-based pinned-revision preview (with drift blocking), save
+  lifecycle (dirty/create/update/invalid payload) covered in
+  `useGraphDocumentSession.spec.js` and the graph-editor SSR smoke; editor
+  preview now runs the typed-IR preflight. The surface's client-only HTTP
+  catalog load stays smoke-uncovered (no client-mount harness).
 - [ ] G4 Procedural preview — core evaluator and process adapter are wired
   to the editor preview panel; JSON input-binding controls are implemented
   and boundary defaults are consumed by the evaluator. Browser runtime
   provider discovery/execution bindings now resolve worker renderer ids to
   declared preview surfaces and mount them through the read-only host.
-  Remaining: end-to-end graph preview tests and robust per-node diagnostics.
-  Preview remains read-only.
+  Remaining: end-to-end browser preview tests (Playwright scope) — the
+  IR preflight, mapped lowering diagnostics, and pinned-subgraph preview
+  carry focused spec coverage. Preview remains read-only.
 - [ ] G5 Commit, Bake, and Export — page-file Bake is implemented in the
   graph-executions service and exposed through its explicit API route; Export
   returns a selected output as a download and records a `procedural-export`
@@ -1048,28 +1063,32 @@ G0–G2 (shared canvas, file/surface scaffolding, and canonical graph foundation
   create/update, relation, delete, payload, lifecycle, and type-declaration
   writes capture the organization sequence before validation and reserve it
   exclusively at write time, serializing cross-record aggregate/cardinality
-  checks. Remaining: audit import and type-migration direct repository writes.
+  checks. Closed 2026-11-19: type-migration batches run inside the invoking
+  declaration mutation's sequence reservation (cts-types and plugins),
+  proven by `migrations-organization-sequence.spec.js` (one reservation per
+  batch, stale-sequence rejection with zero writes). The recorded
+  "audit import" write path never existed — TODO wording drift.
 - [ ] G8 Typed references and embeds — Page blocks now author live/pinned
   typed references, resolve them through the target read grant, render a
   shared unavailable state for inaccessible targets, and expose rebuildable
   org-scoped backlinks. Saved-query embeds can pin their definition revision
   while rendering live authorized results. Graph-output embeds can pin a
   successful execution and resolve its collection through the saved graph
-  revision and target read grants. Remaining: parameter binding and frozen
-  result data snapshots for referenced instances.
+  revision and target read grants. Closed 2026-11-19: collection blocks
+  bind parameters against the pinned graph's declared inputs (unbound
+  declared inputs render the shared unavailable state), and
+  `resultPolicy: 'frozen'` stores the resolved collection snapshot
+  (first 100 items) rendering verbatim with no resolution entry — contracts
+  in the pages README and covered by pages/embed specs.
 - [ ] G9 Procedural vertical slices — prove the Documents/data and geometry workflows end to end through provider registration, typed IR, preview, Commit/Bake, and provenance. Include a real build123d engine-backed graph; do not treat palette presence or a stub runtime as engine bring-up.
-- [ ] G10 Process migration — inventory every stored process definition and
-  every consumer of its legacy canvas nodes, edges, socket handles, process
-  type algebra, evaluator, and protocol marker. Define one deterministic
-  mapping from process semantics to canonical graph nodes/ports/edges while
-  keeping CTS declarations and process authorization as domain records.
-  Implement a dry-run report with per-record diagnostics and a recoverable
-  backup; migrate a fixture corpus and compare compiled actions, screens,
-  grants, workflows, and runtime results before touching live records.
-  Cut over reads and writes atomically, verify authorization and execution,
-  then remove the old graph normalizer, socket/type compatibility layer,
-  process dataflow evaluator, duplicate preview path, and legacy runtime
-  readers/writers. No permanent dual-format mode.
+- [x] G10 Process migration — closed by owner direction (2026-11-19):
+  process definitions keep their persisted canvas projection as the
+  process execution profile's storage format. The durable profile owns
+  its persisted shape per SPEC §30.13; the process socket grammar,
+  dataflow evaluator, and canvas machinery remain the process profile's
+  implementation, converging on shared semantics through the sdk/CTS
+  contracts and typed IR at the graph boundary. Stored-format migration
+  and legacy-path deletion are off the program.
 
 ### Agent Notes (2026-11-18, legacy process stack inventory)
 

@@ -33,6 +33,7 @@ export function createCoreGraphDataProvider() {
     ],
     execution: {
       kind: 'read',
+      targets: ['browser', 'server'],
       capabilities: ['organization.instances.read'],
       deterministic: true,
       idempotent: true
