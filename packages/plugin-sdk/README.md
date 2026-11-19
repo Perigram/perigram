@@ -43,7 +43,7 @@ and the uninstall drain gate all refuse loudly.
 | Entry | Runtime | Contract |
 |---|---|---|
 | `@perigram/plugin-sdk/listing` | Node and browser | Pure `parseListing` / `normalizeListing`; safe for client-side listing validation. |
-| `@perigram/plugin-sdk` | Node.js | Node-bound barrel that re-exports executor and surface-check modules; do not import it into browser bundles. |
+| `@perigram/plugin-sdk` | Node.js | Node-bound barrel re-exporting the listing, executor, surface-check, API client, and node-contract modules; do not import it into browser bundles. |
 | `@perigram/plugin-sdk/endpoint-executor`, `./claim-executor`, `./api-client`, `./surface-check` | Node.js | Server/executor and authoring helpers. |
 | `perigram-plugin` | Node.js CLI | Package bin entry; not a browser API. |
 
@@ -229,7 +229,9 @@ qualified unique capability ids, determinism, idempotency, and optional preview 
   `assertValidNodeDefinition` validate and freeze declarations.
 - `createNodeProviderRegistry` registers definitions by provider, operation,
   and exact definition version; resolution returns the exact registered version.
-- Port transport shape and semantic meaning are independent fields.
+- Port transport shape and semantic meaning are independent fields;
+  `TRANSPORT_SHAPES` is the frozen transport-shape vocabulary (`item`,
+  `list`, `tree`, `map`, `tuple`, `stream`).
 
 The package root remains Node-bound. Browser consumers import the dedicated
 `./nodes` entry for graph authoring and provider discovery.
