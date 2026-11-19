@@ -202,6 +202,56 @@ describe('graph execution service', () => {
     mocks.retractBakedFile.mockResolvedValue({ success: true });
   });
 
+  it('rejects evaluation when graph lowering finds an incompatible edge', async () => {
+    mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
+    mocks.resolveInstalledGraphNodeDefinition.mockResolvedValue({
+      provider: 'plugin.documents',
+      id: 'document.compose',
+      version: '3',
+      execution: { kind: 'pure', targets: ['server'], capabilities: [] },
+      inputs: [{ id: 'source', required: true, shape: 'item', semantic: { base: 'string' } }],
+      outputs: [{ id: 'document', required: true, shape: 'item', semantic: { base: 'document' } }],
+      packagePin: { pluginId: 'documents', version: '31', runtimeId: 'documents-shared', operationId: 'document.compose' }
+    });
+    const executeManagedNode = vi.fn();
+
+    const rejection = await graphExecutionsService.evaluateSavedGraph({
+      graphDocumentInstanceId: 'graph-instance-1',
+      inputBindings: { source: { type: 'text-document', id: 'source-file' } },
+      executeManagedNode
+    }, auth).catch(error => error);
+
+    expect(rejection).toMatchObject({ statusCode: 400 });
+    expect(rejection.message).toContain('does not lower');
+    expect(rejection.data.diagnostics.some(item => item.edgeId === 'edge-1' && item.nodeId === 'input-1')).toBe(true);
+    expect(executeManagedNode).not.toHaveBeenCalled();
+  });
+
+  it('rejects evaluation when an operation is unresolved or lacks the server target', async () => {
+    mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
+    mocks.resolveInstalledGraphNodeDefinition.mockResolvedValue(null);
+    await expect(graphExecutionsService.evaluateSavedGraph({
+      graphDocumentInstanceId: 'graph-instance-1',
+      inputBindings: { source: null },
+      executeManagedNode: vi.fn()
+    }, auth)).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('unresolved') });
+
+    mocks.resolveInstalledGraphNodeDefinition.mockResolvedValue({
+      provider: 'plugin.documents',
+      id: 'document.compose',
+      version: '3',
+      execution: { kind: 'pure', targets: ['browser'] },
+      inputs: [{ id: 'source', required: true }],
+      outputs: [{ id: 'document', required: true }],
+      packagePin: { pluginId: 'documents', version: '31', runtimeId: 'documents-shared', operationId: 'document.compose' }
+    });
+    await expect(graphExecutionsService.evaluateSavedGraph({
+      graphDocumentInstanceId: 'graph-instance-1',
+      inputBindings: { source: null },
+      executeManagedNode: vi.fn()
+    }, auth)).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('does not support server execution') });
+  });
+
   it('persists a successful managed server preview with provider and invocation provenance', async () => {
     mocks.getFileBuffer.mockResolvedValue(Buffer.from(JSON.stringify(graph())));
     mocks.resolveInstalledGraphNodeDefinition.mockResolvedValue({

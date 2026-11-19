@@ -67,7 +67,7 @@ export async function lowerGraphToTypedIR({
           : { inputs: [{ port: 'value', shape: contract?.shape ?? null, semantic: contract?.semantic ?? null, required: true }] },
         config: cloneJson(node.config)
       }));
-      portContracts.set(`${nodeId}:value`, contract);
+      portContracts.set(`${nodeId}:value`, contract ? { shape: contract.shape, semantic: contract.semantic, compatibility: null, required: true } : null);
       continue;
     }
 
@@ -113,9 +113,16 @@ export async function lowerGraphToTypedIR({
       continue;
     }
 
-    const definition = await resolveNodeDefinition(node.operation, { node, config: node.config });
+    let definition = null;
+    try {
+      definition = await resolveNodeDefinition(node.operation, { node, config: node.config });
+    } catch (error) {
+      diagnostics.push(diagnostic('error', 'lowering', `Operation ${node.operation.provider}/${node.operation.id}@${node.operation.version} for node ${nodeId} is unresolved: ${error?.message || String(error)}`, { nodeId }));
+    }
     if (!definition) {
-      diagnostics.push(diagnostic('error', 'lowering', `Operation ${node.operation.provider}/${node.operation.id}@${node.operation.version} for node ${nodeId} is unresolved`, { nodeId }));
+      if (!diagnostics.some(item => item.nodeId === nodeId && item.message.includes('is unresolved'))) {
+        diagnostics.push(diagnostic('error', 'lowering', `Operation ${node.operation.provider}/${node.operation.id}@${node.operation.version} for node ${nodeId} is unresolved`, { nodeId }));
+      }
       operations.push(deepFreeze({
         nodeId,
         operation: { ...node.operation },
@@ -136,7 +143,7 @@ export async function lowerGraphToTypedIR({
     const inputs = portSlots(definition.inputs, nodeId, 'input', diagnostics);
     const outputs = portSlots(definition.outputs, nodeId, 'output', diagnostics);
     for (const slot of [...inputs, ...outputs]) {
-      portContracts.set(`${nodeId}:${slot.port}`, { shape: slot.shape ?? null, semantic: slot.semantic ?? null });
+      portContracts.set(`${nodeId}:${slot.port}`, { shape: slot.shape ?? null, semantic: slot.semantic ?? null, compatibility: slot.compatibility ?? null, required: slot.required === true });
     }
     operations.push(deepFreeze({
       nodeId,
@@ -169,8 +176,8 @@ export async function lowerGraphToTypedIR({
     } else {
       decision = resolveCompatibility
         ? normalizeDecision(await resolveCompatibility(
-            { port: edge.source.port, shape: sourceContract.shape, semantic: sourceContract.semantic },
-            { port: edge.target.port, shape: targetContract.shape, semantic: targetContract.semantic }
+            { port: edge.source.port, ...sourceContract },
+            { port: edge.target.port, ...targetContract }
           ))
         : defaultCompatibility(sourceContract, targetContract);
       if (!decision.compatible) {
@@ -252,6 +259,7 @@ function portSlots(ports, nodeId, direction, diagnostics) {
       port: port.id,
       shape: typeof port.shape === 'string' ? port.shape : null,
       semantic: isRecord(port.semantic) ? cloneJson(port.semantic) : null,
+      compatibility: isRecord(port.compatibility) ? cloneJson(port.compatibility) : null,
       required: port.required === true
     });
   }).filter(Boolean);

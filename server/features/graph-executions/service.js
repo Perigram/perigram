@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { createError } from 'h3';
 import { withMongoSnapshotTransaction } from '~/server/db/transactions.js';
-import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder, evaluateProceduralGraph, createCoreGraphDataProvider, CORE_DATA_PROVIDER } from '#packages/core';
+import { assertValidGraphDocument, assertValidGraphExecutionRecord, createGraphExecutionRecord, createGraphReadSetRecorder, evaluateProceduralGraph, lowerGraphToTypedIR, createCoreGraphDataProvider, CORE_DATA_PROVIDER } from '#packages/core';
+import { createPortCompatibilityRegistry } from '#packages/plugin-sdk/nodes';
+import { registerProcessPortCompatibilityProfile } from '#packages/processes';
 import { ensureOrganizationChangeIndexes, withOrganizationChangeSequence, withOrganizationDataSnapshot } from '../instances/index.js';
 import { declarationForType } from '../instances/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -201,6 +203,27 @@ export async function evaluateSavedGraph({
     }
   };
   try {
+    const compatibilityRegistry = createPortCompatibilityRegistry();
+    registerProcessPortCompatibilityProfile(compatibilityRegistry);
+    const { diagnostics: loweringDiagnostics } = await lowerGraphToTypedIR({
+      graph: source.graph,
+      resolveNodeDefinition,
+      resolveGraph: async (graphId, revision) => (await resolvePinnedGraph(graphId, revision, auth)).graph,
+      resolveCompatibility: (sourcePort, targetPort) => (
+        sourcePort.semantic?.base && targetPort.semantic?.base
+          ? compatibilityRegistry.compare(sourcePort, targetPort)
+          : { status: 'exact', compatible: true, reason: 'Port contracts carry no declared semantics', conversions: [] }
+      ),
+      executionTarget: 'server'
+    });
+    const loweringErrors = loweringDiagnostics.filter(item => item.severity === 'error');
+    if (loweringErrors.length) {
+      throw createError({
+        statusCode: 400,
+        message: `Graph does not lower for server execution: ${loweringErrors.map(item => item.message).join('; ')}`,
+        data: { diagnostics: loweringErrors }
+      });
+    }
     const result = await evaluateProceduralGraph({
       graph: source.graph,
       inputBindings,
