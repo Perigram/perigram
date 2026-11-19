@@ -1,3 +1,9 @@
+> Archived 2026-11-19. Historical design input only; not an active
+> specification. The authoritative architecture is now in
+> [../../SPEC.md](../../SPEC.md) §§28 and 30.13. This file is retained
+> to preserve rationale and alternatives, not to authorize a parallel
+> graph, type system, evaluator, or persistence model.
+
 # Architecture considerations for a universal node-based workflow system
 
 ## 1. Purpose and design constraints

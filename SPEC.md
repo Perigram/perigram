@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-09-26
-updated: 2026-11-16
+updated: 2026-11-19
 ```
 
 This spec is human-write only. 
@@ -997,8 +997,7 @@ weight order. The record body fills its surface: every body block
 renders at content width and grows into the width its host grants —
 fact groups fill in columns, sections share spare width, and the record
 preview scales with its container; wide content (tables, boards) keeps
-the full row, and overflow stays inside the child surfaces' own bounded
-scrolls.
+the full row, and overflow stays inside the child surfaces' own boundedscrolls.
 
 ### 22.3 A hosted surface carries its title once (owner direction
 2026-10-23; amendments 2026-10-26, 2026-10-27; unified header
@@ -1689,6 +1688,16 @@ compose values and operations, inspect intermediate outputs, preview
 results, and explicitly Bake selected outputs. Process/workflow behavior
 will move onto this foundation only after the procedural system is proven.
 
+**Scope and precedence.** This section is the staged product and implementation
+plan for the current graph foundation: procedural graphs first, then process
+integration. The target semantic architecture is specified in §30. Section
+§30 governs the long-term meaning of types, operations, definitions, graphs,
+and typed IR; this section governs the existing product boundaries and
+migration acceptance. Where a current implementation detail differs from
+§30, it remains in force only until its named migration gate passes. This
+does not authorize bypassing CTS authority, host authorization, transaction,
+or durable-workflow guarantees.
+
 The graph definition is independent of the data and runtime context against
 which it is evaluated. Public inputs bind to organization data, documents,
 files, engine resources, or explicit user input at execution time. A graph
@@ -1997,8 +2006,7 @@ fail, or create distinct name) are explicit and auditable.
 Files and artifacts have stable application identity and metadata; large
 binary/native payloads live in artifact/object storage. A file payload is
 a capability/representation of an application object, not necessarily a
-separate fundamental class identity. Page-file ownership and instance
-attachments are explicit relationships. Bake records graph ID/revision,
+separate fundamental class identity. Page-file ownership and instanceattachments are explicit relationships. Bake records graph ID/revision,
 execution ID, source node/output, source input references and revisions,
 provider/operation versions, destination, conflict policy, and actor.
 Materialization is never implicit merely because an output has a preview.
@@ -2285,7 +2293,579 @@ mechanism, the worker protocol, the CTS registry view, and the process
 protocol. Every unit keeps composing through them; no unit grows a
 private copy. Repositories live under github.com/Perigram.
 
-## 30. Architecture simplification and extraction sequence (2026-11-14)
+## 30. Unified graph-native programming model (owner direction 2026-11-19)
+
+Perigram's long-term programming model is one graph-native semantic
+runtime for composing application behavior, including the definitions
+of types and operations themselves. The application is not a collection
+of separate mini-languages joined by adapters: platform modules,
+installed plugins, organization-defined types, business processes,
+calculations, views, and application behavior are definitions and
+programs in one compositional model.
+
+This section states the target architecture. It does not authorize a
+big-bang rewrite, weaken any existing authorization or persistence
+boundary, or supersede specific product behavior elsewhere in this
+SPEC unless a later owner decision explicitly says so. Existing systems
+remain authoritative until a migration slice proves its replacement.
+
+### 30.1 Design influences and constraints
+
+The model takes selected principles from three systems:
+
+- **Smalltalk:** a live environment; objects and definitions can be
+  browsed, inspected, and debugged; programming is an ongoing interaction
+  with a running system rather than only an offline build step.
+- **Clojure:** immutable values by default, data-oriented definitions,
+  small composable functions, explicit state transitions, and a small
+  semantic core. Persistent state changes are explicit effects, not
+  incidental consequences of evaluating an expression.
+- **Visual dataflow systems:** graphs are a first-class authoring and
+  execution representation, with typed connections, collections,
+  reusable subgraphs, previews, and visible provenance.
+
+Perigram does not adopt Smalltalk's class-centric object model, Clojure's
+list syntax, or a requirement that every task be authored on a canvas.
+Specialized editors remain valid projections over canonical definitions.
+A textual expression surface may complement graphs where it improves
+precision or compactness; it must not introduce a second semantic
+language.
+
+### 30.2 The unified model
+
+The kernel owns a small set of concepts:
+
+1. **Value** — immutable structured data or an explicitly managed opaque
+   runtime value.
+2. **Type** — a versioned semantic contract describing values, identity,
+   constraints, relationships, and supported operations.
+3. **Definition** — a named, versioned declaration in the environment.
+4. **Operation** — a typed transformation or an explicitly effectful
+   action.
+5. **Graph** — a versioned program that composes operations and
+   definitions through typed inputs and outputs.
+6. **Module** — a namespace and dependency boundary containing
+   definitions, graphs, and provider bindings.
+7. **Capability** — explicit authority to access a resource or perform
+   an effect.
+8. **Execution** — evaluation of a pinned graph revision against an
+   explicit context.
+9. **Revision** — immutable identity for a definition or graph version.
+10. **Artifact** — a persistent result deliberately committed or baked
+    from an execution.
+
+These concepts form a data-oriented programming substrate. Definitions,
+schemas, graph transformations, migrations, execution plans, and
+application composition are themselves structured, versioned values.
+They can be queried, transformed, validated, composed, diffed, and
+inspected using the same semantic operations as ordinary application
+data. This is not a requirement to serialize live handles or executable
+closures as data: runtime bindings and authority remain explicit
+references resolved by the host.
+
+These are semantic concepts, not a mandate for ten separate runtime
+subsystems. The implementation should keep the kernel small and make
+higher-level concepts out of definitions and operations wherever
+possible.
+
+Definition kinds include Type, Operation, Graph, Module, Application,
+View, and Workflow. They have different contracts and presentation
+needs, but share identity, revisioning, dependency resolution,
+inspection, validation, and composition rules. A type definition may
+contain or reference graphs for validation, derived values, projections,
+and lifecycle behavior. An application graph may compose platform and
+plugin operations. A plugin contributes definitions and implementations
+through a module boundary; it does not create a parallel language.
+
+### 30.3 Definitions and types are programmable
+
+A type is itself a first-class definition. Its contract may declare:
+
+- semantic identity and version;
+- fields, value types, defaults, and requiredness;
+- relationships, cardinality, target domains, and lineage rules;
+- constraints and validation graphs;
+- lifecycle states and transition behavior;
+- derived values and projections;
+- construction and mutation protocols;
+- revision and compatibility policy;
+- presentation hints consumed by forms, tables, editors, and record
+  surfaces.
+
+The platform's built-in types, plugin-provided types, and
+organization-defined types use the same semantic model. Their authority
+and implementation differ by provider and capability, not by language.
+
+Keep semantic type separate from physical representation and transport
+shape. A Length is not merely a number; a Project reference is not an
+arbitrary object; a plugin's B-rep solid may be an opaque value whose
+internal representation remains inside its geometry runtime. The kernel
+must support open-world, provider-qualified types and opaque values
+without pretending every value is a JSON object. Serializable graph
+documents and wire DTOs remain data; live runtime handles are explicit
+and scoped.
+
+### 30.4 Operation contract
+
+Every operation has one canonical, versioned contract containing:
+
+- a stable provider-qualified identifier and operation version;
+- typed input and output ports;
+- collection semantics, including map, reduce, alignment, and
+  cardinality behavior;
+- accepted type compatibility and explicit conversions;
+- whether it is pure or effectful;
+- required capabilities and resource limits;
+- provider/implementation binding and execution placement;
+- structured errors, diagnostics, and provenance;
+- documentation and presentation hints.
+
+The same contract drives palette discovery, socket rendering,
+authoring validation, compilation, runtime dispatch, and inspection.
+Those surfaces may project the contract differently, but must not
+maintain independent copies of its semantic rules. Provider-qualified
+identity prevents collisions and makes ownership explicit.
+
+### 30.5 Graph is the universal composition model
+
+A graph is a versioned program with a declared public interface. It can
+represent a calculation, type declaration, validation rule, query,
+document transformation, UI behavior, plugin composition, business
+process, workflow, or application module.
+
+Graphs support typed inputs and outputs, nested reusable graphs,
+pinned definition revisions, branching, iteration, collection
+operations, joins, diagnostics, incremental evaluation, caching, and
+node-level provenance. Graphs can compose other graphs and definitions;
+a type graph can use other type definitions, an application graph can
+use plugin operations, and a plugin operation can consume organization
+data only through authorized capabilities.
+
+The graph document is independent of any particular editor. Editors
+are authoring projections over that document and its contracts. The
+system may provide specialized type, process, workflow, document, and
+application editors, but saving through any editor produces the same
+canonical definition model. No editor is allowed to invent runtime
+semantics that the kernel does not understand.
+
+### 30.6 Pure evaluation and effects
+
+The runtime separates pure computation from effects.
+
+**Pure evaluation** is deterministic for a pinned graph revision,
+explicit inputs, and declared provider versions. It includes
+calculations, validation, mapping, graph composition, and preview.
+Pure evaluation does not mutate persistent organization data or invoke
+unbounded external services.
+
+**Effects** include persistent reads and writes, plugin or external
+service calls, file and artifact operations, notifications, scheduling,
+and event publication. Effects declare their capabilities and are
+checked at the authoritative host boundary. A graph may produce a
+proposed change; a separate authorized commit applies it. Preview must
+not accidentally perform irreversible effects.
+
+Effect execution records the initiating principal, graph and operation
+revisions, capability decisions, inputs/outputs to the extent permitted
+by data policy, and resulting artifacts. Reproducibility does not mean
+replaying external effects blindly: effect results are recorded as
+execution evidence, and replay policy is explicit.
+
+Durable workflows use the same graph language and operation contracts
+but a distinct execution profile for waits, retries, leases, scheduling,
+and recovery. Ordinary graph evaluation must not be forced through a
+durable workflow scheduler.
+
+### 30.7 Compiler and runtime pipeline
+
+The canonical pipeline is:
+
+1. Author a graph or definition through any supported editor.
+2. Normalize it into canonical, versioned definition data.
+3. Resolve names, modules, providers, and pinned dependencies.
+4. Validate structure, types, constraints, compatibility, and
+   capability declarations.
+5. Lower the validated program into a typed, editor-independent
+   intermediate representation (IR).
+6. Plan pure evaluation and declared effect dispatch.
+7. Execute through the runtime and authorized provider boundaries.
+8. Return typed values, proposed changes, artifacts, diagnostics, and
+   node-level provenance for inspection and debugging.
+9. Commit authorized effects only through their owning service seams.
+
+The compiler does not own business semantics. The IR is independent of
+the editor and of any one plugin provider; it is versioned separately
+from the editor document format, inspectable, traceable to source nodes,
+and serializable wherever the values permit. Pure operations are
+deterministic under their declared versioned inputs. Effects and
+capabilities remain explicit through lowering and execution.
+
+There is one expression and graph semantics. Separate sync and async
+interpreters, editor-only type rules, compiler-only operation meanings,
+and evaluator-specific interpretations are transitional compatibility
+code, not permanent architecture.
+
+### 30.8 Modules, plugins, and the platform
+
+A module is a namespace and dependency boundary containing definitions,
+graphs, provider bindings, and optional resources. A plugin is a module
+whose implementations are supplied by a provider and whose access is
+limited by declared capabilities. The platform itself is composed from
+modules; it is not a privileged second programming model.
+
+The module system must preserve the plugin installation and execution
+direction in this SPEC: installed plugin packages are organization-owned,
+version-pinned data; trusted local code executes in the declared isolated
+browser context; remote integrations use provider-level connections with
+server-held credentials; host surfaces receive only explicit capabilities.
+The unified language does not imply that arbitrary plugin code runs on
+the server or gains implicit access to host state.
+
+The kernel resolves definitions, validates dependencies, checks
+capabilities, and dispatches operations to declared providers. It does
+not absorb persistence, authentication, authorization policy, plugin
+hosting, UI frameworks, or durable scheduling. Those remain explicit
+host services and authoritative boundaries.
+
+### 30.9 Live environment and developer experience
+
+The environment is a reflective, REPL-like programming system,
+not merely a graph editor with a preview button. Every definition should
+be constructible, evaluated, inspected, queried, transformed, and revised
+interactively through stable environment operations. The common
+interaction loop is: define or change a value/definition; evaluate it
+against an explicit context; inspect the result and diagnostics; revise;
+and compare the new revision with prior results. This loop must not
+require a full application build or deployment for ordinary authoring,
+validation, pure evaluation, and preview. Operations that genuinely
+require packaging, remote infrastructure, privileged capabilities, or
+durable workflow execution retain those explicit boundaries.
+
+The environment should make definitions and executions inspectable:
+browse modules and types, inspect values and opaque handles through
+provider-owned inspectors, view graph inputs/outputs, follow provenance,
+see diagnostics at the responsible node, and debug a pinned execution.
+Types, operations, graphs, modules, applications, views, and workflows
+must share a discoverable reflective surface: common meta-operations
+for lookup, description, validation, dependency inspection, revision
+history, diff, and safe invocation. Domain-specific inspectors and
+editors extend this surface; they must not invent competing lifecycle,
+registry, or introspection semantics.
+
+Structured definitions are first-class data. The system must support
+programmatic construction and transformation of definitions, schemas,
+graphs, migrations, and execution plans, with the same validation and
+revision rules as interactive editing. The UI is one client of these
+operations, not their exclusive implementation.
+
+Inspection never grants additional authority. A debugger or inspector
+uses the same capability and redaction boundaries as ordinary reads.
+Opaque values expose safe provider-defined summaries and operations,
+not their private internal representation. Live editing creates a new
+revision; it does not silently rewrite the definition used by an
+in-flight execution.
+
+Inspection never grants additional authority. A debugger or inspector
+uses the same capability and redaction boundaries as ordinary reads.
+Opaque values expose safe provider-defined summaries and operations,
+not their private internal representation. Live editing creates a new
+revision; it does not silently rewrite the definition used by an
+in-flight execution.
+
+### 30.10 Keep, evolve, rewrite, and retire
+
+The migration preserves proven domain knowledge and host boundaries
+while consolidating semantic ownership.
+
+| Area | Direction |
+|---|---|
+| CTS type declarations, registries, migrations, and revision concepts | **Keep and evolve** into the canonical type-definition model; preserve domain contracts and migration history. |
+| Graph editor and graph document/session model | **Keep and adapt** to the canonical graph document and IR; editor state must not become runtime semantics. |
+| Existing persistence, authorization, capability, audit, and service boundaries | **Keep** as authoritative effect and access boundaries. |
+| Durable process scheduler and recovery machinery | **Keep and integrate** as a workflow execution profile over the shared graph semantics. |
+| Process operation registry and plugin SDK contracts | **Evolve** into the shared versioned operation contract and provider binding model. |
+| Forms, generated screens, views, and application surfaces | **Evolve** into projections of type and application definitions. |
+| CTS expression AST/evaluators and process-specific graph evaluator | **Rewrite incrementally** behind compatibility adapters into one semantic evaluator and typed IR. |
+| Process compiler | **Rewrite incrementally** as resolution, semantic checking, IR lowering, and execution planning; move business semantics into definitions/contracts. |
+| Duplicated editor/compiler/runtime operation lists and type rules | **Retire** after all consumers use the canonical contracts. |
+| Separate sync/async expression implementations and competing graph semantics | **Retire** after parity and migration gates pass. |
+| Universal JSON assumptions that reject opaque provider values | **Retire** in favor of typed data plus explicitly managed opaque runtime values. |
+| Special-case platform behavior that can be expressed through definitions and operations | **Retire selectively**, only after equivalent behavior, authorization, audit, and migration coverage is proven. |
+
+No source is deleted merely because it resembles a new abstraction. Every
+replacement maps existing consumers, data, compatibility requirements,
+authorization invariants, and failure behavior before the old path is
+removed.
+
+**Deduplication law.** A shared semantic concept has one canonical
+definition, one authoritative implementation of its rules, and one
+explicit owner. Editors, compilers, runtimes, providers, CTS, and
+Processes consume that contract; they do not maintain parallel copies.
+Genuinely different domain behavior remains specialized behind explicit
+provider contracts. Deduplication must not erase meaningful domain
+distinctions or force unrelated behavior into a universal abstraction.
+
+**Repository hygiene law.** Dead code, unused dependencies, obsolete
+compatibility layers, speculative abstractions, redundant configuration,
+stale documentation, and tests for retired behavior are removed when
+evidence proves they are no longer needed. Public contracts, persisted
+data, authorization, auditability, and rollback paths are not cut merely
+to reduce line count. Every cleanup change includes the relevant tests,
+docs, manifests, generated registries, and migration handling.
+
+### 30.11 Migration sequence and gates
+
+Migration is incremental and vertical; the new kernel must prove itself
+against real product behavior before broad adoption.
+
+1. **Semantic inventory.** Map existing CTS types and expressions,
+   process nodes and operations, compiler rules, plugin contracts,
+   graph persistence, effects, authorization, and workflow execution.
+   Name one canonical owner for every concept and record the legacy
+   consumers.
+2. **Canonical model and IR.** Specify value, type, definition,
+   operation, graph, module, capability, revision, diagnostics, and IR
+   contracts. Add compatibility fixtures from real existing graphs and
+   declarations.
+3. **Kernel prototype.** Implement immutable values, type compatibility,
+   operation contracts, dependency resolution, pure evaluation, and
+   structured diagnostics. Keep persistence and external effects out
+   of the pure kernel.
+4. **Vertical slice.** Migrate one meaningful end-to-end scenario
+   through authoring, validation, compilation, preview, authorized
+   execution, persistence, and inspection. Include a platform operation,
+   a plugin-provided operation, and an organization-defined type.
+5. **Provider and plugin integration.** Adapt the Plugin SDK and local
+   Worker runtime to publish and execute versioned operation contracts
+   with explicit capabilities and opaque values.
+6. **CTS compatibility.** Route existing declarations and expressions
+   through adapters to the new semantic model. Preserve stored data and
+   migration behavior; compare old and new results on a representative
+   corpus.
+7. **Process compatibility.** Route process graphs through the shared
+   contracts and IR. Preserve durable workflow waits, retries, leases,
+   recovery, authorization, and audit semantics as a separate execution
+   profile.
+8. **Editor and surface integration.** Adapt the graph editor, type
+   authoring, forms, views, and generated application surfaces to the
+   canonical definitions. Keep specialized editors where they materially
+   improve authoring.
+9. **Convergence and deletion.** Migrate remaining consumers, establish
+   parity and performance evidence, remove compatibility paths, and
+   update owning READMEs, SPECs, TODOs, inventories, and guards.
+
+Each stage has a migration gate: representative fixtures pass; focused
+and full relevant tests pass; authorization and tenant isolation are
+verified; persisted data remains readable; diagnostics and provenance
+are usable; performance is measured; rollback or compatibility behavior
+is documented. A parallel implementation may exist during migration
+only with a named owner, parity tests, and a removal condition.
+
+### 30.12 Non-negotiable architecture laws
+
+1. One canonical semantic model for types, operations, definitions,
+   and graphs.
+2. Definitions are versioned data; graphs compose definitions.
+3. Types themselves are programmable through the same model.
+4. Platform, plugin, and organization-defined capabilities differ by
+   provider and authority, not by language.
+5. Values may be structured data or explicitly managed opaque runtime
+   values; JSON is not the universal runtime value model.
+6. Immutable values and pure evaluation are the default; persistent
+   mutation is an explicit authorized effect.
+7. Capabilities are checked at authoritative host boundaries; no
+   plugin, graph, compiler, or inspector receives ambient authority.
+8. Pure evaluation is deterministic for pinned inputs and versions;
+   effects carry explicit execution evidence.
+9. The compiler and IR do not depend on a particular editor or UI
+   framework.
+10. Definitions, values, executions, diagnostics, and provenance are
+    inspectable subject to the same access and redaction rules.
+11. Durable workflow execution remains a profile over shared graph
+    semantics, not a competing language or a universal scheduler.
+12. Migration is evidence-driven; no big-bang rewrite and no deletion
+    before parity, authorization, data, and recovery gates pass.
+
+The first implementation deliverable is the semantic model and IR
+specification plus a vertical-slice plan. It is not a new editor, a
+second evaluator, or a broad rewrite of the existing application.
+
+### 30.13 Normative semantic model, type layers, and typed IR
+
+This subsection makes the shared model implementable. It is normative
+for new kernel work and for migrations that claim conformance to §30.
+
+#### Type and value layers
+
+The word *type* must not collapse distinct contracts. The system
+distinguishes:
+
+1. **Application/semantic type** — the meaning and identity of a value
+   in Perigram or an organization, such as Project, Length, Document, or
+   Facade. It owns semantic identity, schema, constraints, relations,
+   and application invariants. CTS remains authoritative for
+   organization-defined application types and stored instances.
+2. **Representation type** — a domain-specific structure used to
+   represent or transform semantic content, such as a flow-document IR,
+   table dataset, vector scene, B-rep model, mesh, or workbook model.
+   A representation is not automatically an application object.
+3. **Engine-native type** — a value owned by a particular engine or
+   runtime, such as an OCCT shape or a Python object. It may be opaque
+   outside that engine and is accessed only through declared provider
+   operations and inspectors.
+4. **Transport type** — the serialized or wire shape used to move a
+   value across persistence, process, worker, or network boundaries.
+   Transport shape is evidence about encoding, not semantic meaning.
+5. **Port contract** — the operation-specific input/output contract:
+   semantic type, accepted compatibility, nullability, cardinality,
+   collection behavior, and any required conversion or capability.
+6. **Runtime value** — the actual evaluated value. It may be ordinary
+   immutable data, a reference to an authorized application object, or
+   a scoped opaque handle. A runtime handle is not serialized into a
+   graph document and cannot outlive its declared execution scope unless
+   a provider explicitly materializes a persistent representation.
+
+A single value may participate in several layers at once. For example,
+a Facade application object may be represented as B-rep geometry, held
+as an OCCT-native runtime value, exposed through a provider-qualified
+port contract, and transported between workers as an opaque handle
+reference. These are related contracts, not competing type systems.
+
+#### Semantic identity and compatibility
+
+Semantic types are open-world and provider-qualified. The kernel must
+support nominal identity, structural evidence, refinements, unions,
+collections, optionality/nullability, versioned schemas, and opaque
+provider types. It must not require every provider value to be
+understood as a JSON object.
+
+Compatibility is a reasoned relation, not a boolean shortcut. The
+canonical outcomes are: exact; safe coercion; conditional/runtime
+checked; explicit conversion required; and incompatible. A conversion
+declares source and destination semantic types, provider/runtime
+requirements, determinism, and fidelity. Fidelity diagnostics distinguish
+lossless, semantically lossy, and visual-only transformations; unsupported
+features are reported rather than silently discarded. Conversion policy
+is shared by authoring, validation, compilation, and execution
+preflight.
+
+Transport compatibility never substitutes for semantic compatibility.
+A matching JSON shape does not prove that two values mean the same
+thing, and an opaque engine value need not expose its internal schema to
+the kernel.
+
+#### Canonical typed intermediate representation
+
+The typed IR is the single editor-independent semantic input to
+execution. It is produced by lowering a validated canonical definition;
+it is not a second authoring format or a provider-specific graph schema.
+At minimum it carries:
+
+- source definition identity and revision, plus source-node/source-port
+  mappings for diagnostics and provenance;
+- resolved provider-qualified operation identities and exact operation,
+  package, runtime, and dependency pins;
+- typed input/output slots and the resolved compatibility/conversion
+  decisions for every connection;
+- explicit data dependencies and explicit control/iteration semantics;
+- collection shape/cardinality behavior and scoped bindings;
+- effect classification, required capabilities, resource bounds, and
+  execution-target constraints;
+- nested graph invocation identities and pinned graph revisions;
+- validation diagnostics and enough source mapping to explain every
+  lowered operation and result.
+
+The IR must be serializable when its contents permit, deterministic to
+construct from the same pinned definition and resolution context, and
+versioned independently from the editor document. It must not embed
+credentials, ambient authority, live database handles, or unscoped
+engine objects.
+
+#### Graph and execution semantics
+
+The graph language supports branching, finite and explicitly bounded
+iteration, collection map/reduce/join operations, nested graph calls,
+and data-dependent execution where declared by the operation contract.
+A reusable graph invocation graph must be acyclic in v1; iteration is
+represented by explicit language constructs with defined bounds and
+termination behavior, not by recursive graph invocation. Every construct
+has deterministic validation, cancellation, and resource-limit semantics.
+
+Pure evaluation consumes immutable values and pinned definitions. It
+does not persist intermediate values or perform untracked I/O. Intermediate
+results are transient execution values and may be cached under declared
+determinism and version rules. An artifact is created only when an output
+is explicitly materialized, committed, baked, or exported through an
+authorized host boundary. This preserves HAG's useful provenance and
+fidelity ideas without turning every node result into a persistent
+artifact store.
+
+Procedural evaluation and durable workflow execution share the same
+graph language, typed IR, operation contracts, and value semantics.
+They do not share one scheduler: the procedural profile evaluates a
+bounded graph invocation; the workflow profile owns durable waits,
+leases, retries, event delivery, and recovery. Process-specific control
+tokens and lifecycle rules remain in the workflow profile.
+
+#### Canonical ownership
+
+| Concern | Canonical owner |
+|---|---|
+| Semantic definitions, graph document, typed IR, resolution, pure evaluation, execution evidence and provenance contracts | `packages/core` |
+| Provider-qualified operation/port declarations, compatibility, conversions, runtime bindings and capability requirements | `packages/plugin-sdk` |
+| Organization application types, fields, relations, constraints, lifecycle, revisions and authoritative stored instances | `packages/cts` |
+| Durable workflow profile, control tokens, waits, retries, leases, event starts and recovery | `packages/processes` |
+| Domain representations, native engines, adapters, renderers and specialized inspectors | Owning plugin/provider |
+| Authentication, authorization decisions, persistence, secrets, package installation, host capabilities and materialization destinations | Application host and its authoritative services |
+
+No owner may maintain a competing interpretation of a shared concept.
+The same semantic descriptors and compatibility implementation must be
+consumed by the editor, compiler, evaluator, plugin runtime, CTS adapters,
+and process profile.
+
+#### Domain adapters and HAG disposition
+
+Documents, CAD, BIM, tables, GIS, media, and other domains retain
+purpose-specific IRs and native format adapters. Native source files remain
+distinct from extracted representations; conversions declare fidelity
+and diagnostics; renderers remain format-aware. These are provider/domain
+responsibilities within the shared model.
+
+HAG's IR, fidelity, adapter, and rendering ideas are retained as domain
+design guidance. Its independent `hag.graph` schema, graph registry,
+graph evaluator, universal artifact-per-node model, and competing
+project/template package format are not part of Perigram's architecture.
+Document templates are native files with typed fill/render operations;
+reusable graphs are versioned Perigram definitions; type behavior is
+implemented through type contracts and referenced graphs. They may compose
+without sharing one storage format.
+
+The OCaml-to-JavaScript proposal in the architecture notes is an
+implementation option, not a semantic requirement. The kernel contract
+must remain language- and runtime-neutral.
+
+#### Required convergence proof
+
+Before retiring any legacy evaluator or type grammar, demonstrate one
+vertical slice that:
+
+1. uses an organization-defined CTS type with graph-backed validation
+   or derived behavior;
+2. composes a core operation and an installed plugin operation;
+3. resolves semantic types and any explicit representation conversion;
+4. lowers to the canonical typed IR and executes in the declared target;
+5. previews without effects, then performs an explicitly authorized
+   commit or bake where applicable;
+6. records pinned dependencies, read/capability evidence, diagnostics,
+   and provenance; and
+7. produces equivalent semantic results through the supported execution
+   targets, or documents a precise target-specific limitation.
+
+The CTS expression evaluator, process evaluator, and any legacy HAG
+construction path remain behind adapters until this proof and the
+migration gates in §30.11 pass.
+
+## 31. Architecture simplification and extraction sequence (historical implementation plan)
 
 The repository is simplified before it is divided into independently
 developed and separately deployable units (§29). The purpose is to make
@@ -2924,4 +3504,3 @@ build123d-flow main is commit
 OCP.wasm 8.0.1.1. Upstream removed its test suite in the latest commit;
 Perigram integration is blocked on restoring repeatable browser-runtime,
 catalog-discovery, geometry-operation, export, and graph-regression tests.
-
