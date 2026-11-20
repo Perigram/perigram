@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures.js';
 import { writeFileSync } from 'node:fs';
+import { E2E_BASE_URL } from './config.js';
 
 // Live proof for chat file uploads (SPEC.md §Chat files): common chats
 // attach any file (gallery previews, download for every kind); instance
@@ -48,12 +49,12 @@ test.describe('chat file uploads', () => {
 
     // -- Common chat: upload a PNG and send it as the message's only
     //    payload; every attachment downloads through the shared route. --
-    const uploadCommon = await request.post('http://localhost:3000/api/files/upload?bucket=files', {
+    const uploadCommon = await request.post(`${E2E_BASE_URL}/api/files/upload?bucket=files`, {
       multipart: { file: { name: 'site-photo.png', mimeType: 'image/png', buffer: PNG_BYTES } }
     });
     expect(uploadCommon.ok(), await uploadCommon.text()).toBeTruthy();
     const stored = await uploadCommon.json();
-    const sendCommon = await request.post('http://localhost:3000/api/support/messages', {
+    const sendCommon = await request.post(`${E2E_BASE_URL}/api/support/messages`, {
       data: {
         message: '',
         attachments: [{ kind: 'image', fileId: stored.id, mimeType: 'image/png', name: 'site-photo.png', size: PNG_BYTES.length }]
@@ -64,7 +65,7 @@ test.describe('chat file uploads', () => {
     outcomes.common.messageId = commonMessage._id;
     expect(commonMessage.attachments).toHaveLength(1);
 
-    const download = await request.get(`http://localhost:3000/api/files/download/${stored.id}?bucket=files&download=1`);
+    const download = await request.get(`${E2E_BASE_URL}/api/files/download/${stored.id}?bucket=files&download=1`);
     expect(download.ok()).toBeTruthy();
     expect(download.headers()['content-disposition']).toContain('attachment');
     outcomes.common.downloadStatus = download.status();
@@ -72,12 +73,12 @@ test.describe('chat file uploads', () => {
     // A non-ASCII filename must download too: raw header bytes beyond
     // Latin-1 are illegal in Content-Disposition, so the route carries
     // the real name RFC 6266-style (ASCII fallback + filename*).
-    const uploadUnicode = await request.post('http://localhost:3000/api/files/upload?bucket=files', {
+    const uploadUnicode = await request.post(`${E2E_BASE_URL}/api/files/upload?bucket=files`, {
       multipart: { file: { name: 'Запись встречи.webm', mimeType: 'video/webm', buffer: PNG_BYTES } }
     });
     expect(uploadUnicode.ok(), await uploadUnicode.text()).toBeTruthy();
     const storedUnicode = await uploadUnicode.json();
-    const downloadUnicode = await request.get(`http://localhost:3000/api/files/download/${storedUnicode.id}?bucket=files&download=1`);
+    const downloadUnicode = await request.get(`${E2E_BASE_URL}/api/files/download/${storedUnicode.id}?bucket=files&download=1`);
     expect(downloadUnicode.status(), await downloadUnicode.text()).toBe(200);
     expect(downloadUnicode.headers()['content-disposition']).toContain(`filename*=UTF-8''`);
     outcomes.common.unicodeDownloadStatus = downloadUnicode.status();
@@ -85,7 +86,7 @@ test.describe('chat file uploads', () => {
     // Media ranges: playback/seeking rides 206 partial responses. The
     // end is clamped to the representation length (RFC 9110 remainder
     // rule) — 0-99 on 70 bytes serves 0-69.
-    const ranged = await request.get(`http://localhost:3000/api/files/download/${stored.id}?bucket=files`, {
+    const ranged = await request.get(`${E2E_BASE_URL}/api/files/download/${stored.id}?bucket=files`, {
       headers: { Range: `bytes=0-99` }
     });
     outcomes.common.rangeStatus = ranged.status();
@@ -95,7 +96,7 @@ test.describe('chat file uploads', () => {
 
     // -- Instance chat: seed the thread, open it in /chats, stage the PNG
     //    through the attach popover's upload entry, and send. --
-    const seed = await request.post('http://localhost:3000/api/support/messages', {
+    const seed = await request.post(`${E2E_BASE_URL}/api/support/messages`, {
       data: { instance: { type: BOX_TYPE, id: box._id }, message: 'opening the box thread' }
     });
     expect(seed.ok(), await seed.text()).toBeTruthy();
@@ -151,7 +152,7 @@ test.describe('chat file uploads', () => {
 
     // The materialized child: payload carries the uploaded file, lineage
     // carries the box through the derived children-edge key.
-    const children = await request.get(`http://localhost:3000/api/instances/${PHOTO_TYPE}`);
+    const children = await request.get(`${E2E_BASE_URL}/api/instances/${PHOTO_TYPE}`);
     expect(children.ok(), await children.text()).toBeTruthy();
     const childRows = await children.json();
     const createdPhoto = (Array.isArray(childRows) ? childRows : [])
@@ -162,7 +163,7 @@ test.describe('chat file uploads', () => {
     outcomes.instance.childPayload = createdPhoto.payload || null;
 
     // The message stays linked to the box thread and refs the child.
-    const thread = await request.get(`http://localhost:3000/api/support/messages?instance=${BOX_TYPE}:${box._id}&includeChildren=0`);
+    const thread = await request.get(`${E2E_BASE_URL}/api/support/messages?instance=${BOX_TYPE}:${box._id}&includeChildren=0`);
     expect(thread.ok(), await thread.text()).toBeTruthy();
     const fileMessage = (await thread.json()).data.find(item => (item.attachments || []).length > 0);
     expect(fileMessage, 'Expected the file message in the box thread').toBeTruthy();
@@ -176,7 +177,7 @@ test.describe('chat file uploads', () => {
     await fileInput.setInputFiles({ name: 'probe.pdf', mimeType: 'application/pdf', buffer: PDF_BYTES });
     await expect(app.page.locator('[data-testid="chat-pending-files"]')).toHaveCount(0);
     await app.page.keyboard.press('Escape');
-    const smuggled = await request.post('http://localhost:3000/api/support/messages', {
+    const smuggled = await request.post(`${E2E_BASE_URL}/api/support/messages`, {
       data: {
         instance: { type: BOX_TYPE, id: box._id },
         attachments: [{ kind: 'file', fileId: 'gridfs-smuggled', mimeType: 'application/pdf' }]
@@ -200,19 +201,19 @@ test.describe('chat file uploads', () => {
     await expect(app.page.locator('[data-testid="chat-pending-files"]')).toHaveCount(0, { timeout: 120000 });
     const bigGallery = app.page.locator('[data-testid="chat-attachments"]').last();
     await expect(bigGallery.locator('img')).toBeVisible({ timeout: 60000 });
-    const bigThread = await request.get(`http://localhost:3000/api/support/messages?instance=${BOX_TYPE}:${box._id}&includeChildren=1`);
+    const bigThread = await request.get(`${E2E_BASE_URL}/api/support/messages?instance=${BOX_TYPE}:${box._id}&includeChildren=1`);
     const bigMessage = (await bigThread.json()).data.find(item => (item.attachments || []).some(a => a.size === BIG_BYTES.length));
     expect(bigMessage, 'Expected the chunked upload message').toBeTruthy();
     const bigFileId = bigMessage.attachments.find(a => a.size === BIG_BYTES.length).fileId;
-    const bigDownload = await request.get(`http://localhost:3000/api/files/download/${bigFileId}?bucket=files`);
+    const bigDownload = await request.get(`${E2E_BASE_URL}/api/files/download/${bigFileId}?bucket=files`);
     expect(bigDownload.ok()).toBeTruthy();
     expect((await bigDownload.body()).length).toBe(BIG_BYTES.length);
     outcomes.bigUpload = { size: BIG_BYTES.length, messageId: bigMessage._id, downloadStatus: bigDownload.status() };
 
     // -- Party-target chats (the organization chat) keep plain uploads:
     // the popover entry is enabled there and files ride unlinked. --
-    const me = await (await request.get('http://localhost:3000/api/auth/me')).json();
-    const orgChat = await request.post('http://localhost:3000/api/support/messages', {
+    const me = await (await request.get(`${E2E_BASE_URL}/api/auth/me`)).json();
+    const orgChat = await request.post(`${E2E_BASE_URL}/api/support/messages`, {
       data: {
         instance: { type: 'organization', id: me.organizationId },
         message: 'org thread seed for uploads'
