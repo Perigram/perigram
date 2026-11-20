@@ -15,8 +15,10 @@ Parent: [workers README](../README.md). Contract:
 | Path | Role |
 |---|---|
 | `listing.json` | Type-less node-library listing: one shared runtime and 24 hand-authored managed services — the one catalog. |
-| `runtime/geometry-base.mjs` | The runtime entry (`createRuntime()`): dispatches operations and derives its provider definitions from the listing. |
+| `runtime/geometry-base.mjs` | The runtime source (`createRuntime()`): dispatches operations and derives its provider definitions from the listing through the SDK's shared service→definition derivation. |
+| `runtime/geometry-base-bundle.mjs` | The shipped runtime entry: the self-contained bundle built from the source (`npm run geometry-base:runtime:build`), committed as a generated artifact. |
 | `runtime/math.mjs` | The pure math behind every operation. |
+| `build-runtime.mjs` | The vite lib build producing the bundle (the documents `documents:runtime:build` pattern). |
 
 - The listing declares no CTS type: geometry values are provider-qualified
   semantic port kinds, and server-side node discovery resolves from
@@ -25,12 +27,15 @@ Parent: [workers README](../README.md). Contract:
   business record type would be a dummy type (SPEC §20 owner direction
   2026-11-20).
 - The runtime derives its provider definitions from the listing's service
-  signatures; the same derivation feeds the browser Worker (`providers`)
-  and mirrors what the server derives from the installed services.
-- The entry is a dependency-free source module: its static import graph
-  (entry, math, `listing.json` import) is complete inside the package with
-  zero bare specifiers, so one artifact serves both the browser Worker and
-  the managed Deno child.
+  signatures through `nodeDefinitionFromService`
+  ([plugin-sdk](../../packages/plugin-sdk/README.md)); the same derivation
+  feeds the browser Worker (`providers`) and mirrors what the server
+  derives from the installed services.
+- The shipped entry is the built bundle: its static import graph is
+  complete with zero bare specifiers, so one artifact serves both the
+  browser Worker and the managed Deno child. The source module's SDK
+  import is build-time only (the executor layout preserves the
+  `packages/plugin-sdk` relative depth).
 
 ## Semantic kinds
 
@@ -93,22 +98,18 @@ qualifier), so a conversion is always an explicit graph operation.
 ## Publish and install (dev stack)
 
 ```sh
+npm run geometry-base:runtime:build
 curl -sS -X POST http://localhost:3001/api/plugins/catalog \
   -H 'x-operator-token: perigram-dev-operator' -H 'content-type: application/json' \
   --data-binary @workers/geometry-base/listing.json
-for f in runtime/geometry-base.mjs runtime/math.mjs; do
-  curl -sS -X PUT "http://localhost:3001/api/plugins/catalog/geometry-base/assets/$f?version=1" \
-    -H 'x-operator-token: perigram-dev-operator' -H 'content-type: text/javascript' \
-    --data-binary @workers/geometry-base/$f
-done
-curl -sS -X PUT "http://localhost:3001/api/plugins/catalog/geometry-base/assets/listing.json?version=1" \
-  -H 'x-operator-token: perigram-dev-operator' -H 'content-type: application/json' \
-  --data-binary @workers/geometry-base/listing.json
+curl -sS -X PUT "http://localhost:3001/api/plugins/catalog/geometry-base/assets/runtime/geometry-base-bundle.mjs?version=1" \
+  -H 'x-operator-token: perigram-dev-operator' -H 'content-type: text/javascript' \
+  --data-binary @workers/geometry-base/runtime/geometry-base-bundle.mjs
 ```
 
-The `listing.json` asset serves the runtime's JSON import; the proxy must
-store it as `application/json` for the browser to load it as a JSON
-module.
+The staged release is the bundle alone: the listing snapshot travels with
+the publish request, and the runtime's JSON import is inlined at build
+time.
 
 Install from the org's Plugins section, then author a graph from the
 Geometry Base palette section: browser preview evaluates in the plugin
