@@ -40,7 +40,7 @@
         </div>
       </template>
 
-      <template v-if="allowAdd || allowSplit || allowCloseGroup || allowFloating" #rightHeaderActions="{ group }">
+      <template v-if="(allowAdd || allowSplit || allowCloseGroup || allowFloating) && !isSpacerGroup(group)" #rightHeaderActions="{ group }">
         <div class="flex h-full items-stretch">
           <Button
             v-if="allowAdd"
@@ -248,10 +248,20 @@ function syncGroups() {
 function addGroup({ referenceGroup = null, referencePanel = '', direction = 'within', hideHeader = false, locked = false } = {}) {
   const live = api.value;
   if (!live) return null;
+  // A reference-less options object demands a direction in dockview; a bare
+  // call appends, then the header/lock flags apply on the returned group.
+  if (!referenceGroup && !referencePanel) {
+    const group = live.addGroup();
+    if (group) {
+      group.locked = locked;
+      group.header.hidden = hideHeader;
+    }
+    return group;
+  }
   return live.addGroup({
     ...(referenceGroup ? { referenceGroup } : {}),
     ...(referencePanel ? { referencePanel } : {}),
-    ...(referenceGroup || referencePanel ? { direction } : {}),
+    direction,
     hideHeader,
     locked
   });
