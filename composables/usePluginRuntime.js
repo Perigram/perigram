@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { normalizeNodeProvider } from '@perigram/plugin-sdk/nodes';
 
 export function usePluginRuntime({
   createWorker = () => new Worker(new URL('./plugin-runtime.worker.js', import.meta.url), { type: 'module' }),
@@ -232,9 +233,17 @@ function transferableInvocation(input) {
           }
           return [rendererId, surface];
         }));
+        const validated = normalizeNodeProvider({
+          provider: contribution.provider,
+          definitions: contribution.definitions,
+          previewRenderers: contribution.previewRenderers || {},
+          conversions: contribution.conversions || [],
+          execute: () => {}
+        });
         providers.push({
           provider: contribution.provider,
           definitions: contribution.definitions,
+          conversions: validated.conversions,
           previewRenderers,
           execute: (definition, invocation) => {
             const capabilities = Object.fromEntries((definition.execution.capabilities || []).map(name => [

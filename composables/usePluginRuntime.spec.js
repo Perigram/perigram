@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { usePluginRuntime } from './usePluginRuntime.js';
+import { createPortCompatibilityRegistry } from '@perigram/plugin-sdk/nodes';
 import { createRuntime as createDocumentsRuntime } from '../workers/documents/runtime/shared.mjs';
 
 class FakeWorker {
@@ -54,6 +55,7 @@ describe('usePluginRuntime', () => {
       provider: 'plugin.demo',
       definitions: [{
         provider: 'plugin.demo', id: 'math.double', version: '1', inputs: [], outputs: [],
+        palette: { group: 'demo' },
         execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] }
       }]
     }]);
@@ -101,7 +103,7 @@ describe('usePluginRuntime', () => {
       if (message.type === 'initialize') {
         queueMicrotask(() => this.onmessage?.({ data: { type: 'ready', providers: [{
           provider: 'plugin.demo',
-          definitions: [{ provider: 'plugin.demo', id: 'math.double', version: '1', inputs: [], outputs: [], execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] } }]
+          definitions: [{ provider: 'plugin.demo', id: 'math.double', version: '1', inputs: [], outputs: [], palette: { group: 'demo' }, execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] } }]
         }] } }));
       }
     };
@@ -157,6 +159,7 @@ describe('usePluginRuntime', () => {
       provider: 'plugin.demo',
       definitions: [{
         provider: 'plugin.demo', id: 'geometry.mesh', version: '1', inputs: [], outputs: [],
+        palette: { group: 'demo' },
         execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] },
         preview: { renderer: 'mesh' }
       }],
@@ -168,6 +171,52 @@ describe('usePluginRuntime', () => {
       previewRenderers: [surface]
     }, runtime);
     expect(provider.previewRenderers.mesh).toEqual(surface);
+  });
+
+  it('forwards runtime conversion declarations into loaded node providers', async () => {
+    const conversion = {
+      id: 'length.mm-to-m',
+      from: { base: 'number', unit: 'mm' },
+      to: { base: 'number', unit: 'm' },
+      deterministic: true,
+      fidelity: 'lossless'
+    };
+    const worker = new FakeWorker([{
+      provider: 'plugin.demo',
+      definitions: [{
+        provider: 'plugin.demo', id: 'geometry.mesh', version: '1', inputs: [], outputs: [],
+        palette: { group: 'demo' },
+        execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] }
+      }],
+      conversions: [conversion]
+    }]);
+    const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
+    const [provider] = await pluginRuntime.loadProviders(binding, runtime);
+    expect(provider.conversions).toEqual([conversion]);
+    const registry = createPortCompatibilityRegistry();
+    registry.registerConversions(provider.conversions);
+    expect(registry.compare(
+      { id: 'out', shape: 'item', semantic: { base: 'number', unit: 'mm' } },
+      { id: 'in', shape: 'item', semantic: { base: 'number', unit: 'm' } }
+    )).toMatchObject({ status: 'conversion-required', conversions: [conversion] });
+  });
+
+  it('reports invalid runtime conversion metadata through the detailed provider errors', async () => {
+    const worker = new FakeWorker([{
+      provider: 'plugin.demo',
+      definitions: [{
+        provider: 'plugin.demo', id: 'geometry.mesh', version: '1', inputs: [], outputs: [],
+        palette: { group: 'demo' },
+        execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] }
+      }],
+      conversions: [{ id: 'broken', from: { base: 'number', unit: 'mm' }, to: { base: 'number', unit: 'm' }, fidelity: 'sometimes' }]
+    }]);
+    const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
+    const detailed = await pluginRuntime.loadProvidersDetailed(binding, runtime);
+    expect(detailed.providers).toHaveLength(0);
+    expect(detailed.errors).toHaveLength(1);
+    expect(detailed.errors[0]).toMatchObject({ pluginId: 'demo', runtimeId: 'javascript', provider: 'plugin.demo' });
+    expect(detailed.errors[0].message).toMatch(/fidelity/);
   });
 
   it('refuses operations without browser support', async () => {

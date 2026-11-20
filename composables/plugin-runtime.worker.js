@@ -1,4 +1,4 @@
-import { createAbortableCapabilityCaller, pluginExecutionAbortError } from '../shared/plugin-runtime.js';
+import { collectTransferableBuffers, createAbortableCapabilityCaller, pluginExecutionAbortError } from '../shared/plugin-runtime.js';
 let runtime = null;
 let activeInvocations = new Map();
 let capabilitySequence = 0;
@@ -65,6 +65,9 @@ self.onmessage = async event => {
   }
 
   if (message.type !== 'invoke' || !runtime) return;
+  // Buffers that arrived with the invocation stay owned by the runtime's
+  // input; a result may not detach them.
+  const receivedBuffers = new Set(collectTransferableBuffers(message.input, { minBytes: 0 }));
   const controller = new AbortController();
   activeInvocations.set(message.invocationId, controller);
   const capabilities = {
@@ -82,7 +85,12 @@ self.onmessage = async event => {
       signal: controller.signal
     });
     if (controller.signal.aborted) throw pluginExecutionAbortError(controller.signal.reason);
-    self.postMessage({ type: 'result', invocationId: message.invocationId, value });
+    // The runtime hands result buffers to the host; large owned buffers
+    // transfer instead of cloning.
+    self.postMessage(
+      { type: 'result', invocationId: message.invocationId, value },
+      collectTransferableBuffers(value, { exclude: receivedBuffers })
+    );
   } catch (error) {
     self.postMessage({ type: 'result-error', invocationId: message.invocationId, error: serializeError(error) });
   } finally {

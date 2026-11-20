@@ -2,6 +2,10 @@ export const PLUGIN_RUNTIME_WORKER_TYPE = 'plugin-runtime';
 export const PLUGIN_RUNTIME_MAX_EXECUTION_MS = 60_000;
 export const PLUGIN_RUNTIME_MAX_MEMORY_MB = 128;
 
+// Buffers at or above this size move through postMessage transfer lists;
+// smaller ones stay on the structured-clone path.
+export const PLUGIN_RUNTIME_TRANSFER_MIN_BYTES = 64 * 1024;
+
 export const PLUGIN_RUNTIME_CAPABILITIES = Object.freeze([
   'organization.instances.query',
   'organization.instances.read',
@@ -23,6 +27,44 @@ export function pluginExecutionAbortError(reason = 'Plugin operation was cancell
   error.name = 'AbortError';
   error.code = 'PLUGIN_EXECUTION_ABORTED';
   return error;
+}
+
+// Collects the ArrayBuffers a postMessage sender may hand to its transfer
+// list: the backing buffers of typed arrays and raw ArrayBuffers nested in
+// plain objects and arrays. Buffers named in `exclude` (views received from
+// the peer), shared buffers, detached buffers, and buffers under `minBytes`
+// stay on the clone path.
+export function collectTransferableBuffers(value, { exclude = new Set(), minBytes = PLUGIN_RUNTIME_TRANSFER_MIN_BYTES } = {}) {
+  const buffers = new Set();
+  const visited = new Set();
+  const offer = buffer => {
+    if (!buffer || exclude.has(buffer)) return;
+    if (typeof SharedArrayBuffer !== 'undefined' && buffer instanceof SharedArrayBuffer) return;
+    if (!(buffer instanceof ArrayBuffer) || buffer.byteLength === 0 || buffer.byteLength < minBytes) return;
+    buffers.add(buffer);
+  };
+  const visit = node => {
+    if (!node || typeof node !== 'object' || visited.has(node)) return;
+    visited.add(node);
+    if (ArrayBuffer.isView(node)) {
+      offer(node.buffer);
+      return;
+    }
+    if (node instanceof ArrayBuffer || (typeof SharedArrayBuffer !== 'undefined' && node instanceof SharedArrayBuffer)) {
+      offer(node);
+      return;
+    }
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    const prototype = Object.getPrototypeOf(node);
+    if (prototype === Object.prototype || prototype === null) {
+      Object.values(node).forEach(visit);
+    }
+  };
+  visit(value);
+  return [...buffers];
 }
 
 // A capability call belongs to one invocation. The signal owns its lifetime:

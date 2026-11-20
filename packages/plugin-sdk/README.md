@@ -173,14 +173,20 @@ organizations?, requires?, declarations }` where `visibility` is `public`
 organizations its `organizations` ids name, scoped by the operator at
 publish (the catalog stays platform-published). `requires` lists the pack or plugin ids
 the types resolve against, satisfied by an install (never the plugin
-itself); the platform-side gates enforce it. `declarations` carries `types` (CTS grammar, non-empty; types may carry
-transient migration declarations), `services` (SPEC §8 signatures,
+itself); the platform-side gates enforce it. `declarations` carries `types` (CTS
+grammar; types may carry transient migration declarations; a
+listing declares CTS types, a runtime carrying node providers, or both — a
+node-library plugin has no business record type to declare), `services` (SPEC §8 signatures,
 palette metadata, and either managed `execution` metadata or an explicit
 external-integration `mode`), `runtimes` (version-pinned runtime
 descriptors: `{ id, language, version, entry, targets }`; language is
 `javascript`, `python`, or `wasm`; entry is a `.js`/`.mjs`, `.py`, or
 `.wasm` package asset respectively; targets
-are `browser` and/or `server`), and `engine` (the transitional browser
+are `browser` and/or `server`; a `browser` target requires a JavaScript
+entry module — the browser worker loads it as the `createRuntime()`
+module, and a JS entry may initialize WASM libraries and expose the same
+contract; `python` and `wasm` entries declare server execution and wait
+on the language-dispatched managed runtime), and `engine` (the transitional browser
 engine declaration: `{ module, assets? }` — a root-relative entry module served
 from the installed package, plus the staged package paths of runtime files
 (interpreter binaries, wheels, data) the entry's import graph cannot

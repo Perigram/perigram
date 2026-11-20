@@ -55,14 +55,18 @@
     },
     "declarations": {
       "type": "object",
-      "required": [
-        "types"
-      ],
       "additionalProperties": false,
+      "anyOf": [
+        {
+          "$ref": "#/$defs/declaresTypes"
+        },
+        {
+          "$ref": "#/$defs/declaresRuntime"
+        }
+      ],
       "properties": {
         "types": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "type": "object",
             "required": [
@@ -482,7 +486,7 @@
         },
         "runtimes": {
           "type": "array",
-          "description": "Version-pinned execution runtimes carried by the package; each runtime declares its language, entry asset, and supported environments",
+          "description": "Version-pinned execution runtimes carried by the package; each runtime declares its language, entry asset, and supported environments. A browser target loads as a JavaScript entry module exporting createRuntime(); python and wasm entries are server declarations until a language bootstrap exists",
           "items": {
             "type": "object",
             "required": [
@@ -493,6 +497,32 @@
               "targets"
             ],
             "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "required": [
+                    "targets"
+                  ],
+                  "properties": {
+                    "targets": {
+                      "contains": {
+                        "const": "browser"
+                      }
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "language": {
+                      "const": "javascript"
+                    },
+                    "entry": {
+                      "pattern": "^/[a-z0-9/_-]+\\.m?js$"
+                    }
+                  }
+                }
+              }
+            ],
             "properties": {
               "id": {
                 "type": "string",
@@ -531,6 +561,26 @@
     }
   },
   "$defs": {
+    "declaresTypes": {
+      "required": [
+        "types"
+      ],
+      "properties": {
+        "types": {
+          "minItems": 1
+        }
+      }
+    },
+    "declaresRuntime": {
+      "required": [
+        "runtimes"
+      ],
+      "properties": {
+        "runtimes": {
+          "minItems": 1
+        }
+      }
+    },
     "palette": {
       "type": "object",
       "additionalProperties": false,

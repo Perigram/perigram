@@ -133,8 +133,8 @@ export function parseListing(listing = {}) {
   if (!pluginId || !/^[a-z0-9-]+$/.test(pluginId)) {
     throw listingError(`pluginId must be a slug (got ${JSON.stringify(pluginId)})`);
   }
-  if (!Array.isArray(types) || !types.length) {
-    throw listingError('declarations.types must be a non-empty array');
+  if (!Array.isArray(types)) {
+    throw listingError('declarations.types must be an array');
   }
   for (const type of types) {
     if (!type?.id || !type?.class) {
@@ -193,7 +193,17 @@ export function parseListing(listing = {}) {
       || new Set(runtime.targets).size !== runtime.targets.length) {
       throw listingError(`runtime ${runtime.id} targets must be a non-empty unique subset of browser and server`);
     }
+    if (runtime.targets.includes('browser') && runtime.language !== 'javascript') {
+      throw listingError(`runtime ${runtime.id} declares browser execution — the browser worker loads JavaScript entry modules exporting createRuntime() (${runtime.language} entries are server declarations until a language bootstrap exists)`);
+    }
     runtimeById.set(runtime.id, runtime);
+  }
+
+  // A listing carries CTS types, a runtime carrying node providers, or
+  // both: a node-library plugin (geometry operations and their
+  // providers/conversions) has no business record type to declare.
+  if (!types.length && !runtimes.length) {
+    throw listingError('declarations need CTS types or a declared runtime');
   }
 
   for (const service of services) {

@@ -760,7 +760,10 @@ A plugin is executable package data under the platform's managed runtime:
 - **Declarations** (types now; processes/screens as the exchange grows) install
   as a pinned snapshot and compose into the org's registry view as a resolution
   source between system pack types and the org-authored overlay — same
-  no-shadowing rule; a colliding type id refuses the install.
+  no-shadowing rule; a colliding type id refuses the install. Types are one
+  contribution beside node providers: a listing with no CTS types installs
+  when it declares a runtime carrying node providers — a node-library plugin
+  declares no dummy business type (owner direction 2026-11-20).
 - **External integrations** bind declared provider capabilities to
   organization-level connections. The managed adapter applies provider
   policy and organization grants, then calls the external system with
