@@ -5,9 +5,24 @@
       <InputText v-model="label" size="small" @blur="applyLabel" @keydown.enter.prevent="applyLabel" />
       <div class="flex flex-col gap-2">
         <label class="text-supporting text-muted">{{ $t('processDesigner.graphInterfaceDeclaration') }}</label>
-        <ValueSelect v-model="declarationShape" :options="shapeOptions" option-label="label" option-value="value" size="small" class="w-full" />
-        <InputText v-model="declarationBase" size="small" :placeholder="$t('processDesigner.graphSemanticBase')" />
-        <InputText v-model="declarationKind" size="small" :placeholder="$t('processDesigner.graphSemanticKind')" />
+        <ValueSelect
+          v-model="declarationShape"
+          :options="shapeOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="w-full"
+        />
+        <ValueSelect
+          v-model="declarationBase"
+          :options="baseOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="w-full"
+          :aria-label="$t('processDesigner.graphSemanticBase')"
+        />
+        <InputText v-model="declarationKind" size="small" :placeholder="$t('processDesigner.graphSemanticKind')" :aria-label="$t('processDesigner.graphSemanticKind')" />
         <div class="flex items-center justify-between">
           <label class="text-supporting">{{ $t('processDesigner.graphNullable') }}</label>
           <ToggleSwitch v-model="declarationNullable" />
@@ -22,7 +37,7 @@
         </div>
         <TypedValueControl
           v-if="declarationHasDefault"
-          :base="configBase({ type: declarationBase })"
+          :base="declarationBase"
           :model-value="declarationDefault"
           @update:model-value="declarationDefault = $event"
         />
@@ -64,9 +79,6 @@
         :disabled="!selectedGraphId || !selectedRevisionId || graphDocumentsLoading || graphRevisionsLoading"
         @click="emit('hydrate-graph', { nodeId: node.id, graphId: selectedGraphId, revisionId: selectedRevisionId })"
       />
-      <div v-if="node.data.config?.graphId" class="text-supporting text-muted">
-        {{ node.data.config.graphId }} · {{ node.data.config.revision }}
-      </div>
     </template>
     <template v-else-if="node.data.definition">
       <div v-if="configFields.length" class="flex flex-col gap-3">
@@ -114,20 +126,6 @@
       </p>
     </template>
     <Message v-else severity="warn">{{ $t('processDesigner.graphUnavailableNode') }}</Message>
-    <div v-if="node.data.definition" class="flex flex-col gap-2">
-      <div v-if="node.data.definition.inputs?.length">
-        <span class="text-supporting text-muted">{{ $t('processDesigner.inputs') }}</span>
-        <div v-for="port in node.data.definition.inputs" :key="port.id" class="text-supporting">
-          {{ port.label || port.id }} · {{ port.semantic?.base || 'json' }} · {{ port.shape || 'item' }}
-        </div>
-      </div>
-      <div v-if="node.data.definition.outputs?.length">
-        <span class="text-supporting text-muted">{{ $t('processDesigner.outputs') }}</span>
-        <div v-for="port in node.data.definition.outputs" :key="port.id" class="text-supporting">
-          {{ port.label || port.id }} · {{ port.semantic?.base || 'json' }} · {{ port.shape || 'item' }}
-        </div>
-      </div>
-    </div>
   </div>
   <StateBlock v-else :message="$t('processDesigner.graphNoSelection')" />
 </template>
@@ -145,7 +143,8 @@ import TypedValueControl from '~/components/process-designer/TypedValueControl.v
 import TemplateValuesControl from '~/components/process-designer/TemplateValuesControl.vue';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
+import { GRAPH_INPUT_OPERATION, GRAPH_INVOKE_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
+import { SEMANTIC_BASES, TRANSPORT_SHAPES } from '@perigram/plugin-sdk/nodes';
 
 const { t } = useI18n();
 
@@ -171,12 +170,20 @@ const declarationRequired = ref(true);
 const declarationHasDefault = ref(false);
 const declarationDefault = ref(null);
 const declarationError = ref('');
-const shapeOptions = ['item', 'list', 'tree', 'map', 'tuple', 'stream'].map(value => ({ label: value, value }));
+const shapeOptions = TRANSPORT_SHAPES.map(value => ({ label: value, value }));
+// A stored base outside the convention set stays selectable so foreign
+// provider bases round-trip instead of silently clearing.
+const baseOptions = computed(() => {
+  const bases = SEMANTIC_BASES.includes(declarationBase.value) || !declarationBase.value
+    ? [...SEMANTIC_BASES]
+    : [declarationBase.value, ...SEMANTIC_BASES];
+  return bases.map(value => ({ label: value, value }));
+});
 const label = ref('');
 
 const selectedGraphId = ref('');
 const selectedRevisionId = ref('');
-const isGraphInvocation = computed(() => props.node?.data?.operation?.id === 'perigram.core.use-graph');
+const isGraphInvocation = computed(() => props.node?.data?.operation?.id === GRAPH_INVOKE_OPERATION);
 const templateOutput = computed(() => props.nodeOutput?.value ?? props.nodeOutput);
 const templateTokens = computed(() => Array.isArray(templateOutput.value?.meta?.tokens) ? templateOutput.value.meta.tokens : []);
 const templateSections = computed(() => Array.isArray(templateOutput.value?.meta?.sections) ? templateOutput.value.meta.sections : []);

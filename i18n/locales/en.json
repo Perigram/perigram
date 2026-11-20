@@ -3250,8 +3250,6 @@
     "serviceBillingPrepaidTokens": "Prepaid tokens",
     "serviceTokenCost": "Token cost",
     "serviceMeterKey": "Meter key",
-    "inputs": "Inputs",
-    "outputs": "Outputs",
     "inputsCount": "{count} inputs",
     "outputsCount": "{count} outputs",
     "direction": "Direction",

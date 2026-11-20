@@ -1,6 +1,10 @@
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const PROVIDER_IDENTIFIER = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 export const TRANSPORT_SHAPES = Object.freeze(['item', 'list', 'tree', 'map', 'tuple', 'stream']);
+// The semantic bases every built-in port consumer understands: the wire
+// keeps bases nominal, but controls, comparators, and boundary authoring
+// agree on this set; `json` is the universal sink.
+export const SEMANTIC_BASES = Object.freeze(['string', 'number', 'integer', 'boolean', 'json']);
 const SHAPES = new Set(TRANSPORT_SHAPES);
 export const NODE_EXECUTION_KINDS = Object.freeze(['pure', 'read', 'stateful', 'proposal', 'commit', 'effect', 'control']);
 const EXECUTION_KINDS = new Set(NODE_EXECUTION_KINDS);
