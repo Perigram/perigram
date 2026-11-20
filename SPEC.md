@@ -953,6 +953,32 @@ instances, stored refs, and authored type bindings to the new id before
 the per-type migration steps run. The drain gate refuses a removed type;
 a renamed type with data migrates.
 
+Owner decision (2026-11-20): the geometry domain ships as a family of
+plugins over external computation libraries. `geometry.base` owns the
+canonical geometry types, units (the CTS unit table), coordinate
+conventions, and basic operations; `cad.occt` owns B-rep operations and
+STEP/IGES exchange over brepjs/occt-wasm; `geometry.nurbs` owns NURBS
+construction over verb; `geometry.mesh` owns mesh solids and Boolean
+operations over Manifold; `geometry.sketch` owns plane constraint
+solving over PlaneGCS. Kernel-native objects live as runtime-scoped
+handles (§30.13); every cross-kernel conversion is an explicit graph
+operation declaring fidelity through the SDK conversion grammar.
+Plugin node catalogs generate from the libraries' type declarations,
+preserving provider provenance and the palette law. Schema validation
+stays in the platform's existing grammars — the listing schema, CTS
+declarations, and the SDK node contract; TypeBox/Zod is not adopted.
+Licensing: brepjs is Apache-2.0 and the occt-wasm binary is LGPL-2.1,
+which passes the dependency gate; `geometry.cgal` stays unbuilt while
+its GPL license refuses the gate and no named algorithm requires it.
+Server execution of wasm kernels rides a language-dispatched managed
+runtime with one warm process per installed package and per-invocation
+bounds. The build order is vertical: platform contracts, then
+`geometry.base` + `cad.occt` with one conversion to mesh, preview
+through the shape viewport, and generic Bake; the remaining kernels and
+conversions follow. The build123d plugin conversion is dropped
+(2026-11-20); the platform engine slices — engine bootstrap (E3b) and
+shape viewport (E6) — serve this program.
+
 ## 21. Exports are declarations (owner direction 2026-10-14)
 
 An installed plugin's export bindings (`declarations.exports`: type, kind,
