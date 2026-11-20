@@ -25,8 +25,10 @@
 - Focused unit and SSR suites pass. Full `npm test -- --run` has unrelated
   environment failures: missing `undici`, an unbuilt Documents runtime
   bundle, and a construction-service timeout.
-- E2E was updated for dockview selectors and a reload-persistence case; it
-  was not run because no dev stack was started in this session.
+- E2E: the `pane-navigation-history` reload-persistence case passes against
+  the running dev stack. Its Back/empty-placeholder cases and
+  `home-workspace-restore` are blocked by dev-stack fixture errors (plugin
+  nesting not installed, `NamespaceNotFound`).
 
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
