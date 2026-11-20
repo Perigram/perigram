@@ -4,9 +4,11 @@
        editor page — the unified header over the editor flush. The
        header's chrome binding carries the editor's name, save, and
        dirty state; the page host's comments channel reaches the header
-       the same way the record document's does. -->
+       the same way the record document's does. An ownsChrome surface
+       renders the editor alone: its own dock carries the identity. -->
   <div class="flex h-full min-h-0 flex-1 flex-col">
     <SurfaceHeader
+      v-if="!editor.ownsChrome"
       :type="typeRecord"
       :instance="record"
       :chrome="chrome"

@@ -38,8 +38,9 @@
         </div>
       </template>
 
-      <template v-if="(allowAdd || allowSplit || allowCloseGroup) && !isCanvasGroup(group)" #rightHeaderActions="{ group }">
-        <div class="flex h-full items-stretch">
+      <template v-if="(canvasHeaderActions && isCanvasGroup(group)) || ((allowAdd || allowSplit || allowCloseGroup) && !isCanvasGroup(group))" #rightHeaderActions="{ group }">
+        <slot v-if="canvasHeaderActions && isCanvasGroup(group)" name="rightHeaderActions" :group="group" />
+        <div v-else class="flex h-full items-stretch">
           <Button
             v-if="allowAdd"
             icon="pi pi-plus"
@@ -123,7 +124,9 @@ const props = defineProps({
   panelCloseable: { type: Function, default: null },
   // The center panel key (the designer canvas): joins into its center are
   // refused so it stays whole.
-  canvasKey: { type: String, default: '' }
+  canvasKey: { type: String, default: '' },
+  // Host-rendered header actions for the canvas group (the panel menu).
+  canvasHeaderActions: { type: Boolean, default: false }
 });
 
 const emit = defineEmits([

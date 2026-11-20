@@ -9,11 +9,12 @@
     ]"
     :data-designer-layout="layout"
   >
-    <div v-if="!compact" class="relative min-h-0 min-w-0 flex-1">
+    <div v-if="!compact" class="min-h-0 min-w-0 flex-1 p-1.5">
       <WorkspaceDock
         ref="dock"
         class="h-full min-h-0 w-full"
         canvas-key="canvas"
+        canvas-header-actions
         :items="dockItems"
         :panel-closeable="panelCloseable"
         @ready="onDockReady"
@@ -23,16 +24,25 @@
         <template #content="{ item }">
           <div v-if="item.key === 'canvas'" class="relative h-full min-h-0 w-full min-w-0 overflow-hidden">
             <slot />
-            <DesignerToolbar
-              v-if="hasToolbarItems"
-              :start-items="toolbarStartItems"
-              :end-items="canvasItems"
-            />
           </div>
           <DesignerFilePanel v-else-if="item.key === 'file'" :chrome-api="chrome" />
+          <div v-else-if="item.key === 'commands'" class="flex min-h-0 w-full flex-wrap items-center gap-1 px-2 py-1">
+            <DesignerToolbarItems :items="canvasItems" />
+          </div>
           <slot v-else-if="item.key === 'palette'" name="palette" />
           <slot v-else-if="item.key === 'inspector'" name="inspector" />
           <slot v-else-if="item.key === 'preview'" name="preview" />
+        </template>
+        <template #rightHeaderActions>
+          <Button
+            icon="pi pi-ellipsis-v"
+            text
+            size="small"
+            severity="secondary"
+            :aria-label="$t('common.more')"
+            @click.stop="togglePanelMenu"
+          />
+          <Menu ref="panelMenu" :model="panelMenuItems" popup />
         </template>
       </WorkspaceDock>
     </div>
@@ -45,12 +55,10 @@
       />
       <main class="relative min-h-0 min-w-0 flex-1 overflow-hidden">
         <slot />
-        <DesignerToolbar
-          v-if="hasToolbarItems"
-          :start-items="toolbarStartItems"
-          :end-items="canvasItems"
-        />
       </main>
+      <div v-if="canvasItems.length" class="flex shrink-0 flex-wrap items-center gap-1 px-2 py-1">
+        <DesignerToolbarItems :items="canvasItems" />
+      </div>
     </template>
 
     <!-- Compact overlay panels follow the popover contract: a tap on anything
@@ -96,8 +104,10 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
+import Button from 'primevue/button';
+import Menu from 'primevue/menu';
 import DesignerFilePanel from './DesignerFilePanel.vue';
-import DesignerToolbar from './DesignerToolbar.vue';
+import DesignerToolbarItems from './DesignerToolbarItems.vue';
 import WorkspaceDock from './WorkspaceDock.vue';
 import { useAuthStore } from '~/stores/auth';
 import {
@@ -143,13 +153,15 @@ const hasPalette = computed(() => Boolean(slots.palette));
 const hasInspector = computed(() => Boolean(slots.inspector));
 const hasPreview = computed(() => Boolean(slots.preview));
 const hasFile = computed(() => Boolean(props.chrome));
+const hasCommands = computed(() => props.canvasItems.length > 0);
 
 const panelKeys = computed(() => [
   CANVAS,
   ...(hasFile.value ? ['file'] : []),
   ...(hasPalette.value ? ['palette'] : []),
   ...(hasInspector.value ? ['inspector'] : []),
-  ...(hasPreview.value ? ['preview'] : [])
+  ...(hasPreview.value ? ['preview'] : []),
+  ...(hasCommands.value ? ['commands'] : [])
 ]);
 
 const panelMeta = computed(() => ({
@@ -157,7 +169,8 @@ const panelMeta = computed(() => ({
   file: { label: t('designer.file'), icon: 'pi pi-file' },
   palette: { label: t('designer.palette'), icon: 'pi pi-align-left' },
   inspector: { label: t('designer.inspector'), icon: 'pi pi-align-right' },
-  preview: { label: t('designer.preview'), icon: 'pi pi-eye' }
+  preview: { label: t('designer.preview'), icon: 'pi pi-eye' },
+  commands: { label: t('designer.commands'), icon: 'pi pi-sliders-h' }
 }));
 
 const dockItems = computed(() => panelKeys.value.map(key => ({
@@ -170,9 +183,14 @@ function panelCloseable(key) {
   return key !== CANVAS && key !== 'file';
 }
 
-const panels = reactive({ palette: true, inspector: true, preview: false });
+const panels = reactive({ palette: true, inspector: true, preview: false, commands: true });
 const compact = ref(false);
 const compactTab = ref('palette');
+const panelMenu = ref(null);
+
+function togglePanelMenu(event) {
+  panelMenu.value?.toggle(event);
+}
 
 const storageKey = computed(() => designerWorkspaceStorageKey({
   workspaceId: props.workspaceId,
@@ -181,7 +199,7 @@ const storageKey = computed(() => designerWorkspaceStorageKey({
 }));
 
 function syncPanels() {
-  for (const key of ['palette', 'inspector', 'preview']) {
+  for (const key of PANEL_KEYS) {
     panels[key] = Boolean(dock.value?.hasPanel(key));
   }
 }
@@ -194,6 +212,7 @@ async function onDockReady() {
     dock.value?.applyLayout(pruned);
     await nextTick();
     if (hasFile.value && !dock.value?.hasPanel('file')) await addAuxPanel('file', 'above');
+    if (hasCommands.value && !dock.value?.hasPanel('commands')) await addAuxPanel('commands', 'below');
     syncPanels();
     schedulePersist();
     return;
@@ -237,6 +256,8 @@ async function buildDefaultLayout() {
   if (hasFile.value) wanted.push(['file', 'above', 'height']);
   if (hasPalette.value) wanted.push(['palette', 'left', 'width']);
   if (hasInspector.value) wanted.push(['inspector', 'right', 'width']);
+  if (hasPreview.value) wanted.push(['preview', 'below', 'height']);
+  if (hasCommands.value) wanted.push(['commands', 'below', 'height']);
   // The tree is built whole before any sizing pass: a group add
   // redistributes its branch, so sizes applied between adds are lost.
   for (const [key, direction] of wanted) live.addPanel(key, { referencePanel: CANVAS, direction });
@@ -260,9 +281,11 @@ async function sizeAuxPanel(key, axis) {
   if (!live) return;
   const sizing = key === 'file'
     ? { min: 84, max: 96, ratio: 0.12 }
-    : axis === 'height'
-      ? { min: 160, max: 520, ratio: 0.5 }
-      : { min: 180, max: key === 'inspector' ? 460 : 380, ratio: 0.32 };
+    : key === 'commands'
+      ? { min: 48, max: 72, ratio: 0.1 }
+      : axis === 'height'
+        ? { min: 160, max: 520, ratio: 0.5 }
+        : { min: 180, max: key === 'inspector' ? 460 : 380, ratio: 0.32 };
   await live.sizePanelToContent(key, { axis, ...sizing });
 }
 
@@ -278,6 +301,8 @@ function showPanel(key) {
     addAuxPanel('inspector', 'right').then(() => schedulePersist());
   } else if (key === 'preview') {
     addAuxPanel('preview', 'below').then(() => schedulePersist());
+  } else if (key === 'commands') {
+    addAuxPanel('commands', 'below').then(() => schedulePersist());
   }
   if (panels[key] !== undefined) panels[key] = true;
 }
@@ -294,7 +319,7 @@ function closeDockPanel(key) {
 }
 
 function togglePanelFromToolbar(panel) {
-  if (compact.value) {
+  if (compact.value && panel !== 'commands') {
     const sole = panels[panel] && PANEL_KEYS.every(key => !panels[key] || key === panel);
     for (const key of PANEL_KEYS) panels[key] = sole ? false : key === panel;
     if (!sole) compactTab.value = panel;
@@ -303,32 +328,18 @@ function togglePanelFromToolbar(panel) {
   panels[panel] ? hidePanel(panel) : showPanel(panel);
 }
 
-const PANEL_KEYS = ['palette', 'inspector', 'preview'];
+const PANEL_KEYS = ['palette', 'inspector', 'preview', 'commands'];
 
-const panelDockItems = computed(() => [
-  hasPalette.value ? {
-    icon: 'pi pi-align-left',
-    label: t('designer.palette'),
-    pressed: panels.palette,
-    onClick: () => togglePanelFromToolbar('palette')
-  } : null,
-  hasInspector.value ? {
-    icon: 'pi pi-align-right',
-    label: t('designer.inspector'),
-    pressed: panels.inspector,
-    onClick: () => togglePanelFromToolbar('inspector')
-  } : null,
-  hasPreview.value ? {
-    icon: 'pi pi-eye',
-    label: t('designer.preview'),
-    pressed: panels.preview,
-    onClick: () => togglePanelFromToolbar('preview')
-  } : null
-].filter(Boolean));
-
-const toolbarStartItems = panelDockItems;
-
-const hasToolbarItems = computed(() => toolbarStartItems.value.length > 0 || props.canvasItems.length > 0);
+const panelMenuItems = computed(() => [
+  hasPalette.value ? 'palette' : null,
+  hasInspector.value ? 'inspector' : null,
+  hasPreview.value ? 'preview' : null,
+  hasCommands.value ? 'commands' : null
+].filter(Boolean).map(key => ({
+  label: panelMeta.value[key].label,
+  icon: panels[key] ? 'pi pi-check-square' : 'pi pi-square',
+  command: () => togglePanelFromToolbar(key)
+})));
 
 function toggle(panel) {
   togglePanelFromToolbar(panel);
@@ -429,6 +440,7 @@ watch(compact, value => {
     panels.palette = hasPalette.value;
     panels.inspector = hasInspector.value;
     panels.preview = false;
+    panels.commands = hasCommands.value;
   }
 });
 

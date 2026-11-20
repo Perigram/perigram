@@ -740,12 +740,14 @@
       {
         "id": "sheet-design-editor",
         "module": "/surfaces/sheet-design-editor.mjs",
-        "surfaceContract": 4
+        "surfaceContract": 4,
+        "ownsChrome": true
       },
       {
         "id": "cassette-designer",
         "module": "/surfaces/cassette-designer.mjs",
-        "surfaceContract": 2
+        "surfaceContract": 2,
+        "ownsChrome": true
       },
       {
         "id": "cassette-preview",

@@ -426,10 +426,10 @@ area (SPEC §28.14); the canvas status pill
 opens it (both mounts: the graph-editor session's evaluation state and
 the process channel evaluation feed the shared `canvasStatusOf`
 derivation). Panel layout persists per editor through the shell's
-`workspaceId`. The floating `Toolbar`'s canvas group
-carries the view controls (zoom out/in, frame all, frame selection,
-reset zoom, Tidy), every item icon-only
-with its label as tooltip and accessible name, so the toolbar survives
+`workspaceId`. The canvas header's ellipsis toggles the panels; the
+bottom `commands` panel carries the view controls (zoom out/in, frame
+all, frame selection, reset zoom, Tidy), every item icon-only
+with its label as tooltip and accessible name, so the commands survive
 narrow layouts. The document chrome — name with in-place rename, the
 dirty-marked save — renders in the workspace file panel; the standalone
 `/organization/process` route fills the viewport with the editor alone.

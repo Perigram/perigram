@@ -150,6 +150,7 @@
   },
   "designer": {
     "toolbar": "Панель инструментов",
+    "commands": "Команды",
     "palette": "Палитра",
     "inspector": "Инспектор",
     "preview": "Предпросмотр",

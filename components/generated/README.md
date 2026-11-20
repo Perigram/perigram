@@ -396,10 +396,10 @@ contract. It combines two halves:
   in-place name edit, the dirty-marked save, and the divergence refresh —
   and the host registers the dirty state on the workspace page-dirty
   registry so pane-close confirms. A workspace-page entry marked
-  `ownsChrome` renders its chrome itself: the mounted editor owns a
-  `DesignerWorkspace` whose file panel carries the identity row (the
-  `graph-editor` surface is the ownsChrome mount), and record hosts pass
-  it no page-chrome channel.
+  `ownsChrome` renders its chrome itself: graph documents own the file
+  panel, and the facade's cassette and sheet designers declare
+  `ownsChrome` in their surface declaration; record hosts pass those
+  surfaces no page-chrome channel and mount them flush.
   A bound editor page also opens **blank** — `openBlankFileEditor`
   rides the page-open seam with no entity (the create button of an
   editor-protocol type), the blank tab is a singleton entity-less page

@@ -316,7 +316,11 @@ edges with pane gutters between boxes; initial panel sizes derive from
 their rendered content; each editor's layout persists. The file panel
 carries the edited document's identity inside the editor — name with
 in-place rename, save, and reload — and the standalone editor route
-fills the viewport.
+fills the viewport. Every editor cell is a dock pane, including the
+canvas, the file panel, and the bottom command bar; a canvas-header
+ellipsis opens and closes the content panels. Designer surfaces declare
+chrome ownership so the editor strip replaces the page header on every
+mount.
 
 File creates follow the type's declared creation protocol (owner decision
 2026-10-12): an `editor` create opens the type's editor with no record —
