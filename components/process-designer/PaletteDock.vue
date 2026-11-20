@@ -1,6 +1,6 @@
 <template>
   <nav
-    class="absolute left-3 top-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap items-start gap-x-4 gap-y-1"
+    class="pointer-events-none absolute left-3 top-3 z-20 flex max-w-[calc(50%-10rem)] flex-wrap items-start gap-x-4 gap-y-1"
     data-designer-palette-strip
     :aria-label="$t('processDesigner.paletteDock')"
   >
@@ -12,7 +12,7 @@
         size="small"
         text
         severity="secondary"
-        class="bg-subtle"
+        class="pointer-events-auto bg-subtle"
         :outlined="activeGroupId === group.id"
         :aria-pressed="activeGroupId === group.id"
         :aria-label="group.label"

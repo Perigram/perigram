@@ -58,7 +58,7 @@
         v-if="canvasStatus && onActivityClick"
         type="button"
         data-canvas-status
-        class="pointer-events-auto absolute left-1/2 top-3 z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-content-border bg-content px-3 py-1.5 text-supporting text-muted shadow-overlay"
+        class="pointer-events-auto absolute left-1/2 top-3 z-30 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-content-border bg-content px-3 py-1.5 text-supporting text-muted shadow-overlay"
         :aria-label="$t('processDesigner.canvasStatusAria', { status: canvasStatus.label, count: canvasStatus.count })"
         @click="onActivityClick()"
       >

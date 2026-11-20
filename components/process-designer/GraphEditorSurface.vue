@@ -9,8 +9,8 @@
       :bind-frame="bindCanvasFrame"
       :bind-context-palette-search="bindContextPaletteSearch"
       :canvas-items="activeCanvasItems"
-      :canvas-status="props.session ? props.canvasStatus : (props.canvasStatus || canvasStatus)"
-      :on-activity-click="props.session ? props.onActivityClick : (props.onActivityClick || openActivitySurface)"
+      :canvas-status="props.canvasStatus || canvasStatus"
+      :on-activity-click="props.onActivityClick || openActivitySurface"
       :touch-pan-drag="touchPanDrag"
       :default-edge-options="{ type: 'default' }"
       :palette-groups="paletteGroups"
@@ -91,7 +91,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -114,6 +114,7 @@ import {
   registerProcessPortCompatibilityProfile
 } from '#packages/processes';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
+import { canvasStatusOf } from '~/utils/processDesignerCanvasStatus.js';
 
 const props = defineProps({
   record: { type: Object, default: null },
@@ -132,6 +133,8 @@ const props = defineProps({
   nodeDragStop: { type: Function, default: null },
   canvasNodesChange: { type: Function, default: null }
 });
+
+const emit = defineEmits(['preview-visibility']);
 
 const { t, te } = useI18n();
 const toast = useToast();
@@ -192,10 +195,7 @@ const providerErrors = ref([]);
 const graphRevisions = ref([]);
 const graphRevisionsLoading = ref(false);
 const graphRevisionsError = ref('');
-let canvasFrame = null;
-let instanceId = String(props.record?._id || props.record?.id || '');
-
-const processNodeDefinitions = PROCESS_NODE_CATALOG
+let instanceId = String(props.record?._id || props.record?.id || '');const processNodeDefinitions = PROCESS_NODE_CATALOG
   .map(catalog => createProcessGraphNodeDefinition(catalog.kind, { kind: catalog.kind }))
   .filter(Boolean);
 const processGraphResolver = createProcessGraphNodeResolver();
@@ -300,30 +300,28 @@ const canBakeToSavedGraph = computed(() => Boolean(
   && executionRecord?.value?.graph?.revision === graphDocument?.value?.revision
 ));
 
-const canvasStatus = computed(() => {
-  const evaluatedNodes = Object.keys(previewResult?.value?.nodeOutputs || {});
-  const state = previewRunning?.value
-    ? 'running'
-    : previewError?.value
-      ? 'error'
-      : previewResult?.value
-        ? 'ready'
-        : 'idle';
-  const suffix = state[0].toUpperCase() + state.slice(1);
-  return {
-    state,
-    label: t(`processDesigner.canvasStatus${suffix}`),
-    count: evaluatedNodes.length
-  };
-});
+const canvasStatus = computed(() => canvasStatusOf({
+  t,
+  running: Boolean(previewRunning?.value),
+  error: previewError?.value || '',
+  result: previewResult?.value || null
+}));
+
+// The workspace frame must be a ref: the preview-region watch tracks
+// `canvasFrame.value.panels` reactively.
+const canvasFrame = ref(null);
 
 function bindCanvasFrame(instance) {
-  canvasFrame = instance;
+  canvasFrame.value = instance;
   bindFrame(instance);
 }
 
+watch(() => canvasFrame.value?.panels?.preview, open => {
+  emit('preview-visibility', Boolean(open));
+});
+
 function openActivitySurface() {
-  canvasFrame?.openPanel?.('preview');
+  canvasFrame.value?.openPanel?.('preview');
 }
 
 function providerLoadFailure(binding, error, contribution = null) {

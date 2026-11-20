@@ -17,6 +17,8 @@
         v-else
         :session="processSession"
         :canvas-items="canvasDockItems"
+        :canvas-status="processCanvasStatus"
+        @preview-visibility="onPreviewRegionVisibility"
       :palette-placeholder="$t('processDesigner.searchOperations')"
       :empty-message="emptyCanvasMessage"
       :validation-diff-lines="validationDiffLines"
@@ -709,6 +711,7 @@ import { checkDeclarationsAgainstCts, compileClientBundle } from '@perigram/cts'
 import LaneBands from '~/components/process-designer/LaneBands.vue';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
+import { canvasStatusOf } from '~/utils/processDesignerCanvasStatus.js';
 import { arrangeProcessGraph, deriveLaneFacts, laneContainerLayout } from '~/utils/processDesignerArrangement.js';
 import { declarationVocabulary } from '~/utils/processDesignerTypeMigrations.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
@@ -779,6 +782,20 @@ const {
   persistence,
   serializeProcess: () => serializeProcess()
 });
+
+// The canvas status pill reads the channel evaluation lifecycle.
+const processCanvasStatus = computed(() => canvasStatusOf({
+  t,
+  running: channelPreviewRunning.value,
+  error: channelPreviewError.value,
+  result: channelPreviewPayload.value
+}));
+const previewRegionOpen = ref(false);
+
+function onPreviewRegionVisibility(open) {
+  previewRegionOpen.value = open;
+  if (open) scheduleChannelPreview(true);
+}
 
 // The active organization for the registry view: the draft's lineage when a
 // process is loaded, otherwise the authenticated organization — tree
@@ -1403,8 +1420,8 @@ const previewAuthoringSignature = computed(() => JSON.stringify({
   nodes: nodes.value.map(node => [node.id, node.type, node.data]),
   edges: edges.value.map(edge => [edge.id, edge.source, edge.target, edge.sourceHandle, edge.targetHandle, edge.role, edge.label])
 }));
-watch(previewAuthoringSignature, () => { schedulePreviewRecompute(); scheduleChannelPreview(['inspector', 'preview'].includes(inspectTab.value)); });
-watch(inspectTab, () => { schedulePreviewRecompute(); scheduleChannelPreview(['inspector', 'preview'].includes(inspectTab.value)); });
+watch(previewAuthoringSignature, () => { schedulePreviewRecompute(); scheduleChannelPreview(previewRegionOpen.value); });
+watch(inspectTab, () => { schedulePreviewRecompute(); });
 
 function schedulePreviewRecompute() {
   if (previewRecomputeTimer) {
