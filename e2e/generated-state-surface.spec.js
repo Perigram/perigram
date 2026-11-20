@@ -190,7 +190,8 @@ async function seedStatefulProcess(app) {
         graph: {
           nodes: canvas,
           edges: [
-            { id: 'declares:fld_widget_name-cls_widget', source: 'fld_widget_name', target: 'cls_widget', sourceHandle: null, targetHandle: null, type: 'default', role: 'type', label: 'declares' }
+            { id: 'declares:fld_widget_name-cls_widget', source: 'fld_widget_name', target: 'cls_widget', sourceHandle: null, targetHandle: null, type: 'default', role: 'type', label: 'declares' },
+            { id: 'vocab:st_draft-advance', source: 'st_draft', target: 'advance', sourceHandle: null, targetHandle: null, type: 'default', role: 'type', label: 'vocab' }
           ]
         }
       }
