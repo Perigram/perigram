@@ -737,7 +737,7 @@ describe('plugin installs', () => {
       ...coatingListing,
       declarations: {
         ...coatingListing.declarations,
-        runtimes: [{ id: 'python', language: 'python', version: '1', entry: '/runtime.py', targets: ['browser'] }]
+        runtimes: [{ id: 'python', language: 'python', version: '1', entry: '/runtime.py', targets: ['server'] }]
       }
     });
     await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
@@ -811,6 +811,28 @@ describe('plugin installs', () => {
       version: '2',
       declarations: expect.objectContaining({ types: coatingListing.declarations.types }),
       requires: []
+    }));
+    expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
+  });
+
+  it('publishes and installs a node-library plugin with no CTS types', async () => {
+    const nodeLibrary = {
+      ...coatingListing,
+      pluginId: 'geometry-mesh',
+      declarations: {
+        types: [],
+        runtimes: [{ id: 'mesh', language: 'javascript', version: '1', entry: '/runtime.mjs', targets: ['browser', 'server'] }]
+      }
+    };
+    await publishListing(nodeLibrary, AUTH);
+    repository.findCatalogByPluginId.mockResolvedValue(nodeLibrary);
+    await install({ organizationId: ORG, pluginId: 'geometry-mesh', auth: AUTH });
+    expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
+      pluginId: 'geometry-mesh',
+      declarations: expect.objectContaining({
+        types: [],
+        runtimes: nodeLibrary.declarations.runtimes
+      })
     }));
     expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
   });

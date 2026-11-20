@@ -84,13 +84,21 @@ describe('parseListing', () => {
     })).toThrow(/requires a file type/);
   });
 
-  it('refuses bad plugin ids, empty types, and bad service slugs', () => {
+  it('refuses bad plugin ids, empty listings, and bad service slugs', () => {
     expect(() => parseListing({ ...fullListing, pluginId: 'Not A Slug' })).toThrow(/pluginId/);
-    expect(() => parseListing({ ...fullListing, declarations: { types: [] } })).toThrow(/non-empty array/);
+    expect(() => parseListing({ ...fullListing, declarations: { types: [] } })).toThrow(/declarations need CTS types or a declared runtime/);
     expect(() => parseListing({
       ...fullListing,
       declarations: { ...fullListing.declarations, services: [{ id: 'NotASlug', signature: { input: {}, output: {} } }] }
     })).toThrow(/slug/);
+  });
+
+  it('accepts a node-library listing with no CTS types when it declares a runtime', () => {
+    const runtime = { id: 'geometry', language: 'javascript', version: '1', entry: '/runtime.mjs', targets: ['browser', 'server'] };
+    const nodeLibrary = { pluginId: 'geometry-mesh', declarations: { types: [], runtimes: [runtime] } };
+    expect(parseListing(nodeLibrary).runtimes).toEqual([runtime]);
+    expect(parseListing({ ...nodeLibrary, declarations: { runtimes: [runtime] } }).runtimes).toEqual([runtime]);
+    expect(normalizeListing(nodeLibrary).declarations.types).toEqual([]);
   });
 
   it('accepts a renameFrom channel and refuses its degenerate forms', () => {
@@ -145,6 +153,12 @@ describe('parseListing', () => {
     expect(declarations.engine.properties.module.pattern).toBe('^/[a-z0-9/_-]+\\.m?js$');
     expect(schema.properties.requires.items.pattern).toBe('^[a-z0-9-]+$');
     expect(schema.properties.visibility.enum).toEqual(['public', 'private']);
+    expect(schema.properties.declarations.required).toBeUndefined();
+    expect(schema.$defs.declaresTypes).toEqual({ required: ['types'], properties: { types: { minItems: 1 } } });
+    expect(schema.$defs.declaresRuntime).toEqual({ required: ['runtimes'], properties: { runtimes: { minItems: 1 } } });
+    const browserRule = declarations.runtimes.items.allOf[0];
+    expect(browserRule.then.properties.language.const).toBe('javascript');
+    expect(browserRule.then.properties.entry.pattern).toBe('^/[a-z0-9/_-]+\\.m?js$');
   });
 
 
@@ -174,6 +188,12 @@ describe('parseListing', () => {
     invalid({ runtimes: [{ ...runtime, entry: '/../escape.mjs' }] }).toThrow(/entry must be/);
     invalid({ runtimes: [{ ...runtime, language: 'ruby' }] }).toThrow(/language must be/);
     invalid({ runtimes: [{ ...runtime, language: 'python', entry: '/runtime.mjs' }] }).toThrow(/entry extension must match/);
+    invalid({ runtimes: [{ ...runtime, language: 'python', entry: '/runtime.py', targets: ['browser'] }] }).toThrow(/browser worker loads JavaScript entry modules/);
+    invalid({ runtimes: [{ ...runtime, language: 'wasm', entry: '/kernel.wasm', targets: ['browser', 'server'] }] }).toThrow(/browser worker loads JavaScript entry modules/);
+    expect(parseListing({
+      ...fullListing,
+      declarations: { ...fullListing.declarations, runtimes: [{ ...runtime, language: 'python', entry: '/runtime.py', targets: ['server'] }] }
+    }).runtimes[0].language).toBe('python');
     invalid({ runtimes: [runtime], services: [{ ...service, execution: { ...service.execution, runtime: 'python' } }] }).toThrow(/undeclared runtime/);
     invalid({ runtimes: [{ ...runtime, targets: ['browser'] }], services: [service] }).toThrow(/execution targets/);
     invalid({ runtimes: [runtime], services: [{ ...service, mode: 'endpoint' }] }).toThrow(/cannot combine execution metadata/);
