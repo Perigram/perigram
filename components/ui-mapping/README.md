@@ -317,10 +317,13 @@ application.
   the child and linked collections as inline sections below it in
   composed order, the inert stubs. A depth-0 record of an
   editor-bound type on an open page surface resolves the editor page
-  (SPEC §4, owner direction 2026-11-07) instead: the unified header
-  over the editor mounted flush (`RecordEditorBody`
-  [generated](../generated/README.md) with the editor-page chrome
-  channel) — no property rows, trailing sections, stubs, or overlay
+  (SPEC §4, owner direction 2026-11-07) instead (`RecordEditorBody`
+  [generated](../generated/README.md)): an `ownsChrome` surface (the
+  graph editor) owns the page — the editor mounts flush with its file
+  panel and the pane's Back control alone above it when navigation
+  history exists; every other editor keeps the unified header over the
+  flush mount with the editor-page chrome channel — no property rows,
+  trailing sections, stubs, or overlay
   composition; the popup host keeps the compact document, whose editor
   band mounts read-only (the popup carries no chrome channel; editing
   opens through the step-up). In the

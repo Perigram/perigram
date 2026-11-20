@@ -127,15 +127,15 @@ each encode, and the card arrangement) is canonical in the
 
 Shared full-height shell for operational designers — the home of the
 operational-designer chrome contract. The workspace is one dock grid:
-the default slot's canvas is the dock's locked, headerless center
+the default slot's canvas is the dock's headerless center
 panel, and `palette`, `inspector`, and `preview` are dock panels around
 it. Panels drag between groups and dock to group edges; the pane boxes
 and their 6px gutters follow the home workspace's dock language
 ([generated](../generated/README.md)). Initial panel sizes measure the
 rendered content within panel-specific floors and caps; after that the
-user owns the layout, and it persists per editor. The canvas group
-refuses center drops (it stays the center cell) while edge docks around
-it stay live.
+user owns the layout, and it persists per editor. The canvas cell
+refuses center joins (it stays whole) while edge docks around it stay
+live.
 
 Every operational designer uses this contract: cassette design and the
 sheet-design editor use `layout="lanes"`; the process designer uses
@@ -166,7 +166,11 @@ registers on the workspace page-dirty registry under the hosting page
 key, so pane-close confirmation follows the editor wherever it mounts.
 The file panel and the canvas panel are structural: neither is
 closeable, and the toolbar's toggle group carries the content panels
-alone.
+alone. An `ownsChrome` file surface (the `graph-editor` binding) owns
+its whole page on every mount: the standalone route fills the
+viewport, the workspace pane tab renders the editor flush with neither
+header nor lineage strip, and the record page renders the editor with
+the pane's Back control alone above it.
 
 The floating canvas toolbar (`DesignerToolbar`) renders inside the
 canvas cell, bottom-centered: the start group carries the panel toggles
@@ -909,8 +913,9 @@ transcription stay in the host composer.
   height instead of stretching to the tallest item.
 - **`WorkspaceDock.vue`**: Dockview wrapper shared by the home workspace
   and designer shells — one dock language: bordered pane boxes with chip
-  tabs and 6px gutters; a locked group (the designer canvas) paints no
-  box. Panels use one content slot (`#content` with the panel's key) and
+  tabs and 6px gutters; the canvas center group (marked by `canvas-key`)
+  paints no box and refuses center joins while its edges stay live drop
+  targets. Panels use one content slot (`#content` with the panel's key) and
   one tab component; the host supplies item labels, icons, close rules,
   and optional add/split/close group actions. The exposed API covers
   panel open/replace/remove, group add/split/remove, layout
