@@ -72,6 +72,19 @@
   with a visible tab now, so its edges take drops, its tab drags like
   every other panel, and only joins into its center stay refused.
 
+### Agent Notes (2026-11-20, agent/editor-dock-pass5 — owner defect report: command bar, header, padding)
+
+- Owner report: the bottom command bar was floating chrome instead of a
+  dock panel; the file page header still wrapped plugin designer editors;
+  editor dock panes lost their outer gutter; the cassette canvas read as
+  a boxed pane while the graph canvas read as the work surface.
+- `commands` is a dock panel below the canvas carrying the canvas
+  commands; the canvas group's header ellipsis toggles palette,
+  inspector, preview, and commands. The dock sits in a p-1.5 wrapper so
+  the pane boxes keep their outer gutter. Plugin designer surfaces
+  declare `ownsChrome` in their surface declaration, so record hosts
+  render them flush with no page header.
+
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
 The process designer and graph-document editor converge on one authoring

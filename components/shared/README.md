@@ -148,13 +148,13 @@ active organization. `layout` records the host's intended composition
 (`lanes` for persistent side panels, `canvas` for graph canvases). A
 restored layout applies only when it still contains the canvas panel;
 otherwise the workspace rebuilds the default composition — palette left,
-inspector right, preview below the canvas. The floating toolbar's panel
-toggles add and remove dock panels and mirror their open state in
+inspector right, preview and commands below the canvas. The canvas
+header's ellipsis toggles dock panels and mirrors their open state in
 `panels`. Narrow hosts (below 48rem of workspace width) replace the dock
-with one bounded tabbed overlay with the file strip above it; the wide
-dock layout is restored when the host widens. Canvas commands render
-through the toolbar's canvas group (`canvas-items` prop), and panel
-content composes as plain labeled sections.
+with one bounded tabbed overlay with the file strip above it and the
+commands row below; the wide dock layout is restored when the host
+widens. Canvas commands render in the commands panel (`canvas-items`
+prop), and panel content composes as plain labeled sections.
 
 The file panel carries the edited document's identity inside the editor:
 a host passing `chrome` — the editor-page chrome api
@@ -165,30 +165,30 @@ divergence refresh, and the dirty-marked save. The bound dirty state
 registers on the workspace page-dirty registry under the hosting page
 key, so pane-close confirmation follows the editor wherever it mounts.
 The file panel and the canvas panel are structural: neither is
-closeable, and the toolbar's toggle group carries the content panels
-alone. An `ownsChrome` file surface (the `graph-editor` binding) owns
+closeable, and the canvas header's ellipsis menu carries the toggles for
+the content panels (palette, inspector, preview, commands). The bottom
+command bar is the `commands` dock panel below the canvas: it carries
+the canvas commands through `DesignerToolbarItems`, docks and drags like
+every other panel, and its ellipsis toggle reopens it. An `ownsChrome` file surface (the `graph-editor` binding) owns
 its whole page on every mount: the standalone route fills the
 viewport, the workspace pane tab renders the editor flush with neither
 header nor lineage strip, and the record page renders the editor with
 the pane's Back control alone above it.
 
-The floating canvas toolbar (`DesignerToolbar`) renders inside the
-canvas cell, bottom-centered: the start group carries the panel toggles
-and the end group the canvas and content commands (`canvas-items`
-prop), each through `DesignerToolbarItems` — one icon-only geometry for
-every item; a boolean-pressed item is the same button outlined with an
-aria-pressed state, label as tooltip/accessible name. Every
+The dock sits in a padded wrapper so the pane boxes keep their outer
+gutter. Every item in the commands panel and the ellipsis menu renders
+through `DesignerToolbarItems` — one icon-only geometry for every item;
+a boolean-pressed item is the same button outlined with an aria-pressed
+state, label as tooltip/accessible name. Every
 canvas-capable designer exposes the same first-level zoom cluster in
 the canvas group (zoom out, zoom in, reset/fit — plus frame selection
 on graph canvases), undo/redo where the editor owns a history, and
 content operations with the destructive item last in its group;
 DrawingCanvas hides its internal zoom cluster in designer mode and
-exposes the commands for the toolbar instead. The
-wrapper passes pointer events through its empty sides so it never
-blocks canvas interaction. A designer may position feature-local
-handles and popovers inside its canvas cell. Slot content compiles in
-the parent scope, so designer code drives panels through the workspace
-ref API (`panels`, `toggle`, `setPanel`, `openPanel`).
+exposes the commands for the panel instead. A designer may position
+feature-local handles and popovers inside its canvas cell. Slot content
+compiles in the parent scope, so designer code drives panels through the
+workspace ref API (`panels`, `toggle`, `setPanel`, `openPanel`).
 
 Items are plain data —
 `{ icon, label, onClick, disabled?, loading?, pressed?, onIcon?, hasPopup?, separator? }`
@@ -932,10 +932,6 @@ transcription stay in the host composer.
   name with in-place rename, the divergence refresh, and the
   dirty-marked save. Mounted by `DesignerWorkspace` as the `file` dock
   panel above the canvas and as the compact strip row.
-- **`DesignerToolbar.vue`**: The floating canvas toolbar wrapper — a
-  PrimeVue `Toolbar` bottom-centered inside the canvas cell with panel
-  toggles in the start group and canvas commands in the end group, both
-  rendered through `DesignerToolbarItems`.
 - **`InstanceActionsPopover.vue`**: Shared ellipsis trigger and compact action
   popover for entity-local commands. Disclosure is opt-in: full
   `InstanceCard` footers render their actions inline by default, and only a
