@@ -731,8 +731,9 @@ from the compiled manifest.
   [shared](../shared/README.md)): a pane is a dockview group and a tab is
   a dockview panel. Panels drag between groups, dock to group edges into
   new splits, and carry a pane-local Back control, an add control, and a
-  split/close menu in the group header. Group boxes are the pane chrome;
-  splitters stay invisible but draggable.
+  split/close menu in the group header. Group boxes are the pane chrome and
+  keep a 6px gutter between adjacent panes; the splitter rides inside the
+  gutter, invisible but draggable.
 - Every group holds at least one panel: fresh groups start on an empty
   placeholder, a new tab consumes a selected empty placeholder, and
   closing a group's last panel closes the group except for the
