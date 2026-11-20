@@ -114,6 +114,18 @@ Landed this session: Hide secondary retired end to end
 en+ru locale keys, README law); `hidden` stays a stripped runtime key
 in `stripRuntimeNodeData`.
 
+### Agent Notes (2026-11-20, owner correction round)
+
+- Collapsed cards keep the top/bottom socket rails (owner corrective):
+  inputs on the top rail, outputs on the bottom rail, the name once in
+  the header — the side-rail experiment reverted.
+- Preview renders values, not JSON dumps: `GraphOutputView.vue` is the
+  one output-value renderer (best supported view by default, JSON an
+  explicit choice — the panel's old `activeView='json'` default died);
+  the graph editor's output panel and the outputs channel both render
+  through it, and the channel's per-branch `<code>` JSON rows are gone.
+  Per-node outputs stay as the collapsed diagnostics `<details>`.
+
 ### Agent Notes (2026-11-19, agent/graph-editor-unslop — owner defect report)
 
 Owner report: latest graph editor UI work carried no real improvements —

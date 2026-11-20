@@ -15,11 +15,13 @@ describe('process node canvas authoring boundary', () => {
     expect(source).toContain('item.access && item.access !== \'item\'');
   });
 
-  it('collapses to the name once with sockets kept on their side rails', async () => {
+  it('collapses to the name once with sockets on the top and bottom rails', async () => {
     const source = await readComponent('./ProcessNode.vue');
 
-    expect(source).toContain('collapseSocketRows');
-    expect(source).not.toMatch(/side="top"|side="bottom"/);
+    expect(source).toContain('collapseInputs');
+    expect(source).toContain('collapseOutputs');
+    expect(source).toContain('side="top"');
+    expect(source).toContain('side="bottom"');
     expect(source.match(/v-if="collapsed"/g)).toHaveLength(1);
   });
 

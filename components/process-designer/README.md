@@ -64,7 +64,10 @@ values use a JSON editor with declared base, shape, and nullability checks.
 Output representations derive from the shared graph-output view contract
 ([utils](../../utils/README.md) `graphOutputViews`): text, markdown,
 tables, images, documents, scene values, plugin renderers, with JSON as
-the explicit fallback view.
+the explicit fallback view. `GraphOutputView.vue` is the one value
+renderer every preview surface composes — the selected output renders
+its best supported view by default (JSON is an explicit choice), and the
+outputs channel renders each evaluated value through the same component.
 
 The inspector renders node configuration properties from each
 definition's JSON schema and edits graph interface transport shape,
@@ -144,9 +147,9 @@ without its name is unreadable chrome), and the event section (effects
 only). Socket rows carry the socket name; the element type, access, and
 qualifier ride the row's hover/focus tooltip — a per-socket connection
 icon is chrome encoding nothing. A collapsed card renders the name once
-with its header icons and keeps every socket handle on its side rail —
-inputs left, outputs right, in expanded order — so wires keep their
-anchors; the collapse state rides the canvas node data and persists with
+with its header icons and every socket at a distinct position — inputs
+on the top rail, outputs on the bottom rail, names on the handle
+tooltips; the collapse state rides the canvas node data and persists with
 the draft.
 Sections separate by spacing alone (`mt-2`/`mt-3`, row `py-1.5`);
 separator lines would form a third visual system competing with stripes
@@ -561,7 +564,8 @@ built-in outputs channel comes
 first: `GraphOutputsChannel.vue` over `graphOutputEntries`
 ([utils](../../utils/README.md)) lists every visible evaluated output
 under its card labels — section and node, socket label and type, branch
-paths, sampled items — and a hidden node's error alone. The process channel
+paths — rendering each value through the shared `GraphOutputView.vue`
+(best representation first), and a hidden node's error alone. The process channel
 preview evaluates through the process-definition preview endpoint: CTS reads
 resolve through the authorized data environment and services dispatch through
 their installed managed runtime. Installed
@@ -682,16 +686,20 @@ nodes, which show no inspection action.
 
 ## Structure
 
-18 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `GraphDocumentNode.vue`, `CtsTypeNode.vue`),
+20 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `GraphDocumentNode.vue`, `CtsTypeNode.vue`),
 the shared canvas presentation (`GraphCanvas.vue`), the graph-document
-editor mount (`GraphEditorSurface.vue`), graph-specific inspector and preview (`GraphDocumentInspector.vue`, `GraphDocumentPreviewPanel.vue`), the process inspector body
-(`GraphInspector.vue`) and channel-tab strip (`GraphPreviewPanel.vue`),
-the built-in outputs channel (`GraphOutputsChannel.vue`),
+editor mount (`GraphEditorSurface.vue`), graph-specific inspector and
+preview (`GraphDocumentInspector.vue`, `GraphDocumentPreviewPanel.vue`),
+the process inspector body (`GraphInspector.vue`) and channel-tab strip
+(`GraphPreviewPanel.vue`), the built-in outputs channel
+(`GraphOutputsChannel.vue`), the one output-value renderer
+(`GraphOutputView.vue`), the value authoring controls
+(`TypedValueControl.vue`, `TemplateValuesControl.vue`),
 the palette dock (`PaletteDock.vue`), the context palette list
 (`OperationPalette.vue`), lanes (`LaneBands.vue`), the loop edge
 (`SelfLoopEdge.vue`), preview channels (`PreviewChannelMount.vue`),
-dialogs (`TypeMigrationStepsDialog.vue`,
-`ApplyMigrationDialog.vue`), and `TypedValueControl.vue` — plus
+and dialogs (`TypeMigrationStepsDialog.vue`,
+`ApplyMigrationDialog.vue`) — plus
 `inspector/` (3 SFCs:
 `DeclarationEdgeInspector`, `DeclarationInspector`,
 `ProcessNodeInspector`). The class/field/state declaration cards render
