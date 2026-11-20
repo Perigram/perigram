@@ -4464,8 +4464,7 @@ export default function createSurface({ vue, components, locale, queries, record
           layout: 'lanes',
           workspaceId: 'cassette-designer',
           class: 'min-h-0 flex-1',
-          documentItems: sketchMode.value ? [] : documentDockItems.value,
-          canvasItems: canvasDockItems.value
+          canvasItems: [...(sketchMode.value ? [] : documentDockItems.value), ...canvasDockItems.value]
         }, {
           palette: renderPalette,
           inspector: renderInspector,

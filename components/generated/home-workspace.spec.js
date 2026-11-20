@@ -133,7 +133,7 @@ describe('workspace dock layout', () => {
     expect(normalized.panels['screen:list:doc-1']).not.toHaveProperty('tabComponent');
   });
 
-  it('keeps floating groups through normalize and prune', () => {
+  it('drops floating groups from stored layouts', () => {
     const layout = layoutFixture(['screen:keep', 'screen:drop']);
     layout.panels['screen:keep'] = { id: 'screen:keep', contentComponent: 'workspacePanel' };
     layout.panels['screen:drop'] = { id: 'screen:drop', contentComponent: 'workspacePanel' };
@@ -147,14 +147,11 @@ describe('workspace dock layout', () => {
         position: { top: 40, left: 20, width: 200, height: 120 }
       }
     ];
-    const floating = normalizeDockLayout(layout).floatingGroups;
-    expect(floating).toHaveLength(2);
+    expect(normalizeDockLayout(layout)).not.toHaveProperty('floatingGroups');
 
-    const pruned = pruneDockLayout(layout, key => key === 'screen:keep');
-    expect(pruned.floatingGroups).toEqual([{
-      data: { id: 'g9', views: ['screen:keep'], activeView: 'screen:keep' },
-      position: { top: 0, left: 120, width: 300, height: 200 }
-    }]);
+    const pruned = pruneDockLayout(layout, key => key === 'screen:keep' || key === 'screen:drop');
+    expect(pruned).not.toHaveProperty('floatingGroups');
+    expect(pruned.panels).toHaveProperty('screen:keep');
   });
 
   it('prunes unresolved panels and collapses emptied groups', () => {

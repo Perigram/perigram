@@ -42,6 +42,9 @@ export const fileSurfaceRegistry = {
       icon: 'pi pi-share-alt',
       component: defineAsyncComponent(() => import('~/pages/organization/process.vue')),
       direct: true,
+      // The editor renders its document chrome itself (the workspace file
+      // panel): hosts pass no page-chrome channel to this surface.
+      ownsChrome: true,
       props: page => ({ graphInstanceId: String(page?.entity?._id || page?.entity?.id || 'blank') })
     }
   }

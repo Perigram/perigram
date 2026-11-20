@@ -1,6 +1,6 @@
-// Designer workspace shell SSR: the host canvas renders server-side and
-// the dock overlay mounts client-side, so the server markup carries the
-// canvas alone.
+// Designer workspace shell SSR: the workspace renders its section shell
+// server-side; the dock (and with it the canvas panel content) mounts
+// client-side, so the server markup carries the shell alone.
 import { createSSRApp, h } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { createI18n } from 'vue-i18n';
@@ -20,10 +20,10 @@ vi.mock('~/utils/designer-workspace-state.js', () => ({
   saveDesignerWorkspaceState: () => {}
 }));
 
-async function renderWorkspace() {
+async function renderWorkspace(props = {}) {
   const DesignerWorkspace = (await import('./DesignerWorkspace.vue')).default;
   const app = createSSRApp({
-    render: () => h(DesignerWorkspace, { layout: 'lanes', workspaceId: 'graph-editor' }, {
+    render: () => h(DesignerWorkspace, { layout: 'lanes', workspaceId: 'graph-editor', ...props }, {
       default: () => h('div', { 'data-canvas-content': '' }, 'canvas'),
       palette: () => h('div', 'palette'),
       inspector: () => h('div', 'inspector'),
@@ -36,10 +36,18 @@ async function renderWorkspace() {
 }
 
 describe('designer workspace shell', () => {
-  it('renders the canvas server-side and leaves the dock client-side', async () => {
+  it('renders the shell server-side and leaves the dock client-side', async () => {
     const html = await renderWorkspace();
     expect(html).toContain('data-designer-layout="lanes"');
-    expect(html).toContain('data-canvas-content');
+    expect(html).not.toContain('data-canvas-content');
+    expect(html).not.toContain('dv-groupview');
+  }, 15000);
+
+  it('ssr-renders the shell with bound document chrome', async () => {
+    const html = await renderWorkspace({
+      chrome: { name: 'Draft graph', dirty: false, saving: false, diverged: false }
+    });
+    expect(html).toContain('data-designer-layout="lanes"');
     expect(html).not.toContain('dv-groupview');
   }, 15000);
 });

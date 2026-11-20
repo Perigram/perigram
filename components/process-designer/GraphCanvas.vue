@@ -3,6 +3,7 @@
     <DesignerWorkspace
       :ref="bindFrame"
       :canvas-items="canvasItems"
+      :chrome="chrome"
       layout="canvas"
       workspace-id="graph-editor"
       class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
@@ -179,6 +180,8 @@ const props = defineProps({
   bindFrame: { type: Function, required: true },
   bindContextPaletteSearch: { type: Function, required: true },
   canvasItems: { type: Array, default: () => [] },
+  // The bound editor-page chrome api: the workspace file panel renders it.
+  chrome: { type: Object, default: null },
   touchPanDrag: { type: Boolean, default: false },
   defaultEdgeOptions: { type: Object, default: () => ({ type: 'default' }) },
   paletteGroups: { type: Array, default: () => [] },

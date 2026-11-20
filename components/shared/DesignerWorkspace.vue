@@ -10,15 +10,10 @@
     :data-designer-layout="layout"
   >
     <div v-if="!compact" class="relative min-h-0 min-w-0 flex-1">
-      <div class="absolute inset-0">
-        <slot />
-      </div>
       <WorkspaceDock
         ref="dock"
-        class="absolute inset-0 pointer-events-none"
-        overlay
-        allow-floating
-        spacer-key="workspace-spacer"
+        class="h-full min-h-0 w-full"
+        canvas-key="canvas"
         :items="dockItems"
         :panel-closeable="panelCloseable"
         @ready="onDockReady"
@@ -26,36 +21,37 @@
         @layout-change="onDockLayoutChange"
       >
         <template #content="{ item }">
-          <slot v-if="item.key === 'palette'" name="palette" />
+          <div v-if="item.key === 'canvas'" class="relative h-full min-h-0 w-full min-w-0 overflow-hidden">
+            <slot />
+            <DesignerToolbar
+              v-if="hasToolbarItems"
+              :start-items="toolbarStartItems"
+              :end-items="canvasItems"
+            />
+          </div>
+          <DesignerFilePanel v-else-if="item.key === 'file'" :chrome-api="chrome" />
+          <slot v-else-if="item.key === 'palette'" name="palette" />
           <slot v-else-if="item.key === 'inspector'" name="inspector" />
           <slot v-else-if="item.key === 'preview'" name="preview" />
         </template>
       </WorkspaceDock>
     </div>
 
-    <main v-else class="relative min-h-0 min-w-0 flex-1 overflow-hidden">
-      <slot />
-    </main>
-
-    <!-- One floating toolbar owns every designer command: panel toggles in
-         the start group, canvas commands in the end group. -->
-    <div
-      v-if="hasToolbarItems || $slots.toolbar"
-      data-designer-toolbar
-      class="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center px-3"
-    >
-      <Toolbar
-        :aria-label="$t('designer.toolbar')"
-        class="pointer-events-auto max-w-full overflow-x-auto p-1 gap-1"
-      >
-        <template #start>
-          <DesignerToolbarItems :items="toolbarStartItems" />
-        </template>
-        <template v-if="canvasItems.length" #end>
-          <DesignerToolbarItems :items="canvasItems" />
-        </template>
-      </Toolbar>
-    </div>
+    <template v-else>
+      <DesignerFilePanel
+        v-if="hasFile"
+        :chrome-api="chrome"
+        class="shrink-0 border-b [border-color:var(--ck-chrome-border)]"
+      />
+      <main class="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+        <slot />
+        <DesignerToolbar
+          v-if="hasToolbarItems"
+          :start-items="toolbarStartItems"
+          :end-items="canvasItems"
+        />
+      </main>
+    </template>
 
     <!-- Compact overlay panels follow the popover contract: a tap on anything
          outside the panel (the backdrop over the canvas area) closes it. -->
@@ -93,15 +89,15 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, provide, reactive, ref, useSlots, watch } from 'vue';
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, provide, reactive, ref, useSlots, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Toolbar from 'primevue/toolbar';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import DesignerToolbarItems from './DesignerToolbarItems.vue';
+import DesignerFilePanel from './DesignerFilePanel.vue';
+import DesignerToolbar from './DesignerToolbar.vue';
 import WorkspaceDock from './WorkspaceDock.vue';
 import { useAuthStore } from '~/stores/auth';
 import {
@@ -110,6 +106,7 @@ import {
   saveDesignerWorkspaceState
 } from '~/utils/designer-workspace-state.js';
 import { pruneDockLayout } from '~/utils/workspace-dock-layout.js';
+import { setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
 
 defineOptions({ inheritAttrs: false });
 
@@ -123,18 +120,20 @@ const props = defineProps({
   // toolbar end group.
   canvasItems: { type: Array, default: () => [] },
   // Stable editor identity for persisted dock layouts.
-  workspaceId: { type: String, default: '' }
+  workspaceId: { type: String, default: '' },
+  // The bound editor-page chrome api (`{ name, dirty, saving, diverged,
+  // save(), rename(), reload() }`): its presence opens the file panel.
+  chrome: { type: Object, default: null }
 });
 
 const slots = useSlots();
 const { t } = useI18n();
 const authStore = useAuthStore();
-// The transparent panel that keeps the overlay dock alive while the host
-// canvas shows through empty dock space.
-const WORKSPACE_SPACER = 'workspace-spacer';
+// The locked, headerless center panel: the host canvas fills its cell and
+// refuses center drops while edge docks around it stay live.
+const CANVAS = 'canvas';
 const workspace = ref(null);
 const dock = ref(null);
-const dockReady = ref(false);
 let layoutCache = null;
 let pendingLayout;
 let saveTimer = null;
@@ -142,16 +141,19 @@ let saveTimer = null;
 const hasPalette = computed(() => Boolean(slots.palette));
 const hasInspector = computed(() => Boolean(slots.inspector));
 const hasPreview = computed(() => Boolean(slots.preview));
+const hasFile = computed(() => Boolean(props.chrome));
 
 const panelKeys = computed(() => [
-  WORKSPACE_SPACER,
+  CANVAS,
+  ...(hasFile.value ? ['file'] : []),
   ...(hasPalette.value ? ['palette'] : []),
   ...(hasInspector.value ? ['inspector'] : []),
   ...(hasPreview.value ? ['preview'] : [])
 ]);
 
 const panelMeta = computed(() => ({
-  [WORKSPACE_SPACER]: { label: '', icon: '' },
+  [CANVAS]: { label: '', icon: '' },
+  file: { label: t('designer.file'), icon: 'pi pi-file' },
   palette: { label: t('designer.palette'), icon: 'pi pi-align-left' },
   inspector: { label: t('designer.inspector'), icon: 'pi pi-align-right' },
   preview: { label: t('designer.preview'), icon: 'pi pi-eye' }
@@ -164,7 +166,7 @@ const dockItems = computed(() => panelKeys.value.map(key => ({
 })));
 
 function panelCloseable(key) {
-  return key !== WORKSPACE_SPACER;
+  return key !== CANVAS && key !== 'file';
 }
 
 const panels = reactive({ palette: true, inspector: true, preview: false });
@@ -184,14 +186,15 @@ function syncPanels() {
 }
 
 async function onDockReady() {
-  dockReady.value = true;
   const layout = pendingLayout !== undefined ? pendingLayout : persistedLayout();
   pendingLayout = undefined;
   const pruned = layout ? pruneDockLayout(layout, key => panelKeys.value.includes(key)) : null;
-  if (pruned && pruned.panels[WORKSPACE_SPACER]) {
+  if (pruned && pruned.panels[CANVAS]) {
     dock.value?.applyLayout(pruned);
     await nextTick();
+    if (hasFile.value && !dock.value?.hasPanel('file')) await addAuxPanel('file', 'above', 'height');
     syncPanels();
+    schedulePersist();
     return;
   }
   await buildDefaultLayout();
@@ -227,8 +230,9 @@ function onDockLayoutChange(layout) {
 async function buildDefaultLayout() {
   const live = dock.value;
   if (!live) return;
-  const spacerGroup = live.addGroup({ hideHeader: true, locked: true });
-  live.addPanel(WORKSPACE_SPACER, { referenceGroup: spacerGroup });
+  const canvasGroup = live.addGroup({ hideHeader: true, locked: true });
+  live.addPanel(CANVAS, { referenceGroup: canvasGroup });
+  if (hasFile.value) await addAuxPanel('file', 'above', 'height');
   if (hasPalette.value) await addAuxPanel('palette', 'left', 'width');
   if (hasInspector.value) await addAuxPanel('inspector', 'right', 'width');
   syncPanels();
@@ -238,21 +242,23 @@ async function buildDefaultLayout() {
 async function addAuxPanel(key, direction, axis) {
   const live = dock.value;
   if (!live) return;
-  const panel = live.addPanel(key, { referencePanel: WORKSPACE_SPACER, direction });
+  const panel = live.addPanel(key, { referencePanel: CANVAS, direction });
   if (!panel) return;
   await nextTick();
-  await live.sizePanelToContent(key, {
-    axis,
-    min: axis === 'height' ? 160 : 180,
-    max: axis === 'height' ? 520 : (key === 'inspector' ? 460 : 380),
-    ratio: axis === 'height' ? 0.5 : 0.32
-  });
+  const sizing = key === 'file'
+    ? { min: 84, max: 96, ratio: 0.12 }
+    : axis === 'height'
+      ? { min: 160, max: 520, ratio: 0.5 }
+      : { min: 180, max: key === 'inspector' ? 460 : 380, ratio: 0.32 };
+  await live.sizePanelToContent(key, { axis, ...sizing });
 }
 
 function showPanel(key) {
   if (!dock.value || !panelKeys.value.includes(key)) return;
   if (dock.value.hasPanel(key)) {
     dock.value.focusPanel(key);
+  } else if (key === 'file') {
+    addAuxPanel('file', 'above', 'height').then(() => schedulePersist());
   } else if (key === 'palette') {
     addAuxPanel('palette', 'left', 'width').then(() => schedulePersist());
   } else if (key === 'inspector') {
@@ -260,13 +266,13 @@ function showPanel(key) {
   } else if (key === 'preview') {
     addAuxPanel('preview', 'below', 'height').then(() => schedulePersist());
   }
-  panels[key] = true;
+  if (panels[key] !== undefined) panels[key] = true;
 }
 
 function hidePanel(key) {
-  if (key === 'canvas') return;
+  if (key === 'canvas' || key === 'file') return;
   if (dock.value?.hasPanel(key)) dock.value.removePanel(key);
-  panels[key] = false;
+  if (panels[key] !== undefined) panels[key] = false;
   schedulePersist();
 }
 
@@ -309,7 +315,7 @@ const panelDockItems = computed(() => [
 
 const toolbarStartItems = panelDockItems;
 
-const hasToolbarItems = computed(() => toolbarStartItems.value.length > 0 || props.canvasItems.length > 0 || Boolean(slots.toolbar));
+const hasToolbarItems = computed(() => toolbarStartItems.value.length > 0 || props.canvasItems.length > 0);
 
 function toggle(panel) {
   togglePanelFromToolbar(panel);
@@ -350,6 +356,14 @@ provide('designerWorkspacePanels', {
   setPanel,
   isPanelOpen: panel => Boolean(panels[panel])
 });
+
+// The bound editor's dirty state guards the hosting pane's close.
+const pageKey = inject('workspacePageKey', '');
+if (pageKey) {
+  watch(() => props.chrome?.dirty, dirty => {
+    setWorkspacePageDirty(pageKey, Boolean(dirty));
+  });
+}
 
 const workspaceObserver = { observer: null, compactTimer: null };
 

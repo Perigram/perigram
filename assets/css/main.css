@@ -919,13 +919,13 @@ body {
     padding: 1px 0;
 }
 
-/* Dockview chrome. Two modes share one seam: `--chip-tabs` (home panes:
-   bordered pane boxes with chip tabs) and `--overlay` (editor panels
-   floating over the host canvas; empty dock space passes pointer events
-   through). Splitters stay invisible but draggable. Values resolve from
-   preset/app tokens. */
+/* Dockview chrome. One dock language for home panes and designer panels:
+   bordered pane boxes with chip tabs and a 6px gutter between adjacent
+   boxes; the splitter rides inside the gutter, invisible but draggable. A
+   locked group (the designer canvas) is the base surface and paints no
+   box. Values resolve from preset/app tokens. */
 .perigram-dock {
-    --dv-tabs-and-actions-container-height: 2.25rem;
+    --dv-tabs-and-actions-container-height: 2.5rem;
     --dv-tabs-and-actions-container-font-size: inherit;
     --dv-tab-font-size: inherit;
     --dv-tab-margin: 0 0.125rem;
@@ -939,14 +939,14 @@ body {
 
 .perigram-dock .dockview-theme-light,
 .perigram-dock .dockview-theme-dark {
-    --dv-group-view-background-color: transparent;
+    --dv-group-view-background-color: var(--p-content-background);
     --dv-tabs-and-actions-container-background-color: transparent;
-    --dv-activegroup-visiblepanel-tab-background-color: transparent;
-    --dv-activegroup-visiblepanel-tab-color: var(--p-text-color);
+    --dv-activegroup-visiblepanel-tab-background-color: var(--p-button-secondary-background);
+    --dv-activegroup-visiblepanel-tab-color: var(--p-button-secondary-color);
     --dv-activegroup-hiddenpanel-tab-background-color: transparent;
     --dv-activegroup-hiddenpanel-tab-color: var(--p-text-muted-color);
-    --dv-inactivegroup-visiblepanel-tab-background-color: transparent;
-    --dv-inactivegroup-visiblepanel-tab-color: var(--p-text-muted-color);
+    --dv-inactivegroup-visiblepanel-tab-background-color: var(--p-button-secondary-background);
+    --dv-inactivegroup-visiblepanel-tab-color: var(--p-button-secondary-color);
     --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
     --dv-inactivegroup-hiddenpanel-tab-color: var(--p-text-muted-color);
     --dv-tab-divider-color: transparent;
@@ -958,6 +958,14 @@ body {
     box-sizing: border-box;
     border: 3px solid transparent;
     background-clip: padding-box;
+    border-radius: calc(var(--p-border-radius-md) + 3px);
+    box-shadow: inset 0 0 0 1px var(--ck-chrome-border);
+}
+
+.perigram-dock .dv-groupview.dv-locked-groupview {
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 .perigram-dock .dv-groupview > .dv-content-container {
@@ -976,6 +984,15 @@ body {
 
 .perigram-dock .dv-tabs-and-actions-container {
     padding-inline: 0.25rem;
+    border-bottom: 1px solid var(--ck-chrome-border);
+}
+
+.perigram-dock .dv-tab.dv-active-tab {
+    border: 1px solid var(--p-button-secondary-border-color);
+}
+
+.perigram-dock .dv-tab.dv-inactive-tab {
+    border: 1px solid transparent;
 }
 
 .perigram-dock .dv-tab.dv-inactive-tab:hover {
@@ -984,61 +1001,4 @@ body {
 
 .perigram-dock .dv-sash {
     background: transparent;
-}
-
-.perigram-dock--chip-tabs {
-    --dv-tabs-and-actions-container-height: 2.5rem;
-}
-
-.perigram-dock--chip-tabs .dockview-theme-light,
-.perigram-dock--chip-tabs .dockview-theme-dark {
-    --dv-activegroup-visiblepanel-tab-background-color: var(--p-button-secondary-background);
-    --dv-activegroup-visiblepanel-tab-color: var(--p-button-secondary-color);
-    --dv-inactivegroup-visiblepanel-tab-background-color: var(--p-button-secondary-background);
-    --dv-inactivegroup-visiblepanel-tab-color: var(--p-button-secondary-color);
-}
-
-.perigram-dock--chip-tabs .dv-groupview {
-    border-radius: calc(var(--p-border-radius-md) + 3px);
-    box-shadow: inset 0 0 0 1px var(--ck-chrome-border);
-}
-
-.perigram-dock--chip-tabs .dv-tabs-and-actions-container {
-    border-bottom: 1px solid var(--ck-chrome-border);
-}
-
-.perigram-dock--chip-tabs .dv-tab.dv-active-tab {
-    border: 1px solid var(--p-button-secondary-border-color);
-}
-
-.perigram-dock--chip-tabs .dv-tab.dv-inactive-tab {
-    border: 1px solid transparent;
-}
-
-.perigram-dock--overlay {
-    pointer-events: none;
-}
-
-.perigram-dock--overlay .dv-sash,
-.perigram-dock--overlay .dv-groupview {
-    pointer-events: auto;
-}
-
-.perigram-dock--overlay .dv-groupview {
-    border-radius: calc(var(--p-border-radius-md) + 3px);
-    background: var(--p-content-background);
-    box-shadow: inset 0 0 0 1px var(--ck-chrome-border), var(--p-overlay-popover-shadow);
-}
-
-.perigram-dock--overlay .perigram-dock__spacer-group {
-    pointer-events: none;
-    background: transparent;
-    box-shadow: none;
-}
-
-.perigram-dock--overlay .dv-floating-overlay-host .dv-resize-container {
-    pointer-events: auto;
-    background: transparent;
-    border: none;
-    box-shadow: none;
 }

@@ -67,7 +67,7 @@ function sameFamily(row, record) {
 }
 
 export default function createSurface({ vue, components, locale, queries, records, notify, access, open }) {
-  const { h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent } = vue;
+  const { h, ref, reactive, computed, watch, onMounted, onBeforeUnmount, defineComponent } = vue;
   const t = locale.t;
 
   if (!queries || !notify || !access || !open) {
@@ -96,12 +96,10 @@ export default function createSurface({ vue, components, locale, queries, record
       const view = ref({ cx: 610, cy: 1220, k: 0.25 });
       const svgSize = ref({ w: 800, h: 600 });
       const localNames = ref({});
-      const renameDraft = ref('');
       const standards = ref([]);
       const pens = ref([]);
       const margin = ref(0);
       const visibleLayerCodes = ref([]);
-      const dockMenu = ref(null);
       const frameState = ref({});
 
       // The picker's options: unplaced family members first, then the
@@ -579,13 +577,12 @@ export default function createSurface({ vue, components, locale, queries, record
 
       // ---- chrome actions -----------------------------------------------------
 
-      function applyRename() {
+      function applyRename(name) {
         const entry = activeSheetEntry.value;
-        const name = renameDraft.value.trim();
-        dockMenu.value?.hide?.();
-        if (!entry || !name || name === displayName.value) return;
-        props.persistence.rename(entry.record, name)
-          .then(() => { localNames.value = { ...localNames.value, [entry.id]: name }; })
+        const next = String(name ?? '').trim();
+        if (!entry || !next || next === displayName.value) return;
+        props.persistence.rename(entry.record, next)
+          .then(() => { localNames.value = { ...localNames.value, [entry.id]: next }; })
           .catch(error => {
             notify({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '' });
           });
@@ -1018,28 +1015,20 @@ export default function createSurface({ vue, components, locale, queries, record
 
       // ---- chrome -------------------------------------------------------------------
 
-      const documentDockItems = computed(() => [
-        {
-          icon: 'pi pi-pencil',
-          label: t('common.rename'),
-          hasPopup: true,
-          disabled: !activeSheetEntry.value?.writable,
-          onClick: openRenameDock
-        },
-        { separator: true },
-        {
-          icon: 'pi pi-save',
-          label: t('common.save'),
-          disabled: saving.value || !dirtyCount.value,
-          loading: saving.value,
-          onClick: () => save()
-        }
-      ]);
-
-      function openRenameDock(event) {
-        renameDraft.value = displayName.value;
-        dockMenu.value?.show?.(event);
-      }
+      // The editor-page chrome api: the workspace file panel renders it —
+      // the active sheet's name with in-place rename and the dirty-marked
+      // save over every dirty sheet.
+      const sheetChrome = Object.assign(
+        reactive({
+          name: computed(() => displayName.value || ''),
+          dirty: computed(() => dirtyCount.value > 0),
+          saving,
+          diverged: false
+        }),
+        activeSheetEntry.value?.writable
+          ? { save: () => save(), rename: name => applyRename(name) }
+          : {}
+      );
 
       const canvasDockItems = computed(() => [
         {
@@ -1641,7 +1630,7 @@ export default function createSurface({ vue, components, locale, queries, record
           layout: 'lanes',
           workspaceId: 'sheet-design-editor',
           class: 'h-full',
-          documentItems: documentDockItems.value,
+          chrome: sheetChrome,
           canvasItems: canvasDockItems.value
         }, {
           palette: renderPalette,
@@ -1649,35 +1638,7 @@ export default function createSurface({ vue, components, locale, queries, record
           default: () => [
             h('div', { class: 'relative h-full w-full p-3' }, [
               renderCanvas(),
-              renderSpeedDial(),
-              h(components.Popover, { ref: dockMenu }, () => [
-                h('div', {
-                  class: 'flex min-w-72 flex-col gap-2',
-                  onMousedown: event => event.stopPropagation(),
-                  onClick: event => event.stopPropagation()
-                }, [
-                  h(components.InputText, {
-                    modelValue: renameDraft.value,
-                    'onUpdate:modelValue': value => { renameDraft.value = value; },
-                    placeholder: t('sheetDesign.sheetDesigns'),
-                    class: 'w-full',
-                    'aria-label': t('common.rename'),
-                    onKeydown: event => {
-                      if (event.key !== 'Enter') return;
-                      event.stopPropagation();
-                      event.preventDefault();
-                      applyRename();
-                    }
-                  }),
-                  h(components.Button, {
-                    icon: 'pi pi-check',
-                    label: t('common.save'),
-                    size: 'small',
-                    disabled: !renameDraft.value.trim(),
-                    onClick: () => applyRename()
-                  })
-                ])
-              ])
+              renderSpeedDial()
             ])
           ]
         })

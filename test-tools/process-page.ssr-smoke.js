@@ -44,10 +44,11 @@ describe('process designer page SSR smoke', () => {
 
     const html = await renderToString(app);
 
-    // The workspace shell and toolbar render server-side; dock panels
-    // mount client-side through dockview.
+    // The workspace shell renders server-side; the dock — canvas panel,
+    // toolbar, and file panel with it — mounts client-side through
+    // dockview.
     expect(html).toContain('designer-workspace');
-    expect(html).toContain('data-designer-toolbar');
+    expect(html).not.toContain('data-designer-toolbar');
     expect(html).not.toContain('>organization.screens<');
   });
 });

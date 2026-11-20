@@ -9,6 +9,7 @@
       :bind-frame="bindCanvasFrame"
       :bind-context-palette-search="bindContextPaletteSearch"
       :canvas-items="activeCanvasItems"
+      :chrome="chromeApi"
       :canvas-status="props.canvasStatus || canvasStatus"
       :on-activity-click="props.onActivityClick || openActivitySurface"
       :touch-pan-drag="touchPanDrag"
@@ -566,7 +567,10 @@ async function renameGraphDocument(name) {
   }
 }
 
-props.pageChrome?.bind?.(Object.assign(
+// The editor-page chrome api (SPEC §4): the workspace file panel renders
+// it — name with in-place rename, dirty-marked save — and a host channel
+// (the graphs list's active-document rename) binds the same api.
+const chromeApi = Object.assign(
   reactive({
     name: computed(() => recordName.value),
     dirty: isDirty,
@@ -574,7 +578,8 @@ props.pageChrome?.bind?.(Object.assign(
     diverged: false
   }),
   readOnly.value ? {} : { save: saveGraphDocument, rename: renameGraphDocument }
-));
+);
+props.pageChrome?.bind?.(chromeApi);
 
 onMounted(async () => {
   if (props.session) return;

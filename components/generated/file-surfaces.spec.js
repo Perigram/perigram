@@ -55,6 +55,7 @@ describe('file surface registry', () => {
     const surface = resolveFileSurface(frameworkEditorBindings, 'graph-document', []);
     expect(surface.remote).toBeUndefined();
     expect(surface.workspacePage.direct).toBe(true);
+    expect(surface.workspacePage.ownsChrome).toBe(true);
     expect(surface.workspacePage.component).toBeTruthy();
     expect(surface.workspacePage.props({ entity: { _id: 'g-1', name: 'Fixture graph' } }))
       .toEqual({ graphInstanceId: 'g-1' });
