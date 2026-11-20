@@ -228,7 +228,7 @@ test('typed Documents blocks preview and Bake Markdown and HTML files with prove
   await expect(nodeOutputs.getByText('compose-document', { exact: true })).toBeVisible();
 
   const bake = async (outputLabel, filePath) => {
-    const outputSelect = page.getByLabel('Graph output');
+    const outputSelect = page.getByRole('combobox', { name: 'Graph output' });
     await outputSelect.click();
     await page.getByRole('option', { name: outputLabel, exact: true }).click();
     if (outputLabel === 'HTML file') {

@@ -12,36 +12,34 @@
       />
     </div>
     <div class="min-h-0 flex-1 overflow-y-auto p-2">
-      <template v-for="tier in tiers" :key="tier.id">
-        <div v-if="tier.groups.length" class="mb-3 text-supporting text-muted">
-          {{ tier.label }}
-        </div>
-        <div v-for="group in tier.groups" :key="group.id" class="mb-3 flex flex-col gap-1.5">
-          <span class="px-1 text-muted text-supporting">{{ group.label }}</span>
-          <template v-for="(part, partIndex) in group.parts" :key="`${group.id}-${part.label || partIndex}`">
-            <span v-if="part.label" class="px-1 text-muted text-supporting">{{ part.label }}</span>
-            <div class="flex flex-wrap gap-1.5">
-              <Button
-                v-for="item in part.items"
-                :key="item.id"
-                size="small"
-                text
-                class="justify-start bg-subtle"
-                :aria-label="item.label"
-                v-tooltip.right="item.description"
-                @click="emit('pick', item)"
-              >
-                <span
-                  class="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full"
-                  :class="signalBgClass(item.signal)"
-                  aria-hidden="true"
-                ></span>
-                <span class="min-w-0 truncate">{{ item.label }}</span>
-              </Button>
-            </div>
-          </template>
-        </div>
-      </template>
+      <div v-for="section in sections" :key="section.id" class="mb-3 flex flex-col gap-1.5">
+        <span class="px-1 text-muted text-supporting">{{ section.label }}</span>
+        <template v-for="(part, partIndex) in section.parts" :key="`${section.id}-${part.label || partIndex}`">
+          <span v-if="part.label" class="px-1 text-muted text-supporting">{{ part.label }}</span>
+          <div class="flex flex-wrap gap-1.5">
+            <Button
+              v-for="item in part.items"
+              :key="item.id"
+              size="small"
+              text
+              class="justify-start bg-subtle"
+              :aria-label="item.label"
+              v-tooltip.right="item.description"
+              @click="emit('pick', item)"
+            >
+              <span
+                class="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full"
+                :class="signalBgClass(item.signal)"
+                aria-hidden="true"
+              ></span>
+              <span class="min-w-0 truncate">{{ item.label }}</span>
+            </Button>
+          </div>
+        </template>
+      </div>
+      <span v-if="!sections.length" class="px-1 text-supporting text-muted">
+        {{ $t('processDesigner.paletteNoMatches') }}
+      </span>
     </div>
   </div>
 </template>
@@ -53,33 +51,28 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { signalBgClass } from '~/utils/processDesignerSignals.js';
 import { matchesPaletteSearch } from '~/utils/processDesignerPaletteSearch.js';
-import { processDesignerPaletteTiers } from '~/utils/processDesignerPaletteTiers.js';
 import { filterPaletteSections } from '~/utils/processDesignerPaletteSections.js';
 
-// The context palette's list (right-click, wire drop): searchable chips
-// over two provenance tiers — the platform's built-in categories and
-// the plugin sections (palette groups declared `source: 'plugin'` by
-// the shared plugin-palette projection). Search spans every
-// tier. Each chip's dot uses the same token that stripes the canvas
-// node the chip creates (utils/processDesignerSignals.js is the one
-// map; literal classes only — dynamic strings compile to nothing).
-// `groups` carry precomputed localized `label`s (the filter matches
-// them) and per-item `description`s for the chip tooltip.
+// The context palette's list (right-click, wire drop): searchable rows
+// over the shared section views — the same `filterPaletteSections`
+// projection the palette dock renders. Each chip's dot uses the same
+// token that stripes the canvas node the chip creates
+// (utils/processDesignerSignals.js is the one map; literal classes only —
+// dynamic strings compile to nothing). `groups` carry precomputed
+// localized `label`s (the filter matches them) and per-item
+// `description`s for the chip tooltip.
 const props = defineProps({
   groups: { type: Array, default: () => [] },
   placeholder: { type: String, default: '' }
 });
+
 const emit = defineEmits(['pick', 'close']);
 
 const { t } = useI18n();
 const query = ref('');
-const filteredGroups = computed(() => {
+
+const sections = computed(() => {
   const needle = query.value.trim().toLowerCase();
-  return filterPaletteSections(props.groups, item => !needle || matchesPaletteSearch(item, needle));
+  return filterPaletteSections(props.groups, (item, group) => !needle || matchesPaletteSearch(item, needle, group.id, group.label));
 });
-const tiers = computed(() => processDesignerPaletteTiers(filteredGroups.value, {
-  graphs: t('processDesigner.paletteGraphSections'),
-  plugins: t('processDesigner.palettePluginSections'),
-  framework: t('processDesigner.palettePlatformSections')
-}));
 </script>

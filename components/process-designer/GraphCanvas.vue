@@ -11,97 +11,108 @@
       @focusin="handleDesignerFocus"
       @wheel.capture="handleDesignerWheel"
     >
-      <ClientOnly>
-        <VueFlow
-          v-model:nodes="nodes"
-          v-model:edges="edges"
-          class="process-designer-canvas absolute inset-0 h-full w-full"
-          :min-zoom="0.1"
-          :max-zoom="4"
-          :delete-key-code="null"
-          :selection-key-code="true"
-          multi-selection-key-code="Shift"
-          :selection-mode="SelectionMode.Partial"
-          :pan-on-drag="touchPanDrag"
-          pan-activation-key-code="Space"
-          :pan-on-scroll="true"
-          :zoom-on-scroll="false"
-          :zoom-on-pinch="true"
-          :zoom-on-double-click="false"
-          :default-edge-options="defaultEdgeOptions"
-          :nodes-draggable="!readOnly"
-          :nodes-connectable="!readOnly"
-          :edges-updatable="false"
-          @node-click="event => selectNode(event.node)"
-          @edge-click="event => selectEdge(event.edge)"
-          @pane-click="clearGraphSelection"
-          @pane-context-menu="openPaletteAtPane"
-          @connect-start="beginSocketConnection"
-          @connect-end="endSocketConnection"
-          @connect="onConnect"
-          @node-drag-stop="handleNodeDragStop"
-          @nodes-change="handleCanvasNodesChange"
+      <!-- The canvas pane wrapper is the geometry home: every canvas
+           coordinate (context palette position, client→graph conversion)
+           resolves against THIS box, and floating chrome inside it
+           positions relative to it. -->
+      <div :ref="bindCanvasPane" class="absolute inset-0">
+        <ClientOnly>
+          <VueFlow
+            v-model:nodes="nodes"
+            v-model:edges="edges"
+            class="process-designer-canvas absolute inset-0 h-full w-full"
+            :min-zoom="0.1"
+            :max-zoom="4"
+            :delete-key-code="null"
+            :selection-key-code="true"
+            multi-selection-key-code="Shift"
+            :selection-mode="SelectionMode.Partial"
+            :pan-on-drag="touchPanDrag"
+            pan-activation-key-code="Space"
+            :pan-on-scroll="true"
+            :zoom-on-scroll="false"
+            :zoom-on-pinch="true"
+            :zoom-on-double-click="false"
+            :default-edge-options="defaultEdgeOptions"
+            :nodes-draggable="!readOnly"
+            :nodes-connectable="!readOnly"
+            :edges-updatable="false"
+            @node-click="event => selectNode(event.node)"
+            @edge-click="event => selectEdge(event.edge)"
+            @pane-click="clearGraphSelection"
+            @pane-context-menu="openPaletteAtPane"
+            @connect-start="beginSocketConnection"
+            @connect-end="endSocketConnection"
+            @connect="onConnect"
+            @node-drag-stop="handleNodeDragStop"
+            @nodes-change="handleCanvasNodesChange"
+          >
+            <template #node-ctsType="slotProps"><CtsTypeNode v-bind="slotProps" /></template>
+            <template #node-ctsClass="slotProps"><ClassNode v-bind="slotProps" /></template>
+            <template #node-ctsField="slotProps"><FieldNode v-bind="slotProps" @rename="value => renameDeclarationNode(slotProps, value)" /></template>
+            <template #node-ctsState="slotProps"><StateNode v-bind="slotProps" @rename="value => renameDeclarationNode(slotProps, value)" /></template>
+            <template #node-processNode="slotProps"><ProcessNode v-bind="slotProps" /></template>
+            <template #node-graphNode="slotProps"><GraphDocumentNode v-bind="slotProps" /></template>
+            <template #edge-selfloop="slotProps"><SelfLoopEdge v-bind="slotProps" /></template>
+            <template #zoom-pane>
+              <slot name="lane" />
+            </template>
+          </VueFlow>
+          <template #fallback><div class="absolute inset-0" /></template>
+        </ClientOnly>
+
+        <button
+          v-if="canvasStatus && onActivityClick"
+          type="button"
+          data-canvas-status
+          class="pointer-events-auto absolute left-1/2 top-3 z-30 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-content-border bg-content px-3 py-1.5 text-supporting text-muted shadow-overlay"
+          :aria-label="$t('processDesigner.canvasStatusAria', { status: canvasStatus.label, count: canvasStatus.count })"
+          @click="onActivityClick()"
         >
-          <template #node-ctsType="slotProps"><CtsTypeNode v-bind="slotProps" /></template>
-          <template #node-ctsClass="slotProps"><ClassNode v-bind="slotProps" /></template>
-          <template #node-ctsField="slotProps"><FieldNode v-bind="slotProps" @rename="value => renameDeclarationNode(slotProps, value)" /></template>
-          <template #node-ctsState="slotProps"><StateNode v-bind="slotProps" @rename="value => renameDeclarationNode(slotProps, value)" /></template>
-          <template #node-processNode="slotProps"><ProcessNode v-bind="slotProps" /></template>
-          <template #node-graphNode="slotProps"><GraphDocumentNode v-bind="slotProps" /></template>
-          <template #edge-selfloop="slotProps"><SelfLoopEdge v-bind="slotProps" /></template>
-          <template #zoom-pane>
-            <slot name="lane" />
-          </template>
-        </VueFlow>
-        <template #fallback><div class="absolute inset-0" /></template>
-      </ClientOnly>
-
-      <button
-        v-if="canvasStatus && onActivityClick"
-        type="button"
-        data-canvas-status
-        class="pointer-events-auto absolute left-1/2 top-3 z-30 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-content-border bg-content px-3 py-1.5 text-supporting text-muted shadow-overlay"
-        :aria-label="$t('processDesigner.canvasStatusAria', { status: canvasStatus.label, count: canvasStatus.count })"
-        @click="onActivityClick()"
-      >
-        <span class="h-2 w-2 shrink-0 rounded-full" :class="statusDotClass(canvasStatus.state)" aria-hidden="true"></span>
-        <span>{{ canvasStatus.label }}</span>
-        <span class="rounded-full bg-subtle px-1.5 py-0.5">{{ canvasStatus.count }}</span>
-      </button>
-      <!-- Selection speed dial: the quiet-card policy keeps nodes free of
-           per-node chrome, so selection actions float beside the last
-           selected node instead. -->
-      <SpeedDial
-        v-if="!readOnly && selectionDialStyle"
-        :model="selectionDialItems"
-        direction="up-right"
-        :style="selectionDialStyle"
-        class="absolute z-30"
-        button-icon="pi pi-ellipsis-v"
-        :aria-label="$t('processDesigner.selectionActions')"
-        :tooltip-options="{ event: 'hover', position: 'left' }"
-      />
-
-      <div
-        v-if="!readOnly && contextPalette.open"
-        class="absolute z-30 flex max-h-80 w-72 flex-col overflow-hidden rounded-ui bg-content shadow-card"
-        :style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"
-        @mousedown.stop
-        @click.stop
-      >
-        <div class="flex shrink-0 items-center justify-end px-2 pt-2">
-          <Button icon="pi pi-times" severity="secondary" text rounded size="small" :aria-label="$t('processDesigner.closeOperationPalette')" @click="closeContextPalette" />
-        </div>
-        <OperationPalette
-          :ref="bindContextPaletteSearch"
-          :groups="contextPaletteGroups"
-          :placeholder="contextPalette.socket ? $t('processDesigner.compatibleOperations') : $t('processDesigner.addOperation')"
-          @pick="addContextNode"
-          @close="closeContextPalette"
+          <span class="h-2 w-2 shrink-0 rounded-full" :class="statusDotClass(canvasStatus.state)" aria-hidden="true"></span>
+          <span>{{ canvasStatus.label }}</span>
+          <span class="rounded-full bg-subtle px-1.5 py-0.5">{{ canvasStatus.count }}</span>
+        </button>
+        <!-- Selection speed dial: the quiet-card policy keeps nodes free of
+             per-node chrome, so selection actions float beside the last
+             selected node instead. -->
+        <SpeedDial
+          v-if="!readOnly && selectionDialStyle"
+          :model="selectionDialItems"
+          direction="up-right"
+          :style="selectionDialStyle"
+          class="absolute z-30"
+          button-icon="pi pi-ellipsis-v"
+          :aria-label="$t('processDesigner.selectionActions')"
+          :tooltip-options="{ event: 'hover', position: 'left' }"
         />
-        <Message v-if="!contextPaletteGroups.length" class="m-2 shrink-0" severity="secondary" size="small">
-          {{ $t('processDesigner.noCompatibleOperations') }}
-        </Message>
+
+        <div
+          v-if="!readOnly && contextPalette.open"
+          ref="contextPaletteElement"
+          class="absolute z-30 flex max-h-80 w-72 flex-col overflow-hidden rounded-ui bg-content shadow-card"
+          :style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"
+          @mousedown.stop
+          @click.stop
+        >
+          <div class="flex shrink-0 items-center justify-end px-2 pt-2">
+            <Button icon="pi pi-times" severity="secondary" text rounded size="small" :aria-label="$t('processDesigner.closeOperationPalette')" @click="closeContextPalette" />
+          </div>
+          <OperationPalette
+            :ref="bindContextPaletteSearch"
+            :groups="contextPaletteGroups"
+            :placeholder="contextPalette.socket ? $t('processDesigner.compatibleOperations') : $t('processDesigner.addOperation')"
+            @pick="addContextNode"
+            @close="closeContextPalette"
+          />
+          <Message v-if="!contextPaletteGroups.length" class="m-2 shrink-0" severity="secondary" size="small">
+            {{ $t('processDesigner.noCompatibleOperations') }}
+          </Message>
+        </div>
+
+        <div v-if="!nodes.length" class="absolute inset-x-4 top-20 z-10 flex justify-center">
+          <StateBlock :message="emptyMessage" />
+        </div>
       </div>
 
       <template v-if="!readOnly" #palette>
@@ -111,10 +122,6 @@
           @pick="item => (item.action ? item.action() : addNode(item))"
         />
       </template>
-
-      <div v-if="!nodes.length" class="absolute inset-x-4 top-20 z-10 flex justify-center">
-        <StateBlock :message="emptyMessage" />
-      </div>
 
       <template #inspector>
         <slot name="inspector" />
@@ -142,7 +149,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { SelectionMode, VueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
@@ -179,6 +186,9 @@ const props = defineProps({
   // refs receive the mounted instances here (plain ref props would
   // unwrap at the host's template).
   bindFrame: { type: Function, required: true },
+  // The canvas pane element: the geometry home every canvas coordinate
+  // (context palette position, client→graph conversion) resolves against.
+  bindCanvasPane: { type: Function, required: true },
   bindContextPaletteSearch: { type: Function, required: true },
   canvasItems: { type: Array, default: () => [] },
   // The bound editor-page chrome api: the workspace file panel renders it.
@@ -232,6 +242,21 @@ function statusDotClass(state) {
 function openPaletteAtPane(event) {
   if (!props.readOnly) props.openPanePalette(event);
 }
+
+// The context palette follows the popover contract: any pointerdown
+// outside it dismisses it.
+const contextPaletteElement = ref(null);
+function dismissContextPaletteOnOutside(event) {
+  if (contextPaletteElement.value?.contains(event.target)) return;
+  if (props.contextPalette?.open) props.closeContextPalette();
+}
+watch(() => props.contextPalette?.open, open => {
+  if (open) document.addEventListener('pointerdown', dismissContextPaletteOnOutside, true);
+  else document.removeEventListener('pointerdown', dismissContextPaletteOnOutside, true);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', dismissContextPaletteOnOutside, true);
+});
 
 // Selection speed dial: delete and frame float beside the last selected
 // node while a node selection exists; edge selections keep keyboard
