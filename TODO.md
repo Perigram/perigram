@@ -67,6 +67,10 @@
   renders the editor flush (the pane's Back control alone above it) and
   the direct workspace page declares `recordHeader`, so the unified
   header and the lineage strip stay off the graph editor everywhere.
+- Fourth owner pass ("dock still isn't draggable"): headerless groups
+  attract no drops in this dockview build — the canvas is a full pane
+  with a visible tab now, so its edges take drops, its tab drags like
+  every other panel, and only joins into its center stay refused.
 
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
