@@ -346,6 +346,7 @@ provide('designerWorkspacePanels', {
 const workspaceObserver = { observer: null, compactTimer: null };
 
 onMounted(() => {
+  window.addEventListener('pagehide', persistLayout);
   if (typeof ResizeObserver === 'undefined' || !workspace.value) return;
   workspaceObserver.observer = new ResizeObserver(entries => {
     const width = entries[0]?.contentRect?.width || 0;
@@ -370,6 +371,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener('pagehide', persistLayout);
   if (workspaceObserver.compactTimer) clearTimeout(workspaceObserver.compactTimer);
   workspaceObserver.observer?.disconnect();
   workspaceObserver.observer = null;

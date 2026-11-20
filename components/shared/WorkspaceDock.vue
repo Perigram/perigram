@@ -369,7 +369,8 @@ function applyLayout(layout) {
   }
   try {
     live.fromJSON(layout);
-  } catch {
+  } catch (error) {
+    console.error('Workspace dock layout restore failed:', error);
     live.clear();
   }
   nextTick(() => {
