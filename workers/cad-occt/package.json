@@ -1,0 +1,10 @@
+{
+  "name": "@perigram/cad-occt-plugin",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@perigram/plugin-sdk": "file:../../packages/plugin-sdk",
+    "brepjs": "20.28.3",
+    "occt-wasm": "5.17.2"
+  }
+}

@@ -110,6 +110,11 @@ export async function vendorDependencies({ pluginRoot, entry, listingPath = null
       entryNames: '[name]',
       chunkNames: 'chunks/[name]-[hash]',
       outExtension: { '.js': '.mjs' },
+      // Universal WASM loaders (emscripten) carry a Node-only fallback
+      // branch with dynamic `import("node:…")`; the browser never executes
+      // it, so the specifier stays external rather than breaking the
+      // bundle resolution.
+      external: ['node:*'],
       logLevel: 'silent'
     });
   }
