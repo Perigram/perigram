@@ -917,21 +917,28 @@ integration waits for the owner's completion of build123d-flow.
   authoritative for durable effects and persist reproducibility evidence.
 - [ ] Migrate documents projections, compositions, editors, and compute
   operations to the managed package runtime; remove its executor deployment.
-- [ ] Keep build123d integration deferred until the owner completes
-  build123d-flow; then adapt its browser Python/WASM runtime to the same
-  package, graph, and capability contracts.
-  Integration baseline checked 2026-11-16: [1suo/build123d-flow](https://github.com/1suo/build123d-flow)
-  main at `3c62677065016ae166f50a176130b127ca35ef12`, package version
-  `0.1.0`; build123d `0.13.0`, Pyodide `314.0.7`, and OCP.wasm
-  `8.0.1.1.post202609241841` (upstream OCP.wasm 8.0.1.1). The upstream
-  app already runs Python/OCP in a browser Worker and keeps exact B-reps
-  in the interpreter; it is an early standalone shell, not yet a Perigram
-  plugin. Extract/adapt its editor, catalog providers, worker/runtime and
-  Three.js preview into the host's plugin surface and org-owned package.
-  Its latest commit removed the test suite; restore browser-runtime,
-  discovery, geometry, export and graph regression coverage before
-  production integration. Recheck upstream main and all runtime pins
-  before each plugin package release.
+- [ ] The build123d plugin conversion is dropped (owner direction
+  2026-11-20); the geometry plugin program supersedes it (SPEC §20
+  owner decision 2026-11-20). Retire the transitional executor with the
+  program's first geometry plugin.
+- [ ] Geometry plugin stack (SPEC §20 owner decision 2026-11-20) —
+  vertical order:
+  - [ ] Validate and resolve the open GitHub issues that gate the
+    program (#26 CTS/process semantics ownership, #27 runtime-language
+    honesty, #28 conversion metadata in node providers, #29 geometry
+    buffer transfer, #30 type-less node-library plugins): verify each
+    against staging, implement or reshape per issue, record outcomes.
+  - [ ] `geometry.base` plugin: canonical geometry types over the CTS
+    unit table, coordinate conventions, basic operations.
+  - [ ] `cad.occt` plugin: brepjs/occt-wasm kernel, catalog generated
+    from the library's type declarations, STEP/IGES exchange.
+  - [ ] Vertical slice: occt→mesh conversion declaring fidelity, shape
+    viewport preview (E6), generic Bake of geometry outputs.
+  - [ ] wasm managed server runtime: language-dispatched bootstrap, one
+    warm process per installed package, per-invocation bounds.
+  - [ ] Then `geometry.nurbs` (verb), `geometry.sketch` (PlaneGCS), and
+    further conversions; `geometry.cgal` stays unbuilt while its GPL
+    license refuses the dependency gate.
 - [ ] Retire per-function endpoint settings and local-plugin connector
   tokens after all local packages migrate; retain explicit remote integration
   protocols through provider-level server adapters with server-held
@@ -1444,11 +1451,11 @@ deployment.
   service previews in the browser (no server preview round-trip), a
   dispatch failure folds into the node error, and graphs with endpoint
   services keep the server path.
-- [ ] E5 build123d plugin conversion — the listing carries the
-  discovered op catalog and the engine; the python executor
-  (`workers/build123d`, its dev compose service) retires. Supersedes
-  the executor-deployment shape of the 2026-11-13 bring-up. Sequenced
-  after E3b (owner direction 2026-11-14: platform-level code first).
+- [x] E5 build123d plugin conversion — closed by owner direction
+  (2026-11-20): the build123d engine is dropped; the geometry plugin
+  program supersedes it (SPEC §20 owner decision 2026-11-20). The
+  transitional executor retires with the program's first geometry
+  plugin.
 - [ ] E6 Shape viewport (G4) — the engine's tessellated meshes feed the
   plugin's preview channel surface.
 
