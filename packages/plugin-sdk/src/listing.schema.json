@@ -271,7 +271,7 @@
         },
         "engine": {
           "type": "object",
-          "description": "The plugin's client engine (SPEC §20 client-carried): services of mode 'local' execute in the browser through the entry module",
+          "description": "The plugin's client engine (SPEC §20 client-carried): services of mode 'local' execute in the browser through the entry module; assets enumerates the staged runtime files (interpreter binaries, wheels, data) the entry's import graph cannot discover",
           "additionalProperties": false,
           "required": [
             "module"
@@ -281,6 +281,15 @@
               "type": "string",
               "pattern": "^/[a-z0-9/_-]+\\.m?js$",
               "description": "Root-relative engine entry module path the package serves"
+            },
+            "assets": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "pattern": "^/[a-z0-9][a-z0-9/._-]*$"
+              },
+              "description": "Root-relative package paths of the engine's staged runtime assets"
             }
           }
         },

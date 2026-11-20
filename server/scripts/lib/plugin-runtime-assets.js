@@ -27,8 +27,10 @@ function contentTypeFor(path) {
 // runtime-computed dynamic imports (worker URLs) whose targets are
 // never package assets, so only the static relative-import walk
 // applies there; first-party runtime entries keep the literal-import
-// law.
-export function collectRuntimeAssetFiles(packageRoot, entry, language = 'javascript', { vendor = false } = {}) {
+// law. `engine` marks a client engine's entry graph (SPEC §20): its
+// staged binaries and wheels are enumerated by the engine declaration,
+// so the walk applies alone there too.
+export function collectRuntimeAssetFiles(packageRoot, entry, language = 'javascript', { vendor = false, engine = false } = {}) {
   const root = resolve(packageRoot);
   const first = safePackagePath(root, resolve(root, String(entry || '').replace(/^\/+/, '')));
   const pending = [first.absolute];
@@ -47,7 +49,7 @@ export function collectRuntimeAssetFiles(packageRoot, entry, language = 'javascr
     });
     if (language !== 'javascript' || !/\.(?:m?js)$/.test(resolved.path)) continue;
     const source = buffer.toString('utf8');
-    if (!vendor && /\bimport\s*\(\s*(?!['"])/.test(source)) {
+    if (!vendor && !engine && /\bimport\s*\(\s*(?!['"])/.test(source)) {
       throw new Error(`Managed runtime ${entry} uses a non-literal dynamic import; runtime assets must be statically discoverable`);
     }
     const imports = source.matchAll(/(?:\bimport|\bexport)\s+(?:[^'"]*?\s+from\s*)?['"]([^'"]+)['"]|\bimport\(\s*['"]([^'"]+)['"]\s*\)/g);
@@ -62,9 +64,49 @@ export function collectRuntimeAssetFiles(packageRoot, entry, language = 'javascr
     const relativeAssets = source.matchAll(/\bnew\s+URL\(\s*['"]([^'"]+)['"]\s*,\s*import\.meta\.url\s*\)/g);
     for (const match of relativeAssets) {
       const specifier = match[1];
-      if (specifier.startsWith('/') || /^[a-z][a-z0-9+.-]*:/i.test(specifier)) continue;
+      // A trailing slash resolves to a directory (a module base URL),
+      // never a staged asset.
+      if (specifier.endsWith('/') || specifier.startsWith('/') || /^[a-z][a-z0-9+.-]*:/i.test(specifier)) continue;
       pending.push(resolve(dirname(resolved.absolute), specifier));
     }
   }
   return assets.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+// The complete package-asset set a listing's release stages: every
+// declared runtime entry, engine entry, surface module, and dependency
+// bundle with its walked import graph, plus the engine's staged assets.
+// Publishing (the seed script) and install materialization share the
+// set through their content-hash manifests.
+export function prepareListingRelease(listing, packageRoot) {
+  const root = resolve(packageRoot);
+  const declaredEntries = [
+    ...(listing.declarations.runtimes || []).map(runtime => ({ entry: runtime.entry, language: runtime.language })),
+    ...(listing.declarations.engine ? [{ entry: listing.declarations.engine.module, language: 'javascript', engine: true }] : []),
+    ...(listing.declarations.surfaces || []).map(surface => ({ entry: surface.module, language: 'javascript' })),
+    ...(listing.declarations.dependencies || [])
+      .filter(dependency => dependency?.module && !String(dependency.module).startsWith('plugin:'))
+      .map(dependency => ({ entry: dependency.module, language: 'javascript', vendor: true }))
+  ];
+  const byPath = new Map();
+  for (const { entry, language, vendor, engine } of declaredEntries) {
+    if (!entry) continue;
+    for (const asset of collectRuntimeAssetFiles(root, entry, language, { vendor, engine })) {
+      byPath.set(asset.path, asset);
+    }
+  }
+  // Engine assets stage by declaration alone: they are fetched at
+  // runtime through the module proxy, so the import walker cannot
+  // discover them.
+  for (const assetPath of listing.declarations.engine?.assets || []) {
+    const path = String(assetPath).replace(/^\/+/, '');
+    if (byPath.has(path)) continue;
+    const resolved = safePackagePath(root, resolve(root, path));
+    byPath.set(path, {
+      path,
+      buffer: readFileSync(resolved.absolute),
+      contentType: contentTypeFor(resolved.path)
+    });
+  }
+  return [...byPath.values()].sort((a, b) => a.path.localeCompare(b.path));
 }
