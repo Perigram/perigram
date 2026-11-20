@@ -954,6 +954,12 @@ body {
     --dv-scrollbar-background-color: var(--ck-scrollbar-thumb);
 }
 
+.perigram-dock .dv-groupview {
+    box-sizing: border-box;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+}
+
 .perigram-dock .dv-groupview > .dv-content-container {
     background: transparent;
 }
@@ -961,16 +967,15 @@ body {
 .perigram-dock .dv-tab {
     display: flex;
     align-items: center;
-    padding: 0;
+    align-self: center;
+    height: calc(100% - 0.5rem);
+    margin: 0.25rem 0.125rem;
+    padding: 0 0.5rem;
     border-radius: var(--p-border-radius-sm);
 }
 
-.perigram-dock .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash {
-    width: 2px;
-}
-
-.perigram-dock .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash {
-    height: 2px;
+.perigram-dock .dv-tabs-and-actions-container {
+    padding-inline: 0.25rem;
 }
 
 .perigram-dock .dv-tab.dv-inactive-tab:hover {
@@ -994,9 +999,8 @@ body {
 }
 
 .perigram-dock--chip-tabs .dv-groupview {
-    border: 1px solid var(--ck-chrome-border);
-    border-radius: var(--p-border-radius-md);
-    overflow: hidden;
+    border-radius: calc(var(--p-border-radius-md) + 3px);
+    box-shadow: inset 0 0 0 1px var(--ck-chrome-border);
 }
 
 .perigram-dock--chip-tabs .dv-tabs-and-actions-container {
@@ -1021,16 +1025,13 @@ body {
 }
 
 .perigram-dock--overlay .dv-groupview {
-    border: 1px solid var(--ck-chrome-border);
-    border-radius: var(--p-border-radius-md);
+    border-radius: calc(var(--p-border-radius-md) + 3px);
     background: var(--p-content-background);
-    box-shadow: var(--p-overlay-popover-shadow);
-    overflow: hidden;
+    box-shadow: inset 0 0 0 1px var(--ck-chrome-border), var(--p-overlay-popover-shadow);
 }
 
 .perigram-dock--overlay .perigram-dock__spacer-group {
     pointer-events: none;
-    border-color: transparent;
     background: transparent;
     box-shadow: none;
 }
