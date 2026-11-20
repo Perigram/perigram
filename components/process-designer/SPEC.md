@@ -64,11 +64,10 @@ socket visual.
 
 Top to bottom: header (neutral icon chip + label), socket rail (labeled rows, inputs left /
 outputs right, handles centered on the outer rail, labels always render), event section (effects
-only). Socket rows carry the socket name; the element type, access, qualifier, and connection
-state ride the row's hover/focus tooltip — a per-socket connection icon is chrome encoding
-nothing. A collapsed card renders the name once with its header icons and keeps every socket
-handle on its side rail — inputs left, outputs right, in expanded order — so wires keep their
-anchors. Cards are socket manifests, never authoring surfaces: typed defaults, literal values,
+only). Socket rows carry the socket name; the element type, access, and qualifier ride the row's
+hover/focus tooltip — a per-socket connection icon is chrome encoding nothing. A collapsed card
+renders the name once with its header icons and every socket at a distinct position — inputs on
+the top rail, outputs on the bottom rail, names on the handle tooltips. Cards are socket manifests, never authoring surfaces: typed defaults, literal values,
 operation parameters, casts, conversions, and structured values are edited in the inspector.
 The inspector also owns live input/output evaluation; the card exposes only identity, diagnostics,
 preview visibility, collapse, and socket contracts. Sections separate by spacing
@@ -296,7 +295,9 @@ Apply semantics remain valid profile behavior.
 
 ## Structure
 
-10 SFCs at folder root (canvas nodes, palette, preview channel mount, dialogs, TypedValueControl)
+20 SFCs at folder root (canvas nodes, canvas presentation, editor mount, inspectors, preview
+panel/channel strip/outputs channel/output-value renderer, value controls, palette dock and
+context palette, lanes, loop edge, preview channel mount, dialogs)
 + `inspector/` (3 SFCs: DeclarationEdgeInspector, DeclarationInspector,
 ProcessNodeInspector).
 Selection, draft persistence, graph sync, connection inference, palette queries, roles, screens,
