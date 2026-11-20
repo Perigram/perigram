@@ -284,7 +284,7 @@ export const OPERATIONS = [
     source: { file: 'topology/meshFns.d.ts', function: 'exportSTEP', parameters: ['shape'] },
     fields: {
       shape: { field: SHAPE, dts: { name: 'shape', type: 'AnyShape' } },
-      name: { field: { base: 'string', nullable: true, default: 'part' }, dts: null }
+      name: { field: { base: 'string', nullable: true, default: 'part.step' }, dts: null }
     },
     output: { descriptor: FILE, dts: 'Result' }
   },
@@ -405,6 +405,16 @@ export function buildListing(operations = OPERATIONS) {
           entry: '/runtime/cad-occt.mjs',
           targets: ['browser', 'server']
         }
+      ],
+      // Vendored runtime dependencies (workers/cad-occt/README.md owns the
+      // build): brepjs is Apache-2.0; occt-wasm declares `MIT OR
+      // Apache-2.0` and the listing carries Apache-2.0 as its elected
+      // spelling (the grammar takes one SPDX token); the SDK nodes module
+      // vendors the shared derivation (MIT, the repository license).
+      dependencies: [
+        { name: 'brepjs', version: '20.28.3', module: '/assets/vendor/brepjs.mjs', license: 'Apache-2.0' },
+        { name: 'occt-wasm', version: '5.17.2', module: '/assets/vendor/occt-wasm.mjs', license: 'Apache-2.0' },
+        { name: '@perigram/plugin-sdk/nodes', version: '0.1.0', module: '/assets/vendor/perigram-plugin-sdk-nodes.mjs', license: 'MIT' }
       ],
       services
     }
