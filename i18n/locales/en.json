@@ -447,7 +447,9 @@
     "openSomething": "Open something",
     "newTab": "New tab",
     "splitRight": "Split right",
-    "splitDown": "Split down"
+    "splitDown": "Split down",
+    "floatPanel": "Float panel",
+    "dockPanel": "Dock panel"
   },
   "file": {
     "upload": "Upload Files",

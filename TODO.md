@@ -18,6 +18,10 @@
 
 ### Agent Notes (2026-11-20, agent/dockview-panes)
 
+- Editor dock panels can be floated: the group menu pops a panel out as a
+  free window (dragged by its tab strip, docked back through the menu or a
+  drop); floating positions persist with the layout and the spacer group is
+  locked against center drops.
 - Implementation lives in `components/shared/WorkspaceDock.vue`,
   `utils/workspace-dock-layout.js`, `utils/home-workspace-state.js`, and
   `utils/designer-workspace-state.js`; home and editor layouts have

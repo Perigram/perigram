@@ -309,8 +309,10 @@ pane-local Back history (rendered in the hosted page header), dirty-close
 confirmation, and per-group empty placeholders remain. Dock layout — group tree, sizes, tab order, active
 group and tab — and the opened surface references persist per user and
 organization. Designer workspaces use the same dock system: palette,
-canvas, inspector, and preview are dock panels whose initial sizes derive
-from their rendered content, and each editor's layout persists.
+inspector, and preview are dock panels over the canvas surface
+whose initial sizes derive from their rendered content; panels can be
+floated as free windows and docked back, and each editor's layout
+persists.
 
 File creates follow the type's declared creation protocol (owner decision
 2026-10-12): an `editor` create opens the type's editor with no record —

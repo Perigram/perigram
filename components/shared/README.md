@@ -133,7 +133,9 @@ and `preview` are dock panels floating over the canvas, and a transparent
 spacer panel holds the empty dock space so canvas gestures pass through.
 Panels are draggable, edge-docked, and user-resizable; their initial sizes
 measure the rendered content within panel-specific floors and caps, then
-the user owns the layout. The workspace renders no document name and
+the user owns the layout. The group menu can float a panel out as a free
+window over the canvas (dragged by its tab strip; the menu or a drop
+docks it back), and floating positions persist beside the dock layout. The workspace renders no document name and
 carries the app's shared surface tokens alone. Toolbar item lists (start
 and canvas groups) render through `DesignerToolbarItems` — one icon-only
 geometry for every item; a boolean-pressed item is the same button
@@ -929,7 +931,10 @@ transcription stay in the host composer.
   icons, close rules, and optional add/split/close group actions.
   `chip-tabs` restores the home pane chrome (bordered pane boxes, chip
   tabs); `overlay` floats the dock over a host surface with a transparent
-  `spacerKey` panel carrying the empty space. The exposed API covers
+  `spacerKey` panel carrying the empty space. `allowFloating` adds group
+  menu actions that pop a panel out as a floating window — dragged by its
+  tab strip, docked back through the menu or a drop — with positions
+  persisted in the layout. The exposed API covers
   panel open/replace/remove, group add/split/remove, layout
   snapshot/apply, panel presence, and content-based sizing. Panel labels
   update from the host's item list. The dock renders client-side after
