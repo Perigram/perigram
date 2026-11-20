@@ -192,7 +192,7 @@ async function onDockReady() {
   if (pruned && pruned.panels[CANVAS]) {
     dock.value?.applyLayout(pruned);
     await nextTick();
-    if (hasFile.value && !dock.value?.hasPanel('file')) await addAuxPanel('file', 'above', 'height');
+    if (hasFile.value && !dock.value?.hasPanel('file')) await addAuxPanel('file', 'above');
     syncPanels();
     schedulePersist();
     return;
@@ -232,19 +232,31 @@ async function buildDefaultLayout() {
   if (!live) return;
   const canvasGroup = live.addGroup({ hideHeader: true, locked: true });
   live.addPanel(CANVAS, { referenceGroup: canvasGroup });
-  if (hasFile.value) await addAuxPanel('file', 'above', 'height');
-  if (hasPalette.value) await addAuxPanel('palette', 'left', 'width');
-  if (hasInspector.value) await addAuxPanel('inspector', 'right', 'width');
+  const wanted = [];
+  if (hasFile.value) wanted.push(['file', 'above', 'height']);
+  if (hasPalette.value) wanted.push(['palette', 'left', 'width']);
+  if (hasInspector.value) wanted.push(['inspector', 'right', 'width']);
+  // The tree is built whole before any sizing pass: a group add
+  // redistributes its branch, so sizes applied between adds are lost.
+  for (const [key, direction] of wanted) live.addPanel(key, { referencePanel: CANVAS, direction });
+  await nextTick();
+  for (const [key, , axis] of wanted) await sizeAuxPanel(key, axis);
   syncPanels();
   schedulePersist();
 }
 
-async function addAuxPanel(key, direction, axis) {
+async function addAuxPanel(key, direction) {
   const live = dock.value;
   if (!live) return;
   const panel = live.addPanel(key, { referencePanel: CANVAS, direction });
   if (!panel) return;
   await nextTick();
+  await sizeAuxPanel(key, direction === 'left' || direction === 'right' ? 'width' : 'height');
+}
+
+async function sizeAuxPanel(key, axis) {
+  const live = dock.value;
+  if (!live) return;
   const sizing = key === 'file'
     ? { min: 84, max: 96, ratio: 0.12 }
     : axis === 'height'
@@ -258,13 +270,13 @@ function showPanel(key) {
   if (dock.value.hasPanel(key)) {
     dock.value.focusPanel(key);
   } else if (key === 'file') {
-    addAuxPanel('file', 'above', 'height').then(() => schedulePersist());
+    addAuxPanel('file', 'above').then(() => schedulePersist());
   } else if (key === 'palette') {
-    addAuxPanel('palette', 'left', 'width').then(() => schedulePersist());
+    addAuxPanel('palette', 'left').then(() => schedulePersist());
   } else if (key === 'inspector') {
-    addAuxPanel('inspector', 'right', 'width').then(() => schedulePersist());
+    addAuxPanel('inspector', 'right').then(() => schedulePersist());
   } else if (key === 'preview') {
-    addAuxPanel('preview', 'below', 'height').then(() => schedulePersist());
+    addAuxPanel('preview', 'below').then(() => schedulePersist());
   }
   if (panels[key] !== undefined) panels[key] = true;
 }
