@@ -29,7 +29,7 @@ import {
   unwrap
 } from 'brepjs';
 import { OcctKernel } from 'occt-wasm';
-import { nodeDefinitionFromService } from '@perigram/plugin-sdk/nodes';
+import { nodeDefinitionFromService } from '../assets/vendor/perigram-plugin-sdk-nodes.mjs';
 
 export const CAD_PROVIDER = 'plugin.cad-occt';
 export const RUNTIME_ID = 'cad-occt';

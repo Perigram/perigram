@@ -1,5 +1,3 @@
-import "./chunks/chunk-CO6GXKO3.mjs";
-
 // ../../packages/plugin-sdk/src/node-contract.js
 var IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 var PROVIDER_IDENTIFIER = /^[a-z0-9][a-z0-9._-]{0,127}$/;
@@ -183,7 +181,7 @@ function assertValidNodeDefinition(source) {
   }
   return normalizeNodeDefinition(source);
 }
-var SERVICE_SEMANTIC_KEYS = ["kind", "nominal", "provider", "schema", "entityType", "identity", "constraints", "unit"];
+var SERVICE_SEMANTIC_KEYS = ["kind", "representation", "nominal", "provider", "schema", "entityType", "identity", "constraints", "unit"];
 function servicePortContract(schema = {}) {
   const shape = SHAPES.has(schema.base) ? schema.base : "item";
   const semanticSource = shape === "item" ? schema : schema.itemType || { base: "json" };

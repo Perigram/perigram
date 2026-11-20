@@ -409,12 +409,13 @@ export function buildListing(operations = OPERATIONS) {
       // Vendored runtime dependencies (workers/cad-occt/README.md owns the
       // build): brepjs is Apache-2.0; occt-wasm declares `MIT OR
       // Apache-2.0` and the listing carries Apache-2.0 as its elected
-      // spelling (the grammar takes one SPDX token); the SDK nodes module
-      // vendors the shared derivation (MIT, the repository license).
+      // spelling (the grammar takes one SPDX token). The SDK derivation
+      // module vendors into the package graph by relative import (the
+      // documents shared-bundle pattern), so it needs no bare-name
+      // declaration.
       dependencies: [
         { name: 'brepjs', version: '20.28.3', module: '/assets/vendor/brepjs.mjs', license: 'Apache-2.0' },
-        { name: 'occt-wasm', version: '5.17.2', module: '/assets/vendor/occt-wasm.mjs', license: 'Apache-2.0' },
-        { name: '@perigram/plugin-sdk/nodes', version: '0.1.0', module: '/assets/vendor/perigram-plugin-sdk-nodes.mjs', license: 'MIT' }
+        { name: 'occt-wasm', version: '5.17.2', module: '/assets/vendor/occt-wasm.mjs', license: 'Apache-2.0' }
       ],
       services
     }

@@ -201,7 +201,7 @@ export function assertValidNodeDefinition(source) {
 
 // Semantic keys a listing signature field may carry beside its base; the
 // port contract derivation copies them onto the port's semantic descriptor.
-const SERVICE_SEMANTIC_KEYS = ['kind', 'nominal', 'provider', 'schema', 'entityType', 'identity', 'constraints', 'unit'];
+const SERVICE_SEMANTIC_KEYS = ['kind', 'representation', 'nominal', 'provider', 'schema', 'entityType', 'identity', 'constraints', 'unit'];
 
 // A listing service's signature field as a node port contract: the
 // collection shape from the field base, the semantic descriptor from the

@@ -33,12 +33,6 @@
         "version": "5.17.2",
         "module": "/assets/vendor/occt-wasm.mjs",
         "license": "Apache-2.0"
-      },
-      {
-        "name": "@perigram/plugin-sdk/nodes",
-        "version": "0.1.0",
-        "module": "/assets/vendor/perigram-plugin-sdk-nodes.mjs",
-        "license": "MIT"
       }
     ],
     "services": [
