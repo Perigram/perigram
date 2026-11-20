@@ -196,6 +196,11 @@ function onReady(event) {
     live.onDidLayoutChange(() => {
       syncGroups();
       emit('layout-change', live.toJSON());
+    }),
+    // The canvas cell stays whole: joins into its center are refused so
+    // panels dock around it, while its edges stay live drop targets.
+    live.onWillShowOverlay(overlay => {
+      if (overlay.position === 'center' && isCanvasGroup(overlay.group)) overlay.preventDefault();
     })
   );
   nextTick(syncActive);
@@ -211,6 +216,13 @@ watch(() => props.items, () => {
 
 function syncGroups() {
   groupCount.value = api.value?.groups?.length || 0;
+  if (!props.canvasKey) return;
+  for (const group of api.value?.groups || []) {
+    group.element.classList.toggle(
+      'perigram-dock__canvas-group',
+      group.panels.some(panel => panel.id === props.canvasKey)
+    );
+  }
 }
 
 function addGroup({ referenceGroup = null, referencePanel = '', direction = 'within', hideHeader = false, locked = false } = {}) {

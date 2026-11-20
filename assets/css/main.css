@@ -922,7 +922,7 @@ body {
 /* Dockview chrome. One dock language for home panes and designer panels:
    structural panes paint no background over the surface (tokens
    contract) and keep a 6px gutter between adjacent boxes with the
-   splitter invisible inside the gutter; the locked center group (the
+   splitter invisible inside the gutter; the canvas center group (the
    designer canvas) paints no box. Values resolve from preset/app
    tokens. */
 .perigram-dock {
@@ -963,7 +963,7 @@ body {
     box-shadow: inset 0 0 0 1px var(--ck-chrome-border);
 }
 
-.perigram-dock .dv-groupview.dv-locked-groupview {
+.perigram-dock .dv-groupview.perigram-dock__canvas-group {
     border-radius: 0;
     box-shadow: none;
 }

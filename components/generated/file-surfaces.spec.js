@@ -63,7 +63,7 @@ describe('file surface registry', () => {
     const pages = fileWorkspacePages(frameworkEditorBindings, []);
     const graphPage = pages.find(page => page.id === 'graph-editor');
     expect(graphPage.flush).toBe(true);
-    expect(graphPage.recordHeader).toBeUndefined();
+    expect(graphPage.recordHeader).toBe(true);
     expect(graphPage.component).toBe(surface.workspacePage.component);
     expect(graphPage.props({ entity: { _id: 'g-2' } })).toEqual({ graphInstanceId: 'g-2' });
   });
