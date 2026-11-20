@@ -3249,8 +3249,6 @@
     "serviceBillingPrepaidTokens": "Предоплаченные токены",
     "serviceTokenCost": "Стоимость в токенах",
     "serviceMeterKey": "Ключ метрики",
-    "inputs": "Входы",
-    "outputs": "Выходы",
     "inputsCount": "{count} входов",
     "outputsCount": "{count} выходов",
     "direction": "Направление",
