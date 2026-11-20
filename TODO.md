@@ -84,6 +84,12 @@
   the pane boxes keep their outer gutter. Plugin designer surfaces
   declare `ownsChrome` in their surface declaration, so record hosts
   render them flush with no page header.
+- The header actions never rendered because a `v-if` on dockview's
+  `#rightHeaderActions` template was evaluated in the parent scope,
+  where the slot's `group` prop does not exist; the condition now lives
+  inside the slot and covers home pane actions too. An org with facade
+  installed picks up the new surface declaration through the catalog
+  (`node server/scripts/seed-plugin-catalog.js workers/facade/listing.json`).
 
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
