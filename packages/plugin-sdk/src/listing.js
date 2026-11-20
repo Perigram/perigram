@@ -49,6 +49,10 @@ import { NODE_EXECUTION_KINDS } from './node-contract.js';
 
 const SERVICE_REF = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 const MODULE_PATH = /^\/[a-z0-9/_-]+\.m?js$/;
+// A staged engine asset: any package file (wasm binary, wheel module,
+// data) fetched at runtime through the module proxy rather than
+// discovered from the entry module's import graph.
+const ENGINE_ASSET_PATH = /^\/[a-z0-9][a-z0-9/._-]*$/;
 const RUNTIME_ENTRY_PATH = /^\/[a-z0-9/_-]+\.(?:m?js|py|wasm)$/;
 const EXECUTION_TARGETS = new Set(['browser', 'server']);
 const EXECUTION_KINDS = new Set(NODE_EXECUTION_KINDS);
@@ -93,6 +97,28 @@ export function parseListing(listing = {}) {
   }
   if (engine !== null && !MODULE_PATH.test(engine.module)) {
     throw listingError(`engine module must be a root-relative .js/.mjs path the package serves (got ${JSON.stringify(engine.module)})`);
+  }
+  // Staged runtime assets (E3b): an interpreter-carrying engine ships
+  // binaries and wheels the entry's import graph cannot discover; the
+  // manifest enumerates them so publishing stages exactly this set and
+  // the install's packageAssets manifest checksum-pins each one.
+  if (engine !== null && engine.assets !== undefined) {
+    if (!Array.isArray(engine.assets) || !engine.assets.length) {
+      throw listingError(`engine assets must be a non-empty array of package paths (got ${JSON.stringify(engine.assets)})`);
+    }
+    const seenAssets = new Set();
+    for (const asset of engine.assets) {
+      if (typeof asset !== 'string' || !ENGINE_ASSET_PATH.test(asset) || asset.split('/').includes('..')) {
+        throw listingError(`engine asset must be a root-relative package path (got ${JSON.stringify(asset)})`);
+      }
+      if (asset === engine.module) {
+        throw listingError(`engine asset ${asset} is the entry module — it serves through the entry declaration`);
+      }
+      if (seenAssets.has(asset)) {
+        throw listingError(`duplicate engine asset ${asset}`);
+      }
+      seenAssets.add(asset);
+    }
   }
   const requires = Array.isArray(listing.requires) ? listing.requires.map(String) : [];
   const pluginId = String(listing.pluginId || '');

@@ -8,6 +8,7 @@ import { services as techDrawingEndpointServices } from '../../../workers/tech-d
 import build123dCatalog from '../../../workers/build123d/catalog.json' with { type: 'json' };
 import build123dListing from '../../../workers/build123d/listing.json' with { type: 'json' };
 import documentsListing from '../../../workers/documents/listing.json' with { type: 'json' };
+import engineDemoListing from '../../../workers/engine-demo/listing.json' with { type: 'json' };
 import facadeListing from '../../../workers/facade/listing.json' with { type: 'json' };
 import techDrawingListing from '../../../workers/tech-drawing/listing.json' with { type: 'json' };
 import nestingListing from '../../../workers/nesting/listing.json' with { type: 'json' };
@@ -17,6 +18,7 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../.
 const listings = [
   { pluginId: 'build123d', pluginRoot: resolve(repositoryRoot, 'workers/build123d'), listing: build123dListing },
   { pluginId: 'documents', pluginRoot: resolve(repositoryRoot, 'workers/documents'), listing: documentsListing },
+  { pluginId: 'engine-demo', pluginRoot: resolve(repositoryRoot, 'workers/engine-demo'), listing: engineDemoListing },
   { pluginId: 'facade', pluginRoot: resolve(repositoryRoot, 'workers/facade'), listing: facadeListing },
   { pluginId: 'nesting', pluginRoot: resolve(repositoryRoot, 'workers/nesting'), listing: nestingListing },
   { pluginId: 'tech-drawing', pluginRoot: resolve(repositoryRoot, 'workers/tech-drawing'), listing: techDrawingListing }
@@ -41,6 +43,12 @@ describe('repository plugin conformance', () => {
       expect(
         existsSync(resolve(pluginRoot, surface.module.replace(/^\//, ''))),
         `${pluginId} surface ${surface.id} module ${surface.module}`
+      ).toBe(true);
+    }
+    for (const asset of listing.declarations.engine?.assets || []) {
+      expect(
+        existsSync(resolve(pluginRoot, asset.replace(/^\//, ''))),
+        `${pluginId} engine asset ${asset}`
       ).toBe(true);
     }
   });
@@ -98,7 +106,7 @@ describe('repository plugin conformance', () => {
   });
 
   it('covers every installed plugin listing in the repository', () => {
-    const discovered = ['build123d', 'documents', 'facade', 'nesting', 'tech-drawing'];
+    const discovered = ['build123d', 'documents', 'engine-demo', 'facade', 'nesting', 'tech-drawing'];
     expect(listings.map(item => item.listing.pluginId).sort()).toEqual(discovered.sort());
   });
 });

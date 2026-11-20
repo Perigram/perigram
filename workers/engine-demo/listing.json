@@ -1,0 +1,41 @@
+{
+  "pluginId": "engine-demo",
+  "name": "Engine Demo",
+  "description": "Demo client-carried engine: an expression interpreter and a WASM tessellation kernel bootstrapped in a Worker from the plugin's own package assets, previewed through a mesh channel",
+  "version": "1",
+  "declarations": {
+    "types": [
+      {
+        "id": "engine-demo-shape",
+        "class": "item",
+        "name": "Engine Demo Shape",
+        "fields": {
+          "name": { "base": "string", "identifier": true }
+        }
+      }
+    ],
+    "engine": {
+      "module": "/engine/index.mjs",
+      "assets": [
+        "/runtime/manifest.json",
+        "/runtime/kernel.wasm",
+        "/runtime/ops-shapes.mjs"
+      ]
+    },
+    "surfaces": [
+      {
+        "id": "engine-demo-mesh",
+        "module": "/surfaces/mesh-preview.mjs",
+        "surfaceContract": 1,
+        "kind": "preview"
+      }
+    ],
+    "previewChannels": [
+      {
+        "id": "engine-demo-mesh",
+        "surface": "engine-demo-mesh",
+        "label": "Mesh"
+      }
+    ]
+  }
+}

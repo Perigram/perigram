@@ -1,0 +1,12 @@
+{
+  "assets": [
+    {
+      "path": "/runtime/kernel.wasm",
+      "sha256": "sha256:8a12f1846b58673fb55569e4c61ee50a7fceb6098d9aa3281d362f45285a2d5b"
+    },
+    {
+      "path": "/runtime/ops-shapes.mjs",
+      "sha256": "sha256:cde04c4054a7a7fd97398ee85927d8e84c573ea479be46321823020b04db6054"
+    }
+  ]
+}

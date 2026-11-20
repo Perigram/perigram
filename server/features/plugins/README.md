@@ -44,7 +44,13 @@ each release asset as `pluginId/version/path` in the catalog's
 assets into the installing organization's `org_plugin_assets` bucket,
 keyed by `organizationId/pluginId/version/path`, with content hashes
 pinned in the install's `packageAssets` manifest. The catalog copy is
-distribution data; the installed copy is organization data.
+distribution data; the installed copy is organization data. An engine
+listing's `engine.assets` enumerates the staged runtime files its
+entry's import graph cannot discover (interpreter binaries, wheels,
+data); publishing stages exactly that set beside the entry graph, and
+each staged asset serves through the module proxy like any other
+package path — the wasm/binary branch streams the stored bytes
+untouched under the stored content type.
 
 ### Installs
 
@@ -312,7 +318,18 @@ rewrite to same-origin proxied URLs; a dependency module of the form
 untouched.
 The served type view composes these same-origin URLs
 ([cts-types](../cts-types/README.md)); connection settings stay
-server-side.
+server-side. An installed client engine owns its bootstrap on top of
+this seam: its entry module (loaded by the browser engine loader) may
+spawn a module Worker from its own package scope, and that Worker
+fetches the engine's staged assets through the same proxy route —
+same-origin `fetch` carries the session cookie, so package-scope
+workers authenticate like the page. The proxy's `private, no-cache` +
+`ETag` responses answer revalidation with `304`; an engine may persist
+verified bytes in the Cache API or IndexedDB under its own pin (the
+install's content-hash manifest is the authority the engine checks
+before trusting a cached copy). The demo engine
+([workers/engine-demo](../../../workers/engine-demo/README.md)) is the
+reference bootstrap.
 
 ### Dependency license gate
 

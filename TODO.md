@@ -1453,10 +1453,11 @@ deployment.
   evaluator (`previewProcessDataflow` client-hosted, the engine loader
   as its preview service channel); graphs with endpoint services or
   `cts.*` species keep the server evaluation.
-- [ ] E3b Engine bootstrap (plugin-owned, sequenced after the platform
+- [x] E3b Engine bootstrap (plugin-owned, sequenced after the platform
   slices) — the runtime itself: worker bootstrap, pinned interpreter,
   wheel install, storage persistence — shipped as package assets by the
-  engine plugin that needs them.
+  engine plugin that needs them. Proven by the demo engine package
+  (`workers/engine-demo`, live dogfood below).
 - [ ] WAITING — owner verification: E3a + E4 — an installed engine
   plugin serves its binding on the org view; a graph composing a local
   service previews in the browser (no server preview round-trip), a
@@ -1467,8 +1468,81 @@ deployment.
   program supersedes it (SPEC §20 owner decision 2026-11-20). The
   transitional executor retires with the program's first geometry
   plugin.
-- [ ] E6 Shape viewport (G4) — the engine's tessellated meshes feed the
-  plugin's preview channel surface.
+- [x] E6 Shape viewport (G4) — the engine's tessellated meshes feed the
+  plugin's preview channel surface: the `perigram.scene-3d` mesh value
+  (vertices/triangle faces/per-vertex normals, contract in
+  [utils README](./utils/README.md)) renders through the demo engine's
+  SVG isometric channel surface. The host 3D viewer belongs to the UX
+  convergence program (preview workspace slice).
+
+### Agent Notes (2026-11-20, agent/e3b-engine-20261119-2230)
+
+- E3b + E6 landed. Platform gaps found and closed: (1) the engine
+  listing grammar had no staged-asset manifest — `declarations.engine`
+  gains `assets: [...]` (root-relative package paths of interpreter
+  binaries, wheels, data the entry's import graph cannot discover),
+  validated by `parseListing`, mirrored in `listing.schema.json`,
+  conformance-covered; (2) the catalog seeder collected runtime/surface/
+  dependency graphs but ignored `declarations.engine` entirely — a
+  built-in engine plugin could not publish package assets; the
+  per-listing preparation moved to `prepareListingRelease`
+  (server/scripts/lib/plugin-runtime-assets.js) which stages the engine
+  entry graph plus the declared assets, engine entry graphs walk
+  without the first-party literal-import refusal (their wheels import
+  from staged bytes), and a `new URL('<dir>/', import.meta.url)` base
+  no longer crashes the walker (EISDIR). Verified already-sufficient:
+  same-origin Worker fetch carries the session cookie (cookie fallback
+  auth), `private, no-cache`+ETag leaves Cache API persistence open,
+  binaries stream byte-exact under stored content types, and no size or
+  count cap sits in the PUT/materialize/proxy path.
+- The demo engine package (`workers/engine-demo`, workers README row):
+  listing (engine + `assets` + preview surface + `engine-demo-mesh`
+  channel), `engine/index.mjs` (`createEngine` → dispatch + the
+  `plugin.engine-demo` node provider), `engine/worker.mjs` (manifest
+  fetch → sha256-pinned staging → Cache API persistence keyed by the
+  manifest digest → WASM instantiate → wheel import → dispatch), a
+  hand-written expression interpreter, and a Rust-compiled
+  `runtime/kernel.wasm` (torus positions + per-vertex normals;
+  `kernel/build.sh` rebuilds binary + manifest). Third-party
+  interpreter runtimes stayed out: the jsdelivr wasmoon/quickjs
+  candidates 404'd and rustc compiles the kernel locally, so the demo
+  is self-contained.
+- Live dogfood (dev stack, scratch org `org-6b001f40`, user
+  `e3b-engine@perigram.local`, species process seeded through the
+  headless authoring seam so graph-document creation rides the editor
+  boundary): operator published listing v1 + 7 assets; install
+  materialized them; module proxy answered the engine entry
+  (`text/javascript`, ETag), `kernel.wasm` (`application/wasm`,
+  byte-exact, If-None-Match → 304), `manifest.json`
+  (`application/json`), 404 a missing path, 401 unauthenticated; the
+  org view served the `clientEngines` binding and the Mesh channel. In
+  the browser: the graph editor loaded the engine from the package
+  store (palette section "Engine demo"), a one-node make-mesh graph
+  evaluated fully client-side ("Preview ready · 2 evaluated nodes"),
+  the output offered 3D scene/JSON/Mesh views, and the plugin's channel
+  surface rendered 576 shaded triangles + 864 edges — the WASM kernel's
+  exact tessellation, so the Worker fetched, checksum-verified,
+  instantiated, and dispatched through the proxy with session
+  credentials. After a full page reload the mesh re-rendered
+  identically from the persisted `engine-demo-runtime` Cache API store
+  (both staged entries present, keyed by the manifest pin). Screenshot:
+  `/tmp/opencode/engine-demo-mesh-live.png`. Uninstalled and retracted
+  after the pass; the scratch org remains in the dev database.
+- E6 contract: the tessellated mesh channel value is
+  `perigram.scene-3d` (`{ representation, vertices, faces, normals? }`
+  — the utils README graph-output representation entry is the
+  canonical home); the demo's `surfaces/mesh-preview.mjs` is the
+  plugin-side SVG isometric renderer (contract 1, normal-shaded faces).
+  No host 3D viewer was built (UX convergence slice 10 owns it).
+- Validation: `workers/engine-demo/engine-demo.spec.js` 13 ✓ (listing
+  grammar, release staging, manifest checksums, interpreter, real
+  module-worker bootstrap over a proxy-shaped HTTP server with tamper
+  refusal + ETag/304, mesh contract, surface render),
+  `sdk.spec.js` 46 ✓, `repository-conformance.spec.js` 32 ✓ — all via
+  the throwaway worktree config at
+  `/tmp/opencode/e3b-engine.vitest.config.js` (worktree node_modules
+  caveat); `check-arch` ✓, `docs:validate` ✓, `plugin-deps:check` ✓.
+>>>>>>> agent/e3b-engine-20261119-2230
 
 ### Agent Notes (2026-11-14, agent/local-engine-e3a-20261114)
 
