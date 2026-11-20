@@ -200,6 +200,7 @@ function onReady(event) {
     // The canvas cell stays whole: joins into its center are refused so
     // panels dock around it, while its edges stay live drop targets.
     live.onWillShowOverlay(overlay => {
+      if (import.meta.env.DEV) console.debug('[dock-debug]', overlay.position, overlay.group?.id, isCanvasGroup(overlay.group));
       if (overlay.position === 'center' && isCanvasGroup(overlay.group)) overlay.preventDefault();
     })
   );
