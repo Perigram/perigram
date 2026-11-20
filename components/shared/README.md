@@ -148,7 +148,7 @@ active organization. `layout` records the host's intended composition
 (`lanes` for persistent side panels, `canvas` for graph canvases). A
 restored layout applies only when it still contains the canvas panel;
 otherwise the workspace rebuilds the default composition — palette left,
-inspector right, preview and commands below the canvas. The canvas
+inspector right, commands below the canvas. The canvas
 header's ellipsis toggles dock panels and mirrors their open state in
 `panels`. Narrow hosts (below 48rem of workspace width) replace the dock
 with one bounded tabbed overlay with the file strip above it and the
