@@ -153,6 +153,16 @@ Landed this session: Hide secondary retired end to end
 en+ru locale keys, README law); `hidden` stays a stripped runtime key
 in `stripRuntimeNodeData`.
 
+### Agent Notes (2026-11-20, third correction round)
+
+- Collapsed sockets moved ONTO the card's top/bottom edges: zero-height
+  rails cancel the card padding and spread sockets by percentage across
+  the full card width, the handle's -50% translate centering each dot
+  on the border — the previous iteration kept sized wrapper rows inside
+  the card body, so the collapsed card stayed as tall as before. The
+  collapsed card is now one header line (chevron, name, icons) plus
+  padding; SPEC/README law updated to the edge-riding one-line form.
+
 ### Agent Notes (2026-11-20, second correction round)
 
 - Collapsed rails stacked every handle at the card's center (absolute

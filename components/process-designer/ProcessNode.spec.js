@@ -15,17 +15,20 @@ describe('process node canvas authoring boundary', () => {
     expect(source).toContain('item.access && item.access !== \'item\'');
   });
 
-  it('collapses to the name once with sockets on the top and bottom rails', async () => {
+  it('collapses to one header line with sockets centered on the card edges', async () => {
     const source = await readComponent('./ProcessNode.vue');
 
     expect(source).toContain('collapseInputs');
     expect(source).toContain('collapseOutputs');
     expect(source).toContain('side="top"');
     expect(source).toContain('side="bottom"');
-    // each rail handle owns a sized relative wrapper — an absolute handle
-    // anchors to its wrapper, so the rail spreads distinct sockets
-    expect(source.match(/class="relative block h-\[22px\] w-\[26px\]"/g)).toHaveLength(2);
-    expect(source.match(/v-if="collapsed"/g)).toHaveLength(1);
+    // zero-height rails cancel the card padding and spread sockets by
+    // percentage across the full card width, riding the borders
+    expect(source).toMatch(/class="relative -mx-2\.5 -mt-3 h-0"/);
+    expect(source).toMatch(/class="relative -mx-2\.5 -mb-2\.5 h-0"/);
+    expect(source).toContain('(index + 1) * 100');
+    expect(source).not.toMatch(/v-if="socketRows.length && !collapsed"[\s\S]*?v-if="collapsed"/);
+    expect(source.match(/v-if="collapsed"/g)).toHaveLength(2);
   });
 
   it('keeps typed authoring controls in the selected-node inspector', async () => {
