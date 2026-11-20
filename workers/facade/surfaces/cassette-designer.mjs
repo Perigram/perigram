@@ -17,7 +17,6 @@ import {
   cassetteV2AssemblyEntitiesFromDrawing,
   cassetteV2FaceSketchContext,
   cassetteV2SketchFrame,
-  collectOccsExpressionIdentifiers,
   renameCassetteV2TreeParameter,
   createCassetteV2GraphTree,
   createCassetteV2OccsDocument,
@@ -31,8 +30,6 @@ import {
   normalizeCassetteV2Profile,
   OCCS_CASSETTE_FACE_ROLES,
   renderCassetteV2TreeToDrawing,
-  resolveOccsAngleExpression,
-  resolveOccsExpression,
   resolveCassetteV2FaceSketchRegion,
   updateCassetteV2FaceInstance,
   cassetteV2FaceSketchFromNode,
@@ -42,6 +39,11 @@ import {
   updateCassetteV2Workpiece,
   updateCassetteV2WorkpieceRelation
 } from './lib/cassetteV2Renderer.js';
+import {
+  collectOccsExpressionIdentifiers,
+  resolveOccsAngleExpression,
+  resolveOccsExpression
+} from '../occs/expressions.js';
 import { occsParameterSource } from '../occs/parameters.js';
 import {
   OCCS_PROFILE_KINDS,
