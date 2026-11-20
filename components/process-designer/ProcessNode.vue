@@ -69,25 +69,20 @@
 
     <!-- Collapsed: the name once with its header icons; every socket at a
          distinct position — inputs on the top rail, outputs on the bottom
-         rail (names on the handle tooltips). -->
+         rail (names on the handle tooltips). Each handle owns a sized
+         relative wrapper: an absolute handle anchors to its wrapper, so
+         the rail spreads them instead of stacking them at the card's
+         center. -->
     <div v-if="collapsed" class="mt-1 flex flex-col items-center gap-1 py-0.5">
       <div class="flex items-center gap-1.5">
-        <DesignerSocketHandle
-          v-for="input in collapseInputs"
-          :key="`ci-${input.id}`"
-          :socket="input"
-          side="top"
-          :title="socketTitle(input)"
-        />
+        <span v-for="input in collapseInputs" :key="`ci-${input.id}`" class="relative block h-[22px] w-[26px]">
+          <DesignerSocketHandle :socket="input" side="top" :title="socketTitle(input)" />
+        </span>
       </div>
       <div class="flex items-center gap-1.5">
-        <DesignerSocketHandle
-          v-for="output in collapseOutputs"
-          :key="`co-${output.id}`"
-          :socket="output"
-          side="bottom"
-          :title="socketTitle(output)"
-        />
+        <span v-for="output in collapseOutputs" :key="`co-${output.id}`" class="relative block h-[22px] w-[26px]">
+          <DesignerSocketHandle :socket="output" side="bottom" :title="socketTitle(output)" />
+        </span>
       </div>
     </div>
 

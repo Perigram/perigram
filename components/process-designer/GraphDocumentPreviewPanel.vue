@@ -4,67 +4,7 @@
       <span class="text-label">{{ $t('processDesigner.graphOutputs') }}</span>
       <Button icon="pi pi-refresh" size="small" text :loading="running" :aria-label="$t('processDesigner.refreshPreview')" @click="$emit('refresh')" />
     </div>
-    <section v-if="graph.interface?.inputs?.length" class="flex flex-col gap-2">
-      <strong class="text-supporting">{{ $t('processDesigner.graphInputValues') }}</strong>
-      <div v-for="port in graph.interface.inputs" :key="port.id" class="flex flex-col gap-1">
-        <label class="text-supporting text-muted" :for="`graph-input-${port.id}`">{{ port.label || port.id }}{{ port.required ? ' *' : '' }}</label>
-        <InstanceSelect
-          v-if="port.contract?.semantic?.kind === 'documents.file-id'"
-          :id="`graph-input-${port.id}`"
-          :model-value="inputDrafts[port.id] ?? null"
-          :options="fileOptions"
-          option-label="name"
-          option-value="payload.fileId"
-          :placeholder="t('processDesigner.selectFile')"
-          :disabled="fileOptionsLoading || !fileOptions.length"
-          class="w-full"
-          @update:model-value="inputDrafts[port.id] = $event"
-        />
-        <InputText
-          v-else-if="port.contract?.shape === 'item' && port.contract?.semantic?.base === 'string'"
-          :id="`graph-input-${port.id}`"
-          :model-value="inputDrafts[port.id] ?? ''"
-          class="w-full"
-          @update:model-value="inputDrafts[port.id] = $event"
-        />
-        <InputNumber
-          v-else-if="port.contract?.shape === 'item' && ['number', 'integer'].includes(port.contract?.semantic?.base)"
-          :id="`graph-input-${port.id}`"
-          :model-value="inputDrafts[port.id] ?? null"
-          :use-grouping="false"
-          :step="port.contract?.semantic?.base === 'integer' ? 1 : undefined"
-          class="w-full"
-          @update:model-value="inputDrafts[port.id] = $event"
-        />
-        <ToggleSwitch
-          v-else-if="port.contract?.shape === 'item' && port.contract?.semantic?.base === 'boolean'"
-          :model-value="Boolean(inputDrafts[port.id])"
-          @update:model-value="inputDrafts[port.id] = $event"
-        />
-        <Textarea
-          v-else
-          :id="`graph-input-${port.id}`"
-          v-model="inputJsonDrafts[port.id]"
-          rows="2"
-          auto-resize
-          class="w-full text-supporting"
-        />
-        <Message v-if="port.contract?.semantic?.kind === 'documents.file-id' && fileOptionsError" severity="error">{{ fileOptionsError }}</Message>
-        <Message v-else-if="port.contract?.semantic?.kind === 'documents.file-id' && !fileOptionsLoading && !fileOptions.length" severity="info">{{ t('processDesigner.noFilesAvailable') }}</Message>
-        <Message v-if="inputErrors[port.id]" severity="error">{{ inputErrors[port.id] }}</Message>
-        <Button size="small" severity="secondary" :label="$t('processDesigner.applyGraphInput')" @click="applyInput(port)" />
-      </div>
-    </section>
     <Message v-if="error" severity="error">{{ error }}</Message>
-    <Message v-if="providerErrors.length" severity="warn">
-      <div class="flex flex-col gap-2">
-        <div v-for="(failure, index) in providerErrors" :key="`${failure.pluginId}:${failure.runtimeId}:${failure.provider}:${index}`" class="flex flex-col gap-1">
-          <strong>{{ failure.provider || failure.pluginId }}<span v-if="failure.runtimeId"> · {{ failure.runtimeId }}</span></strong>
-          <span>{{ failure.message }}</span>
-          <span v-if="failure.operations?.length" class="text-supporting text-muted">{{ failure.operations.join(', ') }}</span>
-        </div>
-      </div>
-    </Message>
     <section v-if="result && outputOptions.length" class="flex min-h-0 flex-col gap-2">
       <label class="text-supporting text-muted" for="graph-preview-output">{{ $t('processDesigner.graphOutput') }}</label>
       <InstanceSelect
@@ -149,6 +89,66 @@
       <Message v-if="!canBake && execution?.status === 'succeeded' && !canBakeToSavedGraph" severity="warn">
         {{ $t('processDesigner.bakeRequiresSaved') }}
       </Message>
+    </section>
+    <Message v-if="providerErrors.length" severity="warn">
+      <div class="flex flex-col gap-2">
+        <div v-for="(failure, index) in providerErrors" :key="`${failure.pluginId}:${failure.runtimeId}:${failure.provider}:${index}`" class="flex flex-col gap-1">
+          <strong>{{ failure.provider || failure.pluginId }}<span v-if="failure.runtimeId"> · {{ failure.runtimeId }}</span></strong>
+          <span>{{ failure.message }}</span>
+          <span v-if="failure.operations?.length" class="text-supporting text-muted">{{ failure.operations.join(', ') }}</span>
+        </div>
+      </div>
+    </Message>
+    <section v-if="graph.interface?.inputs?.length" class="flex flex-col gap-2">
+      <strong class="text-supporting">{{ $t('processDesigner.graphInputValues') }}</strong>
+      <div v-for="port in graph.interface.inputs" :key="port.id" class="flex flex-col gap-1">
+        <label class="text-supporting text-muted" :for="`graph-input-${port.id}`">{{ port.label || port.id }}{{ port.required ? ' *' : '' }}</label>
+        <InstanceSelect
+          v-if="port.contract?.semantic?.kind === 'documents.file-id'"
+          :id="`graph-input-${port.id}`"
+          :model-value="inputDrafts[port.id] ?? null"
+          :options="fileOptions"
+          option-label="name"
+          option-value="payload.fileId"
+          :placeholder="t('processDesigner.selectFile')"
+          :disabled="fileOptionsLoading || !fileOptions.length"
+          class="w-full"
+          @update:model-value="inputDrafts[port.id] = $event"
+        />
+        <InputText
+          v-else-if="port.contract?.shape === 'item' && port.contract?.semantic?.base === 'string'"
+          :id="`graph-input-${port.id}`"
+          :model-value="inputDrafts[port.id] ?? ''"
+          class="w-full"
+          @update:model-value="inputDrafts[port.id] = $event"
+        />
+        <InputNumber
+          v-else-if="port.contract?.shape === 'item' && ['number', 'integer'].includes(port.contract?.semantic?.base)"
+          :id="`graph-input-${port.id}`"
+          :model-value="inputDrafts[port.id] ?? null"
+          :use-grouping="false"
+          :step="port.contract?.semantic?.base === 'integer' ? 1 : undefined"
+          class="w-full"
+          @update:model-value="inputDrafts[port.id] = $event"
+        />
+        <ToggleSwitch
+          v-else-if="port.contract?.shape === 'item' && port.contract?.semantic?.base === 'boolean'"
+          :model-value="Boolean(inputDrafts[port.id])"
+          @update:model-value="inputDrafts[port.id] = $event"
+        />
+        <Textarea
+          v-else
+          :id="`graph-input-${port.id}`"
+          v-model="inputJsonDrafts[port.id]"
+          rows="2"
+          auto-resize
+          class="w-full text-supporting"
+        />
+        <Message v-if="port.contract?.semantic?.kind === 'documents.file-id' && fileOptionsError" severity="error">{{ fileOptionsError }}</Message>
+        <Message v-else-if="port.contract?.semantic?.kind === 'documents.file-id' && !fileOptionsLoading && !fileOptions.length" severity="info">{{ t('processDesigner.noFilesAvailable') }}</Message>
+        <Message v-if="inputErrors[port.id]" severity="error">{{ inputErrors[port.id] }}</Message>
+        <Button size="small" severity="secondary" :label="$t('processDesigner.applyGraphInput')" @click="applyInput(port)" />
+      </div>
     </section>
     <details v-if="result" class="flex flex-col gap-2">
       <summary class="text-supporting text-muted">{{ $t('processDesigner.graphNodeOutputs') }}</summary>
