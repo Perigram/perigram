@@ -67,7 +67,9 @@ tables, images, documents, scene values, plugin renderers, with JSON as
 the explicit fallback view. `GraphOutputView.vue` is the one value
 renderer every preview surface composes — the selected output renders
 its best supported view by default (JSON is an explicit choice), and the
-outputs channel renders each evaluated value through the same component.
+outputs channel selects one evaluated output first with the per-node
+listing as collapsed diagnostics. The graph editor's preview panel leads
+with the selected output; input bindings and Bake follow it.
 
 The inspector renders node configuration properties from each
 definition's JSON schema and edits graph interface transport shape,
@@ -561,11 +563,12 @@ normalizer and validator.
 The preview workspace region hosts the channel-tab strip
 (`GraphPreviewPanel.vue`); the canvas status control opens it. The
 built-in outputs channel comes
-first: `GraphOutputsChannel.vue` over `graphOutputEntries`
-([utils](../../utils/README.md)) lists every visible evaluated output
-under its card labels — section and node, socket label and type, branch
-paths — rendering each value through the shared `GraphOutputView.vue`
-(best representation first), and a hidden node's error alone. The process channel
+first: `GraphOutputsChannel.vue` selects one evaluated output (labeled
+`node · socket` over `graphOutputEntries`,
+[utils](../../utils/README.md)) and renders it through the shared
+`GraphOutputView.vue` (best representation first, JSON an explicit
+choice); node errors stay first-plane, and the per-node listing is the
+collapsed diagnostics under the selected output. The process channel
 preview evaluates through the process-definition preview endpoint: CTS reads
 resolve through the authorized data environment and services dispatch through
 their installed managed runtime. Installed
