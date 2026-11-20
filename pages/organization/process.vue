@@ -10,8 +10,8 @@
         :key="activeGraphDocument._id || 'blank-graph'"
         :record="activeGraphDocument"
         :persistence="graphDocumentPersistence"
-        :mode="'edit'"
-        :page-chrome="graphDocumentChromeChannel"
+        :mode="pageProps.mode"
+        :page-chrome="pageProps.pageChrome || graphDocumentChromeChannel"
       />
       <GraphEditorSurface
         v-else
@@ -1424,11 +1424,12 @@ function schedulePreviewRecompute() {
 
 
 
-onMounted(() => {
+onMounted(async () => {
   loadActiveOrCreateLocal();
   loadProcessCapabilities();
   loadOrgTypes();
-  loadGraphDocuments(t);
+  await loadGraphDocuments(t);
+  applyGraphInstanceId(pageProps.graphInstanceId);
   window.addEventListener('focus', reconcileOutOfBandDraft);
   reconcilePollTimer = setInterval(reconcileOutOfBandDraft, RECONCILE_POLL_MS);
 });
@@ -1548,6 +1549,29 @@ const {
   load: loadGraphDocuments
 } = useGraphDocumentCatalog();
 const activeGraphDocument = ref(null);
+
+// The graph-document surface opens this page (SPEC §28.14 one editor):
+// `graphInstanceId` is '' (the process plane), an instance id (that
+// graph loaded), or 'blank' (a new graph document whose first save
+// creates the instance). 'read' renders the graph canvas read-only.
+const pageProps = defineProps({
+  graphInstanceId: { type: String, default: '' },
+  mode: { type: String, default: 'edit' },
+  pageChrome: { type: Object, default: null }
+});
+function applyGraphInstanceId(id) {
+  if (id === 'blank') {
+    activeGraphDocument.value = {};
+    return;
+  }
+  if (!id) {
+    activeGraphDocument.value = null;
+    return;
+  }
+  const record = graphDocuments.value.find(item => String(item._id) === String(id)) || null;
+  activeGraphDocument.value = record || { _id: String(id) };
+}
+watch(() => pageProps.graphInstanceId, applyGraphInstanceId);
 const graphDocumentChrome = ref(null);
 const graphDocumentChromeChannel = { bind: chrome => { graphDocumentChrome.value = chrome; } };
 const graphDocumentPersistence = computed(() => instancePayloadPersistence(
