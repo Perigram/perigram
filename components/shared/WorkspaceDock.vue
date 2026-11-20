@@ -38,9 +38,9 @@
         </div>
       </template>
 
-      <template v-if="(canvasHeaderActions && isCanvasGroup(group)) || ((allowAdd || allowSplit || allowCloseGroup) && !isCanvasGroup(group))" #rightHeaderActions="{ group }">
+      <template #rightHeaderActions="{ group }">
         <slot v-if="canvasHeaderActions && isCanvasGroup(group)" name="rightHeaderActions" :group="group" />
-        <div v-else class="flex h-full items-stretch">
+        <div v-else-if="allowAdd || allowSplit || allowCloseGroup" class="flex h-full items-stretch">
           <Button
             v-if="allowAdd"
             icon="pi pi-plus"
