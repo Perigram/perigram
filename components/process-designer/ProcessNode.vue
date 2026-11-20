@@ -3,6 +3,22 @@
        operation configuration live in the inspector; the canvas keeps
        identity, diagnostics, preview visibility, and named socket rows. -->
   <DesignerNodeCard :selected="selected" :faulted="faulted" size="lg" :primary="isOperation" :title="data.purpose || data.summary || ''">
+    <!-- Collapsed: one header line — the name and its icons between the
+         socket rails; every socket centered on the card's top/bottom
+         EDGE at a distinct position (names on the handle tooltips). The
+         zero-height rails cancel the card padding, so percentage
+         positions span the card's full width and the handle's -50%
+         translate centers its dot on the border. -->
+    <div v-if="collapsed" class="relative -mx-2.5 -mt-3 h-0">
+      <span
+        v-for="(input, index) in collapseInputs"
+        :key="`ci-${input.id}`"
+        class="absolute top-0 block h-0 w-[26px] -translate-x-1/2"
+        :style="{ left: `${((index + 1) * 100) / (collapseInputs.length + 1)}%` }"
+      >
+        <DesignerSocketHandle :socket="input" side="top" :title="socketTitle(input)" />
+      </span>
+    </div>
     <div class="flex items-center gap-1.5">
       <Button
         :icon="collapsed ? 'pi pi-chevron-right' : 'pi pi-chevron-down'"
@@ -66,24 +82,15 @@
         @click.stop="togglePreviewVisible"
       />
     </div>
-
-    <!-- Collapsed: the name once with its header icons; every socket at a
-         distinct position — inputs on the top rail, outputs on the bottom
-         rail (names on the handle tooltips). Each handle owns a sized
-         relative wrapper: an absolute handle anchors to its wrapper, so
-         the rail spreads them instead of stacking them at the card's
-         center. -->
-    <div v-if="collapsed" class="mt-1 flex flex-col items-center gap-1 py-0.5">
-      <div class="flex items-center gap-1.5">
-        <span v-for="input in collapseInputs" :key="`ci-${input.id}`" class="relative block h-[22px] w-[26px]">
-          <DesignerSocketHandle :socket="input" side="top" :title="socketTitle(input)" />
-        </span>
-      </div>
-      <div class="flex items-center gap-1.5">
-        <span v-for="output in collapseOutputs" :key="`co-${output.id}`" class="relative block h-[22px] w-[26px]">
-          <DesignerSocketHandle :socket="output" side="bottom" :title="socketTitle(output)" />
-        </span>
-      </div>
+    <div v-if="collapsed" class="relative -mx-2.5 -mb-2.5 h-0">
+      <span
+        v-for="(output, index) in collapseOutputs"
+        :key="`co-${output.id}`"
+        class="absolute top-0 block h-0 w-[26px] -translate-x-1/2"
+        :style="{ left: `${((index + 1) * 100) / (collapseOutputs.length + 1)}%` }"
+      >
+        <DesignerSocketHandle :socket="output" side="bottom" :title="socketTitle(output)" />
+      </span>
     </div>
 
     <div v-if="socketRows.length && !collapsed" class="-mx-2.5 mt-2 flex flex-col">
