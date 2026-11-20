@@ -15,12 +15,14 @@ async function openGraphEditor(app, entity) {
       cancelable: true
     }));
   }, entity);
-  await app.page.locator('.process-designer-canvas').first().waitFor({ state: 'visible' });
+  await app.page.locator('.process-designer-canvas').last().waitFor({ state: 'visible' });
   // The boot surface is swapped once while its entity hydrates; interactions
-  // landing on the doomed instance are lost. Require the canvas element to
-  // stay the same node for a window before driving the editor.
+  // landing on the doomed instance are lost. Require the opened editor's
+  // canvas (the newest surface — the suite's org keeps earlier tabs open)
+  // to stay the same node for a window before driving the editor.
   await app.page.waitForFunction(() => {
-    const canvas = document.querySelector('.process-designer-canvas');
+    const canvases = document.querySelectorAll('.process-designer-canvas');
+    const canvas = canvases[canvases.length - 1];
     if (!canvas) return false;
     if (!canvas.dataset.editorSettledAt) {
       canvas.dataset.editorSettledAt = String(performance.now());
@@ -32,17 +34,23 @@ async function openGraphEditor(app, entity) {
 
 async function openPreviewPanel(app) {
   const { page } = app;
-  const toggle = page.locator('[data-designer-toolbar]').getByRole('button', { name: 'Preview' });
+  // The suite's organization keeps earlier editor tabs open; every
+  // interaction targets the newest surface — the tab this spec opened.
+  // The preview workspace is a dock panel; its Inspect control proves it.
+  const dock = page.locator('.perigram-dock').last();
+  const toggle = page.locator('[data-designer-toolbar]').last().getByRole('button', { name: 'Preview' });
+  const opened = dock.getByRole('button', { name: 'Inspect', exact: true });
   await expect(async () => {
-    if ((await toggle.getAttribute('aria-pressed')) !== 'true') {
+    if (!(await opened.isVisible().catch(() => false))) {
       await toggle.click({ timeout: 5_000 });
     }
-    await expect(page.locator('[data-designer-preview]')).toBeVisible({ timeout: 3_000 });
+    await expect(opened.first()).toBeVisible({ timeout: 3_000 });
   }).toPass({ timeout: 45_000 });
+  return { preview: dock };
 }
 
-async function runPreview(app) {
-  await app.page.getByRole('button', { name: 'Inspect', exact: true }).click();
+async function runPreview(app, region) {
+  await region.getByRole('button', { name: 'Inspect', exact: true }).click();
 }
 
 function core(operationId, config) {
@@ -133,16 +141,16 @@ test('typed Documents blocks preview through the graph preview channel', async (
   page.on('pageerror', error => pageErrors.push(error.message));
   await openGraphEditor(app, entity);
 
-  await openPreviewPanel(app);
-  await runPreview(app);
+  const { preview } = await openPreviewPanel(app);
+  await runPreview(app, preview);
 
-  const previewFrame = page.locator('iframe[title$=".md"]').first();
+  const previewFrame = preview.locator('iframe[title$=".md"]').first();
   await expect(previewFrame).toBeVisible({ timeout: 45_000 });
   const srcdoc = await previewFrame.getAttribute('srcdoc');
   expect(srcdoc).toContain('<p>A typed paragraph assembled from inline blocks.</p>');
   expect(srcdoc).toContain('<li>A typed list entry from an inline block.</li>');
 
-  const nodeOutputs = page.locator('details').filter({ hasText: 'Node outputs' });
+  const nodeOutputs = preview.locator('details').filter({ hasText: 'Node outputs' });
   await nodeOutputs.locator('summary').click();
   await expect(nodeOutputs.getByText('inline-text', { exact: true })).toHaveCount(2);
   await expect(nodeOutputs.getByText('document-paragraph', { exact: true })).toBeVisible();
@@ -152,7 +160,7 @@ test('typed Documents blocks preview through the graph preview channel', async (
   await expect(nodeOutputs).toContainText('"type": "list"');
   await expect(nodeOutputs).toContainText('text.flow-document');
   await expect(nodeOutputs).toContainText('text/markdown');
-  await expect(page.getByText(/Preview execution · succeeded/)).toBeVisible();
+  await expect(preview.getByText(/Preview execution · succeeded/)).toBeVisible();
 
   expect(pageErrors, 'client errors while previewing typed Documents blocks').toEqual([]);
   await app.expectCleanRuntime();
@@ -193,15 +201,15 @@ test('an incompatible saved edge surfaces the mapped preflight diagnostic', asyn
   page.on('pageerror', error => pageErrors.push(error.message));
   await openGraphEditor(app, entity);
 
-  await openPreviewPanel(app);
-  await runPreview(app);
+  const { preview } = await openPreviewPanel(app);
+  await runPreview(app, preview);
 
-  const diagnostic = page.locator('.p-message-error').filter({ hasText: 'Representation kind does not match' });
+  const diagnostic = preview.locator('.p-message-error').filter({ hasText: 'Representation kind does not match' });
   await expect(diagnostic.first()).toBeVisible({ timeout: 45_000 });
   await expect(diagnostic.first()).toContainText(/Cannot connect .+ to document:/);
-  await expect(page.locator('[data-canvas-status]')).toContainText('Preview error');
-  await expect(page.locator('iframe[title$=".md"]')).toHaveCount(0);
-  await expect(page.getByText(/Preview execution · succeeded/)).toHaveCount(0);
+  await expect(page.locator('[data-canvas-status]').last()).toContainText('Preview error');
+  await expect(preview.locator('iframe[title$=".md"]')).toHaveCount(0);
+  await expect(preview.getByText(/Preview execution · succeeded/)).toHaveCount(0);
 
   expect(pageErrors, 'client errors while diagnosing the incompatible edge').toEqual([]);
   await app.expectCleanRuntime();
@@ -280,14 +288,14 @@ test('a pinned Use Graph revision previews its subgraph output and drift blocks 
   page.on('pageerror', error => pageErrors.push(error.message));
   await openGraphEditor(app, parentEntity);
 
-  await openPreviewPanel(app);
-  await runPreview(app);
+  const { preview } = await openPreviewPanel(app);
+  await runPreview(app, preview);
 
-  const previewFrame = page.locator('iframe[title$=".md"]').first();
+  const previewFrame = preview.locator('iframe[title$=".md"]').first();
   await expect(previewFrame).toBeVisible({ timeout: 45_000 });
   expect(await previewFrame.getAttribute('srcdoc')).toContain('Paragraph rendered by the pinned subgraph.');
-  await expect(page.getByText(/Preview execution · succeeded/)).toBeVisible();
-  const nodeOutputs = page.locator('details').filter({ hasText: 'Node outputs' });
+  await expect(preview.getByText(/Preview execution · succeeded/)).toBeVisible();
+  const nodeOutputs = preview.locator('details').filter({ hasText: 'Node outputs' });
   await nodeOutputs.locator('summary').click();
   await expect(nodeOutputs.getByText('perigram.core.use-graph', { exact: true })).toBeVisible();
 
@@ -310,15 +318,15 @@ test('a pinned Use Graph revision previews its subgraph output and drift blocks 
   expect(drift.ok(), await drift.text()).toBe(true);
 
   await openGraphEditor(app, parentEntity);
-  await openPreviewPanel(app);
-  await runPreview(app);
+  const drifted = await openPreviewPanel(app);
+  await runPreview(app, drifted.preview);
 
-  const driftDiagnostic = page.locator('.p-message-error').filter({
+  const driftDiagnostic = preview.locator('.p-message-error').filter({
     hasText: `Pinned subgraph ${childGraph.id}@${childRevision} is unavailable`
   });
   await expect(driftDiagnostic.first()).toBeVisible({ timeout: 45_000 });
-  await expect(page.locator('[data-canvas-status]')).toContainText('Preview error');
-  await expect(page.locator('iframe[title$=".md"]')).toHaveCount(0);
+  await expect(page.locator('[data-canvas-status]').last()).toContainText('Preview error');
+  await expect(preview.locator('iframe[title$=".md"]')).toHaveCount(0);
 
   expect(pageErrors, 'client errors while previewing and drifting the pinned subgraph').toEqual([]);
   await app.expectCleanRuntime();
