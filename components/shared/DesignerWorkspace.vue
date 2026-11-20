@@ -256,7 +256,6 @@ async function buildDefaultLayout() {
   if (hasFile.value) wanted.push(['file', 'above', 'height']);
   if (hasPalette.value) wanted.push(['palette', 'left', 'width']);
   if (hasInspector.value) wanted.push(['inspector', 'right', 'width']);
-  if (hasPreview.value) wanted.push(['preview', 'below', 'height']);
   if (hasCommands.value) wanted.push(['commands', 'below', 'height']);
   // The tree is built whole before any sizing pass: a group add
   // redistributes its branch, so sizes applied between adds are lost.
