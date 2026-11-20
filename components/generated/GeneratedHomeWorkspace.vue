@@ -246,6 +246,7 @@
           ref="workspaceDock"
           :items="workspaceTabItems"
           :has-back="paneHasHistory"
+          chip-tabs
           allow-add
           allow-split
           allow-close-group

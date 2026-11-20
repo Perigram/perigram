@@ -10,8 +10,14 @@
     :data-designer-layout="layout"
   >
     <div v-if="!compact" class="relative min-h-0 min-w-0 flex-1">
+      <div class="absolute inset-0">
+        <slot />
+      </div>
       <WorkspaceDock
         ref="dock"
+        class="absolute inset-0 pointer-events-none"
+        overlay
+        spacer-key="workspace-spacer"
         :items="dockItems"
         :panel-closeable="panelCloseable"
         @ready="onDockReady"
@@ -19,10 +25,7 @@
         @layout-change="onDockLayoutChange"
       >
         <template #content="{ item }">
-          <div v-if="item.key === 'canvas'" class="h-full min-h-0 min-w-0">
-            <slot />
-          </div>
-          <slot v-else-if="item.key === 'palette'" name="palette" />
+          <slot v-if="item.key === 'palette'" name="palette" />
           <slot v-else-if="item.key === 'inspector'" name="inspector" />
           <slot v-else-if="item.key === 'preview'" name="preview" />
         </template>
@@ -125,6 +128,9 @@ const props = defineProps({
 const slots = useSlots();
 const { t } = useI18n();
 const authStore = useAuthStore();
+// The transparent panel that keeps the overlay dock alive while the host
+// canvas shows through empty dock space.
+const WORKSPACE_SPACER = 'workspace-spacer';
 const workspace = ref(null);
 const dock = ref(null);
 const dockReady = ref(false);
@@ -137,14 +143,14 @@ const hasInspector = computed(() => Boolean(slots.inspector));
 const hasPreview = computed(() => Boolean(slots.preview));
 
 const panelKeys = computed(() => [
-  'canvas',
+  WORKSPACE_SPACER,
   ...(hasPalette.value ? ['palette'] : []),
   ...(hasInspector.value ? ['inspector'] : []),
   ...(hasPreview.value ? ['preview'] : [])
 ]);
 
 const panelMeta = computed(() => ({
-  canvas: { label: t('designer.canvas'), icon: 'pi pi-window-maximize' },
+  [WORKSPACE_SPACER]: { label: '', icon: '' },
   palette: { label: t('designer.palette'), icon: 'pi pi-align-left' },
   inspector: { label: t('designer.inspector'), icon: 'pi pi-align-right' },
   preview: { label: t('designer.preview'), icon: 'pi pi-eye' }
@@ -152,12 +158,12 @@ const panelMeta = computed(() => ({
 
 const dockItems = computed(() => panelKeys.value.map(key => ({
   key,
-  label: panelMeta.value[key]?.label || key,
+  label: panelMeta.value[key]?.label || '',
   icon: panelMeta.value[key]?.icon || ''
 })));
 
 function panelCloseable(key) {
-  return key !== 'canvas';
+  return key !== WORKSPACE_SPACER;
 }
 
 const panels = reactive({ palette: true, inspector: true, preview: false });
@@ -181,7 +187,7 @@ async function onDockReady() {
   const layout = pendingLayout !== undefined ? pendingLayout : persistedLayout();
   pendingLayout = undefined;
   const pruned = layout ? pruneDockLayout(layout, key => panelKeys.value.includes(key)) : null;
-  if (pruned && pruned.panels.canvas) {
+  if (pruned && pruned.panels[WORKSPACE_SPACER]) {
     dock.value?.applyLayout(pruned);
     await nextTick();
     syncPanels();
@@ -220,7 +226,8 @@ function onDockLayoutChange(layout) {
 async function buildDefaultLayout() {
   const live = dock.value;
   if (!live) return;
-  live.addPanel('canvas');
+  const spacerGroup = live.addGroup({ hideHeader: true });
+  live.addPanel(WORKSPACE_SPACER, { referenceGroup: spacerGroup });
   if (hasPalette.value) await addAuxPanel('palette', 'left', 'width');
   if (hasInspector.value) await addAuxPanel('inspector', 'right', 'width');
   syncPanels();
@@ -230,7 +237,7 @@ async function buildDefaultLayout() {
 async function addAuxPanel(key, direction, axis) {
   const live = dock.value;
   if (!live) return;
-  const panel = live.addPanel(key, { referencePanel: 'canvas', direction });
+  const panel = live.addPanel(key, { referencePanel: WORKSPACE_SPACER, direction });
   if (!panel) return;
   await nextTick();
   await live.sizePanelToContent(key, {

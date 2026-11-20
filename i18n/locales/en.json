@@ -149,7 +149,6 @@
     "stateColumn": "State"
   },
   "designer": {
-    "canvas": "Canvas",
     "toolbar": "Toolbar",
     "palette": "Palette",
     "inspector": "Inspector",
