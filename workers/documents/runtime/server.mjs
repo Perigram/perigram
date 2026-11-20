@@ -115,22 +115,28 @@ export function createRuntime() {
     async execute(operationId, input = {}) {
       // The managed graph/construction task wraps its payload in the
       // graph invocation envelope; direct dispatch receives it as-is.
-      const args = input?.mode === 'preview' && input?.inputs && typeof input.inputs === 'object'
-        ? input.inputs
-        : input;
-      switch (operationId) {
-        case 'fill': return await fill(args);
-        case 'render-pdf': return await renderPdf(args);
-        case 'render-report-pdf': {
-          const { report, name } = args || {};
-          return toPayload(await renderReportPdf(report), 'application/pdf', `${baseName(name || report?.title || 'report')}.pdf`);
-        }
-        case 'render-document-pdf': {
-          const { document, name } = args || {};
-          return toPayload(await renderDocumentPdf(document), 'application/pdf', `${baseName(name || document?.title || 'document')}.pdf`);
-        }
-        default: throw new Error(`Unsupported Documents server operation: ${operationId}`);
-      }
+      // Enveloped results ride the `{ value }` output-port map the graph
+      // evaluator and the managed value-service unwrap both expect.
+      const graphInvocation = input?.mode === 'preview' && input?.inputs && typeof input.inputs === 'object';
+      const args = graphInvocation ? input.inputs : input;
+      const value = await dispatch(operationId, args);
+      return graphInvocation ? { value } : value;
     }
   };
+}
+
+async function dispatch(operationId, input = {}) {
+  switch (operationId) {
+    case 'fill': return await fill(input);
+    case 'render-pdf': return await renderPdf(input);
+    case 'render-report-pdf': {
+      const { report, name } = input || {};
+      return toPayload(await renderReportPdf(report), 'application/pdf', `${baseName(name || report?.title || 'report')}.pdf`);
+    }
+    case 'render-document-pdf': {
+      const { document, name } = input || {};
+      return toPayload(await renderDocumentPdf(document), 'application/pdf', `${baseName(name || document?.title || 'document')}.pdf`);
+    }
+    default: throw new Error(`Unsupported Documents server operation: ${operationId}`);
+  }
 }

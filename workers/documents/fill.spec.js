@@ -35,15 +35,34 @@ function rowsOf(buffer) {
   return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }).map(row => row.map(String));
 }
 
-async function pdfText(buffer) {
+async function pdfText(buffer, pageNumber = 1) {
   const task = getDocument({ data: new Uint8Array(buffer), disableWorker: true, useSystemFonts: true });
   const pdf = await task.promise;
-  const page = await pdf.getPage(1);
+  const page = await pdf.getPage(pageNumber);
   const content = await page.getTextContent();
   const text = content.items.map(item => item.str).join(' ');
   page.cleanup();
   await pdf.destroy();
   return text;
+}
+
+// Extractable Cyrillic proves the PT Sans subset embeds with a Unicode
+// mapping: a StandardFonts program cannot encode those code points.
+async function pdfTextFonts(buffer, pageNumber = 1) {
+  const task = getDocument({ data: new Uint8Array(buffer), disableWorker: true, useSystemFonts: true });
+  const pdf = await task.promise;
+  const page = await pdf.getPage(pageNumber);
+  const content = await page.getTextContent();
+  page.cleanup();
+  await pdf.destroy();
+  return { text: content.items.map(item => item.str).join(' '), fontNames: [...new Set(content.items.map(item => item.fontName))] };
+}
+
+async function templatePdf(text) {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  doc.addPage([595.28, 841.89]).drawText(text, { x: 100, y: 700, size: 14, font });
+  return Buffer.from(await doc.save());
 }
 
 const TEMPLATE_ROWS = [
@@ -224,18 +243,43 @@ describe('pdf render', () => {
 });
 
 describe('pdf template fill', () => {
-  async function templatePdf(text) {
-    const doc = await PDFDocument.create();
-    const font = await doc.embedFont(StandardFonts.Helvetica);
-    doc.addPage([595.28, 841.89]).drawText(text, { x: 100, y: 700, size: 14, font });
-    return Buffer.from(await doc.save());
-  }
-
   it('masks {key} tokens and redraws substituted text once per run', async () => {
     const filled = await fillPdfTemplate(await templatePdf('Client: {client}  Date: {date}'), { client: 'ООО Ромашка', date: '2026-10-26' });
     const text = await pdfText(filled);
     expect(text).toContain('Client: ООО Ромашка Date: 2026-10-26');
     expect(text.split('Ромашка').length - 1).toBe(1);
+  });
+
+  it('keeps a missing token\'s placeholder visible after masking', async () => {
+    const filled = await fillPdfTemplate(await templatePdf('Client: {client}  Date: {date}'), { date: '2026-11-19' });
+    await expect(PDFDocument.load(filled)).resolves.toBeTruthy();
+    const text = await pdfText(filled);
+    expect(text).toContain('{client}');
+    expect(text.split('2026-11-19').length - 1).toBe(1);
+  });
+
+  it('round-trips a multi-page multi-token template with Cyrillic values through embedded PT Sans', async () => {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    doc.addPage([595.28, 841.89]).drawText('INVOICE {doc-no}', { x: 100, y: 740, size: 16, font });
+    doc.getPage(0).drawText('Bill to: {client}', { x: 100, y: 700, size: 12, font });
+    doc.addPage([595.28, 841.89]).drawText('Total: {total}', { x: 100, y: 700, size: 12, font });
+    const template = Buffer.from(await doc.save());
+
+    const filled = await fillPdfTemplate(template, { 'doc-no': 'СЧ-42', client: 'ООО Ромашка', total: '120 000,00' });
+
+    expect(filled.subarray(0, 5).toString()).toBe('%PDF-');
+    const reloaded = await PDFDocument.load(filled);
+    expect(reloaded.getPageCount()).toBe(2);
+    const page1 = await pdfTextFonts(filled, 1);
+    expect(page1.text).toContain('INVOICE СЧ-42');
+    expect(page1.text).toContain('Bill to: ООО Ромашка');
+    expect(page1.text.split('Ромашка').length - 1).toBe(1);
+    // The redraw rides its own embedded font resource beside the
+    // template's standard font; the masked original stays extractable.
+    expect(page1.fontNames.length).toBe(2);
+    expect(page1.text).toContain('INVOICE {doc-no}');
+    expect(await pdfText(filled, 2)).toContain('Total: 120 000,00');
   });
 
   it('leaves a template without tokens byte-shape compatible', async () => {
@@ -274,6 +318,31 @@ describe('services dispatch', () => {
     expect(output.payload.mime).toBe('application/pdf');
     expect(output.payload.name).toBe('Out.pdf');
     expect(Buffer.from(output.payload.base64, 'base64').subarray(0, 5).toString()).toBe('%PDF-');
+  });
+
+  it('fill fills a PDF template through the managed invocation envelope', async () => {
+    const template = await templatePdf('Client: {client}');
+    const output = await serverRuntime.execute('fill', {
+      mode: 'preview',
+      config: {},
+      inputs: {
+        mode: 'fill',
+        refs: { template: { name: 'spec.pdf', payloadMime: 'application/pdf', payloadBase64: template.toString('base64') } },
+        draft: { data: { name: 'Out', values: { client: 'ООО Ромашка' } } }
+      },
+      nodeId: 'fill-1',
+      executionId: 'preview-1',
+      invocationPath: []
+    });
+    expect(output).toEqual({
+      value: expect.objectContaining({
+        payload: { base64: expect.any(String), mime: 'application/pdf', name: 'Out.pdf' },
+        meta: { tokens: ['client'] }
+      })
+    });
+    const bytes = Buffer.from(output.value.payload.base64, 'base64');
+    expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
+    expect(await pdfText(bytes)).toContain('ООО Ромашка');
   });
 
   it('fill refuses an unsupported template kind', async () => {
