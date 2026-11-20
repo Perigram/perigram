@@ -378,7 +378,8 @@ export function fileWorkspacePages(editors = activeEditorBindings(), surfaces = 
       if (!surface?.workspacePage) return null;
       // A direct presentation mounts the page component itself: the
       // surface owns its whole shell and identity (SPEC §28.14 one
-      // editor — the graph-document surface is the unified editor page).
+      // editor — the graph-document surface is the unified editor page),
+      // so the page host renders neither its lineage strip nor a header.
       if (surface.workspacePage.direct) {
         return {
           id: editor.surface,
@@ -387,6 +388,7 @@ export function fileWorkspacePages(editors = activeEditorBindings(), surfaces = 
           icon: surface.workspacePage.icon,
           component: surface.workspacePage.component,
           flush: true,
+          recordHeader: true,
           props: page => surface.workspacePage.props?.(page, editor.type) || {}
         };
       }

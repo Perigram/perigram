@@ -201,37 +201,56 @@
            renders the editor flush under the unified header — the
            document anatomy stays off editor pages. -->
       <template v-if="showSurfaces && editorSurface">
-        <div class="relative">
-          <SurfaceHeader
-            :type="node.type"
-            :instance="node.instances[0]"
-            :actions="headerActions"
-            :level="node.level"
-            :bundle="bundle"
-            :state-policy="node.statePolicy"
-            :navigation="depth === 0 ? navigation : null"
-            :chrome="editorChrome"
-            @run="action => emitRun(action, { instance: node.instances[0] || null })"
-            @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
-            @refresh="emit('refresh')"
-            @open-instance="emitOpen"
-          />
-          <!-- The record's reload lane: a permanent 4px track under the
+        <template v-if="editorSurface.workspacePage?.ownsChrome">
+          <!-- An ownsChrome editor record (SPEC §4): the editor owns the
+               page — its file panel carries the identity — so the
+               unified header stays off; the pane's Back control alone
+               rides above when navigation history exists. -->
+          <div v-if="navigation" class="flex px-1 pt-1">
+            <BackControl :back="navigation" />
+          </div>
+          <div class="flex min-h-0 flex-1 flex-col">
+            <RecordEditorBody
+              :key="node.typeId"
+              :surface="editorSurface"
+              :instance="node.instances[0]"
+              :type="node.type"
+            />
+          </div>
+        </template>
+        <template v-else>
+          <div class="relative">
+            <SurfaceHeader
+              :type="node.type"
+              :instance="node.instances[0]"
+              :actions="headerActions"
+              :level="node.level"
+              :bundle="bundle"
+              :state-policy="node.statePolicy"
+              :navigation="depth === 0 ? navigation : null"
+              :chrome="editorChrome"
+              @run="action => emitRun(action, { instance: node.instances[0] || null })"
+              @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
+              @refresh="emit('refresh')"
+              @open-instance="emitOpen"
+            />
+            <!-- The record's reload lane: a permanent 4px track under the
                header the strip appears inside — bounded, touching no
                content, and its appearance shifts nothing below. -->
-          <div :class="LAYOUT.reloadLane">
-            <ProgressBar v-if="isReloading" mode="indeterminate" class="h-full" :aria-label="$t('uiMapping.loadingRegion')" />
+            <div :class="LAYOUT.reloadLane">
+              <ProgressBar v-if="isReloading" mode="indeterminate" class="h-full" :aria-label="$t('uiMapping.loadingRegion')" />
+            </div>
           </div>
-        </div>
-        <div class="flex min-h-0 flex-1 flex-col">
-          <RecordEditorBody
-            :key="node.typeId"
-            :surface="editorSurface"
-            :instance="node.instances[0]"
-            :type="node.type"
-            :chrome="editorChrome"
-          />
-        </div>
+          <div class="flex min-h-0 flex-1 flex-col">
+            <RecordEditorBody
+              :key="node.typeId"
+              :surface="editorSurface"
+              :instance="node.instances[0]"
+              :type="node.type"
+              :chrome="editorChrome"
+            />
+          </div>
+        </template>
       </template>
       <template v-else-if="showSurfaces">
         <div class="relative">
@@ -409,6 +428,7 @@ import SurfaceBody from './SurfaceBody.vue';
 import SortControl from './SortControl.vue';
 import CreateControl from './CreateControl.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
+import BackControl from '../shared/BackControl.vue';
 import RecordEditorBody from '~/components/generated/RecordEditorBody.vue';
 import { createEditorChrome } from '~/components/generated/editor-page-chrome.js';
 import { resolveFileSurface } from '~/components/generated/file-surfaces.js';
