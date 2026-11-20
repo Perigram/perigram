@@ -401,48 +401,4 @@ onMounted(async () => {
     pageOptions.value = [];
   }
 });
-
-function applyInput(port) {
-  const portId = port.id;
-  try {
-    const base = port.contract?.semantic?.base || 'json';
-    const shape = port.contract?.shape || 'item';
-    const value = shape === 'item' && base === 'string'
-      ? inputDrafts[portId] ?? ''
-      : shape === 'item' && ['number', 'integer'].includes(base)
-        ? inputDrafts[portId]
-        : shape === 'item' && base === 'boolean'
-          ? Boolean(inputDrafts[portId])
-          : JSON.parse(inputJsonDrafts[portId] || 'null');
-    const semantic = port.contract?.semantic || {};
-    if (port.required && base === 'string' && typeof value === 'string' && !value.trim()) {
-      throw new Error(t('processDesigner.graphInputInvalid'));
-    }
-    if (value === null && semantic.nullable !== true) {
-      throw new Error(t('processDesigner.graphInputNullNotAllowed'));
-    }
-    if (value === undefined && port.required) {
-      throw new Error(t('processDesigner.graphInputInvalid'));
-    }
-    const validItem = item => {
-      if (item === null) return shape === 'item' && semantic.nullable === true;
-      if (base === 'string') return typeof item === 'string';
-      if (base === 'number') return typeof item === 'number' && Number.isFinite(item);
-      if (base === 'integer') return Number.isSafeInteger(item);
-      if (base === 'boolean') return typeof item === 'boolean';
-      if (base === 'record') return item && typeof item === 'object' && !Array.isArray(item);
-      return true;
-    };
-    const valid = value === null && semantic.nullable === true ? true : ['list', 'tuple', 'tree'].includes(shape)
-      ? Array.isArray(value) && value.every(validItem)
-      : shape === 'map'
-        ? value && typeof value === 'object' && !Array.isArray(value)
-        : validItem(value);
-    if (!valid) throw new Error(t('processDesigner.graphInputInvalid'));
-    delete inputErrors[portId];
-    emit('update-input-binding', { portId, value });
-  } catch (cause) {
-    inputErrors[portId] = cause.message || String(cause);
-  }
-}
 </script>
