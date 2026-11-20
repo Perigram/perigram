@@ -24,11 +24,23 @@ MODULE_GROUPS = {
     "build123d.objects_part": "part",
     "build123d.objects_sketch": "sketch",
     "build123d.objects_curve": "curve",
-    "build123d.operations_generic": "operations",
-    "build123d.operations_part": "operations",
-    "build123d.operations_sketch": "operations",
+    "build123d.operations_generic": "modify",
+    "build123d.operations_part": "solid",
+    "build123d.operations_sketch": "face",
     "build123d.drafting": "drafting",
     "build123d.text": "text",
+}
+
+GROUP_LABELS = {
+    "part": "Parts",
+    "sketch": "Sketches",
+    "curve": "Curves",
+    "modify": "Modify",
+    "solid": "Solids",
+    "face": "Faces",
+    "drafting": "Drafting",
+    "text": "Text",
+    "algebra": "Algebra",
 }
 
 # The shape-algebra operator protocol: each supported special method on
@@ -147,13 +159,14 @@ def main():
     rejected = []
 
     def emit(*, op_id, kind, label, module, target, params, returns, summary, group=None):
+        resolved_group = group or MODULE_GROUPS.get(module, "modify")
         ops.append({
             "id": op_id,
             "kind": kind,
             "label": label,
             "module": module,
             "target": target,
-            "palette": {"group": group or MODULE_GROUPS.get(module, "operations"), "label": {"part": "Parts", "sketch": "Sketches", "curve": "Curves", "operations": "Operations", "drafting": "Drafting", "text": "Text", "algebra": "Algebra"}.get(group or MODULE_GROUPS.get(module, "operations"), "Operations"), "keywords": list(dict.fromkeys([label, op_id, kind, module, *[param["name"] for param in params]]))},
+            "palette": {"group": resolved_group, "label": GROUP_LABELS.get(resolved_group, resolved_group), "keywords": list(dict.fromkeys([label, op_id, kind, module, *[param["name"] for param in params]]))},
             "params": params,
             "returns": returns,
             "summary": summary,

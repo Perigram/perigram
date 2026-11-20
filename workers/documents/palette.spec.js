@@ -23,19 +23,20 @@ function declaredPaletteGroups() {
 }
 
 describe('Documents plugin node palette contribution', () => {
-  it('exposes declared table extraction and document operations as plugin-owned groups', () => {
+  it('exposes one plugin section with its declared groups as subgroups', () => {
     const groups = declaredPaletteGroups();
-    const tableData = groups.find(group => group.id === 'plugin-documents-table-data');
-    const documentCompose = groups.find(group => group.id === 'plugin-documents-document-composition');
+    expect(groups).toHaveLength(1);
+    const section = groups[0];
+    expect(section).toMatchObject({ id: 'plugin-documents', source: 'plugin' });
+    const subgroup = id => section.subgroups.find(group => group.id === id);
+    expect(subgroup('table-data').items.map(item => item.id)).toContain('extract:documents:rows');
+    expect(subgroup('table-data').items.map(item => item.id)).toContain('extract:documents:cells');
+    expect(subgroup('document-composition').items.map(item => item.id)).toContain('service:documents:compose-report');
 
-    expect(groups.every(group => group.source === 'plugin')).toBe(true);
-    expect(tableData.items.map(item => item.id)).toContain('extract:documents:rows');
-    expect(tableData.items.map(item => item.id)).toContain('extract:documents:cells');
-    expect(documentCompose.items.map(item => item.id)).toContain('service:documents:compose-report');
-    expect(groups.find(group => group.id === 'plugin-documents-document-blocks').items.map(item => item.id)).toContain('service:documents:document-paragraph');
-    expect(groups.find(group => group.id === 'plugin-documents-document-composition').items.map(item => item.id)).toContain('service:documents:compose-document');
-    expect(groups.find(group => group.id === 'plugin-documents-document-export').items.map(item => item.id)).toContain('service:documents:export-markdown-file');
-    expect(documentCompose.items.find(item => item.id === 'service:documents:compose-report').searchTerms).toContain('compose-report');
+    expect(subgroup('document-blocks').items.map(item => item.id)).toContain('service:documents:document-paragraph');
+    expect(subgroup('document-composition').items.map(item => item.id)).toContain('service:documents:compose-document');
+    expect(subgroup('document-export').items.map(item => item.id)).toContain('service:documents:export-markdown-file');
+    expect(section.items.find(item => item.id === 'service:documents:compose-report').searchTerms).toContain('compose-report');
   });
 
   it('keeps every declared projection and grouped service reachable from the palette', () => {

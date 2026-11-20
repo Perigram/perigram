@@ -64,7 +64,11 @@ socket visual.
 
 Top to bottom: header (neutral icon chip + label), socket rail (labeled rows, inputs left /
 outputs right, handles centered on the outer rail, labels always render), event section (effects
-only). Cards are socket manifests, never authoring surfaces: typed defaults, literal values,
+only). Socket rows carry the socket name; the element type, access, qualifier, and connection
+state ride the row's hover/focus tooltip — a per-socket connection icon is chrome encoding
+nothing. A collapsed card renders the name once with its header icons and keeps every socket
+handle on its side rail — inputs left, outputs right, in expanded order — so wires keep their
+anchors. Cards are socket manifests, never authoring surfaces: typed defaults, literal values,
 operation parameters, casts, conversions, and structured values are edited in the inspector.
 The inspector also owns live input/output evaluation; the card exposes only identity, diagnostics,
 preview visibility, collapse, and socket contracts. Sections separate by spacing
@@ -161,12 +165,14 @@ The editor uses the application's shared visual system and primitives.
 It must not introduce a separate floating/glass visual language.
 
 The workspace has six distinct concerns:
-1. Header: graph identity, rename, dirty/saved state, save, and
-   file-level navigation/actions. Process Validate/Apply actions are
-   profile lifecycle actions.
+1. Graphs list (inspector rail): graph identity, open, create, rename,
+   dirty/saved state, and save for process definitions and graph
+   documents; process definitions carry their lifecycle actions (new
+   draft, apply, activation, versions) on the list entry. The editor is
+   headerless.
 2. Node library: searchable semantic node catalog and insertion.
 3. Canvas: graph composition and navigation.
-4. Inspector: selected node/edge configuration only.
+4. Inspector: the graphs list and selected node/edge configuration.
 5. Preview workspace: selected graph output and its available renderers,
    in a resizable region with sufficient space for document and 3D views.
 6. Diagnostics: validation, execution errors, and optional intermediate
@@ -174,24 +180,26 @@ The workspace has six distinct concerns:
 
 The preview workspace is not an inspector tab or right-side inspector
 section. It is a separate bottom panel or dedicated workspace pane. The
-inspector never hosts the graph catalog or graph-file list. The Use Graph
-node's source graph/revision picker is node configuration and remains in
-that node's inspector.
+Use Graph node's source graph/revision picker is node configuration and
+remains in that node's inspector.
 
-File creation/open/rename/save belongs to the file/workspace navigation
-and editor header. A dock must not combine those commands with panel
-toggles, support actions, and unrelated canvas controls. The generic
-Support panel/button is retired. Graph status and diagnostics have
-explicit, accurately named surfaces.
+### One editor
+
+The unified editor is one UI: the organization graphs page hosts both
+process authoring and graph-document authoring (root SPEC §28.14). The
+graph-document file-surface mount retires; opening a graph file
+navigates to the unified editor with that graph loaded. The process
+profile rides the same page for process definitions.
 
 ### Node library and configuration
 
-The palette's user-facing umbrella is **Nodes**, not **Operations**.
-It is derived from the normalized registry and groups values/literals,
+The palette's platform groups are semantic: values/literals,
 data/queries, flow/collections, graph boundaries/reusable graphs, and
-installed plugin contributions. The dedicated Use Graph group remains
-distinct. Plugin attribution is retained, but plugin identity does not
-replace semantic grouping.
+the profile's operation families. The dedicated Use Graph group remains
+distinct. Installed plugin contributions form one palette section per
+plugin, named by the plugin, with the plugin's declared semantic groups
+as subgroups inside; a blanket "operations" group name is a defect in
+the declaring plugin.
 
 Search indexes labels, descriptions, provider identity, stable operation
 identity, category, and declared keywords. Palette entries accurately
@@ -259,14 +267,20 @@ reintroduce the old toggle under a new label.
 - Inventory and classify both editor sessions, canvas adapters, palettes,
   inspectors, preview components, toolbars, panel state, and node-specific
   configuration branches.
+- Retire the graph-document file-surface mount; the organization graphs
+  page becomes the one editor for process definitions and graph
+  documents, with the graphs list in its inspector owning open, create,
+  rename, save, and process lifecycle actions.
 - Consolidate generic graph authoring on the canonical graph document and
   session; retain process-only behavior as profile extensions.
 - Rebuild the workspace regions and responsive transitions without
   overlapping overlays.
-- Move preview out of the inspector and connect declared output
-  representations to host/plugin viewers.
-- Replace Operations palette vocabulary with registry-derived Nodes
-  categories and plugin attribution.
+- Move preview out of the inspector/support rail into the resizable
+  preview workspace region and connect declared output representations
+  to host/plugin viewers.
+- Rebuild plugin palette contributions as per-plugin sections with the
+  plugin's declared semantic groups as subgroups; retire blanket
+  "operations" group names from plugin declarations.
 - Make Create/Construct schema-driven and remove generic event/schedule
   fields.
 - Remove Support and Hide secondary affordances and dead state paths.

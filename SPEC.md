@@ -2331,6 +2331,12 @@ remain distinct execution profiles as stated in §28.6. This is a
 convergence target and migration requirement, not permission to pretend
 the current parallel sessions already satisfy it.
 
+**One editor (owner direction 2026-11-19).** The unified editor is a
+single UI: the organization graphs page. Process authoring and
+graph-document authoring both open in it. The graph-document
+file-surface mount retires; opening a graph file navigates to the
+unified editor with that graph loaded. The editor is headerless.
+
 **Workspace anatomy.** The editor is a full working surface in the
 application's existing visual language, not a floating tool demo. Use the
 registered PrimeVue components, shared design-system primitives, and
@@ -2339,28 +2345,28 @@ clusters, inconsistent spacing, and local chrome systems that do not
 belong to the app.
 
 The desktop workspace has stable, non-overlapping responsibilities:
-- **Header:** graph/document identity, rename, dirty/saved state, save,
-  and file-level actions. Process profile actions such as Validate and
-  Apply are presented as process lifecycle actions, not mixed into file
-  navigation.
+- **Graphs list:** the inspector's graphs list owns graph identity,
+  open, create, rename, dirty/saved state, and save for both process
+  definitions and graph documents. Process definitions additionally
+  expose their lifecycle actions (new draft, apply, activation,
+  versions) on their list entry. The editor itself is headerless.
 - **Node library:** searchable node discovery and insertion. It is a
   dedicated, navigable library surface, not a collection of unrelated
   floating buttons.
 - **Canvas:** graph composition, selection, connection, navigation, and
   graph-level status. It remains the dominant working area.
-- **Inspector:** configuration and details for the selected node or edge.
-  It never hosts the graph catalog/file browser or the primary output
-  preview.
+- **Inspector:** the graphs list and configuration/details for the
+  selected node or edge. The primary output preview lives in the
+  preview workspace.
 - **Preview workspace:** evaluated graph outputs and representations,
   with enough width and height for real content viewers, including
   interactive 3D. It is a separate resizable workspace region (for
   example a bottom panel or dedicated workspace pane), never a narrow
   inspector sidebar. It may be collapsed when not in use.
-- **Graph navigation:** finding, opening, creating, and renaming graph
-  files belongs to the normal file/workspace navigation and header
-  actions. It is not duplicated in the node inspector. The selected
+- **Graph navigation:** the graphs list is the single navigation
+  surface for graphs; file navigation deep-links into it. The selected
   source graph/revision picker inside a Use Graph node's inspector is
-  valid node configuration and remains there.
+  node configuration and remains there.
 
 These regions must have an intentional responsive composition. On narrow
 screens, regions become explicit tabs or stacked panels with preserved
@@ -2368,18 +2374,18 @@ context; they must not collapse into overlapping floating overlays. The
 canvas remains usable when the node library, inspector, or preview is
 opened. No panel may silently cover another panel's primary controls.
 
-**Node library vocabulary and grouping.** **Nodes** is the umbrella
-concept. The UI must not call the entire palette **Operations**: values,
-literals, boundaries, queries, control/collection constructs, reusable
-graphs, and plugin contributions are not all operations. Grouping is
-semantic and discoverable, at minimum:
+**Node library vocabulary and grouping.** Platform groups stay semantic
+and discoverable, at minimum:
 - Values and literals.
 - Data and queries.
 - Flow and collections.
 - Graph boundaries and reusable graphs (including the dedicated Use
   Graph entry required by §28.4–§28.5).
-- Installed plugin contributions, grouped or filtered by provider while
-  retaining their semantic categories.
+
+Installed plugin contributions form one palette section per plugin,
+named by the plugin, with the plugin's declared semantic groups as
+subgroups inside. A blanket "operations" group name carries no meaning
+and is a defect in the declaring plugin.
 
 Search indexes node names, descriptions, stable operation identities,
 provider names, categories, and declared keywords. Plugin nodes retain
@@ -2407,7 +2413,12 @@ process authoring. Event entry, scheduling, and durable effects belong
 to process-profile node definitions and their profile-owned configuration
 contracts. They are not implicit properties of generic Create.
 
-Node cards remain compact socket manifests. Configuration is authored
+**Node cards remain compact socket manifests.** Socket rows carry the
+socket name; the element type, access, qualifier, and connection state
+ride the row's hover/focus tooltip. A collapsed card renders the name
+once with its header icons and keeps every socket handle on its side
+rail — inputs left, outputs right, in expanded order — so wires keep
+their anchors. Configuration is authored
 in the inspector or through a declared specialized editor contribution;
 node cards do not grow ad-hoc forms. Empty, unavailable, or malformed
 node definitions retain identity and connections and display actionable
@@ -2450,9 +2461,9 @@ needed them.
 
 File management, panel navigation, node insertion, graph evaluation,
 preview, diagnostics, and process lifecycle must each have one clear
-home. A dock must not mix save/new/rename/file commands with panel
-toggles and unrelated support actions. A graph list/catalog must not be
-placed in the inspector merely because the inspector has spare space.
+home: the graphs list owns graph file management and process lifecycle
+entry points, the dock owns panel toggles, the preview workspace owns
+evaluated output, and diagnostics surfaces own validation and errors.
 
 **Migration and acceptance.** Audit the current process and graph-document
 implementations against this target before moving code. Inventory every
@@ -2465,15 +2476,18 @@ generic implementations as a permanent compatibility layer.
 Acceptance requires:
 1. Opening a graph file and opening process authoring use the same
    canonical graph document/session, canvas interaction protocol,
-   normalized node definitions, and generic inspector/preview workspace.
+   normalized node definitions, and generic inspector/preview workspace,
+   both through the one editor page.
 2. Process-specific lanes, grants, declarations, event entry, durable
    effects, validation, and Apply remain available through the process
    profile without leaking into generic graph authoring.
-3. File create/open/rename/save/navigation are in the workspace header
-   and normal file navigation; the inspector contains only selected graph
-   element configuration.
-4. The node library uses Nodes vocabulary, semantic categories, plugin
-   attribution, and one registry-derived search/insertion contract.
+3. Graph create/open/rename/save and the process lifecycle actions live
+   on the inspector's graphs list; the rest of the inspector is selected
+   graph element configuration.
+4. The node library uses semantic platform categories and one
+   registry-derived search/insertion contract; installed plugin
+   contributions sit in per-plugin sections with their declared semantic
+   subgroups inside.
 5. Generic Create/Construct is driven by type construction contracts;
    event/schedule configuration is profile-specific and schema-driven.
 6. The preview workspace is separate from the inspector, displays the

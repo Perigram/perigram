@@ -18,25 +18,28 @@
         </div>
         <div v-for="group in tier.groups" :key="group.id" class="mb-3 flex flex-col gap-1.5">
           <span class="px-1 text-muted text-supporting">{{ group.label }}</span>
-          <div class="flex flex-wrap gap-1.5">
-            <Button
-              v-for="item in group.items"
-              :key="item.id"
-              size="small"
-              text
-              class="justify-start bg-subtle"
-              :aria-label="item.label"
-              v-tooltip.right="item.description"
-              @click="emit('pick', item)"
-            >
-              <span
-                class="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full"
-                :class="signalBgClass(item.signal)"
-                aria-hidden="true"
-              ></span>
-              <span class="min-w-0 truncate">{{ item.label }}</span>
-            </Button>
-          </div>
+          <template v-for="(part, partIndex) in group.parts" :key="`${group.id}-${part.label || partIndex}`">
+            <span v-if="part.label" class="px-1 text-muted text-supporting">{{ part.label }}</span>
+            <div class="flex flex-wrap gap-1.5">
+              <Button
+                v-for="item in part.items"
+                :key="item.id"
+                size="small"
+                text
+                class="justify-start bg-subtle"
+                :aria-label="item.label"
+                v-tooltip.right="item.description"
+                @click="emit('pick', item)"
+              >
+                <span
+                  class="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full"
+                  :class="signalBgClass(item.signal)"
+                  aria-hidden="true"
+                ></span>
+                <span class="min-w-0 truncate">{{ item.label }}</span>
+              </Button>
+            </div>
+          </template>
         </div>
       </template>
     </div>
@@ -51,6 +54,7 @@ import { useI18n } from 'vue-i18n';
 import { signalBgClass } from '~/utils/processDesignerSignals.js';
 import { matchesPaletteSearch } from '~/utils/processDesignerPaletteSearch.js';
 import { processDesignerPaletteTiers } from '~/utils/processDesignerPaletteTiers.js';
+import { filterPaletteSections } from '~/utils/processDesignerPaletteSections.js';
 
 // The context palette's list (right-click, wire drop): searchable chips
 // over two provenance tiers — the platform's built-in categories and
@@ -71,14 +75,7 @@ const { t } = useI18n();
 const query = ref('');
 const filteredGroups = computed(() => {
   const needle = query.value.trim().toLowerCase();
-  return props.groups
-    .map(group => ({
-      ...group,
-      items: needle
-        ? group.items.filter(item => matchesPaletteSearch(item, needle, group.id, group.label))
-        : group.items
-    }))
-    .filter(group => group.items.length);
+  return filterPaletteSections(props.groups, item => !needle || matchesPaletteSearch(item, needle));
 });
 const tiers = computed(() => processDesignerPaletteTiers(filteredGroups.value, {
   graphs: t('processDesigner.paletteGraphSections'),

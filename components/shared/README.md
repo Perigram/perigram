@@ -131,9 +131,11 @@ lane placement, scroll containment, and narrow-screen panel overlays;
 feature designers supply only their controls through named slots:
 `palette` for
 creation/search controls, the default slot for the interactive canvas or
-viewport, `inspector` for the selected item configuration, and `support` for a
-secondary preview, tree, or diagnostics. The workspace renders no document
-name anywhere. Toolbar item lists (start and
+viewport, `inspector` for the selected item configuration, and `preview`
+for the preview workspace — a resizable bottom band (drag its top edge)
+with real width for content viewers; the floating toolbar rides above the
+band while it is open. The workspace renders no document name anywhere,
+and carries one chrome alone — the app's shared surface tokens. Toolbar item lists (start and
 canvas groups) render through `DesignerToolbarItems` — one icon-only
 geometry for every item; a boolean-pressed item is the same button
 outlined with an aria-pressed state, label as
@@ -142,7 +144,8 @@ viewport-height calculations, independent lane scrolling, or a second
 floating palette/inspector/dock to a designer; a designer may position
 feature-local handles and popovers inside its default-slot canvas. Slot
 content compiles in the parent scope, so designer code drives panels
-through the workspace ref API (`panels`, `toggle`, `setPanel`), never
+through the workspace ref API (`panels`, `toggle`, `setPanel`,
+`openPanel`), never
 provide/inject.
 
 Every operational designer uses this contract: cassette design and the

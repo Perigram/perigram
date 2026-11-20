@@ -9,7 +9,6 @@
       :bind-frame="bindCanvasFrame"
       :bind-context-palette-search="bindContextPaletteSearch"
       :canvas-items="activeCanvasItems"
-      chrome-variant="floating"
       :canvas-status="props.session ? props.canvasStatus : (props.canvasStatus || canvasStatus)"
       :on-activity-click="props.session ? props.onActivityClick : (props.onActivityClick || openActivitySurface)"
       :touch-pan-drag="touchPanDrag"
@@ -66,8 +65,8 @@
           />
         </div>
       </template>
-      <template v-if="!readOnly" #support>
-        <slot v-if="$slots.support" name="support" />
+      <template v-if="!readOnly" #preview>
+        <slot v-if="$slots.preview" name="preview" />
         <GraphDocumentPreviewPanel
           v-else-if="!props.session"
           :result="previewResult"
@@ -100,8 +99,8 @@ import GraphCanvas from '~/components/process-designer/GraphCanvas.vue';
 import GraphDocumentInspector from '~/components/process-designer/GraphDocumentInspector.vue';
 import GraphDocumentPreviewPanel from '~/components/process-designer/GraphDocumentPreviewPanel.vue';
 import { useGraphDocumentSession } from '~/composables/useGraphDocumentSession.js';
+import { parseGraphPayload, useGraphDocumentCatalog } from '~/composables/useGraphDocumentCatalog.js';
 import { mintId } from '~/utils/processDesignerIdentity.js';
-import { assertValidGraphDocument } from '@perigram/core';
 import { useClientEngines } from '~/composables/useClientEngines.js';
 import { usePluginRuntime } from '~/composables/usePluginRuntime.js';
 import {
@@ -111,8 +110,10 @@ import {
   createProcessGraphNodeResolver,
   createProcessProceduralNodeResolver,
   createProcessProceduralExecutor,
+  genericPaletteItemForKind,
   registerProcessPortCompatibilityProfile
 } from '#packages/processes';
+import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
 
 const props = defineProps({
   record: { type: Object, default: null },
@@ -132,9 +133,27 @@ const props = defineProps({
   canvasNodesChange: { type: Function, default: null }
 });
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const toast = useToast();
 const readOnly = computed(() => props.mode === 'read');
+const { paletteLabel, paletteDescription } = createPaletteText({ t, te });
+// The process provider's graph rows read the process palette vocabulary:
+// one concept one label in both editors (the kind's generic palette item).
+function processDefinitionText(definition) {
+  if (definition?.provider !== PROCESS_PROCEDURAL_PROVIDER) return null;
+  const item = genericPaletteItemForKind(definition.id);
+  return item ? { label: paletteLabel(item), description: paletteDescription(item) } : null;
+}
+
+// Installed plugin display names (the listing `name`): one per pluginId
+// across engine and runtime bindings.
+const pluginDisplayNames = computed(() => {
+  const names = {};
+  for (const binding of [...clientEngineBindings.value, ...clientRuntimeBindings.value]) {
+    if (binding?.pluginId && binding.name) names[binding.pluginId] = binding.name;
+  }
+  return names;
+});
 const loading = ref(true);
 const loadError = ref('');
 const saving = ref(false);
@@ -143,10 +162,15 @@ const bakingOutput = ref(false);
 const recordName = ref(props.record?.name || '');
 const savedSignature = ref('');
 const inspectTab = ref('inspector');
-const graphDocuments = ref([]);
 const clientEngineBindings = ref([]);
 const clientEngines = useClientEngines({ engines: clientEngineBindings });
 const clientRuntimeBindings = ref([]);
+const {
+  documents: graphDocuments,
+  loading: graphDocumentsLoading,
+  error: graphDocumentsError,
+  load: loadGraphCatalog
+} = useGraphDocumentCatalog({ withPayloads: true });
 const pluginRuntime = usePluginRuntime({
   invokeCapability: ({ binding, runtime, operationId, name, input, signal }) => $fetch(
     `/api/organizations/${encodeURIComponent(binding.organizationId)}/plugins/${encodeURIComponent(binding.pluginId)}/capability`,
@@ -163,8 +187,6 @@ const pluginRuntime = usePluginRuntime({
     }
   )
 });
-const graphDocumentsLoading = ref(false);
-const graphDocumentsError = ref('');
 const graphPreviewChannels = ref([]);
 const providerErrors = ref([]);
 const graphRevisions = ref([]);
@@ -186,6 +208,7 @@ const queryOrganizationData = query => $fetch('/api/graph-executions/query', {
 });
 const defaultSession = props.session ? null : useGraphDocumentSession({
   t,
+  te,
   providers: props.nodeProviders,
   definitions: processNodeDefinitions,
   nodeResolvers: [processGraphResolver],
@@ -195,7 +218,9 @@ const defaultSession = props.session ? null : useGraphDocumentSession({
   executors: { [PROCESS_PROCEDURAL_PROVIDER]: processExecutor },
   graphDocuments,
   finalizeExecution: pluginRuntime.finalizeExecution,
-  queryOrganizationData
+  queryOrganizationData,
+  definitionText: processDefinitionText,
+  pluginNames: pluginDisplayNames
 });
 const session = props.session || defaultSession;
 const {
@@ -298,51 +323,7 @@ function bindCanvasFrame(instance) {
 }
 
 function openActivitySurface() {
-  canvasFrame?.setPanel?.('inspector', false);
-  canvasFrame?.openPanel?.('support');
-}
-
-function parseGraphPayload(payload) {
-  const graph = JSON.parse(payload);
-  if (!graph || typeof graph !== 'object' || Array.isArray(graph)) {
-    throw new Error(t('processDesigner.invalidGraphPayload'));
-  }
-  return graph;
-}
-
-async function loadGraphCatalog() {
-  graphDocumentsLoading.value = true;
-  graphDocumentsError.value = '';
-  try {
-    const items = await $fetch('/api/instances/graph-document');
-    graphDocuments.value = await Promise.all((Array.isArray(items) ? items : [])
-      .filter(item => item?.payload?.fileId && item?._id)
-      .map(async item => {
-        const record = {
-          ...item,
-          _id: String(item._id),
-          name: String(item.name || 'Graph'),
-          fields: { ...(item.fields || {}), graphId: String(item.fields?.graphId || '') }
-        };
-        try {
-          const payload = await $fetch(
-            `/api/files/download/${encodeURIComponent(record.payload.fileId)}?bucket=files`,
-            { responseType: 'text' }
-          );
-          const graph = assertValidGraphDocument(parseGraphPayload(payload));
-          if (record.fields.graphId && record.fields.graphId !== graph.id) {
-            throw new Error('Stored graph identity does not match its payload');
-          }
-          return { ...record, graph };
-        } catch {
-          return { ...record, graph: null };
-        }
-      }));
-  } catch (error) {
-    graphDocumentsError.value = error?.data?.message || error?.message || '';
-  } finally {
-    graphDocumentsLoading.value = false;
-  }
+  canvasFrame?.openPanel?.('preview');
 }
 
 function providerLoadFailure(binding, error, contribution = null) {
@@ -438,7 +419,7 @@ async function hydrateSelectedGraph({ nodeId, graphId, revisionId }) {
     const payload = revisionId
       ? await $fetch(`/api/instance-revisions/${encodeURIComponent(revisionId)}/file`, { responseType: 'text' })
       : await $fetch(`/api/files/download/${encodeURIComponent(record.payload.fileId)}?bucket=files`, { responseType: 'text' });
-    const graph = parseGraphPayload(payload);
+    const graph = parseGraphPayload(payload, t);
     hydrateGraphInvocation(nodeId, graph);
     toast.add({ severity: 'success', summary: t('processDesigner.graphPinned'), life: 2400 });
   } catch (error) {
@@ -457,7 +438,7 @@ async function loadGraphDocument() {
   try {
     const payload = await props.persistence.load();
     if (payload) {
-      loadDocument(parseGraphPayload(payload));
+      loadDocument(parseGraphPayload(payload, t));
     } else {
       loadEmpty({
         id: instanceId || undefined,
@@ -599,7 +580,7 @@ props.pageChrome?.bind?.(Object.assign(
 
 onMounted(async () => {
   if (props.session) return;
-  await Promise.all([loadGraphDocument(), loadGraphCatalog(), loadGraphProviders()]);
+  await Promise.all([loadGraphDocument(), loadGraphCatalog(t), loadGraphProviders()]);
   // A preview requested while the provider workers were still loading
   // resolves again once every registered operation is available.
   if (previewResult.value || previewError.value) await refreshPreviewAndRecord();

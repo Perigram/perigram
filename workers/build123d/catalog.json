@@ -1070,8 +1070,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "modify",
+        "label": "Modify"
       }
     },
     {
@@ -1114,8 +1114,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "modify",
+        "label": "Modify"
       }
     },
     {
@@ -1143,8 +1143,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "modify",
+        "label": "Modify"
       }
     },
     {
@@ -1167,8 +1167,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "modify",
+        "label": "Modify"
       }
     },
     {
@@ -1212,8 +1212,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "modify",
+        "label": "Modify"
       }
     },
     {
@@ -1236,8 +1236,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "modify",
+        "label": "Modify"
       }
     },
     {
@@ -1260,8 +1260,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "modify",
+        "label": "Modify"
       }
     },
     {
@@ -1284,8 +1284,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "modify",
+        "label": "Modify"
       }
     },
     {
@@ -1333,8 +1333,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "modify",
+        "label": "Modify"
       }
     },
     {
@@ -1383,8 +1383,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "solid",
+        "label": "Solids"
       }
     },
     {
@@ -1417,8 +1417,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "solid",
+        "label": "Solids"
       }
     },
     {
@@ -1452,8 +1452,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "solid",
+        "label": "Solids"
       }
     },
     {
@@ -1487,8 +1487,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "solid",
+        "label": "Solids"
       }
     },
     {
@@ -1526,8 +1526,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "solid",
+        "label": "Solids"
       }
     },
     {
@@ -1561,8 +1561,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "face",
+        "label": "Faces"
       }
     },
     {
@@ -1585,8 +1585,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "face",
+        "label": "Faces"
       }
     },
     {
@@ -1609,8 +1609,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "face",
+        "label": "Faces"
       }
     },
     {
@@ -1639,8 +1639,8 @@
         "version": "0.13.0"
       },
       "palette": {
-        "group": "operations",
-        "label": "Operations"
+        "group": "face",
+        "label": "Faces"
       }
     },
     {

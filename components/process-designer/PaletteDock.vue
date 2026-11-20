@@ -1,7 +1,6 @@
 <template>
   <nav
-    class="absolute left-3 top-3 z-20 flex flex-wrap items-start gap-x-4 gap-y-1"
-    :class="variant === 'floating' ? 'max-w-[calc(50%-8rem)] rounded-ui border border-content-border bg-content/85 p-2 shadow-overlay backdrop-blur-md' : 'max-w-[calc(100%-1.5rem)]'"
+    class="absolute left-3 top-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap items-start gap-x-4 gap-y-1"
     data-designer-palette-strip
     :aria-label="$t('processDesigner.paletteDock')"
   >
@@ -40,26 +39,28 @@
       />
       <div class="flex max-h-72 min-h-0 flex-col gap-1.5 overflow-y-auto p-1">
         <template v-for="section in sections" :key="section.id">
-          <span class="px-1 text-supporting text-muted">{{ section.label }}</span>
-          <Button
-            v-for="item in section.items"
-            :key="item.id"
-            size="small"
-            text
-            severity="secondary"
-            class="justify-start bg-subtle"
-            :aria-label="item.label"
-            v-tooltip.right="item.description"
-            @click="pick(item)"
-          >
-            <i v-if="item.glyph"  :class="processNodeGlyphClass(item.glyph)" class="mr-1.5 shrink-0 text-muted" aria-hidden="true" />
-            <span
-              class="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full"
-              :class="signalBgClass(item.signal)"
-              aria-hidden="true"
-            ></span>
-            <span class="min-w-0 truncate">{{ item.label }}</span>
-          </Button>
+          <template v-for="(part, partIndex) in section.parts" :key="`${section.id}-${part.label || partIndex}`">
+            <span class="px-1 text-supporting text-muted">{{ part.label || section.label }}</span>
+            <Button
+              v-for="item in part.items"
+              :key="item.id"
+              size="small"
+              text
+              severity="secondary"
+              class="justify-start bg-subtle"
+              :aria-label="item.label"
+              v-tooltip.right="item.description"
+              @click="pick(item)"
+            >
+              <i v-if="item.glyph"  :class="processNodeGlyphClass(item.glyph)" class="mr-1.5 shrink-0 text-muted" aria-hidden="true" />
+              <span
+                class="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full"
+                :class="signalBgClass(item.signal)"
+                aria-hidden="true"
+              ></span>
+              <span class="min-w-0 truncate">{{ item.label }}</span>
+            </Button>
+          </template>
         </template>
         <span v-if="!sections.length" class="px-1 text-supporting text-muted">
           {{ $t('processDesigner.paletteNoMatches') }}
@@ -79,6 +80,7 @@ import { signalBgClass } from '~/utils/processDesignerSignals.js';
 import { processNodeGlyphClass } from '~/utils/processDesignerGlyphs.js';
 import { matchesPaletteSearch } from '~/utils/processDesignerPaletteSearch.js';
 import { processDesignerPaletteTiers } from '~/utils/processDesignerPaletteTiers.js';
+import { filterPaletteSections } from '~/utils/processDesignerPaletteSections.js';
 
 // The canvas-top palette dock (SPEC §28 interaction model): provenance
 // tiers as labels, one chip per palette section; a chip opens the
@@ -88,8 +90,7 @@ import { processDesignerPaletteTiers } from '~/utils/processDesignerPaletteTiers
 // picking emits once and closes the popover.
 const props = defineProps({
   groups: { type: Array, default: () => [] },
-  placeholder: { type: String, default: '' },
-  variant: { type: String, default: 'plane', validator: value => ['plane', 'floating'].includes(value) }
+  placeholder: { type: String, default: '' }
 });
 const emit = defineEmits(['pick']);
 
@@ -107,16 +108,10 @@ const tiers = computed(() => processDesignerPaletteTiers(props.groups, {
 const sections = computed(() => {
   const needle = query.value.trim().toLowerCase();
   if (needle) {
-    return props.groups
-      .map(group => ({
-        id: group.id,
-        label: group.label,
-        items: group.items.filter(item => matchesPaletteSearch(item, needle, group.id, group.label))
-      }))
-      .filter(group => group.items.length);
+    return filterPaletteSections(props.groups, (item, group) => matchesPaletteSearch(item, needle, group.id, group.label));
   }
   const active = props.groups.find(group => group.id === activeGroupId.value);
-  return active ? [{ id: active.id, label: active.label, items: active.items }] : [];
+  return active ? filterPaletteSections([active], () => true) : [];
 });
 
 function toggleGroup(group, event) {

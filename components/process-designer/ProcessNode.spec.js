@@ -4,14 +4,23 @@ import { describe, expect, it } from 'vitest';
 const readComponent = path => readFile(new URL(path, import.meta.url), 'utf8');
 
 describe('process node canvas authoring boundary', () => {
-  it('keeps node cards as socket manifests without inline authoring controls', async () => {
+  it('keeps node cards as socket manifests: the name on the row, the socket contract on hover', async () => {
     const source = await readComponent('./ProcessNode.vue');
 
     expect(source).not.toMatch(/TypedValueControl|hasInlineConfiguration|showInlineFallback|<InputText|<Textarea|<Select/);
-    expect(source).toContain('row.input.typeLabel');
-    expect(source).toContain('row.output.typeLabel');
-    expect(source).toContain('row.input.connected');
-    expect(source).toContain('row.output.connected');
+    expect(source).not.toMatch(/pi-link|pi-unlink/);
+    expect(source).not.toMatch(/row\.(input|output)\.typeLabel/);
+    expect(source).toContain('socketTitle(row.input)');
+    expect(source).toContain('socketTitle(row.output)');
+    expect(source).toContain('item.access && item.access !== \'item\'');
+  });
+
+  it('collapses to the name once with sockets kept on their side rails', async () => {
+    const source = await readComponent('./ProcessNode.vue');
+
+    expect(source).toContain('collapseSocketRows');
+    expect(source).not.toMatch(/side="top"|side="bottom"/);
+    expect(source.match(/v-if="collapsed"/g)).toHaveLength(1);
   });
 
   it('keeps typed authoring controls in the selected-node inspector', async () => {

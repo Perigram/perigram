@@ -2,7 +2,6 @@
   <DesignerSurface>
     <DesignerWorkspace
       :ref="bindFrame"
-      :chrome-variant="chromeVariant"
       :canvas-items="canvasItems"
       layout="canvas"
       class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
@@ -59,7 +58,7 @@
         v-if="canvasStatus && onActivityClick"
         type="button"
         data-canvas-status
-        class="pointer-events-auto absolute left-1/2 top-3 z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-content-border bg-content/85 px-3 py-1.5 text-supporting text-muted shadow-overlay backdrop-blur-md"
+        class="pointer-events-auto absolute left-1/2 top-3 z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-content-border bg-content px-3 py-1.5 text-supporting text-muted shadow-overlay"
         :aria-label="$t('processDesigner.canvasStatusAria', { status: canvasStatus.label, count: canvasStatus.count })"
         @click="onActivityClick()"
       >
@@ -107,7 +106,6 @@
         v-if="!readOnly"
         :groups="paletteGroups"
         :placeholder="palettePlaceholder"
-        :variant="chromeVariant"
         @pick="item => (item.action ? item.action() : addNode(item))"
       />
 
@@ -118,8 +116,8 @@
       <template #inspector>
         <slot name="inspector" />
       </template>
-      <template #support>
-        <slot name="support" />
+      <template #preview>
+        <slot name="preview" />
       </template>
     </DesignerWorkspace>
 
@@ -211,7 +209,6 @@ const props = defineProps({
   handleNodeDragStop: { type: Function, default: null },
   handleCanvasNodesChange: { type: Function, default: null },
   readOnly: { type: Boolean, default: false },
-  chromeVariant: { type: String, default: 'plane', validator: value => ['plane', 'floating'].includes(value) },
   canvasStatus: { type: Object, default: null },
   onActivityClick: { type: Function, default: null }
 });

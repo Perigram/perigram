@@ -171,7 +171,9 @@ export function useProcessDesignerNodeSync({
   // label, description, and header category all read, so a node renders
   // one identity. Service nodes identify by their bound operator — a
   // kind-only match would collapse every service in a section onto the
-  // first item.
+  // first item. Same-kind variants disambiguate by authored shape:
+  // operator, select, then literal type base; the entityRef-typed literal
+  // is the pinned-entity variant.
   function paletteEntryForNode(node = {}) {
     const boundType = nodeTypeId(node);
     const candidates = designer.paletteGroups
@@ -180,6 +182,8 @@ export function useProcessDesignerNodeSync({
       .filter(({ item }) => !item.preset?.typeId || item.preset.typeId === boundType);
     return candidates.find(({ item }) => item.preset?.operator && item.preset.operator === node.operator)
       || candidates.find(({ item }) => item.preset?.select && item.preset.select === node.select)
+      || candidates.find(({ item }) => item.preset?.type?.base && item.preset.type.base === node.type?.base)
+      || candidates.find(({ item }) => item.preset?.type?.base !== 'entityRef')
       || candidates[0] || null;
   }
 
