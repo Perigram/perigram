@@ -1,5 +1,33 @@
 # TODO
 
+## Priority: Dockview home and editor workspaces (SPEC §4, owner direction 2026-11-20)
+
+- [ ] WAITING — owner verification: home workspace panes, tabs, drag/dock
+  behavior, Back history, dirty-close confirmation, and layout persistence
+  against a seeded process.
+- [ ] WAITING — owner verification: graph, cassette, and sheet-design editor
+  dock panels, content-sized initial layout, panel toggles, and per-editor
+  layout persistence.
+- [x] Replace the home recursive split tree with a dockview layout
+  (`WorkspaceDock`, `GeneratedHomeWorkspace`).
+- [x] Persist dockview layout plus opened screen, page, custom-page, and
+  pinned-chat references; read version 3 pane state once.
+- [x] Replace `DesignerWorkspace` fixed rails and preview band with the same
+  dock panels; size panels from rendered content; persist per editor.
+- [x] Update README contracts, SPEC, e2e selectors, and focused tests.
+
+### Agent Notes (2026-11-20, agent/dockview-panes)
+
+- Implementation lives in `components/shared/WorkspaceDock.vue`,
+  `utils/workspace-dock-layout.js`, `utils/home-workspace-state.js`, and
+  `utils/designer-workspace-state.js`; home and editor layouts have
+  versioned state helpers.
+- Focused unit and SSR suites pass. Full `npm test -- --run` has unrelated
+  environment failures: missing `undici`, an unbuilt Documents runtime
+  bundle, and a construction-service timeout.
+- E2E was updated for dockview selectors and a reload-persistence case; it
+  was not run because no dev stack was started in this session.
+
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
 The process designer and graph-document editor converge on one authoring

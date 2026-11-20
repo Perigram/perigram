@@ -300,6 +300,18 @@ history (falling back to the home ladder on deep links). Tabs stay
 consistent: the surface a record belongs to stays selected while its
 screen is open, and popups/pages/tabs share one navigation language.
 
+Home workspace panes and tabs are a dockview layout (owner direction
+2026-11-20): a pane is a dockview group and an open surface is a panel.
+Users drag panels between groups and dock them to group edges; groups
+split, resize, and close. The workspace keeps its surface model:
+sidebar-driven screens, pages, calls, and chats open as panels;
+pane-local Back history, dirty-close confirmation, and per-group empty
+placeholders remain. Dock layout — group tree, sizes, tab order, active
+group and tab — and the opened surface references persist per user and
+organization. Designer workspaces use the same dock system: palette,
+canvas, inspector, and preview are dock panels whose initial sizes derive
+from their rendered content, and each editor's layout persists.
+
 File creates follow the type's declared creation protocol (owner decision
 2026-10-12): an `editor` create opens the type's editor with no record —
 nothing exists until the editor's first save, which creates the instance
