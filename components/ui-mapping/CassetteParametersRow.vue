@@ -52,7 +52,7 @@ const values = computed(() => (
 async function parameterSourceOf(typeId, text) {
   const binding = (view.editors.value || []).find(candidate => candidate?.type === typeId);
   const declared = binding ? (view.surfaces.value || []).find(surface => surface?.id === binding.surface) : null;
-  const parametersOf = declared?.url ? await import(declared.url).then(module => module.parametersOf) : null;
+  const parametersOf = declared?.url ? await import(/* @vite-ignore */ declared.url).then(module => module.parametersOf) : null;
   return typeof parametersOf === 'function' ? parametersOf(text) : {};
 }
 
