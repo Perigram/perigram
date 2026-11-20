@@ -304,7 +304,11 @@ qualified unique capability ids, determinism, idempotency, and optional preview 
   and exact definition version; resolution returns the exact registered version.
 - Port transport shape and semantic meaning are independent fields;
   `TRANSPORT_SHAPES` is the frozen transport-shape vocabulary (`item`,
-  `list`, `tree`, `map`, `tuple`, `stream`).
+  `list`, `tree`, `map`, `tuple`, `stream`). `SEMANTIC_BASES` is the
+  convention base set every built-in port consumer understands (`string`,
+  `number`, `integer`, `boolean`, `json` — `json` the universal sink);
+  the wire keeps bases nominal, so provider-declared foreign bases stay
+  legal.
 - `PORT_COMPATIBILITY_OUTCOMES` is the frozen comparator-outcome vocabulary
   and `CONVERSION_FIDELITIES` the frozen conversion-fidelity vocabulary
   (§Port compatibility).
