@@ -199,6 +199,69 @@ export function assertValidNodeDefinition(source) {
   return normalizeNodeDefinition(source);
 }
 
+// Semantic keys a listing signature field may carry beside its base; the
+// port contract derivation copies them onto the port's semantic descriptor.
+const SERVICE_SEMANTIC_KEYS = ['kind', 'nominal', 'provider', 'schema', 'entityType', 'identity', 'constraints', 'unit'];
+
+// A listing service's signature field as a node port contract: the
+// collection shape from the field base, the semantic descriptor from the
+// field itself (or its `itemType` for collection fields), and nullable
+// widened onto the semantic descriptor.
+export function servicePortContract(schema = {}) {
+  const shape = SHAPES.has(schema.base) ? schema.base : 'item';
+  const semanticSource = shape === 'item' ? schema : (schema.itemType || { base: 'json' });
+  const semantic = { base: semanticSource.base || 'json' };
+  for (const key of SERVICE_SEMANTIC_KEYS) {
+    if (Object.hasOwn(semanticSource.semantic || {}, key)) semantic[key] = semanticSource.semantic[key];
+    if (Object.hasOwn(semanticSource, key)) semantic[key] = semanticSource[key];
+  }
+  if (schema.nullable === true || semanticSource.nullable === true) semantic.nullable = true;
+  return { shape, semantic };
+}
+
+// One declared listing service as a node definition: the shared body of
+// plugin runtimes deriving their providers from the listing and the
+// platform resolving installed graph nodes. Service selection stays with
+// the caller; the result is unnormalized — wrap it in
+// `normalizeNodeDefinition` or feed it through `normalizeNodeProvider`.
+export function nodeDefinitionFromService(service, { provider, runtimeId } = {}) {
+  return {
+    provider,
+    id: service.id,
+    version: String(service.nodeVersion || '1'),
+    label: service.label || service.id,
+    ...(service.description ? { description: service.description } : {}),
+    palette: {
+      group: service.palette.group,
+      ...(service.palette.label ? { label: service.palette.label } : {}),
+      keywords: service.palette.keywords || []
+    },
+    inputs: Object.entries(service.signature?.input?.fields || {}).map(([id, field]) => ({
+      id,
+      label: field.label || id,
+      ...servicePortContract(field),
+      required: field.nullable !== true,
+      ...(Object.hasOwn(field, 'default') ? { default: field.default } : {}),
+      ...(field.description ? { description: field.description } : {})
+    })),
+    outputs: [{
+      id: 'value',
+      label: service.signature?.output?.label || 'Value',
+      ...servicePortContract(service.signature?.output || {}),
+      required: true
+    }],
+    ...(service.configuration ? { configuration: service.configuration } : {}),
+    execution: {
+      runtime: runtimeId,
+      kind: service.execution.kind,
+      targets: service.execution.targets,
+      capabilities: service.execution.capabilities || [],
+      deterministic: service.execution.deterministic === true,
+      idempotent: service.execution.idempotent === true
+    }
+  };
+}
+
 export function compareNodePorts(source, target) {
   if (!source || !target) {
     return { status: 'incompatible', compatible: false, reason: 'Both source and target ports are required', conversions: [] };

@@ -48,6 +48,7 @@
     "dev:stack:down": "bash scripts/dev.sh down",
     "dev:stack:logs": "bash scripts/dev.sh logs",
     "documents:runtime:build": "node workers/documents/build-runtime.mjs",
+    "geometry-base:runtime:build": "node workers/geometry-base/build-runtime.mjs",
     "test:runtime-browser": "npm run documents:runtime:build && playwright test --config playwright.runtime.config.js"
   },
   "dependencies": {

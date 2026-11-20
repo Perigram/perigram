@@ -10,9 +10,9 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseListing, normalizeListing } from '#packages/plugin-sdk/listing';
-import { compareNodePorts, normalizeNodeProvider } from '#packages/plugin-sdk/nodes';
-import { pluginPaletteGroups, resolveCatalogNodePorts } from '#packages/processes';
+import { parseListing, normalizeListing } from '../../packages/plugin-sdk/src/listing.js';
+import { compareNodePorts, normalizeNodeProvider } from '../../packages/plugin-sdk/src/node-contract.js';
+import { pluginPaletteGroups, resolveCatalogNodePorts } from '../../packages/processes/src/index.js';
 import { prepareListingRelease } from '../../server/scripts/lib/plugin-runtime-assets.js';
 import { createRuntime, nodeDefinitions, CONVERSIONS } from './runtime/geometry-base.mjs';
 import listing from './listing.json';
@@ -35,7 +35,7 @@ describe('Geometry base listing contract', () => {
       id: 'geometry-base',
       language: 'javascript',
       version: '1',
-      entry: '/runtime/geometry-base.mjs',
+      entry: '/runtime/geometry-base-bundle.mjs',
       targets: ['browser', 'server']
     }]);
   });
@@ -59,18 +59,22 @@ describe('Geometry base listing contract', () => {
     expect(() => parseListing(stripped, 'workers/geometry-base')).toThrow(/declarations need CTS types or a declared runtime/);
   });
 
-  it('stages the complete release: the entry module and its static import graph', () => {
+  it('stages the complete release: the self-contained bundle the listing names', () => {
     const paths = prepareListingRelease(normalizeListing(listing), packageRoot).map(asset => asset.path);
-    expect(paths).toEqual([
-      'listing.json',
-      'runtime/geometry-base.mjs',
-      'runtime/math.mjs'
-    ]);
+    expect(paths).toEqual(['runtime/geometry-base-bundle.mjs']);
     for (const asset of prepareListingRelease(listing, packageRoot)) {
       if (asset.path.endsWith('.mjs') && /import\s+from\s+['"][a-z@]/.test(asset.buffer.toString('utf8'))) {
         throw new Error(`Staged module ${asset.path} carries a bare import — the browser runtime must be self-contained`);
       }
     }
+  });
+
+  it('ships a bundle whose runtime equals the source-derived provider', async () => {
+    const bundled = await import('./runtime/geometry-base-bundle.mjs');
+    const bundledRuntime = bundled.createRuntime();
+    expect(bundledRuntime.providers[0].definitions).toEqual(nodeDefinitions(listing));
+    expect(bundledRuntime.providers[0].conversions).toEqual(CONVERSIONS);
+    expect(bundledRuntime.execute('make-point3', { x: 1, y: 2, z: 3 })).toEqual({ x: 1, y: 2, z: 3 });
   });
 
   it('keeps every signature kind inside the geometry namespace it owns', () => {

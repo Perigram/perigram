@@ -1,0 +1,651 @@
+{
+  "pluginId": "cad-occt",
+  "name": "CAD (OCCT)",
+  "description": "Exact B-rep solid modeling over brepjs/occt-wasm: primitives, transforms, booleans, fillet, STEP exchange, and tessellation to mesh",
+  "version": "1",
+  "requires": [
+    "geometry-base",
+    "documents"
+  ],
+  "declarations": {
+    "types": [],
+    "runtimes": [
+      {
+        "id": "cad-occt",
+        "language": "javascript",
+        "version": "1",
+        "entry": "/runtime/cad-occt.mjs",
+        "targets": [
+          "browser",
+          "server"
+        ]
+      }
+    ],
+    "services": [
+      {
+        "id": "make-box",
+        "label": "Box",
+        "description": "Construct a box solid from width, depth, and height",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "width": {
+                "base": "number",
+                "nullable": true,
+                "default": 10
+              },
+              "depth": {
+                "base": "number",
+                "nullable": true,
+                "default": 10
+              },
+              "height": {
+                "base": "number",
+                "nullable": true,
+                "default": 10
+              },
+              "at": {
+                "base": "json",
+                "kind": "geometry.point3",
+                "unit": "mm",
+                "nullable": true,
+                "default": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+                }
+              },
+              "centered": {
+                "base": "boolean",
+                "nullable": true,
+                "default": false
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "geometry.occt.shape"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "primitives",
+          "label": "Solids"
+        }
+      },
+      {
+        "id": "make-cylinder",
+        "label": "Cylinder",
+        "description": "Construct a cylinder solid from radius and height along an axis",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "radius": {
+                "base": "number",
+                "nullable": true,
+                "default": 5
+              },
+              "height": {
+                "base": "number",
+                "nullable": true,
+                "default": 10
+              },
+              "at": {
+                "base": "json",
+                "kind": "geometry.point3",
+                "unit": "mm",
+                "nullable": true,
+                "default": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+                }
+              },
+              "axis": {
+                "base": "json",
+                "kind": "geometry.vector3",
+                "unit": "mm",
+                "nullable": true,
+                "default": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 1
+                }
+              },
+              "centered": {
+                "base": "boolean",
+                "nullable": true,
+                "default": false
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "geometry.occt.shape"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "primitives",
+          "label": "Solids"
+        }
+      },
+      {
+        "id": "make-sphere",
+        "label": "Sphere",
+        "description": "Construct a sphere solid from a radius",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "radius": {
+                "base": "number",
+                "nullable": true,
+                "default": 5
+              },
+              "at": {
+                "base": "json",
+                "kind": "geometry.point3",
+                "unit": "mm",
+                "nullable": true,
+                "default": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+                }
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "geometry.occt.shape"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "primitives",
+          "label": "Solids"
+        }
+      },
+      {
+        "id": "make-cone",
+        "label": "Cone",
+        "description": "Construct a cone or frustum solid from base and top radii and height",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "bottomRadius": {
+                "base": "number",
+                "nullable": true,
+                "default": 5
+              },
+              "topRadius": {
+                "base": "number",
+                "nullable": true,
+                "default": 0
+              },
+              "height": {
+                "base": "number",
+                "nullable": true,
+                "default": 10
+              },
+              "at": {
+                "base": "json",
+                "kind": "geometry.point3",
+                "unit": "mm",
+                "nullable": true,
+                "default": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+                }
+              },
+              "axis": {
+                "base": "json",
+                "kind": "geometry.vector3",
+                "unit": "mm",
+                "nullable": true,
+                "default": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 1
+                }
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "geometry.occt.shape"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "primitives",
+          "label": "Solids"
+        }
+      },
+      {
+        "id": "translate-shape",
+        "label": "Translate solid",
+        "description": "Move a shape by a displacement vector",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "shape": {
+                "base": "json",
+                "kind": "geometry.occt.shape"
+              },
+              "offset": {
+                "base": "json",
+                "kind": "geometry.vector3",
+                "unit": "mm"
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "geometry.occt.shape"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "transforms",
+          "label": "Transforms"
+        }
+      },
+      {
+        "id": "rotate-shape",
+        "label": "Rotate solid",
+        "description": "Rotate a shape by an angle in radians around an axis through a point",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "shape": {
+                "base": "json",
+                "kind": "geometry.occt.shape"
+              },
+              "angle": {
+                "base": "number",
+                "kind": "geometry.angle",
+                "nullable": true,
+                "default": 0
+              },
+              "axis": {
+                "base": "json",
+                "kind": "geometry.vector3",
+                "unit": "mm",
+                "nullable": true,
+                "default": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 1
+                }
+              },
+              "at": {
+                "base": "json",
+                "kind": "geometry.point3",
+                "unit": "mm",
+                "nullable": true,
+                "default": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+                }
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "geometry.occt.shape"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "transforms",
+          "label": "Transforms"
+        }
+      },
+      {
+        "id": "fuse-shapes",
+        "label": "Union",
+        "description": "Boolean union of two shapes",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "a": {
+                "base": "json",
+                "kind": "geometry.occt.shape"
+              },
+              "b": {
+                "base": "json",
+                "kind": "geometry.occt.shape"
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "geometry.occt.shape"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "booleans",
+          "label": "Booleans"
+        }
+      },
+      {
+        "id": "cut-shapes",
+        "label": "Cut",
+        "description": "Boolean subtraction of a tool shape from a base shape",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "base": {
+                "base": "json",
+                "kind": "geometry.occt.shape"
+              },
+              "tool": {
+                "base": "json",
+                "kind": "geometry.occt.shape"
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "geometry.occt.shape"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "booleans",
+          "label": "Booleans"
+        }
+      },
+      {
+        "id": "intersect-shapes",
+        "label": "Intersect",
+        "description": "Boolean intersection of two shapes",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "a": {
+                "base": "json",
+                "kind": "geometry.occt.shape"
+              },
+              "b": {
+                "base": "json",
+                "kind": "geometry.occt.shape"
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "geometry.occt.shape"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "booleans",
+          "label": "Booleans"
+        }
+      },
+      {
+        "id": "fillet-all-edges",
+        "label": "Fillet all edges",
+        "description": "Round every edge of a solid with one constant radius",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "shape": {
+                "base": "json",
+                "kind": "geometry.occt.shape"
+              },
+              "radius": {
+                "base": "number",
+                "nullable": true,
+                "default": 1
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "geometry.occt.shape"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "modifiers",
+          "label": "Modifiers"
+        }
+      },
+      {
+        "id": "import-step",
+        "label": "Import STEP",
+        "description": "Read a STEP file payload into a shape",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "file": {
+                "base": "json",
+                "kind": "documents.file"
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "geometry.occt.shape"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "exchange",
+          "label": "Exchange"
+        }
+      },
+      {
+        "id": "export-step",
+        "label": "Export STEP",
+        "description": "Write a shape as a STEP file payload",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "shape": {
+                "base": "json",
+                "kind": "geometry.occt.shape"
+              },
+              "name": {
+                "base": "string",
+                "nullable": true,
+                "default": "part"
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "kind": "documents.file"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "exchange",
+          "label": "Exchange"
+        }
+      },
+      {
+        "id": "tessellate-shape",
+        "label": "Tessellate",
+        "description": "Approximate a shape as a triangle mesh for rendering; the exact boundary is lost",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "shape": {
+                "base": "json",
+                "kind": "geometry.occt.shape"
+              },
+              "tolerance": {
+                "base": "number",
+                "nullable": true
+              },
+              "angularTolerance": {
+                "base": "number",
+                "kind": "geometry.angle",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json",
+            "representation": "perigram.scene-3d"
+          }
+        },
+        "execution": {
+          "runtime": "cad-occt",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "mesh",
+          "label": "Mesh"
+        }
+      }
+    ]
+  }
+}

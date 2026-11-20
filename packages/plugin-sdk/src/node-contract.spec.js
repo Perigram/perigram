@@ -8,6 +8,8 @@ import {
   createNodeProviderRegistry,
   normalizeNodeProvider,
   normalizeNodeDefinition,
+  nodeDefinitionFromService,
+  servicePortContract,
   validateNodeDefinition
 } from './node-contract.js';
 
@@ -554,5 +556,73 @@ describe('provider-owned port compatibility profiles', () => {
       { compatibility: { profile: 'perigram.cts' }, semantic: { base: 'number', unit: 'mm' } },
       { compatibility: { profile: 'perigram.cts' }, semantic: { base: 'number', unit: 'm' } }
     )).toMatchObject({ status: 'conversion-required', compatible: false, conversions: [{ id: 'length.mm-to-m' }] });
+  });
+});
+
+describe('listing service to node definition derivation', () => {
+  const service = () => ({
+    id: 'make-box',
+    label: 'Box',
+    description: 'Construct a box',
+    nodeVersion: '3',
+    signature: {
+      input: {
+        base: 'record',
+        fields: {
+          size: { base: 'number', unit: 'mm' },
+          origin: { base: 'json', kind: 'geometry.point3', unit: 'mm', nullable: true, default: { x: 0, y: 0, z: 0 } },
+          tags: { base: 'list', itemType: { base: 'string' } }
+        }
+      },
+      output: { base: 'json', kind: 'geometry.occt.shape', label: 'Solid' }
+    },
+    palette: { group: 'primitives', label: 'Solids', keywords: ['box'] },
+    execution: { runtime: 'cad-occt', kind: 'pure', targets: ['browser', 'server'], capabilities: [], deterministic: true, idempotent: true }
+  });
+
+  it('derives port contracts: shape from the base, semantics from the field or its item type', () => {
+    expect(servicePortContract({ base: 'number', unit: 'mm' })).toEqual({
+      shape: 'item',
+      semantic: { base: 'number', unit: 'mm' }
+    });
+    expect(servicePortContract({ base: 'list', itemType: { base: 'string' } })).toEqual({
+      shape: 'list',
+      semantic: { base: 'string' }
+    });
+    expect(servicePortContract({ base: 'json', kind: 'geometry.point3', nullable: true })).toEqual({
+      shape: 'item',
+      semantic: { base: 'json', kind: 'geometry.point3', nullable: true }
+    });
+    expect(servicePortContract()).toEqual({ shape: 'item', semantic: { base: 'json' } });
+  });
+
+  it('maps one service to one valid node definition with defaults and configuration', () => {
+    const derived = nodeDefinitionFromService({ ...service(), configuration: { type: 'object', properties: { size: { type: 'number' } } } }, {
+      provider: 'plugin.cad-occt',
+      runtimeId: 'cad-occt'
+    });
+    expect(derived).toMatchObject({
+      provider: 'plugin.cad-occt',
+      id: 'make-box',
+      version: '3',
+      execution: { runtime: 'cad-occt', kind: 'pure', targets: ['browser', 'server'] }
+    });
+    expect(derived.inputs).toEqual([
+      { id: 'size', label: 'size', shape: 'item', semantic: { base: 'number', unit: 'mm' }, required: true },
+      { id: 'origin', label: 'origin', shape: 'item', semantic: { base: 'json', kind: 'geometry.point3', unit: 'mm', nullable: true }, required: false, default: { x: 0, y: 0, z: 0 } },
+      { id: 'tags', label: 'tags', shape: 'list', semantic: { base: 'string' }, required: true }
+    ]);
+    expect(derived.outputs).toEqual([
+      { id: 'value', label: 'Solid', shape: 'item', semantic: { base: 'json', kind: 'geometry.occt.shape' }, required: true }
+    ]);
+    expect(() => assertValidNodeDefinition(derived)).not.toThrow();
+  });
+
+  it('derives a definition the port comparator treats as kind-compatible with itself only', () => {
+    const derived = nodeDefinitionFromService(service(), { provider: 'plugin.cad-occt', runtimeId: 'cad-occt' });
+    const [output] = derived.outputs;
+    const [originInput] = derived.inputs.filter(input => input.id === 'origin');
+    expect(compareNodePorts(output, output).status).toBe('exact');
+    expect(compareNodePorts(originInput, { ...output, semantic: { ...output.semantic, unit: 'mm' } })).toMatchObject({ status: 'incompatible', compatible: false });
   });
 });

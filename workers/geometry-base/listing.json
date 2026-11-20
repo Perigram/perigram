@@ -10,7 +10,7 @@
         "id": "geometry-base",
         "language": "javascript",
         "version": "1",
-        "entry": "/runtime/geometry-base.mjs",
+        "entry": "/runtime/geometry-base-bundle.mjs",
         "targets": ["browser", "server"]
       }
     ],
