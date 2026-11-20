@@ -4,7 +4,7 @@ The Documents plugin owns office/media file formats, typed document values,
 template engines, and editor/preview surfaces. The platform owns graph
 authoring, execution policy, file authorization, and Bake/Export destinations.
 
-- Listing: `listing.json` (v34). Its `documents-shared` runtime entry is the
+- Listing: `listing.json` (v35). Its `documents-shared` runtime entry is the
   built `runtime/shared-bundle.mjs`, produced from `runtime/shared.mjs` by
   `npm run documents:runtime:build`; its `documents-server` runtime entry is
   the source module `runtime/server.mjs`. Provider definitions are derived
@@ -54,8 +54,7 @@ a typed `documents.file` workbook payload plus a record of values. It
 preserves cell styles, row and column metadata, translates relative A1 row
 references when rows move, and expands one-level row sections. Repeated rows
 receive their own merged ranges; ambiguous merges crossing a section boundary
-are dropped rather than producing overlapping cells. Formula recalculation
-is requested on workbook open. Connect `read-file` to this operation and Bake
+are dropped rather than producing overlapping cells. Connect `read-file` to this operation and Bake
 its `documents.file` output through the generic page-file destination. Theme
 fills, charts, images, shared/array formulas, and external-workbook reference
 fidelity are not guaranteed.
@@ -160,8 +159,9 @@ Documents exposes semantic operation groups from its listing:
 - **Table data** — extract header-keyed or positional rows and serialize rows to CSV
 - **Inline content** — create text, emphasis, strong/code marks, and safe links
 - **Document blocks** — create paragraphs, headings, lists, tables, quotes, code blocks, and dividers
-- **Document composition** — parse Markdown, compose/append flowing documents, and compose sectioned reports
-- **Document export** — render HTML and produce Markdown/HTML file payloads; `render-document-pdf` adds the managed server PDF export node
+- **Document composition** — parse Markdown, compose/append flowing documents, and compose sectioned reports (from a flow document, row records, or both)
+- **Document templates** — fill Markdown and XLSX templates with named values and repeated sections
+- **Document export** — render HTML and produce Markdown/HTML file payloads; `render-document-pdf` and `render-report-pdf` add the managed server PDF export nodes
 
 ### Document graph values
 
