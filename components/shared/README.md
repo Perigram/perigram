@@ -127,15 +127,15 @@ each encode, and the card arrangement) is canonical in the
 
 Shared full-height shell for operational designers — the home of the
 operational-designer chrome contract. The workspace is one dock grid:
-the default slot's canvas is the dock's headerless center
+the default slot's canvas is the dock's center
 panel, and `palette`, `inspector`, and `preview` are dock panels around
-it. Panels drag between groups and dock to group edges; the pane boxes
+it. Every cell is a pane with a tab: panels drag between groups and dock
+to group edges, the canvas tab drags like any other panel, and joins
+into the canvas center are refused so it stays whole. The pane boxes
 and their 6px gutters follow the home workspace's dock language
 ([generated](../generated/README.md)). Initial panel sizes measure the
 rendered content within panel-specific floors and caps; after that the
-user owns the layout, and it persists per editor. The canvas cell
-refuses center joins (it stays whole) while edge docks around it stay
-live.
+user owns the layout, and it persists per editor.
 
 Every operational designer uses this contract: cassette design and the
 sheet-design editor use `layout="lanes"`; the process designer uses
@@ -913,11 +913,11 @@ transcription stay in the host composer.
   height instead of stretching to the tallest item.
 - **`WorkspaceDock.vue`**: Dockview wrapper shared by the home workspace
   and designer shells — one dock language: bordered pane boxes with chip
-  tabs and 6px gutters; the canvas center group (marked by `canvas-key`)
-  paints no box and refuses center joins while its edges stay live drop
-  targets. Panels use one content slot (`#content` with the panel's key) and
-  one tab component; the host supplies item labels, icons, close rules,
-  and optional add/split/close group actions. The exposed API covers
+  tabs and 6px gutters. Panels use one content slot (`#content` with the
+  panel's key) and one tab component; the host supplies item labels,
+  icons, close rules, and optional add/split/close group actions. The
+  center panel named by `canvas-key` refuses center joins so it stays
+  whole. The exposed API covers
   panel open/replace/remove, group add/split/remove, layout
   snapshot/apply, panel presence, and content-based sizing. Panel labels
   update from the host's item list. The dock renders client-side after

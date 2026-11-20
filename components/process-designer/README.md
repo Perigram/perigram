@@ -412,7 +412,7 @@ declaration records in the draft; APPLY posts the compiled declarations
 before compiling the process graph.
 
 Chrome: the canvas uses its own token-backed work surface as the
-shared `DesignerWorkspace` dock's locked center panel
+shared `DesignerWorkspace` dock's center panel
 ([components/shared](../shared/README.md)) — the app's shared surface
 tokens alone. The node palette is the workspace's left dock panel
 (SPEC §28 interaction model): provenance-tier section chips, a search
