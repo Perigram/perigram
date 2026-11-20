@@ -13,6 +13,11 @@ export function normalizeDockLayout(value) {
     return null;
   }
   if (!pruneNodeShape(layout.grid?.root)) return null;
+  // DockviewVue serializes its defaultTab slot reference as a component
+  // name; the dock resolves every tab through that slot on restore.
+  for (const state of Object.values(layout.panels)) {
+    if (state && typeof state === 'object') delete state.tabComponent;
+  }
   return {
     grid: layout.grid,
     panels: layout.panels,
@@ -27,13 +32,16 @@ export function pruneDockLayout(layout, isResolvable) {
   for (const [id, state] of Object.entries(normalized.panels)) {
     if (isResolvable(id)) panels[id] = state;
   }
-  const root = pruneNode(normalized.grid?.root, panels);
+  const root = pruneNode(normalized.grid?.root, panels, true);
   if (!root) return null;
+  const gridRoot = root.type === 'branch'
+    ? root
+    : { type: 'branch', data: [root], size: root.size || 100 };
   const groupIds = new Set();
-  collectGroupIds(root, groupIds);
+  collectGroupIds(gridRoot, groupIds);
   return {
     ...normalized,
-    grid: { ...normalized.grid, root },
+    grid: { ...normalized.grid, root: gridRoot },
     panels,
     activeGroup: groupIds.has(normalized.activeGroup) ? normalized.activeGroup : [...groupIds][0]
   };
@@ -54,7 +62,7 @@ function pruneNodeShape(node) {
   return node.data.every(pruneNodeShape);
 }
 
-function pruneNode(node, panels) {
+function pruneNode(node, panels, isRoot = false) {
   if (!node || typeof node !== 'object') return null;
   if (node.type === 'leaf') {
     if (!node.data || typeof node.data.id !== 'string') return null;
@@ -72,7 +80,7 @@ function pruneNode(node, panels) {
   if (node.type !== 'branch') return null;
   const children = (node.data || []).map(child => pruneNode(child, panels)).filter(Boolean);
   if (!children.length) return null;
-  if (children.length === 1) return children[0];
+  if (children.length === 1 && !isRoot) return children[0];
   return { ...node, data: children };
 }
 

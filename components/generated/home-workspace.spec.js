@@ -126,6 +126,13 @@ describe('workspace dock layout', () => {
     expect(normalizeDockLayout({ grid: { root: { type: 'leaf', data: {} } }, panels: {} })).toBeNull();
   });
 
+  it('drops dockview slot references from stored panel state', () => {
+    const layout = layoutFixture();
+    layout.panels['screen:list:doc-1'].tabComponent = 'props.defaultTabComponent';
+    const normalized = normalizeDockLayout(layout);
+    expect(normalized.panels['screen:list:doc-1']).not.toHaveProperty('tabComponent');
+  });
+
   it('prunes unresolved panels and collapses emptied groups', () => {
     const layout = {
       grid: {
@@ -149,8 +156,8 @@ describe('workspace dock layout', () => {
     };
 
     const pruned = pruneDockLayout(layout, key => key === 'screen:keep');
-    expect(pruned.grid.root.type).toBe('leaf');
-    expect(pruned.grid.root.data).toEqual({ id: 'g1', views: ['screen:keep'], activeView: 'screen:keep' });
+    expect(pruned.grid.root.type).toBe('branch');
+    expect(pruned.grid.root.data).toEqual([{ type: 'leaf', data: { id: 'g1', views: ['screen:keep'], activeView: 'screen:keep' }, size: 50 }]);
     expect(Object.keys(pruned.panels)).toEqual(['screen:keep']);
     expect(pruned.activeGroup).toBe('g1');
   });

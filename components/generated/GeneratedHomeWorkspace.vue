@@ -1395,6 +1395,14 @@ function schedulePersistWorkspaceState() {
   }, 200);
 }
 
+function flushWorkspacePersistence() {
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+  persistWorkspaceState();
+}
+
 function persistWorkspaceState() {
   const key = workspaceStorageKey.value;
   if (!key || !layoutHydrated || hydratedStorageKey.value !== key || typeof window === 'undefined') return;
@@ -1414,6 +1422,7 @@ onMounted(() => {
   isWorkspaceMounted = true;
   applyPersistedWorkspaceState(workspaceStorageKey.value);
   queueOrOpenCallTab(callsStore.pendingTabRoom);
+  window.addEventListener('pagehide', flushWorkspacePersistence);
 });
 
 watch(workspaceStorageKey, key => {
@@ -1528,9 +1537,8 @@ onBeforeUnmount(() => {
   window.removeEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
   window.removeEventListener(workspacePageOpenEvent, openRequestedWorkspacePage);
   mobileViewportQuery?.removeEventListener?.('change', readMobileViewport);
-  if (persistTimer) clearTimeout(persistTimer);
-  persistTimer = null;
-  persistWorkspaceState();
+  window.removeEventListener('pagehide', flushWorkspacePersistence);
+  flushWorkspacePersistence();
   // Route leave: the workspace's call tabs go with it and the
   // floating-window rule takes the sessions (components/calls README).
   callsStore.resetCallTabs();
