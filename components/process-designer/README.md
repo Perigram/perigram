@@ -148,11 +148,11 @@ outer node rail — socket labels render on every expanded node: a socket
 without its name is unreadable chrome), and the event section (effects
 only). Socket rows carry the socket name; the element type, access, and
 qualifier ride the row's hover/focus tooltip — a per-socket connection
-icon is chrome encoding nothing. A collapsed card renders the name once
-with its header icons and every socket at a distinct position — inputs
-on the top rail, outputs on the bottom rail, names on the handle
-tooltips; the collapse state rides the canvas node data and persists with
-the draft.
+icon is chrome encoding nothing. A collapsed card is one header line —
+the name and its icons — with every socket centered on the card's top
+and bottom edges at distinct positions (inputs top, outputs bottom,
+names on the handle tooltips); the collapse state rides the canvas node
+data and persists with the draft.
 Sections separate by spacing alone (`mt-2`/`mt-3`, row `py-1.5`);
 separator lines would form a third visual system competing with stripes
 and wires while encoding nothing. Socket rows are one-sided by

@@ -2415,10 +2415,10 @@ contracts. They are not implicit properties of generic Create.
 
 **Node cards remain compact socket manifests.** Socket rows carry the
 socket name; the element type, access, qualifier, and connection state
-ride the row's hover/focus tooltip. A collapsed card renders the name
-once with its header icons and every socket at a distinct position —
-inputs on the top rail, outputs on the bottom rail, names on the handle
-tooltips. Configuration is authored
+ride the row's hover/focus tooltip. A collapsed card is one header line
+— the name and its icons — with every socket centered on the card's top
+and bottom edges at distinct positions (inputs top, outputs bottom,
+names on the handle tooltips). Configuration is authored
 in the inspector or through a declared specialized editor contribution;
 node cards do not grow ad-hoc forms. Empty, unavailable, or malformed
 node definitions retain identity and connections and display actionable

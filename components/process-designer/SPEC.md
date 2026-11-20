@@ -65,9 +65,9 @@ socket visual.
 Top to bottom: header (neutral icon chip + label), socket rail (labeled rows, inputs left /
 outputs right, handles centered on the outer rail, labels always render), event section (effects
 only). Socket rows carry the socket name; the element type, access, and qualifier ride the row's
-hover/focus tooltip — a per-socket connection icon is chrome encoding nothing. A collapsed card
-renders the name once with its header icons and every socket at a distinct position — inputs on
-the top rail, outputs on the bottom rail, names on the handle tooltips. Cards are socket manifests, never authoring surfaces: typed defaults, literal values,
+hover/focus tooltip — a per-socket connection icon is chrome encoding nothing. A collapsed card is
+one header line — the name and its icons — with every socket centered on the card's top and bottom
+edges at distinct positions (inputs top, outputs bottom, names on the handle tooltips). Cards are socket manifests, never authoring surfaces: typed defaults, literal values,
 operation parameters, casts, conversions, and structured values are edited in the inspector.
 The inspector also owns live input/output evaluation; the card exposes only identity, diagnostics,
 preview visibility, collapse, and socket contracts. Sections separate by spacing
