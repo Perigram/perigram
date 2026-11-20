@@ -8,8 +8,8 @@ import { readFileSync, existsSync, mkdtempSync, writeFileSync, mkdirSync } from 
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseListing } from '../../packages/plugin-sdk/src/listing.js';
-import { nodeDefinitionFromService } from '../../packages/plugin-sdk/src/node-contract.js';
+import { parseListing } from '@perigram/plugin-sdk/listing';
+import { nodeDefinitionFromService } from '@perigram/plugin-sdk/nodes';
 import { parseDeclarationFile, readBrepjsDeclarations, buildListing, generateListing, verifyAgainstDeclarations, OPERATIONS } from './generate-listing.mjs';
 import listing from './listing.json';
 

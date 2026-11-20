@@ -86,14 +86,6 @@ import * as graphExecutionsService from './service.js';
 import { createRuntime as createCadOcctRuntime } from '../../../workers/cad-occt/runtime/cad-occt.mjs';
 import cadOcctListing from '../../../workers/cad-occt/listing.json';
 
-// The worktree's symlinked node_modules defeats vite-node's subpath
-// resolution for `#packages/plugin-sdk/nodes` (the committed documents
-// spec fails identically here); the mock routes the one failing
-// specifier at the same checkout's package source so the evaluator loads
-// whole. The post-merge primary run needs none of this.
-vi.mock('#packages/plugin-sdk/nodes', async () => await import('../../../packages/plugin-sdk/src/node-contract.js'));
-vi.mock('#packages/plugin-sdk/listing', async () => await import('../../../packages/plugin-sdk/src/listing.js'));
-
 const auth = { userId: 'user-1', organizationId: 'org-1' };
 
 // The installed-package snapshot mirrors the pinned listing: provider

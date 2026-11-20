@@ -11,8 +11,8 @@
 import { describe, expect, it } from 'vitest';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseListing, normalizeListing } from '../../packages/plugin-sdk/src/listing.js';
-import { compareNodePorts, normalizeNodeProvider } from '../../packages/plugin-sdk/src/node-contract.js';
+import { parseListing, normalizeListing } from '#packages/plugin-sdk/listing';
+import { compareNodePorts, normalizeNodeProvider } from '#packages/plugin-sdk/nodes';
 import { prepareListingRelease } from '../../server/scripts/lib/plugin-runtime-assets.js';
 import { createRuntime, nodeDefinitions, CONVERSIONS } from './runtime/cad-occt.mjs';
 import listing from './listing.json';

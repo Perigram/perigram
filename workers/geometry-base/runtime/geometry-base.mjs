@@ -7,7 +7,7 @@
 // import is build-time only: the shipped artifact is the self-contained
 // bundle the listing names as its entry.
 import listing from '../listing.json' with { type: 'json' };
-import { nodeDefinitionFromService } from '../../../packages/plugin-sdk/src/node-contract.js';
+import { nodeDefinitionFromService } from '@perigram/plugin-sdk/nodes';
 import {
   makePoint3,
   makeVector3,

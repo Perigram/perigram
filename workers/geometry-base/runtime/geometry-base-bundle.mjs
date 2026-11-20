@@ -18,7 +18,7 @@ const PORT_COMPATIBILITY_OUTCOMES = Object.freeze(["exact", "safe-coercion", "co
 new Set(PORT_COMPATIBILITY_OUTCOMES);
 const CONVERSION_FIDELITIES = Object.freeze(["lossless", "semantically-lossy", "visual-only"]);
 new Set(CONVERSION_FIDELITIES);
-const SERVICE_SEMANTIC_KEYS = ["kind", "nominal", "provider", "schema", "entityType", "identity", "constraints", "unit"];
+const SERVICE_SEMANTIC_KEYS = ["kind", "representation", "nominal", "provider", "schema", "entityType", "identity", "constraints", "unit"];
 function servicePortContract(schema = {}) {
   const shape = SHAPES.has(schema.base) ? schema.base : "item";
   const semanticSource = shape === "item" ? schema : schema.itemType || { base: "json" };
