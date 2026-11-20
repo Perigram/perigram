@@ -124,7 +124,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
   ));
   await app.gotoClient(list.route);
-  await page.locator('main').getByRole('button', { name: /^New / }).click();
+  await page.locator('main').getByRole('button', { name: /^New( Cassette template( from [A-Za-z]+)?)?$/ }).click();
   await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
   const inspector = page.locator('.designer-workspace__inspector').first();
   await expect(inspector.getByRole('button', { name: 'Add profile' })).toBeVisible();
@@ -536,7 +536,7 @@ test('escape sheds the sketch selection and a bare escape returns to the cassett
     JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
   ));
   await app.gotoClient(list.route);
-  await page.locator('main').getByRole('button', { name: /^New / }).click();
+  await page.locator('main').getByRole('button', { name: /^New( Cassette template( from [A-Za-z]+)?)?$/ }).click();
   const inspector = page.locator('.designer-workspace__inspector').first();
   await expect(inspector.getByRole('button', { name: 'Add profile' })).toBeVisible({ timeout: 60_000 });
 
