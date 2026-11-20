@@ -15,9 +15,9 @@
           </span>
           <span class="text-muted">{{ $t('processDesigner.previewCounts', { branches: output.tree.branchCount, items: output.tree.itemCount }) }}</span>
         </div>
-        <div v-for="branch in output.tree.branches" :key="branch.path.join(';')" class="mb-1 flex gap-2 last:mb-0">
-          <code class="shrink-0 text-muted">{{ formatPreviewPath(branch.path) }}</code>
-          <code class="min-w-0 flex-1 whitespace-pre-wrap break-all">{{ formatPreviewItems(branch.items) }}</code>
+        <div v-for="branch in output.tree.branches" :key="branch.path.join(';')" class="mb-1 flex flex-col gap-1 last:mb-0">
+          <code v-if="branch.path.length" class="text-muted">{{ formatPreviewPath(branch.path) }}</code>
+          <GraphOutputView :value="branch.items" :alt="output.label" />
         </div>
         <div v-if="output.tree.truncated" class="mt-1 text-muted">{{ $t('processDesigner.previewTruncated') }}</div>
       </section>
@@ -29,11 +29,13 @@
 <script setup>
 import { computed } from 'vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { formatPreviewItems, formatPreviewPath, graphOutputEntries } from '~/utils/processDesignerChannelOutputs.js';
+import GraphOutputView from '~/components/process-designer/GraphOutputView.vue';
+import { formatPreviewPath, graphOutputEntries } from '~/utils/processDesignerChannelOutputs.js';
 
 // The built-in outputs channel (SPEC §28): every visible evaluated
 // output of the whole-graph preview, labeled the way the canvas names
-// its cards — a read-only projection over the channel payload.
+// its cards — each value rendered through the shared output view, best
+// representation first.
 const props = defineProps({
   payload: { type: Object, default: null },
   nodes: { type: Array, default: () => [] }

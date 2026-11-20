@@ -114,6 +114,18 @@ Landed this session: Hide secondary retired end to end
 en+ru locale keys, README law); `hidden` stays a stripped runtime key
 in `stripRuntimeNodeData`.
 
+### Agent Notes (2026-11-20, owner correction round)
+
+- Collapsed cards keep the top/bottom socket rails (owner corrective):
+  inputs on the top rail, outputs on the bottom rail, the name once in
+  the header — the side-rail experiment reverted.
+- Preview renders values, not JSON dumps: `GraphOutputView.vue` is the
+  one output-value renderer (best supported view by default, JSON an
+  explicit choice — the panel's old `activeView='json'` default died);
+  the graph editor's output panel and the outputs channel both render
+  through it, and the channel's per-branch `<code>` JSON rows are gone.
+  Per-node outputs stay as the collapsed diagnostics `<details>`.
+
 ### Agent Notes (2026-11-19, agent/graph-editor-unslop — owner defect report)
 
 Owner report: latest graph editor UI work carried no real improvements —
@@ -481,13 +493,34 @@ protocol — a dependency-resolved Python environment or a WASI host, each
 under the per-run memory/wall-time containment. The install gate itself
 needs no grammar change; the blocker is worker-side launcher support and
 its containment story.
-- [ ] Complete format-specific template acceptance for Markdown, XLSX, and
+- [x] Complete format-specific template acceptance for Markdown, XLSX, and
   PDF. Focused engine coverage exercises Markdown missing-token preservation,
   XLSX repeat rows, missing values, nested/unclosed/mismatched sections, and
   legacy-HAG ↔ graph-runtime XLSX output/token-metadata parity; PDF legacy fill
   has focused rendering coverage. Still add PDF missing-token/round-trip and
   graph preview → Bake → reopen checks. DOCX remains out of scope pending a
   separate owner decision.
+
+  ### Agent Notes (2026-11-19→20, agent/pdf-roundtrip-20261119-2230)
+
+  PDF engine acceptance added in `workers/documents/fill.spec.js`: a missing
+  `{key}` keeps its placeholder visible after masking; a multi-page
+  multi-token template with Cyrillic values round-trips through the embedded
+  PT Sans subset (each value redrawn once, masked originals stay extractable,
+  page count kept, redraw on its own font resource); the `fill` service
+  answers the managed invocation envelope. Graph preview → Bake → reopen legs
+  added in `server/features/graph-executions/documents-preview-bake.spec.js`
+  for compose → `render-document-pdf`, Markdown template fill, and XLSX
+  template fill: real evaluator + managed dispatch (mocked task queue
+  executing the real runtime modules), byte-identical page-file Bakes,
+  persisted `procedural-bake` provenance (graph/package pins, read set,
+  artifacts), reopened bytes verified. Defect fixed: the `documents-server`
+  runtime returned enveloped results without the `{ value }` output-port map,
+  so `render-document-pdf`/`render-report-pdf` graph nodes failed evaluator
+  output validation (`workers/documents/runtime/server.mjs`; the envelope
+  regression covers `fill`). Remaining: application E2E and deployed-catalog
+  legs.
+
 - [x] Integrate graph template nodes with HAG authoring: reuse the existing
   Markdown/XLSX token extractors and `meta.tokens`/`meta.sections` semantics
   to expose scalar fields and repeat-section arrays in the node's `values` record.
@@ -510,6 +543,19 @@ its containment story.
   PDF operation/provider, compatible managed runtime adapter, and format
   acceptance; server execution now exists for managed JavaScript pure/read
   nodes. DOCX stays out of scope until separately approved.
+
+  ### Agent Notes (2026-11-19→20, agent/pdf-roundtrip-20261119-2230)
+
+  Template graph fill preview/Bake/reopen parity and persisted provenance now
+  run at layer 3 for Markdown, XLSX, and PDF through the managed server
+  evaluator with the real runtime modules on a mocked task queue
+  (`server/features/graph-executions/documents-preview-bake.spec.js`):
+  preview records pin graph/package provenance, page-file Bakes are
+  byte-identical, `procedural-bake` executions persist provenance/read
+  set/artifacts, and reopened bytes verify. The PDF export graph node
+  (`render-document-pdf`) executes end to end after the `documents-server`
+  envelope fix (see the format-acceptance notes above). Still open:
+  Playwright application E2E for the dialog and designer paths.
 
 - [x] Reconcile HAG acceptance notes with the unified graph provider and
   runtime contracts. HAG construction and graph operations share the

@@ -116,18 +116,26 @@ fills return `meta.tokens` and, for XLSX, `meta.sections`; the node inspector
 renders scalar token controls and JSON-array editors for repeat sections,
 storing authored values as `configuration.values`. A connected values port
 takes precedence; otherwise HAG-authored values are used. Token and section
-metadata are execution metadata, not persisted document content. PDF graph
-exposure and graph template fill round-trip acceptance remain open work.
+metadata are execution metadata, not persisted document content. Saved-graph
+preview → Bake → reopen runs through the managed server evaluator for the
+Markdown, XLSX, and PDF template fills; application E2E remains open.
 
 ### PDF graph operation status
 
 PDF template filling and PDF rendering run as pure server operations of the
 `documents-server` runtime through the SPEC §24 construction contract.
 `render-document-pdf` and `render-report-pdf` carry palette groups and pass
-the server node gate, so the managed server evaluator lists them as PDF
-export graph nodes; `fill` and `render-pdf` stay palette-hidden construction
-helpers. Graph-side PDF format acceptance remains open work. DOCX fill/export
-is not declared as a supported template workflow.
+the server node gate, so the managed server evaluator lists and executes
+them as PDF export graph nodes; `fill` and `render-pdf` stay palette-hidden
+construction helpers. Enveloped managed executions answer the graph
+output-port map (`{ value }`); direct dispatch returns the payload as-is.
+Focused engine coverage pins the missing-token law (an unfilled `{key}` run
+is masked and redrawn with its placeholder still visible), the multi-page
+Cyrillic round-trip through the embedded PT Sans subset, and compose →
+`render-document-pdf` saved-graph preview → page-file Bake → reopen with
+`application/pdf` byte integrity and persisted `procedural-bake` provenance.
+Application E2E and deployed-catalog PDF acceptance remain open. DOCX
+fill/export is not declared as a supported template workflow.
 
 ### Unified graph provider scope
 
@@ -141,8 +149,8 @@ metadata.
 Every declared service runs behind the browser Worker, the managed server
 runtime, or the synchronous managed projection boundary. Remaining
 work is persisted graph-workspace acceptance, unified capability/effect
-policy and cross-target parity, graph-side PDF format acceptance, and
-installed-catalog upgrade verification.
+policy and cross-target parity, and installed-catalog upgrade
+verification.
 
 ### Graph operation palette
 
@@ -354,7 +362,8 @@ configuration/draft data and are never written into the template file. Missing s
 placeholders visible; malformed section markers fail validation. The legacy
 HAG construction and graph operation call the same Markdown/XLSX fill engines.
 Their shared XLSX behavior has parity coverage; saved-graph preview → Bake →
-reopen provenance remains a separate platform acceptance item.
+reopen provenance runs through the managed server evaluator for Markdown,
+XLSX, and PDF, with application E2E remaining open.
 
 Behavior and traps:
 
