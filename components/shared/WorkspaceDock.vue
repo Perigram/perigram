@@ -2,11 +2,9 @@
   <div v-if="mounted" class="h-full min-h-0 w-full">
     <DockviewVue
       ref="dock"
-      :class="['perigram-dock h-full min-h-0 w-full', { 'perigram-dock--overlay': overlay, 'perigram-dock--chip-tabs': chipTabs }]"
+      class="perigram-dock h-full min-h-0 w-full"
       :theme="dockTheme"
-      :disable-floating-groups="!allowFloating"
-      :floating-group-drag-handle="'tabbar'"
-      :floating-group-bounds="'boundedWithinViewport'"
+      disable-floating-groups
       :default-renderer="'onlyWhenVisible'"
       @ready="onReady"
     >
@@ -40,7 +38,7 @@
         </div>
       </template>
 
-      <template v-if="(allowAdd || allowSplit || allowCloseGroup || allowFloating) && !isSpacerGroup(group)" #rightHeaderActions="{ group }">
+      <template v-if="(allowAdd || allowSplit || allowCloseGroup) && !isCanvasGroup(group)" #rightHeaderActions="{ group }">
         <div class="flex h-full items-stretch">
           <Button
             v-if="allowAdd"
@@ -52,7 +50,7 @@
             :aria-label="$t('project.newTab')"
             @click="$emit('add-tab', group.id)"
           />
-          <span v-if="allowSplit || (allowCloseGroup && groupCount > 1) || allowFloating" class="inline-flex shrink-0 items-stretch">
+          <span v-if="allowSplit || (allowCloseGroup && groupCount > 1)" class="inline-flex shrink-0 items-stretch">
             <Button
               icon="pi pi-ellipsis-v"
               text
@@ -64,24 +62,6 @@
             />
             <Popover ref="paneMenu">
               <div class="flex min-w-44 flex-col gap-1" @click="hidePaneMenu">
-                <Button
-                  v-if="allowFloating && !isGroupFloating(group) && !isSpacerGroup(group)"
-                  :label="$t('project.floatPanel')"
-                  icon="pi pi-window-maximize"
-                  text
-                  size="small"
-                  class="w-full justify-start"
-                  @click="floatGroup(group)"
-                />
-                <Button
-                  v-if="allowFloating && isGroupFloating(group)"
-                  :label="$t('project.dockPanel')"
-                  icon="pi pi-window-minimize"
-                  text
-                  size="small"
-                  class="w-full justify-start"
-                  @click="dockGroup(group)"
-                />
                 <Button
                   v-if="allowSplit"
                   :label="$t('project.splitRight')"
@@ -141,14 +121,9 @@ const props = defineProps({
   allowSplit: { type: Boolean, default: false },
   allowCloseGroup: { type: Boolean, default: false },
   panelCloseable: { type: Function, default: null },
-  // Overlay docks float over a host-owned surface: empty dock space passes
-  // pointer events through to it.
-  overlay: { type: Boolean, default: false },
-  spacerKey: { type: String, default: '' },
-  chipTabs: { type: Boolean, default: false },
-  // Floating panels: the group menu can pop a panel out over the layout,
-  // and a floating group drags by its tab strip.
-  allowFloating: { type: Boolean, default: false }
+  // The locked, headerless center panel (the designer canvas): its group
+  // paints no box and carries no header actions.
+  canvasKey: { type: String, default: '' }
 });
 
 const emit = defineEmits([
@@ -236,13 +211,6 @@ watch(() => props.items, () => {
 
 function syncGroups() {
   groupCount.value = api.value?.groups?.length || 0;
-  if (!props.spacerKey) return;
-  for (const group of api.value?.groups || []) {
-    group.element.classList.toggle(
-      'perigram-dock__spacer-group',
-      group.panels.some(panel => panel.id === props.spacerKey)
-    );
-  }
 }
 
 function addGroup({ referenceGroup = null, referencePanel = '', direction = 'within', hideHeader = false, locked = false } = {}) {
@@ -267,28 +235,8 @@ function addGroup({ referenceGroup = null, referencePanel = '', direction = 'wit
   });
 }
 
-function isGroupFloating(group) {
-  return group?.api?.location?.type === 'floating';
-}
-
-function isSpacerGroup(group) {
-  return Boolean(props.spacerKey) && (group?.panels || []).some(panel => panel.id === props.spacerKey);
-}
-
-function floatGroup(group) {
-  if (!api.value || !group || isGroupFloating(group) || isSpacerGroup(group)) return;
-  api.value.addFloatingGroup(group, { dragHandle: 'tabbar' });
-}
-
-function dockGroup(group) {
-  const live = api.value;
-  if (!live || !group || !isGroupFloating(group)) return;
-  const target = (props.spacerKey
-    ? live.groups.find(candidate => candidate !== group && candidate.panels.some(panel => panel.id === props.spacerKey))
-    : null)
-    || live.groups.find(candidate => candidate !== group && !isGroupFloating(candidate));
-  if (!target) return;
-  group.api.moveTo({ group: target, position: props.spacerKey ? 'right' : 'center' });
+function isCanvasGroup(group) {
+  return Boolean(props.canvasKey) && (group?.panels || []).some(panel => panel.id === props.canvasKey);
 }
 
 function syncActive() {
@@ -491,8 +439,13 @@ async function sizePanelToContent(key, { axis = 'width', min = 160, max = null, 
   ));
   element.style[axis] = previous;
   if (!Number.isFinite(measured) || measured <= 0) return;
+  // A group's height spans its tab strip beside the content; the measured
+  // content must carry the header too or the strip clips it.
+  const header = axis === 'height'
+    ? (panel.group.element.querySelector('.dv-tabs-and-actions-container')?.offsetHeight || 0)
+    : 0;
   const upper = max ?? Math.max(min, Math.floor(bounds[axis] * ratio));
-  const size = Math.min(upper, Math.max(min, measured));
+  const size = Math.min(upper, Math.max(min, measured + header));
   panel.group.api.setSize(axis === 'height' ? { height: size } : { width: size });
 }
 

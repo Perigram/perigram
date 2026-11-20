@@ -45,7 +45,7 @@ All entity-related components use these patterns:
 | Section/page action rows | `<ActionToolbar>` |
 | Route-level aggregate facts | `<MetricPanel>` |
 | Repeated card grids | `<ResponsiveGrid>` |
-| Operational designers | `<DesignerWorkspace layout="lanes|canvas" workspace-id="...">` owns the dock layout and its persisted panel state; feature components own content state |
+| Operational designers | `<DesignerWorkspace layout="lanes|canvas" workspace-id="...">` owns the dock grid — canvas center panel, boxed side panels, file panel — and its persisted panel state; feature components own content state |
 | Bounded scrolling workspace sections | `<ScrollablePanel>` |
 | Loading/empty/error surfaces | `<StateBlock>` |
 | Data table frame | `<TableFrame><DataTable ... /></TableFrame>` |
@@ -53,7 +53,7 @@ All entity-related components use these patterns:
 | Single-field rename/edit | `<NameEditPopover>` |
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
 | Entity dropdowns | `<InstanceSelect>` / `<InstanceMultiSelect>` — entity options render as one-line instance option rows; the single picker's closed control is a trigger with the selected instance as the instance tile beside it; option lists over a pool build through `instancePickerOptions` ([shared](./shared/README.md), SPEC §22.13) |
-| Floating designer toolbar | PrimeVue `Toolbar` inside `DesignerWorkspace` (shared shell contract in [components/shared/README.md](./shared/README.md)) |
+| Designer canvas toolbar | PrimeVue `Toolbar` inside `DesignerWorkspace`'s canvas cell (shared shell contract in [components/shared/README.md](./shared/README.md)) |
 
 ## Component Inventory
 

@@ -5,7 +5,7 @@
             isBoundedWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
         ]"
     >
-    <header v-if="!isGeneratedHomeRoute" class="sticky top-0 z-50 hidden shrink-0 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur-md md:block">
+    <header v-if="!isGeneratedHomeRoute && !isStandaloneDesignerRoute" class="sticky top-0 z-50 hidden shrink-0 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur-md md:block">
             <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2 ">
                 <!-- Left: Logo & Breadcrumbs -->
                 <div class="flex items-center h-full min-w-0 flex-1">
@@ -307,7 +307,8 @@
     ))
     // The generated home workspace owns the full desktop viewport: its sidebar
     // carries brand, navigation, and the user controls that the desktop
-    // navbar provides on other routes.
+    // navbar provides on other routes. The standalone designer route fills
+    // the viewport the same way — the editor's file panel is its chrome.
     const isGeneratedHomeRoute = computed(() => activeGeneratedScreen.value?.template === 'home')
     const isStandaloneDesignerRoute = computed(() => route.path === '/organization/process')
     const isChatsRoute = computed(() => route.path === '/chats' || route.path.startsWith('/chats/'))

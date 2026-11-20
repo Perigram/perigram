@@ -4,7 +4,7 @@
     v-if="surface.workspacePage"
     v-bind="mountProps"
     :mode="mode"
-    :page-chrome="chrome"
+    :page-chrome="surface.workspacePage.ownsChrome ? null : chrome"
   />
 </template>
 
@@ -21,7 +21,8 @@ import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 // the mode; editor mounts speak the wire record, so the store pool's
 // DTO feeds the mount beside the detail body's screen instance. The
 // chrome channel hands the editor's name/save/dirty state to the
-// header.
+// header; an ownsChrome surface renders its chrome itself and takes no
+// channel.
 const props = defineProps({
   surface: { type: Object, required: true },
   instance: { type: Object, required: true },

@@ -126,24 +126,16 @@ each encode, and the card arrangement) is canonical in the
 ### `DesignerWorkspace.vue`
 
 Shared full-height shell for operational designers — the home of the
-operational-designer chrome contract. The default slot is the interactive
-canvas or viewport and fills the workspace as the background surface. A
-`WorkspaceDock` overlays it in pass-through mode: `palette`, `inspector`,
-and `preview` are dock panels floating over the canvas, and a transparent
-spacer panel holds the empty dock space so canvas gestures pass through.
-Panels are draggable, edge-docked, and user-resizable; their initial sizes
-measure the rendered content within panel-specific floors and caps, then
-the user owns the layout. The group menu can float a panel out as a free
-window over the canvas (dragged by its tab strip; the menu or a drop
-docks it back), and floating positions persist beside the dock layout. The workspace renders no document name and
-carries the app's shared surface tokens alone. Toolbar item lists (start
-and canvas groups) render through `DesignerToolbarItems` — one icon-only
-geometry for every item; a boolean-pressed item is the same button
-outlined with an aria-pressed state, label as tooltip/accessible name.
-A designer may position feature-local handles and popovers inside its
-default-slot canvas. Slot content compiles in the parent scope, so
-designer code drives panels through the workspace ref API (`panels`,
-`toggle`, `setPanel`, `openPanel`).
+operational-designer chrome contract. The workspace is one dock grid:
+the default slot's canvas is the dock's locked, headerless center
+panel, and `palette`, `inspector`, and `preview` are dock panels around
+it. Panels drag between groups and dock to group edges; the pane boxes
+and their 6px gutters follow the home workspace's dock language
+([generated](../generated/README.md)). Initial panel sizes measure the
+rendered content within panel-specific floors and caps; after that the
+user owns the layout, and it persists per editor. The canvas group
+refuses center drops (it stays the center cell) while edge docks around
+it stay live.
 
 Every operational designer uses this contract: cassette design and the
 sheet-design editor use `layout="lanes"`; the process designer uses
@@ -153,60 +145,50 @@ and `DesignerDialog` uses the same surface for dialog entry points.
 `workspaceId` names the editor's persisted dock layout
 (`utils/designer-workspace-state.js`), scoped to the signed-in user and
 active organization. `layout` records the host's intended composition
-(`lanes` for persistent side panels, `canvas` for graph canvases); the
-dock places whichever slots the host supplies — palette left, inspector
-right, preview below the canvas. The floating toolbar's panel toggles add and
-remove dock panels and mirror their open state in `panels`. Narrow hosts
-(below 48rem of workspace width) replace the dock with one bounded tabbed
-overlay; the wide dock layout is restored when the host widens. Canvas
-commands render through the toolbar's canvas group (`canvas-items` prop),
-and panel content composes as plain labeled sections.
+(`lanes` for persistent side panels, `canvas` for graph canvases). A
+restored layout applies only when it still contains the canvas panel;
+otherwise the workspace rebuilds the default composition — palette left,
+inspector right, preview below the canvas. The floating toolbar's panel
+toggles add and remove dock panels and mirror their open state in
+`panels`. Narrow hosts (below 48rem of workspace width) replace the dock
+with one bounded tabbed overlay with the file strip above it; the wide
+dock layout is restored when the host widens. Canvas commands render
+through the toolbar's canvas group (`canvas-items` prop), and panel
+content composes as plain labeled sections.
 
-Toolbar commands split by concern into one floating PrimeVue `Toolbar`
-bottom-centered over the canvas. The **start group** carries the panel
-toggles; the **end group** carries canvas and content commands
-(`canvas-items` prop). Every canvas-capable designer exposes the same
-first-level zoom cluster in the canvas group (zoom out, zoom in, reset/fit —
-plus frame selection on graph canvases), undo/redo where the editor owns a
-history, and content operations with the destructive
-item last in its group; DrawingCanvas hides its internal zoom cluster in
-designer mode and exposes the commands for the toolbar instead. The
-toolbar floats inside a full-width positioned wrapper on the exact bottom
-line of the dock panels with the same 12px canvas inset; the wrapper
-passes pointer events through its empty sides so it never blocks canvas
-interaction. Document identity (the edited item's display name) rides the
-same bottom line through the `toolbar` slot, left-anchored and truncated
-beside the centered command toolbar. Popups toggle on click and close on
-confirm, selection, or outside click — pickers and rename prompts use
-`Popover`.
+The file panel carries the edited document's identity inside the editor:
+a host passing `chrome` — the editor-page chrome api
+(`editor-page-chrome.js`, `{ name, dirty, saving, diverged, save(),
+rename(), reload() }`) — opens the `file` dock panel above the canvas,
+rendered by `DesignerFilePanel`: the name with in-place rename, the
+divergence refresh, and the dirty-marked save. The bound dirty state
+registers on the workspace page-dirty registry under the hosting page
+key, so pane-close confirmation follows the editor wherever it mounts.
+The file panel and the canvas panel are structural: neither is
+closeable, and the toolbar's toggle group carries the content panels
+alone.
+
+The floating canvas toolbar (`DesignerToolbar`) renders inside the
+canvas cell, bottom-centered: the start group carries the panel toggles
+and the end group the canvas and content commands (`canvas-items`
+prop), each through `DesignerToolbarItems` — one icon-only geometry for
+every item; a boolean-pressed item is the same button outlined with an
+aria-pressed state, label as tooltip/accessible name. Every
+canvas-capable designer exposes the same first-level zoom cluster in
+the canvas group (zoom out, zoom in, reset/fit — plus frame selection
+on graph canvases), undo/redo where the editor owns a history, and
+content operations with the destructive item last in its group;
+DrawingCanvas hides its internal zoom cluster in designer mode and
+exposes the commands for the toolbar instead. The
+wrapper passes pointer events through its empty sides so it never
+blocks canvas interaction. A designer may position feature-local
+handles and popovers inside its canvas cell. Slot content compiles in
+the parent scope, so designer code drives panels through the workspace
+ref API (`panels`, `toggle`, `setPanel`, `openPanel`).
 
 Items are plain data —
 `{ icon, label, onClick, disabled?, loading?, pressed?, onIcon?, hasPopup?, separator? }`
-with `icon` a PrimeIcon class — rendered by `DesignerToolbarItems` as
-icon-only PrimeVue buttons: the label is the tooltip (`v-tooltip.bottom`)
-and the accessible name, `loading` swaps the icon for PrimeVue's spinner,
-items carrying a boolean
-`pressed` render as the same button outlined with `aria-pressed`
-(`onIcon` optionally swaps the icon in the pressed state), and
-`hasPopup` sets `aria-haspopup="dialog"` for popover-hosting items. The
-former `MotionDock` chrome (proximity magnification, animated pill) is
-retired; `composables/useMotion.js` remains the motion library for its
-non-dock consumers.
-
-Panel visibility lives inside the toolbar's start group as its leading
-items: the workspace prepends pressed-state toggles (`pi-align-left`
-palette, `pi-align-right` inspector, preview) before the designer's
-document commands, separated by a toolbar separator. Wide hosts add and
-remove the corresponding dock panels; compact hosts (below 48rem of the
-workspace's own width) replace the dock with one bounded tabbed overlay
-(60% height cap) whose active tab follows the toggle. The compact overlay
-follows the popover contract: a workspace-owned backdrop under the panel
-closes it on any tap outside the panel. Compact engages on a persistently
-narrow width (a transient measurement during an unstyled load keeps the
-wide layout). Crossing the compact boundary resets to the mode's defaults —
-panels open when wide, canvas clear when compact. Panel chrome is the dock
-group box; designers own their content and its scroll behavior, and the
-workspace owns initial content-driven sizes.
+with `icon` a PrimeIcon class.
 
 Touch hosts navigate canvases with gestures, not mouse emulation:
 DrawingCanvas pans with one finger in viewer modes and pinch-zooms/pans
@@ -926,22 +908,29 @@ transcription stay in the host composer.
   children align to the start of each row so cards and panels keep natural
   height instead of stretching to the tallest item.
 - **`WorkspaceDock.vue`**: Dockview wrapper shared by the home workspace
-  and designer shells. Panels use one content slot (`#content` with the
-  panel's key) and one tab component; the host supplies item labels,
-  icons, close rules, and optional add/split/close group actions.
-  `chip-tabs` restores the home pane chrome (bordered pane boxes, chip
-  tabs); `overlay` floats the dock over a host surface with a transparent
-  `spacerKey` panel carrying the empty space. `allowFloating` adds group
-  menu actions that pop a panel out as a floating window — dragged by its
-  tab strip, docked back through the menu or a drop — with positions
-  persisted in the layout. The exposed API covers
+  and designer shells — one dock language: bordered pane boxes with chip
+  tabs and 6px gutters; a locked group (the designer canvas) paints no
+  box. Panels use one content slot (`#content` with the panel's key) and
+  one tab component; the host supplies item labels, icons, close rules,
+  and optional add/split/close group actions. The exposed API covers
   panel open/replace/remove, group add/split/remove, layout
   snapshot/apply, panel presence, and content-based sizing. Panel labels
   update from the host's item list. The dock renders client-side after
   mount; `mounted` gates dockview so SSR emits an empty host. Tab/group
   state persistence belongs to the host (home workspace state and
-  designer workspace state). Theme variables resolve from the app token
+  designer workspace state, both pruned through
+  `utils/workspace-dock-layout.js`, which drops floating groups from
+  stored layouts). Theme variables resolve from the app token
   contract in `assets/css/main.css`.
+- **`DesignerFilePanel.vue`**: The file panel body — the edited
+  document's identity row rendered from the editor-page chrome api: the
+  name with in-place rename, the divergence refresh, and the
+  dirty-marked save. Mounted by `DesignerWorkspace` as the `file` dock
+  panel above the canvas and as the compact strip row.
+- **`DesignerToolbar.vue`**: The floating canvas toolbar wrapper — a
+  PrimeVue `Toolbar` bottom-centered inside the canvas cell with panel
+  toggles in the start group and canvas commands in the end group, both
+  rendered through `DesignerToolbarItems`.
 - **`InstanceActionsPopover.vue`**: Shared ellipsis trigger and compact action
   popover for entity-local commands. Disclosure is opt-in: full
   `InstanceCard` footers render their actions inline by default, and only a

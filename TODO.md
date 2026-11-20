@@ -5,9 +5,10 @@
 - [ ] WAITING — owner verification: home workspace panes, tabs, drag/dock
   behavior, Back history, dirty-close confirmation, and layout persistence
   against a seeded process.
-- [ ] WAITING — owner verification: graph, cassette, and sheet-design editor
-  dock panels, content-sized initial layout, panel toggles, and per-editor
-  layout persistence.
+- [ ] WAITING — owner verification: editor dock rebuilt as one dock grid —
+  canvas the locked center panel, boxed panels with pane gutters,
+  drag/auto-dock, content-defined sizes, file identity panel in the
+  editor, full-bleed standalone editor route.
 - [x] Replace the home recursive split tree with a dockview layout
   (`WorkspaceDock`, `GeneratedHomeWorkspace`).
 - [x] Persist dockview layout plus opened screen, page, custom-page, and
@@ -35,6 +36,24 @@
   the running dev stack. Its Back/empty-placeholder cases and
   `home-workspace-restore` are blocked by dev-stack fixture errors (plugin
   nesting not installed, `NamespaceNotFound`).
+
+### Agent Notes (2026-11-20, agent/editor-dock-rebuild — owner defect report: overlay slop)
+
+- Owner rejected the floating-overlay implementation: panels hovered over
+  the canvas behind a transparent locked spacer, drops into the center were
+  impossible, layouts read broken, and the file chrome rode the page
+  header. Rebuilt as one dock grid: the canvas is a locked headerless
+  center panel, palette/inspector/preview are boxed panels around it with
+  the 6px pane gutters, drag between groups and edge auto-docking ride
+  dockview natively, and initial sizes still measure rendered content.
+  Floating free windows retired end to end (menu actions, CSS, layout
+  pruning now drops floating groups).
+- The file panel is the editor's identity home: `DesignerWorkspace` takes
+  the editor-page chrome api and renders name/rename/save/reload as the
+  `file` dock panel; the graph editor binds its chrome there, and the
+  `graph-editor` file surface declares `ownsChrome` so record hosts pass no
+  page-chrome. The standalone `/organization/process` route fills the
+  viewport (no global desktop header).
 
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 

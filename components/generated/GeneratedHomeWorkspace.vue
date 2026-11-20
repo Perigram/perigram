@@ -245,7 +245,6 @@
         <WorkspaceDock
           ref="workspaceDock"
           :items="workspaceTabItems"
-          chip-tabs
           allow-add
           allow-split
           allow-close-group

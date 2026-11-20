@@ -387,16 +387,19 @@ contract. It combines two halves:
   declared payload (mime, size, and the canonical graph for
   `graph-document`), stores the payload, and creates the instance through
   the generic create boundary. There is one first-save mechanism for every
-  editor-protocol file type, not a route per type. The header owns the
-  document chrome through
-  the editor-page chrome channel (`editor-page-chrome.js`): an editor
-  module declaring the `pageChrome` prop binds `{ name, dirty, saving,
-  diverged, save(), rename(), reload() }`, the header renders the
-  in-place name edit, the dirty-marked save, and the divergence refresh
-  from it, and the host registers the dirty state on the workspace
-  page-dirty registry so pane-close confirms; the documents pack's
-  editors and the tech-drawing DXF editor bind it and their own
-  toolbars are gone, designer editors (facade) keep their docks.
+  editor-protocol file type, not a route per type. The document chrome
+  rides the editor-page chrome channel
+  (`editor-page-chrome.js`): an editor module declaring the `pageChrome`
+  prop binds `{ name, dirty, saving, diverged, save(), rename(),
+  reload() }`. Header-mounted editors (the documents pack's editors, the
+  tech-drawing DXF editor) render it in the unified page header — the
+  in-place name edit, the dirty-marked save, and the divergence refresh —
+  and the host registers the dirty state on the workspace page-dirty
+  registry so pane-close confirms. A workspace-page entry marked
+  `ownsChrome` renders its chrome itself: the mounted editor owns a
+  `DesignerWorkspace` whose file panel carries the identity row (the
+  `graph-editor` surface is the ownsChrome mount), and record hosts pass
+  it no page-chrome channel.
   A bound editor page also opens **blank** — `openBlankFileEditor`
   rides the page-open seam with no entity (the create button of an
   editor-protocol type), the blank tab is a singleton entity-less page

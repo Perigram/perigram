@@ -5,7 +5,7 @@
 // working set on instance tiles with lineage (the InstanceInlineRef
 // tile variant) and pick-to-add pickers.
 import { describe, it, expect } from 'vitest';
-import { createSSRApp, h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent } from 'vue';
+import { createSSRApp, h, ref, reactive, computed, watch, onMounted, onBeforeUnmount, defineComponent } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import createSurface, { sameLineage } from './sheet-design-editor.mjs';
 
@@ -38,7 +38,7 @@ const ActionsChainStub = (props) => (
 );
 const mountContext = ({ queries } = {}) => {
   return {
-    vue: { h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent },
+    vue: { h, ref, reactive, computed, watch, onMounted, onBeforeUnmount, defineComponent },
     components: {
       Button: ButtonStub, Checkbox: stub, InputNumber: stub, InputText: stub,
       Popover: stub, SpeedDial: stub, Tag: stub, InstanceSelect: InstanceSelectStub,

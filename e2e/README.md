@@ -175,9 +175,9 @@ that drive executor-backed surfaces or services wire them through
   executors (`facade` and `tech-drawing`) — the runtime is facade's
   declared cross-plugin dependency.
 - `pane-navigation-history.spec.js`: the home workspace's dock contract —
-  an in-place tab replacement surfaces the group header's Back control and
-  Back restores the replaced content; a new tab opened onto a selected
-  empty placeholder consumes it; the open tab survives a reload.
+  an in-place tab replacement surfaces the hosted page header's Back
+  control and Back restores the replaced content; a new tab opened onto a
+  selected empty placeholder consumes it; the open tab survives a reload.
 - `home-workspace-restore.spec.js`: a version 3 home workspace state
   restores on the home shell after mount; a real page load produces zero
   hydration warnings.

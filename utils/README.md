@@ -11,7 +11,8 @@ Parent: [root README](../README.md).
   tab.
 - `workspace-dock-layout.js`: Dockview layout normalization and pruning —
   rejects layouts the dock cannot restore, drops panels whose surface no
-  longer resolves, and collapses emptied groups.
+  longer resolves, collapses emptied groups, and drops floating groups
+  from stored layouts.
 - `home-workspace-state.js`: Versioned home dock state (layout serialization,
   opened surface references, sidebar state) scoped to user and organization;
   reads a version 3 pane tree once and flattens its tabs.

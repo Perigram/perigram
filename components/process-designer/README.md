@@ -411,15 +411,15 @@ diagnostics name the authored class before its opaque id. SAVE keeps
 declaration records in the draft; APPLY posts the compiled declarations
 before compiling the process graph.
 
-Chrome: the canvas uses its own token-backed work surface behind the
-shared `DesignerWorkspace` chrome
+Chrome: the canvas uses its own token-backed work surface as the
+shared `DesignerWorkspace` dock's locked center panel
 ([components/shared](../shared/README.md)) — the app's shared surface
 tokens alone. The palette is the
-canvas-top dock inside the canvas slot: the strip owns the canvas's top
+canvas-top dock inside the canvas cell: the strip owns the canvas's top
 LEFT half (`max-w-[calc(50%-10rem)]`), its container passes pointer
 events through its empty areas so canvas gestures survive under it, and
 the canvas status pill owns top-center above it (`z-30`). The inspector
-is a dock panel floating over the canvas that the toolbar toggle opens
+is a dock panel beside the canvas that the toolbar toggle opens
 and closes — canvas clicks keep it open, and canvas Escape clears graph
 selection. The preview workspace is a dock panel docked below the canvas
 area (SPEC §28.14); the canvas status pill
@@ -430,7 +430,9 @@ derivation). Panel layout persists per editor through the shell's
 carries the view controls (zoom out/in, frame all, frame selection,
 reset zoom, Tidy), every item icon-only
 with its label as tooltip and accessible name, so the toolbar survives
-narrow layouts.
+narrow layouts. The document chrome — name with in-place rename, the
+dirty-marked save — renders in the workspace file panel; the standalone
+`/organization/process` route fills the viewport with the editor alone.
 
 ### Node-data and identity
 
@@ -654,10 +656,11 @@ is read-only and does not commit organization state. The Use Graph invocation UI
 authors its pinned graph ID, revision, and public-interface snapshot in
 the node's JSON configuration; the graph catalog feeds the invocation
 palette with pinned revisions, and preview resolves pinned subgraphs from
-that catalog by exact id and revision. The host chrome channel — the
-graphs list or the record page header — binds
-`{ name, dirty, saving, save(), rename() }`; a read grant
-binds the name alone and mounts the canvas read-only.
+that catalog by exact id and revision. The editor's chrome api —
+`{ name, dirty, saving, save(), rename() }` — renders in the workspace
+file panel (a read grant binds the name alone and mounts the canvas
+read-only); a host channel such as the page's graphs-list rename binds
+the same api.
 
 ### Inspector anatomy
 

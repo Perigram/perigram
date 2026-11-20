@@ -152,7 +152,8 @@
     "toolbar": "Toolbar",
     "palette": "Palette",
     "inspector": "Inspector",
-    "preview": "Preview"
+    "preview": "Preview",
+    "file": "File"
   },
   "support": {
     "title": "Chats",
@@ -447,9 +448,7 @@
     "openSomething": "Open something",
     "newTab": "New tab",
     "splitRight": "Split right",
-    "splitDown": "Split down",
-    "floatPanel": "Float panel",
-    "dockPanel": "Dock panel"
+    "splitDown": "Split down"
   },
   "file": {
     "upload": "Upload Files",

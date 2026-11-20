@@ -308,11 +308,15 @@ sidebar-driven screens, pages, calls, and chats open as panels;
 pane-local Back history (rendered in the hosted page header), dirty-close
 confirmation, and per-group empty placeholders remain. Dock layout — group tree, sizes, tab order, active
 group and tab — and the opened surface references persist per user and
-organization. Designer workspaces use the same dock system: palette,
-inspector, and preview are dock panels over the canvas surface
-whose initial sizes derive from their rendered content; panels can be
-floated as free windows and docked back, and each editor's layout
-persists.
+organization. Designer workspaces use the same dock system (owner
+direction 2026-11-20): the editor is one dock grid — the canvas is the
+locked center panel, and palette, inspector, preview, and the file panel
+are dock panels around it. Panels drag between groups and dock to group
+edges with pane gutters between boxes; initial panel sizes derive from
+their rendered content; each editor's layout persists. The file panel
+carries the edited document's identity inside the editor — name with
+in-place rename, save, and reload — and the standalone editor route
+fills the viewport.
 
 File creates follow the type's declared creation protocol (owner decision
 2026-10-12): an `editor` create opens the type's editor with no record —

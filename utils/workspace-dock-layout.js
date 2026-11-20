@@ -21,8 +21,7 @@ export function normalizeDockLayout(value) {
   return {
     grid: layout.grid,
     panels: layout.panels,
-    ...(typeof layout.activeGroup === 'string' ? { activeGroup: layout.activeGroup } : {}),
-    ...(Array.isArray(layout.floatingGroups) ? { floatingGroups: layout.floatingGroups } : {})
+    ...(typeof layout.activeGroup === 'string' ? { activeGroup: layout.activeGroup } : {})
   };
 }
 
@@ -40,38 +39,12 @@ export function pruneDockLayout(layout, isResolvable) {
     : { type: 'branch', data: [root], size: root.size || 100 };
   const groupIds = new Set();
   collectGroupIds(gridRoot, groupIds);
-  const floatingGroups = (normalized.floatingGroups || [])
-    .map(group => pruneFloatingGroup(group, panels))
-    .filter(Boolean);
   return {
     ...normalized,
     grid: { ...normalized.grid, root: gridRoot },
     panels,
-    activeGroup: groupIds.has(normalized.activeGroup) ? normalized.activeGroup : [...groupIds][0],
-    ...(floatingGroups.length ? { floatingGroups } : {})
+    activeGroup: groupIds.has(normalized.activeGroup) ? normalized.activeGroup : [...groupIds][0]
   };
-}
-
-// A floating window is dropped when any of its panels fails to resolve;
-// single-group windows keep their surviving views.
-function pruneFloatingGroup(group, panels) {
-  if (!group || typeof group !== 'object' || !group.position || typeof group.position !== 'object') return null;
-  if (group.data) {
-    const views = (group.data.views || []).filter(id => panels[id]);
-    if (!views.length) return null;
-    return {
-      ...group,
-      data: {
-        ...group.data,
-        views,
-        activeView: views.includes(group.data.activeView) ? group.data.activeView : views[0]
-      }
-    };
-  }
-  if (!group.grid?.root) return null;
-  const ids = [];
-  collectLeafViews(group.grid.root, ids);
-  return ids.every(id => panels[id]) ? group : null;
 }
 
 export function dockLayoutPanelIds(layout) {
@@ -118,13 +91,4 @@ function collectGroupIds(node, ids) {
     return;
   }
   for (const child of node.data || []) collectGroupIds(child, ids);
-}
-
-function collectLeafViews(node, ids) {
-  if (!node) return;
-  if (node.type === 'leaf') {
-    ids.push(...(node.data?.views || []));
-    return;
-  }
-  for (const child of node.data || []) collectLeafViews(child, ids);
 }
