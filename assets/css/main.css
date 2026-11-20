@@ -920,10 +920,11 @@ body {
 }
 
 /* Dockview chrome. One dock language for home panes and designer panels:
-   bordered pane boxes with chip tabs and a 6px gutter between adjacent
-   boxes; the splitter rides inside the gutter, invisible but draggable. A
-   locked group (the designer canvas) is the base surface and paints no
-   box. Values resolve from preset/app tokens. */
+   structural panes paint no background over the surface (tokens
+   contract) and keep a 6px gutter between adjacent boxes with the
+   splitter invisible inside the gutter; the locked center group (the
+   designer canvas) paints no box. Values resolve from preset/app
+   tokens. */
 .perigram-dock {
     --dv-tabs-and-actions-container-height: 2.5rem;
     --dv-tabs-and-actions-container-font-size: inherit;
@@ -939,7 +940,7 @@ body {
 
 .perigram-dock .dockview-theme-light,
 .perigram-dock .dockview-theme-dark {
-    --dv-group-view-background-color: var(--p-content-background);
+    --dv-group-view-background-color: transparent;
     --dv-tabs-and-actions-container-background-color: transparent;
     --dv-activegroup-visiblepanel-tab-background-color: var(--p-button-secondary-background);
     --dv-activegroup-visiblepanel-tab-color: var(--p-button-secondary-color);
@@ -963,7 +964,6 @@ body {
 }
 
 .perigram-dock .dv-groupview.dv-locked-groupview {
-    background-color: transparent;
     border-radius: 0;
     box-shadow: none;
 }
@@ -1001,4 +1001,17 @@ body {
 
 .perigram-dock .dv-sash {
     background: transparent;
+}
+
+/* The gutter splitter stays invisible; a 10px hit zone keeps the 6px
+   gutter grabbable (dockview pins the sash left edge at boundary - 2px,
+   so the margin recenters the wider element). */
+.perigram-dock .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash {
+    width: 10px;
+    margin-left: -3px;
+}
+
+.perigram-dock .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash {
+    height: 10px;
+    margin-top: -3px;
 }

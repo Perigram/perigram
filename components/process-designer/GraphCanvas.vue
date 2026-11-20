@@ -104,12 +104,13 @@
         </Message>
       </div>
 
-      <PaletteDock
-        v-if="!readOnly"
-        :groups="paletteGroups"
-        :placeholder="palettePlaceholder"
-        @pick="item => (item.action ? item.action() : addNode(item))"
-      />
+      <template v-if="!readOnly" #palette>
+        <PaletteDock
+          :groups="paletteGroups"
+          :placeholder="palettePlaceholder"
+          @pick="item => (item.action ? item.action() : addNode(item))"
+        />
+      </template>
 
       <div v-if="!nodes.length" class="absolute inset-x-4 top-20 z-10 flex justify-center">
         <StateBlock :message="emptyMessage" />

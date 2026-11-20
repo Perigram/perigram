@@ -290,11 +290,11 @@ The pass is the pure `utils/processDesignerArrangement.js`:
   through the canvas viewport transform) carrying delete and frame
   selection; edge selections keep the keyboard bindings.
 
-The palette is the canvas-top dock (`PaletteDock.vue`): provenance tiers
-as labels — plugin sections first (one section per installed plugin,
-named by the plugin, the plugin's declared groups as subgroups inside
-its popover), then the platform categories — with one chip per palette
-section opening the popover palette. An empty query lists
+The palette is the workspace's left dock panel (`PaletteDock.vue`):
+provenance tiers as labels — plugin sections first (one section per
+installed plugin, named by the plugin, the plugin's declared groups as
+subgroups inside its list), then the platform categories — with one chip
+per palette section selecting the section. An empty query lists
 the active section; a query searches the full catalog. Each row's dot
 carries the item's category signal
 (`utils/processDesignerSignals.js` is the single group→signal map; its
@@ -414,11 +414,11 @@ before compiling the process graph.
 Chrome: the canvas uses its own token-backed work surface as the
 shared `DesignerWorkspace` dock's locked center panel
 ([components/shared](../shared/README.md)) — the app's shared surface
-tokens alone. The palette is the
-canvas-top dock inside the canvas cell: the strip owns the canvas's top
-LEFT half (`max-w-[calc(50%-10rem)]`), its container passes pointer
-events through its empty areas so canvas gestures survive under it, and
-the canvas status pill owns top-center above it (`z-30`). The inspector
+tokens alone. The node palette is the workspace's left dock panel
+(SPEC §28 interaction model): provenance-tier section chips, a search
+that spans the full catalog, and the active section's rows — picking a
+row places the node. The canvas status pill owns the canvas top-center
+(`z-30`). The inspector
 is a dock panel beside the canvas that the toolbar toggle opens
 and closes — canvas clicks keep it open, and canvas Escape clears graph
 selection. The preview workspace is a dock panel docked below the canvas

@@ -15,7 +15,7 @@ describe('graph editor workspace chrome', () => {
       expect(source).not.toMatch(/backdrop-blur/);
       expect(source).not.toMatch(/variant === 'floating'/);
     }
-    expect(palette).toContain('data-designer-palette-strip');
+    expect(palette).toContain('data-designer-palette');
   });
 
   it('exposes evaluation state as a direct toggle to the preview workspace', async () => {
