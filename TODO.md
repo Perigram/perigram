@@ -1069,6 +1069,64 @@ integration waits for the owner's completion of build123d-flow.
   - [ ] Then `geometry.nurbs` (verb), `geometry.sketch` (PlaneGCS), and
     further conversions; `geometry.cgal` stays unbuilt while its GPL
     license refuses the dependency gate.
+
+### Agent Notes (2026-11-20, agent/geometry-base-20261120-1400)
+
+Landed in `workers/geometry-base` (branch commits): a type-less
+node-library listing (issue #30 law) — no CTS type, no dummy record —
+with one dependency-free shared JS runtime (`browser` + `server`)
+and 24 hand-authored pure services. Provider definitions derive
+from the listing inside the runtime (documents-shared pattern, one
+catalog); the entry is a source module with a complete static graph
+and zero bare imports, so it serves both targets as-is.
+
+Initial kind set: `geometry.point3`, `geometry.vector3`,
+`geometry.plane`, `geometry.frame`, scalar `geometry.angle`.
+Deliberately out: a transform/matrix kind (frames carry rigid
+placement; scale/shear rides the kernel that needs it) and bbox
+(extents over real geometry belong to the kernel slices). Conventions
+recorded in the package README: right-handed Z-up, lengths `mm` (CTS
+spelling) on every length-bearing port, angles in radians, orthonormal
+right-handed frames with `1e-6` consumer validation, signed plane
+distance positive on the normal side, zero-vector threshold `1e-12`,
+finite-only inputs (named refusals, no NaN propagation),
+deterministic frame-basis fallback (world axis least aligned with z,
+ties to the lowest axis). Conversions: `point3 ↔ vector3` declared
+through the SDK conversion grammar with `fidelity: 'lossless'`
+beside the two operations; cross-kind edges stay `incompatible` in
+the comparator, so conversions are explicit nodes.
+
+What `cad.occt` consumes: the kind vocabulary and conventions above
+(README is the contract home), the runtime-derivation pattern for
+its generated catalog, and the dual-target pure-service shape. Two
+platform findings for that slice: (1) the service→definition port
+derivation is now triplicated (server plugins service.js, documents
+shared.mjs, geometry-base runtime) — the plugin SDK should own one
+derivation helper; (2) provider `conversions` validate and forward
+(#28) but the browser session never calls `registerConversions` on
+its port-compatibility registry — the §30 "conversion edge-authoring
+wiring" backlog; unit-mismatch edges report `conversion-required`
+with an empty conversion list in the editor today.
+
+Live dogfood (2026-11-20, dev stack): published through the operator
+API (listing + entry + math + `listing.json` staged), installed into
+a scratch org (24 services snapshotted), the served type view
+carried the `geometry-base` client-runtime binding and the module
+proxy served the entry (`text/javascript`), `listing.json`
+(`application/json`), and math same-origin; the managed runtime's
+exact Deno bootstrap (2.9.8, verbatim from workers/plugin-runtime)
+executed `plane-distance` through the graph envelope —
+`{"type":"result","value":{"value":5}}`; uninstalled and retracted
+clean. The host-side ports of the dev stack were broken (every
+docker-published port 502s — host firewall, needs owner/root;
+app-in-network healthy; the root-owned vite cache that wedged the
+dev server was repaired), so the browser-Worker import leg ran as
+the Deno replica instead: a real-Chromium import of the runtime
+artifact (TESTING layer 3) remains open until the host port issue
+is fixed. Also open: the deployment seed decision for the catalog
+(kept out of `seed-plugin-catalog.js` in this slice), and two empty
+scratch orgs ("Geometry Dogfood Org", "… Org 2") left in the dev DB
+(org-delete drain-gated on their bootstrap process definitions).
 - [ ] Retire per-function endpoint settings and local-plugin connector
   tokens after all local packages migrate; retain explicit remote integration
   protocols through provider-level server adapters with server-held

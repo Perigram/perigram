@@ -1,0 +1,592 @@
+{
+  "pluginId": "geometry-base",
+  "name": "Geometry Base",
+  "description": "Canonical geometry kinds, coordinate conventions, and basic point, vector, plane, and frame operations",
+  "version": "1",
+  "declarations": {
+    "types": [],
+    "runtimes": [
+      {
+        "id": "geometry-base",
+        "language": "javascript",
+        "version": "1",
+        "entry": "/runtime/geometry-base.mjs",
+        "targets": ["browser", "server"]
+      }
+    ],
+    "services": [
+      {
+        "id": "make-point3",
+        "label": "Point",
+        "description": "Construct a point from x, y, z coordinates",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "x": { "base": "number", "nullable": true, "default": 0 },
+              "y": { "base": "number", "nullable": true, "default": 0 },
+              "z": { "base": "number", "nullable": true, "default": 0 }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.point3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "make-vector3",
+        "label": "Vector",
+        "description": "Construct a vector from x, y, z components",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "x": { "base": "number", "nullable": true, "default": 0 },
+              "y": { "base": "number", "nullable": true, "default": 0 },
+              "z": { "base": "number", "nullable": true, "default": 0 }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "vector-between",
+        "label": "Vector between points",
+        "description": "The displacement from one point to another",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "from": { "base": "json", "kind": "geometry.point3", "unit": "mm" },
+              "to": { "base": "json", "kind": "geometry.point3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "vector-add",
+        "label": "Add vectors",
+        "description": "Sum two vectors",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "a": { "base": "json", "kind": "geometry.vector3", "unit": "mm" },
+              "b": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "vector-subtract",
+        "label": "Subtract vectors",
+        "description": "Difference of two vectors",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "a": { "base": "json", "kind": "geometry.vector3", "unit": "mm" },
+              "b": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "vector-scale",
+        "label": "Scale vector",
+        "description": "Multiply a vector by a scalar factor",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "v": { "base": "json", "kind": "geometry.vector3", "unit": "mm" },
+              "factor": { "base": "number", "nullable": true, "default": 1 }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "vector-dot",
+        "label": "Dot product",
+        "description": "Scalar product of two vectors",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "a": { "base": "json", "kind": "geometry.vector3", "unit": "mm" },
+              "b": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "number" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "vector-cross",
+        "label": "Cross product",
+        "description": "Vector product of two vectors",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "a": { "base": "json", "kind": "geometry.vector3", "unit": "mm" },
+              "b": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "vector-norm",
+        "label": "Vector length",
+        "description": "Euclidean length of a vector",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "v": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "number", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "vector-normalize",
+        "label": "Unit vector",
+        "description": "The unit-length direction of a vector",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "v": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "vector-angle",
+        "label": "Angle between vectors",
+        "description": "The angle between two vectors, in radians",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "a": { "base": "json", "kind": "geometry.vector3", "unit": "mm" },
+              "b": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "number", "kind": "geometry.angle" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "point-translate",
+        "label": "Translate point",
+        "description": "Move a point by a displacement vector",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "point": { "base": "json", "kind": "geometry.point3", "unit": "mm" },
+              "offset": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.point3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "point-distance",
+        "label": "Distance between points",
+        "description": "Euclidean distance between two points",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "a": { "base": "json", "kind": "geometry.point3", "unit": "mm" },
+              "b": { "base": "json", "kind": "geometry.point3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "number", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "points-vectors", "label": "Points & vectors" }
+      },
+      {
+        "id": "make-plane",
+        "label": "Plane",
+        "description": "Construct a plane from an origin point and a normal vector",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "origin": { "base": "json", "kind": "geometry.point3", "unit": "mm" },
+              "normal": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.plane", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "planes-frames", "label": "Planes & frames" }
+      },
+      {
+        "id": "plane-normal",
+        "label": "Plane normal",
+        "description": "The unit normal of a plane",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "plane": { "base": "json", "kind": "geometry.plane", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "planes-frames", "label": "Planes & frames" }
+      },
+      {
+        "id": "plane-distance",
+        "label": "Distance to plane",
+        "description": "Signed distance from a point to a plane; positive on the normal side",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "plane": { "base": "json", "kind": "geometry.plane", "unit": "mm" },
+              "point": { "base": "json", "kind": "geometry.point3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "number", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "planes-frames", "label": "Planes & frames" }
+      },
+      {
+        "id": "make-frame",
+        "label": "Frame",
+        "description": "Construct a right-handed frame from an origin, a z axis, and an optional x axis hint",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "origin": { "base": "json", "kind": "geometry.point3", "unit": "mm" },
+              "zAxis": { "base": "json", "kind": "geometry.vector3", "unit": "mm" },
+              "xAxisHint": { "base": "json", "kind": "geometry.vector3", "unit": "mm", "nullable": true }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.frame", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "planes-frames", "label": "Planes & frames" }
+      },
+      {
+        "id": "frame-from-plane",
+        "label": "Frame from plane",
+        "description": "A frame on a plane with a deterministic x axis",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "plane": { "base": "json", "kind": "geometry.plane", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.frame", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "planes-frames", "label": "Planes & frames" }
+      },
+      {
+        "id": "frame-origin",
+        "label": "Frame origin",
+        "description": "The origin point of a frame",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "frame": { "base": "json", "kind": "geometry.frame", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.point3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "planes-frames", "label": "Planes & frames" }
+      },
+      {
+        "id": "frame-axis",
+        "label": "Frame axis",
+        "description": "One basis axis of a frame: x, y, or z",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "frame": { "base": "json", "kind": "geometry.frame", "unit": "mm" },
+              "axis": { "base": "string", "nullable": true, "default": "z" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "planes-frames", "label": "Planes & frames" }
+      },
+      {
+        "id": "point-to-local",
+        "label": "Point to frame coordinates",
+        "description": "Express a world point in a frame's local coordinates",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "frame": { "base": "json", "kind": "geometry.frame", "unit": "mm" },
+              "point": { "base": "json", "kind": "geometry.point3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.point3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "planes-frames", "label": "Planes & frames" }
+      },
+      {
+        "id": "point-to-world",
+        "label": "Point to world coordinates",
+        "description": "Place a frame-local point into world coordinates",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "frame": { "base": "json", "kind": "geometry.frame", "unit": "mm" },
+              "point": { "base": "json", "kind": "geometry.point3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.point3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "planes-frames", "label": "Planes & frames" }
+      },
+      {
+        "id": "point-to-vector",
+        "label": "Point to vector",
+        "description": "The displacement vector from the origin to a point",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "point": { "base": "json", "kind": "geometry.point3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "conversions", "label": "Conversions" }
+      },
+      {
+        "id": "vector-to-point",
+        "label": "Vector to point",
+        "description": "The point at the tip of a displacement vector from the origin",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "vector": { "base": "json", "kind": "geometry.vector3", "unit": "mm" }
+            }
+          },
+          "output": { "base": "json", "kind": "geometry.point3", "unit": "mm" }
+        },
+        "execution": {
+          "runtime": "geometry-base",
+          "kind": "pure",
+          "targets": ["browser", "server"],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": { "group": "conversions", "label": "Conversions" }
+      }
+    ]
+  }
+}
