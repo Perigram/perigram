@@ -1,9 +1,13 @@
 // The geometry-base plugin's shared runtime: pure compute over the
 // canonical geometry kinds, one runtime for browser and server targets.
-// Node definitions derive from the listing's service declarations — the
-// listing is the one catalog (the documents-shared pattern); the package
-// README (workers/geometry-base/README.md) owns the value contracts.
+// Node definitions derive from the listing's service declarations through
+// the SDK's shared derivation — the listing is the one catalog (the
+// documents-shared pattern); the package README
+// (workers/geometry-base/README.md) owns the value contracts. The SDK
+// import is build-time only: the shipped artifact is the self-contained
+// bundle the listing names as its entry.
 import listing from '../listing.json' with { type: 'json' };
+import { nodeDefinitionFromService } from '../../../packages/plugin-sdk/src/node-contract.js';
 import {
   makePoint3,
   makeVector3,
@@ -85,22 +89,6 @@ export const CONVERSIONS = [
   }
 ];
 
-const SEMANTIC_KEYS = ['kind', 'nominal', 'provider', 'schema', 'entityType', 'identity', 'constraints', 'unit'];
-
-function portContract(schema = {}) {
-  const shape = ['list', 'tree', 'map', 'tuple', 'stream'].includes(schema.base)
-    ? schema.base
-    : 'item';
-  const semanticSource = shape === 'item' ? schema : (schema.itemType || { base: 'json' });
-  const semantic = { base: semanticSource.base || 'json' };
-  for (const key of SEMANTIC_KEYS) {
-    if (Object.hasOwn(semanticSource.semantic || {}, key)) semantic[key] = semanticSource.semantic[key];
-    if (Object.hasOwn(semanticSource, key)) semantic[key] = semanticSource[key];
-  }
-  if (schema.nullable === true || semanticSource.nullable === true) semantic.nullable = true;
-  return { shape, semantic };
-}
-
 export function nodeDefinitions(source = listing, runtimeId = RUNTIME_ID, provider = GEOMETRY_PROVIDER) {
   const runtime = source.declarations?.runtimes?.find(item => item.id === runtimeId);
   if (!runtime) throw new Error(`Geometry runtime declaration is missing: ${runtimeId}`);
@@ -109,40 +97,7 @@ export function nodeDefinitions(source = listing, runtimeId = RUNTIME_ID, provid
       && service.execution.targets?.includes('browser')
       && service.palette?.visible !== false
       && service.palette?.group)
-    .map(service => ({
-      provider,
-      id: service.id,
-      version: String(service.nodeVersion || '1'),
-      label: service.label || service.id,
-      ...(service.description ? { description: service.description } : {}),
-      palette: {
-        group: service.palette.group,
-        ...(service.palette.label ? { label: service.palette.label } : {}),
-        keywords: service.palette.keywords || []
-      },
-      inputs: Object.entries(service.signature?.input?.fields || {}).map(([id, field]) => ({
-        id,
-        label: field.label || id,
-        ...portContract(field),
-        required: field.nullable !== true,
-        ...(Object.hasOwn(field, 'default') ? { default: field.default } : {}),
-        ...(field.description ? { description: field.description } : {})
-      })),
-      outputs: [{
-        id: 'value',
-        label: service.signature?.output?.label || 'Value',
-        ...portContract(service.signature?.output || {}),
-        required: true
-      }],
-      execution: {
-        runtime: runtimeId,
-        kind: service.execution.kind,
-        targets: service.execution.targets,
-        capabilities: service.execution.capabilities || [],
-        deterministic: service.execution.deterministic === true,
-        idempotent: service.execution.idempotent === true
-      }
-    }));
+    .map(service => nodeDefinitionFromService(service, { provider, runtimeId }));
 }
 
 export function createRuntime() {
