@@ -1127,6 +1127,84 @@ is fixed. Also open: the deployment seed decision for the catalog
 (kept out of `seed-plugin-catalog.js` in this slice), and two empty
 scratch orgs ("Geometry Dogfood Org", "… Org 2") left in the dev DB
 (org-delete drain-gated on their bootstrap process definitions).
+
+### Agent Notes (2026-11-20, agent/cad-occt-20261120-1450)
+
+Landed the `cad.occt` slice (branch commits, staged per task): the SDK
+service→definition helper (`nodeDefinitionFromService` +
+`servicePortContract`, the geometry-base finding) with geometry-base
+refactored onto it and shipping a built self-contained bundle; the
+catalog generator (`workers/cad-occt/generate-listing.mjs`) that reads
+brepjs's published .d.ts, verifies every curated operation against the
+declaration it names (function existence, parameter presence, type-family
+agreement — a drifting mapping refuses loudly), and emits the listing;
+the runtime over brepjs/occt-wasm; acceptance per TESTING layer 3 to the
+degree the worktree allows.
+
+Op set (13, palette groups in the README): box/cylinder/sphere/cone,
+translate/rotate, fuse/cut/intersect, fillet-all-edges, import/export
+STEP, tessellate. Kind mapping: Vec3 positions → `geometry.point3`,
+directions → `geometry.vector3`, angles → `geometry.angle` (brepjs
+rotates in degrees — the port carries radians, the runtime converts);
+shape operands → `geometry.occt.shape` (engine-native, §30.13); file
+ports → `documents.file`; tessellate output → `representation:
+'perigram.scene-3d'` (the mesh channel, mm Z-up). Handle contract: wire
+value `{ handle, brep }` — the handle resolves inside one runtime
+instance (browser Worker session / one managed process; `clearExecution`
+empties the table), the BREP text is the exact rebuildable boundary, so
+server-side inter-node hops (one process per operation) travel exact and
+persisted outputs never carry a live kernel object. Conversions declared
+through the grammar: STEP both ways `lossless`, occt→mesh
+`semantically-lossy` (deflection-bounded triangles; analytic exactness
+lost). IGES recorded unsupported: the default occt-wasm kernel builds
+without the IGES translator.
+
+Vendoring: brepjs Apache-2.0, occt-wasm declared Apache-2.0 (npm
+`MIT OR Apache-2.0`, grammar takes one token), wasm binary LGPL-2.1
+embedded (passes the GPL-prefix gate; nothing GPL entered the closure).
+The wasm stages through the runtime's `new URL` asset reference (the
+walker discovers it; the emscripten default URL is rewritten at build);
+module bundles via `perigram-plugin vendor --entry runtime` — which
+needed one SDK gap fix (emscripten's dead `import("node:…")` Node
+fallback now stays external in vendor builds). The SDK derivation
+module vendors into the package graph by relative import (documents
+shared-bundle pattern) — vite-node cannot resolve workspace-subpath
+bare imports from a worktree's symlinked node_modules.
+
+Test evidence: generator spec (parity with the installed brepjs);
+contract suite (16 — staging incl. the wasm, bare-import law, provider
+and conversion honesty through `normalizeNodeProvider` (#28 forwarding),
+socket semantics, kernel chain, handle contract, refusals); the shipped
+graph booted through the platform's real plugin Worker in a Node Worker
+thread with bare names resolving only to the vendor scope
+(`runtime-worker-check.mjs` — vitest's nested-worker channel mangles
+child-to-parent object payloads, so the harness runs as a clean node
+process); the managed chain primitive→boolean→tessellate through the
+real evaluator and dispatch harness (documents-preview-bake pattern).
+Open legs: real-Chromium import (blocked with the host stack, as for
+geometry-base); live dogfood skipped (E2E agent on the stack);
+deployment seed decision for the catalog still open.
+
+SDK fixes that rode this slice: `representation` joins the port
+contract's carried semantic keys (engine-demo-style qualifiers survived
+listing derivation drop); vendor builds externalize `node:*` builtins.
+
+What the next slices consume: for `geometry.nurbs`/`geometry.mesh` —
+the handle-contract shape (any engine-native kernel value carries
+instance identity + exact serializable form; their kernels need the
+same wire decision: verb nurbs curves/surfaces serialize exactly,
+Manifold meshes are already plain data and may not need a handle at
+all), the generator pattern (curated table verified against the
+library's declarations — verb ships .d.ts, Manifold ships .d.ts), the
+vendoring pipeline (MIT-family licenses pass the gate), and the
+occt→mesh conversion as the cross-kernel seam: nurbs/mesh conversions
+to/from `geometry.occt.shape` should ride STEP/BREP exchange through
+explicit conversion nodes with declared fidelity, never a shared IR.
+Also waiting: the browser session's `registerConversions` wiring
+(geometry-base's finding, unchanged) and the wasm warm-process managed
+runtime (subtask above) once a kernel other than occt needs server
+execution cheaper than process-per-op.
+
 - [ ] Retire per-function endpoint settings and local-plugin connector
   tokens after all local packages migrate; retain explicit remote integration
   protocols through provider-level server adapters with server-held
