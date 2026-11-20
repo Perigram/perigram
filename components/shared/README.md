@@ -205,7 +205,9 @@ directly; compact hosts (below 48rem of the workspace's own width) hide
 the rails and open one bounded tabbed overlay (60% height cap) whose active
 tab follows the toggle. The compact overlay follows the popover contract: a
 workspace-owned backdrop under the panel closes it on any tap outside the
-panel, so touch hosts never need a close control. Crossing the compact
+panel, so touch hosts never need a close control. Compact engages on a
+persistently narrow width (a transient measurement during an unstyled
+load keeps the wide layout, so open panels survive). Crossing the compact
 boundary resets to the mode's defaults — rails up when wide, canvas clear
 when compact. Panels share one surface contract in both layouts:
 full-height rounded bordered content-background rails with overlay shadow,
