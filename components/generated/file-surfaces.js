@@ -341,6 +341,7 @@ export function resolveFileSurface(editors, typeId = '', surfaces = null) {
     workspacePage: {
       icon: 'pi pi-file-edit',
       component: RemoteEditorSurface,
+      ...(declared.ownsChrome ? { ownsChrome: true } : {}),
       props: page => ({ record: page.entity, typeId, surface: declared, mode: editorMountMode(typeId, page.entity) })
     }
   };

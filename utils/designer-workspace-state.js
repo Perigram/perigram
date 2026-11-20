@@ -3,7 +3,7 @@ import { normalizeDockLayout } from './workspace-dock-layout.js';
 // Per-editor dock layout. Editor surfaces identify themselves with a
 // stable workspace id; the key stays scoped to the signed-in user and
 // active organization; each user/org pair owns its layout.
-export const DESIGNER_WORKSPACE_STATE_VERSION = 3;
+export const DESIGNER_WORKSPACE_STATE_VERSION = 4;
 
 export function designerWorkspaceStorageKey({ workspaceId, userId, organizationId }) {
   if (!workspaceId || !userId || !organizationId) return '';

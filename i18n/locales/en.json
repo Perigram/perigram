@@ -150,6 +150,7 @@
   },
   "designer": {
     "toolbar": "Toolbar",
+    "commands": "Commands",
     "palette": "Palette",
     "inspector": "Inspector",
     "preview": "Preview",
