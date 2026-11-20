@@ -255,18 +255,35 @@ provide('designerWorkspacePanels', {
   isPanelOpen: panel => Boolean(panels[panel])
 });
 
-const workspaceObserver = { observer: null };
+const workspaceObserver = { observer: null, compactTimer: null };
 
 onMounted(() => {
   if (typeof ResizeObserver === 'undefined' || !workspace.value) return;
   workspaceObserver.observer = new ResizeObserver(entries => {
     const width = entries[0]?.contentRect?.width || 0;
-    compact.value = width > 0 && width < 768;
+    const narrow = width > 0 && width < 768;
+    if (!narrow) {
+      if (workspaceObserver.compactTimer) {
+        clearTimeout(workspaceObserver.compactTimer);
+        workspaceObserver.compactTimer = null;
+      }
+      compact.value = false;
+      return;
+    }
+    // A transient narrow measurement (unstyled load, layout thrash) must
+    // not flip the mode and close open panels: compact engages only once
+    // the width persists.
+    if (compact.value || workspaceObserver.compactTimer) return;
+    workspaceObserver.compactTimer = setTimeout(() => {
+      workspaceObserver.compactTimer = null;
+      compact.value = true;
+    }, 200);
   });
   workspaceObserver.observer.observe(workspace.value);
 });
 
 onBeforeUnmount(() => {
+  if (workspaceObserver.compactTimer) clearTimeout(workspaceObserver.compactTimer);
   workspaceObserver.observer?.disconnect();
   workspaceObserver.observer = null;
 });
