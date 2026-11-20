@@ -126,10 +126,11 @@ each encode, and the card arrangement) is canonical in the
 ### `DesignerWorkspace.vue`
 
 Shared full-height shell for operational designers — the home of the
-operational-designer chrome contract. It mounts a `WorkspaceDock` whose
-panels are the named slots: `palette` for creation/search controls, the
-default slot for the interactive canvas or viewport, `inspector` for the
-selected item configuration, and `preview` for the preview workspace.
+operational-designer chrome contract. The default slot is the interactive
+canvas or viewport and fills the workspace as the background surface. A
+`WorkspaceDock` overlays it in pass-through mode: `palette`, `inspector`,
+and `preview` are dock panels floating over the canvas, and a transparent
+spacer panel holds the empty dock space so canvas gestures pass through.
 Panels are draggable, edge-docked, and user-resizable; their initial sizes
 measure the rendered content within panel-specific floors and caps, then
 the user owns the layout. The workspace renders no document name and
@@ -926,13 +927,16 @@ transcription stay in the host composer.
   and designer shells. Panels use one content slot (`#content` with the
   panel's key) and one tab component; the host supplies item labels,
   icons, close rules, and optional back/add/split/close group actions.
-  The exposed API covers panel open/replace/remove, group split/remove,
-  layout snapshot/apply, panel presence, and content-based sizing. Panel
-  labels update from the host's item list. The dock renders client-side
-  after mount; `mounted` gates dockview so SSR emits an empty host.
-  Tab/group state persistence belongs to the host (home workspace state
-  and designer workspace state). Theme variables resolve from the app
-  token contract in `assets/css/main.css`.
+  `chip-tabs` restores the home pane chrome (bordered pane boxes, chip
+  tabs); `overlay` floats the dock over a host surface with a transparent
+  `spacerKey` panel carrying the empty space. The exposed API covers
+  panel open/replace/remove, group add/split/remove, layout
+  snapshot/apply, panel presence, and content-based sizing. Panel labels
+  update from the host's item list. The dock renders client-side after
+  mount; `mounted` gates dockview so SSR emits an empty host. Tab/group
+  state persistence belongs to the host (home workspace state and
+  designer workspace state). Theme variables resolve from the app token
+  contract in `assets/css/main.css`.
 - **`InstanceActionsPopover.vue`**: Shared ellipsis trigger and compact action
   popover for entity-local commands. Disclosure is opt-in: full
   `InstanceCard` footers render their actions inline by default, and only a
