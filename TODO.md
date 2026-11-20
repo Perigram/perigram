@@ -85,6 +85,13 @@ owns the order; the inventory audit precedes any code move.
   anatomy (collapse, hover socket contract, fault popover, socket
   tones) for both editors; the preview eye stays gated to cards
   carrying the process record-update seam.
+- Cold-load root cause found and fixed: a transient sub-48rem workspace
+  measurement during an unstyled first load flipped the workspace into
+  compact mode, whose boundary reset closed the just-opened preview
+  region — the recurring "preview works after a while" pattern. Compact
+  now engages on a persistently narrow width only
+  (`DesignerWorkspace`); verified with throttled-load reproduction and
+  two consecutive green `graph-documents-preview` runs.
 - Still separate by design until the consolidation slice lands: the
   sessions themselves (`useProcessProfile` over `useProcessDesigner*`
   vs `useGraphDocumentSession`), the inspectors
