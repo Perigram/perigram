@@ -6,9 +6,10 @@
   behavior, Back history, dirty-close confirmation, and layout persistence
   against a seeded process.
 - [ ] WAITING — owner verification: editor dock rebuilt as one dock grid —
-  canvas the locked center panel, boxed panels with pane gutters,
-  drag/auto-dock, content-defined sizes, file identity panel in the
-  editor, full-bleed standalone editor route.
+  canvas the locked center panel, boxed panels with pane gutters over the
+  flat surface, drag/auto-dock with grabbable gutters, content-defined
+  sizes, the node palette as the left dock panel, file identity panel in
+  the editor, full-bleed standalone editor route.
 - [x] Replace the home recursive split tree with a dockview layout
   (`WorkspaceDock`, `GeneratedHomeWorkspace`).
 - [x] Persist dockview layout plus opened screen, page, custom-page, and
@@ -54,6 +55,13 @@
   `graph-editor` file surface declares `ownsChrome` so record hosts pass no
   page-chrome. The standalone `/organization/process` route fills the
   viewport (no global desktop header).
+- Second owner pass: panes painted white lost the flat surface — the dock
+  now follows the tokens law (structural panes paint no background); the
+  node palette moved from the canvas-top strip into the left dock panel
+  (`PaletteDock` is the panel body, search + tier chips + section rows);
+  the gutter sash keeps a 10px invisible hit zone so gutters grab.
+  Tab-edge drag verified live: panels dock to canvas edges; the canvas
+  center stays drop-refused (it is the locked center cell).
 
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
