@@ -60,8 +60,13 @@
   node palette moved from the canvas-top strip into the left dock panel
   (`PaletteDock` is the panel body, search + tier chips + section rows);
   the gutter sash keeps a 10px invisible hit zone so gutters grab.
-  Tab-edge drag verified live: panels dock to canvas edges; the canvas
-  center stays drop-refused (it is the locked center cell).
+- Third owner pass: dockview's group lock refused every drop around the
+  canvas cell, so the canvas group stays unlocked with center joins
+  refused through the dock's `onWillShowOverlay` guard (state version 3
+  drops the locked-canvas layouts); an `ownsChrome` editor record page
+  renders the editor flush (the pane's Back control alone above it) and
+  the direct workspace page declares `recordHeader`, so the unified
+  header and the lineage strip stay off the graph editor everywhere.
 
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
