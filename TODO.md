@@ -15,42 +15,40 @@ owns the order; the inventory audit precedes any code move.
   toolbars, panel state, and node-specific configuration branches as
   shared graph infrastructure, process-profile behavior, plugin
   contribution, or obsolete duplicate.
-- [ ] Palette correctness: same-kind palette entries must disambiguate
-  by authored shape (the literal/pinnedEntity collision relabeled every
-  literal node "Pinned entity"); the graph editor's framework palette
-  rows render the localized process palette vocabulary, one concept one
-  label everywhere.
-- [ ] Plugin palette sections: one section per installed plugin named by
-  the plugin, the plugin's declared semantic groups as subgroups inside
-  (process palette projection, graph editor palette, dock rendering);
-  blanket "operations" group names retire from plugin declarations
-  (build123d catalog/listing/discover).
-- [ ] Node cards: socket rows carry the name with type/access/connection
-  on hover (the per-socket link icon retires); a collapsed card renders
-  the name once with its header icons and keeps socket handles on the
-  side rails in expanded order.
+- [ ] WAITING — owner verification: Palette correctness: same-kind palette
+  entries disambiguate by authored shape (the literal/pinnedEntity
+  collision relabeled every literal node "Pinned entity"); the graph
+  editor's framework palette rows render the localized process palette
+  vocabulary, one concept one label everywhere.
+- [ ] WAITING — owner verification: Plugin palette sections: one section
+  per installed plugin named by the plugin, the plugin's declared
+  semantic groups as subgroups inside (process palette projection,
+  graph editor palette, dock rendering); blanket "operations" group
+  names retire from plugin declarations (build123d
+  catalog/listing/discover).
+- [ ] WAITING — owner verification: Node cards: socket rows carry the
+  name with type/access on hover (the per-socket link icon retires); a
+  collapsed card renders the name once with its header icons, inputs on
+  the top rail, outputs on the bottom rail.
 - [ ] Consolidate generic graph authoring on the canonical graph document
   and session; process-only behavior (lanes, grants, declarations, event
   entry, durable effects, validation, Apply) stays profile extensions.
-- [ ] Rebuild the workspace regions — graphs list, node library, canvas,
-  inspector, preview workspace, diagnostics — with intentional responsive
-  composition; preview moves out of the inspector tab/support rail into a
-  separate resizable region: declared output selected first, best
-  supported renderer as default, JSON as explicit diagnostics, host 3D
-  viewer for supported scene outputs, node traces as optional diagnostics.
-- [ ] One editor: retire the graph-document file-surface mount; the
-  organization graphs page loads graph documents beside process
-  definitions through the graphs list; opening a graph file navigates
-  there; the editor header retires with its actions moving onto the
-  graphs list.
-- [ ] Editor chrome follows the app's shared visual system (the
-  floating/glass panel language retires).
+- [ ] WAITING — owner verification: Workspace regions — graphs list, node
+  library, canvas, inspector, preview workspace, diagnostics — rebuilt:
+  preview is a separate resizable region (declared output selected
+  first, best supported renderer as default, JSON as explicit
+  diagnostics, values rendered through the one output-value renderer,
+  node traces as optional collapsed diagnostics); the support rail and
+  floating/glass chrome are retired.
+- [ ] WAITING — owner verification: One editor: the organization graphs
+  page is the `graph-editor` file surface (direct presentation); it
+  loads graph documents beside process definitions through the graphs
+  list; opening a graph file or creating one blank lands on the same
+  page; the editor header is retired with its actions on the graphs
+  list.
 - [ ] Make generic Create/Construct schema-driven from type construction
   contracts; event/trigger/schedule/subscription fields move to
   process-profile node definitions.
-- [ ] Remove the generic Support button/panel and the Hide secondary
-  toggle with their dead state paths (Support panel retirement rides the
-  preview workspace slice).
 - [ ] Rendered acceptance coverage for workspace layout, responsive panel
   transitions, file actions, palette search/insertion, node configuration,
   output/viewer selection, diagnostics, and process-profile behavior;
@@ -113,6 +111,19 @@ Landed this session: Hide secondary retired end to end
 (`useProcessProfile` state/logic/exports, the process page dock item,
 en+ru locale keys, README law); `hidden` stays a stripped runtime key
 in `stripRuntimeNodeData`.
+
+### Agent Notes (2026-11-20, one-editor completion)
+
+- The graph-document file-surface host died: the `graph-editor` registry
+  entry is a direct presentation mounting the unified editor page itself
+  (`graphInstanceId` prop: '' = process plane, instance id = that graph,
+  'blank' = first-save creation). The pane tab, the record-page editor
+  band (RecordEditorBody), and blank creation all land on the one
+  editor; the EditorPageSurface+header mount for graph documents is
+  gone, and `fileWorkspacePages` carries the direct-mount branch.
+  The unified page passes its graph-document mount through the record
+  host's chrome channel when one is supplied (record-page headers get
+  save/dirty again) and honors read mode.
 
 ### Agent Notes (2026-11-20, owner correction round)
 
