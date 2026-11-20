@@ -34,14 +34,17 @@ function declaredPaletteGroups() {
 }
 
 describe('Facade plugin node palette contribution', () => {
-  it('exposes the wireable sheet-planning operation and the geometry extraction', () => {
+  it('exposes one plugin section: the wireable sheet-planning operation and geometry extraction as subgroups', () => {
     const groups = declaredPaletteGroups();
-    const planning = groups.find(group => group.id === 'plugin-facade-sheet-planning');
-    expect(planning.label).toBe('Sheet planning');
-    expect(planning.items.map(item => item.id)).toEqual(['service:facade:match-sheet']);
-    const geometry = groups.find(group => group.id === 'plugin-facade-facade');
-    expect(geometry.label).toBe('Facade geometry');
-    expect(geometry.items.map(item => item.id)).toEqual(['extract:facade:nesting-polygons']);
+    expect(groups).toHaveLength(1);
+    const section = groups[0];
+    expect(section).toMatchObject({ id: 'plugin-facade', source: 'plugin' });
+    const subgroup = id => section.subgroups.find(group => group.id === id);
+    expect(subgroup('sheet-planning').label).toBe('Sheet planning');
+    expect(subgroup('sheet-planning').items.map(item => item.id)).toEqual(['service:facade:match-sheet']);
+    expect(subgroup('facade').label).toBe('Facade geometry');
+    expect(subgroup('facade').items.map(item => item.id)).toEqual(['extract:facade:nesting-polygons']);
+    expect(subgroup('production-export')).toBeUndefined();
   });
 
   it('keeps bare-value executors and declared helpers off the palette', () => {

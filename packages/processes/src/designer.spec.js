@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { applyFieldDisplayRole, compileTreeDeclarations, createProcessDesignerContract, declarationNodePorts, declarationWireLegality, childrenWireLegality, interpretDeclarationEdges, syncProcessNodeProducerOutputs } from './designer.js';
+import { applyFieldDisplayRole, compileTreeDeclarations, createProcessDesignerContract, declarationNodePorts, declarationWireLegality, childrenWireLegality, genericPaletteItemForKind, interpretDeclarationEdges, syncProcessNodeProducerOutputs } from './designer.js';
 import { normalizeType } from '../../cts/src/index.js';
 import { getProcessNodeDefinition } from './node-catalog.js';
 
@@ -291,6 +291,12 @@ describe('process designer domain contract', () => {
     const pinned = groups.instances.find(item => item.id === 'pinnedEntity');
     expect(pinned.kind).toBe('source.literalItem');
     expect(pinned.preset.type).toEqual({ base: 'entityRef' });
+    // the kind's generic vocabulary: the plain literal, the pinned-entity
+    // variant staying a variant; reads fall back to their default select
+    expect(genericPaletteItemForKind('source.literalItem').id).toBe('literal');
+    expect(genericPaletteItemForKind('source.literalList').id).toBe('literalList');
+    expect(genericPaletteItemForKind('cts.read').id).toBe('contextEntity');
+    expect(genericPaletteItemForKind('cts.construct').id).toBe('construct');
     // The field projection and the per-facet instance elimination live with
     // the entity sources; block composition (cts.compose) stays catalog-only
     // for migrated graphs.

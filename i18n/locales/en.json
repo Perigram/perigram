@@ -152,7 +152,7 @@
     "toolbar": "Toolbar",
     "palette": "Palette",
     "inspector": "Inspector",
-    "support": "Support"
+    "preview": "Preview"
   },
   "support": {
     "title": "Chats",
@@ -2777,8 +2777,6 @@
   "processDesigner": {
     "classNamePlaceholder": "Widget name",
     "socketSingleWire": "“{socket}” accepts one wire — connect a list source or use a collection node instead.",
-    "socketConnected": "Connected",
-    "socketUnconnected": "Not connected",
     "inputDefaults": "Input defaults",
     "valueType": "Value type",
     "editStructuredValue": "Edit structured value",
@@ -2821,6 +2819,10 @@
     "selectionActions": "Selection actions",
     "resetZoom": "Reset zoom",
     "definitions": "Definitions",
+    "graphs": "Graphs",
+    "graphDocuments": "Graph documents",
+    "newGraphDocument": "New graph",
+    "closeGraphDocument": "Close graph",
     "activeSet": "active",
     "definitionActions": "Definition actions",
     "versions": "Versions",

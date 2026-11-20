@@ -120,13 +120,18 @@ The route expects `/api/users` to return canonical user DTO blocks with
 `users:read`; it derives the active organization id from the loaded organization
 store first and falls back to the auth membership list.
 
-`process.vue` is the visual process-designer surface. It mounts the shared
-`GraphEditorSurface` with the process profile, edits the canonical
-`perigram.graph` process envelope with Vue Flow, persists drafts through
-`/api/process-definitions`, validates them through the process compiler, and
-activates compiled runtime contracts for access, screen manifests, navigation,
-entity workflows, services, sockets, and field policies. The checkmark apply
-button saves or forks the visible graph, activates the resulting process
+`process.vue` is the one editor page (SPEC §28.14): it mounts the shared
+`GraphEditorSurface` with the process profile for process definitions —
+editing the canonical
+`perigram.graph` process envelope with Vue Flow, persisting drafts through
+`/api/process-definitions`, validating them through the process compiler, and
+activating compiled runtime contracts for access, screen manifests, navigation,
+entity workflows, services, sockets, and field policies — and loads the
+organization's graph documents in place through the canonical graph session
+(the graphs list in the inspector owns open/create/rename/save). The
+checkmark apply
+action (on the graphs list) saves or forks the visible graph, activates the
+resulting process
 definition, and records activation warnings/errors in the centered canvas
 validation feedback so operators can inspect the result without a persistent
 canvas panel. When the next contract removes workflow states still held by
@@ -152,15 +157,16 @@ declared containment/relation edges remain declaration/runtime contracts.
 Effects are construct, mutate, transition, remove, command, and registered
 service. Flow exposes conditional and bounded control operations.
 
-The route uses the authenticated app layout with a full canvas workspace, the
-same `GraphEditorSurface` mount as a graph-document file, and the shared
-`DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell.
-Document and canvas commands render in the shell's floating PrimeVue
+The route uses the authenticated app layout with a full canvas workspace,
+the same `GraphEditorSurface` mount as a graph-document file, and the shared
+`DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell — the app's
+shared chrome tokens alone. Document and canvas commands render in the
+shell's floating PrimeVue
 `Toolbar` (the shared designer contract in
 [components/shared](../../components/shared/README.md)); the cassette and
 sheet-design editors ride the same chrome in `layout="lanes"`. The
-palette and
-inspector render as PrimeVue `Drawer` side panels inside the canvas workspace.
+palette and inspector render as workspace rails inside the canvas
+workspace; the graphs list owns file and lifecycle commands.
 The graph palette is operation vocabulary followed by
 the operation, value, and list groups: a process binds a type
 by dropping the unbound `construct` operation and wiring its Type pin to a

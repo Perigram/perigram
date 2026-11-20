@@ -10,11 +10,9 @@
           <div v-if="row.input" class="relative flex min-w-0 max-w-44 items-center gap-1.5 py-1.5 pl-3" :title="socketTitle(row.input)">
             <DesignerSocketHandle :socket="socket(row.input)" :handle-id="row.input.id" side="left" :title="socketTitle(row.input)" />
             <span class="truncate text-supporting">{{ row.input.label }}</span>
-            <span class="truncate text-supporting text-muted">{{ row.input.semantic?.base || 'json' }}</span>
           </div>
           <div v-if="row.output" class="relative ml-auto flex min-w-0 max-w-44 items-center gap-1.5 py-1.5 pr-3 text-right" :title="socketTitle(row.output)">
             <span class="truncate text-supporting">{{ row.output.label }}</span>
-            <span class="truncate text-supporting text-muted">{{ row.output.semantic?.base || 'json' }}</span>
             <DesignerSocketHandle :socket="socket(row.output)" :handle-id="row.output.id" side="right" :title="socketTitle(row.output)" />
           </div>
         </div>

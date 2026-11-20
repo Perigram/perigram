@@ -285,16 +285,25 @@ export function useProcessProfile({
   // Palette groups for the dock and the context palette: localized group
   // labels and per-item labels (the filter matches them), descriptions for
   // the row tooltip, and the shared category signal (the dot reads it).
+  // Plugin sections carry their subgroups through beside the flat items.
+  const toPaletteItems = (items, signalId) => (items || []).map(item => ({
+    ...item,
+    label: paletteLabel(item),
+    description: paletteDescription(item),
+    signal: signalForPaletteGroup(signalId)
+  }));
   const toPaletteGroups = groups => (groups || []).map(group => ({
     id: group.id,
     source: group.source,
     label: group.label || paletteGroupLabel(group.id),
-    items: group.items.map(item => ({
-      ...item,
-      label: paletteLabel(item),
-      description: paletteDescription(item),
-      signal: signalForPaletteGroup(group.id)
-    }))
+    items: toPaletteItems(group.items, group.id),
+    ...(Array.isArray(group.subgroups) && group.subgroups.length ? {
+      subgroups: group.subgroups.map(subgroup => ({
+        id: subgroup.id,
+        label: subgroup.label,
+        items: toPaletteItems(subgroup.items, subgroup.id)
+      }))
+    } : {})
   })).filter(group => group.items.length);
   const paletteGroups = computed(() => toPaletteGroups(designerPaletteGroups.value));
   const contextPaletteGroups = computed(() => toPaletteGroups(designerContextPaletteGroups.value));

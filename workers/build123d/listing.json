@@ -1362,7 +1362,7 @@
         },
         "description": "Generic Operation: Add Bounding Box Applies to: BuildSketch and BuildPart Add the 2D or 3D bounding boxes of the object sequence",
         "palette": {
-          "group": "operations",
+          "group": "modify",
           "keywords": [
             "bounding_box",
             "bounding-box",
@@ -1370,7 +1370,7 @@
             "build123d.operations_generic",
             "objects"
           ],
-          "label": "Operations"
+          "label": "Modify"
         }
       },
       {
@@ -1412,7 +1412,7 @@
         },
         "description": "Generic Operation: chamfer Applies to 2 and 3 dimensional objects. Chamfer the given sequence of edges or vertices.",
         "palette": {
-          "group": "operations",
+          "group": "modify",
           "keywords": [
             "chamfer",
             "function",
@@ -1423,7 +1423,7 @@
             "angle",
             "reference"
           ],
-          "label": "Operations"
+          "label": "Modify"
         }
       },
       {
@@ -1453,7 +1453,7 @@
         },
         "description": "Generic Operation: fillet Applies to 2 and 3 dimensional objects. Fillet the given sequence of edges or vertices. Note that vertices on either end of an open line will be automatically skipped.",
         "palette": {
-          "group": "operations",
+          "group": "modify",
           "keywords": [
             "fillet",
             "function",
@@ -1461,7 +1461,7 @@
             "objects",
             "radius"
           ],
-          "label": "Operations"
+          "label": "Modify"
         }
       },
       {
@@ -1489,14 +1489,14 @@
         },
         "description": "Generic Operation: mirror Applies to 1, 2, and 3 dimensional objects. Mirror a sequence of objects over the given plane.",
         "palette": {
-          "group": "operations",
+          "group": "modify",
           "keywords": [
             "mirror",
             "function",
             "build123d.operations_generic",
             "objects"
           ],
-          "label": "Operations"
+          "label": "Modify"
         }
       },
       {
@@ -1541,7 +1541,7 @@
         },
         "description": "Generic Operation: offset Applies to 1, 2, and 3 dimensional objects. Offset the given sequence of Edges, Faces, Compound of Faces, or Solids. The kind parameter controls the shape of the transitions. For Solid objects, the openings parameter allows selected faces to be open, like a hollow box with no lid.",
         "palette": {
-          "group": "operations",
+          "group": "modify",
           "keywords": [
             "offset",
             "function",
@@ -1552,7 +1552,7 @@
             "closed",
             "min_edge_length"
           ],
-          "label": "Operations"
+          "label": "Modify"
         }
       },
       {
@@ -1580,14 +1580,14 @@
         },
         "description": "Generic Operation: project Applies to 0, 1, and 2 dimensional objects. Project the given objects or points onto a BuildLine or BuildSketch workplane in the direction of the normal of that workplane. When projecting onto a sketch a Face(s) are generated while Edges are generated for BuildLine. Will only use the first if BuildSketch has multiple active workplanes. In algebra mode a workplane must be provided and the output is either a Face, Curve, Sketch, Compound, or ShapeList[Vector]. Note that only if mode is not Mode.PRIVATE only Faces can be projected into BuildSketch and Edge/Wires into BuildLine.",
         "palette": {
-          "group": "operations",
+          "group": "modify",
           "keywords": [
             "project",
             "function",
             "build123d.operations_generic",
             "target"
           ],
-          "label": "Operations"
+          "label": "Modify"
         }
       },
       {
@@ -1615,14 +1615,14 @@
         },
         "description": "Generic Operation: scale Applies to 1, 2, and 3 dimensional objects. Scale a sequence of objects. Note that when scaling non-uniformly across the three axes, the type of the underlying object may change to bspline from line, circle, etc.",
         "palette": {
-          "group": "operations",
+          "group": "modify",
           "keywords": [
             "scale",
             "function",
             "build123d.operations_generic",
             "objects"
           ],
-          "label": "Operations"
+          "label": "Modify"
         }
       },
       {
@@ -1650,14 +1650,14 @@
         },
         "description": "Generic Operation: split Applies to 1, 2, and 3 dimensional objects. Bisect object with plane and keep either top, bottom or both.",
         "palette": {
-          "group": "operations",
+          "group": "modify",
           "keywords": [
             "split",
             "function",
             "build123d.operations_generic",
             "objects"
           ],
-          "label": "Operations"
+          "label": "Modify"
         }
       },
       {
@@ -1705,7 +1705,7 @@
         },
         "description": "Generic Operation: sweep Sweep pending 1D or 2D objects along path.",
         "palette": {
-          "group": "operations",
+          "group": "modify",
           "keywords": [
             "sweep",
             "function",
@@ -1717,7 +1717,7 @@
             "binormal",
             "clean"
           ],
-          "label": "Operations"
+          "label": "Modify"
         }
       },
       {
@@ -1766,7 +1766,7 @@
         },
         "description": "Part Operation: extrude Extrude a sketch or face by an amount or until another object.",
         "palette": {
-          "group": "operations",
+          "group": "solid",
           "keywords": [
             "extrude",
             "function",
@@ -1778,7 +1778,7 @@
             "taper",
             "clean"
           ],
-          "label": "Operations"
+          "label": "Solids"
         }
       },
       {
@@ -1814,7 +1814,7 @@
         },
         "description": "Part Operation: loft Loft the pending sketches/faces, across all workplanes, into a solid. Faces may contain inner wires, which are lofted as holes and subtracted from the outer loft. When a face has more than one inner wire, the wires in each subsequent section are matched to the preceding section by choosing the assignment with the smallest total distance between wire centers. This makes the result independent of the order in which inner wires are returned, but it is only a geometric heuristic: holes that are close together, cross paths, or change position significantly may be matched incorrectly. All sections must contain the same number of inner wires.",
         "palette": {
-          "group": "operations",
+          "group": "solid",
           "keywords": [
             "loft",
             "function",
@@ -1823,7 +1823,7 @@
             "ruled",
             "clean"
           ],
-          "label": "Operations"
+          "label": "Solids"
         }
       },
       {
@@ -1860,7 +1860,7 @@
         },
         "description": "Part Operation: Revolve Revolve the profile or pending sketches/face about the given axis. Note that the most common use case is when the axis is in the same plane as the face to be revolved but this isn't required.",
         "palette": {
-          "group": "operations",
+          "group": "solid",
           "keywords": [
             "revolve",
             "function",
@@ -1869,7 +1869,7 @@
             "revolution_arc",
             "clean"
           ],
-          "label": "Operations"
+          "label": "Solids"
         }
       },
       {
@@ -1906,7 +1906,7 @@
         },
         "description": "Part Operation: section Slices current part at the given height by section_by or current workplane(s).",
         "palette": {
-          "group": "operations",
+          "group": "solid",
           "keywords": [
             "section",
             "function",
@@ -1915,7 +1915,7 @@
             "height",
             "clean"
           ],
-          "label": "Operations"
+          "label": "Solids"
         }
       },
       {
@@ -1955,7 +1955,7 @@
         },
         "description": "Part Operation: thicken Create a solid(s) from a potentially non planar face(s) by thickening along the normals.",
         "palette": {
-          "group": "operations",
+          "group": "solid",
           "keywords": [
             "thicken",
             "function",
@@ -1965,7 +1965,7 @@
             "both",
             "clean"
           ],
-          "label": "Operations"
+          "label": "Solids"
         }
       },
       {
@@ -2001,7 +2001,7 @@
         },
         "description": "Sketch Operation: full_round Given an edge from a Face/Sketch, modify the face by replacing the given edge with the arc of the Voronoi largest empty circle that will fit within the Face. This \"rounds off\" the end of the object.",
         "palette": {
-          "group": "operations",
+          "group": "face",
           "keywords": [
             "full_round",
             "full-round",
@@ -2011,7 +2011,7 @@
             "invert",
             "voronoi_point_count"
           ],
-          "label": "Operations"
+          "label": "Faces"
         }
       },
       {
@@ -2039,7 +2039,7 @@
         },
         "description": "Sketch Operation: make_face Create a face from the given perimeter edges.",
         "palette": {
-          "group": "operations",
+          "group": "face",
           "keywords": [
             "make_face",
             "make-face",
@@ -2047,7 +2047,7 @@
             "build123d.operations_sketch",
             "edges"
           ],
-          "label": "Operations"
+          "label": "Faces"
         }
       },
       {
@@ -2075,7 +2075,7 @@
         },
         "description": "Sketch Operation: make_hull Create a face from the convex hull of the given edges",
         "palette": {
-          "group": "operations",
+          "group": "face",
           "keywords": [
             "make_hull",
             "make-hull",
@@ -2083,7 +2083,7 @@
             "build123d.operations_sketch",
             "edges"
           ],
-          "label": "Operations"
+          "label": "Faces"
         }
       },
       {
@@ -2116,7 +2116,7 @@
         },
         "description": "Sketch Operation: trace Convert edges, wires or pending edges into faces by sweeping a perpendicular line along them.",
         "palette": {
-          "group": "operations",
+          "group": "face",
           "keywords": [
             "trace",
             "function",
@@ -2124,7 +2124,7 @@
             "lines",
             "line_width"
           ],
-          "label": "Operations"
+          "label": "Faces"
         }
       },
       {

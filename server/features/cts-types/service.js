@@ -204,6 +204,7 @@ export async function describeOrganizationTypes(organizationId) {
       if (engine?.module) {
         clientEngines.push(Object.freeze({
           pluginId: install.pluginId,
+          name: install.name,
           version: String(install.version || ''),
           url: `/api/plugins/${encodeURIComponent(install.pluginId)}/module${engine.module}`,
           services: (install.services || [])
@@ -227,6 +228,7 @@ export async function describeOrganizationTypes(organizationId) {
         clientRuntimes.push(Object.freeze({
           organizationId: String(organizationId),
           pluginId: install.pluginId,
+          name: install.name,
           version: String(install.version || ''),
           runtime: Object.freeze({ ...runtime, entryUrl }),
           services: Object.freeze((install.services || [])

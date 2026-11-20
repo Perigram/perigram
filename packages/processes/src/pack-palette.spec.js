@@ -18,22 +18,27 @@ describe('pluginPaletteGroups', () => {
   it('emits one item per operation across types, projection pre-bound, type unbound', () => {
     const groups = pluginPaletteGroups(projections, {});
     expect(groups.every(group => group.source === 'plugin')).toBe(true);
-    const tableData = groups.find(group => group.id === 'plugin-documents-table-data');
+    expect(groups.map(group => group.id)).toEqual(['plugin-documents', 'plugin-facade']);
+    const tableData = groups[0].subgroups.find(subgroup => subgroup.id === 'table-data');
     expect(tableData.items.map(item => item.id)).toEqual(['extract:documents:rows', 'extract:documents:cells', 'extract:documents:text']);
     for (const item of tableData.items) {
       expect(item.preset.typeId).toBeUndefined();
       expect(item.preset.select).toBe('extract');
     }
     expect(tableData.items[0].preset.projection).toBe('rows');
-    expect(groups.find(group => group.id === 'plugin-facade-facade').items).toHaveLength(1);
+    expect(groups[1].subgroups.find(subgroup => subgroup.id === 'facade').items).toHaveLength(1);
   });
-  it('keeps ungrouped plugin services in provider-owned Operations groups', () => {
-    const groups = servicesPaletteGroups({
+  it('keeps ungrouped plugin services on their plugin section root', () => {
+    const groups = pluginPaletteGroups({}, {
       fill: { id: 'plugin.documents.fill', command: 'plugin.documents.fill', label: 'Fill' },
       export: { id: 'plugin.facade.export', command: 'plugin.facade.export', label: 'Export' }
     });
-    expect(groups.map(group => group.id)).toEqual(['plugin-documents-operations', 'plugin-facade-operations']);
+    expect(groups.map(group => group.id)).toEqual(['plugin-documents', 'plugin-facade']);
     expect(groups.flatMap(group => group.items).map(item => item.id)).toEqual(['service:documents:fill', 'service:facade:export']);
+    expect(groups.every(group => group.subgroups === undefined)).toBe(true);
+    expect(servicesPaletteGroups({
+      fill: { id: 'plugin.documents.fill', command: 'plugin.documents.fill', label: 'Fill' }
+    })).toEqual([]);
   });
 
   it('keeps identical group slugs isolated by provider', () => {
@@ -41,9 +46,9 @@ describe('pluginPaletteGroups', () => {
       first: { id: 'one', command: 'plugin.documents.one', palette: { group: 'operations' } },
       second: { id: 'one', command: 'plugin.facade.one', palette: { group: 'operations' } }
     });
-    expect(groups.map(group => group.id)).toEqual(['plugin-documents-operations', 'plugin-facade-operations']);
+    expect(groups.map(group => group.id)).toEqual(['plugin-documents', 'plugin-facade']);
     expect(groups.map(group => group.items[0].id)).toEqual(['service:documents:one', 'service:facade:one']);
-    expect(groups.every(group => group.label === 'Operations')).toBe(true);
+    expect(groups.map(group => group.subgroups[0].label)).toEqual(['Operations', 'Operations']);
   });
 
   it('uses provider-authored operation labels and descriptions in the palette', () => {

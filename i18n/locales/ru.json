@@ -152,7 +152,7 @@
     "toolbar": "Панель инструментов",
     "palette": "Палитра",
     "inspector": "Инспектор",
-    "support": "Поддержка"
+    "preview": "Предпросмотр"
   },
   "support": {
     "title": "Чаты",
@@ -2777,8 +2777,6 @@
   "processDesigner": {
     "classNamePlaceholder": "Название типа",
     "socketSingleWire": "«{socket}» принимает один провод — подключите источник-список или узел коллекции.",
-    "socketConnected": "Подключено",
-    "socketUnconnected": "Не подключено",
     "inputDefaults": "Значения входов по умолчанию",
     "valueType": "Тип значения",
     "editStructuredValue": "Изменить структурированное значение",
@@ -2821,6 +2819,10 @@
     "selectionActions": "Действия с выделением",
     "resetZoom": "Сбросить масштаб",
     "definitions": "Определения",
+    "graphs": "Графы",
+    "graphDocuments": "Граф-документы",
+    "newGraphDocument": "Новый граф",
+    "closeGraphDocument": "Закрыть граф",
     "activeSet": "активно",
     "definitionActions": "Действия с определением",
     "versions": "Версии",

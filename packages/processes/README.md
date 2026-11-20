@@ -32,11 +32,20 @@ storage-id lookup, producer-path joins, per-node packet matching, and
 transport adapters are compiler concerns, hidden from authoring.
 Type-changing traversal selects a declared children/parent/relation edge and
 exposes that edge's exact target type. Plugin projection and service
-contracts contribute plugin-owned palette groups through `pluginPaletteGroups`;
-projection entries deduplicate by provider, declared group, and projection id, while
-service entries retain their provider-qualified operation identity and preset. Group ids are provider-qualified; services and projections share the same `palette: { group, label, keywords, visible }` declaration, so equal group slugs from different plugins never merge. `visible: false` keeps construction and synchronous projection helpers out of graph-node discovery. Ungrouped visible plugin services fall into that provider's Operations section. The surface search
-indexes labels, descriptions, operation ids, group ids, and provider-authored
-search terms.
+contracts contribute one palette section per installed plugin through
+`pluginPaletteGroups` — named by the plugin (`pluginLabel`, falling back
+to the humanized provider id), the plugin's declared groups as subgroups
+inside, ungrouped contributions on the section root; equal group slugs
+from different plugins never merge. Projected service entries carry
+`plugin`, `pluginLabel`, `group`, and `groupLabel`; listing-shape entries
+carry `palette: { group, label, keywords, visible }`, and both shapes are
+accepted. `visible: false` keeps construction and synchronous projection
+helpers out of graph-node discovery. Providerless service contracts keep
+the platform Services group through `servicesPaletteGroups`. The surface
+search indexes labels, descriptions, operation ids, group ids, and
+provider-authored search terms. The kind's generic palette vocabulary —
+the item a node of that kind reads before authored variants specialize
+it — is `genericPaletteItemForKind`.
 
 The canonical procedural node-provider contract is owned by [@perigram/plugin-sdk](../plugin-sdk/README.md#node-provider-palette-contract). The process adapter declares each operation's semantic palette group explicitly from its catalog family; graph palette categories are not inferred from operation-id prefixes. The canvas node's group label is projected from that same definition.
 

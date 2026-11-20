@@ -57,7 +57,7 @@ export function createEmptyGraphDocument({ id = stableId('graph'), name = '' } =
   };
 }
 
-export function useGraphDocumentSession({ t, providers = [], definitions = [], nodeResolvers = [], previewResolvers = [], compatibilityProfiles = [], frameworkProviders = [], executors = {}, graphDocuments = [], queryOrganizationData = null, finalizeExecution = null }) {
+export function useGraphDocumentSession({ t, te, providers = [], definitions = [], nodeResolvers = [], previewResolvers = [], compatibilityProfiles = [], frameworkProviders = [], executors = {}, graphDocuments = [], queryOrganizationData = null, finalizeExecution = null, definitionText = null, pluginNames = null }) {
   const graphDocument = ref(createEmptyGraphDocument());
   const { nodes, edges } = createGraphAuthoringState();
   const validation = ref(null);
@@ -82,6 +82,9 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
   });
 
   const registry = createNodeProviderRegistry();
+  // Host-supplied vocabulary for framework definitions: localized label
+  // and description overrides for palette rows and node cards.
+  const definitionTextOf = typeof definitionText === 'function' ? definitionText : () => null;
   const portCompatibility = createPortCompatibilityRegistry();
   for (const registerProfile of compatibilityProfiles) registerProfile(portCompatibility);
   for (const definition of definitions) registry.register(definition);
@@ -171,19 +174,14 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
           }]
     });
     const grouped = new Map();
+    const pluginSections = new Map();
     for (const definition of registry.list()) {
       const family = definition.palette.group;
-      const groupKey = `${definition.provider}:${family}`;
-      if (!grouped.has(groupKey)) grouped.set(groupKey, {
-        provider: definition.provider,
-        family,
-        label: definition.palette?.label || '',
-        items: []
-      });
-      grouped.get(groupKey).items.push({
+      const text = definitionTextOf(definition);
+      const item = {
         id: `${definition.provider}:${definition.id}@${definition.version}`,
-        label: definition.label,
-        description: definition.description || '',
+        label: text?.label || definition.label,
+        description: text?.description || definition.description || '',
         keywords: definition.palette?.keywords || [],
         searchTerms: [definition.provider, definition.id, family],
         signal: groupSignals[family] || 'data',
@@ -195,7 +193,43 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
         config: definition.configuration?.default && typeof definition.configuration.default === 'object'
           ? { ...definition.configuration.default }
           : {}
+      };
+      const pluginId = definition.provider.startsWith('plugin.')
+        ? definition.provider.split('.')[1] || ''
+        : '';
+      if (pluginId) {
+        // One section per installed plugin (SPEC §28.14): the plugin's
+        // declared groups ride as subgroups inside.
+        if (!pluginSections.has(pluginId)) {
+          pluginSections.set(pluginId, {
+            source: 'plugin',
+            id: `plugin-${pluginId}`,
+            label: unref(pluginNames)?.[pluginId] || humanizePaletteGroup(pluginId),
+            root: [],
+            subgroups: new Map()
+          });
+        }
+        const section = pluginSections.get(pluginId);
+        if (!section.subgroups.has(family)) {
+          section.subgroups.set(family, {
+            id: family,
+            label: definition.palette?.label || groupLabels[family] || humanizePaletteGroup(family),
+            items: []
+          });
+        } else if (definition.palette?.label) {
+          section.subgroups.get(family).label = definition.palette.label;
+        }
+        section.subgroups.get(family).items.push(item);
+        continue;
+      }
+      const groupKey = `${definition.provider}:${family}`;
+      if (!grouped.has(groupKey)) grouped.set(groupKey, {
+        provider: definition.provider,
+        family,
+        label: definition.palette?.label || '',
+        items: []
       });
+      grouped.get(groupKey).items.push(item);
     }
     for (const { provider, family, label, items } of grouped.values()) {
       groups.push({
@@ -204,6 +238,16 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
         label: label || groupLabels[family] || humanizePaletteGroup(family),
         signal: groupSignals[family] || 'data',
         items
+      });
+    }
+    for (const section of pluginSections.values()) {
+      const subgroups = [...section.subgroups.values()];
+      groups.push({
+        source: 'plugin',
+        id: section.id,
+        label: section.label,
+        items: [...section.root, ...subgroups.flatMap(subgroup => subgroup.items)],
+        ...(subgroups.length ? { subgroups } : {})
       });
     }
     return groups;
@@ -276,13 +320,14 @@ export function useGraphDocumentSession({ t, providers = [], definitions = [], n
   function enrichNode(node) {
     const definition = definitionFor(node);
     const group = definition?.palette?.group || '';
+    const text = definitionTextOf(definition);
     return {
       ...node,
       type: 'graphNode',
       data: {
         ...node.data,
         definition,
-        label: definition?.label || node.data.label || node.data.operation?.id || t('processDesigner.unknownNode'),
+        label: text?.label || definition?.label || node.data.label || node.data.operation?.id || t('processDesigner.unknownNode'),
         groupLabel: definition?.palette?.label || groupLabels[group] || (group ? humanizePaletteGroup(group) : t('processDesigner.graphBoundaries')),
         error: node.data.error || ''
       }
