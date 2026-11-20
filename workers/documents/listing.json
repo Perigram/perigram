@@ -2,7 +2,7 @@
   "pluginId": "documents",
   "name": "Documents",
   "description": "The generic media/office file types (images, PDF, markdown, HTML, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
-  "version": "34",
+  "version": "35",
   "requires": [
     "tech-drawing"
   ],
@@ -712,10 +712,12 @@
             "base": "record",
             "fields": {
               "title": {
-                "base": "string"
+                "base": "string",
+                "nullable": true
               },
               "sectionTitle": {
-                "base": "string"
+                "base": "string",
+                "nullable": true
               },
               "flow": {
                 "base": "json",
@@ -726,7 +728,8 @@
                 "base": "list",
                 "itemType": {
                   "base": "record"
-                }
+                },
+                "nullable": true
               }
             }
           },
@@ -847,7 +850,8 @@
                 "kind": "document.report"
               },
               "name": {
-                "base": "string"
+                "base": "string",
+                "nullable": true
               }
             }
           },

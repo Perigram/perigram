@@ -350,7 +350,7 @@ collection route, the support-rail mount, preview-provider timing, accessible
 destination controls, the page-file Bake response shape, and catalog packaging
 of declared surface modules. Inspector schema configuration, valid/invalid
 wire authoring, and full UI-authored graph persistence remain open.
-- [ ] Reconcile Documents listing versions with installed organization
+- [x] Reconcile Documents listing versions with installed organization
   snapshots. Verify upgrade behavior against an installation carrying the
   previous declaration version; record catalog and installed versions in
   regression coverage.
@@ -636,7 +636,7 @@ Completion requires verified product behavior, listing validation, and
 executor coverage for both plugins as product capabilities and graph-node
 providers.
 
-- [ ] Audit Documents end to end: every declared type, projection, service,
+- [x] Audit Documents end to end: every declared type, projection, service,
   construction, editor, preview, fill, import/export, and file/payload path.
   Compare listing declarations with actual runtime behavior and SPEC; align
   executor and endpoint assumptions with the managed local runtime.
@@ -752,6 +752,98 @@ palette/provider discovery and graph execution; (3) validate end-to-end
 workflows; (4) consolidate/refactor shared contracts and UI; (5) retire
 obsolete paths and update docs. Keep the two plugin reviews coordinated so
 shared palette changes are designed once.
+
+### Agent Notes (2026-11-20, agent/documents-review-20261120-0930)
+
+Documents end-to-end audit over listing v34 at the audited revision, with
+focused fixes. Every claim carries file:line evidence.
+
+Defects fixed (each with a regression in workers/documents/contract.spec.js,
+listing advanced to v35):
+
+- `render-report-pdf` declared its `name` input required
+  (workers/documents/listing.json:849-851) while the runtime names the
+  output from `report.title` with a `report` fallback
+  (workers/documents/runtime/server.mjs:132-135), and the sibling export
+  nodes (`export-markdown-file`, `export-html-file`, `render-document-pdf`)
+  all declare `name` nullable. A report carrying a title forced a redundant
+  wired name beside its own. Fixed: `name` nullable.
+- `compose-report` declared `title`, `sectionTitle`, and `rows` required
+  (listing v34:713-731) while the runtime accepts flow-only, title-less
+  compositions (workers/documents/report-ir.mjs:184-214) and the evaluator
+  rejects a node only when a required port stays unwired
+  (packages/core/src/procedural-evaluator.js:242-245) — so a flow-only
+  report was unauthorable through the graph. Fixed: all three nullable; the
+  empty case keeps its named runtime refusal (`compose-report requires a
+  flow document or row records`), matching the `document-list`
+  items/inlineItems pattern.
+
+Drift reconciled (docs only):
+
+- README claimed XLSX fills "request formula recalculation on workbook
+  open" (workers/documents/README.md:57-58 as audited); the engine writes
+  moved formula cells with their cached results dropped
+  (workers/documents/workbook-template.mjs:31-41) and the vendored SheetJS
+  writer emits no `<calcPr>` (verified against the produced
+  xl/workbook.xml). The engine law already lived in the template-fills
+  section; the false sentence is deleted.
+- The README palette inventory omitted the `document-templates` group
+  (`fill-markdown-template`, `fill-workbook-template`) and
+  `render-report-pdf` in `document-export`; both rows now match the
+  listing's seven groups.
+
+Verified clean (no action):
+
+- Types: seven own file types, `content` revision scope on every
+  payload-bearing type, identifier `name` fields, mime/accept/maxSize
+  coherent; `requires: tech-drawing` matches the render construct's
+  `dxf-source` source vocabulary.
+- Projections: all six resolve to managed pure server operations
+  (`text`, `table-rows`, `table-cells` on `documents-shared`); the sync
+  boundary gates mirror the async path (server/features/plugins/sync-runtime.js,
+  plugins README "Service-resolved projections"); the real shared bundle
+  executes through the boundary in plugins.spec.js.
+- Service inventory: 34 declared services, 30 shared + 4
+  `documents-server`, every one carrying a managed execution declaration;
+  the shared runtime publishes exactly its 27 browser-visible operations;
+  the server node gate lists 29 (27 + the two PDF export nodes); the hidden
+  set is exactly the three projection twins plus `fill`/`render-pdf`; every
+  palette-visible service is record-input (wireable), so the palette gate
+  keeps every visible operation.
+- Fill/template engines: markdown/xlsx/pdf token laws, PT Sans embedding,
+  section expansion, merge handling — covered by fill.spec.js and
+  documents-preview-bake.spec.js; contract.spec.js adds the
+  typed-block → compose → export → template re-fill → report PDF chain and
+  the documents-server XLSX construction fill with section metadata.
+- Sockets and defaults: nested semantics (`documents.file-id`,
+  `text.inline`, `text.document-block`, `documents.file`) reach both the
+  browser provider definitions and the server gate; `document-heading`
+  level defaults 1, `document-list` ordered false with optional
+  items/inlineItems; read operations carry `files.read` and the
+  `documents.file-id` picker semantic.
+- Constructions, editors, surfaces, previews, preview channels, starter
+  constructs: every binding resolves to declared ids of the plugin's own
+  (contract.spec.js); the `pdf-document.render` source keeps its `Source`
+  label; graph invocations answer the `{ value }` output-port map from both
+  runtimes.
+- v33→v34 upgrade acceptance: server/features/plugins/documents-upgrade.spec.js
+  stages a synthetic v33 install (seven endpoint-mode services, no
+  `documents-server` runtime, pre-vendoring dependency set, legacy executor
+  origin) and a v34 install, runs preview + apply through the plugins
+  feature service, and verifies the persisted snapshot (managed services,
+  both runtimes, the four vendored server dependencies) plus post-upgrade
+  graph-node resolution over the new pin; the v34 case proves the v35
+  optionality fixes reach installed organizations through the apply.
+
+Owner decisions required:
+
+- Live dev-org upgrade from the v33/v34 pins remains an operational step;
+  the synthetic-snapshot coverage above is the recorded regression.
+- Stale `plugin_service_cache` entries and executor origins on pre-v34
+  installs: managed dispatch resolves operations directly from the
+  installed snapshot (the endpoint cache serves endpoint dispatch only) and
+  the migration script clears origins; purging cached rows is an owner
+  operations call if desired.
 
 ### Agent Notes (2026-11-17, endpoint/runtime ownership audit)
 - Plugin/node palette review (2026-11-17): unified the palette declaration across node definitions, plugin services, and projections; migrated Documents, Facade, and Build123d listings and Build123d discovery/catalog generation; provider-scoped IDs and item IDs prevent collisions; hidden helper operations no longer appear as graph nodes; ungrouped visible plugin services receive provider-owned Operations groups; search indexes provider/operation identity, signature fields, and palette keywords. The end-to-end Documents/Facade operation and socket audit remains in progress.
