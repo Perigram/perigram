@@ -30,14 +30,14 @@ test.describe('chat file uploads', () => {
       name: 'E2E Chat Photo',
       class: 'file',
       payload: { mime: ['image/png', 'image/jpeg'], creation: ['upload'] },
-      fields: { name: { base: 'string' } }
+      fields: { name: { base: 'string', identifier: true } }
     });
     await app.declareType({
       id: BOX_TYPE,
       name: 'E2E Chat Box',
       class: 'group',
       edges: { children: { photos: { types: [PHOTO_TYPE], onRemove: 'restrict' } } },
-      fields: { name: { base: 'string' } }
+      fields: { name: { base: 'string', identifier: true } }
     });
     await app.seedSpeciesProcess({ types: [BOX_TYPE], declares: [PHOTO_TYPE] });
     const box = await app.createInstance(BOX_TYPE, { name: app.uniqueName('Chat upload box') });

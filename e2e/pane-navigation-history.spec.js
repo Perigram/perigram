@@ -12,7 +12,7 @@ test.describe('home workspace pane navigation', () => {
       id: 'e2e-doc',
       name: 'E2E Doc',
       class: 'item',
-      fields: { name: { base: 'string' } },
+      fields: { name: { base: 'string', identifier: true } },
       states: { main: { initial: 'new', values: ['new'], terminal: ['new'] } }
     });
     const { manifest } = await app.seedSpeciesProcess({
@@ -57,7 +57,7 @@ test.describe('home workspace pane navigation', () => {
       id: 'e2e-doc2',
       name: 'E2E Doc Two',
       class: 'item',
-      fields: { name: { base: 'string' } },
+      fields: { name: { base: 'string', identifier: true } },
       states: { main: { initial: 'new', values: ['new'], terminal: ['new'] } }
     });
     const { manifest } = await app.seedSpeciesProcess({

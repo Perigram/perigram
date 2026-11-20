@@ -133,7 +133,8 @@ export async function pruneInstanceUniqueIndexes(view = new Map(), { organizatio
     try {
       indexes = await target.listIndexes().toArray();
     } catch (error) {
-      if (![26, NamespaceNotFound].includes(Number(error?.code)) && error?.codeName !== 'NamespaceNotFound') throw error;
+      // Mongo reports a missing collection as code 26 / NamespaceNotFound.
+      if (Number(error?.code) !== 26 && error?.codeName !== 'NamespaceNotFound') throw error;
     }
     for (const index of indexes) {
       if (!index.name || !prefixes.some(prefix => index.name.startsWith(prefix)) || desired.has(index.name)) continue;

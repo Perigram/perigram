@@ -19,7 +19,7 @@ test.describe('generated state surface', () => {
       id: TYPE,
       name: 'E2E State Widget',
       class: 'item',
-      fields: { name: { base: 'string' } }
+      fields: { name: { base: 'string', identifier: true } }
     });
     const { manifest } = await seedStatefulProcess(app);
     const detail = (manifest.screens || []).find(screen => screen.screenKey === `auto_${TYPE}_detail`);

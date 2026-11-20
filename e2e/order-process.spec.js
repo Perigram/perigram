@@ -12,7 +12,7 @@ import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js'
 import documentsListing from '../workers/documents/listing.json' with { type: 'json' };
 import techDrawingListing from '../workers/tech-drawing/listing.json' with { type: 'json' };
 import { composeOrderTree, composeOrderGraph, ORDER_LINEAGE_KEY, emptyAuthoringDomain } from '#test-data/order-process-authoring.js';
-import { compileTreeDeclarations } from '#packages/processes/src/designer.js';
+import { compileTreeDeclarations } from '#packages/processes/designer';
 import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
 
 const PROCESS_NAME = 'E2E composed order process';

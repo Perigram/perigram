@@ -9,7 +9,7 @@ async function seedDesignerType(app) {
       id: TYPE_ID,
       name: 'Designer hard-cut item',
       class: 'item',
-      fields: { name: { base: 'string' } },
+      fields: { name: { base: 'string', identifier: true } },
       states: {
         main: {
           initial: 'new',
