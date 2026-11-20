@@ -961,8 +961,16 @@ body {
 .perigram-dock .dv-tab {
     display: flex;
     align-items: center;
-    padding: 0 0.5rem;
+    padding: 0;
     border-radius: var(--p-border-radius-sm);
+}
+
+.perigram-dock .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash {
+    width: 2px;
+}
+
+.perigram-dock .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash {
+    height: 2px;
 }
 
 .perigram-dock .dv-tab.dv-inactive-tab:hover {

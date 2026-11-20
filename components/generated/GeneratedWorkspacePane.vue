@@ -6,6 +6,7 @@
     v-if="item?.kind === 'screen'"
     :key="item?.key || item?.screenKey"
     :item="item"
+    :navigation="navigation"
     @refresh="$emit('refresh')"
     @open-entity="request => $emit('open-entity', request)"
   />
@@ -44,7 +45,8 @@ import GeneratedScreenPane from '~/components/generated/GeneratedScreenPane.vue'
 import StateBlock from '~/components/shared/StateBlock.vue';
 
 defineProps({
-  item: { type: Object, default: null }
+  item: { type: Object, default: null },
+  navigation: { type: Object, default: null }
 });
 
 defineEmits(['open-entity', 'open-page', 'open-call', 'refresh', 'close-tab']);

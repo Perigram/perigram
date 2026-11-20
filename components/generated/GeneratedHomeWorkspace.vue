@@ -245,7 +245,6 @@
         <WorkspaceDock
           ref="workspaceDock"
           :items="workspaceTabItems"
-          :has-back="paneHasHistory"
           chip-tabs
           allow-add
           allow-split
@@ -257,11 +256,11 @@
           @close-tab="closePaneTab"
           @close-group="closePane"
           @split="splitPane"
-          @back="goBackFromPane"
         >
-          <template #content="{ item }">
+          <template #content="{ item, panel }">
             <GeneratedWorkspacePane
               :item="item"
+              :navigation="paneNavigation(panel)"
               @open-entity="request => openWorkspaceEntity(request.typeId, { _id: request.instanceId })"
               @open-page="openWorkspacePage"
               @open-call="request => openCallTab(request.room, request)"
@@ -1830,6 +1829,18 @@ function pushPaneHistory(groupId, key) {
 
 function paneHasHistory(groupId) {
   return (paneHistories.value.get(groupId) || []).length > 0;
+}
+
+// The pane's back affordance rides the hosted page header (SPEC §22.3
+// navigation channel); the tab strip carries tabs alone.
+function paneNavigation(panel = null) {
+  const groupId = panel?.group?.id || '';
+  if (!groupId || !paneHasHistory(groupId)) return null;
+  return {
+    icon: 'pi pi-arrow-left',
+    label: t('common.back'),
+    command: () => goBackFromPane(groupId)
+  };
 }
 
 // Back walks the stack to the last entry whose content still resolves —

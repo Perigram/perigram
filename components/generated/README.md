@@ -755,10 +755,10 @@ from the compiled manifest.
   to one type and record per panel — the page key is the per-panel
   instance boundary. In-place replacement is a navigation step: the
   workspace keeps a per-group history stack of replaced content keys
-  (session-only, capped), and the group header renders its Back control —
-  always visible, disabled while the group has no history — so navigation
-  stays discoverable; Back replaces the group's selected panel, skipping
-  entries whose content fails to resolve.
+  (session-only, capped), and the hosted page header carries the Back
+  affordance through its navigation channel (SPEC §22.3) while the group
+  has history; Back replaces the group's selected panel, skipping entries
+  whose content fails to resolve.
 - Tab titles follow the one title resolver (`titleFor` over the instances
   pool), so the declared identity field wins and raw ids never render;
   type-screen tabs carry procedural labels (the generated type key with a
