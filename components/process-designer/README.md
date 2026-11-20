@@ -267,7 +267,9 @@ The pass is the pure `utils/processDesignerArrangement.js`:
   zooms at the pointer, Space+drag pans. On coarse pointers one-finger
   drag pans (nodes stay draggable), pinch still zooms, and long-press
   opens the context palette through the native contextmenu event.
-- Right-click on empty canvas opens the palette at that graph position.
+- Right-click on empty canvas opens the palette at that graph position
+  (positioned against the canvas pane — the geometry home every canvas
+  coordinate resolves against); any pointerdown outside it dismisses it.
   Dropping a wire on empty canvas opens it filtered to operations with a
   compatible opposite socket and connects on choice. Dropping the loop
   item (`forEachEntity`) creates the `control.forEach`/`forEachEnd` pair
@@ -302,7 +304,8 @@ signal classes are literal in the util because Tailwind compiles from
 source text). Search matches the localized job names and descriptions;
 rows carry the operation description on hover. The socket-filtered
 context palette (right-click, wire drop) renders its list through
-`OperationPalette.vue`. Palette
+`OperationPalette.vue` — the same shared section views the palette dock
+renders (`filterPaletteSections`). Palette
 membership, grouping, and provenance are the
 [packages/processes](../../packages/processes/README.md) contract.
 
