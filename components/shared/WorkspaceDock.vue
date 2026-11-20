@@ -121,8 +121,8 @@ const props = defineProps({
   allowSplit: { type: Boolean, default: false },
   allowCloseGroup: { type: Boolean, default: false },
   panelCloseable: { type: Function, default: null },
-  // The locked, headerless center panel (the designer canvas): its group
-  // paints no box and carries no header actions.
+  // The center panel key (the designer canvas): joins into its center are
+  // refused so it stays whole.
   canvasKey: { type: String, default: '' }
 });
 
@@ -200,7 +200,6 @@ function onReady(event) {
     // The canvas cell stays whole: joins into its center are refused so
     // panels dock around it, while its edges stay live drop targets.
     live.onWillShowOverlay(overlay => {
-      if (import.meta.env.DEV) console.debug('[dock-debug]', overlay.position, overlay.group?.id, isCanvasGroup(overlay.group));
       if (overlay.position === 'center' && isCanvasGroup(overlay.group)) overlay.preventDefault();
     })
   );
@@ -217,13 +216,6 @@ watch(() => props.items, () => {
 
 function syncGroups() {
   groupCount.value = api.value?.groups?.length || 0;
-  if (!props.canvasKey) return;
-  for (const group of api.value?.groups || []) {
-    group.element.classList.toggle(
-      'perigram-dock__canvas-group',
-      group.panels.some(panel => panel.id === props.canvasKey)
-    );
-  }
 }
 
 function addGroup({ referenceGroup = null, referencePanel = '', direction = 'within', hideHeader = false, locked = false } = {}) {

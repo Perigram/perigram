@@ -153,7 +153,8 @@
     "palette": "Палитра",
     "inspector": "Инспектор",
     "preview": "Предпросмотр",
-    "file": "Файл"
+    "file": "Файл",
+    "canvas": "Холст"
   },
   "support": {
     "title": "Чаты",

@@ -129,8 +129,9 @@ const props = defineProps({
 const slots = useSlots();
 const { t } = useI18n();
 const authStore = useAuthStore();
-// The headerless center panel: the host canvas fills its cell; joins into
-// its center are refused while its edges stay live drop targets.
+// The center cell the aux panels dock around: joins into its center are
+// refused so the canvas stays whole, while its edges stay live drop
+// targets and its tab drags like every other panel.
 const CANVAS = 'canvas';
 const workspace = ref(null);
 const dock = ref(null);
@@ -152,7 +153,7 @@ const panelKeys = computed(() => [
 ]);
 
 const panelMeta = computed(() => ({
-  [CANVAS]: { label: '', icon: '' },
+  [CANVAS]: { label: t('designer.canvas'), icon: '' },
   file: { label: t('designer.file'), icon: 'pi pi-file' },
   palette: { label: t('designer.palette'), icon: 'pi pi-align-left' },
   inspector: { label: t('designer.inspector'), icon: 'pi pi-align-right' },
@@ -230,7 +231,7 @@ function onDockLayoutChange(layout) {
 async function buildDefaultLayout() {
   const live = dock.value;
   if (!live) return;
-  const canvasGroup = live.addGroup({ hideHeader: true });
+  const canvasGroup = live.addGroup();
   live.addPanel(CANVAS, { referenceGroup: canvasGroup });
   const wanted = [];
   if (hasFile.value) wanted.push(['file', 'above', 'height']);
