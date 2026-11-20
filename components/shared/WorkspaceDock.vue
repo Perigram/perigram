@@ -439,13 +439,19 @@ async function sizePanelToContent(key, { axis = 'width', min = 160, max = null, 
   ));
   element.style[axis] = previous;
   if (!Number.isFinite(measured) || measured <= 0) return;
-  // A group's height spans its tab strip beside the content; the measured
-  // content must carry the header too or the strip clips it.
+  // A group's height spans its tab strip beside the content, and its box
+  // spans its gutter border; the measured content must carry both or the
+  // chrome clips it.
+  const groupElement = panel.group.element;
+  const groupStyle = groupElement ? getComputedStyle(groupElement) : null;
+  const chrome = axis === 'height'
+    ? (groupStyle ? parseFloat(groupStyle.borderTopWidth) + parseFloat(groupStyle.borderBottomWidth) : 0)
+    : (groupStyle ? parseFloat(groupStyle.borderLeftWidth) + parseFloat(groupStyle.borderRightWidth) : 0);
   const header = axis === 'height'
-    ? (panel.group.element.querySelector('.dv-tabs-and-actions-container')?.offsetHeight || 0)
+    ? (groupElement?.querySelector('.dv-tabs-and-actions-container')?.offsetHeight || 0)
     : 0;
   const upper = max ?? Math.max(min, Math.floor(bounds[axis] * ratio));
-  const size = Math.min(upper, Math.max(min, measured + header));
+  const size = Math.min(upper, Math.max(min, measured + header + chrome));
   panel.group.api.setSize(axis === 'height' ? { height: size } : { width: size });
 }
 
