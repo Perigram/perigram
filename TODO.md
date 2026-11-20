@@ -232,6 +232,14 @@ coverage).
 - [ ] WAITING — owner verification: Audit user-facing Page labels for
   internal vocabulary (block kind, reference DTO, graph output port,
   execution envelope).
+- [ ] Contextual graph creation from Pages (GitHub issue #25): add
+  Graph to the page contextual New/Insert affordances so a graph file
+  is created and opened in the same place other Page files are. The
+  data path is complete (`graph-document` file type with
+  `creation: ['upload', 'editor']`, graph-editor surface binding,
+  blank-construct channel, revisioned editor transport); the missing
+  piece is the pages/embed UX affordance — concurrent-session
+  territory.
 
 ### Agent Notes (2026-11-19, agent/graph-embed-contract — issue #23)
 
@@ -268,6 +276,10 @@ coverage).
   item values through the JSON fallback (the embed mounts text/table
   renderers today); mounting the host viewers for those item kinds
   belongs with the §28.14 preview-workspace slice.
+- 2026-11-20 triage (issue #23): every sub-claim re-verified in code
+  (representation contract, revision-pinned live evaluation, picker
+  path, per-mode states); the host-viewer follow-up above is the only
+  open delta.
 
 ### Agent Notes (2026-11-19, agent/spec-ux-convergence)
 
@@ -923,7 +935,7 @@ integration waits for the owner's completion of build123d-flow.
   program's first geometry plugin.
 - [ ] Geometry plugin stack (SPEC §20 owner decision 2026-11-20) —
   vertical order:
-  - [ ] Validate and resolve the open GitHub issues that gate the
+  - [x] Validate and resolve the open GitHub issues that gate the
     program (#26 CTS/process semantics ownership, #27 runtime-language
     honesty, #28 conversion metadata in node providers, #29 geometry
     buffer transfer, #30 type-less node-library plugins): verify each
@@ -953,6 +965,73 @@ integration waits for the owner's completion of build123d-flow.
 - [ ] Update the plugin SDK, server, frontend, worker/package READMEs and
   deployment inventories; run focused tests plus architecture, docs,
   plugin-dependency, framework, SSR, and full Vitest guards.
+
+### Agent Notes (2026-11-20, agent/issue-triage-20261120-1030)
+
+Triage of the open GitHub issues (#23–#30) against this branch; #27–#30
+implemented here, #23/#24/#25/#26 recorded (UX program or §30 own the
+remainder). GitHub issue state is the owner's action.
+
+- **#23 Page graph-output embed — valid, already implemented.** Verified
+  in code: `utils/graphOutputViews.js` backs both the preview panel and
+  the page embed; `evaluateSavedGraph` takes `graphRevision`
+  (revision-pinned live evaluation through the instance-revisions
+  boundary); the picker walks graph → revision → declared output →
+  parameters with explicit per-mode states. The only open delta — host
+  viewers for image/document/scene item values — is already recorded
+  under the §27.1 graph-embed notes as riding the §28.14
+  preview-workspace slice.
+- **#24 workspace convergence — valid, carried by the §28.14 checklist.**
+  Landed per its notes: resizable preview workspace region (support rail
+  retired), header-own file actions, per-plugin palette sections with
+  semantic subgroups, shared chrome. Still open: shared-session
+  consolidation, graph-document file-surface mount retirement,
+  Create/Construct schema-driven, rendered acceptance coverage. One
+  bullet reshaped by owner correction (2026-11-19): the palette-wide
+  "Nodes" rename is declined; obsolete support controls already retired.
+- **#25 contextual graph creation from Pages — valid, UX-only.** The
+  data path is complete: `graph-document` is a file type with
+  `creation: ['upload', 'editor']`, the graph-editor surface binding,
+  the blank-construct channel (`runBlankFileConstruct`), and the
+  revisioned editor payload transport. The missing piece is the page
+  Insert/New affordance — added as a §27.1 checklist item (pages/embed
+  UX belongs to the concurrent session).
+- **#26 CTS/process semantics ownership — resolved by the §30 tail
+  cuts; evidence in the §30 Agent Notes (this date).** Residuals are the
+  tracked §30 backlog (conversion edge-authoring wiring, browser Use
+  Graph preview parity, projection cache bypass, dual declaration-check
+  walkers).
+- **#27 runtime-language honesty — implemented.** `parseListing` and the
+  schema mirror refuse a `browser` target on a `python`/`wasm` runtime:
+  the browser worker loads JavaScript entry modules exporting
+  `createRuntime()` (a JS entry may initialize WASM libraries). Server
+  declarations stay representable and refuse at the install gate until
+  the language-dispatched managed runtime lands (this program's wasm
+  bootstrap item). Evidence: sdk.spec browser-language refusals +
+  server-python acceptance; plugins.spec install-gate refusal.
+- **#28 conversion metadata — implemented.** `loadProvidersDetailed`
+  validates each contribution through `normalizeNodeProvider` and
+  forwards `conversions`: invalid declarations land in the detailed
+  per-provider errors; valid ones ride the provider the session
+  registers (`registerConversions` enrichment proven in
+  usePluginRuntime.spec).
+- **#29 geometry buffer transfer — implemented (narrow).** Worker→host
+  results hand owned buffers over the `postMessage` transfer list
+  (`collectTransferableBuffers`, 64 KiB threshold; buffers received
+  with the invocation input, shared buffers, and detached buffers stay
+  on the clone path). Invocation inputs stay structured clone: graph
+  input values are owned by the evaluator cache, and this seam cannot
+  prove relinquishment — input-side transfer needs last-use marking in
+  the evaluator (forward path). Evidence:
+  shared/plugin-runtime.spec transfer/detach/exclusion cases.
+- **#30 type-less node-library plugins — implemented.** `parseListing`
+  and the schema accept empty/absent `declarations.types` when the
+  listing declares at least one runtime (the runtime module contract
+  returns providers); a listing with neither refuses, and engine-only
+  type-less listings stay refused (transitional plane). Publish,
+  install, trial composition, and org view ride the same parser —
+  plugins.spec publishes and installs a type-less node library. SPEC §20
+  carries the law.
 
 ### Agent Notes
 
@@ -1301,6 +1380,28 @@ applied.
 - Open: graph-editor ports whose `shape`/`semantic` reach the profile
   through `toProcessPort` keep the sdk-port dialect mapping there; the
   G10 canvas storage format stays per owner closure.
+
+### Agent Notes (2026-11-20, agent/issue-triage-20261120-1030)
+
+GitHub issue #26 (single ownership for CTS and process type semantics)
+validated against the merged §30 state — resolved by the cuts recorded
+above; residuals stay tracked in the backlog findings:
+
+- Inventory/ownership: the Semantic inventory tables cover the type
+  grammars, operation registries, evaluators, compiler interpretations,
+  persistence formats, and provider bindings with canonical owner,
+  consumers, adapter, and retirement condition per seam.
+- Single engines/adapters: one CTS expression evaluator
+  (`packages/cts/src/expressions.js`, cts README), one process port law
+  (`compareProcessPorts` behind the sdk `perigram.cts` profile,
+  processes README), one CTS⇄process adapter + unit table
+  (`packages/cts/src/process-grammar.js`, cts README), server node
+  definitions through sdk `normalizeNodeDefinition` (plugins feature
+  README).
+- Acceptance residuals map to existing findings: 3 (conversion
+  edge-authoring wiring), 7 (browser Use Graph preview parity), 9
+  (projection deterministic-cache bypass), 10 (dual declaration-check
+  walkers). No untracked ownership gap found.
 
 Acceptance: a single canonical semantic contract and typed IR are used
 by one real cross-package vertical slice; CTS remains the application
