@@ -918,3 +918,73 @@ body {
 .ck-markdown-body--compact li {
     padding: 1px 0;
 }
+
+/* Dockview panes ride the app's flat surface contract: the group box is
+   the pane chrome, tabs are chips, and splitters stay invisible but
+   draggable. Theme variables are the dockview seam; values resolve from
+   preset/app tokens. */
+.perigram-dock {
+    --dv-tabs-and-actions-container-height: 2.5rem;
+    --dv-tabs-and-actions-container-font-size: inherit;
+    --dv-tab-font-size: inherit;
+    --dv-tab-margin: 0 0.125rem;
+    --dv-tab-border-radius: var(--p-border-radius-sm);
+    --dv-sash-border-radius: var(--p-border-radius-sm);
+    --dv-dropdown-border-radius: var(--p-border-radius-sm);
+    --dv-icon-hover-background-color: var(--p-button-secondary-active-background);
+    --dv-drag-over-border-color: var(--p-primary-color);
+    --dv-drag-over-background-color: color-mix(in srgb, var(--p-primary-color) 18%, transparent);
+}
+
+.perigram-dock .dockview-theme-light,
+.perigram-dock .dockview-theme-dark {
+    --dv-group-view-background-color: transparent;
+    --dv-tabs-and-actions-container-background-color: transparent;
+    --dv-activegroup-visiblepanel-tab-background-color: var(--p-button-secondary-background);
+    --dv-activegroup-visiblepanel-tab-color: var(--p-button-secondary-color);
+    --dv-activegroup-hiddenpanel-tab-background-color: transparent;
+    --dv-activegroup-hiddenpanel-tab-color: var(--p-text-muted-color);
+    --dv-inactivegroup-visiblepanel-tab-background-color: var(--p-button-secondary-background);
+    --dv-inactivegroup-visiblepanel-tab-color: var(--p-button-secondary-color);
+    --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
+    --dv-inactivegroup-hiddenpanel-tab-color: var(--p-text-muted-color);
+    --dv-tab-divider-color: transparent;
+    --dv-separator-border: var(--ck-chrome-border);
+    --dv-scrollbar-background-color: var(--ck-scrollbar-thumb);
+}
+
+.perigram-dock .dv-groupview {
+    border: 1px solid var(--ck-chrome-border);
+    border-radius: var(--p-border-radius-md);
+    overflow: hidden;
+}
+
+.perigram-dock .dv-groupview > .dv-content-container {
+    background: transparent;
+}
+
+.perigram-dock .dv-tabs-and-actions-container {
+    border-bottom: 1px solid var(--ck-chrome-border);
+}
+
+.perigram-dock .dv-tab {
+    display: flex;
+    align-items: center;
+    border-radius: var(--p-border-radius-sm);
+}
+
+.perigram-dock .dv-tab.dv-active-tab {
+    border: 1px solid var(--p-button-secondary-border-color);
+}
+
+.perigram-dock .dv-tab.dv-inactive-tab {
+    border: 1px solid transparent;
+}
+
+.perigram-dock .dv-tab.dv-inactive-tab:hover {
+    background: var(--ck-subtle-background);
+}
+
+.perigram-dock .dv-sash {
+    background: transparent;
+}

@@ -4,6 +4,7 @@
       :ref="bindFrame"
       :canvas-items="canvasItems"
       layout="canvas"
+      workspace-id="graph-editor"
       class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
       @mousedown.capture="handleDesignerPointerDown"
       @focusin="handleDesignerFocus"

@@ -9,68 +9,36 @@
     ]"
     :data-designer-layout="layout"
   >
-    <!-- Lanes: the canvas is the workspace background, edge to edge; palette
-         and inspector are floating rails docked over it. Panel visibility is
-         workspace-owned: edge chevrons toggle the rails on wide hosts, while
-         compact hosts (below 48rem of the workspace's own width) fold every
-         panel into one bounded tabbed overlay so the canvas stays clear. -->
-    <div v-if="layout === 'lanes'" class="designer-workspace__lanes min-h-0 min-w-0 flex-1 overflow-hidden">
-      <main class="designer-workspace__canvas relative min-h-0 min-w-0 overflow-hidden">
-        <slot />
-      </main>
-      <aside
-        v-if="hasPalette && !compact && panels.palette"
-        class="designer-workspace__rail designer-workspace__palette min-h-0 overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
+    <div v-if="!compact" class="relative min-h-0 min-w-0 flex-1">
+      <WorkspaceDock
+        ref="dock"
+        :items="dockItems"
+        :panel-closeable="panelCloseable"
+        @ready="onDockReady"
+        @close-tab="closeDockPanel"
+        @layout-change="onDockLayoutChange"
       >
-        <slot name="palette" />
-      </aside>
-      <aside
-        v-if="hasInspector && !compact && panels.inspector"
-        class="designer-workspace__rail designer-workspace__inspector min-h-0 overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
-      >
-        <slot name="inspector" />
-      </aside>
-
+        <template #content="{ item }">
+          <div v-if="item.key === 'canvas'" class="h-full min-h-0 min-w-0">
+            <slot />
+          </div>
+          <slot v-else-if="item.key === 'palette'" name="palette" />
+          <slot v-else-if="item.key === 'inspector'" name="inspector" />
+          <slot v-else-if="item.key === 'preview'" name="preview" />
+        </template>
+      </WorkspaceDock>
     </div>
 
     <main v-else class="relative min-h-0 min-w-0 flex-1 overflow-hidden">
       <slot />
-      <div v-if="hasPalette && !compact && panels.palette" class="designer-workspace__rail absolute top-3 bottom-3 left-3 z-20 w-[17rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
-        <slot name="palette" />
-      </div>
-      <aside v-if="hasInspector && !compact && panels.inspector" class="designer-workspace__rail absolute top-3 bottom-3 right-3 z-20 w-[22rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
-        <slot name="inspector" />
-      </aside>
     </main>
 
-    <!-- The preview workspace (SPEC §28.14): a resizable bottom band with
-         real width and height for content viewers; its top edge drags. -->
-    <div
-      v-if="hasPreview && panels.preview && !compact"
-      data-designer-preview
-      class="designer-workspace__preview relative z-20 flex min-h-0 shrink-0 flex-col border-t border-content-border bg-content"
-      :style="{ height: `${previewHeight}px` }"
-    >
-      <div
-        class="absolute inset-x-0 top-0 z-10 h-2 -translate-y-1/2 cursor-row-resize"
-        role="separator"
-        :aria-label="$t('designer.preview')"
-        aria-orientation="horizontal"
-        @pointerdown="beginPreviewResize"
-      />
-      <slot name="preview" />
-    </div>
-
     <!-- One floating toolbar owns every designer command: panel toggles in
-         the start group, canvas commands in the end group. The wrapper
-         spans the workspace but passes pointer events through its empty
-         sides so the canvas stays interactive, and rides above the
-         preview band while it is open. -->
+         the start group, canvas commands in the end group. -->
     <div
       v-if="hasToolbarItems || $slots.toolbar"
       data-designer-toolbar
-      class="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center px-3 transition-[bottom]"
-      :style="previewBandOpen ? { bottom: `${previewHeight + 12}px` } : undefined"
+      class="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center px-3"
     >
       <Toolbar
         :aria-label="$t('designer.toolbar')"
@@ -86,8 +54,7 @@
     </div>
 
     <!-- Compact overlay panels follow the popover contract: a tap on anything
-         outside the panel (the backdrop over the canvas area) closes it, so
-         touch hosts never need to hunt for a close control. -->
+         outside the panel (the backdrop over the canvas area) closes it. -->
     <div
       v-if="compact && compactPanelOpen"
       class="absolute inset-0 z-10"
@@ -122,7 +89,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, useSlots, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, reactive, ref, useSlots, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Toolbar from 'primevue/toolbar';
 import Tabs from 'primevue/tabs';
@@ -131,6 +98,14 @@ import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import DesignerToolbarItems from './DesignerToolbarItems.vue';
+import WorkspaceDock from './WorkspaceDock.vue';
+import { useAuthStore } from '~/stores/auth';
+import {
+  designerWorkspaceStorageKey,
+  loadDesignerWorkspaceState,
+  saveDesignerWorkspaceState
+} from '~/utils/designer-workspace-state.js';
+import { pruneDockLayout } from '~/utils/workspace-dock-layout.js';
 
 defineOptions({ inheritAttrs: false });
 
@@ -142,26 +117,154 @@ const props = defineProps({
   },
   // Canvas commands (zoom cluster, content operations) rendered as the
   // toolbar end group.
-  canvasItems: { type: Array, default: () => [] }
+  canvasItems: { type: Array, default: () => [] },
+  // Stable editor identity for persisted dock layouts.
+  workspaceId: { type: String, default: '' }
 });
 
 const slots = useSlots();
 const { t } = useI18n();
+const authStore = useAuthStore();
 const workspace = ref(null);
+const dock = ref(null);
+const dockReady = ref(false);
+let layoutCache = null;
+let pendingLayout;
+let saveTimer = null;
 
 const hasPalette = computed(() => Boolean(slots.palette));
 const hasInspector = computed(() => Boolean(slots.inspector));
 const hasPreview = computed(() => Boolean(slots.preview));
 
-// Panel visibility is workspace-owned so every designer shares one contract:
-// lane chevrons, the compact overlay, and the toolbar toggles all drive this state.
+const panelKeys = computed(() => [
+  'canvas',
+  ...(hasPalette.value ? ['palette'] : []),
+  ...(hasInspector.value ? ['inspector'] : []),
+  ...(hasPreview.value ? ['preview'] : [])
+]);
+
+const panelMeta = computed(() => ({
+  canvas: { label: t('designer.canvas'), icon: 'pi pi-window-maximize' },
+  palette: { label: t('designer.palette'), icon: 'pi pi-align-left' },
+  inspector: { label: t('designer.inspector'), icon: 'pi pi-align-right' },
+  preview: { label: t('designer.preview'), icon: 'pi pi-eye' }
+}));
+
+const dockItems = computed(() => panelKeys.value.map(key => ({
+  key,
+  label: panelMeta.value[key]?.label || key,
+  icon: panelMeta.value[key]?.icon || ''
+})));
+
+function panelCloseable(key) {
+  return key !== 'canvas';
+}
+
 const panels = reactive({ palette: true, inspector: true, preview: false });
 const compact = ref(false);
 const compactTab = ref('palette');
-const previewHeight = ref(340);
-const previewBandOpen = computed(() => hasPreview.value && panels.preview && !compact.value);
 
-const PANEL_KEYS = ['palette', 'inspector', 'preview'];
+const storageKey = computed(() => designerWorkspaceStorageKey({
+  workspaceId: props.workspaceId,
+  userId: authStore.userData?.id || authStore.userData?.userId || authStore.userData?._id,
+  organizationId: authStore.organizationData?._id || authStore.userData?.organizationId
+}));
+
+function syncPanels() {
+  for (const key of ['palette', 'inspector', 'preview']) {
+    panels[key] = Boolean(dock.value?.hasPanel(key));
+  }
+}
+
+async function onDockReady() {
+  dockReady.value = true;
+  const layout = pendingLayout !== undefined ? pendingLayout : persistedLayout();
+  pendingLayout = undefined;
+  const pruned = layout ? pruneDockLayout(layout, key => panelKeys.value.includes(key)) : null;
+  if (pruned && pruned.panels.canvas) {
+    dock.value?.applyLayout(pruned);
+    await nextTick();
+    syncPanels();
+    return;
+  }
+  await buildDefaultLayout();
+}
+
+function persistedLayout() {
+  if (!storageKey.value || typeof window === 'undefined') return null;
+  return loadDesignerWorkspaceState(window.localStorage, storageKey.value).layout;
+}
+
+function schedulePersist() {
+  if (!storageKey.value || typeof window === 'undefined') return;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    persistLayout();
+  }, 200);
+}
+
+function persistLayout() {
+  if (!storageKey.value || typeof window === 'undefined' || !dock.value) return;
+  saveDesignerWorkspaceState(window.localStorage, storageKey.value, {
+    layout: dock.value.snapshot()
+  });
+}
+
+function onDockLayoutChange(layout) {
+  if (!compact.value) layoutCache = layout;
+  syncPanels();
+  schedulePersist();
+}
+
+async function buildDefaultLayout() {
+  const live = dock.value;
+  if (!live) return;
+  live.addPanel('canvas');
+  if (hasPalette.value) await addAuxPanel('palette', 'left', 'width');
+  if (hasInspector.value) await addAuxPanel('inspector', 'right', 'width');
+  syncPanels();
+  schedulePersist();
+}
+
+async function addAuxPanel(key, direction, axis) {
+  const live = dock.value;
+  if (!live) return;
+  const panel = live.addPanel(key, { referencePanel: 'canvas', direction });
+  if (!panel) return;
+  await nextTick();
+  await live.sizePanelToContent(key, {
+    axis,
+    min: axis === 'height' ? 160 : 180,
+    max: axis === 'height' ? 520 : (key === 'inspector' ? 460 : 380),
+    ratio: axis === 'height' ? 0.5 : 0.32
+  });
+}
+
+function showPanel(key) {
+  if (!dock.value || !panelKeys.value.includes(key)) return;
+  if (dock.value.hasPanel(key)) {
+    dock.value.focusPanel(key);
+  } else if (key === 'palette') {
+    addAuxPanel('palette', 'left', 'width').then(() => schedulePersist());
+  } else if (key === 'inspector') {
+    addAuxPanel('inspector', 'right', 'width').then(() => schedulePersist());
+  } else if (key === 'preview') {
+    addAuxPanel('preview', 'below', 'height').then(() => schedulePersist());
+  }
+  panels[key] = true;
+}
+
+function hidePanel(key) {
+  if (key === 'canvas') return;
+  if (dock.value?.hasPanel(key)) dock.value.removePanel(key);
+  panels[key] = false;
+  schedulePersist();
+}
+
+function closeDockPanel(key) {
+  hidePanel(key);
+}
 
 function togglePanelFromToolbar(panel) {
   if (compact.value) {
@@ -170,8 +273,10 @@ function togglePanelFromToolbar(panel) {
     if (!sole) compactTab.value = panel;
     return;
   }
-  panels[panel] = !panels[panel];
+  panels[panel] ? hidePanel(panel) : showPanel(panel);
 }
+
+const PANEL_KEYS = ['palette', 'inspector', 'preview'];
 
 const panelDockItems = computed(() => [
   hasPalette.value ? {
@@ -198,16 +303,18 @@ const toolbarStartItems = panelDockItems;
 
 const hasToolbarItems = computed(() => toolbarStartItems.value.length > 0 || props.canvasItems.length > 0 || Boolean(slots.toolbar));
 
-// Toolbar items are plain data (icon class + label + handlers); the shared
-// Toolbar items are plain data (icon class + label + handlers) rendered
-// through DesignerToolbarItems; a boolean `pressed` item is the same
-// button outlined, never a different control family.
 function toggle(panel) {
-  panels[panel] = !panels[panel];
+  togglePanelFromToolbar(panel);
 }
 
 function setPanel(panel, value) {
-  panels[panel] = Boolean(value);
+  if (!PANEL_KEYS.includes(panel)) return;
+  if (compact.value) {
+    panels[panel] = Boolean(value);
+    return;
+  }
+  if (value) showPanel(panel);
+  else hidePanel(panel);
 }
 
 function openPanel(panel) {
@@ -217,7 +324,7 @@ function openPanel(panel) {
     compactTab.value = panel;
     return;
   }
-  panels[panel] = true;
+  showPanel(panel);
 }
 
 const compactPanelOpen = computed(() => panels.palette || panels.inspector || panels.preview);
@@ -226,25 +333,6 @@ function closeCompactPanels() {
   panels.palette = false;
   panels.inspector = false;
   panels.preview = false;
-}
-
-// The preview band's drag handle: pointer-tracked height between the
-// content floor (160px) and the workspace minus the canvas floor.
-function beginPreviewResize(event) {
-  event.preventDefault();
-  const startY = event.clientY;
-  const startHeight = previewHeight.value;
-  const workspaceHeight = workspace.value?.getBoundingClientRect?.().height || 600;
-  const maxHeight = Math.max(180, workspaceHeight - 220);
-  const onMove = moveEvent => {
-    previewHeight.value = Math.round(Math.min(maxHeight, Math.max(160, startHeight + startY - moveEvent.clientY)));
-  };
-  const onUp = () => {
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
-  };
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp);
 }
 
 provide('designerWorkspacePanels', {
@@ -270,9 +358,8 @@ onMounted(() => {
       compact.value = false;
       return;
     }
-    // A transient narrow measurement (unstyled load, layout thrash) must
-    // not flip the mode and close open panels: compact engages only once
-    // the width persists.
+    // A transient narrow measurement (unstyled load, layout thrash) is
+    // ignored until the narrower width persists.
     if (compact.value || workspaceObserver.compactTimer) return;
     workspaceObserver.compactTimer = setTimeout(() => {
       workspaceObserver.compactTimer = null;
@@ -286,12 +373,18 @@ onBeforeUnmount(() => {
   if (workspaceObserver.compactTimer) clearTimeout(workspaceObserver.compactTimer);
   workspaceObserver.observer?.disconnect();
   workspaceObserver.observer = null;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = null;
+  persistLayout();
 });
 
-// Crossing the compact boundary resets to the mode's sensible defaults:
-// compact hosts keep the canvas clear, wide hosts keep the rails up.
+// Crossing the compact boundary swaps the dock for the bounded overlay.
+// The wide layout is restored from the last dock snapshot.
 watch(compact, value => {
   if (value) {
+    layoutCache = dock.value?.snapshot() || layoutCache;
+    pendingLayout = layoutCache;
+    persistLayout();
     panels.palette = false;
     panels.inspector = false;
     panels.preview = false;
@@ -313,40 +406,7 @@ defineExpose({
 </script>
 
 <style scoped>
-/* One grid row: the canvas spans every column as the full-bleed background
-   and the rails occupy the side tracks above it. The explicit row floor
-   keeps the workspace visible even when a host breaks the bounded-height
-   chain, and the rail max-widths cap against the workspace width instead
-   of a viewport breakpoint. */
 .designer-workspace {
   position: relative;
-  --designer-palette-width: 17rem;
-  --designer-inspector-width: 19rem;
-}
-
-.designer-workspace__lanes {
-  display: grid;
-  grid-template-columns: minmax(0, 17rem) minmax(0, 1fr) minmax(0, 19rem);
-  grid-template-rows: minmax(22rem, 1fr);
-}
-
-.designer-workspace__canvas {
-  grid-area: 1 / 1 / 2 / 4;
-}
-
-.designer-workspace__rail {
-  display: flex;
-  flex-direction: column;
-  z-index: 20;
-}
-
-.designer-workspace__palette {
-  grid-area: 1 / 1;
-  margin: 0.75rem 0 0.75rem 0.75rem;
-}
-
-.designer-workspace__inspector {
-  grid-area: 1 / 3;
-  margin: 0.75rem 0.75rem 0.75rem 0;
 }
 </style>

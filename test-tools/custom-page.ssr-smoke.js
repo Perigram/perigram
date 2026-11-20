@@ -62,11 +62,7 @@ const bootPage = async ({ tab, seed = () => {} } = {}) => {
   pages.loaded = true;
   seed(pinia);
   const app = createSSRApp({
-    render: () => h(GeneratedWorkspacePage, {
-      page: tab,
-      tabs: [tab],
-      closeable: true
-    })
+    render: () => h(GeneratedWorkspacePage, { page: tab })
   });
   app.use(i18n);
   app.use(pinia);
@@ -92,7 +88,6 @@ describe('custom page SSR smoke', () => {
     // pipeline renders empty server-side by its own law — the document
     // itself renders client-side through the same home).
     expect(html).toContain('ck-markdown-body');
-    expect(html).toContain('<span class="min-w-0 truncate">Field notes</span>');
     expect(html).not.toContain('>pg-1<');
   });
 

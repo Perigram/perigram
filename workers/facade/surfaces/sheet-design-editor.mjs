@@ -1639,6 +1639,7 @@ export default function createSurface({ vue, components, locale, queries, record
       return () => h(components.DesignerSurface, () => [
         h(components.DesignerWorkspace, {
           layout: 'lanes',
+          workspaceId: 'sheet-design-editor',
           class: 'h-full',
           documentItems: documentDockItems.value,
           canvasItems: canvasDockItems.value

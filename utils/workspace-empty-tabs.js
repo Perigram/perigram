@@ -13,7 +13,3 @@ export function emptyTabKey() {
 export function isEmptyTabKey(key = '') {
   return typeof key === 'string' && key.startsWith(EMPTY_TAB_PREFIX);
 }
-
-export function emptyTabItem(key) {
-  return { key, kind: 'empty' };
-}
