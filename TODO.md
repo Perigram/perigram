@@ -112,6 +112,21 @@ Landed this session: Hide secondary retired end to end
 en+ru locale keys, README law); `hidden` stays a stripped runtime key
 in `stripRuntimeNodeData`.
 
+### Agent Notes (2026-11-20, second correction round)
+
+- Collapsed rails stacked every handle at the card's center (absolute
+  handles anchor to the nearest positioned ancestor — the card, all at
+  `left-1/2`), so a 3-socket card read as one untyped dot. Each rail
+  handle now owns a sized relative wrapper: the rail spreads distinct
+  sockets, each with its tone.
+- Preview structure rebuilt, selection-first everywhere: the outputs
+  channel selects one evaluated output (node · socket) rendered through
+  the shared output view with representation tabs — the per-node wall is
+  the collapsed diagnostics under it, node errors stay first-plane; the
+  graph editor's preview panel leads with the selected output, input
+  bindings and Bake follow. Rendered coverage:
+  `GraphOutputsChannel.spec.js`.
+
 ### Agent Notes (2026-11-20, one-editor completion)
 
 - The graph-document file-surface host died: the `graph-editor` registry
