@@ -69,7 +69,7 @@
         </div>
       </Popover>
       <Button
-        v-if="dataOutputs.length"
+        v-if="dataOutputs.length && typeof data.onProcessNodeUpdate === 'function'"
         :icon="previewVisible ? 'pi pi-eye' : 'pi pi-eye-slash'"
         :class="previewVisible ? 'text-muted' : 'text-status-info'"
         text
