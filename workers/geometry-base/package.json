@@ -1,0 +1,5 @@
+{
+  "name": "@perigram/geometry-base-plugin",
+  "private": true,
+  "type": "module"
+}
