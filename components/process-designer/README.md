@@ -419,9 +419,10 @@ canvas-top dock inside the canvas slot: the strip owns the canvas's top
 LEFT half (`max-w-[calc(50%-10rem)]`), its container passes pointer
 events through its empty areas so canvas gestures survive under it, and
 the canvas status pill owns top-center above it (`z-30`). The inspector
-is a dock panel the toolbar toggle opens and closes — canvas clicks keep
-it open, and canvas Escape clears graph selection. The preview workspace
-is a dock panel below the canvas (SPEC §28.14); the canvas status pill
+is a dock panel floating over the canvas that the toolbar toggle opens
+and closes — canvas clicks keep it open, and canvas Escape clears graph
+selection. The preview workspace is a dock panel docked below the canvas
+area (SPEC §28.14); the canvas status pill
 opens it (both mounts: the graph-editor session's evaluation state and
 the process channel evaluation feed the shared `canvasStatusOf`
 derivation). Panel layout persists per editor through the shell's

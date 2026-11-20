@@ -2,7 +2,7 @@
   <div v-if="mounted" class="h-full min-h-0 w-full">
     <DockviewVue
       ref="dock"
-      class="perigram-dock h-full min-h-0 w-full"
+      :class="['perigram-dock h-full min-h-0 w-full', { 'perigram-dock--overlay': overlay, 'perigram-dock--chip-tabs': chipTabs }]"
       :theme="dockTheme"
       :disable-floating-groups="true"
       :default-renderer="'onlyWhenVisible'"
@@ -22,7 +22,7 @@
       </template>
 
       <template #defaultTab="{ api }">
-        <div class="flex h-full min-w-0 items-center gap-1.5 px-1">
+        <div class="flex h-full min-w-0 items-center gap-1.5">
           <i v-if="iconFor(api.id)" :class="iconFor(api.id)" class="shrink-0" aria-hidden="true" />
           <span class="min-w-0 truncate">{{ labelFor(api.id) }}</span>
           <button
@@ -138,7 +138,12 @@ const props = defineProps({
   allowAdd: { type: Boolean, default: false },
   allowSplit: { type: Boolean, default: false },
   allowCloseGroup: { type: Boolean, default: false },
-  panelCloseable: { type: Function, default: null }
+  panelCloseable: { type: Function, default: null },
+  // Overlay docks float over a host-owned surface: empty dock space passes
+  // pointer events through to it.
+  overlay: { type: Boolean, default: false },
+  spacerKey: { type: String, default: '' },
+  chipTabs: { type: Boolean, default: false }
 });
 
 const emit = defineEmits([
@@ -227,6 +232,24 @@ watch(() => props.items, () => {
 
 function syncGroups() {
   groupCount.value = api.value?.groups?.length || 0;
+  if (!props.spacerKey) return;
+  for (const group of api.value?.groups || []) {
+    group.element.classList.toggle(
+      'perigram-dock__spacer-group',
+      group.panels.some(panel => panel.id === props.spacerKey)
+    );
+  }
+}
+
+function addGroup({ referenceGroup = null, referencePanel = '', direction = 'within', hideHeader = false } = {}) {
+  const live = api.value;
+  if (!live) return null;
+  return live.addGroup({
+    ...(referenceGroup ? { referenceGroup } : {}),
+    ...(referencePanel ? { referencePanel } : {}),
+    ...(referenceGroup || referencePanel ? { direction } : {}),
+    hideHeader
+  });
 }
 
 function syncActive() {
@@ -451,6 +474,7 @@ defineExpose({
   openPanel,
   replaceActive,
   addPanel,
+  addGroup,
   removePanel,
   removeGroup,
   splitGroup,
