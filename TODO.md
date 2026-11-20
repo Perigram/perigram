@@ -54,6 +54,47 @@ owns the order; the inventory audit precedes any code move.
   output/viewer selection, diagnostics, and process-profile behavior;
   design-system visual compliance.
 
+### Agent Notes (2026-11-20, agent/preview-fixes — owner defect report: two editors differ; preview broken)
+
+- Diagnosis (e2e `graph-documents-preview.spec.js` reproduces): the
+  canvas status pill — the preview region's opener — was unclickable;
+  the palette strip's container spanned the canvas top at the same
+  top row and later DOM order, intercepting every pointer event over
+  the pill. The strip's box also blocked canvas gestures across its
+  empty areas. The palette strip now owns the canvas's top left half
+  (`max-w-[calc(50%-10rem)]`), its container is pointer-event
+  transparent (chips alone catch events), and the pill rides above it
+  at `z-30`.
+- The `9595b25d8` preview restructure deleted `applyInput` and
+  `submitBake` from `GraphDocumentPreviewPanel.vue` while the template
+  still called them (every Apply input and Bake output click threw a
+  runtime TypeError), and dropped the page-options loader (the Bake
+  destination list stayed empty, disabling Bake). All three restored;
+  destination labels render the page breadcrumb alone (ids stay
+  internal per the components UI law).
+- Process page preview contract wired to the region, per this README's
+  channel-preview law: the evaluation now runs when the preview region
+  opens and re-runs on authoring changes while it stays open
+  (`preview-visibility` over the workspace frame's `panels` ref API);
+  the old gate keyed off the inspector tab. The process page also
+  gained the canvas status pill (shared `canvasStatusOf` derivation
+  over the channel evaluation state).
+- Node cards unified one step further (audit slice 6 territory):
+  `GraphDocumentNode.vue` is now an adapter rendering the graph
+  session's nodes through `ProcessNode.vue` — one operation card
+  anatomy (collapse, hover socket contract, fault popover, socket
+  tones) for both editors; the preview eye stays gated to cards
+  carrying the process record-update seam.
+- Still separate by design until the consolidation slice lands: the
+  sessions themselves (`useProcessProfile` over `useProcessDesigner*`
+  vs `useGraphDocumentSession`), the inspectors
+  (`GraphInspector`/profile tabs vs `GraphDocumentInspector`), and the
+  preview panels (`GraphPreviewPanel` channel strip vs
+  `GraphDocumentPreviewPanel`). The palette groups differ per session
+  vocabulary (process operation families vs graph framework groups) —
+  the "Consolidate generic graph authoring" checklist item owns the
+  rest.
+
 ### Agent Notes (2026-11-19, agent/spec-ux-convergence — inventory audit)
 
 Classification inventory complete (file:line-evidenced). Digest:

@@ -26,7 +26,7 @@ describe('graph editor workspace chrome', () => {
     expect(canvas).toContain('data-canvas-status');
     expect(canvas).toContain('onActivityClick');
     expect(editor).toContain('openActivitySurface');
-    expect(editor).toContain("canvasFrame?.openPanel?.('preview')");
+    expect(editor).toContain("canvasFrame.value?.openPanel?.('preview')");
     expect(editor).toContain('GraphDocumentPreviewPanel');
     expect(canvas).toContain('<slot name="preview" />');
     expect(workspace).toContain('data-designer-preview');

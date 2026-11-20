@@ -56,6 +56,11 @@ Parent: [root README](../README.md).
   outputs channel's `graphOutputEntries` derivation over a whole-graph
   channel payload (SPEC §28); the channel strip lives in
   [components/process-designer](../components/process-designer/README.md).
+- `processDesignerCanvasStatus.js`: The canvas status pill derivation
+  (`canvasStatusOf`) shared by every editor mount — evaluation lifecycle
+  (idle/running/ready/error) plus the evaluated-node count; the pill
+  contract lives in
+  [components/process-designer](../components/process-designer/README.md).
 - `processDesignerDefinitionRecords.js`: Pure factories for the
   definition-plane service and socket records (Roles tab surfaces); the
   process-node record factories stay with the designer node-sync family.

@@ -12,6 +12,7 @@
       />
     </div>
     <Message v-if="error" severity="error">{{ error }}</Message>
+    <StateBlock v-if="running && !payload" state="loading" :message="$t('common.loading')" />
     <section class="flex flex-col gap-2">
       <span class="text-muted text-supporting">{{ $t('processDesigner.previewOutputsChannel') }}</span>
       <GraphOutputsChannel :payload="payload" :nodes="nodes" />
@@ -26,6 +27,7 @@
 <script setup>
 import Button from 'primevue/button';
 import Message from 'primevue/message';
+import StateBlock from '~/components/shared/StateBlock.vue';
 import GraphOutputsChannel from '~/components/process-designer/GraphOutputsChannel.vue';
 import PreviewChannelMount from '~/components/process-designer/PreviewChannelMount.vue';
 

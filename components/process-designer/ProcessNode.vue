@@ -53,7 +53,7 @@
         </div>
       </Popover>
       <Button
-        v-if="dataOutputs.length"
+        v-if="dataOutputs.length && typeof data.onProcessNodeUpdate === 'function'"
         :icon="previewVisible ? 'pi pi-eye' : 'pi pi-eye-slash'"
         :class="previewVisible ? 'text-muted' : 'text-status-info'"
         text
@@ -76,12 +76,12 @@
     <div v-if="collapsed" class="mt-1 flex flex-col items-center gap-1 py-0.5">
       <div class="flex items-center gap-1.5">
         <span v-for="input in collapseInputs" :key="`ci-${input.id}`" class="relative block h-[22px] w-[26px]">
-          <DesignerSocketHandle :socket="input" side="top" :title="socketTitle(input)" />
+          <DesignerSocketHandle :socket="input" :handle-id="input.handleId || ''" side="top" :title="socketTitle(input)" />
         </span>
       </div>
       <div class="flex items-center gap-1.5">
         <span v-for="output in collapseOutputs" :key="`co-${output.id}`" class="relative block h-[22px] w-[26px]">
-          <DesignerSocketHandle :socket="output" side="bottom" :title="socketTitle(output)" />
+          <DesignerSocketHandle :socket="output" :handle-id="output.handleId || ''" side="bottom" :title="socketTitle(output)" />
         </span>
       </div>
     </div>
@@ -93,11 +93,11 @@
            contract). -->
       <div v-for="row in socketRows" :key="row.key" class="flex min-h-7 items-center gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
-          <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
+          <DesignerSocketHandle :socket="row.input" :handle-id="row.input.handleId || ''" side="left" :title="socketTitle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
         </div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
-          <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
+          <DesignerSocketHandle :socket="row.output" :handle-id="row.output.handleId || ''" side="right" :title="socketTitle(row.output)" />
           <span class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
       </div>
@@ -109,11 +109,11 @@
     <div v-if="eventSocketRows.length && !collapsed" class="-mx-2.5 mt-3">
       <div v-for="row in eventSocketRows" :key="row.key" class="flex min-h-7 items-center gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
-          <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
+          <DesignerSocketHandle :socket="row.input" :handle-id="row.input.handleId || ''" side="left" :title="socketTitle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
         </div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
-          <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
+          <DesignerSocketHandle :socket="row.output" :handle-id="row.output.handleId || ''" side="right" :title="socketTitle(row.output)" />
           <span class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
       </div>

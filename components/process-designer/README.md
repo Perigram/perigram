@@ -146,7 +146,11 @@ configuration (only species that author values in place), the socket rail
 (labeled rows, inputs left / outputs right, every handle centered on the
 outer node rail — socket labels render on every expanded node: a socket
 without its name is unreadable chrome), and the event section (effects
-only). Socket rows carry the socket name; the element type, access, and
+only). `ProcessNode.vue` is the one operation card both editors render:
+the graph-document session's `GraphDocumentNode.vue` projects its
+definition ports onto the same anatomy (raw port ids as handle ids, the
+node's evaluation error as the fault popover's diagnostics), with the
+preview eye gated to cards carrying the process record-update seam. Socket rows carry the socket name; the element type, access, and
 qualifier ride the row's hover/focus tooltip — a per-socket connection
 icon is chrome encoding nothing. A collapsed card renders the name once
 with its header icons and every socket at a distinct position — inputs
@@ -411,12 +415,17 @@ Chrome: the canvas uses its own token-backed work surface behind the
 shared `DesignerWorkspace` chrome
 ([components/shared](../shared/README.md)) — the app's shared surface
 tokens alone. The palette is the
-canvas-top dock inside the canvas slot; the inspector is a non-modal
-overlay drawer rail the toolbar toggle owns — canvas clicks keep it
-open, and canvas Escape clears graph selection. The preview workspace is
-the workspace's resizable bottom region (SPEC §28.14); the canvas status
-control opens it, and the floating `Toolbar` rides above the open
-region. The floating `Toolbar`'s canvas group
+canvas-top dock inside the canvas slot: the strip owns the canvas's top
+LEFT half (`max-w-[calc(50%-10rem)]`), its container passes pointer
+events through its empty areas so canvas gestures survive under it, and
+the canvas status pill owns top-center above it (`z-30`). The inspector
+is a non-modal overlay drawer rail the toolbar toggle owns — canvas
+clicks keep it open, and canvas Escape clears graph selection. The
+preview workspace is the workspace's resizable bottom region (SPEC
+§28.14); the canvas status pill opens it (both mounts: the graph-editor
+session's evaluation state and the process channel evaluation feed the
+shared `canvasStatusOf` derivation), and the floating `Toolbar` rides
+above the open region. The floating `Toolbar`'s canvas group
 carries the view controls (zoom out/in, frame all, frame selection,
 reset zoom, Tidy), every item icon-only
 with its label as tooltip and accessible name, so the toolbar survives
@@ -561,7 +570,11 @@ normalizer and validator.
 ### Preview (channel tabs)
 
 The preview workspace region hosts the channel-tab strip
-(`GraphPreviewPanel.vue`); the canvas status control opens it. The
+(`GraphPreviewPanel.vue`); the canvas status pill opens it and the
+region's visibility rides the editor mount's `preview-visibility` event
+(the workspace frame's `panels` ref API): the evaluation runs when the
+region opens and re-runs on authoring changes while it stays open (one
+debounced seam). The
 built-in outputs channel comes
 first: `GraphOutputsChannel.vue` selects one evaluated output (labeled
 `node · socket` over `graphOutputEntries`,
@@ -696,7 +709,9 @@ nodes, which show no inspection action.
 
 ## Structure
 
-20 SFCs at folder root — canvas nodes (`ProcessNode.vue`, `GraphDocumentNode.vue`, `CtsTypeNode.vue`),
+20 SFCs at folder root — canvas nodes (`ProcessNode.vue` — the one
+operation card; `GraphDocumentNode.vue` — its graph-document adapter;
+`CtsTypeNode.vue`),
 the shared canvas presentation (`GraphCanvas.vue`), the graph-document
 editor mount (`GraphEditorSurface.vue`), graph-specific inspector and
 preview (`GraphDocumentInspector.vue`, `GraphDocumentPreviewPanel.vue`),
