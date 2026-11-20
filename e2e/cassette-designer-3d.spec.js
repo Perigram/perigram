@@ -18,7 +18,7 @@ test('the cassette designer folded 3D viewport becomes visible once the preview 
   await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
   await app.gotoClient(list.route);
 
-  const newButton = app.page.locator('main').getByRole('button', { name: /^New / });
+  const newButton = app.page.locator('main').getByRole('button', { name: /^New Cassette template from Editor/ });
   await expect(newButton).toBeVisible({ timeout: 20_000 });
   await newButton.click();
 
