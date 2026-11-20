@@ -56,6 +56,13 @@ Specs that read pack/plugin types install them explicitly through
 that drive executor-backed surfaces or services wire them through
 `app.connectPlugin`.
 
+Create-button locators follow the caption contract
+(`utils/generated-labels.js` / `CreateControl.vue`): the caption names
+the created type with the creation mode in a sibling select, and a host
+header that already names the class passes the bare caption — match the
+anchored shapes (`/^New( <Type>( from <Mode>)?)?$/`), because the
+workspace chrome carries its own literal "New tab" control.
+
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.
 - `agent-mcp-template-fill.mjs`: API-only MCP probe, run directly with
   `node e2e/agent-mcp-template-fill.mjs` against the same stack —

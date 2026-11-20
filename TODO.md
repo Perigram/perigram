@@ -2035,14 +2035,68 @@ G0–G2 (shared canvas, file/surface scaffolding, and canonical graph foundation
   `useGraphDocumentSession.spec.js` and the graph-editor SSR smoke; editor
   preview now runs the typed-IR preflight. The surface's client-only HTTP
   catalog load stays smoke-uncovered (no client-mount harness).
-- [ ] G4 Procedural preview — core evaluator and process adapter are wired
+- [x] G4 Procedural preview — core evaluator and process adapter are wired
   to the editor preview panel; JSON input-binding controls are implemented
   and boundary defaults are consumed by the evaluator. Browser runtime
   provider discovery/execution bindings now resolve worker renderer ids to
   declared preview surfaces and mount them through the read-only host.
-  Remaining: end-to-end browser preview tests (Playwright scope) — the
-  IR preflight, mapped lowering diagnostics, and pinned-subgraph preview
-  carry focused spec coverage. Preview remains read-only.
+  The Playwright scope landed in `e2e/graph-procedural-preview.spec.js`:
+  typed-block channel preview, mapped incompatible-edge diagnostics, and
+  pinned Use Graph resolution with drift blocking, all green against the
+  live dev stack. Preview remains read-only. Owner acceptance stays open.
+### Agent Notes (2026-11-19, agent/e2e-g4-playwright-20261119-2115)
+
+- Wrote `e2e/graph-procedural-preview.spec.js` (3 tests): a typed
+  Documents block chain (inline text → paragraph/list → compose → append
+  → Markdown export) previews through the graph preview channel with
+  intermediate typed node outputs asserted; a saved incompatible edge
+  (document-block → flow-document port) blocks preview behind the
+  "Cannot connect … Representation kind does not match" diagnostic; a
+  Use Graph node pinned to an exact saved revision resolves the subgraph
+  output through the channel, and a drifted child revision blocks
+  preview with "Pinned subgraph <id>@<rev> is unavailable". Graphs ride
+  declared port defaults consumed by the evaluator.
+- Execution evidence: `E2E_BASE_URL=http://localhost:3001 npx playwright
+  test e2e/graph-procedural-preview.spec.js` — 3 passed in 33.5s
+  (2026-11-19, pre-dock chrome), re-verified 3 passed in the multi-tab
+  condition beside `graph-documents-preview.spec.js` (5 passed / 1
+  UX-owned failure, 1.7m) after the dock-grid chrome landed. Artifacts
+  under `test-results/graph-procedural-preview-*` on failure only.
+- Full-suite run (2026-11-20, `npx playwright test` against
+  localhost:3001, log `/tmp/opencode/e2e-full-run-4.log`): 29 passed /
+  48 failed in 49.1m — Application E2E scope per TESTING.md, never
+  deployment acceptance. The 19 NamespaceNotFound failures from the
+  first run are gone (fix `c307a3fda` merged through staging).
+- Fixes this session: `installPlugins` resolves the catalog requires
+  chain (facade requires nesting); `connectPlugin` skips
+  platform-managed executors; the two LIVE specs import the public
+  `processes/designer` subpath; org type declarations in specs carry the
+  identifier flag; `pruneInstanceUniqueIndexes` tolerated missing
+  collections (server fix + regression); the preview panel's deleted
+  `applyInput` handler restored (`7b38851a4` — the output-rendering
+  rework dropped it while the controls kept calling it); create-caption
+  locators follow the CreateControl contract across nine specs;
+  `generated-state-surface` reconciled to the §22.16 one-control state
+  popover (state tag opens transitions + audit stepper; counts follow
+  the prompted-create trail) — green standalone.
+- Remaining failures, by cause: (UX-blocked, designer mount/dock
+  rework in flight) cassette-* ×14, sheet-editor-panel ×2,
+  md-editor-repair ×4, order-process, nesting-attempt-flow,
+  plugin-surface, payload-revisions — editors land on an empty tab or
+  stall on the retired `.designer-workspace__canvas`; (UX-owned move)
+  graph-documents-preview ×1; (fill-dialog rework) documents-fill-dialog
+  ×2, tech-drawing-fill-dialog ×3 — picker/template labels moved;
+  (process-designer chrome) definitions-pane, process-designer-boot,
+  getfield ×2, placement; (record-document rework)
+  process-generated-screen breadcrumbs + inline-edit ×2 — TraceChain
+  renders "Organization > Unnamed" for the mocked lineage and the
+  inline-patch read-back 4xx/5xx; (calls/chat chrome) calls-dock,
+  chat-file-upload 'Leave'/'Join call'; (directory) partnership leg.
+  Environment note: concurrent staging merges hot-reloaded the app
+  mid-run twice (ERR_ABORTED navigations, "Nuxt dev server is starting"
+  responses); one `./scripts/dev.sh restart app` was used on 2026-11-20
+  after a login 500 investigation that turned out to be the dev
+  renderer's 401-as-500 for an unregistered probe user.
 - [ ] G5 Commit, Bake, and Export — page-file Bake is implemented in the
   graph-executions service and exposed through its explicit API route; Export
   returns a selected output as a download and records a `procedural-export`
