@@ -3,6 +3,12 @@ import { test, expect } from './fixtures.js';
 async function openGraphEditor(app, entity) {
   await app.gotoClient('/');
   await app.page.locator('[data-home-workspace]').first().waitFor({ state: 'visible' });
+  // The workspace entity pool hydrates after boot; a tab opened before its
+  // record lands mounts once and is swapped when the pool arrives. Wait
+  // for the graph in the navigation so the opened editor stays mounted.
+  await expect(
+    app.page.getByRole('treeitem').filter({ hasText: entity.name })
+  ).toBeVisible({ timeout: 20_000 });
   await app.page.evaluate(graphEntity => {
     window.dispatchEvent(new CustomEvent('perigram:open-workspace-page', {
       detail: { pageId: 'graph-editor', typeId: 'graph-document', entity: graphEntity },
@@ -10,14 +16,29 @@ async function openGraphEditor(app, entity) {
     }));
   }, entity);
   await app.page.locator('.process-designer-canvas').first().waitFor({ state: 'visible' });
+  // The boot surface is swapped once while its entity hydrates; interactions
+  // landing on the doomed instance are lost. Require the canvas element to
+  // stay the same node for a window before driving the editor.
+  await app.page.waitForFunction(() => {
+    const canvas = document.querySelector('.process-designer-canvas');
+    if (!canvas) return false;
+    if (!canvas.dataset.editorSettledAt) {
+      canvas.dataset.editorSettledAt = String(performance.now());
+      return false;
+    }
+    return performance.now() - Number(canvas.dataset.editorSettledAt) > 1500;
+  }, null, { timeout: 30_000 });
 }
 
-async function applyGraphInput(app, label, value) {
+async function openPreviewPanel(app) {
   const { page } = app;
-  const input = page.getByRole('textbox', { name: label });
-  await expect(input).toBeVisible({ timeout: 15_000 });
-  await input.fill(value);
-  await input.locator('..').getByRole('button', { name: 'Apply input' }).click();
+  const toggle = page.locator('[data-designer-toolbar]').getByRole('button', { name: 'Preview' });
+  await expect(async () => {
+    if ((await toggle.getAttribute('aria-pressed')) !== 'true') {
+      await toggle.click({ timeout: 5_000 });
+    }
+    await expect(page.locator('[data-designer-preview]')).toBeVisible({ timeout: 3_000 });
+  }).toPass({ timeout: 45_000 });
 }
 
 async function runPreview(app) {
@@ -40,8 +61,8 @@ function documents(operationId, x, y) {
   };
 }
 
-const stringInput = (id, label) => ({
-  id, label, contract: { shape: 'item', semantic: { base: 'string' } }, required: true
+const stringInput = (id, label, value) => ({
+  id, label, contract: { shape: 'item', semantic: { base: 'string' } }, required: true, default: value
 });
 const fileOutput = (id, label) => ({
   id, label, contract: { shape: 'item', semantic: { base: 'json', kind: 'documents.file' } }, required: true
@@ -75,7 +96,10 @@ test('typed Documents blocks preview through the graph preview channel', async (
     revision: 'typed-blocks-preview-e2e-r1',
     name: app.uniqueName('Typed blocks preview E2E'),
     interface: {
-      inputs: [stringInput('body', 'Body'), stringInput('item', 'Item')],
+      inputs: [
+        stringInput('body', 'Body', 'A typed paragraph assembled from inline blocks.'),
+        stringInput('item', 'Item', 'A typed list entry from an inline block.')
+      ],
       outputs: [fileOutput('file', 'Markdown file')]
     },
     nodes: [
@@ -109,9 +133,7 @@ test('typed Documents blocks preview through the graph preview channel', async (
   page.on('pageerror', error => pageErrors.push(error.message));
   await openGraphEditor(app, entity);
 
-  await page.locator('[data-canvas-status]').click();
-  await applyGraphInput(app, 'Body', 'A typed paragraph assembled from inline blocks.');
-  await applyGraphInput(app, 'Item', 'A typed list entry from an inline block.');
+  await openPreviewPanel(app);
   await runPreview(app);
 
   const previewFrame = page.locator('iframe[title$=".md"]').first();
@@ -149,7 +171,7 @@ test('an incompatible saved edge surfaces the mapped preflight diagnostic', asyn
     revision: 'invalid-wire-e2e-r1',
     name: app.uniqueName('Invalid wire E2E'),
     interface: {
-      inputs: [stringInput('body', 'Body')],
+      inputs: [stringInput('body', 'Body', 'A paragraph that cannot flow into the exporter.')],
       outputs: [fileOutput('file', 'Markdown file')]
     },
     nodes: [
@@ -171,8 +193,7 @@ test('an incompatible saved edge surfaces the mapped preflight diagnostic', asyn
   page.on('pageerror', error => pageErrors.push(error.message));
   await openGraphEditor(app, entity);
 
-  await page.locator('[data-canvas-status]').click();
-  await applyGraphInput(app, 'Body', 'A paragraph that cannot flow into the exporter.');
+  await openPreviewPanel(app);
   await runPreview(app);
 
   const diagnostic = page.locator('.p-message-error').filter({ hasText: 'Representation kind does not match' });
@@ -198,7 +219,7 @@ test('a pinned Use Graph revision previews its subgraph output and drift blocks 
     revision: childRevision,
     name: app.uniqueName('Use Graph child E2E'),
     interface: {
-      inputs: [stringInput('body', 'Body')],
+      inputs: [stringInput('body', 'Body', 'Child paragraph rendered through its caller.')],
       outputs: [fileOutput('file', 'Markdown file')]
     },
     nodes: [
@@ -224,7 +245,7 @@ test('a pinned Use Graph revision previews its subgraph output and drift blocks 
     revision: 'use-graph-parent-e2e-r1',
     name: app.uniqueName('Use Graph parent E2E'),
     interface: {
-      inputs: [stringInput('body', 'Body')],
+      inputs: [stringInput('body', 'Body', 'Paragraph rendered by the pinned subgraph.')],
       outputs: [fileOutput('file', 'Markdown file')]
     },
     nodes: [
@@ -259,8 +280,7 @@ test('a pinned Use Graph revision previews its subgraph output and drift blocks 
   page.on('pageerror', error => pageErrors.push(error.message));
   await openGraphEditor(app, parentEntity);
 
-  await page.locator('[data-canvas-status]').click();
-  await applyGraphInput(app, 'Body', 'Paragraph rendered by the pinned subgraph.');
+  await openPreviewPanel(app);
   await runPreview(app);
 
   const previewFrame = page.locator('iframe[title$=".md"]').first();
@@ -290,8 +310,7 @@ test('a pinned Use Graph revision previews its subgraph output and drift blocks 
   expect(drift.ok(), await drift.text()).toBe(true);
 
   await openGraphEditor(app, parentEntity);
-  await page.locator('[data-canvas-status]').click();
-  await applyGraphInput(app, 'Body', 'Paragraph the drifted pin can no longer resolve.');
+  await openPreviewPanel(app);
   await runPreview(app);
 
   const driftDiagnostic = page.locator('.p-message-error').filter({
