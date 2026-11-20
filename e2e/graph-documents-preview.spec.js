@@ -299,7 +299,10 @@ test('the graph palette searches installed Documents operations and places a typ
   const createdEntity = await created.json();
   await openGraphEditor(app, createdEntity);
 
-  await app.page.getByRole('button', { name: 'Document blocks', exact: true }).click();
+  // One palette section per installed plugin (SPEC §28.14): the
+  // Documents chip opens the plugin's popover; its search spans the full
+  // catalog.
+  await app.page.getByRole('button', { name: 'Documents', exact: true }).click();
   const search = app.page.getByRole('searchbox', { name: 'Search nodes' });
   await expect(search).toBeVisible();
   await search.fill('Paragraph');
