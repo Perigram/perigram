@@ -151,6 +151,7 @@ describe('parseListing', () => {
       'types', 'services', 'editors', 'engine', 'surfaces', 'previews', 'previewChannels', 'constructions', 'starterConstructs', 'exports', 'dependencies', 'runtimes'
     ]);
     expect(declarations.engine.properties.module.pattern).toBe('^/[a-z0-9/_-]+\\.m?js$');
+    expect(declarations.engine.properties.assets.items.pattern).toBe('^/[a-z0-9][a-z0-9/._-]*$');
     expect(schema.properties.requires.items.pattern).toBe('^[a-z0-9-]+$');
     expect(schema.properties.visibility.enum).toEqual(['public', 'private']);
     expect(schema.properties.declarations.required).toBeUndefined();
@@ -421,6 +422,26 @@ describe('parseListing', () => {
       ...fullListing,
       declarations: { ...fullListing.declarations, engine: { module: '/engine/index.mjs' }, services: [localService] }
     }).declarations.engine).toEqual({ module: '/engine/index.mjs' });
+  });
+
+  it('validates the engine\'s staged runtime assets (E3b)', () => {
+    const localService = { id: 'spin', mode: 'local', signature: { input: { base: 'json' }, output: { base: 'json' } } };
+    const withAssets = assets => parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        engine: { module: '/engine/index.mjs', ...(assets !== undefined ? { assets } : {}) },
+        services: [localService]
+      }
+    });
+    expect(withAssets(['/runtime/kernel.wasm', '/runtime/ops.mjs', '/runtime/data.json']).engine.assets)
+      .toEqual(['/runtime/kernel.wasm', '/runtime/ops.mjs', '/runtime/data.json']);
+    expect(withAssets().engine).toEqual({ module: '/engine/index.mjs' });
+    expect(() => withAssets([])).toThrow(/non-empty array/);
+    expect(() => withAssets(['runtime/kernel.wasm'])).toThrow(/root-relative package path/);
+    expect(() => withAssets(['/runtime/../etc/passwd'])).toThrow(/root-relative package path/);
+    expect(() => withAssets(['/engine/index.mjs'])).toThrow(/is the entry module/);
+    expect(() => withAssets(['/runtime/kernel.wasm', '/runtime/kernel.wasm'])).toThrow(/duplicate engine asset/);
   });
 
   it('validates the deterministic cache declaration (SPEC §28): endpoint-only, exact value', () => {

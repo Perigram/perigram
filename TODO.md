@@ -15,42 +15,40 @@ owns the order; the inventory audit precedes any code move.
   toolbars, panel state, and node-specific configuration branches as
   shared graph infrastructure, process-profile behavior, plugin
   contribution, or obsolete duplicate.
-- [ ] Palette correctness: same-kind palette entries must disambiguate
-  by authored shape (the literal/pinnedEntity collision relabeled every
-  literal node "Pinned entity"); the graph editor's framework palette
-  rows render the localized process palette vocabulary, one concept one
-  label everywhere.
-- [ ] Plugin palette sections: one section per installed plugin named by
-  the plugin, the plugin's declared semantic groups as subgroups inside
-  (process palette projection, graph editor palette, dock rendering);
-  blanket "operations" group names retire from plugin declarations
-  (build123d catalog/listing/discover).
-- [ ] Node cards: socket rows carry the name with type/access/connection
-  on hover (the per-socket link icon retires); a collapsed card renders
-  the name once with its header icons and keeps socket handles on the
-  side rails in expanded order.
+- [ ] WAITING — owner verification: Palette correctness: same-kind palette
+  entries disambiguate by authored shape (the literal/pinnedEntity
+  collision relabeled every literal node "Pinned entity"); the graph
+  editor's framework palette rows render the localized process palette
+  vocabulary, one concept one label everywhere.
+- [ ] WAITING — owner verification: Plugin palette sections: one section
+  per installed plugin named by the plugin, the plugin's declared
+  semantic groups as subgroups inside (process palette projection,
+  graph editor palette, dock rendering); blanket "operations" group
+  names retire from plugin declarations (build123d
+  catalog/listing/discover).
+- [ ] WAITING — owner verification: Node cards: socket rows carry the
+  name with type/access on hover (the per-socket link icon retires); a
+  collapsed card renders the name once with its header icons, inputs on
+  the top rail, outputs on the bottom rail.
 - [ ] Consolidate generic graph authoring on the canonical graph document
   and session; process-only behavior (lanes, grants, declarations, event
   entry, durable effects, validation, Apply) stays profile extensions.
-- [ ] Rebuild the workspace regions — graphs list, node library, canvas,
-  inspector, preview workspace, diagnostics — with intentional responsive
-  composition; preview moves out of the inspector tab/support rail into a
-  separate resizable region: declared output selected first, best
-  supported renderer as default, JSON as explicit diagnostics, host 3D
-  viewer for supported scene outputs, node traces as optional diagnostics.
-- [ ] One editor: retire the graph-document file-surface mount; the
-  organization graphs page loads graph documents beside process
-  definitions through the graphs list; opening a graph file navigates
-  there; the editor header retires with its actions moving onto the
-  graphs list.
-- [ ] Editor chrome follows the app's shared visual system (the
-  floating/glass panel language retires).
+- [ ] WAITING — owner verification: Workspace regions — graphs list, node
+  library, canvas, inspector, preview workspace, diagnostics — rebuilt:
+  preview is a separate resizable region (declared output selected
+  first, best supported renderer as default, JSON as explicit
+  diagnostics, values rendered through the one output-value renderer,
+  node traces as optional collapsed diagnostics); the support rail and
+  floating/glass chrome are retired.
+- [ ] WAITING — owner verification: One editor: the organization graphs
+  page is the `graph-editor` file surface (direct presentation); it
+  loads graph documents beside process definitions through the graphs
+  list; opening a graph file or creating one blank lands on the same
+  page; the editor header is retired with its actions on the graphs
+  list.
 - [ ] Make generic Create/Construct schema-driven from type construction
   contracts; event/trigger/schedule/subscription fields move to
   process-profile node definitions.
-- [ ] Remove the generic Support button/panel and the Hide secondary
-  toggle with their dead state paths (Support panel retirement rides the
-  preview workspace slice).
 - [ ] Rendered acceptance coverage for workspace layout, responsive panel
   transitions, file actions, palette search/insertion, node configuration,
   output/viewer selection, diagnostics, and process-profile behavior;
@@ -113,6 +111,34 @@ Landed this session: Hide secondary retired end to end
 (`useProcessProfile` state/logic/exports, the process page dock item,
 en+ru locale keys, README law); `hidden` stays a stripped runtime key
 in `stripRuntimeNodeData`.
+
+### Agent Notes (2026-11-20, second correction round)
+
+- Collapsed rails stacked every handle at the card's center (absolute
+  handles anchor to the nearest positioned ancestor — the card, all at
+  `left-1/2`), so a 3-socket card read as one untyped dot. Each rail
+  handle now owns a sized relative wrapper: the rail spreads distinct
+  sockets, each with its tone.
+- Preview structure rebuilt, selection-first everywhere: the outputs
+  channel selects one evaluated output (node · socket) rendered through
+  the shared output view with representation tabs — the per-node wall is
+  the collapsed diagnostics under it, node errors stay first-plane; the
+  graph editor's preview panel leads with the selected output, input
+  bindings and Bake follow. Rendered coverage:
+  `GraphOutputsChannel.spec.js`.
+
+### Agent Notes (2026-11-20, one-editor completion)
+
+- The graph-document file-surface host died: the `graph-editor` registry
+  entry is a direct presentation mounting the unified editor page itself
+  (`graphInstanceId` prop: '' = process plane, instance id = that graph,
+  'blank' = first-save creation). The pane tab, the record-page editor
+  band (RecordEditorBody), and blank creation all land on the one
+  editor; the EditorPageSurface+header mount for graph documents is
+  gone, and `fileWorkspacePages` carries the direct-mount branch.
+  The unified page passes its graph-document mount through the record
+  host's chrome channel when one is supplied (record-page headers get
+  save/dirty again) and honors read mode.
 
 ### Agent Notes (2026-11-20, owner correction round)
 
@@ -351,7 +377,7 @@ collection route, the support-rail mount, preview-provider timing, accessible
 destination controls, the page-file Bake response shape, and catalog packaging
 of declared surface modules. Inspector schema configuration, valid/invalid
 wire authoring, and full UI-authored graph persistence remain open.
-- [ ] Reconcile Documents listing versions with installed organization
+- [x] Reconcile Documents listing versions with installed organization
   snapshots. Verify upgrade behavior against an installation carrying the
   previous declaration version; record catalog and installed versions in
   regression coverage.
@@ -637,7 +663,7 @@ Completion requires verified product behavior, listing validation, and
 executor coverage for both plugins as product capabilities and graph-node
 providers.
 
-- [ ] Audit Documents end to end: every declared type, projection, service,
+- [x] Audit Documents end to end: every declared type, projection, service,
   construction, editor, preview, fill, import/export, and file/payload path.
   Compare listing declarations with actual runtime behavior and SPEC; align
   executor and endpoint assumptions with the managed local runtime.
@@ -753,6 +779,98 @@ palette/provider discovery and graph execution; (3) validate end-to-end
 workflows; (4) consolidate/refactor shared contracts and UI; (5) retire
 obsolete paths and update docs. Keep the two plugin reviews coordinated so
 shared palette changes are designed once.
+
+### Agent Notes (2026-11-20, agent/documents-review-20261120-0930)
+
+Documents end-to-end audit over listing v34 at the audited revision, with
+focused fixes. Every claim carries file:line evidence.
+
+Defects fixed (each with a regression in workers/documents/contract.spec.js,
+listing advanced to v35):
+
+- `render-report-pdf` declared its `name` input required
+  (workers/documents/listing.json:849-851) while the runtime names the
+  output from `report.title` with a `report` fallback
+  (workers/documents/runtime/server.mjs:132-135), and the sibling export
+  nodes (`export-markdown-file`, `export-html-file`, `render-document-pdf`)
+  all declare `name` nullable. A report carrying a title forced a redundant
+  wired name beside its own. Fixed: `name` nullable.
+- `compose-report` declared `title`, `sectionTitle`, and `rows` required
+  (listing v34:713-731) while the runtime accepts flow-only, title-less
+  compositions (workers/documents/report-ir.mjs:184-214) and the evaluator
+  rejects a node only when a required port stays unwired
+  (packages/core/src/procedural-evaluator.js:242-245) — so a flow-only
+  report was unauthorable through the graph. Fixed: all three nullable; the
+  empty case keeps its named runtime refusal (`compose-report requires a
+  flow document or row records`), matching the `document-list`
+  items/inlineItems pattern.
+
+Drift reconciled (docs only):
+
+- README claimed XLSX fills "request formula recalculation on workbook
+  open" (workers/documents/README.md:57-58 as audited); the engine writes
+  moved formula cells with their cached results dropped
+  (workers/documents/workbook-template.mjs:31-41) and the vendored SheetJS
+  writer emits no `<calcPr>` (verified against the produced
+  xl/workbook.xml). The engine law already lived in the template-fills
+  section; the false sentence is deleted.
+- The README palette inventory omitted the `document-templates` group
+  (`fill-markdown-template`, `fill-workbook-template`) and
+  `render-report-pdf` in `document-export`; both rows now match the
+  listing's seven groups.
+
+Verified clean (no action):
+
+- Types: seven own file types, `content` revision scope on every
+  payload-bearing type, identifier `name` fields, mime/accept/maxSize
+  coherent; `requires: tech-drawing` matches the render construct's
+  `dxf-source` source vocabulary.
+- Projections: all six resolve to managed pure server operations
+  (`text`, `table-rows`, `table-cells` on `documents-shared`); the sync
+  boundary gates mirror the async path (server/features/plugins/sync-runtime.js,
+  plugins README "Service-resolved projections"); the real shared bundle
+  executes through the boundary in plugins.spec.js.
+- Service inventory: 34 declared services, 30 shared + 4
+  `documents-server`, every one carrying a managed execution declaration;
+  the shared runtime publishes exactly its 27 browser-visible operations;
+  the server node gate lists 29 (27 + the two PDF export nodes); the hidden
+  set is exactly the three projection twins plus `fill`/`render-pdf`; every
+  palette-visible service is record-input (wireable), so the palette gate
+  keeps every visible operation.
+- Fill/template engines: markdown/xlsx/pdf token laws, PT Sans embedding,
+  section expansion, merge handling — covered by fill.spec.js and
+  documents-preview-bake.spec.js; contract.spec.js adds the
+  typed-block → compose → export → template re-fill → report PDF chain and
+  the documents-server XLSX construction fill with section metadata.
+- Sockets and defaults: nested semantics (`documents.file-id`,
+  `text.inline`, `text.document-block`, `documents.file`) reach both the
+  browser provider definitions and the server gate; `document-heading`
+  level defaults 1, `document-list` ordered false with optional
+  items/inlineItems; read operations carry `files.read` and the
+  `documents.file-id` picker semantic.
+- Constructions, editors, surfaces, previews, preview channels, starter
+  constructs: every binding resolves to declared ids of the plugin's own
+  (contract.spec.js); the `pdf-document.render` source keeps its `Source`
+  label; graph invocations answer the `{ value }` output-port map from both
+  runtimes.
+- v33→v34 upgrade acceptance: server/features/plugins/documents-upgrade.spec.js
+  stages a synthetic v33 install (seven endpoint-mode services, no
+  `documents-server` runtime, pre-vendoring dependency set, legacy executor
+  origin) and a v34 install, runs preview + apply through the plugins
+  feature service, and verifies the persisted snapshot (managed services,
+  both runtimes, the four vendored server dependencies) plus post-upgrade
+  graph-node resolution over the new pin; the v34 case proves the v35
+  optionality fixes reach installed organizations through the apply.
+
+Owner decisions required:
+
+- Live dev-org upgrade from the v33/v34 pins remains an operational step;
+  the synthetic-snapshot coverage above is the recorded regression.
+- Stale `plugin_service_cache` entries and executor origins on pre-v34
+  installs: managed dispatch resolves operations directly from the
+  installed snapshot (the endpoint cache serves endpoint dispatch only) and
+  the migration script clears origins; purging cached rows is an owner
+  operations call if desired.
 
 ### Agent Notes (2026-11-17, endpoint/runtime ownership audit)
 - Plugin/node palette review (2026-11-17): unified the palette declaration across node definitions, plugin services, and projections; migrated Documents, Facade, and Build123d listings and Build123d discovery/catalog generation; provider-scoped IDs and item IDs prevent collisions; hidden helper operations no longer appear as graph nodes; ungrouped visible plugin services receive provider-owned Operations groups; search indexes provider/operation identity, signature fields, and palette keywords. The end-to-end Documents/Facade operation and socket audit remains in progress.
@@ -1543,10 +1661,11 @@ deployment.
   evaluator (`previewProcessDataflow` client-hosted, the engine loader
   as its preview service channel); graphs with endpoint services or
   `cts.*` species keep the server evaluation.
-- [ ] E3b Engine bootstrap (plugin-owned, sequenced after the platform
+- [x] E3b Engine bootstrap (plugin-owned, sequenced after the platform
   slices) — the runtime itself: worker bootstrap, pinned interpreter,
   wheel install, storage persistence — shipped as package assets by the
-  engine plugin that needs them.
+  engine plugin that needs them. Proven by the demo engine package
+  (`workers/engine-demo`, live dogfood below).
 - [ ] WAITING — owner verification: E3a + E4 — an installed engine
   plugin serves its binding on the org view; a graph composing a local
   service previews in the browser (no server preview round-trip), a
@@ -1557,8 +1676,80 @@ deployment.
   program supersedes it (SPEC §20 owner decision 2026-11-20). The
   transitional executor retires with the program's first geometry
   plugin.
-- [ ] E6 Shape viewport (G4) — the engine's tessellated meshes feed the
-  plugin's preview channel surface.
+- [x] E6 Shape viewport (G4) — the engine's tessellated meshes feed the
+  plugin's preview channel surface: the `perigram.scene-3d` mesh value
+  (vertices/triangle faces/per-vertex normals, contract in
+  [utils README](./utils/README.md)) renders through the demo engine's
+  SVG isometric channel surface. The host 3D viewer belongs to the UX
+  convergence program (preview workspace slice).
+
+### Agent Notes (2026-11-20, agent/e3b-engine-20261119-2230)
+
+- E3b + E6 landed. Platform gaps found and closed: (1) the engine
+  listing grammar had no staged-asset manifest — `declarations.engine`
+  gains `assets: [...]` (root-relative package paths of interpreter
+  binaries, wheels, data the entry's import graph cannot discover),
+  validated by `parseListing`, mirrored in `listing.schema.json`,
+  conformance-covered; (2) the catalog seeder collected runtime/surface/
+  dependency graphs but ignored `declarations.engine` entirely — a
+  built-in engine plugin could not publish package assets; the
+  per-listing preparation moved to `prepareListingRelease`
+  (server/scripts/lib/plugin-runtime-assets.js) which stages the engine
+  entry graph plus the declared assets, engine entry graphs walk
+  without the first-party literal-import refusal (their wheels import
+  from staged bytes), and a `new URL('<dir>/', import.meta.url)` base
+  no longer crashes the walker (EISDIR). Verified already-sufficient:
+  same-origin Worker fetch carries the session cookie (cookie fallback
+  auth), `private, no-cache`+ETag leaves Cache API persistence open,
+  binaries stream byte-exact under stored content types, and no size or
+  count cap sits in the PUT/materialize/proxy path.
+- The demo engine package (`workers/engine-demo`, workers README row):
+  listing (engine + `assets` + preview surface + `engine-demo-mesh`
+  channel), `engine/index.mjs` (`createEngine` → dispatch + the
+  `plugin.engine-demo` node provider), `engine/worker.mjs` (manifest
+  fetch → sha256-pinned staging → Cache API persistence keyed by the
+  manifest digest → WASM instantiate → wheel import → dispatch), a
+  hand-written expression interpreter, and a Rust-compiled
+  `runtime/kernel.wasm` (torus positions + per-vertex normals;
+  `kernel/build.sh` rebuilds binary + manifest). Third-party
+  interpreter runtimes stayed out: the jsdelivr wasmoon/quickjs
+  candidates 404'd and rustc compiles the kernel locally, so the demo
+  is self-contained.
+- Live dogfood (dev stack, scratch org `org-6b001f40`, user
+  `e3b-engine@perigram.local`, species process seeded through the
+  headless authoring seam so graph-document creation rides the editor
+  boundary): operator published listing v1 + 7 assets; install
+  materialized them; module proxy answered the engine entry
+  (`text/javascript`, ETag), `kernel.wasm` (`application/wasm`,
+  byte-exact, If-None-Match → 304), `manifest.json`
+  (`application/json`), 404 a missing path, 401 unauthenticated; the
+  org view served the `clientEngines` binding and the Mesh channel. In
+  the browser: the graph editor loaded the engine from the package
+  store (palette section "Engine demo"), a one-node make-mesh graph
+  evaluated fully client-side ("Preview ready · 2 evaluated nodes"),
+  the output offered 3D scene/JSON/Mesh views, and the plugin's channel
+  surface rendered 576 shaded triangles + 864 edges — the WASM kernel's
+  exact tessellation, so the Worker fetched, checksum-verified,
+  instantiated, and dispatched through the proxy with session
+  credentials. After a full page reload the mesh re-rendered
+  identically from the persisted `engine-demo-runtime` Cache API store
+  (both staged entries present, keyed by the manifest pin). Screenshot:
+  `/tmp/opencode/engine-demo-mesh-live.png`. Uninstalled and retracted
+  after the pass; the scratch org remains in the dev database.
+- E6 contract: the tessellated mesh channel value is
+  `perigram.scene-3d` (`{ representation, vertices, faces, normals? }`
+  — the utils README graph-output representation entry is the
+  canonical home); the demo's `surfaces/mesh-preview.mjs` is the
+  plugin-side SVG isometric renderer (contract 1, normal-shaded faces).
+  No host 3D viewer was built (UX convergence slice 10 owns it).
+- Validation: `workers/engine-demo/engine-demo.spec.js` 13 ✓ (listing
+  grammar, release staging, manifest checksums, interpreter, real
+  module-worker bootstrap over a proxy-shaped HTTP server with tamper
+  refusal + ETag/304, mesh contract, surface render),
+  `sdk.spec.js` 46 ✓, `repository-conformance.spec.js` 32 ✓ — all via
+  the throwaway worktree config at
+  `/tmp/opencode/e3b-engine.vitest.config.js` (worktree node_modules
+  caveat); `check-arch` ✓, `docs:validate` ✓, `plugin-deps:check` ✓.
 
 ### Agent Notes (2026-11-14, agent/local-engine-e3a-20261114)
 

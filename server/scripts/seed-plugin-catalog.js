@@ -15,7 +15,7 @@ import { resolve } from 'node:path';
 import { connectDB } from '../db/mongo.js';
 import { normalizeListing } from '#packages/plugin-sdk/listing';
 import * as pluginRepository from '../features/plugins/repository.js';
-import { collectRuntimeAssetFiles } from './lib/plugin-runtime-assets.js';
+import { prepareListingRelease } from './lib/plugin-runtime-assets.js';
 import { buildDocumentsRuntime } from '../../workers/documents/build-runtime.mjs';
 
 const BUILTIN_LISTING_PATHS = [
@@ -39,24 +39,7 @@ if (paths.some(path => resolve(path) === resolve('workers/documents/listing.json
 const prepared = paths.map(path => {
   const listing = normalizeListing(JSON.parse(readFileSync(path, 'utf8')));
   const packageRoot = resolve('workers', listing.pluginId);
-  const declaredAssets = [
-    ...(listing.declarations.runtimes || []).map(runtime => ({ entry: runtime.entry, language: runtime.language })),
-    ...(listing.declarations.surfaces || []).map(surface => ({ entry: surface.module, language: 'javascript' })),
-    // Declared dependency modules and their relative chunks are package
-    // assets: the managed runtime's import map and the module proxy's
-    // vendor scope both serve them from organization-owned storage.
-    ...(listing.declarations.dependencies || [])
-      .filter(dependency => dependency?.module && !String(dependency.module).startsWith('plugin:'))
-      .map(dependency => ({ entry: dependency.module, language: 'javascript', vendor: true }))
-  ];
-  const byPath = new Map();
-  for (const { entry, language, vendor } of declaredAssets) {
-    if (!entry) continue;
-    for (const asset of collectRuntimeAssetFiles(packageRoot, entry, language, { vendor })) {
-      byPath.set(asset.path, asset);
-    }
-  }
-  const assets = [...byPath.values()].sort((a, b) => a.path.localeCompare(b.path));
+  const assets = prepareListingRelease(listing, packageRoot);
   return { listing, assets };
 });
 

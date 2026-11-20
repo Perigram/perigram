@@ -187,11 +187,17 @@ entry module — the browser worker loads it as the `createRuntime()`
 module, and a JS entry may initialize WASM libraries and expose the same
 contract; `python` and `wasm` entries declare server execution and wait
 on the language-dispatched managed runtime), and `engine` (the transitional browser
-engine declaration: `{ module }` — a root-relative entry module served
-from the installed package; its default export is
+engine declaration: `{ module, assets? }` — a root-relative entry module served
+from the installed package, plus the staged package paths of runtime files
+(interpreter binaries, wheels, data) the entry's import graph cannot
+discover; its default export is
 `createEngine() -> { dispatch?, nodeProviders? }` — optional
 `dispatch(serviceId, parameters) -> Promise<value>` and optional
-node-provider contributions in the `@perigram/plugin-sdk/nodes` shape).
+node-provider contributions in the `@perigram/plugin-sdk/nodes` shape.
+The engine entry owns its Worker bootstrap: it may spawn a module Worker
+from its own package scope, fetch its staged assets through the module
+proxy with session credentials, and persist verified bytes in the Cache
+API or IndexedDB keyed by its own pin).
 A managed service declares `execution: { runtime, targets, kind,
 capabilities?, deterministic?, idempotent? }`. Its runtime entry module
 exports `createRuntime()` (or a default factory) returning

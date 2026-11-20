@@ -67,7 +67,9 @@ tables, images, documents, scene values, plugin renderers, with JSON as
 the explicit fallback view. `GraphOutputView.vue` is the one value
 renderer every preview surface composes — the selected output renders
 its best supported view by default (JSON is an explicit choice), and the
-outputs channel renders each evaluated value through the same component.
+outputs channel selects one evaluated output first with the per-node
+listing as collapsed diagnostics. The graph editor's preview panel leads
+with the selected output; input bindings and Bake follow it.
 
 The inspector renders node configuration properties from each
 definition's JSON schema and edits graph interface transport shape,
@@ -561,11 +563,12 @@ normalizer and validator.
 The preview workspace region hosts the channel-tab strip
 (`GraphPreviewPanel.vue`); the canvas status control opens it. The
 built-in outputs channel comes
-first: `GraphOutputsChannel.vue` over `graphOutputEntries`
-([utils](../../utils/README.md)) lists every visible evaluated output
-under its card labels — section and node, socket label and type, branch
-paths — rendering each value through the shared `GraphOutputView.vue`
-(best representation first), and a hidden node's error alone. The process channel
+first: `GraphOutputsChannel.vue` selects one evaluated output (labeled
+`node · socket` over `graphOutputEntries`,
+[utils](../../utils/README.md)) and renders it through the shared
+`GraphOutputView.vue` (best representation first, JSON an explicit
+choice); node errors stay first-plane, and the per-node listing is the
+collapsed diagnostics under the selected output. The process channel
 preview evaluates through the process-definition preview endpoint: CTS reads
 resolve through the authorized data environment and services dispatch through
 their installed managed runtime. Installed
@@ -592,7 +595,11 @@ fault states survive the hiding.
 
 ### Graph document surface (SPEC §28)
 
-One editor, two hosts. `GraphCanvas.vue` owns the canvas presentation —
+One editor, one host. The organization graphs page IS the `graph-editor`
+file surface ([generated](../generated/README.md) owns the direct
+presentation): opening a graph file loads that graph into the same page,
+blank creation opens it blank, and the process plane rides the page when
+no graph is loaded. `GraphCanvas.vue` owns the canvas presentation —
 the Vue Flow graph with node/edge templates, the palette dock, the
 context palette, the selection speed dial, the empty state, and the
 validation feedback strip — over the session composable's state and
@@ -600,7 +607,7 @@ verbs passed as props (`v-model:nodes`/`v-model:edges`, palette groups,
 gesture handlers). The `lane` slot carries a host's zoom-pane background
 (the process page's lane bands); the `inspector` slot carries the host's
 rail content; the `preview` slot carries a host's preview workspace
-content. The graph file surface mounts its preview/input panel in the
+content. The graph-document mount places its preview/input panel in the
 workspace preview region; the canvas status control opens that region.
 Function-ref props (`bindFrame`, `bindContextPaletteSearch`)
 hand the mounted instances to the session's refs — plain ref props would
@@ -613,9 +620,11 @@ tab shell around it. `GraphPreviewPanel.vue` renders the channel-tab
 strip over the whole-graph evaluation
 ([`useGraphChannelPreview`](../../composables/README.md)).
 
-`GraphEditorSurface.vue` is registered as the `graph-editor` file surface
-([generated](../generated/README.md) owns the binding contract) and is also
-the process page's editor mount. Without a supplied session it uses
+`GraphEditorSurface.vue` is the one editor mount: the organization
+graphs page is the `graph-editor` file surface
+([generated](../generated/README.md) owns the binding), the page loading
+a graph document through this surface's default session and the process
+profile through its `session` prop. Without a supplied session it uses
 `useGraphDocumentSession`: payload text is parsed and validated as the
 canonical `perigram.graph` document owned by `@perigram/core`, and saves
 serialize that same format through the instance payload transport. With a
@@ -631,8 +640,9 @@ is read-only and does not commit organization state. The Use Graph invocation UI
 authors its pinned graph ID, revision, and public-interface snapshot in
 the node's JSON configuration; the graph catalog feeds the invocation
 palette with pinned revisions, and preview resolves pinned subgraphs from
-that catalog by exact id and revision. The header chrome
-channel binds `{ name, dirty, saving, save(), rename() }`; a read grant
+that catalog by exact id and revision. The host chrome channel — the
+graphs list or the record page header — binds
+`{ name, dirty, saving, save(), rename() }`; a read grant
 binds the name alone and mounts the canvas read-only.
 
 ### Inspector anatomy

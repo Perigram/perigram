@@ -1,0 +1,5 @@
+{
+  "name": "@perigram/engine-demo-plugin",
+  "private": true,
+  "type": "module"
+}

@@ -22,6 +22,9 @@ describe('process node canvas authoring boundary', () => {
     expect(source).toContain('collapseOutputs');
     expect(source).toContain('side="top"');
     expect(source).toContain('side="bottom"');
+    // each rail handle owns a sized relative wrapper — an absolute handle
+    // anchors to its wrapper, so the rail spreads distinct sockets
+    expect(source.match(/class="relative block h-\[22px\] w-\[26px\]"/g)).toHaveLength(2);
     expect(source.match(/v-if="collapsed"/g)).toHaveLength(1);
   });
 
