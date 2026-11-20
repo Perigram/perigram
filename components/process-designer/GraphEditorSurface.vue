@@ -7,6 +7,7 @@
       v-model:nodes="nodes"
       v-model:edges="edges"
       :bind-frame="bindCanvasFrame"
+      :bind-canvas-pane="bindCanvasPane"
       :bind-context-palette-search="bindContextPaletteSearch"
       :canvas-items="activeCanvasItems"
       :chrome="chromeApi"
@@ -314,7 +315,12 @@ const canvasFrame = ref(null);
 
 function bindCanvasFrame(instance) {
   canvasFrame.value = instance;
-  bindFrame(instance);
+}
+
+// The session's geometry frame binds to the canvas pane element — the
+// box every canvas coordinate resolves against.
+function bindCanvasPane(element) {
+  bindFrame(element);
 }
 
 watch(() => canvasFrame.value?.panels?.preview, open => {
