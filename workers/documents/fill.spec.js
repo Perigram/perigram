@@ -250,6 +250,38 @@ describe('pdf template fill', () => {
     expect(text.split('Ромашка').length - 1).toBe(1);
   });
 
+  it('keeps a missing token\'s placeholder visible after masking', async () => {
+    const filled = await fillPdfTemplate(await templatePdf('Client: {client}  Date: {date}'), { date: '2026-11-19' });
+    await expect(PDFDocument.load(filled)).resolves.toBeTruthy();
+    const text = await pdfText(filled);
+    expect(text).toContain('{client}');
+    expect(text.split('2026-11-19').length - 1).toBe(1);
+  });
+
+  it('round-trips a multi-page multi-token template with Cyrillic values through embedded PT Sans', async () => {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    doc.addPage([595.28, 841.89]).drawText('INVOICE {doc-no}', { x: 100, y: 740, size: 16, font });
+    doc.getPage(0).drawText('Bill to: {client}', { x: 100, y: 700, size: 12, font });
+    doc.addPage([595.28, 841.89]).drawText('Total: {total}', { x: 100, y: 700, size: 12, font });
+    const template = Buffer.from(await doc.save());
+
+    const filled = await fillPdfTemplate(template, { 'doc-no': 'СЧ-42', client: 'ООО Ромашка', total: '120 000,00' });
+
+    expect(filled.subarray(0, 5).toString()).toBe('%PDF-');
+    const reloaded = await PDFDocument.load(filled);
+    expect(reloaded.getPageCount()).toBe(2);
+    const page1 = await pdfTextFonts(filled, 1);
+    expect(page1.text).toContain('INVOICE СЧ-42');
+    expect(page1.text).toContain('Bill to: ООО Ромашка');
+    expect(page1.text.split('Ромашка').length - 1).toBe(1);
+    // The redraw rides its own embedded font resource beside the
+    // template's standard font; the masked original stays extractable.
+    expect(page1.fontNames.length).toBe(2);
+    expect(page1.text).toContain('INVOICE {doc-no}');
+    expect(await pdfText(filled, 2)).toContain('Total: 120 000,00');
+  });
+
   it('leaves a template without tokens byte-shape compatible', async () => {
     const filled = await fillPdfTemplate(await templatePdf('No tokens here'), {});
     await expect(PDFDocument.load(filled)).resolves.toBeTruthy();
