@@ -20,7 +20,7 @@ test('profile canvas keeps its own parameter rows, Escape, and history', async (
     JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
   ));
   await app.gotoClient(list.route);
-  await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+  await page.locator('main').getByRole('button', { name: /^New / }).click();
   await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
 
   await page.waitForTimeout(2500);
