@@ -374,11 +374,15 @@ contract. It combines two halves:
   `SurfaceHeader`), and the workspace pane tab a record of the type
   opens when the type resolves no compiled detail screen
   (`EditorPageSurface` — the same header over the same flush editor,
-  entity-bound or blank). The registry carries the app-owned graph
-  canvas surface `graph-editor`
-  ([process-designer](../process-designer/README.md) owns it); its
-  component resolves lazily so the canvas module tree stays out of the
-  app shell's eager graph. The blank editor's first save runs
+  entity-bound or blank). The registry carries one direct surface: the
+  app-owned `graph-editor` — the unified editor page itself (SPEC
+  §28.14 one editor; [process-designer](../process-designer/README.md)
+  owns it) mounts flush with its own shell in both mounts, opened with
+  `graphInstanceId` ('' loads the process plane, an instance id loads
+  that graph, 'blank' starts a graph document whose first save creates
+  the instance); its component resolves lazily so the canvas module
+  tree stays out of the app shell's eager graph. The blank editor's
+  first save runs
   `POST /api/instances/:type/editor`: the endpoint validates the type's
   declared payload (mime, size, and the canonical graph for
   `graph-document`), stores the payload, and creates the instance through

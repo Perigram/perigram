@@ -31,21 +31,18 @@ import { instancePayloadFileUrl } from './file-preview-contract.js';
  * `openBlankFileEditor`.
  */
 export const fileSurfaceRegistry = {
-  // The graph canvas session over a graph-document payload (SPEC §28):
-  // the same surface the process designer page mounts. Resolves
-  // lazily — the canvas module tree stays out of the app shell's
-  // eager graph.
+  // The one editor (SPEC §28.14): the graph-document surface opens the
+  // unified editor page itself — a `direct` presentation mounts the page
+  // component flush with its own shell (the graphs list owns file and
+  // lifecycle commands), both as the workspace pane tab and as the
+  // record's editor body.
   'graph-editor': {
     workspacePage: {
       labelKey: 'processDesigner.graphDocument',
       icon: 'pi pi-share-alt',
-      component: defineAsyncComponent(() => import('~/components/process-designer/GraphEditorSurface.vue')),
-      props: ({ entity, typeId }) => ({
-        record: entity || null,
-        typeId,
-        persistence: instancePayloadPersistence(entity, typeId, 'application/json'),
-        mode: editorMountMode(typeId, entity)
-      })
+      component: defineAsyncComponent(() => import('~/pages/organization/process.vue')),
+      direct: true,
+      props: page => ({ graphInstanceId: String(page?.entity?._id || page?.entity?.id || 'blank') })
     }
   }
 };
@@ -375,18 +372,31 @@ export function fileWorkspacePages(editors = activeEditorBindings(), surfaces = 
   return (editors || [])
     .map(editor => {
       const surface = resolveFileSurface(editors, editor.type, surfaces);
-      return surface?.workspacePage
-        ? {
-            id: editor.surface,
-            typeId: editor.type,
-            labelKey: surface.workspacePage.labelKey,
-            icon: surface.workspacePage.icon,
-            component: EditorPageSurface,
-            flush: true,
-            recordHeader: true,
-            props: page => ({ editor: surface.workspacePage, entity: page.entity, typeId: editor.type })
-          }
-        : null;
+      if (!surface?.workspacePage) return null;
+      // A direct presentation mounts the page component itself: the
+      // surface owns its whole shell and identity (SPEC §28.14 one
+      // editor — the graph-document surface is the unified editor page).
+      if (surface.workspacePage.direct) {
+        return {
+          id: editor.surface,
+          typeId: editor.type,
+          labelKey: surface.workspacePage.labelKey,
+          icon: surface.workspacePage.icon,
+          component: surface.workspacePage.component,
+          flush: true,
+          props: page => surface.workspacePage.props?.(page, editor.type) || {}
+        };
+      }
+      return {
+        id: editor.surface,
+        typeId: editor.type,
+        labelKey: surface.workspacePage.labelKey,
+        icon: surface.workspacePage.icon,
+        component: EditorPageSurface,
+        flush: true,
+        recordHeader: true,
+        props: page => ({ editor: surface.workspacePage, entity: page.entity, typeId: editor.type })
+      };
     })
     .filter(Boolean);
 }

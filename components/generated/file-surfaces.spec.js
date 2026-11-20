@@ -54,12 +54,17 @@ describe('file surface registry', () => {
     authStore.user = { permissions: { 'graph-document': 'write' } };
     const surface = resolveFileSurface(frameworkEditorBindings, 'graph-document', []);
     expect(surface.remote).toBeUndefined();
+    expect(surface.workspacePage.direct).toBe(true);
     expect(surface.workspacePage.component).toBeTruthy();
-    const props = surface.workspacePage.props({ entity: { _id: 'g-1', name: 'Fixture graph' }, typeId: 'graph-document' }, 'graph-document');
-    expect(props).toMatchObject({ record: { _id: 'g-1' }, typeId: 'graph-document', mode: 'edit' });
-    expect(props.persistence.typeId).toBe('graph-document');
+    expect(surface.workspacePage.props({ entity: { _id: 'g-1', name: 'Fixture graph' } }))
+      .toEqual({ graphInstanceId: 'g-1' });
+    expect(surface.workspacePage.props({ entity: null })).toEqual({ graphInstanceId: 'blank' });
     const pages = fileWorkspacePages(frameworkEditorBindings, []);
-    expect(pages.map(page => page.id)).toContain('graph-editor');
+    const graphPage = pages.find(page => page.id === 'graph-editor');
+    expect(graphPage.flush).toBe(true);
+    expect(graphPage.recordHeader).toBeUndefined();
+    expect(graphPage.component).toBe(surface.workspacePage.component);
+    expect(graphPage.props({ entity: { _id: 'g-2' } })).toEqual({ graphInstanceId: 'g-2' });
   });
 
   it('rejects editor bindings whose surface id is absent from the registry', () => {
