@@ -14,9 +14,11 @@ deployment's built-in listings from their `workers/<plugin>/listing.json`
 sources into `plugin_catalog` (validated by the SDK contract, marked
 `builtin`, retract-refused). Run it as a deploy step on fresh environments.
 Idempotent; it first validates every listing and resolves every declared
-JavaScript runtime entrypoint and surface module plus their transitive,
-statically discoverable relative imports and every declared dependency's
-vendor module (with its relative chunks), then writes the complete catalog
+JavaScript runtime entrypoint, engine entry, surface module, and
+dependency vendor module plus their transitive, statically discoverable
+relative imports and the engine's declared staged assets
+(`prepareListingRelease` in `lib/plugin-runtime-assets.js`), then writes
+the complete catalog
 set. A missing runtime, surface, or dependency source therefore aborts
 before any listing
 is updated. The seed image must
@@ -25,8 +27,9 @@ their runtime entrypoints import package-relative modules outside `runtime/`,
 and both other built-in listing files. Re-running refreshes pinned versions
 and uploads runtime assets into the catalog asset bucket. Keep runtime imports
 literal and package-relative: first-party runtime entries refuse non-literal
-dynamic imports, and declared dependency bundles (vendored third-party
-graphs) collect through the static relative-import walk alone.
+dynamic imports (engine entry graphs stage by declaration, so their wheels may
+import from staged bytes), and declared dependency bundles (vendored
+third-party graphs) collect through the static relative-import walk alone.
 
 The only other live seeder is `seed-palette-colors.js`: it upserts the
 tech-drawing `color` type's system catalogue as SPEC §3 documents

@@ -21,6 +21,7 @@ Target law: [SPEC.md](./SPEC.md).
 | documents | Plugin package | `workers/documents/` | Documents types, template engines, and editor/preview surfaces; every operation runs behind the browser Worker, the managed `plugin-runtime` worker, or the synchronous managed projection boundary — see [workers/documents](./documents/README.md). |
 | tech-drawing | Endpoint-mode plugin executor | `workers/tech-drawing/index.js` | Serves the DXF placement service, the sketch and DXF editor surface modules, and vendored runtimes (the CadCraft browser edition included) — see [workers/tech-drawing](./tech-drawing/README.md). |
 | build123d (transitional) | Legacy endpoint-mode executor — retire after browser package migration | `workers/build123d/server.py` | Existing compatibility executor only. Target: browser Pyodide/OCP.wasm runtime derived from [1suo/build123d-flow](https://github.com/1suo/build123d-flow) — see [workers/build123d](./build123d/README.md) and SPEC §20. |
+| engine-demo (dogfood) | Client-carried engine package | `workers/engine-demo/listing.json` | The E3b/E6 proof: interpreter + WASM kernel + wheel staged as package assets, bootstrapped in a browser Worker, previewed through a mesh channel — see [workers/engine-demo](./engine-demo/README.md). |
 
 ## Docker
 

@@ -13,7 +13,14 @@ Parent: [root README](../README.md).
   ordered views a graph output value supports (text, markdown, table,
   image, document, scene-2d, scene-3d, plugin, JSON fallback) and the
   table-column derivation. The graph preview panel and the Page
-  graph-result embed both derive their renderers through it.
+  graph-result embed both derive their renderers through it. The
+  tessellated mesh channel (SPEC §20 client-carried engines) is the
+  `perigram.scene-3d` value: `{ representation: 'perigram.scene-3d',
+  vertices: [[x, y, z], …], faces: [[i, j, k], …] (triangle indices),
+  normals?: [[nx, ny, nz], …] (per-vertex, parallel to vertices) }` —
+  plain structured-cloneable data, so it crosses Worker and channel
+  mounts unchanged; the scene-2d/scene-3d host projections and plugin
+  preview surfaces (the demo engine's mesh channel) are its renderers.
 - `instance-hierarchy.js`: The containment walk — ancestor refs carry the
   declaration's canonical type id so breadcrumb labels, glyphs, and popup
   targets resolve through the served type view.
