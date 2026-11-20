@@ -19,7 +19,7 @@
         <DesignerSocketHandle :socket="input" :handle-id="input.handleId || ''" side="top" :title="socketTitle(input)" />
       </span>
     </div>
-    <div class="flex items-center gap-1.5">
+    <div class="flex items-center gap-1.5" :class="collapsed ? 'py-2.5' : ''">
       <Button
         :icon="collapsed ? 'pi pi-chevron-right' : 'pi pi-chevron-down'"
         text
