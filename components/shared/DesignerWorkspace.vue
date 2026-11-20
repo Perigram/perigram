@@ -17,6 +17,7 @@
         ref="dock"
         class="absolute inset-0 pointer-events-none"
         overlay
+        allow-floating
         spacer-key="workspace-spacer"
         :items="dockItems"
         :panel-closeable="panelCloseable"
@@ -226,7 +227,7 @@ function onDockLayoutChange(layout) {
 async function buildDefaultLayout() {
   const live = dock.value;
   if (!live) return;
-  const spacerGroup = live.addGroup({ hideHeader: true });
+  const spacerGroup = live.addGroup({ hideHeader: true, locked: true });
   live.addPanel(WORKSPACE_SPACER, { referenceGroup: spacerGroup });
   if (hasPalette.value) await addAuxPanel('palette', 'left', 'width');
   if (hasInspector.value) await addAuxPanel('inspector', 'right', 'width');

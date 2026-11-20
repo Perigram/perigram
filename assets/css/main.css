@@ -1035,3 +1035,10 @@ body {
     background: transparent;
     box-shadow: none;
 }
+
+.perigram-dock--overlay .dv-floating-overlay-host .dv-resize-container {
+    pointer-events: auto;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
