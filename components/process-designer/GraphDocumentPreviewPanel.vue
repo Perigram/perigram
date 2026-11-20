@@ -85,7 +85,7 @@
           size="small"
           :severity="activeView === view.value ? 'primary' : 'secondary'"
           :outlined="activeView !== view.value"
-          @click="activeView = view.value"
+          @click="chooseView(view.value)"
         />
       </div>
       <div class="min-h-0 rounded-ui bg-subtle p-3">
@@ -94,38 +94,6 @@
           :channel="activeChannel"
           :payload="channelPayload"
         />
-        <img
-          v-else-if="activeView === 'image' && imageUrl"
-          :src="imageUrl"
-          :alt="selectedValue?.name || selectedOutput?.label || 'Graph output'"
-          class="max-h-[32rem] max-w-full object-contain"
-        />
-        <svg
-          v-else-if="activeView === 'scene-2d'"
-          :viewBox="scene2dViewBox"
-          class="h-80 w-full"
-          role="img"
-          :aria-label="selectedOutput?.label || '2D scene'"
-        >
-          <g v-for="(primitive, index) in selectedValue.primitives" :key="index" fill="none" stroke="currentColor" stroke-width="1.5">
-            <line v-if="primitive.type === 'line'" :x1="primitive.x1" :y1="primitive.y1" :x2="primitive.x2" :y2="primitive.y2" />
-            <polyline v-else-if="primitive.type === 'polyline'" :points="svgPoints(primitive.points)" />
-            <polygon v-else-if="primitive.type === 'polygon'" :points="svgPoints(primitive.points)" />
-            <circle v-else-if="primitive.type === 'circle'" :cx="primitive.cx" :cy="primitive.cy" :r="primitive.r" />
-            <rect v-else-if="primitive.type === 'rect'" :x="primitive.x" :y="primitive.y" :width="primitive.width" :height="primitive.height" />
-            <text v-else-if="primitive.type === 'text'" :x="primitive.x" :y="primitive.y" fill="currentColor" stroke="none">{{ primitive.text }}</text>
-          </g>
-        </svg>
-        <svg
-          v-else-if="activeView === 'scene-3d'"
-          viewBox="0 0 800 500"
-          class="h-80 w-full"
-          role="img"
-          :aria-label="selectedOutput?.label || '3D scene'"
-        >
-          <polygon v-for="(face, index) in scene3d.faces" :key="`f${index}`" :points="face" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.35" />
-          <line v-for="(edge, index) in scene3d.edges" :key="`e${index}`" :x1="edge.x1" :y1="edge.y1" :x2="edge.x2" :y2="edge.y2" stroke="currentColor" stroke-width="1.5" />
-        </svg>
         <PreviewChannelMount
           v-else-if="activeView === 'plugin' && rendererForOutput && typeof rendererForOutput === 'object'"
           :channel="rendererForOutput"
@@ -137,26 +105,12 @@
           :value="selectedValue"
           :output="selectedOutput"
         />
-        <pre v-else-if="activeView === 'text'" class="whitespace-pre-wrap break-words text-supporting">{{ selectedValue }}</pre>
-        <div v-else-if="activeView === 'markdown'" class="whitespace-pre-wrap break-words text-supporting">{{ selectedValue }}</div>
-        <div v-else-if="activeView === 'table' && Array.isArray(selectedValue)" class="overflow-x-auto">
-          <table class="w-full text-supporting">
-            <thead><tr><th v-for="column in tableColumns" :key="column" class="p-2 text-left">{{ column }}</th></tr></thead>
-            <tbody>
-              <tr v-for="(row, index) in selectedValue" :key="index">
-                <td v-for="column in tableColumns" :key="column" class="border-t border-surface p-2">{{ format(row?.[column]) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <a
-          v-else-if="activeView === 'document' && selectedValue?.fileId"
-          class="text-supporting underline"
-          :href="`/api/files/download/${encodeURIComponent(selectedValue.fileId)}?bucket=${encodeURIComponent(selectedValue.bucket || 'files')}`"
-          target="_blank"
-          rel="noopener"
-        >{{ selectedValue.name || $t('processDesigner.openGraphArtifact') }}</a>
-        <pre v-else class="whitespace-pre-wrap break-all text-supporting">{{ format(selectedValue) }}</pre>
+        <GraphOutputView
+          v-else
+          :value="selectedValue"
+          :view="activeView"
+          :alt="selectedOutput?.label || 'Graph output'"
+        />
       </div>
     </section>
     <section v-if="result && outputOptions.length" class="flex flex-col gap-2 border-t border-surface pt-3">
@@ -224,7 +178,8 @@ import { useInstancesStore } from '~/stores/instances';
 import { useRegistryStore } from '~/stores/registry';
 import { graphFileOptions } from '~/utils/graph-file-options.js';
 import { isDocumentsPreviewValue } from '~/utils/documents-preview.js';
-import { graphOutputViews, graphOutputTableColumns } from '~/utils/graphOutputViews.js';
+import { graphOutputViews } from '~/utils/graphOutputViews.js';
+import GraphOutputView from '~/components/process-designer/GraphOutputView.vue';
 
 const props = defineProps({
   result: { type: Object, default: null },
@@ -276,6 +231,13 @@ const canBake = computed(() => Boolean(
   && !props.baking
 ));
 const activeView = ref('json');
+// The default representation is the best supported view (SPEC §28.14);
+// JSON is an explicit choice. The choice resets per selected output.
+const viewChosen = ref(false);
+function chooseView(view) {
+  viewChosen.value = true;
+  activeView.value = view;
+}
 const outputOptions = computed(() => (props.graph.interface?.outputs || []).map(port => ({
   _id: String(port.id),
   label: String(port.label || port.id)
@@ -295,34 +257,6 @@ const rendererForOutput = computed(() => {
   if (!rendererId) return null;
   return props.previewRenderers?.[`${sourceDefinition.value.provider}:${rendererId}`] || null;
 });
-const imageUrl = computed(() => {
-  const value = selectedValue.value;
-  return value?.fileId && String(value.mime || '').startsWith('image/')
-    ? `/api/files/download/${encodeURIComponent(value.fileId)}?bucket=${encodeURIComponent(value.bucket || 'files')}`
-    : '';
-});
-const scene2dViewBox = computed(() => {
-  const bounds = selectedValue.value?.bounds || { x: 0, y: 0, width: 100, height: 100 };
-  return `${Number(bounds.x || 0)} ${Number(bounds.y || 0)} ${Math.max(1, Number(bounds.width || 100))} ${Math.max(1, Number(bounds.height || 100))}`;
-});
-const scene3d = computed(() => {
-  const vertices = Array.isArray(selectedValue.value?.vertices) ? selectedValue.value.vertices : [];
-  if (!vertices.length) return { faces: [], edges: [] };
-  const projected = vertices.map(vertex => {
-    const [x = 0, y = 0, z = 0] = (Array.isArray(vertex) ? vertex : []).map(Number);
-    return { x: (x - y) * 0.8660254, y: (x + y) * 0.5 - z };
-  });
-  const xs = projected.map(point => point.x), ys = projected.map(point => point.y);
-  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  const scale = Math.min(720 / Math.max(1, maxX - minX), 420 / Math.max(1, maxY - minY));
-  const points = projected.map(point => ({ x: 400 + (point.x - (minX + maxX) / 2) * scale, y: 250 - (point.y - (minY + maxY) / 2) * scale }));
-  const faces = (selectedValue.value.faces || []).filter(face => Array.isArray(face) && face.length >= 3 && face.every(index => Number.isInteger(index) && points[index])).map(face => face.map(index => `${points[index].x},${points[index].y}`).join(' '));
-  const edgePairs = Array.isArray(selectedValue.value.edges) && selectedValue.value.edges.length
-    ? selectedValue.value.edges
-    : (selectedValue.value.faces || []).flatMap(face => face.map((index, position) => [index, face[(position + 1) % face.length]]));
-  const edges = edgePairs.filter(edge => Array.isArray(edge) && edge.length === 2 && points[edge[0]] && points[edge[1]]).map(([a, b]) => ({ x1: points[a].x, y1: points[a].y, x2: points[b].x, y2: points[b].y }));
-  return { faces, edges };
-});
 const activeChannel = computed(() => props.channels.find(channel => `channel:${channel.id}` === activeView.value) || null);
 const channelPayload = computed(() => ({
   ...props.result,
@@ -335,7 +269,6 @@ const availableViews = computed(() => {
   for (const channel of props.channels) views.push({ value: `channel:${channel.id}`, label: channel.label });
   return views;
 });
-const tableColumns = computed(() => graphOutputTableColumns(selectedValue.value));
 watch([fileInputPorts, fileTypeIds], async ([ports, typeIds]) => {
   if (!ports.length || !typeIds.length) {
     fileOptionsError.value = '';
@@ -352,13 +285,18 @@ watch([fileInputPorts, fileTypeIds], async ([ports, typeIds]) => {
   fileOptionsLoading.value = false;
 }, { immediate: true });
 watch(outputOptions, options => {
-  if (!options.some(option => option._id === selectedOutputId.value)) selectedOutputId.value = options[0]?._id || '';
+  if (!options.some(option => option._id === selectedOutputId.value)) {
+    selectedOutputId.value = options[0]?._id || '';
+    viewChosen.value = false;
+  }
 }, { immediate: true });
+watch(selectedOutputId, () => { viewChosen.value = false; });
 watch(availableViews, views => {
   const value = selectedValue.value;
   const documentsChannel = props.channels.find(channel => channel.id === 'documents');
   const preferred = isDocumentsPreviewValue(value) && documentsChannel ? `channel:${documentsChannel.id}` : '';
   if (preferred && views.some(view => view.value === preferred)) activeView.value = preferred;
+  else if (!viewChosen.value) activeView.value = views[0]?.value || 'json';
   else if (!views.some(view => view.value === activeView.value)) activeView.value = views[0]?.value || 'json';
 });
 watch(
@@ -380,86 +318,6 @@ watch(
   { immediate: true, deep: true }
 );
 
-function svgPoints(points = []) {
-  return Array.isArray(points) ? points.filter(point => Array.isArray(point) && point.length >= 2).map(point => `${Number(point[0])},${Number(point[1])}`).join(' ') : '';
-}
-
-async function submitBake() {
-  if (!canBake.value) return;
-  emit('bake', {
-    outputId: selectedOutputId.value,
-    pageId: selectedPageId.value,
-    path: pageFilePath.value.trim(),
-    conflictPolicy: conflictPolicy.value,
-    execution: props.execution
-  });
-}
-
-onMounted(async () => {
-  try {
-    const response = await $fetch('/api/pages');
-    const pages = (Array.isArray(response?.pages) ? response.pages : [])
-      .filter(page => page?.kind === 'page' && page?._id);
-    const byId = new Map(pages.map(page => [String(page._id), page]));
-    pageOptions.value = pages.map(page => {
-      const parts = [];
-      const seen = new Set();
-      let current = page;
-      while (current && !seen.has(String(current._id))) {
-        seen.add(String(current._id));
-        parts.unshift(String(current.name || t('pages.page')));
-        current = current.parentId ? byId.get(String(current.parentId)) : null;
-      }
-      return { _id: String(page._id), label: `${parts.join(' / ')} · ${String(page._id)}` };
-    });
-  } catch {
-    pageOptions.value = [];
-  }
-});
-
-function applyInput(port) {
-  const portId = port.id;
-  try {
-    const base = port.contract?.semantic?.base || 'json';
-    const shape = port.contract?.shape || 'item';
-    const value = shape === 'item' && base === 'string'
-      ? inputDrafts[portId] ?? ''
-      : shape === 'item' && ['number', 'integer'].includes(base)
-        ? inputDrafts[portId]
-        : shape === 'item' && base === 'boolean'
-          ? Boolean(inputDrafts[portId])
-          : JSON.parse(inputJsonDrafts[portId] || 'null');
-    const semantic = port.contract?.semantic || {};
-    if (port.required && base === 'string' && typeof value === 'string' && !value.trim()) {
-      throw new Error(t('processDesigner.graphInputInvalid'));
-    }
-    if (value === null && semantic.nullable !== true) {
-      throw new Error(t('processDesigner.graphInputNullNotAllowed'));
-    }
-    if (value === undefined && port.required) {
-      throw new Error(t('processDesigner.graphInputInvalid'));
-    }
-    const validItem = item => {
-      if (item === null) return shape === 'item' && semantic.nullable === true;
-      if (base === 'string') return typeof item === 'string';
-      if (base === 'number') return typeof item === 'number' && Number.isFinite(item);
-      if (base === 'integer') return Number.isSafeInteger(item);
-      if (base === 'boolean') return typeof item === 'boolean';
-      if (base === 'record') return item && typeof item === 'object' && !Array.isArray(item);
-      return true;
-    };
-    const valid = value === null && semantic.nullable === true ? true : ['list', 'tuple', 'tree'].includes(shape)
-      ? Array.isArray(value) && value.every(validItem)
-      : shape === 'map'
-        ? value && typeof value === 'object' && !Array.isArray(value)
-        : validItem(value);
-    if (!valid) throw new Error(t('processDesigner.graphInputInvalid'));
-    delete inputErrors[portId];
-    emit('update-input-binding', { portId, value });
-  } catch (cause) {
-    inputErrors[portId] = cause.message || String(cause);
-  }
-}
 function format(value) {
   try { return JSON.stringify(value, null, 2); } catch { return String(value); }
 }

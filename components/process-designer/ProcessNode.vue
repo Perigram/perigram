@@ -67,17 +67,27 @@
       />
     </div>
 
-    <!-- Collapsed: the name once with its header icons; every socket keeps
-         its side rail and expanded order, names on the hover tooltips, so
-         wires keep their anchors. -->
-    <div v-if="collapsed" class="-mx-2.5 mt-1 flex flex-col">
-      <div v-for="row in collapseSocketRows" :key="row.key" class="flex min-h-3.5 items-center">
-        <div v-if="row.input" class="relative w-full py-0.5 pl-3" :title="socketTitle(row.input)">
-          <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
-        </div>
-        <div v-if="row.output" class="relative ml-auto w-full py-0.5 pr-3" :title="socketTitle(row.output)">
-          <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
-        </div>
+    <!-- Collapsed: the name once with its header icons; every socket at a
+         distinct position — inputs on the top rail, outputs on the bottom
+         rail (names on the handle tooltips). -->
+    <div v-if="collapsed" class="mt-1 flex flex-col items-center gap-1 py-0.5">
+      <div class="flex items-center gap-1.5">
+        <DesignerSocketHandle
+          v-for="input in collapseInputs"
+          :key="`ci-${input.id}`"
+          :socket="input"
+          side="top"
+          :title="socketTitle(input)"
+        />
+      </div>
+      <div class="flex items-center gap-1.5">
+        <DesignerSocketHandle
+          v-for="output in collapseOutputs"
+          :key="`co-${output.id}`"
+          :socket="output"
+          side="bottom"
+          :title="socketTitle(output)"
+        />
       </div>
     </div>
 
@@ -166,13 +176,9 @@ const faultMessages = computed(() => (Array.isArray(props.data.diagnostics) ? pr
 const faulted = computed(() => Boolean(faultMessages.value?.length));
 const errorPopover = ref(null);
 const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutputs.value, 'event'));
-// The collapsed card's socket rows: every socket, data and event alike,
-// keeping its side rail and expanded order.
-const collapseSocketRows = computed(() => alignSockets(
-  [...dataInputs.value, ...eventInputs.value],
-  [...dataOutputs.value, ...eventOutputs.value],
-  'collapse'
-));
+// The collapsed card's edge sockets: every socket, data and event alike.
+const collapseInputs = computed(() => [...dataInputs.value, ...eventInputs.value]);
+const collapseOutputs = computed(() => [...dataOutputs.value, ...eventOutputs.value]);
 const collapsed = computed(() => Boolean(props.data.collapsed));
 
 function toggleCollapsed() {
