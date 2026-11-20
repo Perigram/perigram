@@ -1542,7 +1542,6 @@ deployment.
   the throwaway worktree config at
   `/tmp/opencode/e3b-engine.vitest.config.js` (worktree node_modules
   caveat); `check-arch` ✓, `docs:validate` ✓, `plugin-deps:check` ✓.
->>>>>>> agent/e3b-engine-20261119-2230
 
 ### Agent Notes (2026-11-14, agent/local-engine-e3a-20261114)
 
