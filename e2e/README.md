@@ -74,6 +74,14 @@ that drive executor-backed surfaces or services wire them through
   explicit Page destinations with execution provenance, and the palette
   searches and places a typed Paragraph node. The graph opens as a
   `graph-document` file record, not a separate workspace page.
+- `graph-procedural-preview.spec.js`: the G4 procedural-preview
+  acceptance — a typed Documents block chain (inline text → paragraph and
+  list → compose → append → Markdown export) previews through the graph
+  preview channel with intermediate typed node outputs asserted; a saved
+  incompatible edge blocks preview behind the mapped preflight diagnostic
+  naming the offending ports; a Use Graph node pinned to an exact saved
+  revision resolves the subgraph output through the channel, and a drifted
+  child revision blocks preview with the pinned-unavailable diagnostic.
 - `plugin-surface.spec.js`: plugin-delivered surfaces end to end — the
   fixture plugin publishes through the real catalog API and installs
   through the real gate, and its editor surface mounts as the record

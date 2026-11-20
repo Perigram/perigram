@@ -20,7 +20,7 @@ test('the cassette load picker renders payload-based previews', async ({ app }) 
   await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
   await app.gotoClient(list.route);
 
-  await app.page.getByRole('button', { name: 'New', exact: true }).click();
+  await app.page.getByRole('button', { name: /^New / }).click();
   await expect(app.page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
 
   // Save the blank designer's tree: the payload round trip is exactly

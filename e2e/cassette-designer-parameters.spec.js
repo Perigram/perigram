@@ -67,7 +67,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   ));
   await app.gotoClient(list.route);
 
-  const newButton = page.locator('main').getByRole('button', { name: 'New', exact: true });
+  const newButton = page.locator('main').getByRole('button', { name: /^New / });
   await expect(newButton).toBeVisible({ timeout: 30_000 });
   await newButton.click();
   await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
@@ -341,7 +341,7 @@ test('a dimension edit over an instance override writes the override; clearing s
   ));
   await app.gotoClient(list.route);
 
-  await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+  await page.locator('main').getByRole('button', { name: /^New / }).click();
   await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
   await page.getByRole('button', { name: 'Add profile' }).click();
   const pickerEntry = page.getByRole('button', { name: /Create new|New profile/ }).first();
@@ -463,7 +463,7 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
   await app.gotoClient(list.route);
 
-  await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+  await page.locator('main').getByRole('button', { name: /^New / }).click();
   await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
 
   await page.getByRole('button', { name: 'Add profile' }).click();
@@ -549,7 +549,7 @@ test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
   await app.gotoClient(list.route);
 
-  await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+  await page.locator('main').getByRole('button', { name: /^New / }).click();
   const canvas = page.locator('.designer-workspace__canvas').first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
   await page.waitForTimeout(1500);

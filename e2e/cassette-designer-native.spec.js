@@ -37,7 +37,7 @@ test('designer canvas paints native dimensions and the palette drives every laye
     JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
   ));
   await app.gotoClient(list.route);
-  await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+  await page.locator('main').getByRole('button', { name: /^New / }).click();
 
   const canvas = page.locator('.designer-workspace__canvas').first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
@@ -100,7 +100,7 @@ test('assembly canvas wheel follows CadCraft and dimension editors stay in view'
     JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
   ));
   await app.gotoClient(list.route);
-  await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+  await page.locator('main').getByRole('button', { name: /^New / }).click();
 
   const canvas = page.locator('.designer-workspace__canvas').first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
