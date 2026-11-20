@@ -156,7 +156,8 @@ Operational pages use shared UI shell primitives:
   owns outer route padding and passes bounded flex height to full-height
   workspace routes. `StandardPage` renders the routed-surface back control
   (`back` prop, the `usePageBack` shape) beside its title; pane-hosted
-  surfaces rely on their tab strip as the navigation.
+  surfaces switch through their tab strip and carry Back in the hosted
+  page header.
 - `ActionToolbar` owns section headers.
 - `ResponsiveGrid` owns repeated card layouts.
 - `StateBlock` owns loading/empty/error surfaces.
