@@ -38,23 +38,6 @@
         </div>
       </template>
 
-      <template v-if="hasBack" #leftHeaderActions="{ group }">
-        <div class="flex h-full items-center pl-1">
-          <Button
-            icon="pi pi-arrow-left"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :disabled="!hasBack(group.id)"
-            :aria-label="$t('common.back')"
-            :title="$t('common.back')"
-            data-testid="pane-back"
-            @click="$emit('back', group.id)"
-          />
-        </div>
-      </template>
-
       <template v-if="allowAdd || allowSplit || allowCloseGroup" #rightHeaderActions="{ group }">
         <div class="flex h-full items-stretch">
           <Button
@@ -134,7 +117,6 @@ const props = defineProps({
   // Every surface that can appear as a tab. Only panels present in the
   // dock layout render; the list supplies labels, icons, and close rules.
   items: { type: Array, default: () => [] },
-  hasBack: { type: Function, default: null },
   allowAdd: { type: Boolean, default: false },
   allowSplit: { type: Boolean, default: false },
   allowCloseGroup: { type: Boolean, default: false },
@@ -153,8 +135,7 @@ const emit = defineEmits([
   'close-tab',
   'close-group',
   'add-tab',
-  'split',
-  'back'
+  'split'
 ]);
 
 const { t } = useI18n();

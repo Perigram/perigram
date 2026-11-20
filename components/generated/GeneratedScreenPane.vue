@@ -13,6 +13,7 @@
         <GeneratedScreenHost
           v-else
           :screen="scopedScreen"
+          :navigation="navigation"
           @open-instance="payload => $emit('open-entity', { typeId: payload.typeId, instanceId: payload.instanceId })"
           @refresh="$emit('refresh')"
         />
@@ -39,7 +40,8 @@ import { useAuthStore } from '~/stores/auth';
 import { provideContainerTraits } from '~/composables/useContainerTraits.js';
 
 const props = defineProps({
-  item: { type: Object, required: true }
+  item: { type: Object, required: true },
+  navigation: { type: Object, default: null }
 });
 
 defineEmits(['refresh', 'open-entity']);
