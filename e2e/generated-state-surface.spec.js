@@ -3,11 +3,13 @@ import { test, expect } from './fixtures.js';
 // Browser evidence for the generated state surface on the flat state
 // vocabulary (SPEC §7): an org-authored type with process-authored state
 // records, a construct seeding the initial state, and a transition
-// record wiring the machine edge. Verifies the detail header's segmented
-// state tag (authored label + severity), the policy-labeled transition
-// button, the transition round-trip through the state API, and the
-// vertical-stepper history popover over status_events. The attached
-// screenshots and the history JSON are the durable acceptance artifact.
+// record wiring the machine edge. Verifies the one-control state
+// surface (SPEC §22.16): the header's segmented state tag opens the
+// state popover carrying the legal transitions and the status_events
+// audit stepper — the header renders no separate history trigger and
+// no transition buttons. The transition round-trip dispatches through
+// the state API. The attached screenshots and the history JSON are the
+// durable acceptance artifact.
 
 const TYPE = 'e2e-state-widget';
 
@@ -32,43 +34,43 @@ test.describe('generated state surface', () => {
     const header = app.page.locator('.surface-header');
     await expect(header.getByText('E2E State Widget')).toBeVisible({ timeout: 20000 });
 
-    // The segmented state tag renders the authored initial label.
-    const stateTag = header.locator('.p-tag').filter({ hasText: 'Draft' });
-    await expect(stateTag).toBeVisible({ timeout: 20000 });
+    // The one state control (SPEC §22.16): the segmented current-state
+    // tag is itself the popover trigger — the header carries no
+    // transition buttons and no separate history trigger.
+    const stateControl = header.getByRole('button', { name: 'Draft', exact: true });
+    await expect(stateControl).toBeVisible({ timeout: 20000 });
+    await expect(header.getByRole('button', { name: 'State history' })).toHaveCount(0);
 
-    // The machine transition renders as a dedicated header button,
-    // labeled by the authored target policy (never an anonymous pencil).
-    const advance = header.getByRole('button', { name: 'Done' });
-    await expect(advance).toBeVisible({ timeout: 20000 });
-
-    // The history popover opens the vertical stepper with the initialize
-    // event and the attributed name edit (the rename channel patches the
-    // identifier row); the newest step's evidence panel is open by default.
-    await header.getByRole('button', { name: 'State history' }).click();
-    const stepper = app.page.locator('.p-stepper');
+    // The popover carries the machine's runnable edges on top and the
+    // audit stepper below: the initialize event (the prompted create
+    // consumes the name, so the trail opens with one step), the newest
+    // step's evidence panel open by default.
+    await stateControl.click();
+    const popover = app.page.locator('.p-popover');
+    await expect(popover).toBeVisible({ timeout: 10000 });
+    const stepper = popover.locator('.p-stepper');
     await expect(stepper).toBeVisible({ timeout: 10000 });
-    await expect(stepper.locator('.p-step')).toHaveCount(2);
+    await expect(stepper.locator('.p-step')).toHaveCount(1);
     await testInfo.attach('state-history-initial', {
       body: await stepper.screenshot(),
       contentType: 'image/png'
     });
-    await app.page.keyboard.press('Escape');
 
-    // The transition dispatches through the state API and the header
-    // re-anchors on the updated entity: the terminal label replaces the
-    // initial one.
-    await advance.click();
-    await expect(header.locator('.p-tag').filter({ hasText: 'Done' })).toBeVisible({ timeout: 20000 });
-    await expect(header.locator('.p-tag').filter({ hasText: 'Draft' })).toHaveCount(0);
+    // The transition renders inside the popover, labeled by the authored
+    // target policy (never an anonymous pencil); it dispatches through
+    // the state API and the header re-anchors on the updated entity.
+    await popover.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(header.getByRole('button', { name: 'Done', exact: true })).toBeVisible({ timeout: 20000 });
+    await expect(header.getByRole('button', { name: 'Draft', exact: true })).toHaveCount(0);
 
-    // The audit trail grows the transition event: three stepper steps,
+    // The audit trail grows the transition event: two stepper steps,
     // the newest open. Consecutive steps by one principal carry the actor
     // once — steps are not copies of each other. The header re-anchored
     // on the updated entity; let it settle before reopening the popover.
     await app.page.waitForTimeout(600);
-    await header.getByRole('button', { name: 'State history' }).click();
-    await expect(stepper).toBeVisible({ timeout: 10000 });
-    await expect(stepper.locator('.p-step')).toHaveCount(3);
+    await header.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(popover).toBeVisible({ timeout: 10000 });
+    await expect(stepper.locator('.p-step')).toHaveCount(2);
     // The acting principal renders once — the open panel's actor block;
     // consecutive steps by one principal carry the actor once.
     await expect(stepper.getByRole('button', { name: 'Open chats' })).toHaveCount(1);

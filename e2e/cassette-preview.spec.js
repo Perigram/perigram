@@ -18,7 +18,7 @@ test('cassette record previews as in-place SVG', async ({ app }) => {
     JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
   ));
   await app.gotoClient(list.route);
-  await page.locator('main').getByRole('button', { name: /^New / }).click();
+  await page.locator('main').getByRole('button', { name: /^New( Cassette template( from [A-Za-z]+)?)?$/ }).click();
   await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
   await page.waitForTimeout(4000);
   await page.locator('[data-designer-toolbar]').getByRole('button', { name: 'Save', exact: true }).click();

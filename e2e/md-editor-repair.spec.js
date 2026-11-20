@@ -40,7 +40,7 @@ test.describe('markdown editor repair', () => {
     // gallery with preview bands once records exist) — settle on the
     // screen title, which every presentation carries.
     await expect(app.page.locator('main').getByRole('heading', { name: 'Text document' })).toBeVisible({ timeout: 20000 });
-    const newButton = app.page.locator('main').getByRole('button', { name: /^New / }).first();
+    const newButton = app.page.locator('main').getByRole('button', { name: /^New( Text document( from [A-Za-z]+)?)?$/ });
     const source = app.page.locator('.ProseMirror');
     for (let attempt = 0; attempt < 4 && !(await source.isVisible()); attempt += 1) {
       await newButton.click();
@@ -79,7 +79,7 @@ test.describe('markdown editor repair', () => {
     // gallery with preview bands once records exist) — settle on the
     // screen title, which every presentation carries.
     await expect(app.page.locator('main').getByRole('heading', { name: 'Text document' })).toBeVisible({ timeout: 20000 });
-    const newButton = app.page.locator('main').getByRole('button', { name: /^New / }).first();
+    const newButton = app.page.locator('main').getByRole('button', { name: /^New( Text document( from [A-Za-z]+)?)?$/ });
     const source = app.page.locator('.ProseMirror');
     for (let attempt = 0; attempt < 4 && !(await source.isVisible()); attempt += 1) {
       await newButton.click();
@@ -173,7 +173,7 @@ test.describe('markdown editor repair', () => {
     // last New button); the editor create opens a workspace pane, the
     // upload create opens the dialog.
     const dialog = app.page.locator('.p-dialog');
-    const lastNew = () => app.page.locator('main').getByRole('button', { name: /^New / }).last();
+    const lastNew = () => app.page.locator('main').getByRole('button', { name: /^New( Text document( from [A-Za-z]+)?)?$/ });
     for (let attempt = 0; attempt < 4 && !(await dialog.isVisible()); attempt += 1) {
       await lastNew().click({ timeout: 5000 }).catch(() => {});
       await expect(dialog).toBeVisible({ timeout: 5000 }).catch(() => {});
@@ -211,7 +211,7 @@ test.describe('markdown editor repair', () => {
     // gallery with preview bands once records exist) — settle on the
     // screen title, which every presentation carries.
     await expect(app.page.locator('main').getByRole('heading', { name: 'CSV table' })).toBeVisible({ timeout: 20000 });
-    const newButton = app.page.locator('main').getByRole('button', { name: /^New / }).first();
+    const newButton = app.page.locator('main').getByRole('button', { name: /^New( CSV table( from [A-Za-z]+)?)?$/ });
     const dialog = app.page.locator('.p-dialog');
     for (let attempt = 0; attempt < 4 && !(await dialog.isVisible()); attempt += 1) {
       await newButton.click();
