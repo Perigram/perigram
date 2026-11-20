@@ -419,13 +419,13 @@ canvas-top dock inside the canvas slot: the strip owns the canvas's top
 LEFT half (`max-w-[calc(50%-10rem)]`), its container passes pointer
 events through its empty areas so canvas gestures survive under it, and
 the canvas status pill owns top-center above it (`z-30`). The inspector
-is a non-modal overlay drawer rail the toolbar toggle owns — canvas
-clicks keep it open, and canvas Escape clears graph selection. The
-preview workspace is the workspace's resizable bottom region (SPEC
-§28.14); the canvas status pill opens it (both mounts: the graph-editor
-session's evaluation state and the process channel evaluation feed the
-shared `canvasStatusOf` derivation), and the floating `Toolbar` rides
-above the open region. The floating `Toolbar`'s canvas group
+is a dock panel the toolbar toggle opens and closes — canvas clicks keep
+it open, and canvas Escape clears graph selection. The preview workspace
+is a dock panel below the canvas (SPEC §28.14); the canvas status pill
+opens it (both mounts: the graph-editor session's evaluation state and
+the process channel evaluation feed the shared `canvasStatusOf`
+derivation). Panel layout persists per editor through the shell's
+`workspaceId`. The floating `Toolbar`'s canvas group
 carries the view controls (zoom out/in, frame all, frame selection,
 reset zoom, Tidy), every item icon-only
 with its label as tooltip and accessible name, so the toolbar survives
@@ -619,8 +619,8 @@ validation feedback strip — over the session composable's state and
 verbs passed as props (`v-model:nodes`/`v-model:edges`, palette groups,
 gesture handlers). The `lane` slot carries a host's zoom-pane background
 (the process page's lane bands); the `inspector` slot carries the host's
-rail content; the `preview` slot carries a host's preview workspace
-content. The graph-document mount places its preview/input panel in the
+inspector panel content; the `preview` slot carries a host's preview
+workspace content. The graph-document mount places its preview/input panel in the
 workspace preview region; the canvas status control opens that region.
 Function-ref props (`bindFrame`, `bindContextPaletteSearch`)
 hand the mounted instances to the session's refs — plain ref props would

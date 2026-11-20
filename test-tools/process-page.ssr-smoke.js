@@ -44,18 +44,10 @@ describe('process designer page SSR smoke', () => {
 
     const html = await renderToString(app);
 
-    // The workspace chrome, both drawer rails, the floating designer
-    // toolbar, and every tab panel (inspector, roles) render
-    // server-side. Screens are no longer a tab — they render per role
-    // under Roles (SPEC "Role management"), so the old screens tab
-    // label is gone from the tab list while the roles pane renders.
+    // The workspace shell and toolbar render server-side; dock panels
+    // mount client-side through dockview.
     expect(html).toContain('designer-workspace');
-    expect(html).toContain('designer-workspace__rail');
     expect(html).toContain('data-designer-toolbar');
-    expect(html).toContain('data-designer-palette-strip');
-    expect(html).toContain('>Types<');
-    expect(html).toContain('processDesigner.selectNode');
-    expect(html).toContain('processDesigner.addRole');
     expect(html).not.toContain('>organization.screens<');
   });
 });

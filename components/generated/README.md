@@ -598,11 +598,11 @@ fails to compile), the screens route feeds it the sourceless default home
 contract (`defaultHomeScreen` in
 [pages/README.md](../../pages/README.md)) and every
 definition-independent surface keeps working — the communication entries,
-the profile/account footer, the pane area with its empty-tab prompt — while
+the profile/account footer, the dock pane area with its empty-panel prompt — while
 type panels and sections simply stay absent because they derive entirely
 from the compiled manifest.
 - Desktop (`md` and up) is a fixed two-column bounded workspace: a sidebar and
-  the recursive pane area. Mobile renders the screen selected in the
+  the dock pane area. Mobile renders the screen selected in the
   app-shell bottom bar — the shared mobile home tab contract
   (`useMobileHomeTabs`, owned by
   [composables/README.md](../../composables/README.md)) — with the home
@@ -633,7 +633,7 @@ from the compiled manifest.
   under the same law (the [custom pages](#custom-pages) section owns
   their contract).
   Communication is two entries in the menu: Chats is a plain entry
-  opening the general chats pane tab in the active pane and carrying
+  opening the general chats pane tab in the active group and carrying
   the total unread badge in both sidebar shapes (the wrapped rail's
   icon-corner overlay; the expanded menu's badge rides the row's
   trailing edge past the label — `ml-auto order-last` inside the
@@ -727,73 +727,54 @@ from the compiled manifest.
   wrapped rail), so on this route the desktop top
   navbar is hidden and its user controls live in the sidebar
   (`layouts/app.vue` resolves this from the active screen template).
-- The pane area is the same recursive `WorkspaceSplitNode` tree used by the
-  project workspace, with every leaf wrapped in a PrimeVue `Panel` on the
-  zero canvas — transparent background, the default Panel hairline border
-  as the pane box, no content padding (the hosted surface owns its own
-  chrome). Split cells carry no padding: the 6px gutters between the
-  panels are the only inter-pane gap and the pane-area host owns the
-  workspace-edge inset, so nested splits never compound spacing; gutters
-  are never drawn — the division stays draggable without a visible
-  divider. Every pane exists with at least one tab: fresh panes (initial
-  and split) start on a default empty tab, persisted tabless leaves are
-  normalized to one at load, and closing a pane's last tab closes the
-  pane — except the workspace's last pane, which resets to a fresh empty
-  tab: chats-folder-style chip tabs (see
-  [components/README.md](../../components/README.md)), wheel-scrollable
-  tab strips, split
-  right/down, pane-local close, registered workspace pages (every editor
-  surface — cassette designer, sheet layout editor, sketch, text/csv,
-  table import — plus chats and custom pages), and screen panes
-  (`GeneratedScreenPane`): type
-  screens and instance-bound detail screens both render through
-  `GeneratedScreenHost` — the single generator host, with the instance id
-  in the screen scope for detail panes. The pane is a container-traits
-  host: it measures its scroll column and provides the resolved record,
-  so hosted surfaces size budgets to the pane the user shaped. The pane tab names the hosted
-  surface (SPEC §22): the host receives
-  every collection region carries its own title bar (SPEC §22.3); a
-  hosted record page renders its full header. Collection creation
-  belongs to sidebar sections and entity operations to the detail
-  screens' own action surfaces.
-- Tab creation is explicit: new tabs come only from the tab strip's add
-  control, sidebar class pages, explorer instance rows,
-  custom page rows, and live call stages (calls stay in their own tab so
-  workspace navigation never unmounts an active call). Every other navigation —
-  explorer rows, nested entity links, workspace pages — reuses the pane's
-  selected tab in place (replacing an empty placeholder like any content), and
-  opening an item that already has a tab in the pane just selects it; a
-  new tab opened onto a selected empty placeholder consumes the
-  placeholder instead of leaving a dead "new tab" behind. Each
-  tab keeps its own selected content while switching: pane tab keys and
-  the selected key are persisted pane state, and the page content host is
-  keyed by the tab's page key, so a switch mounts the selected tab's own
-  content. Every plugin editor page resolves the same `RemoteEditorSurface`
-  loader, whose persistence and module mount bind to one type and record
-  per mount — the page key is the per-tab instance boundary. In-place replacement is a
-  navigation step: the workspace keeps a per-pane history stack of the
-  replaced content keys (session-only, capped), and the pane header
-  renders its Back control — always visible, disabled while the pane has
-  no history — so navigation stays discoverable; Back walks the pane's
-  navigation path, skipping entries whose content fails to resolve. Detail tab titles follow
-  the one title resolver (`titleFor` from the mapping
-  contract over the instances pool), so the declared identity field wins
-  and raw ids never render; type-screen tabs carry procedural labels
-  (the generated type key with a locale override over the manifest
-  label). Type-bound page tabs (editor pages, directory surfaces) wear
-  the bound type's authored registry glyph; entity-less pages and
-  glyph-less types fall back to the registered page icon.
-- Tab and pane state persists as versioned browser UI state scoped to the
-  current user and organization (`utils/home-workspace-state.js`,
-  version 3 — instance surfaces are instance-bound screen references).
-  It stores the pane tree, tab selections, opened screen references
-  (type and instance-bound), and opened page
-  references using the same normalization contract as the project workspace,
-  minus explorer fields. Explorer rows and editor pages keep their
-  records hydrated through the instances store pool for nesting and
-  page props; lazily
-  fetched explorer children stay session-local. The persisted state is
-  applied after mount: production Vue does not rectify hydration
+- The pane area is a dockview (`WorkspaceDock`, contract in
+  [shared](../shared/README.md)): a pane is a dockview group and a tab is
+  a dockview panel. Panels drag between groups, dock to group edges into
+  new splits, and carry a pane-local Back control, an add control, and a
+  split/close menu in the group header. Group boxes are the pane chrome;
+  splitters stay invisible but draggable.
+- Every group holds at least one panel: fresh groups start on an empty
+  placeholder, a new tab consumes a selected empty placeholder, and
+  closing a group's last panel closes the group except for the
+  workspace's final group, which resets to a fresh empty placeholder.
+  `GeneratedScreenPane` renders compiled type and instance-bound detail
+  screens through `GeneratedScreenHost`; `GeneratedWorkspacePage` renders
+  registered workspace pages (every editor surface, chats, custom pages,
+  directory surfaces). The pane is a container-traits host and provides
+  its record comments channel (SPEC §22.17). A hosted record page renders
+  its full header; a collection region carries its own title bar (SPEC
+  §22.3).
+- Tab creation is explicit: new tabs come from the add control, sidebar
+  class pages, explorer instance rows, custom page rows, and live call
+  stages. Every other navigation reuses the active group's selected tab
+  in place (replacing an empty placeholder like any content), and opening
+  an item that already has a panel selects that panel. A panel key is
+  unique across the workspace, so each panel keeps one content instance
+  for its lifetime. Every plugin editor page resolves the same
+  `RemoteEditorSurface` loader, whose persistence and module mount bind
+  to one type and record per panel — the page key is the per-panel
+  instance boundary. In-place replacement is a navigation step: the
+  workspace keeps a per-group history stack of replaced content keys
+  (session-only, capped), and the group header renders its Back control —
+  always visible, disabled while the group has no history — so navigation
+  stays discoverable; Back replaces the group's selected panel, skipping
+  entries whose content fails to resolve.
+- Tab titles follow the one title resolver (`titleFor` over the instances
+  pool), so the declared identity field wins and raw ids never render;
+  type-screen tabs carry procedural labels (the generated type key with a
+  locale override over the manifest label). Type-bound page tabs wear the
+  bound type's authored registry glyph; entity-less pages and glyph-less
+  types fall back to the registered page icon.
+- Dock layout and open tabs persist as versioned browser UI state scoped
+  to the current user and organization (`utils/home-workspace-state.js`,
+  version 4). The stored dockview serialization carries the group tree,
+  split sizes, tab order, and active group/tab; opened screen, page,
+  custom-page, and pinned-chat references carry the surface scope.
+  Explorer rows and editor pages keep their records hydrated through the
+  instances store pool for nesting and page props; lazily fetched explorer
+  children stay session-local. Live call panels stay session-only. A
+  version 3 pane tree is read once and flattened into tabs. The persisted
+  state applies after mount: production Vue does not rectify hydration
   mismatches, so SSR and the hydration render stay identical and the
   workspace swap-in rides normal reactivity.
 

@@ -242,32 +242,33 @@
       </aside>
 
       <div class="min-h-0 min-w-0 flex-1 overflow-hidden p-1.5">
-        <WorkspaceSplitNode
-          :node="paneTree"
-          :active-pane-id="activePaneId"
-          @activate="activatePane"
-          @resize="resizePaneSplit"
+        <WorkspaceDock
+          ref="workspaceDock"
+          :items="workspaceTabItems"
+          :has-back="paneHasHistory"
+          allow-add
+          allow-split
+          allow-close-group
+          @ready="onDockReady"
+          @active-change="onDockActiveChange"
+          @layout-change="onDockLayoutChange"
+          @add-tab="openEmptyPaneTab"
+          @close-tab="closePaneTab"
+          @close-group="closePane"
+          @split="splitPane"
+          @back="goBackFromPane"
         >
-          <template #default="{ pane }">
+          <template #content="{ item }">
             <GeneratedWorkspacePane
-              :item="itemForPane(pane)"
-              :tabs="tabItemsForPane(pane)"
-              :active-key="pane.selectionKey"
-              :closeable="paneCount > 1"
-              :back="paneHasHistory(pane.id)"
-              @back="goBackFromPane(pane.id)"
+              :item="item"
               @open-entity="request => openWorkspaceEntity(request.typeId, { _id: request.instanceId })"
               @open-page="openWorkspacePage"
               @open-call="request => openCallTab(request.room, request)"
               @refresh="$emit('refresh')"
-              @select-tab="key => selectPaneTab(pane.id, key)"
-              @close-tab="key => closePaneTab(pane.id, key)"
-              @add-tab="openEmptyPaneTab(pane.id)"
-              @split="orientation => splitPane(pane.id, orientation)"
-              @close="closePane(pane.id)"
+              @close-tab="closePaneTab"
             />
           </template>
-        </WorkspaceSplitNode>
+        </WorkspaceDock>
       </div>
     </div>
 
@@ -305,7 +306,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Badge from 'primevue/badge';
@@ -317,7 +318,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
-import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
+import WorkspaceDock from '~/components/shared/WorkspaceDock.vue';
 import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { isWorkspacePageDirty, setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
@@ -352,16 +353,8 @@ import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { containmentParent, normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
-import { emptyTabItem, emptyTabKey, isEmptyTabKey } from '~/utils/workspace-empty-tabs.js';
-import {
-  closeWorkspaceLeaf,
-  createWorkspaceLeaf,
-  splitWorkspaceLeaf,
-  updateWorkspaceLeaf,
-  updateWorkspaceSplit,
-  withPaneTab,
-  workspaceLeaves
-} from '~/utils/workspace-splits.js';
+import { emptyTabKey, isEmptyTabKey } from '~/utils/workspace-empty-tabs.js';
+import { pruneDockLayout } from '~/utils/workspace-dock-layout.js';
 import {
   homeWorkspaceStorageKey,
   loadHomeWorkspaceState,
@@ -387,22 +380,19 @@ const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
 const confirm = useConfirm();
 const toast = useToast();
-const activePaneId = ref('pane-1');
-const paneSequence = ref(1);
-
-// Panes never exist without a tab: fresh panes start on a default empty
-// tab, persisted tabless leaves normalize to one at load, and closing
-// the last tab closes the pane (the workspace's final pane resets
-// instead).
-function defaultLeaf(id) {
-  return createWorkspaceLeaf(id, emptyTabKey());
-}
-
-const paneTree = ref(defaultLeaf('pane-1'));
+const workspaceDock = ref(null);
+const dockReady = ref(false);
+const activeTabKey = ref('');
+const activeGroupId = ref('');
+const dockLayout = ref(null);
+let pendingLayout = null;
+let pendingActiveKey = '';
+let pendingTabKeys = [];
+let pendingCallTab = null;
+let layoutHydrated = false;
 // Per-pane navigation history: every in-place tab replacement pushes the
 // replaced content key, and the pane header's Back control walks the
-// stack. Session-only by design — navigation history is ephemeral, the
-// pane layout itself is what persists.
+// stack. Session-only.
 const paneHistories = ref(new Map());
 const PANE_HISTORY_LIMIT = 50;
 const sidebarCollapsed = ref(false);
@@ -415,6 +405,8 @@ const callsFlyout = ref(null);
 const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
 const openedScreenRefs = ref([]);
+const openedCustomPageRefs = ref([]);
+const openedChatRefs = ref([]);
 const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
 let isWorkspaceMounted = false;
@@ -516,18 +508,19 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
     item.type === reference.typeId
     && instanceId(item.entity) === reference.instanceId
   ));
-  if (!entityItem) return null;
   return {
     key: reference.key,
     kind: 'page',
     pageId: reference.pageId,
-    entity: entityItem.entity,
+    entity: entityItem?.entity || null,
     typeId: reference.typeId,
+    instanceId: reference.instanceId,
+    pending: !entityItem,
     // Entity-bound page tabs label from the one title resolver like
     // instance tabs — the page id stays a fallback, not the display.
     label: instanceLabelOf(reference.typeId, reference.instanceId)
   };
-}).filter(Boolean));
+}));
 // Opened screens as pane tabs. Type screens keep their manifest label;
 // instance-bound detail tabs label from the one title resolver
 // (titleFor over the pool DTO), so the declared identity field
@@ -563,7 +556,7 @@ const callPageItems = computed(() => callPageRefs.value.map(call => ({
   conversationKey: call.conversationKey,
   label: call.label
 })));
-const chatPageItems = computed(() => chatPageRefs.value.map(chat => ({
+const chatPageItems = computed(() => openedChatRefs.value.map(chat => ({
   key: chat.key,
   kind: 'page',
   pageId: 'chats',
@@ -581,9 +574,11 @@ const workspaceItems = computed(() => [
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
 )));
-const panes = computed(() => workspaceLeaves(paneTree.value));
-const paneCount = computed(() => panes.value.length);
-const activePane = computed(() => panes.value.find(pane => pane.id === activePaneId.value) || panes.value[0]);
+const workspaceTabItems = computed(() => workspaceItems.value.map(item => ({
+  ...item,
+  label: workspaceTabLabel(item),
+  icon: workspaceTabIcon(item)
+})));
 const workspaceStorageKey = computed(() => homeWorkspaceStorageKey({
   userId: authStore.userData?.id || authStore.userData?.userId || authStore.userData?._id,
   organizationId: authStore.organizationData?._id || authStore.userData?.organizationId
@@ -668,7 +663,7 @@ const sidebarMenuModel = computed(() => [
 // other entry renders muted (per-item classes through PanelMenu's official
 // `headerClass`/`class` item channels — default rendering untouched).
 const selectedMenuKeys = computed(() => {
-  const item = workspaceItems.value.find(candidate => candidate.key === activePane.value?.selectionKey)
+  const item = workspaceItems.value.find(candidate => candidate.key === activeTabKey.value)
     || null;
   if (!item) return new Set();
   const keys = new Set();
@@ -1105,11 +1100,9 @@ async function deletePage(row) {
 }
 
 function closeTabsByKey(key) {
-  customPageRefs.value = customPageRefs.value.filter(reference => reference.key !== key);
+  openedCustomPageRefs.value = openedCustomPageRefs.value.filter(reference => reference.key !== key);
   setWorkspacePageDirty(key, false);
-  for (const pane of [...panes.value]) {
-    if ((pane.tabKeys || []).includes(key)) closePaneTabConfirmed(pane.id, key);
-  }
+  closePaneTabConfirmed(key);
 }
 
 function expandSectionFromRail(section = {}) {
@@ -1234,7 +1227,7 @@ function instanceLabelOf(typeId = '', id = '') {
 // `user`/`organization`) open that page; a type with none of the three
 // stays silent, exactly like the routed surface contract.
 function openInstanceTab(typeId = '', instanceIdValue = '') {
-  if (!typeId || !instanceIdValue || !activePane.value) return;
+  if (!typeId || !instanceIdValue || !workspaceDock.value) return;
   const detail = resolveDetailScreen({ screens: authStore.screenManifest, typeId });
   const screenKey = detail ? (detail.screenKey || detail.id) : null;
   const key = screenKey ? `screen:${screenKey}:${instanceIdValue}` : '';
@@ -1247,7 +1240,7 @@ function openInstanceTab(typeId = '', instanceIdValue = '') {
     }];
   }
   if (key) {
-    selectPaneTab(activePane.value.id, key);
+    openWorkspaceTab(key);
     return;
   }
   // Served editor list by default (undefined editors → the documented
@@ -1312,57 +1305,124 @@ watch(() => callsStore.activeRooms.length, (count, previous = 0) => {
   }
 }, { immediate: true });
 
+// Tabs can outlive their type (registry churn rewrites type ids): a dead
+// reference drops on restore instead of rendering an id-fallback row and
+// hammering an unknown collection with 404s.
+const resolvableTabKeys = computed(() => new Set([
+  ...openedScreenRefs.value.map(reference => reference.key),
+  ...openedPageRefs.value.map(reference => reference.key),
+  ...openedCustomPageRefs.value.map(reference => reference.key),
+  ...openedChatRefs.value.map(reference => reference.key),
+  ...callPageRefs.value.map(reference => reference.key),
+  ...staticPageItems.value.map(item => item.key),
+  ...customPageItems.value.map(item => item.key),
+  ...chatPageItems.value.map(item => item.key),
+  ...workspaceTabItems.value.map(item => item.key)
+]));
+
+function isTabResolvable(key) {
+  return isEmptyTabKey(key) || resolvableTabKeys.value.has(key);
+}
+
 // Post-mount only (contract: components/generated/README.md)
 function applyPersistedWorkspaceState(key) {
   if (!key) return;
   const state = loadHomeWorkspaceState(window.localStorage, key);
-  paneTree.value = state.paneTree;
-  activePaneId.value = state.activePaneId;
-  paneSequence.value = state.paneSequence;
-  // Tabs can outlive their type (registry churn rewrites type ids): dead
-  // references drop on restore instead of rendering id-fallback rows and
-  // hammering unknown collections with 404s.
   openedEntityRefs.value = (state.openedEntityRefs || [])
     .filter(reference => registryStore.typeRecord(reference.typeId));
-  openedPageRefs.value = state.openedPageRefs;
+  openedPageRefs.value = state.openedPageRefs || [];
   openedScreenRefs.value = state.openedScreenRefs || [];
+  openedCustomPageRefs.value = state.openedCustomPageRefs || [];
+  openedChatRefs.value = state.openedChatRefs || [];
   sidebarCollapsed.value = Boolean(state.sidebarCollapsed);
   collapsedSectionKeys.value = state.collapsedSectionKeys || [];
+  paneHistories.value = new Map();
+  pendingLayout = pruneDockLayout(state.layout, isTabResolvable);
+  pendingActiveKey = state.pendingActiveKey || '';
+  pendingTabKeys = state.pendingTabKeys || [];
   hydratedStorageKey.value = key;
+  layoutHydrated = false;
+  if (dockReady.value) applyPendingWorkspaceLayout();
+}
+
+function applyPendingWorkspaceLayout() {
+  const dock = workspaceDock.value;
+  if (!dock) return;
+  if (pendingLayout) {
+    dock.applyLayout(pendingLayout);
+    nextTick(() => dock.ensureEmptyPanel());
+  } else if (pendingTabKeys.length) {
+    const keys = pendingTabKeys.filter(key => isTabResolvable(key) && !isEmptyTabKey(key));
+    const activeKey = keys.includes(pendingActiveKey) ? pendingActiveKey : keys.at(-1);
+    keys.forEach(key => dock.openPanel(key, { newTab: true }));
+    if (activeKey) dock.focusPanel(activeKey);
+    if (!keys.length) dock.ensureEmptyPanel();
+  } else {
+    dock.ensureEmptyPanel();
+  }
+  pendingLayout = null;
+  pendingTabKeys = [];
+  pendingActiveKey = '';
+  layoutHydrated = true;
+  schedulePersistWorkspaceState();
+  flushPendingCallTab();
+}
+
+function onDockReady() {
+  dockReady.value = true;
+  if (!isWorkspaceMounted) return;
+  if (hydratedStorageKey.value === workspaceStorageKey.value) applyPendingWorkspaceLayout();
+  else applyPersistedWorkspaceState(workspaceStorageKey.value);
+}
+
+function onDockActiveChange({ groupId, panelId }) {
+  activeGroupId.value = groupId || '';
+  activeTabKey.value = panelId || '';
+}
+
+function onDockLayoutChange(layout) {
+  dockLayout.value = layout;
+  schedulePersistWorkspaceState();
+}
+
+let persistTimer = null;
+function schedulePersistWorkspaceState() {
+  if (typeof window === 'undefined') return;
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    persistWorkspaceState();
+  }, 200);
+}
+
+function persistWorkspaceState() {
+  const key = workspaceStorageKey.value;
+  if (!key || !layoutHydrated || hydratedStorageKey.value !== key || typeof window === 'undefined') return;
+  saveHomeWorkspaceState(window.localStorage, key, {
+    layout: workspaceDock.value?.snapshot() || dockLayout.value,
+    openedEntityRefs: openedEntityRefs.value,
+    openedPageRefs: openedPageRefs.value,
+    openedScreenRefs: openedScreenRefs.value,
+    openedCustomPageRefs: openedCustomPageRefs.value,
+    openedChatRefs: openedChatRefs.value,
+    sidebarCollapsed: sidebarCollapsed.value,
+    collapsedSectionKeys: collapsedSectionKeys.value
+  });
 }
 
 onMounted(() => {
   isWorkspaceMounted = true;
   applyPersistedWorkspaceState(workspaceStorageKey.value);
-  // A pending call tab opened during setup landed on the default pane,
-  // which the persisted tree just replaced; re-open it now that the tree
-  // is final (the mounting panel consumes the pending room).
-  if (callsStore.pendingTabRoom) {
-    openCallTab(callsStore.pendingTabRoom, { conversationKey: conversationKeyForRoom(callsStore.pendingTabRoom) });
-  }
+  queueOrOpenCallTab(callsStore.pendingTabRoom);
 });
 
 watch(workspaceStorageKey, key => {
-  if (!key || !isWorkspaceMounted || hydratedStorageKey.value === key) return;
-  applyPersistedWorkspaceState(key);
+  if (key && isWorkspaceMounted && hydratedStorageKey.value !== key) applyPersistedWorkspaceState(key);
 });
 
 watch(
-  [paneTree, activePaneId, paneSequence, openedEntityRefs, openedPageRefs, openedScreenRefs, sidebarCollapsed, collapsedSectionKeys],
-  () => {
-    const key = workspaceStorageKey.value;
-    if (!key || hydratedStorageKey.value !== key || typeof window === 'undefined') return;
-    saveHomeWorkspaceState(window.localStorage, key, {
-      paneTree: paneTree.value,
-      activePaneId: activePaneId.value,
-      paneSequence: paneSequence.value,
-      openedEntityRefs: openedEntityRefs.value,
-      openedPageRefs: openedPageRefs.value,
-      openedScreenRefs: openedScreenRefs.value,
-      sidebarCollapsed: sidebarCollapsed.value,
-      collapsedSectionKeys: collapsedSectionKeys.value
-    });
-  },
+  [openedEntityRefs, openedPageRefs, openedScreenRefs, openedCustomPageRefs, openedChatRefs, sidebarCollapsed, collapsedSectionKeys],
+  () => persistWorkspaceState(),
   { deep: true }
 );
 
@@ -1405,10 +1465,7 @@ watch(() => [
 // home workspace navigates here to open the tab; the mounted panel consumes
 // the pending room, so the floating-window auto-rule stays suspended until
 // a surface truly exists.
-watch(() => callsStore.pendingTabRoom, room => {
-  if (!room) return;
-  openCallTab(room, { conversationKey: conversationKeyForRoom(room) });
-}, { immediate: true });
+watch(() => callsStore.pendingTabRoom, room => queueOrOpenCallTab(room), { immediate: true });
 
 // Desktop instance links open as compiled detail-screen tabs: live events
 // while the home workspace is mounted, pending requests (stashed before
@@ -1471,6 +1528,9 @@ onBeforeUnmount(() => {
   window.removeEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
   window.removeEventListener(workspacePageOpenEvent, openRequestedWorkspacePage);
   mobileViewportQuery?.removeEventListener?.('change', readMobileViewport);
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = null;
+  persistWorkspaceState();
   // Route leave: the workspace's call tabs go with it and the
   // floating-window rule takes the sessions (components/calls README).
   callsStore.resetCallTabs();
@@ -1485,14 +1545,8 @@ function activeRoomLabel(room = {}) {
 // layout): the tab hosts the LiveKit stage plus the conversation chat rail.
 const callPageRefs = ref([]);
 
-// Pinned chat tabs are ephemeral like calls: the sidebar Chats entry opens
-// the general tab and the bottom-right popup's expand action pins one
-// conversation as its own tab.
-const chatPageRefs = ref([]);
-
-// Calls and pinned chats are ephemeral tabs (never persisted with the
-// pane layout): find-or-register the ref, refresh its live label, and
-// select it as a new tab.
+// Find-or-register a tab reference, refresh its live label, and select
+// it as a new tab.
 function openEphemeralTab(refs, record) {
   const existing = refs.value.find(item => item.key === record.key);
   if (existing) {
@@ -1500,15 +1554,12 @@ function openEphemeralTab(refs, record) {
   } else {
     refs.value = [...refs.value, record];
   }
-  if (activePane.value) selectPaneTab(activePane.value.id, record.key, { newTab: true });
+  openWorkspaceTab(record.key, { newTab: true });
 }
 
-// Custom page tabs follow the pinned-chat rule: one ephemeral tab per
-// page document; labels resolve live from the pages store, so renames
-// reach open tabs without refresh.
-const customPageRefs = ref([]);
-
-const customPageItems = computed(() => customPageRefs.value.map(reference => ({
+// Custom page tabs: one tab per page document; labels resolve live from
+// the pages store, so renames reach open tabs without refresh.
+const customPageItems = computed(() => openedCustomPageRefs.value.map(reference => ({
   key: reference.key,
   kind: 'page',
   pageId: 'customPage',
@@ -1528,11 +1579,11 @@ async function openClassPage(typeId = '') {
 
 function openCustomPageTab(docId = '') {
   if (!docId) return;
-  openEphemeralTab(customPageRefs, { key: `page:customPage:${docId}`, docId });
+  openEphemeralTab(openedCustomPageRefs, { key: `page:customPage:${docId}`, docId });
 }
 
 function openChatTab(conversationKey = '', label = '') {
-  openEphemeralTab(chatPageRefs, {
+  openEphemeralTab(openedChatRefs, {
     key: conversationKey ? `page:chat:${conversationKey}` : 'page:chats',
     conversationKey,
     label
@@ -1553,6 +1604,20 @@ function openRequestedWorkspacePage(event) {
   const { pageId, entity, typeId, params } = event?.detail || {};
   if (!pageId) return;
   openWorkspacePage({ pageId, entity, typeId, params });
+}
+
+function queueOrOpenCallTab(room = '') {
+  if (!room) return;
+  const request = { room, conversationKey: conversationKeyForRoom(room) };
+  if (dockReady.value && hydratedStorageKey.value && hydratedStorageKey.value === workspaceStorageKey.value) openCallTab(room, request);
+  else pendingCallTab = request;
+}
+
+function flushPendingCallTab() {
+  if (!pendingCallTab) return;
+  const request = pendingCallTab;
+  pendingCallTab = null;
+  openCallTab(request.room, request);
 }
 
 function openCallTab(room = '', meta = {}) {
@@ -1721,25 +1786,14 @@ function hasRelationRefs(entity = {}) {
   return relationRefsFor(entity).length > 0;
 }
 
-function activatePane(paneId) {
-  activePaneId.value = paneId;
-}
-
-function selectPaneTab(paneId, key, options = {}) {
-  const pane = panes.value.find(item => item.id === paneId);
-  if (!pane) return;
-  if (!isEmptyTabKey(key) && !workspaceItems.value.some(item => item.key === key)) return;
-  // An in-place replacement (new content taking over the selected tab)
-  // is a navigation step: remember where the user came from unless this
-  // selection IS the back step.
-  if (!options.back && isReplacingSelection(pane, key, options)) {
-    pushPaneHistory(paneId, pane.selectionKey);
+function openWorkspaceTab(key, options = {}) {
+  const dock = workspaceDock.value;
+  if (!dock) return;
+  if (!isEmptyTabKey(key) && !isTabResolvable(key)) return;
+  if (isReplacingSelection(key, options)) {
+    pushPaneHistory(activeGroupId.value, activeTabKey.value);
   }
-  paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, {
-    selectionKey: key,
-    tabKeys: withPaneTab(pane, key, options)
-  });
-  activePaneId.value = paneId;
+  dock.openPanel(key, options);
 }
 
 // A selection replaces the pane's content in place when it is real
@@ -1747,50 +1801,53 @@ function selectPaneTab(paneId, key, options = {}) {
 // (empty placeholders exist to be filled — consuming one is not
 // navigation). Tab switches between already-open tabs are not
 // navigation either.
-function isReplacingSelection(pane, key, options = {}) {
-  const tabs = pane.tabKeys || [];
+function isReplacingSelection(key, options = {}) {
   return !options.newTab
+    && !options.back
     && !isEmptyTabKey(key)
-    && !isEmptyTabKey(pane.selectionKey)
-    && key !== pane.selectionKey
-    && !tabs.includes(key);
+    && !isEmptyTabKey(activeTabKey.value)
+    && key !== activeTabKey.value
+    && !workspaceDock.value?.hasPanel(key);
 }
 
-function pushPaneHistory(paneId, key) {
-  if (!key) return;
-  const stack = paneHistories.value.get(paneId) || [];
+function pushPaneHistory(groupId, key) {
+  if (!groupId || !key) return;
+  const stack = paneHistories.value.get(groupId) || [];
   paneHistories.value = new Map([...paneHistories.value, [
-    paneId,
+    groupId,
     [...stack, key].slice(-PANE_HISTORY_LIMIT)
   ]]);
 }
 
-function paneHasHistory(paneId) {
-  return (paneHistories.value.get(paneId) || []).length > 0;
+function paneHasHistory(groupId) {
+  return (paneHistories.value.get(groupId) || []).length > 0;
 }
 
 // Back walks the stack to the last entry whose content still resolves —
 // a closed-and-forgotten tab's key is skipped, not restored.
-function goBackFromPane(paneId) {
-  const pane = panes.value.find(item => item.id === paneId);
-  if (!pane) return;
-  const stack = [...(paneHistories.value.get(paneId) || [])];
+function goBackFromPane(groupId) {
+  const dock = workspaceDock.value;
+  if (!dock) return;
+  const stack = [...(paneHistories.value.get(groupId) || [])];
   while (stack.length) {
     const key = stack.pop();
-    paneHistories.value = new Map([...paneHistories.value, [paneId, stack]]);
-    if (workspaceItems.value.some(item => item.key === key)) {
-      selectPaneTab(paneId, key, { back: true });
+    paneHistories.value = new Map([...paneHistories.value, [groupId, stack]]);
+    if (isTabResolvable(key)) {
+      dock.replaceActive(groupId, key);
       return;
     }
   }
-  paneHistories.value = new Map([...paneHistories.value, [paneId, []]]);
+  paneHistories.value = new Map([...paneHistories.value, [groupId, []]]);
 }
 
-function openEmptyPaneTab(paneId) {
-  selectPaneTab(paneId, emptyTabKey());
+function openEmptyPaneTab(groupId = '') {
+  const dock = workspaceDock.value;
+  if (!dock) return;
+  const group = groupId ? dock.groupById(groupId) : null;
+  dock.addPanel(emptyTabKey(), group ? { referenceGroup: group } : {});
 }
 
-function closePaneTab(paneId, key) {
+function closePaneTab(key) {
   if (isWorkspacePageDirty(key)) {
     confirm.require({
       header: t('common.unsavedChanges'),
@@ -1798,74 +1855,42 @@ function closePaneTab(paneId, key) {
       icon: 'pi pi-exclamation-triangle',
       rejectLabel: t('common.stay'),
       acceptLabel: t('common.discard'),
-      accept: () => closePaneTabConfirmed(paneId, key)
+      accept: () => closePaneTabConfirmed(key)
     });
     return;
   }
-  closePaneTabConfirmed(paneId, key);
+  closePaneTabConfirmed(key);
 }
 
-function closePaneTabConfirmed(paneId, key) {
-  const pane = panes.value.find(item => item.id === paneId);
-  if (!pane) return;
-  const currentKeys = pane.tabKeys || [];
-  const closingIndex = currentKeys.indexOf(key);
-  if (closingIndex < 0) return;
-  const tabKeys = currentKeys.filter(tabKey => tabKey !== key);
-
-  // No pane exists without a tab: closing the last tab closes the pane,
-  // except the workspace's last pane, which resets to a fresh empty tab.
-  if (!tabKeys.length) {
-    if (paneCount.value <= 1) {
-      const freshKey = emptyTabKey();
-      paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, { selectionKey: freshKey, tabKeys: [freshKey] });
-      forgetClosedTabRefs(key);
-      activePaneId.value = paneId;
-      return;
-    }
-    closePane(paneId);
-    forgetClosedTabRefs(key);
-    return;
-  }
-
-  const selectionKey = pane.selectionKey === key
-    ? (tabKeys[Math.max(0, closingIndex - 1)] || '')
-    : pane.selectionKey;
-  paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, { selectionKey, tabKeys });
+function closePaneTabConfirmed(key) {
+  const dock = workspaceDock.value;
+  if (!dock?.hasPanel(key)) return;
+  dock.removePanel(key);
   forgetClosedTabRefs(key);
-  activePaneId.value = paneId;
 }
 
 // Tab references (pages, screens, call stages) die with their last tab:
-// once no leaf carries the closed key, its refs are forgotten.
+// once no dock panel carries the closed key, its refs are forgotten.
 function forgetClosedTabRefs(key) {
-  const remainingTabKeys = new Set(workspaceLeaves(paneTree.value).flatMap(leaf => leaf.tabKeys || []));
-  if (!remainingTabKeys.has(key)) {
-    setWorkspacePageDirty(key, false);
-    openedPageRefs.value = openedPageRefs.value.filter(reference => reference.key !== key);
-    openedScreenRefs.value = openedScreenRefs.value.filter(reference => reference.key !== key);
-    if (callPageRefs.value.some(call => call.key === key)) callsStore.tabClosed(key);
-    callPageRefs.value = callPageRefs.value.filter(call => call.key !== key);
-    customPageRefs.value = customPageRefs.value.filter(reference => reference.key !== key);
-  }
+  if (workspaceDock.value?.hasPanel(key)) return;
+  setWorkspacePageDirty(key, false);
+  openedPageRefs.value = openedPageRefs.value.filter(reference => reference.key !== key);
+  openedScreenRefs.value = openedScreenRefs.value.filter(reference => reference.key !== key);
+  if (callPageRefs.value.some(call => call.key === key)) callsStore.tabClosed(key);
+  callPageRefs.value = callPageRefs.value.filter(call => call.key !== key);
+  openedCustomPageRefs.value = openedCustomPageRefs.value.filter(reference => reference.key !== key);
+  openedChatRefs.value = openedChatRefs.value.filter(reference => reference.key !== key);
 }
 
-function splitPane(paneId, orientation) {
-  const source = panes.value.find(pane => pane.id === paneId);
-  if (!source) return;
-  const nextPane = defaultLeaf(`pane-${++paneSequence.value}`);
-  paneTree.value = splitWorkspaceLeaf(paneTree.value, paneId, orientation, nextPane);
-  activePaneId.value = nextPane.id;
+function splitPane(groupId, orientation) {
+  workspaceDock.value?.splitGroup(groupId, orientation);
 }
 
-function resizePaneSplit(splitId, sizes) {
-  paneTree.value = updateWorkspaceSplit(paneTree.value, splitId, sizes);
-}
-
-function closePane(paneId) {
-  if (paneCount.value <= 1) return;
-  const pane = panes.value.find(item => item.id === paneId);
-  const dirtyKeys = (pane?.tabKeys || []).filter(isWorkspacePageDirty);
+function closePane(groupId) {
+  const dock = workspaceDock.value;
+  if (!dock || dock.groups().length <= 1) return;
+  const keys = dock.panelIdsInGroup(groupId);
+  const dirtyKeys = keys.filter(isWorkspacePageDirty);
   if (dirtyKeys.length) {
     confirm.require({
       header: t('common.unsavedChanges'),
@@ -1873,17 +1898,17 @@ function closePane(paneId) {
       icon: 'pi pi-exclamation-triangle',
       rejectLabel: t('common.stay'),
       acceptLabel: t('common.discard'),
-      accept: () => closePaneConfirmed(paneId)
+      accept: () => closePaneConfirmed(groupId, keys)
     });
     return;
   }
-  closePaneConfirmed(paneId);
+  closePaneConfirmed(groupId, keys);
 }
 
-function closePaneConfirmed(paneId) {
-  paneTree.value = closeWorkspaceLeaf(paneTree.value, paneId);
-  paneHistories.value = new Map([...paneHistories.value].filter(([id]) => id !== paneId));
-  activePaneId.value = workspaceLeaves(paneTree.value)[0]?.id || 'pane-1';
+function closePaneConfirmed(groupId, keys = []) {
+  workspaceDock.value?.removeGroup(groupId);
+  keys.forEach(forgetClosedTabRefs);
+  paneHistories.value = new Map([...paneHistories.value].filter(([id]) => id !== groupId));
 }
 
 function openWorkspaceEntity(typeId, entity) {
@@ -1902,7 +1927,7 @@ function openWorkspacePage(request = {}) {
     if (request.params) {
       pageParamsByKey.value = { ...pageParamsByKey.value, [`page:${definition.id}`]: request.params };
     }
-    if (activePane.value) selectPaneTab(activePane.value.id, `page:${definition.id}`);
+    openWorkspaceTab(`page:${definition.id}`);
     return;
   }
   if (definition.typeId !== request.typeId) return;
@@ -1919,7 +1944,7 @@ function openWorkspacePage(request = {}) {
         instanceId: ''
       }];
     }
-    if (activePane.value) selectPaneTab(activePane.value.id, blankKey);
+    openWorkspaceTab(blankKey);
     return;
   }
 
@@ -1929,7 +1954,7 @@ function openWorkspacePage(request = {}) {
     item.type === definition.typeId
     && instanceId(item.entity) === instanceId(request.entity)
   ));
-  if (!entityItem || !activePane.value) return;
+  if (!entityItem) return;
 
   const key = workspacePageKey(definition.id, entityItem.entity);
   if (!openedPageRefs.value.some(page => page.key === key)) {
@@ -1940,7 +1965,7 @@ function openWorkspacePage(request = {}) {
       instanceId: instanceId(entityItem.entity)
     }];
   }
-  selectPaneTab(activePane.value.id, key);
+  openWorkspaceTab(key);
 }
 
 function rememberWorkspaceEntity(typeId, entity) {
@@ -1986,14 +2011,40 @@ function hydrateWorkspaceEntityItem(item) {
   }).catch(() => {});
 }
 
-function itemForPane(pane) {
-  return workspaceItems.value.find(item => item.key === pane?.selectionKey)
-    || null;
+function workspaceTabLabel(item) {
+  if (!item) return '';
+  if (item.kind === 'screen') return item.label || item.screenKey || item.key;
+  if (item.kind === 'page') {
+    if (item.pageId === 'customPage') return pageLabel(pagesStore.pageById(item.docId));
+    if (item.pageId === 'chats' && item.conversationKey) return chatTabLabel(item);
+    if (item.label) return item.label;
+    if (item.typeId) return instanceLabelOf(item.typeId, item.instanceId || instanceId(item.entity));
+    const definition = resolveGeneratedWorkspacePage(item.pageId);
+    return definition ? t(definition.labelKey) : item.key;
+  }
+  if (item.kind === 'instance') return instanceLabelOf(item.type, instanceId(item.entity));
+  return item.label || item.key;
 }
 
-function tabItemsForPane(pane) {
-  return (pane?.tabKeys || [])
-    .map(key => workspaceItems.value.find(item => item.key === key) || emptyTabItem(key));
+function workspaceTabIcon(item) {
+  if (!item) return '';
+  if (item.kind === 'screen' || item.kind === 'instance') {
+    return instances.iconFor(item.typeId || item.type) || 'pi pi-file';
+  }
+  if (item.typeId) {
+    const glyph = registryStore.typeRecord(item.typeId)?.glyph;
+    if (glyph) return glyph;
+  }
+  return resolveGeneratedWorkspacePage(item.pageId)?.icon || item.icon || 'pi pi-file';
+}
+
+function chatTabLabel(item = {}) {
+  const conversation = (supportChatStore.conversations || [])
+    .find(candidate => candidate.conversationKey === item.conversationKey);
+  return conversation?.groupName
+    || conversation?.participant?.identity?.name
+    || item.label
+    || t('support.chatTitle');
 }
 
 function workspacePageKey(pageId, entity) {

@@ -25,12 +25,13 @@ describe('graph editor workspace chrome', () => {
 
     expect(canvas).toContain('data-canvas-status');
     expect(canvas).toContain('onActivityClick');
+    expect(canvas).toContain('workspace-id="graph-editor"');
     expect(editor).toContain('openActivitySurface');
     expect(editor).toContain("canvasFrame.value?.openPanel?.('preview')");
     expect(editor).toContain('GraphDocumentPreviewPanel');
     expect(canvas).toContain('<slot name="preview" />');
-    expect(workspace).toContain('data-designer-preview');
-    expect(workspace).toContain('beginPreviewResize');
+    expect(workspace).toContain('WorkspaceDock');
+    expect(workspace).toContain('sizePanelToContent');
     expect(workspace).not.toContain('name="support"');
   });
 });

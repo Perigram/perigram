@@ -166,13 +166,13 @@ that drive executor-backed surfaces or services wire them through
   CadCraft chrome. Specs that embed the CAD engine connect both
   executors (`facade` and `tech-drawing`) — the runtime is facade's
   declared cross-plugin dependency.
-- `pane-navigation-history.spec.js`: the home workspace's pane
-  navigation contract — an in-place tab replacement surfaces the pane
-  header's Back control and Back restores the replaced content; a new
-  tab opened onto a selected empty placeholder consumes it.
-- `home-workspace-restore.spec.js`: the persisted home workspace
-  restores on the home shell after mount; a real page load produces
-  zero hydration warnings.
+- `pane-navigation-history.spec.js`: the home workspace's dock contract —
+  an in-place tab replacement surfaces the group header's Back control and
+  Back restores the replaced content; a new tab opened onto a selected
+  empty placeholder consumes it; the open tab survives a reload.
+- `home-workspace-restore.spec.js`: a version 3 home workspace state
+  restores on the home shell after mount; a real page load produces zero
+  hydration warnings.
 - `process-designer-boot.spec.js`: boots the process designer against a
   seeded species process, verifies the canvas renders, and creates plus
   saves a new draft from the dock.

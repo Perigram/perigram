@@ -126,44 +126,38 @@ each encode, and the card arrangement) is canonical in the
 ### `DesignerWorkspace.vue`
 
 Shared full-height shell for operational designers — the home of the
-operational-designer chrome contract. It owns full-height sizing, responsive
-lane placement, scroll containment, and narrow-screen panel overlays;
-feature designers supply only their controls through named slots:
-`palette` for
-creation/search controls, the default slot for the interactive canvas or
-viewport, `inspector` for the selected item configuration, and `preview`
-for the preview workspace — a resizable bottom band (drag its top edge)
-with real width for content viewers; the floating toolbar rides above the
-band while it is open. The workspace renders no document name anywhere,
-and carries one chrome alone — the app's shared surface tokens. Toolbar item lists (start and
-canvas groups) render through `DesignerToolbarItems` — one icon-only
+operational-designer chrome contract. It mounts a `WorkspaceDock` whose
+panels are the named slots: `palette` for creation/search controls, the
+default slot for the interactive canvas or viewport, `inspector` for the
+selected item configuration, and `preview` for the preview workspace.
+Panels are draggable, edge-docked, and user-resizable; their initial sizes
+measure the rendered content within panel-specific floors and caps, then
+the user owns the layout. The workspace renders no document name and
+carries the app's shared surface tokens alone. Toolbar item lists (start
+and canvas groups) render through `DesignerToolbarItems` — one icon-only
 geometry for every item; a boolean-pressed item is the same button
-outlined with an aria-pressed state, label as
-tooltip/accessible name. Do not add page-local breakpoint grids,
-viewport-height calculations, independent lane scrolling, or a second
-floating palette/inspector/dock to a designer; a designer may position
-feature-local handles and popovers inside its default-slot canvas. Slot
-content compiles in the parent scope, so designer code drives panels
-through the workspace ref API (`panels`, `toggle`, `setPanel`,
-`openPanel`), never
-provide/inject.
+outlined with an aria-pressed state, label as tooltip/accessible name.
+A designer may position feature-local handles and popovers inside its
+default-slot canvas. Slot content compiles in the parent scope, so
+designer code drives panels through the workspace ref API (`panels`,
+`toggle`, `setPanel`, `openPanel`).
 
 Every operational designer uses this contract: cassette design and the
-sheet-design editor use `layout="lanes"` (persistent palette and inspector
-rails); the process designer uses `layout="canvas"`. Every designer first
-mounts through `DesignerSurface`,
+sheet-design editor use `layout="lanes"`; the process designer uses
+`layout="canvas"`. Every designer first mounts through `DesignerSurface`,
 and `DesignerDialog` uses the same surface for dialog entry points.
 
-`layout="lanes"` is for editors with persistent side panels. The canvas is
-the workspace background, edge to edge — never a boxed panel beside the
-rails — and the row floor keeps the layout visible even when a host breaks
-the bounded-height chain. Canvas-level commands render through the
-floating toolbar's canvas group (`canvas-items` prop), and rail content
-composes as plain
-labeled sections — one-line parameter rows and one-line layer rows —
-without collapse controls, aggregate show/hide commands, or count badges.
-`layout="canvas"` is for graph editors whose palette and inspector overlay
-a full canvas, such as process design.
+`workspaceId` names the editor's persisted dock layout
+(`utils/designer-workspace-state.js`), scoped to the signed-in user and
+active organization. `layout` records the host's intended composition
+(`lanes` for persistent side panels, `canvas` for graph canvases); the
+dock places whichever slots the host supplies — palette left, inspector
+right, preview below the canvas. The floating toolbar's panel toggles add and
+remove dock panels and mirror their open state in `panels`. Narrow hosts
+(below 48rem of workspace width) replace the dock with one bounded tabbed
+overlay; the wide dock layout is restored when the host widens. Canvas
+commands render through the toolbar's canvas group (`canvas-items` prop),
+and panel content composes as plain labeled sections.
 
 Toolbar commands split by concern into one floating PrimeVue `Toolbar`
 bottom-centered over the canvas. The **start group** carries the panel
@@ -175,7 +169,7 @@ history, and content operations with the destructive
 item last in its group; DrawingCanvas hides its internal zoom cluster in
 designer mode and exposes the commands for the toolbar instead. The
 toolbar floats inside a full-width positioned wrapper on the exact bottom
-line of the panel rails with the same 12px canvas inset; the wrapper
+line of the dock panels with the same 12px canvas inset; the wrapper
 passes pointer events through its empty sides so it never blocks canvas
 interaction. Document identity (the edited item's display name) rides the
 same bottom line through the `toolbar` slot, left-anchored and truncated
@@ -197,23 +191,19 @@ retired; `composables/useMotion.js` remains the motion library for its
 non-dock consumers.
 
 Panel visibility lives inside the toolbar's start group as its leading
-items: the
-workspace prepends pressed-state toggles (`pi-align-left` palette,
-`pi-align-right` inspector) before the designer's document commands,
-separated by a toolbar separator. Wide hosts toggle the rails/overlays
-directly; compact hosts (below 48rem of the workspace's own width) hide
-the rails and open one bounded tabbed overlay (60% height cap) whose active
-tab follows the toggle. The compact overlay follows the popover contract: a
-workspace-owned backdrop under the panel closes it on any tap outside the
-panel, so touch hosts never need a close control. Compact engages on a
-persistently narrow width (a transient measurement during an unstyled
-load keeps the wide layout, so open panels survive). Crossing the compact
-boundary resets to the mode's defaults — rails up when wide, canvas clear
-when compact. Panels share one surface contract in both layouts:
-full-height rounded bordered content-background rails with overlay shadow,
-running the same 12px insets top and bottom, sized by the workspace
-wrappers (17rem palette, 22rem inspector) — designers must not add their
-own panel borders, widths, or positioning.
+items: the workspace prepends pressed-state toggles (`pi-align-left`
+palette, `pi-align-right` inspector, preview) before the designer's
+document commands, separated by a toolbar separator. Wide hosts add and
+remove the corresponding dock panels; compact hosts (below 48rem of the
+workspace's own width) replace the dock with one bounded tabbed overlay
+(60% height cap) whose active tab follows the toggle. The compact overlay
+follows the popover contract: a workspace-owned backdrop under the panel
+closes it on any tap outside the panel. Compact engages on a persistently
+narrow width (a transient measurement during an unstyled load keeps the
+wide layout). Crossing the compact boundary resets to the mode's defaults —
+panels open when wide, canvas clear when compact. Panel chrome is the dock
+group box; designers own their content and its scroll behavior, and the
+workspace owns initial content-driven sizes.
 
 Touch hosts navigate canvases with gestures, not mouse emulation:
 DrawingCanvas pans with one finger in viewer modes and pinch-zooms/pans
@@ -932,25 +922,17 @@ transcription stay in the host composer.
   `bounded`. Grid
   children align to the start of each row so cards and panels keep natural
   height instead of stretching to the tallest item.
-- **`WorkspaceSplitNode.vue`**: Recursive PrimeVue splitter renderer for
-  IDE-style file workspaces. Split nodes select horizontal or vertical layout;
-  leaf nodes expose one scoped file slot inside a PrimeVue `Panel` riding the
-  zero canvas (transparent background, content padding zeroed through pt's
-  `!p-0` — the plain `p-0` utility only ties the theme's padding rule and
-  the production bundle loads app css before the injected theme, so the
-  important flag carries the pane contract regardless of style order, and
-  every Panel content layer min-width-zeroed — the default
-  min-width:auto sized the grid wrapper to the hosted tab strip and blew the
-  panel past its split cell, killing the tablist's overflow scrolling) and
-  an active-pane marker. The pane Panel draws the default Panel hairline
-  border as the visible pane box: the preset strips panel borders globally
-  for the zero canvas, so the pane pt re-points `--p-panel-border-color`
-  at the preset content border. Split cells carry no padding — the 6px
-  gutters are the only inter-pane gap, the hosting surface owns the
-  workspace-edge inset, and nested splits therefore never compound
-  spacing; gutters are invisible but draggable — the division works
-  without being drawn. Split-tree mutation remains pure state owned by
-  the caller.
+- **`WorkspaceDock.vue`**: Dockview wrapper shared by the home workspace
+  and designer shells. Panels use one content slot (`#content` with the
+  panel's key) and one tab component; the host supplies item labels,
+  icons, close rules, and optional back/add/split/close group actions.
+  The exposed API covers panel open/replace/remove, group split/remove,
+  layout snapshot/apply, panel presence, and content-based sizing. Panel
+  labels update from the host's item list. The dock renders client-side
+  after mount; `mounted` gates dockview so SSR emits an empty host.
+  Tab/group state persistence belongs to the host (home workspace state
+  and designer workspace state). Theme variables resolve from the app
+  token contract in `assets/css/main.css`.
 - **`InstanceActionsPopover.vue`**: Shared ellipsis trigger and compact action
   popover for entity-local commands. Disclosure is opt-in: full
   `InstanceCard` footers render their actions inline by default, and only a

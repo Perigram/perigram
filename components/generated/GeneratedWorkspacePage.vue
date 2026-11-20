@@ -3,20 +3,6 @@
     v-if="definition"
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
   >
-    <GeneratedPaneHeader
-      :tabs="tabs"
-      :active-key="page.key"
-      :closeable="closeable"
-      :splittable="splittable"
-      :back="back"
-      @back="$emit('back')"
-      @select-tab="$emit('select-tab', $event)"
-      @close-tab="$emit('close-tab', $event)"
-      @add="$emit('add-tab', $event)"
-      @split="orientation => $emit('split', orientation)"
-      @close="$emit('close')"
-    />
-
     <!-- The pane's content shell: non-flush pages (the organization
          management surfaces) render inside the padded scroll area every
          other pane surface uses; flush pages (canvas designer, call
@@ -51,17 +37,12 @@
 
 <script setup>
 import { computed, provide, ref } from 'vue';
-import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import RecordCommentsPanel from '~/components/chat/RecordCommentsPanel.vue';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 
 const props = defineProps({
-  page: { type: Object, required: true },
-  tabs: { type: Array, default: () => [] },
-  closeable: { type: Boolean, default: false },
-  splittable: { type: Boolean, default: true },
-  back: { type: Boolean, default: false }
+  page: { type: Object, required: true }
 });
 
 provide('workspacePageKey', props.page?.key);
@@ -76,7 +57,7 @@ provide('recordCommentsPanel', target => {
     : target;
 });
 
-defineEmits(['open-page', 'open-call', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'back']);
+defineEmits(['open-page', 'open-call', 'refresh', 'close-tab']);
 
 const definition = computed(() => resolveGeneratedWorkspacePage(props.page?.pageId));
 const pageProps = computed(() => definition.value?.props?.(props.page) || {});

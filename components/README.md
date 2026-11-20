@@ -45,7 +45,7 @@ All entity-related components use these patterns:
 | Section/page action rows | `<ActionToolbar>` |
 | Route-level aggregate facts | `<MetricPanel>` |
 | Repeated card grids | `<ResponsiveGrid>` |
-| Operational designers | `<DesignerWorkspace layout="lanes|canvas">` owns layout; feature components own state and persistence |
+| Operational designers | `<DesignerWorkspace layout="lanes|canvas" workspace-id="...">` owns the dock layout and its persisted panel state; feature components own content state |
 | Bounded scrolling workspace sections | `<ScrollablePanel>` |
 | Loading/empty/error surfaces | `<StateBlock>` |
 | Data table frame | `<TableFrame><DataTable ... /></TableFrame>` |

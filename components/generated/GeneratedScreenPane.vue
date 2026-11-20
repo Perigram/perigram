@@ -1,19 +1,5 @@
 <template>
   <section class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
-    <GeneratedPaneHeader
-      :tabs="tabs"
-      :active-key="activeKey"
-      :closeable="closeable"
-      :splittable="splittable"
-      :back="back"
-      @back="$emit('back')"
-      @select-tab="$emit('select-tab', $event)"
-      @close-tab="$emit('close-tab', $event)"
-      @add="$emit('add-tab', $event)"
-      @split="orientation => $emit('split', orientation)"
-      @close="$emit('close')"
-    />
-
     <!-- The pane's content column: the scroll host the container-traits
          seam measures, with the bounded comments side panel anchored
          beside it (SPEC §22.17). -->
@@ -44,7 +30,6 @@
 // workspace — routing stays with the host, never the generator.
 import { computed, provide, ref } from 'vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
-import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
 import RecordCommentsPanel from '~/components/chat/RecordCommentsPanel.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { synthesizeDetailScreen } from '~/components/generated/detail-screen-actions.js';
@@ -54,14 +39,10 @@ import { useAuthStore } from '~/stores/auth';
 import { provideContainerTraits } from '~/composables/useContainerTraits.js';
 
 const props = defineProps({
-  item: { type: Object, required: true },
-  tabs: { type: Array, default: () => [] },
-  closeable: { type: Boolean, default: false },
-  splittable: { type: Boolean, default: true },
-  back: { type: Boolean, default: false }
+  item: { type: Object, required: true }
 });
 
-defineEmits(['refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'open-entity', 'back']);
+defineEmits(['refresh', 'open-entity']);
 
 // The pane is a container-traits host: it measures its own scroll column
 // and provides the resolved record, so hosted surfaces size budgets to

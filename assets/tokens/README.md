@@ -81,6 +81,9 @@ Parent: [assets](../README.md).
 - Use `--ck-*` tokens only for application-owned semantic typography, reusable
   layout constraints, domain signals, and geometry/data visualization.
   Do not use them to recreate preset chrome or states.
+- Dockview panel chrome maps its `--dv-*` variables from `--p-*` and `--ck-*`
+  tokens in `assets/css/main.css`; the workspace dock is one themed surface
+  family, not a second design system.
 - Apply one semantic role to application text instead of composing font size,
   weight, line height, tracking, or family utilities. Only page titles scale
   responsively. Generic PrimeVue controls retain their inherited typography. A local font

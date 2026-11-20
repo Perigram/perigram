@@ -149,6 +149,7 @@
     "stateColumn": "Состояние"
   },
   "designer": {
+    "canvas": "Холст",
     "toolbar": "Панель инструментов",
     "palette": "Палитра",
     "inspector": "Инспектор",

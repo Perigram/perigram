@@ -9,6 +9,14 @@ Parent: [root README](../README.md).
   `workspacePageKey` by the page mount), and the workspace's pane/tab
   close paths confirm through the shared dialog before closing a dirty
   tab.
+- `workspace-dock-layout.js`: Dockview layout normalization and pruning —
+  rejects layouts the dock cannot restore, drops panels whose surface no
+  longer resolves, and collapses emptied groups.
+- `home-workspace-state.js`: Versioned home dock state (layout serialization,
+  opened surface references, sidebar state) scoped to user and organization;
+  reads a version 3 pane tree once and flattens its tabs.
+- `designer-workspace-state.js`: Versioned per-editor dock layout scoped to
+  the editor id, user, and organization.
 - `graphOutputViews.js`: The graph-output representation contract — the
   ordered views a graph output value supports (text, markdown, table,
   image, document, scene-2d, scene-3d, plugin, JSON fallback) and the

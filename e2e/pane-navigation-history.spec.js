@@ -31,7 +31,7 @@ test.describe('home workspace pane navigation', () => {
 
     // Open the type's list screen as a pane tab from the sidebar.
     await app.page.locator('.p-panelmenu-header', { hasText: 'E2E Doc' }).click({ position: { x: 80, y: 10 } });
-    const paneTabs = app.page.locator('[data-pane-header] .p-tab');
+    const paneTabs = app.page.locator('[data-home-workspace] .dv-tab');
     await expect(paneTabs.filter({ hasText: 'E2E Doc' })).toBeVisible();
     // Navigation stays discoverable: Back renders disabled until the
     // pane has history.
@@ -74,7 +74,24 @@ test.describe('home workspace pane navigation', () => {
     // independent by position) takes it over instead of appending beside
     // a dead placeholder tab.
     await app.page.locator('.p-panelmenu-header').first().click({ position: { x: 40, y: 10 } });
-    const paneTabs = app.page.locator('[data-pane-header] .p-tab');
+    const paneTabs = app.page.locator('[data-home-workspace] .dv-tab');
     await expect(paneTabs).toHaveCount(1, { timeout: 10_000 });
+  });
+
+  test('the open tab and its layout survive a reload', async ({ app }) => {
+    test.setTimeout(120_000);
+    await app.page.route('**/api/instances/**', route => route.fulfill({ json: [] }));
+    await app.gotoClient('/home');
+    await app.page.waitForLoadState('load');
+    const paneTabs = app.page.locator('[data-home-workspace] .dv-tab');
+    await app.page.locator('.p-panelmenu-header').first().click({ position: { x: 40, y: 10 } });
+    await expect(paneTabs).toHaveCount(1, { timeout: 10_000 });
+    const label = (await paneTabs.first().innerText()).trim();
+
+    await app.page.reload();
+    await app.page.waitForLoadState('load');
+    await app.page.locator('[data-home-workspace]').waitFor({ timeout: 15_000 });
+    await expect(paneTabs).toHaveCount(1, { timeout: 10_000 });
+    expect((await paneTabs.first().innerText()).trim()).toBe(label);
   });
 });
