@@ -926,7 +926,7 @@ transcription stay in the host composer.
 - **`WorkspaceDock.vue`**: Dockview wrapper shared by the home workspace
   and designer shells. Panels use one content slot (`#content` with the
   panel's key) and one tab component; the host supplies item labels,
-  icons, close rules, and optional back/add/split/close group actions.
+  icons, close rules, and optional add/split/close group actions.
   `chip-tabs` restores the home pane chrome (bordered pane boxes, chip
   tabs); `overlay` floats the dock over a host surface with a transparent
   `spacerKey` panel carrying the empty space. The exposed API covers

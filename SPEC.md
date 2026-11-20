@@ -305,8 +305,8 @@ Home workspace panes and tabs are a dockview layout (owner direction
 Users drag panels between groups and dock them to group edges; groups
 split, resize, and close. The workspace keeps its surface model:
 sidebar-driven screens, pages, calls, and chats open as panels;
-pane-local Back history, dirty-close confirmation, and per-group empty
-placeholders remain. Dock layout — group tree, sizes, tab order, active
+pane-local Back history (rendered in the hosted page header), dirty-close
+confirmation, and per-group empty placeholders remain. Dock layout — group tree, sizes, tab order, active
 group and tab — and the opened surface references persist per user and
 organization. Designer workspaces use the same dock system: palette,
 canvas, inspector, and preview are dock panels whose initial sizes derive
