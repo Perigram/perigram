@@ -1646,7 +1646,9 @@ export default function createSurface({ vue, components, locale, queries, record
       const mountAssemblyCadCraft = async () => {
         if (!isClient() || !assemblyHostContainer.value) return;
         const container = assemblyHostContainer.value;
-        if (assemblyHost && assemblyHostMountEl === container) return;
+        // The element is claimed before the awaited mount, so refires
+        // landing inside the mount window dedupe here.
+        if (assemblyHostMountEl === container) return;
         if (assemblyHost) {
           assemblyHost.destroy();
           assemblyHost = null;
