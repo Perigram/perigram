@@ -121,7 +121,8 @@ export async function describeOrganizationTypes(organizationId) {
           id: surface.id,
           url: pluginModuleUrl(install, surface.module),
           surfaceContract: surface.surfaceContract,
-          ...(surface.kind && surface.kind !== 'editor' ? { kind: surface.kind } : {})
+          ...(surface.kind && surface.kind !== 'editor' ? { kind: surface.kind } : {}),
+          ...(surface.ownsChrome ? { ownsChrome: true } : {})
         }));
       }
       // Preview bindings (M7): a type's preview slots mount the bound

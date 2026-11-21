@@ -91,7 +91,7 @@ installed plugins' records:
 | Compiled bundle | types, states, operators, derived display policy, JSON Schemas |
 | Attachment-kind payload traits | per declared kind |
 | Editor bindings | `{ type, surface, modes }` per plugin-declared type — the served half of the type→surface contract ([components/generated](../../../components/generated/README.md) maps surface ids to components) |
-| Surface declarations | `{ id, url, surfaceContract, kind? }` per installed plugin module |
+| Surface declarations | `{ id, url, surfaceContract, kind?, ownsChrome? }` per installed plugin module; `ownsChrome` marks editors whose dock renders the document identity, so record hosts mount them without a page header |
 | Preview bindings | `previews: [{ type, surface, url, surfaceContract }]`, one per type |
 | Preview channels | `previewChannels: [{ id, label, surface, url, surfaceContract }]` per plugin-declared designer preview tab (SPEC §28); channel ids are global across installs — a collision is a composition error |
 | Client runtimes | `clientRuntimes: [{ organizationId, pluginId, version, runtime, services, previewRenderers }]` for browser-capable JavaScript runtimes, operations, and the install's declared preview surfaces resolved to module URLs |

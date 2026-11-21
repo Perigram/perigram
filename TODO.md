@@ -91,6 +91,17 @@
   installed picks up the new surface declaration through the catalog
   (`node server/scripts/seed-plugin-catalog.js workers/facade/listing.json`).
 
+### Agent Notes (2026-11-21, agent/cassette-chrome — owner defect report: cassette header)
+
+- Owner report: the cassette editor still carried the record page header;
+  the `ownsChrome` declaration added to the facade listing never reached
+  the browser. `describeOrganizationTypes` projects installed surfaces
+  through a fixed allow-list, which dropped the flag. The served surface
+  shape now carries `ownsChrome`, so record hosts mount facade editors
+  flush; the cassette surface builds its own chrome api with name,
+  rename, save, and a dirty signal derived from its edit history, and
+  passes it to `DesignerWorkspace` for the file panel.
+
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
 The process designer and graph-document editor converge on one authoring
