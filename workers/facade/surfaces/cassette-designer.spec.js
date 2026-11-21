@@ -24,7 +24,9 @@ const StandardDialogStub = (props, { slots }) => (props.visible ? h('div', slots
 const renderAllSlots = (props, { slots }) => h('div', {},
   Object.values(slots || {}).map(slot => slot()));
 const DesignerWorkspaceStub = (props, { slots }) => h('div', {
-  'data-dock-canvas-items': String(props.canvasItems?.length ?? 0)
+  'data-dock-canvas-items': String(props.canvasItems?.length ?? 0),
+  'data-dock-chrome': props.chrome ? String(Boolean(props.chrome.rename)) : 'none',
+  'data-dock-chrome-name': props.chrome?.name || ''
 }, Object.values(slots || {}).map(slot => slot()));
 const DrawingCanvasStub = (props, { attrs }) => h('div', {
   'data-drawing-canvas': 'true',
@@ -66,6 +68,7 @@ describe('cassette-designer surface mount', () => {
     expect(html).toContain('cassette.v2.workpieces');
     expect(html).toContain('common.layers');
     expect(html).toContain('data-dock-canvas-items="3"');
+    expect(html).toContain('data-dock-chrome="false"');
     expect(html).not.toContain('cassette.v2.globalParameters');
     expect(html).not.toContain('data-button-icon="ck-entity-icon ck-entity-icon-bolt"');
     expect(html).not.toContain('data-input-text');
@@ -78,6 +81,8 @@ describe('cassette-designer surface mount', () => {
     const html = await renderToString(app);
     expect(html).toContain('data-designer-editable="true"');
     expect(html).toContain('data-dock-canvas-items="13"');
+    expect(html).toContain('data-dock-chrome="true"');
+    expect(html).toContain('data-dock-chrome-name="cassette.newCassette"');
     expect(html).toContain('cassette.v2.globalParameters');
     expect(html).toContain('data-button-icon="ck-entity-icon ck-entity-icon-bolt"');
     expect(html).toContain('data-input-text');
