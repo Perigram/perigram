@@ -64,6 +64,12 @@ flush to the app content boundary and do not inherit ordinary route padding or
 maximum width. The layout resolves this from the current user's screen manifest
 and the generated overload registry.
 
+A record page whose type carries an editor binding is a workspace page: it
+uses the bounded main area so the editor's dock measures and fills the
+viewport. An `ownsChrome` surface owns the page chrome as well — the desktop
+header stays off and the route drops its padding; the editor's file panel and
+the record's Back control are that page's chrome.
+
 On mobile, `app.vue` replaces the desktop header with a fixed bottom panel of
 PrimeVue tabs: one tab per stationed type screen (the home sidebar tree's top
 level through `useMobileHomeTabs`, selection shared with the home workspace's
