@@ -1,18 +1,16 @@
 <template>
-  <div class="my-2">
-    <div v-if="!result" class="text-supporting text-muted">{{ t('editors.loadingReference') }}</div>
-    <div v-else-if="result.status !== 'resolved'" class="text-supporting text-muted">{{ t('editors.linkedRecordUnavailable') }}</div>
-    <InstanceInlineRef
-      v-else
-      :type="result.typeId"
-      :id="result.instanceId"
-      :entity="entity"
-      :revision="result.mode === 'pinned' ? result.revisionId : null"
-      :fetch="false"
-      variant="compact"
-      :interactive="result.mode !== 'pinned'"
-    />
-  </div>
+  <div v-if="!result" class="text-supporting text-muted">{{ t('editors.loadingReference') }}</div>
+  <div v-else-if="result.status !== 'resolved'" class="text-supporting text-muted">{{ t('editors.linkedRecordUnavailable') }}</div>
+  <InstanceInlineRef
+    v-else
+    :type="result.typeId"
+    :id="result.instanceId"
+    :entity="entity"
+    :revision="result.mode === 'pinned' ? result.revisionId : null"
+    :fetch="false"
+    variant="compact"
+    :interactive="result.mode !== 'pinned'"
+  />
 </template>
 
 <script setup>

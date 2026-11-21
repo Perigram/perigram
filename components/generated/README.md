@@ -214,10 +214,17 @@ the `section` field set.
   mounts its own `OverlayTextBlock` → `CrepeEditor.vue` instance, and
   saved-query blocks mount `ViewEmbed.vue`, graph-output blocks mount
   `GraphOutputEmbed.vue`, and typed-reference blocks mount
-  `ReferenceEmbed.vue` as sibling components outside any editor. `DocumentSectionShell` and
+  `ReferenceEmbed.vue` as sibling components outside any editor. Blocks
+  and the trailing line ride one document rhythm — the injected spacing
+  step's `screenRoot` — and embed blocks carry no vertical margin of
+  their own. `DocumentSectionShell` and
   `OverlayInsertControl` provide the gutter plus, drag reorder, and
-  delete; the document's last text block is a real empty block, and
-  typing in it appends a fresh empty block. Insertion is contextual
+  delete; the document's trailing line is
+  [ui-mapping](../ui-mapping/README.md)'s shared `TrailingTextBlock`,
+  mounted while no block editor holds focus — the single placeholder of
+  the document. The page frame carries no typography role: every editor
+  host and read face owns its own voice, so the header, the class
+  collection, and the controls keep the interface font. Insertion is contextual
   (SPEC §27.1): the slash panel and the gutter plus carry Link to record
   and Graph result beside the block vocabulary, and each picker inserts
   at the position it was opened at. The Link to record picker offers a

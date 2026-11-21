@@ -17,12 +17,10 @@
       @request-reference="requestReference"
       @request-graph-output="requestGraphOutput"
     />
-    <!-- The idle line is the placeholder alone (owner direction
-         2026-11-13), rendered as plain document text exactly where the
-         engine's own placeholder sits: the engine mounts from the first
-         focus, so the always-on tail costs nothing until it is used.
-         The prose role rides an inner span — the preset pins the button
-         element's own font. -->
+    <!-- The idle line is the placeholder alone, rendered as plain document
+         text exactly where the engine's own placeholder sits: the engine
+         mounts from the first focus. The prose role rides the inner span —
+         the button element has no font of its own. -->
     <button
       v-else
       type="button"

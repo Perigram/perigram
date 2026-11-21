@@ -1,7 +1,7 @@
 <template>
   <div v-if="session" :class="spacing.stack" class="group/ck-doc-section relative">
     <div
-      class="absolute -left-14 top-0.5 z-10 flex w-14 items-center justify-end gap-1 pr-1 opacity-0 transition-opacity group-hover/ck-doc-section:opacity-100 focus-within:opacity-100"
+      class="absolute -left-14 top-1 z-10 flex w-14 items-center justify-end gap-1 pr-1 opacity-0 transition-opacity group-hover/ck-doc-section:opacity-100 focus-within:opacity-100"
     >
       <OverlayInsertControl :session="session" :at="index + 1" />
       <button

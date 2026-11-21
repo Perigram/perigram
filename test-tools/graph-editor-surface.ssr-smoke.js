@@ -107,7 +107,7 @@ describe('graph editor surface SSR smoke', () => {
     await firstSave;
 
     expect(saves).toHaveLength(1);
-    expect(saves[0]).toMatchObject({ created: true, filename: 'First graph.json' });
+    expect(saves[0]).toMatchObject({ created: true, filename: 'First graph.perigram-graph' });
     const firstPayload = JSON.parse(saves[0].payload);
     expect(firstPayload.name).toBe('First graph');
     expect(firstPayload.format).toBe('perigram.graph');
@@ -117,7 +117,7 @@ describe('graph editor surface SSR smoke', () => {
     expect(pageChrome.api.dirty).toBe(true);
     await pageChrome.api.save();
     expect(saves).toHaveLength(2);
-    expect(saves[1]).toMatchObject({ created: false, filename: 'First graph.json' });
+    expect(saves[1]).toMatchObject({ created: false, filename: 'First graph.perigram-graph' });
     const secondPayload = JSON.parse(saves[1].payload);
     expect(secondPayload.id).toBe(firstPayload.id);
     expect(secondPayload.revision).not.toBe(firstPayload.revision);

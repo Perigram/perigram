@@ -232,7 +232,10 @@ application.
   text as a block and leaves a fresh empty line, and
   Backspace in its empty line resumes the document's last text block. It
   is the document's single placeholder: empty text blocks render nothing
-  and drop when their editor closes. The record's own
+  and drop when their editor closes. `TrailingTextBlock` is the one
+  mount; the custom page
+  ([generated](../generated/README.md)) renders the same component over
+  its page session. The record's own
   field edits
   stay on the inline-pencil channel. User space autosaves: a dirty
   overlay writes itself after 1.5s idle through the same save seam

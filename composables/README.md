@@ -116,8 +116,10 @@ editing state, the block pickers' open positions (view, link-to-record,
 graph result — each pick inserts at its opened position), autosave
 through `stores/pages.js`, and the workspace dirty registry. Text blocks mount
 `OverlayTextBlock` editors; collection blocks mount `ViewEmbed` as
-siblings, outside every editor. The document always ends with one empty
-text block; typing in it appends a fresh empty block.
+siblings, outside every editor. The seed drops trailing empty text
+blocks; the trailing line is the shared `TrailingTextBlock`
+([ui-mapping](../components/ui-mapping/README.md)), and `appendTextBlock`
+serves its commits.
 
 ---
 

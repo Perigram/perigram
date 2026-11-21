@@ -7,7 +7,7 @@
          no comments entry. Header, collection, and document share one
          surface frame (SPEC §27.1). -->
     <div
-      class="text-prose min-h-0 flex-1 overflow-y-auto"
+      class="min-h-0 flex-1 overflow-y-auto"
       :aria-label="t('pages.page')"
     >
       <div :class="[LAYOUT.measure, 'flex flex-col']">
@@ -45,7 +45,7 @@
           keep-empty-lists
           @open-instance="openClassInstance"
         />
-        <div v-if="session.loaded" class="flex w-full flex-col gap-2">
+        <div v-if="session.loaded" :class="[spacing.screenRoot, 'w-full']">
           <DocumentSectionShell
             v-for="(key, index) in session.order"
             :key="key"
@@ -58,7 +58,6 @@
               v-if="session.blockByKey(key)?.kind === 'text'"
               :block="session.blockByKey(key)"
               :session="session"
-              :placeholder="session.isTrailingBlock(key) ? t('editors.slashHint') : ''"
             />
             <ViewEmbed
               v-else-if="session.blockByKey(key)?.kind === 'view'"
@@ -85,6 +84,7 @@
               :resolution="referenceByBlockId[key] || null"
             />
           </DocumentSectionShell>
+          <TrailingTextBlock :session="session" />
         </div>
       </div>
     </div>
@@ -116,6 +116,7 @@ import Button from 'primevue/button';
 import SurfaceHeader from '~/components/ui-mapping/SurfaceHeader.vue';
 import DocumentSectionShell from '~/components/ui-mapping/DocumentSectionShell.vue';
 import OverlayTextBlock from './OverlayTextBlock.vue';
+import TrailingTextBlock from './TrailingTextBlock.vue';
 import ViewEmbed from './ViewEmbed.vue';
 import PageFileEmbed from './PageFileEmbed.vue';
 import ReferenceEmbed from './ReferenceEmbed.vue';
@@ -143,7 +144,8 @@ const authStore = useAuthStore();
 const fileTypeView = useFileTypeView();
 const tabKey = inject('workspacePageKey', '');
 const session = usePageDocumentSession({ docId: computed(() => props.docId), tabKey });
-provide('uiMappingSpacing', reactive(spacingClasses(1)));
+const spacing = spacingClasses(1);
+provide('uiMappingSpacing', reactive(spacing));
 
 const classEditorOpen = ref(false);
 const referenceResults = ref([]);
