@@ -274,7 +274,7 @@ const {
   loadDocument,
   loadEmpty,
   serializeGraph,
-  designerSignature,
+  draftSignature,
   refreshPreview,
   setGraphInputBinding,
   registerNodeProvider
@@ -283,7 +283,7 @@ const {
 // The server-rendered boot state is the initial saved baseline; async
 // payload hydration may replace it on mount, but must not mark a new
 // editor dirty before the first user edit.
-savedSignature.value = designerSignature();
+if (typeof draftSignature === 'function' && graphDocument?.value) savedSignature.value = draftSignature();
 
 const defaultCanvasItems = computed(() => [
   { icon: 'pi pi-search-minus', label: t('drawing.zoomOut'), onClick: zoomCanvasOut },
@@ -294,35 +294,15 @@ const defaultCanvasItems = computed(() => [
 ]);
 const activeCanvasItems = computed(() => props.canvasItems || defaultCanvasItems.value);
 
-// A drag marks the draft dirty immediately; the whole-graph signature
-// comparison settles once the interaction stops, so no frame serializes
-// the graph.
-const dirty = ref(false);
-let dirtyTimer = null;
-function settleDirty() {
-  dirtyTimer = null;
-  dirty.value = !readOnly.value
-    && Boolean(graphDocument?.value)
-    && designerSignature() !== savedSignature.value;
-}
+// The dirty check compares the persisted draft shape: one pass over the
+// canvas with no graph normalization, so no drag frame re-validates the
+// graph.
+const dirty = computed(() => !readOnly.value
+  && Boolean(graphDocument?.value)
+  && draftSignature() !== savedSignature.value);
 function markSaved() {
-  savedSignature.value = designerSignature();
-  dirty.value = false;
-  if (dirtyTimer) clearTimeout(dirtyTimer);
-  dirtyTimer = null;
+  savedSignature.value = draftSignature();
 }
-watch(
-  () => [nodes.value, edges.value, graphDocument?.value],
-  () => {
-    dirty.value = true;
-    if (dirtyTimer) clearTimeout(dirtyTimer);
-    dirtyTimer = setTimeout(settleDirty, 150);
-  },
-  { deep: true }
-);
-onBeforeUnmount(() => {
-  if (dirtyTimer) clearTimeout(dirtyTimer);
-});
 const graphConsumers = computed(() => graphInvocationConsumers(
   graphDocuments.value,
   String(graphDocument?.value?.id || '')

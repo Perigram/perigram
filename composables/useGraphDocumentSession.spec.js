@@ -1029,4 +1029,22 @@ describe('useGraphDocumentSession', () => {
     expect(caller.nodes.value.find(item => item.id === node.id).data.label).toBe('Renamed graph');
   });
 
+  it('projects the persisted draft shape for the dirty baseline', () => {
+    const session = createSession();
+    const [input] = session.paletteGroups.value[0].items;
+    const node = session.addNode(input, { x: 0, y: 0 });
+    const baseline = session.draftSignature();
+
+    session.nodes.value = session.nodes.value.map(item => (
+      item.id === node.id ? { ...item, position: { x: 40, y: 20 } } : item
+    ));
+    const moved = session.draftSignature();
+    expect(moved).not.toBe(baseline);
+
+    session.nodes.value = session.nodes.value.map(item => (
+      item.id === node.id ? { ...item, data: { ...item.data, groupLabel: 'Derived' } } : item
+    ));
+    expect(session.draftSignature()).toBe(moved);
+  });
+
 });

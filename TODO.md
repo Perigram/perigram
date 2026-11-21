@@ -44,7 +44,7 @@
 ### Agent Notes (2026-11-21, agent/graph-editor-polish-20261121-1904)
 
 - Validation, node definitions, and derived ports update through one authoring signature (declared interface + node operation/config + edges); position and selection are outside it, so drags and selection churn re-run nothing. `useGraphDocumentSession.spec.js` pins the cached-validation behavior.
-- The editor's dirty marker marks immediately and compares the whole-graph signature once the interaction settles (150 ms).
+- The editor's dirty marker compares the persisted draft shape (positions included) in one pass through the session's `draftSignature`, with no graph normalization.
 - Use Graph entries ride the `graph-boundary` palette section; a placed invocation card resolves its label from the catalog record's stored `graphId` and re-enriches when the catalog loads or renames.
 - Boundary interface controls commit on edit; a graph pinned by other readable graph documents lists those consumers in the inspector.
 - `perigram.scene-3d` outputs mount the shared interactive `Scene3DViewer` (pointer orbit, wheel zoom); projection math is the pure `utils/scene3d.js`.

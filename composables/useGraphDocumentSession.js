@@ -830,6 +830,32 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
 
   const contextPaletteGroups = computed(() => paletteGroups.value);
 
+  // The dirty baseline's projection: the same persisted shape serializeGraph
+  // writes, without graph normalization — comparing two drafts costs one
+  // pass, so a drag frame never re-validates the graph.
+  function draftSignature() {
+    return JSON.stringify({
+      format: graphDocument.value.format,
+      version: graphDocument.value.version,
+      id: graphDocument.value.id,
+      revision: graphDocument.value.revision,
+      name: graphDocument.value.name,
+      interface: graphDocument.value.interface || {},
+      nodes: nodes.value.map(node => ({
+        id: node.id,
+        operation: node.data?.operation,
+        config: node.data?.config || {},
+        position: { x: Number(node.position?.x || 0), y: Number(node.position?.y || 0) }
+      })),
+      edges: edges.value.map(edge => ({
+        id: edge.id,
+        source: { node: edge.source, port: edge.sourceHandle },
+        target: { node: edge.target, port: edge.targetHandle },
+        ...(edge.kind ? { kind: edge.kind } : {}),
+        ...(edge.metadata ? { metadata: edge.metadata } : {})
+      }))
+    });
+  }
   // The authoring signature: everything validation and node definitions
   // read, with presentation (position, selection) excluded — drags and
   // selection churn never re-run the passes. Identical derived rewrites
@@ -881,8 +907,7 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
       return Object.fromEntries(providerPreviewRenderers);
     }),
     nodeDefinitions,
-    contextPaletteGroups,
-    contextPalette,
+    contextPaletteGroups,    contextPalette,
     contextPaletteSearch,
     selectedNode: selection.selectedNode,
     selectedBoundaryDeclaration,
@@ -922,6 +947,7 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     loadEmpty,
     serializeGraph,
     designerSignature,
+    draftSignature,
     refreshPreview,
     setGraphInputBinding,
     registerProvider,
