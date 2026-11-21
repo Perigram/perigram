@@ -9,6 +9,7 @@ import {
   createProcessProceduralNodeResolver,
   createProcessGraphNodeResolver,
   createProcessGraphNodeDefinition,
+  processNodeConfigurationSchema,
   registerProcessProceduralNodes,
   registerProcessGraphNodes,
   PROCESS_PROCEDURAL_PROVIDER,
@@ -16,6 +17,26 @@ import {
 } from './procedural-provider.js';
 
 describe('process procedural provider adapter', () => {
+
+  it('declares authored configuration so the graph inspector renders node settings', () => {
+    const literal = createProcessGraphNodeDefinition('source.literalItem');
+    expect(literal.configuration.properties.value).toMatchObject({ type: 'string', default: null });
+    expect(literal.configuration.default).toMatchObject({ kind: 'source.literalItem', value: null });
+
+    const math = createProcessGraphNodeDefinition('value.math');
+    expect(math.configuration.properties.operation.enum).toContain('add');
+    expect(math.configuration.default).toMatchObject({ kind: 'value.math', operation: math.configuration.properties.operation.default });
+    expect(math.configuration.default.operation).toBeTruthy();
+
+    const sort = createProcessGraphNodeDefinition('collection.sort');
+    expect(sort.configuration.properties.direction.enum).toEqual(['asc', 'desc']);
+    expect(sort.configuration.properties.operation).toBeUndefined();
+
+    expect(processNodeConfigurationSchema('value.convertUnit').properties).toMatchObject({
+      fromUnit: { type: 'string' },
+      toUnit: { type: 'string' }
+    });
+  });
 
   it('registers only preview-safe process nodes in the shared provider registry', () => {
     const definitions = new Map();

@@ -146,6 +146,7 @@ export {
   createProcessGraphNodeResolver,
   createProcessProceduralNodeResolver,
   createProcessProceduralExecutor,
+  processNodeConfigurationSchema,
   registerProcessProceduralNodes,
   registerProcessGraphNodes
 } from './procedural-provider.js';
