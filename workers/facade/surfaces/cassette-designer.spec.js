@@ -142,6 +142,13 @@ describe('cassette designer native host mount', () => {
       hostRef(second);
       await new Promise(resolve => setTimeout(resolve, 0));
       expect(hostMounts, 'a replaced container mounts a fresh host').toEqual([first, second]);
+
+      hostRef(null);
+      hostRef(first);
+      hostRef(first);
+      hostRef(first);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(hostMounts, 'refires inside the mount window mount one host').toEqual([first, second, first]);
     } finally {
       global.window = previousWindow;
     }

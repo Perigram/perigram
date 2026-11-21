@@ -159,6 +159,16 @@
   installed org's v49 `cassette-designer.mjs` byte-matched the fix's
   parent commit. The listing now publishes facade v50; orgs upgrade
   through the Plugins page.
+- Live verification on a throwaway v50 org showed re-renders refiring
+  the container ref inside the mount window stack several CadCraft
+  hosts; the mount guard now dedupes on the claimed container element
+  for the whole mount window.
+- Separate finding, unfixed here: tech-drawing's catalog release stages
+  four files and omits its declared `cadcraft` dependency module, so
+  installs that materialize tech-drawing package assets get a 404 on the
+  cross-plugin import and the cassette surface refuses to load; installs
+  in executor mode (the owner's) stream it from the tech-drawing
+  executor and work.
 
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
