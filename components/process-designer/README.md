@@ -519,8 +519,8 @@ marker is attention, never a persistence gate. Re-activation records the
 superseded graph in the definition's history. New Draft, Save, and Apply
 run independent of node selection or inspector tab.
 
-The graphs list is the file/lifecycle home (SPEC §28.14) and stays mounted in
-both editor mounts, including an open graph document. Process definitions render as a `Listbox` in the
+The right pane owns the graphs list (the Graphs tab, the file/lifecycle
+home — SPEC §28.14). Process definitions render as a `Listbox` in the
 chats-inbox anatomy: each option is one line — the name
 (option click loads the definition into the designer; inline rename swaps
 the name span for an input), the activation switch (on = member of the
@@ -727,8 +727,7 @@ nodes, which show no inspection action.
 
 ## Structure
 
-21 SFCs at folder root — the graphs list shared by both editor mounts
-(`GraphDocumentsList.vue`), canvas nodes (`ProcessNode.vue` — the one
+20 SFCs at folder root — canvas nodes (`ProcessNode.vue` — the one
 operation card; `GraphDocumentNode.vue` — its graph-document adapter;
 `CtsTypeNode.vue`),
 the shared canvas presentation (`GraphCanvas.vue`), the graph-document

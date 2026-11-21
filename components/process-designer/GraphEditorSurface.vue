@@ -47,7 +47,6 @@
       <template v-if="!readOnly" #inspector>
         <slot v-if="$slots.inspector" name="inspector" />
         <div v-else class="flex h-full min-h-0 flex-col overflow-y-auto p-3">
-          <slot name="inspector-extra" />
           <GraphDocumentInspector
             :node="selectedNode"
             :type-options="graphTypeOptions"

@@ -160,8 +160,7 @@ service. Flow exposes conditional and bounded control operations.
 The route uses the authenticated app layout with a full canvas workspace
 — the page is the `graph-editor` file surface, so graph files and blank
 graph creation open here with that graph loaded; every blank creation gets
-a new editor session key. The graphs list stays mounted while a graph document
-is open — and the shared
+a new editor session key — and the shared
 `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell — the app's
 shared chrome tokens alone. Document and canvas commands render in the
 shell's floating PrimeVue
