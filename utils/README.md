@@ -30,6 +30,11 @@ Parent: [root README](../README.md).
   plain structured-cloneable data, so it crosses Worker and channel
   mounts unchanged; the scene-2d/scene-3d host projections and plugin
   preview surfaces (the demo engine's mesh channel) are its renderers.
+- `scene3d.js`: `projectScene3d(value, { yaw, pitch, zoom, width, height })`
+  — the host's orbit projection for `perigram.scene-3d` values: validates
+  vertex and face indexes, fits the scene, sorts faces back-to-front, and
+  derives edges from face loops when none are declared. The shared
+  `Scene3DViewer` component owns the gestures; this module owns the math.
 - `instance-hierarchy.js`: The containment walk — ancestor refs carry the
   declaration's canonical type id so breadcrumb labels, glyphs, and popup
   targets resolve through the served type view.

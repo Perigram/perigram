@@ -377,6 +377,15 @@ readable. `fill` opts a host-owned fixed-height band in (DrawingCanvas
 `fill`): the canvas drops its own frame and fills the band, so exactly one
 surface — the host's — frames the preview.
 
+### `Scene3DViewer.vue`
+The host's interactive 3D viewer for `perigram.scene-3d` graph values
+(`{ representation, vertices: [[x,y,z]], faces: [[i,...]], edges? }`).
+Pointer drag orbits, wheel zooms (`0.4x`–`4x`), double-click restores the
+default view; faces paint back-to-front as a solid wireframe. Projection
+math is the pure `utils/scene3d.js` `projectScene3d`, which validates
+vertex/face indexes and derives edges from face loops when none are
+declared.
+
 ### `FileChip.vue`
 The app's one file chip (SPEC §22.8): the file's name, its file-type
 glyph from the generated file-type icon family, the bordered subtle chip,

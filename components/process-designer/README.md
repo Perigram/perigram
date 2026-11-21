@@ -69,12 +69,18 @@ the explicit fallback view. `GraphOutputView.vue` is the one value
 renderer every preview surface composes — the selected output renders
 its best supported view by default (JSON is an explicit choice), and the
 outputs channel selects one evaluated output first with the per-node
-listing as collapsed diagnostics. The graph editor's preview panel leads
-with the selected output; input bindings and Bake follow it.
+listing as collapsed diagnostics. A `perigram.scene-3d` value mounts the
+shared interactive `Scene3DViewer` ([components/shared](../shared/README.md)):
+pointer-drag orbit, wheel zoom, and a back-to-front face sort. The graph
+editor's preview panel leads with the selected output; input bindings and
+Bake follow it.
 
 The inspector renders node configuration properties from each
 definition's JSON schema and edits graph interface transport shape,
-semantic base/kind/nullability, required status, and optional defaults. The
+semantic base/kind/nullability, required status, and optional defaults.
+Boundary declarations commit on each control edit. When another readable
+graph document pins the edited graph, the inspector names the consuming
+graphs whose pinned interface snapshots the edit desynchronizes. The
 process adapter's schema for its operations is owned by
 [packages/processes](../../packages/processes/README.md); plugin services
 declare theirs in their listings. A `perigram.typed-value` contribution
@@ -661,8 +667,10 @@ serialize that same format through the instance payload transport. With a
 supplied `session` it renders that host's canvas bindings and its
 `inspector`, `preview`, and `lane` slots; the process page supplies the
 process profile and its tabs. Provider contracts supply node sockets and
-the graph-specific inspector edits JSON configuration and boundary labels. Graph Input, Graph Output, and a distinct Use Graph
-palette group are exposed. Preview invokes the core procedural evaluator
+the graph-specific inspector edits JSON configuration and boundary labels.
+Graph Input, Graph Output, and the reusable-graph invocations share the
+graph-boundary palette section; a placed invocation card names the invoked
+graph. Preview invokes the core procedural evaluator
 with registered process data-node adapters; the preview panel accepts
 JSON graph-input bindings and displays graph outputs plus per-node outputs.
 The canvas activity indicator opens the preview region directly. Preview

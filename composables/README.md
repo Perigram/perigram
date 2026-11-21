@@ -48,10 +48,19 @@ Every registered operation must declare `palette.group`; the host does not infer
 
 The `graphDocuments` input is the authorized catalog projection from the
 graph workspace. Each available entry carries its validated payload as
-`graph`; the dedicated Use Graph palette group places an invocation already
-pinned to that graph identity, immutable revision, and public interface.
-The current graph is excluded from its own palette. A blank graph enters the
-palette after its first save and catalog refresh.
+`graph`; reusable-graph entries ride the graph-boundary palette section
+beside Graph Input/Output and place an invocation already pinned to that
+graph identity, immutable revision, and public interface. An invocation
+card names the invoked graph, resolved from the catalog record's stored
+`graphId` with the generic operation name as fallback. The current graph
+is excluded from its own palette. A blank graph enters the palette after
+its first save and catalog refresh.
+
+Validation, node definitions, and derived ports update through one
+authoring signature: node identity/operation/config, edges, and the
+declared interface. Position and selection are outside the signature, so
+drags and selection churn re-run neither validation nor definition
+resolution; identical derived rewrites keep the signature unchanged.
 
 `useGraphDocumentCatalog({ withPayloads })` is the one catalog fetch both
 consumers share: the graphs list on the process page (names and ids) and
